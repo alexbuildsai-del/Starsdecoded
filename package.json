@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "vercel-build": "pnpm run build:web",
     "build:web": "pnpm --filter @workspace/astra run build",
     "build:api": "pnpm --filter @workspace/api-server run build",
     "dev:web": "pnpm --filter @workspace/astra run dev",
