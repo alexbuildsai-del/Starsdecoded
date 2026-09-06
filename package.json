@@ -1,0 +1,27 @@
+{
+  "name": "starsdecoded",
+  "version": "0.0.0",
+  "license": "MIT",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build:web": "pnpm --filter web run build",
+    "build:api": "pnpm --filter api-server run build",
+    "dev:web": "pnpm --filter web run dev",
+    "dev:api": "pnpm --filter api-server run dev",
+    "dev:mobile": "pnpm --filter mobile run start",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "db:push": "pnpm --filter db run push",
+    "db:seed": "pnpm --filter @workspace/scripts run seed:meanings"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "prettier": "^3.8.1"
+  }
+}
