@@ -9,15 +9,18 @@
   },
   "scripts": {
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "build:web": "pnpm --filter web run build",
-    "build:api": "pnpm --filter api-server run build",
-    "dev:web": "pnpm --filter web run dev",
-    "dev:api": "pnpm --filter api-server run dev",
+    "vercel-build": "pnpm run build:web",
+    "build:web": "pnpm --filter @workspace/astra run build",
+    "build:api": "pnpm --filter @workspace/api-server run build",
+    "dev:web": "pnpm --filter @workspace/astra run dev",
+    "dev:api": "pnpm --filter @workspace/api-server run dev",
     "dev:mobile": "pnpm --filter mobile run start",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
-    "db:push": "pnpm --filter db run push",
+    "db:push": "pnpm --filter @workspace/db run push",
+    "db:migrate": "pnpm --filter @workspace/db run migrate",
+    "db:bootstrap": "./scripts/bootstrap-db.sh",
     "db:seed": "pnpm --filter @workspace/scripts run seed:meanings"
   },
   "devDependencies": {

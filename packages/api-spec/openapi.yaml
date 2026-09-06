@@ -1,0 +1,1697 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Astra Natal Chart Report API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: reports
+    description: Natal chart report operations
+  - name: meaning-library
+    description: Pre-generated meaning library (admin)
+  - name: profiles
+    description: Person/profile management ("My People")
+  - name: synastry
+    description: Two-person relationship (synastry) reports
+  - name: invites
+    description: Invite & claim flow for sharing a synastry report with the other person
+  - name: credits
+    description: Credit balance for report generation
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List all reports
+      description: Returns all reports visible to the viewer — both natal reports and synastry (compatibility) reports. Use the `kind` discriminator to distinguish.
+      responses:
+        "200":
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportSummary"
+    post:
+      operationId: createReport
+      tags: [reports]
+      summary: Create a new natal chart report
+      description: Accepts birth data, computes the natal chart, and starts AI interpretation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportBody"
+      responses:
+        "201":
+          description: Report created and generation started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportSummary"
+        "400":
+          description: Invalid birth data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reports/{id}:
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: Get a report by ID
+      description: Returns a complete natal chart report including chart data and AI interpretation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reports/{id}/status:
+    get:
+      operationId: getReportStatus
+      tags: [reports]
+      summary: Get report generation status
+      description: Poll for the current generation status of a report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Report status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportStatus"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /meaning-library/stats:
+    get:
+      operationId: getMeaningLibraryStats
+      tags: [meaning-library]
+      summary: Get coverage stats for the meaning library
+      parameters:
+        - $ref: "#/components/parameters/AdminKey"
+      responses:
+        "200":
+          description: Coverage stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeaningLibraryStats"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /meaning-library:
+    get:
+      operationId: listMeaningLibraryEntries
+      tags: [meaning-library]
+      summary: List meaning library entries
+      parameters:
+        - $ref: "#/components/parameters/AdminKey"
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [planet_sign, planet_house, aspect]
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Paginated list of entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeaningLibraryListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /meaning-library/{kind}/{key}:
+    put:
+      operationId: updateMeaningLibraryEntry
+      tags: [meaning-library]
+      summary: Replace the payload of a meaning library entry
+      parameters:
+        - $ref: "#/components/parameters/AdminKey"
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [planet_sign, planet_house, aspect]
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+                  additionalProperties: true
+              required: [payload]
+      responses:
+        "200":
+          description: Updated entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeaningLibraryEntry"
+        "404":
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMeaningLibraryEntry
+      tags: [meaning-library]
+      summary: Delete a meaning library entry
+      parameters:
+        - $ref: "#/components/parameters/AdminKey"
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [planet_sign, planet_house, aspect]
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                  id:
+                    type: string
+                required: [deleted, id]
+        "404":
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles:
+    get:
+      operationId: listProfiles
+      tags: [profiles]
+      summary: List the viewer's people (profiles)
+      responses:
+        "200":
+          description: List of profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileSummary"
+    post:
+      operationId: createProfile
+      tags: [profiles]
+      summary: Create or de-dupe-resolve a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileBody"
+      responses:
+        "201":
+          description: Profile created or matched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileSummary"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/{id}:
+    patch:
+      operationId: updateProfile
+      tags: [profiles]
+      summary: Update mutable profile fields
+      description: >
+        Allows the owner to update mutable profile fields.
+        Currently supports toggling `isSelf`. Setting `isSelf=true` automatically
+        clears any other self-profile for the same user (one per user invariant).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: Updated profile summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileSummary"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the owner of this profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /relationships:
+    post:
+      operationId: createRelationship
+      tags: [synastry]
+      summary: Create a relationship between two people
+      description: Idempotent on the participant pair — re-posting returns the existing relationship.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRelationshipBody"
+      responses:
+        "200":
+          description: Existing relationship returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipCreateResponse"
+        "201":
+          description: New relationship created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipCreateResponse"
+        "400":
+          description: Validation error
+        "404":
+          description: Profiles not owned by viewer
+    get:
+      operationId: listRelationships
+      tags: [synastry]
+      summary: List the viewer's relationships
+      responses:
+        "200":
+          description: List of relationships with participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RelationshipSummary"
+
+  /relationships/{id}:
+    get:
+      operationId: getRelationship
+      tags: [synastry]
+      summary: Get a relationship by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Relationship with participants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipSummary"
+        "404":
+          description: Not found
+
+  /synastry:
+    post:
+      operationId: createSynastryReport
+      tags: [synastry]
+      summary: Create a synastry (two-person) report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSynastryBody"
+      responses:
+        "201":
+          description: Synastry report created and generation started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SynastryCreateResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: A profile was not owned by the viewer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /synastry/{id}:
+    get:
+      operationId: getSynastryReport
+      tags: [synastry]
+      summary: Get a synastry report by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: false
+          description: Optional signed invite token granting viewer access to a non-owner.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Synastry report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SynastryReport"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /synastry/{id}/status:
+    get:
+      operationId: getSynastryReportStatus
+      tags: [synastry]
+      summary: Poll synastry report status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: false
+          description: Optional signed invite token granting viewer access to a non-owner.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SynastryStatus"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /credits:
+    get:
+      operationId: getCredits
+      tags: [credits]
+      summary: Get the current user's credit counts
+      description: Returns available and used credit counts by type for the signed-in user. Returns all zeros for anonymous users.
+      responses:
+        "200":
+          description: Credit counts by type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditCounts"
+
+  /invites:
+    get:
+      operationId: listInvites
+      tags: [invites]
+      summary: List active invites for a profile owned by the current viewer
+      description: |
+        Returns all unclaimed, unexpired invite tokens for the given profile.
+        The caller must own the profile (i.e. be the owner by userId or sessionId).
+        Ownership is the effective gate — all active invites for the profile are
+        returned regardless of which session originally created them.
+      parameters:
+        - name: profileId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Filter invites to those belonging to this profile
+      responses:
+        "200":
+          description: List of active invite records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InviteRecord"
+        "403":
+          description: Not the owner of the profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createInvite
+      tags: [invites]
+      summary: Create an invite token and send the claim email
+      description: Generates a single-use signed token tied to a profile (and optional relationship) and emails it to the recipient.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInviteBody"
+      responses:
+        "201":
+          description: Invite created and email queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteSummary"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller is not the owner of the profile/relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Profile is already claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /invites/{token}:
+    get:
+      operationId: getInvite
+      tags: [invites]
+      summary: Resolve an invite token to its preview metadata
+      description: |
+        Public endpoint used by the claim landing page to render the invite
+        without requiring sign-in. A token that has already been claimed is
+        still resolvable (so the landing page can show a "this invite was
+        already accepted" state) and is signaled by `alreadyClaimed: true`
+        in the response body. Tokens that do not exist or have expired
+        return 404.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invite preview (may be already-claimed; check `alreadyClaimed`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitePreview"
+        "404":
+          description: Token not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /invites/{token}/claim:
+    post:
+      operationId: claimInvite
+      tags: [invites]
+      summary: Claim an invite as the signed-in user
+      description: Requires Clerk authentication. Marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invite claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteClaimResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Token not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /geocode:
+    get:
+      operationId: geocodePlace
+      tags: [reports]
+      summary: Geocode a place name to coordinates
+      description: Converts a city/place name to latitude, longitude, and timezone
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Place name to geocode
+      responses:
+        "200":
+          description: Geocoded place candidates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeocodeSearchResponse"
+        "404":
+          description: Place not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  parameters:
+    AdminKey:
+      name: x-admin-key
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Shared-secret admin key. May also be passed as `?key=`.
+
+  schemas:
+    MeaningLibraryStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        byKind:
+          type: object
+          properties:
+            planet_sign:
+              type: integer
+            planet_house:
+              type: integer
+            aspect:
+              type: integer
+          required: [planet_sign, planet_house, aspect]
+      required: [total, byKind]
+
+    MeaningLibraryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [planet_sign, planet_house, aspect]
+        key:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        promptVersion:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, kind, key, payload, promptVersion, createdAt, updatedAt]
+
+    MeaningLibraryListResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeaningLibraryEntry"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [entries, total, limit, offset]
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    CreateReportBody:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the person
+        birthDate:
+          type: string
+          description: Birth date in YYYY-MM-DD format
+        birthTime:
+          type: string
+          description: Birth time in HH:MM format (24h)
+        birthPlace:
+          type: string
+          description: Birth place name (e.g. "Milan, Italy")
+        latitude:
+          type: number
+          description: Latitude of birth place
+        longitude:
+          type: number
+          description: Longitude of birth place
+        timezoneOffset:
+          type: number
+          description: UTC offset in hours (e.g. 1 for CET)
+        isForSelf:
+          type: boolean
+          description: >
+            When true, the profile created (or resolved) for this report is
+            explicitly flagged as the submitter's own self-profile. The server
+            sets `isSelf=true` on the profile row. Only one self-profile per
+            user is intended; this should only be sent from the "Generate My
+            Chart" flow, not the "Add a Person" flow.
+      required:
+        - name
+        - birthDate
+        - birthTime
+        - birthPlace
+        - latitude
+        - longitude
+        - timezoneOffset
+
+    ReportSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [natal, synastry]
+          description: Discriminator for the kind of report. Natal rows describe a single profile; synastry rows describe a relationship between two profiles.
+        name:
+          type: string
+          description: Display name. For natal, the profile's name. For synastry, a joined label like "Alice · Bob".
+        birthDate:
+          type: string
+          description: Only set for natal reports.
+        birthTime:
+          type: string
+          description: Only set for natal reports.
+        birthPlace:
+          type: string
+          description: Only set for natal reports.
+        status:
+          type: string
+          enum: [pending, computing, interpreting, complete, failed]
+        archetypeName:
+          type: string
+          nullable: true
+        sunSign:
+          type: string
+          nullable: true
+        moonSign:
+          type: string
+          nullable: true
+        risingSign:
+          type: string
+          nullable: true
+        profileId:
+          type: string
+          nullable: true
+          description: Profile ID for natal reports. Null for synastry reports.
+        relationshipId:
+          type: string
+          nullable: true
+          description: Set for synastry reports.
+        relationshipType:
+          type: string
+          nullable: true
+          description: Relationship type (romantic, parent_child, sibling, custom). Set for synastry reports.
+        participants:
+          type: array
+          description: Participant summaries. Set for synastry reports.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              sunSign:
+                type: string
+                nullable: true
+              moonSign:
+                type: string
+                nullable: true
+              risingSign:
+                type: string
+                nullable: true
+            required:
+              - id
+              - name
+        createdAt:
+          type: string
+      required:
+        - id
+        - kind
+        - name
+        - status
+        - createdAt
+
+    ReportStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, computing, interpreting, complete, failed]
+        progress:
+          type: number
+          description: Progress percentage 0-100
+        currentStep:
+          type: string
+          nullable: true
+          description: Human-readable current step description
+        errorMessage:
+          type: string
+          nullable: true
+      required:
+        - id
+        - status
+        - progress
+
+    PlanetPosition:
+      type: object
+      properties:
+        sign:
+          type: string
+        degree:
+          type: number
+        absoluteDegree:
+          type: number
+        house:
+          type: integer
+        retrograde:
+          type: boolean
+        speed:
+          type: number
+      required:
+        - sign
+        - degree
+        - absoluteDegree
+        - house
+        - retrograde
+        - speed
+
+    Angle:
+      type: object
+      properties:
+        sign:
+          type: string
+        degree:
+          type: number
+        absoluteDegree:
+          type: number
+      required:
+        - sign
+        - degree
+        - absoluteDegree
+
+    Aspect:
+      type: object
+      properties:
+        planet1:
+          type: string
+        planet2:
+          type: string
+        type:
+          type: string
+        orb:
+          type: number
+        applying:
+          type: boolean
+      required:
+        - planet1
+        - planet2
+        - type
+        - orb
+        - applying
+
+    ChartData:
+      type: object
+      properties:
+        datetimeUtc:
+          type: string
+        julianDay:
+          type: number
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezoneOffset:
+          type: number
+        planets:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/PlanetPosition"
+        angles:
+          type: object
+          properties:
+            ascendant:
+              $ref: "#/components/schemas/Angle"
+            midheaven:
+              $ref: "#/components/schemas/Angle"
+            descendant:
+              $ref: "#/components/schemas/Angle"
+            ic:
+              $ref: "#/components/schemas/Angle"
+          required:
+            - ascendant
+            - midheaven
+            - descendant
+            - ic
+        houses:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              sign:
+                type: string
+              degree:
+                type: number
+            required:
+              - sign
+              - degree
+        aspects:
+          type: array
+          items:
+            $ref: "#/components/schemas/Aspect"
+        elements:
+          type: object
+          properties:
+            fire:
+              type: integer
+            earth:
+              type: integer
+            air:
+              type: integer
+            water:
+              type: integer
+          required:
+            - fire
+            - earth
+            - air
+            - water
+        modalities:
+          type: object
+          properties:
+            cardinal:
+              type: integer
+            fixed:
+              type: integer
+            mutable:
+              type: integer
+          required:
+            - cardinal
+            - fixed
+            - mutable
+        dominance:
+          type: object
+          properties:
+            dominantPlanets:
+              type: array
+              items:
+                type: string
+            dominantElement:
+              type: string
+            dominantModality:
+              type: string
+          required:
+            - dominantPlanets
+            - dominantElement
+            - dominantModality
+        chartShape:
+          type: string
+          nullable: true
+        hemisphereEmphasis:
+          type: object
+          properties:
+            northern:
+              type: integer
+            southern:
+              type: integer
+            eastern:
+              type: integer
+            western:
+              type: integer
+          required:
+            - northern
+            - southern
+            - eastern
+            - western
+      required:
+        - datetimeUtc
+        - julianDay
+        - latitude
+        - longitude
+        - timezoneOffset
+        - planets
+        - angles
+        - houses
+        - aspects
+        - elements
+        - modalities
+        - dominance
+
+    ReportInterpretation:
+      type: object
+      properties:
+        archetypeName:
+          type: string
+        archetypeSummary:
+          type: string
+        keyThemes:
+          type: array
+          items:
+            type: string
+        coreTriad:
+          type: object
+          properties:
+            identity:
+              type: string
+            emotionalLife:
+              type: string
+            outwardManner:
+              type: string
+            synthesis:
+              type: string
+          required:
+            - identity
+            - emotionalLife
+            - outwardManner
+            - synthesis
+        relationships:
+          type: string
+        career:
+          type: string
+        strengthsAndBlindSpots:
+          type: object
+          properties:
+            strengths:
+              type: array
+              items:
+                type: string
+            blindSpots:
+              type: array
+              items:
+                type: string
+          required:
+            - strengths
+            - blindSpots
+        finalSummary:
+          type: string
+        personalPlanets:
+          type: object
+          additionalProperties:
+            type: string
+        aspectMeanings:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: object
+            properties:
+              dynamic:
+                type: string
+              tension:
+                type: string
+              behavior:
+                type: string
+              growth:
+                type: string
+              inFlow:
+                type: string
+              underStress:
+                type: string
+              inConflict:
+                type: string
+            required:
+              - dynamic
+              - tension
+              - behavior
+              - growth
+        aspectsDynamic:
+          type: object
+          nullable: true
+          properties:
+            dynamic:
+              type: string
+            tension:
+              type: string
+            behavior:
+              type: string
+            growth:
+              type: string
+        nodes:
+          type: object
+          nullable: true
+          properties:
+            pastPattern:
+              type: string
+            growthDirection:
+              type: string
+            challenge:
+              type: string
+            integration:
+              type: string
+        elementsModalities:
+          type: object
+          nullable: true
+          properties:
+            energyStyle:
+              type: string
+            decisionStyle:
+              type: string
+            imbalanceEffect:
+              type: string
+        angleMeanings:
+          type: object
+          nullable: true
+          properties:
+            ascendant:
+              type: object
+              nullable: true
+              properties:
+                firstImpression:
+                  type: string
+                orientationStyle:
+                  type: string
+                atYourBest:
+                  type: string
+                underStress:
+                  type: string
+            midheaven:
+              type: object
+              nullable: true
+              properties:
+                publicDirection:
+                  type: string
+                whereYouThrive:
+                  type: string
+                atYourBest:
+                  type: string
+                underPressure:
+                  type: string
+      required:
+        - archetypeName
+        - archetypeSummary
+        - keyThemes
+        - coreTriad
+        - relationships
+        - career
+        - strengthsAndBlindSpots
+        - finalSummary
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        birthDate:
+          type: string
+        birthTime:
+          type: string
+        birthPlace:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezoneOffset:
+          type: number
+        status:
+          type: string
+          enum: [pending, computing, interpreting, complete, failed]
+        chartData:
+          $ref: "#/components/schemas/ChartData"
+          nullable: true
+        interpretation:
+          $ref: "#/components/schemas/ReportInterpretation"
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - birthDate
+        - birthTime
+        - birthPlace
+        - latitude
+        - longitude
+        - timezoneOffset
+        - status
+        - createdAt
+        - updatedAt
+
+    ProfileSummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        birthDate: { type: string }
+        birthTime: { type: string }
+        birthPlace: { type: string }
+        sunSign: { type: string, nullable: true }
+        moonSign: { type: string, nullable: true }
+        risingSign: { type: string, nullable: true }
+        createdAt: { type: string }
+        ownership:
+          type: string
+          enum: [owner, claimed, invited, unclaimed]
+          description: Viewer-relative ownership status of the profile.
+        claimedByName: { type: string, nullable: true }
+        inviteEmail: { type: string, nullable: true }
+        isSelf:
+          type: boolean
+          description: >
+            True if this profile is the authenticated viewer's own self-profile.
+            Set explicitly when the user created the report via the
+            "Generate My Chart" flow (isForSelf=true in POST /reports).
+            Never derived by heuristic. Always false for anonymous viewers.
+      required: [id, name, birthDate, birthTime, birthPlace, createdAt]
+
+    CreateProfileBody:
+      type: object
+      properties:
+        name: { type: string }
+        birthDate: { type: string }
+        birthTime: { type: string }
+        birthPlace: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        timezoneOffset: { type: number }
+      required: [name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset]
+
+    UpdateProfileBody:
+      type: object
+      description: Mutable profile fields the owner can update.
+      properties:
+        isSelf:
+          type: boolean
+          description: >
+            Set to true to designate this profile as the viewer's own self-profile.
+            Setting true automatically clears isSelf on all other profiles owned by
+            the same user (one per user). Set to false to unmark it.
+
+    RelationshipParticipant:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string }
+        sunSign: { type: string, nullable: true }
+        moonSign: { type: string, nullable: true }
+        risingSign: { type: string, nullable: true }
+        selfProfile:
+          type: boolean
+          description: True iff this profile is the authenticated viewer's own claimed self.
+      required: [id, name, role]
+
+    RelationshipSummary:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string }
+        label: { type: string, nullable: true }
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelationshipParticipant"
+        latestReportId: { type: string, nullable: true }
+        latestReportStatus: { type: string, nullable: true }
+        createdAt: { type: string }
+        ownership:
+          type: string
+          enum: [owner, participant, viewer]
+          description: |
+            Viewer-relative role on this relationship.
+            - owner: created the relationship.
+            - participant: claimed an invite tied to this relationship.
+            - viewer: read-only access via a valid invite token (no claim).
+      required: [id, type, participants, createdAt]
+
+    RelationshipType:
+      type: string
+      enum: [romantic, parent_child, sibling, custom]
+
+    CreateRelationshipBody:
+      type: object
+      properties:
+        profileAId: { type: string }
+        profileBId: { type: string }
+        type:
+          $ref: "#/components/schemas/RelationshipType"
+        label: { type: string, nullable: true }
+      required: [profileAId, profileBId]
+
+    RelationshipCreateResponse:
+      type: object
+      properties:
+        id: { type: string }
+        created: { type: boolean }
+      required: [id, created]
+
+    CreateSynastryBody:
+      type: object
+      properties:
+        profileAId: { type: string }
+        profileBId: { type: string }
+        relationshipType:
+          $ref: "#/components/schemas/RelationshipType"
+        label: { type: string, nullable: true }
+      required: [profileAId, profileBId]
+
+    SynastryCreateResponse:
+      type: object
+      properties:
+        id: { type: string }
+        relationshipId: { type: string }
+        status:
+          type: string
+          enum: [pending, computing, interpreting, complete, failed]
+      required: [id, relationshipId, status]
+
+    SynastryStatus:
+      type: object
+      properties:
+        id: { type: string }
+        status:
+          type: string
+          enum: [pending, computing, interpreting, complete, failed]
+        progress: { type: number }
+        errorMessage: { type: string, nullable: true }
+      required: [id, status, progress]
+
+    SynastryCrossAspect:
+      type: object
+      properties:
+        planetA: { type: string }
+        planetB: { type: string }
+        type: { type: string }
+        orb: { type: number }
+        weight: { type: number }
+        categories:
+          type: array
+          items: { type: string }
+      required: [planetA, planetB, type, orb, weight, categories]
+
+    SynastryCategoryScore:
+      type: object
+      properties:
+        category: { type: string }
+        score: { type: number }
+        count: { type: integer }
+        rating: { type: string }
+      required: [category, score, count, rating]
+
+    SynastryCompute:
+      type: object
+      properties:
+        overallScore: { type: number }
+        overallRating: { type: string }
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/SynastryCategoryScore"
+        crossAspects:
+          type: array
+          items:
+            $ref: "#/components/schemas/SynastryCrossAspect"
+        strengths:
+          type: array
+          items:
+            $ref: "#/components/schemas/SynastryCrossAspect"
+        tensions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SynastryCrossAspect"
+        themes:
+          type: array
+          items: { type: string }
+      required: [overallScore, overallRating, categories, crossAspects, strengths, tensions, themes]
+
+    SynastryAspectMeaning:
+      type: object
+      properties:
+        dynamic: { type: string }
+        inFlow: { type: string }
+        underStress: { type: string }
+        growth: { type: string }
+        planetA: { type: string }
+        planetB: { type: string }
+        type: { type: string }
+        orb: { type: number }
+      required: [dynamic, inFlow, underStress, growth, planetA, planetB, type, orb]
+
+    SynastryInterpretation:
+      type: object
+      properties:
+        overview: { type: string }
+        emotional: { type: string }
+        communication: { type: string }
+        physical: { type: string }
+        conflict: { type: string }
+        growth: { type: string }
+        topAspectMeanings:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/SynastryAspectMeaning"
+      required: [overview, emotional, communication, physical, conflict, growth, topAspectMeanings]
+
+    SynastryReportParticipant:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string }
+        birthDate: { type: string }
+        birthPlace: { type: string }
+        sunSign: { type: string, nullable: true }
+        moonSign: { type: string, nullable: true }
+        risingSign: { type: string, nullable: true }
+        ownership:
+          type: string
+          enum: [owner, claimed, invited, unclaimed]
+        claimedByName: { type: string, nullable: true }
+        inviteEmail: { type: string, nullable: true }
+        selfProfile:
+          type: boolean
+          description: True iff this profile is the authenticated viewer's own claimed self.
+      required: [id, name, role, birthDate, birthPlace]
+
+    SynastryReport:
+      type: object
+      properties:
+        id: { type: string }
+        relationshipId: { type: string }
+        type: { type: string }
+        label: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [pending, computing, interpreting, complete, failed]
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/SynastryReportParticipant"
+        compute:
+          $ref: "#/components/schemas/SynastryCompute"
+          nullable: true
+        interpretation:
+          $ref: "#/components/schemas/SynastryInterpretation"
+          nullable: true
+        errorMessage: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        ownership:
+          type: string
+          enum: [owner, participant, viewer]
+          description: |
+            Viewer-relative role on this report.
+            - owner: created the underlying relationship.
+            - participant: claimed an invite tied to this relationship.
+            - viewer: read-only access via a valid invite token (no claim).
+      required: [id, relationshipId, type, status, participants, createdAt, updatedAt]
+
+    InviteRecord:
+      type: object
+      description: A single invite token row as visible to the sender
+      properties:
+        id: { type: string }
+        email: { type: string }
+        profileId: { type: string }
+        relationshipId: { type: string, nullable: true }
+        sentAt: { type: string, description: "ISO-8601 timestamp when the invite was created" }
+        expiresAt: { type: string }
+        emailDelivered: { type: boolean, nullable: true, description: "null means unknown (pre-migration)" }
+        claimedAt: { type: string, nullable: true }
+      required: [id, email, profileId, sentAt, expiresAt]
+
+    CreateInviteBody:
+      type: object
+      properties:
+        profileId: { type: string }
+        relationshipId: { type: string, nullable: true }
+        email: { type: string, format: email }
+      required: [profileId, email]
+
+    InviteSummary:
+      type: object
+      properties:
+        id: { type: string }
+        token: { type: string }
+        email: { type: string }
+        profileId: { type: string }
+        relationshipId: { type: string, nullable: true }
+        expiresAt: { type: string }
+        claimUrl: { type: string }
+        emailDelivered: { type: boolean }
+      required: [id, token, email, profileId, expiresAt, claimUrl, emailDelivered]
+
+    InvitePreview:
+      type: object
+      properties:
+        token: { type: string }
+        email: { type: string }
+        inviterName: { type: string, nullable: true }
+        profileName: { type: string }
+        relationshipId: { type: string, nullable: true }
+        relationshipReportId: { type: string, nullable: true }
+        expiresAt: { type: string }
+        alreadyClaimed: { type: boolean }
+      required: [token, email, profileName, expiresAt, alreadyClaimed]
+
+    InviteClaimResponse:
+      type: object
+      properties:
+        profileId: { type: string }
+        relationshipId: { type: string, nullable: true }
+        relationshipReportId: { type: string, nullable: true }
+        redirectTo: { type: string }
+      required: [profileId, redirectTo]
+
+    GeocodeResult:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Full display name (City, Region, Country)
+        city:
+          type: string
+          description: City/town/village name
+        region:
+          type: string
+          description: State or region name
+        country:
+          type: string
+          description: Country name
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezoneOffset:
+          type: number
+          description: UTC offset in hours
+        placeType:
+          type: string
+          description: Nominatim place type (city, town, village, administrative, etc.)
+      required:
+        - name
+        - latitude
+        - longitude
+        - timezoneOffset
+        - placeType
+
+    GeocodeSearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeocodeResult"
+      required:
+        - results
+
+    CreditBalance:
+      type: object
+      properties:
+        available:
+          type: integer
+          description: Number of credits available to use
+        used:
+          type: integer
+          description: Number of credits already consumed
+      required: [available, used]
+
+    CreditCounts:
+      type: object
+      description: Credit balances broken down by report type
+      properties:
+        natal:
+          $ref: "#/components/schemas/CreditBalance"
+        couple:
+          $ref: "#/components/schemas/CreditBalance"
+        parent_child:
+          $ref: "#/components/schemas/CreditBalance"
+      required: [natal, couple, parent_child]

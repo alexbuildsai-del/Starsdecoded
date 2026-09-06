@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
@@ -8,13 +8,13 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../lib/db"
+      "path": "../packages/db"
     },
     {
-      "path": "../../lib/api-zod"
+      "path": "../packages/api-zod"
     },
     {
-      "path": "../../lib/integrations-openai-ai-server"
+      "path": "../packages/integrations-openai-ai-server"
     }
   ]
 }
