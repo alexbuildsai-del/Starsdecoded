@@ -15,7 +15,6 @@ Each deployable target is a top-level directory.
 | `web/`      | React + Vite single-page app     | Vercel     |
 | `api/`      | Express API (`/api/*`)           | Railway    |
 | `mobile/`   | Expo client — scaffold only      | Expo / EAS |
-| `services/` | Standalone event consumers — empty | per service |
 
 Shared code lives in `packages/`, and is consumed through the workspace rather
 than published:

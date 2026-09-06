@@ -2,7 +2,6 @@ packages:
   - web
   - api
   - mobile
-  - services/*
   - packages/*
   - packages/integrations/*
   - scripts
