@@ -1,0 +1,12 @@
+{
+  "name": "@workspace/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:city-search": "playwright test city-search-cache-bust"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}
