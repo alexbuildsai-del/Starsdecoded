@@ -71,7 +71,7 @@ Configuration is documented in `.env.example` — the blocks map to the targets
 below.
 
 **Web → Vercel.** `web/vercel.json` builds from the repo root so the workspace
-resolves. Set `VITE_API_BASE_URL` to the Railway origin; it is inlined at build
+resolves. Output lands in `dist/` at the repo root so Vercel finds it on defaults. Set `VITE_API_BASE_URL` to the Railway origin; it is inlined at build
 time, so a change needs a redeploy.
 
 **API → Railway.** `railway.json` (repo root) builds the workspace and starts
