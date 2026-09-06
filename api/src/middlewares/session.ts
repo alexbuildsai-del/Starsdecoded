@@ -12,6 +12,16 @@ declare global {
 const COOKIE_NAME = "astra_session_id";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
+// The web app and this API are deployed to different origins (Vercel and
+// Railway), which makes every API call cross-site: browsers drop a
+// SameSite=Lax cookie there, and anonymous ownership of profiles and
+// reports silently stops working. SameSite=None requires Secure, so this
+// is only correct over HTTPS — hence the dev default of Lax over plain
+// http. Set CROSS_SITE_COOKIES explicitly to override the guess.
+const crossSiteCookies = process.env.CROSS_SITE_COOKIES
+  ? process.env.CROSS_SITE_COOKIES === "true"
+  : process.env.NODE_ENV === "production";
+
 /**
  * Issues an anonymous, stable session id on first visit and exposes it as
  * `req.sessionId` for downstream handlers. Used to scope profiles/reports
@@ -35,8 +45,8 @@ export function sessionMiddleware(
     sessionId = randomUUID();
     res.cookie(COOKIE_NAME, sessionId, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: false,
+      sameSite: crossSiteCookies ? "none" : "lax",
+      secure: crossSiteCookies,
       maxAge: ONE_YEAR_MS,
       path: "/",
     });

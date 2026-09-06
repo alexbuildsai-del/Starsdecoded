@@ -16,6 +16,11 @@ import {
 
 const app: Express = express();
 
+// Railway terminates TLS in front of this process, so without this Express
+// sees plain http: req.protocol and req.secure would be wrong, and Secure
+// cookies would not be recognised as sent over HTTPS.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
