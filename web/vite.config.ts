@@ -34,7 +34,11 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist"),
+    // Emitted to the repository root, not web/dist. Vercel's Vite preset
+    // looks for `dist` next to the lockfile it installed from, and that is
+    // the root of this workspace — putting the output there means a deploy
+    // works on defaults, with no Output Directory override to configure.
+    outDir: path.resolve(import.meta.dirname, "..", "dist"),
     emptyOutDir: true,
   },
   server: {
