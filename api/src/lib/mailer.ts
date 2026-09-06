@@ -1,47 +1,19 @@
 // Resend integration — sends transactional invite emails.
-// WARNING: Never cache the Resend client; tokens expire.
-// Uses the Replit Connectors proxy (conn_resend_*) for API key retrieval.
+// Credentials come straight from the environment (RESEND_API_KEY,
+// RESEND_FROM_EMAIL), so any host that can set env vars can send mail.
 import { Resend } from "resend";
 import { logger } from "./logger.js";
 
-interface ConnectionSettings {
-  settings: {
-    api_key: string;
-    from_email?: string;
-  };
-}
+function getResendCredentials(): { apiKey: string; fromEmail: string } {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
 
-async function getResendCredentials(): Promise<{ apiKey: string; fromEmail: string }> {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? "repl " + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-    ? "depl " + process.env.WEB_REPL_RENEWAL
-    : null;
-
-  if (!hostname || !xReplitToken) {
-    throw new Error("Resend connector env vars missing (REPLIT_CONNECTORS_HOSTNAME / REPL_IDENTITY)");
-  }
-
-  const connectionSettings: ConnectionSettings | undefined = await fetch(
-    "https://" + hostname + "/api/v2/connection?include_secrets=true&connector_names=resend",
-    {
-      headers: {
-        Accept: "application/json",
-        "X-Replit-Token": xReplitToken,
-      },
-    },
-  )
-    .then((res) => res.json())
-    .then((data: { items?: ConnectionSettings[] }) => data.items?.[0]);
-
-  if (!connectionSettings?.settings?.api_key) {
-    throw new Error("Resend not connected — API key missing from connector settings");
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not set — invite emails cannot be sent");
   }
 
   return {
-    apiKey: connectionSettings.settings.api_key,
-    fromEmail: connectionSettings.settings.from_email ?? "Astra <noreply@astra.app>",
+    apiKey,
+    fromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "Astra <noreply@astra.app>",
   };
 }
 
@@ -79,7 +51,7 @@ export async function sendInviteEmail(opts: InviteEmailOptions): Promise<boolean
   const textBody = buildInviteText({ inviterName, profileName, claimUrl });
 
   try {
-    const { apiKey, fromEmail } = await getResendCredentials();
+    const { apiKey, fromEmail } = getResendCredentials();
     const resend = new Resend(apiKey);
 
     const { error } = await resend.emails.send({
