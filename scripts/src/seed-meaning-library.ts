@@ -24,6 +24,7 @@
 //                  (e.g. --kind=ascendant_sign,midheaven_sign). Untouched rows
 //                  remain in the DB and are re-emitted to the fixture as-is.
 
+import { existsSync } from "node:fs";
 import {
   ASPECT_TYPES,
   HOUSES,
@@ -214,6 +215,19 @@ async function runWithConcurrency(jobs: Job[], concurrency: number): Promise<Job
 
 async function bootstrapFromFixture(): Promise<void> {
   const t0 = Date.now();
+
+  // The fixture is an optimisation, not a requirement: without it the
+  // library lazily fills each meaning from the AI on first lookup. Skip
+  // rather than fail so a fresh environment can still finish bootstrapping.
+  if (!existsSync(getFixturePath())) {
+    console.warn(
+      `No meaning fixture at ${getFixturePath()} — skipping bootstrap. `
+        + `The library will fill lazily from the AI on first lookup; run with `
+        + `--regenerate to rebuild the fixture (needs AI access).`,
+    );
+    return;
+  }
+
   const entries = loadFixtureFromDisk();
   console.log(
     `Loaded ${entries.length} entries from fixture (prompt ${PROMPT_VERSION}): ${getFixturePath()}`,
