@@ -9,11 +9,13 @@
     "seed:prompts": "tsx ./src/seed-prompt-templates.ts",
     "backfill:is-self": "tsx ./src/backfill-profile-is-self.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "report:lab": "tsx ./src/report-lab.ts"
+    "report:lab": "tsx ./src/report-lab.ts",
+    "generate:vocabulary": "tsx ./src/generate-vocabulary.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
-    "@workspace/meaning-library": "workspace:*"
+    "@workspace/meaning-library": "workspace:*",
+    "@workspace/integrations-openai-ai-server": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

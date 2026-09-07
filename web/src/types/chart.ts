@@ -48,126 +48,144 @@ export interface AspectMeaning {
   tension: string;
   behavior: string;
   growth: string;
-  inFlow?: string;
-  underStress?: string;
-  inConflict?: string;
 }
 
-export interface AspectDynamicGroup {
-  synthesis: string;
-  aspects: string[];
+export interface ActionItem {
+  action: string;
+  why: string;
 }
 
-export function isStructuredAspectGroup(v: unknown): v is AspectDynamicGroup {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    typeof (v as AspectDynamicGroup).synthesis === "string" &&
-    Array.isArray((v as AspectDynamicGroup).aspects)
-  );
+export interface OverviewSection {
+  headline: string;
+  concentration: string;
+  temperament: string;
+  distinctive: string;
+  bridge: string;
 }
 
-export interface ThemeCard {
-  title: string;
-  icon: string;
-  bullets: string[];
+export interface TriadPart {
+  label: string;
+  text: string;
 }
 
-export interface RelationshipsSection {
-  cards: [ThemeCard, ThemeCard, ThemeCard];
-  synthesis: string;
+export interface TriadSection {
+  sun: TriadPart;
+  moon: TriadPart;
+  rising: TriadPart;
+}
+
+export interface MindSection {
+  howYouThink: string;
+  howYouDecide: string;
+  howYouAreUnderstood: string;
+  practice: string;
 }
 
 export interface CareerSection {
-  cards: [ThemeCard, ThemeCard, ThemeCard];
-  synthesis: string;
+  vocationalPull: string;
+  howYouShowUp: string;
+  growthThroughWork: string;
+  actions: ActionItem[];
 }
 
-export function isStructuredRelationships(v: unknown): v is RelationshipsSection {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    Array.isArray((v as RelationshipsSection).cards) &&
-    (v as RelationshipsSection).cards.length === 3 &&
-    typeof (v as RelationshipsSection).synthesis === "string"
-  );
+export interface MoneySection {
+  relationshipToResources: string;
+  whatWorks: string;
+  sharedAndExposed: string;
+  actions: ActionItem[];
 }
 
-export function isStructuredCareer(v: unknown): v is CareerSection {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    Array.isArray((v as CareerSection).cards) &&
-    (v as CareerSection).cards.length === 3 &&
-    typeof (v as CareerSection).synthesis === "string"
-  );
+export interface RelationshipsSection {
+  howYouLove: string;
+  theChallenge: string;
+  whatPartnershipAsks: string;
+  actions: ActionItem[];
 }
 
-export interface GrowthEdge {
-  label: string;
-  description: string;
+export interface FamilySection {
+  whatYouCarry: string;
+  whatRootsYou: string;
+  theInheritedEdge: string;
+  actions: ActionItem[];
 }
 
-export interface FinalSummaryStructured {
-  coreRisk: string;
-  growthEdges: GrowthEdge[];
-  distinctive: {
-    description: string;
-    pills: string[];
-  };
-  closingQuote: string;
+export interface SuperpowerItem {
+  title: string;
+  text: string;
+  actions: ActionItem[];
 }
 
-export function isStructuredFinalSummary(v: unknown): v is FinalSummaryStructured {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    typeof (v as FinalSummaryStructured).coreRisk === "string" &&
-    Array.isArray((v as FinalSummaryStructured).growthEdges) &&
-    typeof (v as FinalSummaryStructured).closingQuote === "string"
-  );
+export interface SuperpowersSection {
+  superpower: SuperpowerItem;
+  chronicPattern: SuperpowerItem;
+  growingEdge: SuperpowerItem;
 }
 
+export interface Paradox {
+  title: string;
+  tension: string;
+  invitation: string;
+}
+
+export interface DiscoveriesSection {
+  opening: string;
+  paradoxes: Paradox[];
+}
+
+export interface FocusBullet {
+  point: string;
+  why: string;
+}
+
+export interface FocusGroup {
+  intro: string;
+  bullets: FocusBullet[];
+}
+
+export interface FocusSection {
+  leanInto: FocusGroup;
+  notice: FocusGroup;
+  practice: FocusGroup;
+  closing: string;
+}
+
+export interface AngleMeanings {
+  ascendant: { firstImpression: string; orientationStyle: string; atYourBest: string; underStress: string };
+  midheaven: { publicDirection: string; whereYouThrive: string; atYourBest: string; underPressure: string };
+}
+
+/**
+ * The V3 report shape. Mirrors ReportInterpretation in api/src/lib/aiInterpretation.ts.
+ * Sections are always structured: the API enforces each section's schema at
+ * generation time, so there is no string fallback to guard against.
+ */
 export interface Interpretation {
-  archetypeName: string;
-  archetypeSummary: string;
-  keyThemes: string[];
-  coreTriad: {
-    identity: string;
-    emotionalLife: string;
-    outwardManner: string;
-    synthesis: string;
+  meta: {
+    promptVersion: string;
+    model: string;
+    houseSystem: "whole-sign";
+    generatedAt: string;
+    wordCount: number;
   };
-  relationships: RelationshipsSection | string;
-  career: CareerSection | string;
-  strengthsAndBlindSpots: {
-    strengths: string[];
-    blindSpots: string[];
-  };
-  finalSummary: FinalSummaryStructured | string;
+  overview: OverviewSection;
+  triad: TriadSection;
+  mind: MindSection;
+  career: CareerSection;
+  money: MoneySection;
+  relationships: RelationshipsSection;
+  family: FamilySection;
+  superpowers: SuperpowersSection;
+  discoveries: DiscoveriesSection;
+  focus: FocusSection;
   personalPlanets: Record<string, string>;
-  aspectMeanings?: Record<string, AspectMeaning>;
-  aspectsDynamic?: {
-    dynamic?: AspectDynamicGroup | string;
-    tension?: AspectDynamicGroup | string;
-    behavior?: AspectDynamicGroup | string;
-    growth?: AspectDynamicGroup | string;
-  };
-  nodes?: {
-    pastPattern?: string;
-    growthDirection?: string;
-    challenge?: string;
-    integration?: string;
-  };
-  elementsModalities?: {
-    energyStyle?: string;
-    decisionStyle?: string;
-    imbalanceEffect?: string;
-  };
-  angleMeanings?: {
-    ascendant?: string;
-    midheaven?: string;
-  };
+  aspectMeanings: Record<string, AspectMeaning>;
+  angleMeanings: AngleMeanings;
+}
+
+/** A stored report predates V3 when it lacks the meta block. Such reports must be regenerated. */
+export function isV3Interpretation(v: unknown): v is Interpretation {
+  return typeof v === "object" && v !== null && typeof (v as Interpretation).meta?.promptVersion === "string"
+    && typeof (v as Interpretation).overview?.headline === "string";
 }
 
 export const PLANET_LABELS: Record<string, string> = {

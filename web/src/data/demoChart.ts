@@ -1,4 +1,5 @@
-import type { ChartData, Interpretation } from "@/types/chart";
+import type { ChartData } from "@/types/chart";
+import type { WheelInterpretation } from "@/components/ui/radial-orbital-natal";
 
 /**
  * Demo chart for the landing page.
@@ -146,44 +147,8 @@ export const DEMO_CHART_DATA: ChartData = {
   },
 };
 
-export const DEMO_INTERPRETATION: Interpretation = {
-  archetypeName: DEMO_ARCHETYPE,
-  archetypeSummary:
-    "A rare synthesis of emotional depth and structural ambition — someone who builds lasting things from the inside out.",
-  keyThemes: [
-    "Emotional intelligence as a superpower",
-    "Creative depth through darkness",
-    "Building beauty that endures",
-    "Courageous public presence",
-    "Transformation through intimacy",
-  ],
-  coreTriad: {
-    identity:
-      "Sun in Cancer in the first house: you radiate through feeling, not performance. Your presence is protective, intuitive, and quietly magnetic.",
-    emotionalLife:
-      "Moon in Scorpio in the fifth house: your inner world runs deep and volcanic. Emotion is your creative fuel — you process life through making.",
-    outwardManner:
-      "Cancer rising: you meet the world softly, but there is steel beneath. First impressions are warm and receptive; the shell protects a determined interior.",
-    synthesis:
-      "You are a builder of worlds who works from the inside out — feeling everything first, then channelling it into form. This is not a chart of detachment; it is a chart of total engagement.",
-  },
-  relationships: "You love with total commitment and expect the same. Partners experience you as intensely loyal and deeply perceptive — and occasionally overwhelming.",
-  career: "Your public reputation is built on courage and initiative. You lead not through hierarchy but through the quality of your action.",
-  strengthsAndBlindSpots: {
-    strengths: [
-      "Profound emotional intelligence",
-      "Creative authenticity",
-      "Fierce loyalty",
-      "Resilient ambition",
-    ],
-    blindSpots: [
-      "Emotional overwhelm in conflict",
-      "Difficulty releasing control",
-      "Idealism in partnerships",
-    ],
-  },
-  finalSummary:
-    "Aria's chart is a portrait of depth in motion — someone who feels everything but uses that feeling as structural material. The arc of this life is learning to trust vulnerability as a foundation rather than a risk.",
+/** Only the composed per-planet cards: that is all the landing-page wheel renders. */
+export const DEMO_INTERPRETATION: WheelInterpretation = {
   personalPlanets: {
     sun: "Your Sun rises with the summer solstice at Cancer's first degree — the year's longest light turning inward. This is a signature of emotional luminosity: you are seen and felt simultaneously, your identity radiating through care and intuition rather than assertion alone. The world experiences you as a safe harbour, yet within you burns a fierce protective fire for those you love. You do not separate feeling from doing — you are most powerfully yourself when what you build is also what you love.",
 
@@ -204,11 +169,5 @@ export const DEMO_INTERPRETATION: Interpretation = {
     neptune: "Neptune in Capricorn, retrograde, near Uranus in your seventh house: you carry an idealistic lens over partnerships, seeing people as more than they currently are — a profound gift when your vision is correct, a vulnerability when it is not. Learning to perceive others with clear eyes while still loving what you see is one of this chart's central teachings. The fog around close relationships eventually becomes a kind of second sight.",
 
     pluto: "Pluto in Scorpio conjunct your Moon in the fifth house of self-expression: this is the signature of an artist who does not flinch. Your creative work touches the profound, the unsettling, the transformative. You do not entertain — you excavate. Each piece you make is a genuine encounter with what is real, and audiences feel the weight of that. You carry the pulse of your generation — the demand for radical honesty in all creative acts.",
-  },
-  angleMeanings: {
-    ascendant:
-      "Cancer rising: you meet the world with warmth and permeability. Your first impression is of someone safe, receptive, intuitive. The shell is real — but it protects genuine depth.",
-    midheaven:
-      "Pisces on the Midheaven: your public purpose carries a quality of the imaginal — art, healing, vision. The world will remember you for what you made possible in others.",
-  },
+  }
 };

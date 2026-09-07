@@ -110,107 +110,33 @@ export function invalidatePromptCache(key: string): void {
 }
 
 /**
- * Validators for prompt_templates overrides.
- * Each function receives the stored userPrompt TEMPLATE TEXT and returns true
- * when the override is compatible with the current expected output shape.
- * Return false → the row predates a breaking format change and should be removed.
+ * Startup repair: remove prompt_templates rows whose key no longer exists in
+ * promptDefaults.ts. Such rows are unreachable (nothing resolves them) and
+ * would only mislead the admin page. Safe to run on every boot.
  *
- * NOTE: userPrompt stores the prompt TEMPLATE (prose + {placeholders}), NOT
- * the AI response. Validators must inspect template text, not parse AI output.
- */
-const PROMPT_SHAPE_VALIDATORS: Record<string, (userPrompt: string) => boolean> = {
-  "natal:foundation:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{foundationContext}")
-    && userPrompt.includes('"sectionGuidance"'),
-  "natal:overview:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{foundation}")
-    && userPrompt.includes("{overviewContext}")
-    && userPrompt.includes('"dominantThemes"'),
-  "natal:triad:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{foundation}")
-    && userPrompt.includes("{triadContext}")
-    && userPrompt.includes('"synthesis"'),
-  "natal:career:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{foundation}")
-    && userPrompt.includes("{careerContext}")
-    && userPrompt.includes('"cards"'),
-  "natal:relationships:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{foundation}")
-    && userPrompt.includes("{relationshipsContext}")
-    && userPrompt.includes('"cards"'),
-  "natal:superpowers:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{foundation}")
-    && userPrompt.includes("{superpowersContext}")
-    && userPrompt.includes('"chronicPatterns"'),
-  "natal:discoveries:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{foundation}")
-    && userPrompt.includes("{discoveriesContext}")
-    && userPrompt.includes('"paradoxes"'),
-  "natal:focus:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{foundation}")
-    && userPrompt.includes("{focusContext}")
-    && userPrompt.includes('"priorities"'),
-};
-
-const PAIRED_SYSTEM_KEYS: Record<string, string> = {
-  "natal:foundation:user": "natal:foundation:system",
-  "natal:overview:user": "natal:overview:system",
-  "natal:triad:user": "natal:triad:system",
-  "natal:career:user": "natal:career:system",
-  "natal:relationships:user": "natal:relationships:system",
-  "natal:superpowers:user": "natal:superpowers:system",
-  "natal:discoveries:user": "natal:discoveries:system",
-  "natal:focus:user": "natal:focus:system",
-};
-
-/**
- * Startup repair: remove prompt_templates overrides that no longer match the
- * expected structured-JSON shape for their key. Safe to run on every boot —
- * it's a no-op when no stale rows exist. Removed rows fall back to the correct
- * hardcoded defaults in promptDefaults.ts.
+ * The output contract is applied by code from each section's schema, so an
+ * override can only change tone and instructions, never the response shape.
+ * That is why no shape validation is needed here any more.
  */
 export async function repairStalePromptOverrides(): Promise<void> {
-  const staleKeys: string[] = [];
-
-  for (const [key, isValid] of Object.entries(PROMPT_SHAPE_VALIDATORS)) {
-    try {
-      const rows = await db
-        .select()
-        .from(promptTemplatesTable)
-        .where(eq(promptTemplatesTable.promptKey, key))
-        .limit(1);
-
-      if (rows.length > 0) {
-        const userPrompt = rows[0].userPrompt ?? "";
-        if (!isValid(userPrompt)) {
-          staleKeys.push(key);
-          const pairedSystemKey = PAIRED_SYSTEM_KEYS[key];
-          if (pairedSystemKey) staleKeys.push(pairedSystemKey);
-        }
-      }
-    } catch (err) {
-      logger.warn({ err, key }, "repairStalePromptOverrides: DB read failed, skipping key");
-    }
+  let rows: Array<{ promptKey: string }> = [];
+  try {
+    rows = await db.select({ promptKey: promptTemplatesTable.promptKey }).from(promptTemplatesTable);
+  } catch (err) {
+    logger.warn({ err }, "repairStalePromptOverrides: DB read failed, skipping");
+    return;
   }
 
-  if (staleKeys.length === 0) return;
-  const uniqueStaleKeys = [...new Set(staleKeys)];
+  const orphans = rows
+    .map((r) => r.promptKey)
+    .filter((key) => !key.startsWith("__") && !PROMPT_DEFAULTS_BY_KEY.has(key));
+  if (orphans.length === 0) return;
 
   try {
-    await db
-      .delete(promptTemplatesTable)
-      .where(inArray(promptTemplatesTable.promptKey, uniqueStaleKeys));
-    for (const key of uniqueStaleKeys) {
-      cache.delete(key);
-    }
-    logger.info(
-      { staleKeys: uniqueStaleKeys },
-      "repairStalePromptOverrides: removed stale prompt overrides",
-    );
+    await db.delete(promptTemplatesTable).where(inArray(promptTemplatesTable.promptKey, orphans));
+    for (const key of orphans) cache.delete(key);
+    logger.info({ orphans }, "repairStalePromptOverrides: removed orphaned prompt overrides");
   } catch (err) {
-    logger.warn(
-      { err, staleKeys: uniqueStaleKeys },
-      "repairStalePromptOverrides: failed to remove stale rows",
-    );
+    logger.warn({ err, orphans }, "repairStalePromptOverrides: failed to remove orphaned rows");
   }
 }

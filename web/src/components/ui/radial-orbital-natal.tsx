@@ -6,9 +6,7 @@ import {
   PLANET_LABELS,
   SIGN_ELEMENTS,
   SIGN_MODALITIES,
-  type ChartData,
-  type Interpretation,
-} from "@/types/chart";
+  type ChartData } from "@/types/chart";
 
 import sunImg from "@/assets/planets/sun.webp";
 import moonImg from "@/assets/planets/moon.webp";
@@ -83,9 +81,12 @@ interface OrbitalNode {
   scrollTargetId: string;
 }
 
+/** The wheel only needs the composed per-planet cards. */
+export type WheelInterpretation = { personalPlanets?: Record<string, string> };
+
 interface RadialOrbitalNatalProps {
   chartData: ChartData;
-  interpretation?: Interpretation | null;
+  interpretation?: WheelInterpretation | null;
   userName?: string;
   archetypeName?: string;
 }
@@ -97,7 +98,7 @@ const NODE_ORDER = [
 
 function buildNodes(
   chartData: ChartData,
-  interpretation?: Interpretation | null,
+  interpretation?: WheelInterpretation | null,
 ): OrbitalNode[] {
   // Map from planet name → set of other planet names it aspects
   const aspectMap: Record<string, Set<string>> = {};

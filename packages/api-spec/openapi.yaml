@@ -129,6 +129,52 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /reports/{id}/regenerate:
+    post:
+      operationId: regenerateReport
+      tags: [reports]
+      summary: Regenerate a report's interpretation
+      description: >
+        Re-runs interpretation on the stored chart. Used for reports generated
+        before the current prompt version. Rate-limited per report.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Regeneration started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+                required: [id, status]
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Report is already being generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Regenerated too recently
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /meaning-library/stats:
     get:
       operationId: getMeaningLibraryStats
@@ -849,6 +895,7 @@ components:
           type: string
           enum: [pending, computing, interpreting, complete, failed]
         archetypeName:
+          description: The report's overview headline (kept under its historical name for client compatibility). Null until the report completes.
           type: string
           nullable: true
         sunSign:
@@ -1109,60 +1156,214 @@ components:
         - modalities
         - dominance
 
-    ReportInterpretation:
+    ActionItem:
       type: object
       properties:
-        archetypeName:
+        action:
           type: string
-        archetypeSummary:
+        why:
           type: string
-        keyThemes:
+      required: [action, why]
+
+    ReportTriadPart:
+      type: object
+      properties:
+        label:
+          type: string
+        text:
+          type: string
+      required: [label, text]
+
+    ReportSuperpowerItem:
+      type: object
+      properties:
+        title:
+          type: string
+        text:
+          type: string
+        actions:
           type: array
           items:
-            type: string
-        coreTriad:
+            $ref: "#/components/schemas/ActionItem"
+      required: [title, text, actions]
+
+    ReportFocusGroup:
+      type: object
+      properties:
+        intro:
+          type: string
+        bullets:
+          type: array
+          items:
+            type: object
+            properties:
+              point:
+                type: string
+              why:
+                type: string
+            required: [point, why]
+      required: [intro, bullets]
+
+    ReportInterpretation:
+      description: >
+        V3 natal report. Every section is schema-enforced at generation time,
+        so all fields are always present and structured. Reports stored before
+        V3 lack `meta` and must be regenerated.
+      type: object
+      properties:
+        meta:
           type: object
           properties:
-            identity:
+            promptVersion:
               type: string
-            emotionalLife:
+            model:
               type: string
-            outwardManner:
+            houseSystem:
               type: string
-            synthesis:
+              enum: [whole-sign]
+            generatedAt:
               type: string
-          required:
-            - identity
-            - emotionalLife
-            - outwardManner
-            - synthesis
-        relationships:
-          type: string
+            wordCount:
+              type: number
+          required: [promptVersion, model, houseSystem, generatedAt, wordCount]
+        overview:
+          type: object
+          properties:
+            headline:
+              type: string
+            concentration:
+              type: string
+            temperament:
+              type: string
+            distinctive:
+              type: string
+            bridge:
+              type: string
+          required: [headline, concentration, temperament, distinctive, bridge]
+        triad:
+          type: object
+          properties:
+            sun:
+              $ref: "#/components/schemas/ReportTriadPart"
+            moon:
+              $ref: "#/components/schemas/ReportTriadPart"
+            rising:
+              $ref: "#/components/schemas/ReportTriadPart"
+          required: [sun, moon, rising]
+        mind:
+          type: object
+          properties:
+            howYouThink:
+              type: string
+            howYouDecide:
+              type: string
+            howYouAreUnderstood:
+              type: string
+            practice:
+              type: string
+          required: [howYouThink, howYouDecide, howYouAreUnderstood, practice]
         career:
-          type: string
-        strengthsAndBlindSpots:
           type: object
           properties:
-            strengths:
+            vocationalPull:
+              type: string
+            howYouShowUp:
+              type: string
+            growthThroughWork:
+              type: string
+            actions:
               type: array
               items:
-                type: string
-            blindSpots:
+                $ref: "#/components/schemas/ActionItem"
+          required: [vocationalPull, howYouShowUp, growthThroughWork, actions]
+        money:
+          type: object
+          properties:
+            relationshipToResources:
+              type: string
+            whatWorks:
+              type: string
+            sharedAndExposed:
+              type: string
+            actions:
               type: array
               items:
-                type: string
-          required:
-            - strengths
-            - blindSpots
-        finalSummary:
-          type: string
+                $ref: "#/components/schemas/ActionItem"
+          required: [relationshipToResources, whatWorks, sharedAndExposed, actions]
+        relationships:
+          type: object
+          properties:
+            howYouLove:
+              type: string
+            theChallenge:
+              type: string
+            whatPartnershipAsks:
+              type: string
+            actions:
+              type: array
+              items:
+                $ref: "#/components/schemas/ActionItem"
+          required: [howYouLove, theChallenge, whatPartnershipAsks, actions]
+        family:
+          type: object
+          properties:
+            whatYouCarry:
+              type: string
+            whatRootsYou:
+              type: string
+            theInheritedEdge:
+              type: string
+            actions:
+              type: array
+              items:
+                $ref: "#/components/schemas/ActionItem"
+          required: [whatYouCarry, whatRootsYou, theInheritedEdge, actions]
+        superpowers:
+          type: object
+          properties:
+            superpower:
+              $ref: "#/components/schemas/ReportSuperpowerItem"
+            chronicPattern:
+              $ref: "#/components/schemas/ReportSuperpowerItem"
+            growingEdge:
+              $ref: "#/components/schemas/ReportSuperpowerItem"
+          required: [superpower, chronicPattern, growingEdge]
+        discoveries:
+          type: object
+          properties:
+            opening:
+              type: string
+            paradoxes:
+              type: array
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  tension:
+                    type: string
+                  invitation:
+                    type: string
+                required: [title, tension, invitation]
+          required: [opening, paradoxes]
+        focus:
+          type: object
+          properties:
+            leanInto:
+              $ref: "#/components/schemas/ReportFocusGroup"
+            notice:
+              $ref: "#/components/schemas/ReportFocusGroup"
+            practice:
+              $ref: "#/components/schemas/ReportFocusGroup"
+            closing:
+              type: string
+          required: [leanInto, notice, practice, closing]
         personalPlanets:
           type: object
           additionalProperties:
             type: string
         aspectMeanings:
           type: object
-          nullable: true
           additionalProperties:
             type: object
             properties:
@@ -1174,58 +1375,12 @@ components:
                 type: string
               growth:
                 type: string
-              inFlow:
-                type: string
-              underStress:
-                type: string
-              inConflict:
-                type: string
-            required:
-              - dynamic
-              - tension
-              - behavior
-              - growth
-        aspectsDynamic:
-          type: object
-          nullable: true
-          properties:
-            dynamic:
-              type: string
-            tension:
-              type: string
-            behavior:
-              type: string
-            growth:
-              type: string
-        nodes:
-          type: object
-          nullable: true
-          properties:
-            pastPattern:
-              type: string
-            growthDirection:
-              type: string
-            challenge:
-              type: string
-            integration:
-              type: string
-        elementsModalities:
-          type: object
-          nullable: true
-          properties:
-            energyStyle:
-              type: string
-            decisionStyle:
-              type: string
-            imbalanceEffect:
-              type: string
+            required: [dynamic, tension, behavior, growth]
         angleMeanings:
           type: object
-          nullable: true
           properties:
             ascendant:
               type: object
-              nullable: true
               properties:
                 firstImpression:
                   type: string
@@ -1235,9 +1390,9 @@ components:
                   type: string
                 underStress:
                   type: string
+              required: [firstImpression, orientationStyle, atYourBest, underStress]
             midheaven:
               type: object
-              nullable: true
               properties:
                 publicDirection:
                   type: string
@@ -1247,15 +1402,23 @@ components:
                   type: string
                 underPressure:
                   type: string
+              required: [publicDirection, whereYouThrive, atYourBest, underPressure]
+          required: [ascendant, midheaven]
       required:
-        - archetypeName
-        - archetypeSummary
-        - keyThemes
-        - coreTriad
-        - relationships
+        - meta
+        - overview
+        - triad
+        - mind
         - career
-        - strengthsAndBlindSpots
-        - finalSummary
+        - money
+        - relationships
+        - family
+        - superpowers
+        - discoveries
+        - focus
+        - personalPlanets
+        - aspectMeanings
+        - angleMeanings
 
     Report:
       type: object

@@ -29,20 +29,10 @@ interface ChartFixture {
   note?: string;
 }
 
-/**
- * Word targets per section. PR 3 moves these onto the section modules so the
- * prompt, the schema and the check cannot disagree; until then the lab is the
- * only place they are written down.
- */
-const WORD_TARGETS: Record<string, [number, number]> = {
-  overview: [350, 400],
-  coreTriad: [180, 220],
-  career: [250, 300],
-  relationships: [200, 250],
-  superpowers: [450, 600],
-  discoveries: [300, 450],
-  focus: [300, 400],
-};
+/** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
+import { WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS } from "../../api/src/prompts/index.js";
+const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
+const REPORT_TOTAL: [number, number] = [3500, 4000];
 
 /**
  * Style-contract rule 1: the report must never explain its own method. These
@@ -67,6 +57,9 @@ const METHOD_TALK = [
   "this placement means",
   "the first honest thing",
   "what this means astrologically",
+  "in your chart, ",
+  "this section",
+  "as we will see",
 ];
 
 /** Style-contract rule 8: banned punctuation and formatting. */
@@ -109,7 +102,7 @@ interface SectionRow {
 }
 
 function measure(interpretation: Record<string, unknown>): SectionRow[] {
-  return Object.keys(WORD_TARGETS).map((section) => {
+  return SECTION_IDS.map((section) => {
     const value = interpretation[section];
     const prose = proseOf(value);
     const w = words(prose);
@@ -170,7 +163,7 @@ function renderMarkdown(
     "---",
     "",
   ];
-  for (const section of Object.keys(WORD_TARGETS)) {
+  for (const section of SECTION_IDS) {
     const value = interpretation[section];
     if (value === undefined) continue;
     out.push(`## ${section}`, "");
@@ -180,6 +173,30 @@ function renderMarkdown(
     out.push("");
   }
   return out.join("\n");
+}
+
+
+/** A standalone page for reading a run the way a customer would. */
+function renderHtml(fixture: ChartFixture, interpretation: Record<string, unknown>, rows: SectionRow[]): string {
+  const esc = (v: unknown) => String(v ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
+  const block = (v: unknown, depth = 0): string => {
+    if (typeof v === "string") return `<p>${esc(v)}</p>`;
+    if (Array.isArray(v)) return `<ul>${v.map((x) => `<li>${block(x, depth + 1)}</li>`).join("")}</ul>`;
+    if (v && typeof v === "object") {
+      return Object.entries(v as Record<string, unknown>)
+        .map(([k, x]) => `<div class="f"><h${Math.min(3 + depth, 5)}>${esc(k)}</h${Math.min(3 + depth, 5)}>${block(x, depth + 1)}</div>`)
+        .join("");
+    }
+    return "";
+  };
+  const total = rows.reduce((n, r) => n + r.words, 0);
+  const sections = SECTION_IDS.map((id) => `<section><h2>${esc(id)}</h2>${block(interpretation[id])}</section>`).join("\n");
+  return `<!doctype html><meta charset="utf-8"><title>${esc(fixture.name)} report</title>
+<style>body{max-width:44rem;margin:3rem auto;padding:0 1.25rem;font:16px/1.6 Georgia,serif;color:#222}h1{font-weight:300;font-size:2.2rem}h2{margin-top:3rem;font-weight:400;border-bottom:1px solid #ddd;padding-bottom:.3rem}h3,h4,h5{font:600 .72rem/1.2 system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#777;margin:1.4rem 0 .4rem}.f{margin-bottom:.6rem}ul{padding-left:1.1rem}pre{font-size:.8rem;background:#f6f6f6;padding:1rem;overflow:auto}</style>
+<h1>${esc(fixture.name)}</h1>
+<p><small>${esc(fixture.birthDate)} ${esc(fixture.birthTime)} · ${total} words · Whole Sign houses</small></p>
+<pre>${esc(renderTable(rows))}</pre>
+${sections}`;
 }
 
 function loadFixture(name: string): ChartFixture {
@@ -232,13 +249,17 @@ async function runOne(name: string, label: string): Promise<SectionRow[]> {
   const total = rows.reduce((n, r) => n + r.words, 0);
 
   console.log(renderTable(rows));
-  console.log(`\ntotal: ${total} words in ${elapsed}s`);
+  const totalOk = total >= REPORT_TOTAL[0] && total <= REPORT_TOTAL[1];
+  console.log(`\ntotal: ${total} words (target ${REPORT_TOTAL[0]}-${REPORT_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"}) in ${elapsed}s`);
+  const meta = interpretation.meta as { promptVersion?: string; model?: string } | undefined;
+  if (meta) console.log(`prompt ${meta.promptVersion} on ${meta.model}`);
 
   mkdirSync(REPORTS_DIR, { recursive: true });
   const stem = join(REPORTS_DIR, `${name}.${label}`);
   writeFileSync(`${stem}.json`, JSON.stringify({ fixture, chart, interpretation }, null, 2));
   writeFileSync(`${stem}.md`, renderMarkdown(fixture, interpretation, rows));
-  console.log(`wrote ${stem}.md and ${stem}.json`);
+  if (flag("html")) writeFileSync(`${stem}.html`, renderHtml(fixture, interpretation, rows));
+  console.log(`wrote ${stem}.md and ${stem}.json${flag("html") ? ` and ${stem}.html` : ""}`);
 
   return rows;
 }

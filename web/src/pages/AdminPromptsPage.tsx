@@ -125,8 +125,9 @@ function PreviewModal({ open, label, loading, text, error, onClose }: PreviewMod
   );
 }
 
-// Per-key format notes shown under the editor. Empty since the V1 aspects
-// section was removed; PR 3 repopulates this from the section zod schemas.
+// Per-key format notes shown under the editor. Empty on purpose: since V3 the
+// response shape is applied by code from each section's schema and cannot be
+// changed here, so an override only ever edits tone and instructions.
 const FORMAT_NOTES: Record<string, string> = {};
 
 function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => void }) {
