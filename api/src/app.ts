@@ -3,16 +3,10 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
 import { authMiddleware } from "./middlewares/auth";
-import {
-  CLERK_PROXY_PATH,
-  clerkProxyMiddleware,
-  getClerkProxyHost,
-} from "./middlewares/clerkProxyMiddleware";
 
 const app: Express = express();
 
@@ -41,9 +35,6 @@ app.use(
   }),
 );
 
-// Mount the Clerk proxy before any body parsers — it streams raw bytes.
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-
 app.use(
   cors({
     origin: true,
@@ -55,15 +46,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(sessionMiddleware);
 
-// Resolve publishable key per host so the same server can serve multiple
-// Clerk custom domains. Falls back to CLERK_PUBLISHABLE_KEY in dev.
 app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
+  clerkMiddleware({ publishableKey: process.env.CLERK_PUBLISHABLE_KEY }),
 );
 
 app.use(authMiddleware);
