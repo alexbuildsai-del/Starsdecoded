@@ -70,9 +70,13 @@ affected cached entries stale so they regenerate.
 Configuration is documented in `.env.example` — the blocks map to the targets
 below.
 
-**Web → Vercel.** `web/vercel.json` builds from the repo root so the workspace
-resolves. Output lands in `dist/` at the repo root so Vercel finds it on defaults. Set `VITE_API_BASE_URL` to the Railway origin; it is inlined at build
-time, so a change needs a redeploy.
+**Web → Vercel.** `.vercelignore` keeps `api/` out of the upload: Vercel reads
+a top-level `api/` directory as serverless functions and would otherwise try to
+compile the Express server as one. `vercel.json` at the repo root supplies the install and
+build commands, and the output lands in `dist/` there, where Vercel's Vite
+preset looks by default. Set `VITE_API_BASE_URL` to the Railway origin and
+`VITE_CLERK_PUBLISHABLE_KEY` to the Clerk publishable key; both are inlined at
+build time, so changing either needs a redeploy.
 
 **API → Railway.** `railway.json` (repo root) builds the workspace and starts
 `@workspace/api-server`, health-checking `/api/healthz`. Railway injects `PORT`.

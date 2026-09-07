@@ -1,0 +1,12 @@
+# Vercel treats a top-level `api/` directory as serverless functions: it runs
+# its own isolated install inside it and type-checks every file as a function.
+# Ours is an Express server that deploys to Railway, and that private install
+# gives it a second copy of drizzle-orm, so the check fails on types that are
+# fine everywhere else. Keeping the directory out of the upload is what stops
+# the detection — the web build never needs it.
+api
+
+# Not part of the web app either, and no reason to upload them.
+e2e
+mobile
+scripts
