@@ -78,8 +78,13 @@ time, so a change needs a redeploy.
 `@workspace/api-server`, health-checking `/api/healthz`. Railway injects `PORT`.
 
 **Database → Supabase.** Point `DATABASE_URL` at the Supabase connection string
-and set `DATABASE_SSL=require`. Run `pnpm run db:bootstrap` against it once; the
-script is re-runnable.
+(the session pooler, not the transaction pooler — Drizzle uses prepared
+statements) and set `DATABASE_SSL=require`. Railway runs
+`scripts/bootstrap-db.sh` as its `preDeployCommand`, so migrations and seeds
+apply on every deploy; every step is idempotent. A failure there aborts the
+deploy and leaves the previous version serving, rather than starting a release
+against a database that does not match it. Run the same script by hand
+(`pnpm run db:bootstrap`) to set up a database from a laptop.
 
 Because web and API are separate origins in production, the anonymous session
 cookie is `SameSite=None; Secure` (see `CROSS_SITE_COOKIES`). Serving both from
