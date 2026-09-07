@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import router from "./routes";
+import healthRouter from "./routes/health";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
 import { authMiddleware } from "./middlewares/auth";
@@ -34,6 +35,15 @@ app.use(
     },
   }),
 );
+
+// Health sits ahead of every other middleware deliberately. Both Clerk's
+// middleware and authMiddleware can throw — on a malformed key, or on an
+// unreachable database, since authMiddleware reads and writes the users
+// table. Behind them, this probe fails whenever a dependency does, and
+// Railway reports "deploy failed" for a process that started perfectly
+// well, hiding the real error one layer down. A liveness probe answers
+// for the process itself and nothing else.
+app.use("/api", healthRouter);
 
 app.use(
   cors({

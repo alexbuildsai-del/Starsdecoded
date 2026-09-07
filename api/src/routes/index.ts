@@ -1,5 +1,4 @@
 import { Router, type IRouter } from "express";
-import healthRouter from "./health";
 import reportsRouter from "./reports";
 import geocodeRouter from "./geocode";
 import meaningLibraryRouter from "./meaningLibrary";
@@ -9,9 +8,9 @@ import invitesRouter from "./invites";
 import adminPromptsRouter from "./adminPrompts";
 import creditsRouter from "./credits";
 
+// health is mounted directly in app.ts, ahead of auth
 const router: IRouter = Router();
 
-router.use(healthRouter);
 router.use(reportsRouter);
 router.use(geocodeRouter);
 router.use(meaningLibraryRouter);
