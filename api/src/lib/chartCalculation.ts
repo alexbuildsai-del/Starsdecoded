@@ -1,6 +1,12 @@
 // Natal chart calculation using astronomy-engine (Don Cross)
 // Pure JS, no native deps, accurate to ~1 arcminute (NASA-grade port of JPL formulas)
-import * as Astronomy from "astronomy-engine";
+import * as AstronomyModule from "astronomy-engine";
+
+// astronomy-engine ships a CJS build with named exports (what esbuild bundles
+// for production) and an ESM build that exposes only a default object (what
+// Node's native loader picks, e.g. under the test runner). Accept either.
+const Astronomy: typeof AstronomyModule =
+  (AstronomyModule as unknown as { default?: typeof AstronomyModule }).default ?? AstronomyModule;
 
 const SIGNS = [
   "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
@@ -36,13 +42,13 @@ function getDegreeInSign(absoluteDegree: number): number {
 }
 
 // Geocentric ecliptic longitude of a planet (apparent, with aberration)
-function geocentricLongitude(body: Astronomy.Body, date: Date): number {
+function geocentricLongitude(body: AstronomyModule.Body, date: Date): number {
   const vec = Astronomy.GeoVector(body, date, true);
   return Astronomy.Ecliptic(vec).elon;
 }
 
 // Daily speed (degrees / day) by sampling positions 1 day apart, signed (negative = retrograde)
-function planetSpeed(body: Astronomy.Body, date: Date): number {
+function planetSpeed(body: AstronomyModule.Body, date: Date): number {
   const dt = 0.5; // half-day on each side (1 day baseline)
   const before = new Date(date.getTime() - dt * 86400_000);
   const after = new Date(date.getTime() + dt * 86400_000);
@@ -245,7 +251,7 @@ export function calculateNatalChart(
   const julianDay = Astronomy.MakeTime(date).tt + 2451545.0;
 
   // Planet bodies (geocentric)
-  const bodyMap: Record<string, Astronomy.Body> = {
+  const bodyMap: Record<string, AstronomyModule.Body> = {
     sun: Astronomy.Body.Sun,
     mercury: Astronomy.Body.Mercury,
     venus: Astronomy.Body.Venus,
