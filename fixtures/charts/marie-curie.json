@@ -1,0 +1,9 @@
+{
+  "name": "Marie Curie",
+  "birthDate": "1867-11-07",
+  "birthTime": "10:00",
+  "latitude": 52.2297,
+  "longitude": 21.0122,
+  "timezoneOffset": 1.4,
+  "note": "Warsaw. Birth time is the commonly cited 10:00 LMT and is not from a birth record. Longitude 21.0E gives LMT = UTC+1.4h. Day chart. One of the three charts the V2 suite was validated against."
+}

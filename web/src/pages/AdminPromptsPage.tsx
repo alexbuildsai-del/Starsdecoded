@@ -125,11 +125,9 @@ function PreviewModal({ open, label, loading, text, error, onClose }: PreviewMod
   );
 }
 
-const ASPECT_DYNAMIC_FORMAT_NOTE = `Expected JSON shape for the user prompt response:\n{"dynamic": {"synthesis": "…", "aspects": ["key1", …]}, "tension": {"synthesis": "…", "aspects": […]}, "behavior": {"synthesis": "…", "aspects": […]}, "growth": {"synthesis": "…", "aspects": […]}}`;
-
-const FORMAT_NOTES: Record<string, string> = {
-  "natal:aspects_dynamic:user": ASPECT_DYNAMIC_FORMAT_NOTE,
-};
+// Per-key format notes shown under the editor. Empty since the V1 aspects
+// section was removed; PR 3 repopulates this from the section zod schemas.
+const FORMAT_NOTES: Record<string, string> = {};
 
 function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => void }) {
   const [open, setOpen] = useState(false);

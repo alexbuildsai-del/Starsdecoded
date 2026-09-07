@@ -8,7 +8,8 @@
     "seed:meanings": "tsx ./src/seed-meaning-library.ts",
     "seed:prompts": "tsx ./src/seed-prompt-templates.ts",
     "backfill:is-self": "tsx ./src/backfill-profile-is-self.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "report:lab": "tsx ./src/report-lab.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",

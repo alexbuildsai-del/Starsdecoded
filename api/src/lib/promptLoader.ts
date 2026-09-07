@@ -18,6 +18,14 @@ export interface PromptRow {
 }
 
 /**
+ * When set, DB overrides are ignored and prompts resolve straight from
+ * promptDefaults.ts. The report lab uses this to test the prompts a change
+ * actually introduces, rather than whatever a maintainer has since typed into
+ * /admin/prompts. It does not affect the meaning library.
+ */
+const defaultsOnly = process.env.PROMPT_DEFAULTS_ONLY === "1";
+
+/**
  * Load a prompt row by key from the DB, falling back to the hardcoded default
  * if no DB override exists. Results are cached in-process for ~30s.
  */
@@ -26,6 +34,16 @@ export async function getPrompt(key: string): Promise<PromptRow> {
   const cached = cache.get(key);
   if (cached && cached.expiresAt > now) {
     return { systemPrompt: cached.systemPrompt, userPrompt: cached.userPrompt };
+  }
+
+  if (defaultsOnly) {
+    const def = PROMPT_DEFAULTS_BY_KEY.get(key);
+    const result: PromptRow = {
+      systemPrompt: def?.systemPrompt ?? null,
+      userPrompt: def?.userPrompt ?? null,
+    };
+    cache.set(key, { ...result, expiresAt: now + TTL_MS });
+    return result;
   }
 
   try {
@@ -70,7 +88,7 @@ export async function resolvePrompt(key: string): Promise<{ system: string; user
 }
 
 /**
- * Resolve both system and user prompts for a section (e.g. "natal:archetype"),
+ * Resolve both system and user prompts for a section (e.g. "natal:overview"),
  * pulling `${sectionKey}:system` and `${sectionKey}:user` in one parallel batch.
  */
 export async function resolveSection(sectionKey: string): Promise<{ system: string; user: string }> {
@@ -101,16 +119,6 @@ export function invalidatePromptCache(key: string): void {
  * the AI response. Validators must inspect template text, not parse AI output.
  */
 const PROMPT_SHAPE_VALIDATORS: Record<string, (userPrompt: string) => boolean> = {
-  /**
-   * The new aspects_dynamic template injects {aspectKeys} so the AI knows
-   * which exact key strings to reference in the structured JSON response.
-   * Old overrides predate this placeholder and produce flat-string output
-   * that breaks the chip display — they must be removed.
-   * A maintainer writing a valid new custom override will naturally include
-   * {aspectKeys} because it is required for correct AI output.
-   */
-  "natal:aspects_dynamic:user": (userPrompt: string): boolean =>
-    userPrompt.includes("{aspectKeys}"),
   "natal:foundation:user": (userPrompt: string): boolean =>
     userPrompt.includes("{foundationContext}")
     && userPrompt.includes('"sectionGuidance"'),

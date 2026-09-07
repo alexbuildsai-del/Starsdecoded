@@ -521,12 +521,6 @@ function rulerOfHouse(chart: NatalChartData, house: House): Planet | null {
 // Section context-pack assembly.
 // ---------------------------------------------------------------------------
 
-function archetypePack(chart: NatalChartData, context: LibraryContext): string {
-  const planets = packForPlanets(chart, context, ALL_PLANETS);
-  const aspects = packForAspects(context.aspects.slice(0, 5));
-  return [planets, aspects && `Top aspect dynamics:\n${aspects}`].filter(Boolean).join("\n\n");
-}
-
 function coreTriadPack(chart: NatalChartData, context: LibraryContext): string {
   // Sun and Moon get their own library entries directly. The Ascendant is an
   // angle (not a planet), so the library has no asc_sign_X entry — but the

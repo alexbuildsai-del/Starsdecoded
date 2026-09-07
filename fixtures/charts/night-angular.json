@@ -1,0 +1,9 @@
+{
+  "name": "Night Chart Fixture",
+  "birthDate": "1990-12-21",
+  "birthTime": "00:00",
+  "latitude": 48.8566,
+  "longitude": 2.3522,
+  "timezoneOffset": 1,
+  "note": "Synthetic. Paris, 21 December 1990, midnight clock time. Sun in the 4th, below the horizon: an unambiguous night chart. The sect counterpart to day-angular."
+}

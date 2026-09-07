@@ -21,7 +21,8 @@
     "db:push": "pnpm --filter @workspace/db run push",
     "db:migrate": "pnpm --filter @workspace/db run migrate",
     "db:bootstrap": "./scripts/bootstrap-db.sh",
-    "db:seed": "pnpm --filter @workspace/scripts run seed:meanings"
+    "db:seed": "pnpm --filter @workspace/scripts run seed:meanings",
+    "report:lab": "pnpm --filter @workspace/scripts run report:lab"
   },
   "devDependencies": {
     "typescript": "~5.9.2",

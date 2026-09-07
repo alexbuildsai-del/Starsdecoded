@@ -1,0 +1,9 @@
+{
+  "name": "High Latitude Fixture",
+  "birthDate": "1978-02-14",
+  "birthTime": "03:20",
+  "latitude": 64.1466,
+  "longitude": -21.9426,
+  "timezoneOffset": 0,
+  "note": "Reykjavik. Whole-sign houses are latitude-independent, so this guards against a future regression toward a quadrant house system, where 64N produces severely unequal houses."
+}
