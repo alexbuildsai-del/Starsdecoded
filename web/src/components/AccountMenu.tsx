@@ -67,9 +67,6 @@ export function AccountMenu() {
                 <DropdownMenuItem onClick={() => navigate("/admin/prompts")}>
                   <Shield className="h-4 w-4 mr-2" /> Prompts
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/admin/meanings")}>
-                  <Shield className="h-4 w-4 mr-2" /> Meaning library
-                </DropdownMenuItem>
               </>
             )}
             <DropdownMenuSeparator />

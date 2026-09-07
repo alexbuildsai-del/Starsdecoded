@@ -5,14 +5,6 @@ import { db, promptTemplatesTable } from "@workspace/db";
 import { PROMPT_DEFAULTS, PROMPT_DEFAULTS_BY_KEY } from "../lib/promptDefaults.js";
 import { invalidatePromptCache } from "../lib/promptLoader.js";
 import { openai } from "@workspace/integrations-openai-ai-server";
-import {
-  PROMPT_VERSION,
-  getActiveVersion,
-  getStaleCount,
-  markStale,
-  bumpVersion,
-} from "@workspace/meaning-library";
-import type { MeaningKind } from "@workspace/db";
 import { grantBundle, BUNDLE_DEFINITIONS } from "../lib/credits.js";
 import type { BundleKind } from "@workspace/db";
 
@@ -72,9 +64,8 @@ router.get("/admin/me", (req, res) => {
   });
 });
 
-// Guard only the prompt/meaning-library admin endpoints, not /admin/me above.
+// Guard only the prompt admin endpoints, not /admin/me above.
 router.use("/admin/prompts", adminGuard);
-router.use("/admin/meaning-library", adminGuard);
 
 /** POST /api/admin/prompts/preview — call the AI with supplied prompts and return the raw response. */
 router.post("/admin/prompts/preview", async (req, res) => {
@@ -170,29 +161,6 @@ router.get("/admin/prompts/:key", async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// Helpers for auto-invalidation when a meaning-library prompt is edited.
-// ---------------------------------------------------------------------------
-
-/**
- * Maps a meaning-library prompt key to the affected MeaningKind(s).
- * Returns "all" for the shared system prompt, a specific kind for per-kind
- * user prompts, or null for non-meaning-library prompt keys.
- */
-function mlKindFromPromptKey(key: string): MeaningKind | "all" | null {
-  if (!key.startsWith("meaning_library:")) return null;
-  if (key === "meaning_library:system") return "all";
-  const kindMap: Record<string, MeaningKind> = {
-    "meaning_library:planet_sign:user": "planet_sign",
-    "meaning_library:planet_house:user": "planet_house",
-    "meaning_library:aspect:user": "aspect",
-    "meaning_library:ascendant_sign:user": "ascendant_sign",
-    "meaning_library:midheaven_sign:user": "midheaven_sign",
-    "meaning_library:synastry_aspect:user": "synastry_aspect",
-  };
-  return kindMap[key] ?? null;
-}
-
 /** PUT /api/admin/prompts/:key — upsert a prompt override. */
 router.put("/admin/prompts/:key", async (req, res) => {
   const key = decodeURIComponent(req.params.key);
@@ -230,13 +198,6 @@ router.put("/admin/prompts/:key", async (req, res) => {
 
     invalidatePromptCache(key);
 
-    // Auto-invalidate the affected meaning-library kind so cached entries
-    // generated with the old prompt are regenerated on next request.
-    const mlTarget = mlKindFromPromptKey(key);
-    if (mlTarget) {
-      const invalidated = await markStale(mlTarget === "all" ? undefined : mlTarget);
-      req.log.info({ key, mlTarget, invalidated }, "Auto-invalidated meaning library entries after prompt save");
-    }
 
     return res.json({ key, saved: true });
   } catch (err) {
@@ -260,87 +221,11 @@ router.delete("/admin/prompts/:key", async (req, res) => {
 
     invalidatePromptCache(key);
 
-    // Auto-invalidate the affected meaning-library kind on reset too.
-    const mlTarget = mlKindFromPromptKey(key);
-    if (mlTarget) {
-      const invalidated = await markStale(mlTarget === "all" ? undefined : mlTarget);
-      req.log.info({ key, mlTarget, invalidated }, "Auto-invalidated meaning library entries after prompt reset");
-    }
 
     return res.json({ key, reset: true });
   } catch (err) {
     req.log.error({ err }, "Failed to reset prompt template");
     return res.status(500).json({ error: "internal_error", message: "Failed to reset prompt" });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Meaning library version endpoints.
-// ---------------------------------------------------------------------------
-
-const VALID_ML_KINDS = new Set<MeaningKind>([
-  "planet_sign",
-  "planet_house",
-  "aspect",
-  "ascendant_sign",
-  "midheaven_sign",
-  "synastry_aspect",
-]);
-
-/**
- * GET /api/admin/meaning-library/version
- * Returns the active prompt version (DB-backed) and how many cached entries
- * are stale (i.e. have a different promptVersion than the active one).
- */
-router.get("/admin/meaning-library/version", async (req, res) => {
-  try {
-    const [version, staleCount] = await Promise.all([getActiveVersion(), getStaleCount()]);
-    return res.json({ version, codeVersion: PROMPT_VERSION, staleCount });
-  } catch (err) {
-    req.log.error({ err }, "Failed to get meaning library version info");
-    return res.status(500).json({ error: "internal_error", message: "Failed to get version info" });
-  }
-});
-
-/**
- * POST /api/admin/meaning-library/bump-version
- * Increments the active prompt version in the DB (e.g. "v2" → "v3").
- * All existing cache rows now have a lower version and will be treated as
- * stale by lookupOrFill — they regenerate lazily with the current prompts.
- * Returns { version: string }
- */
-router.post("/admin/meaning-library/bump-version", async (req, res) => {
-  try {
-    const version = await bumpVersion();
-    req.log.info({ version }, "Meaning library prompt version bumped");
-    return res.json({ version });
-  } catch (err) {
-    req.log.error({ err }, "Failed to bump meaning library version");
-    return res.status(500).json({ error: "internal_error", message: "Failed to bump version" });
-  }
-});
-
-/**
- * POST /api/admin/meaning-library/invalidate
- * Marks all (or kind-specific) cache entries as stale so they regenerate
- * lazily on next request with the current prompt text.
- * Optional body: { kind: MeaningKind } to limit to one kind.
- * Returns { invalidated: number }
- */
-router.post("/admin/meaning-library/invalidate", async (req, res) => {
-  const { kind } = req.body as { kind?: string };
-
-  if (kind !== undefined && !VALID_ML_KINDS.has(kind as MeaningKind)) {
-    return res.status(400).json({ error: "validation_error", message: "Invalid kind" });
-  }
-
-  try {
-    const invalidated = await markStale(kind as MeaningKind | undefined);
-    req.log.info({ invalidated, kind: kind ?? "all" }, "Meaning library entries marked stale");
-    return res.json({ invalidated });
-  } catch (err) {
-    req.log.error({ err }, "Failed to invalidate meaning library entries");
-    return res.status(500).json({ error: "internal_error", message: "Failed to invalidate entries" });
   }
 });
 

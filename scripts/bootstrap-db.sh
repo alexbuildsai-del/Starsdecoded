@@ -22,10 +22,8 @@ pnpm --filter @workspace/db exec tsx scripts/migrate-add-invites.ts
 # Drop prompt_templates overrides for the deleted V1 natal keys.
 pnpm --filter @workspace/db exec tsx scripts/migrate-drop-dead-prompt-keys.ts
 
-# Hydrate meaning_library from the committed JSON fixture so the first natal
-# report on a fresh environment is fully library-backed (no per-entry AI calls
-# in the request path).
-pnpm --filter @workspace/scripts run seed:meanings
+# Remove the retired meaning_library table and its prompt rows.
+pnpm --filter @workspace/db exec tsx scripts/migrate-drop-meaning-library.ts
 
 # Seed prompt_templates with the default prompts (ON CONFLICT DO NOTHING).
 pnpm --filter @workspace/scripts run seed:prompts

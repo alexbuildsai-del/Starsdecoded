@@ -25,7 +25,6 @@ than published:
 | `api-spec`                           | OpenAPI document and the Orval codegen config.      |
 | `api-zod`                            | Generated Zod schemas — request validation.         |
 | `api-client-react`                   | Generated React Query hooks + fetch client.         |
-| `meaning-library`                    | DB-backed cache of pre-generated astrology meanings.|
 | `integrations-openai-ai-server`      | Server-side OpenAI client.                          |
 | `integrations-openai-ai-react`       | Client-side helpers (audio/voice).                  |
 
@@ -56,14 +55,21 @@ tests; the Playwright suite lives in `e2e/`.
 2. Chart computation runs in-process (`astronomy-engine`, no native bindings)
    and the result is cached on the profile, so a second report for the same
    person skips straight to interpretation.
-3. Interpretation sections are generated in parallel against OpenAI, drawing on
-   the meaning library so most placements never hit the AI at all.
+3. Interpretation runs as one foundation call, then ten sections in parallel
+   against OpenAI. Each prompt is assembled from a static vocabulary and
+   doctrine block (`api/src/prompts/`) plus a per-chart brief derived in code,
+   including sect, dignity, house rulers and the Lots
+   (`api/src/lib/traditional.ts`). Every section's output is enforced by a zod
+   schema via structured outputs.
 4. The client polls `/api/reports/:id/status` until `complete`.
 
-Prompts are editable at runtime: `promptDefaults.ts` holds 85 defaults, and any
-of them can be overridden per-key from `/admin/prompts` (gated by
-`ADMIN_USER_ID`). Editing a meaning-library prompt automatically marks the
-affected cached entries stale so they regenerate.
+Prompts are editable at runtime: natal defaults derive from the section
+registry in `api/src/prompts/index.ts`, synastry defaults live in
+`promptDefaults.ts`, and any of them can be overridden per-key from
+`/admin/prompts` (gated by `ADMIN_USER_ID`). The response shape is applied by
+code from each section's schema and cannot be overridden. `pnpm report:lab`
+generates a report from a committed fixture and measures it before a prompt
+change ships.
 
 ## Deployment
 
@@ -94,10 +100,6 @@ were left behind. Both are documented in place and neither blocks a build:
   placeholders. The chart wheel works; the planets are invisible until the real
   renders are copied over. `web/public/opengraph.jpg` is missing outright. See
   `web/src/assets/planets/README.md`.
-- **Meaning-library fixtures** — `packages/meaning-library/data/meanings.v*.json`
-  are absent (both exceed the connector's 100 KB limit). The library fills
-  itself lazily from the AI instead, so early reports are slower and cost API
-  calls. See `packages/meaning-library/data/README.md`.
 
 Replit-specific glue was removed rather than ported: the Vite dev plugins, the
 `.replit`/`replit.nix` files, the workspace mockup-preview app, the Connectors

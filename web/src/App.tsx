@@ -20,7 +20,6 @@ const importBirthForm = () => import("@/pages/BirthFormPage");
 const importGeneration = () => import("@/pages/GenerationPage");
 const importReport = () => import("@/pages/ReportPage");
 const importDashboard = () => import("@/pages/DashboardPage");
-const importAdmin = () => import("@/pages/MeaningLibraryAdminPage");
 const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
 const importSynastry = () => import("@/pages/SynastryReportPage");
 const importClaim = () => import("@/pages/ClaimPage");
@@ -29,7 +28,6 @@ const BirthFormPage = lazy(importBirthForm);
 const GenerationPage = lazy(importGeneration);
 const ReportPage = lazy(importReport);
 const DashboardPage = lazy(importDashboard);
-const MeaningLibraryAdminPage = lazy(importAdmin);
 const AdminPromptsPage = lazy(importAdminPrompts);
 const SynastryReportPage = lazy(importSynastry);
 const ClaimPage = lazy(importClaim);
@@ -231,7 +229,6 @@ function Routes() {
         <Route path="/people">{() => <Redirect to="/dashboard" />}</Route>
         <Route path="/synastry/:id" component={SynastryReportPage} />
         <Route path="/claim" component={ClaimPage} />
-        <Route path="/admin/meanings" component={MeaningLibraryAdminPage} />
         <Route path="/admin/prompts" component={AdminPromptsPage} />
         <Route path="/login">{() => <Redirect to="/sign-in" />}</Route>
         <Route component={NotFound} />

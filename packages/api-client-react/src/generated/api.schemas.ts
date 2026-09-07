@@ -5,45 +5,6 @@
  * Astra Natal Chart Report API
  * OpenAPI spec version: 0.1.0
  */
-export type MeaningLibraryStatsByKind = {
-  planet_sign: number;
-  planet_house: number;
-  aspect: number;
-};
-
-export interface MeaningLibraryStats {
-  total: number;
-  byKind: MeaningLibraryStatsByKind;
-}
-
-export type MeaningLibraryEntryKind = typeof MeaningLibraryEntryKind[keyof typeof MeaningLibraryEntryKind];
-
-
-export const MeaningLibraryEntryKind = {
-  planet_sign: 'planet_sign',
-  planet_house: 'planet_house',
-  aspect: 'aspect',
-} as const;
-
-export type MeaningLibraryEntryPayload = { [key: string]: unknown };
-
-export interface MeaningLibraryEntry {
-  id: string;
-  kind: MeaningLibraryEntryKind;
-  key: string;
-  payload: MeaningLibraryEntryPayload;
-  promptVersion: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MeaningLibraryListResponse {
-  entries: MeaningLibraryEntry[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
 export interface HealthStatus {
   status: string;
 }
@@ -796,40 +757,6 @@ export type AdminKeyParameter = string;
 export type RegenerateReport202 = {
   id: string;
   status: string;
-};
-
-export type ListMeaningLibraryEntriesParams = {
-kind?: ListMeaningLibraryEntriesKind;
-search?: string;
-/**
- * @minimum 1
- * @maximum 500
- */
-limit?: number;
-/**
- * @minimum 0
- */
-offset?: number;
-};
-
-export type ListMeaningLibraryEntriesKind = typeof ListMeaningLibraryEntriesKind[keyof typeof ListMeaningLibraryEntriesKind];
-
-
-export const ListMeaningLibraryEntriesKind = {
-  planet_sign: 'planet_sign',
-  planet_house: 'planet_house',
-  aspect: 'aspect',
-} as const;
-
-export type UpdateMeaningLibraryEntryBodyPayload = { [key: string]: unknown };
-
-export type UpdateMeaningLibraryEntryBody = {
-  payload: UpdateMeaningLibraryEntryBodyPayload;
-};
-
-export type DeleteMeaningLibraryEntry200 = {
-  deleted: boolean;
-  id: string;
 };
 
 export type GetSynastryReportParams = {
