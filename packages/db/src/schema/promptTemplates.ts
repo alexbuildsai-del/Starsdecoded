@@ -17,4 +17,4 @@ export const promptTemplatesTable = pgTable(
 export type PromptTemplate = typeof promptTemplatesTable.$inferSelect;
 export type InsertPromptTemplate = typeof promptTemplatesTable.$inferInsert;
 
-export type PromptCategory = "natal" | "synastry" | "meaning_library";
+export type PromptCategory = "natal" | "synastry";
