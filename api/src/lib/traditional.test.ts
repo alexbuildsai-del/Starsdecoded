@@ -1,20 +1,24 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chartFromFixture } from "./testFixtures.js";
+import { calculateNatalChart } from "./chartCalculation.js";
 import {
   DOMICILE, EXALTATION, TRADITIONAL_PLANETS,
-  angularity, deriveTraditional, essentialDignity, houseRulers, isAboveHorizon, lots, sect, wholeSignHouse,
+  angularity, deriveTraditional, essentialDignity, houseRulers, lots, sect, sectPayload, wholeSignHouse,
 } from "./traditional.js";
 
 const norm = (d: number) => ((d % 360) + 360) % 360;
 
 test("sect: Marie Curie at noon is a day chart with the classical assignments", () => {
   const s = sect(chartFromFixture("marie-curie"));
-  assert.deepEqual(s, {
+  const { sunAltitude, marginal, ...rest } = s;
+  assert.deepEqual(rest, {
     sect: "day", light: "sun",
     beneficOfSect: "jupiter", beneficContrary: "venus",
     maleficOfSect: "saturn", maleficContrary: "mars",
   });
+  assert.ok(sunAltitude > 0);
+  assert.equal(marginal, false);
 });
 
 test("sect: synthetic fixtures", () => {
@@ -23,13 +27,34 @@ test("sect: synthetic fixtures", () => {
   assert.equal(sect(chartFromFixture("night-angular")).maleficContrary, "saturn");
 });
 
-test("isAboveHorizon: just before the Ascendant has risen, just after has not", () => {
-  // Asc 12 Cap (282), so Desc is 12 Cancer (102).
-  assert.equal(isAboveHorizon(280, 282), true);   // 12th: just risen
-  assert.equal(isAboveHorizon(285, 282), false);  // 1st: about to rise
-  assert.equal(isAboveHorizon(105, 282), true);   // 7th: about to set
-  assert.equal(isAboveHorizon(100, 282), false);  // 6th: already set
-  assert.equal(isAboveHorizon(102, 282), false);  // on the Descendant counts as set
+test("sect: marginal within 5 degrees of the horizon, still committed to one sect", () => {
+  // Walk the morning of 1990-06-21 in Paris minute by minute to the first
+  // instant the Sun's centre is above the horizon, then test both sides.
+  let riseMinute = -1;
+  for (let m = 0; m < 12 * 60; m++) {
+    const hh = String(Math.floor(m / 60)).padStart(2, "0"), mm = String(m % 60).padStart(2, "0");
+    const c = calculateNatalChart("1990-06-21", `${hh}:${mm}`, 48.8566, 2.3522, 2);
+    if (c.sunAltitude > 0) { riseMinute = m; break; }
+  }
+  assert.ok(riseMinute > 0, "sunrise not found");
+  const at = (m: number) => calculateNatalChart("1990-06-21", `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`, 48.8566, 2.3522, 2);
+  const justAfter = sect(at(riseMinute));
+  const justBefore = sect(at(riseMinute - 5));
+  assert.equal(justAfter.sect, "day");
+  assert.equal(justAfter.marginal, true);
+  assert.equal(justBefore.sect, "night");
+  assert.equal(justBefore.marginal, true);
+  const midMorning = sect(at(riseMinute + 180));
+  assert.equal(midMorning.sect, "day");
+  assert.equal(midMorning.marginal, false);
+});
+
+test("sect payload uses the brief's six keys", () => {
+  const p = sectPayload(sect(chartFromFixture("marie-curie")));
+  assert.deepEqual(p, {
+    sect: "day", sect_light: "sun", benefic_of_sect: "jupiter", benefic_out_of_sect: "venus",
+    malefic_of_sect: "saturn", malefic_out_of_sect: "mars",
+  });
 });
 
 test("dignity: every traditional planet is in domicile in its own signs", () => {

@@ -44,8 +44,18 @@ test("Marie Curie: whole-sign houses from Capricorn rising", () => {
 });
 
 test("Synthetic day and night fixtures put the Sun where expected", () => {
-  assert.equal(chartFromFixture("day-angular").planets.sun.house, 10);
-  assert.equal(chartFromFixture("night-angular").planets.sun.house, 4);
+  const day = chartFromFixture("day-angular");
+  const night = chartFromFixture("night-angular");
+  assert.equal(day.planets.sun.house, 10);
+  assert.equal(night.planets.sun.house, 4);
+  assert.ok(day.sunAltitude > 40, `day altitude ${day.sunAltitude}`);
+  assert.ok(night.sunAltitude < -40, `night altitude ${night.sunAltitude}`);
+});
+
+test("Sun altitude: Marie Curie at noon in November in Warsaw is about 20 degrees up", () => {
+  const c = chartFromFixture("marie-curie");
+  assert.ok(c.sunAltitude > 15 && c.sunAltitude < 25, `altitude ${c.sunAltitude}`);
+  assert.equal(c.chartVersion, 2);
 });
 
 test("Whole-sign houses are latitude-independent: Reykjavik has twelve 30° houses", () => {

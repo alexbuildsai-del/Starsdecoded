@@ -14,8 +14,9 @@
  * Where the tradition offers choices, this file picks one and says so:
  *  - Traditional rulerships only. Uranus, Neptune and Pluto appear in the
  *    chart but rule nothing, so they never enter a rulership chain.
- *  - Sect is decided by the Sun's position against the actual Asc–Desc axis
- *    in longitude, not by whole-sign house number.
+ *  - Sect is decided by the Sun's true altitude at birth (geometric centre,
+ *    no refraction): above 0° is day. Within 5° of the horizon is flagged
+ *    marginal for the methodology box only.
  *  - Dignity is by sign. Exaltation degrees are recorded but not required.
  */
 import type { NatalChartData } from "./chartCalculation.js";
@@ -109,22 +110,46 @@ export interface SectInfo {
   maleficOfSect: "saturn" | "mars";
   /** Mars by day, Saturn by night: the malefic that exacts a price. */
   maleficContrary: "saturn" | "mars";
+  /** True altitude of the Sun's centre at birth, degrees, no refraction. */
+  sunAltitude: number;
+  /** Within 5° of the horizon. Shown in the methodology box only; the reading never hedges. */
+  marginal: boolean;
 }
+
+/** The brief's payload names, for prompts and the report meta. */
+export interface SectPayload {
+  sect: Sect;
+  sect_light: "sun" | "moon";
+  benefic_of_sect: "jupiter" | "venus";
+  benefic_out_of_sect: "jupiter" | "venus";
+  malefic_of_sect: "saturn" | "mars";
+  malefic_out_of_sect: "saturn" | "mars";
+}
+
+export const SECT_MARGINAL_DEGREES = 5;
 
 /**
- * A longitude is above the horizon when it lies on the arc from the
- * Descendant forward to the Ascendant. A body just short of the Ascendant in
- * longitude has already risen; one just past it has not.
+ * Sect from the Sun's true altitude: its geometric centre at exactly 0° is
+ * the boundary, with no refraction and no upper-limb convention. Above is day.
  */
-export function isAboveHorizon(longitude: number, ascendantLongitude: number): boolean {
-  return normalize(ascendantLongitude - longitude) < 180;
+export function sect(chart: NatalChartData): SectInfo {
+  const sunAltitude = chart.sunAltitude;
+  const day = sunAltitude > 0;
+  const marginal = Math.abs(sunAltitude) <= SECT_MARGINAL_DEGREES;
+  return day
+    ? { sect: "day", light: "sun", beneficOfSect: "jupiter", beneficContrary: "venus", maleficOfSect: "saturn", maleficContrary: "mars", sunAltitude, marginal }
+    : { sect: "night", light: "moon", beneficOfSect: "venus", beneficContrary: "jupiter", maleficOfSect: "mars", maleficContrary: "saturn", sunAltitude, marginal };
 }
 
-export function sect(chart: NatalChartData): SectInfo {
-  const day = isAboveHorizon(chart.planets.sun.absoluteDegree, chart.angles.ascendant.absoluteDegree);
-  return day
-    ? { sect: "day", light: "sun", beneficOfSect: "jupiter", beneficContrary: "venus", maleficOfSect: "saturn", maleficContrary: "mars" }
-    : { sect: "night", light: "moon", beneficOfSect: "venus", beneficContrary: "jupiter", maleficOfSect: "mars", maleficContrary: "saturn" };
+export function sectPayload(s: SectInfo): SectPayload {
+  return {
+    sect: s.sect,
+    sect_light: s.light,
+    benefic_of_sect: s.beneficOfSect,
+    benefic_out_of_sect: s.beneficContrary,
+    malefic_of_sect: s.maleficOfSect,
+    malefic_out_of_sect: s.maleficContrary,
+  };
 }
 
 // ---------------------------------------------------------------------------

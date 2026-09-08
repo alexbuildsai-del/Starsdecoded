@@ -188,7 +188,14 @@ function calcAspects(positions: Record<string, number>): AspectData[] {
   return aspects;
 }
 
+/**
+ * Bump when a field is added to NatalChartData so cached charts on profiles
+ * are recomputed on next use (see profiles.ts).
+ */
+export const CHART_VERSION = 2;
+
 export interface NatalChartData {
+  chartVersion: number;
   datetimeUtc: string;
   julianDay: number;
   latitude: number;
@@ -224,6 +231,12 @@ export interface NatalChartData {
     eastern: number;
     western: number;
   };
+  /**
+   * True altitude of the Sun's geometric centre at birth, in degrees, with no
+   * refraction and no upper-limb convention. Positive is above the horizon.
+   * The single input to sect.
+   */
+  sunAltitude: number;
 }
 
 interface RawPosition {
@@ -372,6 +385,11 @@ export function calculateNatalChart(
     ic: { sign: getSign(icLon), degree: Math.round(getDegreeInSign(icLon) * 100) / 100, absoluteDegree: Math.round(icLon * 100) / 100 },
   };
 
+  // Sun altitude (geometric centre, no refraction) for sect.
+  const observer = new Astronomy.Observer(latitude, longitude, 0);
+  const sunEq = Astronomy.Equator(Astronomy.Body.Sun, date, observer, true, true);
+  const sunAltitude = Math.round(Astronomy.Horizon(date, observer, sunEq.ra, sunEq.dec).altitude * 100) / 100;
+
   // Aspects (only for main 10 planets)
   const mainPlanets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
   const mainPlanetLons: Record<string, number> = {};
@@ -423,6 +441,8 @@ export function calculateNatalChart(
   else if (maxGap > 60) chartShape = "locomotive";
 
   return {
+    chartVersion: CHART_VERSION,
+    sunAltitude,
     datetimeUtc: date.toISOString(),
     julianDay: Math.round(julianDay * 10000) / 10000,
     latitude,
