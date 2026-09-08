@@ -193,6 +193,39 @@ export interface ChartData {
   hemisphereEmphasis?: ChartDataHemisphereEmphasis;
 }
 
+export type EvidenceRefKind = typeof EvidenceRefKind[keyof typeof EvidenceRefKind];
+
+
+export const EvidenceRefKind = {
+  placement: 'placement',
+  aspect: 'aspect',
+  ruler: 'ruler',
+  lot: 'lot',
+  sect: 'sect',
+} as const;
+
+/**
+ * A structured reference to the chart, verified by the API before storage. Fields vary by kind.
+ */
+export interface EvidenceRef {
+  kind: EvidenceRefKind;
+  [key: string]: unknown;
+ }
+
+export interface StoredEvidence {
+  ref: EvidenceRef;
+  /** Composed by the API from the verified reference; never model text. */
+  label: string;
+}
+
+/**
+ * A verbatim quote from the section's prose and the chart facts it rests on.
+ */
+export interface Claim {
+  quote: string;
+  evidence: StoredEvidence[];
+}
+
 export interface ActionItem {
   action: string;
   why: string;
@@ -226,12 +259,37 @@ export const ReportInterpretationMetaHouseSystem = {
   'whole-sign': 'whole-sign',
 } as const;
 
+export type ReportInterpretationMetaOrbs = {[key: string]: number};
+
+export type ReportInterpretationMetaSect = typeof ReportInterpretationMetaSect[keyof typeof ReportInterpretationMetaSect];
+
+
+export const ReportInterpretationMetaSect = {
+  day: 'day',
+  night: 'night',
+} as const;
+
+export type ReportInterpretationMetaSectLight = typeof ReportInterpretationMetaSectLight[keyof typeof ReportInterpretationMetaSectLight];
+
+
+export const ReportInterpretationMetaSectLight = {
+  sun: 'sun',
+  moon: 'moon',
+} as const;
+
 export type ReportInterpretationMeta = {
   promptVersion: string;
   model: string;
   houseSystem: ReportInterpretationMetaHouseSystem;
   generatedAt: string;
   wordCount: number;
+  zodiac: string;
+  ephemeris: string;
+  orbs: ReportInterpretationMetaOrbs;
+  sect: ReportInterpretationMetaSect;
+  sectLight: ReportInterpretationMetaSectLight;
+  sunAltitude: number;
+  sectMarginal: boolean;
 };
 
 export type ReportInterpretationOverview = {
@@ -240,12 +298,14 @@ export type ReportInterpretationOverview = {
   temperament: string;
   distinctive: string;
   bridge: string;
+  claims: Claim[];
 };
 
 export type ReportInterpretationTriad = {
   sun: ReportTriadPart;
   moon: ReportTriadPart;
   rising: ReportTriadPart;
+  claims: Claim[];
 };
 
 export type ReportInterpretationMind = {
@@ -253,6 +313,7 @@ export type ReportInterpretationMind = {
   howYouDecide: string;
   howYouAreUnderstood: string;
   practice: string;
+  claims: Claim[];
 };
 
 export type ReportInterpretationCareer = {
@@ -260,6 +321,7 @@ export type ReportInterpretationCareer = {
   howYouShowUp: string;
   growthThroughWork: string;
   actions: ActionItem[];
+  claims: Claim[];
 };
 
 export type ReportInterpretationMoney = {
@@ -267,6 +329,7 @@ export type ReportInterpretationMoney = {
   whatWorks: string;
   sharedAndExposed: string;
   actions: ActionItem[];
+  claims: Claim[];
 };
 
 export type ReportInterpretationRelationships = {
@@ -274,6 +337,7 @@ export type ReportInterpretationRelationships = {
   theChallenge: string;
   whatPartnershipAsks: string;
   actions: ActionItem[];
+  claims: Claim[];
 };
 
 export type ReportInterpretationFamily = {
@@ -281,12 +345,14 @@ export type ReportInterpretationFamily = {
   whatRootsYou: string;
   theInheritedEdge: string;
   actions: ActionItem[];
+  claims: Claim[];
 };
 
 export type ReportInterpretationSuperpowers = {
   superpower: ReportSuperpowerItem;
   chronicPattern: ReportSuperpowerItem;
   growingEdge: ReportSuperpowerItem;
+  claims: Claim[];
 };
 
 export type ReportInterpretationDiscoveriesParadoxesItem = {
@@ -298,6 +364,7 @@ export type ReportInterpretationDiscoveriesParadoxesItem = {
 export type ReportInterpretationDiscoveries = {
   opening: string;
   paradoxes: ReportInterpretationDiscoveriesParadoxesItem[];
+  claims: Claim[];
 };
 
 export type ReportInterpretationFocus = {
@@ -305,6 +372,7 @@ export type ReportInterpretationFocus = {
   notice: ReportFocusGroup;
   practice: ReportFocusGroup;
   closing: string;
+  claims: Claim[];
 };
 
 export type ReportInterpretationPersonalPlanets = {[key: string]: string};

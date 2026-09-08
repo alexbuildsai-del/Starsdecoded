@@ -55,7 +55,29 @@ export interface ActionItem {
   why: string;
 }
 
-export interface OverviewSection {
+/** A structured, code-verified reference to the chart. Shape varies by kind. */
+export interface EvidenceRef {
+  kind: "placement" | "aspect" | "ruler" | "lot" | "sect";
+  [key: string]: unknown;
+}
+
+export interface StoredEvidence {
+  ref: EvidenceRef;
+  /** Composed by the API from the verified reference; never model text. */
+  label: string;
+}
+
+/** A verbatim quote from the section's prose and the chart facts it rests on. */
+export interface Claim {
+  quote: string;
+  evidence: StoredEvidence[];
+}
+
+export interface WithClaims {
+  claims: Claim[];
+}
+
+export interface OverviewSection extends WithClaims {
   headline: string;
   concentration: string;
   temperament: string;
@@ -68,41 +90,41 @@ export interface TriadPart {
   text: string;
 }
 
-export interface TriadSection {
+export interface TriadSection extends WithClaims {
   sun: TriadPart;
   moon: TriadPart;
   rising: TriadPart;
 }
 
-export interface MindSection {
+export interface MindSection extends WithClaims {
   howYouThink: string;
   howYouDecide: string;
   howYouAreUnderstood: string;
   practice: string;
 }
 
-export interface CareerSection {
+export interface CareerSection extends WithClaims {
   vocationalPull: string;
   howYouShowUp: string;
   growthThroughWork: string;
   actions: ActionItem[];
 }
 
-export interface MoneySection {
+export interface MoneySection extends WithClaims {
   relationshipToResources: string;
   whatWorks: string;
   sharedAndExposed: string;
   actions: ActionItem[];
 }
 
-export interface RelationshipsSection {
+export interface RelationshipsSection extends WithClaims {
   howYouLove: string;
   theChallenge: string;
   whatPartnershipAsks: string;
   actions: ActionItem[];
 }
 
-export interface FamilySection {
+export interface FamilySection extends WithClaims {
   whatYouCarry: string;
   whatRootsYou: string;
   theInheritedEdge: string;
@@ -115,7 +137,7 @@ export interface SuperpowerItem {
   actions: ActionItem[];
 }
 
-export interface SuperpowersSection {
+export interface SuperpowersSection extends WithClaims {
   superpower: SuperpowerItem;
   chronicPattern: SuperpowerItem;
   growingEdge: SuperpowerItem;
@@ -127,7 +149,7 @@ export interface Paradox {
   invitation: string;
 }
 
-export interface DiscoveriesSection {
+export interface DiscoveriesSection extends WithClaims {
   opening: string;
   paradoxes: Paradox[];
 }
@@ -142,7 +164,7 @@ export interface FocusGroup {
   bullets: FocusBullet[];
 }
 
-export interface FocusSection {
+export interface FocusSection extends WithClaims {
   leanInto: FocusGroup;
   notice: FocusGroup;
   practice: FocusGroup;
@@ -164,6 +186,13 @@ export interface Interpretation {
     promptVersion: string;
     model: string;
     houseSystem: "whole-sign";
+    zodiac: "tropical";
+    ephemeris: string;
+    orbs: Record<string, number>;
+    sect: "day" | "night";
+    sectLight: "sun" | "moon";
+    sunAltitude: number;
+    sectMarginal: boolean;
     generatedAt: string;
     wordCount: number;
   };
@@ -185,7 +214,8 @@ export interface Interpretation {
 /** A stored report predates V3 when it lacks the meta block. Such reports must be regenerated. */
 export function isV3Interpretation(v: unknown): v is Interpretation {
   return typeof v === "object" && v !== null && typeof (v as Interpretation).meta?.promptVersion === "string"
-    && typeof (v as Interpretation).overview?.headline === "string";
+    && typeof (v as Interpretation).overview?.headline === "string"
+    && Array.isArray((v as Interpretation).overview?.claims);
 }
 
 export const PLANET_LABELS: Record<string, string> = {

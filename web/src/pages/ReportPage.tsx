@@ -17,8 +17,9 @@ import {
 } from "@/types/chart";
 import {
   OverviewBlock, TriadBlock, MindBlock, CareerBlock, MoneyBlock, RelationshipsBlock,
-  FamilyBlock, SuperpowersBlock, DiscoveriesBlock, FocusBlock, HouseSystemNote, HouseSystemExplainer,
+  FamilyBlock, SuperpowersBlock, DiscoveriesBlock, FocusBlock, HouseSystemExplainer,
 } from "@/components/ReportSections";
+import { MethodologyBox } from "@/components/MethodologyBox";
 import { AspectChip } from "@/components/AspectChip";
 import sunImg from "@/assets/planets/sun.webp";
 import moonImg from "@/assets/planets/moon.webp";
@@ -424,7 +425,7 @@ export default function ReportPage() {
               year: "numeric", month: "long", day: "numeric",
             })} · {report.birthTime} · {report.birthPlace}
           </p>
-          <HouseSystemNote />
+          <MethodologyBox meta={interpretation.meta} />
         </motion.div>
 
         {/* 01 — Chart Overview */}

@@ -956,6 +956,38 @@ components:
         - modalities
         - dominance
 
+    EvidenceRef:
+      description: A structured reference to the chart, verified by the API before storage. Fields vary by kind.
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [placement, aspect, ruler, lot, sect]
+      required: [kind]
+      additionalProperties: true
+
+    StoredEvidence:
+      type: object
+      properties:
+        ref:
+          $ref: "#/components/schemas/EvidenceRef"
+        label:
+          description: Composed by the API from the verified reference; never model text.
+          type: string
+      required: [ref, label]
+
+    Claim:
+      description: A verbatim quote from the section's prose and the chart facts it rests on.
+      type: object
+      properties:
+        quote:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/StoredEvidence"
+      required: [quote, evidence]
+
     ActionItem:
       type: object
       properties:
@@ -1025,7 +1057,25 @@ components:
               type: string
             wordCount:
               type: number
-          required: [promptVersion, model, houseSystem, generatedAt, wordCount]
+            zodiac:
+              type: string
+            ephemeris:
+              type: string
+            orbs:
+              type: object
+              additionalProperties:
+                type: number
+            sect:
+              type: string
+              enum: [day, night]
+            sectLight:
+              type: string
+              enum: [sun, moon]
+            sunAltitude:
+              type: number
+            sectMarginal:
+              type: boolean
+          required: [promptVersion, model, houseSystem, generatedAt, wordCount, zodiac, ephemeris, orbs, sect, sectLight, sunAltitude, sectMarginal]
         overview:
           type: object
           properties:
@@ -1039,7 +1089,11 @@ components:
               type: string
             bridge:
               type: string
-          required: [headline, concentration, temperament, distinctive, bridge]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [headline, concentration, temperament, distinctive, bridge, claims]
         triad:
           type: object
           properties:
@@ -1049,7 +1103,11 @@ components:
               $ref: "#/components/schemas/ReportTriadPart"
             rising:
               $ref: "#/components/schemas/ReportTriadPart"
-          required: [sun, moon, rising]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [sun, moon, rising, claims]
         mind:
           type: object
           properties:
@@ -1061,7 +1119,11 @@ components:
               type: string
             practice:
               type: string
-          required: [howYouThink, howYouDecide, howYouAreUnderstood, practice]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [howYouThink, howYouDecide, howYouAreUnderstood, practice, claims]
         career:
           type: object
           properties:
@@ -1075,7 +1137,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ActionItem"
-          required: [vocationalPull, howYouShowUp, growthThroughWork, actions]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [vocationalPull, howYouShowUp, growthThroughWork, actions, claims]
         money:
           type: object
           properties:
@@ -1089,7 +1155,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ActionItem"
-          required: [relationshipToResources, whatWorks, sharedAndExposed, actions]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [relationshipToResources, whatWorks, sharedAndExposed, actions, claims]
         relationships:
           type: object
           properties:
@@ -1103,7 +1173,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ActionItem"
-          required: [howYouLove, theChallenge, whatPartnershipAsks, actions]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [howYouLove, theChallenge, whatPartnershipAsks, actions, claims]
         family:
           type: object
           properties:
@@ -1117,7 +1191,11 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ActionItem"
-          required: [whatYouCarry, whatRootsYou, theInheritedEdge, actions]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [whatYouCarry, whatRootsYou, theInheritedEdge, actions, claims]
         superpowers:
           type: object
           properties:
@@ -1127,7 +1205,11 @@ components:
               $ref: "#/components/schemas/ReportSuperpowerItem"
             growingEdge:
               $ref: "#/components/schemas/ReportSuperpowerItem"
-          required: [superpower, chronicPattern, growingEdge]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [superpower, chronicPattern, growingEdge, claims]
         discoveries:
           type: object
           properties:
@@ -1145,7 +1227,11 @@ components:
                   invitation:
                     type: string
                 required: [title, tension, invitation]
-          required: [opening, paradoxes]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [opening, paradoxes, claims]
         focus:
           type: object
           properties:
@@ -1157,7 +1243,11 @@ components:
               $ref: "#/components/schemas/ReportFocusGroup"
             closing:
               type: string
-          required: [leanInto, notice, practice, closing]
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [leanInto, notice, practice, closing, claims]
         personalPlanets:
           type: object
           additionalProperties:

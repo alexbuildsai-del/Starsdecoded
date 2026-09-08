@@ -13,7 +13,7 @@
  * further generation.
  */
 import type { NatalChartData } from "../lib/chartCalculation.js";
-import { deriveTraditional, type TraditionalFactors } from "../lib/traditional.js";
+import { deriveTraditional, sectPayload, type SectPayload, type TraditionalFactors } from "../lib/traditional.js";
 import {
   ASPECT, BODY, BODY_LABELS, HOUSE, SIGN, STRUCTURE, BODIES,
   cap, ordinal, type AspectName, type Body, type SignName,
@@ -34,6 +34,10 @@ export interface AngleMeanings {
 export interface ChartBrief {
   /** The variable prompt tail. */
   text: string;
+  /** The computed chart, for validators. */
+  chart: NatalChartData;
+  /** Sect, computed once, in the brief's six-key form. */
+  sect: SectPayload;
   /** Derived factors, for anything that wants them structured. */
   traditional: TraditionalFactors;
   /** One composed sentence pair per body, for the wheel. */
@@ -141,10 +145,18 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
   // --- the text -------------------------------------------------------------
   const el = chart.elements, mo = chart.modalities;
   const shapeKey = chart.chartShape ? SHAPE_KEY[chart.chartShape] : undefined;
+  const sp = sectPayload(t.sect);
   const lines = [
     `NAME: ${name}`,
     ``,
-    `SECT: ${t.sect.sect} chart. Sect light ${cap(t.sect.light)}. Benefic of sect ${cap(t.sect.beneficOfSect)}. Malefic contrary to sect ${cap(t.sect.maleficContrary)}. (See ${t.sect.sect === "day" ? "sect_day" : "sect_night"}.)`,
+    `SECT (computed once; use these values, never re-derive):`,
+    `  sect: ${sp.sect}`,
+    `  sect_light: ${sp.sect_light}`,
+    `  benefic_of_sect: ${sp.benefic_of_sect}`,
+    `  benefic_out_of_sect: ${sp.benefic_out_of_sect}`,
+    `  malefic_of_sect: ${sp.malefic_of_sect}`,
+    `  malefic_out_of_sect: ${sp.malefic_out_of_sect}`,
+    `  (See ${sp.sect === "day" ? "sect_day" : "sect_night"} in the vocabulary.)`,
     `ANGLES: Ascendant ${asc.degree.toFixed(1)} ${asc.sign}. Midheaven ${mc.degree.toFixed(1)} ${mc.sign}. Houses are whole-sign.`,
     `CHART RULER: ${BODY_LABELS[cr.ruler]} in ${cap(cr.rulerSign)}, ${ordinal(cr.rulerHouse)} house, ${cr.rulerDignity}${dignity.get(cr.ruler)?.inSect === false ? ", contrary to sect" : dignity.get(cr.ruler)?.inSect === true ? ", in sect" : ""}.`,
     ``,
@@ -164,5 +176,5 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
     `EMPTY HOUSES: ${emptyHouses.length ? emptyHouses.map(ordinal).join(", ") : "none"}. Read each through its ruler above.`,
   ];
 
-  return { text: lines.join("\n"), traditional: t, personalPlanets, aspectMeanings, angleMeanings, stelliums, emptyHouses };
+  return { text: lines.join("\n"), chart, sect: sp, traditional: t, personalPlanets, aspectMeanings, angleMeanings, stelliums, emptyHouses };
 }

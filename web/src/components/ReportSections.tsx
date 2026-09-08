@@ -5,13 +5,20 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type {
-  ActionItem, CareerSection, DiscoveriesSection, FamilySection, FocusGroup, FocusSection,
+  ActionItem, CareerSection, Claim, DiscoveriesSection, FamilySection, FocusGroup, FocusSection,
   MindSection, MoneySection, OverviewSection, RelationshipsSection, SuperpowerItem,
   SuperpowersSection, TriadSection,
 } from "@/types/chart";
+import { EvidenceLines } from "@/components/EvidenceLine";
 
-function Para({ children }: { children: string }) {
-  return <p className="text-[15px] leading-[1.7] text-foreground/85 mb-4 last:mb-0">{children}</p>;
+/** A prose paragraph followed by the verified evidence for any claim it contains. */
+function Para({ children, claims }: { children: string; claims?: Claim[] }) {
+  return (
+    <>
+      <p className="text-[15px] leading-[1.7] text-foreground/85 mb-4 last:mb-0">{children}</p>
+      <EvidenceLines text={children} claims={claims} />
+    </>
+  );
 }
 
 function Labelled({ label, children }: { label: string; children: React.ReactNode }) {
@@ -51,10 +58,10 @@ export function OverviewBlock({ s }: { s: OverviewSection }) {
       <h2 className="font-display font-light leading-[1.15] tracking-[-0.01em] text-3xl md:text-4xl mb-7 text-foreground">
         {s.headline}
       </h2>
-      <div className="text-[15px] leading-[1.7] text-foreground/85 md:columns-2 md:gap-10 [&>p]:mb-4 [&>p]:break-inside-avoid">
-        <p>{s.concentration}</p>
-        <p>{s.temperament}</p>
-        <p>{s.distinctive}</p>
+      <div className="text-[15px] leading-[1.7] text-foreground/85 [&>p]:mb-4">
+        <Para claims={s.claims}>{s.concentration}</Para>
+        <Para claims={s.claims}>{s.temperament}</Para>
+        <Para claims={s.claims}>{s.distinctive}</Para>
       </div>
       <p className="mt-6 font-display text-lg text-primary/90 italic">{s.bridge}</p>
     </div>
@@ -76,6 +83,7 @@ export function TriadBlock({ s }: { s: TriadSection }) {
             <p className="font-label text-[10px] tracking-[0.18em] uppercase text-primary/75">{p.label}</p>
           </div>
           <p className="text-sm leading-[1.65] text-foreground/85">{p.text}</p>
+          <EvidenceLines text={p.text} claims={s.claims} />
         </div>
       ))}
     </div>
@@ -85,9 +93,9 @@ export function TriadBlock({ s }: { s: TriadSection }) {
 export function MindBlock({ s }: { s: MindSection }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-6 space-y-5">
-      <Labelled label="How you think"><Para>{s.howYouThink}</Para></Labelled>
-      <Labelled label="How you decide"><Para>{s.howYouDecide}</Para></Labelled>
-      <Labelled label="How you are understood"><Para>{s.howYouAreUnderstood}</Para></Labelled>
+      <Labelled label="How you think"><Para claims={s.claims}>{s.howYouThink}</Para></Labelled>
+      <Labelled label="How you decide"><Para claims={s.claims}>{s.howYouDecide}</Para></Labelled>
+      <Labelled label="How you are understood"><Para claims={s.claims}>{s.howYouAreUnderstood}</Para></Labelled>
       <ActionList items={[{ action: s.practice, why: "" }]} heading="Practice" />
     </div>
   );
@@ -96,9 +104,9 @@ export function MindBlock({ s }: { s: MindSection }) {
 export function CareerBlock({ s }: { s: CareerSection }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-6 space-y-5">
-      <Labelled label="Vocational pull"><Para>{s.vocationalPull}</Para></Labelled>
-      <Labelled label="How you show up"><Para>{s.howYouShowUp}</Para></Labelled>
-      <Labelled label="Growth through work"><Para>{s.growthThroughWork}</Para></Labelled>
+      <Labelled label="Vocational pull"><Para claims={s.claims}>{s.vocationalPull}</Para></Labelled>
+      <Labelled label="How you show up"><Para claims={s.claims}>{s.howYouShowUp}</Para></Labelled>
+      <Labelled label="Growth through work"><Para claims={s.claims}>{s.growthThroughWork}</Para></Labelled>
       <ActionList items={s.actions} />
     </div>
   );
@@ -107,9 +115,9 @@ export function CareerBlock({ s }: { s: CareerSection }) {
 export function MoneyBlock({ s }: { s: MoneySection }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-6 space-y-5">
-      <Labelled label="Your relationship to resources"><Para>{s.relationshipToResources}</Para></Labelled>
-      <Labelled label="What works, and what does not"><Para>{s.whatWorks}</Para></Labelled>
-      <Labelled label="Shared money and exposure"><Para>{s.sharedAndExposed}</Para></Labelled>
+      <Labelled label="Your relationship to resources"><Para claims={s.claims}>{s.relationshipToResources}</Para></Labelled>
+      <Labelled label="What works, and what does not"><Para claims={s.claims}>{s.whatWorks}</Para></Labelled>
+      <Labelled label="Shared money and exposure"><Para claims={s.claims}>{s.sharedAndExposed}</Para></Labelled>
       <ActionList items={s.actions} />
     </div>
   );
@@ -118,9 +126,9 @@ export function MoneyBlock({ s }: { s: MoneySection }) {
 export function RelationshipsBlock({ s }: { s: RelationshipsSection }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-6 space-y-5">
-      <Labelled label="How you love"><Para>{s.howYouLove}</Para></Labelled>
-      <Labelled label="The challenge"><Para>{s.theChallenge}</Para></Labelled>
-      <Labelled label="What partnership asks of you"><Para>{s.whatPartnershipAsks}</Para></Labelled>
+      <Labelled label="How you love"><Para claims={s.claims}>{s.howYouLove}</Para></Labelled>
+      <Labelled label="The challenge"><Para claims={s.claims}>{s.theChallenge}</Para></Labelled>
+      <Labelled label="What partnership asks of you"><Para claims={s.claims}>{s.whatPartnershipAsks}</Para></Labelled>
       <ActionList items={s.actions} />
     </div>
   );
@@ -129,22 +137,22 @@ export function RelationshipsBlock({ s }: { s: RelationshipsSection }) {
 export function FamilyBlock({ s }: { s: FamilySection }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-6 space-y-5">
-      <Labelled label="What you carry"><Para>{s.whatYouCarry}</Para></Labelled>
-      <Labelled label="What roots you"><Para>{s.whatRootsYou}</Para></Labelled>
-      <Labelled label="The inherited edge"><Para>{s.theInheritedEdge}</Para></Labelled>
+      <Labelled label="What you carry"><Para claims={s.claims}>{s.whatYouCarry}</Para></Labelled>
+      <Labelled label="What roots you"><Para claims={s.claims}>{s.whatRootsYou}</Para></Labelled>
+      <Labelled label="The inherited edge"><Para claims={s.claims}>{s.theInheritedEdge}</Para></Labelled>
       <ActionList items={s.actions} />
     </div>
   );
 }
 
-function SuperpowerCard({ kicker, item, tone }: { kicker: string; item: SuperpowerItem; tone: "primary" | "amber" | "emerald" }) {
+function SuperpowerCard({ kicker, item, tone, claims }: { kicker: string; item: SuperpowerItem; tone: "primary" | "amber" | "emerald"; claims?: Claim[] }) {
   const ring = { primary: "border-primary/30 bg-primary/5", amber: "border-amber-400/30 bg-amber-400/5", emerald: "border-emerald-400/30 bg-emerald-400/5" }[tone];
   const text = { primary: "text-primary/80", amber: "text-amber-400/80", emerald: "text-emerald-400/80" }[tone];
   return (
     <div className={`rounded-xl border p-6 ${ring}`}>
       <p className={`font-label text-[10px] tracking-[0.2em] uppercase mb-1.5 ${text}`}>{kicker}</p>
       <h3 className="font-display text-xl mb-3">{item.title}</h3>
-      <Para>{item.text}</Para>
+      <Para claims={claims}>{item.text}</Para>
       <ActionList items={item.actions} heading={tone === "emerald" ? "Practice this week" : tone === "amber" ? "How to manage it" : "How to use it"} />
     </div>
   );
@@ -153,9 +161,9 @@ function SuperpowerCard({ kicker, item, tone }: { kicker: string; item: Superpow
 export function SuperpowersBlock({ s }: { s: SuperpowersSection }) {
   return (
     <div className="space-y-4">
-      <SuperpowerCard kicker="Your superpower" item={s.superpower} tone="primary" />
-      <SuperpowerCard kicker="The pattern you will always navigate" item={s.chronicPattern} tone="amber" />
-      <SuperpowerCard kicker="Your growing edge" item={s.growingEdge} tone="emerald" />
+      <SuperpowerCard kicker="Your superpower" item={s.superpower} tone="primary" claims={s.claims} />
+      <SuperpowerCard kicker="The pattern you will always navigate" item={s.chronicPattern} tone="amber" claims={s.claims} />
+      <SuperpowerCard kicker="Your growing edge" item={s.growingEdge} tone="emerald" claims={s.claims} />
     </div>
   );
 }
@@ -163,11 +171,11 @@ export function SuperpowersBlock({ s }: { s: SuperpowersSection }) {
 export function DiscoveriesBlock({ s }: { s: DiscoveriesSection }) {
   return (
     <div className="space-y-4">
-      <p className="text-[15px] leading-[1.7] text-foreground/85">{s.opening}</p>
+      <Para claims={s.claims}>{s.opening}</Para>
       {s.paradoxes.map((p, i) => (
         <div key={i} className="rounded-xl border border-border/60 bg-card/40 p-6">
           <h3 className="font-display text-xl mb-3">{p.title}</h3>
-          <Para>{p.tension}</Para>
+          <Para claims={s.claims}>{p.tension}</Para>
           <p className="mt-3 text-sm leading-relaxed text-primary/90 italic border-l-2 border-primary/40 pl-4">{p.invitation}</p>
         </div>
       ))}
@@ -203,6 +211,7 @@ export function FocusBlock({ s }: { s: FocusSection }) {
       <div className="rounded-xl border border-border/60 bg-card/40 p-6 md:p-8">
         <p className="font-label text-[10px] tracking-[0.2em] uppercase text-primary/70 mb-3">Your invitation</p>
         <p className="font-display text-lg leading-[1.6] text-foreground/90">{s.closing}</p>
+        <EvidenceLines text={s.closing} claims={s.claims} />
       </div>
     </div>
   );
@@ -211,14 +220,6 @@ export function FocusBlock({ s }: { s: FocusSection }) {
 // ---------------------------------------------------------------------------
 // House system note and explainer
 // ---------------------------------------------------------------------------
-
-export function HouseSystemNote() {
-  return (
-    <p className="text-muted-foreground font-label text-xs mt-2">
-      Houses: Whole Sign. If you have seen your chart on astro.com or a similar site, houses there use Placidus, so some house numbers will differ. Your signs, degrees and aspects are identical.
-    </p>
-  );
-}
 
 export function HouseSystemExplainer() {
   const [open, setOpen] = useState(false);

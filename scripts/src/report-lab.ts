@@ -30,7 +30,8 @@ interface ChartFixture {
 }
 
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
-import { WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS } from "../../api/src/prompts/index.js";
+import { WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
+import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
 const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
 const REPORT_TOTAL: [number, number] = [3500, 4000];
 
@@ -60,6 +61,13 @@ const METHOD_TALK = [
   "in your chart, ",
   "this section",
   "as we will see",
+  "depending on the tradition",
+  "some astrologers",
+  "above the horizon",
+  "below the horizon",
+  "fun fact",
+  "did you know",
+  "interesting quirk",
 ];
 
 /** Style-contract rule 8: banned punctuation and formatting. */
@@ -77,7 +85,10 @@ function proseOf(value: unknown): string {
   if (typeof value === "string") return value;
   if (Array.isArray(value)) return value.map(proseOf).join(" ");
   if (value && typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).map(proseOf).join(" ");
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([k]) => k !== "claims")
+      .map(([, v]) => proseOf(v))
+      .join(" ");
   }
   return "";
 }
@@ -99,11 +110,17 @@ interface SectionRow {
   structured: boolean;
   methodTalk: string[];
   bannedChars: string[];
+  /** Validated claims / total; problems when re-validation fails. */
+  claims: { count: number; problems: string[] };
 }
 
-function measure(interpretation: Record<string, unknown>): SectionRow[] {
+function measure(interpretation: Record<string, unknown>, chart?: NatalChartData): SectionRow[] {
   return SECTION_IDS.map((section) => {
     const value = interpretation[section];
+    const stored = (value as { claims?: Array<{ quote: string; evidence: Array<{ ref: unknown }> }> } | undefined)?.claims ?? [];
+    const asModel = stored.map((c) => ({ quote: c.quote, evidence: c.evidence.map((e) => e.ref) }));
+    const problems = chart ? validateClaims(value, asModel as never, chart) : [];
+    if (stored.length < 3) problems.push(`only ${stored.length} claims`);
     const prose = proseOf(value);
     const w = words(prose);
     const target = WORD_TARGETS[section] ?? null;
@@ -116,21 +133,24 @@ function measure(interpretation: Record<string, unknown>): SectionRow[] {
       structured: isStructured(value),
       methodTalk: METHOD_TALK.filter((p) => lower.includes(p)),
       bannedChars: BANNED_CHARS.filter(([, re]) => re.test(prose)).map(([n]) => n),
+      claims: { count: stored.length, problems },
     };
   });
 }
 
 function renderTable(rows: SectionRow[]): string {
-  const head = ["section", "words", "target", "ok", "struct", "flags"];
+  const head = ["section", "words", "target", "ok", "struct", "claims", "flags"];
   const body = rows.map((r) => [
     r.section,
     String(r.words),
     r.target ? `${r.target[0]}-${r.target[1]}` : "-",
     r.inRange === null ? "-" : r.inRange ? "yes" : "NO",
     r.structured ? "yes" : "RAW",
+    r.claims.problems.length ? `${r.claims.count} INVALID` : String(r.claims.count),
     [
       ...r.methodTalk.map((p) => `method:"${p}"`),
       ...r.bannedChars.map((c) => `char:${c}`),
+      ...r.claims.problems.slice(0, 2).map((p) => `claim:${p}`),
     ].join(" ") || "-",
   ]);
   const widths = head.map((_, i) =>
@@ -245,14 +265,16 @@ async function runOne(name: string, label: string): Promise<SectionRow[]> {
   )) as unknown as Record<string, unknown>;
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
 
-  const rows = measure(interpretation);
+  const rows = measure(interpretation, chart);
   const total = rows.reduce((n, r) => n + r.words, 0);
 
   console.log(renderTable(rows));
   const totalOk = total >= REPORT_TOTAL[0] && total <= REPORT_TOTAL[1];
   console.log(`\ntotal: ${total} words (target ${REPORT_TOTAL[0]}-${REPORT_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"}) in ${elapsed}s`);
-  const meta = interpretation.meta as { promptVersion?: string; model?: string } | undefined;
-  if (meta) console.log(`prompt ${meta.promptVersion} on ${meta.model}`);
+  const meta = interpretation.meta as { promptVersion?: string; model?: string; sect?: string; sunAltitude?: number; sectMarginal?: boolean } | undefined;
+  if (meta) console.log(`prompt ${meta.promptVersion} on ${meta.model}; ${meta.sect} chart (Sun ${meta.sunAltitude}°${meta.sectMarginal ? ", marginal" : ""})`);
+  const foundationSect = (interpretation.foundation as { sect?: string } | undefined)?.sect;
+  if (meta && foundationSect && foundationSect !== meta.sect) console.log(`SECT MISMATCH: foundation says ${foundationSect}, chart is ${meta.sect}`);
 
   mkdirSync(REPORTS_DIR, { recursive: true });
   const stem = join(REPORTS_DIR, `${name}.${label}`);
@@ -274,10 +296,11 @@ function compare(labelA: string, labelB: string): void {
     if (!existsSync(pathA) || !existsSync(pathB)) continue;
     compared++;
 
-    const a = JSON.parse(readFileSync(pathA, "utf8")).interpretation;
-    const b = JSON.parse(readFileSync(pathB, "utf8")).interpretation;
-    const rowsA = measure(a);
-    const rowsB = measure(b);
+    const fileA = JSON.parse(readFileSync(pathA, "utf8"));
+    const fileB = JSON.parse(readFileSync(pathB, "utf8"));
+    const a = fileA.interpretation, b = fileB.interpretation;
+    const rowsA = measure(a, fileA.chart);
+    const rowsB = measure(b, fileB.chart);
 
     console.log(`\n=== ${name}: ${labelA} → ${labelB} ===`);
     for (let i = 0; i < rowsA.length; i++) {

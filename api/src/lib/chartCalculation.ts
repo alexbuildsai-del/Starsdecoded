@@ -149,13 +149,17 @@ interface AspectData {
   applying: boolean;
 }
 
+/** Orb allowances in degrees, stated in every report's methodology box. */
+export const ASPECT_ORBS = { conjunction: 8, opposition: 8, square: 6, trine: 6, sextile: 4 } as const;
+export const EPHEMERIS = "astronomy-engine (Don Cross), tropical zodiac, mean lunar node";
+
 function calcAspects(positions: Record<string, number>): AspectData[] {
   const aspectDefs = [
-    { name: "conjunction", angle: 0, orb: 8 },
-    { name: "opposition", angle: 180, orb: 8 },
-    { name: "square", angle: 90, orb: 6 },
-    { name: "trine", angle: 120, orb: 6 },
-    { name: "sextile", angle: 60, orb: 4 },
+    { name: "conjunction", angle: 0, orb: ASPECT_ORBS.conjunction },
+    { name: "opposition", angle: 180, orb: ASPECT_ORBS.opposition },
+    { name: "square", angle: 90, orb: ASPECT_ORBS.square },
+    { name: "trine", angle: 120, orb: ASPECT_ORBS.trine },
+    { name: "sextile", angle: 60, orb: ASPECT_ORBS.sextile },
   ];
 
   const aspects: AspectData[] = [];

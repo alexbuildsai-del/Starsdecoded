@@ -17,6 +17,11 @@ export interface SectionSpec<T extends z.ZodType = z.ZodType> {
   instructions: string;
   /** Extra variable context appended after the brief. Default: nothing. */
   extraContext?: (brief: ChartBrief) => string;
+  /**
+   * Post-parse validation against the chart. Returns problems; a non-empty
+   * list rejects the reply (retried once, then fails loudly).
+   */
+  validate?: (output: z.infer<T>, brief: ChartBrief) => string[];
 }
 
 export type Infer<S> = S extends SectionSpec<infer T> ? z.infer<T> : never;

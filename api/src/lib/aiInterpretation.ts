@@ -11,11 +11,12 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
 import type { z } from "zod/v4";
 import { resolveSection } from "./promptLoader.js";
-import type { NatalChartData } from "./chartCalculation.js";
+import { ASPECT_ORBS, EPHEMERIS, type NatalChartData } from "./chartCalculation.js";
+import { sect as computeSect } from "./traditional.js";
 import {
-  ALL_SECTIONS, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
-  buildBrief, toStrictJsonSchema,
-  type ChartBrief, type ReportSectionId, type SectionSpec,
+  ALL_SECTIONS, CLAIMS_CONTRACT, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
+  buildBrief, storeClaims, toStrictJsonSchema,
+  type ChartBrief, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
 import type { AngleMeanings, AspectMeaningPayload } from "../prompts/brief.js";
 import { FoundationSchema } from "../prompts/sections/foundation.js";
@@ -32,25 +33,37 @@ import { FocusSchema } from "../prompts/sections/focus.js";
 
 export const MODEL = "gpt-5.2";
 /** Bump when the section set, schemas, or vocabulary change shape. */
-export const PROMPT_VERSION = "v3";
+export const PROMPT_VERSION = "v4";
+
+/** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
+type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
 
 export type FoundationData = z.infer<typeof FoundationSchema>;
-export type OverviewSection = z.infer<typeof OverviewSchema>;
-export type TriadSection = z.infer<typeof TriadSchema>;
-export type MindSection = z.infer<typeof MindSchema>;
-export type CareerSection = z.infer<typeof CareerSchema>;
-export type MoneySection = z.infer<typeof MoneySchema>;
-export type RelationshipsSection = z.infer<typeof RelationshipsSchema>;
-export type FamilySection = z.infer<typeof FamilySchema>;
-export type SuperpowersSection = z.infer<typeof SuperpowersSchema>;
-export type DiscoveriesSection = z.infer<typeof DiscoveriesSchema>;
-export type FocusSection = z.infer<typeof FocusSchema>;
+export type OverviewSection = Stored<z.infer<typeof OverviewSchema>>;
+export type TriadSection = Stored<z.infer<typeof TriadSchema>>;
+export type MindSection = Stored<z.infer<typeof MindSchema>>;
+export type CareerSection = Stored<z.infer<typeof CareerSchema>>;
+export type MoneySection = Stored<z.infer<typeof MoneySchema>>;
+export type RelationshipsSection = Stored<z.infer<typeof RelationshipsSchema>>;
+export type FamilySection = Stored<z.infer<typeof FamilySchema>>;
+export type SuperpowersSection = Stored<z.infer<typeof SuperpowersSchema>>;
+export type DiscoveriesSection = Stored<z.infer<typeof DiscoveriesSchema>>;
+export type FocusSection = Stored<z.infer<typeof FocusSchema>>;
 
 export interface ReportInterpretation {
   meta: {
     promptVersion: string;
     model: string;
     houseSystem: "whole-sign";
+    zodiac: "tropical";
+    ephemeris: string;
+    orbs: typeof ASPECT_ORBS;
+    sect: "day" | "night";
+    sectLight: "sun" | "moon";
+    /** True altitude of the Sun's centre at birth, degrees, no refraction. */
+    sunAltitude: number;
+    /** Within 5 degrees of the horizon. Methodology box only. */
+    sectMarginal: boolean;
     generatedAt: string;
     /** Prose words across the ten reader-facing sections. */
     wordCount: number;
@@ -77,7 +90,9 @@ export interface ReportInterpretation {
 // ---------------------------------------------------------------------------
 
 function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec, foundationJson?: string): string {
-  const parts = [instructions.trim(), "", "CHART BRIEF", brief.text];
+  const parts = [instructions.trim()];
+  if (spec.key !== FOUNDATION.key) parts.push("", CLAIMS_CONTRACT);
+  parts.push("", "CHART BRIEF", brief.text);
   if (foundationJson) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", foundationJson);
   const extra = spec.extraContext?.(brief);
   if (extra) parts.push("", extra);
@@ -95,6 +110,7 @@ async function callSection<S extends SectionSpec>(
   spec: S,
   system: string,
   user: string,
+  brief: ChartBrief,
 ): Promise<z.infer<S["schema"]>> {
   const jsonSchema = toStrictJsonSchema(spec.schema);
   const name = spec.key.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -123,18 +139,28 @@ async function callSection<S extends SectionSpec>(
       continue;
     }
     const parsed = spec.schema.safeParse(raw);
-    if (parsed.success) return parsed.data as z.infer<S["schema"]>;
-    lastError = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    if (!parsed.success) {
+      lastError = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+      continue;
+    }
+    // Chart-grounded checks: claims must cite real placements, foundation
+    // must echo the computed sect. A failure here is a hallucination, and it
+    // never reaches storage.
+    const problems = spec.validate ? spec.validate(parsed.data, brief) : [];
+    if (problems.length === 0) return parsed.data as z.infer<S["schema"]>;
+    lastError = problems.join("; ");
   }
 
-  throw new SectionError(spec.key, `failed schema validation after 2 attempts: ${lastError}`);
+  throw new SectionError(spec.key, `failed validation after 2 attempts: ${lastError}`);
 }
 
 /** Words across every string leaf of a value. */
 export function countWords(value: unknown): number {
   if (typeof value === "string") return value.trim() ? value.trim().split(/\s+/).length : 0;
   if (Array.isArray(value)) return value.reduce((n, v) => n + countWords(v), 0);
-  if (value && typeof value === "object") return Object.values(value).reduce((n, v) => n + countWords(v), 0);
+  if (value && typeof value === "object") {
+    return Object.entries(value).reduce((n, [k, v]) => (k === "claims" ? n : n + countWords(v)), 0);
+  }
   return 0;
 }
 
@@ -155,6 +181,7 @@ export async function generateInterpretation(
     FOUNDATION,
     foundationPrompt.system,
     assembleUser(foundationPrompt.user, brief, FOUNDATION),
+    brief,
   );
   const foundationJson = JSON.stringify(foundation, null, 2);
 
@@ -163,11 +190,15 @@ export async function generateInterpretation(
   const prompts = await Promise.all(REPORT_SECTIONS.map((s) => resolveSection(s.key)));
   const results = await Promise.all(
     REPORT_SECTIONS.map((spec, i) =>
-      callSection(spec, prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson)),
+      callSection(spec, prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief),
     ),
   );
 
-  const byId = Object.fromEntries(SECTION_IDS.map((id, i) => [id, results[i]])) as Record<ReportSectionId, unknown>;
+  const withLabels = results.map((r) => {
+    const out = r as { claims: Parameters<typeof storeClaims>[0] };
+    return { ...out, claims: storeClaims(out.claims, chart) };
+  });
+  const byId = Object.fromEntries(SECTION_IDS.map((id, i) => [id, withLabels[i]])) as Record<ReportSectionId, unknown>;
 
   const sections = {
     overview: byId.overview as OverviewSection,
@@ -182,11 +213,19 @@ export async function generateInterpretation(
     focus: byId.focus as FocusSection,
   };
 
+  const s = computeSect(chart);
   return {
     meta: {
       promptVersion: PROMPT_VERSION,
       model: MODEL,
       houseSystem: "whole-sign",
+      zodiac: "tropical",
+      ephemeris: EPHEMERIS,
+      orbs: ASPECT_ORBS,
+      sect: s.sect,
+      sectLight: s.light,
+      sunAltitude: s.sunAltitude,
+      sectMarginal: s.marginal,
       generatedAt: new Date().toISOString(),
       wordCount: countWords(sections),
     },

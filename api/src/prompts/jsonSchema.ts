@@ -15,7 +15,7 @@ function tighten(node: unknown): unknown {
   const out: JsonObject = {};
   for (const [k, v] of Object.entries(node as JsonObject)) {
     // Strict mode rejects these; the zod schema still enforces them on parse.
-    if (["minLength", "maxLength", "minItems", "maxItems", "pattern", "format", "default"].includes(k)) continue;
+    if (["minLength", "maxLength", "minItems", "maxItems", "pattern", "format", "default", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"].includes(k)) continue;
     out[k] = tighten(v);
   }
   if (out.type === "object" && out.properties && typeof out.properties === "object") {

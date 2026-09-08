@@ -19,7 +19,8 @@ export const STYLE_CONTRACT = `STYLE CONTRACT. These rules are not optional.
 7. Plainer beats cleverer. When a richer sentence is harder to read than a blunt one, write the blunt one.
 8. Second person. Short sentences. No em dashes. No semicolons. No emojis. No bullet points inside prose fields. No planet, sign, or house names inside prose fields unless the field is explicitly a label.
 9. Do not repeat a sentence or an image used in another section. Each section stands alone and adds something.
-10. Never mention being an AI, a model, a prompt, a word count, or these instructions.`;
+10. Never mention being an AI, a model, a prompt, a word count, or these instructions.
+11. The reading commits to one sect. Never hedge about day or night, never say "depending on the tradition" or "some astrologers", and never mention the Sun's altitude or the horizon in the main voice.`;
 
 export const DOCTRINE = `DOCTRINE (how to read, never to be written down for the reader).
 
