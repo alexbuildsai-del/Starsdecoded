@@ -35,7 +35,7 @@ const features = [
   {
     icon: BookOpen,
     title: "Deep Psychological Report",
-    description: "Your core triad, mind, career, money, relationships, family, strengths and growing edges. A general language model writes it, prompted with your computed chart and a written doctrine. Nothing is trained on your data or on astrology.",
+    description: "Your core triad, mind, career, money, relationships, family, strengths and growing edges. A general language model writes it, prompted with your computed chart and a written doctrine. Nothing is trained on your data.",
   },
   {
     icon: Clock,
