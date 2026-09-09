@@ -343,7 +343,7 @@ router.get("/reports/:id/status", async (req, res) => {
 
     const statusToStep: Record<string, string> = {
       pending: "Initializing chart calculation...",
-      computing: "Computing planetary positions with Swiss Ephemeris...",
+      computing: "Computing planetary positions with astronomy-engine...",
       interpreting: "Generating psychological interpretation...",
       complete: "Report complete",
       failed: "Generation failed",
