@@ -76,16 +76,25 @@ change ships.
 Configuration is documented in `.env.example` — the blocks map to the targets
 below.
 
-**Web → Vercel.** `web/vercel.json` builds from the repo root so the workspace
-resolves. Output lands in `dist/` at the repo root so Vercel finds it on defaults. Set `VITE_API_BASE_URL` to the Railway origin; it is inlined at build
-time, so a change needs a redeploy.
+**Web → Vercel.** `.vercelignore` keeps `api/` out of the upload: Vercel reads
+a top-level `api/` directory as serverless functions and would otherwise try to
+compile the Express server as one. `vercel.json` at the repo root supplies the install and
+build commands, and the output lands in `dist/` there, where Vercel's Vite
+preset looks by default. Set `VITE_API_BASE_URL` to the Railway origin and
+`VITE_CLERK_PUBLISHABLE_KEY` to the Clerk publishable key; both are inlined at
+build time, so changing either needs a redeploy.
 
 **API → Railway.** `railway.json` (repo root) builds the workspace and starts
 `@workspace/api-server`, health-checking `/api/healthz`. Railway injects `PORT`.
 
 **Database → Supabase.** Point `DATABASE_URL` at the Supabase connection string
-and set `DATABASE_SSL=require`. Run `pnpm run db:bootstrap` against it once; the
-script is re-runnable.
+(the session pooler, not the transaction pooler — Drizzle uses prepared
+statements) and set `DATABASE_SSL=require`. Railway runs
+`scripts/bootstrap-db.sh` as its `preDeployCommand`, so migrations and seeds
+apply on every deploy; every step is idempotent. A failure there aborts the
+deploy and leaves the previous version serving, rather than starting a release
+against a database that does not match it. Run the same script by hand
+(`pnpm run db:bootstrap`) to set up a database from a laptop.
 
 Because web and API are separate origins in production, the anonymous session
 cookie is `SameSite=None; Secure` (see `CROSS_SITE_COOKIES`). Serving both from

@@ -8,7 +8,6 @@ import {
 } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
-import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -38,18 +37,15 @@ const queryClient = new QueryClient({
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-// Resolve Clerk publishable key from current host so the same build works
-// across multiple Clerk custom domains; falls back to the env var for dev.
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+// One Clerk application, one publishable key. This previously derived the
+// key from window.location.hostname — a Replit trick for serving several
+// Clerk custom domains from a single build, which on any other host risks
+// resolving to the wrong key.
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
 }
-
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL as string | undefined;
 
 // Clerk passes wouter setLocation absolute paths that already include the
 // base; strip it so we don't double-prepend.
@@ -241,8 +237,7 @@ function ClerkRoutedProvider() {
   const [, setLocation] = useLocation();
   return (
     <ClerkProvider
-      publishableKey={clerkPubKey!}
-      proxyUrl={clerkProxyUrl}
+      publishableKey={clerkPubKey}
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
