@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           Planetary positions are computed on our server with astronomy-engine. The report is
           written by a general language model at OpenAI, which receives the name you entered and
           the computed positions, not your raw birth date, time or place. Nothing is trained on
-          your data.
+          your data. OpenAI keeps what it receives for [RETENTION].
         </p>
       </LegalSection>
 
