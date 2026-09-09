@@ -341,9 +341,13 @@ router.get("/reports/:id/status", async (req, res) => {
       failed: 0,
     };
 
+    // User-facing copy: describe the engine we actually run. Charts are computed
+    // with astronomy-engine (VSOP87 + USNO NOVAS, verified against JPL Horizons,
+    // accurate to ~1 arcminute) - not Swiss Ephemeris. Do not name a library we
+    // do not ship.
     const statusToStep: Record<string, string> = {
       pending: "Initializing chart calculation...",
-      computing: "Computing planetary positions with Swiss Ephemeris...",
+      computing: "Computing planetary positions to arcminute precision...",
       interpreting: "Generating psychological interpretation...",
       complete: "Report complete",
       failed: "Generation failed",

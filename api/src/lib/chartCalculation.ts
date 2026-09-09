@@ -1,5 +1,6 @@
 // Natal chart calculation using astronomy-engine (Don Cross)
-// Pure JS, no native deps, accurate to ~1 arcminute (NASA-grade port of JPL formulas)
+// Pure JS, no native deps. Truncated VSOP87 series plus USNO NOVAS C 3.1 methods,
+// verified against NASA JPL Horizons; accurate to within ~1 arcminute.
 import * as Astronomy from "astronomy-engine";
 
 const SIGNS = [
