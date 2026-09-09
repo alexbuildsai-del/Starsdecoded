@@ -75,8 +75,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Deploys are git-push driven: `main` → Vercel (web, `dist/` at repo root) and
   Railway (api, health check `/api/healthz`). Postgres is Supabase. Secrets
   live only in those dashboards; the repository is public.
-- Web and API are separate origins, so the session cookie is
-  `SameSite=None; Secure` (`CROSS_SITE_COOKIES`).
+- The web app calls `/api` on its own origin; `vercel.json` rewrites that to
+  the Railway API, so no `VITE_API_BASE_URL` is needed on Vercel. The API
+  still sets `SameSite=None; Secure` cookies (`CROSS_SITE_COOKIES`), which
+  is harmless same-site.
 - `openapi.yaml` is the contract; generated client and zod files are rewritten
   by codegen and never hand-edited. `/admin/*` routes are not in the spec yet.
 - Schema changes go through `packages/db/src/schema` plus an idempotent script
