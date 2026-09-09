@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
-import { and, eq, inArray, asc } from "drizzle-orm";
+import { and, eq, ne, inArray, asc, count } from "drizzle-orm";
 import {
   db,
   profilesTable,
@@ -8,12 +8,13 @@ import {
   relationshipsTable,
   relationshipParticipantsTable,
 } from "@workspace/db";
-import { CreateReportBody, GetReportParams, GetReportStatusParams } from "@workspace/api-zod";
+import { CreateReportBody, DeleteReportParams, GetReportParams, GetReportStatusParams } from "@workspace/api-zod";
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
 import { generateInterpretation, type ReportInterpretation } from "../lib/aiInterpretation.js";
 import { resolveOrCreateProfile } from "../lib/profiles.js";
 import { viewerRelationshipIds } from "../lib/access.js";
 import { consumeCredit } from "../lib/credits.js";
+import { shouldDeleteProfile } from "../lib/deletion.js";
 
 const router = Router();
 
@@ -369,6 +370,59 @@ router.get("/reports/:id/status", async (req, res) => {
 const REGENERATE_COOLDOWN_MS = 60_000;
 const lastRegenerateAt = new Map<string, number>();
 
+// Delete a natal report the viewer owns. A report mid-generation is deleted
+// too; generateReport tolerates its row vanishing. Synastry reports wait on
+// MB-9. The orphaned profile goes with the report (MB-32 provisional), which
+// cascades invite_tokens; credits.used_for_report_id nulls out so the payment
+// record survives.
+router.delete("/reports/:id", async (req, res) => {
+  const parsed = DeleteReportParams.safeParse(req.params);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "validation_error", message: "Invalid ID" });
+  }
+  try {
+    const rows = await db
+      .select({ report: reportsTable, profile: profilesTable })
+      .from(reportsTable)
+      .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
+      .where(eq(reportsTable.id, parsed.data.id))
+      .limit(1);
+    if (!rows.length) {
+      return res.status(404).json({ error: "not_found", message: "Report not found" });
+    }
+    const { report: r, profile: p } = rows[0];
+    if (!viewerOwns(req, r, p)) {
+      return res.status(404).json({ error: "not_found", message: "Report not found" });
+    }
+    if (r.type !== "natal") {
+      return res
+        .status(409)
+        .json({ error: "unsupported", message: "Compatibility reports cannot be deleted yet" });
+    }
+
+    await db.transaction(async (tx) => {
+      const [{ value: otherReportCount }] = await tx
+        .select({ value: count() })
+        .from(reportsTable)
+        .where(and(eq(reportsTable.profileId, p.id), ne(reportsTable.id, r.id)));
+      const [{ value: relationshipParticipantCount }] = await tx
+        .select({ value: count() })
+        .from(relationshipParticipantsTable)
+        .where(eq(relationshipParticipantsTable.profileId, p.id));
+
+      await tx.delete(reportsTable).where(eq(reportsTable.id, r.id));
+      if (shouldDeleteProfile({ otherReportCount, relationshipParticipantCount })) {
+        await tx.delete(profilesTable).where(eq(profilesTable.id, p.id));
+      }
+    });
+    lastRegenerateAt.delete(r.id);
+    return res.status(204).end();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete report");
+    return res.status(500).json({ error: "internal_error", message: "Failed to delete report" });
+  }
+});
+
 router.post("/reports/:id/regenerate", async (req, res) => {
   const parsed = GetReportParams.safeParse(req.params);
   if (!parsed.success) {
@@ -462,6 +516,8 @@ async function generateReport(
 
       const profile = await db.select().from(profilesTable).where(eq(profilesTable.id, profileId)).limit(1);
       const p = profile[0];
+      // The report (and its profile) may have been deleted while pending.
+      if (!p) return;
       chartData = calculateNatalChart(p.birthDate, p.birthTime, p.latitude, p.longitude, p.timezoneOffset);
 
       await db
