@@ -1,0 +1,56 @@
+name: Smoke
+
+# Verifies a deploy: the web app answers and the API it points at is healthy.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      WEB_URL: https://starsdecoded.vercel.app/
+      DEADLINE_SECONDS: 600
+    steps:
+      - name: Wait for the web app
+        run: |
+          end=$((SECONDS + DEADLINE_SECONDS))
+          until curl -sSf --max-time 20 "$WEB_URL" -o index.html && grep -q 'id="root"' index.html; do
+            if [ "$SECONDS" -ge "$end" ]; then
+              echo "::error::$WEB_URL did not return 200 with the app root div within ${DEADLINE_SECONDS}s"
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "web ok: $WEB_URL"
+
+      - name: Find the API origin in the built bundles
+        run: |
+          api=""
+          for asset in $(grep -oE '/assets/[^"'"'"' ]+\.js' index.html | sort -u); do
+            api=$(curl -sS --max-time 20 "${WEB_URL%/}$asset" | grep -oE 'https://[^"'"'"'` ]*railway[^"'"'"'` /]*' | head -n1 || true)
+            [ -n "$api" ] && break
+          done
+          if [ -z "$api" ]; then
+            echo "::error::No https URL containing 'railway' found in any linked /assets/*.js; is VITE_API_BASE_URL set on Vercel?"
+            exit 1
+          fi
+          echo "API_URL=$api" >> "$GITHUB_ENV"
+          echo "api origin: $api"
+
+      - name: Wait for the API health check
+        run: |
+          end=$((SECONDS + DEADLINE_SECONDS))
+          until curl -sSf --max-time 20 "$API_URL/api/healthz" | grep -q '"status":"ok"'; do
+            if [ "$SECONDS" -ge "$end" ]; then
+              echo "::error::$API_URL/api/healthz did not return {\"status\":\"ok\"} within ${DEADLINE_SECONDS}s"
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "api ok: $API_URL/api/healthz"
+
+      - name: Summary
+        run: |
+          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n' "$WEB_URL" "$API_URL" >> "$GITHUB_STEP_SUMMARY"

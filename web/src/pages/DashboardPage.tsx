@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
 import InviteModal from "@/components/InviteModal";
 import ProfileInviteHistory from "@/components/ProfileInviteHistory";
+import { DeleteReportDialog } from "@/components/DeleteReportDialog";
 import {
   useListReports,
   useListProfiles,
@@ -215,17 +216,26 @@ function ZoneYou({
         ) : (
           <span />
         )}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onUnmarkSelf(selfProfile.id);
-          }}
-          className="font-label text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors underline underline-offset-2"
-          data-testid="button-unmark-self"
-        >
-          Not me
-        </button>
+        <div className="flex items-center gap-3">
+          {(selfProfile.ownership ?? "owner") === "owner" && (
+            <DeleteReportDialog
+              reportId={natalReport.id}
+              personName={selfProfile.name}
+              className="font-label text-[10px] h-auto px-0 gap-1 text-muted-foreground/60 hover:text-destructive hover:bg-transparent"
+            />
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUnmarkSelf(selfProfile.id);
+            }}
+            className="font-label text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors underline underline-offset-2"
+            data-testid="button-unmark-self"
+          >
+            Not me
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -322,6 +332,16 @@ function PersonCard({
           {isComplete ? "View Report" : "View Progress"}
           <ArrowRight className="h-3 w-3" />
         </Button>
+      )}
+
+      {natalReport && ownership === "owner" && (
+        <div className="mt-2 flex justify-end">
+          <DeleteReportDialog
+            reportId={natalReport.id}
+            personName={profile.name}
+            className="font-label text-[10px] h-auto px-0 gap-1 text-muted-foreground/60 hover:text-destructive hover:bg-transparent"
+          />
+        </div>
       )}
 
       {/* "This is me" — only show for profiles the user directly owns and hasn't yet marked as self */}

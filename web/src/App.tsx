@@ -22,6 +22,10 @@ const importDashboard = () => import("@/pages/DashboardPage");
 const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
 const importSynastry = () => import("@/pages/SynastryReportPage");
 const importClaim = () => import("@/pages/ClaimPage");
+const importPrivacy = () => import("@/pages/legal/PrivacyPage");
+const importTerms = () => import("@/pages/legal/TermsPage");
+const importRefunds = () => import("@/pages/legal/RefundsPage");
+const importCompany = () => import("@/pages/legal/CompanyPage");
 
 const BirthFormPage = lazy(importBirthForm);
 const GenerationPage = lazy(importGeneration);
@@ -30,6 +34,10 @@ const DashboardPage = lazy(importDashboard);
 const AdminPromptsPage = lazy(importAdminPrompts);
 const SynastryReportPage = lazy(importSynastry);
 const ClaimPage = lazy(importClaim);
+const PrivacyPage = lazy(importPrivacy);
+const TermsPage = lazy(importTerms);
+const RefundsPage = lazy(importRefunds);
+const CompanyPage = lazy(importCompany);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
@@ -226,6 +234,10 @@ function Routes() {
         <Route path="/synastry/:id" component={SynastryReportPage} />
         <Route path="/claim" component={ClaimPage} />
         <Route path="/admin/prompts" component={AdminPromptsPage} />
+        <Route path="/privacy" component={PrivacyPage} />
+        <Route path="/terms" component={TermsPage} />
+        <Route path="/refunds" component={RefundsPage} />
+        <Route path="/company" component={CompanyPage} />
         <Route path="/login">{() => <Redirect to="/sign-in" />}</Route>
         <Route component={NotFound} />
       </Switch>

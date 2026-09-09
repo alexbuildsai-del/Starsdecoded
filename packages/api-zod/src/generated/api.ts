@@ -433,6 +433,17 @@ export const GetReportResponse = zod.object({
 
 
 /**
+ * Deletes a natal report the viewer owns. The profile behind it is deleted too when no other report or relationship references it. Synastry reports cannot be deleted yet.
+ * @summary Delete a report
+ */
+export const DeleteReportParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteReportResponse = zod.void()
+
+
+/**
  * Poll for the current generation status of a report
  * @summary Get report generation status
  */

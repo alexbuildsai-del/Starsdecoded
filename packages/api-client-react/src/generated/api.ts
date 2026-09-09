@@ -392,6 +392,81 @@ export function useGetReport<TData = Awaited<ReturnType<typeof getReport>>, TErr
 
 
 
+export const getDeleteReportUrl = (id: string,) => {
+
+
+
+
+  return `/api/reports/${id}`
+}
+
+/**
+ * Deletes a natal report the viewer owns. The profile behind it is deleted too when no other report or relationship references it. Synastry reports cannot be deleted yet.
+ * @summary Delete a report
+ */
+export const deleteReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteReportUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteReportMutationKey = () => ['deleteReport'] as const;
+
+export const getDeleteReportMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReport>>, TError,DeleteReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteReport>>, TError,DeleteReportMutationVariables, TContext> => {
+
+const mutationKey = getDeleteReportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteReport>>, DeleteReportMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteReport(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteReportMutationResult = NonNullable<Awaited<ReturnType<typeof deleteReport>>>
+
+    export type DeleteReportMutationError = ErrorType<ErrorResponse>
+    export type DeleteReportMutationVariables = {id: string}
+
+    /**
+ * @summary Delete a report
+ */
+export const useDeleteReport = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReport>>, TError,DeleteReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteReport>>,
+        TError,
+        DeleteReportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteReportMutationOptions(options));
+    }
+
 export const getGetReportStatusUrl = (id: string,) => {
 
 
