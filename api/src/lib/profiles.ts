@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, or, isNull, ne } from "drizzle-orm";
 import { db, profilesTable, type Profile } from "@workspace/db";
-import { calculateNatalChart, type NatalChartData } from "./chartCalculation.js";
+import { CHART_VERSION, calculateNatalChart, type NatalChartData } from "./chartCalculation.js";
 
 export interface ProfileInput {
   name: string;
@@ -86,7 +86,10 @@ export async function resolveOrCreateProfile(
       return { ...p, ...updates, isSelf: true, updatedAt: new Date() };
     }
 
-    if (!p.chartData) {
+    // Recompute when the cached chart is missing or predates the current
+    // engine shape (e.g. lacks sunAltitude).
+    const cachedVersion = (p.chartData as { chartVersion?: number } | null)?.chartVersion ?? 0;
+    if (!p.chartData || cachedVersion < CHART_VERSION) {
       const chartData = calculateNatalChart(
         p.birthDate,
         p.birthTime,

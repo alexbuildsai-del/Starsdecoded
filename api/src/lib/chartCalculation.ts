@@ -1,6 +1,12 @@
 // Natal chart calculation using astronomy-engine (Don Cross)
 // Pure JS, no native deps, accurate to ~1 arcminute (NASA-grade port of JPL formulas)
-import * as Astronomy from "astronomy-engine";
+import * as AstronomyModule from "astronomy-engine";
+
+// astronomy-engine ships a CJS build with named exports (what esbuild bundles
+// for production) and an ESM build that exposes only a default object (what
+// Node's native loader picks, e.g. under the test runner). Accept either.
+const Astronomy: typeof AstronomyModule =
+  (AstronomyModule as unknown as { default?: typeof AstronomyModule }).default ?? AstronomyModule;
 
 const SIGNS = [
   "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
@@ -36,13 +42,13 @@ function getDegreeInSign(absoluteDegree: number): number {
 }
 
 // Geocentric ecliptic longitude of a planet (apparent, with aberration)
-function geocentricLongitude(body: Astronomy.Body, date: Date): number {
+function geocentricLongitude(body: AstronomyModule.Body, date: Date): number {
   const vec = Astronomy.GeoVector(body, date, true);
   return Astronomy.Ecliptic(vec).elon;
 }
 
 // Daily speed (degrees / day) by sampling positions 1 day apart, signed (negative = retrograde)
-function planetSpeed(body: Astronomy.Body, date: Date): number {
+function planetSpeed(body: AstronomyModule.Body, date: Date): number {
   const dt = 0.5; // half-day on each side (1 day baseline)
   const before = new Date(date.getTime() - dt * 86400_000);
   const after = new Date(date.getTime() + dt * 86400_000);
@@ -143,13 +149,17 @@ interface AspectData {
   applying: boolean;
 }
 
+/** Orb allowances in degrees, stated in every report's methodology box. */
+export const ASPECT_ORBS = { conjunction: 8, opposition: 8, square: 6, trine: 6, sextile: 4 } as const;
+export const EPHEMERIS = "astronomy-engine (Don Cross), tropical zodiac, mean lunar node";
+
 function calcAspects(positions: Record<string, number>): AspectData[] {
   const aspectDefs = [
-    { name: "conjunction", angle: 0, orb: 8 },
-    { name: "opposition", angle: 180, orb: 8 },
-    { name: "square", angle: 90, orb: 6 },
-    { name: "trine", angle: 120, orb: 6 },
-    { name: "sextile", angle: 60, orb: 4 },
+    { name: "conjunction", angle: 0, orb: ASPECT_ORBS.conjunction },
+    { name: "opposition", angle: 180, orb: ASPECT_ORBS.opposition },
+    { name: "square", angle: 90, orb: ASPECT_ORBS.square },
+    { name: "trine", angle: 120, orb: ASPECT_ORBS.trine },
+    { name: "sextile", angle: 60, orb: ASPECT_ORBS.sextile },
   ];
 
   const aspects: AspectData[] = [];
@@ -182,7 +192,14 @@ function calcAspects(positions: Record<string, number>): AspectData[] {
   return aspects;
 }
 
+/**
+ * Bump when a field is added to NatalChartData so cached charts on profiles
+ * are recomputed on next use (see profiles.ts).
+ */
+export const CHART_VERSION = 2;
+
 export interface NatalChartData {
+  chartVersion: number;
   datetimeUtc: string;
   julianDay: number;
   latitude: number;
@@ -218,6 +235,12 @@ export interface NatalChartData {
     eastern: number;
     western: number;
   };
+  /**
+   * True altitude of the Sun's geometric centre at birth, in degrees, with no
+   * refraction and no upper-limb convention. Positive is above the horizon.
+   * The single input to sect.
+   */
+  sunAltitude: number;
 }
 
 interface RawPosition {
@@ -245,7 +268,7 @@ export function calculateNatalChart(
   const julianDay = Astronomy.MakeTime(date).tt + 2451545.0;
 
   // Planet bodies (geocentric)
-  const bodyMap: Record<string, Astronomy.Body> = {
+  const bodyMap: Record<string, AstronomyModule.Body> = {
     sun: Astronomy.Body.Sun,
     mercury: Astronomy.Body.Mercury,
     venus: Astronomy.Body.Venus,
@@ -366,6 +389,11 @@ export function calculateNatalChart(
     ic: { sign: getSign(icLon), degree: Math.round(getDegreeInSign(icLon) * 100) / 100, absoluteDegree: Math.round(icLon * 100) / 100 },
   };
 
+  // Sun altitude (geometric centre, no refraction) for sect.
+  const observer = new Astronomy.Observer(latitude, longitude, 0);
+  const sunEq = Astronomy.Equator(Astronomy.Body.Sun, date, observer, true, true);
+  const sunAltitude = Math.round(Astronomy.Horizon(date, observer, sunEq.ra, sunEq.dec).altitude * 100) / 100;
+
   // Aspects (only for main 10 planets)
   const mainPlanets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
   const mainPlanetLons: Record<string, number> = {};
@@ -417,6 +445,8 @@ export function calculateNatalChart(
   else if (maxGap > 60) chartShape = "locomotive";
 
   return {
+    chartVersion: CHART_VERSION,
+    sunAltitude,
     datetimeUtc: date.toISOString(),
     julianDay: Math.round(julianDay * 10000) / 10000,
     latitude,

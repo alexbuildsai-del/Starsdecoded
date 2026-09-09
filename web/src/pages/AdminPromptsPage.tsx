@@ -31,13 +31,12 @@ interface PromptEntry {
   updatedAt: string | null;
 }
 
-type Tab = "natal" | "synastry" | "meaning_library";
+type Tab = "natal" | "synastry";
 type RelType = "romantic" | "sibling" | "parent_child" | "custom";
 
 const TAB_LABELS: Record<Tab, string> = {
   natal: "Natal Report",
   synastry: "Synastry",
-  meaning_library: "Meaning Library Atomics",
 };
 
 const REL_TYPE_LABELS: Record<RelType, string> = {
@@ -125,11 +124,10 @@ function PreviewModal({ open, label, loading, text, error, onClose }: PreviewMod
   );
 }
 
-const ASPECT_DYNAMIC_FORMAT_NOTE = `Expected JSON shape for the user prompt response:\n{"dynamic": {"synthesis": "…", "aspects": ["key1", …]}, "tension": {"synthesis": "…", "aspects": […]}, "behavior": {"synthesis": "…", "aspects": […]}, "growth": {"synthesis": "…", "aspects": […]}}`;
-
-const FORMAT_NOTES: Record<string, string> = {
-  "natal:aspects_dynamic:user": ASPECT_DYNAMIC_FORMAT_NOTE,
-};
+// Per-key format notes shown under the editor. Empty on purpose: since V3 the
+// response shape is applied by code from each section's schema and cannot be
+// changed here, so an override only ever edits tone and instructions.
+const FORMAT_NOTES: Record<string, string> = {};
 
 function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
@@ -365,12 +363,6 @@ function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => voi
   );
 }
 
-interface MlVersionInfo {
-  version: string;
-  codeVersion: string;
-  staleCount: number;
-}
-
 export default function AdminPromptsPage() {
   const [, navigate] = useLocation();
   const { user, isLoaded } = useUser();
@@ -383,19 +375,7 @@ export default function AdminPromptsPage() {
   const [tab, setTab] = useState<Tab>("natal");
   const [relType, setRelType] = useState<RelType>("romantic");
 
-  const [mlVersion, setMlVersion] = useState<MlVersionInfo | null>(null);
-  const [invalidating, setInvalidating] = useState(false);
-  const [bumping, setBumping] = useState(false);
-  const [invalidateResult, setInvalidateResult] = useState<string | null>(null);
 
-  const loadMlVersion = async () => {
-    try {
-      const data = await apiFetch("admin/meaning-library/version") as MlVersionInfo;
-      setMlVersion(data);
-    } catch {
-      // Non-fatal — version info is supplementary
-    }
-  };
 
   const loadData = async () => {
     setLoading(true);
@@ -407,10 +387,7 @@ export default function AdminPromptsPage() {
         setLoading(false);
         return;
       }
-      const [promptsData] = await Promise.all([
-        apiFetch("admin/prompts") as Promise<PromptEntry[]>,
-        loadMlVersion(),
-      ]);
+      const promptsData = (await apiFetch("admin/prompts")) as PromptEntry[];
       setPrompts(promptsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
@@ -419,48 +396,7 @@ export default function AdminPromptsPage() {
     }
   };
 
-  const handleInvalidate = async () => {
-    if (!window.confirm(
-      "This will mark all cached meaning library entries as stale. They will be regenerated lazily with the current prompts on next use. Continue?"
-    )) return;
-    setInvalidating(true);
-    setInvalidateResult(null);
-    try {
-      const data = await apiFetch("admin/meaning-library/invalidate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      }) as { invalidated: number };
-      setInvalidateResult(`${data.invalidated} entries marked for regeneration.`);
-      await loadMlVersion();
-    } catch (err) {
-      setInvalidateResult(err instanceof Error ? err.message : "Invalidation failed");
-    } finally {
-      setInvalidating(false);
-    }
-  };
 
-  const handleBumpVersion = async () => {
-    const nextNum = mlVersion ? parseInt(mlVersion.version.replace("v", ""), 10) + 1 : "?";
-    if (!window.confirm(
-      `Bump the prompt version from ${mlVersion?.version ?? "current"} to v${nextNum}? All cached entries will be treated as stale and regenerated lazily with the current prompts on next use.`
-    )) return;
-    setBumping(true);
-    setInvalidateResult(null);
-    try {
-      const data = await apiFetch("admin/meaning-library/bump-version", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      }) as { version: string };
-      setInvalidateResult(`Version bumped to ${data.version}. All entries will regenerate on next use.`);
-      await loadMlVersion();
-    } catch (err) {
-      setInvalidateResult(err instanceof Error ? err.message : "Bump failed");
-    } finally {
-      setBumping(false);
-    }
-  };
 
   useEffect(() => {
     if (isLoaded) {
@@ -548,13 +484,6 @@ export default function AdminPromptsPage() {
           >
             Prompts
           </button>
-          <button
-            type="button"
-            onClick={() => navigate("/admin/meanings")}
-            className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground hover:bg-card/60 transition-colors"
-          >
-            Meaning Library
-          </button>
         </aside>
 
         {/* Main content */}
@@ -570,16 +499,11 @@ export default function AdminPromptsPage() {
                 )}
               </p>
             </div>
-            <div className="flex gap-2 md:hidden">
-              <Button size="sm" variant="outline" onClick={() => navigate("/admin/meanings")}>
-                Meaning Library
-              </Button>
-            </div>
           </div>
 
           {/* Tab bar */}
           <div className="mb-4 flex gap-1 p-1 rounded-lg border border-border/60 bg-card/40 w-fit">
-            {(["natal", "synastry", "meaning_library"] as Tab[]).map((t) => (
+            {(["natal", "synastry"] as Tab[]).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -615,67 +539,6 @@ export default function AdminPromptsPage() {
             </div>
           )}
 
-          {/* Meaning Library version panel */}
-          {tab === "meaning_library" && mlVersion && (
-            <div className="mb-4 rounded-xl border border-border/60 bg-card/40 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="font-label text-xs tracking-[0.12em] uppercase text-muted-foreground">
-                    Active version
-                  </span>
-                  <span className="font-mono text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                    {mlVersion.version}
-                  </span>
-                  {mlVersion.codeVersion && mlVersion.codeVersion !== mlVersion.version && (
-                    <span className="font-label text-[10px] text-muted-foreground">
-                      (code: {mlVersion.codeVersion})
-                    </span>
-                  )}
-                  {mlVersion.staleCount > 0 ? (
-                    <span className="font-label text-[10px] tracking-[0.15em] uppercase text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">
-                      {mlVersion.staleCount} stale
-                    </span>
-                  ) : (
-                    <span className="font-label text-[10px] tracking-[0.15em] uppercase text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
-                      All current
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Stale entries are regenerated automatically on next request using the current prompts.
-                </p>
-                {invalidateResult && (
-                  <p className="text-[11px] text-green-400">{invalidateResult}</p>
-                )}
-              </div>
-              <div className="flex flex-col gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleBumpVersion}
-                  disabled={bumping || invalidating}
-                  title="Increments the active version so all cached entries are treated as stale"
-                >
-                  {bumping
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
-                  Bump version
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleInvalidate}
-                  disabled={invalidating || bumping}
-                  title="Marks all current entries as stale without changing the version number"
-                >
-                  {invalidating
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    : <Trash2 className="h-3.5 w-3.5 mr-1.5" />}
-                  Invalidate cache
-                </Button>
-              </div>
-            </div>
-          )}
 
           {/* Prompt cards */}
           <div className="flex flex-col gap-3">

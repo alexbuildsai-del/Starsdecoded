@@ -56,6 +56,9 @@ export default defineConfig({
       prettier: true,
       override: {
         zod: {
+          // The workspace's zod root is the v3 API (zod 3.25 ships v4 only under
+          // `zod/v4`). Without this orval 8 emits v4 calls like zod.int().
+          version: 3,
           coerce: {
             query: ['boolean', 'number', 'string'],
             param: ['boolean', 'number', 'string'],

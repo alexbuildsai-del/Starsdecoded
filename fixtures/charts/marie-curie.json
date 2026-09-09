@@ -1,0 +1,9 @@
+{
+  "name": "Marie Curie",
+  "birthDate": "1867-11-07",
+  "birthTime": "12:00",
+  "latitude": 52.2297,
+  "longitude": 21.0122,
+  "timezoneOffset": 1.4,
+  "note": "Warsaw. 12:00 LMT, the time astro-charts.com and the Notion V2 baseline use; not from a birth record. Longitude 21.0E gives LMT = UTC+1.4h. Day chart, Capricorn rising, Scorpio stellium in the 11th (whole-sign), North Node Virgo. Independently verified against Meeus during the engine audit; see api/src/lib/chartCalculation.test.ts."
+}

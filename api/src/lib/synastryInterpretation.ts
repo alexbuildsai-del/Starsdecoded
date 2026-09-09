@@ -1,18 +1,43 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { resolveSection } from "./promptLoader.js";
-import {
-  getSynastryAspectMeaning,
-  synastryAspectKey,
-  type AspectType,
-  type Planet,
-} from "@workspace/meaning-library";
-import type { SynastryAspectPayload } from "@workspace/db";
 import type { NatalChartData } from "./chartCalculation.js";
+import { ASPECT, BODY, BODY_LABELS, type AspectName, type Body } from "../prompts/vocabulary.js";
 import {
   computeSynastry,
   type CrossAspect,
   type SynastryComputeResult,
 } from "./synastryCompute.js";
+
+/** Per-contact meaning composed from the vocabulary: the aspect type's facets, framed by the two bodies. */
+export interface SynastryAspectPayload {
+  dynamic: string;
+  inFlow: string;
+  underStress: string;
+  growth: string;
+}
+
+/** Canonical key for a cross-aspect regardless of which chart owns which side. */
+export function synastryAspectKey(planet1: string, type: string, planet2: string): string {
+  const [a, b] = [planet1.toLowerCase(), planet2.toLowerCase()].sort();
+  return `${a}_${type.toLowerCase()}_${b}`;
+}
+
+/**
+ * Compose a cross-aspect meaning with no lookup. The generic dynamic of e.g.
+ * Venus square Mars is the same whichever chart owns which side; the section
+ * prompts add the per-direction colour.
+ */
+export function composeSynastryAspect(planetA: string, type: string, planetB: string): SynastryAspectPayload | null {
+  const e = ASPECT[type.toLowerCase() as AspectName];
+  const a = planetA.toLowerCase() as Body, b = planetB.toLowerCase() as Body;
+  if (!e || !BODY[a] || !BODY[b]) return null;
+  return {
+    dynamic: `${BODY_LABELS[a]} and ${BODY_LABELS[b]} across two charts. ${BODY[a].short} ${BODY[b].short} ${e.dynamic}`,
+    inFlow: e.inFlow,
+    underStress: e.underStress,
+    growth: e.growth,
+  };
+}
 
 export interface SynastryInterpretation {
   overview: string;
@@ -55,14 +80,6 @@ async function callAI(systemPrompt: string, userPrompt: string, maxTokens = 600)
     ],
   });
   return response.choices[0]?.message?.content?.trim() ?? "";
-}
-
-async function safeLookup<T>(work: Promise<T>): Promise<T | null> {
-  try {
-    return await work;
-  } catch {
-    return null;
-  }
 }
 
 function aspectsContextBlock(
@@ -113,22 +130,13 @@ export async function generateSynastryInterpretation(
 ): Promise<SynastryReportData> {
   const compute = computeSynastry(chartA, chartB);
 
-  // Pull meanings for the top ~14 cross-aspects.
+  // Compose meanings for the top ~14 cross-aspects from the vocabulary.
   const top = compute.crossAspects.slice(0, 14);
   const meanings = new Map<string, SynastryAspectPayload>();
-  await Promise.all(
-    top.map((c) =>
-      safeLookup(
-        getSynastryAspectMeaning(
-          c.planetA as Planet,
-          c.type as AspectType,
-          c.planetB as Planet,
-        ),
-      ).then((res) => {
-        if (res) meanings.set(synastryAspectKey(c.planetA, c.type, c.planetB), res);
-      }),
-    ),
-  );
+  for (const c of top) {
+    const m = composeSynastryAspect(c.planetA, c.type, c.planetB);
+    if (m) meanings.set(synastryAspectKey(c.planetA, c.type, c.planetB), m);
+  }
 
   const summary = summaryBlock(compute, nameA, nameB);
   const aspectContext = aspectsContextBlock(top, meanings, nameA, nameB);

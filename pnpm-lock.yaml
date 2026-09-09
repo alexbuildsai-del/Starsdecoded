@@ -89,9 +89,6 @@ importers:
       '@workspace/integrations-openai-ai-server':
         specifier: workspace:*
         version: link:../packages/integrations-openai-ai-server
-      '@workspace/meaning-library':
-        specifier: workspace:*
-        version: link:../packages/meaning-library
       astronomy-engine:
         specifier: ^2.1.19
         version: 2.1.19
@@ -116,6 +113,9 @@ importers:
       resend:
         specifier: 4.0.0
         version: 4.0.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@types/cookie-parser':
         specifier: ^1.4.10
@@ -141,6 +141,9 @@ importers:
       thread-stream:
         specifier: 3.1.0
         version: 3.1.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
 
   e2e:
     devDependencies:
@@ -221,30 +224,14 @@ importers:
         specifier: 'catalog:'
         version: 25.9.5
 
-  packages/meaning-library:
-    dependencies:
-      '@workspace/db':
-        specifier: workspace:*
-        version: link:../db
-      '@workspace/integrations-openai-ai-server':
-        specifier: workspace:*
-        version: link:../integrations-openai-ai-server
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.2(@types/pg@8.23.1)(pg@8.23.0)
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 25.9.5
-
   scripts:
     dependencies:
       '@workspace/db':
         specifier: workspace:*
         version: link:../packages/db
-      '@workspace/meaning-library':
+      '@workspace/integrations-openai-ai-server':
         specifier: workspace:*
-        version: link:../packages/meaning-library
+        version: link:../packages/integrations-openai-ai-server
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

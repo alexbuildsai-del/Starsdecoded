@@ -1,0 +1,9 @@
+{
+  "name": "Day Chart Fixture",
+  "birthDate": "1990-06-21",
+  "birthTime": "12:00",
+  "latitude": 48.8566,
+  "longitude": 2.3522,
+  "timezoneOffset": 2,
+  "note": "Synthetic. Paris, 21 June 1990, midday clock time. Sun in the 10th, well above the horizon: an unambiguous day chart. Anchors the sect unit test. Note clock noon in CEST is ~1.8h before solar noon, so the Sun is near but not on the MC."
+}

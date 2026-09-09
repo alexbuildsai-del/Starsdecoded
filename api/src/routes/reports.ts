@@ -77,7 +77,7 @@ router.get("/reports", async (req, res) => {
       birthTime: r.profile.birthTime,
       birthPlace: r.profile.birthPlace,
       status: r.status,
-      archetypeName: (r.interpretation as any)?.archetypeName ?? null,
+      archetypeName: (r.interpretation as any)?.overview?.headline ?? null,
       sunSign: (r.profile.chartData as any)?.planets?.sun?.sign ?? null,
       moonSign: (r.profile.chartData as any)?.planets?.moon?.sign ?? null,
       risingSign: (r.profile.chartData as any)?.angles?.ascendant?.sign ?? null,

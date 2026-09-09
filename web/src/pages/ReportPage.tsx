@@ -5,21 +5,21 @@ import { ArrowLeft, Download, ChevronDown, AlertTriangle, Sparkles, User, Trendi
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BirthLocationHorizon } from "@/components/BirthLocationHorizon";
-import { useGetReport, getGetReportQueryKey, type ReportInterpretationAngleMeaningsAscendant, type ReportInterpretationAngleMeaningsMidheaven } from "@workspace/api-client-react";
+import { useGetReport, getGetReportQueryKey, useRegenerateReport, type ReportInterpretationAngleMeaningsAscendant, type ReportInterpretationAngleMeaningsMidheaven } from "@workspace/api-client-react";
 import RadialOrbitalNatal from "@/components/ui/radial-orbital-natal";
 import LoadingState from "@/components/LoadingState";
 import {
   PLANET_GLYPHS,
   PLANET_LABELS,
-  isStructuredRelationships,
-  isStructuredCareer,
-  isStructuredAspectGroup,
-  isStructuredFinalSummary,
+  isV3Interpretation,
   type ChartData,
   type ChartPlanet,
-  type Interpretation,
-  type ThemeCard,
 } from "@/types/chart";
+import {
+  OverviewBlock, TriadBlock, MindBlock, CareerBlock, MoneyBlock, RelationshipsBlock,
+  FamilyBlock, SuperpowersBlock, DiscoveriesBlock, FocusBlock, HouseSystemExplainer,
+} from "@/components/ReportSections";
+import { MethodologyBox } from "@/components/MethodologyBox";
 import { AspectChip } from "@/components/AspectChip";
 import sunImg from "@/assets/planets/sun.webp";
 import moonImg from "@/assets/planets/moon.webp";
@@ -257,49 +257,6 @@ function HouseReferenceGuide({ planetsByHouse }: { planetsByHouse: Record<number
   );
 }
 
-function ThemeCardGrid({ cards, synthesis }: { cards: ThemeCard[]; synthesis: string }) {
-  return (
-    <div>
-      <div className="grid sm:grid-cols-3 gap-3 mb-4">
-        {cards.map((card, i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col gap-3"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xl leading-none">{card.icon}</span>
-              <p className="font-label text-xs tracking-[0.16em] uppercase text-primary/80">
-                {card.title}
-              </p>
-            </div>
-            <ul className="space-y-2 flex-1">
-              {card.bullets.map((bullet, j) => (
-                <li key={j} className="flex gap-2 text-sm leading-snug text-foreground/80">
-                  <span className="text-primary/50 mt-[3px] shrink-0">·</span>
-                  <span>{bullet}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-      {synthesis && (
-        <div className="relative rounded-xl border border-border/40 bg-card/30 px-6 py-5">
-          <span
-            className="absolute -top-3 left-5 text-4xl leading-none text-primary/20 select-none font-serif"
-            aria-hidden
-          >
-            "
-          </span>
-          <p className="text-sm leading-relaxed text-foreground/85 italic pl-3">
-            {synthesis}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Section({ title, label, children }: { title: string; label: string; children: React.ReactNode }) {
   return (
     <motion.section
@@ -356,6 +313,7 @@ export default function ReportPage() {
   const [, navigate] = useLocation();
   const [chartTab, setChartTab] = useState<"wheel" | "table">("wheel");
 
+  const regenerate = useRegenerateReport();
   const { data: report, isLoading, isError } = useGetReport(id!, {
     query: { enabled: !!id, queryKey: getGetReportQueryKey(id!) },
   });
@@ -387,7 +345,28 @@ export default function ReportPage() {
   }
 
   const chartData = report.chartData as unknown as ChartData;
-  const interpretation = report.interpretation as unknown as Interpretation;
+  if (!isV3Interpretation(report.interpretation)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <p className="text-muted-foreground mb-4">
+            This report was generated with an earlier version and needs to be regenerated to view.
+          </p>
+          <Button
+            variant="outline"
+            disabled={regenerate.isPending}
+            onClick={() => regenerate.mutate({ id: id! }, { onSuccess: () => navigate(`/generating/${id}`) })}
+          >
+            {regenerate.isPending ? "Starting…" : "Regenerate"}
+          </Button>
+          {regenerate.isError && (
+            <p className="text-sm text-destructive mt-3">Could not start regeneration. Please try again in a minute.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  const interpretation = report.interpretation;
 
   const mainPlanets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
   const minorPlanets = ["chiron", "north_node", "south_node"];
@@ -446,103 +425,14 @@ export default function ReportPage() {
               year: "numeric", month: "long", day: "numeric",
             })} · {report.birthTime} · {report.birthPlace}
           </p>
+          <MethodologyBox meta={interpretation.meta} />
         </motion.div>
 
-        {/* Key themes */}
-        {interpretation?.keyThemes?.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-wrap gap-2 justify-center mb-12"
-          >
-            {interpretation.keyThemes.map((theme: string) => (
-              <span
-                key={theme}
-                className="px-3 py-1.5 rounded-full border border-border/60 bg-card/60 text-sm font-label text-muted-foreground"
-              >
-                {theme}
-              </span>
-            ))}
-          </motion.div>
-        )}
+        {/* 01 — Chart Overview */}
+        <Section title="Chart Overview" label="01 — Overview">
+          <OverviewBlock s={interpretation.overview} />
+        </Section>
 
-        {/* Archetype — restyled with bigger serif & two-column layout */}
-        {interpretation?.archetypeName && (
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            className="mb-16 print-section"
-          >
-            <div className="grid lg:grid-cols-[1.55fr_1fr] gap-5">
-              {/* Left: Archetype headline + summary */}
-              <div className="rounded-2xl border border-border/60 bg-card/40 p-6 md:p-8 lg:p-10">
-                <p className="font-label text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-6">
-                  Archetype Summary
-                </p>
-                <h2 className="font-display font-light leading-[1.05] tracking-[-0.02em] text-4xl md:text-5xl lg:text-[3.25rem] mb-8 text-foreground">
-                  {interpretation.archetypeName}
-                </h2>
-                {interpretation.archetypeSummary && (
-                  <div className="text-foreground/80 text-[15px] leading-[1.7] md:columns-2 md:gap-8 [&>p]:mb-4 [&>p:last-child]:mb-0">
-                    {interpretation.archetypeSummary
-                      .split("\n\n")
-                      .map((para, i) => (
-                        <p key={i}>{para}</p>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Right: The Core Triad */}
-              {interpretation?.coreTriad && (
-                <div className="rounded-2xl border border-border/60 bg-card/40 p-6 md:p-7">
-                  <p className="font-label text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-5">
-                    The Core Triad
-                  </p>
-                  <div className="space-y-5">
-                    {[
-                      {
-                        glyph: "☉",
-                        label: `Sun in ${chartData.planets.sun?.sign}`,
-                        text: interpretation.coreTriad.identity,
-                      },
-                      {
-                        glyph: "☽",
-                        label: `Moon in ${chartData.planets.moon?.sign}`,
-                        text: interpretation.coreTriad.emotionalLife,
-                      },
-                      {
-                        glyph: "↑",
-                        label: `${chartData.angles.ascendant.sign} Rising`,
-                        text: interpretation.coreTriad.outwardManner,
-                      },
-                    ].map(({ glyph, label, text }) => {
-                      if (!text) return null;
-                      const short = text.split(/(?<=[\.\?!])\s+/)[0];
-                      return (
-                        <div key={label} className="flex gap-3">
-                          <div className="flex-shrink-0 mt-0.5 w-7 h-7 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center text-primary/90 text-sm">
-                            {glyph}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-label text-[10px] tracking-[0.18em] uppercase text-primary/75 mb-1">
-                              {label}
-                            </p>
-                            <p className="text-[13px] leading-[1.55] text-foreground/80">
-                              {short}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.section>
-        )}
 
         {/* Natal Chart — single combined section with a Wheel / Table tab
             toggle. The wheel view shows the radial chart plus the house
@@ -587,7 +477,7 @@ export default function ReportPage() {
                 chartData={chartData}
                 interpretation={interpretation}
                 userName={report.name}
-                archetypeName={interpretation?.archetypeName}
+                archetypeName={interpretation.overview.headline}
               />
               <div className="mt-2 grid grid-cols-3 gap-2 text-center pt-4 border-t border-border/30">
                 <div>
@@ -823,6 +713,8 @@ export default function ReportPage() {
         </Section>
 
         {/* Elemental Profile */}
+        <HouseSystemExplainer />
+
         <Section title="Elemental Profile" label="03 — Elements & Modalities">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="p-5 rounded-xl border border-border/60 bg-card/40">
@@ -879,474 +771,45 @@ export default function ReportPage() {
             </div>
           </div>
 
-          {/* Elements & Modalities — applied interpretation */}
-          {interpretation?.elementsModalities && (
-            interpretation.elementsModalities.energyStyle ||
-            interpretation.elementsModalities.decisionStyle ||
-            interpretation.elementsModalities.imbalanceEffect
-          ) && (
-            <div className="mt-4 p-5 rounded-xl border border-border/60 bg-card/40">
-              <p className="font-label text-xs text-muted-foreground mb-4 tracking-wider uppercase">
-                What This Balance Means
-              </p>
-              <div className="space-y-3">
-                {interpretation.elementsModalities.energyStyle && (
-                  <div>
-                    <p className="font-label text-[10px] tracking-[0.18em] uppercase text-primary/75 mb-1">
-                      Energy Style
-                    </p>
-                    <p className="text-sm leading-relaxed text-foreground/85">
-                      {interpretation.elementsModalities.energyStyle}
-                    </p>
-                  </div>
-                )}
-                {interpretation.elementsModalities.decisionStyle && (
-                  <div>
-                    <p className="font-label text-[10px] tracking-[0.18em] uppercase text-primary/75 mb-1">
-                      Decision Style
-                    </p>
-                    <p className="text-sm leading-relaxed text-foreground/85">
-                      {interpretation.elementsModalities.decisionStyle}
-                    </p>
-                  </div>
-                )}
-                {interpretation.elementsModalities.imbalanceEffect && (
-                  <div>
-                    <p className="font-label text-[10px] tracking-[0.18em] uppercase text-primary/75 mb-1">
-                      Imbalance Effect
-                    </p>
-                    <p className="text-sm leading-relaxed text-foreground/85">
-                      {interpretation.elementsModalities.imbalanceEffect}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </Section>
 
-        {/* Lunar Nodes — past pattern, growth direction, challenge, integration */}
-        {(chartData.planets.north_node || chartData.planets.south_node) && (
-          <Section title="Lunar Nodes" label="03b — Nodes">
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* South Node card — left */}
-              {chartData.planets.south_node && (
-                <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-5 flex flex-col">
-                  {/* Card header */}
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-label text-xs text-secondary/80 tracking-wider uppercase flex items-center gap-1.5">
-                      <span className="text-base">{PLANET_GLYPHS.south_node}</span> South Node
-                    </span>
-                    <span className="font-label text-[10px] tracking-[0.14em] uppercase text-muted-foreground">
-                      {chartData.planets.south_node.degree.toFixed(1)}° {chartData.planets.south_node.sign} · H{chartData.planets.south_node.house}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Inherited pattern — your familiar default</p>
+        {/* 04 — Core Triad */}
+        <Section title="Core Triad" label="04 — Sun, Moon, Rising">
+          <TriadBlock s={interpretation.triad} />
+        </Section>
 
-                  {/* Past Pattern sub-section */}
-                  {interpretation?.nodes?.pastPattern && (
-                    <div className="border-t border-border/40 pt-4 mt-4">
-                      <p className="font-label text-[10px] tracking-wider uppercase text-secondary/75 mb-1.5">
-                        <span className="text-xs mr-1">⟲</span> Past Pattern
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {interpretation.nodes.pastPattern}
-                      </p>
-                    </div>
-                  )}
+        <Section title="Mind & Communication" label="05 — Mind">
+          <MindBlock s={interpretation.mind} />
+        </Section>
 
-                  {/* Challenge sub-section */}
-                  {interpretation?.nodes?.challenge && (
-                    <div className="border-t border-border/40 pt-4 mt-4">
-                      <p className="font-label text-[10px] tracking-wider uppercase text-amber-400/80 mb-1.5">
-                        <span className="text-xs mr-1">⚠</span> Challenge
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {interpretation.nodes.challenge}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+        <Section title="Career & Calling" label="06 — Work">
+          <CareerBlock s={interpretation.career} />
+        </Section>
 
-              {/* North Node card — right */}
-              {chartData.planets.north_node && (
-                <div className="rounded-lg border border-primary/30 bg-primary/10 p-5 flex flex-col">
-                  {/* Card header */}
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-label text-xs text-primary/80 tracking-wider uppercase flex items-center gap-1.5">
-                      <span className="text-base">{PLANET_GLYPHS.north_node}</span> North Node
-                    </span>
-                    <span className="font-label text-[10px] tracking-[0.14em] uppercase text-muted-foreground">
-                      {chartData.planets.north_node.degree.toFixed(1)}° {chartData.planets.north_node.sign} · H{chartData.planets.north_node.house}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Growth direction — what you're being called toward</p>
+        <Section title="Money & Resources" label="07 — Resources">
+          <MoneyBlock s={interpretation.money} />
+        </Section>
 
-                  {/* Growth Direction sub-section */}
-                  {interpretation?.nodes?.growthDirection && (
-                    <div className="border-t border-border/40 pt-4 mt-4">
-                      <p className="font-label text-[10px] tracking-wider uppercase text-primary/75 mb-1.5">
-                        <span className="text-xs mr-1">↗</span> Growth Direction
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {interpretation.nodes.growthDirection}
-                      </p>
-                    </div>
-                  )}
+        <Section title="Relationships & Intimacy" label="08 — Relationships">
+          <RelationshipsBlock s={interpretation.relationships} />
+        </Section>
 
-                  {/* Integration sub-section */}
-                  {interpretation?.nodes?.integration && (
-                    <div className="border-t border-border/40 pt-4 mt-4">
-                      <p className="font-label text-[10px] tracking-wider uppercase text-primary/75 mb-1.5">
-                        <span className="text-xs mr-1">∞</span> Integration
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {interpretation.nodes.integration}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </Section>
-        )}
+        <Section title="Family & Roots" label="09 — Roots">
+          <FamilyBlock s={interpretation.family} />
+        </Section>
 
-        {/* Relationships */}
-        {interpretation?.relationships && (
-          <Section title="Relationships & Intimacy" label="04 — Relationships">
-            {isStructuredRelationships(interpretation.relationships) ? (
-              <ThemeCardGrid
-                cards={interpretation.relationships.cards}
-                synthesis={interpretation.relationships.synthesis}
-              />
-            ) : (
-              <div className="prose prose-invert prose-sm max-w-none">
-                {(interpretation.relationships as string).split("\n\n").map((p, i) => (
-                  <p key={i} className="text-foreground/85 leading-relaxed mb-4 last:mb-0">{p}</p>
-                ))}
-              </div>
-            )}
-          </Section>
-        )}
+        <Section title="Superpowers, Chronic Patterns & Growing Edges" label="10 — Self-Knowledge">
+          <SuperpowersBlock s={interpretation.superpowers} />
+        </Section>
 
-        {/* Career */}
-        {interpretation?.career && (
-          <Section title="Career & Vocation" label="05 — Purpose">
-            {isStructuredCareer(interpretation.career) ? (
-              <ThemeCardGrid
-                cards={interpretation.career.cards}
-                synthesis={interpretation.career.synthesis}
-              />
-            ) : (
-              <div className="prose prose-invert prose-sm max-w-none">
-                {(interpretation.career as string).split("\n\n").map((p, i) => (
-                  <p key={i} className="text-foreground/85 leading-relaxed mb-4 last:mb-0">{p}</p>
-                ))}
-              </div>
-            )}
-          </Section>
-        )}
+        <Section title="Key Paradoxes & Discoveries" label="11 — Paradoxes">
+          <DiscoveriesBlock s={interpretation.discoveries} />
+        </Section>
 
-        {/* Aspects — stacked dynamic cards */}
-        {chartData.aspects?.length > 0 && interpretation?.aspectsDynamic && (
-          interpretation.aspectsDynamic.dynamic ||
-          interpretation.aspectsDynamic.tension ||
-          interpretation.aspectsDynamic.behavior ||
-          interpretation.aspectsDynamic.growth
-        ) && (
-          <Section title="Key Aspects" label="06 — Aspects">
-            <p className="text-sm leading-relaxed text-muted-foreground mb-5">
-              How the major angles between your planets shape your overall pattern — the dynamics that recur across your chart rather than any single connection in isolation.
-            </p>
-            <div className="space-y-3">
-              {(
-                [
-                  {
-                    key: "dynamic" as const,
-                    title: "Dominant Dynamic",
-                    badge: "foundation",
-                    icon: "◎",
-                    border: "border-l-primary/60",
-                    cardBorder: "border-primary/20",
-                    cardBg: "bg-primary/5",
-                    iconBg: "bg-primary/20",
-                    iconColor: "text-primary",
-                    badgeColor: "text-primary/50",
-                    labelColor: "text-primary/70",
-                    chipColor: "text-primary border-primary/30 bg-primary/10 hover:bg-primary/20",
-                  },
-                  {
-                    key: "tension" as const,
-                    title: "Core Tension",
-                    badge: "where it pulls",
-                    icon: "⊗",
-                    border: "border-l-amber-400/60",
-                    cardBorder: "border-amber-400/20",
-                    cardBg: "bg-amber-400/5",
-                    iconBg: "bg-amber-400/20",
-                    iconColor: "text-amber-400",
-                    badgeColor: "text-amber-400/50",
-                    labelColor: "text-amber-400/70",
-                    chipColor: "text-amber-400 border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20",
-                  },
-                  {
-                    key: "behavior" as const,
-                    title: "Behavioral Expression",
-                    badge: "how it shows up",
-                    icon: "⊕",
-                    border: "border-l-secondary/60",
-                    cardBorder: "border-secondary/20",
-                    cardBg: "bg-secondary/5",
-                    iconBg: "bg-secondary/20",
-                    iconColor: "text-secondary",
-                    badgeColor: "text-secondary/50",
-                    labelColor: "text-secondary/70",
-                    chipColor: "text-secondary border-secondary/30 bg-secondary/10 hover:bg-secondary/20",
-                  },
-                  {
-                    key: "growth" as const,
-                    title: "Growth Arc",
-                    badge: "the path forward",
-                    icon: "↗",
-                    border: "border-l-green-400/60",
-                    cardBorder: "border-green-400/20",
-                    cardBg: "bg-green-400/5",
-                    iconBg: "bg-green-400/20",
-                    iconColor: "text-green-400",
-                    badgeColor: "text-green-400/50",
-                    labelColor: "text-green-400/70",
-                    chipColor: "text-green-400 border-green-400/30 bg-green-400/10 hover:bg-green-400/20",
-                  },
-                ] as const
-              ).map((card) => {
-                const group = interpretation.aspectsDynamic![card.key];
-                if (!group) return null;
-                const synthesis = isStructuredAspectGroup(group) ? group.synthesis : (group as string);
-                const aspectKeys = isStructuredAspectGroup(group) ? group.aspects : [];
-                return (
-                  <div
-                    key={card.key}
-                    className={`rounded-xl border ${card.cardBorder} ${card.cardBg} border-l-2 ${card.border} p-5`}
-                  >
-                    {/* Card header */}
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full ${card.iconBg} flex items-center justify-center`}>
-                        <span className={`text-sm ${card.iconColor}`}>{card.icon}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-label text-xs font-semibold tracking-wider uppercase ${card.iconColor}`}>
-                            {card.title}
-                          </span>
-                          <span className={`font-label text-[10px] tracking-[0.14em] uppercase ${card.badgeColor} border border-current/30 rounded-full px-2 py-0.5`}>
-                            {card.badge}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+        <Section title="What to Focus On" label="12 — Focus">
+          <FocusBlock s={interpretation.focus} />
+        </Section>
 
-                    {/* Aspect chips */}
-                    {aspectKeys.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-4 pl-11">
-                        {aspectKeys.map((ak) => (
-                          <AspectChip
-                            key={ak}
-                            aspectKey={ak}
-                            meaning={interpretation.aspectMeanings?.[ak]}
-                            colorClass={card.chipColor}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Synthesis label + prose */}
-                    <div className="pl-11">
-                      <p className={`font-label text-[9px] tracking-[0.2em] uppercase ${card.labelColor} mb-1.5`}>
-                        Synthesis
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground/85">{synthesis}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Section>
-        )}
-
-        {/* Strengths & Blind Spots */}
-        {interpretation?.strengthsAndBlindSpots && (
-          <Section title="Strengths & Shadow" label="07 — Self-Knowledge">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-5 rounded-xl border border-primary/20 bg-primary/5">
-                <p className="font-label text-xs text-primary/70 mb-4 tracking-wider uppercase">Strengths</p>
-                <ul className="space-y-3">
-                  {interpretation.strengthsAndBlindSpots.strengths.map((s: string, i: number) => {
-                    const [label, ...rest] = s.split(":");
-                    return (
-                      <li key={i} className="flex gap-2 text-sm">
-                        <span className="text-primary mt-0.5">✦</span>
-                        <span>
-                          <strong className="text-foreground">{label.trim()}</strong>
-                          {rest.length > 0 && <span className="text-foreground/70">:{rest.join(":")}</span>}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-              <div className="p-5 rounded-xl border border-amber-400/20 bg-amber-400/5">
-                <p className="font-label text-xs text-amber-400/70 mb-4 tracking-wider uppercase">Blind Spots</p>
-                <ul className="space-y-3">
-                  {interpretation.strengthsAndBlindSpots.blindSpots.map((s: string, i: number) => {
-                    const [label, ...rest] = s.split(":");
-                    return (
-                      <li key={i} className="flex gap-2 text-sm">
-                        <span className="text-amber-400 mt-0.5">◆</span>
-                        <span>
-                          <strong className="text-foreground">{label.trim()}</strong>
-                          {rest.length > 0 && <span className="text-foreground/70">:{rest.join(":")}</span>}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            </div>
-          </Section>
-        )}
-
-        {/* Final Summary — Section 08 */}
-        {interpretation?.finalSummary && (
-          <Section title="Closing Integration" label="08 — Summary">
-            {isStructuredFinalSummary(interpretation.finalSummary) ? (
-              <div className="space-y-4">
-                {/* Block 1: Core Identity — archetypeSummary + keyThemes pills */}
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 sm:p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                      <User className="w-3.5 h-3.5 text-primary/80" />
-                    </div>
-                    <p className="font-label text-xs tracking-[0.18em] uppercase text-primary/80">Core Identity</p>
-                  </div>
-                  {interpretation.archetypeSummary && (
-                    <p className="text-sm leading-relaxed text-foreground/85 mb-4">
-                      {interpretation.archetypeSummary}
-                    </p>
-                  )}
-                  {interpretation.keyThemes?.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {interpretation.keyThemes.map((theme: string) => (
-                        <span
-                          key={theme}
-                          className="px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs font-label text-primary/80"
-                        >
-                          {theme}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Block 2: Core Risk — amber/red accent card */}
-                <div className="rounded-xl border border-amber-400/30 border-l-2 border-l-amber-400/70 bg-amber-400/5 p-5 sm:p-6">
-                  <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-amber-400/15 flex items-center justify-center shrink-0 mt-0.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400/90" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-label text-xs tracking-[0.18em] uppercase text-amber-400/80 mb-2">Core Risk</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {interpretation.finalSummary.coreRisk}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Block 3: Growth Edges — 2×2 grid */}
-                {interpretation.finalSummary.growthEdges?.length > 0 && (() => {
-                  const GROWTH_ICONS = [TrendingUp, Heart, Compass, Zap];
-                  return (
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <p className="font-label text-xs tracking-[0.18em] uppercase text-muted-foreground">Growth Edges</p>
-                        <div className="flex-1 h-px bg-border/30" />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {interpretation.finalSummary.growthEdges.slice(0, 4).map((edge, i) => {
-                          const Icon = GROWTH_ICONS[i % GROWTH_ICONS.length];
-                          return (
-                            <div
-                              key={i}
-                              className="rounded-xl border border-border/60 bg-card/40 p-5 flex gap-3"
-                            >
-                              <div className="w-7 h-7 rounded-full bg-secondary/15 flex items-center justify-center shrink-0 mt-0.5">
-                                <Icon className="w-3.5 h-3.5 text-secondary/80" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-label text-xs tracking-[0.16em] uppercase text-secondary/80 mb-1.5">
-                                  {edge.label}
-                                </p>
-                                <p className="text-sm leading-relaxed text-foreground/80">
-                                  {edge.description}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Block 4: What Makes This Chart Distinctive — green accent */}
-                {interpretation.finalSummary.distinctive && (
-                  <div className="rounded-xl border border-green-400/30 bg-green-400/5 p-5 sm:p-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-full bg-green-400/15 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-3.5 h-3.5 text-green-400/90" />
-                      </div>
-                      <p className="font-label text-xs tracking-[0.18em] uppercase text-green-400/80">What Makes This Chart Distinctive</p>
-                    </div>
-                    <p className="text-sm leading-relaxed text-foreground/85 mb-4">
-                      {interpretation.finalSummary.distinctive.description}
-                    </p>
-                    {interpretation.finalSummary.distinctive.pills?.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {interpretation.finalSummary.distinctive.pills.map((pill, i) => (
-                          <span
-                            key={i}
-                            className="px-3 py-1 rounded-full border border-green-400/30 bg-green-400/10 text-xs font-label text-green-400/80"
-                          >
-                            {pill}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Closing quote — italic serif below all cards */}
-                {interpretation.finalSummary.closingQuote && (
-                  <div className="pt-2 pb-1 text-center">
-                    <p className="font-serif text-base italic text-foreground/60 leading-relaxed max-w-xl mx-auto">
-                      {interpretation.finalSummary.closingQuote}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Backward-compat: existing reports with prose string */
-              <div className="p-6 rounded-xl border border-secondary/20 bg-secondary/5">
-                <div className="prose prose-invert prose-sm max-w-none">
-                  {(interpretation.finalSummary as string).split("\n\n").map((p, i) => (
-                    <p key={i} className="text-foreground/90 leading-relaxed mb-4 last:mb-0">{p}</p>
-                  ))}
-                </div>
-              </div>
-            )}
-          </Section>
-        )}
 
         {/* Birth Location & Horizon */}
         <BirthLocationHorizon
