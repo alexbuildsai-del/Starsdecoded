@@ -93,9 +93,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-09-09)
 
-1. Land the prompt-library rework, PR #6, on `main` (retarget from its
-   claude/* base, report lab, merge). The masterfile describes the engine as
-   it is after that merge.
-2. First build round: the four blocking Mailbox rows (Swiss Ephemeris string,
-   "AI trained" claim, working delete, legal page drafts).
-3. Next ideation session: pricing and packaging, then payments.
+1. R01 deployed; Owner acceptance pending. Check the landing page claims,
+   the dashboard delete, the four legal drafts and the first smoke run
+   (`docs/rounds/R01-report.md`, "Not verified here").
+2. Next ideation session: pricing and packaging (MB-5), then payments.
+3. Still owed: the report-lab measurement for PR #6 (MB-14) and the Owner's
+   legal entity (MB-31).
