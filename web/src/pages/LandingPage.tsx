@@ -1,4 +1,4 @@
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowRight, Star, BookOpen, Clock, Shield, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,23 +30,45 @@ const features = [
   {
     icon: Star,
     title: "Precise Natal Chart",
-    description: "Accurate planetary positions computed using astronomical algorithms — sun, moon, all planets, Chiron, nodes, and house cusps.",
+    description: "Planetary positions computed locally with astronomy-engine and whole-sign houses: sun, moon, every planet, the lunar nodes, the angles and a mean-element Chiron. Nothing is guessed by a model.",
   },
   {
     icon: BookOpen,
     title: "Deep Psychological Report",
-    description: "Your core triad, relationship patterns, career path, strengths, blind spots, and a personal archetype — written by AI trained on Jungian and humanistic astrology.",
+    description: "Your core triad, mind, career, money, relationships, family, strengths and growing edges. A general language model writes it, prompted with your computed chart and a written doctrine. Nothing is trained on your data or on astrology.",
   },
   {
     icon: Clock,
     title: "Generated in Minutes",
-    description: "No waiting days for a human to write your report. Your full 10+ section analysis is ready in under three minutes.",
+    description: "No waiting days for a human to write your report. Your full ten-section analysis is ready in minutes.",
   },
   {
     icon: Shield,
     title: "Private & Secure",
     description: "Your birth data is yours. We never sell personal data and you can delete your report at any time.",
   },
+];
+
+// Mirrors REPORT_SECTIONS in api/src/prompts/index.ts by label, in registry
+// order. Generation from the registry is open (MB-8); keep these in sync by hand.
+const REPORT_SECTION_LABELS = [
+  "Chart Overview",
+  "Core Triad",
+  "Mind & Communication",
+  "Career & Calling",
+  "Money & Resources",
+  "Relationships & Intimacy",
+  "Family & Roots",
+  "Superpowers, Chronic Patterns & Growing Edges",
+  "Key Paradoxes & Discoveries",
+  "What to Focus On",
+];
+
+const LEGAL_LINKS = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  { href: "/refunds", label: "Refunds" },
+  { href: "/company", label: "Company" },
 ];
 
 const samplePlanets = [
@@ -232,16 +254,12 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {[
-            "Personal Archetype", "Core Triad Analysis", "Planetary Placements",
-            "Relationship Patterns", "Career & Purpose", "Key Aspects",
-            "Elemental Emphasis", "Strengths & Shadow", "Natal Chart Wheel", "PDF Export",
-          ].map((section, i) => (
+          {REPORT_SECTION_LABELS.map((section, i) => (
             <div
               key={section}
               className="px-4 py-3 rounded-lg border border-border/40 bg-card/40 text-center"
             >
-              <span className="font-label text-xs text-muted-foreground block mb-1">0{i + 1}</span>
+              <span className="font-label text-xs text-muted-foreground block mb-1">{String(i + 1).padStart(2, "0")}</span>
               <span className="text-sm font-medium">{section}</span>
             </div>
           ))}
@@ -273,6 +291,17 @@ export default function LandingPage() {
       <footer className="border-t border-border/40 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <span className="font-display text-lg gradient-text">Astra</span>
+          <nav className="flex items-center gap-4" aria-label="Legal">
+            {LEGAL_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="font-label text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
           <p className="text-muted-foreground text-sm">
             © {new Date().getFullYear()} Astra. Powered by astronomy & AI.
           </p>
