@@ -52,6 +52,11 @@ rows · `/plan` → `docs/rounds/RNN-plan.md` · `/round RNN` → branch `round/
 builders, gate, report, pull request · `/qa <url>` → `docs/qa/QA-NN.md` ·
 `/mailbox` → walk open topics with the Owner. Details: MASTERFILE §11, §12.
 
+The Owner tests the website and says yes or no. Everything else is ours:
+merging once the gate is green, watching CI and the Railway and Vercel
+deploys, fixing a red branch or pipeline, and raising only what needs a
+decision or a credential (R-12.5). Never ask the Owner to run a command.
+
 Every shipped line in a round report is tagged USER-FACING or INTERNAL. A
 change to report content is USER-FACING even when no UI moved.
 

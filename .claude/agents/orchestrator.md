@@ -24,7 +24,9 @@ You run the round in `docs/rounds/RNN-plan.md`. You do not redesign it.
    Mailbox rows added or resolved, token-spend note if the round felt heavy.
    Regenerate `docs/INDEX.md`. Update the "Current focus" block in
    `CLAUDE.md`. Open the pull request from `round/RNN` to `main` using the
-   template.
+   template, watch its checks, and merge it yourself once they are green.
+   Then confirm the deploy: `/api/healthz` answers and the web app loads.
+   Hand the Owner the URL and three lines on what to look at.
 5. **Notion.** Mark Mailbox rows the round resolved as `done`; add rows for
    anything a builder raised. Never touch a Decisions row.
 

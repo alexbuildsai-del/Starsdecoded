@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.1 (2026-09-09) |
+| Version | 0.2 (2026-09-09) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -190,10 +190,11 @@ Explore the feature with the Owner, visually where it helps. Output is exactly o
 1. **Planner** reads `CLAUDE.md`, `INDEX.md`, new locked specs, new QA reports and the open Mailbox. Writes `docs/rounds/RNN-plan.md`: goals, task cards (≤ 15 lines each), risks, Mailbox rows raised before building.
 2. **Orchestrator** branches `round/RNN`, spawns one builder per card (parallel when files are disjoint), each with only its card and §0.
 3. **Gate**: `pnpm run typecheck` · `pnpm run build:web` · `pnpm run build:api` · unit tests · report lab against fixtures when the engine or prompts changed · `db:bootstrap` boots clean when the schema changed · smoke on the Vercel preview.
-4. **Close**: round report (≤ 60 lines, every shipped line tagged USER-FACING or INTERNAL), `INDEX.md` regenerated, `CLAUDE.md` current focus updated, Mailbox updated, pull request opened. The Owner merges.
+4. **Close**: round report (≤ 60 lines, every shipped line tagged USER-FACING or INTERNAL), `INDEX.md` regenerated, `CLAUDE.md` current focus updated, Mailbox updated, pull request opened and, once the gate is green, merged by the orchestrator. The Owner never merges.
+5. **Acceptance**: after the deploy, the orchestrator confirms `/api/healthz` and the web app load, then hands the Owner the URL and a three-line list of what to look at. The Owner answers "looks good" or says what is wrong; a "no" becomes sev-1 QA findings and the next round's first goal.
 
 ### 11.3 QA sessions (`/qa <url>`)
-The Owner or the QA agent plays the personas from §1 against a preview using real computed charts. Findings land in `docs/qa/QA-NN.md` with severity. The next planner treats every sev-1 as a round goal.
+The Owner's only operational duty is to test the website and say whether it looks good. The QA agent plays the personas from §1 against a preview using real computed charts. Findings land in `docs/qa/QA-NN.md` with severity. The next planner treats every sev-1 as a round goal.
 
 ### 11.4 Report evals
 `fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs before any prompt change ships and its output goes in the round report. Fixtures grow from every real quality problem found in QA.
@@ -203,6 +204,7 @@ The Owner or the QA agent plays the personas from §1 against a preview using re
 - **R-12.1** Ask with a recommendation. Never an open question. Format: context (one or two lines) → recommendation with reasoning → what happens if unanswered. At most three questions per session with the Owner, highest stakes first.
 - **R-12.2** Instinct triggers, raise a check when: a task contradicts a locked decision; a choice affects what a buyer pays, sees or has stored about them; two specs conflict; you are about to add a dependency, change the schema, change report content, or ship anything user-visible not covered by a spec.
 - **R-12.3** Mailbox. Uncertainties that do not block work go to the Notion Mailbox so nothing is forgotten. Each row: Type, Priority, Raised by, Recommendation, Default if silent. The planner increments `Rounds open` each round; a row above 2 goes to the top of the round report.
+- **R-12.5** Operations belong to Claude. Merging, watching CI and deploys, and fixing a red branch, pull request or pipeline are the orchestrator's job, raised to the Owner only when a fix needs a decision or a credential. The Owner is never asked to run a command, merge, or read a log.
 - **R-12.4** Provisional building. If work must proceed on an open topic, build the recommended option behind the smallest seam and tag it `// MB-NN provisional` so it is findable when decided.
 
 ## 13 · Token and code budgets
