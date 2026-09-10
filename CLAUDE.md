@@ -36,7 +36,7 @@ pnpm run typecheck                    # the type gate; build does not typecheck
 pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after editing openapi.yaml
-pnpm run db:bootstrap                 # idempotent; Railway runs it pre-deploy
+pnpm run db:bootstrap                 # idempotent; Railway runs it at start
 pnpm report:lab                       # report from a fixture, measured (lands with PR #6)
 ```
 
@@ -84,12 +84,13 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   `env` and `commit`, and `smoke.yml` asserts both. The API still sets
   `SameSite=None; Secure` cookies (`CROSS_SITE_COOKIES`), harmless same-site.
 - Prompts are edited on staging only. Production sets `PROMPTS_READ_ONLY` and
-  copies staging's `prompt_templates` in its pre-deploy bootstrap.
+  copies staging's `prompt_templates` in its start-up bootstrap.
 - `openapi.yaml` is the contract; generated client and zod files are rewritten
   by codegen and never hand-edited. `/admin/*` routes are not in the spec yet.
 - Schema changes go through `packages/db/src/schema` plus an idempotent script
-  wired into `scripts/bootstrap-db.sh`; a script that cannot run twice breaks
-  the Railway deploy.
+  wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step
+  of the start command (its preDeployCommand hook never ran here); a script
+  that cannot run twice breaks the Railway deploy.
 - Model ids are hard-coded at the call sites. Changing them is an engine
   change and needs a report-lab run.
 - Real chart data only. Fixtures hold birth data; charts are computed at run
