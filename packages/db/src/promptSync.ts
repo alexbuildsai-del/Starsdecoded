@@ -23,6 +23,22 @@ function sameRow(a: PromptSyncRow, b: PromptSyncRow): boolean {
   );
 }
 
+// Two Supabase projects in one region share the pooler host and the `postgres`
+// path; only the username (`postgres.<project ref>`) tells them apart. Host
+// and path alone therefore call staging and production the same database
+// and refuse a legitimate sync, which is what crashed the first production
+// deploy with a source configured.
+export function sameDatabase(a: string, b: string): boolean {
+  if (a === b) return true;
+  try {
+    const ua = new URL(a);
+    const ub = new URL(b);
+    return ua.username === ub.username && ua.host === ub.host && ua.pathname === ub.pathname;
+  } catch {
+    return false;
+  }
+}
+
 // The source (staging) is authoritative: every row it holds is written to the
 // target, and target rows it no longer holds are removed. Rows already equal
 // are reported, not rewritten, so a repeated run is a visible no-op.
