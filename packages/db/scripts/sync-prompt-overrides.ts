@@ -11,23 +11,12 @@
  */
 import { randomUUID } from "node:crypto";
 import pg from "pg";
-import { planPromptSync, type PromptSyncRow } from "../src/promptSync.js";
+import { planPromptSync, sameDatabase, type PromptSyncRow } from "../src/promptSync.js";
 
 const { Pool } = pg;
 
 const source = process.env.PROMPT_SOURCE_DATABASE_URL;
 const target = process.env.DATABASE_URL;
-
-function sameDatabase(a: string, b: string): boolean {
-  if (a === b) return true;
-  try {
-    const ua = new URL(a);
-    const ub = new URL(b);
-    return ua.host === ub.host && ua.pathname === ub.pathname;
-  } catch {
-    return false;
-  }
-}
 
 // Supabase terminates TLS with a certificate node-postgres will not verify;
 // both databases live there, so both pools get the same treatment.

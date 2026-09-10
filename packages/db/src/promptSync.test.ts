@@ -1,6 +1,27 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { planPromptSync, type PromptSyncRow } from "./promptSync.js";
+import { planPromptSync, sameDatabase, type PromptSyncRow } from "./promptSync.js";
+
+const pooler = "aws-0-eu-central-1.pooler.supabase.com:5432";
+
+test("two Supabase projects behind one pooler host are different databases", () => {
+  assert.equal(
+    sameDatabase(`postgresql://postgres.stagingref:a@${pooler}/postgres`, `postgresql://postgres.prodref:b@${pooler}/postgres`),
+    false,
+  );
+});
+
+test("the same project with a different password is the same database", () => {
+  assert.equal(
+    sameDatabase(`postgresql://postgres.prodref:a@${pooler}/postgres`, `postgresql://postgres.prodref:b@${pooler}/postgres`),
+    true,
+  );
+});
+
+test("an identical string is the same database even when it does not parse", () => {
+  assert.equal(sameDatabase("not a url", "not a url"), true);
+  assert.equal(sameDatabase("not a url", "another"), false);
+});
 
 const at = new Date("2026-09-10T10:00:00Z");
 
