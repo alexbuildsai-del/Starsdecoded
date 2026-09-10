@@ -26,7 +26,9 @@ from the password manager, never retype them.
 - [ ] Name `starsdecoded-staging`; region the same as production (production
       project → Settings → General).
 - [ ] Leave **GitHub** unconnected; untick **Enable Data API**. The engine
-      talks to Postgres directly and never uses the REST API.
+      talks to Postgres directly and never uses the REST API. Never connect
+      either Supabase project to GitHub or enable branching: the production
+      schema was wiped on 2026-09-10 right after that integration was added.
 - [ ] Generate the password, save it as "Supabase staging DB password", then
       **Create new project** and wait for "Project is ready".
 - [ ] **Connect** (top bar) → **Session pooler** → copy the URI (contains
@@ -143,9 +145,11 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
       is an old `claude/…` branch.
 - [ ] **Settings → Rules → Rulesets → New branch ruleset**
       `protect-production`, Active, target pattern `production`. Tick
-      **Restrict deletions**, **Block force pushes**, **Require linear
-      history**. Leave **Restrict updates** and **Require a pull request**
-      unticked so the Promote workflow can push.
+      **Restrict deletions** and **Block force pushes** only. Leave
+      **Require linear history** unticked (pull requests land on `main` as
+      merge commits, and Promote fast-forwards those), and leave **Restrict
+      updates** and **Require a pull request** unticked so the Promote
+      workflow can push.
 - Check: `main` is the default; the ruleset is Active.
 
 ## I. First sign-in on staging (5 min, after the PR is merged)
