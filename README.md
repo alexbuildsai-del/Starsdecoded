@@ -86,7 +86,7 @@ up on it. `smoke.yml` runs the same check on every push to either branch, and
 `/api/healthz` reports `env` and `commit` so a web origin routed to the wrong
 API fails loudly. Prompts are edited on staging only: production sets
 `PROMPTS_READ_ONLY=true` and copies staging's `prompt_templates` during its
-pre-deploy bootstrap (`PROMPT_SOURCE_DATABASE_URL`). The one-time dashboard
+start-up bootstrap (`PROMPT_SOURCE_DATABASE_URL`). The one-time dashboard
 setup is `docs/annex/staging-runbook.md`.
 
 **Web → Vercel.** `.vercelignore` keeps `api/` out of the upload: Vercel reads
