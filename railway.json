@@ -5,7 +5,9 @@
     "buildCommand": "pnpm install --frozen-lockfile && pnpm run build:api"
   },
   "deploy": {
-    "preDeployCommand": "./scripts/bootstrap-db.sh",
+    "preDeployCommand": [
+      "./scripts/bootstrap-db.sh"
+    ],
     "startCommand": "pnpm --filter @workspace/api-server run start",
     "healthcheckPath": "/api/healthz",
     "healthcheckTimeout": 60,
