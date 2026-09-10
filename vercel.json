@@ -8,12 +8,12 @@
     {
       "source": "/api/(.*)",
       "has": [{ "type": "host", "value": "starsdecoded-(.*)\\.vercel\\.app" }],
-      "destination": "https://REPLACE_WITH_STAGING_RAILWAY_HOST/api/$1"
+      "destination": "https://starsdecoded-staging.up.railway.app/api/$1"
     },
     {
       "source": "/api/(.*)",
       "has": [{ "type": "host", "value": "staging\\.(.*)" }],
-      "destination": "https://REPLACE_WITH_STAGING_RAILWAY_HOST/api/$1"
+      "destination": "https://starsdecoded-staging.up.railway.app/api/$1"
     },
     {
       "source": "/api/(.*)",
