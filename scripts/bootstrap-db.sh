@@ -57,3 +57,6 @@ else
 fi
 
 echo "==> Database ready"
+# /api/healthz/db reports this, so a deploy whose start command skipped the
+# bootstrap is distinguishable from one that ran it against the wrong database.
+date -u +%Y-%m-%dT%H:%M:%SZ > /tmp/bootstrap-db.done || true
