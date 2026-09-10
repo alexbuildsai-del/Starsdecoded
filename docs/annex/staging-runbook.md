@@ -120,7 +120,14 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
   stops itself with an error rather than sync a database onto itself.
 - [ ] **Settings → Source** → branch `production`, then Deploy. The branch
       already exists with the live code, so customers see no change.
-- Check: three new rows; Source shows `production`.
+- [ ] **Settings → Deploy → Custom Start Command** must be empty, so the
+      command in `railway.json` (bootstrap, then start) applies. A value
+      typed here in the past overrides the file: the API starts, but the
+      schema is never created and `/api/healthz/db` answers
+      `"bootstrap":null`. Clear it (or paste
+      `./scripts/bootstrap-db.sh && pnpm --filter @workspace/api-server run start`)
+      and Deploy. Same check for **Custom Build Command**: empty.
+- Check: three new rows; Source shows `production`; no custom start command.
 
 ## G. Vercel (15 min)
 
@@ -197,5 +204,6 @@ re-enables editing there.
 | Smoke says wrong `env` | `vercel.json` placeholder, or staging domain not on `main` | E, G |
 | Staging asks for a Vercel login | Deployment Protection still on | G |
 | Production deploy fails at "Promote prompt overrides" | source equals target, or staging database empty | F, A |
+| `/api/healthz/db` says `"bootstrap":null` and `"tables":[]` | a custom start command in the Railway dashboard overrides `railway.json` | F |
 | Staging log ends in `DATABASE_URL must be set` | variables added to the wrong environment | E |
 | Promote refuses to run | ruleset restricts updates or requires a pull request | H |
