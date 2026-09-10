@@ -1,0 +1,32 @@
+name: Diag POST
+
+# Temporary diagnostic for the staging 405 on POST /api/reports. Probes the
+# API through Vercel and directly on Railway, for GET and POST, and prints the
+# status line and the headers that say who answered. Delete once resolved.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe
+        run: |
+          probe() {
+            echo "=== $1 $2"
+            curl -sS -i -X "$1" \
+              ${3:+-H 'content-type: application/json' --data "$3"} \
+              --max-time 25 "$2" \
+              | sed -n '1,20p' \
+              | grep -iE '^HTTP/|^allow:|^server:|^x-vercel|^x-railway|^content-type:|^location:|not allowed|<title>|error' \
+              || true
+            echo
+          }
+          V=https://starsdecoded-staging.vercel.app
+          R=https://starsdecoded-staging.up.railway.app
+          probe GET  "$V/api/healthz"
+          probe GET  "$V/api/reports"
+          probe POST "$V/api/reports" '{}'
+          probe GET  "$R/api/healthz"
+          probe GET  "$R/api/reports"
+          probe POST "$R/api/reports" '{}'
