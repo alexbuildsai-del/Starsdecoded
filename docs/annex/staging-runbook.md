@@ -71,8 +71,10 @@ variable below before deploying.
 - [ ] railway.app → Stars Decoded project. Top left shows `production`.
 - [ ] Click it → **New environment** → name `staging` (lowercase) → empty.
 - [ ] Top left now says `staging`. Click the engine service → **Settings**.
-- [ ] **Source**: branch `main`. **Deploy**: pre-deploy command, start command
-      and health check `/api/healthz` already present from `railway.json`.
+- [ ] Add a service from the GitHub repo `alexbuildsai-del/Starsdecoded`,
+      branch `main`. No Root Directory. **Wait for CI** stays off: the GitHub
+      smoke check waits for Railway, so both waiting would deadlock. Build,
+      pre-deploy and health check `/api/healthz` come from `railway.json`.
 - [ ] **Variables** → **RAW Editor** → paste and fill:
 
 ```
