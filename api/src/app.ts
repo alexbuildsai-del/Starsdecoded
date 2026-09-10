@@ -16,6 +16,12 @@ const app: Express = express();
 // cookies would not be recognised as sent over HTTPS.
 app.set("trust proxy", 1);
 
+// Never emit ETags for API responses. Express generates a weak ETag for every
+// JSON body and answers a matching If-None-Match with a 304 that has no body.
+// The api-client treats 304 as "no content" and resolves with null, which
+// crashed the birth form (profiles.some on null) and blanked the dashboard.
+app.set("etag", false);
+
 app.use(
   pinoHttp({
     logger,
@@ -62,6 +68,12 @@ app.use(
 
 app.use(authMiddleware);
 
+// Belt and braces with etag=false above: tell browsers not to cache API
+// responses at all so they never send a conditional request in the first place.
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 app.use("/api", router);
 
 export default app;

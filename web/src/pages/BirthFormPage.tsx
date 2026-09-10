@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, MapPin, Loader2, Search, X, Check, Building2, Trees, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -89,9 +89,12 @@ function placeLabel(placeType: string): string {
 }
 
 export default function BirthFormPage() {
-  const [location, navigate] = useLocation();
+  const [, navigate] = useLocation();
   // ?self=1 means the user arrived from the "Generate My Chart" CTA — pre-check the toggle.
-  const selfFromUrl = new URLSearchParams(location.split("?")[1] ?? "").get("self") === "1";
+  // wouter's useLocation() only returns the pathname, so the query string must
+  // come from useSearch().
+  const search = useSearch();
+  const selfFromUrl = new URLSearchParams(search).get("self") === "1";
 
   // Default toggle to true (optimistic); flip to false once we confirm a self-profile exists.
   const [isSelf, setIsSelf] = useState(true);
@@ -102,7 +105,9 @@ export default function BirthFormPage() {
   });
 
   useEffect(() => {
-    if (!selfInitialized && profiles !== undefined) {
+    // Guard with Array.isArray: a body-less response (e.g. a 304) resolves to
+    // null rather than an array and must not crash the page.
+    if (!selfInitialized && Array.isArray(profiles)) {
       const hasSelfProfile = profiles.some((p) => p.isSelf);
       setIsSelf(!hasSelfProfile);
       setSelfInitialized(true);

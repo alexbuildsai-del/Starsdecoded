@@ -14,6 +14,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import LoadingState from "@/components/LoadingState";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const importBirthForm = () => import("@/pages/BirthFormPage");
 const importGeneration = () => import("@/pages/GenerationPage");
@@ -278,14 +279,16 @@ function ClerkRoutedProvider() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={basePath}>
-          <ClerkRoutedProvider />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={basePath}>
+            <ClerkRoutedProvider />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
