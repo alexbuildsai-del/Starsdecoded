@@ -6,9 +6,25 @@ import { PROMPT_DEFAULTS, PROMPT_DEFAULTS_BY_KEY } from "../lib/promptDefaults.j
 import { invalidatePromptCache } from "../lib/promptLoader.js";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { grantBundle, BUNDLE_DEFINITIONS } from "../lib/credits.js";
+import { readPromptsReadOnly } from "../lib/appEnv.js";
 import type { BundleKind } from "@workspace/db";
 
 const router = Router();
+
+// Read once: the process restarts on every deploy, and a live flip would
+// let a half-finished edit land on production between two requests.
+const promptsReadOnly = readPromptsReadOnly();
+
+// Production never accepts prompt edits. They are made on staging and copied
+// here by the pre-deploy sync, so a release ships exactly what was reviewed.
+function readOnlyGuard(req: Request, res: Response, next: NextFunction) {
+  if (!promptsReadOnly || (req.method !== "PUT" && req.method !== "DELETE")) return next();
+  res.set("Allow", "GET");
+  return res.status(405).json({
+    error: "prompts_read_only",
+    message: "Prompts are edited on staging and promoted to production with each release. This environment is read-only.",
+  });
+}
 
 function adminGuard(req: Request, res: Response, next: NextFunction) {
   const adminUserId = process.env.ADMIN_USER_ID;
@@ -61,11 +77,12 @@ router.get("/admin/me", (req, res) => {
   return res.json({
     isAdmin: !!(adminUserId && req.userId && req.userId === adminUserId),
     userId: req.userId ?? null,
+    promptsReadOnly,
   });
 });
 
 // Guard only the prompt admin endpoints, not /admin/me above.
-router.use("/admin/prompts", adminGuard);
+router.use("/admin/prompts", adminGuard, readOnlyGuard);
 
 /** POST /api/admin/prompts/preview — call the AI with supplied prompts and return the raw response. */
 router.post("/admin/prompts/preview", async (req, res) => {

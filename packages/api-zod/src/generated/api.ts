@@ -13,7 +13,9 @@ import * as zod from 'zod';
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  "status": zod.string()
+  "status": zod.string(),
+  "env": zod.enum(['development', 'staging', 'production']).optional().describe('Which deployment answered. The smoke check asserts it so a web origin cannot silently route to the wrong API.'),
+  "commit": zod.string().optional().describe('Git sha of the running build, when the platform injects one.')
 })
 
 

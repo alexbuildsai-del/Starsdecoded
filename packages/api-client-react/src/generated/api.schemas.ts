@@ -5,8 +5,24 @@
  * Astra Natal Chart Report API
  * OpenAPI spec version: 0.1.0
  */
+/**
+ * Which deployment answered. The smoke check asserts it so a web origin cannot silently route to the wrong API.
+ */
+export type HealthStatusEnv = typeof HealthStatusEnv[keyof typeof HealthStatusEnv];
+
+
+export const HealthStatusEnv = {
+  development: 'development',
+  staging: 'staging',
+  production: 'production',
+} as const;
+
 export interface HealthStatus {
   status: string;
+  /** Which deployment answered. The smoke check asserts it so a web origin cannot silently route to the wrong API. */
+  env?: HealthStatusEnv;
+  /** Git sha of the running build, when the platform injects one. */
+  commit?: string;
 }
 
 export interface ErrorResponse {

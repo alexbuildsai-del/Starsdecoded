@@ -1,58 +1,24 @@
 name: Smoke
 
-# Verifies a deploy: the web app answers and the API it points at is healthy.
+# Verifies a deploy: main deploys to staging, production to production. The
+# API behind each web origin must report the matching env and, on a push,
+# the commit that was pushed.
 on:
   push:
-    branches: [main]
+    branches: [main, production]
   workflow_dispatch:
+    inputs:
+      target:
+        description: Which deployment to check
+        required: true
+        type: choice
+        options: [staging, production]
+        default: staging
 
 jobs:
   smoke:
-    runs-on: ubuntu-latest
-    env:
-      WEB_URL: https://starsdecoded.vercel.app/
-      DEADLINE_SECONDS: 600
-    steps:
-      - name: Wait for the web app
-        run: |
-          end=$((SECONDS + DEADLINE_SECONDS))
-          until curl -sSf --max-time 20 "$WEB_URL" -o index.html && grep -q 'id="root"' index.html; do
-            if [ "$SECONDS" -ge "$end" ]; then
-              echo "::error::$WEB_URL did not return 200 with the app root div within ${DEADLINE_SECONDS}s"
-              exit 1
-            fi
-            sleep 15
-          done
-          echo "web ok: $WEB_URL"
-
-      - name: List the origins the built bundles talk to
-        run: |
-          : > found.txt
-          for asset in $(grep -oE '/assets/[^"'"'"' ]+\.js' index.html | sort -u); do
-            curl -sS --max-time 20 "${WEB_URL%/}$asset" | grep -oE 'https://[A-Za-z0-9.-]+\.[a-z]{2,}' >> found.txt || true
-          done
-          sort -u found.txt | grep -vE 'googleapis|gstatic|clerk\.|w3\.org|openstreetmap|timeapi|nominatim|github\.com|reactjs|npmjs|vercel\.app' > origins.txt || true
-          echo "origins in bundles (candidates for the API):"; cat origins.txt || true
-          # Railway hosts first, then anything else, then same-origin as a last resort.
-          { grep railway origins.txt || true; grep -v railway origins.txt || true; echo "${WEB_URL%/}"; } > candidates.txt
-          echo "probe order:"; cat candidates.txt
-
-      - name: Wait for the API health check
-        run: |
-          end=$((SECONDS + DEADLINE_SECONDS))
-          while :; do
-            for o in $(cat candidates.txt); do
-              if curl -sSf --max-time 20 "$o/api/healthz" 2>/dev/null | grep -q '"status":"ok"'; then
-                echo "API_URL=$o" >> "$GITHUB_ENV"; echo "api ok: $o/api/healthz"; exit 0
-              fi
-            done
-            if [ "$SECONDS" -ge "$end" ]; then
-              echo "::error::No candidate answered /api/healthz with {\"status\":\"ok\"} within ${DEADLINE_SECONDS}s. Tried: $(tr '\n' ' ' < candidates.txt). If only the vercel.app origin was tried, VITE_API_BASE_URL is not set on Vercel."
-              exit 1
-            fi
-            sleep 15
-          done
-
-      - name: Summary
-        run: |
-          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n' "$WEB_URL" "$API_URL" >> "$GITHUB_STEP_SUMMARY"
+    uses: ./.github/workflows/smoke-run.yml
+    with:
+      web_url: ${{ (github.ref_name == 'production' || inputs.target == 'production') && 'https://starsdecoded.vercel.app/' || 'https://starsdecoded-staging.vercel.app/' }}
+      expect_env: ${{ (github.ref_name == 'production' || inputs.target == 'production') && 'production' || 'staging' }}
+      expect_commit: ${{ github.event_name == 'push' && github.sha || '' }}

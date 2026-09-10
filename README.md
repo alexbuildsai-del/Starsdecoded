@@ -76,13 +76,28 @@ change ships.
 Configuration is documented in `.env.example` — the blocks map to the targets
 below.
 
+**Two environments.** `main` deploys to staging
+(`starsdecoded-staging.vercel.app`, Railway environment `staging`, its own
+Supabase project). The `production` branch deploys to production. Nothing
+reaches `production` except through the Promote workflow
+(`.github/workflows/promote.yml`), which checks staging is serving the
+requested commit, fast-forwards `production` to it, and checks production came
+up on it. `smoke.yml` runs the same check on every push to either branch, and
+`/api/healthz` reports `env` and `commit` so a web origin routed to the wrong
+API fails loudly. Prompts are edited on staging only: production sets
+`PROMPTS_READ_ONLY=true` and copies staging's `prompt_templates` during its
+pre-deploy bootstrap (`PROMPT_SOURCE_DATABASE_URL`). The one-time dashboard
+setup is `docs/annex/staging-runbook.md`.
+
 **Web → Vercel.** `.vercelignore` keeps `api/` out of the upload: Vercel reads
 a top-level `api/` directory as serverless functions and would otherwise try to
 compile the Express server as one. `vercel.json` at the repo root supplies the install and
 build commands, and the output lands in `dist/` there, where Vercel's Vite
-preset looks by default. Set `VITE_API_BASE_URL` to the Railway origin and
-`VITE_CLERK_PUBLISHABLE_KEY` to the Clerk publishable key; both are inlined at
-build time, so changing either needs a redeploy.
+preset looks by default. Its rewrites send same-origin `/api` to the staging
+Railway host for `starsdecoded-*.vercel.app` and `staging.*` hosts, and to the
+production host otherwise, so no `VITE_API_BASE_URL` is set. Set
+`VITE_CLERK_PUBLISHABLE_KEY` for Production and Preview; it is inlined at build
+time, so changing it needs a redeploy.
 
 **API → Railway.** `railway.json` (repo root) builds the workspace and starts
 `@workspace/api-server`, health-checking `/api/healthz`. Railway injects `PORT`.

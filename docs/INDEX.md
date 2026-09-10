@@ -1,4 +1,4 @@
-# Index — regenerated at the end of every round (last: R01, 2026-09-09)
+# Index — regenerated at the end of every round (last: staging environment, 2026-09-10)
 
 Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by pointer.
 
@@ -10,7 +10,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Specs
 - `docs/specs/locked/` — none yet. First candidate: pricing and packaging.
-- `docs/specs/draft/` — none yet.
+- `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 
 ## Rounds
 - `docs/rounds/R01-plan.md` · `R01-report.md` — claims made true, DELETE report, legal drafts, smoke workflow. Owner acceptance pending.
@@ -19,7 +19,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `docs/qa/` — none yet.
 
 ## Annex
-- `docs/annex/` — none yet. Bible maintenance checklist arrives here when the bible branch merges.
+- `docs/annex/staging-runbook.md` — the Owner's one-time dashboard setup for staging (Supabase, Railway, Vercel, GitHub).
+- Bible maintenance checklist arrives here when the bible branch merges.
 
 ## Code map
 - `web/` React + Vite SPA (Vercel) · `api/` Express API (Railway) · `packages/db` drizzle schema
@@ -32,4 +33,4 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `.claude/agents/` planner · orchestrator · builder · qa
 - `.claude/commands/` /ideate · /lock · /plan · /round · /qa · /mailbox
 - `.github/pull_request_template.md` — the gate checklist every PR carries
-- `.github/workflows/ci.yml` typecheck, builds, unit tests · `smoke.yml` deploy verification on push to main
+- `.github/workflows/ci.yml` typecheck, builds, unit tests · `smoke.yml` deploy check on push to main (staging) and production · `smoke-run.yml` its reusable body · `promote.yml` fast-forwards production after a staging smoke
