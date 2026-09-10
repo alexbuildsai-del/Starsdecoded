@@ -38,7 +38,9 @@ const appEnv =
 // become a relative path. Empty means same-origin, which is the intended
 // production and staging setup.
 const rawApiBaseUrl = process.env.VITE_API_BASE_URL?.trim() ?? "";
-const onVercel = Boolean(process.env.VERCEL);
+// VERCEL and VERCEL_ENV are both set on Vercel builds; check both so the guard
+// holds even if only one is exposed.
+const onVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 const apiBaseUrl =
   onVercel || !/^https?:\/\//i.test(rawApiBaseUrl) ? "" : rawApiBaseUrl;
 
