@@ -208,6 +208,7 @@ re-enables editing there.
 | `/api/admin/me` says `isAdmin:false` | staging `ADMIN_USER_ID` or Clerk keys differ from production | E |
 | Smoke says wrong `env` | `vercel.json` placeholder, or staging domain not on `main` | E, G |
 | Staging asks for a Vercel login | Deployment Protection still on | G |
+| Generating a report fails with HTTP 405 (site otherwise loads) | `VITE_API_BASE_URL` is set on Vercel; it must be empty (the build now ignores it, so redeploy to clear a cached bundle) | G |
 | `/api/healthz/db` on production says `prompt-sync FAILED` | `PROMPT_SOURCE_DATABASE_URL` is wrong or the staging database is empty; the site runs on default prompts meanwhile | F, A |
 | `/api/healthz/db` says `"bootstrap":null` and `"tables":[]` | a custom start command in the Railway dashboard overrides `railway.json` | F |
 | Railway shows the new commit as SKIPPED, "No changes to watched files" | Watch Paths set on the service; clear them, then Redeploy from the card's menu | F |

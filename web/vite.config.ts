@@ -29,10 +29,24 @@ const appEnv =
   process.env.VITE_APP_ENV ??
   (vercelEnv === "production" ? "production" : vercelEnv ? "staging" : "development");
 
+// Origin of the API. On Vercel the web calls /api on its own origin and
+// vercel.json rewrites that to the correct Railway host per environment, so a
+// base URL here is always wrong: a value set on Vercel (the production host,
+// with no scheme) once resolved to a bogus same-origin path and made every
+// POST 405 while GETs silently returned the SPA. So ignore it on Vercel, and
+// anywhere else ignore a value without an http(s) scheme rather than let it
+// become a relative path. Empty means same-origin, which is the intended
+// production and staging setup.
+const rawApiBaseUrl = process.env.VITE_API_BASE_URL?.trim() ?? "";
+const onVercel = Boolean(process.env.VERCEL);
+const apiBaseUrl =
+  onVercel || !/^https?:\/\//i.test(rawApiBaseUrl) ? "" : rawApiBaseUrl;
+
 export default defineConfig({
   base: basePath,
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv),
+    "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBaseUrl),
   },
   plugins: [
     react(),
