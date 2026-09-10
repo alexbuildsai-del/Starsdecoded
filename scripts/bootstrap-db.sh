@@ -49,14 +49,26 @@ echo "==> 7/7 Promote prompt overrides from staging"
 # Only production sets PROMPT_SOURCE_DATABASE_URL (to the staging database).
 # Runs after the seed so the reviewed staging text wins over defaults; staging
 # and local runs skip it. The script refuses to sync a database onto itself or
-# from an empty source, and either refusal aborts the deploy on purpose.
+# from an empty source. A refusal or any other failure no longer aborts the
+# deploy: on 2026-09-10 that turned a prompt-copy problem into an outage. The
+# seeded defaults serve instead, and the failure is reported below.
 if [ -n "${PROMPT_SOURCE_DATABASE_URL:-}" ]; then
-  pnpm --filter @workspace/db exec tsx scripts/sync-prompt-overrides.ts
+  if sync_output=$(pnpm --filter @workspace/db exec tsx scripts/sync-prompt-overrides.ts 2>&1); then
+    printf '%s\n' "$sync_output"
+    sync_status="prompt-sync ok"
+  else
+    printf '%s\n' "$sync_output"
+    reason=$(printf '%s\n' "$sync_output" | grep -m1 -oE '(Error|error): .*' | cut -c1-160)
+    sync_status="prompt-sync FAILED, serving the seeded defaults: ${reason:-see the deploy log}"
+    echo "bootstrap-db: $sync_status" >&2
+  fi
 else
   echo "PROMPT_SOURCE_DATABASE_URL not set — skipped."
+  sync_status="prompt-sync skipped"
 fi
 
-echo "==> Database ready"
-# /api/healthz/db reports this, so a deploy whose start command skipped the
-# bootstrap is distinguishable from one that ran it against the wrong database.
-date -u +%Y-%m-%dT%H:%M:%SZ > /tmp/bootstrap-db.done || true
+echo "==> Database ready ($sync_status)"
+# /api/healthz/db reports this line, so a deploy whose start command skipped
+# the bootstrap, one that ran it against the wrong database, and one whose
+# prompt copy failed can all be told apart without dashboard access.
+printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sync_status" > /tmp/bootstrap-db.done || true

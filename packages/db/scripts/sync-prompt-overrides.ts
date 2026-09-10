@@ -4,6 +4,8 @@
  * Production runs it as the last bootstrap step so a release carries exactly
  * the prompts that were reviewed on staging. PROMPT_SOURCE_DATABASE_URL is set
  * only on the production Railway environment; everywhere else this is a no-op.
+ * A non-zero exit here is reported by bootstrap-db.sh and /api/healthz/db but
+ * does not stop the deploy: the seeded defaults serve until it is fixed.
  *
  * Run with: tsx packages/db/scripts/sync-prompt-overrides.ts
  *

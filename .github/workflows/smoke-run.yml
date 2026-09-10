@@ -103,6 +103,8 @@ jobs:
           echo "API_DB=$body" >> "$GITHUB_ENV"
           if [ "$(printf '%s' "$body" | jq -r '.ok // false')" != "true" ]; then
             echo "::warning::$API_URL/api/healthz/db reports a broken database: $body"
+          elif printf '%s' "$body" | jq -r '.bootstrap // ""' | grep -q FAILED; then
+            echo "::warning::$API_URL/api/healthz/db reports the prompt copy from staging failed; the seeded defaults are serving: $body"
           fi
 
       - name: Summary
