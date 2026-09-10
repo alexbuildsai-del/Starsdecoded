@@ -645,6 +645,13 @@ components:
       properties:
         status:
           type: string
+        env:
+          type: string
+          enum: [development, staging, production]
+          description: Which deployment answered. The smoke check asserts it so a web origin cannot silently route to the wrong API.
+        commit:
+          type: string
+          description: Git sha of the running build, when the platform injects one.
       required:
         - status
 

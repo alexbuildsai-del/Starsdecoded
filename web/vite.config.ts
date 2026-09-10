@@ -16,12 +16,24 @@ if (Number.isNaN(port) || port <= 0) {
 const basePath = process.env.BASE_PATH ?? "/";
 
 // In dev the API runs separately (default: the local Express server on
-// 8080). In production the browser talks to the Railway API directly via
-// VITE_API_BASE_URL, so this proxy is dev-only.
+// 8080). On Vercel the same-origin /api path is rewritten to Railway by
+// vercel.json, so this proxy is dev-only.
 const apiProxyTarget = process.env.API_PROXY_TARGET ?? "http://localhost:8080";
+
+// Which deployment this build is for. Vercel exposes VERCEL_ENV when system
+// environment variables are on: "production" for the production branch and
+// "preview" for every other branch, which includes main once main deploys to
+// staging. VITE_APP_ENV overrides it for local checks of the staging ribbon.
+const vercelEnv = process.env.VERCEL_ENV;
+const appEnv =
+  process.env.VITE_APP_ENV ??
+  (vercelEnv === "production" ? "production" : vercelEnv ? "staging" : "development");
 
 export default defineConfig({
   base: basePath,
+  define: {
+    "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv),
+  },
   plugins: [
     react(),
     tailwindcss({ optimize: false }),

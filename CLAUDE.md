@@ -72,13 +72,19 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Things a session should know
 
-- Deploys are git-push driven: `main` → Vercel (web, `dist/` at repo root) and
-  Railway (api, health check `/api/healthz`). Postgres is Supabase. Secrets
-  live only in those dashboards; the repository is public.
+- Deploys are git-push driven: `main` → staging (Vercel branch alias
+  `starsdecoded-staging.vercel.app`, Railway environment `staging`, own
+  Supabase project); `production` branch → production. Only the Promote
+  workflow moves `production`, fast-forward from `main`, after the staging
+  smoke passes; dispatch it, never push the branch. Secrets live only in the
+  Railway, Vercel and Supabase dashboards; the repository is public and
+  nothing goes into GitHub secrets. Runbook: `docs/annex/staging-runbook.md`.
 - The web app calls `/api` on its own origin; `vercel.json` rewrites that to
-  the Railway API, so no `VITE_API_BASE_URL` is needed on Vercel. The API
-  still sets `SameSite=None; Secure` cookies (`CROSS_SITE_COOKIES`), which
-  is harmless same-site.
+  the staging or production Railway host by web host. `/api/healthz` reports
+  `env` and `commit`, and `smoke.yml` asserts both. The API still sets
+  `SameSite=None; Secure` cookies (`CROSS_SITE_COOKIES`), harmless same-site.
+- Prompts are edited on staging only. Production sets `PROMPTS_READ_ONLY` and
+  copies staging's `prompt_templates` in its pre-deploy bootstrap.
 - `openapi.yaml` is the contract; generated client and zod files are rewritten
   by codegen and never hand-edited. `/admin/*` routes are not in the spec yet.
 - Schema changes go through `packages/db/src/schema` plus an idempotent script
@@ -93,11 +99,14 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-09)
+## Current focus (2026-09-10)
 
-1. R01 deployed; Owner acceptance pending. Check the landing page claims,
-   the dashboard delete, the four legal drafts and the first smoke run
-   (`docs/rounds/R01-report.md`, "Not verified here").
-2. Next ideation session: pricing and packaging (MB-5), then payments.
-3. Still owed: the report-lab measurement for PR #6 (MB-14) and the Owner's
+1. Staging environment landing (`docs/specs/draft/staging-environment.md`).
+   The Owner works the runbook; then the first Promote creates `production`
+   and the dashboards switch branches. Until then `main` still deploys to
+   production.
+2. R01 Owner acceptance pending (`docs/rounds/R01-report.md`).
+3. Next ideation session: pricing and packaging (MB-5), then payments, which
+   go to staging in Stripe test mode first.
+4. Still owed: the report-lab measurement for PR #6 (MB-14) and the Owner's
    legal entity (MB-31).

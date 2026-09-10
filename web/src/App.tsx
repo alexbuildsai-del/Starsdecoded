@@ -15,6 +15,8 @@ import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import LoadingState from "@/components/LoadingState";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { StagingRibbon } from "@/components/StagingRibbon";
+import { APP_ENV } from "@/lib/appEnv";
 
 const importBirthForm = () => import("@/pages/BirthFormPage");
 const importGeneration = () => import("@/pages/GenerationPage");
@@ -286,6 +288,7 @@ function App() {
             <ClerkRoutedProvider />
           </WouterRouter>
           <Toaster />
+          {APP_ENV === "staging" && <StagingRibbon />}
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>

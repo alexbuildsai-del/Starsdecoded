@@ -13,35 +13,46 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
-echo "==> 1/6 SQL migrations"
+echo "==> 1/7 SQL migrations"
 # These run first. Drizzle's `push` cannot do this on its own, because column
 # rename detection prompts interactively while the legacy `reports` columns are
 # still present, and a deploy has no one to answer it.
 pnpm --filter @workspace/db run migrate
 
-echo "==> 2/6 Schema push"
+echo "==> 2/7 Schema push"
 # A safety net for any drift the migrations do not cover. A no-op once they
 # have run.
 pnpm --filter @workspace/db run push
 
-echo "==> 3/6 Invite/claim migration"
+echo "==> 3/7 Invite/claim migration"
 # Idempotent, so fresh and existing databases both end up with invite_tokens
 # and relationship_participants.access_role.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-invites.ts
 
-echo "==> 4/6 Drop dead V1 prompt overrides"
+echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-drop-dead-prompt-keys.ts
 
-echo "==> 5/6 Retire the meaning library"
+echo "==> 5/7 Retire the meaning library"
 # Drops the meaning_library table and its prompt rows. The natal report now
 # composes from api/src/prompts/vocabulary.ts. Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-drop-meaning-library.ts
 
-echo "==> 6/6 Prompt templates"
+echo "==> 6/7 Prompt templates"
 # ON CONFLICT DO NOTHING, so this never overwrites prompts edited from
 # /admin/prompts.
 pnpm --filter @workspace/scripts run seed:prompts
+
+echo "==> 7/7 Promote prompt overrides from staging"
+# Only production sets PROMPT_SOURCE_DATABASE_URL (to the staging database).
+# Runs after the seed so the reviewed staging text wins over defaults; staging
+# and local runs skip it. The script refuses to sync a database onto itself or
+# from an empty source, and either refusal aborts the deploy on purpose.
+if [ -n "${PROMPT_SOURCE_DATABASE_URL:-}" ]; then
+  pnpm --filter @workspace/db exec tsx scripts/sync-prompt-overrides.ts
+else
+  echo "PROMPT_SOURCE_DATABASE_URL not set — skipped."
+fi
 
 echo "==> Database ready"

@@ -1,0 +1,73 @@
+name: Promote
+
+# Ships what staging is running to production: proves staging is at the
+# requested commit, fast-forwards the production branch to it, then proves
+# production came up on that commit. Fast-forward only, so production never
+# carries anything main did not.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit to promote; empty means the tip of main
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: pick
+        run: |
+          sha="${{ inputs.sha }}"
+          if [ -z "$sha" ]; then sha=$(git rev-parse origin/main); fi
+          sha=$(git rev-parse --verify "$sha^{commit}")
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::$sha is not on main; only commits that reached main can be promoted"
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "promoting $sha"
+
+  staging-smoke:
+    needs: resolve
+    uses: ./.github/workflows/smoke-run.yml
+    with:
+      web_url: https://starsdecoded-staging.vercel.app/
+      expect_env: staging
+      expect_commit: ${{ needs.resolve.outputs.sha }}
+
+  fast-forward:
+    needs: [resolve, staging-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          sha="${{ needs.resolve.outputs.sha }}"
+          if git rev-parse --verify -q origin/production >/dev/null; then
+            if ! git merge-base --is-ancestor origin/production "$sha"; then
+              echo "::error::production has commits that are not on main; merge them back into main first"
+              exit 1
+            fi
+          fi
+          git push origin "$sha:refs/heads/production"
+
+  # A push made with the workflow token does not trigger smoke.yml, so the
+  # production check runs here.
+  production-smoke:
+    needs: [resolve, fast-forward]
+    uses: ./.github/workflows/smoke-run.yml
+    with:
+      web_url: https://starsdecoded.vercel.app/
+      expect_env: production
+      expect_commit: ${{ needs.resolve.outputs.sha }}

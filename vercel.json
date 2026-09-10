@@ -7,6 +7,16 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
+      "has": [{ "type": "host", "value": "starsdecoded-(.*)\\.vercel\\.app" }],
+      "destination": "https://REPLACE_WITH_STAGING_RAILWAY_HOST/api/$1"
+    },
+    {
+      "source": "/api/(.*)",
+      "has": [{ "type": "host", "value": "staging\\.(.*)" }],
+      "destination": "https://REPLACE_WITH_STAGING_RAILWAY_HOST/api/$1"
+    },
+    {
+      "source": "/api/(.*)",
       "destination": "https://workspaceapi-server-production-18dd.up.railway.app/api/$1"
     },
     {

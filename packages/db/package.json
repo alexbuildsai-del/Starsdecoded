@@ -10,7 +10,8 @@
   "scripts": {
     "migrate": "tsx ./scripts/migrate-profile-split.ts && tsx ./scripts/migrate-add-users.ts && tsx ./scripts/migrate-add-relationships.ts",
     "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
+    "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

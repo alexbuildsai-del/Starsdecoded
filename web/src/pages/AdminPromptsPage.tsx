@@ -129,7 +129,7 @@ function PreviewModal({ open, label, loading, text, error, onClose }: PreviewMod
 // changed here, so an override only ever edits tone and instructions.
 const FORMAT_NOTES: Record<string, string> = {};
 
-function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => void }) {
+function PromptCard({ entry, readOnly, onSaved }: { entry: PromptEntry; readOnly: boolean; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [system, setSystem] = useState(entry.systemPrompt ?? "");
   const [user, setUser] = useState(entry.userPrompt ?? "");
@@ -278,6 +278,7 @@ function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => voi
                 <Textarea
                   value={system}
                   onChange={(e) => setSystem(e.target.value)}
+                  readOnly={readOnly}
                   className="font-mono text-xs min-h-[140px] resize-y bg-background/60"
                   placeholder="Leave blank to use default…"
                 />
@@ -297,6 +298,7 @@ function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => voi
                 <Textarea
                   value={user}
                   onChange={(e) => setUser(e.target.value)}
+                  readOnly={readOnly}
                   className="font-mono text-xs min-h-[200px] resize-y bg-background/60"
                   placeholder="Leave blank to use default…"
                 />
@@ -317,15 +319,17 @@ function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => voi
             )}
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                size="sm"
-                className="gradient-primary text-white border-0 font-label font-medium"
-                onClick={handleSave}
-                disabled={saving || resetting}
-              >
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
-                Save
-              </Button>
+              {!readOnly && (
+                <Button
+                  size="sm"
+                  className="gradient-primary text-white border-0 font-label font-medium"
+                  onClick={handleSave}
+                  disabled={saving || resetting}
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                  Save
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -335,7 +339,7 @@ function PromptCard({ entry, onSaved }: { entry: PromptEntry; onSaved: () => voi
                 {previewing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
                 Preview
               </Button>
-              {entry.isOverridden && (
+              {entry.isOverridden && !readOnly && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -368,6 +372,7 @@ export default function AdminPromptsPage() {
   const { user, isLoaded } = useUser();
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [readOnly, setReadOnly] = useState(false);
   const [prompts, setPrompts] = useState<PromptEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -381,8 +386,9 @@ export default function AdminPromptsPage() {
     setLoading(true);
     setError(null);
     try {
-      const meData = await apiFetch("admin/me") as { isAdmin: boolean };
+      const meData = await apiFetch("admin/me") as { isAdmin: boolean; promptsReadOnly?: boolean };
       setIsAdmin(meData.isAdmin);
+      setReadOnly(meData.promptsReadOnly === true);
       if (!meData.isAdmin) {
         setLoading(false);
         return;
@@ -493,13 +499,27 @@ export default function AdminPromptsPage() {
               <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-1">Admin</p>
               <h1 className="font-display text-2xl font-light">Prompt Templates</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Edit AI prompts used in report generation. Changes take effect on the next report.
+                {readOnly
+                  ? "The prompts this environment generates reports with."
+                  : "Edit AI prompts used in report generation. Changes take effect on the next report."}
                 {overrideCount > 0 && (
                   <> <span className="text-primary">{overrideCount} customised.</span></>
                 )}
               </p>
             </div>
           </div>
+
+          {readOnly && (
+            <div
+              role="status"
+              className="mb-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 flex items-start gap-3 text-amber-200"
+            >
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <p className="text-sm leading-relaxed">
+                Read-only here. Prompts are edited on staging and promoted to production with each release.
+              </p>
+            </div>
+          )}
 
           {/* Tab bar */}
           <div className="mb-4 flex gap-1 p-1 rounded-lg border border-border/60 bg-card/40 w-fit">
@@ -546,7 +566,7 @@ export default function AdminPromptsPage() {
               <p className="text-sm text-muted-foreground py-8 text-center">No prompts in this section.</p>
             ) : (
               displayedPrompts.map((p) => (
-                <PromptCard key={p.key} entry={p} onSaved={loadData} />
+                <PromptCard key={p.key} entry={p} readOnly={readOnly} onSaved={loadData} />
               ))
             )}
           </div>
