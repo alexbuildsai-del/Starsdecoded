@@ -18,7 +18,9 @@ router.get("/healthz", (_req, res) => {
 // database, so a failure here means "the API is up but its database is not",
 // which the plain /healthz deliberately cannot say. The driver's error text
 // is returned outside production so a broken staging database can be
-// diagnosed without dashboard access.
+// diagnosed without dashboard access. The error code (a SQLSTATE such as
+// 42P01 for a missing table, or a socket errno) names the failure class
+// without carrying hosts or credentials, so production returns it too.
 router.get("/healthz/db", async (_req, res) => {
   const started = Date.now();
   try {
@@ -28,12 +30,20 @@ router.get("/healthz/db", async (_req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
+    const code = readErrorCode(err) ?? readErrorCode(err instanceof Error ? err.cause : undefined);
     res.status(503).json({
       ok: false,
       ms: Date.now() - started,
+      ...(code ? { code } : {}),
       ...(readAppEnv() === "production" ? {} : { error: message, ...(cause ? { cause } : {}) }),
     });
   }
 });
+
+function readErrorCode(err: unknown): string | undefined {
+  if (typeof err !== "object" || err === null) return undefined;
+  const { code } = err as { code?: unknown };
+  return typeof code === "string" && code.length > 0 ? code : undefined;
+}
 
 export default router;
