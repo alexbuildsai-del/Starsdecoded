@@ -102,9 +102,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 ## Current focus (2026-09-10)
 
 1. Staging environment landing (`docs/specs/draft/staging-environment.md`).
-   The Owner works the runbook; then the first Promote creates `production`
-   and the dashboards switch branches. Until then `main` still deploys to
-   production.
+   `production` branch exists at the pre-staging `main`; the Owner works the
+   runbook and switches the dashboards to it, then the PR merges to staging
+   and the first Promote ships it.
 2. R01 Owner acceptance pending (`docs/rounds/R01-report.md`).
 3. Next ideation session: pricing and packaging (MB-5), then payments, which
    go to staging in Stripe test mode first.

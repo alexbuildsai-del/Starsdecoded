@@ -103,7 +103,7 @@ RESEND_FROM_EMAIL=<same as production>
       `vercel.json`.
 - Check: top left `staging`, 14 variables, a domain under Networking.
 
-## F. Railway, production (5 min, after Part J)
+## F. Railway, production (5 min)
 
 - [ ] Switch to `production` → engine service → **Variables** → add:
 
@@ -115,7 +115,8 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 
   The last one is the **staging** line. If it were production's, the deploy
   stops itself with an error rather than sync a database onto itself.
-- [ ] After Part J: **Settings → Source** → branch `production`.
+- [ ] **Settings → Source** → branch `production`, then Deploy. The branch
+      already exists with the live code, so customers see no change.
 - Check: three new rows; Source shows `production`.
 
 ## G. Vercel (15 min)
@@ -130,8 +131,8 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
       `main`.
 - [ ] **Deployment Protection** → Vercel Authentication → **Disabled**.
       Otherwise the smoke check and anyone with the link hit a login wall.
-- [ ] After Part J: **Git → Production Branch** → `production`. Done early,
-      Vercel just keeps serving the current production site.
+- [ ] **Git → Production Branch** → `production`. Same code as the live
+      site; after this every build of `main` is a Preview.
 - Check: the Clerk key shows Production and Preview; the staging domain is on
   `main`; protection is off.
 
@@ -139,7 +140,7 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 
 - [ ] Repository **Settings → General → Default branch** → `main`. Today it
       is an old `claude/…` branch.
-- [ ] After Part J: **Settings → Rules → Rulesets → New branch ruleset**
+- [ ] **Settings → Rules → Rulesets → New branch ruleset**
       `protect-production`, Active, target pattern `production`. Tick
       **Restrict deletions**, **Block force pushes**, **Require linear
       history**. Leave **Restrict updates** and **Require a pull request**
@@ -162,11 +163,9 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 - [ ] Tell Claude "runbook done through Part I" plus the Railway domain.
 - [ ] Claude merges the pull request; the Smoke run on `main` turns green
       with `env: staging`. Test staging.
-- [ ] Say "promote". Claude dispatches Promote: it re-checks staging, creates
-      the `production` branch, waits for production, confirms
+- [ ] Say "promote". Claude dispatches Promote: it re-checks staging, moves
+      the `production` branch forward, waits for production, confirms
       `env: production`.
-- [ ] Do F, G6 and H2. Tell Claude "after-J settings done"; Claude runs
-      Promote once more.
 - Check: `starsdecoded.vercel.app/api/healthz` shows `"env":"production"`;
   `/admin/prompts` there shows no Save button and the read-only note.
 

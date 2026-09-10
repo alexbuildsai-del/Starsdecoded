@@ -64,8 +64,9 @@ same session because it blocks payments (MB-6) and prompt review (R-4.4).
 
 `docs/annex/staging-runbook.md`, also published as a tickable checklist at
 https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7. Parts
-A to I are dashboard work; J is the switch-over; three items are marked
-"after Part J" because they need the `production` branch to exist.
+A to I are dashboard work; J is the switch-over. The `production` branch was
+created from `main` at `faf1484` on 2026-09-10, so the dashboards can point
+at it before anything new is merged.
 
 ## Open questions
 
