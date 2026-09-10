@@ -21,7 +21,7 @@ same session because it blocks payments (MB-6) and prompt review (R-4.4).
 - Prompts are edited on staging only. Production sets `PROMPTS_READ_ONLY=true`
   (PUT and DELETE on `/api/admin/prompts` answer 405; the admin page hides
   Save and Reset and says why) and copies staging's `prompt_templates` as the
-  last step of its pre-deploy bootstrap, from `PROMPT_SOURCE_DATABASE_URL`.
+  last step of its start-up bootstrap, from `PROMPT_SOURCE_DATABASE_URL`.
 - A "Staging" ribbon on the web app when the build is a Vercel preview.
 - Secrets stay in the Railway, Vercel and Supabase dashboards. Nothing goes
   into GitHub secrets; Promote uses the workflow's own token.

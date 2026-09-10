@@ -1,7 +1,8 @@
 #!/bin/bash
 # Bring a database — empty, legacy (pre-profile-split), or current — to the
 # expected shape and seed it. Safe to re-run: every step is idempotent, which
-# is what lets Railway run this as its preDeployCommand on every deploy.
+# is what lets Railway run this at the start of every deploy (railway.json
+# startCommand). A non-zero exit keeps the new version from taking traffic.
 #
 # Locally, point DATABASE_URL at the target first:
 #   DATABASE_URL=postgres://... DATABASE_SSL=require ./scripts/bootstrap-db.sh

@@ -86,7 +86,7 @@ up on it. `smoke.yml` runs the same check on every push to either branch, and
 `/api/healthz` reports `env` and `commit` so a web origin routed to the wrong
 API fails loudly. Prompts are edited on staging only: production sets
 `PROMPTS_READ_ONLY=true` and copies staging's `prompt_templates` during its
-pre-deploy bootstrap (`PROMPT_SOURCE_DATABASE_URL`). The one-time dashboard
+start-up bootstrap (`PROMPT_SOURCE_DATABASE_URL`). The one-time dashboard
 setup is `docs/annex/staging-runbook.md`.
 
 **Web → Vercel.** `.vercelignore` keeps `api/` out of the upload: Vercel reads
@@ -105,10 +105,12 @@ time, so changing it needs a redeploy.
 **Database → Supabase.** Point `DATABASE_URL` at the Supabase connection string
 (the session pooler, not the transaction pooler — Drizzle uses prepared
 statements) and set `DATABASE_SSL=require`. Railway runs
-`scripts/bootstrap-db.sh` as its `preDeployCommand`, so migrations and seeds
-apply on every deploy; every step is idempotent. A failure there aborts the
-deploy and leaves the previous version serving, rather than starting a release
-against a database that does not match it. Run the same script by hand
+`scripts/bootstrap-db.sh` as the first step of its start command, so migrations
+and seeds apply on every deploy; every step is idempotent. A failure there
+stops the process before it listens, the health check never passes, and the
+previous version keeps serving rather than a release starting against a
+database that does not match it. (Railway's `preDeployCommand` hook was never
+executed for this project, so the bootstrap does not depend on it.) Run the same script by hand
 (`pnpm run db:bootstrap`) to set up a database from a laptop.
 
 Because web and API are separate origins in production, the anonymous session

@@ -74,7 +74,8 @@ variable below before deploying.
 - [ ] Add a service from the GitHub repo `alexbuildsai-del/Starsdecoded`,
       branch `main`. No Root Directory. **Wait for CI** stays off: the GitHub
       smoke check waits for Railway, so both waiting would deadlock. Build,
-      pre-deploy and health check `/api/healthz` come from `railway.json`.
+      start command (which runs the database bootstrap first) and health
+      check `/api/healthz` come from `railway.json`.
 - [ ] **Variables** → **RAW Editor** → paste and fill:
 
 ```
