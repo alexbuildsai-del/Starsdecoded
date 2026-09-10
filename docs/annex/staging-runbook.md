@@ -127,7 +127,12 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
       `"bootstrap":null`. Clear it (or paste
       `./scripts/bootstrap-db.sh && pnpm --filter @workspace/api-server run start`)
       and Deploy. Same check for **Custom Build Command**: empty.
-- Check: three new rows; Source shows `production`; no custom start command.
+- [ ] **Settings → Source → Watch Paths** must be empty. With paths listed,
+      a push that changes other folders shows as SKIPPED, "No changes to
+      watched files", and the fix never deploys. One repository, one build:
+      every push to `production` must deploy.
+- Check: three new rows; Source shows `production`; no custom start command;
+  no watch paths.
 
 ## G. Vercel (15 min)
 
@@ -203,7 +208,8 @@ re-enables editing there.
 | `/api/admin/me` says `isAdmin:false` | staging `ADMIN_USER_ID` or Clerk keys differ from production | E |
 | Smoke says wrong `env` | `vercel.json` placeholder, or staging domain not on `main` | E, G |
 | Staging asks for a Vercel login | Deployment Protection still on | G |
-| Production deploy fails at "Promote prompt overrides" | source equals target, or staging database empty | F, A |
+| `/api/healthz/db` on production says `prompt-sync FAILED` | `PROMPT_SOURCE_DATABASE_URL` is wrong or the staging database is empty; the site runs on default prompts meanwhile | F, A |
 | `/api/healthz/db` says `"bootstrap":null` and `"tables":[]` | a custom start command in the Railway dashboard overrides `railway.json` | F |
+| Railway shows the new commit as SKIPPED, "No changes to watched files" | Watch Paths set on the service; clear them, then Redeploy from the card's menu | F |
 | Staging log ends in `DATABASE_URL must be set` | variables added to the wrong environment | E |
 | Promote refuses to run | ruleset restricts updates or requires a pull request | H |
