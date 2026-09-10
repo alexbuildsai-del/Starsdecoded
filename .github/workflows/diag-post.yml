@@ -1,9 +1,8 @@
 name: Diag POST
 
-# Temporary diagnostic for the staging 405 on POST /api/reports. Plain POST
-# reaches the API (400 validation), so the browser 405 is the CORS preflight.
-# This probes OPTIONS and reads what origin the built bundle calls. Delete
-# once resolved.
+# Temporary diagnostic for the staging 405 on POST /api/reports. Reproduces the
+# exact browser request (full valid body) through Vercel, follows redirects,
+# and prints every response in the chain. Delete once resolved.
 on:
   workflow_dispatch: {}
 
@@ -11,30 +10,22 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Preflight probe
+      - name: Full valid POST through Vercel, following redirects
         run: |
-          probe() {
-            echo "=== $*"
-            curl -sS -i "$@" --max-time 25 \
-              | sed -n '1,25p' \
-              | grep -iE '^HTTP/|^allow:|^server:|^access-control|^x-vercel|^x-railway|^content-type:|^location:|not allowed|<title>|error' \
-              || true
-            echo
-          }
           V=https://starsdecoded-staging.vercel.app
+          body='{"name":"staging test","birthDate":"1995-08-23","birthTime":"23:45","birthPlace":"Košice, Košický kraj, Slovensko","latitude":48.72,"longitude":21.25,"timezoneOffset":2,"isForSelf":true}'
+          echo "=== POST $V/api/reports (with redirects shown) ==="
+          curl -sS -i -L --max-redirs 5 \
+            -H 'content-type: application/json' \
+            -H "Origin: $V" \
+            --data "$body" --max-time 30 "$V/api/reports" \
+            | grep -iE '^HTTP/|^allow:|^server:|^location:|^access-control-allow-methods|^content-type:|error|reportId|"id"|not allowed' \
+            || true
+          echo
+          echo "=== same POST straight to Railway ==="
           R=https://starsdecoded-staging.up.railway.app
-          O="-H Origin:$V -H Access-Control-Request-Method:POST -H Access-Control-Request-Headers:content-type"
-          probe -X OPTIONS $O "$V/api/reports"
-          probe -X OPTIONS $O "$R/api/reports"
-
-      - name: What origin does the built bundle call
-        run: |
-          V=https://starsdecoded-staging.vercel.app
-          curl -sS "$V/" -o index.html
-          echo "assets referenced:"; grep -oE '/assets/[^"]+\.js' index.html | sort -u
-          for a in $(grep -oE '/assets/[^"]+\.js' index.html | sort -u); do
-            curl -sS "$V$a" -o bundle.js
-            echo "--- $a : railway/api-base references ---"
-            grep -oE 'https://[a-z0-9.-]*railway[a-z0-9.-]*' bundle.js | sort -u || true
-            grep -oE 'VITE_API_BASE_URL|api-base|apiOrigin' bundle.js | sort -u || true
-          done
+          curl -sS -i --max-time 30 \
+            -H 'content-type: application/json' \
+            --data "$body" "$R/api/reports" \
+            | grep -iE '^HTTP/|^allow:|^server:|^location:|^content-type:|error|"id"' \
+            || true
