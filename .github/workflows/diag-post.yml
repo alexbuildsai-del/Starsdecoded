@@ -1,8 +1,7 @@
 name: Diag POST
 
-# Temporary end-to-end verification of the 405 fix: drive the real staging
-# form in a headless browser and capture the reports request. Expect 201 and a
-# same-origin URL. Delete once confirmed.
+# Temporary: confirm the deployed staging bundle no longer bakes a cross-origin
+# API base (the 405 cause) and now calls /api same-origin. Delete once green.
 on:
   workflow_dispatch: {}
 
@@ -10,38 +9,24 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Install Playwright chromium
-        run: npm i -D playwright@1.48.0 && npx playwright install --with-deps chromium
-      - name: Drive the real form and capture the reports request
+      - name: Assert the staging bundle uses a same-origin API base
         run: |
-          cat > repro.mjs <<'JS'
-          import { chromium } from 'playwright';
-          const V = 'https://starsdecoded-staging.vercel.app';
-          const b = await chromium.launch();
-          const page = await (await b.newContext()).newPage();
-          const hits = [];
-          page.on('requestfinished', async (r) => {
-            if (!r.url().includes('/reports')) return;
-            const res = await r.response();
-            hits.push({ method: r.method(), url: r.url(), status: res ? res.status() : null });
-          });
-          await page.goto(V, { waitUntil: 'networkidle' });
-          await page.getByPlaceholder(/name/i).fill('staging test').catch(()=>{});
-          try { await page.locator('input[type="date"]').fill('1995-08-23'); } catch {}
-          try { await page.locator('input[type="time"]').fill('23:45'); } catch {}
-          try {
-            await page.getByPlaceholder(/place|city|birth/i).first().fill('Košice');
-            await page.waitForTimeout(2500);
-            await page.getByText(/Košice/).first().click({ timeout: 4000 });
-          } catch (e) { console.log('place step:', e.message); }
-          await page.waitForTimeout(500);
-          try { await page.getByRole('button', { name: /generate my report/i }).click({ timeout: 4000 }); } catch (e) { console.log('click:', e.message); }
-          await page.waitForTimeout(6000);
-          console.log('REPORTS_REQUESTS=' + JSON.stringify(hits, null, 2));
-          await b.close();
-          JS
-          node repro.mjs
+          V=https://starsdecoded-staging.vercel.app
+          curl -sS "$V/" -o index.html
+          asset=$(grep -oE '/assets/[^"]+\.js' index.html | sort -u | head -1)
+          echo "bundle: $asset"
+          curl -sS "$V$asset" -o bundle.js
+          echo "=== api-base context ==="
+          grep -oE '.{40}replace\(/\\?/\+\$/.{50}' bundle.js | head -3 || true
+          echo
+          if grep -q "workspaceapi-server-production" bundle.js; then
+            echo "::error::bundle still bakes the production Railway host — fix not deployed yet"
+            exit 1
+          fi
+          echo "OK: no cross-origin API host baked into the bundle; /api stays same-origin."
+          echo
+          echo "=== belt-and-braces: a full-body POST to staging still returns 201 ==="
+          body='{"name":"staging test","birthDate":"1995-08-23","birthTime":"23:45","birthPlace":"Košice, Košický kraj, Slovensko","latitude":48.72,"longitude":21.25,"timezoneOffset":2,"isForSelf":true}'
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -H "Origin: $V" --data "$body" "$V/api/reports")
+          echo "POST $V/api/reports -> $code"
+          [ "$code" = "201" ] || { echo "::error::expected 201, got $code"; exit 1; }
