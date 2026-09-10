@@ -92,6 +92,15 @@ jobs:
             sleep 15
           done
 
+      # Informational: a healthy API with a broken database is the failure
+      # mode the liveness probe cannot see. Printed, not asserted, so a
+      # database incident does not block promotion checks it cannot fix.
+      - name: Database probe
+        run: |
+          body=$(curl -sS --max-time 30 "$API_URL/api/healthz/db" || echo '{"ok":false,"error":"no answer"}')
+          echo "database: $body"
+          echo "API_DB=$body" >> "$GITHUB_ENV"
+
       - name: Summary
         run: |
-          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n- env: %s\n- commit: %s\n' "$WEB_URL" "$API_URL" "$API_ENV" "$API_COMMIT" >> "$GITHUB_STEP_SUMMARY"
+          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n- env: %s\n- commit: %s\n- database: %s\n' "$WEB_URL" "$API_URL" "$API_ENV" "$API_COMMIT" "$API_DB" >> "$GITHUB_STEP_SUMMARY"
