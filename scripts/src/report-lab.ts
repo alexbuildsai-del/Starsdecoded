@@ -5,10 +5,16 @@
  *   pnpm report:lab --chart marie-curie
  *   pnpm report:lab --all --defaults-only --baseline
  *   pnpm report:lab --compare baseline latest
+ *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
  * Postgres) and OPENAI_API_KEY. Each run costs one full report's worth of AI
  * calls per chart.
+ *
+ * --remote needs neither: it generates each report through a deployed API as
+ * an anonymous visitor would and measures what comes back, so the measurement
+ * covers the engine, prompts and overrides that deployment actually runs.
+ * The Report lab workflow runs it against staging.
  */
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -265,6 +271,71 @@ async function runOne(name: string, label: string): Promise<SectionRow[]> {
   )) as unknown as Record<string, unknown>;
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
 
+  return report(name, label, fixture, chart, interpretation, elapsed);
+}
+
+/**
+ * The same run through a deployed API. The first response sets the anonymous
+ * session cookie, which every later call must carry to own the report.
+ */
+async function runOneRemote(name: string, label: string, base: string): Promise<SectionRow[]> {
+  const fixture = loadFixture(name);
+  console.log(`\n=== ${fixture.name} (${name}) via ${base} ===`);
+
+  let cookie = "";
+  const call = async (path: string, init?: RequestInit) => {
+    const res = await fetch(`${base}/api${path}`, {
+      ...init,
+      headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}), ...(init?.headers ?? {}) },
+    });
+    const set = res.headers.get("set-cookie");
+    if (set && !cookie) cookie = set.split(";")[0];
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) throw new Error(`${path}: ${res.status} ${JSON.stringify(body)}`);
+    return body;
+  };
+
+  const started = Date.now();
+  const created = await call("/reports", {
+    method: "POST",
+    body: JSON.stringify({
+      name: fixture.name,
+      birthDate: fixture.birthDate,
+      birthTime: fixture.birthTime,
+      birthPlace: `lab fixture ${name}`,
+      latitude: fixture.latitude,
+      longitude: fixture.longitude,
+      timezoneOffset: fixture.timezoneOffset,
+    }),
+  });
+  const id = created.id as string;
+
+  const deadline = Date.now() + 15 * 60 * 1000;
+  for (;;) {
+    const status = await call(`/reports/${id}/status`);
+    if (status.status === "complete") break;
+    if (status.status === "failed") throw new Error(`report ${id} failed: ${status.errorMessage}`);
+    if (Date.now() > deadline) throw new Error(`report ${id} still ${status.status} after 15 minutes`);
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+  const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+
+  const full = await call(`/reports/${id}`);
+  const interpretation = full.interpretation as Record<string, unknown>;
+  const chart = full.chartData as NatalChartData;
+  if (!interpretation || !chart) throw new Error(`report ${id} came back without interpretation or chart`);
+
+  return report(name, label, fixture, chart, interpretation, elapsed);
+}
+
+function report(
+  name: string,
+  label: string,
+  fixture: ChartFixture,
+  chart: NatalChartData,
+  interpretation: Record<string, unknown>,
+  elapsed: string,
+): SectionRow[] {
   const rows = measure(interpretation, chart);
   const total = rows.reduce((n, r) => n + r.words, 0);
 
@@ -334,6 +405,19 @@ async function main() {
     return;
   }
 
+  const label = flag("baseline") ? "baseline" : (opt("label") ?? "latest");
+  const names = flag("all") ? listFixtures() : [opt("chart") ?? "marie-curie"];
+
+  const remote = opt("remote");
+  if (remote !== undefined) {
+    if (!/^https?:\/\//.test(remote)) throw new Error(`--remote needs a web origin, got "${remote}"`);
+    const base = remote.replace(/\/+$/, "");
+    for (const name of names) {
+      await runOneRemote(name, label, base);
+    }
+    return;
+  }
+
   if (!process.env.DATABASE_URL) {
     throw new Error(
       "DATABASE_URL must be set. The meaning library lives in Postgres, so a run " +
@@ -348,9 +432,6 @@ async function main() {
     process.env.PROMPT_DEFAULTS_ONLY = "1";
     console.log("defaults-only: ignoring prompt_templates overrides.");
   }
-
-  const label = flag("baseline") ? "baseline" : (opt("label") ?? "latest");
-  const names = flag("all") ? listFixtures() : [opt("chart") ?? "marie-curie"];
 
   for (const name of names) {
     await runOne(name, label);
