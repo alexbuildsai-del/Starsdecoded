@@ -6,6 +6,8 @@ import {
   buildBrief, toStrictJsonSchema,
 } from "./index.js";
 import { BODIES, SIGNS, BODY, SIGN, HOUSE, ASPECT, STRUCTURE } from "./vocabulary.js";
+import { itemsHint } from "./jsonSchema.js";
+import { OverviewSchema } from "./sections/overview.js";
 
 test("registry: ten reader-facing sections in the agreed order, foundation first overall", () => {
   assert.deepEqual(SECTION_IDS, ["overview", "triad", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"]);
@@ -83,6 +85,16 @@ test("schemas: strict JSON schema closes every object and carries no unsupported
     for (const [k, v] of Object.entries(o)) walk(v, `${path}.${k}`);
   };
   for (const s of ALL_SECTIONS) walk(toStrictJsonSchema(s.schema), s.key);
+});
+
+test("schemas: every bounded array tells the model its item count, since strict mode drops the bound", () => {
+  const strict = toStrictJsonSchema(FoundationSchema) as Record<string, any>;
+  assert.match(strict.properties.supportingEvidence.description, /3 to 6 items\.$/);
+  const claims = toStrictJsonSchema(OverviewSchema) as Record<string, any>;
+  assert.match(claims.properties.claims.description, /3 to 8 items\.$/);
+  assert.match(claims.properties.claims.items.properties.evidence.description, /1 to 3 items\.$/);
+  assert.equal(itemsHint(3, 3), "Exactly 3 items.");
+  assert.equal(itemsHint(undefined, undefined), undefined);
 });
 
 test("schemas: each section accepts a well-formed payload and rejects an empty object", () => {
