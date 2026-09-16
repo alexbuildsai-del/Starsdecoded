@@ -5,6 +5,7 @@
  *   pnpm report:lab --chart marie-curie
  *   pnpm report:lab --all --defaults-only --baseline
  *   pnpm report:lab --compare baseline latest
+ *   pnpm report:lab --render marie-curie.staging
  *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
@@ -38,6 +39,8 @@ interface ChartFixture {
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
 import { WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
+/** Cost comes from the engine's own table, so the lab cannot disagree with the bill. */
+import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
 const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
 const REPORT_TOTAL: [number, number] = [3500, 4000];
 
@@ -144,6 +147,46 @@ function measure(interpretation: Record<string, unknown>, chart?: NatalChartData
   });
 }
 
+/** Head plus body to an aligned fixed-width table. */
+function table(head: string[], body: string[][]): string {
+  const widths = head.map((_, i) =>
+    Math.max(head[i].length, ...body.map((r) => r[i].length)),
+  );
+  const line = (cells: string[]) =>
+    cells.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd();
+  return [line(head), line(widths.map((w) => "-".repeat(w))), ...body.map(line)].join("\n");
+}
+
+const usd = (n: number | null): string => (n === null ? "-" : `$${n.toFixed(4)}`);
+const secs = (ms: number): string => (ms / 1000).toFixed(1);
+
+/**
+ * Tokens, cost and time per call. `in` excludes cached; `reason` is already
+ * inside `out` and is shown because it is the part no reader ever sees.
+ */
+function renderUsage(usage: ReportUsage): string {
+  const row = (u: SectionUsage): string[] => [
+    u.section.replace(/^natal:/, ""),
+    String(u.attempts),
+    u.inputTokens.toLocaleString("en-US"),
+    u.cachedInputTokens.toLocaleString("en-US"),
+    u.outputTokens.toLocaleString("en-US"),
+    u.reasoningTokens.toLocaleString("en-US"),
+    usd(costUsd(usage.model, { ...u })),
+    secs(u.ms),
+  ];
+  const t = usage.totals;
+  return table(
+    ["call", "tries", "in", "cached", "out", "reason", "$", "s"],
+    [
+      ...usage.sections.map(row),
+      ["TOTAL", String(t.attempts), t.inputTokens.toLocaleString("en-US"),
+        t.cachedInputTokens.toLocaleString("en-US"), t.outputTokens.toLocaleString("en-US"),
+        t.reasoningTokens.toLocaleString("en-US"), usd(usage.costUsd), secs(t.ms)],
+    ],
+  );
+}
+
 function renderTable(rows: SectionRow[]): string {
   const head = ["section", "words", "target", "ok", "struct", "claims", "flags"];
   const body = rows.map((r) => [
@@ -159,12 +202,7 @@ function renderTable(rows: SectionRow[]): string {
       ...r.claims.problems.slice(0, 2).map((p) => `claim:${p}`),
     ].join(" ") || "-",
   ]);
-  const widths = head.map((_, i) =>
-    Math.max(head[i].length, ...body.map((r) => r[i].length)),
-  );
-  const line = (cells: string[]) =>
-    cells.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd();
-  return [line(head), line(widths.map((w) => "-".repeat(w))), ...body.map(line)].join("\n");
+  return table(head, body);
 }
 
 function renderMarkdown(
@@ -350,11 +388,44 @@ function report(
 
   console.log(renderTable(rows));
   const totalOk = total >= REPORT_TOTAL[0] && total <= REPORT_TOTAL[1];
-  console.log(`\ntotal: ${total} words (target ${REPORT_TOTAL[0]}-${REPORT_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"}) in ${elapsed}s`);
-  const meta = interpretation.meta as { promptVersion?: string; model?: string; sect?: string; sunAltitude?: number; sectMarginal?: boolean } | undefined;
+  console.log(`\ntotal: ${total} words (target ${REPORT_TOTAL[0]}-${REPORT_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"})`
+    + (elapsed === "n/a" ? "" : ` in ${elapsed}s`));
+  const meta = interpretation.meta as {
+    promptVersion?: string; model?: string; sect?: string; sunAltitude?: number;
+    sectMarginal?: boolean; usage?: ReportUsage;
+  } | undefined;
   if (meta) console.log(`prompt ${meta.promptVersion} on ${meta.model}; ${meta.sect} chart (Sun ${meta.sunAltitude}°${meta.sectMarginal ? ", marginal" : ""})`);
+
+  // Absent on any report generated before R02, and on --compare of an old run.
+  const usage = meta?.usage;
+  if (usage) {
+    console.log(`\n${renderUsage(usage)}`);
+    const t = usage.totals;
+    const prose = Math.round(total * 1.35);
+    const invisible = t.outputTokens - prose;
+    console.log(
+      `\ncost ${usd(usage.costUsd)} in ${secs(usage.wallClockMs)}s wall clock`
+      + ` (${secs(t.ms)}s of call time across ${t.attempts} calls).`,
+    );
+    console.log(
+      `output ${t.outputTokens.toLocaleString("en-US")} tokens: ~${prose.toLocaleString("en-US")} of prose,`
+      + ` ~${invisible.toLocaleString("en-US")} the reader never sees`
+      + ` (${Math.round((invisible / t.outputTokens) * 100)}%).`,
+    );
+    const cacheRate = t.inputTokens + t.cachedInputTokens > 0
+      ? Math.round((t.cachedInputTokens / (t.inputTokens + t.cachedInputTokens)) * 100) : 0;
+    const retried = usage.sections.filter((u) => u.attempts > 1);
+    console.log(
+      `input cache hit ${cacheRate}%.`
+      + ` retries: ${retried.length ? retried.map((u) => `${u.section.replace(/^natal:/, "")} x${u.attempts}`).join(", ") : "none"}.`,
+    );
+  } else {
+    console.log("\nno usage recorded (report generated before R02).");
+  }
   const foundationSect = (interpretation.foundation as { sect?: string } | undefined)?.sect;
   if (meta && foundationSect && foundationSect !== meta.sect) console.log(`SECT MISMATCH: foundation says ${foundationSect}, chart is ${meta.sect}`);
+
+  if (label === "render") return rows;
 
   mkdirSync(REPORTS_DIR, { recursive: true });
   const stem = join(REPORTS_DIR, `${name}.${label}`);
@@ -404,6 +475,17 @@ function compare(labelA: string, labelB: string): void {
 async function main() {
   if (flag("list")) {
     console.log(listFixtures().join("\n"));
+    return;
+  }
+
+  // Re-measure a run already on disk. No API call, no key, no spend: the way
+  // to re-read a measurement, or to check a change to this file's own output.
+  const render = opt("render");
+  if (render !== undefined) {
+    const path = join(REPORTS_DIR, `${render.replace(/\.json$/, "")}.json`);
+    if (!existsSync(path)) throw new Error(`no run at ${path}`);
+    const file = JSON.parse(readFileSync(path, "utf8"));
+    report(render, "render", file.fixture, file.chart, file.interpretation, "n/a");
     return;
   }
 
