@@ -22,6 +22,7 @@ This file is the constitution. Orchestrators and planners read it in full once p
 - **R-0.4** The product is **Stars Decoded**. "Astra" is the inherited Replit name; never add a new use of it.
 - **R-0.5** Every reply to the Owner opens with `Alex, ` alone on its first line, before any other text, in every session, until the Owner says to stop. Standing instruction from the Owner (2026-09-16); commit messages and repository files are not replies and stay unprefixed.
 - **R-0.6** Delegate without being asked. When a task splits into independent parts, needs a broad search, or a long read whose conclusion is all that matters, spawn subagents (the `.claude/agents/` roles, Explore, general-purpose) in parallel and keep the conclusion. A single lookup or a one-file edit stays in the main loop. The Owner never has to request this.
+- **R-0.7** Model triage. The main loop runs on the model the Owner selected with `/model`; Claude cannot change it and never asks to. Every subagent gets a tier chosen at spawn time: fast (Haiku) for formatting, typo fixes, boilerplate, renames and plain file searches; standard (Sonnet) for feature work, routine debugging, unit tests and reviews; heavy (Opus or above) for refactors spanning more than three files, security audits, algorithm design and elusive concurrency bugs. Unsure means standard. A tier the Owner names in the prompt overrides the pick for that task.
 
 ## 1 · Thesis
 

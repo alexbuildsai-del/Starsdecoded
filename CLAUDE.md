@@ -11,6 +11,8 @@ product. The app still says "Astra" in places; never add a new use of it.
   else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
 - Delegate unasked (R-0.6): independent parts, broad searches and long reads go
   to subagents, in parallel when independent; a single lookup or edit stays here.
+- Triage the model per subagent (R-0.7): fast for mechanical work, standard by
+  default, heavy for cross-file reasoning. A tier the Owner names always wins.
 
 ## Read this first
 
@@ -88,8 +90,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   nothing goes into GitHub secrets. Runbook: `docs/annex/staging-runbook.md`.
 - The web app calls `/api` on its own origin; `vercel.json` rewrites that to
   the staging or production Railway host by web host. `/api/healthz` reports
-  `env` and `commit`, and `smoke.yml` asserts both. The API still sets
-  `SameSite=None; Secure` cookies (`CROSS_SITE_COOKIES`), harmless same-site.
+  `env` and `commit`, and `smoke.yml` asserts both.
 - Prompts are edited on staging only. Production sets `PROMPTS_READ_ONLY` and
   copies staging's `prompt_templates` in its start-up bootstrap.
 - `openapi.yaml` is the contract; generated client and zod files are rewritten
@@ -102,8 +103,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   change and needs a report-lab run.
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
-- CI runs typecheck, both builds and unit tests. It does not run Playwright;
-  the only e2e spec is stale (Mailbox). There is no lint step.
+- CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
