@@ -5,10 +5,13 @@ and writes a 2,000 to 2,800 word psychological report with OpenAI, grounded in
 a written doctrine and a per-chart brief. One-time purchase. The report is the
 product. The app still says "Astra" in places; never add a new use of it.
 
-## Replying to the Owner
+## Working with the Owner
 
-Every reply opens with `Alex, ` alone on its first line, before anything else,
-until the Owner says to stop (MASTERFILE R-0.5). Commits and files stay unprefixed.
+- Every reply opens with `Alex, ` alone on its first line, before anything
+  else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
+- Delegate unasked (R-0.6): independent parts, broad searches, and reads where
+  only the conclusion matters go to subagents, in parallel when independent.
+  A single lookup or a one-file edit stays in the main loop.
 
 ## Read this first
 
