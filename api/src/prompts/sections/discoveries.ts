@@ -17,7 +17,7 @@ export const discoveries: SectionSpec<typeof DiscoveriesSchema> = {
   label: "Key Paradoxes & Discoveries",
   adminLabel: "Key Paradoxes",
   wordTarget: [400, 450],
-  maxTokens: 1_400,
+  maxTokens: 3_000,
   schema: DiscoveriesSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write Key Paradoxes & Discoveries: two or three genuine paradoxes specific to this chart. Look for a dignified planet contrary to sect, a ruler in detriment in a strong house, a stellium that contradicts the chart ruler, a Lot in an unexpected house, or an opposition that plays out between two life areas.

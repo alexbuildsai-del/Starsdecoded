@@ -17,7 +17,7 @@ export const focus: SectionSpec<typeof FocusSchema> = {
   label: "What to Focus On",
   adminLabel: "What to Focus On",
   wordTarget: [400, 450],
-  maxTokens: 1_400,
+  maxTokens: 3_000,
   schema: FocusSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write What to Focus On, the closing section. Three groups of bullets and a closing paragraph.

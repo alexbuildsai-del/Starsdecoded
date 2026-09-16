@@ -15,7 +15,7 @@ export const mind: SectionSpec<typeof MindSchema> = {
   label: "Mind & Communication",
   adminLabel: "Mind & Communication",
   wordTarget: [250, 300],
-  maxTokens: 1_000,
+  maxTokens: 2_500,
   schema: MindSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write Mind & Communication. Read Mercury by sign, house, dignity, and its aspects, then the rulers of the 3rd and 9th and where they sit.
