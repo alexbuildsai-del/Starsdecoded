@@ -5,17 +5,14 @@ Plan: `docs/rounds/R02-plan.md`. Spec:
 
 ## Shipped
 
-- **INTERNAL** `api/src/lib/usage.ts` (new). The one place model prices live
-  (`gpt-5.2`, `gpt-5-mini`, dated 2026-09-16) and the one place the arithmetic
-  lives. `prompt_tokens` already includes cached and `completion_tokens`
-  already includes reasoning, so the billable split is `(prompt - cached)`,
-  `cached`, `completion`, and reasoning is a diagnostic never charged twice.
-  Cost is frozen at generation time, so a later price change cannot rewrite a
-  past run. An unpriced model yields `null`.
-- **INTERNAL** `api/src/lib/usage.test.ts` (new). Eight tests: the cached split,
-  reasoning not double-counted, a retried section, a reply with no usage block,
-  a cached count exceeding the prompt, an unpriced model, the `gpt-5-mini`
-  ratio, and summed call time exceeding wall clock.
+- **INTERNAL** `api/src/lib/usage.ts` + `usage.test.ts` (new). The one place
+  prices live (`gpt-5.2`, `gpt-5-mini`, dated 2026-09-16) and the one place the
+  arithmetic lives. `prompt_tokens` already includes cached and
+  `completion_tokens` already includes reasoning, so the billable split is
+  `(prompt - cached)`, `cached`, `completion`, and reasoning is a diagnostic
+  never charged twice. Cost is frozen at generation time, so a later price
+  change cannot rewrite a past run; an unpriced model yields `null`. Eight
+  tests, including a retried section and a cached count exceeding its prompt.
 - **INTERNAL** `api/src/lib/aiInterpretation.ts`. `callSection` returns
   `{ data, usage }` and accumulates across retry attempts, so a section that
   failed validation twice reports three calls and three calls' worth of tokens.
@@ -51,14 +48,9 @@ construction — the sections were placeholders, not prose.
 
 ## Gate
 
-| check | result |
-|---|---|
-| `pnpm run typecheck` | clean |
-| `pnpm run build:api` | pass |
-| `pnpm run build:web` | pass |
-| unit tests | 49/49 pass (41 before, 8 added) |
-| codegen | clean; diff is the new field only |
-| report lab | **not run here** — see below |
+`typecheck` clean, `build:api` and `build:web` pass, unit tests 49/49 (41
+before, 8 added), codegen clean with the new field as its only diff. The report
+lab was **not run here**.
 
 ## Not verified here
 
