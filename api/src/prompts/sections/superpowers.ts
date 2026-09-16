@@ -20,7 +20,7 @@ export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
   label: "Superpowers, Chronic Patterns & Growing Edges",
   adminLabel: "Superpowers / Patterns / Edges",
   wordTarget: [600, 650],
-  maxTokens: 1_800,
+  maxTokens: 3_600,
   schema: SuperpowersSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write Superpowers, Chronic Patterns & Growing Edges. Three distinct items that never overlap.

@@ -127,8 +127,18 @@ async function callSection<S extends SectionSpec>(
       response_format: { type: "json_schema", json_schema: { name, strict: true, schema: jsonSchema } },
     });
 
-    const message = response.choices[0]?.message;
+    const choice = response.choices[0];
+    const message = choice?.message;
     if (message?.refusal) throw new SectionError(spec.key, `model refused: ${message.refusal}`);
+    // A reply cut at the cap is invalid JSON by construction; name the cause
+    // instead of the parse error so the cap, not the model, gets fixed.
+    if (choice?.finish_reason === "length") {
+      const used = response.usage?.completion_tokens;
+      const reasoning = response.usage?.completion_tokens_details?.reasoning_tokens;
+      lastError = `output truncated at max_completion_tokens ${spec.maxTokens}`
+        + (used !== undefined ? ` (${used} completion tokens` + (reasoning ? `, ${reasoning} reasoning` : "") + ")" : "");
+      continue;
+    }
     const content = message?.content ?? "";
 
     let raw: unknown;

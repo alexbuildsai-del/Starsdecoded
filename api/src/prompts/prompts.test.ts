@@ -171,3 +171,12 @@ test("every reader-facing section requires 3-8 claims and validates them; founda
   assert.match(CLAIMS_CONTRACT, /verbatim/);
   assert.match(SYS, /commits to one sect/);
 });
+
+test("registry: every section's token cap clears its prose plus eight claims with room to spare", () => {
+  // ~1.5 tokens per prose word, up to eight claims at ~120 tokens each, and JSON overhead.
+  for (const spec of ALL_SECTIONS) {
+    const [, maxWords] = spec.wordTarget;
+    const needed = Math.ceil(maxWords * 1.5) + 8 * 120 + 200;
+    assert.ok(spec.maxTokens >= needed * 1.5, `${spec.key}: cap ${spec.maxTokens} is under 1.5x the ${needed} tokens a full reply can need`);
+  }
+});

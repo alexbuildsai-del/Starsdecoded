@@ -23,7 +23,7 @@ export const foundation: SectionSpec<typeof FoundationSchema> = {
   label: "Foundation",
   adminLabel: "Foundation (internal)",
   wordTarget: [0, 0],
-  maxTokens: 1_600,
+  maxTokens: 4_000,
   schema: FoundationSchema,
   validate: (out, brief) => {
     const s = brief.sect;

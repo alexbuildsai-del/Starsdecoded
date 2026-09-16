@@ -18,7 +18,7 @@ export const career: SectionSpec<typeof CareerSchema> = {
   label: "Career & Calling",
   adminLabel: "Career & Calling",
   wordTarget: [350, 400],
-  maxTokens: 1_300,
+  maxTokens: 2_800,
   schema: CareerSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write Career & Calling. The primary evidence is the ruler of the 10th: where it sits, its dignity, its sect condition. Then the Sun and Saturn by sect, then the Lot of Spirit's house, then the North Node.

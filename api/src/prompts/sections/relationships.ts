@@ -15,7 +15,7 @@ export const relationships: SectionSpec<typeof RelationshipsSchema> = {
   label: "Relationships & Intimacy",
   adminLabel: "Relationships & Intimacy",
   wordTarget: [350, 400],
-  maxTokens: 1_300,
+  maxTokens: 2_800,
   schema: RelationshipsSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write Relationships & Intimacy. Primary evidence: the ruler of the 7th and where it sits, Venus and Mars by dignity and sect, the Moon, and the ruler of the 8th.
