@@ -310,12 +310,21 @@ async function runOneRemote(name: string, label: string, base: string): Promise<
   });
   const id = created.id as string;
 
+  // Generation runs on the server, so a failed poll (a Railway 502, a dropped
+  // connection) says nothing about the report: keep polling until the deadline.
   const deadline = Date.now() + 15 * 60 * 1000;
+  let last = "";
   for (;;) {
-    const status = await call(`/reports/${id}/status`);
-    if (status.status === "complete") break;
-    if (status.status === "failed") throw new Error(`report ${id} failed: ${status.errorMessage}`);
-    if (Date.now() > deadline) throw new Error(`report ${id} still ${status.status} after 15 minutes`);
+    try {
+      const status = await call(`/reports/${id}/status`);
+      last = String(status.status);
+      if (status.status === "complete") break;
+      if (status.status === "failed") throw new Error(`report ${id} failed: ${status.errorMessage}`);
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith(`report ${id} failed`)) throw err;
+      console.log(`poll error, retrying: ${err instanceof Error ? err.message : err}`);
+    }
+    if (Date.now() > deadline) throw new Error(`report ${id} still ${last || "unanswered"} after 15 minutes`);
     await new Promise((r) => setTimeout(r, 5000));
   }
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
