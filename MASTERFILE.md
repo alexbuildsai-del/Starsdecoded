@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.2 (2026-09-09) |
+| Version | 0.3 (2026-09-16) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -20,6 +20,7 @@ This file is the constitution. Orchestrators and planners read it in full once p
 - **R-0.2** Token discipline is a feature. Follow §13. Never paste this file into other documents; cite section numbers ("per §4.2").
 - **R-0.3** Anything in the Decisions database with Status `locked` is settled. Do not re-litigate. Anything open in the Mailbox is open: do not build on it without a decision or an explicit `MB-NN provisional` tag.
 - **R-0.4** The product is **Stars Decoded**. "Astra" is the inherited Replit name; never add a new use of it.
+- **R-0.5** Every reply to the Owner opens with `Alex, ` alone on its first line, before any other text, in every session, until the Owner says to stop. Standing instruction from the Owner (2026-09-16); commit messages and repository files are not replies and stay unprefixed.
 
 ## 1 · Thesis
 

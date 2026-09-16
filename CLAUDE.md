@@ -5,6 +5,11 @@ and writes a 2,000 to 2,800 word psychological report with OpenAI, grounded in
 a written doctrine and a per-chart brief. One-time purchase. The report is the
 product. The app still says "Astra" in places; never add a new use of it.
 
+## Replying to the Owner
+
+Every reply opens with `Alex, ` alone on its first line, before anything else,
+until the Owner says to stop (MASTERFILE R-0.5). Commits and files stay unprefixed.
+
 ## Read this first
 
 1. This file.
