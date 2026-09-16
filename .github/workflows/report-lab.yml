@@ -1,0 +1,58 @@
+name: Report lab
+
+# R-4.4: no prompt or engine change ships without the report lab run against
+# the committed fixtures. This sandbox cannot reach staging, so the run happens
+# here: each fixture becomes a real report on staging through its public API,
+# and the measurement lands in the run summary and an artifact. Staging only;
+# production is read-only for prompts and its reports belong to customers.
+on:
+  workflow_dispatch:
+    inputs:
+      chart:
+        description: Fixture name under fixtures/charts, or "all"
+        required: true
+        type: string
+        default: all
+      label:
+        description: Label for the written run files
+        required: true
+        type: string
+        default: staging
+
+jobs:
+  lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      WEB_URL: https://starsdecoded-staging.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Confirm staging answers as staging
+        run: |
+          body=$(curl -sSf --max-time 20 "$WEB_URL/api/healthz")
+          echo "$body"
+          [ "$(printf '%s' "$body" | jq -r '.env')" = "staging" ] || { echo "::error::$WEB_URL is not staging"; exit 1; }
+          printf -- '- commit under test: %s\n' "$(printf '%s' "$body" | jq -r '.commit')" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate and measure
+        run: |
+          if [ "${{ inputs.chart }}" = "all" ]; then sel="--all"; else sel="--chart ${{ inputs.chart }}"; fi
+          pnpm report:lab --remote "$WEB_URL" $sel --label "${{ inputs.label }}" --html | tee lab.log
+          { echo '## Report lab'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: report-lab-${{ inputs.label }}
+          path: fixtures/reports/
+          if-no-files-found: ignore
