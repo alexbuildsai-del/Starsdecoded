@@ -19,6 +19,9 @@ on:
         type: string
         default: staging
 
+permissions:
+  contents: write
+
 jobs:
   lab:
     runs-on: ubuntu-latest
@@ -61,3 +64,19 @@ jobs:
           name: report-lab-${{ inputs.label }}
           path: fixtures/reports/
           if-no-files-found: ignore
+
+      # The reports are the product, so they must be readable without
+      # downloading a zip: every run replaces the report-lab/<label> branch,
+      # where GitHub renders the .md files. Partial runs publish too.
+      - name: Publish the run on the report-lab branch
+        if: always()
+        run: |
+          ls fixtures/reports/*.md >/dev/null 2>&1 || { echo "nothing to publish"; exit 0; }
+          branch="report-lab/${{ inputs.label }}"
+          git config user.name "report-lab"
+          git config user.email "report-lab@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add -f fixtures/reports
+          git commit -q -m "Report lab: ${{ inputs.chart }} against staging, run ${{ github.run_id }}"
+          git push -f origin "$branch"
+          printf -- '- reports: https://github.com/%s/tree/%s/fixtures/reports\n' "$GITHUB_REPOSITORY" "$branch" >> "$GITHUB_STEP_SUMMARY"
