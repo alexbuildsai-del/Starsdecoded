@@ -4,7 +4,9 @@ From `docs/specs/draft/report-cost-and-latency.md`. The Owner greenlit L0 alone
 on 2026-09-16. INTERNAL: no prompt, schema, or report content changes. Closes
 MB-10 and produces the baseline every later cost or latency lever is judged by.
 
-Branch `round/R02`, off `main`.
+Built on `claude/openai-token-cost-uh4qy9`, the branch this session is assigned,
+which already carries the draft spec. Not a `round/RNN` branch: the session was
+an ideation that the Owner extended into a build.
 
 ## Why these shapes
 
