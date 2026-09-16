@@ -412,9 +412,18 @@ async function main() {
   if (remote !== undefined) {
     if (!/^https?:\/\//.test(remote)) throw new Error(`--remote needs a web origin, got "${remote}"`);
     const base = remote.replace(/\/+$/, "");
+    // Every fixture runs even when one fails: a measurement with four charts
+    // and one named failure is worth more than a stop at the first.
+    const failed: string[] = [];
     for (const name of names) {
-      await runOneRemote(name, label, base);
+      try {
+        await runOneRemote(name, label, base);
+      } catch (err) {
+        console.log(`FAILED ${name}: ${err instanceof Error ? err.message : err}`);
+        failed.push(name);
+      }
     }
+    if (failed.length) throw new Error(`${failed.length} of ${names.length} fixtures failed: ${failed.join(", ")}`);
     return;
   }
 

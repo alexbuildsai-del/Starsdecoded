@@ -44,11 +44,16 @@ jobs:
           [ "$(printf '%s' "$body" | jq -r '.env')" = "staging" ] || { echo "::error::$WEB_URL is not staging"; exit 1; }
           printf -- '- commit under test: %s\n' "$(printf '%s' "$body" | jq -r '.commit')" >> "$GITHUB_STEP_SUMMARY"
 
+      # The pipe into tee must not hide the lab's exit code: a failed fixture
+      # is a failed run, with its table and error still in the summary.
       - name: Generate and measure
         run: |
+          set -o pipefail
           if [ "${{ inputs.chart }}" = "all" ]; then sel="--all"; else sel="--chart ${{ inputs.chart }}"; fi
-          pnpm report:lab --remote "$WEB_URL" $sel --label "${{ inputs.label }}" --html | tee lab.log
+          status=0
+          pnpm report:lab --remote "$WEB_URL" $sel --label "${{ inputs.label }}" --html 2>&1 | tee lab.log || status=$?
           { echo '## Report lab'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
 
       - uses: actions/upload-artifact@v4
         if: always()
