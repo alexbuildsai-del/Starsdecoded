@@ -9,9 +9,8 @@ product. The app still says "Astra" in places; never add a new use of it.
 
 - Every reply opens with `Alex, ` alone on its first line, before anything
   else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
-- Delegate unasked (R-0.6): independent parts, broad searches, and reads where
-  only the conclusion matters go to subagents, in parallel when independent.
-  A single lookup or a one-file edit stays in the main loop.
+- Delegate unasked (R-0.6): independent parts, broad searches and long reads go
+  to subagents, in parallel when independent; a single lookup or edit stays here.
 
 ## Read this first
 
@@ -65,8 +64,8 @@ merging once the gate is green, watching CI and the Railway and Vercel
 deploys, fixing a red branch or pipeline, and raising only what needs a
 decision or a credential (R-12.5). Never ask the Owner to run a command.
 
-Every shipped line in a round report is tagged USER-FACING or INTERNAL. A
-change to report content is USER-FACING even when no UI moved.
+Every shipped line in a round report is tagged USER-FACING or INTERNAL; a
+report-content change is USER-FACING even when no UI moved.
 
 ## Budgets
 
