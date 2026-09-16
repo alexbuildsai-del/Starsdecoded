@@ -53,8 +53,9 @@ export interface StoredClaim { quote: string; evidence: StoredEvidence[] }
 /** Contract appended by code to every reader-facing prompt. Not overridable. */
 export const CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the chart brief: a placement (body, sign, house), an aspect (both bodies, type, orb as listed), a house ruler (house, ruler, ruler's sign and house, dignity as listed), a Lot (fortune or spirit, sign, house), or a sect role (role, body). Copy values exactly from the brief. Every reference is checked against the chart by code and the section is rejected if any does not match. Choose the claims that matter most: the sentences a reader would want to verify.`;
 
+/** Typographic variants the model swaps freely and a reader never notices. */
 function norm(s: string): string {
-  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
+  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/…/g, "...").replace(/\s+/g, " ").trim();
 }
 
 /** Every string leaf of a section except the claims themselves, joined as the prose to quote from. */

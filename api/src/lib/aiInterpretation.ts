@@ -5,8 +5,9 @@
  * call uses the same byte-identical system prompt (the cached prefix), the
  * section's editable instructions, and then the variable chart brief. Output
  * is constrained by each section's zod schema via strict structured outputs
- * and parsed with the same schema, so a malformed reply is retried once and
- * then fails loudly rather than being stored as a raw string.
+ * and parsed with the same schema, so a rejected reply is retried with the
+ * problems named, and then fails loudly rather than being stored as a raw
+ * string.
  */
 import { openai } from "@workspace/integrations-openai-ai-server";
 import type { z } from "zod/v4";
@@ -32,6 +33,8 @@ import { DiscoveriesSchema } from "../prompts/sections/discoveries.js";
 import { FocusSchema } from "../prompts/sections/focus.js";
 
 export const MODEL = "gpt-5.2";
+/** One blind try, then two informed by the rejection. A lost section loses the whole report. */
+const ATTEMPTS = 3;
 /** Bump when the section set, schemas, or vocabulary change shape. */
 export const PROMPT_VERSION = "v4";
 
@@ -116,13 +119,19 @@ async function callSection<S extends SectionSpec>(
   const name = spec.key.replace(/[^a-zA-Z0-9_]/g, "_");
   let lastError = "";
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    // A retry that repeats the identical request mostly repeats the mistake.
+    // The problems go at the end of the user turn, so the cached system
+    // prefix is untouched and the model knows exactly what to fix.
+    const content = attempt === 1
+      ? user
+      : `${user}\n\nPREVIOUS ATTEMPT REJECTED: ${lastError}\nReturn the complete section again with these fixed. Every claim quote must be copied exactly from the prose in this reply.`;
     const response = await openai.chat.completions.create({
       model: MODEL,
       max_completion_tokens: spec.maxTokens,
       messages: [
         { role: "system", content: system },
-        { role: "user", content: user },
+        { role: "user", content },
       ],
       response_format: { type: "json_schema", json_schema: { name, strict: true, schema: jsonSchema } },
     });
@@ -139,11 +148,11 @@ async function callSection<S extends SectionSpec>(
         + (used !== undefined ? ` (${used} completion tokens` + (reasoning ? `, ${reasoning} reasoning` : "") + ")" : "");
       continue;
     }
-    const content = message?.content ?? "";
+    const reply = message?.content ?? "";
 
     let raw: unknown;
     try {
-      raw = JSON.parse(content);
+      raw = JSON.parse(reply);
     } catch (err) {
       lastError = `invalid JSON (${(err as Error).message})`;
       continue;
@@ -161,7 +170,7 @@ async function callSection<S extends SectionSpec>(
     lastError = problems.join("; ");
   }
 
-  throw new SectionError(spec.key, `failed validation after 2 attempts: ${lastError}`);
+  throw new SectionError(spec.key, `failed validation after ${ATTEMPTS} attempts: ${lastError}`);
 }
 
 /** Words across every string leaf of a value. */
