@@ -1,3 +1,4 @@
+import { useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,21 +20,30 @@ import {
   FamilyBlock, SuperpowersBlock, DiscoveriesBlock, FocusBlock,
 } from "@/components/ReportSections";
 import { ReportHero } from "@/components/report/ReportHero";
+import { ReportSky } from "@/components/report/ReportSky";
 import { Chapter } from "@/components/report/Chapter";
-import { Starfield } from "@/components/report/Starfield";
+import { ChapterRail } from "@/components/report/ChapterRail";
 import { HouseCard } from "@/components/report/HouseCard";
 import { HouseGrid, planetsByHouse } from "@/components/report/HouseGrid";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
-import { chapterAccent } from "@/lib/chapter-accent";
+import { chapterAccent, ELEMENT_HEX } from "@/lib/chapter-accent";
 
-const ELEMENT_COLORS: Record<string, string> = {
-  fire: "text-orange-400",
-  earth: "text-green-400",
-  air: "text-sky-400",
-  water: "text-blue-400",
-};
-
-const TOTAL_CHAPTERS = 12;
+const CHAPTERS = [
+  { eyebrow: "Overview", title: "Chart Overview" },
+  { eyebrow: "Chart", title: "Natal Chart" },
+  { eyebrow: "Elements", title: "Elemental Profile" },
+  { eyebrow: "Triad", title: "Core Triad" },
+  { eyebrow: "Mind", title: "Mind & Communication" },
+  { eyebrow: "Work", title: "Career & Calling" },
+  { eyebrow: "Resources", title: "Money & Resources" },
+  { eyebrow: "Relationships", title: "Relationships & Intimacy" },
+  { eyebrow: "Roots", title: "Family & Roots" },
+  { eyebrow: "Self-Knowledge", title: "Superpowers, Chronic Patterns & Growing Edges" },
+  { eyebrow: "Paradoxes", title: "Key Paradoxes & Discoveries" },
+  { eyebrow: "Focus", title: "What to Focus On" },
+];
+const TOTAL = CHAPTERS.length;
+const OPENING_ACCENT = "#5C6BC0";
 
 function PlanetRow({
   name,
@@ -69,48 +79,15 @@ function PlanetRow({
   );
 }
 
-/** Angle detail. Only slots the report actually generated are shown (ADR-18). */
-function AngleCard({
-  kicker,
-  tone,
-  sign,
-  degree,
-  slots,
-}: {
-  kicker: string;
-  tone: "primary" | "secondary";
-  sign: string;
-  degree: number;
-  slots: { label: string; text?: string; stress?: boolean }[];
-}) {
-  const shown = slots.filter((s) => !!s.text);
-  if (shown.length === 0) return null;
-  const ring = tone === "primary" ? "border-primary/40 bg-primary/5" : "border-secondary/40 bg-secondary/5";
-  const kickerTone = tone === "primary" ? "text-primary/80" : "text-secondary/80";
+function Bar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
   return (
-    <div className={`rounded-lg border p-5 ${ring}`}>
-      <div className="flex items-center justify-between mb-4">
-        <p className={`font-label text-[10px] tracking-[0.18em] uppercase ${kickerTone}`}>{kicker}</p>
-        <span className="font-numeric text-[11px] text-muted-foreground">
-          {degree.toFixed(1)}° {sign}
-        </span>
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="rp-lab capitalize" style={{ color }}>{label}</span>
+        <span className="font-numeric text-xs" style={{ color: "var(--muted)" }}>{count} / {total}</span>
       </div>
-      <div className="space-y-3">
-        {shown.map((s) => (
-          <div
-            key={s.label}
-            className={`rounded-md border border-border/40 bg-background/30 p-3 ${
-              s.stress ? "border-l-2 border-l-red-500/60" : ""
-            }`}
-          >
-            <p className={`font-label text-[9px] tracking-[0.20em] uppercase mb-1.5 ${
-              s.stress ? "text-red-400/80" : kickerTone
-            }`}>
-              {s.label}
-            </p>
-            <p className="text-sm leading-relaxed text-foreground/85">{s.text}</p>
-          </div>
-        ))}
+      <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.07)" }}>
+        <div className="h-full rounded-full" style={{ width: `${(count / total) * 100}%`, background: color }} />
       </div>
     </div>
   );
@@ -119,6 +96,7 @@ function AngleCard({
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const [active, setActive] = useState(-1);
 
   const regenerate = useRegenerateReport();
   const { data: report, isLoading, isError } = useGetReport(id!, {
@@ -180,28 +158,41 @@ export default function ReportPage() {
   const totalPlanets = Object.values(chartData.elements).reduce((a, b) => a + b, 0);
   const occupants = planetsByHouse(chartData);
   const asc = chartData.angles.ascendant;
-  const mc = chartData.angles.midheaven;
   const angles = interpretation.angleMeanings;
 
-  const accent = (index: number) =>
-    chapterAccent(chartData.dominance?.dominantElement, index - 1, TOTAL_CHAPTERS);
+  const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1, asc.absoluteDegree);
+  const onHero = active < 0;
+  const ch = (n: number) => ({ number: n, total: TOTAL, ...CHAPTERS[n - 1] });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Starfield />
+    <div className="rp-root min-h-screen" style={{ "--accent": accent } as CSSProperties}>
+      <ReportSky accent={accent} opening={onHero} />
 
-      {/* Nav — hidden when printing */}
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/90 backdrop-blur-md no-print">
-        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 text-sm font-label"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Dashboard
-            </button>
-          </div>
+      <ReportHero
+        name={report.name}
+        birthDate={report.birthDate}
+        birthTime={report.birthTime}
+        birthPlace={report.birthPlace}
+        latitude={report.latitude}
+        longitude={report.longitude}
+        chartData={chartData}
+        meta={interpretation.meta}
+      />
+
+      {/* Chrome sits on the opening plate without a ground, and takes one once the reading starts. */}
+      <nav
+        className={`fixed top-0 inset-x-0 z-50 border-b no-print transition-colors duration-500 ${
+          onHero ? "border-transparent bg-transparent" : "border-border/40 bg-background/90 backdrop-blur-md"
+        }`}
+      >
+        <div className="max-w-[880px] mx-auto px-6 h-14 flex items-center justify-between">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 text-sm font-label"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </button>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -217,24 +208,15 @@ export default function ReportPage() {
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-20">
-        <ReportHero
-          name={report.name}
-          birthDate={report.birthDate}
-          birthTime={report.birthTime}
-          birthPlace={report.birthPlace}
-          latitude={report.latitude}
-          longitude={report.longitude}
-          chartData={chartData}
-          meta={interpretation.meta}
-        />
+      <ChapterRail chapters={CHAPTERS} active={active} onActive={setActive} />
 
-        <Chapter number={1} total={TOTAL_CHAPTERS} eyebrow="Overview" title="Chart Overview" accent={accent(1)} ghost="☉" wide>
+      <main className="rp-body pb-20">
+        <Chapter {...ch(1)} lede={interpretation.overview.headline}>
           <OverviewBlock s={interpretation.overview} />
         </Chapter>
 
-        <Chapter number={2} total={TOTAL_CHAPTERS} eyebrow="Chart" title="Natal Chart" accent={accent(2)} ghost="✧" wide>
-          <div className="rounded-xl border border-border/60 bg-card/40 p-2 sm:p-4">
+        <Chapter {...ch(2)}>
+          <div className="rp-wheelbox">
             <NatalWheel
               chartData={chartData}
               orbs={interpretation.meta.orbs}
@@ -256,33 +238,6 @@ export default function ReportPage() {
               chartData={chartData}
               personalPlanets={interpretation.personalPlanets}
               angleMeanings={angles}
-            />
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
-            <AngleCard
-              kicker="Ascendant"
-              tone="primary"
-              sign={asc.sign}
-              degree={asc.degree}
-              slots={[
-                { label: "First Impression", text: angles?.ascendant?.firstImpression },
-                { label: "How You Orient", text: angles?.ascendant?.orientationStyle },
-                { label: "At Your Best", text: angles?.ascendant?.atYourBest },
-                { label: "Under Stress", text: angles?.ascendant?.underStress, stress: true },
-              ]}
-            />
-            <AngleCard
-              kicker="Midheaven"
-              tone="secondary"
-              sign={mc.sign}
-              degree={mc.degree}
-              slots={[
-                { label: "Public Direction", text: angles?.midheaven?.publicDirection },
-                { label: "Where You Thrive", text: angles?.midheaven?.whereYouThrive },
-                { label: "At Your Best", text: angles?.midheaven?.atYourBest },
-                { label: "Under Pressure", text: angles?.midheaven?.underPressure, stress: true },
-              ]}
             />
           </div>
 
@@ -354,56 +309,34 @@ export default function ReportPage() {
           </div>
         </Chapter>
 
-        <Chapter number={3} total={TOTAL_CHAPTERS} eyebrow="Elements" title="Elemental Profile" accent={accent(3)} ghost="△" wide>
+        <Chapter {...ch(3)}>
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-5 rounded-xl border border-border/60 bg-card/40">
-              <p className="font-label text-xs text-muted-foreground mb-4 tracking-wider uppercase">Elements</p>
+            <div className="rp-box" style={{ marginTop: 0, maxWidth: "none" }}>
+              <span className="rp-lab block mb-4">Elements</span>
               <div className="space-y-3">
                 {Object.entries(chartData.elements).map(([el, count]) => (
-                  <div key={el}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`font-label text-xs capitalize ${ELEMENT_COLORS[el]}`}>{el}</span>
-                      <span className="font-numeric text-xs text-muted-foreground">{count} / {totalPlanets}</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${el === "fire" ? "bg-orange-400" : el === "earth" ? "bg-green-400" : el === "air" ? "bg-sky-400" : "bg-blue-400"}`}
-                        style={{ width: `${(count / totalPlanets) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                  <Bar key={el} label={el} count={count} total={totalPlanets} color={ELEMENT_HEX[el] ?? "var(--accent)"} />
                 ))}
               </div>
             </div>
-            <div className="p-5 rounded-xl border border-border/60 bg-card/40">
-              <p className="font-label text-xs text-muted-foreground mb-4 tracking-wider uppercase">Modalities</p>
+            <div className="rp-box" style={{ marginTop: 0, maxWidth: "none" }}>
+              <span className="rp-lab block mb-4">Modalities</span>
               <div className="space-y-3">
                 {Object.entries(chartData.modalities).map(([mod, count]) => (
-                  <div key={mod}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-label text-xs capitalize text-secondary/80">{mod}</span>
-                      <span className="font-numeric text-xs text-muted-foreground">{count} / {totalPlanets}</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-secondary"
-                        style={{ width: `${(count / totalPlanets) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                  <Bar key={mod} label={mod} count={count} total={totalPlanets} color="var(--accent)" />
                 ))}
               </div>
-              <div className="mt-4 pt-4 border-t border-border/30">
-                <div className="flex justify-between text-xs font-label">
-                  <span className="text-muted-foreground">Dominant</span>
-                  <span className="capitalize text-foreground/80">
+              <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--line-soft)" }}>
+                <div className="flex justify-between font-numeric text-xs">
+                  <span style={{ color: "var(--muted)" }}>Dominant</span>
+                  <span className="capitalize" style={{ color: "var(--paper-dim)" }}>
                     {chartData.dominance.dominantElement} · {chartData.dominance.dominantModality}
                   </span>
                 </div>
                 {chartData.chartShape && (
-                  <div className="flex justify-between text-xs font-label mt-1.5">
-                    <span className="text-muted-foreground">Chart Shape</span>
-                    <span className="capitalize text-foreground/80">{chartData.chartShape}</span>
+                  <div className="flex justify-between font-numeric text-xs mt-1.5">
+                    <span style={{ color: "var(--muted)" }}>Chart shape</span>
+                    <span className="capitalize" style={{ color: "var(--paper-dim)" }}>{chartData.chartShape}</span>
                   </div>
                 )}
               </div>
@@ -411,73 +344,72 @@ export default function ReportPage() {
           </div>
         </Chapter>
 
-        <Chapter number={4} total={TOTAL_CHAPTERS} eyebrow="Triad" title="Core Triad" accent={accent(4)} ghost="☽" wide>
+        <Chapter {...ch(4)}>
           <TriadBlock s={interpretation.triad} />
         </Chapter>
 
-        <Chapter number={5} total={TOTAL_CHAPTERS} eyebrow="Mind" title="Mind & Communication" accent={accent(5)} ghost="☿">
+        <Chapter {...ch(5)}>
           <MindBlock s={interpretation.mind} />
         </Chapter>
 
-        <Chapter number={6} total={TOTAL_CHAPTERS} eyebrow="Work" title="Career & Calling" accent={accent(6)} ghost="♄">
+        <Chapter {...ch(6)}>
           <CareerBlock s={interpretation.career} />
         </Chapter>
 
-        <Chapter number={7} total={TOTAL_CHAPTERS} eyebrow="Resources" title="Money & Resources" accent={accent(7)} ghost="♀">
+        <Chapter {...ch(7)}>
           <MoneyBlock s={interpretation.money} />
         </Chapter>
 
-        <Chapter number={8} total={TOTAL_CHAPTERS} eyebrow="Relationships" title="Relationships & Intimacy" accent={accent(8)} ghost="♁">
+        <Chapter {...ch(8)}>
           <RelationshipsBlock s={interpretation.relationships} />
         </Chapter>
 
-        <Chapter number={9} total={TOTAL_CHAPTERS} eyebrow="Roots" title="Family & Roots" accent={accent(9)} ghost="♆">
+        <Chapter {...ch(9)}>
           <FamilyBlock s={interpretation.family} />
         </Chapter>
 
-        <Chapter number={10} total={TOTAL_CHAPTERS} eyebrow="Self-Knowledge" title="Superpowers, Chronic Patterns & Growing Edges" accent={accent(10)} ghost="♃" wide>
+        <Chapter {...ch(10)}>
           <SuperpowersBlock s={interpretation.superpowers} />
         </Chapter>
 
-        <Chapter number={11} total={TOTAL_CHAPTERS} eyebrow="Paradoxes" title="Key Paradoxes & Discoveries" accent={accent(11)} ghost="∞" wide>
+        <Chapter {...ch(11)}>
           <DiscoveriesBlock s={interpretation.discoveries} />
         </Chapter>
 
-        <Chapter number={12} total={TOTAL_CHAPTERS} eyebrow="Focus" title="What to Focus On" accent={accent(12)} ghost="✦" wide>
+        <Chapter {...ch(12)}>
           <FocusBlock s={interpretation.focus} />
         </Chapter>
 
-        <BirthLocationHorizon
-          birthPlace={report.birthPlace}
-          birthTime={report.birthTime}
-          latitude={report.latitude}
-          longitude={report.longitude}
-          ascendantSign={asc.sign}
-          ascendantDegree={asc.degree}
-          ascendantAbsoluteDegree={asc.absoluteDegree}
-        />
+        <div className="rp-chapter">
+          <BirthLocationHorizon
+            birthPlace={report.birthPlace}
+            birthTime={report.birthTime}
+            latitude={report.latitude}
+            longitude={report.longitude}
+            ascendantSign={asc.sign}
+            ascendantDegree={asc.degree}
+            ascendantAbsoluteDegree={asc.absoluteDegree}
+          />
 
-        <MethodologyStrip meta={interpretation.meta} />
+          <MethodologyStrip meta={interpretation.meta} />
 
-        {/* Saved state + PDF export */}
-        <div className="text-center pt-8 no-print flex flex-col items-center gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-label text-primary/90">
-            <Check className="h-4 w-4" />
-            Saved to your account
+          <div className="text-center pt-8 no-print flex flex-col items-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-label text-primary/90">
+              <Check className="h-4 w-4" />
+              Saved to your account
+            </div>
+            <Button
+              onClick={handlePrint}
+              size="lg"
+              variant="outline"
+              className="font-label font-semibold px-8"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export Report as PDF
+            </Button>
+            <p className="text-muted-foreground text-xs">Use your browser's Save as PDF option</p>
           </div>
-          <Button
-            onClick={handlePrint}
-            size="lg"
-            variant="outline"
-            className="font-label font-semibold px-8"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export Report as PDF
-          </Button>
         </div>
-        <p className="text-muted-foreground text-xs mt-3 text-center no-print">
-          Use your browser's Save as PDF option
-        </p>
       </main>
     </div>
   );

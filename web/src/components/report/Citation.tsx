@@ -53,6 +53,7 @@ function Citation({ index, claim }: { index: number; claim: Claim }) {
 
   useLayoutEffect(() => {
     if (!open) return;
+    // The sheet variant is CSS-only, so coarse pointers need no measured position.
     const coarseNow = isCoarsePointer();
     setCoarse(coarseNow);
     if (coarseNow) { setPos(null); return; }
@@ -101,7 +102,7 @@ function Citation({ index, claim }: { index: number; claim: Claim }) {
         aria-label={name}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="align-super ml-px font-numeric text-[0.62em] leading-none text-brass/80 hover:text-brass focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-[2px] px-px no-print"
+        className={`rp-cite no-print${open ? " open" : ""}`}
       >
         {index}
       </button>
@@ -114,11 +115,7 @@ function Citation({ index, claim }: { index: number; claim: Claim }) {
           aria-label={name}
           onMouseEnter={cancelClose}
           onMouseLeave={() => { if (!isCoarsePointer()) closeSoon(); }}
-          className={
-            coarse
-              ? "fixed inset-x-3 bottom-3 z-50 max-h-[70vh] overflow-y-auto"
-              : "fixed z-50 w-[min(22rem,calc(100vw-1.5rem))]"
-          }
+          className="rp-card"
           style={coarse || !pos ? undefined : { left: pos.left, top: pos.top }}
         >
           <EvidenceCard claim={claim} />
@@ -163,7 +160,7 @@ export function CitedText({
     if (hit.start < cursor) continue;
     if (hit.start > cursor) out.push(<Fragment key={key++}>{display.slice(cursor, hit.start)}</Fragment>);
     out.push(
-      <mark key={key++} className="bg-transparent text-foreground decoration-brass/30 underline decoration-dotted underline-offset-4">
+      <mark key={key++} className="rp-claimed">
         {display.slice(hit.start, hit.end)}
       </mark>,
     );
