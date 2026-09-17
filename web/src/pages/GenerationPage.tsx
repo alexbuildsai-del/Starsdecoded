@@ -323,7 +323,7 @@ export default function GenerationPage() {
             exit={{ opacity: 0, y: -8 }}
             className="mb-8"
           >
-            <h2 className="font-display text-2xl font-light mb-2">
+            <h2 className="font-display text-2xl mb-2">
               {serverStatus === "failed" ? "Something went wrong" : currentStep.label}
             </h2>
             <p className="text-muted-foreground text-sm max-w-sm">

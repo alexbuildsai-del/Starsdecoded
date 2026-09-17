@@ -123,7 +123,7 @@ function ZoneYou({
         className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-8 flex flex-col items-center text-center"
       >
         <Star className="h-10 w-10 text-primary/30 mb-4" />
-        <h2 className="font-display text-xl font-light mb-2">Your chart awaits</h2>
+        <h2 className="font-display text-xl mb-2">Your chart awaits</h2>
         <p className="text-muted-foreground text-sm mb-6 max-w-sm">
           Generate your natal chart to unlock your archetype, big three, and a full
           psychological interpretation.
@@ -166,7 +166,7 @@ function ZoneYou({
           <p className="font-label text-[10px] tracking-[0.2em] uppercase text-primary/70 mb-1">
             Your Natal Chart
           </p>
-          <h2 className="font-display text-2xl font-light truncate mb-0.5">{selfProfile.name}</h2>
+          <h2 className="font-display text-2xl truncate mb-0.5">{selfProfile.name}</h2>
           {natalReport?.archetypeName && (
             <p className="font-label text-xs text-primary/70 mb-3">{natalReport.archetypeName}</p>
           )}
@@ -479,7 +479,7 @@ function SynastryComposer({ profiles }: { profiles: ProfileSummary[] }) {
 
   return (
     <div className="p-6 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm">
-      <h3 className="font-display text-lg font-light mb-1">New compatibility report</h3>
+      <h3 className="font-display text-lg mb-1">New compatibility report</h3>
       <p className="text-sm text-muted-foreground mb-5">
         Select two people to generate a synastry reading.
       </p>
@@ -716,7 +716,7 @@ export default function DashboardPage() {
           <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3">
             Your Cosmos
           </p>
-          <h1 className="font-display text-3xl font-light">Dashboard</h1>
+          <h1 className="font-display text-3xl">Dashboard</h1>
         </motion.div>
 
         {/* Global error */}
@@ -740,7 +740,7 @@ export default function DashboardPage() {
         {/* ── Zone 1: You ─────────────────────────────────────────────── */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-light">You</h2>
+            <h2 className="font-display text-xl">You</h2>
           </div>
           <ZoneYou
             selfProfile={selfProfile}
@@ -753,7 +753,7 @@ export default function DashboardPage() {
         {/* ── Zone 2: Your People ──────────────────────────────────────── */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-light">Your People</h2>
+            <h2 className="font-display text-xl">Your People</h2>
             <div className="flex items-center gap-2">
               <span className="font-label text-[10px] text-muted-foreground uppercase tracking-wider">Natal credits</span>
               <CreditBadge available={credits.natal.available} />
@@ -801,7 +801,7 @@ export default function DashboardPage() {
         {/* ── Zone 3: Relationships ────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-light">Relationships</h2>
+            <h2 className="font-display text-xl">Relationships</h2>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="font-label text-[10px] text-muted-foreground uppercase tracking-wider">Couple</span>

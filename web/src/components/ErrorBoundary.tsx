@@ -37,7 +37,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
           <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3">
             Something went wrong
           </p>
-          <h1 className="font-display text-3xl font-light leading-tight mb-3">
+          <h1 className="font-display text-3xl leading-tight mb-3">
             This page hit an unexpected error
           </h1>
           <p className="text-muted-foreground text-sm mb-6 break-words">{error.message}</p>

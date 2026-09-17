@@ -99,7 +99,7 @@ export default function InviteModal({
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl font-light">
+          <DialogTitle className="font-display text-xl">
             Invite {profileName}
           </DialogTitle>
           <DialogDescription>
@@ -172,7 +172,7 @@ export default function InviteModal({
               <Input
                 readOnly
                 value={link}
-                className="font-mono text-xs"
+                className="font-numeric text-xs"
                 data-testid="text-invite-link"
                 onFocus={(e) => e.currentTarget.select()}
               />

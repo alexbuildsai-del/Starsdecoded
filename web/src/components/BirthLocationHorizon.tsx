@@ -243,7 +243,7 @@ export function BirthLocationHorizon({
       <div className="rounded-2xl border border-border/60 bg-card/40 p-6 md:p-8">
         {/* Header row */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-display text-2xl md:text-3xl font-light">
+          <h2 className="font-display text-2xl md:text-3xl">
             Birth Location &amp; Horizon
           </h2>
           <span className="px-3 py-1.5 rounded-full border border-border/60 bg-background/60 text-[10px] font-label tracking-[0.18em] uppercase text-muted-foreground">
@@ -275,7 +275,7 @@ export function BirthLocationHorizon({
               <div className="font-label text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
                 {birthPlace.split(",")[0]}
               </div>
-              <div className="font-label text-[11px] text-foreground/90 mt-0.5">
+              <div className="font-numeric text-[11px] text-foreground/90 mt-0.5">
                 {formatLatitude(latitude)} · {formatLongitude(longitude)}
               </div>
             </div>
@@ -295,7 +295,7 @@ export function BirthLocationHorizon({
             <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground/80 text-center">
               The celestial arrangement relative to the observer&apos;s place at{" "}
               <span className="text-foreground/85">{birthTime}</span>{" "}
-              <span className="font-label">
+              <span className="font-numeric">
                 ({ascendantDegree.toFixed(1)}° {ascendantSign} rising)
               </span>
               .
@@ -309,7 +309,7 @@ export function BirthLocationHorizon({
             <p className="font-label text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1.5">
               Latitude
             </p>
-            <p className="font-display text-xl md:text-2xl font-light text-foreground/95">
+            <p className="font-numeric text-xl md:text-2xl text-foreground/95">
               {formatLatitude(latitude)}
             </p>
           </div>
@@ -317,7 +317,7 @@ export function BirthLocationHorizon({
             <p className="font-label text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1.5">
               Longitude
             </p>
-            <p className="font-display text-xl md:text-2xl font-light text-foreground/95">
+            <p className="font-numeric text-xl md:text-2xl text-foreground/95">
               {formatLongitude(longitude)}
             </p>
           </div>

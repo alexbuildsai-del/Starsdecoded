@@ -70,7 +70,7 @@ export function DeleteReportDialog({
       </AlertDialogTrigger>
       <AlertDialogContent onClick={(e) => e.stopPropagation()}>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-display font-light">Delete {personName}'s report?</AlertDialogTitle>
+          <AlertDialogTitle className="font-display">Delete {personName}'s report?</AlertDialogTitle>
           <AlertDialogDescription>
             This deletes the report and its birth data if nothing else uses it. Any purchase record
             is kept. This cannot be undone.
