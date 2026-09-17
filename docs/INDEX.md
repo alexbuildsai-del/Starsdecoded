@@ -33,8 +33,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `web/src/pages/legal/` draft legal pages · `api/src/lib/deletion.ts` profile-fate seam (MB-32)
 - `README.md` — setup, deploy targets, porting notes. Still the human onboarding page.
 
-## Agents and commands
+## Agents and skills
 - `.claude/agents/` planner · orchestrator · builder · qa
-- `.claude/commands/` /ideate · /lock · /plan · /round · /qa · /mailbox
+- `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox — one `SKILL.md` each; the description is the trigger, so plain English works too
 - `.github/pull_request_template.md` — the gate checklist every PR carries
 - `.github/workflows/ci.yml` typecheck, builds, unit tests · `smoke.yml` deploy check on push to main (staging) and production · `smoke-run.yml` its reusable body · `promote.yml` fast-forwards production after a staging smoke

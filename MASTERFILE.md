@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.3 (2026-09-16) |
+| Version | 0.4 (2026-09-17) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -169,7 +169,7 @@ Starsdecoded/
     qa/                     QA-NN.md, findings only
     annex/                  deep dives, long references, overflow from budgeted files
   .claude/agents/           planner, orchestrator, builder, qa
-  .claude/commands/         /ideate /lock /plan /round /qa /mailbox
+  .claude/skills/           /ideate /lock /plan /round /qa /mailbox, one SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
 Notion / STARS DECODED
   Decisions                 ADR log, one row per decision, never edited, only superseded
