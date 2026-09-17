@@ -78,7 +78,7 @@ function PreviewModal({ open, label, loading, text, error, onClose }: PreviewMod
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 shrink-0">
           <div>
             <p className="font-label text-[10px] tracking-[0.2em] uppercase text-primary/70 mb-0.5">AI Preview</p>
-            <h2 className="font-display text-base font-light text-foreground">{label}</h2>
+            <h2 className="font-display text-base text-foreground">{label}</h2>
           </div>
           <button
             type="button"
@@ -103,7 +103,7 @@ function PreviewModal({ open, label, loading, text, error, onClose }: PreviewMod
             </div>
           )}
           {!loading && !error && text !== null && text.length > 0 && (
-            <pre className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
+            <pre className="text-sm text-foreground/90 whitespace-pre-wrap font-numeric leading-relaxed">
               {text}
             </pre>
           )}
@@ -279,7 +279,7 @@ function PromptCard({ entry, readOnly, onSaved }: { entry: PromptEntry; readOnly
                   value={system}
                   onChange={(e) => setSystem(e.target.value)}
                   readOnly={readOnly}
-                  className="font-mono text-xs min-h-[140px] resize-y bg-background/60"
+                  className="font-numeric text-xs min-h-[140px] resize-y bg-background/60"
                   placeholder="Leave blank to use default…"
                 />
                 {defaultSystem && system !== defaultSystem && (
@@ -299,7 +299,7 @@ function PromptCard({ entry, readOnly, onSaved }: { entry: PromptEntry; readOnly
                   value={user}
                   onChange={(e) => setUser(e.target.value)}
                   readOnly={readOnly}
-                  className="font-mono text-xs min-h-[200px] resize-y bg-background/60"
+                  className="font-numeric text-xs min-h-[200px] resize-y bg-background/60"
                   placeholder="Leave blank to use default…"
                 />
                 {defaultUser && user !== defaultUser && (
@@ -310,7 +310,7 @@ function PromptCard({ entry, readOnly, onSaved }: { entry: PromptEntry; readOnly
                 {FORMAT_NOTES[entry.key] && (
                   <div className="flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 py-2">
                     <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-300/80 font-mono whitespace-pre-wrap leading-relaxed">
+                    <p className="text-[11px] text-amber-300/80 font-numeric whitespace-pre-wrap leading-relaxed">
                       {FORMAT_NOTES[entry.key]}
                     </p>
                   </div>
@@ -428,9 +428,9 @@ export default function AdminPromptsPage() {
       <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <h1 className="font-display text-2xl font-light mb-2">Access Denied</h1>
+          <h1 className="font-display text-2xl mb-2">Access Denied</h1>
           <p className="text-sm text-muted-foreground mb-6">
-            Your account does not have admin access. Set the <code className="font-mono">ADMIN_USER_ID</code> env var to your Clerk user ID to enable this panel.
+            Your account does not have admin access. Set the <code className="font-numeric">ADMIN_USER_ID</code> env var to your Clerk user ID to enable this panel.
           </p>
           <Button variant="outline" onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
         </div>
@@ -497,7 +497,7 @@ export default function AdminPromptsPage() {
           <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
             <div>
               <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-1">Admin</p>
-              <h1 className="font-display text-2xl font-light">Prompt Templates</h1>
+              <h1 className="font-display text-2xl">Prompt Templates</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {readOnly
                   ? "The prompts this environment generates reports with."

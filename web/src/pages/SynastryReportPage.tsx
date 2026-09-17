@@ -50,7 +50,7 @@ function Section({
   if (!body) return null;
   return (
     <section className="mb-10">
-      <h2 className="font-display text-2xl font-light mb-4 gradient-text">{title}</h2>
+      <h2 className="font-display text-2xl mb-4 gradient-text">{title}</h2>
       <div className="prose prose-invert max-w-none">
         {body.split(/\n\n+/).map((para, i) => (
           <p key={i} className="text-foreground/90 leading-relaxed mb-3">
@@ -171,7 +171,7 @@ export default function SynastryReportPage() {
               <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3 flex items-center gap-2">
                 <Heart className="h-3 w-3" /> Synastry Report
               </p>
-              <h1 className="font-display text-3xl md:text-4xl font-light leading-tight">
+              <h1 className="font-display text-3xl md:text-4xl leading-tight">
                 {data.participants
                   ?.map((p: any) => p.name)
                   .join(" & ") || "Compatibility"}
@@ -271,7 +271,7 @@ export default function SynastryReportPage() {
               || data.status === "pending") && (
               <div className="rounded-2xl border border-border/60 bg-card/60 px-6 py-12 text-center">
                 <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
-                <p className="font-display text-xl font-light">Reading the field…</p>
+                <p className="font-display text-xl">Reading the field…</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   Synthesising the cross-aspects between these charts.
                 </p>
@@ -296,7 +296,7 @@ export default function SynastryReportPage() {
                       <p className="font-label text-xs uppercase tracking-wide text-muted-foreground">
                         Overall
                       </p>
-                      <p className="font-display text-4xl font-light mt-1">
+                      <p className="font-display text-4xl mt-1">
                         {data.compute.overallScore}
                       </p>
                     </div>
@@ -318,7 +318,7 @@ export default function SynastryReportPage() {
                         <p className="font-label text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
                           {CATEGORY_LABEL[c.category] ?? c.category}
                         </p>
-                        <p className="font-display text-xl font-light">{c.score}</p>
+                        <p className="font-display text-xl">{c.score}</p>
                         <p className="font-label text-xs text-muted-foreground capitalize mt-0.5">
                           {c.rating} · {c.count}
                         </p>
@@ -353,7 +353,7 @@ export default function SynastryReportPage() {
                 {/* Top contacts */}
                 {data.compute.crossAspects?.length > 0 && (
                   <section className="mb-10">
-                    <h2 className="font-display text-2xl font-light mb-4 gradient-text">
+                    <h2 className="font-display text-2xl mb-4 gradient-text">
                       Strongest Contacts
                     </h2>
                     <ul className="space-y-2">
@@ -373,7 +373,7 @@ export default function SynastryReportPage() {
                               <span className="text-muted-foreground">{c.type}</span>{" "}
                               <span className="font-display capitalize">{nameB}'s {c.planetB}</span>{" "}
                               <span className="text-xs text-muted-foreground">
-                                · orb {c.orb}° · {polarity}
+                                · <span className="font-numeric">orb {c.orb}°</span> · {polarity}
                               </span>
                             </p>
                             {m?.dynamic && (

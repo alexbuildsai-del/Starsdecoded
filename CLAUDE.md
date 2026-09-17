@@ -111,10 +111,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-09-17)
 
-1. Staging landing (`docs/specs/draft/staging-environment.md`): `production`
-   sits at the pre-staging `main`; the Owner works the runbook, switches the
+1. R03 Owner acceptance pending (`docs/rounds/R03-report.md`): the natal report
+   UI lands whole — Observatory type, the wheel drawn from real degrees,
+   citations as superscripts, no invented prose, so the grid says less (ADR-18).
+2. Staging landing (`docs/specs/draft/staging-environment.md`): `production` sits
+   at the pre-staging `main`; the Owner works the runbook, switches the
    dashboards, then the first Promote ships it.
-2. R02 usage telemetry merged; the staging baseline run is owed and closes
-   MB-10. Next levers: `docs/specs/draft/report-cost-and-latency.md`.
-3. R01 Owner acceptance pending. Next ideation: pricing and packaging (MB-5),
-   then payments in Stripe test mode on staging. Owed: MB-31, MB-38.
+3. R01 acceptance pending. Next: pricing (MB-5), Stripe test mode on staging.

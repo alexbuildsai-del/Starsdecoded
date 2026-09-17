@@ -13,7 +13,7 @@ const LEGAL_LINKS = [
 export function LegalSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mb-10">
-      <h2 className="font-display text-2xl font-light mb-3">{title}</h2>
+      <h2 className="font-display text-2xl mb-3">{title}</h2>
       <div className="space-y-3 text-muted-foreground leading-relaxed text-[15px]">{children}</div>
     </section>
   );
@@ -50,7 +50,7 @@ export function LegalLayout({
 
       <main className="max-w-3xl mx-auto px-6 pt-28 pb-24">
         <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-4">{kicker}</p>
-        <h1 className="font-display text-4xl md:text-5xl font-light leading-tight mb-3">{title}</h1>
+        <h1 className="font-display text-4xl md:text-5xl leading-tight mb-3">{title}</h1>
         <p className="font-label text-xs text-muted-foreground mb-8">Draft dated {updated}</p>
         <div className="mb-12">
           <DraftBanner />

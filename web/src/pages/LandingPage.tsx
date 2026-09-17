@@ -4,8 +4,8 @@ import { ArrowRight, Star, BookOpen, Clock, Shield, Sparkles } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
 import { Show } from "@clerk/react";
-import RadialOrbitalNatal from "@/components/ui/radial-orbital-natal";
-import { DEMO_CHART_DATA, DEMO_ARCHETYPE, DEMO_USER_INITIAL, DEMO_INTERPRETATION } from "@/data/demoChart";
+import { NatalWheel } from "@/components/chart/NatalWheel";
+import { DEMO_CHART_DATA } from "@/data/demoChart";
 
 const PLANET_SYMBOLS = ["☉", "☽", "☿", "♀", "♂", "♃", "♄", "⛢", "♆", "♇"];
 
@@ -143,7 +143,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8 }}
           >
             <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-6">Natal Chart Analysis & more</p>
-            <h1 className="font-display text-5xl md:text-7xl font-light leading-tight mb-6 glow-text">
+            <h1 className="font-display text-5xl md:text-7xl leading-tight mb-6 glow-text">
               Your stars,<br />
               <em className="gradient-text not-italic">decoded.</em>
             </h1>
@@ -176,7 +176,7 @@ export default function LandingPage() {
                 className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border border-border/40 bg-card text-sm"
               >
                 <span className="font-label text-muted-foreground text-xs">{p.name}</span>
-                <span className="font-display text-foreground font-medium">{p.degree} {p.sign}</span>
+                <span className="font-numeric text-foreground font-medium">{p.degree} {p.sign}</span>
               </div>
             ))}
           </div>
@@ -187,7 +187,7 @@ export default function LandingPage() {
       <section className="py-24 px-6 max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-4">What You Receive</p>
-          <h2 className="font-display text-3xl md:text-4xl font-light">More than a horoscope.</h2>
+          <h2 className="font-display text-3xl md:text-4xl">More than a horoscope.</h2>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-20">
@@ -219,18 +219,13 @@ export default function LandingPage() {
         >
           <div className="text-center">
             <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-2">Included in every report</p>
-            <h3 className="font-display text-2xl md:text-3xl font-light">Your interactive natal chart wheel</h3>
+            <h3 className="font-display text-2xl md:text-3xl">Your interactive natal chart wheel</h3>
             <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-              Tap any planet to read its full interpretation. Aspects illuminate on selection. Yours will show your real placements.
+              Every body sits at its true degree, with the aspects it makes drawn underneath. Yours will show your real placements.
             </p>
           </div>
           <div className="w-full max-w-[480px]">
-            <RadialOrbitalNatal
-              chartData={DEMO_CHART_DATA}
-              interpretation={DEMO_INTERPRETATION}
-              userName={DEMO_USER_INITIAL}
-              archetypeName={DEMO_ARCHETYPE}
-            />
+            <NatalWheel chartData={DEMO_CHART_DATA} />
           </div>
           <p className="font-label text-[11px] tracking-[0.15em] uppercase text-muted-foreground/60 text-center">
             An example chart — Aria Solis, Jun 21 1992, Lisbon
@@ -250,7 +245,7 @@ export default function LandingPage() {
       <section className="py-24 px-6 max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-4">Inside Your Report</p>
-          <h2 className="font-display text-3xl md:text-4xl font-light">Ten sections of insight.</h2>
+          <h2 className="font-display text-3xl md:text-4xl">Ten sections of insight.</h2>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -270,7 +265,7 @@ export default function LandingPage() {
       <section className="py-24 px-6">
         <div className="max-w-2xl mx-auto text-center p-12 rounded-2xl border border-primary/30 bg-card/60 backdrop-blur-sm glow-primary">
           <Sparkles className="h-8 w-8 text-primary mx-auto mb-6" />
-          <h2 className="font-display text-3xl md:text-4xl font-light mb-4">
+          <h2 className="font-display text-3xl md:text-4xl mb-4">
             Ready to meet yourself?
           </h2>
           <p className="text-muted-foreground mb-8">

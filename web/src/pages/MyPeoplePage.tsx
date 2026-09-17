@@ -103,7 +103,7 @@ export default function MyPeoplePage() {
           <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3">
             People & Compatibility
           </p>
-          <h1 className="font-display text-3xl font-light">My People</h1>
+          <h1 className="font-display text-3xl">My People</h1>
           <p className="text-muted-foreground mt-2 max-w-xl">
             See compatibility between any two people whose charts you've calculated.
           </p>
@@ -129,7 +129,7 @@ export default function MyPeoplePage() {
 
         {/* Synastry composer */}
         <section className="mb-12 p-6 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm">
-          <h2 className="font-display text-xl font-light mb-1">New compatibility report</h2>
+          <h2 className="font-display text-xl mb-1">New compatibility report</h2>
           <p className="text-sm text-muted-foreground mb-5">
             Select two people to generate a synastry reading.
           </p>
@@ -223,7 +223,7 @@ export default function MyPeoplePage() {
 
         {/* Existing relationships */}
         <section className="mb-12">
-          <h2 className="font-display text-xl font-light mb-4">Your relationships</h2>
+          <h2 className="font-display text-xl mb-4">Your relationships</h2>
           {relsQ.isLoading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="h-5 w-5 animate-spin text-primary/50" />
@@ -294,7 +294,7 @@ export default function MyPeoplePage() {
 
         {/* People grid */}
         <section>
-          <h2 className="font-display text-xl font-light mb-4">People</h2>
+          <h2 className="font-display text-xl mb-4">People</h2>
           {profilesQ.isLoading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="h-5 w-5 animate-spin text-primary/50" />

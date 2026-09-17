@@ -79,7 +79,7 @@ export default function ClaimPage() {
     return (
       <Centered>
         <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl font-light mb-2">Missing invite token</h1>
+        <h1 className="font-display text-2xl mb-2">Missing invite token</h1>
         <p className="text-muted-foreground text-sm mb-5">
           This claim link is incomplete. Please use the link from your invitation.
         </p>
@@ -101,7 +101,7 @@ export default function ClaimPage() {
     return (
       <Centered>
         <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl font-light mb-2">Invite unavailable</h1>
+        <h1 className="font-display text-2xl mb-2">Invite unavailable</h1>
         <p className="text-muted-foreground text-sm mb-5">
           This invite is invalid, expired, or already claimed.
         </p>
@@ -116,7 +116,7 @@ export default function ClaimPage() {
     return (
       <Centered>
         <Heart className="h-8 w-8 text-primary mx-auto mb-3" />
-        <h1 className="font-display text-2xl font-light mb-2">
+        <h1 className="font-display text-2xl mb-2">
           You've been invited
         </h1>
         <p className="text-muted-foreground text-sm mb-1">
@@ -147,7 +147,7 @@ export default function ClaimPage() {
     return (
       <Centered>
         <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl font-light mb-2">Already claimed</h1>
+        <h1 className="font-display text-2xl mb-2">Already claimed</h1>
         <p className="text-muted-foreground text-sm mb-5">
           This invitation has already been claimed and the link is no longer
           active.
@@ -177,7 +177,7 @@ export default function ClaimPage() {
     return (
       <Centered>
         <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-3" />
-        <h1 className="font-display text-2xl font-light mb-2">{title}</h1>
+        <h1 className="font-display text-2xl mb-2">{title}</h1>
         <p className="text-muted-foreground text-sm mb-5">{body}</p>
         <div className="flex gap-2 justify-center">
           <Button

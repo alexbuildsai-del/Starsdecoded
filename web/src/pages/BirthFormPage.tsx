@@ -305,7 +305,7 @@ export default function BirthFormPage() {
             <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3">
               Natal Chart Report
             </p>
-            <h1 className="font-display text-4xl font-light leading-tight mb-3">
+            <h1 className="font-display text-4xl leading-tight mb-3">
               Enter your birth details
             </h1>
             <p className="text-muted-foreground text-sm">
@@ -489,7 +489,7 @@ export default function BirthFormPage() {
                       <div className="flex-1 min-w-0">
                         <div className="text-foreground font-medium truncate">{selectedPlace.city || selectedPlace.name.split(",")[0]}</div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {[selectedPlace.region, selectedPlace.country].filter(Boolean).join(", ")} · {selectedPlace.latitude.toFixed(2)}°, {selectedPlace.longitude.toFixed(2)}°
+                          {[selectedPlace.region, selectedPlace.country].filter(Boolean).join(", ")} · <span className="font-numeric">{selectedPlace.latitude.toFixed(2)}°, {selectedPlace.longitude.toFixed(2)}°</span>
                         </div>
                       </div>
                       <span className="text-muted-foreground text-xs font-label">
@@ -564,7 +564,7 @@ export default function BirthFormPage() {
             {createReport.isError && (
               <div className="text-sm text-destructive text-center space-y-1">
                 <p>Something went wrong. Please try again.</p>
-                <p className="text-xs opacity-80 font-mono break-all">
+                <p className="text-xs opacity-80 font-numeric break-all">
                   {createReport.error instanceof Error
                     ? createReport.error.message
                     : String(createReport.error)}

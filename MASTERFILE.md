@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.4 (2026-09-17) |
+| Version | 0.5 (2026-09-17) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -146,11 +146,13 @@ Two surfaces sit beside the code and must never drift from it.
 
 ## 9 · Design system
 
-Dark only. Near-black ground, indigo/violet accent, Noto Serif for display, Inter for body and UI, Space Grotesk for labels. Tokens live in `web/src/index.css`; the bible's design-system section reads them live and is the reference.
+Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report-ui.md`). Near-black ground. Indigo and violet mean the product; **brass `#D4B06A` means measured chart geometry and is never a control**; element hues mean element-derived data only. Newsreader for display and ledes, Inter for body and UI, Space Grotesk for labels, **IBM Plex Mono for every degree, orb and coordinate**. Tokens live in `web/src/index.css`; the bible's design-system section reads them live and is the reference.
 
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
-- **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The starfield, gradients and weight-300 display serif pull the other way and are an open design topic (Mailbox), not licence to restyle piecemeal.
+- **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The weight-300 display serif that pulled the other way is settled — display moves to Newsreader 400 and the numerals to a real monospace. The starfield and gradients stay, budgeted: two moves per chapter change, one easing, and reduced motion is a real state.
+- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI.
 - **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
+- **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
 - **Voice.** Report voice is R-5.1. Marketing voice is not written yet (Mailbox); until it is, marketing copy follows the same rules: short, specific, no mysticism, no claims the code cannot back.
 
 ## 10 · Repo and knowledge base
