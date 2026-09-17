@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.3 (2026-09-17) |
+| Version | 0.5 (2026-09-17) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -20,6 +20,9 @@ This file is the constitution. Orchestrators and planners read it in full once p
 - **R-0.2** Token discipline is a feature. Follow §13. Never paste this file into other documents; cite section numbers ("per §4.2").
 - **R-0.3** Anything in the Decisions database with Status `locked` is settled. Do not re-litigate. Anything open in the Mailbox is open: do not build on it without a decision or an explicit `MB-NN provisional` tag.
 - **R-0.4** The product is **Stars Decoded**. "Astra" is the inherited Replit name; never add a new use of it.
+- **R-0.5** Every reply to the Owner opens with `Alex, ` alone on its first line, before any other text, in every session, until the Owner says to stop. Standing instruction from the Owner (2026-09-16); commit messages and repository files are not replies and stay unprefixed.
+- **R-0.6** Delegate without being asked. When a task splits into independent parts, needs a broad search, or a long read whose conclusion is all that matters, spawn subagents (the `.claude/agents/` roles, Explore, general-purpose) in parallel and keep the conclusion. A single lookup or a one-file edit stays in the main loop. The Owner never has to request this.
+- **R-0.7** Model triage. The main loop runs on the model the Owner selected with `/model`; Claude cannot change it and never asks to. Every subagent gets a tier chosen at spawn time: heavy (Opus or above) for planning, feature work, refactors, security audits, algorithm design and elusive concurrency bugs, since planning and execution of the product are what matters; standard (Sonnet) for simple improvements, routine debugging, unit tests and reviews; fast (Haiku) for formatting, typo fixes, boilerplate, renames and plain file searches. Unsure means heavy. The planner, orchestrator and builder agent files pin Opus; the orchestrator may drop a builder to Sonnet when its card is a simple improvement. A tier the Owner names in the prompt overrides the pick for that task.
 
 ## 1 · Thesis
 
@@ -168,7 +171,7 @@ Starsdecoded/
     qa/                     QA-NN.md, findings only
     annex/                  deep dives, long references, overflow from budgeted files
   .claude/agents/           planner, orchestrator, builder, qa
-  .claude/commands/         /ideate /lock /plan /round /qa /mailbox
+  .claude/skills/           /ideate /lock /plan /round /qa /mailbox, one SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
 Notion / STARS DECODED
   Decisions                 ADR log, one row per decision, never edited, only superseded
@@ -186,14 +189,15 @@ Notion / STARS DECODED
 Two alternating modes: ideation sessions with the Owner, and autonomous build rounds. Locked specs are the handoff.
 
 ### 11.1 Ideation (`/ideate <topic>`)
-Explore the feature with the Owner, visually where it helps. Output is exactly one file in `docs/specs/draft/`. When the Owner says "lock it", `/lock` moves it to `docs/specs/locked/` with scope, out of scope, acceptance criteria, screens, and every new decision recorded as a Decisions row. A locked spec is at most 200 lines.
+Explore the feature with the Owner. The Owner decides visually: every ideation publishes one HTML artifact rendering the proposal (mock screens when the UI is touched, a flow or structure otherwise, options side by side) before any question is asked or a lock proposed, and the spec links it. An ideation without an artifact is not finished. The written output is exactly one file in `docs/specs/draft/`. When the Owner says "lock it", `/lock` moves it to `docs/specs/locked/` with scope, out of scope, acceptance criteria, screens, and every new decision recorded as a Decisions row. A locked spec is at most 200 lines.
 
 ### 11.2 Build rounds (`/plan`, then `/round`)
-1. **Planner** reads `CLAUDE.md`, `INDEX.md`, new locked specs, new QA reports and the open Mailbox. Writes `docs/rounds/RNN-plan.md`: goals, task cards (≤ 15 lines each), risks, Mailbox rows raised before building.
-2. **Orchestrator** branches `round/RNN`, spawns one builder per card (parallel when files are disjoint), each with only its card and §0.
-3. **Gate**: `pnpm run typecheck` · `pnpm run build:web` · `pnpm run build:api` · unit tests · report lab against fixtures when the engine or prompts changed · `db:bootstrap` boots clean when the schema changed · smoke on the Vercel preview.
-4. **Close**: round report (≤ 60 lines, every shipped line tagged USER-FACING or INTERNAL), `INDEX.md` regenerated, `CLAUDE.md` current focus updated, Mailbox updated, pull request opened and, once the gate is green, merged by the orchestrator. The Owner never merges.
-5. **Acceptance**: after the deploy, the orchestrator confirms `/api/healthz` and the web app load, then hands the Owner the URL and a three-line list of what to look at. The Owner answers "looks good" or says what is wrong; a "no" becomes sev-1 QA findings and the next round's first goal.
+1. **Planner** reads `CLAUDE.md`, `INDEX.md`, the locked specs named by the Owner (all unplanned ones when none are named; a locked spec is a file under `docs/specs/locked/`, its slug is its id), new QA reports and the open Mailbox. Writes `docs/rounds/RNN-plan.md`: goals, task cards (≤ 15 lines each) cut so they touch disjoint files wherever the work allows, the parallel groups, risks, Mailbox rows raised before building. Parallelism is a planning goal, not an afterthought.
+2. **Approval to build** is one step: when the Owner approves the plan, the same session spawns the orchestrator at once. Nobody waits for a second instruction.
+3. **Orchestrator** branches `round/RNN`, dispatches every builder in a parallel group in one message and the groups in order, each builder with only its card and §0.
+4. **Gate**: `pnpm run typecheck` · `pnpm run build:web` · `pnpm run build:api` · unit tests · report lab against fixtures when the engine or prompts changed · `db:bootstrap` boots clean when the schema changed · smoke on the Vercel preview.
+5. **Close**: round report (≤ 60 lines, every shipped line tagged USER-FACING or INTERNAL), `INDEX.md` regenerated, `CLAUDE.md` current focus updated, Mailbox updated, pull request opened and, once the gate is green, merged by the orchestrator. The Owner never merges.
+6. **Acceptance**: after the deploy, the orchestrator confirms `/api/healthz` and the web app load, then hands the Owner the URL and a three-line list of what to look at. The Owner answers "looks good" or says what is wrong; a "no" becomes sev-1 QA findings and the next round's first goal.
 
 ### 11.3 QA sessions (`/qa <url>`)
 The Owner's only operational duty is to test the website and say whether it looks good. The QA agent plays the personas from §1 against a preview using real computed charts. Findings land in `docs/qa/QA-NN.md` with severity. The next planner treats every sev-1 as a round goal.

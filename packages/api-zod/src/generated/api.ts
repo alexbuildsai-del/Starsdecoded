@@ -183,7 +183,7 @@ export const GetReportResponse = zod.object({
   "interpretation": zod.union([zod.object({
   "meta": zod.object({
   "promptVersion": zod.string(),
-  "model": zod.string(),
+  "model": zod.string().describe('The model every call used, or \"mixed\" when the foundation and the sections differ. See usage.sections[].model for each one.\n'),
   "houseSystem": zod.enum(['whole-sign']),
   "generatedAt": zod.string(),
   "wordCount": zod.number(),
@@ -193,7 +193,31 @@ export const GetReportResponse = zod.object({
   "sect": zod.enum(['day', 'night']),
   "sectLight": zod.enum(['sun', 'moon']),
   "sunAltitude": zod.number(),
-  "sectMarginal": zod.boolean()
+  "sectMarginal": zod.boolean(),
+  "usage": zod.object({
+  "model": zod.string().describe('The model every call used, or \"mixed\" when they differ.'),
+  "costUsd": zod.number().nullable().describe('Priced per section on its own model and summed, when generated. Null if any model has no price on record.\n'),
+  "wallClockMs": zod.number().describe('End to end. Below `totals.ms`, because ten sections run at once.'),
+  "totals": zod.object({
+  "attempts": zod.number().describe('Calls made. Above one when a reply was rejected and retried.'),
+  "inputTokens": zod.number(),
+  "cachedInputTokens": zod.number(),
+  "outputTokens": zod.number(),
+  "reasoningTokens": zod.number(),
+  "ms": zod.number()
+}).describe('Token counts and time, summed over one section\'s attempts or a whole report.'),
+  "sections": zod.array(zod.object({
+  "attempts": zod.number().describe('Calls made. Above one when a reply was rejected and retried.'),
+  "inputTokens": zod.number(),
+  "cachedInputTokens": zod.number(),
+  "outputTokens": zod.number(),
+  "reasoningTokens": zod.number(),
+  "ms": zod.number()
+}).describe('Token counts and time, summed over one section\'s attempts or a whole report.').and(zod.object({
+  "section": zod.string().describe('Prompt key, e.g. \"natal:overview\".'),
+  "model": zod.string().describe('The model this section\'s calls ran on.')
+})))
+}).optional().describe('Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it.\n')
 }),
   "overview": zod.object({
   "headline": zod.string(),

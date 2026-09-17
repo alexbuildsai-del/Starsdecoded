@@ -8,12 +8,20 @@
  * and parsed with the same schema, so a rejected reply is retried with the
  * problems named, and then fails loudly rather than being stored as a raw
  * string.
+ *
+ * Every call's token usage is recorded and stored on `meta.usage` (R02, MB-10),
+ * so a prompt, model or reasoning-effort change is judged on measured cost and
+ * time. It is the only channel the report lab has in `--remote` mode, where it
+ * reads a deployed report as an anonymous visitor.
  */
 import { openai } from "@workspace/integrations-openai-ai-server";
 import type { z } from "zod/v4";
 import { resolveSection } from "./promptLoader.js";
 import { ASPECT_ORBS, EPHEMERIS, type NatalChartData } from "./chartCalculation.js";
 import { sect as computeSect } from "./traditional.js";
+import { logger } from "./logger.js";
+import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type SectionUsage } from "./usage.js";
+import { MODELS, modelFor } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
   buildBrief, storeClaims, toStrictJsonSchema,
@@ -32,7 +40,7 @@ import { SuperpowersSchema } from "../prompts/sections/superpowers.js";
 import { DiscoveriesSchema } from "../prompts/sections/discoveries.js";
 import { FocusSchema } from "../prompts/sections/focus.js";
 
-export const MODEL = "gpt-5.2";
+// Which model each call uses lives in ./models.ts, never here.
 /** One blind try, then two informed by the rejection. A lost section loses the whole report. */
 const ATTEMPTS = 3;
 /** Bump when the section set, schemas, or vocabulary change shape. */
@@ -70,6 +78,8 @@ export interface ReportInterpretation {
     generatedAt: string;
     /** Prose words across the ten reader-facing sections. */
     wordCount: number;
+    /** Tokens, cost and time for all eleven calls. */
+    usage: ReportUsage;
   };
   foundation: FoundationData;
   overview: OverviewSection;
@@ -109,15 +119,24 @@ class SectionError extends Error {
   }
 }
 
+interface SectionResult<T> {
+  data: T;
+  usage: SectionUsage;
+}
+
 async function callSection<S extends SectionSpec>(
   spec: S,
+  model: string,
   system: string,
   user: string,
   brief: ChartBrief,
-): Promise<z.infer<S["schema"]>> {
+): Promise<SectionResult<z.infer<S["schema"]>>> {
   const jsonSchema = toStrictJsonSchema(spec.schema);
   const name = spec.key.replace(/[^a-zA-Z0-9_]/g, "_");
   let lastError = "";
+  // Accumulates across attempts: a section that retried twice cost three calls,
+  // and hiding that would understate exactly what we are here to measure.
+  let usage = emptySection(spec.key, model);
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     // A retry that repeats the identical request mostly repeats the mistake.
@@ -126,8 +145,9 @@ async function callSection<S extends SectionSpec>(
     const content = attempt === 1
       ? user
       : `${user}\n\nPREVIOUS ATTEMPT REJECTED: ${lastError}\nReturn the complete section again with these fixed. Every claim quote must be copied exactly from the prose in this reply.`;
+    const startedAt = Date.now();
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model,
       max_completion_tokens: spec.maxTokens,
       messages: [
         { role: "system", content: system },
@@ -135,6 +155,7 @@ async function callSection<S extends SectionSpec>(
       ],
       response_format: { type: "json_schema", json_schema: { name, strict: true, schema: jsonSchema } },
     });
+    usage = addAttempt(usage, response.usage, Date.now() - startedAt);
 
     const choice = response.choices[0];
     const message = choice?.message;
@@ -166,7 +187,7 @@ async function callSection<S extends SectionSpec>(
     // must echo the computed sect. A failure here is a hallucination, and it
     // never reaches storage.
     const problems = spec.validate ? spec.validate(parsed.data, brief) : [];
-    if (problems.length === 0) return parsed.data as z.infer<S["schema"]>;
+    if (problems.length === 0) return { data: parsed.data as z.infer<S["schema"]>, usage };
     lastError = problems.join("; ");
   }
 
@@ -192,26 +213,44 @@ export async function generateInterpretation(
   name: string,
 ): Promise<ReportInterpretation> {
   const brief = buildBrief(chart, name);
+  const startedAt = Date.now();
 
   // Stage 1: foundation runs alone. Its output is the editorial handoff every
   // reader-facing section receives.
   const foundationPrompt = await resolveSection(FOUNDATION.key);
-  const foundation = await callSection(
+  const foundationCall = await callSection(
     FOUNDATION,
+    MODELS.foundation,
     foundationPrompt.system,
     assembleUser(foundationPrompt.user, brief, FOUNDATION),
     brief,
   );
+  const foundation = foundationCall.data;
   const foundationJson = JSON.stringify(foundation, null, 2);
 
   // Stage 2: the ten sections depend only on the foundation, so they run in
   // parallel. Prompts resolve in parallel too, honouring DB overrides.
   const prompts = await Promise.all(REPORT_SECTIONS.map((s) => resolveSection(s.key)));
-  const results = await Promise.all(
+  const calls = await Promise.all(
     REPORT_SECTIONS.map((spec, i) =>
-      callSection(spec, prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief),
+      callSection(spec, modelFor(spec.key), prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief),
     ),
   );
+  const results = calls.map((c) => c.data);
+
+  // Wall clock covers the serial foundation plus one parallel wave, so it is
+  // always below the summed call time. The gap is what the fan-out buys.
+  const usage = buildReportUsage(
+    [foundationCall.usage, ...calls.map((c) => c.usage)],
+    Date.now() - startedAt,
+  );
+  logger.info({
+    model: usage.model,
+    costUsd: usage.costUsd,
+    wallClockSeconds: Math.round(usage.wallClockMs / 100) / 10,
+    ...usage.totals,
+    retried: usage.sections.filter((s) => s.attempts > 1).map((s) => s.section),
+  }, "report interpretation complete");
 
   const withLabels = results.map((r) => {
     const out = r as { claims: Parameters<typeof storeClaims>[0] };
@@ -236,7 +275,7 @@ export async function generateInterpretation(
   return {
     meta: {
       promptVersion: PROMPT_VERSION,
-      model: MODEL,
+      model: usage.model,
       houseSystem: "whole-sign",
       zodiac: "tropical",
       ephemeris: EPHEMERIS,
@@ -247,6 +286,7 @@ export async function generateInterpretation(
       sectMarginal: s.marginal,
       generatedAt: new Date().toISOString(),
       wordCount: countWords(sections),
+      usage,
     },
     foundation,
     ...sections,
