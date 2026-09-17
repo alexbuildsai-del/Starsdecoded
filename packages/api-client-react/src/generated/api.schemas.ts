@@ -309,14 +309,17 @@ export const ReportInterpretationMetaSectLight = {
 export type ReportInterpretationMetaUsageSectionsItem = UsageTotals & {
   /** Prompt key, e.g. "natal:overview". */
   section: string;
+  /** The model this section's calls ran on. */
+  model: string;
 };
 
 /**
  * Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it.
  */
 export type ReportInterpretationMetaUsage = {
+  /** The model every call used, or "mixed" when they differ. */
   model: string;
-  /** Priced when generated. Null for a model with no price on record. */
+  /** Priced per section on its own model and summed, when generated. Null if any model has no price on record. */
   costUsd: number | null;
   /** End to end. Below `totals.ms`, because ten sections run at once. */
   wallClockMs: number;

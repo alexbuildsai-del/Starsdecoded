@@ -1140,9 +1140,12 @@ components:
               type: object
               properties:
                 model:
+                  description: The model every call used, or "mixed" when they differ.
                   type: string
                 costUsd:
-                  description: Priced when generated. Null for a model with no price on record.
+                  description: >
+                    Priced per section on its own model and summed, when
+                    generated. Null if any model has no price on record.
                   type: number
                   nullable: true
                 wallClockMs:
@@ -1160,7 +1163,10 @@ components:
                           section:
                             description: Prompt key, e.g. "natal:overview".
                             type: string
-                        required: [section]
+                          model:
+                            description: The model this section's calls ran on.
+                            type: string
+                        required: [section, model]
               required: [model, costUsd, wallClockMs, totals, sections]
           required: [promptVersion, model, houseSystem, generatedAt, wordCount, zodiac, ephemeris, orbs, sect, sectLight, sunAltitude, sectMarginal]
         overview:
