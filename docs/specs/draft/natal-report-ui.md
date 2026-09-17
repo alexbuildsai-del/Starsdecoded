@@ -24,7 +24,9 @@ holding open, and the report shell that sits on it.
   where a sign is crowded, bodies **ladder inward** across three radii, each joined to its
   own degree tick by a leader line. Sign names written out, house numbers on their own
   ring, aspects de-emphasised in an inner disc, the four quadrants named in words, degrees
-  revealed on hover, click selects a **house** rather than a planet.
+  revealed on hover, click selects a **house** rather than a planet. The Owner approved
+  replacing the staging wheel outright with the one prototyped this session, so
+  `radial-orbital-natal.tsx` goes rather than being patched.
 - **Citations become superscripts.** `EvidenceLine.tsx` reprints the model's claim quote
   under the paragraph the reader just read. Instead, mark the quote in place at its true
   offset with a numbered superscript; hover (pointer) or tap (touch) opens a card listing
@@ -45,8 +47,9 @@ holding open, and the report shell that sits on it.
   nodes have no render and keep a drawn glyph, which usefully reads as "point, not planet".
 - **House cards.** Type-led front (house number, sign, the planets in it as renders), taller
   card, and a back whose every word is a string the report already emits —
-  `SD.personalPlanets[body]`, and `angleMeanings` for the 1st and 10th. Nothing written for
-  the UI.
+  `personalPlanets[body]`, and `angleMeanings` for the 1st and 10th. An empty house reads
+  through its ruler, using that ruler's generated line. **The UI writes no astrological
+  prose of its own in this round** — if a card has nothing generated to say, it says nothing.
 - **Chrome demotion.** `MethodologyBox` and `HouseSystemExplainer` move to a footnote strip
   and a slide-over instead of sitting open inline.
 
@@ -118,16 +121,12 @@ holding open, and the report shell that sits on it.
 
 ## Open questions
 
-1. **Which accent.** Brass `#D4B06A`, platinum `#C8CEDA`, or indigo with no metal. All three
-   are live in the artifact's opening frame. Default if silent: **brass** — it is the only
-   one that reads as measured rather than as chrome, and it is already the wheel's colour.
-   This is the last thing holding MB-29 open.
-2. **The back of an empty house card.** It currently explains the house through its ruler,
-   in words, because that is the only generated text that exists for an empty house. Default
-   if silent: keep it, clearly labelled.
-3. **The table view of the chart.** `ReportPage.tsx` L462 renders the Table toggle with
-   `hidden`. Default if silent: delete the dead toggle and keep the wheel plus the print-only
-   planet cards.
+1. **The dead table toggle.** In section `02 — Chart`, directly above the wheel, there is a
+   pill toggle that shows a single option, `WHEEL`. Its sibling button, `TABLE`, carries
+   `hidden` (`ReportPage.tsx` L462), so the control has nothing to switch to. The view it
+   would reveal (L543–581) is a plain list of every placement, main planets then minor. That
+   list is not lost either way: print renders both views stacked, so it is already in the
+   PDF. Default if silent: **delete the toggle and the dead branch**, keep the wheel.
 
 ## Decisions to record
 
@@ -145,5 +144,9 @@ holding open, and the report shell that sits on it.
    moving a body off its degree.
 9. Citations are in-paragraph superscripts with an evidence card; the repeated-quote block
    under paragraphs is removed. No prompt or schema change.
-10. House-card copy is drawn only from fields the report already emits; the UI writes no
-    astrological prose of its own.
+10. House-card copy is drawn only from fields the report already emits; an empty house reads
+    through its ruler's generated line, and the UI writes no astrological prose of its own.
+11. Accent: brass `#D4B06A` is the sky colour. Platinum and indigo-only were built, shown and
+    rejected. This closes MB-29.
+12. The decorative wheel component is replaced, not repaired: `radial-orbital-natal.tsx` is
+    deleted with the round that lands its successor.
