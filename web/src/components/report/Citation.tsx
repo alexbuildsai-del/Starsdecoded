@@ -4,6 +4,7 @@
  * the paragraph the reader just finished (ADR-18).
  */
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { Claim } from "@/types/chart";
 import { EvidenceCard } from "@/components/report/EvidenceCard";
 
@@ -33,8 +34,22 @@ function Citation({ index, claim }: { index: number; claim: Claim }) {
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const supRef = useRef<HTMLButtonElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<number | null>(null);
 
   const close = useCallback(() => setOpen(false), []);
+  const cancelClose = useCallback(() => {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }, []);
+  // A short grace period, so the pointer can travel from the mark to the card.
+  const closeSoon = useCallback(() => {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => setOpen(false), 160);
+  }, [cancelClose]);
+
+  useEffect(() => cancelClose, [cancelClose]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -74,9 +89,8 @@ function Citation({ index, claim }: { index: number; claim: Claim }) {
 
   return (
     <span
-      className="relative"
-      onMouseEnter={() => { if (!isCoarsePointer()) setOpen(true); }}
-      onMouseLeave={() => { if (!isCoarsePointer()) close(); }}
+      onMouseEnter={() => { if (!isCoarsePointer()) { cancelClose(); setOpen(true); } }}
+      onMouseLeave={() => { if (!isCoarsePointer()) closeSoon(); }}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) close();
       }}
@@ -91,11 +105,15 @@ function Citation({ index, claim }: { index: number; claim: Claim }) {
       >
         {index}
       </button>
-      {open && (
+      {/* Portalled: a card is not legal inside a paragraph, and nothing in the
+          reading should be able to clip it. */}
+      {open && createPortal(
         <div
           ref={cardRef}
           role="dialog"
           aria-label={name}
+          onMouseEnter={cancelClose}
+          onMouseLeave={() => { if (!isCoarsePointer()) closeSoon(); }}
           className={
             coarse
               ? "fixed inset-x-3 bottom-3 z-50 max-h-[70vh] overflow-y-auto"
@@ -104,7 +122,8 @@ function Citation({ index, claim }: { index: number; claim: Claim }) {
           style={coarse || !pos ? undefined : { left: pos.left, top: pos.top }}
         >
           <EvidenceCard claim={claim} />
-        </div>
+        </div>,
+        document.body,
       )}
     </span>
   );

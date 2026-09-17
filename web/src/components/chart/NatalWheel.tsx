@@ -3,7 +3,7 @@
  * absoluteDegree; crowding moves it inward, never around (ADR-17). The
  * Ascendant is a point on the horizon and is never drawn as a body.
  */
-import { useId, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { PLANET_GLYPHS, PLANET_LABELS, type ChartData } from "@/types/chart";
 import { renderFor } from "@/lib/planet-renders";
 import {
@@ -12,6 +12,9 @@ import {
 } from "@/components/chart/wheel-geometry";
 
 const PLATE = 600;
+
+/* SVG ids must be valid XML names, which React's useId output is not. */
+let instances = 0;
 
 const ASPECT_STROKE: Record<string, string> = {
   conjunction: "hsl(var(--brass))",
@@ -71,7 +74,7 @@ export function NatalWheel({
   onSelectHouse,
   renderHouse,
 }: NatalWheelProps) {
-  const gradientId = useId();
+  const [uid] = useState(() => `natal-wheel-${++instances}`);
   const [internalHouse, setInternalHouse] = useState(1);
   const [hovered, setHovered] = useState<string | null>(null);
 
@@ -113,17 +116,17 @@ export function NatalWheel({
         aria-label="Natal chart wheel"
       >
         <defs>
-          <radialGradient id={gradientId}>
+          <radialGradient id={uid}>
             <stop offset="0%" stopColor="hsl(var(--card))" stopOpacity="0.5" />
             <stop offset="100%" stopColor="hsl(var(--background))" stopOpacity="0" />
           </radialGradient>
         </defs>
-        <circle cx={c} cy={c} r={r.aspect} fill={`url(#${gradientId})`} />
+        <circle cx={c} cy={c} r={r.aspect} fill={`url(#${uid})`} />
 
         {/* Quadrants, named in words, outside the plate. */}
         {[0, 1, 2, 3].map((q) => {
           const a0 = theta(Math.floor(asc / 30) * 30 + q * 90, asc) + 6;
-          const id = `${gradientId}-q${q}`;
+          const id = `${uid}-q${q}`;
           const t0 = pointAt(c, c, r.signOuter + PLATE * 0.028, a0 - 6);
           const t1 = pointAt(c, c, r.signOuter + PLATE * 0.062, a0 - 6);
           return (
@@ -155,7 +158,7 @@ export function NatalWheel({
           const b1 = b0 + 30;
           const sign = houseSign(h, asc);
           const selected = h === house;
-          const signId = `${gradientId}-s${h}`;
+          const signId = `${uid}-s${h}`;
           const numberAt = pointAt(c, c, (r.houseOuter + r.houseInner) / 2, b0 + 15);
           return (
             <g
