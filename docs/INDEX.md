@@ -10,6 +10,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Specs
 - `docs/specs/locked/` — none yet. First candidate: pricing and packaging.
+- `docs/specs/draft/natal-report-ui.md` — Observatory direction, the wheel rebuilt on real degrees,
+  citations as superscripts, planet renders restored. Live prototype: https://claude.ai/artifact/BRbKnKKjC78Xe3egLtanZz
 - `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 
 ## Rounds
