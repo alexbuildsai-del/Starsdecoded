@@ -6,6 +6,8 @@ import {
   buildBrief, toStrictJsonSchema,
 } from "./index.js";
 import { BODIES, SIGNS, BODY, SIGN, HOUSE, ASPECT, STRUCTURE } from "./vocabulary.js";
+import { itemsHint } from "./jsonSchema.js";
+import { OverviewSchema } from "./sections/overview.js";
 
 test("registry: ten reader-facing sections in the agreed order, foundation first overall", () => {
   assert.deepEqual(SECTION_IDS, ["overview", "triad", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"]);
@@ -83,6 +85,16 @@ test("schemas: strict JSON schema closes every object and carries no unsupported
     for (const [k, v] of Object.entries(o)) walk(v, `${path}.${k}`);
   };
   for (const s of ALL_SECTIONS) walk(toStrictJsonSchema(s.schema), s.key);
+});
+
+test("schemas: every bounded array tells the model its item count, since strict mode drops the bound", () => {
+  const strict = toStrictJsonSchema(FoundationSchema) as Record<string, any>;
+  assert.match(strict.properties.supportingEvidence.description, /3 to 6 items\.$/);
+  const claims = toStrictJsonSchema(OverviewSchema) as Record<string, any>;
+  assert.match(claims.properties.claims.description, /3 to 8 items\.$/);
+  assert.match(claims.properties.claims.items.properties.evidence.description, /1 to 3 items\.$/);
+  assert.equal(itemsHint(3, 3), "Exactly 3 items.");
+  assert.equal(itemsHint(undefined, undefined), undefined);
 });
 
 test("schemas: each section accepts a well-formed payload and rejects an empty object", () => {
@@ -170,4 +182,13 @@ test("every reader-facing section requires 3-8 claims and validates them; founda
   assert.ok("sect" in (FoundationSchema as unknown as { shape: Record<string, unknown> }).shape);
   assert.match(CLAIMS_CONTRACT, /verbatim/);
   assert.match(SYS, /commits to one sect/);
+});
+
+test("registry: every section's token cap clears its prose plus eight claims with room to spare", () => {
+  // ~1.5 tokens per prose word, up to eight claims at ~120 tokens each, and JSON overhead.
+  for (const spec of ALL_SECTIONS) {
+    const [, maxWords] = spec.wordTarget;
+    const needed = Math.ceil(maxWords * 1.5) + 8 * 120 + 200;
+    assert.ok(spec.maxTokens >= needed * 1.5, `${spec.key}: cap ${spec.maxTokens} is under 1.5x the ${needed} tokens a full reply can need`);
+  }
 });

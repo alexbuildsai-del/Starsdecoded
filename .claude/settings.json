@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "claude-code-plugins": {
+      "source": { "source": "github", "repo": "anthropics/claude-code" }
+    },
+    "anthropic-agent-skills": {
+      "source": { "source": "github", "repo": "anthropics/skills" }
+    }
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-code-plugins": true,
+    "example-skills@anthropic-agent-skills": true
+  }
+}

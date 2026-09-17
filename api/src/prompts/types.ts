@@ -10,6 +10,11 @@ export interface SectionSpec<T extends z.ZodType = z.ZodType> {
   adminLabel: string;
   /** Prose word target for the whole section. */
   wordTarget: [number, number];
+  /**
+   * Ceiling on the reply, not a target: the word target sets length. Sized at
+   * roughly twice what the prose and eight claims need, because a reply that
+   * hits the cap is cut mid-string and the whole report fails.
+   */
   maxTokens: number;
   /** The output contract. Sent as strict JSON schema and used to parse. */
   schema: T;

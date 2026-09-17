@@ -15,7 +15,7 @@ export const money: SectionSpec<typeof MoneySchema> = {
   label: "Money & Resources",
   adminLabel: "Money & Resources",
   wordTarget: [250, 300],
-  maxTokens: 1_100,
+  maxTokens: 2_500,
   schema: MoneySchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write Money & Resources. This section is the most likely to drift into generic advice, so it must be anchored: the ruler of the 2nd and where it sits, the ruler of the 8th and where it sits, the Lot of Fortune's house, and Venus and Saturn by sect. Cite the behaviour those facts produce, never the facts.

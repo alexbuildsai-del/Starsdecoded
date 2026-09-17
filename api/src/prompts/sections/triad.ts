@@ -14,7 +14,7 @@ export const triad: SectionSpec<typeof TriadSchema> = {
   label: "Core Triad",
   adminLabel: "Core Triad",
   wordTarget: [250, 300],
-  maxTokens: 1_000,
+  maxTokens: 2_500,
   schema: TriadSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write the Core Triad: Sun, Moon, and rising sign, 80 to 100 words each.

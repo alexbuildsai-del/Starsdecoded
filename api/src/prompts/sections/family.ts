@@ -15,7 +15,7 @@ export const family: SectionSpec<typeof FamilySchema> = {
   label: "Family & Roots",
   adminLabel: "Family & Roots",
   wordTarget: [250, 300],
-  maxTokens: 1_100,
+  maxTokens: 2_500,
   schema: FamilySchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write Family & Roots. Primary evidence: the ruler of the 4th and where it sits, the Moon by sect and dignity, Saturn by sect, and anything in the 4th.

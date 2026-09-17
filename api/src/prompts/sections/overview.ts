@@ -16,7 +16,7 @@ export const overview: SectionSpec<typeof OverviewSchema> = {
   label: "Chart Overview",
   adminLabel: "Chart Overview",
   wordTarget: [400, 450],
-  maxTokens: 1_200,
+  maxTokens: 3_000,
   schema: OverviewSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
   instructions: `Write the Chart Overview. This is the entry point: the reader should feel accurately seen within the first two sentences.

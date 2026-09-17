@@ -5,10 +5,17 @@
  *   pnpm report:lab --chart marie-curie
  *   pnpm report:lab --all --defaults-only --baseline
  *   pnpm report:lab --compare baseline latest
+ *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
+ *   pnpm report:lab --render --all --label staging     (rewrite .md/.html from stored .json)
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
  * Postgres) and OPENAI_API_KEY. Each run costs one full report's worth of AI
  * calls per chart.
+ *
+ * --remote needs neither: it generates each report through a deployed API as
+ * an anonymous visitor would and measures what comes back, so the measurement
+ * covers the engine, prompts and overrides that deployment actually runs.
+ * The Report lab workflow runs it against staging.
  */
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -30,7 +37,7 @@ interface ChartFixture {
 }
 
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
-import { WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
+import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
 const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
 const REPORT_TOTAL: [number, number] = [3500, 4000];
@@ -161,36 +168,92 @@ function renderTable(rows: SectionRow[]): string {
   return [line(head), line(widths.map((w) => "-".repeat(w))), ...body.map(line)].join("\n");
 }
 
+/** "growingEdge" reads as "Growing edge". */
+function humanize(key: string): string {
+  const s = key.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Stored JSON comes back from Postgres with its keys re-sorted, so the prose
+ * is walked in the order the section schema declares, the order a reader
+ * sees it. Zod objects expose `shape`, arrays `element`; anything else is
+ * rendered as found.
+ */
+function keysInSchemaOrder(schema: unknown, value: Record<string, unknown>): string[] {
+  const shape = (schema as { shape?: Record<string, unknown> } | undefined)?.shape;
+  const declared = shape ? Object.keys(shape).filter((k) => k in value) : [];
+  const rest = Object.keys(value).filter((k) => !declared.includes(k));
+  return [...declared, ...rest];
+}
+
+function proseMarkdown(value: unknown, schema: unknown, depth: number, out: string[]): void {
+  if (typeof value === "string") { out.push(value, ""); return; }
+  if (Array.isArray(value)) {
+    const el = (schema as { element?: unknown } | undefined)?.element;
+    for (const item of value) {
+      if (typeof item === "string") out.push(`- ${item}`);
+      else if (item && typeof item === "object") {
+        const o = item as Record<string, unknown>;
+        const keys = keysInSchemaOrder(el, o);
+        out.push(`- ${keys.map((k, i) => (i === 0 ? `**${String(o[k])}**` : String(o[k]))).join(" ")}`);
+      }
+    }
+    out.push("");
+    return;
+  }
+  if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    const shape = (schema as { shape?: Record<string, unknown> } | undefined)?.shape;
+    for (const k of keysInSchemaOrder(schema, o)) {
+      if (k === "claims") continue;
+      const v = o[k];
+      // Intro, title and bullet keys are structure, not headings a reader needs.
+      if (typeof v === "string" && depth > 0 && ["intro", "text", "body"].includes(k)) { out.push(v, ""); continue; }
+      if (typeof v === "string" && depth > 0 && ["title", "label", "name"].includes(k)) { out.push(`**${v}**`, ""); continue; }
+      if (Array.isArray(v) && depth > 0 && ["bullets", "items"].includes(k)) { proseMarkdown(v, shape?.[k], depth + 1, out); continue; }
+      out.push(`${"#".repeat(Math.min(3 + depth, 6))} ${humanize(k)}`, "");
+      proseMarkdown(v, shape?.[k], depth + 1, out);
+    }
+  }
+}
+
 function renderMarkdown(
   fixture: ChartFixture,
   interpretation: Record<string, unknown>,
   rows: SectionRow[],
 ): string {
   const total = rows.reduce((n, r) => n + r.words, 0);
+  const meta = interpretation.meta as { promptVersion?: string; model?: string; sect?: string; generatedAt?: string } | undefined;
   const out: string[] = [
-    `# ${fixture.name} — natal report`,
+    `# ${fixture.name}`,
     "",
-    `Generated ${new Date().toISOString()} by the report lab.`,
+    `Natal report from the report lab, ${meta?.generatedAt ?? new Date().toISOString()}. ` +
+      `Prompt ${meta?.promptVersion ?? "?"} on ${meta?.model ?? "?"}, ${meta?.sect ?? "?"} chart, ${total} words.`,
     `Birth data: ${fixture.birthDate} ${fixture.birthTime}, ` +
       `${fixture.latitude}, ${fixture.longitude} (UTC${fixture.timezoneOffset >= 0 ? "+" : ""}${fixture.timezoneOffset}).`,
     "",
-    `**Total: ${total} words**`,
+    "<details><summary>Measurement</summary>",
     "",
     "```",
     renderTable(rows),
     "```",
     "",
-    "---",
+    "</details>",
     "",
   ];
   for (const section of SECTION_IDS) {
     const value = interpretation[section];
     if (value === undefined) continue;
-    out.push(`## ${section}`, "");
-    out.push(
-      typeof value === "string" ? value : "```json\n" + JSON.stringify(value, null, 2) + "\n```",
-    );
-    out.push("");
+    const spec = ALL_SECTIONS.find((s) => s.key === `natal:${section}`);
+    out.push("---", "", `## ${spec?.label ?? humanize(section)}`, "");
+    proseMarkdown(value, spec?.schema, 0, out);
+    const claims = (value as { claims?: Array<{ quote: string; evidence: Array<{ label: string }> }> } | null)?.claims ?? [];
+    if (claims.length) {
+      out.push("<details><summary>Claims and evidence</summary>", "");
+      for (const c of claims) out.push(`- "${c.quote}"`, ...c.evidence.map((e) => `  - ${e.label}`));
+      out.push("", "</details>", "");
+    }
   }
   return out.join("\n");
 }
@@ -265,6 +328,80 @@ async function runOne(name: string, label: string): Promise<SectionRow[]> {
   )) as unknown as Record<string, unknown>;
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
 
+  return report(name, label, fixture, chart, interpretation, elapsed);
+}
+
+/**
+ * The same run through a deployed API. The first response sets the anonymous
+ * session cookie, which every later call must carry to own the report.
+ */
+async function runOneRemote(name: string, label: string, base: string): Promise<SectionRow[]> {
+  const fixture = loadFixture(name);
+  console.log(`\n=== ${fixture.name} (${name}) via ${base} ===`);
+
+  let cookie = "";
+  const call = async (path: string, init?: RequestInit) => {
+    const res = await fetch(`${base}/api${path}`, {
+      ...init,
+      headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}), ...(init?.headers ?? {}) },
+    });
+    const set = res.headers.get("set-cookie");
+    if (set && !cookie) cookie = set.split(";")[0];
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) throw new Error(`${path}: ${res.status} ${JSON.stringify(body)}`);
+    return body;
+  };
+
+  const started = Date.now();
+  const created = await call("/reports", {
+    method: "POST",
+    body: JSON.stringify({
+      name: fixture.name,
+      birthDate: fixture.birthDate,
+      birthTime: fixture.birthTime,
+      birthPlace: `lab fixture ${name}`,
+      latitude: fixture.latitude,
+      longitude: fixture.longitude,
+      timezoneOffset: fixture.timezoneOffset,
+    }),
+  });
+  const id = created.id as string;
+
+  // Generation runs on the server, so a failed poll (a Railway 502, a dropped
+  // connection) says nothing about the report: keep polling until the deadline.
+  const deadline = Date.now() + 15 * 60 * 1000;
+  let last = "";
+  for (;;) {
+    try {
+      const status = await call(`/reports/${id}/status`);
+      last = String(status.status);
+      if (status.status === "complete") break;
+      if (status.status === "failed") throw new Error(`report ${id} failed: ${status.errorMessage}`);
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith(`report ${id} failed`)) throw err;
+      console.log(`poll error, retrying: ${err instanceof Error ? err.message : err}`);
+    }
+    if (Date.now() > deadline) throw new Error(`report ${id} still ${last || "unanswered"} after 15 minutes`);
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+  const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+
+  const full = await call(`/reports/${id}`);
+  const interpretation = full.interpretation as Record<string, unknown>;
+  const chart = full.chartData as NatalChartData;
+  if (!interpretation || !chart) throw new Error(`report ${id} came back without interpretation or chart`);
+
+  return report(name, label, fixture, chart, interpretation, elapsed);
+}
+
+function report(
+  name: string,
+  label: string,
+  fixture: ChartFixture,
+  chart: NatalChartData,
+  interpretation: Record<string, unknown>,
+  elapsed: string,
+): SectionRow[] {
   const rows = measure(interpretation, chart);
   const total = rows.reduce((n, r) => n + r.words, 0);
 
@@ -334,6 +471,39 @@ async function main() {
     return;
   }
 
+  const label = flag("baseline") ? "baseline" : (opt("label") ?? "latest");
+  const names = flag("all") ? listFixtures() : [opt("chart") ?? "marie-curie"];
+
+  if (flag("render")) {
+    for (const name of names) {
+      const path = join(REPORTS_DIR, `${name}.${label}.json`);
+      if (!existsSync(path)) { console.log(`no run at ${path}`); continue; }
+      const run = JSON.parse(readFileSync(path, "utf8")) as { fixture: ChartFixture; chart: NatalChartData; interpretation: Record<string, unknown> };
+      console.log(`\n=== ${run.fixture.name} (${name}) re-rendered from ${label} ===`);
+      report(name, label, run.fixture, run.chart, run.interpretation, "0");
+    }
+    return;
+  }
+
+  const remote = opt("remote");
+  if (remote !== undefined) {
+    if (!/^https?:\/\//.test(remote)) throw new Error(`--remote needs a web origin, got "${remote}"`);
+    const base = remote.replace(/\/+$/, "");
+    // Every fixture runs even when one fails: a measurement with four charts
+    // and one named failure is worth more than a stop at the first.
+    const failed: string[] = [];
+    for (const name of names) {
+      try {
+        await runOneRemote(name, label, base);
+      } catch (err) {
+        console.log(`FAILED ${name}: ${err instanceof Error ? err.message : err}`);
+        failed.push(name);
+      }
+    }
+    if (failed.length) throw new Error(`${failed.length} of ${names.length} fixtures failed: ${failed.join(", ")}`);
+    return;
+  }
+
   if (!process.env.DATABASE_URL) {
     throw new Error(
       "DATABASE_URL must be set. The meaning library lives in Postgres, so a run " +
@@ -348,9 +518,6 @@ async function main() {
     process.env.PROMPT_DEFAULTS_ONLY = "1";
     console.log("defaults-only: ignoring prompt_templates overrides.");
   }
-
-  const label = flag("baseline") ? "baseline" : (opt("label") ?? "latest");
-  const names = flag("all") ? listFixtures() : [opt("chart") ?? "marie-curie"];
 
   for (const name of names) {
     await runOne(name, label);
