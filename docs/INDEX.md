@@ -10,12 +10,12 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Specs
 - `docs/specs/locked/` — none yet. First candidate: pricing and packaging.
-- `docs/specs/draft/report-cost-and-latency.md` — $0.25 a report measured, output is 74% of it. Ranked levers; only L0 built.
+- `docs/specs/draft/report-cost-and-latency.md` — 27.1 cents a report measured; output 74%, half of it invisible. Levers re-ranked on the R02 baseline; L0 built.
 - `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 
 ## Rounds
 - `docs/rounds/R01-plan.md` · `R01-report.md` — claims made true, DELETE report, legal drafts, smoke workflow. Owner acceptance pending.
-- `docs/rounds/R02-plan.md` · `R02-report.md` — usage telemetry (L0). Baseline lab run still owed; MB-10 open until it lands.
+- `docs/rounds/R02-plan.md` · `R02-report.md` — usage telemetry (L0). Baseline measured: 27.1 cents a report, reasoning tokens zero. MB-10 closed.
 
 ## QA
 - `docs/qa/` — none yet.

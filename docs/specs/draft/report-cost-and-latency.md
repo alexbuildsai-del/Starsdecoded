@@ -1,48 +1,40 @@
 # Draft spec — report cost and latency
 
 Raised by the Owner, 2026-09-16, from the OpenAI dashboard: `$2.92` on the
-staging key for one day, and a report that takes about a minute. Owner answers:
-cost policy holds, L0 alone is greenlit, and the report is 4,000 to 4,500 words
-(2026-09-17), which takes length off this spec entirely.
+staging key for one day, and a report that takes about a minute. Cost policy
+holds; the report is 4,000 to 4,500 words, which takes length off this spec.
+L0 shipped in R02, and its baseline is the measurement below.
 
-## One report costs 24.7 cents
+## One report costs 27.1 cents, measured
 
-`gpt-5.2` is $1.75/M input, $0.175/M cached input, $14.00/M output. Dividing
-the dashboard's three figures by those rates gives the tokens behind them:
+R02's baseline (Report lab run 6, staging, 2026-09-17, five fixtures, $1.35)
+replaces every estimate below. `gpt-5.2`: $1.75/M in, $0.175/M cached, $14/M out.
 
-| | spend | tokens | per report |
-|---|---|---|---|
-| output | $2.145 | 153,000 | ~12,970 |
-| input (uncached) | $0.617 | 353,000 | ~29,900 |
-| input (cached) | $0.156 | 891,000 | ~75,500 |
-| **total** | **$2.92** | 1,244,000 | **~$0.247** |
+| | mean per report | share of spend |
+|---|---|---|
+| output | 13,739 tokens | 74% |
+| input (uncached) | ~29,900 tokens | 21% |
+| input (cached) | ~76,800 tokens | 5% |
+| **cost** | **$0.2710** | range $0.2443 - $0.3208 |
 
-One report is 11 calls carrying ~105,300 input tokens (measured from the code),
-so `$2.92` is **11.8 reports**. The Owner counted 13 created that day. The two
-agree, and **$0.25 a report** is now a measured number, not an estimate.
+The dashboard arithmetic predicted $0.247; the measurement is $0.271. Caching
+works at a 68% hit rate, so input is a fifth of the bill and the system prompt
+is not the lever. Output is, and **half of it is invisible**:
 
-Two things follow immediately.
+| | tokens | share of output |
+|---|---|---|
+| prose the reader gets | ~6,796 | 49% |
+| claims | ~5,032 | 37% |
+| foundation (internal) | ~1,918 | 14% |
+| **reasoning** | **0** | **0%** |
 
-**Prompt caching already works.** 70% of input is the byte-identical system
-prefix; the observed hit rate is 71.6%. Input is 22% of the bill, so the system
-prompt is not the lever. Trimming it is in *Out of scope* below.
+**Reasoning tokens are zero on all 55 calls**, and that is real rather than an
+absent field: every section's `completion_tokens` sits at or below its visible
+JSON, where hidden reasoning would push it above. So the model does no hidden
+work here, and `reasoning_effort` has nothing to reclaim.
 
-**Output is 74% of the bill, and most of it is invisible.** The reader's prose
-measures 3,844 to 4,087 words, about **5,400 tokens**. The other **~7,570
-tokens per report — 58% of output, 43% of the bill — no reader ever sees**:
-
-1. **Claims.** Each section returns 3 to 8, every one carrying *a verbatim quote
-   of prose the model already emitted* plus evidence JSON. At the schema's max
-   that is ~6,000 tokens a report, more than the prose itself.
-2. **The foundation call.** Capped at 4,000 tokens, internal handoff only.
-3. **Reasoning tokens.** `reasoning_effort` is **not set at any call site**
-   (`api/src/lib/aiInterpretation.ts:130`), so all 11 calls run on the model
-   default. Billed as output, and paid again in wall clock.
-4. **Retries.** `ATTEMPTS = 3`; a retry re-sends ~9,700 input tokens and
-   regenerates the whole section. Rate unknown.
-
-Nothing logged `response.usage` before R02, so the split between those four is
-still estimated until the baseline run. That is MB-10, and it is L0.
+**Retries ran 9% of calls** (5 of 55), each paying for a whole section again;
+`night-angular` retried three times and cost $0.3208 in 116s, worst on both.
 
 ## Why the minute
 
@@ -70,34 +62,37 @@ and belongs to MB-38, not here.
 
 ## Scope
 
-Ranked levers. Only L0 is greenlit.
-- **L0 · Measure first.** Log `usage` per call: prompt, cached, completion and
-  reasoning tokens, attempt number, elapsed ms. Add cost and seconds per
-  section to the report lab. Closes MB-10. Zero quality risk, nothing
-  USER-FACING. **This is the greenlit round.**
-- **L1 · Stop regenerating reports to test the UI.** The Owner's own point and
-  the cheapest win. Partly shipped in R02: `--render` re-reads the newest run
-  free and one reference report is committed. What remains is loading one into
-  the app. Detail below.
-- **L2 · `reasoning_effort`.** Set it explicitly: keep the default on the
-  foundation, where the chart reasoning happens; try `low` on the ten sections,
-  which write against an analysis already done. Biggest lever that leaves the
-  model alone. Gate on a lab A/B.
-- **L3 · A cheaper model for the ten section calls.** Own section below.
-- **L4 · Get the foundation off the critical path.** (a) Cache it on the
-  profile, extending R-4.5's "a second report for the same profile skips
-  computation". (b) Run Overview from the brief alongside it. Riskier; lab A/B.
+Re-ranked on the R02 measurement. L0 is done; nothing below it is greenlit.
+- **L0 · Measure first.** **Done (R02).** Every call logs its tokens, cost and
+  time to `meta.usage`; the lab prints them per section. MB-10 closed.
+- **L1 · Stop regenerating reports to test the UI.** Mostly shipped in R02:
+  `--render` re-reads the newest run free and a reference report is committed.
+  What remains is loading one into the app (MB-39). Detail below.
+- **L2 · Claims cost 37% of output, ~$0.10 a report.** Now the largest lever
+  that leaves the model alone. Each claim carries a verbatim copy of a sentence
+  the model already emitted; an anchor or offset would cite the same sentence
+  for a fraction of the tokens, though the verbatim quote is what makes
+  `validateClaims` strong. Dropping `ClaimsSchema` max from 8 to 5 is the cheap
+  half and needs no schema rework. USER-FACING only if the citations change.
+- **L3 · A cheaper model for the ten section calls.** Own section below. Still
+  the largest single lever by a wide margin.
+- **L4 · The foundation is 14% of output and ~30% of wall clock**, and no
+  reader sees a word of it. (a) Cache it on the profile, extending R-4.5's "a
+  second report for the same profile skips computation". (b) Run Overview from
+  the brief alongside it. Riskier; lab A/B.
 - **L5 · Persist and reveal sections as they land.** Saves nothing, fixes the
   minute: perceived wait drops to foundation + Overview. Needs a schema change
   and a real progress signal instead of the fudged bar.
-- **L6 · Stop paying for the claim quote twice.** An anchor or offset would cite
-  the same sentence for a fraction of the tokens, but the verbatim quote is what
-  makes `validateClaims` strong. Size it with L0 first; dropping `ClaimsSchema`
-  max from 8 to 5 is the cheap half.
-- **L7 · Retry rate.** Invisible today. If L0 shows it is high, the fix is
-  prompt and schema work, not a smaller retry budget.
-- **L8 · `prompt_cache_key`.** A stable key improves cache routing under
-  concurrency. Free, no quality risk.
+- **L6 · Retry rate is 9% of calls**, each paying for a whole section again and
+  driving the latency tail (`night-angular`: three retries, 116s, $0.32). The
+  fix is prompt and schema work on whatever the rejections say, never a smaller
+  retry budget. R02's logs now name the failing section on every report.
+- **L7 · `prompt_cache_key`.** A stable key improves cache routing under
+  concurrency; the hit rate is 68% today. Free, no quality risk.
+
+**Dropped: `reasoning_effort`.** It was ranked the biggest lever short of
+changing model. The baseline measured zero reasoning tokens on all 55 calls,
+so there is nothing there to reclaim.
 
 ## L1 in detail: when a report actually needs regenerating
 
@@ -120,10 +115,10 @@ changes make that practical:
 
 ## L3 in detail: does it have to be gpt-5.2
 
-`gpt-5-mini` is $0.25/M input and **$2.00/M output — 7x cheaper**. The ten
-section calls are ~90% of the volume. Moving only those, keeping `gpt-5.2` for
-the foundation, models out at roughly **$0.065 a report, a ~74% cut** —
-far larger than every other lever combined.
+`gpt-5-mini` is $0.25/M input and **$2.00/M output — 7x cheaper**. On the
+measured baseline the ten section calls carry ~86% of output. Moving only those
+and keeping `gpt-5.2` for the foundation puts a report at roughly **$0.07,
+a ~74% cut** — larger than every other lever combined.
 
 It is also the highest quality risk, because the prose *is* the product. But it
 is measurable, not a matter of taste: the lab already scores the exact failure
@@ -143,7 +138,7 @@ R-4.4 make it an engine change with its own lab run: do it after L0.
   and risks what makes input cheap. The static-first order in `assembleUser` is
   already correct.
 - **Tightening a token ceiling to save money.** MASTERFILE §1 holds.
-- Building anything past L0.
+- Building any lever past L0 until the Owner picks one.
 
 ## Pre-generating sections: the direct answer
 
@@ -163,24 +158,26 @@ Three parts, and the first two are already true:
    product worse in the way the thesis forbids.
 
 So pre-generation is not the lever for cost or for latency. **L5 is what makes
-the wait feel short; L2 and L3 are what make it actually short.** The only
+the wait feel short; L3 and L4 are what make it actually short.** The only
 legitimate "generate once, reuse" left is the per-profile foundation (L4a) —
 and the reference report of L1, which is pre-generation for *testing*, not for
 customers.
 
-## Acceptance criteria (L0)
+## Acceptance criteria for any lever below
 
-1. Every call logs prompt, cached, completion and reasoning tokens, attempt
-   number and elapsed ms, keyed by section.
-2. The lab prints tokens, dollars and seconds per section, and a report total.
-3. A lab run on all five fixtures, pasted in the round report: the baseline
-   every later lever is judged against. MB-10 closed. INTERNAL round.
+1. A Report lab run on all five fixtures, diffed against the R02 baseline
+   (`report-lab/r02-baseline`, 2026-09-17): cost, seconds and tokens per
+   section, pasted in the round report.
+2. Quality no worse on any fixture: word targets, claim validity, method-talk
+   and banned-character flags.
+3. Report content changes are USER-FACING (R-5.5) even when no UI moves.
 
 ## Open questions
 
-1. **Model (L3).** Test `gpt-5-mini` on the ten sections after L0?
-   *Recommendation:* yes — one dispatch, ~$0.25, and the lab already scores the
-   failure modes. *Default if silent:* stays on `gpt-5.2`, revisit at pricing.
+1. **Model (L3).** Test `gpt-5-mini` on the ten sections? *Recommendation:*
+   yes — one dispatch against all five is $1.35 and the lab already scores the
+   failure modes, with an R02 baseline to diff against. *Default if silent:*
+   stays on `gpt-5.2`, revisit at pricing.
 2. **Latency target.** Is "first section in ~25s, full report by ~60s" (L5) the
    goal, or must the whole report be faster? *Recommendation:* first section in
    ~25s, the cheaper and larger win. *Default if silent:* L5 as written.
@@ -198,4 +195,6 @@ customers.
 - **Reasoning effort becomes explicit and versioned**, named in `meta` beside
   model and prompt version, so a lab run can attribute to it.
 - **Regeneration discipline** (L1): the lab gate runs before a pull request
-  merges; UI work runs against a committed reference report.
+  merges; UI work runs against the committed reference report.
+- **Reasoning effort is not a lever here**: measured zero on all 55 calls of
+  the R02 baseline. Recheck only if the model changes.
