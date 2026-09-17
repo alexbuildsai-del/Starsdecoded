@@ -8,6 +8,7 @@
  *   pnpm report:lab --render                  # newest run on disk, no API call
  *   pnpm report:lab --render marie-curie.staging
  *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
+ *   pnpm report:lab --render --all --label staging     (rewrite .md/.html from stored .json)
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
  * Postgres) and OPENAI_API_KEY. Each run costs one full report's worth of AI
@@ -38,7 +39,7 @@ interface ChartFixture {
 }
 
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
-import { WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
+import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
 /** Cost comes from the engine's own table, so the lab cannot disagree with the bill. */
 import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
@@ -215,36 +216,92 @@ function renderTable(rows: SectionRow[]): string {
   return table(head, body);
 }
 
+/** "growingEdge" reads as "Growing edge". */
+function humanize(key: string): string {
+  const s = key.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Stored JSON comes back from Postgres with its keys re-sorted, so the prose
+ * is walked in the order the section schema declares, the order a reader
+ * sees it. Zod objects expose `shape`, arrays `element`; anything else is
+ * rendered as found.
+ */
+function keysInSchemaOrder(schema: unknown, value: Record<string, unknown>): string[] {
+  const shape = (schema as { shape?: Record<string, unknown> } | undefined)?.shape;
+  const declared = shape ? Object.keys(shape).filter((k) => k in value) : [];
+  const rest = Object.keys(value).filter((k) => !declared.includes(k));
+  return [...declared, ...rest];
+}
+
+function proseMarkdown(value: unknown, schema: unknown, depth: number, out: string[]): void {
+  if (typeof value === "string") { out.push(value, ""); return; }
+  if (Array.isArray(value)) {
+    const el = (schema as { element?: unknown } | undefined)?.element;
+    for (const item of value) {
+      if (typeof item === "string") out.push(`- ${item}`);
+      else if (item && typeof item === "object") {
+        const o = item as Record<string, unknown>;
+        const keys = keysInSchemaOrder(el, o);
+        out.push(`- ${keys.map((k, i) => (i === 0 ? `**${String(o[k])}**` : String(o[k]))).join(" ")}`);
+      }
+    }
+    out.push("");
+    return;
+  }
+  if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    const shape = (schema as { shape?: Record<string, unknown> } | undefined)?.shape;
+    for (const k of keysInSchemaOrder(schema, o)) {
+      if (k === "claims") continue;
+      const v = o[k];
+      // Intro, title and bullet keys are structure, not headings a reader needs.
+      if (typeof v === "string" && depth > 0 && ["intro", "text", "body"].includes(k)) { out.push(v, ""); continue; }
+      if (typeof v === "string" && depth > 0 && ["title", "label", "name"].includes(k)) { out.push(`**${v}**`, ""); continue; }
+      if (Array.isArray(v) && depth > 0 && ["bullets", "items"].includes(k)) { proseMarkdown(v, shape?.[k], depth + 1, out); continue; }
+      out.push(`${"#".repeat(Math.min(3 + depth, 6))} ${humanize(k)}`, "");
+      proseMarkdown(v, shape?.[k], depth + 1, out);
+    }
+  }
+}
+
 function renderMarkdown(
   fixture: ChartFixture,
   interpretation: Record<string, unknown>,
   rows: SectionRow[],
 ): string {
   const total = rows.reduce((n, r) => n + r.words, 0);
+  const meta = interpretation.meta as { promptVersion?: string; model?: string; sect?: string; generatedAt?: string } | undefined;
   const out: string[] = [
-    `# ${fixture.name} — natal report`,
+    `# ${fixture.name}`,
     "",
-    `Generated ${new Date().toISOString()} by the report lab.`,
+    `Natal report from the report lab, ${meta?.generatedAt ?? new Date().toISOString()}. ` +
+      `Prompt ${meta?.promptVersion ?? "?"} on ${meta?.model ?? "?"}, ${meta?.sect ?? "?"} chart, ${total} words.`,
     `Birth data: ${fixture.birthDate} ${fixture.birthTime}, ` +
       `${fixture.latitude}, ${fixture.longitude} (UTC${fixture.timezoneOffset >= 0 ? "+" : ""}${fixture.timezoneOffset}).`,
     "",
-    `**Total: ${total} words**`,
+    "<details><summary>Measurement</summary>",
     "",
     "```",
     renderTable(rows),
     "```",
     "",
-    "---",
+    "</details>",
     "",
   ];
   for (const section of SECTION_IDS) {
     const value = interpretation[section];
     if (value === undefined) continue;
-    out.push(`## ${section}`, "");
-    out.push(
-      typeof value === "string" ? value : "```json\n" + JSON.stringify(value, null, 2) + "\n```",
-    );
-    out.push("");
+    const spec = ALL_SECTIONS.find((s) => s.key === `natal:${section}`);
+    out.push("---", "", `## ${spec?.label ?? humanize(section)}`, "");
+    proseMarkdown(value, spec?.schema, 0, out);
+    const claims = (value as { claims?: Array<{ quote: string; evidence: Array<{ label: string }> }> } | null)?.claims ?? [];
+    if (claims.length) {
+      out.push("<details><summary>Claims and evidence</summary>", "");
+      for (const c of claims) out.push(`- "${c.quote}"`, ...c.evidence.map((e) => `  - ${e.label}`));
+      out.push("", "</details>", "");
+    }
   }
   return out.join("\n");
 }
@@ -536,6 +593,17 @@ async function main() {
 
   const label = flag("baseline") ? "baseline" : (opt("label") ?? "latest");
   const names = flag("all") ? listFixtures() : [opt("chart") ?? "marie-curie"];
+
+  if (flag("render")) {
+    for (const name of names) {
+      const path = join(REPORTS_DIR, `${name}.${label}.json`);
+      if (!existsSync(path)) { console.log(`no run at ${path}`); continue; }
+      const run = JSON.parse(readFileSync(path, "utf8")) as { fixture: ChartFixture; chart: NatalChartData; interpretation: Record<string, unknown> };
+      console.log(`\n=== ${run.fixture.name} (${name}) re-rendered from ${label} ===`);
+      report(name, label, run.fixture, run.chart, run.interpretation, "0");
+    }
+    return;
+  }
 
   const remote = opt("remote");
   if (remote !== undefined) {
