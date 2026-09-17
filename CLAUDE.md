@@ -116,6 +116,5 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 2. R01 Owner acceptance pending (`docs/rounds/R01-report.md`).
 3. Next ideation session: pricing and packaging (MB-5), then payments, which
    go to staging in Stripe test mode first.
-4. The report lab runs against staging from the Report lab workflow
-   (dispatch, `chart` and `label`); no credential needed. First measurement
-   is on PR #33. Still owed: the Owner's legal entity (MB-31).
+4. The report lab runs against staging from the Report lab workflow (dispatch,
+   `chart`, `label`); first measurement on PR #33. Owed: legal entity (MB-31).
