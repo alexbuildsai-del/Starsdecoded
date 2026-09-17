@@ -1,9 +1,9 @@
 # Draft spec — report cost and latency
 
 Raised by the Owner, 2026-09-16, from the OpenAI dashboard: `$2.92` on the
-staging key for one day, and a report that takes about a minute. Investigation
-only. Owner answers the same day: cost policy holds, report length leaves the
-two prose docs, build L0 alone first.
+staging key for one day, and a report that takes about a minute. Owner answers:
+cost policy holds, L0 alone is greenlit, and the report is 4,000 to 4,500 words
+(2026-09-17), which takes length off this spec entirely.
 
 ## One report costs 24.7 cents
 
@@ -28,12 +28,12 @@ prefix; the observed hit rate is 71.6%. Input is 22% of the bill, so the system
 prompt is not the lever. Trimming it is in *Out of scope* below.
 
 **Output is 74% of the bill, and most of it is invisible.** The reader's prose
-is 3,550-4,000 words, about **5,400 tokens**. The other **~7,570 tokens per
-report — 58% of output, 43% of the total bill — no reader ever sees**:
+measures 3,844 to 4,087 words, about **5,400 tokens**. The other **~7,570
+tokens per report — 58% of output, 43% of the bill — no reader ever sees**:
 
-1. **Claims.** Each section returns 3 to 8, and every claim carries *a verbatim
-   quote of prose the model already emitted* plus evidence JSON. At the
-   schema's max that is ~6,000 tokens a report, more than the prose itself.
+1. **Claims.** Each section returns 3 to 8, every one carrying *a verbatim quote
+   of prose the model already emitted* plus evidence JSON. At the schema's max
+   that is ~6,000 tokens a report, more than the prose itself.
 2. **The foundation call.** Capped at 4,000 tokens, internal handoff only.
 3. **Reasoning tokens.** `reasoning_effort` is **not set at any call site**
    (`api/src/lib/aiInterpretation.ts:130`), so all 11 calls run on the model
@@ -41,8 +41,8 @@ report — 58% of output, 43% of the total bill — no reader ever sees**:
 4. **Retries.** `ATTEMPTS = 3`; a retry re-sends ~9,700 input tokens and
    regenerates the whole section. Rate unknown.
 
-Nothing logs `response.usage` — it is read only to explain a truncation — so
-the split between those four is estimated. That is MB-10, and it is L0.
+Nothing logged `response.usage` before R02, so the split between those four is
+still estimated until the baseline run. That is MB-10, and it is L0.
 
 ## Why the minute
 
@@ -56,37 +56,44 @@ with a `MIN_VELOCITY` fudge so it "NEVER freezes". The reader waits the full
 minute for content that was ready in pieces long before.
 
 `ReportPage` renders Overview first (`web/src/pages/ReportPage.tsx:433`), then
-the wheel — composed deterministically in `brief.ts` with **no AI call at
-all**. Overview plus the wheel is already a complete first screen.
+the wheel — composed deterministically in `brief.ts` with **no AI call at all**.
+Overview plus the wheel is already a complete first screen.
+
+## Report length is not a lever
+
+**4,000 to 4,500 words is the product** (Owner, 2026-09-17), so the ~30% of
+output a shorter report would have saved is off the table. Measured on the
+2026-09-16 run: **3,844 / 3,922 / 4,000 / 4,010 / 4,087**, mean 3,973. The lab
+now targets 4,000-4,500; the registry bands and the prompt text still say
+3,550-4,000, so the engine writes a little under. Closing that is USER-FACING
+and belongs to MB-38, not here.
 
 ## Scope
 
-Ranked levers. Only L0 is greenlit; the rest need a separate decision.
+Ranked levers. Only L0 is greenlit.
 - **L0 · Measure first.** Log `usage` per call: prompt, cached, completion and
   reasoning tokens, attempt number, elapsed ms. Add cost and seconds per
   section to the report lab. Closes MB-10. Zero quality risk, nothing
   USER-FACING. **This is the greenlit round.**
 - **L1 · Stop regenerating reports to test the UI.** The Owner's own point and
-  the cheapest win here. The lab already writes the whole report to
-  `fixtures/reports/<name>.<label>.json` and `--compare` re-measures from disk
-  with no AI call; what is missing is a committed reference report and a way to
-  load one into the app. Detail below.
-- **L2 · `reasoning_effort`.** Set it explicitly: keep the default (or raise it)
-  on the foundation, where the chart reasoning happens; try `low` on the ten
-  sections, which are writing tasks against an analysis already done. Biggest
-  lever that does not touch the model. Gate on a lab A/B.
+  the cheapest win. Partly shipped in R02: `--render` re-reads the newest run
+  free and one reference report is committed. What remains is loading one into
+  the app. Detail below.
+- **L2 · `reasoning_effort`.** Set it explicitly: keep the default on the
+  foundation, where the chart reasoning happens; try `low` on the ten sections,
+  which write against an analysis already done. Biggest lever that leaves the
+  model alone. Gate on a lab A/B.
 - **L3 · A cheaper model for the ten section calls.** Own section below.
 - **L4 · Get the foundation off the critical path.** (a) Cache it on the
   profile, extending R-4.5's "a second report for the same profile skips
-  computation". (b) Run Overview from the brief in parallel with the
-  foundation. Riskier; lab A/B only.
+  computation". (b) Run Overview from the brief alongside it. Riskier; lab A/B.
 - **L5 · Persist and reveal sections as they land.** Saves nothing, fixes the
   minute: perceived wait drops to foundation + Overview. Needs a schema change
   and a real progress signal instead of the fudged bar.
-- **L6 · Stop paying for the claim quote twice.** An anchor or offset would
-  cite the same sentence for a fraction of the tokens, but the verbatim quote
-  is what makes `validateClaims` strong. Size it with L0 first. Dropping
-  `ClaimsSchema` max from 8 to 5 is the cheap half.
+- **L6 · Stop paying for the claim quote twice.** An anchor or offset would cite
+  the same sentence for a fraction of the tokens, but the verbatim quote is what
+  makes `validateClaims` strong. Size it with L0 first; dropping `ClaimsSchema`
+  max from 8 to 5 is the cheap half.
 - **L7 · Retry rate.** Invisible today. If L0 shows it is high, the fix is
   prompt and schema work, not a smaller retry budget.
 - **L8 · `prompt_cache_key`.** A stable key improves cache routing under
@@ -98,15 +105,13 @@ Ranked levers. Only L0 is greenlit; the rest need a separate decision.
 
 **Regenerate only when the words would change**: prompts, section schemas,
 `vocabulary.ts`, `brief.ts`, the model, or `reasoning_effort`. That is R-4.4's
-gate, and it is a gate before a pull request merges, not a thing to run each
-iteration.
+gate, run before a pull request merges, not each iteration. **Never regenerate
+for** UI, CSS, layout, the wheel, the PDF, copy, the methodology box, or
+anything in `web/` that renders an interpretation it did not produce. Three
+changes make that practical:
 
-**Never regenerate for**: UI, CSS, layout, the wheel, the PDF, copy, the
-methodology box, navigation, or anything in `web/` that renders an
-interpretation it did not produce. Three changes make that practical:
-
-1. Commit one reference report (`fixtures/reports/marie-curie.reference.json`),
-   already the exact shape the lab writes, so a real interpretation is in the repo.
+1. Commit one reference report (**done, R02**), so a real interpretation ships
+   in the repo and `--render` works on a fresh clone.
 2. A dev-and-staging-only seed inserting it as a real report row, so the Owner
    opens it in the product at a stable URL. Overlaps MB-39 (admin report
    browser); the two should be one card.
@@ -121,25 +126,22 @@ the foundation, models out at roughly **$0.065 a report, a ~74% cut** —
 far larger than every other lever combined.
 
 It is also the highest quality risk, because the prose *is* the product. But it
-is a measurable question, not a taste one: the lab already scores the exact
-failure modes a smaller model would hit — `METHOD_TALK`, `BANNED_CHARS`,
-per-section word targets, and code-verified claim validity. One dispatch
-settles it for about $0.25.
+is measurable, not a matter of taste: the lab already scores the exact failure
+modes a smaller model would hit — `METHOD_TALK`, `BANNED_CHARS`, word targets,
+code-verified claim validity. One dispatch settles it for about $0.25.
 
 Worth knowing first: the sections are heavily scaffolded — doctrine, vocabulary,
 the brief, the foundation handoff, a strict schema, claims checked in code — and
 that scaffolding is what a smaller model needs. The foundation is the opposite,
-open-ended chart reasoning, and the place to keep the strong model.
-
-R-5.6 and R-4.4 make this an engine change with its own lab run. Do it after L0,
-so the before-and-after is measured rather than argued.
+open-ended chart reasoning, and the place to keep the strong model. R-5.6 and
+R-4.4 make it an engine change with its own lab run: do it after L0.
 
 ## Out of scope
 
 - **Trimming the system prompt.** 86% of it is the vocabulary block, it is the
   cached prefix, and caching discounts it to 5% of spend. Trimming saves pennies
-  and risks the thing making input cheap. The static-first order in
-  `assembleUser` is already correct and should not be touched.
+  and risks what makes input cheap. The static-first order in `assembleUser` is
+  already correct.
 - **Tightening a token ceiling to save money.** MASTERFILE §1 holds.
 - Building anything past L0.
 
@@ -171,9 +173,8 @@ customers.
 1. Every call logs prompt, cached, completion and reasoning tokens, attempt
    number and elapsed ms, keyed by section.
 2. The lab prints tokens, dollars and seconds per section, and a report total.
-3. A lab run on all five fixtures with the new columns, pasted in the round
-   report: the baseline every later lever is judged against. MB-10 closed.
-4. INTERNAL: no prompt, schema or report content changes in this round.
+3. A lab run on all five fixtures, pasted in the round report: the baseline
+   every later lever is judged against. MB-10 closed. INTERNAL round.
 
 ## Open questions
 
@@ -188,12 +189,12 @@ customers.
 
 - **Inference cost stays unconstrained** (MASTERFILE §1 holds, tested
   2026-09-16). Levers remove waste and measure it; no ceiling is tightened.
-- **Report length leaves the prose documents.** Remove the "2,000 to 2,800
-  word" clause from `MASTERFILE.md` §1 and `CLAUDE.md`; the section registry's
-  `wordTarget` values and the lab's `REPORT_TOTAL` are the single source of
-  truth, free to evolve until locked. No user-facing copy states a word count,
-  so nothing a buyer sees changes. *Pending `/lock` — MASTERFILE is not edited
-  without a Decisions row.* Decide alongside MB-38.
+- **The report is 4,000 to 4,500 words** (Owner, 2026-09-17). Remove the
+  "2,000 to 2,800 word" clause from `MASTERFILE.md` §1 and `CLAUDE.md`; the
+  registry's `wordTarget` values and the lab's `REPORT_TOTAL` are the single
+  source of truth. No user-facing copy states a word count, so nothing a buyer
+  sees changes. *Pending `/lock` — MASTERFILE is not edited without a Decisions
+  row.* Decide alongside MB-38.
 - **Reasoning effort becomes explicit and versioned**, named in `meta` beside
   model and prompt version, so a lab run can attribute to it.
 - **Regeneration discipline** (L1): the lab gate runs before a pull request

@@ -43,7 +43,16 @@ import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
 /** Cost comes from the engine's own table, so the lab cannot disagree with the bill. */
 import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
 const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
-const REPORT_TOTAL: [number, number] = [3500, 4000];
+/**
+ * The product target (Owner, 2026-09-17). The per-section `wordTarget` bands in
+ * the registry still sum to 3,500-4,000 and the prompts still name those
+ * numbers, so the engine writes a little under this: 3,844 to 4,087 across the
+ * five fixtures on 2026-09-16. A report reading OUT OF RANGE just below 4,000
+ * is that known gap, not a regression. Closing it means raising the bands and
+ * the prompt text with them, which is USER-FACING and needs its own lab run.
+ * Decide with MB-38.
+ */
+const REPORT_TOTAL: [number, number] = [4000, 4500];
 
 /**
  * Style-contract rule 1: the report must never explain its own method. These
