@@ -1,5 +1,4 @@
 import type { ChartData } from "@/types/chart";
-import type { WheelInterpretation } from "@/components/ui/radial-orbital-natal";
 
 /**
  * Demo chart for the landing page.
@@ -164,7 +163,7 @@ export const DEMO_CHART_DATA: ChartData = {
 };
 
 /** Only the composed per-planet cards: that is all the landing-page wheel renders. */
-export const DEMO_INTERPRETATION: WheelInterpretation = {
+export const DEMO_INTERPRETATION: { personalPlanets: Record<string, string> } = {
   personalPlanets: {
     sun: "Your Sun rises with the summer solstice at Cancer's first degree — the year's longest light turning inward. This is a signature of emotional luminosity: you are seen and felt simultaneously, your identity radiating through care and intuition rather than assertion alone. The world experiences you as a safe harbour, yet within you burns a fierce protective fire for those you love. You do not separate feeling from doing — you are most powerfully yourself when what you build is also what you love.",
 

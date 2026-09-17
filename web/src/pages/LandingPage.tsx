@@ -4,8 +4,8 @@ import { ArrowRight, Star, BookOpen, Clock, Shield, Sparkles } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
 import { Show } from "@clerk/react";
-import RadialOrbitalNatal from "@/components/ui/radial-orbital-natal";
-import { DEMO_CHART_DATA, DEMO_ARCHETYPE, DEMO_USER_INITIAL, DEMO_INTERPRETATION } from "@/data/demoChart";
+import { NatalWheel } from "@/components/chart/NatalWheel";
+import { DEMO_CHART_DATA } from "@/data/demoChart";
 
 const PLANET_SYMBOLS = ["☉", "☽", "☿", "♀", "♂", "♃", "♄", "⛢", "♆", "♇"];
 
@@ -221,16 +221,11 @@ export default function LandingPage() {
             <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-2">Included in every report</p>
             <h3 className="font-display text-2xl md:text-3xl">Your interactive natal chart wheel</h3>
             <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-              Tap any planet to read its full interpretation. Aspects illuminate on selection. Yours will show your real placements.
+              Every body sits at its true degree, with the aspects it makes drawn underneath. Yours will show your real placements.
             </p>
           </div>
           <div className="w-full max-w-[480px]">
-            <RadialOrbitalNatal
-              chartData={DEMO_CHART_DATA}
-              interpretation={DEMO_INTERPRETATION}
-              userName={DEMO_USER_INITIAL}
-              archetypeName={DEMO_ARCHETYPE}
-            />
+            <NatalWheel chartData={DEMO_CHART_DATA} />
           </div>
           <p className="font-label text-[11px] tracking-[0.15em] uppercase text-muted-foreground/60 text-center">
             An example chart — Aria Solis, Jun 21 1992, Lisbon

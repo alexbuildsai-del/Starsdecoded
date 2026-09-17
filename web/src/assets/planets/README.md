@@ -1,7 +1,7 @@
 # Planet renders
 
-`ReportPage.tsx` and `components/ui/radial-orbital-natal.tsx` import a `.webp`
-per planet and render them as the bodies of the natal chart wheel.
+`lib/planet-renders.ts` imports a `.webp` per planet; the wheel, the hero and
+the house cards render them as the bodies of the chart.
 
 The ten files here are the real renders, restored from the Replit workspace on
 2026-09-17 (MB-13). They are 192×192 WebP with an alpha channel, 3–5 KB each:

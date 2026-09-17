@@ -1,12 +1,11 @@
-import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { motion } from "framer-motion";
-import { ArrowLeft, Download, ChevronDown, AlertTriangle, Sparkles, User, TrendingUp, Heart, Compass, Zap, Check } from "lucide-react";
+import { ArrowLeft, Download, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BirthLocationHorizon } from "@/components/BirthLocationHorizon";
-import { useGetReport, getGetReportQueryKey, useRegenerateReport, type ReportInterpretationAngleMeaningsAscendant, type ReportInterpretationAngleMeaningsMidheaven } from "@workspace/api-client-react";
-import RadialOrbitalNatal from "@/components/ui/radial-orbital-natal";
+import { useGetReport, getGetReportQueryKey, useRegenerateReport } from "@workspace/api-client-react";
+import { NatalWheel } from "@/components/chart/NatalWheel";
+import { houseSign } from "@/components/chart/wheel-geometry";
 import LoadingState from "@/components/LoadingState";
 import {
   PLANET_GLYPHS,
@@ -17,33 +16,15 @@ import {
 } from "@/types/chart";
 import {
   OverviewBlock, TriadBlock, MindBlock, CareerBlock, MoneyBlock, RelationshipsBlock,
-  FamilyBlock, SuperpowersBlock, DiscoveriesBlock, FocusBlock, HouseSystemExplainer,
+  FamilyBlock, SuperpowersBlock, DiscoveriesBlock, FocusBlock,
 } from "@/components/ReportSections";
-import { MethodologyBox } from "@/components/MethodologyBox";
-import { AspectChip } from "@/components/AspectChip";
-import sunImg from "@/assets/planets/sun.webp";
-import moonImg from "@/assets/planets/moon.webp";
-import mercuryImg from "@/assets/planets/mercury.webp";
-import venusImg from "@/assets/planets/venus.webp";
-import marsImg from "@/assets/planets/mars.webp";
-import jupiterImg from "@/assets/planets/jupiter.webp";
-import saturnImg from "@/assets/planets/saturn.webp";
-import uranusImg from "@/assets/planets/uranus.webp";
-import neptuneImg from "@/assets/planets/neptune.webp";
-import plutoImg from "@/assets/planets/pluto.webp";
-
-const PLANET_IMAGES: Record<string, string> = {
-  sun: sunImg,
-  moon: moonImg,
-  mercury: mercuryImg,
-  venus: venusImg,
-  mars: marsImg,
-  jupiter: jupiterImg,
-  saturn: saturnImg,
-  uranus: uranusImg,
-  neptune: neptuneImg,
-  pluto: plutoImg,
-};
+import { ReportHero } from "@/components/report/ReportHero";
+import { Chapter } from "@/components/report/Chapter";
+import { Starfield } from "@/components/report/Starfield";
+import { HouseCard } from "@/components/report/HouseCard";
+import { HouseGrid, planetsByHouse } from "@/components/report/HouseGrid";
+import { MethodologyStrip } from "@/components/report/MethodologyStrip";
+import { chapterAccent } from "@/lib/chapter-accent";
 
 const ELEMENT_COLORS: Record<string, string> = {
   fire: "text-orange-400",
@@ -52,227 +33,7 @@ const ELEMENT_COLORS: Record<string, string> = {
   water: "text-blue-400",
 };
 
-const ELEMENT_BG: Record<string, string> = {
-  fire: "bg-orange-400/15 border-orange-400/30",
-  earth: "bg-green-400/15 border-green-400/30",
-  air: "bg-sky-400/15 border-sky-400/30",
-  water: "bg-blue-400/15 border-blue-400/30",
-};
-
-const HOUSE_REFERENCE: { numeral: string; theme: string; tagline: string; description: string }[] = [
-  {
-    numeral: "I",
-    theme: "Self & Identity",
-    tagline: "How you show up before anyone knows you.",
-    description: "The First House shapes your outer personality — the first impression you make and the mask you wear before people know you deeply. It governs your physical appearance, your instinctive reactions, and the energy you lead with. Planets here colour every room you walk into.",
-  },
-  {
-    numeral: "II",
-    theme: "Values & Assets",
-    tagline: "What you own, earn, and hold dear.",
-    description: "The Second House rules your relationship with money, possessions, and self-worth. It describes how you earn, what you value, and the security you seek in the material world. Planets here reveal whether abundance comes easily or requires deliberate cultivation.",
-  },
-  {
-    numeral: "III",
-    theme: "Mind & Learning",
-    tagline: "How you think, speak, and connect nearby.",
-    description: "The Third House governs your everyday mind — curiosity, communication, and short journeys. It covers siblings, neighbours, early schooling, and the way you process and share information. Planets here shape your voice and the texture of your local world.",
-  },
-  {
-    numeral: "IV",
-    theme: "Home & Roots",
-    tagline: "Where you come from and what feels like home.",
-    description: "The Fourth House is the foundation of your chart — family of origin, ancestral patterns, and the private self you retreat to. It rules your home environment and the emotional bedrock you build your life upon. Planets here echo through childhood and inner security.",
-  },
-  {
-    numeral: "V",
-    theme: "Creativity & Joy",
-    tagline: "Where you play, create, and fall in love.",
-    description: "The Fifth House is the domain of self-expression, pleasure, and romance. It governs creative projects, children, passionate affairs, and the pure joy of play. Planets here describe what lights you up and how you pour yourself into the things you love.",
-  },
-  {
-    numeral: "VI",
-    theme: "Service & Health",
-    tagline: "How you work, serve, and tend your body.",
-    description: "The Sixth House covers daily routines, physical wellbeing, and the work you do in service of others. It governs habits, diet, craft, and the satisfaction of useful labour. Planets here reveal where discipline thrives and where the body speaks loudest.",
-  },
-  {
-    numeral: "VII",
-    theme: "Partnerships",
-    tagline: "Who you seek and what you mirror in others.",
-    description: "The Seventh House rules committed partnerships — romantic and professional. It shows what you project onto others and what qualities you need in a close ally. Planets here describe both your ideal partner and the mirror that relationships hold up to you.",
-  },
-  {
-    numeral: "VIII",
-    theme: "Transformation",
-    tagline: "Where you meet depth, loss, and rebirth.",
-    description: "The Eighth House governs the deepest passages of life — shared resources, intimacy, death, and regeneration. It rules what is hidden, taboo, or transformative. Planets here push you through the fires of change and reveal what endures on the other side.",
-  },
-  {
-    numeral: "IX",
-    theme: "Beliefs & Philosophy",
-    tagline: "How you seek meaning and expand your world.",
-    description: "The Ninth House is the realm of higher learning, long journeys, and the philosophies that give your life meaning. It covers religion, ethics, foreign cultures, and the hunger for a bigger picture. Planets here shape your worldview and your need for horizons.",
-  },
-  {
-    numeral: "X",
-    theme: "Career & Status",
-    tagline: "How the world sees your achievements.",
-    description: "The Tenth House sits at the very top of your chart and rules public reputation, career, and legacy. It shows the role you grow into and how society recognises your contribution. Planets here leave a visible mark on your ambitions and your standing in the world.",
-  },
-  {
-    numeral: "XI",
-    theme: "Community",
-    tagline: "Your tribe, your vision, your collective purpose.",
-    description: "The Eleventh House governs friendships, social networks, and long-range hopes. It describes the groups you belong to and the ideals that draw you toward collective action. Planets here reveal how you connect with like-minded people and the future you are working to build.",
-  },
-  {
-    numeral: "XII",
-    theme: "Subconscious",
-    tagline: "What hides in the shadows, awaiting integration.",
-    description: "The Twelfth House is the most interior zone of the chart — the realm of dreams, the unconscious, and what we keep hidden even from ourselves. It governs solitude, spiritual retreat, and old wounds seeking healing. Planets here operate quietly but shape your life from beneath the surface.",
-  },
-];
-
-function HouseReferenceGuide({ planetsByHouse }: { planetsByHouse: Record<number, string[]> }) {
-  const [expandedHouses, setExpandedHouses] = useState<Set<number>>(new Set());
-
-  function toggleHouse(num: number) {
-    setExpandedHouses((prev) => {
-      const next = new Set(prev);
-      if (next.has(num)) {
-        next.delete(num);
-      } else {
-        next.add(num);
-      }
-      return next;
-    });
-  }
-
-  return (
-    <div className="mt-5 rounded-xl border border-border/60 bg-card/40 p-6 sm:p-8">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="flex-1 h-px bg-border/40" />
-        <p className="font-label text-xs tracking-[0.22em] uppercase text-primary/70">
-          House Reference Guide
-        </p>
-        <div className="flex-1 h-px bg-border/40" />
-      </div>
-      {HOUSE_REFERENCE.some((_, i) => (planetsByHouse[i + 1] ?? []).length === 0) && (
-        <p className="text-sm leading-relaxed text-muted-foreground mb-5">
-          Your energy is focused in a few key life areas. Other areas are still active, just less emphasized and operate more quietly in the background. Think of your life like 12 rooms. Some rooms are busy and full, others are quiet — but you still use all of them.
-        </p>
-      )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {HOUSE_REFERENCE.map((h, i) => {
-          const houseNum = i + 1;
-          const occupants = planetsByHouse[houseNum] ?? [];
-          const isPopulated = occupants.length > 0;
-          const isExpanded = expandedHouses.has(houseNum);
-
-          return (
-            <div
-              key={h.numeral}
-              className={
-                isPopulated
-                  ? "rounded-lg border border-primary/40 bg-primary/5"
-                  : "rounded-lg border border-border/40 bg-card/20"
-              }
-            >
-              <button
-                onClick={() => toggleHouse(houseNum)}
-                className="w-full text-left p-4 flex items-start gap-3"
-                aria-expanded={isExpanded}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`font-label text-[10px] tracking-[0.18em] uppercase ${
-                        isPopulated ? "text-primary/80" : "text-muted-foreground"
-                      }`}
-                    >
-                      House {h.numeral}
-                    </span>
-                    {isPopulated ? (
-                      <span className="inline-flex items-center rounded-full bg-primary/15 border border-primary/30 px-1.5 py-px font-label text-[9px] tracking-[0.12em] uppercase text-primary/80">
-                        {occupants.length} {occupants.length === 1 ? "planet" : "planets"}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-muted/30 border border-border/30 px-1.5 py-px font-label text-[9px] tracking-[0.12em] uppercase text-muted-foreground/60">
-                        Quiet
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className={`font-display text-base leading-tight mb-0.5 ${
-                      isPopulated ? "text-foreground" : "text-foreground/70"
-                    }`}
-                  >
-                    {h.theme}
-                  </p>
-                  <p className="text-xs leading-relaxed text-muted-foreground/80">
-                    {h.tagline}
-                  </p>
-                </div>
-                <ChevronDown
-                  className={`shrink-0 mt-0.5 w-4 h-4 text-muted-foreground/60 transition-transform duration-200 ${
-                    isExpanded ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {isExpanded && (
-                <div className="px-4 pb-4 border-t border-border/30 pt-3 space-y-3">
-                  <p className="text-sm leading-relaxed text-foreground/75">
-                    {h.description}
-                  </p>
-                  {isPopulated && (
-                    <div className="flex flex-wrap gap-3">
-                      {occupants.map((name) => {
-                        const img = PLANET_IMAGES[name];
-                        if (!img) return null;
-                        const label = PLANET_LABELS[name] ?? name;
-                        return (
-                          <div key={name} className="flex items-center gap-1.5">
-                            <img
-                              src={img}
-                              alt={label}
-                              className="w-[18px] h-[18px] rounded-full object-cover shrink-0"
-                            />
-                            <span className="font-label text-[10px] tracking-[0.12em] uppercase text-foreground/70">
-                              {label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function Section({ title, label, children }: { title: string; label: string; children: React.ReactNode }) {
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      className="mb-12 print-section"
-    >
-      <div className="mb-5">
-        <p className="font-label text-xs tracking-[0.18em] uppercase text-primary/70 mb-1">{label}</p>
-        <h2 className="font-display text-2xl font-light">{title}</h2>
-      </div>
-      {children}
-    </motion.section>
-  );
-}
+const TOTAL_CHAPTERS = 12;
 
 function PlanetRow({
   name,
@@ -291,10 +52,10 @@ function PlanetRow({
       <div className="flex items-center gap-3">
         <span className="w-6 text-center text-lg text-primary/80">{PLANET_GLYPHS[name] ?? "·"}</span>
         <span className="font-label text-sm w-24 text-muted-foreground">{PLANET_LABELS[name] ?? name}</span>
-        <span className="font-display text-base font-medium flex-1">
+        <span className="font-numeric text-base flex-1">
           {planet.degree.toFixed(1)}° {planet.sign}
         </span>
-        <span className="font-label text-xs text-muted-foreground">H{planet.house}</span>
+        <span className="font-numeric text-xs text-muted-foreground">H{planet.house}</span>
         {planet.retrograde && (
           <span className="text-xs text-amber-400 font-label">Rx</span>
         )}
@@ -304,6 +65,53 @@ function PlanetRow({
           {meaning}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Angle detail. Only slots the report actually generated are shown (ADR-18). */
+function AngleCard({
+  kicker,
+  tone,
+  sign,
+  degree,
+  slots,
+}: {
+  kicker: string;
+  tone: "primary" | "secondary";
+  sign: string;
+  degree: number;
+  slots: { label: string; text?: string; stress?: boolean }[];
+}) {
+  const shown = slots.filter((s) => !!s.text);
+  if (shown.length === 0) return null;
+  const ring = tone === "primary" ? "border-primary/40 bg-primary/5" : "border-secondary/40 bg-secondary/5";
+  const kickerTone = tone === "primary" ? "text-primary/80" : "text-secondary/80";
+  return (
+    <div className={`rounded-lg border p-5 ${ring}`}>
+      <div className="flex items-center justify-between mb-4">
+        <p className={`font-label text-[10px] tracking-[0.18em] uppercase ${kickerTone}`}>{kicker}</p>
+        <span className="font-numeric text-[11px] text-muted-foreground">
+          {degree.toFixed(1)}° {sign}
+        </span>
+      </div>
+      <div className="space-y-3">
+        {shown.map((s) => (
+          <div
+            key={s.label}
+            className={`rounded-md border border-border/40 bg-background/30 p-3 ${
+              s.stress ? "border-l-2 border-l-red-500/60" : ""
+            }`}
+          >
+            <p className={`font-label text-[9px] tracking-[0.20em] uppercase mb-1.5 ${
+              s.stress ? "text-red-400/80" : kickerTone
+            }`}>
+              {s.label}
+            </p>
+            <p className="text-sm leading-relaxed text-foreground/85">{s.text}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -370,17 +178,18 @@ export default function ReportPage() {
   const mainPlanets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
   const minorPlanets = ["chiron", "north_node", "south_node"];
   const totalPlanets = Object.values(chartData.elements).reduce((a, b) => a + b, 0);
+  const occupants = planetsByHouse(chartData);
+  const asc = chartData.angles.ascendant;
+  const mc = chartData.angles.midheaven;
+  const angles = interpretation.angleMeanings;
 
-  const HOUSE_GUIDE_EXCLUDED = new Set(["chiron", "north_node", "south_node"]);
-  const planetsByHouse: Record<number, string[]> = {};
-  for (const [name, planet] of Object.entries(chartData.planets)) {
-    if (!planet || typeof planet.house !== "number") continue;
-    if (HOUSE_GUIDE_EXCLUDED.has(name)) continue;
-    (planetsByHouse[planet.house] ??= []).push(name);
-  }
+  const accent = (index: number) =>
+    chapterAccent(chartData.dominance?.dominantElement, index - 1, TOTAL_CHAPTERS);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Starfield />
+
       {/* Nav — hidden when printing */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/90 backdrop-blur-md no-print">
         <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -408,107 +217,103 @@ export default function ReportPage() {
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-6 pt-24 pb-20">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3">Natal Chart Report</p>
-          <h1 className="font-display text-4xl md:text-5xl font-light leading-tight mb-2">
-            {report.name}
-          </h1>
-          <p className="text-muted-foreground font-label text-sm">
-            {new Date(report.birthDate + "T12:00:00").toLocaleDateString("en-GB", {
-              year: "numeric", month: "long", day: "numeric",
-            })} · {report.birthTime} · {report.birthPlace}
-          </p>
-          <MethodologyBox meta={interpretation.meta} />
-        </motion.div>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-20">
+        <ReportHero
+          name={report.name}
+          birthDate={report.birthDate}
+          birthTime={report.birthTime}
+          birthPlace={report.birthPlace}
+          latitude={report.latitude}
+          longitude={report.longitude}
+          chartData={chartData}
+          meta={interpretation.meta}
+        />
 
-        {/* 01 — Chart Overview */}
-        <Section title="Chart Overview" label="01 — Overview">
+        <Chapter number={1} total={TOTAL_CHAPTERS} eyebrow="Overview" title="Chart Overview" accent={accent(1)} ghost="☉" wide>
           <OverviewBlock s={interpretation.overview} />
-        </Section>
+        </Chapter>
 
-
-        {/* Natal Chart — the wheel, with the house reference grid folded
-            underneath and the angle detail cards below it. The placement
-            table and the personal-planet cards are print-only: the PDF
-            carries every degree and the applied interpretation, the screen
-            carries the wheel. */}
-        <Section title="Natal Chart" label="02 — Chart">
-
-          {/* Wheel view */}
-          <div>
-            <div className="rounded-xl border border-border/60 bg-card/40 p-2 sm:p-4">
-              <RadialOrbitalNatal
-                chartData={chartData}
-                interpretation={interpretation}
-                userName={report.name}
-                archetypeName={interpretation.overview.headline}
-              />
-              <div className="mt-2 grid grid-cols-3 gap-2 text-center pt-4 border-t border-border/30">
-                <div>
-                  <p className="font-label text-xs text-muted-foreground mb-1">Sun</p>
-                  <p className="font-display text-sm">
-                    {chartData.planets.sun?.degree.toFixed(0)}° {chartData.planets.sun?.sign}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-label text-xs text-muted-foreground mb-1">Moon</p>
-                  <p className="font-display text-sm">
-                    {chartData.planets.moon?.degree.toFixed(0)}° {chartData.planets.moon?.sign}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-label text-xs text-muted-foreground mb-1">Rising</p>
-                  <p className="font-display text-sm">
-                    {chartData.angles.ascendant.degree.toFixed(0)}° {chartData.angles.ascendant.sign}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* House Reference Guide folded under the wheel */}
-            <HouseReferenceGuide planetsByHouse={planetsByHouse} />
-
-            {/* Personal planet detail cards — print-only so the exported PDF
-                carries the applied interpretation under the wheel. */}
-            {interpretation?.personalPlanets && (
-              <div className="hidden print:block mt-5 space-y-3">
-                {(["mercury", "venus", "mars", "jupiter", "saturn"] as const).map((name) => {
-                  const text = interpretation.personalPlanets[name];
-                  const planet = chartData.planets[name];
-                  if (!text || !planet) return null;
-                  return (
-                    <div
-                      key={name}
-                      className="p-5 rounded-xl border border-border/60 bg-card/40"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-primary text-base">{PLANET_GLYPHS[name]}</span>
-                          <span className="font-display text-base text-foreground">
-                            {PLANET_LABELS[name]} in {planet.sign}
-                          </span>
-                        </div>
-                        <span className="font-label text-[10px] tracking-[0.18em] uppercase text-muted-foreground">
-                          H{planet.house}
-                        </span>
-                      </div>
-                      <p className="text-sm leading-relaxed text-foreground/80">
-                        {text}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        <Chapter number={2} total={TOTAL_CHAPTERS} eyebrow="Chart" title="Natal Chart" accent={accent(2)} ghost="✧" wide>
+          <div className="rounded-xl border border-border/60 bg-card/40 p-2 sm:p-4">
+            <NatalWheel
+              chartData={chartData}
+              orbs={interpretation.meta.orbs}
+              renderHouse={(house) => (
+                <HouseCard
+                  house={house}
+                  sign={houseSign(house, asc.absoluteDegree)}
+                  occupants={occupants[house] ?? []}
+                  personalPlanets={interpretation.personalPlanets}
+                  angleMeanings={angles}
+                  open
+                />
+              )}
+            />
           </div>
 
-          {/* Placement table — print only; the wheel is the screen view. */}
+          <div className="mt-6">
+            <HouseGrid
+              chartData={chartData}
+              personalPlanets={interpretation.personalPlanets}
+              angleMeanings={angles}
+            />
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <AngleCard
+              kicker="Ascendant"
+              tone="primary"
+              sign={asc.sign}
+              degree={asc.degree}
+              slots={[
+                { label: "First Impression", text: angles?.ascendant?.firstImpression },
+                { label: "How You Orient", text: angles?.ascendant?.orientationStyle },
+                { label: "At Your Best", text: angles?.ascendant?.atYourBest },
+                { label: "Under Stress", text: angles?.ascendant?.underStress, stress: true },
+              ]}
+            />
+            <AngleCard
+              kicker="Midheaven"
+              tone="secondary"
+              sign={mc.sign}
+              degree={mc.degree}
+              slots={[
+                { label: "Public Direction", text: angles?.midheaven?.publicDirection },
+                { label: "Where You Thrive", text: angles?.midheaven?.whereYouThrive },
+                { label: "At Your Best", text: angles?.midheaven?.atYourBest },
+                { label: "Under Pressure", text: angles?.midheaven?.underPressure, stress: true },
+              ]}
+            />
+          </div>
+
+          {/* Personal planet detail cards — print-only, so the exported PDF
+              carries the applied interpretation under the wheel. */}
+          <div className="hidden print:block mt-5 space-y-3">
+            {(["mercury", "venus", "mars", "jupiter", "saturn"] as const).map((name) => {
+              const text = interpretation.personalPlanets[name];
+              const planet = chartData.planets[name];
+              if (!text || !planet) return null;
+              return (
+                <div key={name} className="p-5 rounded-xl border border-border/60 bg-card/40">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-primary text-base">{PLANET_GLYPHS[name]}</span>
+                      <span className="font-display text-base text-foreground">
+                        {PLANET_LABELS[name]} in {planet.sign}
+                      </span>
+                    </div>
+                    <span className="font-numeric text-[11px] text-muted-foreground">
+                      H{planet.house}
+                    </span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-foreground/80">{text}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Placement table — print only; the PDF is the one place every
+              degree appears. */}
           <div className="hidden print:block print:mt-8">
             <div className="rounded-xl border border-border/60 bg-card/40 divide-y divide-border/30 overflow-hidden">
               <div className="px-5 py-3 bg-muted/20">
@@ -523,7 +328,7 @@ export default function ReportPage() {
                       key={name}
                       name={name}
                       planet={planet}
-                      meaning={interpretation?.personalPlanets?.[name]}
+                      meaning={interpretation.personalPlanets?.[name]}
                     />
                   );
                 })}
@@ -540,151 +345,16 @@ export default function ReportPage() {
                       key={name}
                       name={name}
                       planet={planet}
-                      meaning={interpretation?.personalPlanets?.[name]}
+                      meaning={interpretation.personalPlanets?.[name]}
                     />
                   );
                 })}
               </div>
             </div>
-
           </div>
+        </Chapter>
 
-          {/* Dedicated Angles section — always visible below the wheel.
-              Replaces the old in-wheel ASC/MC overlay. Styled to echo the
-              House Reference Guide chrome above. */}
-          {(() => {
-            // Cast to unknown first so we can discriminate between legacy string
-            // values (pre-schema-change DB rows) and the new structured object shape.
-            const rawAsc = interpretation?.angleMeanings?.ascendant as unknown;
-            const rawMc = interpretation?.angleMeanings?.midheaven as unknown;
-            const ascSlots = (rawAsc != null && typeof rawAsc === "object")
-              ? (rawAsc as ReportInterpretationAngleMeaningsAscendant)
-              : null;
-            const mcSlots = (rawMc != null && typeof rawMc === "object")
-              ? (rawMc as ReportInterpretationAngleMeaningsMidheaven)
-              : null;
-            const ascLegacy = typeof rawAsc === "string" ? rawAsc : null;
-            const mcLegacy = typeof rawMc === "string" ? rawMc : null;
-            return (
-          <div className="mt-5 rounded-xl border border-border/60 bg-card/40 p-6 sm:p-8">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex-1 h-px bg-border/40" />
-              <p className="font-label text-xs tracking-[0.22em] uppercase text-primary/70">
-                Your Angles
-              </p>
-              <div className="flex-1 h-px bg-border/40" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Ascendant card */}
-              <div
-                id="angle-asc"
-                aria-label={`Ascendant in ${chartData.angles.ascendant.sign}`}
-                className="scroll-mt-24 rounded-lg border border-primary/40 bg-primary/5 p-5"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-label text-[10px] tracking-[0.18em] uppercase text-primary/80">
-                    Ascendant
-                  </p>
-                  <span className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground">
-                    {chartData.angles.ascendant.degree.toFixed(1)}° {chartData.angles.ascendant.sign}
-                  </span>
-                </div>
-                <p className="font-display text-base text-foreground mb-4">
-                  How you arrive
-                </p>
-                {ascSlots ? (
-                  <div className="space-y-3">
-                    <div className="rounded-md border border-border/40 bg-background/30 p-3">
-                      <p className="font-label text-[9px] tracking-[0.20em] uppercase text-primary/60 mb-1.5">First Impression</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {ascSlots.firstImpression ?? `Your ${chartData.angles.ascendant.sign} rising is what others encounter before they meet your inner Sun — the instinctive mask you wear into every new room.`}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-border/40 bg-background/30 p-3">
-                      <p className="font-label text-[9px] tracking-[0.20em] uppercase text-primary/60 mb-1.5">How You Orient</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {ascSlots.orientationStyle ?? `Your chart ruler's sign and house placement colours how you naturally orient yourself when entering unfamiliar territory.`}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-border/40 bg-background/30 p-3">
-                      <p className="font-label text-[9px] tracking-[0.20em] uppercase text-primary/60 mb-1.5">At Your Best</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {ascSlots.atYourBest ?? `At your best, your ${chartData.angles.ascendant.sign} Ascendant brings a natural ease in first encounters and a clear sense of personal presence.`}
-                      </p>
-                    </div>
-                    <div className="rounded-md border-l-2 border-l-red-500/60 border border-border/40 bg-background/30 p-3">
-                      <p className="font-label text-[9px] tracking-[0.20em] uppercase text-red-400/80 mb-1.5">Under Stress</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {ascSlots.underStress ?? `Under stress, the ${chartData.angles.ascendant.sign} Ascendant may over-project a rehearsed front rather than allowing authentic contact.`}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">
-                    {ascLegacy ?? `How you arrive — your outer manner and the first impression you make on the world. Your ${chartData.angles.ascendant.sign} rising shapes the lens others see you through before they meet your inner Sun.`}
-                  </p>
-                )}
-              </div>
-              {/* Midheaven card */}
-              <div
-                id="angle-mc"
-                aria-label={`Midheaven in ${chartData.angles.midheaven.sign}`}
-                className="scroll-mt-24 rounded-lg border border-secondary/40 bg-secondary/5 p-5"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-label text-[10px] tracking-[0.18em] uppercase text-secondary/80">
-                    Midheaven
-                  </p>
-                  <span className="font-label text-[10px] tracking-[0.16em] uppercase text-muted-foreground">
-                    {chartData.angles.midheaven.degree.toFixed(1)}° {chartData.angles.midheaven.sign}
-                  </span>
-                </div>
-                <p className="font-display text-base text-foreground mb-4">
-                  Where you're heading
-                </p>
-                {mcSlots ? (
-                  <div className="space-y-3">
-                    <div className="rounded-md border border-border/40 bg-background/30 p-3">
-                      <p className="font-label text-[9px] tracking-[0.20em] uppercase text-secondary/60 mb-1.5">Public Direction</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {mcSlots.publicDirection ?? `Your ${chartData.angles.midheaven.sign} Midheaven points to the public face and vocational direction the world will come to associate with you.`}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-border/40 bg-background/30 p-3">
-                      <p className="font-label text-[9px] tracking-[0.20em] uppercase text-secondary/60 mb-1.5">Where You Thrive</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {mcSlots.whereYouThrive ?? `Your 10th-house ruler's placement points to the environments and fields where your ambition finds its most natural expression.`}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-border/40 bg-background/30 p-3">
-                      <p className="font-label text-[9px] tracking-[0.20em] uppercase text-secondary/60 mb-1.5">At Your Best</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {mcSlots.atYourBest ?? `At your best, your ${chartData.angles.midheaven.sign} Midheaven channels ambition into work that is both visible and meaningful to others.`}
-                      </p>
-                    </div>
-                    <div className="rounded-md border-l-2 border-l-red-500/60 border border-border/40 bg-background/30 p-3">
-                      <p className="font-label text-[9px] tracking-[0.20em] uppercase text-red-400/80 mb-1.5">Under Pressure</p>
-                      <p className="text-sm leading-relaxed text-foreground/85">
-                        {mcSlots.underPressure ?? `Under pressure, the ${chartData.angles.midheaven.sign} Midheaven can drive a relentless need for external recognition at the expense of sustainable direction.`}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">
-                    {mcLegacy ?? `Where you're heading — your public role, vocation, and the highest expression of your direction. ${chartData.angles.midheaven.sign} on the Midheaven points to how the world will know your work.`}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-            );
-          })()}
-        </Section>
-
-        {/* Elemental Profile */}
-        <HouseSystemExplainer />
-
-        <Section title="Elemental Profile" label="03 — Elements & Modalities">
+        <Chapter number={3} total={TOTAL_CHAPTERS} eyebrow="Elements" title="Elemental Profile" accent={accent(3)} ghost="△" wide>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="p-5 rounded-xl border border-border/60 bg-card/40">
               <p className="font-label text-xs text-muted-foreground mb-4 tracking-wider uppercase">Elements</p>
@@ -693,7 +363,7 @@ export default function ReportPage() {
                   <div key={el}>
                     <div className="flex items-center justify-between mb-1">
                       <span className={`font-label text-xs capitalize ${ELEMENT_COLORS[el]}`}>{el}</span>
-                      <span className="font-label text-xs text-muted-foreground">{count} / {totalPlanets}</span>
+                      <span className="font-numeric text-xs text-muted-foreground">{count} / {totalPlanets}</span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
@@ -712,7 +382,7 @@ export default function ReportPage() {
                   <div key={mod}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-label text-xs capitalize text-secondary/80">{mod}</span>
-                      <span className="font-label text-xs text-muted-foreground">{count} / {totalPlanets}</span>
+                      <span className="font-numeric text-xs text-muted-foreground">{count} / {totalPlanets}</span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
@@ -739,57 +409,55 @@ export default function ReportPage() {
               </div>
             </div>
           </div>
+        </Chapter>
 
-        </Section>
-
-        {/* 04 — Core Triad */}
-        <Section title="Core Triad" label="04 — Sun, Moon, Rising">
+        <Chapter number={4} total={TOTAL_CHAPTERS} eyebrow="Triad" title="Core Triad" accent={accent(4)} ghost="☽" wide>
           <TriadBlock s={interpretation.triad} />
-        </Section>
+        </Chapter>
 
-        <Section title="Mind & Communication" label="05 — Mind">
+        <Chapter number={5} total={TOTAL_CHAPTERS} eyebrow="Mind" title="Mind & Communication" accent={accent(5)} ghost="☿">
           <MindBlock s={interpretation.mind} />
-        </Section>
+        </Chapter>
 
-        <Section title="Career & Calling" label="06 — Work">
+        <Chapter number={6} total={TOTAL_CHAPTERS} eyebrow="Work" title="Career & Calling" accent={accent(6)} ghost="♄">
           <CareerBlock s={interpretation.career} />
-        </Section>
+        </Chapter>
 
-        <Section title="Money & Resources" label="07 — Resources">
+        <Chapter number={7} total={TOTAL_CHAPTERS} eyebrow="Resources" title="Money & Resources" accent={accent(7)} ghost="♀">
           <MoneyBlock s={interpretation.money} />
-        </Section>
+        </Chapter>
 
-        <Section title="Relationships & Intimacy" label="08 — Relationships">
+        <Chapter number={8} total={TOTAL_CHAPTERS} eyebrow="Relationships" title="Relationships & Intimacy" accent={accent(8)} ghost="♁">
           <RelationshipsBlock s={interpretation.relationships} />
-        </Section>
+        </Chapter>
 
-        <Section title="Family & Roots" label="09 — Roots">
+        <Chapter number={9} total={TOTAL_CHAPTERS} eyebrow="Roots" title="Family & Roots" accent={accent(9)} ghost="♆">
           <FamilyBlock s={interpretation.family} />
-        </Section>
+        </Chapter>
 
-        <Section title="Superpowers, Chronic Patterns & Growing Edges" label="10 — Self-Knowledge">
+        <Chapter number={10} total={TOTAL_CHAPTERS} eyebrow="Self-Knowledge" title="Superpowers, Chronic Patterns & Growing Edges" accent={accent(10)} ghost="♃" wide>
           <SuperpowersBlock s={interpretation.superpowers} />
-        </Section>
+        </Chapter>
 
-        <Section title="Key Paradoxes & Discoveries" label="11 — Paradoxes">
+        <Chapter number={11} total={TOTAL_CHAPTERS} eyebrow="Paradoxes" title="Key Paradoxes & Discoveries" accent={accent(11)} ghost="∞" wide>
           <DiscoveriesBlock s={interpretation.discoveries} />
-        </Section>
+        </Chapter>
 
-        <Section title="What to Focus On" label="12 — Focus">
+        <Chapter number={12} total={TOTAL_CHAPTERS} eyebrow="Focus" title="What to Focus On" accent={accent(12)} ghost="✦" wide>
           <FocusBlock s={interpretation.focus} />
-        </Section>
+        </Chapter>
 
-
-        {/* Birth Location & Horizon */}
         <BirthLocationHorizon
           birthPlace={report.birthPlace}
           birthTime={report.birthTime}
           latitude={report.latitude}
           longitude={report.longitude}
-          ascendantSign={chartData.angles.ascendant.sign}
-          ascendantDegree={chartData.angles.ascendant.degree}
-          ascendantAbsoluteDegree={chartData.angles.ascendant.absoluteDegree}
+          ascendantSign={asc.sign}
+          ascendantDegree={asc.degree}
+          ascendantAbsoluteDegree={asc.absoluteDegree}
         />
+
+        <MethodologyStrip meta={interpretation.meta} />
 
         {/* Saved state + PDF export */}
         <div className="text-center pt-8 no-print flex flex-col items-center gap-3">
