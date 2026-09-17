@@ -56,10 +56,10 @@ a failing check.
 
 ## Process
 
-`/ideate <topic>` → one draft spec · `/lock <slug>` → locked spec + Decisions
-rows · `/plan` → `docs/rounds/RNN-plan.md` · `/round RNN` → branch `round/RNN`,
-builders, gate, report, pull request · `/qa <url>` → `docs/qa/QA-NN.md` ·
-`/mailbox` → walk open topics with the Owner. Details: MASTERFILE §11, §12.
+`/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock
+<slug>` → locked spec + Decisions rows · `/plan <slugs>` → parallel-grouped plan,
+and on the Owner's approval `/round RNN` starts at once → branch `round/RNN`,
+builders, gate, report, PR · `/qa <url>` · `/mailbox`. Details: MASTERFILE §11.
 
 The Owner tests the website and says yes or no. Everything else is ours:
 merging once the gate is green, watching CI and the Railway and Vercel

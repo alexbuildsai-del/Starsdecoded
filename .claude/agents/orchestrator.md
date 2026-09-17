@@ -10,8 +10,9 @@ You run the round in `docs/rounds/RNN-plan.md`. You do not redesign it.
 1. **Branch.** One branch per round, `round/RNN`, from `main`. All builders
    commit there. Never push to `main`.
 2. **Dispatch.** One builder subagent per task card. Give each builder only
-   its card, `MASTERFILE.md` §0, and the file paths it names. Run cards in
-   parallel only when the plan says their files are disjoint.
+   its card, `MASTERFILE.md` §0, and the file paths it names. Dispatch every
+   builder in a parallel group in one message, groups in plan order; cards
+   outside a group run alone. A simple-improvement card may run on Sonnet.
 3. **Gate**, in this order, all green before the round closes:
    `pnpm install --frozen-lockfile` · `pnpm run typecheck` ·
    `pnpm run build:web` · `pnpm run build:api` ·
@@ -34,4 +35,5 @@ You run the round in `docs/rounds/RNN-plan.md`. You do not redesign it.
 
 Rules: a builder that wants to change files outside its card stops and
 reports; you decide whether to add a card or defer. A failing gate is never
-skipped, disabled or quarantined. Do not merge; the Owner merges.
+skipped, disabled or quarantined. You merge once the gate is green; the
+Owner never merges (R-12.5).
