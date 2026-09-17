@@ -176,22 +176,29 @@ const secs = (ms: number): string => (ms / 1000).toFixed(1);
  * inside `out` and is shown because it is the part no reader ever sees.
  */
 function renderUsage(usage: ReportUsage): string {
+  // Only worth a column when a run actually mixes models, which is what an A/B
+  // against a cheaper section model looks like.
+  const mixed = usage.model === "mixed";
+  // Runs generated before per-section models carry none; they were single-model
+  // by construction, so the report's own model is the right answer for them.
+  const modelOf = (u: SectionUsage): string => u.model ?? usage.model;
   const row = (u: SectionUsage): string[] => [
     u.section.replace(/^natal:/, ""),
+    ...(mixed ? [modelOf(u)] : []),
     String(u.attempts),
     u.inputTokens.toLocaleString("en-US"),
     u.cachedInputTokens.toLocaleString("en-US"),
     u.outputTokens.toLocaleString("en-US"),
     u.reasoningTokens.toLocaleString("en-US"),
-    usd(costUsd(usage.model, { ...u })),
+    usd(costUsd(modelOf(u), { ...u })),
     secs(u.ms),
   ];
   const t = usage.totals;
   return table(
-    ["call", "tries", "in", "cached", "out", "reason", "$", "s"],
+    ["call", ...(mixed ? ["model"] : []), "tries", "in", "cached", "out", "reason", "$", "s"],
     [
       ...usage.sections.map(row),
-      ["TOTAL", String(t.attempts), t.inputTokens.toLocaleString("en-US"),
+      ["TOTAL", ...(mixed ? [""] : []), String(t.attempts), t.inputTokens.toLocaleString("en-US"),
         t.cachedInputTokens.toLocaleString("en-US"), t.outputTokens.toLocaleString("en-US"),
         t.reasoningTokens.toLocaleString("en-US"), usd(usage.costUsd), secs(t.ms)],
     ],

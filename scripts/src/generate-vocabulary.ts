@@ -12,6 +12,7 @@ import { writeFileSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { MODELS } from "../../api/src/lib/models.js";
 import {
   BODIES, SIGNS, ASPECTS, BODY_LABELS, STRUCTURE,
   type Body, type SignName, type AspectName,
@@ -19,7 +20,7 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TARGET = join(HERE, "..", "..", "api", "src", "prompts", "vocabulary.ts");
-const MODEL = "gpt-5.2";
+const MODEL = MODELS.vocabulary;
 const CONCURRENCY = 6;
 
 const SYSTEM = `You write the primitive vocabulary for a natal-report engine grounded in classical (Hellenistic) astrology as transmitted by Demetra George, Chris Brennan, and Avelar & Ribeiro. Write doctrine in your own words: never quote or paraphrase a specific author. Descriptive third person. Precise, plain, no mysticism, no predictions. Never explain method or mention astrology as a subject; describe what the thing does, how it behaves, and what it costs. No em dashes, no semicolons, no lists inside prose. Return JSON only.`;

@@ -1,3 +1,5 @@
+import { priceOf } from "./models.js";
+
 /**
  * Token accounting for report generation.
  *
@@ -6,6 +8,13 @@
  * argument. Cost is computed here at generation time and stored with the
  * report, so a later price change never rewrites what a past run cost.
  *
+ * Each call carries the model it ran on, so a report that mixes models (the
+ * foundation on one, the ten sections on another) is priced correctly rather
+ * than at whichever model happened to be passed in.
+ *
+ * Prices come from the model catalogue, so this file does the arithmetic and
+ * `models.ts` decides what anything costs.
+ *
  * Two OpenAI conventions decide the arithmetic and are easy to get wrong:
  * `prompt_tokens` already includes the cached ones, and `completion_tokens`
  * already includes reasoning. So the billable split is
@@ -13,16 +22,12 @@
  * as a diagnostic that is never charged a second time.
  */
 
-/** USD per million tokens. Checked against OpenAI's pricing page 2026-09-16. */
-export const MODEL_PRICES: Record<string, { input: number; cachedInput: number; output: number }> = {
-  "gpt-5.2": { input: 1.75, cachedInput: 0.175, output: 14.0 },
-  "gpt-5-mini": { input: 0.25, cachedInput: 0.025, output: 2.0 },
-};
-
 /** One section's total across however many attempts it took. */
 export interface SectionUsage {
   /** Prompt key, e.g. "natal:overview". */
   section: string;
+  /** The model this section's calls ran on. Sections may differ. */
+  model: string;
   /** 1 when the first reply was accepted. */
   attempts: number;
   /** Billable input: prompt tokens that were not served from cache. */
@@ -47,6 +52,7 @@ export interface UsageTotals {
 }
 
 export interface ReportUsage {
+  /** The model every call used, or "mixed" when they differ. */
   model: string;
   sections: SectionUsage[];
   totals: UsageTotals;
@@ -64,7 +70,7 @@ export interface RawUsage {
   completion_tokens_details?: { reasoning_tokens?: number };
 }
 
-const EMPTY: Omit<SectionUsage, "section"> = {
+const EMPTY: Omit<SectionUsage, "section" | "model"> = {
   attempts: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0, ms: 0,
 };
 
@@ -88,8 +94,8 @@ export function addAttempt(
   };
 }
 
-export function emptySection(section: string): SectionUsage {
-  return { section, ...EMPTY };
+export function emptySection(section: string, model: string): SectionUsage {
+  return { section, model, ...EMPTY };
 }
 
 export function totalsOf(sections: readonly SectionUsage[]): UsageTotals {
@@ -106,9 +112,13 @@ export function totalsOf(sections: readonly SectionUsage[]): UsageTotals {
   );
 }
 
-/** Null for a model with no price on record. */
+/**
+ * Null for a model with no price on record. The engine cannot select one (the
+ * catalogue is the type), but a run stored before a model left the catalogue
+ * can still name one, and a missing price must read as unknown, never as free.
+ */
 export function costUsd(model: string, t: UsageTotals): number | null {
-  const p = MODEL_PRICES[model];
+  const p = priceOf(model);
   if (!p) return null;
   const perToken = (usd: number) => usd / 1_000_000;
   return t.inputTokens * perToken(p.input)
@@ -116,11 +126,31 @@ export function costUsd(model: string, t: UsageTotals): number | null {
     + t.outputTokens * perToken(p.output);
 }
 
+/**
+ * Each section is priced on its own model and the results summed, so a mixed
+ * report costs what it actually cost. One unpriced model makes the whole figure
+ * null rather than a total that silently omits it.
+ */
+export function reportCostUsd(sections: readonly SectionUsage[]): number | null {
+  let total = 0;
+  for (const s of sections) {
+    const c = costUsd(s.model, { ...s });
+    if (c === null) return null;
+    total += c;
+  }
+  return total;
+}
+
 export function buildReportUsage(
-  model: string,
   sections: readonly SectionUsage[],
   wallClockMs: number,
 ): ReportUsage {
-  const totals = totalsOf(sections);
-  return { model, sections: [...sections], totals, costUsd: costUsd(model, totals), wallClockMs };
+  const models = [...new Set(sections.map((s) => s.model))];
+  return {
+    model: models.length === 1 ? models[0] : "mixed",
+    sections: [...sections],
+    totals: totalsOf(sections),
+    costUsd: reportCostUsd(sections),
+    wallClockMs,
+  };
 }

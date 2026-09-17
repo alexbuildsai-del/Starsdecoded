@@ -21,6 +21,7 @@ import { ASPECT_ORBS, EPHEMERIS, type NatalChartData } from "./chartCalculation.
 import { sect as computeSect } from "./traditional.js";
 import { logger } from "./logger.js";
 import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type SectionUsage } from "./usage.js";
+import { MODELS, modelFor } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
   buildBrief, storeClaims, toStrictJsonSchema,
@@ -39,7 +40,7 @@ import { SuperpowersSchema } from "../prompts/sections/superpowers.js";
 import { DiscoveriesSchema } from "../prompts/sections/discoveries.js";
 import { FocusSchema } from "../prompts/sections/focus.js";
 
-export const MODEL = "gpt-5.2";
+// Which model each call uses lives in ./models.ts, never here.
 /** One blind try, then two informed by the rejection. A lost section loses the whole report. */
 const ATTEMPTS = 3;
 /** Bump when the section set, schemas, or vocabulary change shape. */
@@ -125,6 +126,7 @@ interface SectionResult<T> {
 
 async function callSection<S extends SectionSpec>(
   spec: S,
+  model: string,
   system: string,
   user: string,
   brief: ChartBrief,
@@ -134,7 +136,7 @@ async function callSection<S extends SectionSpec>(
   let lastError = "";
   // Accumulates across attempts: a section that retried twice cost three calls,
   // and hiding that would understate exactly what we are here to measure.
-  let usage = emptySection(spec.key);
+  let usage = emptySection(spec.key, model);
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     // A retry that repeats the identical request mostly repeats the mistake.
@@ -145,7 +147,7 @@ async function callSection<S extends SectionSpec>(
       : `${user}\n\nPREVIOUS ATTEMPT REJECTED: ${lastError}\nReturn the complete section again with these fixed. Every claim quote must be copied exactly from the prose in this reply.`;
     const startedAt = Date.now();
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model,
       max_completion_tokens: spec.maxTokens,
       messages: [
         { role: "system", content: system },
@@ -218,6 +220,7 @@ export async function generateInterpretation(
   const foundationPrompt = await resolveSection(FOUNDATION.key);
   const foundationCall = await callSection(
     FOUNDATION,
+    MODELS.foundation,
     foundationPrompt.system,
     assembleUser(foundationPrompt.user, brief, FOUNDATION),
     brief,
@@ -230,7 +233,7 @@ export async function generateInterpretation(
   const prompts = await Promise.all(REPORT_SECTIONS.map((s) => resolveSection(s.key)));
   const calls = await Promise.all(
     REPORT_SECTIONS.map((spec, i) =>
-      callSection(spec, prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief),
+      callSection(spec, modelFor(spec.key), prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief),
     ),
   );
   const results = calls.map((c) => c.data);
@@ -238,7 +241,6 @@ export async function generateInterpretation(
   // Wall clock covers the serial foundation plus one parallel wave, so it is
   // always below the summed call time. The gap is what the fan-out buys.
   const usage = buildReportUsage(
-    MODEL,
     [foundationCall.usage, ...calls.map((c) => c.usage)],
     Date.now() - startedAt,
   );
@@ -273,7 +275,7 @@ export async function generateInterpretation(
   return {
     meta: {
       promptVersion: PROMPT_VERSION,
-      model: MODEL,
+      model: usage.model,
       houseSystem: "whole-sign",
       zodiac: "tropical",
       ephemeris: EPHEMERIS,
