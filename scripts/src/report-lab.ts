@@ -5,6 +5,7 @@
  *   pnpm report:lab --chart marie-curie
  *   pnpm report:lab --all --defaults-only --baseline
  *   pnpm report:lab --compare baseline latest
+ *   pnpm report:lab --render                  # newest run on disk, no API call
  *   pnpm report:lab --render marie-curie.staging
  *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
  *
@@ -472,20 +473,48 @@ function compare(labelA: string, labelB: string): void {
   }
 }
 
+/** Where more runs come from. Named in every "nothing on disk" error. */
+const RUNS_HINT =
+  "Fetch the latest set with: git fetch origin report-lab/staging"
+  + " && git checkout origin/report-lab/staging -- fixtures/reports/";
+
+/**
+ * The most recently generated run on disk, by the report's own `generatedAt`
+ * rather than the file's mtime, which a git checkout rewrites for every file
+ * at once and would make "newest" meaningless.
+ */
+function newestRun(): string {
+  const runs = existsSync(REPORTS_DIR)
+    ? readdirSync(REPORTS_DIR).filter((f) => f.endsWith(".json"))
+    : [];
+  if (runs.length === 0) throw new Error(`No run in ${REPORTS_DIR}. ${RUNS_HINT}`);
+  const at = (f: string): string => {
+    try {
+      return JSON.parse(readFileSync(join(REPORTS_DIR, f), "utf8"))?.interpretation?.meta?.generatedAt ?? "";
+    } catch {
+      return "";
+    }
+  };
+  return runs.sort((a, b) => at(b).localeCompare(at(a)))[0].replace(/\.json$/, "");
+}
+
 async function main() {
   if (flag("list")) {
     console.log(listFixtures().join("\n"));
     return;
   }
 
-  // Re-measure a run already on disk. No API call, no key, no spend: the way
-  // to re-read a measurement, or to check a change to this file's own output.
-  const render = opt("render");
-  if (render !== undefined) {
-    const path = join(REPORTS_DIR, `${render.replace(/\.json$/, "")}.json`);
-    if (!existsSync(path)) throw new Error(`no run at ${path}`);
+  // Re-measure a run already on disk. No API call, no key, no spend: the way to
+  // re-read a measurement, to check a change to this file's own output, or to
+  // get a real interpretation in front of the UI without generating one.
+  if (flag("render")) {
+    const run = opt("render") ?? newestRun();
+    const path = join(REPORTS_DIR, `${run.replace(/\.json$/, "")}.json`);
+    if (!existsSync(path)) throw new Error(`no run at ${path}. ${RUNS_HINT}`);
     const file = JSON.parse(readFileSync(path, "utf8"));
-    report(render, "render", file.fixture, file.chart, file.interpretation, "n/a");
+    const generated = file.interpretation?.meta?.generatedAt;
+    console.log(`rendering ${run}${generated ? `, generated ${generated}` : ""} (no API call)`);
+    report(run, "render", file.fixture, file.chart, file.interpretation, "n/a");
     return;
   }
 

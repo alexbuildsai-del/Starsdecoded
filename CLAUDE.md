@@ -37,7 +37,8 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after editing openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab                       # report from a fixture, measured (lands with PR #6)
+pnpm report:lab                       # generate + measure. ~$0.25 a report
+pnpm report:lab --render              # re-read the newest saved report. Free
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, report lab
@@ -91,6 +92,11 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step
   of the start command (its preDeployCommand hook never ran here); a script
   that cannot run twice breaks the Railway deploy.
+- Never generate a report just to look at one: `--render` re-reads the newest
+  run in `fixtures/reports/` free, and that folder's README pulls the current
+  set off `report-lab/staging`. Regenerate only when the words change (prompts,
+  schemas, `vocabulary.ts`, `brief.ts`, model, reasoning effort). Every call
+  records tokens, cost and time to `meta.usage`; prices in `lib/usage.ts`.
 - Model ids are hard-coded at the call sites. Changing them is an engine
   change and needs a report-lab run.
 - Real chart data only. Fixtures hold birth data; charts are computed at run

@@ -22,6 +22,10 @@ Plan: `docs/rounds/R02-plan.md`. Spec:
 - **INTERNAL** `packages/api-spec/openapi.yaml` + regenerated client and zod.
   `usage` is **optional** on `ReportInterpretation.meta`, so every report
   generated before this round still validates. New `UsageTotals` component.
+  Usage lives on `meta.usage` rather than an admin endpoint, because the lab's
+  `--remote` mode reads a deployed report as an anonymous visitor and has no
+  other channel; a buyer could therefore read their own report's token counts.
+  `MethodologyBox` reads named fields, so nothing renders.
 - **INTERNAL** `scripts/src/report-lab.ts`. Per-call `tries / in / cached / out
   / reason / $ / s` table with a TOTAL row, then cost, wall clock against call
   time, the prose-versus-invisible output split, the cache hit rate and which
@@ -34,27 +38,29 @@ changes, so nothing is USER-FACING.
 ## One deviation, deliberate
 
 R02-04's acceptance clause asked the table to render from a fixture with no API
-call, and no such path existed. Added `--render <run>`, which re-measures a run
-already on disk: it is how this round's output was verified without spending,
-and the smallest piece of the spec's L1. Lab-only, INTERNAL, no product
-surface. `report()` returns early before writing, so a re-render cannot
-overwrite the run it read.
+call, and no such path existed. Added `--render [run]`: re-measures a run
+already on disk, lab-only, no product surface. It is how this round's output
+was verified without spending, and the smallest piece of the spec's L1.
+`report()` returns early before writing, so a re-render cannot overwrite what
+it read. With no argument it picks the newest run by the report's own
+`generatedAt`, not file mtime, which a git checkout rewrites for every file at
+once.
 
-Verified against a synthetic run built from the real `marie-curie` chart with
-usage shaped as the engine writes it: per-call rows correct, a seeded
-`career x2` retry doubling that row's input and cost, TOTAL summing, 296.6s of
-call time against 48.6s wall clock. Content flags there are meaningless by
-construction — the sections were placeholders, not prose.
+Nothing was committed under `fixtures/reports/`, so a fresh clone had nothing
+to render and the advice would have been useless. `marie-curie.reference.json`
+(a real staging run) is now the committed seed, an empty folder errors with the
+command that pulls the current set off `report-lab/staging`, and it is
+documented in `CLAUDE.md`, `docs/INDEX.md` and that folder's README. Verified
+against a synthetic run (per-call rows, a seeded `career x2` retry doubling
+that row's cost, 296.6s call time against 48.6s wall clock) and against all
+five real staging runs, which correctly report no usage as they predate R02.
 
-## Gate
+## Gate and what is not verified
 
 `typecheck` clean, `build:api` and `build:web` pass, unit tests 49/49 (41
-before, 8 added), codegen clean with the new field as its only diff. The report
-lab was **not run here**.
+before, 8 added), codegen clean with the new field as its only diff.
 
-## Not verified here
-
-The lab needs `OPENAI_API_KEY` and a route to Postgres or staging; the sandbox
+The report lab was **not run here**. It needs `OPENAI_API_KEY` and a route to Postgres or staging; the sandbox
 has neither, exactly as in R01. R-4.4's run is the **Report lab workflow
 dispatched against staging after this merges to `main`** — which is the point
 of the round, since the baseline needs real calls. Until it runs:
@@ -66,13 +72,6 @@ of the round, since the baseline needs real calls. Until it runs:
 - Retry rate across the five fixtures is unknown.
 
 Dispatch `chart: all`, `label: r02-baseline`, then paste the tables here.
-
-## Decision recorded in code
-
-Usage lives on `meta.usage`, not an admin endpoint or a separate column,
-because the lab's `--remote` mode reads a deployed report as an anonymous
-visitor and has no other channel. Consequence: a buyer could read their own
-report's token counts. `MethodologyBox` reads named fields, so nothing renders.
 
 ## Mailbox
 
