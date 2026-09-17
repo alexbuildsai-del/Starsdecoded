@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600&display=swap');
+/* MB-42: subset to the weights the app actually renders; self-hosting is the launch round's job. */
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
@@ -62,6 +63,8 @@
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-accent-border: var(--sidebar-accent-border);
   --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --color-brass: hsl(var(--brass));
 
   --font-sans: var(--app-font-sans);
   --font-serif: var(--app-font-serif);
@@ -134,9 +137,12 @@
   --chart-5: 43 80% 62%;
 
   --app-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --app-font-serif: 'Noto Serif', Georgia, serif;
-  --app-font-mono: 'Space Grotesk', ui-monospace, monospace;
+  --app-font-serif: 'Newsreader', Georgia, serif;
+  --app-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --radius: .375rem;
+
+  /* Measured chart geometry, never a control. */
+  --brass: 41 54% 62%;
 
   --shadow-2xs: 0px 1px 0px 0px rgba(0,0,0,.4);
   --shadow-xs: 0px 2px 4px 0px rgba(0,0,0,.35);
@@ -200,6 +206,7 @@
   --chart-3: 316 60% 65%;
   --chart-4: 195 70% 55%;
   --chart-5: 43 80% 62%;
+  --brass: 41 54% 62%;
 
   --shadow-2xs: 0px 1px 0px 0px rgba(0,0,0,.4);
   --shadow-xs: 0px 2px 4px 0px rgba(0,0,0,.35);
@@ -223,15 +230,32 @@
     font-feature-settings: "cv11", "ss01";
   }
   h1, h2, h3 {
-    font-family: 'Noto Serif', Georgia, serif;
+    font-family: 'Newsreader', Georgia, serif;
     letter-spacing: -0.02em;
+  }
+}
+
+/* Observatory budgets motion; reduced motion is a real state, not a nicety.
+   Report components refine this with their own snap-to-end behaviour. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
 /* Astra custom utilities */
 @layer utilities {
-  .font-display { font-family: 'Noto Serif', Georgia, serif; }
+  .font-display { font-family: 'Newsreader', Georgia, serif; }
   .font-label { font-family: 'Space Grotesk', ui-monospace, sans-serif; }
+
+  /* Every degree, orb, latitude and longitude. */
+  .font-numeric {
+    font-family: var(--app-font-mono);
+    font-variant-numeric: tabular-nums;
+  }
 
   /* Star field background */
   .bg-stars {
