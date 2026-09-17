@@ -44,21 +44,22 @@ pnpm run dev:web                      # :5173, proxies /api
 pnpm run typecheck                    # the type gate; build does not typecheck
 pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
-pnpm --filter @workspace/api-spec run codegen   # after editing openapi.yaml
+pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab [--render]            # generate (~$0.25) or re-read a run (free)
+pnpm report:lab --render|--compare    # re-read stored runs. Free; see /report-lab
 ```
 
-Gate before any pull request: typecheck, both builds, unit tests, report lab
-when `api/src/lib/` or prompts changed, `db:bootstrap` boots clean when the
-schema changed, smoke on the Vercel preview. Never skip or disable a check.
+Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
+clean when the schema changed, smoke on the Vercel preview. Never skip or
+disable a check. The report lab is not in it: `/report-lab` runs when the brain
+changed, or when the Owner asks.
 
 ## Process
 
-`/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock
-<slug>` → locked spec + Decisions rows · `/plan <slugs>` → parallel-grouped plan,
-and on the Owner's approval `/round RNN` starts at once → branch `round/RNN`,
-builders, gate, report, PR · `/qa <url>` · `/mailbox`. Details: MASTERFILE §11.
+`/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock <slug>`
+→ locked spec + Decisions rows · `/plan <slugs>` → parallel-grouped plan, and on
+the Owner's approval `/round RNN` starts at once → branch `round/RNN`, builders,
+gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox`. MASTERFILE §11.
 
 The Owner tests the website and says yes or no. Everything else is ours:
 merging once the gate is green, watching CI and the Railway and Vercel deploys,
@@ -97,12 +98,11 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step of
   the start command (its preDeployCommand hook never ran here); one that cannot
   run twice breaks the deploy.
-- Regenerate a report only when the words change: prompts, schemas,
-  `vocabulary.ts`, `brief.ts`, model, reasoning effort. Never to look at one —
-  `--render` is free, `fixtures/reports/README.md` fetches the current set, and
-  calls record tokens and cost to `meta.usage` (prices in `lib/usage.ts`).
-- Model ids are hard-coded at the call sites. Changing them is an engine
-  change and needs a report-lab run.
+- **The brain** decides the words: `api/src/prompts/`, `models.ts`,
+  `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
+  `/report-lab` runs before the PR merges; otherwise only when the Owner asks.
+  Never generate a report to look at one. Every model id lives in `models.ts`
+  with its price; one outside the catalogue does not compile.
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
