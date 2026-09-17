@@ -15,7 +15,11 @@ test("registry: ten reader-facing sections in the agreed order, foundation first
   assert.equal(ALL_SECTIONS.length, 11);
 });
 
-test("registry: word targets sum to the 3,500-4,000 report target", () => {
+// The product target is 4,000-4,500 (Owner, 2026-09-17). These bands are the
+// older 3,500-4,000 and each section's prompt names its own numbers, so raising
+// them is USER-FACING and needs a lab run. The gap is deliberate and tracked in
+// MB-38; this test pins the bands so it cannot widen unnoticed.
+test("registry: word targets still sum to 3,500-4,000, under the 4,000-4,500 product target", () => {
   const min = Object.values(WORD_TARGETS).reduce((n, [a]) => n + a, 0);
   const max = Object.values(WORD_TARGETS).reduce((n, [, b]) => n + b, 0);
   assert.equal(min, 3500);

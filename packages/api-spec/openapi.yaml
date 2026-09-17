@@ -1072,6 +1072,25 @@ components:
             required: [point, why]
       required: [intro, bullets]
 
+    UsageTotals:
+      description: Token counts and time, summed over one section's attempts or a whole report.
+      type: object
+      properties:
+        attempts:
+          description: Calls made. Above one when a reply was rejected and retried.
+          type: number
+        inputTokens:
+          type: number
+        cachedInputTokens:
+          type: number
+        outputTokens:
+          type: number
+        reasoningTokens:
+          type: number
+        ms:
+          type: number
+      required: [attempts, inputTokens, cachedInputTokens, outputTokens, reasoningTokens, ms]
+
     ReportInterpretation:
       description: >
         V3 natal report. Every section is schema-enforced at generation time,
@@ -1111,6 +1130,38 @@ components:
               type: number
             sectMarginal:
               type: boolean
+            usage:
+              description: >
+                Tokens, cost and time for the eleven generation calls.
+                Optional: reports generated before R02 have no usage block.
+                `inputTokens` excludes `cachedInputTokens`, and
+                `reasoningTokens` is a subset of `outputTokens`, never added
+                on top of it.
+              type: object
+              properties:
+                model:
+                  type: string
+                costUsd:
+                  description: Priced when generated. Null for a model with no price on record.
+                  type: number
+                  nullable: true
+                wallClockMs:
+                  description: End to end. Below `totals.ms`, because ten sections run at once.
+                  type: number
+                totals:
+                  $ref: "#/components/schemas/UsageTotals"
+                sections:
+                  type: array
+                  items:
+                    allOf:
+                      - $ref: "#/components/schemas/UsageTotals"
+                      - type: object
+                        properties:
+                          section:
+                            description: Prompt key, e.g. "natal:overview".
+                            type: string
+                        required: [section]
+              required: [model, costUsd, wallClockMs, totals, sections]
           required: [promptVersion, model, houseSystem, generatedAt, wordCount, zodiac, ephemeris, orbs, sect, sectLight, sunAltitude, sectMarginal]
         overview:
           type: object

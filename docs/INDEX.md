@@ -10,10 +10,12 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Specs
 - `docs/specs/locked/` — none yet. First candidate: pricing and packaging.
+- `docs/specs/draft/report-cost-and-latency.md` — $0.25 a report measured, output is 74% of it. Ranked levers; only L0 built.
 - `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 
 ## Rounds
 - `docs/rounds/R01-plan.md` · `R01-report.md` — claims made true, DELETE report, legal drafts, smoke workflow. Owner acceptance pending.
+- `docs/rounds/R02-plan.md` · `R02-report.md` — usage telemetry (L0). Baseline lab run still owed; MB-10 open until it lands.
 
 ## QA
 - `docs/qa/` — none yet.
@@ -26,6 +28,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `web/` React + Vite SPA (Vercel) · `api/` Express API (Railway) · `packages/db` drizzle schema
 - `packages/api-spec` OpenAPI + Orval → `api-client-react`, `api-zod` · `scripts/` seeds and bootstrap
 - `e2e/` Playwright (stale) · `fixtures/charts/` five reference charts, birth data only · `mobile/` empty scaffold
+- `fixtures/reports/` one committed run; `pnpm report:lab --render` re-reads it free. Never generate a report just to look at one — see that folder's README
+- `api/src/lib/usage.ts` model prices and token accounting; every call lands on `meta.usage`
 - `web/src/pages/legal/` draft legal pages · `api/src/lib/deletion.ts` profile-fate seam (MB-32)
 - `README.md` — setup, deploy targets, porting notes. Still the human onboarding page.
 

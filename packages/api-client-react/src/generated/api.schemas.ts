@@ -268,6 +268,19 @@ export interface ReportFocusGroup {
   bullets: ReportFocusGroupBulletsItem[];
 }
 
+/**
+ * Token counts and time, summed over one section's attempts or a whole report.
+ */
+export interface UsageTotals {
+  /** Calls made. Above one when a reply was rejected and retried. */
+  attempts: number;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  ms: number;
+}
+
 export type ReportInterpretationMetaHouseSystem = typeof ReportInterpretationMetaHouseSystem[keyof typeof ReportInterpretationMetaHouseSystem];
 
 
@@ -293,6 +306,24 @@ export const ReportInterpretationMetaSectLight = {
   moon: 'moon',
 } as const;
 
+export type ReportInterpretationMetaUsageSectionsItem = UsageTotals & {
+  /** Prompt key, e.g. "natal:overview". */
+  section: string;
+};
+
+/**
+ * Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it.
+ */
+export type ReportInterpretationMetaUsage = {
+  model: string;
+  /** Priced when generated. Null for a model with no price on record. */
+  costUsd: number | null;
+  /** End to end. Below `totals.ms`, because ten sections run at once. */
+  wallClockMs: number;
+  totals: UsageTotals;
+  sections: ReportInterpretationMetaUsageSectionsItem[];
+};
+
 export type ReportInterpretationMeta = {
   promptVersion: string;
   model: string;
@@ -306,6 +337,8 @@ export type ReportInterpretationMeta = {
   sectLight: ReportInterpretationMetaSectLight;
   sunAltitude: number;
   sectMarginal: boolean;
+  /** Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it. */
+  usage?: ReportInterpretationMetaUsage;
 };
 
 export type ReportInterpretationOverview = {

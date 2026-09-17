@@ -5,6 +5,8 @@
  *   pnpm report:lab --chart marie-curie
  *   pnpm report:lab --all --defaults-only --baseline
  *   pnpm report:lab --compare baseline latest
+ *   pnpm report:lab --render                  # read the newest run, no API call
+ *   pnpm report:lab --render marie-curie.staging
  *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
  *   pnpm report:lab --render --all --label staging     (rewrite .md/.html from stored .json)
  *
@@ -39,8 +41,19 @@ interface ChartFixture {
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
 import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
+/** Cost comes from the engine's own table, so the lab cannot disagree with the bill. */
+import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
 const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
-const REPORT_TOTAL: [number, number] = [3500, 4000];
+/**
+ * The product target (Owner, 2026-09-17). The per-section `wordTarget` bands in
+ * the registry still sum to 3,500-4,000 and the prompts still name those
+ * numbers, so the engine writes a little under this: 3,844 to 4,087 across the
+ * five fixtures on 2026-09-16. A report reading OUT OF RANGE just below 4,000
+ * is that known gap, not a regression. Closing it means raising the bands and
+ * the prompt text with them, which is USER-FACING and needs its own lab run.
+ * Decide with MB-38.
+ */
+const REPORT_TOTAL: [number, number] = [4000, 4500];
 
 /**
  * Style-contract rule 1: the report must never explain its own method. These
@@ -145,6 +158,46 @@ function measure(interpretation: Record<string, unknown>, chart?: NatalChartData
   });
 }
 
+/** Head plus body to an aligned fixed-width table. */
+function table(head: string[], body: string[][]): string {
+  const widths = head.map((_, i) =>
+    Math.max(head[i].length, ...body.map((r) => r[i].length)),
+  );
+  const line = (cells: string[]) =>
+    cells.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd();
+  return [line(head), line(widths.map((w) => "-".repeat(w))), ...body.map(line)].join("\n");
+}
+
+const usd = (n: number | null): string => (n === null ? "-" : `$${n.toFixed(4)}`);
+const secs = (ms: number): string => (ms / 1000).toFixed(1);
+
+/**
+ * Tokens, cost and time per call. `in` excludes cached; `reason` is already
+ * inside `out` and is shown because it is the part no reader ever sees.
+ */
+function renderUsage(usage: ReportUsage): string {
+  const row = (u: SectionUsage): string[] => [
+    u.section.replace(/^natal:/, ""),
+    String(u.attempts),
+    u.inputTokens.toLocaleString("en-US"),
+    u.cachedInputTokens.toLocaleString("en-US"),
+    u.outputTokens.toLocaleString("en-US"),
+    u.reasoningTokens.toLocaleString("en-US"),
+    usd(costUsd(usage.model, { ...u })),
+    secs(u.ms),
+  ];
+  const t = usage.totals;
+  return table(
+    ["call", "tries", "in", "cached", "out", "reason", "$", "s"],
+    [
+      ...usage.sections.map(row),
+      ["TOTAL", String(t.attempts), t.inputTokens.toLocaleString("en-US"),
+        t.cachedInputTokens.toLocaleString("en-US"), t.outputTokens.toLocaleString("en-US"),
+        t.reasoningTokens.toLocaleString("en-US"), usd(usage.costUsd), secs(t.ms)],
+    ],
+  );
+}
+
 function renderTable(rows: SectionRow[]): string {
   const head = ["section", "words", "target", "ok", "struct", "claims", "flags"];
   const body = rows.map((r) => [
@@ -160,12 +213,7 @@ function renderTable(rows: SectionRow[]): string {
       ...r.claims.problems.slice(0, 2).map((p) => `claim:${p}`),
     ].join(" ") || "-",
   ]);
-  const widths = head.map((_, i) =>
-    Math.max(head[i].length, ...body.map((r) => r[i].length)),
-  );
-  const line = (cells: string[]) =>
-    cells.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd();
-  return [line(head), line(widths.map((w) => "-".repeat(w))), ...body.map(line)].join("\n");
+  return table(head, body);
 }
 
 /** "growingEdge" reads as "Growing edge". */
@@ -407,11 +455,44 @@ function report(
 
   console.log(renderTable(rows));
   const totalOk = total >= REPORT_TOTAL[0] && total <= REPORT_TOTAL[1];
-  console.log(`\ntotal: ${total} words (target ${REPORT_TOTAL[0]}-${REPORT_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"}) in ${elapsed}s`);
-  const meta = interpretation.meta as { promptVersion?: string; model?: string; sect?: string; sunAltitude?: number; sectMarginal?: boolean } | undefined;
+  console.log(`\ntotal: ${total} words (target ${REPORT_TOTAL[0]}-${REPORT_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"})`
+    + (elapsed === "n/a" ? "" : ` in ${elapsed}s`));
+  const meta = interpretation.meta as {
+    promptVersion?: string; model?: string; sect?: string; sunAltitude?: number;
+    sectMarginal?: boolean; usage?: ReportUsage;
+  } | undefined;
   if (meta) console.log(`prompt ${meta.promptVersion} on ${meta.model}; ${meta.sect} chart (Sun ${meta.sunAltitude}°${meta.sectMarginal ? ", marginal" : ""})`);
+
+  // Absent on any report generated before R02, and on --compare of an old run.
+  const usage = meta?.usage;
+  if (usage) {
+    console.log(`\n${renderUsage(usage)}`);
+    const t = usage.totals;
+    const prose = Math.round(total * 1.35);
+    const invisible = t.outputTokens - prose;
+    console.log(
+      `\ncost ${usd(usage.costUsd)} in ${secs(usage.wallClockMs)}s wall clock`
+      + ` (${secs(t.ms)}s of call time across ${t.attempts} calls).`,
+    );
+    console.log(
+      `output ${t.outputTokens.toLocaleString("en-US")} tokens: ~${prose.toLocaleString("en-US")} of prose,`
+      + ` ~${invisible.toLocaleString("en-US")} the reader never sees`
+      + ` (${Math.round((invisible / t.outputTokens) * 100)}%).`,
+    );
+    const cacheRate = t.inputTokens + t.cachedInputTokens > 0
+      ? Math.round((t.cachedInputTokens / (t.inputTokens + t.cachedInputTokens)) * 100) : 0;
+    const retried = usage.sections.filter((u) => u.attempts > 1);
+    console.log(
+      `input cache hit ${cacheRate}%.`
+      + ` retries: ${retried.length ? retried.map((u) => `${u.section.replace(/^natal:/, "")} x${u.attempts}`).join(", ") : "none"}.`,
+    );
+  } else {
+    console.log("\nno usage recorded (report generated before R02).");
+  }
   const foundationSect = (interpretation.foundation as { sect?: string } | undefined)?.sect;
   if (meta && foundationSect && foundationSect !== meta.sect) console.log(`SECT MISMATCH: foundation says ${foundationSect}, chart is ${meta.sect}`);
+
+  if (label === "render") return rows;
 
   mkdirSync(REPORTS_DIR, { recursive: true });
   const stem = join(REPORTS_DIR, `${name}.${label}`);
@@ -458,6 +539,31 @@ function compare(labelA: string, labelB: string): void {
   }
 }
 
+/** Where more runs come from. Named in every "nothing on disk" error. */
+const RUNS_HINT =
+  "Fetch the latest set with: git fetch origin report-lab/staging"
+  + " && git checkout origin/report-lab/staging -- fixtures/reports/";
+
+/**
+ * The most recently generated run on disk, by the report's own `generatedAt`
+ * rather than the file's mtime, which a git checkout rewrites for every file
+ * at once and would make "newest" meaningless.
+ */
+function newestRun(): string {
+  const runs = existsSync(REPORTS_DIR)
+    ? readdirSync(REPORTS_DIR).filter((f) => f.endsWith(".json"))
+    : [];
+  if (runs.length === 0) throw new Error(`No run in ${REPORTS_DIR}. ${RUNS_HINT}`);
+  const at = (f: string): string => {
+    try {
+      return JSON.parse(readFileSync(join(REPORTS_DIR, f), "utf8"))?.interpretation?.meta?.generatedAt ?? "";
+    } catch {
+      return "";
+    }
+  };
+  return runs.sort((a, b) => at(b).localeCompare(at(a)))[0].replace(/\.json$/, "");
+}
+
 async function main() {
   if (flag("list")) {
     console.log(listFixtures().join("\n"));
@@ -474,14 +580,32 @@ async function main() {
   const label = flag("baseline") ? "baseline" : (opt("label") ?? "latest");
   const names = flag("all") ? listFixtures() : [opt("chart") ?? "marie-curie"];
 
+  // Re-measure runs already on disk. No API call, no key, no spend.
+  //
+  // Naming fixtures (--all or --chart) rewrites each one's .md and .html from
+  // its stored .json, which is how a change to the renderers reaches past runs.
+  // Naming none just prints the newest run, so a session can read a real
+  // report, or check this file's own output, without generating one.
   if (flag("render")) {
-    for (const name of names) {
-      const path = join(REPORTS_DIR, `${name}.${label}.json`);
-      if (!existsSync(path)) { console.log(`no run at ${path}`); continue; }
-      const run = JSON.parse(readFileSync(path, "utf8")) as { fixture: ChartFixture; chart: NatalChartData; interpretation: Record<string, unknown> };
-      console.log(`\n=== ${run.fixture.name} (${name}) re-rendered from ${label} ===`);
-      report(name, label, run.fixture, run.chart, run.interpretation, "0");
+    if (flag("all") || opt("chart") !== undefined) {
+      for (const name of names) {
+        const path = join(REPORTS_DIR, `${name}.${label}.json`);
+        if (!existsSync(path)) { console.log(`no run at ${path}`); continue; }
+        const run = JSON.parse(readFileSync(path, "utf8")) as { fixture: ChartFixture; chart: NatalChartData; interpretation: Record<string, unknown> };
+        console.log(`\n=== ${run.fixture.name} (${name}) re-rendered from ${label} ===`);
+        report(name, label, run.fixture, run.chart, run.interpretation, "n/a");
+      }
+      return;
     }
+    const run = opt("render") ?? newestRun();
+    const path = join(REPORTS_DIR, `${run.replace(/\.json$/, "")}.json`);
+    if (!existsSync(path)) throw new Error(`no run at ${path}. ${RUNS_HINT}`);
+    const file = JSON.parse(readFileSync(path, "utf8"));
+    const generated = file.interpretation?.meta?.generatedAt;
+    console.log(`reading ${run}${generated ? `, generated ${generated}` : ""} (no API call)`);
+    // The "render" label makes report() print without writing, so re-reading a
+    // run can never overwrite the run it read.
+    report(run, "render", file.fixture, file.chart, file.interpretation, "n/a");
     return;
   }
 

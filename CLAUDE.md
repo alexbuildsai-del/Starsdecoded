@@ -1,7 +1,7 @@
 # CLAUDE.md — working on Stars Decoded
 
 Stars Decoded computes a natal chart locally (`astronomy-engine`, whole sign)
-and writes a 2,000 to 2,800 word psychological report with OpenAI, grounded in
+and writes a 4,000 to 4,500 word psychological report with OpenAI, grounded in
 a written doctrine and a per-chart brief. One-time purchase. The report is the
 product. The app still says "Astra" in places; never add a new use of it.
 
@@ -46,13 +46,12 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after editing openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab                       # report from a fixture, measured (lands with PR #6)
+pnpm report:lab [--render]            # generate (~$0.25) or re-read a run (free)
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, report lab
 when `api/src/lib/` or prompts changed, `db:bootstrap` boots clean when the
-schema changed, smoke on the Vercel preview. Never skip, disable or quarantine
-a failing check.
+schema changed, smoke on the Vercel preview. Never skip or disable a check.
 
 ## Process
 
@@ -62,9 +61,9 @@ and on the Owner's approval `/round RNN` starts at once → branch `round/RNN`,
 builders, gate, report, PR · `/qa <url>` · `/mailbox`. Details: MASTERFILE §11.
 
 The Owner tests the website and says yes or no. Everything else is ours:
-merging once the gate is green, watching CI and the Railway and Vercel
-deploys, fixing a red branch or pipeline, and raising only what needs a
-decision or a credential (R-12.5). Never ask the Owner to run a command.
+merging once the gate is green, watching CI and the Railway and Vercel deploys,
+fixing a red branch or pipeline, and raising only what needs a decision or a
+credential (R-12.5). Never ask the Owner to run a command.
 
 Every shipped line in a round report is tagged USER-FACING or INTERNAL; a
 report-content change is USER-FACING even when no UI moved.
@@ -82,23 +81,26 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 ## Things a session should know
 
 - Deploys are git-push driven: `main` → staging (Vercel branch alias
-  `starsdecoded-staging.vercel.app`, Railway environment `staging`, own
-  Supabase project); `production` branch → production. Only the Promote
-  workflow moves `production`, fast-forward from `main`, after the staging
-  smoke passes; dispatch it, never push the branch. Secrets live only in the
-  Railway, Vercel and Supabase dashboards; the repository is public and
-  nothing goes into GitHub secrets. Runbook: `docs/annex/staging-runbook.md`.
-- The web app calls `/api` on its own origin; `vercel.json` rewrites that to
-  the staging or production Railway host by web host. `/api/healthz` reports
-  `env` and `commit`, and `smoke.yml` asserts both.
-- Prompts are edited on staging only. Production sets `PROMPTS_READ_ONLY` and
+  `starsdecoded-staging.vercel.app`, Railway environment `staging`, own Supabase
+  project); `production` branch → production, moved only by the Promote workflow,
+  fast-forward from `main`, after the staging smoke passes; dispatch it, never
+  push the branch. Secrets live only in the Railway, Vercel and Supabase
+  dashboards; the repo is public. Runbook: `docs/annex/staging-runbook.md`.
+- The web app calls `/api` on its own origin; `vercel.json` rewrites that to the
+  staging or production Railway host by web host. `/api/healthz` reports `env`
+  and `commit`; `smoke.yml` asserts both.
+- Prompts are edited on staging only; production sets `PROMPTS_READ_ONLY` and
   copies staging's `prompt_templates` in its start-up bootstrap.
 - `openapi.yaml` is the contract; generated client and zod files are rewritten
-  by codegen and never hand-edited. `/admin/*` routes are not in the spec yet.
+  by codegen, never hand-edited. `/admin/*` is not in the spec yet.
 - Schema changes go through `packages/db/src/schema` plus an idempotent script
-  wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step
-  of the start command (its preDeployCommand hook never ran here); a script
-  that cannot run twice breaks the Railway deploy.
+  wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step of
+  the start command (its preDeployCommand hook never ran here); one that cannot
+  run twice breaks the deploy.
+- Regenerate a report only when the words change: prompts, schemas,
+  `vocabulary.ts`, `brief.ts`, model, reasoning effort. Never to look at one —
+  `--render` is free, `fixtures/reports/README.md` fetches the current set, and
+  calls record tokens and cost to `meta.usage` (prices in `lib/usage.ts`).
 - Model ids are hard-coded at the call sites. Changing them is an engine
   change and needs a report-lab run.
 - Real chart data only. Fixtures hold birth data; charts are computed at run
@@ -107,14 +109,12 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-10)
+## Current focus (2026-09-17)
 
-1. Staging environment landing (`docs/specs/draft/staging-environment.md`).
-   `production` branch exists at the pre-staging `main`; the Owner works the
-   runbook and switches the dashboards to it, then the PR merges to staging
-   and the first Promote ships it.
-2. R01 Owner acceptance pending (`docs/rounds/R01-report.md`).
-3. Next ideation session: pricing and packaging (MB-5), then payments, which
-   go to staging in Stripe test mode first.
-4. The report lab runs against staging from the Report lab workflow (dispatch,
-   `chart`, `label`); first measurement on PR #33. Owed: legal entity (MB-31).
+1. Staging landing (`docs/specs/draft/staging-environment.md`): `production`
+   sits at the pre-staging `main`; the Owner works the runbook, switches the
+   dashboards, then the first Promote ships it.
+2. R02 usage telemetry merged; the staging baseline run is owed and closes
+   MB-10. Next levers: `docs/specs/draft/report-cost-and-latency.md`.
+3. R01 Owner acceptance pending. Next ideation: pricing and packaging (MB-5),
+   then payments in Stripe test mode on staging. Owed: MB-31, MB-38.
