@@ -2,7 +2,7 @@
 
 Ideation 2026-09-17 with the Owner, over six rounds of live prototypes
 (https://claude.ai/artifact/BRbKnKKjC78Xe3egLtanZz, built on the Marie Curie report-lab
-run). Status: draft, awaiting `/lock`. The report is the product and its page is a wall
+run). Status: **locked 2026-09-17**. The report is the product and its page is a wall
 of text with one decorative wheel; this settles the design direction MB-29 has been
 holding open, and the report shell that sits on it.
 
@@ -119,34 +119,27 @@ holding open, and the report shell that sits on it.
   it as renders, quadrant in the footer. Back: the house's question as a heading, then the
   generated text, footed `FROM YOUR REPORT`.
 
-## Open questions
+## Answered in the session
 
-1. **The dead table toggle.** In section `02 — Chart`, directly above the wheel, there is a
-   pill toggle that shows a single option, `WHEEL`. Its sibling button, `TABLE`, carries
-   `hidden` (`ReportPage.tsx` L462), so the control has nothing to switch to. The view it
-   would reveal (L543–581) is a plain list of every placement, main planets then minor. That
-   list is not lost either way: print renders both views stacked, so it is already in the
-   PDF. Default if silent: **delete the toggle and the dead branch**, keep the wheel.
+1. **Accent** — brass. Platinum and indigo-only were built, shown and rejected.
+2. **The back of an empty house card** — keep the ruler's generated line, clearly labelled.
+3. **The dead table toggle** — delete it. Done ahead of the round in `830cd13`; the placement
+   table survives as print-only, which is the one place the PDF carries every degree.
 
 ## Decisions to record
 
-1. Design direction: Observatory is the Stars Decoded visual direction; the other three
-   explored directions, including light-ground "Plate & Paper", are rejected.
-2. One register: marketing, share cards and printables use the same direction as the product.
-3. Display face: Newsreader 400 replaces Noto Serif 300 for display and ledes. Supersedes the
-   display-face clause of MASTERFILE §9.
-4. Numerals: IBM Plex Mono with tabular numerals for every degree, orb and coordinate.
-5. Colour roles: brass means measured sky and is never a control; indigo/violet mean the
-   product; element hues mean element-derived data only.
-6. Planet renders are bodies only, never UI.
-7. The Ascendant is a point on the horizon, not a body, and is never drawn as a planet.
-8. The wheel places every body at its true degree; crowding is resolved by radius, never by
-   moving a body off its degree.
-9. Citations are in-paragraph superscripts with an evidence card; the repeated-quote block
-   under paragraphs is removed. No prompt or schema change.
-10. House-card copy is drawn only from fields the report already emits; an empty house reads
-    through its ruler's generated line, and the UI writes no astrological prose of its own.
-11. Accent: brass `#D4B06A` is the sky colour. Platinum and indigo-only were built, shown and
-    rejected. This closes MB-29.
-12. The decorative wheel component is replaced, not repaired: `radial-orbital-natal.tsx` is
-    deleted with the round that lands its successor.
+1. **Design direction: Observatory.** Dark only, near-black ground; indigo and violet mean the
+   product; **brass `#D4B06A` means measured chart geometry and is never a control**; element
+   hues mean element-derived data only. Newsreader for display and ledes, Inter for body,
+   Space Grotesk for labels, **IBM Plex Mono for every degree, orb and coordinate**. Extend,
+   never replace. Platinum, indigo-only and the light-ground "Plate & Paper" direction were
+   built, shown and rejected. Supersedes ADR-7.
+2. **One register.** Marketing, share cards and printables use the product's direction. There
+   is no separate campaign language; the printable is the same plate at print resolution.
+3. **The chart is drawn from the chart.** Every body sits at its true degree and crowding is
+   resolved by radius, never by moving a body off its degree. The Ascendant is a point on the
+   horizon and is never drawn as a planet. Planet renders are bodies and never UI.
+4. **Claims are cited in place and the UI writes no prose.** Claims render as in-paragraph
+   superscripts with an evidence card; the repeated-quote block under paragraphs is removed.
+   House and section copy comes only from fields the report already emits. No prompt, schema
+   or API change.
