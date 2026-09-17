@@ -5,7 +5,7 @@
  *   pnpm report:lab --chart marie-curie
  *   pnpm report:lab --all --defaults-only --baseline
  *   pnpm report:lab --compare baseline latest
- *   pnpm report:lab --render                  # newest run on disk, no API call
+ *   pnpm report:lab --render                  # read the newest run, no API call
  *   pnpm report:lab --render marie-curie.staging
  *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
  *   pnpm report:lab --render --all --label staging     (rewrite .md/.html from stored .json)
@@ -570,20 +570,6 @@ async function main() {
     return;
   }
 
-  // Re-measure a run already on disk. No API call, no key, no spend: the way to
-  // re-read a measurement, to check a change to this file's own output, or to
-  // get a real interpretation in front of the UI without generating one.
-  if (flag("render")) {
-    const run = opt("render") ?? newestRun();
-    const path = join(REPORTS_DIR, `${run.replace(/\.json$/, "")}.json`);
-    if (!existsSync(path)) throw new Error(`no run at ${path}. ${RUNS_HINT}`);
-    const file = JSON.parse(readFileSync(path, "utf8"));
-    const generated = file.interpretation?.meta?.generatedAt;
-    console.log(`rendering ${run}${generated ? `, generated ${generated}` : ""} (no API call)`);
-    report(run, "render", file.fixture, file.chart, file.interpretation, "n/a");
-    return;
-  }
-
   const compareArgs = opt("compare");
   if (compareArgs !== undefined) {
     const i = process.argv.indexOf("--compare");
@@ -594,14 +580,32 @@ async function main() {
   const label = flag("baseline") ? "baseline" : (opt("label") ?? "latest");
   const names = flag("all") ? listFixtures() : [opt("chart") ?? "marie-curie"];
 
+  // Re-measure runs already on disk. No API call, no key, no spend.
+  //
+  // Naming fixtures (--all or --chart) rewrites each one's .md and .html from
+  // its stored .json, which is how a change to the renderers reaches past runs.
+  // Naming none just prints the newest run, so a session can read a real
+  // report, or check this file's own output, without generating one.
   if (flag("render")) {
-    for (const name of names) {
-      const path = join(REPORTS_DIR, `${name}.${label}.json`);
-      if (!existsSync(path)) { console.log(`no run at ${path}`); continue; }
-      const run = JSON.parse(readFileSync(path, "utf8")) as { fixture: ChartFixture; chart: NatalChartData; interpretation: Record<string, unknown> };
-      console.log(`\n=== ${run.fixture.name} (${name}) re-rendered from ${label} ===`);
-      report(name, label, run.fixture, run.chart, run.interpretation, "0");
+    if (flag("all") || opt("chart") !== undefined) {
+      for (const name of names) {
+        const path = join(REPORTS_DIR, `${name}.${label}.json`);
+        if (!existsSync(path)) { console.log(`no run at ${path}`); continue; }
+        const run = JSON.parse(readFileSync(path, "utf8")) as { fixture: ChartFixture; chart: NatalChartData; interpretation: Record<string, unknown> };
+        console.log(`\n=== ${run.fixture.name} (${name}) re-rendered from ${label} ===`);
+        report(name, label, run.fixture, run.chart, run.interpretation, "n/a");
+      }
+      return;
     }
+    const run = opt("render") ?? newestRun();
+    const path = join(REPORTS_DIR, `${run.replace(/\.json$/, "")}.json`);
+    if (!existsSync(path)) throw new Error(`no run at ${path}. ${RUNS_HINT}`);
+    const file = JSON.parse(readFileSync(path, "utf8"));
+    const generated = file.interpretation?.meta?.generatedAt;
+    console.log(`reading ${run}${generated ? `, generated ${generated}` : ""} (no API call)`);
+    // The "render" label makes report() print without writing, so re-reading a
+    // run can never overwrite the run it read.
+    report(run, "render", file.fixture, file.chart, file.interpretation, "n/a");
     return;
   }
 
