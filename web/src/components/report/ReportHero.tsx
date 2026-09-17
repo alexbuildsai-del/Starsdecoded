@@ -71,7 +71,7 @@ export function ReportHero({
   const hudRef = useRef<HTMLDivElement>(null);
   const cueRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<SVGGElement>(null);
-  const nameRef = useRef<SVGGElement>(null);
+  const nameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let frame = 0;
@@ -93,7 +93,7 @@ export function ReportHero({
       // The whole diagram is one group so ring, lines and markers can never
       // drift apart on scroll; only the name moves at a different depth.
       diagramRef.current?.setAttribute("transform", `translate(0,${(-top * 0.12 * 1.6).toFixed(1)})`);
-      nameRef.current?.setAttribute("transform", `translate(0,${(-top * 0.05 * 1.6).toFixed(1)})`);
+      if (nameRef.current) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
     }
     function onScroll() {
       if (frame) return;
@@ -121,20 +121,19 @@ export function ReportHero({
   const W = narrow ? 680 : 1000;
   const H = narrow ? 680 : 660;
   const cx = W / 2;
-  const cy = narrow ? 340 : 320;
+  const cy = H / 2;
   const R = narrow ? 196 : 200;
   const places = narrow ? 2 : 4;
 
   const bodies = [
-    { key: "sun", planet: sun, size: narrow ? 124 : 140 },
-    { key: "moon", planet: moon, size: narrow ? 80 : 88 },
+    { key: "sun", planet: sun, size: narrow ? 104 : 116 },
+    { key: "moon", planet: moon, size: narrow ? 64 : 72 },
   ].filter((b) => !!b.planet);
 
   const ascTheta = theta(asc.absoluteDegree, asc.absoluteDegree);
   const ascAt = pointAt(cx, cy, R, ascTheta);
   const ascOut = pointAt(cx, cy, R + 22, ascTheta);
   const ascIn = pointAt(cx, cy, R - 26, ascTheta);
-  const ascCentre = pointAt(cx, cy, 132, ascTheta);
   const east = pointAt(cx, cy, R + 58, ascTheta);
   const west = pointAt(cx, cy, R + 58, theta(opposite(asc.absoluteDegree), asc.absoluteDegree));
 
@@ -154,10 +153,10 @@ export function ReportHero({
     const dx = right ? 16 : -16;
     return (
       <g>
-        <Label x={p.x + dx} y={p.y - 4} anchor={anchor} size={11} fill={SKY}>{kicker}</Label>
+        <Label x={p.x + dx} y={p.y - 3} anchor={anchor} size={9.5} fill={SKY_DIM}>{kicker}</Label>
         <text
-          x={(p.x + dx).toFixed(1)} y={(p.y + 16).toFixed(1)} textAnchor={anchor}
-          fontFamily="IBM Plex Mono, monospace" fontSize={14} fill="rgba(232,235,242,.92)"
+          x={(p.x + dx).toFixed(1)} y={(p.y + 13).toFixed(1)} textAnchor={anchor}
+          fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
         >
           {value}
         </text>
@@ -168,11 +167,20 @@ export function ReportHero({
   return (
     <>
       <div ref={skyRef} className={`rp-hsky rp-grain no-print${narrow ? " narrow" : ""}`}>
+        <div className="rp-hplate">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           role="img"
           aria-label={`${name}: Sun, Moon and Rising at their true positions`}
         >
+          <defs>
+            {/* Fades the spokes out under the name, which sits over the centre in page type. */}
+            <radialGradient id="rp-name-veil">
+              <stop offset="0%" stopColor="#121826" stopOpacity={0.92} />
+              <stop offset="62%" stopColor="#121826" stopOpacity={0.66} />
+              <stop offset="100%" stopColor="#121826" stopOpacity={0} />
+            </radialGradient>
+          </defs>
           <g ref={diagramRef}>
             <circle cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
             {Array.from({ length: 12 }, (_, i) => i * 30).map((d) => {
@@ -199,24 +207,35 @@ export function ReportHero({
               </>
             )}
 
+            {/* Every spoke runs from the centre to its body's edge, so each one points where it should. */}
+            {bodies.map((b) => {
+              const t = theta(b.planet.absoluteDegree, asc.absoluteDegree);
+              const edge = pointAt(cx, cy, R - b.size / 2 - 3, t);
+              return (
+                <line
+                  key={b.key} x1={cx} y1={cy} x2={edge.x.toFixed(1)} y2={edge.y.toFixed(1)}
+                  stroke={SKY} strokeOpacity={0.3} strokeDasharray="2 5"
+                />
+              );
+            })}
+            <line
+              x1={cx} y1={cy} x2={ascIn.x.toFixed(1)} y2={ascIn.y.toFixed(1)}
+              stroke={SKY} strokeOpacity={0.3} strokeDasharray="2 5"
+            />
+            <circle cx={cx} cy={cy} r={narrow ? 120 : 136} fill="url(#rp-name-veil)" />
+
             {bodies.map((b) => {
               const t = theta(b.planet.absoluteDegree, asc.absoluteDegree);
               const p = pointAt(cx, cy, R, t);
-              const inner = pointAt(cx, cy, narrow ? 112 : 132, t);
-              const outer = pointAt(cx, cy, R - b.size * 0.45, t);
               return (
                 <g key={b.key}>
-                  <line
-                    x1={inner.x.toFixed(1)} y1={inner.y.toFixed(1)} x2={outer.x.toFixed(1)} y2={outer.y.toFixed(1)}
-                    stroke={SKY} strokeOpacity={0.3} strokeDasharray="2 5"
-                  />
                   <image
                     href={PLANET_RENDERS[b.key]}
                     x={p.x - b.size / 2} y={p.y - b.size / 2}
                     width={b.size} height={b.size}
                   />
                   {!narrow && outside(
-                    t, R + b.size * 0.5 + 20,
+                    t, R + b.size * 0.5 + 16,
                     (PLANET_LABELS[b.key] ?? b.key).toUpperCase(),
                     `${b.planet.degree.toFixed(2)}° ${b.planet.sign} · ${ORDINALS[b.planet.house - 1]}`,
                   )}
@@ -224,32 +243,20 @@ export function ReportHero({
               );
             })}
 
-            <line
-              x1={ascCentre.x.toFixed(1)} y1={ascCentre.y.toFixed(1)} x2={ascIn.x.toFixed(1)} y2={ascIn.y.toFixed(1)}
-              stroke={SKY} strokeOpacity={0.3} strokeDasharray="2 5"
-            />
             <circle cx={ascAt.x.toFixed(1)} cy={ascAt.y.toFixed(1)} r={13} fill="#0B0E14" stroke={SKY} strokeWidth={1.5} />
             <circle cx={ascAt.x.toFixed(1)} cy={ascAt.y.toFixed(1)} r={4} fill={SKY} />
             <line
               x1={ascAt.x.toFixed(1)} y1={ascAt.y.toFixed(1)} x2={ascOut.x.toFixed(1)} y2={ascOut.y.toFixed(1)}
               stroke={SKY} strokeWidth={1.5}
             />
-            {!narrow && outside(ascTheta, R + 44, "RISING · THE SLICE CLIMBING", rising)}
-          </g>
-
-          <g ref={nameRef}>
-            <Label x={cx} y={cy - (narrow ? 24 : 30)} anchor="middle" size={narrow ? 10 : 12} fill={SKY}>
-              NATAL CHART REPORT
-            </Label>
-            <text
-              x={cx} y={cy + (narrow ? 26 : 34)} textAnchor="middle"
-              fontFamily="Newsreader, Georgia, serif" fontWeight={400} fontSize={narrow ? 46 : 62}
-              fill="#F2F4F9"
-            >
-              {name}
-            </text>
+            {!narrow && outside(ascTheta, R + 40, "RISING · THE SLICE CLIMBING", rising)}
           </g>
         </svg>
+        <div ref={nameRef} className="rp-hname">
+          <span className="k">Natal chart report</span>
+          <h1>{name}</h1>
+        </div>
+        </div>
 
         {narrow && (
           <dl className="rp-legend">
