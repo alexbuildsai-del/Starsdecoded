@@ -329,6 +329,7 @@ export type ReportInterpretationMetaUsage = {
 
 export type ReportInterpretationMeta = {
   promptVersion: string;
+  /** The model every call used, or "mixed" when the foundation and the sections differ. See usage.sections[].model for each one. */
   model: string;
   houseSystem: ReportInterpretationMetaHouseSystem;
   generatedAt: string;

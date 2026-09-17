@@ -21,6 +21,7 @@ import { ASPECT_ORBS, EPHEMERIS, type NatalChartData } from "./chartCalculation.
 import { sect as computeSect } from "./traditional.js";
 import { logger } from "./logger.js";
 import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type SectionUsage } from "./usage.js";
+import { MODELS, modelFor } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
   buildBrief, storeClaims, toStrictJsonSchema,
@@ -39,21 +40,7 @@ import { SuperpowersSchema } from "../prompts/sections/superpowers.js";
 import { DiscoveriesSchema } from "../prompts/sections/discoveries.js";
 import { FocusSchema } from "../prompts/sections/focus.js";
 
-/**
- * The foundation reads the chart open-endedly and decides what the whole report
- * says, so it stays on the strong model.
- */
-export const FOUNDATION_MODEL = "gpt-5.2";
-/**
- * The ten reader-facing sections. They write against an analysis the foundation
- * already did, inside a strict schema, with every claim checked against the
- * chart in code. That scaffolding is what lets a smaller model be a fair
- * question here when it would not be for the foundation.
- *
- * Overridable so the lab can measure one model against another on staging
- * without a code change. Unset means no change. Production never sets it.
- */
-export const SECTION_MODEL = process.env.NATAL_SECTION_MODEL || "gpt-5.2";
+// Which model each call uses lives in ./models.ts, never here.
 /** One blind try, then two informed by the rejection. A lost section loses the whole report. */
 const ATTEMPTS = 3;
 /** Bump when the section set, schemas, or vocabulary change shape. */
@@ -233,7 +220,7 @@ export async function generateInterpretation(
   const foundationPrompt = await resolveSection(FOUNDATION.key);
   const foundationCall = await callSection(
     FOUNDATION,
-    FOUNDATION_MODEL,
+    MODELS.foundation,
     foundationPrompt.system,
     assembleUser(foundationPrompt.user, brief, FOUNDATION),
     brief,
@@ -246,7 +233,7 @@ export async function generateInterpretation(
   const prompts = await Promise.all(REPORT_SECTIONS.map((s) => resolveSection(s.key)));
   const calls = await Promise.all(
     REPORT_SECTIONS.map((spec, i) =>
-      callSection(spec, SECTION_MODEL, prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief),
+      callSection(spec, modelFor(spec.key), prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief),
     ),
   );
   const results = calls.map((c) => c.data);
@@ -288,7 +275,7 @@ export async function generateInterpretation(
   return {
     meta: {
       promptVersion: PROMPT_VERSION,
-      model: SECTION_MODEL,
+      model: usage.model,
       houseSystem: "whole-sign",
       zodiac: "tropical",
       ephemeris: EPHEMERIS,

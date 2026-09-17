@@ -183,7 +183,7 @@ export const GetReportResponse = zod.object({
   "interpretation": zod.union([zod.object({
   "meta": zod.object({
   "promptVersion": zod.string(),
-  "model": zod.string(),
+  "model": zod.string().describe('The model every call used, or \"mixed\" when the foundation and the sections differ. See usage.sections[].model for each one.\n'),
   "houseSystem": zod.enum(['whole-sign']),
   "generatedAt": zod.string(),
   "wordCount": zod.number(),

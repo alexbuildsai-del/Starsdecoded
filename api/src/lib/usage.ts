@@ -1,3 +1,5 @@
+import { priceOf } from "./models.js";
+
 /**
  * Token accounting for report generation.
  *
@@ -10,18 +12,15 @@
  * foundation on one, the ten sections on another) is priced correctly rather
  * than at whichever model happened to be passed in.
  *
+ * Prices come from the model catalogue, so this file does the arithmetic and
+ * `models.ts` decides what anything costs.
+ *
  * Two OpenAI conventions decide the arithmetic and are easy to get wrong:
  * `prompt_tokens` already includes the cached ones, and `completion_tokens`
  * already includes reasoning. So the billable split is
  * `(prompt - cached)`, `cached`, and `completion`, and reasoning rides along
  * as a diagnostic that is never charged a second time.
  */
-
-/** USD per million tokens. Checked against OpenAI's pricing page 2026-09-16. */
-export const MODEL_PRICES: Record<string, { input: number; cachedInput: number; output: number }> = {
-  "gpt-5.2": { input: 1.75, cachedInput: 0.175, output: 14.0 },
-  "gpt-5-mini": { input: 0.25, cachedInput: 0.025, output: 2.0 },
-};
 
 /** One section's total across however many attempts it took. */
 export interface SectionUsage {
@@ -113,9 +112,13 @@ export function totalsOf(sections: readonly SectionUsage[]): UsageTotals {
   );
 }
 
-/** Null for a model with no price on record. */
+/**
+ * Null for a model with no price on record. The engine cannot select one (the
+ * catalogue is the type), but a run stored before a model left the catalogue
+ * can still name one, and a missing price must read as unknown, never as free.
+ */
 export function costUsd(model: string, t: UsageTotals): number | null {
-  const p = MODEL_PRICES[model];
+  const p = priceOf(model);
   if (!p) return null;
   const perToken = (usd: number) => usd / 1_000_000;
   return t.inputTokens * perToken(p.input)

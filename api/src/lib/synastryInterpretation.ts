@@ -1,4 +1,5 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { MODELS } from "./models.js";
 import { resolveSection } from "./promptLoader.js";
 import type { NatalChartData } from "./chartCalculation.js";
 import { ASPECT, BODY, BODY_LABELS, type AspectName, type Body } from "../prompts/vocabulary.js";
@@ -72,7 +73,7 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
 
 async function callAI(systemPrompt: string, userPrompt: string, maxTokens = 600): Promise<string> {
   const response = await openai.chat.completions.create({
-    model: "gpt-5.2",
+    model: MODELS.synastry,
     max_completion_tokens: maxTokens,
     messages: [
       { role: "system", content: systemPrompt },
