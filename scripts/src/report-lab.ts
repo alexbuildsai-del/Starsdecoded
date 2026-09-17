@@ -511,9 +511,50 @@ function report(
   return rows;
 }
 
+/** Everything a section is judged on, from one stored run. */
+interface Judged {
+  model: string;
+  words: number;
+  inRange: boolean | null;
+  costUsd: number | null;
+  ms: number;
+  /** Style-contract and evidence failures. Empty is clean. */
+  faults: string[];
+}
+
+function judge(row: SectionRow, usage: ReportUsage | undefined): Judged {
+  const u = usage?.sections.find((x) => x.section.replace(/^natal:/, "") === row.section);
+  const model = u?.model ?? usage?.model ?? "-";
+  return {
+    model,
+    words: row.words,
+    inRange: row.inRange,
+    costUsd: u ? costUsd(model, { ...u }) : null,
+    ms: u?.ms ?? 0,
+    faults: [
+      ...(row.structured ? [] : ["unstructured"]),
+      ...row.methodTalk.map((m) => `method:"${m}"`),
+      ...row.bannedChars.map((c) => `char:${c}`),
+      ...row.claims.problems.map((c) => `claim:${c}`),
+    ],
+  };
+}
+
+const shortModel = (m: string): string => m.replace(/^gpt-/, "");
+
+/**
+ * Per-section A/B between two stored runs. Words alone cannot say which model
+ * wrote a better section, so this reports what the section is actually judged
+ * on: the style contract, code-verified claims, the word band, and what each
+ * one cost. Quality and cost are kept apart — a section that got cheaper and
+ * broke the contract is not an improvement.
+ */
 function compare(labelA: string, labelB: string): void {
   const names = listFixtures();
   let compared = 0;
+  let costA = 0, costB = 0, priced = true;
+  const regressed: string[] = [];
+  const fixed: string[] = [];
 
   for (const name of names) {
     const pathA = join(REPORTS_DIR, `${name}.${labelA}.json`);
@@ -524,26 +565,63 @@ function compare(labelA: string, labelB: string): void {
     const fileA = JSON.parse(readFileSync(pathA, "utf8"));
     const fileB = JSON.parse(readFileSync(pathB, "utf8"));
     const a = fileA.interpretation, b = fileB.interpretation;
+    const usageA: ReportUsage | undefined = a.meta?.usage;
+    const usageB: ReportUsage | undefined = b.meta?.usage;
     const rowsA = measure(a, fileA.chart);
     const rowsB = measure(b, fileB.chart);
 
-    console.log(`\n=== ${name}: ${labelA} → ${labelB} ===`);
+    const body: string[][] = [];
     for (let i = 0; i < rowsA.length; i++) {
-      const ra = rowsA[i];
-      const rb = rowsB[i];
-      const same = proseOf(a[ra.section]) === proseOf(b[rb.section]);
-      const delta = rb.words - ra.words;
-      const sign = delta > 0 ? `+${delta}` : String(delta);
-      console.log(
-        `${ra.section.padEnd(16)} ${String(ra.words).padStart(4)} → ${String(rb.words).padStart(4)}` +
-          ` (${sign.padStart(5)})  ${same ? "identical" : "CHANGED"}`,
-      );
+      const ja = judge(rowsA[i], usageA);
+      const jb = judge(rowsB[i], usageB);
+      if (ja.costUsd === null || jb.costUsd === null) priced = false;
+      costA += ja.costUsd ?? 0;
+      costB += jb.costUsd ?? 0;
+
+      const section = rowsA[i].section;
+      const newFaults = jb.faults.filter((f) => !ja.faults.includes(f));
+      const goneFaults = ja.faults.filter((f) => !jb.faults.includes(f));
+      const fellOut = ja.inRange === true && jb.inRange === false;
+      const cameIn = ja.inRange === false && jb.inRange === true;
+      if (newFaults.length || fellOut) regressed.push(`${name}/${section}`);
+      else if (goneFaults.length || cameIn) fixed.push(`${name}/${section}`);
+
+      const verdict = newFaults.length
+        ? `WORSE ${newFaults.slice(0, 2).join(" ")}`
+        : fellOut ? "WORSE out of word band"
+        : goneFaults.length || cameIn ? "better"
+        : "same";
+      body.push([
+        section,
+        ja.model === jb.model ? shortModel(ja.model) : `${shortModel(ja.model)}→${shortModel(jb.model)}`,
+        `${ja.words}→${jb.words}`,
+        `${usd(ja.costUsd)}→${usd(jb.costUsd)}`,
+        `${secs(ja.ms)}→${secs(jb.ms)}`,
+        verdict,
+      ]);
     }
+    console.log(`\n=== ${name}: ${labelA} → ${labelB} ===`);
+    console.log(table(["section", "model", "words", "$", "s", "verdict"], body));
   }
 
   if (compared === 0) {
     console.log(`No fixture has both a "${labelA}" and a "${labelB}" run in ${REPORTS_DIR}.`);
+    return;
   }
+
+  console.log(`\n${"-".repeat(60)}`);
+  if (priced) {
+    const pct = costA > 0 ? Math.round(((costB - costA) / costA) * 100) : 0;
+    console.log(`cost over ${compared} fixtures: ${usd(costA)} → ${usd(costB)} (${pct > 0 ? "+" : ""}${pct}%)`);
+  } else {
+    console.log(`cost: not comparable, a run predates per-section usage`);
+  }
+  console.log(`quality: ${regressed.length} section(s) worse, ${fixed.length} better, out of ${compared * SECTION_IDS.length}`);
+  if (regressed.length) console.log(`  worse: ${regressed.join(", ")}`);
+  if (fixed.length) console.log(`  better: ${fixed.join(", ")}`);
+  console.log(regressed.length
+    ? "A section that got cheaper and broke the contract is not an improvement."
+    : "No section regressed. Cheaper is cheaper.");
 }
 
 /** Where more runs come from. Named in every "nothing on disk" error. */
