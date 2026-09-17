@@ -1,27 +1,28 @@
-# Planet renders — placeholders
+# Planet renders
 
 `ReportPage.tsx` and `components/ui/radial-orbital-natal.tsx` import a `.webp`
-per planet and render them as the orbiting nodes of the natal chart wheel.
+per planet and render them as the bodies of the natal chart wheel.
 
-The ten files here are **1×1 transparent placeholders**, not the real artwork.
-The originals are still in the Replit workspace: the integration used to port
-this codebase can only read text files, so no binary asset came across.
-
-They are committed rather than omitted so `vite build` resolves every import
-and the app builds and deploys. Visually the wheel currently falls back to
-nothing where a planet should be — the node itself, its label, retrograde
-badge and click behaviour all still work.
-
-## Restoring the real renders
-
-Download `artifacts/astra/src/assets/planets/*.webp` from the Replit project
-and overwrite these files, keeping the names exactly:
+The ten files here are the real renders, restored from the Replit workspace on
+2026-09-17 (MB-13). They are 192×192 WebP with an alpha channel, 3–5 KB each:
+lit spheres with a terminator and a rim light, Saturn with its rings.
 
     sun.webp  moon.webp  mercury.webp  venus.webp    mars.webp
     jupiter.webp  saturn.webp  uranus.webp  neptune.webp  pluto.webp
 
-They are transparent-background 3D planet renders (Saturn includes its rings).
-No code change is needed — the imports already point here.
+## Rules
 
-Same story for `web/public/opengraph.jpg`, the social preview image, which did
-not come across either and has no placeholder.
+They are **bodies, never UI**. A planet render belongs on the wheel, a house
+card or a chart tile; it never stands in for an icon in a button, a chip or a
+nav item. The colour rule in MASTERFILE §9 only works if a body's colour means
+"this is the sky" and nothing else borrows it.
+
+192 px is enough for a wheel node, a card and a hero marker at 2× device pixel
+ratio. Anything displayed above roughly 90 px needs a larger source: re-export
+at 512 px rather than upscaling, which adds no detail.
+
+There is no render for Chiron or the lunar nodes. Those are points rather than
+planets and are drawn as glyphs, which is the correct distinction to show.
+
+`web/public/opengraph.jpg`, the social preview image, is still missing and has
+no placeholder.
