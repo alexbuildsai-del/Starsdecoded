@@ -100,15 +100,17 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-10)
+## Current focus (2026-09-17)
 
-1. Staging environment landing (`docs/specs/draft/staging-environment.md`).
+1. R02 Owner acceptance pending (`docs/rounds/R02-report.md`): the natal
+   report UI lands whole — Observatory type stack, the wheel drawn from real
+   degrees, citations as superscripts, house cards from generated strings.
+   The house grid and the angle cards now say less, by design (ADR-18).
+2. Staging environment landing (`docs/specs/draft/staging-environment.md`).
    `production` branch exists at the pre-staging `main`; the Owner works the
    runbook and switches the dashboards to it, then the PR merges to staging
    and the first Promote ships it.
-2. R01 Owner acceptance pending (`docs/rounds/R01-report.md`).
-3. Next ideation session: pricing and packaging (MB-5), then payments, which
-   go to staging in Stripe test mode first.
-4. The report lab runs against staging from the Report lab workflow
-   (dispatch, `chart` and `label`); no credential needed. First measurement
-   is on PR #33. Still owed: the Owner's legal entity (MB-31).
+3. R01 Owner acceptance also pending (`docs/rounds/R01-report.md`).
+4. Next ideation session: pricing and packaging (MB-5), then payments, which
+   go to staging in Stripe test mode first. Still owed: the Owner's legal
+   entity (MB-31), and `opengraph.jpg` (MB-13).
