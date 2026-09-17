@@ -18,6 +18,8 @@ export interface ChartAspect {
   planet2: string;
   type: string;
   orb: number;
+  /** Closing rather than separating. The API has always sent it. */
+  applying: boolean;
 }
 
 export interface ChartData {

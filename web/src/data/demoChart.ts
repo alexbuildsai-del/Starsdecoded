@@ -17,89 +17,105 @@ import type { WheelInterpretation } from "@/components/ui/radial-orbital-natal";
 export const DEMO_ARCHETYPE = "The Visionary Architect";
 export const DEMO_USER_INITIAL = "A";
 
-export const DEMO_CHART_DATA: ChartData = {
-  planets: {
-    sun: {
-      sign: "Cancer",
-      degree: 0.3,
-      absoluteDegree: 90.3,
-      house: 1,
-      retrograde: false,
-      speed: 0.95,
-    },
-    moon: {
-      sign: "Scorpio",
-      degree: 8.2,
-      absoluteDegree: 218.2,
-      house: 5,
-      retrograde: false,
-      speed: 12.8,
-    },
-    mercury: {
-      sign: "Gemini",
-      degree: 14.7,
-      absoluteDegree: 74.7,
-      house: 12,
-      retrograde: false,
-      speed: 1.64,
-    },
-    venus: {
-      sign: "Taurus",
-      degree: 22.1,
-      absoluteDegree: 52.1,
-      house: 11,
-      retrograde: false,
-      speed: 1.17,
-    },
-    mars: {
-      sign: "Aries",
-      degree: 19.5,
-      absoluteDegree: 19.5,
-      house: 10,
-      retrograde: false,
-      speed: 0.66,
-    },
-    jupiter: {
-      sign: "Virgo",
-      degree: 7.8,
-      absoluteDegree: 157.8,
-      house: 3,
-      retrograde: true,
-      speed: -0.08,
-    },
-    saturn: {
-      sign: "Aquarius",
-      degree: 16.4,
-      absoluteDegree: 316.4,
-      house: 7,
-      retrograde: true,
-      speed: -0.05,
-    },
-    uranus: {
-      sign: "Capricorn",
-      degree: 17.2,
-      absoluteDegree: 287.2,
-      house: 7,
-      retrograde: true,
-      speed: -0.04,
-    },
-    neptune: {
-      sign: "Capricorn",
-      degree: 18.6,
-      absoluteDegree: 288.6,
-      house: 7,
-      retrograde: true,
-      speed: -0.02,
-    },
-    pluto: {
-      sign: "Scorpio",
-      degree: 22.4,
-      absoluteDegree: 232.4,
-      house: 5,
-      retrograde: false,
-      speed: 0.01,
-    },
+/**
+ * `applying` is derived the same way the engine derives it, from the two
+ * longitudes below, rather than asserted by hand.
+ */
+function demoAspects(
+  planets: Record<string, { absoluteDegree: number }>,
+  rows: { planet1: string; planet2: string; type: string; orb: number }[],
+): ChartData["aspects"] {
+  return rows.map((a) => ({
+    ...a,
+    applying: planets[a.planet1].absoluteDegree < planets[a.planet2].absoluteDegree,
+  }));
+}
+
+const DEMO_PLANETS: ChartData["planets"] = {
+  sun: {
+    sign: "Cancer",
+    degree: 0.3,
+    absoluteDegree: 90.3,
+    house: 1,
+    retrograde: false,
+    speed: 0.95,
   },
+  moon: {
+    sign: "Scorpio",
+    degree: 8.2,
+    absoluteDegree: 218.2,
+    house: 5,
+    retrograde: false,
+    speed: 12.8,
+  },
+  mercury: {
+    sign: "Gemini",
+    degree: 14.7,
+    absoluteDegree: 74.7,
+    house: 12,
+    retrograde: false,
+    speed: 1.64,
+  },
+  venus: {
+    sign: "Taurus",
+    degree: 22.1,
+    absoluteDegree: 52.1,
+    house: 11,
+    retrograde: false,
+    speed: 1.17,
+  },
+  mars: {
+    sign: "Aries",
+    degree: 19.5,
+    absoluteDegree: 19.5,
+    house: 10,
+    retrograde: false,
+    speed: 0.66,
+  },
+  jupiter: {
+    sign: "Virgo",
+    degree: 7.8,
+    absoluteDegree: 157.8,
+    house: 3,
+    retrograde: true,
+    speed: -0.08,
+  },
+  saturn: {
+    sign: "Aquarius",
+    degree: 16.4,
+    absoluteDegree: 316.4,
+    house: 7,
+    retrograde: true,
+    speed: -0.05,
+  },
+  uranus: {
+    sign: "Capricorn",
+    degree: 17.2,
+    absoluteDegree: 287.2,
+    house: 7,
+    retrograde: true,
+    speed: -0.04,
+  },
+  neptune: {
+    sign: "Capricorn",
+    degree: 18.6,
+    absoluteDegree: 288.6,
+    house: 7,
+    retrograde: true,
+    speed: -0.02,
+  },
+  pluto: {
+    sign: "Scorpio",
+    degree: 22.4,
+    absoluteDegree: 232.4,
+    house: 5,
+    retrograde: false,
+    speed: 0.01,
+  },
+};
+
+export const DEMO_CHART_DATA: ChartData = {
+  planets: DEMO_PLANETS,
   angles: {
     ascendant: {
       sign: "Cancer",
@@ -128,7 +144,7 @@ export const DEMO_CHART_DATA: ChartData = {
     dominantModality: "fixed",
     dominantPlanets: ["sun", "moon", "pluto"],
   },
-  aspects: [
+  aspects: demoAspects(DEMO_PLANETS, [
     { planet1: "sun", planet2: "moon", type: "trine", orb: 2.1 },
     { planet1: "sun", planet2: "mars", type: "square", orb: 3.4 },
     { planet1: "mercury", planet2: "venus", type: "sextile", orb: 1.8 },
@@ -137,7 +153,7 @@ export const DEMO_CHART_DATA: ChartData = {
     { planet1: "mars", planet2: "saturn", type: "opposition", orb: 3.1 },
     { planet1: "jupiter", planet2: "neptune", type: "trine", orb: 2.5 },
     { planet1: "saturn", planet2: "uranus", type: "conjunction", orb: 1.2 },
-  ],
+  ]),
   chartShape: "bowl",
   hemisphereEmphasis: {
     northern: 3,
