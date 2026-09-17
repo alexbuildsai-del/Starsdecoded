@@ -311,7 +311,6 @@ function PlanetRow({
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const [chartTab, setChartTab] = useState<"wheel" | "table">("wheel");
 
   const regenerate = useRegenerateReport();
   const { data: report, isLoading, isError } = useGetReport(id!, {
@@ -434,44 +433,15 @@ export default function ReportPage() {
         </Section>
 
 
-        {/* Natal Chart — single combined section with a Wheel / Table tab
-            toggle. The wheel view shows the radial chart plus the house
-            reference grid folded directly underneath; the table view shows
-            the planetary placements list and angle detail cards. Personal-
-            planet detail cards are kept print-only so the print PDF still
-            includes the full applied interpretation alongside the wheel. */}
+        {/* Natal Chart — the wheel, with the house reference grid folded
+            underneath and the angle detail cards below it. The placement
+            table and the personal-planet cards are print-only: the PDF
+            carries every degree and the applied interpretation, the screen
+            carries the wheel. */}
         <Section title="Natal Chart" label="02 — Chart">
-          {/* Tab toggle — hidden in print; print always renders both views
-              stacked so PDF readers see the same content. */}
-          <div className="no-print mb-5 inline-flex rounded-full border border-border/60 bg-card/40 p-1">
-            <button
-              type="button"
-              onClick={() => setChartTab("wheel")}
-              className={`px-4 py-1.5 rounded-full font-label text-xs tracking-[0.18em] uppercase transition-colors ${
-                chartTab === "wheel"
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              aria-pressed={chartTab === "wheel"}
-            >
-              Wheel
-            </button>
-            <button
-              type="button"
-              onClick={() => setChartTab("table")}
-              className={`hidden px-4 py-1.5 rounded-full font-label text-xs tracking-[0.18em] uppercase transition-colors ${
-                chartTab === "table"
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              aria-pressed={chartTab === "table"}
-            >
-              Table
-            </button>
-          </div>
 
           {/* Wheel view */}
-          <div className={chartTab === "wheel" ? "block" : "hidden print:block"}>
+          <div>
             <div className="rounded-xl border border-border/60 bg-card/40 p-2 sm:p-4">
               <RadialOrbitalNatal
                 chartData={chartData}
@@ -505,8 +475,7 @@ export default function ReportPage() {
             <HouseReferenceGuide planetsByHouse={planetsByHouse} />
 
             {/* Personal planet detail cards — print-only so the exported PDF
-                still carries the full applied interpretation under the wheel
-                even when on-screen readers are using the Table tab. */}
+                carries the applied interpretation under the wheel. */}
             {interpretation?.personalPlanets && (
               <div className="hidden print:block mt-5 space-y-3">
                 {(["mercury", "venus", "mars", "jupiter", "saturn"] as const).map((name) => {
@@ -539,8 +508,8 @@ export default function ReportPage() {
             )}
           </div>
 
-          {/* Table view */}
-          <div className={chartTab === "table" ? "block" : "hidden print:block print:mt-8"}>
+          {/* Placement table — print only; the wheel is the screen view. */}
+          <div className="hidden print:block print:mt-8">
             <div className="rounded-xl border border-border/60 bg-card/40 divide-y divide-border/30 overflow-hidden">
               <div className="px-5 py-3 bg-muted/20">
                 <p className="font-label text-xs text-muted-foreground tracking-wider uppercase">Personal Planets</p>
@@ -580,7 +549,7 @@ export default function ReportPage() {
 
           </div>
 
-          {/* Dedicated Angles section — always visible below the wheel/table.
+          {/* Dedicated Angles section — always visible below the wheel.
               Replaces the old in-wheel ASC/MC overlay. Styled to echo the
               House Reference Guide chrome above. */}
           {(() => {
