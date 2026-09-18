@@ -1,7 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
-export interface RailChapter { eyebrow: string; title: string }
+export interface RailChapter {
+  eyebrow: string;
+  title: string;
+  /** The chapter's section has not landed yet. */
+  writing?: boolean;
+}
 
 /**
  * The chapter rail on the left and, on a phone, the bar under the nav. It also
@@ -80,8 +85,13 @@ export function ChapterRail({
             className={active === i ? "on" : ""}
             aria-current={active === i ? "true" : undefined}
             onClick={() => jump(i)}
+            aria-busy={c.writing ? "true" : undefined}
           >
-            <i /><span>{c.eyebrow}</span>
+            <i />
+            <span>
+              {c.eyebrow}
+              {c.writing && <span className="opacity-60"> · writing</span>}
+            </span>
           </button>
         ))}
       </nav>
