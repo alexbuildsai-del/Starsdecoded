@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.5 (2026-09-17) |
+| Version | 0.6 (2026-09-18) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -153,6 +153,7 @@ Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report
 - **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI.
 - **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
 - **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
+- **The mark is the Ascendant.** The logo is A · Horizon (`docs/specs/locked/logo.md`): the wheel, its horizon line, a brass point at the eastern end; one SVG source for favicon, nav, Clerk badge, print header, share card and email. The wordmark is "Stars Decoded" in Newsreader 400, foreground colour, never a gradient.
 - **Voice.** Report voice is R-5.1. Marketing voice is not written yet (Mailbox); until it is, marketing copy follows the same rules: short, specific, no mysticism, no claims the code cannot back.
 
 ## 10 · Repo and knowledge base

@@ -1,6 +1,6 @@
-# Logo — draft spec (2026-09-18)
+# Logo — locked spec (2026-09-18)
 
-Status: draft, from `/ideate logo`. Artifact: https://claude.ai/artifact/CooaGybDudirhVvN128dgj
+Status: locked 2026-09-18 by the Owner (A · Horizon, plain wordmark, all six surfaces). Artifact: https://claude.ai/artifact/CooaGybDudirhVvN128dgj
 Mailbox: MB-7 (rename, strings done this session; domain still owed), MB-13 (opengraph.jpg owed).
 Authority: MASTERFILE §9 (design system), R-0.4 (the name).
 
@@ -68,16 +68,13 @@ All in the artifact: the three candidates with 32 px, 16 px and print renderings
 applications (nav, tab, share card, email header, PDF header, Clerk badge) with a picker
 that redraws every application with the chosen mark; the two wordmark treatments.
 
-## Open questions (each with a recommendation and a default)
+## Decided (Owner, 2026-09-18)
 
-1. **Which mark?** Recommend A · Horizon. Default A.
-2. **Wordmark treatment: plain Newsreader or keep the gradient?** Recommend plain, one
-   treatment for web, print and email. Default plain.
-3. **All six surfaces in one card, or web and favicon first?** Recommend all six; the share
-   card closes MB-13 and the email and PDF header are two-line changes once the SVG exists.
-   Default all six.
+1. Mark: A · Horizon.
+2. Wordmark: plain Newsreader 400, foreground colour, no gradient.
+3. All six surfaces in one card; the share card closes MB-13.
 
-## Decisions to record
+## Decisions recorded (Notion Decisions, source "ideation: logo")
 
 - The Stars Decoded mark is chart geometry drawn to the product tokens: indigo ring, brass
   Ascendant point, one-colour fallback. It is not a control, so brass on it is inside §9.

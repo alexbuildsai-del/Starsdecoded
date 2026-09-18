@@ -4,15 +4,15 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
-- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (18 rows; ADR-7 superseded by ADR-15)
+- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (ADR-7 superseded by ADR-15; ADR-29 to ADR-32 lock the logo)
 - Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-29 and MB-40 to MB-42 done; MB-13 owes only opengraph.jpg)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
 ## Specs
 - `docs/specs/locked/natal-report-ui.md` — Observatory; the wheel rebuilt on real degrees, citations as
   superscripts, no invented prose. Prototype: https://claude.ai/artifact/BRbKnKKjC78Xe3egLtanZz
+- `docs/specs/locked/logo.md` — the mark is A · Horizon (wheel, horizon line, brass Ascendant point), plain Newsreader wordmark, one SVG source for six surfaces. Artifact: https://claude.ai/artifact/CooaGybDudirhVvN128dgj
 - `docs/specs/draft/report-cost-and-latency.md` — 27.1 cents a report measured; output 74%, half of it invisible. Levers re-ranked on the R02 baseline; L0 built.
-- `docs/specs/draft/logo.md` — one mark drawn from chart geometry (A · Horizon recommended) across nav, favicon, share card, email, PDF header, Clerk. Artifact: https://claude.ai/artifact/CooaGybDudirhVvN128dgj
 - `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 
 ## Rounds
