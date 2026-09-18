@@ -7,10 +7,13 @@
 import { CitedText, newCitationCounter } from "@/components/report/Citation";
 import type { PathSection } from "@/types/chart";
 
-/** Two sentences, the same for everyone, so the chapter can be read cold. */
-const EXPLAINER = "The lunar nodes are the two points where the Moon's path crosses the Sun's, "
-  + "and they are read as one axis rather than as two places. Chiron is a small body between "
-  + "Saturn and Uranus, read by house as the place that stays tender.";
+/** Fixed vocabulary, the same for everyone, so the chapter can be read cold. */
+const EXPLAINER = "One way of reading the Moon's nodes says we each arrive with some parts of our "
+  + "character already well developed and others barely used. The South Node marks the developed "
+  + "side: the traits you fall back on without thinking. You are genuinely good there, and leaning "
+  + "on that side for safety is also what stalls you. The North Node marks the qualities you still "
+  + "have to work at, and building them is what brings the balance. Chiron sits apart from that "
+  + "axis: it marks the place that stays tender, and where that tenderness can turn into skill.";
 
 export function PathBlock({ s }: { s: PathSection }) {
   const k = newCitationCounter();
