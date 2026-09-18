@@ -1,181 +1,190 @@
 # Natal report, pass two
 
-Ideation 2026-09-18 with the Owner from the Notion page "Review 18 Sept" (sixteen notes,
-sixteen screenshots) against the R03 build. Artifact, drawn from the Owner's own chart
-computed by the app's engine: https://claude.ai/artifact/5Er5qfQVMn2DYkuyGGdPJs.
-Status: **draft**. Builds on `docs/specs/locked/natal-report-ui.md` and supersedes two of its
-lines (chapter accent, house-card copy source).
+Ideation 2026-09-18 with the Owner from the Notion page "Review 18 Sept" (sixteen notes),
+two passes, eighteen Owner notes on the first. Artifact, the app's own `NatalWheel`
+rendered for the Owner's chart plus real text from the Owner's report:
+https://claude.ai/artifact/5Er5qfQVMn2DYkuyGGdPJs. Status: **draft**. Builds on
+`docs/specs/locked/natal-report-ui.md` and supersedes three of its lines (chapter accent,
+house-card copy source, chapter list).
 
 ## Scope
 
-### The chart explorer (notes 1, 2, 4)
-- Chapter 02 is `min-height: 100svh`; the wheel and one house card are vertically centred.
-  The 12-card `HouseGrid` is removed from the page; the print placement table stays.
-- Default state: house 1 selected and lit on the wheel, the card on its **front**, one hint
-  line above it ("Tap a house on the wheel · tap the card to read"). The hint hides after the
-  reader's first tap and stays hidden for that browser.
-- Selecting a house on the wheel always shows that house's front; the card flips only on its
-  own tap. This replaces the `open` prop whose value never changes.
-- The card has one fixed height on desktop, tied to the wheel's rendered height; the reading
-  scrolls inside the card. Below 900 px wheel and card stack, wheel first, card `max-height`
-  with the same inner scroll. One `HouseCard` component for every later use.
-- Front occupant row: planet renders, plus the North Node, South Node and Chiron as drawn
-  points; the 1st house always shows the Ascendant as an open marker with its degree.
-- Empty house: "Quiet house" and "Influenced by {ruler}, ruler of {sign} · in {sign} · {house}"
-  replace "No planet sits here". Points alone do not make a house loud.
-- Footer "From your report" becomes "Read chapter · {title} →" when the house has a chapter
-  (1→Core Triad, 2→Money, 3→Mind, 4→Family, 5 and 11→Your Path, 7→Relationships, 10→Career),
-  scrolling to that chapter; otherwise the footer shows the quadrant only.
+### Chapters (eleven)
+01 Overview · 02 Natal Chart Deepdive · 03 Mind · 04 Career · 05 Money · 06 Relationships ·
+07 Family · 08 Superpowers · 09 Paradoxes · 10 Your Path · 11 What to Focus On.
+Core Triad and Elemental Profile are retired as chapters; their content moves (below).
+
+### The chart explorer (notes 1, 2, 4, 6)
+- The wheel is unchanged from R03. The 12-card `HouseGrid` is removed; the print table stays.
+- The explorer is the first screen of chapter 02: `min-height: 100svh`, wheel and one card
+  vertically centred. Below 900 px they stack, wheel first.
+- Default: house 1 lit, card on its **front**, hint line "Tap a house on the wheel · tap the
+  card to read" above it; the hint hides after the first tap and stays hidden per browser.
+- Selecting a house always shows its front; the card flips only on its own tap (replaces the
+  `open` prop whose value never changes).
+- One fixed card height tied to the wheel's rendered height; the back scrolls inside. Same
+  `HouseCard` component everywhere.
+- Front: kicker stays "4th house · Virgo". Occupants: planet renders; North Node, South Node
+  and Chiron as drawn points; the 1st house always shows the Ascendant marker with its degree.
+  A house with no planet shows "Quiet house" and "Influenced by {ruler}, ruler of {sign}".
+- Back: the triad text leads where one exists (1st house: `triad.rising`; the Sun's house:
+  `triad.sun`; the Moon's house: `triad.moon`), with its citations rendered as in chapters.
+  Then the house reading (below). Footer: "Read chapter · {title} →" for houses 1 and 3 →
+  Mind, 2 → Money, 4 → Family, 5 and 11 → Your Path, 7 → Relationships, 10 → Career; else the
+  quadrant alone.
+- `personalPlanets` and `angleMeanings` stop feeding the card; they stay for the print table.
 
 ### House readings, generated (note 3)
-- A new section `houses` in the brain: one call, twelve readings of 40 to 70 words, schema
-  `{ houses: [{ house: 1..12, reading }] }`, run in the parallel wave. No claims: the card is its
-  own evidence.
-- Prompt rules: planets in the house first and what their **combination** does here, in one
-  move rather than one sentence per planet; at most one sentence for the sharpest aspect among
-  them; a quiet house reads through its ruler's condition; nodes and Chiron are named as points.
-  May name planets; names the sign only for a quiet house.
-- `validate`: a reading may name only bodies that sit in that house or rule it.
-- The card back shows the reading under the house question. `personalPlanets` and
-  `angleMeanings` stop feeding the card; they stay in the interpretation for the print table.
+- New section `houses`: one call in the parallel wave, `{ houses: [{ house: 1..12, reading }] }`,
+  40 to 70 words each, no claims (the card is its own evidence).
+- Prompt: the full style contract applies. Planets in the house first and what their
+  **combination** does, in one move; at most one sentence for the sharpest aspect among
+  them; a quiet house reads through its ruler's sign and house; nodes and Chiron named as
+  points; ends on a "Behaviour check:" sentence. May name planets; names a sign only for a
+  quiet house. Told which houses already carry a triad text, and does not repeat it there.
+- `validate`: a reading names only bodies that sit in the house or rule it.
 
-### Balance moves into Overview (note 5)
-- Chapter 03 "Elemental Profile" is retired. The element and modality bars, dominant pair and
-  chart shape become a rail aside beside Overview's temperament paragraph.
-- `overview.temperament` reads the dominant element and modality in plain words, cited.
-  `mind.howYouDecide` reads the modality (the "fixed sign, hard to change your mind at the
-  last moment" register), cited to the placements that carry it.
+### Natal Chart Deepdive and Overview (notes 5, 7)
+- Chapter 01 Overview: `headline`, `distinctive`, `bridge`.
+- Chapter 02, second screen: `concentration` and `temperament` prose, with the balance rail
+  (element and modality bars, dominant pair, chart shape) and a "Read more in Mind →" note.
+- `overview.temperament` names the dominant element and modality in plain words, cited.
+  `mind.howYouDecide` reads the modality, cited to the placements that carry it.
 
-### The Ascendant becomes citable (note 6)
-- Sixth evidence kind `angle` `{ angle: "ascendant" | "midheaven", sign }` in
-  `EvidenceRefSchema`, `validateClaims`, `labelEvidence`, `CLAIMS_CONTRACT` and the glossary.
-- `triad.ts` names the rising sign as the primary evidence for the rising part, the chart
-  ruler second. `career.ts` may cite the Midheaven the same way.
+### The Ascendant becomes citable (notes 6, 8)
+- Sixth evidence kind `angle` `{ angle: "ascendant" | "midheaven", sign }` in the schema,
+  `validateClaims`, `labelEvidence`, `CLAIMS_CONTRACT` and the glossary.
+- `triad.ts`: the rising sign is primary evidence for the rising part, the chart ruler second.
 
-### The aside rail (notes 7, 8, 10, 11, 12)
-- Every chapter is two columns at ≥ 960 px: prose at 64 ch, a sticky 19 rem rail. Below that
-  the rail follows the prose.
-- Register rule, applied everywhere: **a checklist is something to do; accent-coloured prose is
-  something to sit with.**
-  - Action: `actions[]` render as a tickable checklist in the rail, labelled "What to do" or
-    "Practice this week"; `mind.practice` becomes one checklist item. Ticks persist in
-    `localStorage` keyed by report id (MB row raised for server-side persistence).
-  - Fit note: new `career.workThatFits` and `relationships.whoFits`, three to four short
-    items each, no claims, rendered as accent-dot lists in the rail. `whoFits` names the kind
-    of chart a partner tends to carry, from the 7th sign and ruler, the Descendant, Venus and
-    Mars; tendency, never promise (R-5.2).
-  - Invitation: `paradoxes[].invitation` stays inline in the paradox card, accent-coloured,
-    labelled "Invitation".
-  - Closing: `focus.closing` and `overview.bridge` stay the large italic serif.
-- Superpowers: V1, each box's checklist sits in the rail at the box's own height.
-- Style contract, shared: a `why` clause says what the action trains, in the words a friend
-  would use, no figurative pairings, no coined phrases ("pleasure with witnesses"). The report
-  lab's style check flags a `why` with no verb.
+### The rail, the workbook and the registers (notes 9 to 13)
+- Every prose chapter is two columns at ≥ 960 px: prose at 64 ch, sticky 19 rem rail; below
+  that the rail follows the prose.
+- **Rule: beside prose, inside a card.** Prose chapters (Mind, Career, Money, Relationships,
+  Family) keep `actions[]` in the rail. Card chapters (Superpowers, Paradoxes, Focus) keep
+  them inside the card, open, never folded. One checklist component, labels "What to do",
+  "How to use it", "How to manage it", "Practice this week"; `mind.practice` is one item.
+- **Workbook.** Ticks persist on the report: `reports.workbook` jsonb `{ [itemKey]: ISO date }`,
+  `PATCH /api/reports/:id/workbook` in `openapi.yaml`, same ownership check as the report,
+  idempotent column script in `scripts/bootstrap-db.sh`. Rail label shows "saved · n of m".
+- New `career.careerPaths` ("Career paths") and `relationships.connectBestWith`
+  ("You connect best with"): three to four items each, no claims; each item carries its
+  concrete reason after a colon; phrased as tendency, never promise (R-5.2).
+- `paradoxes[].invitation` stays inline in the paradox card, accent-coloured, labelled
+  **"A way through"** (alternatives: "Reflection", "The reframe").
+- Shared style contract: a `why` clause says what the action trains, in the words a friend
+  would use, no figurative pairings, no coined phrases. The lab flags a `why` with no verb.
 
 ### One accent per chapter (note 9)
-- `chapterAccent()` returns a fixed hue by chapter index; six hues over twelve chapters, no
-  two neighbours alike, identical for every reader: 01 indigo `#5C6BC0`, 02 cerulean
-  `#3F8FD2`, 03 violet `#9575CD`, 04 teal `#3FA796`, 05 rose `#D9668A`, 06 plum `#B565A7`,
-  then the same six again for 07 to 12.
-- Element hues stay reserved for element data; brass stays reserved for chart geometry.
+- `chapterAccent(i)` returns a fixed hue by chapter index, same for every reader: 01 indigo
+  `#5C6BC0`, 02 cerulean `#3F8FD2`, 03 violet `#9575CD`, 04 teal `#3FA796`, 05 rose
+  `#D9668A`, 06 plum `#B565A7`, then 07 to 11 repeat 01 to 05. Element hues stay reserved
+  for the balance bars; brass for chart geometry.
 
-### The closing (note 13)
+### The closing (note 14)
 - `focus.ts`: each group trims to three bullets; `closing` is the chapter's centre.
-- Layout V1 "Bookend": the hero's brass ring returns, small, with Sun, Moon and Ascendant at
-  their true angles; the closing paragraph under it, large, italic, centred; the three groups
-  as three short cards below, their bullets as one checklist in the rail.
+- "The sky settles": as chapter 11 enters, the `ReportSky` stars stop drifting and move into
+  a ring with the Sun, the Moon and the Ascendant at their true angles; the closing paragraph
+  then appears in upright Newsreader, no italics; the three groups follow as cards with their
+  checklists. Two moves, one easing (§9). Reduced motion: the ring is static, text visible.
 
 ### Hero (notes 15, 16)
-- The Sun on the ring is the Owner's render at about 128 px with a warm radial glow behind
-  it into the ground; starfield and near-black ground unchanged. Needs a true-alpha 512 px
-  export; the supplied file has a checkerboard baked in.
-- East stays on the left (chart convention; the chapter 02 wheel cannot change). Labels
-  become "EAST · RISING" with "drawn facing south, so east is on your left" and
-  "WEST · SETTING" with the Descendant degree. Open question 1 can reverse this.
+- East on the left (chart convention). Labels "EAST · RISING" with the small line "drawn facing
+  south, so east is on your left", and "WEST · SETTING" with the Descendant degree.
+- The Moon render is unchanged. The Sun is the Owner's render at about 120 px; its glow is one
+  radial gradient (four stops, transparent at about 1.6 Sun diameters), nothing clips it.
+  Asset: a true-alpha 512 px export is needed; the supplied file has a checkerboard baked in.
+- Name: ≤ 14 characters at 64 px; ≤ 26 at 48 px; longer wraps to two balanced lines at 40 px.
+  The halo under the name is an ellipse fitted to the text box, a radial gradient from 85%
+  ground to 0, never a blur. A body label that would cross the name plate moves outside the
+  ring on its spoke with a leader; bodies never move.
 
-### Removals (note 14)
-- `BirthLocationHorizon` and the "Saved to your account · Export Report as PDF" block after
-  the methodology strip are deleted. Export stays in the top bar.
+### While it writes (note 5)
+- The page opens as soon as the chart exists: hero and explorer live, chapters streaming in.
+  `GET /api/reports/:id/status` returns per-section state and the interpretation so far; the
+  page store writes each section as it lands; the chapter rail shows chapters still writing.
+  No change to the words, no lab run.
+
+### Removals (note 14, 16)
+- `BirthLocationHorizon` and the trailing "Saved to your account · Export Report as PDF" block
+  are deleted. Export stays in the top bar.
 
 ### Your Path (notes 17, 18)
-- New section `path`, 250 to 300 words, chapter 11, before Focus: `fallBackOn` (South Node),
-  `headedToward` (North Node), `tenderSpot` (Chiron), plus `claims` citing the three
-  placements. No fate, no karma, no "wounded healer" label; Chiron is the place of persistent
-  vulnerability that becomes skill for others (vocabulary entry already says so).
-- A fixed two-sentence explainer in the glossary opens the chapter (nodes as what you fall
-  back on versus what you are here to learn). The rail shows the nodal axis on a small wheel
-  with Chiron marked.
-- Known limit recorded: Chiron is a mean-elements approximation; sign and house hold except
-  within a degree of a cusp.
+- New section `path`, chapter 10, 250 to 300 words: `fallBackOn` (South Node), `headedToward`
+  (North Node), `tenderSpot` (Chiron), plus `claims`. No fate, no karma, no "wounded healer".
+  A fixed two-sentence glossary explainer opens the chapter; the rail shows the nodal axis on a
+  small wheel with Chiron marked. Known limit recorded: Chiron is a mean-elements approximation.
+
+### Word range (note 18)
+- Product target becomes **3,500 to 5,500 words**. Updated at lock and in the round: CLAUDE.md
+  line 4, MASTERFILE §4, `api/src/prompts/prompts.test.ts`, `scripts/src/report-lab.ts`
+  `REPORT_TOTAL`, the bible, and MB-38's bands widen inside the new range.
 
 ## Out of scope
 
-- Server-side persistence of checklist ticks (Mailbox row; localStorage for now).
-- Synastry itself (MB-9); `whoFits` is a note, not a feature.
-- A real Chiron ephemeris.
-- The Placidus view (MB-28), the loading animation, light mode, the landing page.
-- Raising the product word target; the reading lands in range with Your Path added.
+- Synastry (MB-9); "You connect best with" is a note.
+- A real Chiron ephemeris; the Placidus view (MB-28); light mode; the landing page.
+- A "tonight's sky" waiting plate (kept as a later keepsake idea).
 
 ## Acceptance criteria
 
-1. Chapter 02 renders no `HouseGrid`; at 1280×800 the wheel and card are fully visible without
-   scrolling inside the chapter; the card's reading scrolls inside the card for the 4th house
-   of the Owner's chart (three planets) without changing the card's height.
-2. On load, house 1 is lit on the wheel and the card shows its front with the Ascendant marker
-   and degree; the hint line is present; after one tap it is gone and stays gone on reload.
+1. Chapter 02 renders no `HouseGrid`; at 1280×800 wheel and card are fully visible without
+   scrolling; the 4th house back of the Owner's chart scrolls inside the card at fixed height.
+2. On load house 1 is lit, the card shows its front with the Ascendant marker and degree and
+   the hint; after one tap the hint is gone and stays gone on reload.
 3. Selecting house 4 after flipping house 1 shows house 4's front.
-4. For the `marie-curie` fixture, every house card front lists its occupants including any of
-   ☊ ☋ ⚷ in that house; every empty house reads "Quiet house" and names its ruler, the ruler's
-   sign and house; no card reads "No planet sits here".
-5. `interpretation.houses` has twelve entries; each reading is 40 to 70 words and names no body
-   outside the house or its ruler (the validator rejects otherwise); the card back shows it.
-6. No chapter titled "Elemental Profile"; Overview's rail shows the four element bars, three
-   modality bars, the dominant pair and the shape from `chartData`.
-7. For a chart whose rising sign differs from its ruler's sign, the triad's rising claims
-   include at least one `angle` reference labelled "Ascendant · {deg}° {sign}".
-8. At ≥ 960 px every chapter has a rail; every `actions[]` item renders as a checklist item
-   with a checkbox; ticking one survives a reload; below 960 px the rail follows the prose.
-9. `career.workThatFits` and `relationships.whoFits` have three to four items each and render
-   in the rail; `paradoxes[].invitation` renders inline, in the chapter accent, labelled.
-10. `chapterAccent(i)` returns the fixed hue for `i` regardless of chart; no two adjacent
-    chapters share a hue; `git grep` of the element hexes returns only element-data code.
-11. Chapter 12 opens with the ring; the closing paragraph precedes the three groups.
-12. The hero Sun is the supplied render with alpha; `EASTERN HORIZON` and `WESTERN HORIZON`
-    strings are gone; `BirthLocationHorizon` and the trailing CTA are gone.
-13. Chapter 11 "Your Path" exists with three parts and claims; the report totals 3,780 to
-    4,300 words excluding house readings.
-14. Report lab run on the five fixtures pasted in the round report (R-4.4); per-section bands
-    widened per MB-38 in the same round. Cost stays under 35 cents a report.
-15. Typecheck, both builds, unit tests, `pnpm report:lab --compare`, Vercel preview smoke.
+4. On the `marie-curie` fixture every front lists its occupants including any of ☊ ☋ ⚷; every
+   quiet house reads "Quiet house · Influenced by {ruler}, ruler of {sign}"; no card reads
+   "No planet sits here"; the kicker is exactly "{Nth} house · {Sign}".
+5. The 1st house back opens with `triad.rising` and its superscripts; the Sun's and the Moon's
+   houses open with `triad.sun` and `triad.moon`; no "Core Triad" chapter exists.
+6. `interpretation.houses` has twelve readings of 40 to 70 words, each ending on a
+   "Behaviour check:" sentence, none naming a body outside the house or its ruler.
+7. No "Elemental Profile" chapter; chapter 02's second screen shows concentration, temperament,
+   the balance bars and the Mind note.
+8. For a chart whose rising sign differs from its ruler's sign, the rising claims include an
+   `angle` reference labelled "Ascendant · {deg}° {sign}".
+9. Ticking a checklist item, reloading in another browser as the same owner, shows it ticked;
+   `PATCH /api/reports/:id/workbook` is in `openapi.yaml` and rejects a non-owner with 404.
+10. Prose chapters show actions in the rail at ≥ 960 px; Superpowers and Paradox cards show
+    theirs inside, open; "A way through" labels every invitation.
+11. `chapterAccent(i)` ignores the chart; no two adjacent chapters share a hue.
+12. Chapter 11: the stars gather into a ring with three bodies at true angles, then the closing
+    appears upright; under reduced motion the ring and text are static and present.
+13. Hero: the Sun is the supplied render with alpha, the Moon unchanged; a 30-character name
+    wraps to two lines with the halo fitted; no label crosses the name plate.
+14. With the API slowed, the page shows the hero and explorer before any chapter, and chapters
+    appear one by one; the rail marks the ones still writing.
+15. `BirthLocationHorizon` and the trailing CTA are gone; chapter 10 "Your Path" exists.
+16. The report lab run on the five fixtures is pasted in the round report; total words within
+    3,500 to 5,500; cost under 35 cents.
+17. Typecheck, both builds, unit tests, `db:bootstrap` clean, codegen, Vercel preview smoke.
 
 ## Screens
 
-All in the artifact: the explorer with the front and the scrolling back; three sample card
-backs (three planets, quiet with the Ascendant, planet plus point); Overview with the balance
-aside; the evidence card before and after `angle`; Career with the rail; Who fits and the
-labelled invitation; three Superpowers layouts; the twelve accent chips; three closing
-directions; the hero with the sun and both east conventions; the removals; Your Path.
+All in the artifact: the explorer with the real wheel; 1st and 4th house backs with the
+triad text; three sample readings; the Deepdive screen; the evidence card before and after
+`angle`; Career with the rail and workbook; the Superpowers box with its open checklist; the
+paradox card with "A way through"; the label options; eleven accent chips; the coda animation
+itself; the hero for Alex and for Maria Salomea Skłodowska-Curie; the streaming page.
 
 ## Open questions (each with a default)
 
-1. **East.** Keep east on the left and fix the label, or mirror the hero to a compass?
-   Default: keep the chart convention.
-2. **Superpowers layout.** V1 rail per box, V2 folded in the box, V3 one list at the end.
-   Default: V1.
-3. **Closing.** V1 Bookend, V2 Horizon, V3 Three lines. Default: V1.
+1. **Where actions live.** Beside prose, inside a card; or everything inline. Default: the rule.
+2. **The closing.** The sky settles; Dawn; The wheel turns. Default: the sky settles.
+3. **While it writes.** Progressive, chart first; or a tonight's-sky plate. Default: progressive.
 
 ## Decisions to record
 
-1. **House cards are generated.** The reading on a house card is a model-written field
-   (`houses[n].reading`) grounded like every section; the structural lines (occupants, points,
-   Ascendant, quiet house, ruler) are code. Supersedes ADR-18's "house copy comes only from
-   fields the report already emits" for house cards only; the UI still writes no prose.
-2. **The Ascendant and Midheaven are evidence.** `angle` is the sixth evidence kind.
-3. **Chapter accents are fixed by chapter, not by element.** Six hues, twelve chapters, same
-   for every reader. Supersedes the accent line of the natal-report-ui lock.
-4. **Two registers for asides.** Checklist means do; accent prose means sit with. Actions,
-   fit notes and balance live in the rail; invitations and closings stay inline.
-5. **Elemental Profile retires; Your Path arrives.** Twelve chapters, nodes as one axis and
-   Chiron as colour, no fate or karma.
-6. **East on the left.** The hero ring is a chart and keeps the chart convention (pending
-   question 1).
+1. **Eleven chapters.** Core Triad's text lives on the house cards; Elemental Profile becomes
+   the balance rail in the Deepdive; Your Path is chapter 10. Supersedes the chapter list.
+2. **House cards are generated.** `houses[n].reading` is model-written and grounded like a
+   section; structural lines are code. Supersedes ADR-18 for house cards only; the UI still
+   writes no prose.
+3. **The Ascendant and Midheaven are evidence** (`angle`).
+4. **Chapter accents are fixed by chapter, not by element.** Supersedes the accent line of the
+   natal-report-ui lock.
+5. **Asides: beside prose, inside a card.** Checklist means do; accent prose means sit with.
+   Ticks are saved on the report as the reader's workbook.
+6. **East on the left.** The hero ring is a chart and keeps the chart convention.
+7. **The report opens when the chart exists.** Chapters stream in; the chart is the wait.
+8. **Word range 3,500 to 5,500.** Supersedes the 4,000 to 4,500 target of 2026-09-17.
