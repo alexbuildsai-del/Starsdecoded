@@ -201,6 +201,12 @@ async function callSection<S extends SectionSpec>(
   throw new SectionError(spec.key, `failed validation after ${ATTEMPTS} attempts: ${lastError}`);
 }
 
+/** Claims replaced by their validated, labelled form. A claimless section passes through. */
+function withStoredClaims(data: unknown, chart: NatalChartData): unknown {
+  const out = data as { claims?: Parameters<typeof storeClaims>[0] };
+  return out.claims ? { ...out, claims: storeClaims(out.claims, chart) } : out;
+}
+
 /** Words across every string leaf of a value. */
 export function countWords(value: unknown): number {
   if (typeof value === "string") return value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -215,12 +221,54 @@ export function countWords(value: unknown): number {
 // Public entry point.
 // ---------------------------------------------------------------------------
 
+/**
+ * A piece of the report as soon as it exists, so the page can render it while
+ * the rest is still being written (ADR-25). The opening frame is `meta`: the
+ * method block and the deterministic wheel text, everything the hero and the
+ * explorer need. Each later frame is one finished section.
+ */
+export interface SectionFrame {
+  section: "meta" | ReportSectionId;
+  patch: Partial<ReportInterpretation>;
+}
+
+export interface GenerateOptions {
+  onSection?: (frame: SectionFrame) => void | Promise<void>;
+}
+
 export async function generateInterpretation(
   chart: NatalChartData,
   name: string,
+  options: GenerateOptions = {},
 ): Promise<ReportInterpretation> {
   const brief = buildBrief(chart, name);
   const startedAt = Date.now();
+  const s = computeSect(chart);
+
+  // wordCount and usage are only knowable at the end, so the opening frame
+  // carries the meta block without them and the final write completes it.
+  const openingMeta = {
+    promptVersion: PROMPT_VERSION,
+    model: MODELS.sections,
+    houseSystem: "whole-sign",
+    zodiac: "tropical",
+    ephemeris: EPHEMERIS,
+    orbs: ASPECT_ORBS,
+    sect: s.sect,
+    sectLight: s.light,
+    sunAltitude: s.sunAltitude,
+    sectMarginal: s.marginal,
+    generatedAt: new Date().toISOString(),
+  } as ReportInterpretation["meta"];
+  await options.onSection?.({
+    section: "meta",
+    patch: {
+      meta: openingMeta,
+      personalPlanets: brief.personalPlanets,
+      aspectMeanings: brief.aspectMeanings,
+      angleMeanings: brief.angleMeanings,
+    },
+  });
 
   // Stage 1: foundation runs alone. Its output is the editorial handoff every
   // reader-facing section receives.
@@ -237,13 +285,16 @@ export async function generateInterpretation(
 
   // Stage 2: the twelve sections depend only on the foundation, so they run in
   // parallel. Prompts resolve in parallel too, honouring DB overrides.
-  const prompts = await Promise.all(REPORT_SECTIONS.map((s) => resolveSection(s.key)));
+  const prompts = await Promise.all(REPORT_SECTIONS.map((spec) => resolveSection(spec.key)));
   const calls = await Promise.all(
-    REPORT_SECTIONS.map((spec, i) =>
-      callSection(spec, modelFor(spec.key), prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief),
-    ),
+    REPORT_SECTIONS.map(async (spec, i) => {
+      const call = await callSection(spec, modelFor(spec.key), prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief);
+      const id = SECTION_IDS[i];
+      const stored = withStoredClaims(call.data, chart);
+      await options.onSection?.({ section: id, patch: { [id]: stored } as Partial<ReportInterpretation> });
+      return { ...call, stored };
+    }),
   );
-  const results = calls.map((c) => c.data);
 
   // Wall clock covers the serial foundation plus one parallel wave, so it is
   // always below the summed call time. The gap is what the fan-out buys.
@@ -259,11 +310,7 @@ export async function generateInterpretation(
     retried: usage.sections.filter((s) => s.attempts > 1).map((s) => s.section),
   }, "report interpretation complete");
 
-  const withLabels = results.map((r) => {
-    const out = r as { claims?: Parameters<typeof storeClaims>[0] };
-    return out.claims ? { ...out, claims: storeClaims(out.claims, chart) } : out;
-  });
-  const byId = Object.fromEntries(SECTION_IDS.map((id, i) => [id, withLabels[i]])) as Record<ReportSectionId, unknown>;
+  const byId = Object.fromEntries(SECTION_IDS.map((id, i) => [id, calls[i].stored])) as Record<ReportSectionId, unknown>;
 
   const sections = {
     overview: byId.overview as OverviewSection,
@@ -280,20 +327,10 @@ export async function generateInterpretation(
     focus: byId.focus as FocusSection,
   };
 
-  const s = computeSect(chart);
   return {
     meta: {
-      promptVersion: PROMPT_VERSION,
+      ...openingMeta,
       model: usage.model,
-      houseSystem: "whole-sign",
-      zodiac: "tropical",
-      ephemeris: EPHEMERIS,
-      orbs: ASPECT_ORBS,
-      sect: s.sect,
-      sectLight: s.light,
-      sunAltitude: s.sunAltitude,
-      sectMarginal: s.marginal,
-      generatedAt: new Date().toISOString(),
       wordCount: countWords(sections),
       usage,
     },

@@ -8,9 +8,13 @@ import {
   relationshipsTable,
   relationshipParticipantsTable,
 } from "@workspace/db";
-import { CreateReportBody, DeleteReportParams, GetReportParams, GetReportStatusParams } from "@workspace/api-zod";
+import {
+  CreateReportBody, DeleteReportParams, GetReportParams, GetReportStatusParams,
+  UpdateReportWorkbookBody, UpdateReportWorkbookParams,
+} from "@workspace/api-zod";
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
-import { generateInterpretation, type ReportInterpretation } from "../lib/aiInterpretation.js";
+import { generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
+import { SECTION_IDS } from "../prompts/index.js";
 import { resolveOrCreateProfile } from "../lib/profiles.js";
 import { viewerRelationshipIds } from "../lib/access.js";
 import { consumeCredit } from "../lib/credits.js";
@@ -300,6 +304,7 @@ router.get("/reports/:id", async (req, res) => {
       status: r.status,
       chartData: p.chartData ?? null,
       interpretation: r.interpretation ?? null,
+      workbook: (r.workbook ?? {}) as Record<string, string>,
       errorMessage: r.errorMessage ?? null,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
@@ -350,16 +355,79 @@ router.get("/reports/:id/status", async (req, res) => {
       failed: "Generation failed",
     };
 
+    const written = (r.interpretation ?? {}) as Record<string, unknown>;
     return res.json({
       id: r.id,
       status: r.status,
       progress: statusToProgress[r.status] ?? 0,
       currentStep: statusToStep[r.status] ?? null,
       errorMessage: r.errorMessage ?? null,
+      // The chart is what the page opens on, so the client stops waiting the
+      // moment it exists rather than when the last section lands (ADR-25).
+      chartReady: p.chartData != null,
+      sections: Object.fromEntries(SECTION_IDS.map((id) => [id, id in written ? "done" : "pending"])),
+      interpretation: r.interpretation ?? null,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get report status");
     return res.status(500).json({ error: "internal_error", message: "Failed to get report status" });
+  }
+});
+
+
+/**
+ * The reader's workbook. A tick is one shallow merge, so a slow connection
+ * cannot lose the rest of the page's ticks by overwriting them.
+ */
+const WORKBOOK_KEY = /^[a-z][a-zA-Z]*(\.[a-zA-Z]+)+\.\d+$/;
+
+router.patch("/reports/:id/workbook", async (req, res) => {
+  const params = UpdateReportWorkbookParams.safeParse(req.params);
+  if (!params.success) {
+    return res.status(400).json({ error: "validation_error", message: "Invalid ID" });
+  }
+  const body = UpdateReportWorkbookBody.safeParse(req.body);
+  if (!body.success) {
+    return res.status(400).json({ error: "validation_error", message: body.error.message });
+  }
+  const patch = body.data as Record<string, string | null>;
+  const keys = Object.keys(patch);
+  if (keys.length === 0 || keys.length > 200) {
+    return res.status(400).json({ error: "validation_error", message: "A workbook patch carries 1 to 200 items" });
+  }
+  const badKey = keys.find((k) => !WORKBOOK_KEY.test(k));
+  if (badKey) {
+    return res.status(400).json({ error: "validation_error", message: `Not a workbook item key: ${badKey}` });
+  }
+
+  try {
+    const rows = await db
+      .select({ report: reportsTable, profile: profilesTable })
+      .from(reportsTable)
+      .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
+      .where(eq(reportsTable.id, params.data.id))
+      .limit(1);
+    if (!rows.length) {
+      return res.status(404).json({ error: "not_found", message: "Report not found" });
+    }
+    const { report: r, profile: p } = rows[0];
+    if (!viewerOwns(req, r, p)) {
+      return res.status(404).json({ error: "not_found", message: "Report not found" });
+    }
+
+    const merged = { ...((r.workbook ?? {}) as Record<string, string>) };
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null) delete merged[key];
+      else merged[key] = value;
+    }
+    await db
+      .update(reportsTable)
+      .set({ workbook: merged, updatedAt: new Date() })
+      .where(eq(reportsTable.id, r.id));
+    return res.json(merged);
+  } catch (err) {
+    req.log.error({ err }, "Failed to update report workbook");
+    return res.status(500).json({ error: "internal_error", message: "Failed to update report workbook" });
   }
 });
 
@@ -473,10 +541,9 @@ router.post("/reports/:id/regenerate", async (req, res) => {
             .set({ chartData: chartData as unknown as object, updatedAt: new Date() })
             .where(eq(profilesTable.id, p.id));
         }
-        const interpretation: ReportInterpretation = await generateInterpretation(
-          chartData,
-          p.name,
-        );
+        const interpretation = await generateInterpretation(chartData, p.name, {
+          onSection: streamInto(r.id),
+        });
         await db
           .update(reportsTable)
           .set({ interpretation, status: "complete", updatedAt: new Date() })
@@ -495,6 +562,28 @@ router.post("/reports/:id/regenerate", async (req, res) => {
     return res.status(500).json({ error: "internal_error", message: "Failed to regenerate report" });
   }
 });
+
+/**
+ * Writes each frame to `interpretation` as it lands, so the page can render a
+ * chapter the moment its call finishes. Writes are chained rather than fired in
+ * parallel, because each one rewrites the whole jsonb and two at once would
+ * lose a section. The status stays "interpreting" until the last frame lands.
+ */
+function streamInto(id: string): (frame: SectionFrame) => Promise<void> {
+  let partial: Record<string, unknown> = {};
+  let chain: Promise<void> = Promise.resolve();
+  return (frame) => {
+    partial = { ...partial, ...frame.patch };
+    const snapshot = partial;
+    chain = chain.then(async () => {
+      await db
+        .update(reportsTable)
+        .set({ interpretation: snapshot, updatedAt: new Date() })
+        .where(eq(reportsTable.id, id));
+    });
+    return chain;
+  };
+}
 
 // Async report generation. Skips chart computation when a cached chartData
 // is available from the profile.
@@ -531,12 +620,14 @@ async function generateReport(
         .where(eq(reportsTable.id, id));
     }
 
-    const interpretation = await generateInterpretation(chartData, name);
+    const interpretation = await generateInterpretation(chartData, name, {
+      onSection: streamInto(id),
+    });
 
     await db
       .update(reportsTable)
       .set({
-        interpretation: interpretation as any,
+        interpretation,
         status: "complete",
         updatedAt: new Date(),
       })

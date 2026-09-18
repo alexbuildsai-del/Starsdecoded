@@ -30,6 +30,10 @@ echo "==> 3/7 Invite/claim migration"
 # and relationship_participants.access_role.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-invites.ts
 
+echo "==> 3b/7 Report workbook column"
+# Adds reports.workbook, the reader's ticked actions. Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-report-workbook.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.
