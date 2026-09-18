@@ -42,8 +42,7 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
   them; a house holding only points or an angle names them and reads through its ruler; a
   quiet house reads through its ruler's sign and house; ends on a "Behaviour check:" sentence.
   May name planets; names a sign only for a quiet house. Told which houses already carry a
-  triad text, and does not repeat it there.
-- `validate`: a reading names only bodies that sit in the house or rule it.
+  triad text, and does not repeat it there. Validated: names only bodies in the house or its ruler.
 
 ### Natal Chart Deepdive and Overview (notes 5, 7)
 - Chapter 01 Overview: `headline`, `distinctive`, `bridge`. Chapter 02, second block:
@@ -100,13 +99,14 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
   sky layer, not inside the SVG: it runs under the transparent top bar and off the plate's
   edges, and fades with the plate into chapter 01. No bar, edge or chapter ever clips it.
   Asset: a true-alpha 512 px export is needed; the supplied file has a checkerboard baked in.
-- Name: ≤ 14 characters at 64 px; ≤ 26 at 48 px; longer wraps to two balanced lines at 40 px.
-  The halo under the name is an ellipse fitted to the text box, a radial gradient, never a blur.
-- Labels sit outward from their body along its own spoke, Sun first, then Moon; a label that
-  would touch another label, a body, the name plate or a horizon label steps out in 22 px
-  steps until clear, with a leader. Bodies never move. Within 12° of the Sun the Moon takes
-  the inner lane, 100 px in, with a leader to its tick on the ring, and its label runs along
-  the lane away from the centre line. No eclipse artwork: the plate does not claim a node.
+- Name: ≤ 14 characters at 64 px; ≤ 26 at 48 px; longer wraps to two balanced lines at 40 px,
+  on a halo ellipse fitted to the text box, a radial gradient, never a blur.
+- A label sits beside its body, on the side away from the centre, Sun placed first; if it
+  would touch another label, a body, the name plate or a horizon label it slides vertically
+  away from the centre in 22 px steps until clear. No leader lines and no spokes: the dotted
+  horizon between east and west is the plate's only line. Bodies never leave their degree.
+  Within 12° of the Sun the Moon stays on the ring and the Sun steps 118 px outside it on
+  the same spoke, so the discs never touch. No eclipse artwork: no node is claimed.
 
 ### While it writes (note 5)
 - Grace period of at most three seconds: one "Computing your chart" moment while geocoding
