@@ -6,35 +6,12 @@ Built 2026-09-18 on `claude/focused-feynman-bc4lhs` from `docs/rounds/R04-plan.m
 
 ## Shipped
 
-- **R04-01 `houses` and `path` registered, `PROMPT_VERSION` v5** — USER-FACING. Twelve reader-facing
-  sections; the engine tolerates a claimless section; the house validator rejects a reading naming
-  a body neither placed in that house nor its ruler.
-- **R04-02 the contract** — INTERNAL. `required: [meta]`, so one schema serves both routes; the two
-  new sections, the two registers, the `angle` kind, `chartReady`, `sections`, the partial
-  interpretation, `Report.workbook`, `PATCH /reports/{id}/workbook`.
-- **R04-03 accents, the Sun, the shells** — USER-FACING. `chapterAccent(i)` is fixed by chapter and
-  identical for every reader, freeing the element hues for the balance bars; the 512 px Sun is keyed
-  from the Owner's render; `index.css` gained the round's class shells.
-- **R04-04 the checklist and the workbook store** — USER-FACING. One checklist, four headings,
-  never folded; a tick is optimistic, one shallow PATCH, rolled back on failure.
-- **R04-05 the Ascendant is citable** — USER-FACING. A sixth evidence kind, checked against the computed angle, labelled `Ascendant · 12.1° Capricorn`.
-- **R04-06 temperament names the pair** — USER-FACING. Dominant element and modality in plain words, cited; `mind.howYouDecide` reads the modality.
-- **R04-07 the registers and the bands** — USER-FACING. Career paths, who you connect best with, three bullets a group, bands summing 4,180–5,410, a why-clause rule.
-- **R04-08 the lab** — INTERNAL. New total band; no claim count for a claimless section; a why with no verb flagged; each house reading measured for words and its behaviour check.
-- **R04-09 the workbook column and the streaming writes** — INTERNAL. `reports.workbook` with its
-  idempotent bootstrap step, the PATCH route, generation writing each frame as it lands.
-- **R04-10 the chart explorer** — USER-FACING. Wheel and one card in normal flow, house 1 lit, an angle is an occupant, the back leads with the triad text then the reading.
-- **R04-11 the angle gloss** — USER-FACING. One general sentence per angle on the evidence card.
-- **R04-12 the hero** — USER-FACING. East on the left with the reason under it, the Descendant
-  degree, no spokes, labels placed by a tested solver, the Sun's glow uncut under the bar.
-- **R04-13 beside prose, inside a card** — USER-FACING. Two columns above 960 px with a sticky
-  rail; card chapters keep their checklists inside; "A way through" labels every invitation.
-- **R04-14 dawn in the corner** — USER-FACING. One CSS variable, no timers, final frame on reduced motion.
-- **R04-15 the balance rail, Your Path, the nodal axis** — USER-FACING.
-- **R04-16 open at the chart** — USER-FACING. The fake progress model is gone; the page opens at
-  `chartReady`, merging each section from `/status`.
-- **R04-17 the page assembled** — USER-FACING. Eleven chapters, Export PDF held back while
-  writing, `BirthLocationHorizon` and the trailing CTA gone, leaflet dropped (150 kB).
+- **Brain** (R04-01, 05, 06, 07) — USER-FACING. `houses` and `path` registered, `PROMPT_VERSION` v5, the engine tolerates a claimless section, the house validator rejects a body neither placed in the house nor its ruler; the Ascendant is a sixth evidence kind labelled `Ascendant · 12.1° Capricorn`; temperament names the dominant element and modality, `mind.howYouDecide` reads the modality; career paths, who you connect best with, three bullets a group, bands summing 4,180–5,410, a why-clause rule.
+- **Contract and API** (R04-02, 09) — INTERNAL. `required: [meta]` so one schema serves both routes; the two sections, the two registers, the `angle` kind, `chartReady`, `sections`, the partial interpretation, `Report.workbook`, `PATCH /reports/{id}/workbook`; `reports.workbook` with its idempotent bootstrap step; generation writes each frame as it lands.
+- **Lab** (R04-08) — INTERNAL. Total band 3,500–5,500, no claim count for a claimless section, a why with no verb flagged, each house reading measured for words and its behaviour check.
+- **Shared web** (R04-03, 04) — USER-FACING. `chapterAccent(i)` fixed by chapter for every reader, the 512 px Sun keyed from the Owner's render, the round's class shells; one checklist with four headings, never folded, ticks optimistic with one shallow PATCH and rollback.
+- **Explorer, hero, chapters** (R04-10 to 16) — USER-FACING. Wheel and one card in normal flow, house 1 lit, an angle is an occupant, the back leads with the triad text then the reading; one general sentence per angle on the evidence card; the hero with east on the left, the Descendant degree, no spokes, labels placed by a tested solver, the glow under the bar; two columns above 960 px with a sticky rail, card chapters keep their checklists inside, "A way through" labels every invitation; dawn in the corner on one CSS variable with no timers; the balance rail, Your Path and the nodal axis; the page opens at `chartReady` and merges each section from `/status`.
+- **Assembly** (R04-17) — USER-FACING. Eleven chapters, Export PDF held while writing, `BirthLocationHorizon` and the trailing CTA gone, leaflet dropped (150 kB).
 
 ## Deviations
 
