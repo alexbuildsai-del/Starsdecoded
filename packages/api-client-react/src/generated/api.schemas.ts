@@ -119,6 +119,314 @@ export const ReportStatusStatus = {
   failed: 'failed',
 } as const;
 
+/**
+ * One entry per reader-facing section, "done" once that section is stored.
+ */
+export type ReportStatusSections = {[key: string]: 'pending' | 'done'};
+
+export type ReportInterpretationMetaHouseSystem = typeof ReportInterpretationMetaHouseSystem[keyof typeof ReportInterpretationMetaHouseSystem];
+
+
+export const ReportInterpretationMetaHouseSystem = {
+  'whole-sign': 'whole-sign',
+} as const;
+
+export type ReportInterpretationMetaSect = typeof ReportInterpretationMetaSect[keyof typeof ReportInterpretationMetaSect];
+
+
+export const ReportInterpretationMetaSect = {
+  day: 'day',
+  night: 'night',
+} as const;
+
+export type ReportInterpretationMetaSectLight = typeof ReportInterpretationMetaSectLight[keyof typeof ReportInterpretationMetaSectLight];
+
+
+export const ReportInterpretationMetaSectLight = {
+  sun: 'sun',
+  moon: 'moon',
+} as const;
+
+/**
+ * Token counts and time, summed over one section's attempts or a whole report.
+ */
+export interface UsageTotals {
+  /** Calls made. Above one when a reply was rejected and retried. */
+  attempts: number;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  ms: number;
+}
+
+export type EvidenceRefKind = typeof EvidenceRefKind[keyof typeof EvidenceRefKind];
+
+
+export const EvidenceRefKind = {
+  placement: 'placement',
+  aspect: 'aspect',
+  ruler: 'ruler',
+  lot: 'lot',
+  sect: 'sect',
+  angle: 'angle',
+} as const;
+
+/**
+ * A structured reference to the chart, verified by the API before storage. Fields vary by kind.
+ */
+export interface EvidenceRef {
+  kind: EvidenceRefKind;
+  [key: string]: unknown;
+ }
+
+export interface StoredEvidence {
+  ref: EvidenceRef;
+  /** Composed by the API from the verified reference; never model text. */
+  label: string;
+}
+
+/**
+ * A verbatim quote from the section's prose and the chart facts it rests on.
+ */
+export interface Claim {
+  quote: string;
+  evidence: StoredEvidence[];
+}
+
+export interface ReportTriadPart {
+  label: string;
+  text: string;
+}
+
+/**
+ * One generated house-card reading, 40 to 70 words, ending on a behaviour check.
+ */
+export interface HouseReading {
+  house: number;
+  reading: string;
+}
+
+export interface ActionItem {
+  action: string;
+  why: string;
+}
+
+/**
+ * A named item and the concrete reason this chart fits it.
+ */
+export interface ListedItem {
+  item: string;
+  reason: string;
+}
+
+export interface ReportSuperpowerItem {
+  title: string;
+  text: string;
+  actions: ActionItem[];
+}
+
+export type ReportFocusGroupBulletsItem = {
+  point: string;
+  why: string;
+};
+
+export interface ReportFocusGroup {
+  intro: string;
+  bullets: ReportFocusGroupBulletsItem[];
+}
+
+export type ReportInterpretationMetaOrbs = {[key: string]: number};
+
+export type ReportInterpretationMetaUsageSectionsItem = UsageTotals & {
+  /** Prompt key, e.g. "natal:overview". */
+  section: string;
+  /** The model this section's calls ran on. */
+  model: string;
+};
+
+/**
+ * Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it.
+ */
+export type ReportInterpretationMetaUsage = {
+  /** The model every call used, or "mixed" when they differ. */
+  model: string;
+  /** Priced per section on its own model and summed, when generated. Null if any model has no price on record. */
+  costUsd: number | null;
+  /** End to end. Below `totals.ms`, because ten sections run at once. */
+  wallClockMs: number;
+  totals: UsageTotals;
+  sections: ReportInterpretationMetaUsageSectionsItem[];
+};
+
+export type ReportInterpretationMeta = {
+  promptVersion: string;
+  /** The model every call used, or "mixed" when the foundation and the sections differ. See usage.sections[].model for each one. */
+  model: string;
+  houseSystem: ReportInterpretationMetaHouseSystem;
+  generatedAt: string;
+  wordCount: number;
+  zodiac: string;
+  ephemeris: string;
+  orbs: ReportInterpretationMetaOrbs;
+  sect: ReportInterpretationMetaSect;
+  sectLight: ReportInterpretationMetaSectLight;
+  sunAltitude: number;
+  sectMarginal: boolean;
+  /** Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it. */
+  usage?: ReportInterpretationMetaUsage;
+};
+
+export type ReportInterpretationOverview = {
+  headline: string;
+  concentration: string;
+  temperament: string;
+  distinctive: string;
+  bridge: string;
+  claims: Claim[];
+};
+
+export type ReportInterpretationTriad = {
+  sun: ReportTriadPart;
+  moon: ReportTriadPart;
+  rising: ReportTriadPart;
+  claims: Claim[];
+};
+
+/**
+ * The twelve house-card readings in order. They carry no claims, because the card is its own evidence.
+ */
+export type ReportInterpretationHouses = {
+  houses: HouseReading[];
+};
+
+export type ReportInterpretationMind = {
+  howYouThink: string;
+  howYouDecide: string;
+  howYouAreUnderstood: string;
+  practice: string;
+  claims: Claim[];
+};
+
+export type ReportInterpretationCareer = {
+  vocationalPull: string;
+  howYouShowUp: string;
+  growthThroughWork: string;
+  actions: ActionItem[];
+  careerPaths: ListedItem[];
+  claims: Claim[];
+};
+
+export type ReportInterpretationMoney = {
+  relationshipToResources: string;
+  whatWorks: string;
+  sharedAndExposed: string;
+  actions: ActionItem[];
+  claims: Claim[];
+};
+
+export type ReportInterpretationRelationships = {
+  howYouLove: string;
+  theChallenge: string;
+  whatPartnershipAsks: string;
+  actions: ActionItem[];
+  connectBestWith: ListedItem[];
+  claims: Claim[];
+};
+
+export type ReportInterpretationFamily = {
+  whatYouCarry: string;
+  whatRootsYou: string;
+  theInheritedEdge: string;
+  actions: ActionItem[];
+  claims: Claim[];
+};
+
+export type ReportInterpretationSuperpowers = {
+  superpower: ReportSuperpowerItem;
+  chronicPattern: ReportSuperpowerItem;
+  growingEdge: ReportSuperpowerItem;
+  claims: Claim[];
+};
+
+export type ReportInterpretationDiscoveriesParadoxesItem = {
+  title: string;
+  tension: string;
+  invitation: string;
+};
+
+export type ReportInterpretationDiscoveries = {
+  opening: string;
+  paradoxes: ReportInterpretationDiscoveriesParadoxesItem[];
+  claims: Claim[];
+};
+
+export type ReportInterpretationPath = {
+  fallBackOn: string;
+  headedToward: string;
+  tenderSpot: string;
+  claims: Claim[];
+};
+
+export type ReportInterpretationFocus = {
+  leanInto: ReportFocusGroup;
+  notice: ReportFocusGroup;
+  practice: ReportFocusGroup;
+  closing: string;
+  claims: Claim[];
+};
+
+export type ReportInterpretationPersonalPlanets = {[key: string]: string};
+
+export type ReportInterpretationAspectMeanings = {[key: string]: {
+  dynamic: string;
+  tension: string;
+  behavior: string;
+  growth: string;
+}};
+
+export type ReportInterpretationAngleMeaningsAscendant = {
+  firstImpression: string;
+  orientationStyle: string;
+  atYourBest: string;
+  underStress: string;
+};
+
+export type ReportInterpretationAngleMeaningsMidheaven = {
+  publicDirection: string;
+  whereYouThrive: string;
+  atYourBest: string;
+  underPressure: string;
+};
+
+export type ReportInterpretationAngleMeanings = {
+  ascendant: ReportInterpretationAngleMeaningsAscendant;
+  midheaven: ReportInterpretationAngleMeaningsMidheaven;
+};
+
+/**
+ * The natal report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. Reports stored before V3 lack `meta` and must be regenerated.
+ */
+export interface ReportInterpretation {
+  meta: ReportInterpretationMeta;
+  overview?: ReportInterpretationOverview;
+  triad?: ReportInterpretationTriad;
+  /** The twelve house-card readings in order. They carry no claims, because the card is its own evidence. */
+  houses?: ReportInterpretationHouses;
+  mind?: ReportInterpretationMind;
+  career?: ReportInterpretationCareer;
+  money?: ReportInterpretationMoney;
+  relationships?: ReportInterpretationRelationships;
+  family?: ReportInterpretationFamily;
+  superpowers?: ReportInterpretationSuperpowers;
+  discoveries?: ReportInterpretationDiscoveries;
+  path?: ReportInterpretationPath;
+  focus?: ReportInterpretationFocus;
+  personalPlanets?: ReportInterpretationPersonalPlanets;
+  aspectMeanings?: ReportInterpretationAspectMeanings;
+  angleMeanings?: ReportInterpretationAngleMeanings;
+}
+
 export interface ReportStatus {
   id: string;
   status: ReportStatusStatus;
@@ -127,6 +435,12 @@ export interface ReportStatus {
   /** Human-readable current step description */
   currentStep?: string | null;
   errorMessage?: string | null;
+  /** The chart is stored, so the report page can open on the hero and the explorer. */
+  chartReady: boolean;
+  /** One entry per reader-facing section, "done" once that section is stored. */
+  sections: ReportStatusSections;
+  /** The interpretation so far. Sections appear as each call lands. */
+  interpretation?: ReportInterpretation | null;
 }
 
 export interface PlanetPosition {
@@ -209,272 +523,15 @@ export interface ChartData {
   hemisphereEmphasis?: ChartDataHemisphereEmphasis;
 }
 
-export type EvidenceRefKind = typeof EvidenceRefKind[keyof typeof EvidenceRefKind];
-
-
-export const EvidenceRefKind = {
-  placement: 'placement',
-  aspect: 'aspect',
-  ruler: 'ruler',
-  lot: 'lot',
-  sect: 'sect',
-} as const;
+/**
+ * The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick.
+ */
+export interface Workbook {[key: string]: string}
 
 /**
- * A structured reference to the chart, verified by the API before storage. Fields vary by kind.
+ * A shallow merge onto the report's workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0".
  */
-export interface EvidenceRef {
-  kind: EvidenceRefKind;
-  [key: string]: unknown;
- }
-
-export interface StoredEvidence {
-  ref: EvidenceRef;
-  /** Composed by the API from the verified reference; never model text. */
-  label: string;
-}
-
-/**
- * A verbatim quote from the section's prose and the chart facts it rests on.
- */
-export interface Claim {
-  quote: string;
-  evidence: StoredEvidence[];
-}
-
-export interface ActionItem {
-  action: string;
-  why: string;
-}
-
-export interface ReportTriadPart {
-  label: string;
-  text: string;
-}
-
-export interface ReportSuperpowerItem {
-  title: string;
-  text: string;
-  actions: ActionItem[];
-}
-
-export type ReportFocusGroupBulletsItem = {
-  point: string;
-  why: string;
-};
-
-export interface ReportFocusGroup {
-  intro: string;
-  bullets: ReportFocusGroupBulletsItem[];
-}
-
-/**
- * Token counts and time, summed over one section's attempts or a whole report.
- */
-export interface UsageTotals {
-  /** Calls made. Above one when a reply was rejected and retried. */
-  attempts: number;
-  inputTokens: number;
-  cachedInputTokens: number;
-  outputTokens: number;
-  reasoningTokens: number;
-  ms: number;
-}
-
-export type ReportInterpretationMetaHouseSystem = typeof ReportInterpretationMetaHouseSystem[keyof typeof ReportInterpretationMetaHouseSystem];
-
-
-export const ReportInterpretationMetaHouseSystem = {
-  'whole-sign': 'whole-sign',
-} as const;
-
-export type ReportInterpretationMetaOrbs = {[key: string]: number};
-
-export type ReportInterpretationMetaSect = typeof ReportInterpretationMetaSect[keyof typeof ReportInterpretationMetaSect];
-
-
-export const ReportInterpretationMetaSect = {
-  day: 'day',
-  night: 'night',
-} as const;
-
-export type ReportInterpretationMetaSectLight = typeof ReportInterpretationMetaSectLight[keyof typeof ReportInterpretationMetaSectLight];
-
-
-export const ReportInterpretationMetaSectLight = {
-  sun: 'sun',
-  moon: 'moon',
-} as const;
-
-export type ReportInterpretationMetaUsageSectionsItem = UsageTotals & {
-  /** Prompt key, e.g. "natal:overview". */
-  section: string;
-  /** The model this section's calls ran on. */
-  model: string;
-};
-
-/**
- * Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it.
- */
-export type ReportInterpretationMetaUsage = {
-  /** The model every call used, or "mixed" when they differ. */
-  model: string;
-  /** Priced per section on its own model and summed, when generated. Null if any model has no price on record. */
-  costUsd: number | null;
-  /** End to end. Below `totals.ms`, because ten sections run at once. */
-  wallClockMs: number;
-  totals: UsageTotals;
-  sections: ReportInterpretationMetaUsageSectionsItem[];
-};
-
-export type ReportInterpretationMeta = {
-  promptVersion: string;
-  /** The model every call used, or "mixed" when the foundation and the sections differ. See usage.sections[].model for each one. */
-  model: string;
-  houseSystem: ReportInterpretationMetaHouseSystem;
-  generatedAt: string;
-  wordCount: number;
-  zodiac: string;
-  ephemeris: string;
-  orbs: ReportInterpretationMetaOrbs;
-  sect: ReportInterpretationMetaSect;
-  sectLight: ReportInterpretationMetaSectLight;
-  sunAltitude: number;
-  sectMarginal: boolean;
-  /** Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it. */
-  usage?: ReportInterpretationMetaUsage;
-};
-
-export type ReportInterpretationOverview = {
-  headline: string;
-  concentration: string;
-  temperament: string;
-  distinctive: string;
-  bridge: string;
-  claims: Claim[];
-};
-
-export type ReportInterpretationTriad = {
-  sun: ReportTriadPart;
-  moon: ReportTriadPart;
-  rising: ReportTriadPart;
-  claims: Claim[];
-};
-
-export type ReportInterpretationMind = {
-  howYouThink: string;
-  howYouDecide: string;
-  howYouAreUnderstood: string;
-  practice: string;
-  claims: Claim[];
-};
-
-export type ReportInterpretationCareer = {
-  vocationalPull: string;
-  howYouShowUp: string;
-  growthThroughWork: string;
-  actions: ActionItem[];
-  claims: Claim[];
-};
-
-export type ReportInterpretationMoney = {
-  relationshipToResources: string;
-  whatWorks: string;
-  sharedAndExposed: string;
-  actions: ActionItem[];
-  claims: Claim[];
-};
-
-export type ReportInterpretationRelationships = {
-  howYouLove: string;
-  theChallenge: string;
-  whatPartnershipAsks: string;
-  actions: ActionItem[];
-  claims: Claim[];
-};
-
-export type ReportInterpretationFamily = {
-  whatYouCarry: string;
-  whatRootsYou: string;
-  theInheritedEdge: string;
-  actions: ActionItem[];
-  claims: Claim[];
-};
-
-export type ReportInterpretationSuperpowers = {
-  superpower: ReportSuperpowerItem;
-  chronicPattern: ReportSuperpowerItem;
-  growingEdge: ReportSuperpowerItem;
-  claims: Claim[];
-};
-
-export type ReportInterpretationDiscoveriesParadoxesItem = {
-  title: string;
-  tension: string;
-  invitation: string;
-};
-
-export type ReportInterpretationDiscoveries = {
-  opening: string;
-  paradoxes: ReportInterpretationDiscoveriesParadoxesItem[];
-  claims: Claim[];
-};
-
-export type ReportInterpretationFocus = {
-  leanInto: ReportFocusGroup;
-  notice: ReportFocusGroup;
-  practice: ReportFocusGroup;
-  closing: string;
-  claims: Claim[];
-};
-
-export type ReportInterpretationPersonalPlanets = {[key: string]: string};
-
-export type ReportInterpretationAspectMeanings = {[key: string]: {
-  dynamic: string;
-  tension: string;
-  behavior: string;
-  growth: string;
-}};
-
-export type ReportInterpretationAngleMeaningsAscendant = {
-  firstImpression: string;
-  orientationStyle: string;
-  atYourBest: string;
-  underStress: string;
-};
-
-export type ReportInterpretationAngleMeaningsMidheaven = {
-  publicDirection: string;
-  whereYouThrive: string;
-  atYourBest: string;
-  underPressure: string;
-};
-
-export type ReportInterpretationAngleMeanings = {
-  ascendant: ReportInterpretationAngleMeaningsAscendant;
-  midheaven: ReportInterpretationAngleMeaningsMidheaven;
-};
-
-/**
- * V3 natal report. Every section is schema-enforced at generation time, so all fields are always present and structured. Reports stored before V3 lack `meta` and must be regenerated.
- */
-export interface ReportInterpretation {
-  meta: ReportInterpretationMeta;
-  overview: ReportInterpretationOverview;
-  triad: ReportInterpretationTriad;
-  mind: ReportInterpretationMind;
-  career: ReportInterpretationCareer;
-  money: ReportInterpretationMoney;
-  relationships: ReportInterpretationRelationships;
-  family: ReportInterpretationFamily;
-  superpowers: ReportInterpretationSuperpowers;
-  discoveries: ReportInterpretationDiscoveries;
-  focus: ReportInterpretationFocus;
-  personalPlanets: ReportInterpretationPersonalPlanets;
-  aspectMeanings: ReportInterpretationAspectMeanings;
-  angleMeanings: ReportInterpretationAngleMeanings;
-}
+export interface WorkbookPatch {[key: string]: string | null}
 
 export type ReportStatusProperty = typeof ReportStatusProperty[keyof typeof ReportStatusProperty];
 
@@ -499,6 +556,7 @@ export interface Report {
   status: ReportStatusProperty;
   chartData?: ChartData | null;
   interpretation?: ReportInterpretation | null;
+  workbook?: Workbook;
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;

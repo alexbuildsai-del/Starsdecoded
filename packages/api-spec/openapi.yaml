@@ -156,6 +156,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /reports/{id}/workbook:
+    patch:
+      operationId: updateReportWorkbook
+      tags: [reports]
+      summary: Tick or untick workbook items on a report
+      description: >
+        Shallow-merges the patch into the report's workbook, the reader's own
+        record of which actions they have taken. A string value is the ISO date
+        of the tick, null removes the item. Returns the merged workbook. The
+        viewer must own the report.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkbookPatch"
+      responses:
+        "200":
+          description: The merged workbook
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workbook"
+        "400":
+          description: Unusable item key or value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /reports/{id}/regenerate:
     post:
       operationId: regenerateReport
@@ -804,10 +846,25 @@ components:
         errorMessage:
           type: string
           nullable: true
+        chartReady:
+          description: The chart is stored, so the report page can open on the hero and the explorer.
+          type: boolean
+        sections:
+          description: One entry per reader-facing section, "done" once that section is stored.
+          type: object
+          additionalProperties:
+            type: string
+            enum: [pending, done]
+        interpretation:
+          description: The interpretation so far. Sections appear as each call lands.
+          $ref: "#/components/schemas/ReportInterpretation"
+          nullable: true
       required:
         - id
         - status
         - progress
+        - chartReady
+        - sections
 
     PlanetPosition:
       type: object
@@ -998,7 +1055,7 @@ components:
       properties:
         kind:
           type: string
-          enum: [placement, aspect, ruler, lot, sect]
+          enum: [placement, aspect, ruler, lot, sect, angle]
       required: [kind]
       additionalProperties: true
 
@@ -1032,6 +1089,44 @@ components:
         why:
           type: string
       required: [action, why]
+
+    ListedItem:
+      description: A named item and the concrete reason this chart fits it.
+      type: object
+      properties:
+        item:
+          type: string
+        reason:
+          type: string
+      required: [item, reason]
+
+    HouseReading:
+      description: One generated house-card reading, 40 to 70 words, ending on a behaviour check.
+      type: object
+      properties:
+        house:
+          type: integer
+        reading:
+          type: string
+      required: [house, reading]
+
+    Workbook:
+      description: The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick.
+      type: object
+      additionalProperties:
+        type: string
+
+    WorkbookPatch:
+      description: >
+        A shallow merge onto the report's workbook. A string value is the ISO
+        date the reader ticked the item, null unticks it. A key is a section id,
+        a dot path and an index, for example "career.actions.0".
+      type: object
+      minProperties: 1
+      maxProperties: 200
+      additionalProperties:
+        type: string
+        nullable: true
 
     ReportTriadPart:
       type: object
@@ -1093,9 +1188,10 @@ components:
 
     ReportInterpretation:
       description: >
-        V3 natal report. Every section is schema-enforced at generation time,
-        so all fields are always present and structured. Reports stored before
-        V3 lack `meta` and must be regenerated.
+        The natal report. Every section is schema-enforced at generation time,
+        so a section that is present is complete. Only `meta` is required,
+        because the report is readable while it writes and sections arrive one
+        at a time. Reports stored before V3 lack `meta` and must be regenerated.
       type: object
       properties:
         meta:
@@ -1204,6 +1300,15 @@ components:
               items:
                 $ref: "#/components/schemas/Claim"
           required: [sun, moon, rising, claims]
+        houses:
+          description: The twelve house-card readings in order. They carry no claims, because the card is its own evidence.
+          type: object
+          properties:
+            houses:
+              type: array
+              items:
+                $ref: "#/components/schemas/HouseReading"
+          required: [houses]
         mind:
           type: object
           properties:
@@ -1233,11 +1338,15 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ActionItem"
+            careerPaths:
+              type: array
+              items:
+                $ref: "#/components/schemas/ListedItem"
             claims:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
-          required: [vocationalPull, howYouShowUp, growthThroughWork, actions, claims]
+          required: [vocationalPull, howYouShowUp, growthThroughWork, actions, careerPaths, claims]
         money:
           type: object
           properties:
@@ -1269,11 +1378,15 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ActionItem"
+            connectBestWith:
+              type: array
+              items:
+                $ref: "#/components/schemas/ListedItem"
             claims:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
-          required: [howYouLove, theChallenge, whatPartnershipAsks, actions, claims]
+          required: [howYouLove, theChallenge, whatPartnershipAsks, actions, connectBestWith, claims]
         family:
           type: object
           properties:
@@ -1328,6 +1441,20 @@ components:
               items:
                 $ref: "#/components/schemas/Claim"
           required: [opening, paradoxes, claims]
+        path:
+          type: object
+          properties:
+            fallBackOn:
+              type: string
+            headedToward:
+              type: string
+            tenderSpot:
+              type: string
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/Claim"
+          required: [fallBackOn, headedToward, tenderSpot, claims]
         focus:
           type: object
           properties:
@@ -1392,19 +1519,6 @@ components:
           required: [ascendant, midheaven]
       required:
         - meta
-        - overview
-        - triad
-        - mind
-        - career
-        - money
-        - relationships
-        - family
-        - superpowers
-        - discoveries
-        - focus
-        - personalPlanets
-        - aspectMeanings
-        - angleMeanings
 
     Report:
       type: object
@@ -1434,6 +1548,8 @@ components:
         interpretation:
           $ref: "#/components/schemas/ReportInterpretation"
           nullable: true
+        workbook:
+          $ref: "#/components/schemas/Workbook"
         errorMessage:
           type: string
           nullable: true

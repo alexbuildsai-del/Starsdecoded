@@ -126,6 +126,16 @@ export const DEMO_CHART_DATA: ChartData = {
       degree: 28.4,
       absoluteDegree: 358.4,
     },
+    descendant: {
+      sign: "Capricorn",
+      degree: 2.1,
+      absoluteDegree: 272.1,
+    },
+    ic: {
+      sign: "Virgo",
+      degree: 28.4,
+      absoluteDegree: 178.4,
+    },
   },
   elements: {
     fire: 2,

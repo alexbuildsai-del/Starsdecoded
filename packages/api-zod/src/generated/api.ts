@@ -229,12 +229,12 @@ export const GetReportResponse = zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
   "triad": zod.object({
   "sun": zod.object({
   "label": zod.string(),
@@ -252,12 +252,18 @@ export const GetReportResponse = zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
+  "houses": zod.object({
+  "houses": zod.array(zod.object({
+  "house": zod.number().int(),
+  "reading": zod.string()
+}).describe('One generated house-card reading, 40 to 70 words, ending on a behaviour check.'))
+}).optional().describe('The twelve house-card readings in order. They carry no claims, because the card is its own evidence.'),
   "mind": zod.object({
   "howYouThink": zod.string(),
   "howYouDecide": zod.string(),
@@ -267,12 +273,12 @@ export const GetReportResponse = zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
   "career": zod.object({
   "vocationalPull": zod.string(),
   "howYouShowUp": zod.string(),
@@ -281,16 +287,20 @@ export const GetReportResponse = zod.object({
   "action": zod.string(),
   "why": zod.string()
 })),
+  "careerPaths": zod.array(zod.object({
+  "item": zod.string(),
+  "reason": zod.string()
+}).describe('A named item and the concrete reason this chart fits it.')),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
   "money": zod.object({
   "relationshipToResources": zod.string(),
   "whatWorks": zod.string(),
@@ -303,12 +313,12 @@ export const GetReportResponse = zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
   "relationships": zod.object({
   "howYouLove": zod.string(),
   "theChallenge": zod.string(),
@@ -317,16 +327,20 @@ export const GetReportResponse = zod.object({
   "action": zod.string(),
   "why": zod.string()
 })),
+  "connectBestWith": zod.array(zod.object({
+  "item": zod.string(),
+  "reason": zod.string()
+}).describe('A named item and the concrete reason this chart fits it.')),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
   "family": zod.object({
   "whatYouCarry": zod.string(),
   "whatRootsYou": zod.string(),
@@ -339,12 +353,12 @@ export const GetReportResponse = zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
   "superpowers": zod.object({
   "superpower": zod.object({
   "title": zod.string(),
@@ -374,12 +388,12 @@ export const GetReportResponse = zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
   "discoveries": zod.object({
   "opening": zod.string(),
   "paradoxes": zod.array(zod.object({
@@ -391,12 +405,26 @@ export const GetReportResponse = zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
+}).optional(),
+  "path": zod.object({
+  "fallBackOn": zod.string(),
+  "headedToward": zod.string(),
+  "tenderSpot": zod.string(),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
   "focus": zod.object({
   "leanInto": zod.object({
   "intro": zod.string(),
@@ -424,19 +452,19 @@ export const GetReportResponse = zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
   "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect'])
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
 }).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}),
-  "personalPlanets": zod.record(zod.string(), zod.string()),
+}).optional(),
+  "personalPlanets": zod.record(zod.string(), zod.string()).optional(),
   "aspectMeanings": zod.record(zod.string(), zod.object({
   "dynamic": zod.string(),
   "tension": zod.string(),
   "behavior": zod.string(),
   "growth": zod.string()
-})),
+})).optional(),
   "angleMeanings": zod.object({
   "ascendant": zod.object({
   "firstImpression": zod.string(),
@@ -450,8 +478,9 @@ export const GetReportResponse = zod.object({
   "atYourBest": zod.string(),
   "underPressure": zod.string()
 })
-})
-}).describe('V3 natal report. Every section is schema-enforced at generation time, so all fields are always present and structured. Reports stored before V3 lack `meta` and must be regenerated.\n'),zod.null()]).optional(),
+}).optional()
+}).describe('The natal report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. Reports stored before V3 lack `meta` and must be regenerated.\n'),zod.null()]).optional(),
+  "workbook": zod.record(zod.string(), zod.string()).optional().describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick.'),
   "errorMessage": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -482,8 +511,323 @@ export const GetReportStatusResponse = zod.object({
   "status": zod.enum(['pending', 'computing', 'interpreting', 'complete', 'failed']),
   "progress": zod.number().describe('Progress percentage 0-100'),
   "currentStep": zod.string().nullish().describe('Human-readable current step description'),
-  "errorMessage": zod.string().nullish()
+  "errorMessage": zod.string().nullish(),
+  "chartReady": zod.boolean().describe('The chart is stored, so the report page can open on the hero and the explorer.'),
+  "sections": zod.record(zod.string(), zod.enum(['pending', 'done'])).describe('One entry per reader-facing section, \"done\" once that section is stored.'),
+  "interpretation": zod.union([zod.object({
+  "meta": zod.object({
+  "promptVersion": zod.string(),
+  "model": zod.string().describe('The model every call used, or \"mixed\" when the foundation and the sections differ. See usage.sections[].model for each one.\n'),
+  "houseSystem": zod.enum(['whole-sign']),
+  "generatedAt": zod.string(),
+  "wordCount": zod.number(),
+  "zodiac": zod.string(),
+  "ephemeris": zod.string(),
+  "orbs": zod.record(zod.string(), zod.number()),
+  "sect": zod.enum(['day', 'night']),
+  "sectLight": zod.enum(['sun', 'moon']),
+  "sunAltitude": zod.number(),
+  "sectMarginal": zod.boolean(),
+  "usage": zod.object({
+  "model": zod.string().describe('The model every call used, or \"mixed\" when they differ.'),
+  "costUsd": zod.number().nullable().describe('Priced per section on its own model and summed, when generated. Null if any model has no price on record.\n'),
+  "wallClockMs": zod.number().describe('End to end. Below `totals.ms`, because ten sections run at once.'),
+  "totals": zod.object({
+  "attempts": zod.number().describe('Calls made. Above one when a reply was rejected and retried.'),
+  "inputTokens": zod.number(),
+  "cachedInputTokens": zod.number(),
+  "outputTokens": zod.number(),
+  "reasoningTokens": zod.number(),
+  "ms": zod.number()
+}).describe('Token counts and time, summed over one section\'s attempts or a whole report.'),
+  "sections": zod.array(zod.object({
+  "attempts": zod.number().describe('Calls made. Above one when a reply was rejected and retried.'),
+  "inputTokens": zod.number(),
+  "cachedInputTokens": zod.number(),
+  "outputTokens": zod.number(),
+  "reasoningTokens": zod.number(),
+  "ms": zod.number()
+}).describe('Token counts and time, summed over one section\'s attempts or a whole report.').and(zod.object({
+  "section": zod.string().describe('Prompt key, e.g. \"natal:overview\".'),
+  "model": zod.string().describe('The model this section\'s calls ran on.')
+})))
+}).optional().describe('Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it.\n')
+}),
+  "overview": zod.object({
+  "headline": zod.string(),
+  "concentration": zod.string(),
+  "temperament": zod.string(),
+  "distinctive": zod.string(),
+  "bridge": zod.string(),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "triad": zod.object({
+  "sun": zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}),
+  "moon": zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}),
+  "rising": zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "houses": zod.object({
+  "houses": zod.array(zod.object({
+  "house": zod.number().int(),
+  "reading": zod.string()
+}).describe('One generated house-card reading, 40 to 70 words, ending on a behaviour check.'))
+}).optional().describe('The twelve house-card readings in order. They carry no claims, because the card is its own evidence.'),
+  "mind": zod.object({
+  "howYouThink": zod.string(),
+  "howYouDecide": zod.string(),
+  "howYouAreUnderstood": zod.string(),
+  "practice": zod.string(),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "career": zod.object({
+  "vocationalPull": zod.string(),
+  "howYouShowUp": zod.string(),
+  "growthThroughWork": zod.string(),
+  "actions": zod.array(zod.object({
+  "action": zod.string(),
+  "why": zod.string()
+})),
+  "careerPaths": zod.array(zod.object({
+  "item": zod.string(),
+  "reason": zod.string()
+}).describe('A named item and the concrete reason this chart fits it.')),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "money": zod.object({
+  "relationshipToResources": zod.string(),
+  "whatWorks": zod.string(),
+  "sharedAndExposed": zod.string(),
+  "actions": zod.array(zod.object({
+  "action": zod.string(),
+  "why": zod.string()
+})),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "relationships": zod.object({
+  "howYouLove": zod.string(),
+  "theChallenge": zod.string(),
+  "whatPartnershipAsks": zod.string(),
+  "actions": zod.array(zod.object({
+  "action": zod.string(),
+  "why": zod.string()
+})),
+  "connectBestWith": zod.array(zod.object({
+  "item": zod.string(),
+  "reason": zod.string()
+}).describe('A named item and the concrete reason this chart fits it.')),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "family": zod.object({
+  "whatYouCarry": zod.string(),
+  "whatRootsYou": zod.string(),
+  "theInheritedEdge": zod.string(),
+  "actions": zod.array(zod.object({
+  "action": zod.string(),
+  "why": zod.string()
+})),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "superpowers": zod.object({
+  "superpower": zod.object({
+  "title": zod.string(),
+  "text": zod.string(),
+  "actions": zod.array(zod.object({
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "chronicPattern": zod.object({
+  "title": zod.string(),
+  "text": zod.string(),
+  "actions": zod.array(zod.object({
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "growingEdge": zod.object({
+  "title": zod.string(),
+  "text": zod.string(),
+  "actions": zod.array(zod.object({
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "discoveries": zod.object({
+  "opening": zod.string(),
+  "paradoxes": zod.array(zod.object({
+  "title": zod.string(),
+  "tension": zod.string(),
+  "invitation": zod.string()
+})),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "path": zod.object({
+  "fallBackOn": zod.string(),
+  "headedToward": zod.string(),
+  "tenderSpot": zod.string(),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "focus": zod.object({
+  "leanInto": zod.object({
+  "intro": zod.string(),
+  "bullets": zod.array(zod.object({
+  "point": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "notice": zod.object({
+  "intro": zod.string(),
+  "bullets": zod.array(zod.object({
+  "point": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "practice": zod.object({
+  "intro": zod.string(),
+  "bullets": zod.array(zod.object({
+  "point": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "closing": zod.string(),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind.'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional(),
+  "personalPlanets": zod.record(zod.string(), zod.string()).optional(),
+  "aspectMeanings": zod.record(zod.string(), zod.object({
+  "dynamic": zod.string(),
+  "tension": zod.string(),
+  "behavior": zod.string(),
+  "growth": zod.string()
+})).optional(),
+  "angleMeanings": zod.object({
+  "ascendant": zod.object({
+  "firstImpression": zod.string(),
+  "orientationStyle": zod.string(),
+  "atYourBest": zod.string(),
+  "underStress": zod.string()
+}),
+  "midheaven": zod.object({
+  "publicDirection": zod.string(),
+  "whereYouThrive": zod.string(),
+  "atYourBest": zod.string(),
+  "underPressure": zod.string()
 })
+}).optional()
+}).describe('The natal report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. Reports stored before V3 lack `meta` and must be regenerated.\n'),zod.null()]).optional().describe('The interpretation so far. Sections appear as each call lands.')
+})
+
+
+/**
+ * Shallow-merges the patch into the report's workbook, the reader's own record of which actions they have taken. A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. The viewer must own the report.
+ * @summary Tick or untick workbook items on a report
+ */
+export const UpdateReportWorkbookParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateReportWorkbookBody = zod.record(zod.string(), zod.string().nullable()).describe('A shallow merge onto the report\'s workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example \"career.actions.0\".\n')
+
+export const UpdateReportWorkbookResponse = zod.record(zod.string(), zod.string()).describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick.')
 
 
 /**
