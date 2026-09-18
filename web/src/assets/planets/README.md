@@ -26,3 +26,7 @@ planets and are drawn as glyphs, which is the correct distinction to show.
 
 `web/public/opengraph.jpg`, the social preview image, is still missing and has
 no placeholder.
+
+`sun-512.webp` is the Sun at 512 px for the hero plate and the dawn, keyed from
+the Owner's render, which arrived with the transparency checkerboard flattened
+into it (MB-13: replaced when a true-alpha export exists).

@@ -468,7 +468,8 @@
   .rp-lblk { margin-top: 24px; max-width: 64ch; }
   .rp-lblk > .rp-lab { display: block; margin-bottom: 7px; }
   .rp-lab { font-family: var(--label); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); transition: color .9s linear; }
-  .rp-pull { margin-top: 26px; max-width: 58ch; font-family: var(--serif); font-style: italic; font-size: 18px; line-height: 1.5;
+  /* Upright, by the pass-two lock: the closing and the pull quotes are read, not sighed. */
+  .rp-pull { margin-top: 26px; max-width: 58ch; font-family: var(--serif); font-style: normal; font-size: 18px; line-height: 1.5;
     color: var(--accent); border-top: 1px solid var(--line-soft); padding-top: 18px; transition: color .9s linear; }
   .rp-box { border: 1px solid var(--line); border-radius: 14px; background: rgba(17,22,31,.72); padding: 17px 19px; margin-top: 15px; max-width: 64ch; }
   .rp-box h3 { font-family: var(--serif); font-weight: 400; font-size: 18px; letter-spacing: -.02em; }
@@ -483,6 +484,41 @@
   @media (min-width: 720px) { .rp-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   .rp-wheelbox { position: relative; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; padding: 10px;
     background: radial-gradient(70% 70% at 50% 44%, #121826 0%, var(--void) 80%); }
+
+
+  /* --- beside prose, inside a card: the two-column chapter --- */
+  .rp-two { display: grid; gap: 26px; align-items: start; }
+  .rp-two > .main { min-width: 0; max-width: 64ch; }
+  .rp-two > .side { min-width: 0; }
+  @media (min-width: 960px) {
+    .rp-two { grid-template-columns: minmax(0, 64ch) 19rem; gap: 40px; }
+    .rp-two > .side { position: sticky; top: 5rem; }
+  }
+
+  /* --- the chart explorer: wheel and card, one height, normal flow --- */
+  .rp-explorer { --explorer-h: 520px; display: grid; gap: 18px; align-items: start; }
+  .rp-explorer > .wheel { min-width: 0; }
+  .rp-explorer > .card { min-width: 0; height: var(--explorer-h); }
+  @media (min-width: 900px) {
+    .rp-explorer { grid-template-columns: minmax(0, 1fr) minmax(300px, 22rem); gap: 22px; }
+  }
+  /* Kept in sentence case: it reads "4th house · Virgo", not a label shouting. */
+  .rp-kicker { font-family: var(--label); font-size: 10.5px; letter-spacing: .12em; color: var(--sky); }
+
+  /* --- the closing: dawn in the corner, --p set from the section's position --- */
+  .rp-dawn { --p: 0; position: relative; overflow: clip; }
+  .rp-dawn .sun {
+    position: absolute; top: 0; right: 0; width: min(560px, 82vw); aspect-ratio: 1; pointer-events: none;
+    transform: translate(calc(46% - var(--p) * 20%), calc(-76% + var(--p) * 46%));
+    opacity: calc(.25 + var(--p) * .75);
+  }
+  .rp-dawn .sun img { display: block; width: 100%; height: 100%; }
+  .rp-dawn .warm {
+    position: absolute; inset: 0; pointer-events: none; opacity: calc(var(--p) * .85);
+    background: radial-gradient(120% 90% at 92% 2%, rgba(226,164,86,.30) 0%, rgba(184,120,70,.14) 34%, rgba(6,8,12,0) 68%);
+  }
+  .rp-dawn > .body { position: relative; z-index: 1; }
+  @media (prefers-reduced-motion: reduce) { .rp-dawn { --p: 1; } }
 
   /* --- chapter rail and the phone bar --- */
   .rp-rail { position: fixed; left: 12px; top: 50%; transform: translateY(-50%); z-index: 6; display: grid; gap: 9px; }
@@ -516,6 +552,8 @@
   .rp-card .ev .k { font-family: var(--label); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; flex: none; }
   .rp-card .ev .k.placement { color: var(--indigo-lt); } .rp-card .ev .k.aspect { color: #63A8C4; } .rp-card .ev .k.ruler { color: var(--sky); }
   .rp-card .ev .k.sect { color: var(--violet); } .rp-card .ev .k.lot { color: #7FB08B; }
+  /* An angle is measured geometry, so it takes the brass. */
+  .rp-card .ev .k.angle { color: var(--sky); }
   .rp-card .ev .l { font-size: 13px; font-weight: 500; }
   .rp-card .ev .w { font-size: 12.5px; color: var(--paper-dim); line-height: 1.5; }
   .rp-card .foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft);
@@ -528,9 +566,14 @@
 
 @media print {
   .rp-sky, .rp-hsky, .rp-hud, .rp-rail, .rp-mobbar, .rp-cue { display: none !important; }
+  .rp-dawn .sun, .rp-dawn .warm { display: none !important; }
   .rp-hero { height: auto; min-height: 0; }
   .rp-root, .rp-body { background: white; color: black; }
   .rp-prose, .rp-box .tn, .rp-lede, .rp-head h2, .rp-actions li, .rp-legend .v { color: black; }
+  /* Paper has one column and no sticky anything. */
+  .rp-two, .rp-explorer { display: block; }
+  .rp-two > .side { position: static; margin-top: 18px; }
+  .rp-explorer > .card { height: auto; }
 }
 
 /* Print styles for PDF export */
