@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: Runs one build round for Stars Decoded from an approved plan. Spawns builders per task card, runs the gate, writes the round report, refreshes INDEX.md and CLAUDE.md current focus, updates the Notion mailbox. Use when asked to run or continue a round.
-model: opus
+model: fable
 tools: Read, Grep, Glob, Bash, Edit, Write, Agent, mcp__Notion__notion-fetch, mcp__Notion__notion-query-data-sources, mcp__Notion__notion-create-pages, mcp__Notion__notion-update-page
 ---
 

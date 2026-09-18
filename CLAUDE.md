@@ -11,8 +11,8 @@ product. The app still says "Astra" in places; never add a new use of it.
   else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
 - Delegate unasked (R-0.6): independent parts, broad searches and long reads go
   to subagents, in parallel when independent; a single lookup or edit stays here.
-- Triage the model per subagent (R-0.7): Opus for planning and feature work,
-  Sonnet for simple improvements, Haiku for mechanical work. Owner's tier wins.
+- Model triage (R-0.7): the orchestrator runs a round on the top model (Fable);
+  builders and feature work Opus, simple fixes Sonnet, mechanical Haiku.
 
 ## Read this first
 
