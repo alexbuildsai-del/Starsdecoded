@@ -6,6 +6,7 @@ import type { z } from "zod/v4";
 import { foundation } from "./sections/foundation.js";
 import { overview } from "./sections/overview.js";
 import { triad } from "./sections/triad.js";
+import { houses } from "./sections/houses.js";
 import { mind } from "./sections/mind.js";
 import { career } from "./sections/career.js";
 import { money } from "./sections/money.js";
@@ -13,6 +14,7 @@ import { relationships } from "./sections/relationships.js";
 import { family } from "./sections/family.js";
 import { superpowers } from "./sections/superpowers.js";
 import { discoveries } from "./sections/discoveries.js";
+import { path } from "./sections/path.js";
 import { focus } from "./sections/focus.js";
 import type { SectionSpec } from "./types.js";
 
@@ -22,10 +24,12 @@ export { toStrictJsonSchema } from "./jsonSchema.js";
 export { CLAIMS_CONTRACT, ClaimSchema, ClaimsSchema, EvidenceRefSchema, labelEvidence, proseOf, storeClaims, validateClaims, type Claim, type EvidenceRef, type StoredClaim } from "./evidence.js";
 export type { SectionSpec, Infer } from "./types.js";
 export { FoundationSchema } from "./sections/foundation.js";
+export { HousesSchema } from "./sections/houses.js";
+export { PathSchema } from "./sections/path.js";
 
-/** Reader-facing sections in report order. The wheel renders after overview. */
+/** Reader-facing sections in report order. `houses` writes the explorer's cards. */
 export const REPORT_SECTIONS = [
-  overview, triad, mind, career, money, relationships, family, superpowers, discoveries, focus,
+  overview, triad, houses, mind, career, money, relationships, family, superpowers, discoveries, path, focus,
 ] as const;
 
 export const FOUNDATION = foundation;
@@ -33,7 +37,16 @@ export const FOUNDATION = foundation;
 /** Everything the pipeline calls, foundation first. */
 export const ALL_SECTIONS = [foundation, ...REPORT_SECTIONS] as const;
 
-export type ReportSectionId = "overview" | "triad" | "mind" | "career" | "money" | "relationships" | "family" | "superpowers" | "discoveries" | "focus";
+export type ReportSectionId = "overview" | "triad" | "houses" | "mind" | "career" | "money" | "relationships" | "family" | "superpowers" | "discoveries" | "path" | "focus";
+
+/**
+ * A section whose schema has no `claims` field is its own evidence: the house
+ * cards sit on the wheel that proves them. Code must not append the claims
+ * contract to it or try to store claims from it.
+ */
+export function hasClaims(spec: SectionSpec): boolean {
+  return "claims" in ((spec.schema as unknown as { shape?: Record<string, unknown> }).shape ?? {});
+}
 
 export const SECTION_IDS: readonly ReportSectionId[] = REPORT_SECTIONS.map((s) => s.key.split(":")[1] as ReportSectionId);
 

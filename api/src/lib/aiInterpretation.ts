@@ -1,7 +1,7 @@
 /**
  * Natal report generation.
  *
- * One foundation call, then the ten reader-facing sections in parallel. Every
+ * One foundation call, then the twelve reader-facing sections in parallel. Every
  * call uses the same byte-identical system prompt (the cached prefix), the
  * section's editable instructions, and then the variable chart brief. Output
  * is constrained by each section's zod schema via strict structured outputs
@@ -24,7 +24,7 @@ import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type Sect
 import { MODELS, modelFor } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
-  buildBrief, storeClaims, toStrictJsonSchema,
+  buildBrief, hasClaims, storeClaims, toStrictJsonSchema,
   type ChartBrief, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
 import type { AngleMeanings, AspectMeaningPayload } from "../prompts/brief.js";
@@ -38,13 +38,15 @@ import { RelationshipsSchema } from "../prompts/sections/relationships.js";
 import { FamilySchema } from "../prompts/sections/family.js";
 import { SuperpowersSchema } from "../prompts/sections/superpowers.js";
 import { DiscoveriesSchema } from "../prompts/sections/discoveries.js";
+import { PathSchema } from "../prompts/sections/path.js";
+import { HousesSchema } from "../prompts/sections/houses.js";
 import { FocusSchema } from "../prompts/sections/focus.js";
 
 // Which model each call uses lives in ./models.ts, never here.
 /** One blind try, then two informed by the rejection. A lost section loses the whole report. */
 const ATTEMPTS = 3;
 /** Bump when the section set, schemas, or vocabulary change shape. */
-export const PROMPT_VERSION = "v4";
+export const PROMPT_VERSION = "v5";
 
 /** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
 type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
@@ -52,6 +54,8 @@ type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
 export type FoundationData = z.infer<typeof FoundationSchema>;
 export type OverviewSection = Stored<z.infer<typeof OverviewSchema>>;
 export type TriadSection = Stored<z.infer<typeof TriadSchema>>;
+/** The house readings carry no claims: the card they sit on is the evidence. */
+export type HousesSection = z.infer<typeof HousesSchema>;
 export type MindSection = Stored<z.infer<typeof MindSchema>>;
 export type CareerSection = Stored<z.infer<typeof CareerSchema>>;
 export type MoneySection = Stored<z.infer<typeof MoneySchema>>;
@@ -59,6 +63,7 @@ export type RelationshipsSection = Stored<z.infer<typeof RelationshipsSchema>>;
 export type FamilySection = Stored<z.infer<typeof FamilySchema>>;
 export type SuperpowersSection = Stored<z.infer<typeof SuperpowersSchema>>;
 export type DiscoveriesSection = Stored<z.infer<typeof DiscoveriesSchema>>;
+export type PathSection = Stored<z.infer<typeof PathSchema>>;
 export type FocusSection = Stored<z.infer<typeof FocusSchema>>;
 
 export interface ReportInterpretation {
@@ -76,14 +81,15 @@ export interface ReportInterpretation {
     /** Within 5 degrees of the horizon. Methodology box only. */
     sectMarginal: boolean;
     generatedAt: string;
-    /** Prose words across the ten reader-facing sections. */
+    /** Prose words across the twelve reader-facing sections. */
     wordCount: number;
-    /** Tokens, cost and time for all eleven calls. */
+    /** Tokens, cost and time for all thirteen calls. */
     usage: ReportUsage;
   };
   foundation: FoundationData;
   overview: OverviewSection;
   triad: TriadSection;
+  houses: HousesSection;
   mind: MindSection;
   career: CareerSection;
   money: MoneySection;
@@ -91,6 +97,7 @@ export interface ReportInterpretation {
   family: FamilySection;
   superpowers: SuperpowersSection;
   discoveries: DiscoveriesSection;
+  path: PathSection;
   focus: FocusSection;
   /** Composed deterministically for the wheel; no AI call. */
   personalPlanets: Record<string, string>;
@@ -104,7 +111,7 @@ export interface ReportInterpretation {
 
 function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec, foundationJson?: string): string {
   const parts = [instructions.trim()];
-  if (spec.key !== FOUNDATION.key) parts.push("", CLAIMS_CONTRACT);
+  if (spec.key !== FOUNDATION.key && hasClaims(spec)) parts.push("", CLAIMS_CONTRACT);
   parts.push("", "CHART BRIEF", brief.text);
   if (foundationJson) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", foundationJson);
   const extra = spec.extraContext?.(brief);
@@ -228,7 +235,7 @@ export async function generateInterpretation(
   const foundation = foundationCall.data;
   const foundationJson = JSON.stringify(foundation, null, 2);
 
-  // Stage 2: the ten sections depend only on the foundation, so they run in
+  // Stage 2: the twelve sections depend only on the foundation, so they run in
   // parallel. Prompts resolve in parallel too, honouring DB overrides.
   const prompts = await Promise.all(REPORT_SECTIONS.map((s) => resolveSection(s.key)));
   const calls = await Promise.all(
@@ -253,14 +260,15 @@ export async function generateInterpretation(
   }, "report interpretation complete");
 
   const withLabels = results.map((r) => {
-    const out = r as { claims: Parameters<typeof storeClaims>[0] };
-    return { ...out, claims: storeClaims(out.claims, chart) };
+    const out = r as { claims?: Parameters<typeof storeClaims>[0] };
+    return out.claims ? { ...out, claims: storeClaims(out.claims, chart) } : out;
   });
   const byId = Object.fromEntries(SECTION_IDS.map((id, i) => [id, withLabels[i]])) as Record<ReportSectionId, unknown>;
 
   const sections = {
     overview: byId.overview as OverviewSection,
     triad: byId.triad as TriadSection,
+    houses: byId.houses as HousesSection,
     mind: byId.mind as MindSection,
     career: byId.career as CareerSection,
     money: byId.money as MoneySection,
@@ -268,6 +276,7 @@ export async function generateInterpretation(
     family: byId.family as FamilySection,
     superpowers: byId.superpowers as SuperpowersSection,
     discoveries: byId.discoveries as DiscoveriesSection,
+    path: byId.path as PathSection,
     focus: byId.focus as FocusSection,
   };
 

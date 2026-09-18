@@ -3,27 +3,27 @@ import assert from "node:assert/strict";
 import { chartFromFixture } from "../lib/testFixtures.js";
 import {
   ALL_SECTIONS, REPORT_SECTIONS, SECTION_IDS, SHARED_SYSTEM, WORD_TARGETS,
-  buildBrief, toStrictJsonSchema,
+  buildBrief, hasClaims, sectionById, toStrictJsonSchema,
 } from "./index.js";
 import { BODIES, SIGNS, BODY, SIGN, HOUSE, ASPECT, STRUCTURE } from "./vocabulary.js";
 import { itemsHint } from "./jsonSchema.js";
 import { OverviewSchema } from "./sections/overview.js";
 
-test("registry: ten reader-facing sections in the agreed order, foundation first overall", () => {
-  assert.deepEqual(SECTION_IDS, ["overview", "triad", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"]);
+test("registry: twelve reader-facing sections in the agreed order, foundation first overall", () => {
+  assert.deepEqual(SECTION_IDS, ["overview", "triad", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "path", "focus"]);
   assert.equal(ALL_SECTIONS[0].key, "natal:foundation");
-  assert.equal(ALL_SECTIONS.length, 11);
+  assert.equal(ALL_SECTIONS.length, 13);
 });
 
-// The product target is 4,000-4,500 (Owner, 2026-09-17). These bands are the
-// older 3,500-4,000 and each section's prompt names its own numbers, so raising
-// them is USER-FACING and needs a lab run. The gap is deliberate and tracked in
-// MB-38; this test pins the bands so it cannot widen unnoticed.
-test("registry: word targets still sum to 3,500-4,000, under the 4,000-4,500 product target", () => {
+// Each section's prompt names its own numbers, so moving a band is USER-FACING
+// and needs a lab run. This test pins the sums so they cannot drift out of the
+// 3,500-5,500 product range unnoticed.
+test("registry: word targets sum to 4,180-5,410, inside the 3,500-5,500 product range", () => {
   const min = Object.values(WORD_TARGETS).reduce((n, [a]) => n + a, 0);
   const max = Object.values(WORD_TARGETS).reduce((n, [, b]) => n + b, 0);
-  assert.equal(min, 3500);
-  assert.equal(max, 4000);
+  assert.equal(min, 4180);
+  assert.equal(max, 5410);
+  assert.ok(min >= 3500 && max <= 5500, `bands ${min}-${max} leave the product range`);
 });
 
 test("vocabulary: every primitive present, every full entry 40-80 words, no em dashes or semicolons", () => {
@@ -177,11 +177,13 @@ test("claims: labels are composed from the reference, never from model text", ()
   assert.equal(stored[0].evidence[0].label, "Lot of Spirit in Gemini, 6th house");
 });
 
-test("every reader-facing section requires 3-8 claims and validates them; foundation echoes sect", () => {
+test("every reader-facing section but houses requires 3-8 claims and validates them; foundation echoes sect", () => {
   for (const s of SECTIONS) {
     assert.ok(typeof s.validate === "function", `${s.key} has no validator`);
     const shape = (s.schema as unknown as { shape: Record<string, unknown> }).shape;
-    assert.ok("claims" in shape, `${s.key} schema lacks claims`);
+    // The house cards sit on the wheel that proves them, so they carry no claims.
+    assert.equal("claims" in shape, s.key !== "natal:houses", `${s.key} claims presence is wrong`);
+    assert.equal(hasClaims(s), s.key !== "natal:houses");
   }
   assert.ok("sect" in (FoundationSchema as unknown as { shape: Record<string, unknown> }).shape);
   assert.match(CLAIMS_CONTRACT, /verbatim/);
@@ -195,4 +197,39 @@ test("registry: every section's token cap clears its prose plus eight claims wit
     const needed = Math.ceil(maxWords * 1.5) + 8 * 120 + 200;
     assert.ok(spec.maxTokens >= needed * 1.5, `${spec.key}: cap ${spec.maxTokens} is under 1.5x the ${needed} tokens a full reply can need`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// The house readings: twelve in order, no claims, only bodies that are there.
+// ---------------------------------------------------------------------------
+import { houses as housesSpec } from "./sections/houses.js";
+
+const reading = (text: string) => text;
+const twelve = (overrides: Record<number, string> = {}) =>
+  ({ houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: overrides[i + 1] ?? reading("You set the tone before you speak. Behaviour check: notice who follows your pace this week.") })) });
+
+test("houses: the brief names the houses whose card already carries triad text", () => {
+  const brief = buildBrief(curie(), "Marie Curie");
+  const extra = housesSpec.extraContext!(brief);
+  assert.match(extra, /^HOUSES ALREADY COVERED: houses 1, 3, 11 /);
+  assert.match(extra, /Do not repeat it there/);
+  assert.equal(sectionById("houses")!.key, "natal:houses");
+});
+
+test("houses: a reading may name the house ruler, never a body placed elsewhere", () => {
+  const brief = buildBrief(curie(), "Marie Curie");
+  const ok = housesSpec.validate!(twelve({ 1: "Saturn rules this ground and sets a slow pace. Behaviour check: count how often you wait." }), brief);
+  assert.deepEqual(ok, []);
+  const bad = housesSpec.validate!(twelve({ 1: "Mars pushes here from the first minute. Behaviour check: notice the rush." }), brief);
+  assert.equal(bad.length, 1, bad.join("\n"));
+  assert.match(bad[0], /house 1: the reading names Mars/);
+  assert.match(bad[0], /neither placed in the 1st nor its ruler/);
+});
+
+test("houses: the twelve must arrive in order", () => {
+  const brief = buildBrief(curie(), "Marie Curie");
+  const out = twelve();
+  out.houses[4].house = 9;
+  const errors = housesSpec.validate!(out, brief);
+  assert.ok(errors.some((e) => /entry 5 is house 9/.test(e)), errors.join("\n"));
 });
