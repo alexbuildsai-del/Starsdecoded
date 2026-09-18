@@ -1,7 +1,7 @@
 # CLAUDE.md — working on Stars Decoded
 
 Stars Decoded computes a natal chart locally (`astronomy-engine`, whole sign)
-and writes a 4,000 to 4,500 word psychological report with OpenAI, grounded in
+and writes a 3,500 to 5,500 word psychological report with OpenAI, grounded in
 a written doctrine and a per-chart brief. One-time purchase. The report is the
 product. The app still says "Astra" in places; never add a new use of it.
 
@@ -109,11 +109,11 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-17)
+## Current focus (2026-09-18)
 
-1. R03 Owner acceptance pending (`docs/rounds/R03-report.md`): the natal report
-   UI lands whole — Observatory type, the wheel drawn from real degrees,
-   citations as superscripts, no invented prose, so the grid says less (ADR-18).
+1. `docs/specs/locked/natal-report-pass-two.md` locked from the 18 Sept review:
+   explorer, generated house cards, rail and workbook, Your Path, dawn closing,
+   progressive loading, word range 3,500 to 5,500. Next: `/plan` it (ADR-20 to 28).
 2. Staging landing (`docs/specs/draft/staging-environment.md`): `production` sits
    at the pre-staging `main`; the Owner works the runbook, switches the
    dashboards, then the first Promote ships it.

@@ -3,7 +3,7 @@
 Ideation 2026-09-18 with the Owner from the Notion page "Review 18 Sept", three passes
 (eighteen Owner notes on the first, seven on the second, all folded in). Artifact, the app's
 own `NatalWheel` rendered for the Owner's chart plus real text from the Owner's report:
-https://claude.ai/artifact/5Er5qfQVMn2DYkuyGGdPJs. Status: **draft**. Builds on
+https://claude.ai/artifact/5Er5qfQVMn2DYkuyGGdPJs. Status: **locked 2026-09-18**. Builds on
 `docs/specs/locked/natal-report-ui.md` and supersedes three of its lines (chapter accent,
 house-card copy source, chapter list).
 
