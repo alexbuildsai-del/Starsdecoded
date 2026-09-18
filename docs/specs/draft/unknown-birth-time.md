@@ -14,9 +14,8 @@ through its birth day by the real engine: https://claude.ai/artifact/GicHa2umwRm
   section, `angleMeanings`, every claim of kind `angle`, `ruler`, `sect` or `lot`, and the
   house on every placement label. Clean seam.
 - Swept at two-minute steps, 7 Nov 1867 in Warsaw has Capricorn rising from 11:12 to 12:58.
-  The fixture's "12:00" is a convention, not a record: the reference report's rising sign,
-  chart ruler and every house rest on 106 minutes out of 1,440.
-- Today the form requires a time and tells people to type noon. Nothing marks the result.
+  The fixture's "12:00" is a convention, not a record: the reference report's horizon rests
+  on 106 minutes out of 1,440.
 - Correction to the premise: the current invite flow is the synastry invite, where the
   inviter types the other person's birth data and the recipient claims the profile. That
   claim mechanism exists; sharing an unspent credit does not, and belongs to pricing
@@ -45,13 +44,12 @@ through its birth day by the real engine: https://claude.ai/artifact/GicHa2umwRm
 - A Moon or Sun that changes sign inside the band is read as the sign covering the larger
   share of the band, and the method strip and the brief say so. Its degree is the centre
   time's; the Moon's orbs widen to its travel across the band.
-- **Where to find it**: under "I don't know", a hint keyed by birth country (from the
-  geocoder): France (copie intégrale de l'acte de naissance, free, service-public.fr or the
-  mairie), Belgium (commune or the federal portal), Netherlands, Germany (register extract,
-  not the Geburtsurkunde), Spain, Italy, Switzerland, UK (Scotland yes, England and Wales
-  only for twins; maternity notes), US and Canada (long form or vault copy), elsewhere
-  (parents, hospital, baby book). Every line is verified against the official source before
-  it ships; unverified lines fall back to the "elsewhere" copy.
+- **Where to find it**: under "I don't know", a hint keyed by birth country from the
+  geocoder: France (copie intégrale de l'acte de naissance, free, service-public.fr or the
+  mairie), Belgium, Netherlands, Germany (register extract, not the Geburtsurkunde), Spain,
+  Italy, Switzerland, UK (Scotland yes; England and Wales only for twins), US and Canada
+  (long form), elsewhere (parents, hospital). Lines are verified against the official
+  source before shipping; an unverified line falls back to the "elsewhere" copy.
 - The old "if unknown, use noon" note is deleted.
 
 ### Engine: the horizon as a status
@@ -81,10 +79,10 @@ through its birth day by the real engine: https://claude.ai/artifact/GicHa2umwRm
   centre-time degree. Legend third line: "RISING · add your birth time to draw the horizon".
 - **Explorer**: the wheel keeps the sign band and the bodies at their degrees, drops the
   house ring and the axes; the card slot holds the one call to action: what the hour adds
-  (four lines), "Add my birth time", "Free. Every change is marked.", the country hint.
+  (four lines), "Add my birth time", "Free. Every change is marked.", the country hint. The
+  dashboard tile carries the same call to action; print carries the marks and the ledger.
 - **Method strip**: "birth time not recorded · rising sign, houses, day or night and lots
   not drawn · positions at 12:00 local · Moon 10.2° to 22.8° Pisces". Printed too.
-- Dashboard tile: "horizon not drawn" with the same call to action.
 
 ### The horizon pass
 - Entry: hero, explorer, method strip, dashboard, all opening the same three-way control
@@ -102,36 +100,36 @@ through its birth day by the real engine: https://claude.ai/artifact/GicHa2umwRm
   logged, never applied loosely. Claims re-validated after application.
 - `report_revisions` table: `report_id`, `interpretation` (the previous), `chart_data`
   (the previous), `reason` (`birth_time_added`), `created_at`. MB-19 and MB-45 reuse it.
-- Free, forever, rate-limited like regenerate, never re-charged. A report whose horizon
-  was known from the start never offers it.
+- **Credit rules (Owner).** Only the time can change on a report, through this pass. The
+  first time update is free, no window; a second consumes a credit; a changed date or place
+  is a new report on a new credit. No other user regeneration: `POST /reports/:id/regenerate`
+  and the MB-45 CTA are reconciled (MB-49). No credit opens the pricing popup (pricing
+  session). This round ships the free first pass and a `horizon_passes` counter.
 - **Marks**: an amended sentence carries a brass underline and the tag "revised"; hover or
   tap opens a card: before (struck), now, because (evidence chips, `angle` and `lot` in
-  brass), footer "n references from the horizon". An added paragraph carries a brass rule
-  and the kicker "Added with your birth time". New blocks (rising text, house readings) are
-  tagged once at the block. The rail shows "n sentences revised · m added · date".
-- **The ledger** at the top after the pass: rising, Midheaven, day or night, what was
-  added, how many sentences in how many chapters, "Before · kept · compare any time", and
-  the toggle "Show what changed" (on for the first visit, remembered per browser). Folded
-  into the method strip afterwards, where the date and the compare link stay for good.
-- Print carries the marks as a brass margin rule and the ledger in the method box.
+  brass). An added paragraph carries a brass rule and the kicker "Added with your birth
+  time". New blocks are tagged once. The rail shows "n sentences revised · m added · date".
+- **The ledger** at the top after the pass: rising, Midheaven, day or night, what was added,
+  sentences per chapter, "Before · kept · compare any time", the toggle "Show what changed"
+  (on at first visit, remembered per browser). Folded into the method strip afterwards.
 
 ### Gifting, two modes (Owner's answer 3)
 - **Generated by the giver.** The giver spends a credit from their own account, enters what
   they know (the time may be rough or unknown), reads the report, and invites the person to
   read it and claim it as theirs. On claim the recipient owns the profile and the report and
   is asked the three-way time question first: adding or correcting the time is the horizon
-  pass, free. A corrected date or place is a different sky and regenerates the report whole,
-  marked as such in the ledger. The giver keeps read access after the claim unless the
-  recipient removes it (default; pricing may revisit).
+  pass, free once. A corrected date or place is a different sky: a new report on a new
+  credit, never an edit. The giver keeps read access after the claim unless the recipient
+  removes it (default; pricing may revisit).
 - **Shared credit.** The giver passes an unspent credit; the recipient generates it
   themselves. First screen is the gift: the giver's message, two lines on what the report
   is, "only you enter your birth details". Then the same form with the three-way control
   and the free-later promise. Second button: "Save and come back with the time".
-- Both modes reuse the profile-claim mechanism the synastry invite already has.
 
 ## Out of scope
 
-- The gift purchase, credit kinds and pricing (MB-5, MB-6). Synastry with a blind chart.
+- The gift purchase, credit kinds and pricing (MB-5, MB-6), the credit gate on a second
+  time update and the pricing popup (MB-49). Synastry with a blind chart.
 - Rectification from life events, and any "most likely rising sign" guess.
 - Placidus (MB-28). A time-band Moon written as two signs.
 - Chart explorer redesign beyond removing the house ring; the R04 explorer is the base.
@@ -159,15 +157,16 @@ through its birth day by the real engine: https://claude.ai/artifact/GicHa2umwRm
 
 ## Screens
 
-All in the artifact: the birth-day sweep; the form with the three modes and the live
-readout; the claim page; the blind hero beside the passed hero; the blind explorer with the
-method strip; the ledger; chapter 04 with one revised sentence, one added paragraph and the
-revision card; the options side by side; the flow of states.
+All in the artifact: the birth-day sweep; the form with the three modes and the readout; the
+claim page; the blind hero beside the passed hero; the blind explorer and method strip; the
+ledger; chapter 04 with a revised sentence, an added paragraph and the revision card; the
+options side by side; the flow of states.
 
 ## Answered in the session
 
 1. **Blind means no houses.** Solar houses rejected: a guess wearing a house number.
-2. **The pass is free, no window.** The credit bought the person, not the words.
+2. **The first pass is free, no window.** A second time update, or any change of date or
+   place, costs a credit; nothing else regenerates a report.
 3. **The giver may enter everything.** Two gift modes: generated by the giver and claimed
    by the recipient, or an unspent credit shared for the recipient to generate themselves.
 
@@ -185,8 +184,10 @@ None. The giver's read access after a claim is a default for pricing to revisit.
    existing sections change only by quote-matched amendments with evidence, capped at
    three sentences and one paragraph each; the previous text is kept; the reader sees
    exactly what changed. Report status gains `revising` (edits R-3.3).
-4. **The pass is free and permanent** on any report whose horizon was missing, with no
-   time window and no re-charge.
+4. **One free time update per report, and nothing else changes a report.** The first
+   horizon pass is free with no window; a second consumes a credit; date or place changes
+   are a new report on a new credit; no other user regeneration exists. Credit gate and
+   pricing popup are built with pricing (MB-49).
 5. **The frame is honest so the prose can be confident.** The plate, the explorer and the
    method strip state what is not drawn; the report's sentences never apologise.
 6. **Gifting has two modes.** A giver may generate a report from their own account and
@@ -197,4 +198,5 @@ None. The giver's read access after a claim is a default for pricing to revisit.
 ## Mailbox rows raised
 
 - MB-48 (this session): timezone offset is today's, not the birth date's. Ships in this round.
+- MB-49 (this session, decided): the credit rules above, for the pricing session to build.
 - To raise at lock: verify the country hints against official sources (todo, launch).
