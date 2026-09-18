@@ -1,7 +1,10 @@
 import { LegalLayout, LegalSection } from "./LegalLayout";
+import { usePageTitle } from "@/lib/page-title";
 
 // MB-5 provisional: refund terms belong to the pricing session. MB-31: entity.
 export default function RefundsPage() {
+  usePageTitle("Refunds");
+
   return (
     <LegalLayout kicker="Legal" title="Refunds" updated="9 September 2026">
       <LegalSection title="Digital content, delivered at once">

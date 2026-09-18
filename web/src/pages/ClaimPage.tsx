@@ -13,6 +13,7 @@ import {
   type InvitePreview,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePageTitle } from "@/lib/page-title";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -21,6 +22,8 @@ function getToken(): string | null {
 }
 
 export default function ClaimPage() {
+  usePageTitle("Your invite");
+
   const [, navigate] = useLocation();
   const qc = useQueryClient();
   const { isLoaded, isSignedIn } = useAuth();

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGetReportStatus, getGetReportStatusQueryKey } from "@workspace/api-client-react";
+import { usePageTitle } from "@/lib/page-title";
 
 const STEPS = [
   {
@@ -127,6 +128,8 @@ function SpinningWheel({ progress }: { progress: number }) {
 }
 
 export default function GenerationPage() {
+  usePageTitle("Generating your report");
+
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const hasNavigated = useRef(false);

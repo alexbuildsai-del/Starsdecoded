@@ -86,7 +86,7 @@
 }
 
 /* ============================================================
-   ASTRA DESIGN SYSTEM — Dark editorial aesthetic
+   STARS DECODED DESIGN SYSTEM — Dark editorial aesthetic
    bg: #0D1117  primary: indigo-400  accent: violet-400
    ============================================================ */
 
@@ -97,7 +97,7 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Dark only — Astra is dark-theme exclusive */
+  /* Dark only — Stars Decoded is dark-theme exclusive */
   --background: 216 28% 7%;          /* #0D1117 */
   --foreground: 220 15% 92%;         /* near-white */
   --border: 220 12% 18%;             /* subtle border */
@@ -255,7 +255,7 @@
   }
 }
 
-/* Astra custom utilities */
+/* Stars Decoded custom utilities */
 @layer utilities {
   .font-display { font-family: 'Newsreader', Georgia, serif; }
   .font-label { font-family: 'Space Grotesk', ui-monospace, sans-serif; }

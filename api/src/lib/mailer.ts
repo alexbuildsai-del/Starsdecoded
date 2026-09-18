@@ -13,7 +13,7 @@ function getResendCredentials(): { apiKey: string; fromEmail: string } {
 
   return {
     apiKey,
-    fromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "Astra <noreply@astra.app>",
+    fromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "Stars Decoded <noreply@starsdecoded.com>",
   };
 }
 
@@ -44,8 +44,8 @@ export async function sendInviteEmail(opts: InviteEmailOptions): Promise<boolean
 
   const from = inviterName ?? "Someone";
   const subject = relationshipName
-    ? `${from} created a compatibility report for you on Astra`
-    : `${from} shared an astrology profile with you on Astra`;
+    ? `${from} created a compatibility report for you on Stars Decoded`
+    : `${from} shared an astrology profile with you on Stars Decoded`;
 
   const htmlBody = buildInviteHtml({ inviterName, profileName, relationshipName, claimUrl });
   const textBody = buildInviteText({ inviterName, profileName, claimUrl });
@@ -79,14 +79,14 @@ function buildInviteText(opts: Pick<InviteEmailOptions, "inviterName" | "profile
   const { inviterName, profileName, claimUrl } = opts;
   const from = inviterName ?? "A friend";
   return [
-    `${from} created an Astra chart for ${profileName} and is inviting you to claim it.`,
+    `${from} created a Stars Decoded chart for ${profileName} and is inviting you to claim it.`,
     ``,
     `Open your report:`,
     claimUrl,
     ``,
     `This link is private to you and expires in 7 days.`,
     ``,
-    `— Astra`,
+    `— Stars Decoded`,
   ].join("\n");
 }
 
@@ -98,15 +98,15 @@ function buildInviteHtml(
   const safeName = escapeHtml(profileName);
   const safeUrl = encodeURI(claimUrl);
   const intro = relationshipName
-    ? `<strong>${from}</strong> created a compatibility report between you and ${safeName} on Astra.`
-    : `<strong>${from}</strong> created an Astra astrology chart for <strong>${safeName}</strong> and is inviting you to claim it.`;
+    ? `<strong>${from}</strong> created a compatibility report between you and ${safeName} on Stars Decoded.`
+    : `<strong>${from}</strong> created a Stars Decoded astrology chart for <strong>${safeName}</strong> and is inviting you to claim it.`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your Astra invite</title>
+  <title>Your Stars Decoded invite</title>
 </head>
 <body style="margin:0;padding:0;background:#0D1117;font-family:'Inter',Arial,sans-serif;color:#E6EDF3;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#0D1117;padding:40px 0;">
@@ -116,7 +116,7 @@ function buildInviteHtml(
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#5B6CF6 0%,#7C4DFF 100%);padding:32px 40px;text-align:center;">
-              <span style="font-size:28px;font-weight:300;letter-spacing:0.05em;color:#fff;font-family:Georgia,serif;">✦ Astra</span>
+              <span style="font-size:28px;font-weight:300;letter-spacing:0.05em;color:#fff;font-family:Georgia,serif;">✦ Stars Decoded</span>
             </td>
           </tr>
           <!-- Body -->
@@ -130,7 +130,7 @@ function buildInviteHtml(
                 <tr>
                   <td style="background:linear-gradient(135deg,#5B6CF6 0%,#7C4DFF 100%);border-radius:8px;padding:14px 32px;text-align:center;">
                     <a href="${safeUrl}" style="color:#fff;font-size:15px;font-weight:600;text-decoration:none;letter-spacing:0.02em;">
-                      Open my Astra report →
+                      Open my Stars Decoded report →
                     </a>
                   </td>
                 </tr>
@@ -144,7 +144,7 @@ function buildInviteHtml(
           <!-- Footer -->
           <tr>
             <td style="padding:20px 40px;border-top:1px solid #21262D;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#484F58;">© Astra — Natal Chart Reports</p>
+              <p style="margin:0;font-size:11px;color:#484F58;">© Stars Decoded — Natal Chart Reports</p>
             </td>
           </tr>
         </table>

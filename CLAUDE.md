@@ -1,9 +1,9 @@
 # CLAUDE.md — working on Stars Decoded
 
 Stars Decoded computes a natal chart locally (`astronomy-engine`, whole sign)
-and writes a 4,000 to 4,500 word psychological report with OpenAI, grounded in
-a written doctrine and a per-chart brief. One-time purchase. The report is the
-product. The app still says "Astra" in places; never add a new use of it.
+and writes a 4,000 to 4,500 word psychological report with OpenAI, grounded in a
+written doctrine and a per-chart brief. One-time purchase. The report is the
+product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 ## Working with the Owner
 

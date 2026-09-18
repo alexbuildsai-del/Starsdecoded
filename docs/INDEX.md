@@ -12,6 +12,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `docs/specs/locked/natal-report-ui.md` — Observatory; the wheel rebuilt on real degrees, citations as
   superscripts, no invented prose. Prototype: https://claude.ai/artifact/BRbKnKKjC78Xe3egLtanZz
 - `docs/specs/draft/report-cost-and-latency.md` — 27.1 cents a report measured; output 74%, half of it invisible. Levers re-ranked on the R02 baseline; L0 built.
+- `docs/specs/draft/logo.md` — one mark drawn from chart geometry (A · Horizon recommended) across nav, favicon, share card, email, PDF header, Clerk. Artifact: https://claude.ai/artifact/CooaGybDudirhVvN128dgj
 - `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 
 ## Rounds

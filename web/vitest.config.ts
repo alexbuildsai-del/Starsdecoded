@@ -1,8 +1,8 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
 
-// MB-41 provisional: the pure geometry module only. No jsdom, no
-// testing-library, no snapshots, and no component rendering in this round.
+// MB-41 provisional: pure modules only. No jsdom, no testing-library, no
+// snapshots, and no component rendering in this round.
 export default defineConfig({
   resolve: {
     alias: {
@@ -11,6 +11,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/components/chart/*.test.ts"],
+    include: ["src/components/chart/*.test.ts", "src/lib/*.test.ts"],
   },
 });

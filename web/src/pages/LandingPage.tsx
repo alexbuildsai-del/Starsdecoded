@@ -6,6 +6,7 @@ import { AccountMenu } from "@/components/AccountMenu";
 import { Show } from "@clerk/react";
 import { NatalWheel } from "@/components/chart/NatalWheel";
 import { DEMO_CHART_DATA } from "@/data/demoChart";
+import { Wordmark } from "@/components/Wordmark";
 
 const PLANET_SYMBOLS = ["☉", "☽", "☿", "♀", "♂", "♃", "♄", "⛢", "♆", "♇"];
 
@@ -88,7 +89,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="font-display text-lg font-semibold tracking-tight gradient-text">Astra</span>
+          <Wordmark className="font-semibold tracking-tight" />
           <div className="flex items-center gap-2">
             <Show when="signed-in">
               <Button
@@ -285,7 +286,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border/40 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="font-display text-lg gradient-text">Astra</span>
+          <Wordmark />
           <nav className="flex items-center gap-4" aria-label="Legal">
             {LEGAL_LINKS.map((l) => (
               <Link
@@ -298,7 +299,7 @@ export default function LandingPage() {
             ))}
           </nav>
           <p className="text-muted-foreground text-sm">
-            © {new Date().getFullYear()} Astra. Powered by astronomy & AI.
+            © {new Date().getFullYear()} Stars Decoded. Powered by astronomy & AI.
           </p>
         </div>
       </footer>

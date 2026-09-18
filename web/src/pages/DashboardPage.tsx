@@ -34,6 +34,8 @@ import {
   type CreditCounts,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Wordmark } from "@/components/Wordmark";
+import { usePageTitle } from "@/lib/page-title";
 
 function CreditBadge({ available }: { available: number }) {
   if (available > 0) {
@@ -567,6 +569,8 @@ function SynastryComposer({ profiles }: { profiles: ProfileSummary[] }) {
 // ─── Main page ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  usePageTitle("Dashboard");
+
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
@@ -689,7 +693,7 @@ export default function DashboardPage() {
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="font-display text-lg gradient-text">Astra</span>
+          <Wordmark />
           <div className="flex items-center gap-2">
             <Button
               onClick={() => navigate("/chart")}

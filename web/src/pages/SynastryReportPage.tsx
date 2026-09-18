@@ -10,6 +10,7 @@ import {
   getGetSynastryReportQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePageTitle, reportFileTitle } from "@/lib/page-title";
 
 const RELATIONSHIP_TYPE_LABEL: Record<string, string> = {
   romantic: "Romantic",
@@ -105,6 +106,16 @@ export default function SynastryReportPage() {
   }, [reportQ.data?.status, qc, id, reportParams]);
 
   const data = reportQ.data as any;
+
+  const nameA: string | undefined = data?.participants?.[0]?.name;
+  const nameB: string | undefined = data?.participants?.[1]?.name;
+  const named = Boolean(nameA && nameB);
+  // As on the natal report, a complete report's title is the PDF filename.
+  usePageTitle(
+    named ? reportFileTitle("Synastry Report", nameA!, nameB!) : "Synastry Report",
+    { raw: named },
+  );
+
   const [inviteTarget, setInviteTarget] = useState<{
     profileId: string;
     profileName: string;

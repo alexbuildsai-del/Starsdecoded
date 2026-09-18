@@ -14,8 +14,12 @@ import {
   getListProfilesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Wordmark } from "@/components/Wordmark";
+import { usePageTitle } from "@/lib/page-title";
 
 export default function MyPeoplePage() {
+  usePageTitle("My people");
+
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
@@ -88,7 +92,7 @@ export default function MyPeoplePage() {
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="font-display text-lg gradient-text">Astra</span>
+            <Wordmark />
           </button>
           <AccountMenu />
         </div>

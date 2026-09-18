@@ -1,6 +1,6 @@
 # Starsdecoded
 
-Astra — natal chart and synastry reports. Birth data in, accurate planetary
+Stars Decoded — natal chart and synastry reports. Birth data in, accurate planetary
 positions computed locally, AI-written psychological interpretation out.
 
 This repository is the source of truth. It was ported off Replit; see

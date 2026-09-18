@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-const COOKIE_NAME = "astra_session_id";
+const COOKIE_NAME = "sd_session_id";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 // The web app and this API are deployed to different origins (Vercel and

@@ -1,8 +1,11 @@
 import { LegalLayout, LegalSection } from "./LegalLayout";
+import { usePageTitle } from "@/lib/page-title";
 
 // MB-31 and MB-33 provisional: entity, region and retention are placeholders
 // until the Owner fills them in.
 export default function PrivacyPage() {
+  usePageTitle("Privacy");
+
   return (
     <LegalLayout kicker="Legal" title="Privacy policy" updated="9 September 2026">
       <LegalSection title="Who we are">
