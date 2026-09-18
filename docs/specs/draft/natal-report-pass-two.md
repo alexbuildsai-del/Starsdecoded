@@ -1,8 +1,8 @@
 # Natal report, pass two
 
-Ideation 2026-09-18 with the Owner from the Notion page "Review 18 Sept" (sixteen notes),
-two passes, eighteen Owner notes on the first. Artifact, the app's own `NatalWheel`
-rendered for the Owner's chart plus real text from the Owner's report:
+Ideation 2026-09-18 with the Owner from the Notion page "Review 18 Sept", three passes
+(eighteen Owner notes on the first, seven on the second, all folded in). Artifact, the app's
+own `NatalWheel` rendered for the Owner's chart plus real text from the Owner's report:
 https://claude.ai/artifact/5Er5qfQVMn2DYkuyGGdPJs. Status: **draft**. Builds on
 `docs/specs/locked/natal-report-ui.md` and supersedes three of its lines (chapter accent,
 house-card copy source, chapter list).
@@ -16,8 +16,8 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
 
 ### The chart explorer (notes 1, 2, 4, 6)
 - The wheel is unchanged from R03. The 12-card `HouseGrid` is removed; the print table stays.
-- The explorer is the first screen of chapter 02: `min-height: 100svh`, wheel and one card
-  vertically centred. Below 900 px they stack, wheel first.
+- The explorer is the first block of chapter 02, in the normal flow: nothing is pinned to the
+  viewport and the parallax is untouched. Below 900 px wheel and card stack, wheel first.
 - Default: house 1 lit, card on its **front**, hint line "Tap a house on the wheel · tap the
   card to read" above it; the hint hides after the first tap and stays hidden per browser.
 - Selecting a house always shows its front; the card flips only on its own tap (replaces the
@@ -25,23 +25,25 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
 - One fixed card height tied to the wheel's rendered height; the back scrolls inside. Same
   `HouseCard` component everywhere.
 - Front: kicker stays "4th house · Virgo". Occupants: planet renders; North Node, South Node
-  and Chiron as drawn points; the 1st house always shows the Ascendant marker with its degree.
-  A house with no planet shows "Quiet house" and "Influenced by {ruler}, ruler of {sign}".
+  and Chiron as drawn points; the Ascendant in the 1st and the Midheaven in its whole-sign
+  house as open brass markers with their degree. **A house is quiet only when no planet, node,
+  Chiron or angle is placed in it**; then it shows "Quiet house" and "Influenced by {ruler},
+  ruler of {sign}". The 1st house is therefore never quiet.
 - Back: the triad text leads where one exists (1st house: `triad.rising`; the Sun's house:
   `triad.sun`; the Moon's house: `triad.moon`), with its citations rendered as in chapters.
   Then the house reading (below). Footer: "Read chapter · {title} →" for houses 1 and 3 →
-  Mind, 2 → Money, 4 → Family, 5 and 11 → Your Path, 7 → Relationships, 10 → Career; else the
-  quadrant alone.
-- `personalPlanets` and `angleMeanings` stop feeding the card; they stay for the print table.
+  Mind, 2 → Money, 4 → Family, 5 and 11 → Your Path, 7 → Relationships, 10 → Career.
 
 ### House readings, generated (note 3)
 - New section `houses`: one call in the parallel wave, `{ houses: [{ house: 1..12, reading }] }`,
-  40 to 70 words each, no claims (the card is its own evidence).
+  40 to 70 words each, no claims (the card is its own evidence). `personalPlanets` and
+  `angleMeanings` stop feeding the card and stay for the print table.
 - Prompt: the full style contract applies. Planets in the house first and what their
   **combination** does, in one move; at most one sentence for the sharpest aspect among
-  them; a quiet house reads through its ruler's sign and house; nodes and Chiron named as
-  points; ends on a "Behaviour check:" sentence. May name planets; names a sign only for a
-  quiet house. Told which houses already carry a triad text, and does not repeat it there.
+  them; a house holding only points or an angle names them and reads through its ruler; a
+  quiet house reads through its ruler's sign and house; ends on a "Behaviour check:" sentence.
+  May name planets; names a sign only for a quiet house. Told which houses already carry a
+  triad text, and does not repeat it there.
 - `validate`: a reading names only bodies that sit in the house or rule it.
 
 ### Natal Chart Deepdive and Overview (notes 5, 7)
@@ -80,18 +82,22 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
   `#D9668A`, 06 plum `#B565A7`, then 07 to 11 repeat 01 to 05. Element hues stay reserved
   for the balance bars; brass for chart geometry.
 
-### The closing (note 14)
+### The closing (note 14): Dawn
 - `focus.ts`: each group trims to three bullets; `closing` is the chapter's centre.
-- "The sky settles": as chapter 11 enters, the `ReportSky` stars stop drifting and move into
-  a ring with the Sun, the Moon and the Ascendant at their true angles; the closing paragraph
-  then appears in upright Newsreader, no italics; the three groups follow as cards with their
-  checklists. Two moves, one easing (§9). Reduced motion: the ring is static, text visible.
+- Scroll-linked, like the parallax: as chapter 11 enters, the ground warms from near-black
+  toward deep indigo above a brass horizon line and the Sun render rises with the scroll until
+  its centre sits on the horizon; the closing paragraph reads above it in upright Newsreader,
+  no italics; the three groups follow as cards with their checklists; the starfield keeps
+  drifting. Progress is a CSS variable set from the section's viewport position, no timers.
+  Reduced motion: the final frame. "The sky settles" and "The wheel turns" stay on record.
 
 ### Hero (notes 15, 16)
-- East on the left (chart convention). Labels "EAST · RISING" with the small line "drawn facing
-  south, so east is on your left", and "WEST · SETTING" with the Descendant degree.
+- East on the left (chart convention). Labels "EAST · RISING" with "drawn facing south, so east
+  is on your left", and "WEST · SETTING" with the Descendant degree.
 - The Moon render is unchanged. The Sun is the Owner's render at about 120 px; its glow is one
-  radial gradient (four stops, transparent at about 1.6 Sun diameters), nothing clips it.
+  radial gradient (four stops, transparent at about 1.6 Sun diameters) painted on the plate's
+  sky layer, not inside the SVG: it runs under the transparent top bar and off the plate's
+  edges, and fades with the plate into chapter 01. No bar, edge or chapter ever clips it.
   Asset: a true-alpha 512 px export is needed; the supplied file has a checkerboard baked in.
 - Name: ≤ 14 characters at 64 px; ≤ 26 at 48 px; longer wraps to two balanced lines at 40 px.
   The halo under the name is an ellipse fitted to the text box, a radial gradient from 85%
@@ -99,10 +105,12 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
   ring on its spoke with a leader; bodies never move.
 
 ### While it writes (note 5)
-- The page opens as soon as the chart exists: hero and explorer live, chapters streaming in.
+- Grace period of at most three seconds: one "Computing your chart" moment while geocoding
+  and the chart run, never a fixed delay. The instant the chart is stored the report opens with
+  the hero and explorer live and chapters streaming in as each call finishes.
   `GET /api/reports/:id/status` returns per-section state and the interpretation so far; the
-  page store writes each section as it lands; the chapter rail shows chapters still writing.
-  No change to the words, no lab run.
+  page store writes each section as it lands; the chapter rail marks chapters still writing.
+  No change to the words, no lab run. "Tonight's sky" stays on the idea list.
 
 ### Removals (note 14, 16)
 - `BirthLocationHorizon` and the trailing "Saved to your account · Export Report as PDF" block
@@ -122,19 +130,20 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
 ## Out of scope
 
 - Synastry (MB-9); "You connect best with" is a note.
-- A real Chiron ephemeris; the Placidus view (MB-28); light mode; the landing page.
-- A "tonight's sky" waiting plate (kept as a later keepsake idea).
+- A real Chiron ephemeris; the Placidus view (MB-28); light mode; the landing page; the
+  "tonight's sky" waiting plate (kept as a later idea).
 
 ## Acceptance criteria
 
-1. Chapter 02 renders no `HouseGrid`; at 1280×800 wheel and card are fully visible without
-   scrolling; the 4th house back of the Owner's chart scrolls inside the card at fixed height.
+1. Chapter 02 renders no `HouseGrid` and nothing in it is position-fixed or sticky; the 4th
+   house back of the Owner's chart scrolls inside the card at fixed height.
 2. On load house 1 is lit, the card shows its front with the Ascendant marker and degree and
    the hint; after one tap the hint is gone and stays gone on reload.
 3. Selecting house 4 after flipping house 1 shows house 4's front.
-4. On the `marie-curie` fixture every front lists its occupants including any of ☊ ☋ ⚷; every
-   quiet house reads "Quiet house · Influenced by {ruler}, ruler of {sign}"; no card reads
-   "No planet sits here"; the kicker is exactly "{Nth} house · {Sign}".
+4. On the `marie-curie` fixture every front lists its occupants including any of ☊ ☋ ⚷, the
+   Ascendant on the 1st and the Midheaven on its house; only a house with none of these reads
+   "Quiet house · Influenced by {ruler}, ruler of {sign}"; no card reads "No planet sits
+   here"; the kicker is exactly "{Nth} house · {Sign}".
 5. The 1st house back opens with `triad.rising` and its superscripts; the Sun's and the Moon's
    houses open with `triad.sun` and `triad.moon`; no "Core Triad" chapter exists.
 6. `interpretation.houses` has twelve readings of 40 to 70 words, each ending on a
@@ -148,12 +157,14 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
 10. Prose chapters show actions in the rail at ≥ 960 px; Superpowers and Paradox cards show
     theirs inside, open; "A way through" labels every invitation.
 11. `chapterAccent(i)` ignores the chart; no two adjacent chapters share a hue.
-12. Chapter 11: the stars gather into a ring with three bodies at true angles, then the closing
-    appears upright; under reduced motion the ring and text are static and present.
-13. Hero: the Sun is the supplied render with alpha, the Moon unchanged; a 30-character name
-    wraps to two lines with the halo fitted; no label crosses the name plate.
-14. With the API slowed, the page shows the hero and explorer before any chapter, and chapters
-    appear one by one; the rail marks the ones still writing.
+12. Chapter 11: scrolling the chapter into view raises the Sun to the horizon and warms the
+    ground; the closing is upright; under reduced motion the final frame renders at once.
+13. Hero: the Sun is the supplied render with alpha, the Moon unchanged; the glow is visible
+    under the top bar and reaches the plate edges uncut; a 30-character name wraps to two lines
+    with the halo fitted; no label crosses the name plate.
+14. With the API slowed, the report opens within three seconds of the chart being stored, shows
+    the hero and explorer before any chapter, and chapters appear one by one; the rail marks
+    the ones still writing.
 15. `BirthLocationHorizon` and the trailing CTA are gone; chapter 10 "Your Path" exists.
 16. The report lab run on the five fixtures is pasted in the round report; total words within
     3,500 to 5,500; cost under 35 cents.
@@ -161,17 +172,14 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
 
 ## Screens
 
-All in the artifact: the explorer with the real wheel; 1st and 4th house backs with the
-triad text; three sample readings; the Deepdive screen; the evidence card before and after
-`angle`; Career with the rail and workbook; the Superpowers box with its open checklist; the
-paradox card with "A way through"; the label options; eleven accent chips; the coda animation
-itself; the hero for Alex and for Maria Salomea Skłodowska-Curie; the streaming page.
+All in the artifact: the explorer with the real wheel; house backs with the triad text; sample
+readings; the Deepdive screen; the evidence card before and after `angle`; Career with the rail
+and workbook; the Superpowers box; the paradox card; accent chips; the Dawn mechanism itself;
+the hero for Alex and for Maria Salomea Skłodowska-Curie; the streaming page.
 
-## Open questions (each with a default)
+## Open questions
 
-1. **Where actions live.** Beside prose, inside a card; or everything inline. Default: the rule.
-2. **The closing.** The sky settles; Dawn; The wheel turns. Default: the sky settles.
-3. **While it writes.** Progressive, chart first; or a tonight's-sky plate. Default: progressive.
+None; the Owner answered the second pass's three on 2026-09-18 (aside rule, Dawn, progressive).
 
 ## Decisions to record
 
@@ -186,5 +194,7 @@ itself; the hero for Alex and for Maria Salomea Skłodowska-Curie; the streaming
 5. **Asides: beside prose, inside a card.** Checklist means do; accent prose means sit with.
    Ticks are saved on the report as the reader's workbook.
 6. **East on the left.** The hero ring is a chart and keeps the chart convention.
-7. **The report opens when the chart exists.** Chapters stream in; the chart is the wait.
+7. **The report opens when the chart exists**, after at most three seconds. Chapters stream in.
+9. **The closing is Dawn.** Scroll-linked sunrise to a brass horizon, closing in upright serif.
+10. **An angle is an occupant.** A house is quiet only with no planet, node, Chiron or angle.
 8. **Word range 3,500 to 5,500.** Supersedes the 4,000 to 4,500 target of 2026-09-17.
