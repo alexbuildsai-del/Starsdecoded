@@ -2,7 +2,7 @@
 
 Ideation 2026-09-18 with the Owner, from the gift-buyer risk ("a gift buyer almost never
 knows their mother-in-law's birth time"). Artifact, built on the Marie Curie fixture swept
-through its birth day by the real engine: https://claude.ai/artifact/GicHa2umwRm5rQDuWVLp9p. Status: **draft**. Builds on
+through its birth day by the real engine: https://claude.ai/artifact/GicHa2umwRm5rQDuWVLp9p. Status: **locked 2026-09-18**. Builds on
 `natal-report-pass-two.md` (R04, in flight) and depends on the R04 section registry.
 
 ## The finding that frames it
