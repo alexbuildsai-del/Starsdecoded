@@ -111,9 +111,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-09-18)
 
-1. `docs/specs/locked/natal-report-pass-two.md` locked from the 18 Sept review:
-   explorer, generated house cards, rail and workbook, Your Path, dawn closing,
-   progressive loading, word range 3,500 to 5,500. Next: `/plan` it (ADR-20 to 28).
+1. R04 is building `docs/rounds/R04-plan.md` (approved 2026-09-18) from
+   `docs/specs/locked/natal-report-pass-two.md`: explorer, generated house cards,
+   workbook, Your Path, dawn, streaming, 3,500 to 5,500 words (ADR-20 to 28).
 2. Staging landing (`docs/specs/draft/staging-environment.md`): `production` sits
    at the pre-staging `main`; the Owner works the runbook, switches the
    dashboards, then the first Promote ships it.

@@ -1,11 +1,11 @@
-# Index — regenerated at the end of every round (last: lock natal-report-pass-two, 2026-09-18)
+# Index — regenerated at the end of every round (last: plan R04, 2026-09-18)
 
 Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by pointer.
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
 - Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (28 rows; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation)
-- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 decided by ADR-28; MB-29 and MB-40 to MB-42 done; MB-13 owes only opengraph.jpg)
+- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 decided by ADR-28, built in R04; MB-43 to MB-47 raised by the R04 plan; twenty-one rows at 3 rounds open)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
 ## Specs
@@ -22,6 +22,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `docs/rounds/R02-plan.md` · `R02-report.md` — usage telemetry (L0). Baseline measured: 27.1 cents a report, reasoning tokens zero. MB-10 closed.
 - `docs/rounds/R03-plan.md` · `R03-report.md` — Observatory tokens, the wheel drawn from real degrees, citations as
   superscripts, house cards from generated strings, hero and chapter shell. Owner acceptance pending.
+- `docs/rounds/R04-plan.md` — natal-report-pass-two: contracts first, twelve parallel builders, one assembly card;
+  brain, schema and openapi change, so the lab, `db:bootstrap` and codegen are in the gate. Approved, building.
 
 ## QA
 - `docs/qa/` — none yet.
