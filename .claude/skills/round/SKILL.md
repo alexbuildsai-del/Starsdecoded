@@ -8,9 +8,10 @@ take the newest plan in `docs/rounds/` that has no report.
 
 Spawn the `orchestrator` agent on that plan: Agent tool, `subagent_type`
 `orchestrator`. If that type is not registered in this session, spawn
-`general-purpose` on Opus with the full text of `.claude/agents/orchestrator.md`
-as its brief, and tell it to spawn its builders the same way from
-`.claude/agents/builder.md` when the `builder` type is missing. It branches,
+`general-purpose` on Fable, the top model, with the full text of
+`.claude/agents/orchestrator.md` as its brief, and tell it to spawn its
+builders on Opus the same way from `.claude/agents/builder.md` when the
+`builder` type is missing. The orchestrator never runs below the top model. It branches,
 dispatches every builder in a parallel group in one message and the groups
 in order, runs the gate, writes the round report, refreshes INDEX.md and the
 CLAUDE.md current-focus block, updates the Notion Mailbox, and opens the pull
