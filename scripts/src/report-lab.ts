@@ -39,21 +39,13 @@ interface ChartFixture {
 }
 
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
-import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
+import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, hasClaims, sectionById, validateClaims } from "../../api/src/prompts/index.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
 /** Cost comes from the engine's own table, so the lab cannot disagree with the bill. */
 import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
 const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
-/**
- * The product target (Owner, 2026-09-17). The per-section `wordTarget` bands in
- * the registry still sum to 3,500-4,000 and the prompts still name those
- * numbers, so the engine writes a little under this: 3,844 to 4,087 across the
- * five fixtures on 2026-09-16. A report reading OUT OF RANGE just below 4,000
- * is that known gap, not a regression. Closing it means raising the bands and
- * the prompt text with them, which is USER-FACING and needs its own lab run.
- * Decide with MB-38.
- */
-const REPORT_TOTAL: [number, number] = [4000, 4500];
+/** The product target (Owner, 2026-09-18). The registry's bands sum inside it. */
+const REPORT_TOTAL: [number, number] = [3500, 5500];
 
 /**
  * Style-contract rule 1: the report must never explain its own method. These
@@ -89,6 +81,53 @@ const METHOD_TALK = [
   "did you know",
   "interesting quirk",
 ];
+
+/**
+ * Style-contract rule 12: a why clause says what the action trains, and a
+ * sentence that trains something has a verb in it. The list plus the common
+ * inflections is deliberately generous, because a why wrongly flagged costs a
+ * human a look and a why wrongly passed costs nothing but this check.
+ */
+const VERBS = new Set([
+  "is", "are", "was", "were", "be", "been", "am", "has", "have", "had", "do", "does", "did",
+  "can", "will", "would", "should", "must", "let", "go", "get", "keep", "make", "take", "give",
+  "know", "see", "say", "tell", "ask", "want", "need", "find", "feel", "come", "put", "hold",
+  "build", "run", "name", "notice", "choose", "leave", "move", "try", "turn", "train", "spend",
+  "cost", "work", "stay", "stop", "start", "show", "read", "write", "meet", "set", "cut", "think",
+]);
+
+function hasVerb(clause: string): boolean {
+  const tokens = clause.toLowerCase().match(/[a-z']+/g) ?? [];
+  return tokens.some((t) => VERBS.has(t) || (t.length > 3 && /(?:s|ing|ed)$/.test(t)));
+}
+
+/** Every `why` a section carries, wherever it sits, with the path that found it. */
+function whyClauses(value: unknown, path: string, out: Array<{ path: string; why: string }>): void {
+  if (Array.isArray(value)) {
+    value.forEach((v, i) => whyClauses(v, `${path}.${i}`, out));
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (k === "claims") continue;
+    if (k === "why" && typeof v === "string") out.push({ path, why: v });
+    else whyClauses(v, path ? `${path}.${k}` : k, out);
+  }
+}
+
+/** The house readings answer to their own shape: 40 to 70 words, ending on a behaviour check. */
+function houseNotes(value: unknown): string[] {
+  const readings = (value as { houses?: Array<{ house: number; reading: string }> } | undefined)?.houses;
+  if (!Array.isArray(readings)) return [];
+  const notes: string[] = [];
+  if (readings.length !== 12) notes.push(`${readings.length} readings, not 12`);
+  for (const r of readings) {
+    const w = words(r.reading ?? "");
+    if (w < 40 || w > 70) notes.push(`house ${r.house}: ${w} words`);
+    if (!/Behaviour check:/.test(r.reading ?? "")) notes.push(`house ${r.house}: no behaviour check`);
+  }
+  return notes;
+}
 
 /** Style-contract rule 8: banned punctuation and formatting. */
 const BANNED_CHARS: Array<[string, RegExp]> = [
@@ -132,15 +171,26 @@ interface SectionRow {
   bannedChars: string[];
   /** Validated claims / total; problems when re-validation fails. */
   claims: { count: number; problems: string[] };
+  /** A section the run has not written yet. Everything else on the row is empty. */
+  missing: boolean;
+  whyNotes: string[];
+  houseNotes: string[];
 }
 
 function measure(interpretation: Record<string, unknown>, chart?: NatalChartData): SectionRow[] {
   return SECTION_IDS.map((section) => {
     const value = interpretation[section];
+    const missing = value === undefined || value === null;
+    const spec = sectionById(section);
+    // A section whose schema has no claims is its own evidence, so an empty
+    // claims list there is the contract, not a fault.
+    const wantsClaims = spec ? hasClaims(spec) : true;
     const stored = (value as { claims?: Array<{ quote: string; evidence: Array<{ ref: unknown }> }> } | undefined)?.claims ?? [];
     const asModel = stored.map((c) => ({ quote: c.quote, evidence: c.evidence.map((e) => e.ref) }));
-    const problems = chart ? validateClaims(value, asModel as never, chart) : [];
-    if (stored.length < 3) problems.push(`only ${stored.length} claims`);
+    const problems = chart && !missing ? validateClaims(value, asModel as never, chart) : [];
+    if (wantsClaims && !missing && stored.length < 3) problems.push(`only ${stored.length} claims`);
+    const whys: Array<{ path: string; why: string }> = [];
+    whyClauses(value, "", whys);
     const prose = proseOf(value);
     const w = words(prose);
     const target = WORD_TARGETS[section] ?? null;
@@ -154,6 +204,9 @@ function measure(interpretation: Record<string, unknown>, chart?: NatalChartData
       methodTalk: METHOD_TALK.filter((p) => lower.includes(p)),
       bannedChars: BANNED_CHARS.filter(([, re]) => re.test(prose)).map(([n]) => n),
       claims: { count: stored.length, problems },
+      missing,
+      whyNotes: whys.filter((w) => !hasVerb(w.why)).map((w) => `${w.path || "why"}: "${w.why}"`),
+      houseNotes: houseNotes(value),
     };
   });
 }
@@ -211,13 +264,16 @@ function renderTable(rows: SectionRow[]): string {
     r.section,
     String(r.words),
     r.target ? `${r.target[0]}-${r.target[1]}` : "-",
-    r.inRange === null ? "-" : r.inRange ? "yes" : "NO",
-    r.structured ? "yes" : "RAW",
-    r.claims.problems.length ? `${r.claims.count} INVALID` : String(r.claims.count),
+    r.missing ? "-" : r.inRange === null ? "-" : r.inRange ? "yes" : "NO",
+    r.missing ? "-" : r.structured ? "yes" : "RAW",
+    r.missing ? "-" : r.claims.problems.length ? `${r.claims.count} INVALID` : String(r.claims.count),
     [
+      ...(r.missing ? ["not written"] : []),
       ...r.methodTalk.map((p) => `method:"${p}"`),
       ...r.bannedChars.map((c) => `char:${c}`),
       ...r.claims.problems.slice(0, 2).map((p) => `claim:${p}`),
+      ...r.whyNotes.slice(0, 2).map((w) => `why without a verb ${w}`),
+      ...r.houseNotes.slice(0, 3).map((h) => `house:${h}`),
     ].join(" ") || "-",
   ]);
   return table(head, body);
