@@ -171,7 +171,7 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
     `ASPECTS (strongest first):`,
     ...aspectLines,
     ``,
-    `DISTRIBUTION: Fire ${el.fire}, Earth ${el.earth}, Air ${el.air}, Water ${el.water}. Cardinal ${mo.cardinal}, Fixed ${mo.fixed}, Mutable ${mo.mutable}. Dominant element ${chart.dominance.dominantElement}. Chart shape ${chart.chartShape ?? "unclassified"}${shapeKey ? ` (see ${shapeKey})` : ""}.`,
+    `DISTRIBUTION: Fire ${el.fire}, Earth ${el.earth}, Air ${el.air}, Water ${el.water}. Cardinal ${mo.cardinal}, Fixed ${mo.fixed}, Mutable ${mo.mutable}. Dominant element ${chart.dominance.dominantElement}. Dominant modality ${chart.dominance.dominantModality}. Chart shape ${chart.chartShape ?? "unclassified"}${shapeKey ? ` (see ${shapeKey})` : ""}.`,
     stelliums.length ? `STELLIUMS: ${stelliums.join("; ")}.` : `STELLIUMS: none.`,
     `EMPTY HOUSES: ${emptyHouses.length ? emptyHouses.map(ordinal).join(", ") : "none"}. Read each through its ruler above.`,
   ];

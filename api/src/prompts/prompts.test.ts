@@ -60,6 +60,7 @@ test("brief: Marie Curie brief carries sect, chart ruler, rulers, lots and stell
   assert.match(b.text, /10th \(Libra\) ruled by Venus, which sits in Scorpio in the 11th, detriment/);
   assert.match(b.text, /LOTS: Fortune .* Spirit /);
   assert.ok(b.stelliums.some((s) => s.startsWith("Scorpio:")), `stelliums: ${b.stelliums}`);
+  assert.match(b.text, /Dominant element water\. Dominant modality fixed\./);
   assert.ok(b.emptyHouses.includes(8));
   assert.equal(Object.keys(b.personalPlanets).length, BODIES.length);
   assert.ok(b.angleMeanings.ascendant.firstImpression.startsWith("Capricorn rising"));
