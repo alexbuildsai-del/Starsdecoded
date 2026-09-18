@@ -260,9 +260,6 @@ export function isCurrentInterpretation(v: unknown): v is Interpretation {
     && (v as Interpretation).meta?.promptVersion === CURRENT_PROMPT_VERSION;
 }
 
-/** @deprecated Use isCurrentInterpretation. Removed with the report page assembly. */
-export const isV3Interpretation = isCurrentInterpretation;
-
 export const PLANET_LABELS: Record<string, string> = {
   sun: "Sun",
   moon: "Moon",
