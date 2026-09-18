@@ -96,7 +96,7 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 - **R-4.3** Every section's output is enforced by a zod schema through structured outputs. `Section | string` types are a bug, not a fallback.
 - **R-4.4** No prompt or engine change ships without the report lab run against the committed chart fixtures under `fixtures/charts/`, with the measurement pasted in the round report.
 - **R-4.5** A second report for the same profile skips computation. Cache on the profile, never on the request.
-- **R-4.6** The horizon is a status, not a guess. Birth time is a window the engine sweeps; without a horizon that holds, the chart carries no angle, house, sect or lot, the report withholds them and its frame says so. Adding the time later is a pass that amends sentences by quote match, never a regeneration (ADR-29 to ADR-34).
+- **R-4.6** The horizon is a status, not a guess. Birth time is a window the engine sweeps; without a horizon that holds, the chart carries no angle, house, sect or lot, the report withholds them and its frame says so. Adding the time later is a pass that amends sentences by quote match, never a regeneration (ADR-33 to ADR-38).
 
 ## 5 · Interpretation rules
 

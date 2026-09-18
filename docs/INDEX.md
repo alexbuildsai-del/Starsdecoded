@@ -4,7 +4,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
-- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (34 rows; ADR-7 superseded by ADR-15, ADR-29 to ADR-34 from the unknown-birth-time lock)
+- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (38 rows; ADR-7 superseded by ADR-15, ADR-29 to ADR-32 from the logo lock, ADR-33 to ADR-38 from the unknown-birth-time lock)
 - Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-48 timezone offset ships with the birth-time round; MB-49 credit rules decided, built with pricing)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
