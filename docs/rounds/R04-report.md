@@ -38,23 +38,34 @@ Built 2026-09-18 on `claude/focused-feynman-bc4lhs` from `docs/rounds/R04-plan.m
 
 ## Deviations
 
-- No PATCH route test: nothing here can run a route that imports `db`, and that harness belongs to
-  no card. The merge and key rules are unit-tested on the web side instead (MB-48).
-- `NatalWheel` keeps its side-panel split only when given a panel. One line, needed because the
-  explorer lays the card out itself; the plan had marked that file untouched.
-- `demoChart.ts` gained the two angles `ChartData` now requires; it is unused and fabricated,
-  which R-3.1 forbids (MB-49). `EvidenceCard` needed no change: the chip already renders `k angle`.
+- No PATCH route test: nothing here can run a route that imports `db` (MB-48). `NatalWheel` keeps
+  its side-panel split only when given a panel. `demoChart.ts` gained the two angles `ChartData`
+  now requires; it is unused and fabricated (MB-49). `EvidenceCard` needed no change.
+- The first lab run failed day-angular and high-latitude: house readings named a planet from
+  another house. Fixed in #50 with a per-house whitelist in the prompt.
+- The bootstrap seeded a copy of every prompt default and the loader let the row win, so no
+  prompt change in code had reached staging since 16 Sept. The seed is gone; bootstrap step 6 clears
+  natal overrides on a `PROMPT_VERSION` bump (MB-50, done). Fixed in #50.
+- Owner review on staging, fixed in #50 (USER-FACING): Your Path explainer rewritten from the
+  Owner's nodes text; "You connect best with" names partner placements as the artifact showed;
+  the hero's glow and halo gradients end inside their boxes; below 900 px the ring, legend and
+  scroll cue stack, both horizon labels draw, the cue reads in brass.
 
 ## Gate
 
 `install --frozen-lockfile` · `typecheck` · `build:web` · `build:api` · unit tests (api 66/66, web
-33/33, db ok) · codegen leaves no diff. All green. **Report lab: pending** — the parent session runs
-it through the `Report lab` workflow, remote mode against staging, after merge, and pastes it in a
-follow-up commit, applying MB-46's lever if the run lands over 35 cents. **`db:bootstrap`:
-pending** — verified by the staging Railway deploy, which runs it at start. Neither ran here: this
-container has no `DATABASE_URL` and no `OPENAI_API_KEY`.
+33/33, db ok) · codegen leaves no diff · `db:bootstrap` verified by the staging deploy (smoke run 44,
+database probe ok). **Report lab**, remote against staging, five fixtures, run 35369377981 on
+`6b5a5c2` (branch `report-lab/r04b`): day-angular 5,054 words · 37.4 ¢ · retries foundation,
+overview, discoveries; high-latitude 5,101 · 30.2 ¢ · overview; marie-curie 5,388 · 28.2 ¢ · none;
+night-angular 5,091 · 28.7 ¢ · none; oprah-winfrey 5,122 · 30.7 ¢ · money. Mean 31.0 ¢, every total
+inside 3,500–5,500, `houses` one try on every chart, so MB-46's lever stays unused. Flags: house
+readings run 71–79 words on 3 of 12 per chart against the 70 cap, one semicolon in two charts, a
+why without a verb once per chart; bands for mind, money, family and houses sit above their
+maxima and superpowers below, the MB-38 pattern at the new range. First run 35347276407 failed
+two fixtures on the house validator and measured v4 prompt text (below); superseded.
 
 ## Mailbox
 
-MB-38 stays `decided` until the lab is pasted; MB-40 needed nothing; MB-13 annotated (the Sun
-ships as the keyed derivation). Added MB-48 and MB-49. MB-43 to 47 built at their defaults.
+MB-38 done (bands widened, lab pasted); MB-50 raised and done; MB-13 annotated (the Sun ships as
+the keyed derivation); MB-43 to 47 built at their defaults; MB-48 and MB-49 added.
