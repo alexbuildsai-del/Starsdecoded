@@ -23,6 +23,7 @@ const DignityEnum = z.enum(["domicile", "exaltation", "detriment", "fall", "pere
 const SectRoleEnum = z.enum([
   "sect_light", "benefic_of_sect", "benefic_out_of_sect", "malefic_of_sect", "malefic_out_of_sect",
 ]);
+const AngleEnum = z.enum(["ascendant", "midheaven"]);
 
 export const EvidenceRefSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("placement"), body: BodyEnum, sign: SignEnum, house: z.int() })
@@ -35,6 +36,8 @@ export const EvidenceRefSchema = z.discriminatedUnion("kind", [
     .describe("the Lot of Fortune or Spirit as the brief lists it"),
   z.object({ kind: z.literal("sect"), role: SectRoleEnum, body: BodyEnum })
     .describe("a sect role from the brief's SECT block and the body that holds it"),
+  z.object({ kind: z.literal("angle"), angle: AngleEnum, sign: SignEnum })
+    .describe("the Ascendant or the Midheaven and the sign it falls in, as the brief's ANGLES line gives it"),
 ]);
 export type EvidenceRef = z.infer<typeof EvidenceRefSchema>;
 
@@ -51,7 +54,7 @@ export interface StoredEvidence { ref: EvidenceRef; label: string }
 export interface StoredClaim { quote: string; evidence: StoredEvidence[] }
 
 /** Contract appended by code to every reader-facing prompt. Not overridable. */
-export const CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the chart brief: a placement (body, sign, house), an aspect (both bodies, type, orb as listed), a house ruler (house, ruler, ruler's sign and house, dignity as listed), a Lot (fortune or spirit, sign, house), or a sect role (role, body). Copy values exactly from the brief. Every reference is checked against the chart by code and the section is rejected if any does not match. Choose the claims that matter most: the sentences a reader would want to verify.`;
+export const CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the chart brief: a placement (body, sign, house), an aspect (both bodies, type, orb as listed), a house ruler (house, ruler, ruler's sign and house, dignity as listed), a Lot (fortune or spirit, sign, house), a sect role (role, body), or an angle (the ascendant or the midheaven, and its sign). Copy values exactly from the brief. Every reference is checked against the chart by code and the section is rejected if any does not match. Choose the claims that matter most: the sentences a reader would want to verify.`;
 
 /** Typographic variants the model swaps freely and a reader never notices. */
 function norm(s: string): string {
@@ -123,6 +126,11 @@ export function validateClaims(section: unknown, claims: Claim[], chart: NatalCh
           if (payload[e.role] !== e.body) errors.push(`${tag}: ${e.role} is ${payload[e.role]}, not ${e.body}`);
           break;
         }
+        case "angle": {
+          const actual = chart.angles[e.angle].sign.toLowerCase();
+          if (actual !== e.sign) errors.push(`${tag}: the ${e.angle} is in ${actual}, not ${e.sign}`);
+          break;
+        }
       }
     });
   });
@@ -135,6 +143,10 @@ const ROLE_LABEL: Record<z.infer<typeof SectRoleEnum>, string> = {
   benefic_out_of_sect: "the benefic out of sect",
   malefic_of_sect: "the malefic of sect",
   malefic_out_of_sect: "the malefic out of sect",
+};
+
+const ANGLE_LABEL: Record<z.infer<typeof AngleEnum>, string> = {
+  ascendant: "Ascendant", midheaven: "Midheaven",
 };
 
 const DIGNITY_LABEL: Record<Dignity, string> = {
@@ -157,6 +169,10 @@ export function labelEvidence(e: EvidenceRef, chart: NatalChartData): string {
       return `Lot of ${cap(e.lot)} in ${cap(e.sign)}, ${ordinal(e.house)} house`;
     case "sect":
       return `${BODY_LABELS[e.body as Body]} is ${ROLE_LABEL[e.role]}`;
+    case "angle": {
+      const a = chart.angles[e.angle];
+      return `${ANGLE_LABEL[e.angle]} · ${a.degree.toFixed(1)}° ${cap(e.sign)}`;
+    }
   }
 }
 
