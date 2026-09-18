@@ -1,11 +1,11 @@
-# Index — regenerated at the end of every round (last: plan R04, 2026-09-18)
+# Index — regenerated at the end of every round (last: R04, 2026-09-18)
 
 Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by pointer.
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
 - Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (28 rows; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation)
-- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 decided by ADR-28, built in R04; MB-43 to MB-47 raised by the R04 plan; twenty-one rows at 3 rounds open)
+- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 `decided`, built in R04, closes when the lab is pasted; MB-43 to 47 built at their defaults; MB-48, MB-49 raised by R04)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
 ## Specs
@@ -22,8 +22,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `docs/rounds/R02-plan.md` · `R02-report.md` — usage telemetry (L0). Baseline measured: 27.1 cents a report, reasoning tokens zero. MB-10 closed.
 - `docs/rounds/R03-plan.md` · `R03-report.md` — Observatory tokens, the wheel drawn from real degrees, citations as
   superscripts, house cards from generated strings, hero and chapter shell. Owner acceptance pending.
-- `docs/rounds/R04-plan.md` — natal-report-pass-two: contracts first, twelve parallel builders, one assembly card;
-  brain, schema and openapi change, so the lab, `db:bootstrap` and codegen are in the gate. Approved, building.
+- `docs/rounds/R04-plan.md` · `R04-report.md` — natal-report-pass-two: eleven chapters, generated house cards, the
+  workbook, dawn, a report that opens while it writes. Gate green; lab and `db:bootstrap` pending. Owner acceptance pending.
 
 ## QA
 - `docs/qa/` — none yet.
@@ -34,8 +34,10 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Code map
 - `web/` React + Vite SPA (Vercel) · `api/` Express API (Railway) · `packages/db` drizzle schema
-- `web/src/components/chart/` pure wheel geometry + `NatalWheel` (vitest) · `web/src/components/report/` hero,
-  chapters, citations, house cards, chrome · `web/src/lib/` glossary, rulers, renders, chapter accent
+- `web/src/components/chart/` pure wheel geometry + `NatalWheel` · `web/src/components/report/` hero and its label
+  solver, explorer, house card, chapter and prose rail, checklist, balance rail, path, nodal axis, dawn, citations
+  · `web/src/lib/` glossary, rulers, renders, fixed chapter accents, house occupants, the workbook store
+  · `web/src/hooks/useLiveReport.ts` the report as it writes · vitest covers every pure module under `src`
 - `packages/api-spec` OpenAPI + Orval → `api-client-react`, `api-zod` · `scripts/` seeds and bootstrap
 - `e2e/` Playwright (stale) · `fixtures/charts/` five reference charts, birth data only · `mobile/` empty scaffold
 - `fixtures/reports/` one committed run; `pnpm report:lab --render` re-reads it free. Never generate a report just to look at one — see that folder's README
