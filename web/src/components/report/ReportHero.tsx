@@ -6,6 +6,7 @@
  * over the first 0.6 screens as the reading's sky fades in.
  */
 import { useEffect, useRef, useState } from "react";
+import { Mark } from "@/components/Mark";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { ORDINALS } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
@@ -302,6 +303,10 @@ export function ReportHero({
       <section className="rp-hero" aria-label="Opening">
         <div ref={cueRef} className="rp-cue no-print"><span><i />Scroll</span></div>
         <header className="hidden print:block px-8 pt-12">
+          <p className="flex items-center gap-2 font-display text-base mb-6">
+            <Mark className="h-[18px] w-[18px]" point="currentColor" />
+            Stars Decoded
+          </p>
           <p className="font-label text-[10px] tracking-[0.28em] uppercase">Natal chart report</p>
           <h1 className="font-display text-5xl mt-2">{name}</h1>
           <p className="font-numeric text-xs mt-3">

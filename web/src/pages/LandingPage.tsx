@@ -89,7 +89,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Wordmark className="font-semibold tracking-tight" />
+          <Wordmark />
           <div className="flex items-center gap-2">
             <Show when="signed-in">
               <Button

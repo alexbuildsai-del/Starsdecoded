@@ -97,6 +97,9 @@ function buildInviteHtml(
   const from = escapeHtml(inviterName ?? "A friend");
   const safeName = escapeHtml(profileName);
   const safeUrl = encodeURI(claimUrl);
+  // Mail clients do not render SVG, so the header mark is a PNG served by
+  // the web app, on the same origin the claim link already points at.
+  const markUrl = `${new URL(claimUrl).origin}/mark-email.png`;
   const intro = relationshipName
     ? `<strong>${from}</strong> created a compatibility report between you and ${safeName} on Stars Decoded.`
     : `<strong>${from}</strong> created a Stars Decoded astrology chart for <strong>${safeName}</strong> and is inviting you to claim it.`;
@@ -115,8 +118,9 @@ function buildInviteHtml(
         <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#161B22;border-radius:12px;overflow:hidden;">
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#5B6CF6 0%,#7C4DFF 100%);padding:32px 40px;text-align:center;">
-              <span style="font-size:28px;font-weight:300;letter-spacing:0.05em;color:#fff;font-family:Georgia,serif;">✦ Stars Decoded</span>
+            <td style="background:#0B0F17;padding:32px 40px;text-align:center;">
+              <img src="${markUrl}" width="28" height="28" alt="" style="vertical-align:middle;margin-right:10px;border:0;">
+              <span style="font-size:26px;letter-spacing:0.02em;color:#fff;font-family:Georgia,serif;vertical-align:middle;">Stars Decoded</span>
             </td>
           </tr>
           <!-- Body -->
