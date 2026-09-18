@@ -13,6 +13,8 @@ import saturnImg from "@/assets/planets/saturn.webp";
 import uranusImg from "@/assets/planets/uranus.webp";
 import neptuneImg from "@/assets/planets/neptune.webp";
 import plutoImg from "@/assets/planets/pluto.webp";
+// MB-13 provisional: keyed from the Owner's render, swapped when a true-alpha export arrives.
+import sunHeroImg from "@/assets/planets/sun-512.webp";
 
 export const PLANET_RENDERS: Record<string, string> = {
   sun: sunImg,
@@ -28,6 +30,13 @@ export const PLANET_RENDERS: Record<string, string> = {
 };
 
 export const MAX_RENDER_PX = 90;
+
+/**
+ * The Sun at 512 px, for the hero plate and the dawn. It has its own source, so
+ * MAX_RENDER_PX stays at 90 for the wheel, where the 192 px renders live.
+ */
+export const SUN_HERO = sunHeroImg;
+export const MAX_SUN_HERO_PX = 512;
 
 /** Chiron and the nodes have no render, which usefully reads as "point, not planet". */
 export function renderFor(body: string, sizePx: number): string | null {

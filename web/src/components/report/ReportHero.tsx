@@ -1,15 +1,21 @@
 /**
- * The opening plate, fixed behind the first screen: Sun and Moon as lit renders
- * at their true angles on a thin brass ring, the Ascendant as an open marker
- * because it is a point on the horizon and never a body (ADR-17), the name at
- * the centre of its own sky, and the birth data in the corners. It fades out
- * over the first 0.6 screens as the reading's sky fades in.
+ * The opening plate, fixed behind the first screen: the Sun and the Moon as
+ * renders at their true angles on a thin brass ring, the Ascendant as an open
+ * marker because it is a point on the horizon and never a body (ADR-17), the
+ * name at the centre of its own sky, and the birth data in the corners.
+ *
+ * East is on the left, as every chart is drawn. The dotted horizon is the
+ * plate's only line: a label sits beside its body with nothing joining them
+ * (ADR-27). The Sun's glow is painted on the sky layer rather than inside the
+ * SVG, so no bar, edge or chapter can clip it. It fades out over the first 0.6
+ * screens as the reading's sky fades in.
  */
 import { useEffect, useRef, useState } from "react";
-import { PLANET_RENDERS } from "@/lib/planet-renders";
+import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { ORDINALS } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
+import { layoutHero, type Rect } from "@/components/report/hero-layout";
 import { PLANET_LABELS, type ChartData, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -19,6 +25,28 @@ const MONTHS = [
   "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
   "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
 ];
+
+/** Four stops, transparent by about 1.6 Sun diameters out. */
+const GLOW = "radial-gradient(circle, rgba(255,196,118,.46) 0%, rgba(236,142,62,.22) 24%,"
+  + " rgba(150,82,38,.08) 56%, rgba(6,8,12,0) 100%)";
+const GLOW_DIAMETERS = 3.2;
+
+/** The name's own ladder: it is page type, so it never scales with the plate. */
+function nameLines(name: string): { lines: string[]; size: number } {
+  const n = name.trim();
+  if (n.length <= 14) return { lines: [n], size: 64 };
+  if (n.length <= 26) return { lines: [n], size: 48 };
+  const words = n.split(/\s+/);
+  if (words.length < 2) return { lines: [n], size: 40 };
+  // Balanced: the break that leaves the two lines closest in length.
+  let best = 1;
+  let bestGap = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const gap = Math.abs(words.slice(0, i).join(" ").length - words.slice(i).join(" ").length);
+    if (gap < bestGap) { bestGap = gap; best = i; }
+  }
+  return { lines: [words.slice(0, best).join(" "), words.slice(best).join(" ")], size: 40 };
+}
 
 function useNarrow(): boolean {
   const [narrow, setNarrow] = useState(
@@ -72,6 +100,8 @@ export function ReportHero({
   const cueRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<SVGGElement>(null);
   const nameRef = useRef<HTMLDivElement>(null);
+  const sunRef = useRef<SVGImageElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let frame = 0;
@@ -89,11 +119,26 @@ export function ReportHero({
         hudRef.current.style.visibility = gone;
       }
       if (cueRef.current) cueRef.current.style.opacity = Math.max(0, 1 - q * 2.2).toFixed(3);
-      if (reduced) return;
-      // The whole diagram is one group so ring, lines and markers can never
-      // drift apart on scroll; only the name moves at a different depth.
-      diagramRef.current?.setAttribute("transform", `translate(0,${(-top * 0.12 * 1.6).toFixed(1)})`);
-      if (nameRef.current) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
+      if (!reduced) {
+        // The whole diagram is one group so ring, horizon and markers can never
+        // drift apart on scroll; only the name moves at a different depth.
+        diagramRef.current?.setAttribute("transform", `translate(0,${(-top * 0.12 * 1.6).toFixed(1)})`);
+        if (nameRef.current) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
+      }
+      // The glow is painted outside the SVG, so it is told where the Sun ended
+      // up rather than being drawn with it.
+      const sun = sunRef.current;
+      const glow = glowRef.current;
+      const sky = skyRef.current;
+      if (sun && glow && sky) {
+        const s = sun.getBoundingClientRect();
+        const box = sky.getBoundingClientRect();
+        const d = Math.max(s.width, 1) * GLOW_DIAMETERS;
+        glow.style.width = `${d.toFixed(1)}px`;
+        glow.style.height = `${d.toFixed(1)}px`;
+        glow.style.left = `${(s.left - box.left + s.width / 2 - d / 2).toFixed(1)}px`;
+        glow.style.top = `${(s.top - box.top + s.height / 2 - d / 2).toFixed(1)}px`;
+      }
     }
     function onScroll() {
       if (frame) return;
@@ -110,9 +155,10 @@ export function ReportHero({
       window.removeEventListener("resize", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [reduced, narrow]);
+  }, [reduced, narrow, name]);
 
   const asc = chartData.angles.ascendant;
+  const dsc = chartData.angles.descendant;
   const sun = chartData.planets.sun;
   const moon = chartData.planets.moon;
   const ascRuler = TRADITIONAL_RULER[asc.sign];
@@ -125,17 +171,33 @@ export function ReportHero({
   const R = narrow ? 196 : 200;
   const places = narrow ? 2 : 4;
 
-  const bodies = [
-    { key: "sun", planet: sun, size: narrow ? 104 : 116 },
-    { key: "moon", planet: moon, size: narrow ? 64 : 72 },
-  ].filter((b) => !!b.planet);
-
   const ascTheta = theta(asc.absoluteDegree, asc.absoluteDegree);
   const ascAt = pointAt(cx, cy, R, ascTheta);
-  const ascOut = pointAt(cx, cy, R + 22, ascTheta);
-  const ascIn = pointAt(cx, cy, R - 26, ascTheta);
   const east = pointAt(cx, cy, R + 58, ascTheta);
   const west = pointAt(cx, cy, R + 58, theta(opposite(asc.absoluteDegree), asc.absoluteDegree));
+
+  const { lines: nameRows, size: nameSize } = nameLines(name);
+
+  // What a label may not cover: the name plate at the centre and the two
+  // horizon labels. Measured in plate units, like everything else here.
+  const obstacles: Rect[] = [
+    { x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 },
+    { x: east.x - 210, y: east.y + 10, w: 210, h: 42 },
+    { x: west.x, y: west.y + 10, w: 210, h: 42 },
+  ];
+
+  const layout = layoutHero({
+    cx, cy, ringRadius: R,
+    ascendantAbsoluteDegree: asc.absoluteDegree,
+    // The Sun is placed first, so it takes the room it needs.
+    bodies: [
+      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: narrow ? 104 : 120 },
+      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: narrow ? 64 : 72 },
+    ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
+    labelWidth: 186,
+    labelHeight: 34,
+    obstacles,
+  });
 
   const dob = new Date(`${birthDate}T00:00:00Z`);
   const dobText = `${dob.getUTCDate()} ${MONTHS[dob.getUTCMonth()]} ${dob.getUTCFullYear()}`;
@@ -146,41 +208,27 @@ export function ReportHero({
     { key: null, label: "Rising", value: rising },
   ].filter(Boolean) as { key: string | null; label: string; value: string }[];
 
-  function outside(angle: number, radius: number, kicker: string, value: string) {
-    const p = pointAt(cx, cy, radius, angle);
-    const right = p.x >= cx;
-    const anchor = right ? "start" : "end";
-    const dx = right ? 16 : -16;
-    return (
-      <g>
-        <Label x={p.x + dx} y={p.y - 3} anchor={anchor} size={9.5} fill={SKY_DIM}>{kicker}</Label>
-        <text
-          x={(p.x + dx).toFixed(1)} y={(p.y + 13).toFixed(1)} textAnchor={anchor}
-          fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
-        >
-          {value}
-        </text>
-      </g>
-    );
+  function bodyValue(key: string): string {
+    const p = key === "sun" ? sun : moon;
+    return p ? `${p.degree.toFixed(2)}° ${p.sign} · ${ORDINALS[p.house - 1]}` : "";
   }
 
   return (
     <>
       <div ref={skyRef} className={`rp-hsky rp-grain no-print${narrow ? " narrow" : ""}`}>
+        {/* Under the transparent bar, off the plate's edges, fading with the sky. */}
+        <div
+          ref={glowRef}
+          aria-hidden
+          className="pointer-events-none absolute"
+          style={{ background: GLOW, borderRadius: "50%" }}
+        />
         <div className="rp-hplate">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           role="img"
           aria-label={`${name}: Sun, Moon and Rising at their true positions`}
         >
-          <defs>
-            {/* Fades the spokes out under the name, which sits over the centre in page type. */}
-            <radialGradient id="rp-name-veil">
-              <stop offset="0%" stopColor="#121826" stopOpacity={0.92} />
-              <stop offset="62%" stopColor="#121826" stopOpacity={0.66} />
-              <stop offset="100%" stopColor="#121826" stopOpacity={0} />
-            </radialGradient>
-          </defs>
           <g ref={diagramRef}>
             <circle cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
             {Array.from({ length: 12 }, (_, i) => i * 30).map((d) => {
@@ -199,62 +247,73 @@ export function ReportHero({
               stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
             />
             {narrow ? (
-              <Label x={east.x + 4} y={east.y + 22} anchor="start" size={9.5} fill={SKY_DIM}>E. HORIZON</Label>
+              <Label x={east.x + 4} y={east.y + 22} anchor="start" size={9.5} fill={SKY_DIM}>EAST · RISING</Label>
             ) : (
               <>
-                <Label x={east.x - 6} y={east.y + 30} anchor="end" size={11} fill={SKY_DIM}>EASTERN HORIZON</Label>
-                <Label x={west.x + 6} y={west.y + 30} anchor="start" size={11} fill={SKY_DIM}>WESTERN HORIZON</Label>
+                <Label x={east.x - 6} y={east.y + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
+                <text
+                  x={(east.x - 6).toFixed(1)} y={(east.y + 44).toFixed(1)} textAnchor="end"
+                  fontFamily="IBM Plex Mono, monospace" fontSize={11} fill="rgba(232,235,242,.5)"
+                >
+                  drawn facing south, so east is on your left
+                </text>
+                <Label x={west.x + 6} y={west.y + 26} anchor="start" size={11} fill={SKY_DIM}>WEST · SETTING</Label>
+                <text
+                  x={(west.x + 6).toFixed(1)} y={(west.y + 44).toFixed(1)} textAnchor="start"
+                  fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
+                >
+                  {`${dsc.degree.toFixed(2)}° ${dsc.sign}`}
+                </text>
               </>
             )}
 
-            {/* Every spoke runs from the centre to its body's edge, so each one points where it should. */}
-            {bodies.map((b) => {
-              const t = theta(b.planet.absoluteDegree, asc.absoluteDegree);
-              const edge = pointAt(cx, cy, R - b.size / 2 - 3, t);
-              return (
-                <line
-                  key={b.key} x1={cx} y1={cy} x2={edge.x.toFixed(1)} y2={edge.y.toFixed(1)}
-                  stroke={SKY} strokeOpacity={0.3} strokeDasharray="2 5"
-                />
-              );
-            })}
-            <line
-              x1={cx} y1={cy} x2={ascIn.x.toFixed(1)} y2={ascIn.y.toFixed(1)}
-              stroke={SKY} strokeOpacity={0.3} strokeDasharray="2 5"
-            />
-            <circle cx={cx} cy={cy} r={narrow ? 120 : 136} fill="url(#rp-name-veil)" />
+            {layout.bodies.map((b) => (
+              <image
+                key={b.key}
+                ref={b.key === "sun" ? sunRef : undefined}
+                href={b.key === "sun" ? SUN_HERO : PLANET_RENDERS[b.key]}
+                x={b.x - b.size / 2} y={b.y - b.size / 2}
+                width={b.size} height={b.size}
+              />
+            ))}
 
-            {bodies.map((b) => {
-              const t = theta(b.planet.absoluteDegree, asc.absoluteDegree);
-              const p = pointAt(cx, cy, R, t);
-              return (
-                <g key={b.key}>
-                  <image
-                    href={PLANET_RENDERS[b.key]}
-                    x={p.x - b.size / 2} y={p.y - b.size / 2}
-                    width={b.size} height={b.size}
-                  />
-                  {!narrow && outside(
-                    t, R + b.size * 0.5 + 16,
-                    (PLANET_LABELS[b.key] ?? b.key).toUpperCase(),
-                    `${b.planet.degree.toFixed(2)}° ${b.planet.sign} · ${ORDINALS[b.planet.house - 1]}`,
-                  )}
-                </g>
-              );
-            })}
+            {!narrow && layout.labels.map((l) => (
+              <g key={l.key}>
+                <Label x={l.x} y={l.y - 3} anchor={l.anchor} size={9.5} fill={SKY_DIM}>
+                  {(PLANET_LABELS[l.key] ?? l.key).toUpperCase()}
+                </Label>
+                <text
+                  x={l.x.toFixed(1)} y={(l.y + 13).toFixed(1)} textAnchor={l.anchor}
+                  fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
+                >
+                  {bodyValue(l.key)}
+                </text>
+              </g>
+            ))}
 
             <circle cx={ascAt.x.toFixed(1)} cy={ascAt.y.toFixed(1)} r={13} fill="#0B0E14" stroke={SKY} strokeWidth={1.5} />
             <circle cx={ascAt.x.toFixed(1)} cy={ascAt.y.toFixed(1)} r={4} fill={SKY} />
-            <line
-              x1={ascAt.x.toFixed(1)} y1={ascAt.y.toFixed(1)} x2={ascOut.x.toFixed(1)} y2={ascOut.y.toFixed(1)}
-              stroke={SKY} strokeWidth={1.5}
-            />
-            {!narrow && outside(ascTheta, R + 40, "RISING · THE SLICE CLIMBING", rising)}
           </g>
         </svg>
         <div ref={nameRef} className="rp-hname">
           <span className="k">Natal chart report</span>
-          <h1>{name}</h1>
+          <div className="relative inline-block justify-self-center">
+            {/* A halo fitted to the text box, so the ring reads through around it. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{
+                width: "156%", height: "240%",
+                background: "radial-gradient(ellipse at center, rgba(18,24,38,.94) 0%,"
+                  + " rgba(18,24,38,.64) 54%, rgba(18,24,38,0) 100%)",
+              }}
+            />
+            <h1 className="relative" style={{ fontSize: `${nameSize}px` }}>
+              {nameRows.map((line, i) => (
+                <span key={i} className="block">{line}</span>
+              ))}
+            </h1>
+          </div>
         </div>
         </div>
 
@@ -263,7 +322,7 @@ export function ReportHero({
             {legend.map((row) => (
               <div key={row.label} className="lr">
                 {row.key
-                  ? <img src={PLANET_RENDERS[row.key]} alt="" width={22} height={22} />
+                  ? <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />
                   : <span aria-hidden className="rp-ascdot" />}
                 <dt className="k">{row.label}</dt>
                 <dd className="v">{row.value}</dd>

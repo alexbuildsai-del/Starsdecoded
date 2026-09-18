@@ -106,6 +106,11 @@ const DIGNITY_MEANINGS: Record<string, string> = {
   peregrine: "unsupported, neither strong nor weak",
 };
 
+const ANGLE_MEANINGS: Record<string, string> = {
+  ascendant: "The Ascendant is the degree of the zodiac rising on the eastern horizon at a moment of birth. It is the point the whole-sign houses are counted from, and it describes manner and approach rather than the work of a planet.",
+  midheaven: "The Midheaven is the highest point the ecliptic reaches at a moment of birth. It marks the top of the chart and stands for public direction and standing rather than for a body.",
+};
+
 function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
@@ -157,6 +162,11 @@ export function glossFor(ref: EvidenceRef): string {
         + `${label(ref.sign)}, the ${theHouse(ref.house)}.`;
     case "sect":
       return SECT_MEANINGS[str(ref.role)] ?? "";
+    case "angle": {
+      const meaning = ANGLE_MEANINGS[str(ref.angle)] ?? "";
+      const sign = SIGN_MEANINGS[str(ref.sign)] ?? "";
+      return [meaning, sign && `${label(ref.sign)} ${sign}.`].filter(Boolean).join(" ");
+    }
     default:
       return "";
   }

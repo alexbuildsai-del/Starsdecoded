@@ -47,7 +47,9 @@ import type {
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
-  UpdateProfileBody
+  UpdateProfileBody,
+  Workbook,
+  WorkbookPatch
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -544,6 +546,88 @@ export function useGetReportStatus<TData = Awaited<ReturnType<typeof getReportSt
 
 
 
+
+export const getUpdateReportWorkbookUrl = (id: string,) => {
+
+
+
+
+  return `/api/reports/${id}/workbook`
+}
+
+/**
+ * Shallow-merges the patch into the report's workbook, the reader's own record of which actions they have taken. A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. The viewer must own the report.
+ * @summary Tick or untick workbook items on a report
+ */
+export const updateReportWorkbook = async (id: string,
+    workbookPatch: WorkbookPatch, options?: Parameters<typeof customFetch>[1]): Promise<Workbook> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<Workbook>(getUpdateReportWorkbookUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workbookPatch)
+  }
+);}
+
+
+
+
+
+export const getUpdateReportWorkbookMutationKey = () => ['updateReportWorkbook'] as const;
+
+export const getUpdateReportWorkbookMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReportWorkbook>>, TError,UpdateReportWorkbookMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateReportWorkbook>>, TError,UpdateReportWorkbookMutationVariables, TContext> => {
+
+const mutationKey = getUpdateReportWorkbookMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateReportWorkbook>>, UpdateReportWorkbookMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateReportWorkbook(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateReportWorkbookMutationResult = NonNullable<Awaited<ReturnType<typeof updateReportWorkbook>>>
+    export type UpdateReportWorkbookMutationBody = BodyType<WorkbookPatch>
+    export type UpdateReportWorkbookMutationError = ErrorType<ErrorResponse>
+    export type UpdateReportWorkbookMutationVariables = {id: string;data: BodyType<WorkbookPatch>}
+
+    /**
+ * @summary Tick or untick workbook items on a report
+ */
+export const useUpdateReportWorkbook = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReportWorkbook>>, TError,UpdateReportWorkbookMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateReportWorkbook>>,
+        TError,
+        UpdateReportWorkbookMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateReportWorkbookMutationOptions(options));
+    }
 
 export const getRegenerateReportUrl = (id: string,) => {
 

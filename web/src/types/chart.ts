@@ -27,6 +27,8 @@ export interface ChartData {
   angles: {
     ascendant: ChartAngle;
     midheaven: ChartAngle;
+    descendant: ChartAngle;
+    ic: ChartAngle;
   };
   elements: { fire: number; earth: number; air: number; water: number };
   modalities: { cardinal: number; fixed: number; mutable: number };
@@ -59,7 +61,7 @@ export interface ActionItem {
 
 /** A structured, code-verified reference to the chart. Shape varies by kind. */
 export interface EvidenceRef {
-  kind: "placement" | "aspect" | "ruler" | "lot" | "sect";
+  kind: "placement" | "aspect" | "ruler" | "lot" | "sect" | "angle";
   [key: string]: unknown;
 }
 
@@ -98,6 +100,22 @@ export interface TriadSection extends WithClaims {
   rising: TriadPart;
 }
 
+export interface HouseReading {
+  house: number;
+  reading: string;
+}
+
+/** The twelve house-card readings. No claims: the card they sit on is the evidence. */
+export interface HousesSection {
+  houses: HouseReading[];
+}
+
+export interface PathSection extends WithClaims {
+  fallBackOn: string;
+  headedToward: string;
+  tenderSpot: string;
+}
+
 export interface MindSection extends WithClaims {
   howYouThink: string;
   howYouDecide: string;
@@ -105,11 +123,18 @@ export interface MindSection extends WithClaims {
   practice: string;
 }
 
+/** A named item and the concrete reason this chart fits it. */
+export interface ListedItem {
+  item: string;
+  reason: string;
+}
+
 export interface CareerSection extends WithClaims {
   vocationalPull: string;
   howYouShowUp: string;
   growthThroughWork: string;
   actions: ActionItem[];
+  careerPaths: ListedItem[];
 }
 
 export interface MoneySection extends WithClaims {
@@ -124,6 +149,7 @@ export interface RelationshipsSection extends WithClaims {
   theChallenge: string;
   whatPartnershipAsks: string;
   actions: ActionItem[];
+  connectBestWith: ListedItem[];
 }
 
 export interface FamilySection extends WithClaims {
@@ -178,10 +204,15 @@ export interface AngleMeanings {
   midheaven: { publicDirection: string; whereYouThrive: string; atYourBest: string; underPressure: string };
 }
 
+/** The reader's ticked items on a report, valued by the ISO date of the tick. */
+export type Workbook = Record<string, string>;
+
 /**
- * The V3 report shape. Mirrors ReportInterpretation in api/src/lib/aiInterpretation.ts.
- * Sections are always structured: the API enforces each section's schema at
- * generation time, so there is no string fallback to guard against.
+ * The report shape. Mirrors ReportInterpretation in api/src/lib/aiInterpretation.ts.
+ * A section that is present is complete: the API enforces its schema at
+ * generation time. Sections are optional because the report is readable while
+ * it writes and they arrive one at a time. The deterministic blocks land with
+ * the first frame, so they are not.
  */
 export interface Interpretation {
   meta: {
@@ -196,28 +227,37 @@ export interface Interpretation {
     sunAltitude: number;
     sectMarginal: boolean;
     generatedAt: string;
-    wordCount: number;
+    /** Counted once the last section lands. */
+    wordCount?: number;
   };
-  overview: OverviewSection;
-  triad: TriadSection;
-  mind: MindSection;
-  career: CareerSection;
-  money: MoneySection;
-  relationships: RelationshipsSection;
-  family: FamilySection;
-  superpowers: SuperpowersSection;
-  discoveries: DiscoveriesSection;
-  focus: FocusSection;
+  overview?: OverviewSection;
+  triad?: TriadSection;
+  houses?: HousesSection;
+  mind?: MindSection;
+  career?: CareerSection;
+  money?: MoneySection;
+  relationships?: RelationshipsSection;
+  family?: FamilySection;
+  superpowers?: SuperpowersSection;
+  discoveries?: DiscoveriesSection;
+  path?: PathSection;
+  focus?: FocusSection;
   personalPlanets: Record<string, string>;
   aspectMeanings: Record<string, AspectMeaning>;
   angleMeanings: AngleMeanings;
 }
 
-/** A stored report predates V3 when it lacks the meta block. Such reports must be regenerated. */
-export function isV3Interpretation(v: unknown): v is Interpretation {
-  return typeof v === "object" && v !== null && typeof (v as Interpretation).meta?.promptVersion === "string"
-    && typeof (v as Interpretation).overview?.headline === "string"
-    && Array.isArray((v as Interpretation).overview?.claims);
+/** The prompt version this page renders. Older stored reports get the regenerate call to action. */
+export const CURRENT_PROMPT_VERSION = "v5";
+
+/**
+ * A stored report this page can render. Anything older keeps its words but not
+ * its shape, so it is offered a regeneration rather than rendered half right.
+ */
+// MB-45 provisional: a v4 report shows the regenerate CTA and is never regenerated on its own.
+export function isCurrentInterpretation(v: unknown): v is Interpretation {
+  return typeof v === "object" && v !== null
+    && (v as Interpretation).meta?.promptVersion === CURRENT_PROMPT_VERSION;
 }
 
 export const PLANET_LABELS: Record<string, string> = {

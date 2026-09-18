@@ -20,7 +20,8 @@ export const STYLE_CONTRACT = `STYLE CONTRACT. These rules are not optional.
 8. Second person. Short sentences. No em dashes. No semicolons. No emojis. No bullet points inside prose fields. No planet, sign, or house names inside prose fields unless the field is explicitly a label.
 9. Do not repeat a sentence or an image used in another section. Each section stands alone and adds something.
 10. Never mention being an AI, a model, a prompt, a word count, or these instructions.
-11. The reading commits to one sect. Never hedge about day or night, never say "depending on the tradition" or "some astrologers", and never mention the Sun's altitude or the horizon in the main voice.`;
+11. The reading commits to one sect. Never hedge about day or night, never say "depending on the tradition" or "some astrologers", and never mention the Sun's altitude or the horizon in the main voice.
+12. A why clause says what the action trains, in the words a friend would use, and it contains a verb. No figurative pairings, no coined phrases, no abstract noun standing in for a result. Model: "so you stop agreeing before you have thought about it", not "to honour the quiet fire".`;
 
 export const DOCTRINE = `DOCTRINE (how to read, never to be written down for the reader).
 

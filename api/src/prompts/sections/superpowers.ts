@@ -19,7 +19,7 @@ export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
   key: "natal:superpowers",
   label: "Superpowers, Chronic Patterns & Growing Edges",
   adminLabel: "Superpowers / Patterns / Edges",
-  wordTarget: [600, 650],
+  wordTarget: [600, 700],
   maxTokens: 3_600,
   schema: SuperpowersSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
@@ -27,7 +27,7 @@ export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
 
 Superpower: what comes naturally and reliably. Evidence: planets in domicile or exaltation, the benefic of sect, angular planets, the South Node. Chronic pattern: what is structurally rooted, cannot be removed, only noticed and managed. Evidence: the malefic contrary to sect, planets in detriment or fall, the tightest hard aspect. Growing edge: what is uncomfortable but possible. Evidence: the North Node, the sect light, the weakest necessary function.
 
-Each item: a title of 2 to 4 words, 100 to 120 words of text with at least one checkable behaviour, and 2 to 3 actions with a short why. Actions are specific to this chart and doable this week. The style is empowering and realistic: no flattery, no diagnosis. No planet, sign, or house names in the prose. 600 to 650 words total.
+Each item: a title of 2 to 4 words, 100 to 120 words of text with at least one checkable behaviour, and 2 to 3 actions with a short why. Actions are specific to this chart and doable this week. The style is empowering and realistic: no flattery, no diagnosis. No planet, sign, or house names in the prose. 600 to 700 words total.
 
 Sect. The benefic of sect is the strongest candidate for the superpower. The malefic of sect also qualifies: day Saturn as earned discipline is a superpower, not a limit. The malefic out of sect is the chronic pattern's first candidate.`,
 };

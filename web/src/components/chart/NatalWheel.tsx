@@ -108,7 +108,9 @@ export function NatalWheel({
   ];
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] items-start">
+    // Without a side panel the wheel takes the whole box: the explorer lays the
+    // card out itself, so the split here would only leave an empty column.
+    <div className={`grid gap-4 items-start${renderHouse ? " lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]" : ""}`}>
       <svg
         viewBox={`${-pad} ${-pad} ${PLATE + 2 * pad} ${PLATE + 2 * pad}`}
         className="w-full h-auto"

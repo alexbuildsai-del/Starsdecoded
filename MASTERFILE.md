@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.5 (2026-09-17) |
+| Version | 0.6 (2026-09-18) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -26,7 +26,7 @@ This file is the constitution. Orchestrators and planners read it in full once p
 
 ## 1 · Thesis
 
-Stars Decoded sells one thing: a 2,000 to 2,800 word psychological report built from a natal chart that is actually computed. Birth date, time and place go in; local astronomy computes the positions; a language model writes the interpretation, grounded in a written doctrine and a per-chart brief derived in code. No predictions, no fate, no karma. The report is the product, not a subscription or a dashboard.
+Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built from a natal chart that is actually computed. Birth date, time and place go in; local astronomy computes the positions; a language model writes the interpretation, grounded in a written doctrine and a per-chart brief derived in code. No predictions, no fate, no karma. The report is the product, not a subscription or a dashboard.
 
 **Who it is for.** The self-knowledge audience, the people who already take Myers-Briggs and the Enneagram seriously. "You're not selling astrology. You're selling a structured self-knowledge report that happens to use planetary data." A second segment, parents wanting to understand a child, is the biggest differentiator and is not built yet.
 
@@ -45,12 +45,12 @@ Stars Decoded sells one thing: a 2,000 to 2,800 word psychological report built 
 
 ## 2 · Product scope
 
-**V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of ten sections plus the interactive wheel, keep it on a dashboard, delete it on request.
+**V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of eleven chapters with a chart explorer and a workbook of ticked actions, keep it on a dashboard, delete it on request.
 
 1. **Landing page** whose every claim matches the code (§14 lists the ones that do not yet).
 2. **Birth form** with geocoding and timezone resolution.
 3. **Report generation** per §4, polled until complete.
-4. **Report page**: ten sections, methodology box, chart wheel, PDF via print.
+4. **Report page**: eleven chapters, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print; it opens when the chart exists and chapters stream in (`docs/specs/locked/natal-report-pass-two.md`).
 5. **Purchase**: one-time payment granting a credit; the credit is consumed when the report is created (§6).
 6. **Account**: anonymous session first, Clerk sign-in claims it, dashboard lists reports.
 7. **Legal**: privacy, terms, refunds, company details, working deletion.
@@ -87,8 +87,8 @@ The heart of the product. `api/src/lib/` is the engine; keep it pure enough that
 ```
 birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-engine, whole sign)
   → traditional derivation (sect, dignity, rulers, Lots) → per-chart brief
-  → foundation call (internal JSON) → ten section calls in parallel, each schema-enforced
-  → assemble → reports.interpretation → client polls /api/reports/:id/status
+  → foundation call (internal JSON) → twelve section calls in parallel (ten chapter sections, the house readings, Your Path), each schema-enforced
+  → each section stored as it lands → client polls /api/reports/:id/status and renders chapters as they arrive
 ```
 
 - **R-4.1** Positions are computed locally. A user-facing string names the real library. Never fix a wrong claim by changing the library.
@@ -99,9 +99,9 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 ## 5 · Interpretation rules
 
-- **R-5.1** Tone, every section: second person; short sentences; no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart.
+- **R-5.1** Tone, every section: second person; short sentences; no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words.
 - **R-5.2** The model may describe behavioural patterns, tendencies and growth edges. It may never predict events, name dates, promise outcomes, give medical or psychological diagnoses, or invoke fate or karma.
-- **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings.
+- **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings. House-card readings are a section like any other (ADR-21); the Ascendant and Midheaven are citable evidence (ADR-22).
 - **R-5.4** Source of truth for prompts is the section registry and `promptDefaults.ts`; overrides live in `prompt_templates` via `/admin/prompts`. Never edit a generated copy (the bible, docs). Re-sync instead.
 - **R-5.5** A change to report content is USER-FACING even when no UI moved: someone who bought yesterday would get different words today.
 - **R-5.6** Model ids are hard-coded at the call sites today (`gpt-5.2`). Changing the model is an engine change under R-4.4.
@@ -150,7 +150,9 @@ Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report
 
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
 - **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The weight-300 display serif that pulled the other way is settled — display moves to Newsreader 400 and the numerals to a real monospace. The starfield and gradients stay, budgeted: two moves per chapter change, one easing, and reduced motion is a real state.
-- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI.
+- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27).
+- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; element hues stay data, brass stays geometry (ADR-23).
+- **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report (ADR-24).
 - **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
 - **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
 - **Voice.** Report voice is R-5.1. Marketing voice is not written yet (Mailbox); until it is, marketing copy follows the same rules: short, specific, no mysticism, no claims the code cannot back.

@@ -3,47 +3,12 @@ import { useParams, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGetReportStatus, getGetReportStatusQueryKey } from "@workspace/api-client-react";
 
-const STEPS = [
-  {
-    key: "pending",
-    label: "Reading your birth data",
-    description: "Locating the moment you arrived...",
-  },
-  {
-    key: "computing",
-    label: "Mapping the skies",
-    description: "Calculating planetary positions at your exact birth moment...",
-  },
-  {
-    key: "interpreting",
-    label: "Crafting your reading",
-    description: "Weaving your psychological portrait with AI...",
-  },
-  {
-    key: "complete",
-    label: "Your chart is ready",
-    description: "",
-  },
-];
-
-const PHASE_CEILINGS: Record<string, number> = {
-  pending: 15,
-  computing: 45,
-  interpreting: 92,
-  complete: 100,
-};
-
-const EASE_FACTOR = 0.55;
-const EASE_FACTOR_COMPLETE = 1.8;
-// Minimum velocity (% per second) ensures the bar NEVER freezes.
-// For non-complete phases this lets it slowly crawl past the phase ceiling
-// toward the 99.9 hard cap — visible motion even if a phase runs very long.
-const MIN_VELOCITY = 0.005;
-const MIN_VELOCITY_COMPLETE = 0.2;
-// Hard visual cap for non-complete phases — keeps it just below 100% so the
-// user can tell the report isn't actually ready yet.
-const NON_COMPLETE_HARD_CAP = 99.9;
-const NAVIGATE_THRESHOLD = 99.5;
+/**
+ * One moment, not a progress bar. The report opens the instant the chart is
+ * stored and writes itself in front of the reader (ADR-25), so this screen has
+ * nothing left to estimate: it waits for the chart and leaves.
+ */
+const POLL_MS = 1000;
 
 // Seconds before a failed poll is retried manually.
 const RETRY_SECONDS = 5;
@@ -74,7 +39,7 @@ function StarField() {
   );
 }
 
-function SpinningWheel({ progress }: { progress: number }) {
+function SpinningWheel() {
   const planets = ["☉", "☽", "☿", "♀", "♂", "♃", "♄"];
   const radii = [60, 90, 115, 135, 150, 165, 175];
   const speeds = [8, 12, 5, 7, 15, 25, 35];
@@ -116,11 +81,10 @@ function SpinningWheel({ progress }: { progress: number }) {
         <motion.div
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="font-display text-4xl mb-1 gradient-text"
+          className="font-label text-xs text-muted-foreground tracking-wider"
         >
-          {Math.round(progress)}%
+          COMPUTING
         </motion.div>
-        <div className="font-label text-xs text-muted-foreground tracking-wider">COMPUTING</div>
       </div>
     </div>
   );
@@ -143,9 +107,9 @@ export default function GenerationPage() {
         // has full control and the two mechanisms don't race.
         if (query.state.status === "error") return false;
         const data = query.state.data;
-        if (!data) return 2000;
-        if (data.status === "complete" || data.status === "failed") return false;
-        return 2000;
+        if (!data) return POLL_MS;
+        if (data.chartReady || data.status === "complete" || data.status === "failed") return false;
+        return POLL_MS;
       },
       retry: false,            // countdown handles retry timing
       refetchOnWindowFocus: false, // visibilitychange listener handles this
@@ -203,98 +167,14 @@ export default function GenerationPage() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [refetch]);
 
-  const [displayProgress, setDisplayProgress] = useState(0);
-  const displayProgressRef = useRef(0);
-  const ceilingRef = useRef(PHASE_CEILINGS["pending"]);
-  const isCompleteRef = useRef(false);
-  const isErrorRef = useRef(false);
-  const rafRef = useRef<number | null>(null);
-  const lastTimeRef = useRef<number | null>(null);
-
-  // Keep the error ref in sync so the RAF tick can read it without a stale closure.
+  // The chart is what the report opens on, so the moment it exists this screen
+  // is done. A failed run stays here to say so.
   useEffect(() => {
-    isErrorRef.current = isError;
-  }, [isError]);
-
-  useEffect(() => {
-    // Always sync refs so the running RAF loop picks up the new phase immediately.
-    ceilingRef.current = PHASE_CEILINGS[serverStatus] ?? 15;
-    isCompleteRef.current = serverStatus === "complete";
-
-    if (rafRef.current !== null) return;
-
-    const tick = (now: number) => {
-      const dt = lastTimeRef.current !== null ? Math.min((now - lastTimeRef.current) / 1000, 0.1) : 0.016;
-      lastTimeRef.current = now;
-
-      // While in error state, freeze the bar so the user knows something is wrong.
-      // The retry countdown communicates that progress will resume.
-      if (!isErrorRef.current) {
-        const current = displayProgressRef.current;
-        const ceiling = ceilingRef.current;
-        const isComplete = isCompleteRef.current;
-
-        const factor = isComplete ? EASE_FACTOR_COMPLETE : EASE_FACTOR;
-        const minVel = isComplete ? MIN_VELOCITY_COMPLETE : MIN_VELOCITY;
-
-        // gap may go negative if the bar has already crawled past the phase ceiling —
-        // that's intentional: minVel * dt then takes over and keeps the bar moving.
-        const gap = ceiling - current;
-        const delta = Math.max(gap * factor * dt, minVel * dt);
-
-        // Hard caps: non-complete phases are capped at 99.9 so the bar never reads
-        // 100% before the server confirms completion.
-        const hardCap = isComplete ? 100 : NON_COMPLETE_HARD_CAP;
-        const next = Math.min(current + delta, hardCap);
-
-        displayProgressRef.current = next;
-        setDisplayProgress(next);
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-        lastTimeRef.current = null;
-      }
-    };
-  }, [serverStatus]);
-
-
-  // Navigate once displayProgress reaches the threshold — this guarantees the bar
-  // visually fills to ~100% before leaving the screen. A hard timeout backstop
-  // of 2 s prevents the user being stuck if the RAF loop is somehow slow.
-  useEffect(() => {
-    if (status?.status !== "complete" || hasNavigated.current) return;
-
+    if (hasNavigated.current) return;
+    if (!status?.chartReady && status?.status !== "complete") return;
     hasNavigated.current = true;
-
-    const maxTimeout = setTimeout(() => {
-      navigate(`/report/${id}`);
-    }, 2000);
-
-    const poll = setInterval(() => {
-      if (displayProgressRef.current >= NAVIGATE_THRESHOLD) {
-        clearInterval(poll);
-        clearTimeout(maxTimeout);
-        navigate(`/report/${id}`);
-      }
-    }, 50);
-
-    return () => {
-      clearInterval(poll);
-      clearTimeout(maxTimeout);
-    };
-  }, [status?.status, id, navigate]);
-
-  const currentStep = STEPS.find((s) => s.key === serverStatus) ?? STEPS[0];
-
-  const stepOrder = ["pending", "computing", "interpreting"];
+    navigate(`/report/${id}`);
+  }, [status?.chartReady, status?.status, id, navigate]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center relative overflow-hidden">
@@ -311,7 +191,7 @@ export default function GenerationPage() {
       <div className="relative z-10 flex flex-col items-center px-6 text-center">
         {/* Chart wheel */}
         <div className="mb-10">
-          <SpinningWheel progress={displayProgress} />
+          <SpinningWheel />
         </div>
 
         {/* Status */}
@@ -324,47 +204,15 @@ export default function GenerationPage() {
             className="mb-8"
           >
             <h2 className="font-display text-2xl mb-2">
-              {serverStatus === "failed" ? "Something went wrong" : currentStep.label}
+              {serverStatus === "failed" ? "Something went wrong" : "Computing your chart"}
             </h2>
             <p className="text-muted-foreground text-sm max-w-sm">
               {serverStatus === "failed"
                 ? (status?.errorMessage ?? "An unexpected error occurred.")
-                : currentStep.description}
+                : "Your report opens the moment the positions are in. The chapters arrive as they are written."}
             </p>
           </motion.div>
         </AnimatePresence>
-
-        {/* Progress bar — driven directly by RAF, no Framer animate */}
-        <div className="w-72 h-1 bg-muted rounded-full overflow-hidden mb-8">
-          <div
-            className="h-full gradient-primary rounded-full"
-            style={{ width: `${displayProgress}%` }}
-          />
-        </div>
-
-        {/* Step indicators */}
-        <div className="flex items-center gap-3">
-          {stepOrder.map((key, i) => {
-            const currentIdx = stepOrder.indexOf(serverStatus);
-            // complete means all prior steps finished
-            const isDone = serverStatus === "complete" || currentIdx > i;
-            const isActive = key === serverStatus;
-            return (
-              <div key={key} className="flex items-center gap-2">
-                <div
-                  className={`w-2 h-2 rounded-full transition-all duration-500 ${
-                    isDone
-                      ? "bg-primary"
-                      : isActive
-                      ? "bg-primary animate-pulse"
-                      : "bg-muted-foreground/30"
-                  }`}
-                />
-                {i < 2 && <div className="w-8 h-px bg-border" />}
-              </div>
-            );
-          })}
-        </div>
 
         {/* Connection error banner with retry countdown */}
         <AnimatePresence>
