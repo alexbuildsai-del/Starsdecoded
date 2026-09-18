@@ -14,7 +14,7 @@ export const money: SectionSpec<typeof MoneySchema> = {
   key: "natal:money",
   label: "Money & Resources",
   adminLabel: "Money & Resources",
-  wordTarget: [250, 300],
+  wordTarget: [250, 320],
   maxTokens: 2_500,
   schema: MoneySchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
@@ -22,7 +22,7 @@ export const money: SectionSpec<typeof MoneySchema> = {
 
 One paragraph on their relationship to earning, keeping, and valuing. One paragraph on the specific way resources come to them and the specific way they lose them, with an example. One paragraph on money that is not solely theirs: backing, debt, inheritance, shared arrangements, and where the exposure is. Then exactly three actions with a short why.
 
-If the chart is genuinely quiet here, say what that quiet looks like in practice rather than inventing drama. No planet, sign, or house names in the prose. 250 to 300 words.
+If the chart is genuinely quiet here, say what that quiet looks like in practice rather than inventing drama. No planet, sign, or house names in the prose. 250 to 320 words.
 
 Sect. Read the rulers of the 2nd and 8th by sect where they are Venus, Mars, Jupiter or Saturn. The benefic of sect gives resources reliably; the benefic out of sect gives them unreliably or with a cost. The malefic out of sect is where money is lost.`,
 };

@@ -14,7 +14,7 @@ export const family: SectionSpec<typeof FamilySchema> = {
   key: "natal:family",
   label: "Family & Roots",
   adminLabel: "Family & Roots",
-  wordTarget: [250, 300],
+  wordTarget: [250, 320],
   maxTokens: 2_500,
   schema: FamilySchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
@@ -22,7 +22,7 @@ export const family: SectionSpec<typeof FamilySchema> = {
 
 One paragraph on what they carry from where they came from: the atmosphere, the inherited habits, the roles they were handed. One paragraph on what actually roots them now and what they need in a home, as behaviour. One paragraph on the inherited pattern that is theirs to change rather than repeat. Then two or three actions with a short why.
 
-Do not speculate about specific family events. Describe patterns the reader can confirm or reject. No planet, sign, or house names in the prose. 250 to 300 words.
+Do not speculate about specific family events. Describe patterns the reader can confirm or reject. No planet, sign, or house names in the prose. 250 to 320 words.
 
 Sect. Read the Moon and Saturn by sect. Night chart: the Moon leads and Saturn is the harsh inheritance. Day chart: the Sun leads and Saturn is the steadying inheritance.`,
 };

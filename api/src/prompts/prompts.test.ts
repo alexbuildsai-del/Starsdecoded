@@ -108,16 +108,20 @@ test("schemas: each section accepts a well-formed payload and rejects an empty o
   }
   const career = REPORT_SECTIONS.find((s) => s.key === "natal:career")!;
   const claims = [1, 2, 3].map(() => ({ quote: "x", evidence: [{ kind: "placement", body: "sun", sign: "scorpio", house: 11 }] }));
+  const actions = [{ action: "a", why: "b" }, { action: "a", why: "b" }, { action: "a", why: "b" }];
+  const careerPaths = [{ item: "p", reason: "r" }, { item: "q", reason: "r" }, { item: "s", reason: "r" }];
   const ok = career.schema.safeParse({
-    vocationalPull: "x", howYouShowUp: "y", growthThroughWork: "z",
-    actions: [{ action: "a", why: "b" }, { action: "a", why: "b" }, { action: "a", why: "b" }],
-    claims,
+    vocationalPull: "x", howYouShowUp: "y", growthThroughWork: "z", actions, careerPaths, claims,
   });
   assert.equal(ok.success, true, JSON.stringify(ok.success ? null : ok.error.issues));
   const tooFew = career.schema.safeParse({
-    vocationalPull: "x", howYouShowUp: "y", growthThroughWork: "z", actions: [{ action: "a", why: "b" }], claims,
+    vocationalPull: "x", howYouShowUp: "y", growthThroughWork: "z", actions: [{ action: "a", why: "b" }], careerPaths, claims,
   });
   assert.equal(tooFew.success, false, "zod must still enforce the count strict mode cannot express");
+  const noPaths = career.schema.safeParse({
+    vocationalPull: "x", howYouShowUp: "y", growthThroughWork: "z", actions, careerPaths: careerPaths.slice(0, 2), claims,
+  });
+  assert.equal(noPaths.success, false, "careerPaths carries three to four items");
 });
 
 // ---------------------------------------------------------------------------
