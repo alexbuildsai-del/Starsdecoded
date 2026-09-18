@@ -113,7 +113,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 1. R04 shipped `docs/specs/locked/natal-report-pass-two.md`: explorer, generated
    house cards, workbook, Your Path, dawn, streaming, prompts v5 (ADR-20 to 28).
-   Next: Owner acceptance on staging, and the lab run pasted into `R04-report.md`.
+   Lab pasted: mean 31.0 ¢, all five fixtures green. Next: Owner acceptance on staging.
 2. Staging landing (`docs/specs/draft/staging-environment.md`): `production` sits
    at the pre-staging `main`; the Owner works the runbook, switches the
    dashboards, then the first Promote ships it.
