@@ -24,11 +24,10 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
   `open` prop whose value never changes).
 - One fixed card height tied to the wheel's rendered height; the back scrolls inside. Same
   `HouseCard` component everywhere.
-- Front: kicker stays "4th house · Virgo". Occupants: planet renders; North Node, South Node
-  and Chiron as drawn points; the Ascendant in the 1st and the Midheaven in its whole-sign
-  house as open brass markers with their degree. **A house is quiet only when no planet, node,
-  Chiron or angle is placed in it**; then it shows "Quiet house" and "Influenced by {ruler},
-  ruler of {sign}". The 1st house is therefore never quiet.
+- Front: kicker stays "4th house · Virgo". Occupants: planet renders; nodes and Chiron as
+  drawn points; the Ascendant in the 1st and the Midheaven in its whole-sign house as open
+  brass markers with their degree. **A house is quiet only when no planet, node, Chiron or
+  angle is placed in it**; then "Quiet house · Influenced by {ruler}, ruler of {sign}".
 - Back: the triad text leads where one exists (1st house: `triad.rising`; the Sun's house:
   `triad.sun`; the Moon's house: `triad.moon`), with its citations rendered as in chapters.
   Then the house reading (below). Footer: "Read chapter · {title} →" for houses 1 and 3 →
@@ -85,15 +84,17 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
 ### The closing (note 14): Dawn
 - `focus.ts`: each group trims to three bullets; `closing` is the chapter's centre.
 - Scroll-linked, like the parallax: as chapter 11 enters, the ground warms from near-black
-  toward deep indigo above a brass horizon line and the Sun render rises with the scroll until
-  its centre sits on the horizon; the closing paragraph reads above it in upright Newsreader,
-  no italics; the three groups follow as cards with their checklists; the starfield keeps
-  drifting. Progress is a CSS variable set from the section's viewport position, no timers.
-  Reduced motion: the final frame. "The sky settles" and "The wheel turns" stay on record.
+  toward deep indigo above a brass horizon line and the Sun render, larger than in the hero,
+  rises with the scroll until its centre sits on the horizon. The closing reads at the top in
+  upright Newsreader, no italics; the three groups sit directly under it as glass panels
+  (low-opacity fill, backdrop blur) so the sun comes up behind and through them; no gap
+  between the panels and the horizon; the starfield keeps drifting. Progress is a CSS variable
+  set from the section's viewport position, no timers. Reduced motion: the final frame.
+  "The sky settles" and "The wheel turns" stay on record.
 
 ### Hero (notes 15, 16)
-- East on the left (chart convention). Labels "EAST · RISING" with "drawn facing south, so east
-  is on your left", and "WEST · SETTING" with the Descendant degree.
+- East on the left. Labels "EAST · RISING" with "drawn facing south, so east is on your left",
+  and "WEST · SETTING" with the Descendant degree.
 - The Moon render is unchanged. The Sun is the Owner's render at about 120 px; its glow is one
   radial gradient (four stops, transparent at about 1.6 Sun diameters) painted on the plate's
   sky layer, not inside the SVG: it runs under the transparent top bar and off the plate's
@@ -130,8 +131,7 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
 ## Out of scope
 
 - Synastry (MB-9); "You connect best with" is a note.
-- A real Chiron ephemeris; the Placidus view (MB-28); light mode; the landing page; the
-  "tonight's sky" waiting plate (kept as a later idea).
+- A real Chiron ephemeris; Placidus (MB-28); light mode; the landing page; "tonight's sky".
 
 ## Acceptance criteria
 
@@ -157,8 +157,8 @@ Core Triad and Elemental Profile are retired as chapters; their content moves (b
 10. Prose chapters show actions in the rail at ≥ 960 px; Superpowers and Paradox cards show
     theirs inside, open; "A way through" labels every invitation.
 11. `chapterAccent(i)` ignores the chart; no two adjacent chapters share a hue.
-12. Chapter 11: scrolling the chapter into view raises the Sun to the horizon and warms the
-    ground; the closing is upright; under reduced motion the final frame renders at once.
+12. Chapter 11: scrolling the chapter into view raises the Sun behind the three glass panels;
+    the closing is upright; under reduced motion the final frame renders at once.
 13. Hero: the Sun is the supplied render with alpha, the Moon unchanged; the glow is visible
     under the top bar and reaches the plate edges uncut; a 30-character name wraps to two lines
     with the halo fitted; no label crosses the name plate.
