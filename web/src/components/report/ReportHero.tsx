@@ -27,17 +27,18 @@ const MONTHS = [
 ];
 
 /** Four stops, transparent by about 1.6 Sun diameters out. */
-const GLOW = "radial-gradient(circle, rgba(255,196,118,.46) 0%, rgba(236,142,62,.22) 24%,"
+const GLOW = "radial-gradient(circle closest-side, rgba(255,196,118,.46) 0%, rgba(236,142,62,.22) 24%,"
   + " rgba(150,82,38,.08) 56%, rgba(6,8,12,0) 100%)";
 const GLOW_DIAMETERS = 3.2;
 
-/** The name's own ladder: it is page type, so it never scales with the plate. */
-function nameLines(name: string): { lines: string[]; size: number } {
+/** The name's own ladder: it is page type, so it never scales with the plate. A phone gets a smaller rung of the same ladder. */
+function nameLines(name: string, narrow: boolean): { lines: string[]; size: number } {
   const n = name.trim();
-  if (n.length <= 14) return { lines: [n], size: 64 };
-  if (n.length <= 26) return { lines: [n], size: 48 };
+  const [big, mid, small] = narrow ? [44, 34, 28] : [64, 48, 40];
+  if (n.length <= 14) return { lines: [n], size: big };
+  if (n.length <= 26) return { lines: [n], size: mid };
   const words = n.split(/\s+/);
-  if (words.length < 2) return { lines: [n], size: 40 };
+  if (words.length < 2) return { lines: [n], size: small };
   // Balanced: the break that leaves the two lines closest in length.
   let best = 1;
   let bestGap = Infinity;
@@ -45,15 +46,15 @@ function nameLines(name: string): { lines: string[]; size: number } {
     const gap = Math.abs(words.slice(0, i).join(" ").length - words.slice(i).join(" ").length);
     if (gap < bestGap) { bestGap = gap; best = i; }
   }
-  return { lines: [words.slice(0, best).join(" "), words.slice(best).join(" ")], size: 40 };
+  return { lines: [words.slice(0, best).join(" "), words.slice(best).join(" ")], size: small };
 }
 
 function useNarrow(): boolean {
   const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches,
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches,
   );
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 640px)");
+    const mq = window.matchMedia("(max-width: 900px)");
     const onChange = () => setNarrow(mq.matches);
     onChange();
     mq.addEventListener("change", onChange);
@@ -164,11 +165,13 @@ export function ReportHero({
   const ascRuler = TRADITIONAL_RULER[asc.sign];
   const rising = `${asc.degree.toFixed(2)}° ${asc.sign}${ascRuler ? ` · ruled by ${PLANET_LABELS[ascRuler]}` : ""}`;
 
-  const W = narrow ? 680 : 1000;
-  const H = narrow ? 680 : 660;
+  // A phone plate is wider than tall so the ring can fill the width and the
+  // horizon labels still have room outside it.
+  const W = narrow ? 780 : 1000;
+  const H = narrow ? 640 : 660;
   const cx = W / 2;
   const cy = H / 2;
-  const R = narrow ? 196 : 200;
+  const R = narrow ? 236 : 200;
   const places = narrow ? 2 : 4;
 
   const ascTheta = theta(asc.absoluteDegree, asc.absoluteDegree);
@@ -176,7 +179,7 @@ export function ReportHero({
   const east = pointAt(cx, cy, R + 58, ascTheta);
   const west = pointAt(cx, cy, R + 58, theta(opposite(asc.absoluteDegree), asc.absoluteDegree));
 
-  const { lines: nameRows, size: nameSize } = nameLines(name);
+  const { lines: nameRows, size: nameSize } = nameLines(name, narrow);
 
   // What a label may not cover: the name plate at the centre and the two
   // horizon labels. Measured in plate units, like everything else here.
@@ -191,7 +194,7 @@ export function ReportHero({
     ascendantAbsoluteDegree: asc.absoluteDegree,
     // The Sun is placed first, so it takes the room it needs.
     bodies: [
-      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: narrow ? 104 : 120 },
+      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: narrow ? 108 : 120 },
       moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: narrow ? 64 : 72 },
     ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
     labelWidth: 186,
@@ -247,7 +250,10 @@ export function ReportHero({
               stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
             />
             {narrow ? (
-              <Label x={east.x + 4} y={east.y + 22} anchor="start" size={9.5} fill={SKY_DIM}>EAST · RISING</Label>
+              <>
+                <Label x={east.x} y={east.y + 30} anchor={east.x < cx ? "start" : "end"} size={18} fill={SKY_DIM}>EAST · RISING</Label>
+                <Label x={west.x} y={west.y + 30} anchor={west.x < cx ? "start" : "end"} size={18} fill={SKY_DIM}>WEST · SETTING</Label>
+              </>
             ) : (
               <>
                 <Label x={east.x - 6} y={east.y + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
@@ -304,7 +310,7 @@ export function ReportHero({
               className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
               style={{
                 width: "156%", height: "240%",
-                background: "radial-gradient(ellipse at center, rgba(18,24,38,.94) 0%,"
+                background: "radial-gradient(ellipse closest-side at center, rgba(18,24,38,.94) 0%,"
                   + " rgba(18,24,38,.64) 54%, rgba(18,24,38,0) 100%)",
               }}
             />
@@ -330,6 +336,9 @@ export function ReportHero({
             ))}
           </dl>
         )}
+        {narrow && (
+          <div ref={cueRef} className="rp-cue rp-cue-flow no-print"><span><i />Scroll</span></div>
+        )}
       </div>
 
       <div ref={hudRef} className="rp-hud no-print" aria-hidden>
@@ -352,14 +361,14 @@ export function ReportHero({
             <span className="d">{coordinate(latitude, "N", "S", places)} / {coordinate(longitude, "E", "W", places)}</span>
           </div>
           <div className="col e">
-            <span>Ch. 00 / Horizon</span>
+            <span className="wide-only">Ch. 00 / Horizon</span>
             <span className="d">{meta.sect} chart · sun alt {meta.sunAltitude.toFixed(1)}°</span>
           </div>
         </div>
       </div>
 
       <section className="rp-hero" aria-label="Opening">
-        <div ref={cueRef} className="rp-cue no-print"><span><i />Scroll</span></div>
+        {!narrow && <div ref={cueRef} className="rp-cue no-print"><span><i />Scroll</span></div>}
         <header className="hidden print:block px-8 pt-12">
           <p className="font-label text-[10px] tracking-[0.28em] uppercase">Natal chart report</p>
           <h1 className="font-display text-5xl mt-2">{name}</h1>

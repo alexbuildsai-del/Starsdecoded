@@ -44,10 +44,11 @@ echo "==> 5/7 Retire the meaning library"
 # composes from api/src/prompts/vocabulary.ts. Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-drop-meaning-library.ts
 
-echo "==> 6/7 Prompt templates"
-# ON CONFLICT DO NOTHING, so this never overwrites prompts edited from
-# /admin/prompts.
-pnpm --filter @workspace/scripts run seed:prompts
+echo "==> 6/7 Prompt overrides"
+# Prompts resolve from code; a row exists only where /admin/prompts overrode
+# one. A prompt version bump clears the natal overrides, since they target a
+# contract that no longer exists. Never seeds copies of the defaults.
+pnpm --filter @workspace/scripts run prompts:reset-stale
 
 echo "==> 7/7 Promote prompt overrides from staging"
 # Only production sets PROMPT_SOURCE_DATABASE_URL (to the staging database).

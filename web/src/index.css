@@ -401,8 +401,10 @@
     background: radial-gradient(120% 92% at 50% 38%, #141B28 0%, #0B0E14 56%, #06080C 100%); }
   .rp-hplate { position: relative; width: 100%; height: 100%; min-height: 0; display: grid; place-items: center; }
   .rp-hplate > svg { display: block; width: 100%; height: 100%; max-height: min(100%, 760px); }
-  .rp-hsky.narrow { grid-template-rows: minmax(0, 1fr) auto; align-content: center; gap: 14px; padding: 12px 14px 96px; }
-  .rp-hsky.narrow .rp-hplate > svg { max-height: none; }
+  /* A phone stacks ring, legend and cue as one centred column; nothing stretches to fill. */
+  .rp-hsky.narrow { grid-template-rows: auto auto auto; align-content: center; gap: 18px; padding: 12px 16px 84px; }
+  .rp-hsky.narrow .rp-hplate { height: auto; }
+  .rp-hsky.narrow .rp-hplate > svg { height: auto; max-height: 56svh; }
   /* The name is page type, not a drawing: it keeps the report's heading face and size at any screen. */
   .rp-hname { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center;
     pointer-events: none; display: grid; gap: 10px; padding: 0 24px; }
@@ -437,14 +439,20 @@
   .rp-hud .tick { position: absolute; background: currentColor; opacity: .4; }
   .rp-hud .tick.l { top: 50%; left: 12px; width: 12px; height: 1px; }
   .rp-hud .tick.r { top: 50%; right: 12px; width: 12px; height: 1px; }
-  @media (max-width: 640px) { .rp-hud { font-size: 8.5px; letter-spacing: .1em; padding: 12px; } }
+  @media (max-width: 900px) {
+    .rp-hud { font-size: 9px; letter-spacing: .1em; padding: 12px; }
+    .rp-hud .fr, .rp-hud .br.tl, .rp-hud .br.bl { left: 10px; } .rp-hud .fr, .rp-hud .br.tr, .rp-hud .br.brr { right: 10px; }
+    .rp-hud .fr, .rp-hud .br.tl, .rp-hud .br.tr { top: 10px; } .rp-hud .fr, .rp-hud .br.bl, .rp-hud .br.brr { bottom: 10px; }
+    .rp-hud .wide-only { display: none; }
+  }
 
-  .rp-cue { position: absolute; left: 0; right: 0; bottom: 40px; display: flex; justify-content: center; pointer-events: none;
-    color: var(--muted); font-family: var(--label); font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; }
-  .rp-cue span { display: flex; align-items: center; gap: 10px; animation: rp-breathe 2.8s var(--ease) infinite; }
-  .rp-cue i { width: 1px; height: 26px; background: linear-gradient(var(--sky), transparent); display: block;
+  .rp-cue { position: absolute; left: 0; right: 0; bottom: 22px; display: flex; justify-content: center; pointer-events: none;
+    color: var(--sky); font-family: var(--label); font-size: 11px; letter-spacing: .26em; text-transform: uppercase; }
+  .rp-cue.rp-cue-flow { position: static; }
+  .rp-cue span { display: flex; align-items: center; gap: 12px; animation: rp-breathe 2.8s var(--ease) infinite; }
+  .rp-cue i { width: 1px; height: 34px; background: linear-gradient(var(--sky), transparent); display: block;
     animation: rp-drip 2.8s var(--ease) infinite; }
-  @keyframes rp-breathe { 0%, 100% { opacity: .5; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 14px rgba(212,176,106,.45); } }
+  @keyframes rp-breathe { 0%, 100% { opacity: .55; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 16px rgba(212,176,106,.6); } }
   @keyframes rp-drip { 0%, 100% { transform: translateY(-5px) scaleY(.55); opacity: .3; } 50% { transform: translateY(5px) scaleY(1); opacity: 1; } }
 
   /* --- chapters --- */
