@@ -60,14 +60,14 @@ export const PairLinkSchema = z.object({
   planetB: z.string().describe("the aspect's B body; empty for an overlay"),
   aspect: z.string().describe("the aspect type; empty for an overlay"),
   orb: z.number().describe("the orb as listed; 0 for an overlay"),
-  planet: z.string().describe("an overlay's body; empty for an aspect"),
+  planet: z.string().describe("an overlay's lead body as listed; empty for an aspect"),
   of: z.enum(["A", "B", "none"]).describe("an overlay's owner; none for an aspect"),
   house: z.int().describe("an overlay's house; 0 for an aspect"),
   reading: z.string().describe("40 to 70 words, ending on a sentence that begins 'Behaviour check:'"),
 });
 
 export const PairLinksSchema = z.object({
-  links: z.array(PairLinkSchema).min(1).max(16),
+  links: z.array(PairLinkSchema).min(1).max(24),
 });
 
 /** Every string leaf but the claims, as one text. */

@@ -44,6 +44,8 @@ export const LENS_REGISTER: Record<Lens, { label: string; examples: string[]; ch
 
 /** The orb within which a cross aspect is drawn and may be cited (ADR-43). */
 export const CROSS_ORB = 4;
+/** How many cross aspects are drawn and carded: the strongest by the internal weighting, which only orders them. */
+export const DRAWN_LINKS = 12;
 
 export interface PairSide {
   name: string;
@@ -64,7 +66,7 @@ export interface PairBrief {
   parent: Side | null;
   a: PairSide;
   b: PairSide;
-  /** Cross aspects within the drawn orb, strongest first. */
+  /** The drawn cross aspects: within orb, the strongest first, at most DRAWN_LINKS. */
   cross: CrossAspect[];
   overlays: Overlay[];
   notable: NotableOverlay[];
@@ -108,7 +110,7 @@ export function buildPairBrief(input: PairInput): PairBrief {
   const a = side(input.a);
   const b = side(input.b);
   const blind = a.blind || b.blind;
-  const cross = computeCrossAspects(a.chart, b.chart).filter((c) => c.orb <= CROSS_ORB);
+  const cross = computeCrossAspects(a.chart, b.chart).filter((c) => c.orb <= CROSS_ORB).slice(0, DRAWN_LINKS);
   const overlays = blind ? [] : computeOverlays(a.chart, b.chart);
   const notable = notableOverlays(overlays);
   const register = LENS_REGISTER[input.lens];
