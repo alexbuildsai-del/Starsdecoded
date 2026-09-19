@@ -28,9 +28,14 @@ type ReportRow = typeof reportsTable.$inferSelect;
 type ProfileRow = typeof profilesTable.$inferSelect;
 type Viewer = { userId: string | null; sessionId: string };
 
-/** The section keys a report of this type writes, so the status can say which have landed. */
-export function sectionIdsFor(type: string): readonly string[] {
-  return type === "compatibility" ? PAIR_SECTION_IDS : SECTION_IDS;
+/**
+ * The section keys a report of this type writes, so the status can say which
+ * have landed. A blind natal report never writes the house readings (ADR-34),
+ * so its status does not wait for them.
+ */
+export function sectionIdsFor(type: string, horizon?: string): readonly string[] {
+  if (type === "compatibility") return PAIR_SECTION_IDS;
+  return horizon === "unknown" ? SECTION_IDS.filter((id) => id !== "houses") : SECTION_IDS;
 }
 
 /**
@@ -429,7 +434,7 @@ router.get("/reports/:id/status", async (req, res) => {
       // Real progress is the client's to count from `sections` (ADR-47); the
       // orrery runs from these until the chart is stored.
       provisional: p.chartData == null && r.type === "natal" ? provisionalFor(p) : null,
-      sections: Object.fromEntries(sectionIdsFor(r.type).map((id) => [id, id in written ? "done" : "pending"])),
+      sections: Object.fromEntries(sectionIdsFor(r.type, (written.meta as { horizon?: string } | undefined)?.horizon).map((id) => [id, id in written ? "done" : "pending"])),
       interpretation: r.interpretation ?? null,
     });
   } catch (err) {

@@ -27,4 +27,7 @@ test("status: the section keys come from the registry the report's type uses", (
   assert.equal(sectionIdsFor("compatibility").length, 10);
   assert.ok(sectionIdsFor("compatibility").includes("links"));
   assert.ok(!sectionIdsFor("compatibility").includes("houses"));
+  assert.equal(sectionIdsFor("natal", "unknown").length, 10);
+  assert.ok(!sectionIdsFor("natal", "unknown").includes("houses"));
+  assert.equal(sectionIdsFor("natal", "known").length, 11);
 });
