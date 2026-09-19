@@ -85,7 +85,7 @@ test("brief: Marie Curie brief carries sect, chart ruler, rulers, lots and stell
   assert.match(b.text, /SECT \(computed once/);
   assert.match(b.text, /^  sect: day$/m);
   assert.match(b.text, /^  malefic_out_of_sect: mars$/m);
-  assert.equal(b.sect.sect, "day");
+  assert.equal(b.sect?.sect, "day");
   assert.match(b.text, /CHART RULER: Saturn in Scorpio, 11th house/);
   assert.match(b.text, /10th \(Libra\) ruled by Venus, which sits in Scorpio in the 11th, detriment/);
   assert.match(b.text, /LOTS: Fortune .* Spirit /);
@@ -93,7 +93,7 @@ test("brief: Marie Curie brief carries sect, chart ruler, rulers, lots and stell
   assert.match(b.text, /Dominant element water\. Dominant modality fixed\./);
   assert.ok(b.emptyHouses.includes(8));
   assert.equal(Object.keys(b.personalPlanets).length, BODIES.length);
-  assert.ok(b.angleMeanings.ascendant.firstImpression.startsWith("Capricorn rising"));
+  assert.ok(b.angleMeanings?.ascendant.firstImpression.startsWith("Capricorn rising"));
 });
 
 test("brief: the variable tail differs per chart but the static system block does not", () => {
