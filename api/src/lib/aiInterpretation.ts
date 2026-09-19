@@ -156,16 +156,98 @@ function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec
   return parts.join("\n");
 }
 
-class SectionError extends Error {
+export class SectionError extends Error {
   constructor(public readonly key: string, message: string) {
     super(`${key}: ${message}`);
     this.name = "SectionError";
   }
 }
 
-interface SectionResult<T> {
+export interface SectionResult<T> {
   data: T;
   usage: SectionUsage;
+}
+
+export interface StructuredCall<T> {
+  /** Named in the usage row and in the JSON schema registration. */
+  usageKey: string;
+  model: string;
+  system: string;
+  user: string;
+  schema: z.ZodType<T>;
+  maxTokens: number;
+  /** Chart-grounded checks; a non-empty list rejects the reply, retried with the problems named. */
+  validate?: (output: T) => string[];
+}
+
+/**
+ * One schema-enforced call with the retry policy every report shares: a
+ * blind try, then two informed by the rejection, then a loud failure. The
+ * natal sections, the amendment pass and the pair sections all go through
+ * here, so a cap or a refusal is handled once.
+ */
+export async function callStructured<T>(call: StructuredCall<T>): Promise<SectionResult<T>> {
+  const jsonSchema = toStrictJsonSchema(call.schema);
+  const name = call.usageKey.replace(/[^a-zA-Z0-9_]/g, "_");
+  let lastError = "";
+  // Accumulates across attempts: a section that retried twice cost three calls,
+  // and hiding that would understate exactly what we are here to measure.
+  let usage = emptySection(call.usageKey, call.model);
+
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    // A retry that repeats the identical request mostly repeats the mistake.
+    // The problems go at the end of the user turn, so the cached system
+    // prefix is untouched and the model knows exactly what to fix.
+    const content = attempt === 1
+      ? call.user
+      : `${call.user}\n\nPREVIOUS ATTEMPT REJECTED: ${lastError}\nReturn the complete reply again with these fixed. Every claim quote must be copied exactly from the prose in this reply.`;
+    const startedAt = Date.now();
+    const response = await openai.chat.completions.create({
+      model: call.model,
+      max_completion_tokens: call.maxTokens,
+      messages: [
+        { role: "system", content: call.system },
+        { role: "user", content },
+      ],
+      response_format: { type: "json_schema", json_schema: { name, strict: true, schema: jsonSchema } },
+    });
+    usage = addAttempt(usage, response.usage, Date.now() - startedAt);
+
+    const choice = response.choices[0];
+    const message = choice?.message;
+    if (message?.refusal) throw new SectionError(call.usageKey, `model refused: ${message.refusal}`);
+    // A reply cut at the cap is invalid JSON by construction; name the cause
+    // instead of the parse error so the cap, not the model, gets fixed.
+    if (choice?.finish_reason === "length") {
+      const used = response.usage?.completion_tokens;
+      const reasoning = response.usage?.completion_tokens_details?.reasoning_tokens;
+      lastError = `output truncated at max_completion_tokens ${call.maxTokens}`
+        + (used !== undefined ? ` (${used} completion tokens` + (reasoning ? `, ${reasoning} reasoning` : "") + ")" : "");
+      continue;
+    }
+    const reply = message?.content ?? "";
+
+    let raw: unknown;
+    try {
+      raw = JSON.parse(reply);
+    } catch (err) {
+      lastError = `invalid JSON (${(err as Error).message})`;
+      continue;
+    }
+    const parsed = call.schema.safeParse(raw);
+    if (!parsed.success) {
+      lastError = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+      continue;
+    }
+    // Chart-grounded checks: claims must cite real placements, foundation
+    // must echo the computed sect. A failure here is a hallucination, and it
+    // never reaches storage.
+    const problems = call.validate ? call.validate(parsed.data) : [];
+    if (problems.length === 0) return { data: parsed.data, usage };
+    lastError = problems.join("; ");
+  }
+
+  throw new SectionError(call.usageKey, `failed validation after ${ATTEMPTS} attempts: ${lastError}`);
 }
 
 interface CallOptions<T> {
@@ -186,68 +268,12 @@ async function callSection<T>(
 ): Promise<SectionResult<T>> {
   const schema = (options.schema ?? spec.schema) as z.ZodType<T>;
   const validate = options.validate ?? (spec.validate as ((o: T, b: ChartBrief) => string[]) | undefined);
-  const jsonSchema = toStrictJsonSchema(schema);
-  const usageKey = options.usageKey ?? spec.key;
-  const name = usageKey.replace(/[^a-zA-Z0-9_]/g, "_");
-  let lastError = "";
-  // Accumulates across attempts: a section that retried twice cost three calls,
-  // and hiding that would understate exactly what we are here to measure.
-  let usage = emptySection(usageKey, model);
-
-  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
-    // A retry that repeats the identical request mostly repeats the mistake.
-    // The problems go at the end of the user turn, so the cached system
-    // prefix is untouched and the model knows exactly what to fix.
-    const content = attempt === 1
-      ? user
-      : `${user}\n\nPREVIOUS ATTEMPT REJECTED: ${lastError}\nReturn the complete reply again with these fixed. Every claim quote must be copied exactly from the prose in this reply.`;
-    const startedAt = Date.now();
-    const response = await openai.chat.completions.create({
-      model,
-      max_completion_tokens: spec.maxTokens,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content },
-      ],
-      response_format: { type: "json_schema", json_schema: { name, strict: true, schema: jsonSchema } },
-    });
-    usage = addAttempt(usage, response.usage, Date.now() - startedAt);
-
-    const choice = response.choices[0];
-    const message = choice?.message;
-    if (message?.refusal) throw new SectionError(usageKey, `model refused: ${message.refusal}`);
-    // A reply cut at the cap is invalid JSON by construction; name the cause
-    // instead of the parse error so the cap, not the model, gets fixed.
-    if (choice?.finish_reason === "length") {
-      const used = response.usage?.completion_tokens;
-      const reasoning = response.usage?.completion_tokens_details?.reasoning_tokens;
-      lastError = `output truncated at max_completion_tokens ${spec.maxTokens}`
-        + (used !== undefined ? ` (${used} completion tokens` + (reasoning ? `, ${reasoning} reasoning` : "") + ")" : "");
-      continue;
-    }
-    const reply = message?.content ?? "";
-
-    let raw: unknown;
-    try {
-      raw = JSON.parse(reply);
-    } catch (err) {
-      lastError = `invalid JSON (${(err as Error).message})`;
-      continue;
-    }
-    const parsed = schema.safeParse(raw);
-    if (!parsed.success) {
-      lastError = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
-      continue;
-    }
-    // Chart-grounded checks: claims must cite real placements, foundation
-    // must echo the computed sect. A failure here is a hallucination, and it
-    // never reaches storage.
-    const problems = validate ? validate(parsed.data, brief) : [];
-    if (problems.length === 0) return { data: parsed.data, usage };
-    lastError = problems.join("; ");
-  }
-
-  throw new SectionError(usageKey, `failed validation after ${ATTEMPTS} attempts: ${lastError}`);
+  return callStructured<T>({
+    usageKey: options.usageKey ?? spec.key,
+    model, system, user, schema,
+    maxTokens: spec.maxTokens,
+    validate: validate ? (out) => validate(out, brief) : undefined,
+  });
 }
 
 /** Claims replaced by their validated, labelled form. A claimless section passes through. */
