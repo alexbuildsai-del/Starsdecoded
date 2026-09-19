@@ -8,22 +8,21 @@ import { PLANET_GLYPHS, type Claim } from "@/types/chart";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { CitedText, newCitationCounter } from "@/components/report/Citation";
+import { AngleGlyph, type AngleKey } from "@/components/report/AngleGlyph";
 import type { Occupant } from "@/lib/house-occupants";
 import {
   HOUSE_NAMES, HOUSE_QUESTIONS, HOUSE_THEMES, ORDINALS, QUADRANTS,
 } from "@/lib/evidence-glossary";
 import { PLANET_LABELS } from "@/types/chart";
 
-/** Which chapter picks a house's affairs up. Houses not listed here send nowhere. */
+/** Which chapter picks a house's affairs up. Houses not listed here send nowhere (ADR-46: no Your Path). */
 export const HOUSE_CHAPTER: Record<number, { number: number; title: string }> = {
   1: { number: 3, title: "Mind" },
   2: { number: 5, title: "Money" },
   3: { number: 3, title: "Mind" },
   4: { number: 7, title: "Family" },
-  5: { number: 10, title: "Your Path" },
   7: { number: 6, title: "Relationships" },
   10: { number: 4, title: "Career" },
-  11: { number: 10, title: "Your Path" },
 };
 
 export interface TriadPassage {
@@ -61,11 +60,8 @@ function OccupantMark({ o }: { o: Occupant }) {
       </span>
     );
   }
-  return (
-    <span aria-hidden className="grid h-9 w-9 place-items-center rounded-full border-[1.5px] border-brass">
-      <span className="h-1.5 w-1.5 rounded-full bg-brass" />
-    </span>
-  );
+  // The R03 marker (ADR-49): the tick points east for the Ascendant, up for the Midheaven.
+  return <AngleGlyph angle={o.key as AngleKey} size={36} className="h-9 w-9" />;
 }
 
 export function HouseCard({

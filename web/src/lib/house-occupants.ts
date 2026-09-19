@@ -32,12 +32,15 @@ export const ANGLE_LABELS: Record<string, string> = {
   midheaven: "Midheaven",
 };
 
-/** The whole-sign house the Midheaven falls in. It is not always the 10th. */
-export function midheavenHouse(chart: ChartData): number {
+/** The whole-sign house the Midheaven falls in. It is not always the 10th; a blind chart has none. */
+export function midheavenHouse(chart: ChartData): number | null {
+  if (!chart.angles) return null;
   return houseOf(chart.angles.midheaven.absoluteDegree, chart.angles.ascendant.absoluteDegree);
 }
 
 export function houseOccupants(chart: ChartData, house: number): Occupant[] {
+  // A blind chart has no houses to stand in (ADR-34): nothing reads a house it does not carry.
+  if (!chart.angles) return [];
   const asc = chart.angles.ascendant;
   const out: Occupant[] = [];
 
