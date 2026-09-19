@@ -1,0 +1,10 @@
+{
+  "name": "Marie Curie",
+  "birthDate": "1867-11-07",
+  "birthTime": "12:00",
+  "birthTimeWindowMinutes": 720,
+  "latitude": 52.2297,
+  "longitude": 21.0122,
+  "timezoneOffset": 1.4,
+  "note": "The marie-curie fixture with the birth time not recorded: the same real birth data, the band at 720 minutes around noon, so the horizon is unknown and the report is written blind (ADR-33, ADR-34). The lab's --pass run generates this and then adds the 12:00 time back through the horizon pass. No fabrication: noon is a centre for positions, never a birth time."
+}
