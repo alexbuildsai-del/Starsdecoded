@@ -1,9 +1,18 @@
-import { useState, type CSSProperties } from "react";
+/**
+ * The natal report: one page, one sky (ADR-48, ADR-51). The opening overlay
+ * holds the page until the reader takes the door or it opens itself; the
+ * hero ring then gathers the stars. Ten chapters, the last one Closing
+ * (ADR-46); a chapter not yet landed shows a skeleton. A blind report renders
+ * no rising text and no house readings, the call to action instead, and the
+ * ledger above chapter 01 once a pass has run (ADR-35, ADR-37).
+ */
+import { useCallback, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
-import { useRegenerateReport } from "@workspace/api-client-react";
+import { getGetReportQueryKey, getGetReportStatusQueryKey, useRegenerateReport } from "@workspace/api-client-react";
 import LoadingState from "@/components/LoadingState";
 import {
   PLANET_GLYPHS,
@@ -11,6 +20,7 @@ import {
   isCurrentInterpretation,
   type ChartData,
   type ChartPlanet,
+  type Interpretation,
 } from "@/types/chart";
 import {
   OverviewBlock, DeepdiveBlock, MindBlock, MindRail, CareerBlock, CareerRail,
@@ -21,17 +31,21 @@ import { ReportHero } from "@/components/report/ReportHero";
 import { ReportSky } from "@/components/report/ReportSky";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
+import { ChapterSkeleton } from "@/components/report/ChapterSkeleton";
 import { ChartExplorer } from "@/components/report/ChartExplorer";
 import { BalanceRail } from "@/components/report/BalanceRail";
-import { PathBlock } from "@/components/report/PathBlock";
-import { NodalAxis } from "@/components/report/NodalAxis";
 import { DawnClosing } from "@/components/report/DawnClosing";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
+import { OpeningOverlay } from "@/components/report/OpeningOverlay";
+import { RevisionLedger, marksShown, rememberMarks } from "@/components/report/RevisionLedger";
+import { RevisionProvider, revisionSet } from "@/components/report/RevisedText";
+import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { chapterAccent } from "@/lib/chapter-accent";
+import type { Ring } from "@/lib/gather";
 
-/** Eleven chapters, in the locked order. The section each one waits for is its own. */
+/** Ten chapters, in the locked order (ADR-46). The section each one waits for is its own. */
 const CHAPTERS = [
   { eyebrow: "Overview", title: "Chart Overview", section: "overview" },
   { eyebrow: "Chart", title: "Natal Chart Deepdive", section: "houses" },
@@ -42,49 +56,25 @@ const CHAPTERS = [
   { eyebrow: "Roots", title: "Family & Roots", section: "family" },
   { eyebrow: "Self-Knowledge", title: "Superpowers, Chronic Patterns & Growing Edges", section: "superpowers" },
   { eyebrow: "Paradoxes", title: "Key Paradoxes & Discoveries", section: "discoveries" },
-  { eyebrow: "Path", title: "Your Path", section: "path" },
-  { eyebrow: "Focus", title: "What to Focus On", section: "focus" },
+  { eyebrow: "Closing", title: "Closing", section: "focus" },
 ];
 const TOTAL = CHAPTERS.length;
 const OPENING_ACCENT = "#5C6BC0";
 
-function Writing() {
+function PlanetRow({ name, planet, meaning }: { name: string; planet: ChartPlanet; meaning?: string }) {
   return (
-    <p className="font-label text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
-      Still writing this chapter
-    </p>
-  );
-}
-
-function PlanetRow({
-  name,
-  planet,
-  meaning,
-}: {
-  name: string;
-  planet: ChartPlanet;
-  meaning?: string;
-}) {
-  return (
-    <div
-      id={`planet-${name}`}
-      className="py-3 border-b border-border/30 last:border-0 scroll-mt-24"
-    >
+    <div id={`planet-${name}`} className="py-3 border-b border-border/30 last:border-0 scroll-mt-24">
       <div className="flex items-center gap-3">
         <span className="w-6 text-center text-lg text-primary/80">{PLANET_GLYPHS[name] ?? "·"}</span>
         <span className="font-label text-sm w-24 text-muted-foreground">{PLANET_LABELS[name] ?? name}</span>
         <span className="font-numeric text-base flex-1">
           {planet.degree.toFixed(1)}° {planet.sign}
         </span>
-        <span className="font-numeric text-xs text-muted-foreground">H{planet.house}</span>
-        {planet.retrograde && (
-          <span className="text-xs text-amber-400 font-label">Rx</span>
-        )}
+        {planet.house && <span className="font-numeric text-xs text-muted-foreground">H{planet.house}</span>}
+        {planet.retrograde && <span className="text-xs text-amber-400 font-label">Rx</span>}
       </div>
       {meaning && (
-        <p className="mt-2 ml-9 pr-2 text-sm leading-relaxed text-foreground/80 whitespace-pre-line">
-          {meaning}
-        </p>
+        <p className="mt-2 ml-9 pr-2 text-sm leading-relaxed text-foreground/80 whitespace-pre-line">{meaning}</p>
       )}
     </div>
   );
@@ -101,13 +91,24 @@ function Centred({ children }: { children: React.ReactNode }) {
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const client = useQueryClient();
   const [active, setActive] = useState(-1);
+  const [ring, setRing] = useState<Ring | null>(null);
+  const [askTime, setAskTime] = useState(false);
+  const [marks, setMarks] = useState(() => marksShown(id ?? ""));
 
-  const regenerate = useRegenerateReport();
   const live = useLiveReport(id!);
-  const { report, interpretation, sections, workbook, writing } = live;
+  const { report, sections, workbook, writing, revising, open, setOpen, progress, horizonPass } = live;
+  const interpretation = live.interpretation as Interpretation | null;
+
+  const refresh = useCallback(() => {
+    client.invalidateQueries({ queryKey: getGetReportQueryKey(id!) });
+    client.invalidateQueries({ queryKey: getGetReportStatusQueryKey(id!) });
+  }, [client, id]);
+  const regenerate = useRegenerateReport({ mutation: { onSuccess: refresh } });
 
   const handlePrint = () => window.print();
+  const onRing = useCallback((r: Ring) => setRing((prev) => (prev && prev.cx === r.cx && prev.cy === r.cy && prev.r === r.r ? prev : r)), []);
 
   if (live.isLoading) return <LoadingState label="Loading your report…" />;
 
@@ -120,43 +121,19 @@ export default function ReportPage() {
     );
   }
 
-  if (report.status === "failed") {
-    return (
-      <Centred>
-        <p className="text-muted-foreground mb-4">
-          {live.errorMessage ?? "This report could not be generated."}
-        </p>
-        <Button onClick={() => navigate("/chart")} variant="outline">Start over</Button>
-      </Centred>
-    );
-  }
-
-  // The chart is what the page opens on. Until it exists there is nothing to show.
-  if (!report.chartData || !interpretation) {
-    return (
-      <Centred>
-        <p className="text-muted-foreground mb-4">This report is still being computed.</p>
-        <Button onClick={() => navigate(`/generating/${id}`)} variant="outline">Check status</Button>
-      </Centred>
-    );
-  }
-
-  const chartData = report.chartData as unknown as ChartData;
+  const chartData = (report.chartData ?? null) as unknown as ChartData | null;
+  const failed = report.status === "failed" && !interpretation;
 
   // MB-45 provisional: a finished report from an earlier prompt version keeps
   // its words but not this page's shape, so it is offered a regeneration and
   // never regenerated on its own.
-  if (!writing && !isCurrentInterpretation(interpretation)) {
+  if (!writing && interpretation && !isCurrentInterpretation(interpretation)) {
     return (
       <Centred>
         <p className="text-muted-foreground mb-4">
           This report was generated with an earlier version and needs to be regenerated to view.
         </p>
-        <Button
-          variant="outline"
-          disabled={regenerate.isPending}
-          onClick={() => regenerate.mutate({ id: id! }, { onSuccess: () => navigate(`/generating/${id}`) })}
-        >
+        <Button variant="outline" disabled={regenerate.isPending} onClick={() => regenerate.mutate({ id: id! })}>
           {regenerate.isPending ? "Starting…" : "Regenerate"}
         </Button>
         {regenerate.isError && (
@@ -166,35 +143,76 @@ export default function ReportPage() {
     );
   }
 
+  // Until the door is taken the page is the overlay on the sky; behind it the
+  // body mounts as soon as the chart and the first sections exist.
+  const ready = !!chartData && !!interpretation;
+  const showOverlay = !open || failed;
+  const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1);
+  const onHero = active < 0;
+  const revisions = revisionSet(horizonPass, marks);
+
+  if (!ready) {
+    return (
+      <div className="rp-root min-h-screen" style={{ "--accent": OPENING_ACCENT } as CSSProperties}>
+        <ReportSky accent={OPENING_ACCENT} opening />
+        <OpeningOverlay
+          progress={progress}
+          provisional={live.provisional}
+          chart={chartData}
+          errorMessage={live.errorMessage}
+          onOpen={setOpen}
+          onRetry={() => regenerate.mutate({ id: id! })}
+          retrying={regenerate.isPending}
+        />
+      </div>
+    );
+  }
+
+  const blind = chartData.angles === undefined;
   const mainPlanets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
   const minorPlanets = ["chiron", "north_node", "south_node"];
   const angles = interpretation.angleMeanings;
 
-  const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1);
-  const onHero = active < 0;
   const done = (key: string) => !writing || sections[key] === "done";
-  const rail = CHAPTERS.map((c) => ({ eyebrow: c.eyebrow, title: c.title, writing: !done(c.section) }));
-  const ch = (n: number) => ({
-    number: n,
-    total: TOTAL,
-    eyebrow: CHAPTERS[n - 1].eyebrow,
-    title: CHAPTERS[n - 1].title,
-  });
+  const rail = CHAPTERS.map((c) => ({
+    eyebrow: c.eyebrow, title: c.title,
+    writing: !revising && !done(c.section),
+    revising: revising && !done(c.section),
+  }));
+  const ch = (n: number) => ({ number: n, total: TOTAL, eyebrow: CHAPTERS[n - 1].eyebrow, title: CHAPTERS[n - 1].title });
+  const body = (key: string, node: React.ReactNode) => (done(key) && node ? node : <ChapterSkeleton lines={key === "focus" ? 4 : 5} />);
+  const openTime = () => setAskTime(true);
 
   return (
     <WorkbookProvider reportId={id!} initial={workbook}>
-    <div className="rp-root min-h-screen" style={{ "--accent": accent } as CSSProperties}>
-      <ReportSky accent={accent} opening={onHero} />
+    <RevisionProvider value={revisions}>
+    <div className={`rp-root min-h-screen${marks ? "" : " marks-off"}`} style={{ "--accent": accent } as CSSProperties}>
+      <ReportSky accent={accent} opening={onHero} gatherTo={open ? ring : null} />
+
+      {showOverlay && (
+        <OpeningOverlay
+          progress={progress}
+          provisional={live.provisional}
+          chart={chartData}
+          errorMessage={live.errorMessage}
+          onOpen={setOpen}
+          onRetry={failed ? () => regenerate.mutate({ id: id! }) : undefined}
+          retrying={regenerate.isPending}
+        />
+      )}
 
       <ReportHero
         name={report.name}
         birthDate={report.birthDate}
         birthTime={report.birthTime}
+        birthTimeWindowMinutes={report.birthTimeWindowMinutes}
         birthPlace={report.birthPlace}
         latitude={report.latitude}
         longitude={report.longitude}
         chartData={chartData}
         meta={interpretation.meta}
+        onAddBirthTime={report.profileId ? openTime : undefined}
+        onRing={onRing}
       />
 
       {/* Chrome sits on the opening plate without a ground, and takes one once the reading starts. */}
@@ -212,27 +230,38 @@ export default function ReportPage() {
             Dashboard
           </button>
           <div className="flex items-center gap-2">
-            {/* MB-44 provisional: a half-written report is readable but not exportable. */}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={writing}
-              onClick={handlePrint}
-              className="font-label text-xs gap-1.5"
-            >
+            {/* Export reads the same status the door reads and flips at complete (ADR-48). */}
+            <Button variant="outline" size="sm" disabled={writing} onClick={handlePrint} className="font-label text-xs gap-1.5">
               <Download className="h-3.5 w-3.5" />
-              {writing ? "Writing…" : "Export PDF"}
+              {revising ? "Revising…" : writing ? "Writing…" : "Export PDF"}
             </Button>
             <AccountMenu />
           </div>
         </div>
       </nav>
 
-      <ChapterRail chapters={rail} active={active} onActive={setActive} />
+      <ChapterRail
+        chapters={rail}
+        active={active}
+        onActive={setActive}
+        revision={horizonPass ? { sentencesRevised: horizonPass.sentencesRevised, paragraphsAdded: horizonPass.paragraphsAdded, at: horizonPass.at } : null}
+      />
 
       <main className="rp-body pb-20">
+        {horizonPass && (
+          <div className="rp-chapter">
+            <RevisionLedger
+              pass={horizonPass}
+              chart={chartData}
+              meta={interpretation.meta}
+              shown={marks}
+              onToggle={(next) => { setMarks(next); rememberMarks(id!, next); }}
+            />
+          </div>
+        )}
+
         <Chapter {...ch(1)} lede={interpretation.overview?.headline}>
-          {interpretation.overview ? <OverviewBlock s={interpretation.overview} /> : <Writing />}
+          {body("overview", interpretation.overview && <OverviewBlock s={interpretation.overview} />)}
         </Chapter>
 
         <Chapter {...ch(2)}>
@@ -241,10 +270,12 @@ export default function ReportPage() {
             orbs={interpretation.meta.orbs}
             readings={interpretation.houses?.houses}
             triad={interpretation.triad}
+            birthPlace={report.birthPlace}
+            onAddBirthTime={report.profileId ? openTime : undefined}
           />
 
           <div className="mt-10">
-            {interpretation.overview ? <DeepdiveBlock s={interpretation.overview} /> : <Writing />}
+            {body("overview", interpretation.overview && <DeepdiveBlock s={interpretation.overview} />)}
             <div className="mt-6">
               <BalanceRail chartData={chartData} />
             </div>
@@ -254,7 +285,7 @@ export default function ReportPage() {
               lives, since the cards on screen now read the generated section. */}
           <div className="hidden print:block mt-5 space-y-3">
             {(["mercury", "venus", "mars", "jupiter", "saturn"] as const).map((name) => {
-              const text = interpretation.personalPlanets[name];
+              const text = interpretation.personalPlanets?.[name];
               const planet = chartData.planets[name];
               if (!text || !planet) return null;
               return (
@@ -266,15 +297,13 @@ export default function ReportPage() {
                         {PLANET_LABELS[name]} in {planet.sign}
                       </span>
                     </div>
-                    <span className="font-numeric text-[11px] text-muted-foreground">
-                      H{planet.house}
-                    </span>
+                    {planet.house && <span className="font-numeric text-[11px] text-muted-foreground">H{planet.house}</span>}
                   </div>
                   <p className="text-sm leading-relaxed text-foreground/80">{text}</p>
                 </div>
               );
             })}
-            {angles && (
+            {angles && !blind && (
               <div className="p-5 rounded-xl border border-border/60 bg-card/40">
                 <p className="font-label text-xs text-muted-foreground tracking-wider uppercase mb-2">Angles</p>
                 <p className="text-sm leading-relaxed text-foreground/80">{angles.ascendant.firstImpression}</p>
@@ -285,8 +314,7 @@ export default function ReportPage() {
             )}
           </div>
 
-          {/* Placement table — print only; the PDF is the one place every
-              degree appears. */}
+          {/* Placement table, print only; the PDF is the one place every degree appears. */}
           <div className="hidden print:block print:mt-8">
             <div className="rounded-xl border border-border/60 bg-card/40 divide-y divide-border/30 overflow-hidden">
               <div className="px-5 py-3 bg-muted/20">
@@ -296,14 +324,7 @@ export default function ReportPage() {
                 {mainPlanets.map((name) => {
                   const planet = chartData.planets[name];
                   if (!planet) return null;
-                  return (
-                    <PlanetRow
-                      key={name}
-                      name={name}
-                      planet={planet}
-                      meaning={interpretation.personalPlanets?.[name]}
-                    />
-                  );
+                  return <PlanetRow key={name} name={name} planet={planet} meaning={interpretation.personalPlanets?.[name]} />;
                 })}
               </div>
               <div className="px-5 py-3 bg-muted/20">
@@ -313,14 +334,7 @@ export default function ReportPage() {
                 {minorPlanets.map((name) => {
                   const planet = chartData.planets[name];
                   if (!planet) return null;
-                  return (
-                    <PlanetRow
-                      key={name}
-                      name={name}
-                      planet={planet}
-                      meaning={interpretation.personalPlanets?.[name]}
-                    />
-                  );
+                  return <PlanetRow key={name} name={name} planet={planet} meaning={interpretation.personalPlanets?.[name]} />;
                 })}
               </div>
             </div>
@@ -328,46 +342,57 @@ export default function ReportPage() {
         </Chapter>
 
         <Chapter {...ch(3)} aside={interpretation.mind ? <MindRail s={interpretation.mind} /> : undefined}>
-          {interpretation.mind ? <MindBlock s={interpretation.mind} /> : <Writing />}
+          {body("mind", interpretation.mind && <MindBlock s={interpretation.mind} />)}
         </Chapter>
 
         <Chapter {...ch(4)} aside={interpretation.career ? <CareerRail s={interpretation.career} /> : undefined}>
-          {interpretation.career ? <CareerBlock s={interpretation.career} /> : <Writing />}
+          {body("career", interpretation.career && <CareerBlock s={interpretation.career} />)}
         </Chapter>
 
         <Chapter {...ch(5)} aside={interpretation.money ? <MoneyRail s={interpretation.money} /> : undefined}>
-          {interpretation.money ? <MoneyBlock s={interpretation.money} /> : <Writing />}
+          {body("money", interpretation.money && <MoneyBlock s={interpretation.money} />)}
         </Chapter>
 
         <Chapter {...ch(6)} aside={interpretation.relationships ? <RelationshipsRail s={interpretation.relationships} /> : undefined}>
-          {interpretation.relationships ? <RelationshipsBlock s={interpretation.relationships} /> : <Writing />}
+          {body("relationships", interpretation.relationships && <RelationshipsBlock s={interpretation.relationships} />)}
         </Chapter>
 
         <Chapter {...ch(7)} aside={interpretation.family ? <FamilyRail s={interpretation.family} /> : undefined}>
-          {interpretation.family ? <FamilyBlock s={interpretation.family} /> : <Writing />}
+          {body("family", interpretation.family && <FamilyBlock s={interpretation.family} />)}
         </Chapter>
 
         <Chapter {...ch(8)}>
-          {interpretation.superpowers ? <SuperpowersBlock s={interpretation.superpowers} /> : <Writing />}
+          {body("superpowers", interpretation.superpowers && <SuperpowersBlock s={interpretation.superpowers} />)}
         </Chapter>
 
         <Chapter {...ch(9)}>
-          {interpretation.discoveries ? <DiscoveriesBlock s={interpretation.discoveries} /> : <Writing />}
+          {body("discoveries", interpretation.discoveries && <DiscoveriesBlock s={interpretation.discoveries} />)}
         </Chapter>
 
-        <Chapter {...ch(10)} aside={<NodalAxis chartData={chartData} />}>
-          {interpretation.path ? <PathBlock s={interpretation.path} /> : <Writing />}
-        </Chapter>
-
-        <Chapter {...ch(11)}>
-          {interpretation.focus ? <DawnClosing s={interpretation.focus} /> : <Writing />}
+        <Chapter {...ch(10)}>
+          {body("focus", interpretation.focus && <DawnClosing s={interpretation.focus} />)}
         </Chapter>
 
         <div className="rp-chapter">
-          <MethodologyStrip meta={interpretation.meta} />
+          <MethodologyStrip meta={interpretation.meta} chart={chartData} birthTime={report.birthTime} pass={horizonPass} />
         </div>
       </main>
+
+      {askTime && report.profileId && (
+        <BirthTimeDialog
+          open={askTime}
+          onClose={() => setAskTime(false)}
+          onDone={refresh}
+          profile={{
+            id: report.profileId, name: report.name, birthDate: report.birthDate, birthTime: report.birthTime,
+            birthTimeWindowMinutes: report.birthTimeWindowMinutes, birthPlace: report.birthPlace,
+            latitude: report.latitude, longitude: report.longitude, timezone: report.timezone, timezoneOffset: report.timezoneOffset,
+            horizonPasses: report.horizonPasses,
+          }}
+        />
+      )}
     </div>
+    </RevisionProvider>
     </WorkbookProvider>
   );
 }

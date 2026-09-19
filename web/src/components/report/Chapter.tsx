@@ -37,8 +37,9 @@ export function Chapter({
       <div className="rp-chapter">
         <header className="rp-head">
           <span className="rp-bignum no-print" aria-hidden>{pad}</span>
+          {/* The closing's eyebrow is its title (ADR-46): the word is printed once, over the number. */}
           <p className="rp-eye">
-            <span className="font-numeric">{pad} / {total}</span> · {eyebrow.toUpperCase()}
+            <span className="font-numeric">{pad} / {total}</span>{eyebrow !== title && <> · {eyebrow.toUpperCase()}</>}
           </p>
           <h2>{title}</h2>
           <div className="rp-rule" />

@@ -25,6 +25,7 @@ import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { PLANET_LABELS, type ChartData, type ChartPlanet, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import type { Ring } from "@/lib/gather";
 
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
@@ -122,10 +123,12 @@ export interface ReportHeroProps {
   meta: Interpretation["meta"];
   /** Opens the three-way birth time control; the blind hero's third legend line. */
   onAddBirthTime?: () => void;
+  /** Where the ring is on screen, so the sky can gather its stars onto it (ADR-47). */
+  onRing?: (ring: Ring) => void;
 }
 
 export function ReportHero({
-  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime,
+  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, onRing,
 }: ReportHeroProps) {
   const narrow = useNarrow();
   const reduced = useReducedMotion();
@@ -136,6 +139,23 @@ export function ReportHero({
   const nameRef = useRef<HTMLDivElement>(null);
   const sunRef = useRef<SVGImageElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<SVGCircleElement>(null);
+  const onRingRef = useRef(onRing);
+  onRingRef.current = onRing;
+
+  // The ring's place on screen, measured at rest: the gather lands on it.
+  useEffect(() => {
+    function measure() {
+      const el = ringRef.current;
+      if (!el || !onRingRef.current) return;
+      const b = el.getBoundingClientRect();
+      if (b.width < 2) return;
+      onRingRef.current({ cx: b.left + b.width / 2, cy: b.top + b.height / 2, r: b.width / 2 });
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [narrow]);
 
   useEffect(() => {
     let frame = 0;
@@ -277,7 +297,7 @@ export function ReportHero({
           aria-label={blind ? `${name}: Sun and Moon at their true positions; the horizon is not drawn` : `${name}: Sun, Moon and Rising at their true positions`}
         >
           <g ref={diagramRef}>
-            <circle cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
+            <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
             {Array.from({ length: 12 }, (_, i) => i * 30).map((d) => {
               const t = theta(d, frame);
               const p1 = pointAt(cx, cy, R, t);
