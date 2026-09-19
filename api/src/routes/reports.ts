@@ -389,6 +389,7 @@ router.get("/reports/:id", async (req, res) => {
       timezoneOffset: p.timezoneOffset,
       timezone: p.timezone ?? null,
       birthTimeWindowMinutes: p.birthTimeWindowMinutes,
+      profileId: r.type === "natal" ? p.id : null,
       type: r.type,
       lens: relationship?.type ?? null,
       participants,

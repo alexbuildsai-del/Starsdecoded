@@ -875,6 +875,8 @@ export interface Report {
   timezoneOffset: number;
   timezone?: string | null;
   birthTimeWindowMinutes: number;
+  /** The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report. */
+  profileId?: string | null;
   type: ReportType;
   lens?: RelationshipType | null;
   /** The two people of a compatibility report. Null on a natal report. */
@@ -919,6 +921,9 @@ export interface ProfileSummary {
   birthDate: string;
   birthTime: string;
   birthPlace: string;
+  latitude?: number;
+  longitude?: number;
+  timezoneOffset?: number;
   timezone?: string | null;
   birthTimeWindowMinutes?: number;
   horizon?: ProfileSummaryHorizon;

@@ -2026,6 +2026,10 @@ components:
           nullable: true
         birthTimeWindowMinutes:
           type: integer
+        profileId:
+          type: string
+          nullable: true
+          description: The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.
         type:
           type: string
           enum: [natal, compatibility]
@@ -2088,6 +2092,9 @@ components:
         birthDate: { type: string }
         birthTime: { type: string }
         birthPlace: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        timezoneOffset: { type: number }
         timezone: { type: string, nullable: true }
         birthTimeWindowMinutes: { type: integer }
         horizon:
