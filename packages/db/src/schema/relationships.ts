@@ -7,7 +7,8 @@ export const relationshipsTable = pgTable(
     id: text("id").primaryKey(),
     sessionId: text("session_id").notNull(),
     userId: text("user_id"),
-    type: text("type").notNull().default("custom"),
+    /** The lens: partners, parent_child or family (ADR-40). */
+    type: text("type").notNull().default("family"),
     label: text("label"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -58,11 +59,8 @@ export const relationshipParticipantsTable = pgTable(
 
 export type Relationship = typeof relationshipsTable.$inferSelect;
 export type RelationshipParticipant = typeof relationshipParticipantsTable.$inferSelect;
-export type RelationshipType =
-  | "romantic"
-  | "parent_child"
-  | "sibling"
-  | "custom";
+export const RELATIONSHIP_TYPES = ["partners", "parent_child", "family"] as const;
+export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
 
 export type RelationshipRole = "primary" | "secondary";
 export type RelationshipAccessRole = "owner" | "participant" | "viewer";
