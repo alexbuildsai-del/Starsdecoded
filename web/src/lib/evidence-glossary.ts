@@ -167,6 +167,17 @@ export function glossFor(ref: EvidenceRef): string {
       const sign = SIGN_MEANINGS[str(ref.sign)] ?? "";
       return [meaning, sign && `${label(ref.sign)} ${sign}.`].filter(Boolean).join(" ");
     }
+    // The pair's two kinds (ADR-41): a cross-chart shape, or a claim read from one of the two natal reports.
+    case "cross": {
+      if (typeof ref.aspect === "string") {
+        const meaning = ASPECT_MEANINGS[str(ref.aspect)] ?? "";
+        return `${meaning} Here it runs between the two charts: one person's ${label(ref.planetA)} and the other's ${label(ref.planetB)}.`.trim();
+      }
+      const body = BODY_MEANINGS[str(ref.planet)] ?? "";
+      return [body && cap(body) + ".", `It falls in the other person's ${theHouse(ref.house)}.`].filter(Boolean).join(" ");
+    }
+    case "source":
+      return `Read from the natal report's ${label(ref.section)} chapter, claim ${typeof ref.claim === "number" ? ref.claim : ""}; the evidence is that report's own, verified when it was written.`.replace(/\s+;/, ";");
     default:
       return "";
   }

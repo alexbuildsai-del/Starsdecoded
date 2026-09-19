@@ -21,6 +21,7 @@ import { APP_ENV } from "@/lib/appEnv";
 const importBirthForm = () => import("@/pages/BirthFormPage");
 const importReport = () => import("@/pages/ReportPage");
 const importDashboard = () => import("@/pages/DashboardPage");
+const importCompatibility = () => import("@/pages/CompatibilityReportPage");
 const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
 const importClaim = () => import("@/pages/ClaimPage");
 const importPrivacy = () => import("@/pages/legal/PrivacyPage");
@@ -31,6 +32,7 @@ const importCompany = () => import("@/pages/legal/CompanyPage");
 const BirthFormPage = lazy(importBirthForm);
 const ReportPage = lazy(importReport);
 const DashboardPage = lazy(importDashboard);
+const CompatibilityReportPage = lazy(importCompatibility);
 const AdminPromptsPage = lazy(importAdminPrompts);
 const ClaimPage = lazy(importClaim);
 const PrivacyPage = lazy(importPrivacy);
@@ -229,6 +231,7 @@ function Routes() {
         {/* One page: a report is read while it is written (ADR-48), so the old waiting room redirects. */}
         <Route path="/generating/:id">{(params) => <Redirect to={`/report/${params.id}`} />}</Route>
         <Route path="/report/:id" component={ReportPage} />
+        <Route path="/compatibility/:id" component={CompatibilityReportPage} />
         <Route path="/dashboard" component={DashboardPage} />
         <Route path="/people">{() => <Redirect to="/dashboard" />}</Route>
         <Route path="/claim" component={ClaimPage} />
