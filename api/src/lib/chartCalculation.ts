@@ -34,6 +34,8 @@ function normalizeAngle(deg: number): number {
   return ((deg % 360) + 360) % 360;
 }
 
+const r2 = (n: number): number => Math.round(n * 100) / 100;
+
 function getSign(absoluteDegree: number): string {
   return SIGNS[Math.floor(normalizeAngle(absoluteDegree) / 30) % 12];
 }
@@ -154,7 +156,18 @@ interface AspectData {
 export const ASPECT_ORBS = { conjunction: 8, opposition: 8, square: 6, trine: 6, sextile: 4 } as const;
 export const EPHEMERIS = "astronomy-engine (Don Cross), tropical zodiac, mean lunar node";
 
-function calcAspects(positions: Record<string, number>): AspectData[] {
+/** Separation of two longitudes, 0 to 180. */
+function separation(a: number, b: number): number {
+  const d = Math.abs(normalizeAngle(a) - normalizeAngle(b));
+  return d > 180 ? 360 - d : d;
+}
+
+/**
+ * The Moon's aspects widen to its travel across a birth-time band: an aspect
+ * holds if any point of the arc the Moon covered is within orb, and the orb
+ * reported is the closest that arc comes.
+ */
+function calcAspects(positions: Record<string, number>, bands: Record<string, DegreeBand | undefined> = {}): AspectData[] {
   const aspectDefs = [
     { name: "conjunction", angle: 0, orb: ASPECT_ORBS.conjunction },
     { name: "opposition", angle: 180, orb: ASPECT_ORBS.opposition },
@@ -165,6 +178,14 @@ function calcAspects(positions: Record<string, number>): AspectData[] {
 
   const aspects: AspectData[] = [];
   const planets = Object.keys(positions);
+  const samples = (name: string): number[] => {
+    const band = bands[name];
+    if (!band) return [positions[name]];
+    const span = normalizeAngle(band.toDegree - band.fromDegree);
+    const arc = span > 180 ? span - 360 : span;
+    const n = Math.max(1, Math.ceil(Math.abs(arc) / 0.5));
+    return Array.from({ length: n + 1 }, (_, k) => normalizeAngle(band.fromDegree + (arc * k) / n));
+  };
 
   for (let i = 0; i < planets.length; i++) {
     for (let j = i + 1; j < planets.length; j++) {
@@ -172,11 +193,11 @@ function calcAspects(positions: Record<string, number>): AspectData[] {
       const p2 = planets[j];
       const lon1 = positions[p1];
       const lon2 = positions[p2];
-      let diff = Math.abs(lon1 - lon2);
-      if (diff > 180) diff = 360 - diff;
+      const s1 = samples(p1), s2 = samples(p2);
 
       for (const aspect of aspectDefs) {
-        const orb = Math.abs(diff - aspect.angle);
+        let orb = Infinity;
+        for (const a of s1) for (const b of s2) orb = Math.min(orb, Math.abs(separation(a, b) - aspect.angle));
         if (orb <= aspect.orb) {
           aspects.push({
             planet1: p1,
@@ -195,10 +216,64 @@ function calcAspects(positions: Record<string, number>): AspectData[] {
 
 /**
  * Bump when a field is added to NatalChartData so cached charts on profiles
- * are recomputed on next use (see profiles.ts).
+ * are recomputed on next use (see profiles.ts). 3: the horizon status and the
+ * birth-time band (ADR-33, ADR-34).
  */
-export const CHART_VERSION = 2;
+export const CHART_VERSION = 3;
 
+export type HorizonStatus = "known" | "approximate" | "unknown";
+
+/**
+ * One fact the birth hour decides, swept across the birth-time band at
+ * two-minute steps. `value` is the centre time's; `holds` says it never
+ * changed across the band; `flipsAt` are the local times inside the band at
+ * which it changed, `values` the sequence it took. `holdsFrom` and `holdsTo`
+ * bound the centre value's run within the birth day, for the readout.
+ */
+export interface HorizonFact {
+  value: string;
+  holds: boolean;
+  flipsAt: string[];
+  values: string[];
+  holdsFrom: string;
+  holdsTo: string;
+}
+
+export interface Horizon {
+  status: HorizonStatus;
+  ascendant: HorizonFact;
+  midheaven: HorizonFact;
+  sect: HorizonFact;
+  moonSign: HorizonFact;
+  sunSign: HorizonFact;
+}
+
+/** The arc a body covered across the birth-time band, absolute degrees. */
+export interface DegreeBand {
+  fromDegree: number;
+  toDegree: number;
+}
+
+export interface PlanetPlacement {
+  sign: string;
+  degree: number;
+  absoluteDegree: number;
+  /** Whole-sign house. Absent when the horizon is unknown: there is no house to be in. */
+  house?: number;
+  retrograde: boolean;
+  speed: number;
+  /** Sun and Moon only, when the birth time is a band: where the body was at its two ends. */
+  band?: DegreeBand;
+}
+
+export interface AngleData { sign: string; degree: number; absoluteDegree: number }
+
+/**
+ * A chart whose horizon is unknown carries no `angles`, `houses`,
+ * `sunAltitude` or `hemisphereEmphasis` and no `house` on any body: they are
+ * absent, not zero, so no consumer can read a house that does not exist
+ * (R-4.6).
+ */
 export interface NatalChartData {
   chartVersion: number;
   datetimeUtc: string;
@@ -206,21 +281,19 @@ export interface NatalChartData {
   latitude: number;
   longitude: number;
   timezoneOffset: number;
-  planets: Record<string, {
-    sign: string;
-    degree: number;
-    absoluteDegree: number;
-    house: number;
-    retrograde: boolean;
-    speed: number;
-  }>;
-  angles: {
-    ascendant: { sign: string; degree: number; absoluteDegree: number };
-    midheaven: { sign: string; degree: number; absoluteDegree: number };
-    descendant: { sign: string; degree: number; absoluteDegree: number };
-    ic: { sign: string; degree: number; absoluteDegree: number };
+  /** IANA zone the offset was derived from, when the profile carries one. */
+  timezone?: string;
+  /** Half-width of the birth-time band in minutes: 0 exact, 180 part of day, 720 unknown. */
+  windowMinutes: number;
+  horizon: Horizon;
+  planets: Record<string, PlanetPlacement>;
+  angles?: {
+    ascendant: AngleData;
+    midheaven: AngleData;
+    descendant: AngleData;
+    ic: AngleData;
   };
-  houses: Record<string, { sign: string; degree: number }>;
+  houses?: Record<string, { sign: string; degree: number }>;
   aspects: AspectData[];
   elements: { fire: number; earth: number; air: number; water: number };
   modalities: { cardinal: number; fixed: number; mutable: number };
@@ -230,7 +303,7 @@ export interface NatalChartData {
     dominantModality: string;
   };
   chartShape: string | null;
-  hemisphereEmphasis: {
+  hemisphereEmphasis?: {
     northern: number;
     southern: number;
     eastern: number;
@@ -239,9 +312,20 @@ export interface NatalChartData {
   /**
    * True altitude of the Sun's geometric centre at birth, in degrees, with no
    * refraction and no upper-limb convention. Positive is above the horizon.
-   * The single input to sect.
+   * The single input to sect. Absent when the horizon is unknown.
    */
+  sunAltitude?: number;
+}
+
+/** A chart whose horizon holds: the angles and houses are present and typed so. */
+export type DrawnChartData = NatalChartData & {
+  angles: NonNullable<NatalChartData["angles"]>;
+  houses: NonNullable<NatalChartData["houses"]>;
   sunAltitude: number;
+};
+
+export function hasHorizon(chart: NatalChartData): chart is DrawnChartData {
+  return chart.angles !== undefined && chart.houses !== undefined && chart.sunAltitude !== undefined;
 }
 
 interface RawPosition {
@@ -250,21 +334,208 @@ interface RawPosition {
   retrograde: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// The offset in force at birth (MB-48)
+// ---------------------------------------------------------------------------
+
+/** Hours east of UTC that `zone` kept at `instant`, from the platform's tz database, seconds kept. */
+function zoneOffsetAt(zone: string, instant: Date): number {
+  const f = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone, hourCycle: "h23", era: "short",
+    year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric",
+  });
+  const parts: Record<string, string> = {};
+  for (const p of f.formatToParts(instant)) if (p.type !== "literal") parts[p.type] = p.value;
+  let year = Number(parts.year);
+  if (parts.era && /^B/.test(parts.era)) year = 1 - year;
+  const wall = new Date(0);
+  wall.setUTCFullYear(year, Number(parts.month) - 1, Number(parts.day));
+  wall.setUTCHours(Number(parts.hour) % 24, Number(parts.minute), Number(parts.second), 0);
+  return (wall.getTime() - instant.getTime()) / 3600_000;
+}
+
+/**
+ * The offset a wall-clock birth time had in `zone` on that date: summer time
+ * on a summer birth, local mean time before standard time, fractions unrounded
+ * (Warsaw 1867 is +1:24, so 1.4). Two rounds settle a guess made from the wall
+ * clock into the instant it names.
+ */
+export function offsetAtBirth(zone: string, birthDate: string, birthTime: string): number {
+  const [year, month, day] = birthDate.split("-").map(Number);
+  const [hour, minute] = birthTime.split(":").map(Number);
+  const wall = new Date(0);
+  wall.setUTCFullYear(year, month - 1, day);
+  wall.setUTCHours(hour, minute, 0, 0);
+  const first = zoneOffsetAt(zone, wall);
+  const second = zoneOffsetAt(zone, new Date(wall.getTime() - first * 3600_000));
+  return zoneOffsetAt(zone, new Date(wall.getTime() - second * 3600_000));
+}
+
+// ---------------------------------------------------------------------------
+// The horizon as a status (ADR-33, ADR-34)
+// ---------------------------------------------------------------------------
+
+/** Minutes between sweep steps. Every flip time the product shows is on this grid. */
+const SWEEP_STEP_MINUTES = 2;
+const MINUTES_IN_DAY = 24 * 60;
+
+/** Sign of the Sun and of the Moon at a UTC instant: the only two bodies that can change sign inside a day. */
+function luminarySigns(date: Date): { sun: string; moon: string } {
+  return { sun: getSign(geocentricLongitude(Astronomy.Body.Sun, date)), moon: getSign(moonLongitude(date)) };
+}
+
+function sunAltitudeAt(date: Date, observer: AstronomyModule.Observer): number {
+  const eq = Astronomy.Equator(Astronomy.Body.Sun, date, observer, true, true);
+  return Astronomy.Horizon(date, observer, eq.ra, eq.dec).altitude;
+}
+
+function hhmm(minuteOfDay: number): string {
+  const m = Math.min(Math.max(minuteOfDay, 0), MINUTES_IN_DAY - 1);
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
+interface SweepPoint { minute: number; asc: string; mc: string; sect: string; moon: string; sun: string }
+
+/**
+ * Sweep the birth day around the centre time at two-minute steps. The band is
+ * always sampled in full; outside it the sweep continues only as far as it
+ * takes to see the centre value change, which bounds the readout's "holds
+ * from ... to ...". A Sun or Moon far enough from a sign edge that it cannot
+ * cross it in a day is read once and never re-sampled.
+ */
+function sweepHorizon(
+  dayStartUtc: number,
+  centreMinute: number,
+  windowMinutes: number,
+  latitude: number,
+  longitude: number,
+): Horizon {
+  const observer = new Astronomy.Observer(latitude, longitude, 0);
+  const centreDate = new Date(dayStartUtc + centreMinute * 60_000);
+  const sunLonCentre = normalizeAngle(geocentricLongitude(Astronomy.Body.Sun, centreDate));
+  const moonLonCentre = normalizeAngle(moonLongitude(centreDate));
+  // The Sun moves under 1.1° a day and the Moon under 15.5°, both forward. A
+  // body that cannot reach a sign edge before the day's ends is read once.
+  const back = centreMinute / MINUTES_IN_DAY, ahead = 1 - back;
+  const cannotCross = (lon: number, dailyMotion: number) => {
+    const d = getDegreeInSign(lon);
+    return d - dailyMotion * back > 0.05 && d + dailyMotion * ahead < 29.95;
+  };
+  const sunFixed = cannotCross(sunLonCentre, 1.1);
+  const moonFixed = cannotCross(moonLonCentre, 15.5);
+  const fixedSun = getSign(sunLonCentre);
+  const fixedMoon = getSign(moonLonCentre);
+
+  const cache = new Map<number, SweepPoint>();
+  const at = (minute: number): SweepPoint => {
+    const hit = cache.get(minute);
+    if (hit) return hit;
+    const date = new Date(dayStartUtc + minute * 60_000);
+    const lst = normalizeAngle(greenwichSiderealTimeDeg(date) + longitude);
+    const obliquity = meanObliquity(date);
+    const lum = sunFixed && moonFixed ? { sun: fixedSun, moon: fixedMoon } : luminarySigns(date);
+    const point: SweepPoint = {
+      minute,
+      asc: getSign(calcAscendant(lst, latitude, obliquity)),
+      mc: getSign(calcMidheaven(lst, obliquity)),
+      sect: sunAltitudeAt(date, observer) > 0 ? "day" : "night",
+      moon: moonFixed ? fixedMoon : lum.moon,
+      sun: sunFixed ? fixedSun : lum.sun,
+    };
+    cache.set(minute, point);
+    return point;
+  };
+
+  const bandStart = Math.max(0, centreMinute - windowMinutes);
+  const bandEnd = Math.min(MINUTES_IN_DAY - 1, centreMinute + windowMinutes);
+  const band: SweepPoint[] = [];
+  for (let m = centreMinute; m >= bandStart; m -= SWEEP_STEP_MINUTES) band.unshift(at(m));
+  for (let m = centreMinute + SWEEP_STEP_MINUTES; m <= bandEnd; m += SWEEP_STEP_MINUTES) band.push(at(m));
+  const centre = at(centreMinute);
+
+  const fact = (key: keyof Omit<SweepPoint, "minute">): HorizonFact => {
+    const value = centre[key];
+    const flipsAt: string[] = [];
+    const values: string[] = [band[0][key]];
+    for (let i = 1; i < band.length; i++) {
+      if (band[i][key] !== band[i - 1][key]) {
+        flipsAt.push(hhmm(band[i].minute));
+        values.push(band[i][key]);
+      }
+    }
+    // The centre value's run within the day: back to the flip into it, forward to the flip out of it.
+    let from = centreMinute;
+    while (from - SWEEP_STEP_MINUTES >= 0 && at(from - SWEEP_STEP_MINUTES)[key] === value) from -= SWEEP_STEP_MINUTES;
+    let to = centreMinute;
+    while (to + SWEEP_STEP_MINUTES < MINUTES_IN_DAY && at(to + SWEEP_STEP_MINUTES)[key] === value) to += SWEEP_STEP_MINUTES;
+    const toEdge = to + SWEEP_STEP_MINUTES >= MINUTES_IN_DAY;
+    return {
+      value,
+      holds: flipsAt.length === 0,
+      flipsAt,
+      values,
+      holdsFrom: hhmm(from),
+      holdsTo: toEdge ? "24:00" : hhmm(to + SWEEP_STEP_MINUTES),
+    };
+  };
+
+  const ascendant = fact("asc");
+  const midheaven = fact("mc");
+  const sect = fact("sect");
+  const moonSign = fact("moon");
+  const sunSign = fact("sun");
+  const allHold = ascendant.holds && midheaven.holds && sect.holds;
+  const status: HorizonStatus = windowMinutes === 0 ? "known" : allHold ? "approximate" : "unknown";
+  return { status, ascendant, midheaven, sect, moonSign, sunSign };
+}
+
+/** The sign covering the larger share of a swept band, when the centre sign is not the whole of it. */
+function majoritySign(values: string[], flipsAt: string[], bandStart: number, bandEnd: number): string {
+  if (values.length === 1) return values[0];
+  const edges = [bandStart, ...flipsAt.map((t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3))), bandEnd + SWEEP_STEP_MINUTES];
+  let best = values[0], bestSpan = -1;
+  values.forEach((v, i) => {
+    const span = edges[i + 1] - edges[i];
+    if (span > bestSpan) { best = v; bestSpan = span; }
+  });
+  return best;
+}
+
+/**
+ * The natal chart for a birth date, a birth time that may be a band, and a
+ * place. `offsetOrZone` is hours east of UTC, or an IANA zone name from which
+ * the offset in force at that instant is derived. `windowMinutes` is the
+ * band's half-width around `birthTime`: 0 exact, 180 a part of the day, 720
+ * unknown. The horizon is swept and recorded; when it does not hold, the
+ * chart carries no angle or house at all.
+ */
 export function calculateNatalChart(
   birthDate: string,
   birthTime: string,
   latitude: number,
   longitude: number,
-  timezoneOffset: number,
+  offsetOrZone: number | string,
+  windowMinutes = 0,
 ): NatalChartData {
   const [year, month, day] = birthDate.split("-").map(Number);
   const [hour, minute] = birthTime.split(":").map(Number);
+  const timezone = typeof offsetOrZone === "string" ? offsetOrZone : undefined;
+  const timezoneOffset = typeof offsetOrZone === "string" ? offsetAtBirth(offsetOrZone, birthDate, birthTime) : offsetOrZone;
 
   // Convert local birth time → UTC instant
   // timezoneOffset is hours east of UTC (e.g. CEST = +2)
-  const utcMillis = Date.UTC(year, month - 1, day, hour, minute, 0)
-    - timezoneOffset * 3600_000;
+  const dayStart = new Date(0);
+  dayStart.setUTCFullYear(year, month - 1, day);
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const dayStartUtc = dayStart.getTime() - timezoneOffset * 3600_000;
+  const centreMinute = hour * 60 + minute;
+  const utcMillis = dayStartUtc + centreMinute * 60_000;
   const date = new Date(utcMillis);
+
+  const horizon = sweepHorizon(dayStartUtc, centreMinute, windowMinutes, latitude, longitude);
+  const drawn = horizon.status !== "unknown";
+  const bandStart = Math.max(0, centreMinute - windowMinutes);
+  const bandEnd = Math.min(MINUTES_IN_DAY - 1, centreMinute + windowMinutes);
 
   const julianDay = Astronomy.MakeTime(date).tt + 2451545.0;
 
@@ -365,35 +636,47 @@ export function calculateNatalChart(
   const descLon = normalizeAngle(ascLon + 180);
   const icLon = normalizeAngle(mcLon + 180);
 
-  // Build planet objects with whole-sign house assignments
+  // The Sun and Moon across the band: where each was at the two ends. A sign
+  // change inside the band reads as the sign covering the larger share; the
+  // degree stays the centre time's.
+  const bands: Record<string, DegreeBand | undefined> = {};
+  if (windowMinutes > 0) {
+    const from = new Date(dayStartUtc + bandStart * 60_000);
+    const to = new Date(dayStartUtc + bandEnd * 60_000);
+    bands.sun = { fromDegree: r2(normalizeAngle(geocentricLongitude(Astronomy.Body.Sun, from))), toDegree: r2(normalizeAngle(geocentricLongitude(Astronomy.Body.Sun, to))) };
+    bands.moon = { fromDegree: r2(normalizeAngle(moonLongitude(from))), toDegree: r2(normalizeAngle(moonLongitude(to))) };
+  }
+  const signOverride: Record<string, string> = {
+    sun: majoritySign(horizon.sunSign.values, horizon.sunSign.flipsAt, bandStart, bandEnd),
+    moon: majoritySign(horizon.moonSign.values, horizon.moonSign.flipsAt, bandStart, bandEnd),
+  };
+
+  // Build planet objects, with whole-sign house assignments only when there is a horizon to count from.
   const planets: NatalChartData["planets"] = {};
   for (const [name, pos] of Object.entries(rawPlanets)) {
-    const house = calcWholeSignHouse(pos.lon, ascLon);
     planets[name] = {
-      sign: getSign(pos.lon),
-      degree: Math.round(getDegreeInSign(pos.lon) * 100) / 100,
-      absoluteDegree: Math.round(pos.lon * 100) / 100,
-      house,
+      sign: signOverride[name] ?? getSign(pos.lon),
+      degree: r2(getDegreeInSign(pos.lon)),
+      absoluteDegree: r2(pos.lon),
+      ...(drawn ? { house: calcWholeSignHouse(pos.lon, ascLon) } : {}),
       retrograde: pos.retrograde,
       speed: Math.round(pos.speed * 1000) / 1000,
+      ...(bands[name] ? { band: bands[name] } : {}),
     };
   }
 
-  // Whole-sign house cusps
-  const houses = calcHouseCusps(ascLon);
-
-  // Angles
-  const angles: NatalChartData["angles"] = {
-    ascendant: { sign: getSign(ascLon), degree: Math.round(getDegreeInSign(ascLon) * 100) / 100, absoluteDegree: Math.round(ascLon * 100) / 100 },
-    midheaven: { sign: getSign(mcLon), degree: Math.round(getDegreeInSign(mcLon) * 100) / 100, absoluteDegree: Math.round(mcLon * 100) / 100 },
-    descendant: { sign: getSign(descLon), degree: Math.round(getDegreeInSign(descLon) * 100) / 100, absoluteDegree: Math.round(descLon * 100) / 100 },
-    ic: { sign: getSign(icLon), degree: Math.round(getDegreeInSign(icLon) * 100) / 100, absoluteDegree: Math.round(icLon * 100) / 100 },
-  };
+  // Whole-sign house cusps and the angles, only when the horizon holds.
+  const houses = drawn ? calcHouseCusps(ascLon) : undefined;
+  const angles: NatalChartData["angles"] | undefined = drawn ? {
+    ascendant: { sign: getSign(ascLon), degree: r2(getDegreeInSign(ascLon)), absoluteDegree: r2(ascLon) },
+    midheaven: { sign: getSign(mcLon), degree: r2(getDegreeInSign(mcLon)), absoluteDegree: r2(mcLon) },
+    descendant: { sign: getSign(descLon), degree: r2(getDegreeInSign(descLon)), absoluteDegree: r2(descLon) },
+    ic: { sign: getSign(icLon), degree: r2(getDegreeInSign(icLon)), absoluteDegree: r2(icLon) },
+  } : undefined;
 
   // Sun altitude (geometric centre, no refraction) for sect.
   const observer = new Astronomy.Observer(latitude, longitude, 0);
-  const sunEq = Astronomy.Equator(Astronomy.Body.Sun, date, observer, true, true);
-  const sunAltitude = Math.round(Astronomy.Horizon(date, observer, sunEq.ra, sunEq.dec).altitude * 100) / 100;
+  const sunAltitude = drawn ? r2(sunAltitudeAt(date, observer)) : undefined;
 
   // Aspects (only for main 10 planets)
   const mainPlanets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
@@ -401,7 +684,7 @@ export function calculateNatalChart(
   for (const name of mainPlanets) {
     mainPlanetLons[name] = rawPlanets[name].lon;
   }
-  const aspects = calcAspects(mainPlanetLons);
+  const aspects = calcAspects(mainPlanetLons, bands);
 
   // Element and modality distribution
   const elements = { fire: 0, earth: 0, air: 0, water: 0 };
@@ -416,21 +699,24 @@ export function calculateNatalChart(
   const dominantElement = Object.entries(elements).sort(([, a], [, b]) => b - a)[0][0];
   const dominantModality = Object.entries(modalities).sort(([, a], [, b]) => b - a)[0][0];
 
-  // Dominant planets — those in angular houses (1, 4, 7, 10)
+  // Dominant planets — those in angular houses (1, 4, 7, 10); a blind chart has none to count.
   const angularHouses = [1, 4, 7, 10];
   const dominantPlanets = mainPlanets
-    .filter((p) => angularHouses.includes(planets[p].house))
+    .filter((p) => angularHouses.includes(planets[p].house ?? 0))
     .slice(0, 3);
   if (dominantPlanets.length === 0) dominantPlanets.push("sun");
 
-  // Hemisphere emphasis
-  const hemisphereEmphasis = { northern: 0, southern: 0, eastern: 0, western: 0 };
-  for (const name of mainPlanets) {
-    const h = planets[name].house;
-    if (h >= 7 && h <= 12) hemisphereEmphasis.southern++;
-    else hemisphereEmphasis.northern++;
-    if (h >= 1 && h <= 6) hemisphereEmphasis.eastern++;
-    else hemisphereEmphasis.western++;
+  // Hemisphere emphasis, a count of houses, so only with a horizon.
+  let hemisphereEmphasis: NatalChartData["hemisphereEmphasis"];
+  if (drawn) {
+    hemisphereEmphasis = { northern: 0, southern: 0, eastern: 0, western: 0 };
+    for (const name of mainPlanets) {
+      const h = planets[name].house ?? 0;
+      if (h >= 7 && h <= 12) hemisphereEmphasis.southern++;
+      else hemisphereEmphasis.northern++;
+      if (h >= 1 && h <= 6) hemisphereEmphasis.eastern++;
+      else hemisphereEmphasis.western++;
+    }
   }
 
   // Chart shape (simplified — biggest gap in planetary distribution)
@@ -447,15 +733,18 @@ export function calculateNatalChart(
 
   return {
     chartVersion: CHART_VERSION,
-    sunAltitude,
+    ...(sunAltitude !== undefined ? { sunAltitude } : {}),
     datetimeUtc: date.toISOString(),
     julianDay: Math.round(julianDay * 10000) / 10000,
     latitude,
     longitude,
     timezoneOffset,
+    ...(timezone ? { timezone } : {}),
+    windowMinutes,
+    horizon,
     planets,
-    angles,
-    houses,
+    ...(angles ? { angles } : {}),
+    ...(houses ? { houses } : {}),
     aspects,
     elements,
     modalities,
@@ -465,6 +754,6 @@ export function calculateNatalChart(
       dominantModality,
     },
     chartShape,
-    hemisphereEmphasis,
+    ...(hemisphereEmphasis ? { hemisphereEmphasis } : {}),
   };
 }
