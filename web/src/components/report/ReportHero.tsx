@@ -9,15 +9,23 @@
  * (ADR-27). The Sun's glow is painted on the sky layer rather than inside the
  * SVG, so no bar, edge or chapter can clip it. It fades out over the first 0.6
  * screens as the reading's sky fades in.
+ *
+ * A blind chart (ADR-33, ADR-37) has no horizon to draw: no line, no east or
+ * west, no rising marker. The plate is framed on 0° Aries, the Moon is the arc
+ * it travelled across the band, the Sun sits at its centre-time degree, and the
+ * legend's third line asks for the birth time instead of naming a sign.
  */
 import { useEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { ORDINALS } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
-import { layoutHero, type Rect } from "@/components/report/hero-layout";
-import { PLANET_LABELS, type ChartData, type Interpretation } from "@/types/chart";
+import { layoutHero, moonArc, type Rect } from "@/components/report/hero-layout";
+import { AngleGlyphShape } from "@/components/report/AngleGlyph";
+import { timeOfBirthLabel } from "@/lib/birth-time";
+import { PLANET_LABELS, type ChartData, type ChartPlanet, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import type { Ring } from "@/lib/gather";
 
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
@@ -80,19 +88,47 @@ function Label({ x, y, anchor, size, fill, children }: {
   );
 }
 
+/** A body's line in the legend: degree and sign, and its house when the chart has one. */
+function placementText(p: ChartPlanet): string {
+  return `${p.degree.toFixed(2)}° ${p.sign}${p.house ? ` · ${ORDINALS[p.house - 1]}` : ""}`;
+}
+
+const ADD_TIME = "add your birth time to draw the horizon";
+
+/** The cue is a button (ADR-50): 44 px hit area, scrolls to chapter 01, fades over the first half screen. */
+function ScrollCue({ flow, reduced, cueRef }: { flow?: boolean; reduced: boolean; cueRef: React.RefObject<HTMLDivElement | null> }) {
+  return (
+    <div ref={cueRef} className={`rp-cue no-print${flow ? " rp-cue-flow" : ""}`}>
+      <button
+        type="button"
+        onClick={() => document.getElementById("chapter-1")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })}
+        aria-label="Scroll to chapter 1"
+      >
+        Scroll<i aria-hidden />
+      </button>
+    </div>
+  );
+}
+
 export interface ReportHeroProps {
   name: string;
   birthDate: string;
   birthTime: string;
+  /** 0 when the time is exact; the corner reads "approximate" or "not recorded" otherwise. */
+  birthTimeWindowMinutes?: number;
   birthPlace: string;
   latitude: number;
   longitude: number;
   chartData: ChartData;
   meta: Interpretation["meta"];
+  /** Opens the three-way birth time control; the blind hero's third legend line. */
+  onAddBirthTime?: () => void;
+  /** Where the ring is on screen, so the sky can gather its stars onto it (ADR-47). */
+  onRing?: (ring: Ring) => void;
 }
 
 export function ReportHero({
-  name, birthDate, birthTime, birthPlace, latitude, longitude, chartData, meta,
+  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, onRing,
 }: ReportHeroProps) {
   const narrow = useNarrow();
   const reduced = useReducedMotion();
@@ -103,6 +139,23 @@ export function ReportHero({
   const nameRef = useRef<HTMLDivElement>(null);
   const sunRef = useRef<SVGImageElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<SVGCircleElement>(null);
+  const onRingRef = useRef(onRing);
+  onRingRef.current = onRing;
+
+  // The ring's place on screen, measured at rest: the gather lands on it.
+  useEffect(() => {
+    function measure() {
+      const el = ringRef.current;
+      if (!el || !onRingRef.current) return;
+      const b = el.getBoundingClientRect();
+      if (b.width < 2) return;
+      onRingRef.current({ cx: b.left + b.width / 2, cy: b.top + b.height / 2, r: b.width / 2 });
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [narrow]);
 
   useEffect(() => {
     let frame = 0;
@@ -158,12 +211,14 @@ export function ReportHero({
     };
   }, [reduced, narrow, name]);
 
-  const asc = chartData.angles.ascendant;
-  const dsc = chartData.angles.descendant;
+  const asc = chartData.angles?.ascendant ?? null;
+  const dsc = chartData.angles?.descendant ?? null;
+  const blind = asc === null;
   const sun = chartData.planets.sun;
   const moon = chartData.planets.moon;
-  const ascRuler = TRADITIONAL_RULER[asc.sign];
-  const rising = `${asc.degree.toFixed(2)}° ${asc.sign}${ascRuler ? ` · ruled by ${PLANET_LABELS[ascRuler]}` : ""}`;
+  const ascRuler = asc ? TRADITIONAL_RULER[asc.sign] : undefined;
+  const rising = asc ? `${asc.degree.toFixed(2)}° ${asc.sign}${ascRuler ? ` · ruled by ${PLANET_LABELS[ascRuler]}` : ""}` : ADD_TIME;
+  const tob = timeOfBirthLabel({ birthTime, birthTimeWindowMinutes });
 
   // A phone plate is wider than tall so the ring can fill the width and the
   // horizon labels still have room outside it.
@@ -174,10 +229,13 @@ export function ReportHero({
   const R = narrow ? 236 : 200;
   const places = narrow ? 2 : 4;
 
-  const ascTheta = theta(asc.absoluteDegree, asc.absoluteDegree);
+  // A drawn plate is framed on the Ascendant, east on the left; a blind one on 0° Aries.
+  const frame = asc ? asc.absoluteDegree : 0;
+  const ascTheta = theta(frame, frame);
   const ascAt = pointAt(cx, cy, R, ascTheta);
   const east = pointAt(cx, cy, R + 58, ascTheta);
-  const west = pointAt(cx, cy, R + 58, theta(opposite(asc.absoluteDegree), asc.absoluteDegree));
+  const west = pointAt(cx, cy, R + 58, theta(opposite(frame), frame));
+  const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band) : null;
 
   const { lines: nameRows, size: nameSize } = nameLines(name, narrow);
 
@@ -185,13 +243,15 @@ export function ReportHero({
   // horizon labels. Measured in plate units, like everything else here.
   const obstacles: Rect[] = [
     { x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 },
-    { x: east.x - 210, y: east.y + 10, w: 210, h: 42 },
-    { x: west.x, y: west.y + 10, w: 210, h: 42 },
+    ...(blind ? [] : [
+      { x: east.x - 210, y: east.y + 10, w: 210, h: 42 },
+      { x: west.x, y: west.y + 10, w: 210, h: 42 },
+    ]),
   ];
 
   const layout = layoutHero({
     cx, cy, ringRadius: R,
-    ascendantAbsoluteDegree: asc.absoluteDegree,
+    frameDegree: frame,
     // The Sun is placed first, so it takes the room it needs.
     bodies: [
       sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: narrow ? 108 : 120 },
@@ -206,15 +266,19 @@ export function ReportHero({
   const dobText = `${dob.getUTCDate()} ${MONTHS[dob.getUTCMonth()]} ${dob.getUTCFullYear()}`;
 
   const legend = [
-    sun && { key: "sun", label: "Sun", value: `${sun.degree.toFixed(2)}° ${sun.sign} · ${ORDINALS[sun.house - 1]}` },
-    moon && { key: "moon", label: "Moon", value: `${moon.degree.toFixed(2)}° ${moon.sign} · ${ORDINALS[moon.house - 1]}` },
+    sun && { key: "sun", label: "Sun", value: placementText(sun) },
+    moon && { key: "moon", label: "Moon", value: placementText(moon) },
     { key: null, label: "Rising", value: rising },
   ].filter(Boolean) as { key: string | null; label: string; value: string }[];
 
   function bodyValue(key: string): string {
     const p = key === "sun" ? sun : moon;
-    return p ? `${p.degree.toFixed(2)}° ${p.sign} · ${ORDINALS[p.house - 1]}` : "";
+    return p ? placementText(p) : "";
   }
+
+  const sectLine = meta.sect && meta.sunAltitude !== undefined
+    ? `${meta.sect} chart · sun alt ${meta.sunAltitude.toFixed(1)}°`
+    : "horizon · not drawn";
 
   return (
     <>
@@ -230,12 +294,12 @@ export function ReportHero({
         <svg
           viewBox={`0 0 ${W} ${H}`}
           role="img"
-          aria-label={`${name}: Sun, Moon and Rising at their true positions`}
+          aria-label={blind ? `${name}: Sun and Moon at their true positions; the horizon is not drawn` : `${name}: Sun, Moon and Rising at their true positions`}
         >
           <g ref={diagramRef}>
-            <circle cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
+            <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
             {Array.from({ length: 12 }, (_, i) => i * 30).map((d) => {
-              const t = theta(d, asc.absoluteDegree);
+              const t = theta(d, frame);
               const p1 = pointAt(cx, cy, R, t);
               const p2 = pointAt(cx, cy, R - (d % 90 === 0 ? 13 : 7), t);
               return (
@@ -245,11 +309,17 @@ export function ReportHero({
                 />
               );
             })}
-            <line
-              x1={east.x.toFixed(1)} y1={east.y.toFixed(1)} x2={west.x.toFixed(1)} y2={west.y.toFixed(1)}
-              stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
-            />
-            {narrow ? (
+            {!blind && (
+              <line
+                x1={east.x.toFixed(1)} y1={east.y.toFixed(1)} x2={west.x.toFixed(1)} y2={west.y.toFixed(1)}
+                stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
+              />
+            )}
+            {arc && (
+              // The Moon's day: the arc between its longitudes at the band's edges, the render at its centre.
+              <path d={arc.d} fill="none" stroke={SKY} strokeOpacity={0.7} strokeWidth={3} strokeLinecap="round" data-moon-arc />
+            )}
+            {blind ? null : narrow ? (
               <>
                 <Label x={east.x} y={east.y + 30} anchor={east.x < cx ? "start" : "end"} size={18} fill={SKY_DIM}>EAST · RISING</Label>
                 <Label x={west.x} y={west.y + 30} anchor={west.x < cx ? "start" : "end"} size={18} fill={SKY_DIM}>WEST · SETTING</Label>
@@ -268,7 +338,7 @@ export function ReportHero({
                   x={(west.x + 6).toFixed(1)} y={(west.y + 44).toFixed(1)} textAnchor="start"
                   fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
                 >
-                  {`${dsc.degree.toFixed(2)}° ${dsc.sign}`}
+                  {dsc ? `${dsc.degree.toFixed(2)}° ${dsc.sign}` : ""}
                 </text>
               </>
             )}
@@ -297,10 +367,25 @@ export function ReportHero({
               </g>
             ))}
 
-            <circle cx={ascAt.x.toFixed(1)} cy={ascAt.y.toFixed(1)} r={13} fill="#0B0E14" stroke={SKY} strokeWidth={1.5} />
-            <circle cx={ascAt.x.toFixed(1)} cy={ascAt.y.toFixed(1)} r={4} fill={SKY} />
+            {!blind && (
+              // The R03 marker: ring, centre point, a tick outward along the horizon (ADR-49).
+              <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={13} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.5} />
+            )}
+            {blind && !narrow && (
+              <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{`RISING · ${ADD_TIME.toUpperCase()}`}</Label>
+            )}
           </g>
         </svg>
+        {blind && !narrow && onAddBirthTime && (
+          <button
+            type="button"
+            onClick={onAddBirthTime}
+            className="absolute left-1/2 -translate-x-1/2 rounded-full border border-brass/50 px-4 py-2 font-label text-[11px] uppercase tracking-[0.2em] text-brass hover:bg-brass/10"
+            style={{ bottom: "4%" }}
+          >
+            Add my birth time
+          </button>
+        )}
         <div ref={nameRef} className="rp-hname">
           <span className="k">Natal chart report</span>
           <div className="relative inline-block justify-self-center">
@@ -331,14 +416,16 @@ export function ReportHero({
                   ? <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />
                   : <span aria-hidden className="rp-ascdot" />}
                 <dt className="k">{row.label}</dt>
-                <dd className="v">{row.value}</dd>
+                <dd className="v">
+                  {!row.key && blind && onAddBirthTime
+                    ? <button type="button" onClick={onAddBirthTime} className="text-brass underline-offset-4 hover:underline">{row.value}</button>
+                    : row.value}
+                </dd>
               </div>
             ))}
           </dl>
         )}
-        {narrow && (
-          <div ref={cueRef} className="rp-cue rp-cue-flow no-print"><span><i />Scroll</span></div>
-        )}
+        {narrow && <ScrollCue flow reduced={reduced} cueRef={cueRef} />}
       </div>
 
       <div ref={hudRef} className="rp-hud no-print" aria-hidden>
@@ -348,7 +435,7 @@ export function ReportHero({
         <div className="r">
           <div className="col">
             <span className="live"><i />DOB · {dobText}</span>
-            <span className="d">TOB · {birthTime}</span>
+            <span className="d">TOB · {tob}</span>
           </div>
           <div className="col e">
             <span>Stars Decoded</span>
@@ -361,22 +448,21 @@ export function ReportHero({
             <span className="d">{coordinate(latitude, "N", "S", places)} / {coordinate(longitude, "E", "W", places)}</span>
           </div>
           <div className="col e">
-            <span className="wide-only">Ch. 00 / Horizon</span>
-            <span className="d">{meta.sect} chart · sun alt {meta.sunAltitude.toFixed(1)}°</span>
+            <span className="d">{sectLine}</span>
           </div>
         </div>
       </div>
 
       <section className="rp-hero" aria-label="Opening">
-        {!narrow && <div ref={cueRef} className="rp-cue no-print"><span><i />Scroll</span></div>}
+        {!narrow && <ScrollCue reduced={reduced} cueRef={cueRef} />}
         <header className="hidden print:block px-8 pt-12">
           <p className="font-label text-[10px] tracking-[0.28em] uppercase">Natal chart report</p>
           <h1 className="font-display text-5xl mt-2">{name}</h1>
           <p className="font-numeric text-xs mt-3">
-            DOB · {dobText} · TOB · {birthTime} · POB · {birthPlace}
+            DOB · {dobText} · TOB · {tob} · POB · {birthPlace}
           </p>
           <p className="font-numeric text-xs mt-1">
-            {legend.map((row) => `${row.label} ${row.value}`).join(" · ")}
+            {legend.map((row) => `${row.label} ${!row.key && blind ? "not drawn" : row.value}`).join(" · ")}
           </p>
         </header>
       </section>

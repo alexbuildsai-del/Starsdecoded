@@ -61,6 +61,14 @@ describe("houseOccupants", () => {
     expect(eleventh.map((o) => o.absoluteDegree)).toEqual([...eleventh.map((o) => o.absoluteDegree)].sort((a, b) => a - b));
   });
 
+  it("stands nobody in any house of a blind chart", () => {
+    const blind = {
+      planets: Object.fromEntries(Object.entries(LONGITUDE).map(([k, v]) => { const { house: _house, ...p } = planet(v); return [k, p]; })),
+    } as unknown as ChartData;
+    expect(midheavenHouse(blind)).toBeNull();
+    for (let h = 1; h <= 12; h++) expect(houseOccupants(blind, h)).toEqual([]);
+  });
+
   it("calls a house quiet only when nothing at all is placed in it", () => {
     expect(isQuietHouse(CURIE, 8)).toBe(true);
     expect(isQuietHouse(CURIE, 1)).toBe(false);

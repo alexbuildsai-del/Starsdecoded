@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, index, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { profilesTable } from "./profiles";
@@ -18,6 +18,8 @@ export const reportsTable = pgTable(
     /** The reader's ticked actions, keyed by item, valued by the ISO date of the tick. */
     workbook: jsonb("workbook").notNull().default({}),
     computeData: jsonb("compute_data"),
+    /** Horizon passes run on this report; the first is free (MB-52). */
+    horizonPasses: integer("horizon_passes").notNull().default(0),
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

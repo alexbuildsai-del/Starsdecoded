@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef } from "react";
+/**
+ * Claiming a gifted report (ADR-38): the recipient signs in, the claim runs
+ * once, and before the report opens the three-way time question is asked,
+ * once. Adding or correcting the time is the horizon pass, free the first
+ * time; "Not now" keeps what the giver entered. The giver keeps read access.
+ */
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 import { Loader2, Heart, AlertTriangle } from "lucide-react";
@@ -6,13 +12,16 @@ import { Button } from "@/components/ui/button";
 import {
   useGetInvite,
   useClaimInvite,
+  useListProfiles,
   getGetInviteQueryKey,
   getListProfilesQueryKey,
+  getListReportsQueryKey,
   getListRelationshipsQueryKey,
   type InviteClaimResponse,
   type InvitePreview,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -34,15 +43,24 @@ export default function ClaimPage() {
     },
   });
 
+  // The claim lands here first; the time question follows, then the redirect.
+  const [claimed, setClaimed] = useState<InviteClaimResponse | null>(null);
   const claim = useClaimInvite({
     mutation: {
       onSuccess: (data: InviteClaimResponse) => {
         qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+        qc.invalidateQueries({ queryKey: getListReportsQueryKey() });
         qc.invalidateQueries({ queryKey: getListRelationshipsQueryKey() });
-        navigate(data.redirectTo ?? "/people");
+        setClaimed(data);
       },
     },
   });
+  const profilesQ = useListProfiles({ query: { queryKey: getListProfilesQueryKey(), enabled: !!claimed } });
+  const claimedProfile = useMemo(
+    () => (claimed && Array.isArray(profilesQ.data) ? profilesQ.data.find((p) => p.id === claimed.profileId) ?? null : null),
+    [claimed, profilesQ.data],
+  );
+  const destination = claimed?.redirectTo ?? "/dashboard";
 
   // Auto-claim once signed in and invite is loaded — but exactly
   // ONCE per page load. We guard with a ref so a hard failure
@@ -155,6 +173,47 @@ export default function ClaimPage() {
         <Button variant="outline" onClick={() => navigate("/dashboard")}>
           Go to dashboard
         </Button>
+      </Centered>
+    );
+  }
+
+  if (claimed) {
+    if (profilesQ.isLoading) {
+      return (
+        <Centered>
+          <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
+          <p className="text-muted-foreground">It's yours. One question before you read…</p>
+        </Centered>
+      );
+    }
+    if (!claimedProfile) {
+      navigate(destination);
+      return null;
+    }
+    const blind = claimedProfile.horizon === "unknown";
+    return (
+      <Centered>
+        <Heart className="h-8 w-8 text-primary mx-auto mb-3" />
+        <h1 className="font-display text-2xl mb-2">It's yours</h1>
+        <p className="text-muted-foreground text-sm mb-5">
+          {blind
+            ? "The report was written without your birth time. Add it and the horizon is drawn; the report keeps every word it can and marks each change."
+            : "Check the birth time before you read: a corrected time redraws the horizon and marks each change."}
+        </p>
+        <BirthTimeDialog
+          open
+          onClose={() => navigate(destination)}
+          onDone={() => navigate(destination)}
+          title={blind ? "Do you know your birth time?" : "Is this your birth time?"}
+          description={`${claimedProfile.name}, born ${claimedProfile.birthDate} in ${claimedProfile.birthPlace}.`}
+          profile={{
+            id: claimedProfile.id, name: claimedProfile.name, birthDate: claimedProfile.birthDate, birthTime: claimedProfile.birthTime,
+            birthTimeWindowMinutes: claimedProfile.birthTimeWindowMinutes ?? 0, birthPlace: claimedProfile.birthPlace,
+            latitude: claimedProfile.latitude, longitude: claimedProfile.longitude,
+            timezone: claimedProfile.timezone, timezoneOffset: claimedProfile.timezoneOffset,
+          }}
+        />
+        <Button variant="outline" onClick={() => navigate(destination)}>Read the report</Button>
       </Centered>
     );
   }

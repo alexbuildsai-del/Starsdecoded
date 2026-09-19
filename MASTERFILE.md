@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.6 (2026-09-18) |
+| Version | 0.8 (2026-09-19) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -33,7 +33,7 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 **The bet.**
 - **Compute, don't guess.** Positions come from `astronomy-engine`, not from a model. This is the credibility position; every claim about method must be literally true.
 - **Grounded writing.** The model synthesises from computed facts and a fixed doctrine, so the output cannot drift into generic horoscope prose.
-- **Synastry is the growth engine.** Two people's birth data means every relationship report is an invite; willingness to pay peaks at the specific-relationship moment; relationships evolve, so the report gets revisited.
+- **The compatibility report is the growth engine.** Two people's birth data means every compatibility report is an invite; willingness to pay peaks at the specific-relationship moment; relationships evolve, so the report gets revisited. It is built from two finished natal reports (`docs/specs/locked/compatibility-report.md`); "synastry" is the trade word and never a buyer-facing one.
 - **Quality over cost.** Inference is under 1% of a sale. Token ceilings are never tightened to save money.
 
 | Persona | Cares about | Surface |
@@ -45,20 +45,22 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 
 ## 2 · Product scope
 
-**V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of eleven chapters with a chart explorer and a workbook of ticked actions, keep it on a dashboard, delete it on request.
+**V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of ten chapters with a chart explorer and a workbook of ticked actions, keep it on a dashboard, delete it on request.
 
 1. **Landing page** whose every claim matches the code (§14 lists the ones that do not yet).
-2. **Birth form** with geocoding and timezone resolution.
+2. **Birth form** with geocoding, the timezone in force at the birth instant, and a three-way birth time (known, roughly, unknown) with a live readout of what the answer settles (`docs/specs/locked/unknown-birth-time.md`).
 3. **Report generation** per §4, polled until complete.
-4. **Report page**: eleven chapters, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print; it opens when the chart exists and chapters stream in (`docs/specs/locked/natal-report-pass-two.md`).
+4. **Report page**: ten chapters, the last one Closing, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print. While it writes, the page shows true progress over an orrery of the chart; the reader opens it through a door at 67% or it opens itself at 100%, and chapters stream in behind it (`docs/specs/locked/natal-report-pass-two.md`, `natal-report-pass-three.md`).
 5. **Purchase**: one-time payment granting a credit; the credit is consumed when the report is created (§6).
 6. **Account**: anonymous session first, Clerk sign-in claims it, dashboard lists reports.
 7. **Legal**: privacy, terms, refunds, company details, working deletion.
 8. **Admin**: runtime prompt overrides with preview, gated by `ADMIN_USER_ID`.
 
-**V1 explicitly excludes:** predictions, transits, daily horoscopes; subscriptions; native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; synastry in the public UI until §14 says otherwise.
+**V1 explicitly excludes:** predictions, transits, daily horoscopes; subscriptions; native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; the old chart-to-chart synastry page and dashboard zone, hidden until the compatibility report ships (ADR-45).
 
-**V2 candidates (do not build, do not block):** synastry launch with romantic, parent-child and family variants; composite chart add-on; Placidus second view; prompt version history; transit re-runs; family bundles.
+**V1 after payments:** the compatibility report, one product with three lenses (partners, parent and child, family), locked 2026-09-19.
+
+**V2 candidates (do not build, do not block):** further lenses (friends, colleagues); composite chart add-on; Placidus second view; prompt version history; transit re-runs; family bundles.
 
 ## 3 · Domain model
 
@@ -67,16 +69,16 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 | Table | Essence | Notes |
 |---|---|---|
 | `profiles` | A person whose chart we computed | birth data, `chart_data` cache (versioned), `session_id`, `user_id`, `is_self` |
-| `reports` | The unit of revenue | `profile_id`, `type` natal or synastry, `status`, `interpretation` JSONB, `compute_data` |
+| `reports` | The unit of revenue | `profile_id`, `type` natal or compatibility, `status`, `interpretation` JSONB, `compute_data` |
 | `users` | Clerk identity | Clerk id is the key |
-| `relationships`, `relationship_participants` | Two or more profiles for synastry | positional `role` and `access_role` are deliberately separate |
+| `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / family; positional `role` and `access_role` are deliberately separate |
 | `invite_tokens` | Invite a second person | only the hash is stored, 7-day TTL |
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
-| `bundles`, `credits` | Purchase ledger | kinds solo / couple / family; credit types natal / couple / parent_child |
+| `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); the typed columns go with the payments round |
 
 - **R-3.1** Birth data is never fabricated, in tests, fixtures, demos or docs. Fixtures hold birth data only; charts are computed at run time.
 - **R-3.2** `chart_data` is a cache keyed by a computation version. A change to the engine bumps the version; cached charts recompute.
-- **R-3.3** Report status machine: `pending → computing → interpreting → complete | failed`. A parse failure is a `failed` report with an error message, never a silently degraded one.
+- **R-3.3** Report status machine: `pending → computing → interpreting → complete | failed`, and for the horizon pass `complete → revising → complete | failed`, readable throughout; a failed pass keeps the previous text. A parse failure is a `failed` report with an error message, never a silently degraded one.
 - **R-3.4** Anonymous first. Everything a visitor creates hangs off the session cookie and is claimed by the user on sign-in. Nothing requires an account until the dashboard.
 - **R-3.5** Birth date, time and place are personal data under GDPR. Deletion = delete the report, anonymise the profile, keep the payment record. No health or clinical claims anywhere. EU-region data stores.
 
@@ -87,8 +89,8 @@ The heart of the product. `api/src/lib/` is the engine; keep it pure enough that
 ```
 birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-engine, whole sign)
   → traditional derivation (sect, dignity, rulers, Lots) → per-chart brief
-  → foundation call (internal JSON) → twelve section calls in parallel (ten chapter sections, the house readings, Your Path), each schema-enforced
-  → each section stored as it lands → client polls /api/reports/:id/status and renders chapters as they arrive
+  → foundation call (internal JSON) → eleven section calls in parallel (ten chapter sections and the house readings), each schema-enforced
+  → each section stored as it lands → client polls /api/reports/:id/status (sections, chartReady, provisional positions) and renders chapters as they arrive
 ```
 
 - **R-4.1** Positions are computed locally. A user-facing string names the real library. Never fix a wrong claim by changing the library.
@@ -96,6 +98,7 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 - **R-4.3** Every section's output is enforced by a zod schema through structured outputs. `Section | string` types are a bug, not a fallback.
 - **R-4.4** No prompt or engine change ships without the report lab run against the committed chart fixtures under `fixtures/charts/`, with the measurement pasted in the round report.
 - **R-4.5** A second report for the same profile skips computation. Cache on the profile, never on the request.
+- **R-4.6** The horizon is a status, not a guess. Birth time is a window the engine sweeps; without a horizon that holds, the chart carries no angle, house, sect or lot, the report withholds them and its frame says so. Adding the time later is a pass that amends sentences by quote match, never a regeneration (ADR-33 to ADR-38).
 
 ## 5 · Interpretation rules
 
@@ -110,10 +113,10 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 Nothing is sold yet. The credits ledger exists; the purchase path does not. Pricing is open (Mailbox).
 
-- **R-6.1** One-time purchase grants a bundle of credits; creating a report consumes one credit, hard. The soft pass in `consumeCredit` ends the day payments go live.
+- **R-6.1** One-time purchase grants a bundle of credits; creating a report consumes one credit, hard. The soft pass in `consumeCredit` ends the day payments go live. Only the birth time can change on a report: the first update is free, a second consumes a credit, a changed date or place is a new report on a new credit, and no other user regeneration exists (MB-49).
 - **R-6.2** Once a payment provider exists, it is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation.
 - **R-6.3** A price appears in exactly one place in code, read by the landing page, the checkout and the receipt. No literal prices in copy.
-- **R-6.4** Synastry is priced above solo natal, never at parity.
+- **R-6.4** One credit is one report, whatever the report (ADR-42). A compatibility report needs two natal reports first, so a pair always costs three credits against one; "above solo" holds at the purchase, never at the credit.
 
 ## 7 · Architecture
 
@@ -150,9 +153,9 @@ Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report
 
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
 - **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The weight-300 display serif that pulled the other way is settled — display moves to Newsreader 400 and the numerals to a real monospace. The starfield and gradients stay, budgeted: two moves per chapter change, one easing, and reduced motion is a real state.
-- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27).
-- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; element hues stay data, brass stays geometry (ADR-23).
-- **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report (ADR-24).
+- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The loading wheel is the sky too: every body on its own ring at its mean daily motion, settling onto the stored chart (ADR-47).
+- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; chapter 10, Closing, is teal and its prose reads in paper; element hues stay data, brass stays geometry (ADR-23, ADR-46). The rail lists chapters only (ADR-50); the sky is one canvas from the first pixel and the dawn's sun lives on the fixed layer (ADR-51).
+- **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report, and a tick is silent: no counter, and a box unticks (ADR-24, ADR-48).
 - **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
 - **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
 - **Voice.** Report voice is R-5.1. Marketing voice is not written yet (Mailbox); until it is, marketing copy follows the same rules: short, specific, no mysticism, no claims the code cannot back.
@@ -237,6 +240,6 @@ The live list is the Notion Mailbox. As of this version the blocking rows are: t
 
 ## 15 · Decision log
 
-The live log is the Notion Decisions database. Seeded from the Owner's brief, the product log and the bible: the name (Stars Decoded); the stack; compute-not-guess with whole sign; the report as the one-time product with the V2 structure and tone; synastry as the growth engine priced above natal; real chart data only; design consistency over novelty; prompts synced from their source of truth; USER-FACING / INTERNAL tagging; inference cost is not a constraint; and this process itself.
+The live log is the Notion Decisions database. Seeded from the Owner's brief, the product log and the bible: the name (Stars Decoded); the stack; compute-not-guess with whole sign; the report as the one-time product with the V2 structure and tone; the compatibility report as the growth engine, one credit like any report; real chart data only; design consistency over novelty; prompts synced from their source of truth; USER-FACING / INTERNAL tagging; inference cost is not a constraint; and this process itself.
 
 Hand this file plus the repo to the first planner. Its first duty: surface the Mailbox to the Owner.

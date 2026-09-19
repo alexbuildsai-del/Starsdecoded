@@ -11,9 +11,10 @@ export const HousesSchema = z.object({
   })).min(12).max(12),
 });
 
-/** Houses whose card already prints a triad passage above the reading. */
+/** Houses whose card already prints a triad passage above the reading. Never called blind: the section is skipped. */
 function triadHouses(chart: NatalChartData): number[] {
-  return [...new Set([1, chart.planets.sun.house, chart.planets.moon.house])].sort((a, b) => a - b);
+  const placed = [1, chart.planets.sun.house, chart.planets.moon.house].filter((h): h is number => h !== undefined);
+  return [...new Set(placed)].sort((a, b) => a - b);
 }
 
 export const houses: SectionSpec<typeof HousesSchema> = {
@@ -23,6 +24,7 @@ export const houses: SectionSpec<typeof HousesSchema> = {
   wordTarget: [480, 780],
   maxTokens: 6_000,
   schema: HousesSchema,
+  skipWhenBlind: true,
   extraContext: (brief) => {
     const rulers = houseRulers(brief.chart);
     const allowed = Array.from({ length: 12 }, (_, i) => {

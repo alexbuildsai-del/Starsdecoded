@@ -1,11 +1,14 @@
 /**
- * Always visible, never collapsible: what was computed and how.
+ * Always visible, never collapsible: what was computed and how. A report
+ * whose horizon is unknown has no sect line to give; the horizon line says so.
  */
 import type { Interpretation } from "@/types/chart";
 
-export function MethodologyBox({ meta }: { meta: Interpretation["meta"] }) {
+export function MethodologyBox({ meta, horizonLine }: { meta: Interpretation["meta"]; horizonLine?: string }) {
   const alt = meta.sunAltitude;
-  const sectLine = `${meta.sect === "day" ? "Day" : "Night"} chart. The Sun's centre was ${Math.abs(alt).toFixed(1)}° ${alt > 0 ? "above" : "below"} the horizon at birth${meta.sectMarginal ? " (within 5°, marginal; the reading commits to " + meta.sect + ")" : ""}.`;
+  const sectLine = meta.sect && alt !== undefined
+    ? `${meta.sect === "day" ? "Day" : "Night"} chart. The Sun's centre was ${Math.abs(alt).toFixed(1)}° ${alt > 0 ? "above" : "below"} the horizon at birth${meta.sectMarginal ? " (within 5°, marginal; the reading commits to " + meta.sect + ")" : ""}.`
+    : "Not decided: the birth time is not recorded, so the Sun's altitude at birth is not known and no sect is read.";
   const orbs = Object.entries(meta.orbs ?? {}).map(([k, v]) => `${k} ${v}°`).join(", ");
   return (
     <div className="mx-auto max-w-2xl mt-6 rounded-xl border border-border/50 bg-card/30 px-5 py-4 text-left">
@@ -19,6 +22,12 @@ export function MethodologyBox({ meta }: { meta: Interpretation["meta"] }) {
         <dd className="text-foreground/80">{meta.ephemeris}</dd>
         <dt className="text-muted-foreground">Orbs</dt>
         <dd className="text-foreground/80">{orbs}</dd>
+        {horizonLine && (
+          <>
+            <dt className="text-muted-foreground">Horizon</dt>
+            <dd className="text-foreground/80">{horizonLine}</dd>
+          </>
+        )}
         <dt className="text-muted-foreground">Sect</dt>
         <dd className="text-foreground/80">{sectLine}</dd>
         <dt className="text-muted-foreground">Evidence</dt>

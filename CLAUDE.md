@@ -109,12 +109,12 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-18)
+## Current focus (2026-09-19)
 
-1. R04 shipped `docs/specs/locked/natal-report-pass-two.md`: explorer, generated
-   house cards, workbook, Your Path, dawn, streaming, prompts v5 (ADR-20 to 28).
-   Lab pasted: mean 31.0 ¢, all five fixtures green. Next: Owner acceptance on staging.
-2. Staging landing (`docs/specs/draft/staging-environment.md`): `production` sits
-   at the pre-staging `main`; the Owner works the runbook, switches the
-   dashboards, then the first Promote ships it.
-3. R01 acceptance pending. Next: pricing (MB-5), Stripe test mode on staging.
+1. R05 shipped pass three (ADR-46 to 51), unknown birth time (ADR-33 to 38) and the
+   compatibility report (ADR-39 to 45) on `round/R05`: prompts v6 and p1, the horizon
+   pass, the door at 67%. Gate green; the three lab campaigns and the preview smoke
+   still to run with credentials, then paste into `docs/rounds/R05-report.md`.
+2. Owner acceptance on staging for R01, R03, R04 and R05, in that order.
+3. Staging landing (`docs/specs/draft/staging-environment.md`): the Owner works the
+   runbook, then the first Promote. Pricing (MB-5) and Stripe (MB-6) next; MB-57 waits on them.

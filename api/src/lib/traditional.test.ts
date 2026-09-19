@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chartFromFixture } from "./testFixtures.js";
-import { calculateNatalChart } from "./chartCalculation.js";
+import { calculateNatalChart, hasHorizon } from "./chartCalculation.js";
 import {
   DOMICILE, EXALTATION, TRADITIONAL_PLANETS,
   angularity, deriveTraditional, essentialDignity, houseRulers, lots, sect, sectPayload, wholeSignHouse,
@@ -34,7 +34,7 @@ test("sect: marginal within 5 degrees of the horizon, still committed to one sec
   for (let m = 0; m < 12 * 60; m++) {
     const hh = String(Math.floor(m / 60)).padStart(2, "0"), mm = String(m % 60).padStart(2, "0");
     const c = calculateNatalChart("1990-06-21", `${hh}:${mm}`, 48.8566, 2.3522, 2);
-    if (c.sunAltitude > 0) { riseMinute = m; break; }
+    if ((c.sunAltitude ?? -90) > 0) { riseMinute = m; break; }
   }
   assert.ok(riseMinute > 0, "sunrise not found");
   const at = (m: number) => calculateNatalChart("1990-06-21", `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`, 48.8566, 2.3522, 2);
@@ -108,7 +108,7 @@ test("house rulers: Marie Curie's 10th is Libra, ruled by Venus sitting in Scorp
   assert.equal(eleventh.ruler, "mars");
   assert.equal(eleventh.inOwnHouse, true);
   const chartRuler = deriveTraditional(chartFromFixture("marie-curie")).chartRuler;
-  assert.equal(chartRuler.ruler, "saturn");
+  assert.equal(chartRuler?.ruler, "saturn");
 });
 
 test("house rulers never use modern rulers", () => {
@@ -122,6 +122,7 @@ test("house rulers never use modern rulers", () => {
 test("lots: Fortune and Spirit are equidistant from the Ascendant in opposite directions", () => {
   for (const name of ["marie-curie", "oprah-winfrey", "day-angular", "night-angular", "high-latitude"]) {
     const c = chartFromFixture(name);
+    assert.ok(hasHorizon(c));
     const { fortune, spirit } = lots(c);
     const asc = c.angles.ascendant.absoluteDegree;
     const df = norm(fortune.longitude - asc);
@@ -132,6 +133,7 @@ test("lots: Fortune and Spirit are equidistant from the Ascendant in opposite di
 
 test("lots: day formula for Marie Curie", () => {
   const c = chartFromFixture("marie-curie");
+  assert.ok(hasHorizon(c));
   const asc = c.angles.ascendant.absoluteDegree;
   const sun = c.planets.sun.absoluteDegree;
   const moon = c.planets.moon.absoluteDegree;

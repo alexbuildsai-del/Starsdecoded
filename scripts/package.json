@@ -9,6 +9,7 @@
     "backfill:is-self": "tsx ./src/backfill-profile-is-self.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "report:lab": "tsx ./src/report-lab.ts",
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
     "generate:vocabulary": "tsx ./src/generate-vocabulary.ts"
   },
   "dependencies": {

@@ -1,11 +1,13 @@
 /**
- * The closing: dawn in the corner. As chapter 11 enters, the Sun slides in from
- * beyond the top right corner and stops cropped by both edges, its light warming
- * that corner and falling diagonally across the chapter. The closing reads at
- * the left, upright, with its citations and no caption under it.
+ * The closing: dawn in the corner. As chapter 10 enters, the Sun slides in from
+ * beyond the viewport's top right corner on the fixed layer, its light warming
+ * that corner and falling across the chapter, cropped only by the screen
+ * (ADR-51). The closing reads at the left, upright, in paper (ADR-46), with
+ * its citations and no caption under it.
  *
  * Progress is one CSS variable set from the section's own position in the
  * viewport, on a rAF-throttled scroll handler and no timers (MASTERFILE §9).
+ * The Sun renders only while --p is above zero, so scrolling away removes it.
  * Reduced motion renders the final frame and listens to nothing.
  */
 import { useEffect, useRef } from "react";
@@ -49,6 +51,7 @@ export function DawnClosing({ s, counter }: { s: FocusSection; counter?: Citatio
     if (!root) return;
     if (reduced) {
       root.style.setProperty("--p", "1");
+      root.classList.remove("off");
       return;
     }
     let frame = 0;
@@ -57,9 +60,13 @@ export function DawnClosing({ s, counter }: { s: FocusSection; counter?: Citatio
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const vh = Math.max(1, window.innerHeight);
-      // 0 while the chapter is still below the fold, 1 once it has risen a screen.
-      const p = Math.min(1, Math.max(0, (vh - rect.top) / (vh * 0.9)));
+      // 0 while the chapter is still below the fold, 1 once it has risen a screen,
+      // and back to 0 once it has scrolled away above, so the Sun leaves with it.
+      const entering = (vh - rect.top) / (vh * 0.9);
+      const leaving = (rect.bottom + vh * 0.3) / (vh * 0.9);
+      const p = Math.min(1, Math.max(0, Math.min(entering, leaving)));
       el.style.setProperty("--p", p.toFixed(3));
+      el.classList.toggle("off", p <= 0);
     }
     function onScroll() {
       if (frame) return;
@@ -79,7 +86,7 @@ export function DawnClosing({ s, counter }: { s: FocusSection; counter?: Citatio
   }, [reduced]);
 
   return (
-    <div ref={rootRef} className="rp-dawn">
+    <div ref={rootRef} className="rp-dawn off">
       <div className="sun no-print" aria-hidden>
         <img src={SUN_HERO} alt="" />
       </div>

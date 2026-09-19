@@ -11,6 +11,21 @@ export interface ProfileInput {
   latitude: number;
   longitude: number;
   timezoneOffset: number;
+  /** IANA zone; when present the offset in force at birth is derived from it (MB-48). */
+  timezone?: string | null;
+  /** 0 exact, 180 a part of the day, 720 unknown (ADR-33). */
+  birthTimeWindowMinutes?: number;
+}
+
+/** The chart for a profile row or an input: the zone when there is one, else the stored offset, and the band. */
+export function chartForProfile(p: {
+  birthDate: string; birthTime: string; latitude: number; longitude: number;
+  timezoneOffset: number; timezone?: string | null; birthTimeWindowMinutes?: number | null;
+}): NatalChartData {
+  return calculateNatalChart(
+    p.birthDate, p.birthTime, p.latitude, p.longitude,
+    p.timezone ?? p.timezoneOffset, p.birthTimeWindowMinutes ?? 0,
+  );
 }
 
 /**
@@ -41,6 +56,9 @@ export async function resolveOrCreateProfile(
       )
     : eq(profilesTable.sessionId, sessionId);
 
+  const windowMinutes = input.birthTimeWindowMinutes ?? 0;
+  // The band is part of the birth data: the same clock time with a different
+  // window is a different chart, so it dedupes on both (ADR-33).
   const existing = await db
     .select()
     .from(profilesTable)
@@ -50,6 +68,7 @@ export async function resolveOrCreateProfile(
         eq(profilesTable.name, input.name),
         eq(profilesTable.birthDate, input.birthDate),
         eq(profilesTable.birthTime, input.birthTime),
+        eq(profilesTable.birthTimeWindowMinutes, windowMinutes),
         eq(profilesTable.latitude, input.latitude),
         eq(profilesTable.longitude, input.longitude),
         eq(profilesTable.timezoneOffset, input.timezoneOffset),
@@ -87,16 +106,11 @@ export async function resolveOrCreateProfile(
     }
 
     // Recompute when the cached chart is missing or predates the current
-    // engine shape (e.g. lacks sunAltitude).
+    // engine shape (e.g. lacks the horizon).
     const cachedVersion = (p.chartData as { chartVersion?: number } | null)?.chartVersion ?? 0;
     if (!p.chartData || cachedVersion < CHART_VERSION) {
-      const chartData = calculateNatalChart(
-        p.birthDate,
-        p.birthTime,
-        p.latitude,
-        p.longitude,
-        p.timezoneOffset,
-      );
+      if (input.timezone && !p.timezone) updates.timezone = input.timezone;
+      const chartData = chartForProfile({ ...p, ...updates });
       updates.chartData = chartData as unknown as object;
       updates.updatedAt = new Date();
       if (Object.keys(updates).length) {
@@ -114,13 +128,7 @@ export async function resolveOrCreateProfile(
   }
 
   const id = randomUUID();
-  const chartData: NatalChartData = calculateNatalChart(
-    input.birthDate,
-    input.birthTime,
-    input.latitude,
-    input.longitude,
-    input.timezoneOffset,
-  );
+  const chartData: NatalChartData = chartForProfile({ ...input, birthTimeWindowMinutes: windowMinutes });
 
   // Enforce one-self-per-user: atomically clear any existing self-profile
   // then insert the new row. The DB partial unique index is the final safety
@@ -143,7 +151,9 @@ export async function resolveOrCreateProfile(
         birthPlace: input.birthPlace,
         latitude: input.latitude,
         longitude: input.longitude,
-        timezoneOffset: input.timezoneOffset,
+        timezoneOffset: chartData.timezoneOffset,
+        timezone: input.timezone ?? null,
+        birthTimeWindowMinutes: windowMinutes,
         chartData: chartData as unknown as object,
       });
     });
@@ -159,7 +169,9 @@ export async function resolveOrCreateProfile(
       birthPlace: input.birthPlace,
       latitude: input.latitude,
       longitude: input.longitude,
-      timezoneOffset: input.timezoneOffset,
+      timezoneOffset: chartData.timezoneOffset,
+      timezone: input.timezone ?? null,
+      birthTimeWindowMinutes: windowMinutes,
       chartData: chartData as unknown as object,
     });
   }

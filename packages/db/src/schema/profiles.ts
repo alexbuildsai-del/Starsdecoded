@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, doublePrecision, index, boolean, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, doublePrecision, index, boolean, integer, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -18,6 +18,10 @@ export const profilesTable = pgTable(
     latitude: doublePrecision("latitude").notNull(),
     longitude: doublePrecision("longitude").notNull(),
     timezoneOffset: doublePrecision("timezone_offset").notNull(),
+    /** IANA zone name; the offset in force at birth derives from it (MB-48). A profile with no zone keeps its stored offset. */
+    timezone: text("timezone"),
+    /** Half-width of the birth-time band around birth_time: 0 exact, 180 a part of the day, 720 unknown (ADR-33). */
+    birthTimeWindowMinutes: integer("birth_time_window_minutes").notNull().default(0),
     chartData: jsonb("chart_data"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

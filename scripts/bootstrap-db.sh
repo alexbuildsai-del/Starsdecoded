@@ -34,6 +34,22 @@ echo "==> 3b/7 Report workbook column"
 # Adds reports.workbook, the reader's ticked actions. Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-report-workbook.ts
 
+echo "==> 3c/7 Birth time as a window"
+# Adds profiles.timezone and profiles.birth_time_window_minutes (ADR-33, MB-48). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-birth-time-window.ts
+
+echo "==> 3d/7 The horizon pass"
+# Adds reports.horizon_passes and the report_revisions table (ADR-35). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-report-revisions.ts
+
+echo "==> 3e/7 Three lenses"
+# Remaps relationships.type to partners, parent_child, family (ADR-40). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-remap-relationship-types.ts
+
+echo "==> 3f/7 One credit kind"
+# credits.credit_type becomes nullable with a default; nothing dropped (ADR-42, MB-57). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-credit-type-nullable.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.

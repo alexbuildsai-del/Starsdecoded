@@ -10,7 +10,7 @@
  * reference, so it cannot be invented either.
  */
 import { z } from "zod/v4";
-import type { NatalChartData } from "../lib/chartCalculation.js";
+import { hasHorizon, type NatalChartData } from "../lib/chartCalculation.js";
 import {
   TRADITIONAL_PLANETS, houseRulers, lots, sect, sectPayload, type Dignity,
 } from "../lib/traditional.js";
@@ -26,8 +26,8 @@ const SectRoleEnum = z.enum([
 const AngleEnum = z.enum(["ascendant", "midheaven"]);
 
 export const EvidenceRefSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("placement"), body: BodyEnum, sign: SignEnum, house: z.int() })
-    .describe("a body in a sign and whole-sign house, exactly as the brief lists it"),
+  z.object({ kind: z.literal("placement"), body: BodyEnum, sign: SignEnum, house: z.int().nullable() })
+    .describe("a body in a sign and whole-sign house, exactly as the brief lists it; house is null when the brief reads HORIZON: unknown"),
   z.object({ kind: z.literal("aspect"), body1: BodyEnum, body2: BodyEnum, type: z.enum(ASPECTS), orb: z.number() })
     .describe("an aspect from the brief's list, with its orb in degrees"),
   z.object({ kind: z.literal("ruler"), house: z.int(), ruler: TraditionalEnum, rulerSign: SignEnum, rulerHouse: z.int(), dignity: DignityEnum })
@@ -54,7 +54,7 @@ export interface StoredEvidence { ref: EvidenceRef; label: string }
 export interface StoredClaim { quote: string; evidence: StoredEvidence[] }
 
 /** Contract appended by code to every reader-facing prompt. Not overridable. */
-export const CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the chart brief: a placement (body, sign, house), an aspect (both bodies, type, orb as listed), a house ruler (house, ruler, ruler's sign and house, dignity as listed), a Lot (fortune or spirit, sign, house), a sect role (role, body), or an angle (the ascendant or the midheaven, and its sign). Copy values exactly from the brief. Every reference is checked against the chart by code and the section is rejected if any does not match. Choose the claims that matter most: the sentences a reader would want to verify.`;
+export const CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the chart brief: a placement (body, sign, house), an aspect (both bodies, type, orb as listed), a house ruler (house, ruler, ruler's sign and house, dignity as listed), a Lot (fortune or spirit, sign, house), a sect role (role, body), or an angle (the ascendant or the midheaven, and its sign). Copy values exactly from the brief. When the brief reads HORIZON: unknown, only placements with house null and aspects exist; any other kind is rejected. Every reference is checked against the chart by code and the section is rejected if any does not match. Choose the claims that matter most: the sentences a reader would want to verify.`;
 
 /** Typographic variants the model swaps freely and a reader never notices. */
 function norm(s: string): string {
@@ -76,13 +76,17 @@ export function proseOf(section: unknown): string {
 
 const ORB_TOLERANCE = 0.2;
 
+/** The evidence kinds that are the horizon: none of them can be claimed when it is unknown (ADR-34). */
+const HORIZON_KINDS = new Set(["angle", "ruler", "sect", "lot"]);
+
 /** Returns human-readable problems; empty means every claim verified. */
 export function validateClaims(section: unknown, claims: Claim[], chart: NatalChartData): string[] {
   const errors: string[] = [];
   const prose = norm(proseOf(section));
-  const rulers = houseRulers(chart);
-  const theLots = lots(chart);
-  const payload = sectPayload(sect(chart));
+  const drawn = hasHorizon(chart);
+  const rulers = drawn ? houseRulers(chart) : null;
+  const theLots = drawn ? lots(chart) : null;
+  const payload = drawn ? sectPayload(sect(chart)) : null;
 
   claims.forEach((c, i) => {
     const q = norm(c.quote);
@@ -91,12 +95,21 @@ export function validateClaims(section: unknown, claims: Claim[], chart: NatalCh
 
     c.evidence.forEach((e, j) => {
       const tag = `claim ${i + 1} evidence ${j + 1}`;
+      if (!drawn && HORIZON_KINDS.has(e.kind)) {
+        errors.push(`${tag}: a ${e.kind} claim cannot be made when the horizon is unknown`);
+        return;
+      }
+      if (!drawn && e.kind === "placement" && e.house !== null) {
+        errors.push(`${tag}: a placement claim cannot carry a house when the horizon is unknown`);
+        return;
+      }
       switch (e.kind) {
         case "placement": {
           const p = chart.planets[e.body];
           if (!p) { errors.push(`${tag}: no body ${e.body}`); break; }
           if (p.sign.toLowerCase() !== e.sign) errors.push(`${tag}: ${e.body} is in ${p.sign}, not ${e.sign}`);
-          if (p.house !== e.house) errors.push(`${tag}: ${e.body} is in the ${ordinal(p.house)}, not the ${ordinal(e.house)}`);
+          if (drawn && e.house === null) errors.push(`${tag}: ${e.body} is in the ${ordinal(p.house ?? 0)}; the brief lists the house`);
+          else if (drawn && p.house !== e.house) errors.push(`${tag}: ${e.body} is in the ${ordinal(p.house ?? 0)}, not the ${ordinal(e.house ?? 0)}`);
           break;
         }
         case "aspect": {
@@ -108,7 +121,7 @@ export function validateClaims(section: unknown, claims: Claim[], chart: NatalCh
           break;
         }
         case "ruler": {
-          const r = rulers[e.house - 1];
+          const r = rulers?.[e.house - 1];
           if (!r) { errors.push(`${tag}: no house ${e.house}`); break; }
           if (r.ruler !== e.ruler) errors.push(`${tag}: the ${ordinal(e.house)} is ruled by ${r.ruler}, not ${e.ruler}`);
           if (r.rulerSign !== e.rulerSign) errors.push(`${tag}: ${r.ruler} is in ${r.rulerSign}, not ${e.rulerSign}`);
@@ -117,17 +130,20 @@ export function validateClaims(section: unknown, claims: Claim[], chart: NatalCh
           break;
         }
         case "lot": {
-          const l = theLots[e.lot];
+          const l = theLots?.[e.lot];
+          if (!l) { errors.push(`${tag}: no lots without a horizon`); break; }
           if (l.sign !== e.sign) errors.push(`${tag}: Lot of ${e.lot} is in ${l.sign}, not ${e.sign}`);
           if (l.house !== e.house) errors.push(`${tag}: Lot of ${e.lot} is in the ${ordinal(l.house)}, not the ${ordinal(e.house)}`);
           break;
         }
         case "sect": {
+          if (!payload) { errors.push(`${tag}: no sect without a horizon`); break; }
           if (payload[e.role] !== e.body) errors.push(`${tag}: ${e.role} is ${payload[e.role]}, not ${e.body}`);
           break;
         }
         case "angle": {
-          const actual = chart.angles[e.angle].sign.toLowerCase();
+          const actual = chart.angles?.[e.angle].sign.toLowerCase();
+          if (!actual) { errors.push(`${tag}: no angles without a horizon`); break; }
           if (actual !== e.sign) errors.push(`${tag}: the ${e.angle} is in ${actual}, not ${e.sign}`);
           break;
         }
@@ -159,7 +175,9 @@ export function labelEvidence(e: EvidenceRef, chart: NatalChartData): string {
     case "placement": {
       const p = chart.planets[e.body];
       const deg = p ? ` ${p.degree.toFixed(1)}°` : "";
-      return `${BODY_LABELS[e.body as Body]}${deg} ${cap(e.sign)}, ${ordinal(e.house)} house`;
+      return e.house === null
+        ? `${BODY_LABELS[e.body as Body]}${deg} ${cap(e.sign)}`
+        : `${BODY_LABELS[e.body as Body]}${deg} ${cap(e.sign)}, ${ordinal(e.house)} house`;
     }
     case "aspect":
       return `${BODY_LABELS[e.body1 as Body]} ${e.type} ${BODY_LABELS[e.body2 as Body]}, ${e.orb.toFixed(1)}° orb`;
@@ -170,8 +188,8 @@ export function labelEvidence(e: EvidenceRef, chart: NatalChartData): string {
     case "sect":
       return `${BODY_LABELS[e.body as Body]} is ${ROLE_LABEL[e.role]}`;
     case "angle": {
-      const a = chart.angles[e.angle];
-      return `${ANGLE_LABEL[e.angle]} · ${a.degree.toFixed(1)}° ${cap(e.sign)}`;
+      const a = chart.angles?.[e.angle];
+      return a ? `${ANGLE_LABEL[e.angle]} · ${a.degree.toFixed(1)}° ${cap(e.sign)}` : `${ANGLE_LABEL[e.angle]} in ${cap(e.sign)}`;
     }
   }
 }

@@ -8,7 +8,7 @@
  * a disc of each other the Moon holds the ring and the Sun steps outward along
  * its own spoke, so two discs never overlap and neither is moved off its angle.
  */
-import { norm360, pointAt, theta } from "@/components/chart/wheel-geometry";
+import { norm360, pointAt, theta, type Point } from "@/components/chart/wheel-geometry";
 
 export const CONJUNCTION_DEGREES = 12;
 /** How far outside the ring the Sun steps when the two lights are together. */
@@ -31,7 +31,8 @@ export interface HeroLayoutInput {
   cx: number;
   cy: number;
   ringRadius: number;
-  ascendantAbsoluteDegree: number;
+  /** The degree drawn at east: the Ascendant when the horizon is drawn, 0° Aries when it is not. */
+  frameDegree: number;
   /** In placement order: the Sun is placed first, so it wins the room it needs. */
   bodies: HeroBody[];
   labelWidth: number;
@@ -81,7 +82,7 @@ function labelRect(x: number, y: number, anchor: "start" | "end", w: number, h: 
 }
 
 export function layoutHero(input: HeroLayoutInput): HeroLayout {
-  const { cx, cy, ringRadius, ascendantAbsoluteDegree: asc, labelWidth, labelHeight } = input;
+  const { cx, cy, ringRadius, frameDegree: asc, labelWidth, labelHeight } = input;
 
   // The Sun is the one body allowed to leave the ring, and only to clear the
   // Moon. Everything else sits on it.
@@ -116,4 +117,31 @@ export function layoutHero(input: HeroLayoutInput): HeroLayout {
   }
 
   return { bodies: placed, labels };
+}
+
+export interface MoonArc {
+  /** The ring points at the band's two ends, in order of travel. */
+  from: Point;
+  to: Point;
+  /** Degrees the Moon covered, forward along the zodiac. */
+  span: number;
+  /** An SVG path along the ring from one end to the other, sampled so no sweep flag can be wrong. */
+  d: string;
+}
+
+/**
+ * The arc the Moon travelled across the birth-time band (ADR-37): its ends are
+ * its longitudes at the band's edges, on the same ring the bodies sit on. The
+ * Moon never runs backwards, so the arc is always the forward way round.
+ */
+export function moonArc(cx: number, cy: number, ringRadius: number, frameDegree: number, band: { fromDegree: number; toDegree: number }): MoonArc {
+  const span = norm360(band.toDegree - band.fromDegree);
+  const steps = Math.max(1, Math.ceil(span));
+  const points: Point[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const deg = i === steps ? band.toDegree : band.fromDegree + (span * i) / steps;
+    points.push(pointAt(cx, cy, ringRadius, theta(deg, frameDegree)));
+  }
+  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
+  return { from: points[0], to: points[points.length - 1], span, d };
 }
