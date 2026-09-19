@@ -7,6 +7,7 @@ import { z } from "zod/v4";
 import type { PairBrief } from "../../lib/pairBrief.js";
 import { LENS_REGISTER, type Lens } from "../../lib/pairBrief.js";
 import { PairClaimsSchema, validatePairClaims, type PairClaim } from "./evidence.js";
+import { ASPECTS, BODIES } from "../vocabulary.js";
 
 export interface PairSectionSpec<T extends z.ZodType = z.ZodType> {
   /** Prompt key, e.g. "pair:howYouMeet". `:system` and `:user` rows derive from it. */
@@ -56,11 +57,13 @@ export const PairPractiseSchema = z.object({
 
 export const PairLinkSchema = z.object({
   kind: z.enum(["flows", "rubs", "overlay"]),
-  planetA: z.string().describe("the aspect's A body, exactly as the brief names it; empty for an overlay"),
-  planetB: z.string().describe("the aspect's B body; empty for an overlay"),
-  aspect: z.string().describe("the aspect type; empty for an overlay"),
+  // Enums, not strings: given the list's "A Moon square B Jupiter", a free
+  // string came back as "A Moon" and no card could ever match its aspect.
+  planetA: z.enum([...BODIES, ""]).describe("the aspect's A body as a key, e.g. moon; empty for an overlay"),
+  planetB: z.enum([...BODIES, ""]).describe("the aspect's B body as a key; empty for an overlay"),
+  aspect: z.enum([...ASPECTS, ""]).describe("the aspect type; empty for an overlay"),
   orb: z.number().describe("the orb as listed; 0 for an overlay"),
-  planet: z.string().describe("an overlay's lead body as listed; empty for an aspect"),
+  planet: z.enum([...BODIES, ""]).describe("an overlay's lead body as a key, e.g. sun; empty for an aspect"),
   of: z.enum(["A", "B", "none"]).describe("an overlay's owner; none for an aspect"),
   house: z.int().describe("an overlay's house; 0 for an aspect"),
   reading: z.string().describe("40 to 70 words, ending on a sentence that begins 'Behaviour check:'"),

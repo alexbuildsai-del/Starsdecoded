@@ -43,7 +43,11 @@ the words kept verbatim, 16 sentences in the ledger, 10 paragraphs added, 49.5 Â
 report reads 5,769 words, above the 5,500 ceiling (MB-60), and carries 53 claims against 60 before the pass even with
 rising and houses added (MB-61). The pair, run 35456892755, failed on the lab itself (both natal reports created before
 the session cookie landed, so one belonged to another visitor; fixed here) and on one natal report whose `triad`
-failed claim validation after three attempts, a customer-visible failure (MB-62). Pair rerun: PAIR_RESULTS.
+failed claim validation after three attempts, a customer-visible failure (MB-62). The reruns (35457725652, 35457726958,
+35457728998) failed twice on the link cards and once on an OpenAI 429: the card schema took each body as a free string,
+the model copied "A Moon" from the list, and no card could match its aspect; the SDK's two retries gave up on the
+per-minute token limit inside a second. Both fixed in the follow-up PR (body and aspect fields are enums, six retries),
+so the pair is measured once it deploys and its line is appended here.
 
 ## Mailbox
 

@@ -67,7 +67,7 @@ export const links: PairSectionSpec<typeof PairLinksSchema> = {
     });
     return problems;
   },
-  instructions: `Write the link cards that sit under the bi-wheel in chapter two: one card per listed link, in the listed order, 45 to 65 words each; 70 is a hard ceiling.
+  instructions: `Write the link cards that sit under the bi-wheel in chapter two: one card per listed link, in the listed order, 45 to 60 words each; 70 is a hard ceiling and a card over it is rejected. The body fields take the key form (sun, moon, mercury, north_node), never the letter or the capitalised name.
 
 An aspect card names only its two bodies, A's and B's, and reads what that contact does between these two people from the lens register: a trine, sextile or conjunction is tagged flows, a square or opposition is tagged rubs. A conjunction between two hard bodies still flows, but say what it costs. An overlay card names only the bodies listed for it and the house they fall in, and is tagged overlay: it reads where that person lands in the other's life, from the host's side; the lead body is the one listed first and goes in the planet field. Copy the bodies, the aspect type, the orb, the owner and the house exactly from the list; set the fields that do not apply to empty, none or 0.
 
