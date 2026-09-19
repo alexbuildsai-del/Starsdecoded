@@ -81,12 +81,12 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Things a session should know
 
-- Deploys are git-push driven: `main` → staging (Vercel branch alias
-  `starsdecoded-staging.vercel.app`, Railway environment `staging`, own Supabase
-  project); `production` branch → production, moved only by the Promote workflow,
-  fast-forward from `main`, after the staging smoke passes; dispatch it, never
-  push the branch. Secrets live only in the Railway, Vercel and Supabase
-  dashboards; the repo is public. Runbook: `docs/annex/staging-runbook.md`.
+- Deploys are git-push driven: `main` → staging (`starsdecoded-staging.vercel.app`,
+  Railway `staging`, own Supabase project); `production` branch → production at
+  `mystarsdecoded.com`, moved only by the Promote workflow, fast-forward from
+  `main` after the staging smoke passes; dispatch it, never push the branch.
+  Secrets live only in the Railway, Vercel and Supabase dashboards; the repo is
+  public. Runbook: `docs/annex/staging-runbook.md`.
 - The web app calls `/api` on its own origin; `vercel.json` rewrites that to the
   staging or production Railway host by web host. `/api/healthz` reports `env`
   and `commit`; `smoke.yml` asserts both.

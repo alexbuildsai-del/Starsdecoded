@@ -13,7 +13,7 @@ function getResendCredentials(): { apiKey: string; fromEmail: string } {
 
   return {
     apiKey,
-    fromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "Stars Decoded <noreply@starsdecoded.com>",
+    fromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "Stars Decoded <noreply@mystarsdecoded.com>",
   };
 }
 
