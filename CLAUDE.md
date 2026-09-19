@@ -100,9 +100,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   run twice breaks the deploy.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`,
   `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
-  `/report-lab` runs before the PR merges; otherwise only when the Owner asks.
-  Never generate a report to look at one. Every model id lives in `models.ts`
-  with its price; one outside the catalogue does not compile.
+  `/report-lab` runs on staging right after the merge by dispatching
+  `report-lab.yml`; no key or network is needed here. Never generate a report to
+  look at one. Every model id lives in `models.ts` with its price; one outside
+  the catalogue does not compile.
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
@@ -111,10 +112,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-09-19)
 
-1. R05 shipped pass three (ADR-46 to 51), unknown birth time (ADR-33 to 38) and the
-   compatibility report (ADR-39 to 45) on `round/R05`: prompts v6 and p1, the horizon
-   pass, the door at 67%. Gate green; the three lab campaigns and the preview smoke
-   still to run with credentials, then paste into `docs/rounds/R05-report.md`.
+1. R05 merged to staging (#52): pass three (ADR-46 to 51), unknown birth time
+   (ADR-33 to 38), the compatibility report (ADR-39 to 45); prompts v6 and p1.
+   The three lab campaigns run from `report-lab.yml`, pasted into `docs/rounds/R05-report.md`.
 2. Owner acceptance on staging for R01, R03, R04 and R05, in that order.
 3. Staging landing (`docs/specs/draft/staging-environment.md`): the Owner works the
    runbook, then the first Promote. Pricing (MB-5) and Stripe (MB-6) next; MB-57 waits on them.
