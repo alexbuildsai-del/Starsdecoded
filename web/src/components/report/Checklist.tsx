@@ -1,16 +1,20 @@
 /**
  * The one checklist in the report. A checklist means do: it sits in the rail
  * beside prose, or inside a card, and it is never folded (ADR-24). Ticks are
- * the reader's workbook and are saved on the report.
+ * the reader's workbook and are saved on the report; a tick is silent, with
+ * no counter (ADR-48).
  */
 import { useWorkbook } from "@/lib/workbook";
 
-/** The four headings a checklist may carry. There is no fifth. */
+/** The headings a checklist may carry: the natal four and the pair's three (ADR-40). */
 export type ChecklistHeading =
   | "What to do"
   | "How to use it"
   | "How to manage it"
-  | "Practice this week";
+  | "Practice this week"
+  | "For you"
+  | "For them"
+  | "For both";
 
 export interface ChecklistItem {
   key: string;
@@ -24,18 +28,9 @@ export function Checklist({
   const workbook = useWorkbook();
   if (!items?.length) return null;
 
-  const done = workbook ? workbook.count(items.map((i) => i.key)) : 0;
-
   return (
     <div className="mt-[18px] max-w-[64ch] border-t border-[var(--line-soft)] pt-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="rp-lab">{heading}</span>
-        {workbook && (
-          <span className="font-label text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">
-            saved · {done} of {items.length}
-          </span>
-        )}
-      </div>
+      <span className="rp-lab">{heading}</span>
       <ul className="mt-2 grid gap-2.5">
         {items.map((item) => {
           const ticked = workbook?.ticked(item.key) ?? false;

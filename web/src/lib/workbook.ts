@@ -2,7 +2,7 @@
  * The reader's workbook: which actions they have ticked, saved on the report
  * rather than in this browser, so the same owner sees the same ticks anywhere
  * (ADR-24). A tick is one shallow PATCH, applied optimistically and rolled back
- * if the request fails.
+ * if the request fails. A tick is silent: no counter anywhere (ADR-48).
  */
 import {
   createContext, createElement, useCallback, useContext, useMemo, useState,
@@ -37,14 +37,14 @@ export function mergeWorkbook(current: Workbook, patch: WorkbookPatch): Workbook
   return next;
 }
 
-export function countTicked(workbook: Workbook, keys: string[]): number {
-  return keys.reduce((n, key) => (workbook[key] ? n + 1 : n), 0);
+/** The body one toggle sends: null to untick a ticked key, the ISO date to tick one. */
+export function togglePatch(workbook: Workbook, key: string, now: Date = new Date()): WorkbookPatch {
+  return { [key]: workbook[key] ? null : now.toISOString() };
 }
 
 interface WorkbookStore {
   ticked: (key: string) => boolean;
   toggle: (key: string) => void;
-  count: (keys: string[]) => number;
   saving: boolean;
 }
 
@@ -56,24 +56,22 @@ export function WorkbookProvider({
   const [workbook, setWorkbook] = useState<Workbook>(initial ?? {});
   const patch = useUpdateReportWorkbook();
 
+  // The patch is built from the rendered workbook, never inside the state
+  // updater: React runs the updater after mutate has read the body, which is
+  // how an empty body reached the API and a {} rollback wiped the page.
   const toggle = useCallback((key: string) => {
-    let rollback: Workbook = {};
-    let body: WorkbookPatch = {};
-    setWorkbook((current) => {
-      rollback = current;
-      body = { [key]: current[key] ? null : new Date().toISOString() };
-      return mergeWorkbook(current, body);
-    });
+    const rollback = workbook;
+    const body = togglePatch(workbook, key);
+    setWorkbook(mergeWorkbook(workbook, body));
     patch.mutate(
       { id: reportId, data: body },
       { onError: () => setWorkbook(rollback), onSuccess: (merged) => setWorkbook(merged ?? rollback) },
     );
-  }, [patch, reportId]);
+  }, [patch, reportId, workbook]);
 
   const store = useMemo<WorkbookStore>(() => ({
     ticked: (key) => Boolean(workbook[key]),
     toggle,
-    count: (keys) => countTicked(workbook, keys),
     saving: patch.isPending,
   }), [workbook, toggle, patch.isPending]);
 

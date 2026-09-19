@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countTicked, isItemKey, itemKey, mergeWorkbook } from "./workbook";
+import { isItemKey, itemKey, mergeWorkbook, togglePatch } from "./workbook";
 
 describe("workbook keys", () => {
   it("names an item by its section, its path and its index", () => {
@@ -37,9 +37,25 @@ describe("mergeWorkbook", () => {
     expect(current).toEqual({ "career.actions.0": at });
   });
 
-  it("counts only the keys asked about", () => {
-    const w = { "career.actions.0": at, "career.actions.2": at, "money.actions.0": at };
-    expect(countTicked(w, ["career.actions.0", "career.actions.1", "career.actions.2"])).toBe(2);
-    expect(countTicked(w, [])).toBe(0);
+});
+
+describe("togglePatch (ADR-48)", () => {
+  const at = new Date("2026-09-19T10:00:00.000Z");
+
+  it("sends null for a ticked key and an ISO date for an unticked one, in both orders on one store", () => {
+    let store = {};
+    const tick = togglePatch(store, "career.actions.0", at);
+    expect(tick).toEqual({ "career.actions.0": at.toISOString() });
+    store = mergeWorkbook(store, tick);
+    const untick = togglePatch(store, "career.actions.0", at);
+    expect(untick).toEqual({ "career.actions.0": null });
+    store = mergeWorkbook(store, untick);
+    expect(store).toEqual({});
+    expect(togglePatch(store, "career.actions.0", at)).toEqual({ "career.actions.0": at.toISOString() });
+  });
+
+  it("never sends an empty body", () => {
+    expect(Object.keys(togglePatch({}, "mind.practice.0", at)).length).toBe(1);
+    expect(Object.keys(togglePatch({ "mind.practice.0": "x" }, "mind.practice.0", at)).length).toBe(1);
   });
 });
