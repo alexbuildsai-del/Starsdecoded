@@ -1,6 +1,6 @@
-# Relationship report
+# Compatibility report
 
-Ideation 2026-09-19 with the Owner. A second report type that reads two finished natal
+Ideation 2026-09-19 with the Owner, three questions answered the same day. A second report type that reads two finished natal
 reports and says how these two people meet. Artifact (name options, lenses, picker, chapters,
 a real bi-wheel of the two fixtures, engine, questions):
 https://claude.ai/artifact/AmsN9XxzbU81Ek18dAsBuk. Status: **draft**.
@@ -15,11 +15,11 @@ and keeps its plumbing. Nothing was ever sold from it.
 ## Scope
 
 ### Name and positioning
-- Product name **Relationship report** (Q1). "Compatibility" stays a plain word in copy ("how
-  compatible you are, and why"); "The Two of You" is the strapline. Tab and PDF title
-  "{A} & {B} · Relationship Report · Stars Decoded" (supersedes ADR-32's synastry line).
-- One product, one price, one engine, one lab (Q2). Three marketing doors (partners, parent and
-  child, family) open the same product with the lens preselected.
+- Product name **Compatibility report** (decided). Dashboard tile "{A} & {B} Compatibility",
+  tab and PDF "{A} & {B} · Compatibility Report · Stars Decoded" (supersedes ADR-32's synastry
+  line). Strapline "How compatible you are, and why." "Synastry" appears nowhere a buyer looks.
+- One product, one price, one engine, one lab (decided). Three marketing doors (partners,
+  parent and child, family) open the same product with the lens preselected.
 
 ### Lenses
 - `relationships.type` becomes `partners | parent_child | family` with an optional free label
@@ -34,20 +34,23 @@ and keeps its plumbing. Nothing was ever sold from it.
 
 ### Inputs and the flow
 - Created from the dashboard, never from a birth form: pick report A and report B from the
-  natal reports the buyer can see, any two, own not required (Q3); pick the lens; one CTA.
+  natal reports the buyer can see, any two, own not required (decided: two children, or a
+  partner and a child); pick the lens; one CTA.
 - Both must be `complete`. A person with no report is added the normal way first (natal
   credit). A report still writing is listed but not selectable. The invite link stays the other
   door in and is unchanged.
-- CTA states: has the credit → "Write the report", the page opens at once and streams; no
-  relationship credit → "Get the relationship report" opens checkout for one credit and keeps
-  the selection; both people missing → checkout offers the pair bundle.
+- CTA states: has a credit → "Write the report", the page opens at once and streams; no
+  credit → "Get a credit" opens checkout and keeps the selection; both people missing →
+  checkout shows the bundles (a 3-pack covers two people and their compatibility).
 - The report reads `reports.interpretation` and the cached `chart_data` of both. No birth data
   is read again, nothing from a natal report is regenerated.
 
-### Credits
-- One credit type `relationship` replaces `couple` and `parent_child`. Bundles: solo (1 natal),
-  pair (2 natal + 1 relationship), relationship add-on (1). Prices stay MB-5; R-6.4 holds
-  (pair above two solos). Consumption goes hard with payments (MB-6).
+### Credits (Owner's proposal, recommended; numbers decided with Stripe, MB-5 and MB-6)
+- One credit kind for any report. A compatibility report consumes one credit like a natal;
+  bundles are counts (1, 3, 5). `credits.credit_type` and the typed bundle definitions go.
+- Supersedes the parity clause of ADR-5 and R-6.4: a pair still costs three credits against
+  one, so "above solo" holds at the purchase, not at the credit. Inference for a compatibility
+  report is two to three times a natal's and stays under 3% of a credit (ADR-10).
 
 ### Chapters (nine, 3,000 to 4,500 words, no score anywhere)
 01 How you meet · 02 The two charts · 03 Two ways of being · 04 Where it flows · 05 Where it
@@ -81,7 +84,7 @@ rubs · 06 How you talk · 07 lens one · 08 lens two · 09 What to practise.
   weighting only orders the links.
 
 ### Engine
-- `reports.type = "relationship"`, `relationship_id` as today. `pair:` section registry in
+- `reports.type = "compatibility"`, `relationship_id` as today. `pair:` section registry in
   `api/src/prompts/`, same `SectionSpec` shape, every section zod enforced, usage accounted,
   model ids from `models.ts`.
 - Pair brief derived in code: both foundations' `chartThesis`, `dominantPattern`,
@@ -107,10 +110,10 @@ rubs · 06 How you talk · 07 lens one · 08 lens two · 09 What to practise.
 
 ## Acceptance criteria
 
-1. The dashboard offers "New relationship report"; the picker lists only complete natal
+1. The dashboard offers "New compatibility report"; the picker lists only complete natal
    reports; a writing one is visible and unselectable; the lens is required; parent and child
    asks who the parent is.
-2. With no relationship credit the CTA opens checkout and returns to the same selection.
+2. With no credit left the CTA opens checkout and returns to the same selection.
 3. Creating the report reads no birth data: geocoding and `calculateNatalChart` are not called.
 4. The page opens with the bi-wheel before any chapter; chapters stream in; the swap control
    re-hosts the houses; every drawn line matches a cross aspect within 4° of the pair fixture.
@@ -134,22 +137,22 @@ with link and overlay cards; a prose chapter with the rail; the engine pipeline.
 
 ## Open questions
 
-1. Name: Relationship report? Recommended yes. Default: Relationship report.
-2. Packaging: one product with three lenses behind three marketing doors? Recommended yes.
-   Default: one product, partners first in the picker.
-3. Which two: any two complete reports the buyer can see, own not required? Recommended yes,
-   so a parent can pair two children. Default: any two.
+None open. The Owner answered the three on 2026-09-19: Compatibility; one product with three
+lenses; any two complete reports. The credit numbers wait for the pricing session (MB-5).
 
 ## Decisions to record
 
-1. **The second report type is the Relationship report**, built from two stored natal reports
-   and cross-chart evidence; nothing is regenerated. Supersedes ADR-32's synastry title.
-2. **One product, three lenses**: partners, parent and child, family. The lens sets two
+1. **The second report type is the Compatibility report**, built from two stored natal reports
+   and cross-chart evidence; nothing is regenerated. Tile "{A} & {B} Compatibility". Supersedes
+   ADR-32's synastry title.
+2. **One product, three lenses**: partners, parent and child, family; any two complete
+   reports the buyer can see, own not required. The lens sets two
    chapters and the example register, never the engine. Closes MB-16 and MB-27 into this spec.
 3. **No score.** No number describes a pair. Closes MB-18 as "not shown".
-4. **Credits**: one `relationship` credit type; pair bundle 2 natal + 1 relationship; add-on 1.
+4. **One credit is one report, whatever the report.** Bundles are counts; a pair costs three.
+   Supersedes the parity clause of ADR-5 and R-6.4; prices remain MB-5.
 5. **Chapter 02 is the bi-wheel** with generated link cards, grounded like house cards.
 6. **Two evidence kinds** `cross` and `source`; a source claim carries the natal label.
 7. **The old synastry report is retired**; its compute module and plumbing stay. MASTERFILE
-   §2 changes: the relationship report is V1 scope after payments; zone 3 hides until it
+   §2 changes: the compatibility report is V1 scope after payments; zone 3 hides until it
    ships (MB-9).
