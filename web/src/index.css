@@ -397,8 +397,8 @@
 
   /* --- the opening: one full screen, the diagram fixed behind it --- */
   .rp-hero { position: relative; height: calc(100svh - 3.5rem); min-height: 520px; margin-top: 3.5rem; z-index: 2; }
-  .rp-hsky { position: fixed; inset: 3.5rem 0 0; z-index: 1; display: grid; place-items: center; padding: 14px 10px 56px;
-    background: radial-gradient(120% 92% at 50% 38%, #141B28 0%, #0B0E14 56%, #06080C 100%); }
+  /* No ground of its own: the plate and the Sun glow sit on the one sky (ADR-51). */
+  .rp-hsky { position: fixed; inset: 3.5rem 0 0; z-index: 1; display: grid; place-items: center; padding: 14px 10px 56px; }
   .rp-hplate { position: relative; width: 100%; height: 100%; min-height: 0; display: grid; place-items: center; }
   .rp-hplate > svg { display: block; width: 100%; height: 100%; max-height: min(100%, 760px); }
   /* A phone stacks ring, legend and cue as one centred column; nothing stretches to fill. */
@@ -446,14 +446,20 @@
     .rp-hud .wide-only { display: none; }
   }
 
-  .rp-cue { position: absolute; left: 0; right: 0; bottom: 22px; display: flex; justify-content: center; pointer-events: none;
-    color: var(--sky); font-family: var(--label); font-size: 11px; letter-spacing: .26em; text-transform: uppercase; }
+  /* The scroll cue: a 13 px label over a 2 px stem with a point of light falling down it, no arrow.
+     It is a button that scrolls to chapter 01, with a 44 px hit area. */
+  .rp-cue { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; }
   .rp-cue.rp-cue-flow { position: static; }
-  .rp-cue span { display: flex; align-items: center; gap: 12px; animation: rp-breathe 2.8s var(--ease) infinite; }
-  .rp-cue i { width: 1px; height: 34px; background: linear-gradient(var(--sky), transparent); display: block;
-    animation: rp-drip 2.8s var(--ease) infinite; }
+  .rp-cue button { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 44px; min-height: 44px; padding: 4px 10px;
+    background: none; border: 0; cursor: pointer; color: var(--sky); font-family: var(--label); font-size: 13px; letter-spacing: .34em;
+    text-transform: uppercase; animation: rp-breathe 2.8s var(--ease) infinite; }
+  .rp-cue button:focus-visible { outline: 1px solid var(--sky); outline-offset: 4px; border-radius: 4px; }
+  .rp-cue i { position: relative; width: 2px; height: 56px; display: block; overflow: hidden; background: rgba(212,176,106,.22); border-radius: 1px; }
+  .rp-cue i::after { content: ""; position: absolute; left: 0; top: -12px; width: 2px; height: 12px; border-radius: 1px;
+    background: linear-gradient(transparent, var(--sky)); animation: rp-fall 2.8s var(--ease) infinite; }
   @keyframes rp-breathe { 0%, 100% { opacity: .55; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 16px rgba(212,176,106,.6); } }
-  @keyframes rp-drip { 0%, 100% { transform: translateY(-5px) scaleY(.55); opacity: .3; } 50% { transform: translateY(5px) scaleY(1); opacity: 1; } }
+  @keyframes rp-fall { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(70px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .rp-cue button { animation: none; opacity: .8; } .rp-cue i::after { animation: none; top: 22px; opacity: .8; } }
 
   /* --- chapters --- */
   .rp-body { position: relative; z-index: 2; background: linear-gradient(180deg, rgba(6,8,12,0), rgba(6,8,12,.35) 240px); }
@@ -513,20 +519,89 @@
   /* Kept in sentence case: it reads "4th house · Virgo", not a label shouting. */
   .rp-kicker { font-family: var(--label); font-size: 10.5px; letter-spacing: .12em; color: var(--sky); }
 
-  /* --- the closing: dawn in the corner, --p set from the section's position --- */
-  .rp-dawn { --p: 0; position: relative; overflow: clip; }
+  /* --- the closing: dawn in the viewport's top right corner, --p set from the section's position.
+     The Sun and its light live on the fixed layer, under the chapter body and over the sky, so only the
+     screen crops them (ADR-51). Hidden while --p is 0 and in print. --- */
+  .rp-dawn { --p: 0; position: relative; }
   .rp-dawn .sun {
-    position: absolute; top: 0; right: 0; width: min(560px, 82vw); aspect-ratio: 1; pointer-events: none;
+    position: fixed; top: 3.5rem; right: 0; z-index: 1; width: min(560px, 82vw); aspect-ratio: 1; pointer-events: none;
     transform: translate(calc(46% - var(--p) * 20%), calc(-76% + var(--p) * 46%));
     opacity: calc(.25 + var(--p) * .75);
   }
   .rp-dawn .sun img { display: block; width: 100%; height: 100%; }
   .rp-dawn .warm {
-    position: absolute; inset: 0; pointer-events: none; opacity: calc(var(--p) * .85);
+    position: fixed; inset: 3.5rem 0 0; z-index: 1; pointer-events: none; opacity: calc(var(--p) * .85);
     background: radial-gradient(120% 90% at 92% 2%, rgba(226,164,86,.30) 0%, rgba(184,120,70,.14) 34%, rgba(6,8,12,0) 68%);
   }
-  .rp-dawn > .body { position: relative; z-index: 1; }
+  .rp-dawn.off .sun, .rp-dawn.off .warm { display: none; }
+  .rp-dawn > .body { position: relative; z-index: 2; }
+  /* The closing's prose reads in paper; the eyebrow and hair line keep the accent (ADR-46). */
+  .rp-dawn .rp-pull { color: var(--paper); }
   @media (prefers-reduced-motion: reduce) { .rp-dawn { --p: 1; } }
+
+  /* --- skeletons: a chapter still writing looks like it (ADR-47) --- */
+  .rp-skel { display: grid; gap: 12px; max-width: 64ch; animation: rp-breath 3.2s var(--ease) infinite; }
+  .rp-skel i { display: block; height: 13px; border-radius: 7px; background: rgba(232,235,242,.07); position: relative; overflow: hidden; }
+  .rp-skel i::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(232,235,242,.12), transparent); animation: rp-sweep 2.6s linear infinite; }
+  .rp-skel i:nth-child(2) { width: 92%; } .rp-skel i:nth-child(3) { width: 96%; } .rp-skel i:nth-child(4) { width: 78%; } .rp-skel i:nth-child(5) { width: 58%; }
+  .rp-skel .cap { font-family: var(--label); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+  @keyframes rp-sweep { to { transform: translateX(100%); } }
+  @keyframes rp-breath { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .rp-skel { animation: none; } .rp-skel i::after { animation: none; display: none; } }
+
+  /* --- the opening overlay: the orrery, one percentage, one label, the door (ADR-47) --- */
+  .rp-open { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 3.5rem 16px 24px;
+    background: rgba(6,8,12,.55); transition: opacity .35s var(--ease), visibility .35s; }
+  .rp-open.away { opacity: 0; visibility: hidden; pointer-events: none; }
+  .rp-open .plate { display: grid; justify-items: center; gap: 18px; width: min(560px, 92vw); }
+  .rp-open .plate > svg { display: block; width: 100%; height: auto; max-height: 62svh; }
+  .rp-open .pct { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 28px; color: var(--paper); line-height: 1; }
+  .rp-open .lab { font-family: var(--label); font-size: 10.5px; letter-spacing: .28em; text-transform: uppercase; color: var(--sky); opacity: .85; }
+  .rp-open .door { display: grid; justify-items: center; gap: 8px; margin-top: 4px; animation: rp-rise .7s var(--ease) both; }
+  .rp-open .door button { font-family: var(--label); font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--paper);
+    background: rgba(92,107,192,.22); border: 1px solid rgba(92,107,192,.55); border-radius: 999px; padding: 12px 22px; min-height: 44px; cursor: pointer; }
+  .rp-open .door button:hover, .rp-open .door button:focus-visible { background: var(--indigo); outline: none; }
+  .rp-open .door small { font-size: 12.5px; color: var(--paper-dim); }
+  .rp-open .fail { font-size: 14px; color: var(--paper-dim); text-align: center; max-width: 44ch; }
+  @keyframes rp-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .rp-open { transition: none; } .rp-open .door { animation: none; } }
+
+  /* --- the marks of a horizon pass: a revised sentence and an added paragraph (ADR-35) --- */
+  .rp-rev { background: none; color: inherit; border-bottom: 1.5px solid var(--sky); cursor: pointer; padding: 0; font: inherit; text-align: inherit; }
+  .rp-rev .tag { font-family: var(--label); font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--sky); margin-left: 4px; vertical-align: super; }
+  .rp-rev:hover, .rp-rev.open { background: rgba(212,176,106,.12); }
+  .rp-added { position: relative; border-left: 2px solid var(--sky); padding-left: 14px; margin-top: 15px; }
+  .rp-added .kick { display: block; font-family: var(--label); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--sky); margin-bottom: 6px; }
+  .rp-card .before { font-family: var(--serif); font-style: italic; font-size: 14px; line-height: 1.5; color: var(--paper-dim); text-decoration: line-through; }
+  .rp-card .now { font-family: var(--serif); font-size: 14px; line-height: 1.5; margin-top: 6px; padding-bottom: 11px; border-bottom: 1px solid var(--line-soft); }
+  .rp-card .chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 11px; }
+  .rp-card .chip { font-family: var(--label); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px;
+    border: 1px solid var(--line); color: var(--paper-dim); }
+  .rp-card .chip.angle, .rp-card .chip.lot { color: var(--sky); border-color: rgba(212,176,106,.4); }
+  .rp-ledger { border: 1px solid rgba(212,176,106,.32); border-radius: 14px; background: rgba(17,22,31,.72); padding: 17px 19px; margin: 0 auto 28px; max-width: 880px; }
+  .rp-ledger .row { display: flex; flex-wrap: wrap; gap: 8px 22px; font-family: var(--mono); font-size: 12px; color: var(--paper-dim); font-variant-numeric: tabular-nums; }
+  .rp-ledger .row b { color: var(--paper); font-weight: 500; }
+  .rp-ledger .toggle { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--label); font-size: 10px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--sky); background: none; border: 0; cursor: pointer; padding: 0; min-height: 32px; }
+  .rp-root.marks-off .rp-rev { border-bottom: 0; cursor: text; } .rp-root.marks-off .rp-rev .tag { display: none; }
+  .rp-root.marks-off .rp-added { border-left: 0; padding-left: 0; } .rp-root.marks-off .rp-added .kick { display: none; }
+
+  /* --- the bi-wheel: two charts, one plate (ADR-43) --- */
+  .rp-biwheel { position: relative; width: 100%; max-width: 640px; margin-inline: auto; }
+  .rp-biwheel > svg { display: block; width: 100%; height: auto; }
+  .rp-biwheel .swap { position: absolute; right: 8px; top: 8px; font-family: var(--label); font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--paper-dim); background: rgba(17,22,31,.8); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; min-height: 36px; cursor: pointer; }
+  .rp-biwheel .swap:hover, .rp-biwheel .swap:focus-visible { color: var(--paper); outline: none; border-color: var(--indigo); }
+  .rp-links { display: grid; gap: 14px; margin-top: 22px; }
+  @media (min-width: 720px) { .rp-links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .rp-link { border: 1px solid var(--line); border-radius: 14px; background: rgba(17,22,31,.72); padding: 15px 17px; }
+  .rp-link .t { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .rp-link .t .k { font-family: var(--label); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; }
+  .rp-link .t .k.flows { color: #3FA796; } .rp-link .t .k.rubs { color: #D9668A; } .rp-link .t .k.overlay { color: var(--indigo-lt); }
+  .rp-link .t .o { font-family: var(--mono); font-size: 11px; color: var(--sky); font-variant-numeric: tabular-nums; }
+  .rp-link h4 { font-family: var(--serif); font-weight: 400; font-size: 17px; letter-spacing: -.02em; margin-top: 6px; }
+  .rp-link p { font-size: 14px; line-height: 1.6; color: rgba(232,235,242,.84); margin-top: 7px; }
 
   /* --- chapter rail and the phone bar --- */
   .rp-rail { position: fixed; left: 12px; top: 50%; transform: translateY(-50%); z-index: 6; display: grid; gap: 9px; }
@@ -573,8 +648,9 @@
 }
 
 @media print {
-  .rp-sky, .rp-hsky, .rp-hud, .rp-rail, .rp-mobbar, .rp-cue { display: none !important; }
+  .rp-sky, .rp-hsky, .rp-hud, .rp-rail, .rp-mobbar, .rp-cue, .rp-open, .rp-skel, .rp-biwheel .swap { display: none !important; }
   .rp-dawn .sun, .rp-dawn .warm { display: none !important; }
+  .rp-rev { border-bottom: 1.5px solid #8A7343; } .rp-added { border-left-color: #8A7343; } .rp-ledger { border-color: #8A7343; }
   .rp-hero { height: auto; min-height: 0; }
   .rp-root, .rp-body { background: white; color: black; }
   .rp-prose, .rp-box .tn, .rp-lede, .rp-head h2, .rp-actions li, .rp-legend .v { color: black; }
