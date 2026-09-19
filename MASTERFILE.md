@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.7 (2026-09-19) |
+| Version | 0.8 (2026-09-19) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -48,7 +48,7 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 **V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of ten chapters with a chart explorer and a workbook of ticked actions, keep it on a dashboard, delete it on request.
 
 1. **Landing page** whose every claim matches the code (§14 lists the ones that do not yet).
-2. **Birth form** with geocoding and timezone resolution.
+2. **Birth form** with geocoding, the timezone in force at the birth instant, and a three-way birth time (known, roughly, unknown) with a live readout of what the answer settles (`docs/specs/locked/unknown-birth-time.md`).
 3. **Report generation** per §4, polled until complete.
 4. **Report page**: ten chapters, the last one Closing, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print. While it writes, the page shows true progress over an orrery of the chart; the reader opens it through a door at 67% or it opens itself at 100%, and chapters stream in behind it (`docs/specs/locked/natal-report-pass-two.md`, `natal-report-pass-three.md`).
 5. **Purchase**: one-time payment granting a credit; the credit is consumed when the report is created (§6).
@@ -78,7 +78,7 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 
 - **R-3.1** Birth data is never fabricated, in tests, fixtures, demos or docs. Fixtures hold birth data only; charts are computed at run time.
 - **R-3.2** `chart_data` is a cache keyed by a computation version. A change to the engine bumps the version; cached charts recompute.
-- **R-3.3** Report status machine: `pending → computing → interpreting → complete | failed`. A parse failure is a `failed` report with an error message, never a silently degraded one.
+- **R-3.3** Report status machine: `pending → computing → interpreting → complete | failed`, and for the horizon pass `complete → revising → complete | failed`, readable throughout; a failed pass keeps the previous text. A parse failure is a `failed` report with an error message, never a silently degraded one.
 - **R-3.4** Anonymous first. Everything a visitor creates hangs off the session cookie and is claimed by the user on sign-in. Nothing requires an account until the dashboard.
 - **R-3.5** Birth date, time and place are personal data under GDPR. Deletion = delete the report, anonymise the profile, keep the payment record. No health or clinical claims anywhere. EU-region data stores.
 
@@ -98,6 +98,7 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 - **R-4.3** Every section's output is enforced by a zod schema through structured outputs. `Section | string` types are a bug, not a fallback.
 - **R-4.4** No prompt or engine change ships without the report lab run against the committed chart fixtures under `fixtures/charts/`, with the measurement pasted in the round report.
 - **R-4.5** A second report for the same profile skips computation. Cache on the profile, never on the request.
+- **R-4.6** The horizon is a status, not a guess. Birth time is a window the engine sweeps; without a horizon that holds, the chart carries no angle, house, sect or lot, the report withholds them and its frame says so. Adding the time later is a pass that amends sentences by quote match, never a regeneration (ADR-33 to ADR-38).
 
 ## 5 · Interpretation rules
 
@@ -112,7 +113,7 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 Nothing is sold yet. The credits ledger exists; the purchase path does not. Pricing is open (Mailbox).
 
-- **R-6.1** One-time purchase grants a bundle of credits; creating a report consumes one credit, hard. The soft pass in `consumeCredit` ends the day payments go live.
+- **R-6.1** One-time purchase grants a bundle of credits; creating a report consumes one credit, hard. The soft pass in `consumeCredit` ends the day payments go live. Only the birth time can change on a report: the first update is free, a second consumes a credit, a changed date or place is a new report on a new credit, and no other user regeneration exists (MB-49).
 - **R-6.2** Once a payment provider exists, it is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation.
 - **R-6.3** A price appears in exactly one place in code, read by the landing page, the checkout and the receipt. No literal prices in copy.
 - **R-6.4** One credit is one report, whatever the report (ADR-42). A compatibility report needs two natal reports first, so a pair always costs three credits against one; "above solo" holds at the purchase, never at the credit.
