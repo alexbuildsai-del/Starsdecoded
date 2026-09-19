@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.6 (2026-09-18) |
+| Version | 0.7 (2026-09-19) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -33,7 +33,7 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 **The bet.**
 - **Compute, don't guess.** Positions come from `astronomy-engine`, not from a model. This is the credibility position; every claim about method must be literally true.
 - **Grounded writing.** The model synthesises from computed facts and a fixed doctrine, so the output cannot drift into generic horoscope prose.
-- **Synastry is the growth engine.** Two people's birth data means every relationship report is an invite; willingness to pay peaks at the specific-relationship moment; relationships evolve, so the report gets revisited.
+- **The compatibility report is the growth engine.** Two people's birth data means every compatibility report is an invite; willingness to pay peaks at the specific-relationship moment; relationships evolve, so the report gets revisited. It is built from two finished natal reports (`docs/specs/locked/compatibility-report.md`); "synastry" is the trade word and never a buyer-facing one.
 - **Quality over cost.** Inference is under 1% of a sale. Token ceilings are never tightened to save money.
 
 | Persona | Cares about | Surface |
@@ -56,9 +56,11 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 7. **Legal**: privacy, terms, refunds, company details, working deletion.
 8. **Admin**: runtime prompt overrides with preview, gated by `ADMIN_USER_ID`.
 
-**V1 explicitly excludes:** predictions, transits, daily horoscopes; subscriptions; native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; synastry in the public UI until §14 says otherwise.
+**V1 explicitly excludes:** predictions, transits, daily horoscopes; subscriptions; native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; the old chart-to-chart synastry page and dashboard zone, hidden until the compatibility report ships (ADR-45).
 
-**V2 candidates (do not build, do not block):** synastry launch with romantic, parent-child and family variants; composite chart add-on; Placidus second view; prompt version history; transit re-runs; family bundles.
+**V1 after payments:** the compatibility report, one product with three lenses (partners, parent and child, family), locked 2026-09-19.
+
+**V2 candidates (do not build, do not block):** further lenses (friends, colleagues); composite chart add-on; Placidus second view; prompt version history; transit re-runs; family bundles.
 
 ## 3 · Domain model
 
@@ -67,12 +69,12 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 | Table | Essence | Notes |
 |---|---|---|
 | `profiles` | A person whose chart we computed | birth data, `chart_data` cache (versioned), `session_id`, `user_id`, `is_self` |
-| `reports` | The unit of revenue | `profile_id`, `type` natal or synastry, `status`, `interpretation` JSONB, `compute_data` |
+| `reports` | The unit of revenue | `profile_id`, `type` natal or compatibility, `status`, `interpretation` JSONB, `compute_data` |
 | `users` | Clerk identity | Clerk id is the key |
-| `relationships`, `relationship_participants` | Two or more profiles for synastry | positional `role` and `access_role` are deliberately separate |
+| `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / family; positional `role` and `access_role` are deliberately separate |
 | `invite_tokens` | Invite a second person | only the hash is stored, 7-day TTL |
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
-| `bundles`, `credits` | Purchase ledger | kinds solo / couple / family; credit types natal / couple / parent_child |
+| `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); the typed columns go with the payments round |
 
 - **R-3.1** Birth data is never fabricated, in tests, fixtures, demos or docs. Fixtures hold birth data only; charts are computed at run time.
 - **R-3.2** `chart_data` is a cache keyed by a computation version. A change to the engine bumps the version; cached charts recompute.
@@ -113,7 +115,7 @@ Nothing is sold yet. The credits ledger exists; the purchase path does not. Pric
 - **R-6.1** One-time purchase grants a bundle of credits; creating a report consumes one credit, hard. The soft pass in `consumeCredit` ends the day payments go live.
 - **R-6.2** Once a payment provider exists, it is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation.
 - **R-6.3** A price appears in exactly one place in code, read by the landing page, the checkout and the receipt. No literal prices in copy.
-- **R-6.4** Synastry is priced above solo natal, never at parity.
+- **R-6.4** One credit is one report, whatever the report (ADR-42). A compatibility report needs two natal reports first, so a pair always costs three credits against one; "above solo" holds at the purchase, never at the credit.
 
 ## 7 · Architecture
 
@@ -237,6 +239,6 @@ The live list is the Notion Mailbox. As of this version the blocking rows are: t
 
 ## 15 · Decision log
 
-The live log is the Notion Decisions database. Seeded from the Owner's brief, the product log and the bible: the name (Stars Decoded); the stack; compute-not-guess with whole sign; the report as the one-time product with the V2 structure and tone; synastry as the growth engine priced above natal; real chart data only; design consistency over novelty; prompts synced from their source of truth; USER-FACING / INTERNAL tagging; inference cost is not a constraint; and this process itself.
+The live log is the Notion Decisions database. Seeded from the Owner's brief, the product log and the bible: the name (Stars Decoded); the stack; compute-not-guess with whole sign; the report as the one-time product with the V2 structure and tone; the compatibility report as the growth engine, one credit like any report; real chart data only; design consistency over novelty; prompts synced from their source of truth; USER-FACING / INTERNAL tagging; inference cost is not a constraint; and this process itself.
 
 Hand this file plus the repo to the first planner. Its first duty: surface the Mailbox to the Owner.

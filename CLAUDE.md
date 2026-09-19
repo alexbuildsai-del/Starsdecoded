@@ -117,4 +117,4 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 2. Staging landing (`docs/specs/draft/staging-environment.md`): `production` sits
    at the pre-staging `main`; the Owner works the runbook, switches the
    dashboards, then the first Promote ships it.
-3. R01 acceptance pending. Next: pricing (MB-5), Stripe test mode on staging.
+3. R01 acceptance pending. Compatibility report locked 2026-09-19 (`docs/specs/locked/compatibility-report.md`), planned after pricing (MB-5) and Stripe test mode on staging (MB-6).

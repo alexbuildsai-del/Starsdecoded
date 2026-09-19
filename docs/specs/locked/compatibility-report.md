@@ -3,7 +3,7 @@
 Ideation 2026-09-19 with the Owner, three questions answered the same day. A second report type that reads two finished natal
 reports and says how these two people meet. Artifact (name options, lenses, picker, chapters,
 a real bi-wheel of the two fixtures, engine, questions):
-https://claude.ai/artifact/AmsN9XxzbU81Ek18dAsBuk. Status: **draft**.
+https://claude.ai/artifact/AmsN9XxzbU81Ek18dAsBuk. Status: **locked 2026-09-19**.
 
 What exists today (mapped this session): a chart-to-chart synastry v1 is wired end to end,
 `relationships`, `relationship_participants`, `invite_tokens`, `computeCrossAspects`
