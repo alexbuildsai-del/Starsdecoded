@@ -33,9 +33,10 @@ one twice; every migration idempotent, step 6 reset natal → v6 and pair → p1
 
 **Not run here, recorded per the plan**: the three lab campaigns (natal v6 on the five fixtures, the blind pair with
 `--pass`, `curie-winfrey` once per lens) need `OPENAI_API_KEY` and the staging API; neither credential exists in this
-environment. The Vercel preview smoke needs the preview URL and a browser; CI's `smoke.yml` runs on `main` after the
-merge. Both are the first things to run from the orchestrator's machine before Owner acceptance; MB-38 stays open until
-the natal measurement is pasted here.
+environment. The Vercel preview (`starsdecoded-h7atsgit7-stars-decoded.vercel.app`, deployed green) could not be
+reached: the build environment's egress policy denies `*.vercel.app` (CONNECT 403). PR #52 has CI green and stays open
+until the natal lab is pasted here (the brain changed, R-4.4) and the preview is smoked from a machine with credentials
+and network; MB-38 stays open until then.
 
 ## Mailbox
 
