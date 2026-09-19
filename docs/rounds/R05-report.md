@@ -31,16 +31,24 @@ tests green: api 116 pass / 0 fail, packages/db 9, scripts 2, web 11 files / 78 
 `db:bootstrap` green three times against a scratch Postgres 16 (an already-bootstrapped database, then a fresh
 one twice; every migration idempotent, step 6 reset natal → v6 and pair → p1).
 
-**Not run here, recorded per the plan**: the three lab campaigns (natal v6 on the five fixtures, the blind pair with
-`--pass`, `curie-winfrey` once per lens) need `OPENAI_API_KEY` and the staging API; neither credential exists in this
-environment. The Vercel preview (`starsdecoded-h7atsgit7-stars-decoded.vercel.app`, deployed green) could not be
-reached: the build environment's egress policy denies `*.vercel.app` (CONNECT 403). PR #52 has CI green and stays open
-until the natal lab is pasted here (the brain changed, R-4.4) and the preview is smoked from a machine with credentials
-and network; MB-38 stays open until then.
+**Report lab**, remote against staging on `51c47bd` (PR #52 squash-merged, staging Smoke run 35456549652 green, which
+stands in for the preview smoke this environment cannot reach), dispatched from `report-lab.yml` on `round/R05-lab`.
+Natal v6, run 35456889492 (`report-lab/r05`): day-angular 4,860 words · 29.5 ¢ · retries money; high-latitude 4,965 ·
+32.3 ¢ · foundation, money, family; marie-curie 4,897 · 27.6 ¢ · foundation; night-angular 4,864 · 28.0 ¢ · triad;
+oprah-winfrey 4,802 · 24.6 ¢ · none. Mean 28.4 ¢ against R04's 31.0, every total inside 3,500–5,500, `houses` one try
+on every chart; flags as in R04: house readings 71–78 words on 2–3 of 12 per chart, one method word and one why without
+a verb on high-latitude. The blind marie-curie-unknown as a sixth chart: 3,870 words · 23.5 ¢ · blind flag clean.
+The pass, run 35456891244 (`report-lab/r05-pass`): blind 4,080 words · 25.6 ¢ · clean; the pass 23.8 ¢ in 39 s, 76% of
+the words kept verbatim, 16 sentences in the ledger, 10 paragraphs added, 49.5 ¢ together. Two findings: the passed
+report reads 5,769 words, above the 5,500 ceiling (MB-60), and carries 53 claims against 60 before the pass even with
+rising and houses added (MB-61). The pair, run 35456892755, failed on the lab itself (both natal reports created before
+the session cookie landed, so one belonged to another visitor; fixed here) and on one natal report whose `triad`
+failed claim validation after three attempts, a customer-visible failure (MB-62). Pair rerun: PAIR_RESULTS.
 
 ## Mailbox
 
-Done: MB-9, MB-16, MB-18, MB-27, MB-32, MB-44, MB-48, MB-56. Built at their defaults, still open: MB-55 (the ring
-creeps), MB-6 (the picker's no-credit seam), MB-43 (marks and hint per browser), MB-47. Raised: MB-59 (the claim
-lands on a report without generating one). Open more than two rounds: MB-5, 6, 8, 11, 12, 13, 15, 17, 19 to 25, 30,
-31 (blocking), 33, 35, 39.
+Done: MB-9, MB-16, MB-18, MB-27, MB-32, MB-44, MB-48, MB-56; MB-38 stays done, the lab pasted above. Built at their
+defaults, still open: MB-55 (the ring creeps), MB-6 (the picker's no-credit seam), MB-43 (marks and hint per browser),
+MB-47. Raised: MB-59 (the claim lands on a report without generating one), MB-60 (the passed report over the ceiling),
+MB-61 (the pass loses claims), MB-62 (blocking: a natal report can fail on triad claim validation, about 7% today).
+Open more than two rounds: MB-5, 6, 8, 11, 12, 13, 15, 17, 19 to 25, 30, 31 (blocking), 33, 35, 39.
