@@ -8,7 +8,8 @@
  *      console.log(calculateNatalChart("1999-08-11","12:10",51.5074,-0.1278,1))'
  */
 import { describe, expect, it } from "vitest";
-import { CONJUNCTION_DEGREES, OUTSIDE_STEP, layoutHero, overlaps, separation } from "./hero-layout";
+import { CONJUNCTION_DEGREES, OUTSIDE_STEP, layoutHero, moonArc, overlaps, separation } from "./hero-layout";
+import { pointAt, theta } from "@/components/chart/wheel-geometry";
 
 const PLATE = { cx: 500, cy: 330, ringRadius: 200, labelWidth: 176, labelHeight: 30 };
 
@@ -27,6 +28,16 @@ const CURIE = {
   ],
 };
 
+/**
+ * The same birth data with the time not recorded (marie-curie-unknown): the
+ * band runs the whole day around noon, so the Moon's ends are its longitudes
+ * at 00:00 and 23:59 local and the plate is framed on 0° Aries.
+ */
+const CURIE_BLIND = {
+  frame: 0,
+  moon: { absoluteDegree: 346.48, band: { fromDegree: 340.2, toDegree: 352.85 } },
+};
+
 const ECLIPSE = {
   ascendant: 205.91,
   bodies: [
@@ -36,7 +47,7 @@ const ECLIPSE = {
 };
 
 function run(chart: typeof CURIE) {
-  return layoutHero({ ...PLATE, ascendantAbsoluteDegree: chart.ascendant, bodies: chart.bodies, obstacles: OBSTACLES });
+  return layoutHero({ ...PLATE, frameDegree: chart.ascendant, bodies: chart.bodies, obstacles: OBSTACLES });
 }
 
 function discs(layout: ReturnType<typeof run>) {
@@ -102,5 +113,34 @@ describe("layoutHero", () => {
         }
       });
     }
+  });
+});
+
+describe("moonArc", () => {
+  it("ends on the Moon's longitudes at the two edges of the band, on the ring", () => {
+    const arc = moonArc(PLATE.cx, PLATE.cy, PLATE.ringRadius, CURIE_BLIND.frame, CURIE_BLIND.moon.band);
+    const start = pointAt(PLATE.cx, PLATE.cy, PLATE.ringRadius, theta(CURIE_BLIND.moon.band.fromDegree, CURIE_BLIND.frame));
+    const end = pointAt(PLATE.cx, PLATE.cy, PLATE.ringRadius, theta(CURIE_BLIND.moon.band.toDegree, CURIE_BLIND.frame));
+    expect(arc.from.x).toBeCloseTo(start.x, 6);
+    expect(arc.from.y).toBeCloseTo(start.y, 6);
+    expect(arc.to.x).toBeCloseTo(end.x, 6);
+    expect(arc.to.y).toBeCloseTo(end.y, 6);
+    expect(arc.span).toBeCloseTo(12.65, 6);
+    expect(arc.d.startsWith("M")).toBe(true);
+    // The centre-time Moon sits on the arc, not off it.
+    expect(Math.hypot(arc.from.x - PLATE.cx, arc.from.y - PLATE.cy)).toBeCloseTo(PLATE.ringRadius, 6);
+  });
+
+  it("goes the forward way round even across 0° Aries", () => {
+    const arc = moonArc(PLATE.cx, PLATE.cy, PLATE.ringRadius, 0, { fromDegree: 355, toDegree: 8 });
+    expect(arc.span).toBeCloseTo(13, 6);
+  });
+
+  it("keeps a blind layout's bodies on the ring with the plate framed on Aries", () => {
+    const layout = layoutHero({
+      ...PLATE, frameDegree: CURIE_BLIND.frame, obstacles: OBSTACLES,
+      bodies: [{ key: "sun", absoluteDegree: 224.58, size: 116 }, { key: "moon", absoluteDegree: CURIE_BLIND.moon.absoluteDegree, size: 72 }],
+    });
+    for (const b of layout.bodies) expect(Math.hypot(b.x - PLATE.cx, b.y - PLATE.cy)).toBeCloseTo(PLATE.ringRadius, 6);
   });
 });
