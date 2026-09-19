@@ -235,13 +235,26 @@ test("amendSections: one call per stored section, every unamended sentence kept 
       assert.equal(result.counts[id].amended, 1, id);
       assert.equal(result.record[id].amended[0].now, "You keep going after the room has emptied.");
     }
-    // Everything that was not the amended sentence is byte for byte what the blind report said.
-    const strip = (s: string) => s.replace("You keep going after the room has emptied.", "").replace("You keep going after the room has given up.", "");
-    const out = result.interpretation as unknown as Record<string, Record<string, unknown>>;
-    const before = blindReport as unknown as Record<string, Record<string, unknown>>;
-    assert.equal(strip(JSON.stringify(out.career, Object.keys(out.career).filter((k) => k !== "claims").sort())), strip(JSON.stringify(before.career, Object.keys(before.career).filter((k) => k !== "claims").sort())));
-    assert.equal(out.overview.headline, "You investigate first and commit second. You keep going after the room has emptied.");
-    assert.equal(out.overview.bridge, "Everything here points toward depth.");
+    // Every string leaf but the one amended is byte for byte what the blind report said.
+    const leaves = (v: unknown, path = "", out: Array<[string, string]> = []): Array<[string, string]> => {
+      if (typeof v === "string") out.push([path, v]);
+      else if (Array.isArray(v)) v.forEach((x, i) => leaves(x, `${path}.${i}`, out));
+      else if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) if (k !== "claims") leaves(x, `${path}.${k}`, out);
+      return out;
+    };
+    const out = result.interpretation as unknown as Record<string, unknown>;
+    const before = blindReport as unknown as Record<string, unknown>;
+    for (const id of amendable) {
+      const was = new Map(leaves(before[id]));
+      let changed = 0;
+      for (const [path, text] of leaves(out[id])) {
+        if (text === was.get(path)) continue;
+        changed++;
+        assert.equal(text, was.get(path)!.replace("You keep going after the room has given up.", "You keep going after the room has emptied."), `${id}${path}`);
+      }
+      assert.equal(changed, 1, `${id}: exactly one sentence changed`);
+    }
+    assert.equal((out.overview as { bridge: string }).bridge, "Everything here points toward depth.");
     assert.equal(result.usage.length, amendable.length);
   } finally {
     (openai.chat.completions as unknown as { create: unknown }).create = previous;
