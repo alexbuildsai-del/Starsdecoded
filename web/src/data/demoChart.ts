@@ -113,8 +113,19 @@ const DEMO_PLANETS: ChartData["planets"] = {
   },
 };
 
+/** A demo horizon: the status alone; the hold times are not shown anywhere on the landing page. */
+const HOLDS = (value: string) => ({ value, holds: true, flipsAt: [], values: [value], holdsFrom: "", holdsTo: "" });
+
 export const DEMO_CHART_DATA: ChartData = {
   planets: DEMO_PLANETS,
+  horizon: {
+    status: "known",
+    ascendant: HOLDS("Cancer"),
+    midheaven: HOLDS("Pisces"),
+    sect: HOLDS("day"),
+    moonSign: HOLDS(DEMO_PLANETS.moon.sign),
+    sunSign: HOLDS(DEMO_PLANETS.sun.sign),
+  },
   angles: {
     ascendant: {
       sign: "Cancer",
