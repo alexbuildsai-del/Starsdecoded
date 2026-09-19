@@ -1017,7 +1017,10 @@ async function runPairRemote(name: string, lens: string, label: string, base: st
     return created.id as string;
   };
   console.log(`\n=== ${pair.name} (${name}), ${lens} via ${base}: two natal reports first ===`);
-  const [a, b] = await Promise.all([natal(pair.a), natal(pair.b)]);
+  // Created one after the other: the first response sets the session cookie,
+  // and a second report created before it lands belongs to another visitor.
+  const a = await natal(pair.a);
+  const b = await natal(pair.b);
   await Promise.all([pollUntil(call, a, ["complete"]), pollUntil(call, b, ["complete"])]);
   const started = Date.now();
   const created = await call("/compatibility", { method: "POST", body: JSON.stringify({ reportAId: a, reportBId: b, lens }) });

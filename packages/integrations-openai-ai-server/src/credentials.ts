@@ -29,8 +29,12 @@ export function createOpenAIClient(): OpenAI {
     );
   }
 
+  // A report is a dozen parallel calls, so a busy minute trips the per-minute
+  // token limit; the SDK's two retries gave up in under a second and the
+  // report failed. Six with backoff waits out the window instead.
   return new OpenAI({
     apiKey,
+    maxRetries: 6,
     ...(baseURL ? { baseURL } : {}),
   });
 }
