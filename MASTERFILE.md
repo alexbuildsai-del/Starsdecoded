@@ -45,12 +45,12 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 
 ## 2 · Product scope
 
-**V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of eleven chapters with a chart explorer and a workbook of ticked actions, keep it on a dashboard, delete it on request.
+**V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of ten chapters with a chart explorer and a workbook of ticked actions, keep it on a dashboard, delete it on request.
 
 1. **Landing page** whose every claim matches the code (§14 lists the ones that do not yet).
 2. **Birth form** with geocoding and timezone resolution.
 3. **Report generation** per §4, polled until complete.
-4. **Report page**: eleven chapters, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print; it opens when the chart exists and chapters stream in (`docs/specs/locked/natal-report-pass-two.md`).
+4. **Report page**: ten chapters, the last one Closing, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print. While it writes, the page shows true progress over an orrery of the chart; the reader opens it through a door at 67% or it opens itself at 100%, and chapters stream in behind it (`docs/specs/locked/natal-report-pass-two.md`, `natal-report-pass-three.md`).
 5. **Purchase**: one-time payment granting a credit; the credit is consumed when the report is created (§6).
 6. **Account**: anonymous session first, Clerk sign-in claims it, dashboard lists reports.
 7. **Legal**: privacy, terms, refunds, company details, working deletion.
@@ -89,8 +89,8 @@ The heart of the product. `api/src/lib/` is the engine; keep it pure enough that
 ```
 birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-engine, whole sign)
   → traditional derivation (sect, dignity, rulers, Lots) → per-chart brief
-  → foundation call (internal JSON) → twelve section calls in parallel (ten chapter sections, the house readings, Your Path), each schema-enforced
-  → each section stored as it lands → client polls /api/reports/:id/status and renders chapters as they arrive
+  → foundation call (internal JSON) → eleven section calls in parallel (ten chapter sections and the house readings), each schema-enforced
+  → each section stored as it lands → client polls /api/reports/:id/status (sections, chartReady, provisional positions) and renders chapters as they arrive
 ```
 
 - **R-4.1** Positions are computed locally. A user-facing string names the real library. Never fix a wrong claim by changing the library.
@@ -152,9 +152,9 @@ Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report
 
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
 - **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The weight-300 display serif that pulled the other way is settled — display moves to Newsreader 400 and the numerals to a real monospace. The starfield and gradients stay, budgeted: two moves per chapter change, one easing, and reduced motion is a real state.
-- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27).
-- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; element hues stay data, brass stays geometry (ADR-23).
-- **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report (ADR-24).
+- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The loading wheel is the sky too: every body on its own ring at its mean daily motion, settling onto the stored chart (ADR-47).
+- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; chapter 10, Closing, is teal and its prose reads in paper; element hues stay data, brass stays geometry (ADR-23, ADR-46). The rail lists chapters only (ADR-50); the sky is one canvas from the first pixel and the dawn's sun lives on the fixed layer (ADR-51).
+- **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report, and a tick is silent: no counter, and a box unticks (ADR-24, ADR-48).
 - **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
 - **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
 - **Voice.** Report voice is R-5.1. Marketing voice is not written yet (Mailbox); until it is, marketing copy follows the same rules: short, specific, no mysticism, no claims the code cannot back.

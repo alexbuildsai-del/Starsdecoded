@@ -1,11 +1,11 @@
-# Index — regenerated at the end of every round (last: lock compatibility-report, 2026-09-19)
+# Index — regenerated at the end of every round (last: R04, 2026-09-18; locks 2026-09-19)
 
 Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by pointer.
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
-- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (45 rows; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded)
-- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 `decided`, built in R04, closes when the lab is pasted; MB-43 to 47 built at their defaults; MB-48, MB-49 raised by R04; MB-9, MB-16, MB-18, MB-27 `decided` by the compatibility lock)
+- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (51 rows; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26)
+- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 `decided`, built in R04, closes when the lab is pasted; MB-43, 45 to 47 built at their defaults; MB-44 `decided` by ADR-47; MB-48, MB-49 raised by R04; MB-9, MB-16, MB-18, MB-27 `decided` by the compatibility lock)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
 ## Specs
@@ -17,6 +17,10 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `docs/specs/locked/compatibility-report.md` — the second report type: two finished natal reports in, one report out,
   three lenses (partners, parent and child, family), nine chapters, the bi-wheel chapter, no score, one credit like any
   report. Not yet planned. Artifact: https://claude.ai/artifact/AmsN9XxzbU81Ek18dAsBuk
+- `docs/specs/locked/natal-report-pass-three.md` — the 19 Sept review: ten chapters ending in Closing, the R03
+  angle marker, silent ticks, the sun on the fixed layer, one sky, and the report that opens when the reader
+  chooses: true progress over an orrery of the chart, a door at 67%. Builds after R04 acceptance.
+  Artifact: https://claude.ai/artifact/HKt4HYfKKmwadcKTmTxWob
 - `docs/specs/draft/report-cost-and-latency.md` — 27.1 cents a report measured; output 74%, half of it invisible. Levers re-ranked on the R02 baseline; L0 built.
 - `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 
