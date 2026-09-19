@@ -1,11 +1,11 @@
-# Index — regenerated at the end of every round (last: R04, 2026-09-18)
+# Index — regenerated at the end of every round (last: R04, 2026-09-18; lock 2026-09-19)
 
 Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by pointer.
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
-- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (28 rows; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation)
-- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 `decided`, built in R04, closes when the lab is pasted; MB-43 to 47 built at their defaults; MB-48, MB-49 raised by R04)
+- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (51 rows; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26)
+- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 `decided`, built in R04, closes when the lab is pasted; MB-43, 45 to 47 built at their defaults; MB-44 `decided` by ADR-47; MB-48, MB-49 raised by R04)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
 ## Specs
@@ -14,6 +14,10 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `docs/specs/locked/natal-report-pass-two.md` — the 18 Sept review: chart explorer with generated house
   cards, eleven chapters, aside rail and workbook, angle evidence, fixed accents, dawn closing, progressive
   loading, 3,500 to 5,500 words. Artifact: https://claude.ai/artifact/5Er5qfQVMn2DYkuyGGdPJs
+- `docs/specs/locked/natal-report-pass-three.md` — the 19 Sept review: ten chapters ending in Closing, the R03
+  angle marker, silent ticks, the sun on the fixed layer, one sky, and the report that opens when the reader
+  chooses: true progress over an orrery of the chart, a door at 67%. Builds after R04 acceptance.
+  Artifact: https://claude.ai/artifact/HKt4HYfKKmwadcKTmTxWob
 - `docs/specs/draft/report-cost-and-latency.md` — 27.1 cents a report measured; output 74%, half of it invisible. Levers re-ranked on the R02 baseline; L0 built.
 - `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 

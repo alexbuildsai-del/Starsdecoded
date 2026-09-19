@@ -2,7 +2,7 @@
 
 Ideation 2026-09-19 with the Owner from the Notion page "Review Sept 19/09" (nine notes on the
 R04 build on staging, then six answers on the second pass, folded in). Artifact, with the Owner's real hero angles and a live mock of the
-opening: https://claude.ai/artifact/HKt4HYfKKmwadcKTmTxWob. Status: **draft**. Builds on
+opening: https://claude.ai/artifact/HKt4HYfKKmwadcKTmTxWob. Status: **locked 2026-09-19**, ADR-46 to ADR-51. Builds on
 `docs/specs/locked/natal-report-pass-two.md` and supersedes its chapter list, its opening
 moment and three smaller lines (below).
 
@@ -47,7 +47,7 @@ moment and three smaller lines (below).
   leaves `.rp-dawn`. Visible only while `--p > 0`; z-order under the chapter body, over the
   sky. Nothing but the screen crops it. Reduced motion: the final frame. Print: hidden as now.
 
-### The door at 80% (note 5.1) — supersedes ADR-25's opening moment
+### The door at 67% (note 5.1) — supersedes ADR-25's opening moment
 - The generation screen becomes an overlay of the report page (`/generating/:id` redirects to
   `/report/:id`, which shows the overlay while the report is not yet open). One page, one sky:
   the `ReportSky` canvas is the loading starfield; the sixty framer-motion star divs go.
