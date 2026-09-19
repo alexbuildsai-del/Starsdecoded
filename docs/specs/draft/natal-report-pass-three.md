@@ -28,7 +28,7 @@ moment and three smaller lines (below).
   `PathSchema`, `SECTION_IDS` (eleven ids: ten chapters plus `houses`), `prompts.test.ts`,
   the `path` schema in `openapi.yaml` and codegen. `PROMPT_VERSION` v6, so bootstrap step 6
   clears the natal overrides on staging; the dead `natal:path` admin key is deleted.
-- Web: `PathBlock`, `NodalAxis`, `nodal-axis.test.ts` go; `CHAPTERS` has ten entries, `TOTAL`
+- Contract: `/status` gains `provisional` (see the wheel below). Web: `PathBlock`, `NodalAxis`, `nodal-axis.test.ts` go; `CHAPTERS` has ten entries, `TOTAL`
   10; `isCurrentInterpretation` learns the v6 shape so a v5 report is offered regeneration.
   House-card links for houses 5 and 11 go (they join 6, 8, 9, 12 in carrying none).
 - The last chapter is titled **Closing**, eyebrow and title alike; the chapter head prints
@@ -51,17 +51,25 @@ moment and three smaller lines (below).
 - The generation screen becomes an overlay of the report page (`/generating/:id` redirects to
   `/report/:id`, which shows the overlay while the report is not yet open). One page, one sky:
   the `ReportSky` canvas is the loading starfield; the sixty framer-motion star divs go.
-- **The wheel while it writes**: the rings and orbiting glyphs stay for the first seconds. The
-  moment the chart is stored the glyphs leave and the Sun and Moon renders take their true
-  degrees on a small ring with the Ascendant marker at the east; the progress arc runs round
-  it. Renders are bodies at their degrees, never spinning decoration (§9).
+- **The wheel is the sky** (Owner, 19 Sept): a geocentric orrery drawn from the chart. Eleven
+  rings in order of distance from Earth (Moon, Mercury, Venus, Sun, Mars, Jupiter, Saturn,
+  Chiron, Uranus, Neptune, Pluto), the nodes on the Moon's ring, planets as renders, Chiron and
+  the nodes as drawn points. Each body moves at its mean daily motion (Moon 13.176°, Sun
+  0.9856°, Mars 0.524°, Jupiter 0.0831°, Saturn 0.0335°, nodes −0.053°, down to Pluto
+  0.00397°) at one second to eight days, retrogrades backwards. Before the chart exists the
+  sweep starts from the birth day's positions: `/status` gains `provisional`, the engine's
+  positions for the entered date and time at offset zero, one local call, no geocoding. When
+  the chart is stored each body eases the last degrees onto its true place (the Moon at most
+  eight), the wheel turns so the Ascendant sits east, the Ascendant marker, the Descendant and
+  the horizon appear, and the progress arc runs round the rim. Renders are bodies at their
+  degrees, never decoration (§9). The 60 star divs and the glyph spinner go.
 - **Progress is real** and shown as one percentage, never a count: 4 points at geocode, 10
   when the chart is stored, then 90 ÷ 11 per landed section read from `/status`'s `sections`.
   Five labels: "Analysing your inputs" → "Computing your chart" → "Finding the patterns" →
   "Writing your report" → "Ready". Between events the ring creeps toward a time estimate capped
   below the next milestone; a landed section snaps it (Q3).
-- **The door** appears at ≥ 80% (nine of eleven sections) and only once `overview` and
-  `houses` have landed. Copy: "Start reading →" (Owner, 19 Sept) with one line under it, no
+- **The door** appears at ≥ 67% of real progress (the seventh of eleven sections, never the
+  crept value) and only once `overview` and `houses` have landed (Owner, 19 Sept). Copy: "Start reading →" (Owner, 19 Sept) with one line under it, no
   numbers: "The last chapters will be there when you reach them." A reader who does not take
   it waits; at 100% the page opens by itself after a 1.2 s hold.
 - **The opening**: the small ring and its arc fade (350 ms); about 70% of the stars glide to a
@@ -108,11 +116,12 @@ moment and three smaller lines (below).
    `chapterAccent(10)` is teal; the closing's prose is foreground-coloured.
 5. At 1440 px wide, scrolling into the closing brings the Sun into the viewport's top right
    corner cropped only by the viewport; at 390 px it is 82vw wide in the same corner.
-6. With the API slowed: the overlay shows 10% and the Sun and Moon renders at their true
-   degrees when the chart is stored, the label runs through the five in order and shows no
-   count, the ring rises as sections land, the door appears at the ninth landed section only
-   if `overview` and `houses` are among them, and never before; a report left alone opens
-   itself at 100%.
+6. With the API slowed: before the chart is stored the orrery runs from the `provisional`
+   positions with the Moon visibly faster than the Sun and Saturn still; when it is stored
+   every body sits at its true degree with the Ascendant east and the overlay shows 10%; the
+   label runs through the five in order and shows no count; the ring rises as sections land;
+   the door appears at the seventh landed section only if `overview` and `houses` are among
+   them, and never before; a report left alone opens itself at 100%.
 7. Taking the door at 83% shows shimmering skeletons under the two chapters still writing and
    replaces them with prose when they land; Export PDF reads "Writing…" and flips to
    "Export PDF" at complete without a reload.
@@ -145,8 +154,9 @@ hero on the void and on the sky.
 1. **Ten chapters.** Your Path is retired from the page and the generator; the closing is
    chapter 10, titled Closing, teal. Supersedes ADR-20's chapter list and Your Path line.
 2. **The report opens when the reader chooses.** True progress under five plain labels, the
-   Sun and Moon at their true degrees once the chart is in, a door at 80% (nine of eleven
-   sections, overview and houses landed) reading "Start reading", self-opening at 100%.
+   wheel a geocentric orrery at real mean speeds that settles onto the true chart, a door at
+   67% (seven of eleven sections, overview and houses landed) reading "Start reading",
+   self-opening at 100%.
    Chapters stream in behind the door; on opening the stars gather into the ring and stay.
    Supersedes ADR-25's opening moment; its streaming stays.
 3. **A tick is silent.** No checklist carries a counter. Amends ADR-24's rail label.
