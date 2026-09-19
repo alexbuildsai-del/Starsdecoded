@@ -27,6 +27,12 @@ export interface SectionSpec<T extends z.ZodType = z.ZodType> {
    * list rejects the reply (retried once, then fails loudly).
    */
   validate?: (output: z.infer<T>, brief: ChartBrief) => string[];
+  /** The section is the horizon and nothing else: not written when the birth time is unknown (ADR-34). */
+  skipWhenBlind?: true;
+  /** Rules appended when the horizon is unknown, replacing the ones they contradict. */
+  blindRules?: string[];
+  /** The narrower contract sent when the horizon is unknown, for a section that loses a part rather than the whole. */
+  blindSchema?: z.ZodType;
 }
 
 export type Infer<S> = S extends SectionSpec<infer T> ? z.infer<T> : never;

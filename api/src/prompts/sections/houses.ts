@@ -23,6 +23,7 @@ export const houses: SectionSpec<typeof HousesSchema> = {
   wordTarget: [480, 780],
   maxTokens: 6_000,
   schema: HousesSchema,
+  skipWhenBlind: true,
   extraContext: (brief) => {
     const rulers = houseRulers(brief.chart);
     const allowed = Array.from({ length: 12 }, (_, i) => {

@@ -3,27 +3,57 @@ import assert from "node:assert/strict";
 import { chartFromFixture } from "../lib/testFixtures.js";
 import {
   ALL_SECTIONS, REPORT_SECTIONS, SECTION_IDS, SHARED_SYSTEM, WORD_TARGETS,
-  buildBrief, hasClaims, sectionById, toStrictJsonSchema,
+  buildBrief, hasClaims, instructionsFor, schemaFor, sectionById, sectionsFor, toStrictJsonSchema,
 } from "./index.js";
 import { BODIES, SIGNS, BODY, SIGN, HOUSE, ASPECT, STRUCTURE } from "./vocabulary.js";
 import { itemsHint } from "./jsonSchema.js";
 import { OverviewSchema } from "./sections/overview.js";
 
-test("registry: twelve reader-facing sections in the agreed order, foundation first overall", () => {
-  assert.deepEqual(SECTION_IDS, ["overview", "triad", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "path", "focus"]);
+test("registry: eleven reader-facing sections in the agreed order, no path, foundation first overall", () => {
+  assert.deepEqual(SECTION_IDS, ["overview", "triad", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"]);
+  assert.equal(SECTION_IDS.length, 11);
+  assert.ok(!SECTION_IDS.includes("path" as never));
   assert.equal(ALL_SECTIONS[0].key, "natal:foundation");
-  assert.equal(ALL_SECTIONS.length, 13);
+  assert.equal(ALL_SECTIONS.length, 12);
 });
 
 // Each section's prompt names its own numbers, so moving a band is USER-FACING
 // and needs a lab run. This test pins the sums so they cannot drift out of the
 // 3,500-5,500 product range unnoticed.
-test("registry: word targets sum to 4,180-5,410, inside the 3,500-5,500 product range", () => {
+test("registry: word targets sum to 3,930-5,110, inside the 3,500-5,500 product range", () => {
   const min = Object.values(WORD_TARGETS).reduce((n, [a]) => n + a, 0);
   const max = Object.values(WORD_TARGETS).reduce((n, [, b]) => n + b, 0);
-  assert.equal(min, 4180);
-  assert.equal(max, 5410);
+  assert.equal(min, 3930);
+  assert.equal(max, 5110);
   assert.ok(min >= 3500 && max <= 5500, `bands ${min}-${max} leave the product range`);
+});
+
+// The horizon is a status (ADR-34): a blind report skips the sections that are
+// nothing but the horizon and writes the rest under rules that never name one.
+test("registry: a blind report skips houses and keeps every triad rule but the rising one", () => {
+  const blind = sectionsFor("unknown").map((s) => s.key);
+  assert.ok(!blind.includes("natal:houses"), "houses is the horizon and must be skipped");
+  assert.ok(blind.includes("natal:triad"));
+  assert.equal(blind.length, SECTION_IDS.length - 1);
+  assert.deepEqual(sectionsFor("known").map((s) => s.key), REPORT_SECTIONS.map((s) => s.key));
+  assert.deepEqual(sectionsFor("approximate").map((s) => s.key), REPORT_SECTIONS.map((s) => s.key));
+
+  const triad = sectionById("triad")!;
+  const drawn = instructionsFor(triad, triad.instructions, false);
+  const blindText = instructionsFor(triad, triad.instructions, true);
+  assert.equal(drawn, triad.instructions);
+  assert.match(blindText, /HORIZON UNKNOWN/);
+  assert.match(blindText, /no rising field/);
+  // Every rule of the drawn triad is still in the blind text; only the rising rule is overridden.
+  assert.ok(blindText.startsWith(triad.instructions.trim()));
+  assert.match(blindText, /Sun: how they build identity/);
+  assert.match(blindText, /Moon: what steadies them/);
+
+  const shape = (schemaFor(triad, true) as unknown as { shape: Record<string, unknown> }).shape;
+  assert.ok("sun" in shape && "moon" in shape && "claims" in shape);
+  assert.ok(!("rising" in shape), "the blind triad has no rising part");
+  assert.ok("rising" in (schemaFor(triad, false) as unknown as { shape: Record<string, unknown> }).shape);
+  assert.equal(schemaFor(sectionById("overview")!, true), sectionById("overview")!.schema);
 });
 
 test("vocabulary: every primitive present, every full entry 40-80 words, no em dashes or semicolons", () => {

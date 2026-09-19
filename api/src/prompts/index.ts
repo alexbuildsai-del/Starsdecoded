@@ -14,7 +14,6 @@ import { relationships } from "./sections/relationships.js";
 import { family } from "./sections/family.js";
 import { superpowers } from "./sections/superpowers.js";
 import { discoveries } from "./sections/discoveries.js";
-import { path } from "./sections/path.js";
 import { focus } from "./sections/focus.js";
 import type { SectionSpec } from "./types.js";
 
@@ -25,11 +24,10 @@ export { CLAIMS_CONTRACT, ClaimSchema, ClaimsSchema, EvidenceRefSchema, labelEvi
 export type { SectionSpec, Infer } from "./types.js";
 export { FoundationSchema } from "./sections/foundation.js";
 export { HousesSchema } from "./sections/houses.js";
-export { PathSchema } from "./sections/path.js";
 
 /** Reader-facing sections in report order. `houses` writes the explorer's cards. */
 export const REPORT_SECTIONS = [
-  overview, triad, houses, mind, career, money, relationships, family, superpowers, discoveries, path, focus,
+  overview, triad, houses, mind, career, money, relationships, family, superpowers, discoveries, focus,
 ] as const;
 
 export const FOUNDATION = foundation;
@@ -37,7 +35,7 @@ export const FOUNDATION = foundation;
 /** Everything the pipeline calls, foundation first. */
 export const ALL_SECTIONS = [foundation, ...REPORT_SECTIONS] as const;
 
-export type ReportSectionId = "overview" | "triad" | "houses" | "mind" | "career" | "money" | "relationships" | "family" | "superpowers" | "discoveries" | "path" | "focus";
+export type ReportSectionId = "overview" | "triad" | "houses" | "mind" | "career" | "money" | "relationships" | "family" | "superpowers" | "discoveries" | "focus";
 
 /**
  * A section whose schema has no `claims` field is its own evidence: the house
@@ -49,6 +47,27 @@ export function hasClaims(spec: SectionSpec): boolean {
 }
 
 export const SECTION_IDS: readonly ReportSectionId[] = REPORT_SECTIONS.map((s) => s.key.split(":")[1] as ReportSectionId);
+
+/**
+ * The sections a report with this horizon actually calls. A blind report has
+ * no rising sign and no houses, so the sections that are nothing but the
+ * horizon are not written at all (ADR-34); the rest are written under their
+ * blind rules.
+ */
+export function sectionsFor(horizon: "known" | "approximate" | "unknown"): readonly SectionSpec[] {
+  return horizon === "unknown" ? REPORT_SECTIONS.filter((s) => !s.skipWhenBlind) : REPORT_SECTIONS;
+}
+
+/** The section's instructions as sent: the blind rules are appended when the horizon is unknown. */
+export function instructionsFor(spec: SectionSpec, instructions: string, blind: boolean): string {
+  if (!blind || !spec.blindRules?.length) return instructions;
+  return [instructions.trim(), "", "HORIZON UNKNOWN. These rules replace any rule above they contradict:", ...spec.blindRules.map((r) => `- ${r}`)].join("\n");
+}
+
+/** The output contract in force: a section may narrow its schema when the horizon is unknown. */
+export function schemaFor(spec: SectionSpec, blind: boolean): z.ZodType {
+  return blind && spec.blindSchema ? spec.blindSchema : spec.schema;
+}
 
 export function sectionById(id: string): SectionSpec | undefined {
   return ALL_SECTIONS.find((s) => s.key === `natal:${id}`);

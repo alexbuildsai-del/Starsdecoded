@@ -2,7 +2,7 @@
  * One-time migration: remove `prompt_templates` overrides for the V1 natal
  * prompt keys deleted from promptDefaults.ts.
  *
- * These 14 keys had no runtime caller — `generateInterpretation` derives the
+ * These keys have no runtime caller — `generateInterpretation` derives the
  * legacy output fields from the V2 sections instead — but stored overrides kept
  * them editable in /admin/prompts, implying a report section that no longer
  * exists.
@@ -27,6 +27,8 @@ const DEAD_SECTIONS = [
   "aspects_dynamic",
   "nodes",
   "elements_modalities",
+  // Your Path was retired in R05 (ADR-46): ten chapters, the last one Closing.
+  "path",
 ] as const;
 
 const DEAD_KEYS = DEAD_SECTIONS.flatMap((s) => [`natal:${s}:system`, `natal:${s}:user`]);
