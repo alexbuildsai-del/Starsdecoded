@@ -26,10 +26,9 @@ Built 2026-09-19 on `round/R05` from `docs/rounds/R05-plan.md` (`natal-report-pa
 
 ## Gate
 
-`pnpm install --frozen-lockfile` green · typecheck green (scripts, api, web) · `build:web` green · `build:api` green ·
-tests green: api 116 pass / 0 fail, packages/db 9, scripts 2, web 11 files / 78 tests · codegen leaves no diff ·
-`db:bootstrap` green three times against a scratch Postgres 16 (an already-bootstrapped database, then a fresh
-one twice; every migration idempotent, step 6 reset natal → v6 and pair → p1).
+All green: `pnpm install --frozen-lockfile` · typecheck (scripts, api, web) · `build:web` · `build:api` · tests (api 116,
+packages/db 9, scripts 2, web 78) · codegen no diff · `db:bootstrap` three times on a scratch Postgres 16 (a bootstrapped
+database, then a fresh one twice; step 6 reset natal → v6 and pair → p1).
 
 **Report lab**, remote against staging on `51c47bd` (PR #52 squash-merged, staging Smoke run 35456549652 green, which
 stands in for the preview smoke this environment cannot reach), dispatched from `report-lab.yml` on `round/R05-lab`.
