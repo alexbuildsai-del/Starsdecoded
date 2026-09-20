@@ -1,8 +1,7 @@
 # R05 report — pass three, unknown birth time, the compatibility report
 
 Built 2026-09-19 on `round/R05` from `docs/rounds/R05-plan.md` (`natal-report-pass-three.md` ADR-46 to 51,
-`unknown-birth-time.md` ADR-33 to 38, `compatibility-report.md` ADR-39 to 45). Thirty-two cards, all shipped.
-142 files, +11,014 / −3,261, 38 commits.
+`unknown-birth-time.md` ADR-33 to 38, `compatibility-report.md` ADR-39 to 45). 32 cards shipped; 142 files, 38 commits.
 
 ## Shipped
 
