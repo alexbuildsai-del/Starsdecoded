@@ -1,8 +1,7 @@
 # R05 report — pass three, unknown birth time, the compatibility report
 
 Built 2026-09-19 on `round/R05` from `docs/rounds/R05-plan.md` (`natal-report-pass-three.md` ADR-46 to 51,
-`unknown-birth-time.md` ADR-33 to 38, `compatibility-report.md` ADR-39 to 45). Thirty-two cards, all shipped.
-142 files, +11,014 / −3,261, 38 commits.
+`unknown-birth-time.md` ADR-33 to 38, `compatibility-report.md` ADR-39 to 45). 32 cards shipped; 142 files, 38 commits.
 
 ## Shipped
 
@@ -26,10 +25,9 @@ Built 2026-09-19 on `round/R05` from `docs/rounds/R05-plan.md` (`natal-report-pa
 
 ## Gate
 
-`pnpm install --frozen-lockfile` green · typecheck green (scripts, api, web) · `build:web` green · `build:api` green ·
-tests green: api 116 pass / 0 fail, packages/db 9, scripts 2, web 11 files / 78 tests · codegen leaves no diff ·
-`db:bootstrap` green three times against a scratch Postgres 16 (an already-bootstrapped database, then a fresh
-one twice; every migration idempotent, step 6 reset natal → v6 and pair → p1).
+All green: `pnpm install --frozen-lockfile` · typecheck (scripts, api, web) · `build:web` · `build:api` · tests (api 116,
+packages/db 9, scripts 2, web 78) · codegen no diff · `db:bootstrap` three times on a scratch Postgres 16 (a bootstrapped
+database, then a fresh one twice; step 6 reset natal → v6 and pair → p1).
 
 **Report lab**, remote against staging on `51c47bd` (PR #52 squash-merged, staging Smoke run 35456549652 green, which
 stands in for the preview smoke this environment cannot reach), dispatched from `report-lab.yml` on `round/R05-lab`.
@@ -43,16 +41,20 @@ the words kept verbatim, 16 sentences in the ledger, 10 paragraphs added, 49.5 �
 report reads 5,769 words, above the 5,500 ceiling (MB-60), and carries 53 claims against 60 before the pass even with
 rising and houses added (MB-61). The pair, run 35456892755, failed on the lab itself (both natal reports created before
 the session cookie landed, so one belonged to another visitor; fixed here) and on one natal report whose `triad`
-failed claim validation after three attempts, a customer-visible failure (MB-62). The reruns (35457725652, 35457726958,
-35457728998) failed twice on the link cards and once on an OpenAI 429: the card schema took each body as a free string,
-the model copied "A Moon" from the list, and no card could match its aspect; the SDK's two retries gave up on the
-per-minute token limit inside a second. Both fixed in the follow-up PR (body and aspect fields are enums, six retries),
-so the pair is measured once it deploys and its line is appended here.
+failed claim validation after three attempts, a customer-visible failure (MB-62). The reruns failed twice on the link
+cards and once on an OpenAI 429: the card schema took each body as a free string, the model copied "A Moon" from the
+list and no card could match its aspect; the SDK's two retries gave up on the per-minute limit inside a second. Both
+fixed in #53 (enum keys, six retries) and measured on `1ec43bb`: partners run 35458914016, 4,478 words · 46.5 ¢ · links
+two tries, twoWays three; parent_child 35459277599, 4,524 words, 24 over the 4,500 ceiling · 45.2 ¢; family
+35459972427, 4,479 · 45.2 ¢ · twoWays three tries, after a first run lost to `howYouTalk` claim quotes (MB-62, now 2 of
+17 generations). Every lens: 16 link cards, all 40 to 70 words with a behaviour check, no number describes the pair,
+the lens chapters carry their titles; four to six of nine chapters sit 6 to 45 words off their p1 bands, the R04
+pattern (MB-38) at the pair. Lab gap: a pair run writes json only, so `report-lab/<label>` publishes nothing.
 
 ## Mailbox
 
 Done: MB-9, MB-16, MB-18, MB-27, MB-32, MB-44, MB-48, MB-56; MB-38 stays done, the lab pasted above. Built at their
 defaults, still open: MB-55 (the ring creeps), MB-6 (the picker's no-credit seam), MB-43 (marks and hint per browser),
 MB-47. Raised: MB-59 (the claim lands on a report without generating one), MB-60 (the passed report over the ceiling),
-MB-61 (the pass loses claims), MB-62 (blocking: a natal report can fail on triad claim validation, about 7% today).
+MB-61 (the pass loses claims), MB-62 (blocking: a report can fail on claim validation, 2 of 17 generations today).
 Open more than two rounds: MB-5, 6, 8, 11, 12, 13, 15, 17, 19 to 25, 30, 31 (blocking), 33, 35, 39.
