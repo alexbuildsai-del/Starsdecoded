@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.8 (2026-09-19) |
+| Version | 0.9 (2026-09-21) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -107,7 +107,7 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 - **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings. House-card readings are a section like any other (ADR-21); the Ascendant and Midheaven are citable evidence (ADR-22).
 - **R-5.4** Source of truth for prompts is the section registry and `promptDefaults.ts`; overrides live in `prompt_templates` via `/admin/prompts`. Never edit a generated copy (the bible, docs). Re-sync instead.
 - **R-5.5** A change to report content is USER-FACING even when no UI moved: someone who bought yesterday would get different words today.
-- **R-5.6** Model ids are hard-coded at the call sites today (`gpt-5.2`). Changing the model is an engine change under R-4.4.
+- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and provider, and one outside it does not compile (ADR-58). A section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
 
 ## 6 · Payments and business model
 
@@ -208,7 +208,7 @@ Explore the feature with the Owner. The Owner decides visually: every ideation p
 The Owner's only operational duty is to test the website and say whether it looks good. The QA agent plays the personas from §1 against a preview using real computed charts. Findings land in `docs/qa/QA-NN.md` with severity. The next planner treats every sev-1 as a round goal.
 
 ### 11.4 Report evals
-`fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs before any prompt change ships and its output goes in the round report. Fixtures grow from every real quality problem found in QA.
+`fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs before any prompt change ships and its output goes in the round report. Fixtures grow from every real quality problem found in QA. Every lab run also lands in the staging database and is read in the admin Lab page; a model is compared by replaying a stored run with chart and foundation held fixed, and judged by the Owner blind, per section, in a reading session the Owner spawns (ADR-52 to 56).
 
 ## 12 · Alignment and mailbox
 

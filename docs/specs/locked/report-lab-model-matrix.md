@@ -1,10 +1,10 @@
-# Draft spec — the model matrix: the lab moves into the admin panel, the Owner judges blind
+# Locked spec — the model matrix: the lab moves into the admin panel, the Owner judges blind
 
 Raised by the Owner, 2026-09-19, directed 2026-09-20: 28.4 cents a natal report
 (R05 mean) is the high end; find a better mix, a different model per section by
 the reasoning it needs, beyond `gpt-5.2` and `gpt-5-mini`, Groq included. Natal
 only in this pass. Quality over cost; the Owner's blind read is the judge.
-Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
+Locked 2026-09-21. Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
 
 ## Where the 28 cents go (R05, five fixtures, real usage)
 
@@ -177,11 +177,11 @@ section's picks.
    the vendor page the same day.
 5. The compatibility matrix on the same page.
 
-## Open questions
+## Resolved at lock
 
-1. **Which four sections in the first reading session?** *Recommendation:*
-   career (the Owner's example), overview (the first thing a buyer reads),
-   superpowers and discoveries (the wow moments). *Default if silent:* those four.
+First reading session: career, overview, superpowers, discoveries (the default,
+the Owner did not object). Groq and mini on the scaffold, M7 whole, Luna: the
+Owner's list.
 
 ## Decisions to record
 
