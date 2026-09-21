@@ -19,19 +19,16 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   ticks, one sky, the door at 67% over an orrery of the chart. Artifact: https://claude.ai/artifact/HKt4HYfKKmwadcKTmTxWob
 - `docs/specs/locked/unknown-birth-time.md` — R05: the horizon as a status, three-way birth time with a live readout,
   the blind report, the horizon pass by quote match, one free update. Artifact: https://claude.ai/artifact/GicHa2umwRm5rQDuWVLp9p
-- `docs/specs/locked/review-20-09.md` — next round: the phone hero, two skies and the generation screen as a screen,
-  the Closing gap, evidence in claims only, the evidence sheet, Personal natal report, the why on its own line.
-  Artifact: https://claude.ai/artifact/M9SMzqwbNcXtuSZGws2p2F
-- `docs/specs/locked/compatibility-report-p2.md` — next round, the brain: seven chapters with the two charts first,
-  five lens chapters with cards and three scenes, tone C with B's headline and checklist, the child's age band, the
-  Two people lens, per-chapter briefs, the repetition score, the two-triad hero, the share card, the Groq experiment.
-  Artifact: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL
-- `docs/specs/draft/report-cost-and-latency.md` — 27.1 cents a report measured; output 74%, half of it invisible. Levers re-ranked on the R02 baseline; L0 built.
-- `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
+- `docs/specs/locked/review-20-09.md` — next: phone hero, two skies, the generation screen as a screen, the Closing
+  gap, evidence in claims only, Personal natal report, the why line. Artifact: https://claude.ai/artifact/M9SMzqwbNcXtuSZGws2p2F
+- `docs/specs/locked/compatibility-report-p2.md` — next, the brain: seven chapters, two charts first, five lens chapters
+  with cards and scenes, the age band, Two people, per-chapter briefs, the two-triad hero. Artifact: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL
+- Drafts: `report-cost-and-latency.md` (27.1 cents measured, L0 built) · `staging-environment.md` (main → staging,
+  production branch → production; runbook page https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7)
 
 ## Rounds
-- `docs/rounds/R01-plan.md` · `R01-report.md` — claims made true, DELETE report, legal drafts, smoke workflow. Owner acceptance pending.
-- `docs/rounds/R02-plan.md` · `R02-report.md` — usage telemetry (L0). Baseline measured: 27.1 cents a report, reasoning tokens zero. MB-10 closed.
+- `R01` claims made true, DELETE report, legal drafts, smoke workflow · `R02` usage telemetry, 27.1 cents baseline. Plans
+  and reports under `docs/rounds/`; R01 acceptance pending.
 - `docs/rounds/R03-plan.md` · `R03-report.md` — Observatory tokens, the wheel from real degrees, citations, house
   cards, hero and chapter shell. Owner acceptance pending.
 - `docs/rounds/R04-plan.md` · `R04-report.md` — pass two: eleven chapters, house cards, the workbook, dawn, a report
