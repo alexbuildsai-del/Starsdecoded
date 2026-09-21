@@ -160,7 +160,8 @@ const NOT_A_NAME = new Set([
 
 /** A capitalised word after the first, not opening a sentence or a quote, that is neither of the two first names: a third person. */
 function strangerIn(line: string, names: { a: string; b: string }): string | undefined {
-  const allowed = new Set([first(names.a), first(names.b), ...NOT_A_NAME]);
+  // Every part of either name is theirs: "Curie" alone is still Marie.
+  const allowed = new Set([...names.a.split(/\s+/), ...names.b.split(/\s+/), ...NOT_A_NAME]);
   const tokens = line.split(/\s+/);
   for (let i = 1; i < tokens.length; i++) {
     const prev = tokens[i - 1];
