@@ -40,7 +40,12 @@ price, native adapter), Sonnet 5, Gemini 3.8 Flash, Kimi K3, DeepSeek, Terra, So
 
 ## Five mixes, one judgement
 
-Costs priced on the R05 token shape, before retries; M0 is measured.
+The matrix reads five charts: day-angular, high-latitude, marie-curie,
+night-angular, and the Owner's own report on staging in place of
+oprah-winfrey. That chart never enters the public repo: *Matrix* lets the
+admin pick one of their own stored reports as a base run beside the fixture
+runs, and its M0 is that report's stored text and usage. Costs below are
+priced on the R05 token shape, before retries; M0 is measured.
 
 | mix | foundation | synthesis | scaffold | houses | ¢ |
 |---|---|---|---|---|---|
@@ -94,8 +99,9 @@ picks and priced at the reveal.
    - *Runs*: every stored run by fixture and label, per-section words, cost,
      seconds, faults; the compare table the lab prints today, in the browser,
      for any two labels.
-   - *Matrix*: pick a base run, tick writers and sections, dispatch replays,
-     watch them land.
+   - *Matrix*: pick a base run, a fixture run or one of the admin's own
+     stored reports, tick writers and sections, dispatch replays, watch them
+     land.
    - *Reading room*: exists only inside a session the Owner spawns from
      *Matrix* by choosing runs, sections and charts; nothing is queued
      otherwise. One card per fixture and section, the variants side by side
@@ -128,8 +134,9 @@ picks and priced at the reveal.
 
 ## Acceptance criteria
 
-1. The five R05 runs appear under *Runs* on staging after `--publish`, with the
-   same per-section costs the lab printed (28.4 ¢ mean).
+1. The five R05 runs appear under *Runs* on staging after `--publish` with the
+   per-section costs the lab printed; the admin's own report can be chosen as a
+   base run without any birth data leaving the database.
 2. A replay of `career` on `gpt-5.2` against `marie-curie.r05` produces a row
    `--compare` and the *Runs* view show with no fault the original lacked.
 3. A replay on `gpt-oss-120b` runs from the panel with no key in the repo; with
