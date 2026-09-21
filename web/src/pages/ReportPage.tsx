@@ -1,7 +1,8 @@
 /**
- * The natal report: one page, one sky (ADR-48, ADR-51). The opening overlay
+ * The natal report: one page, two skies (ADR-48, ADR-59). The opening overlay
  * holds the page until the reader takes the door or it opens itself; the
- * hero ring then gathers the stars. Ten chapters, the last one Closing
+ * hero's own sky then gathers its stars onto the ring, and the chapters keep
+ * R04's ground. Ten chapters, the last one Closing
  * (ADR-46); a chapter not yet landed shows a skeleton. A blind report renders
  * no rising text and no house readings, the call to action instead, and the
  * ledger above chapter 01 once a pass has run (ADR-35, ADR-37).
@@ -43,7 +44,6 @@ import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { chapterAccent } from "@/lib/chapter-accent";
-import type { Ring } from "@/lib/gather";
 
 /** Ten chapters, in the locked order (ADR-46). The section each one waits for is its own. */
 const CHAPTERS = [
@@ -93,7 +93,6 @@ export default function ReportPage() {
   const [, navigate] = useLocation();
   const client = useQueryClient();
   const [active, setActive] = useState(-1);
-  const [ring, setRing] = useState<Ring | null>(null);
   const [askTime, setAskTime] = useState(false);
   const [marks, setMarks] = useState(() => marksShown(id ?? ""));
 
@@ -108,7 +107,6 @@ export default function ReportPage() {
   const regenerate = useRegenerateReport({ mutation: { onSuccess: refresh } });
 
   const handlePrint = () => window.print();
-  const onRing = useCallback((r: Ring) => setRing((prev) => (prev && prev.cx === r.cx && prev.cy === r.cy && prev.r === r.r ? prev : r)), []);
 
   if (live.isLoading) return <LoadingState label="Loading your report…" />;
 
@@ -187,7 +185,7 @@ export default function ReportPage() {
     <WorkbookProvider reportId={id!} initial={workbook}>
     <RevisionProvider value={revisions}>
     <div className={`rp-root min-h-screen${marks ? "" : " marks-off"}`} style={{ "--accent": accent } as CSSProperties}>
-      <ReportSky accent={accent} opening={onHero} gatherTo={open ? ring : null} />
+      <ReportSky accent={accent} opening={onHero} />
 
       {showOverlay && (
         <OpeningOverlay
@@ -212,7 +210,8 @@ export default function ReportPage() {
         chartData={chartData}
         meta={interpretation.meta}
         onAddBirthTime={report.profileId ? openTime : undefined}
-        onRing={onRing}
+        accent={OPENING_ACCENT}
+        gather={open}
       />
 
       {/* Chrome sits on the opening plate without a ground, and takes one once the reading starts. */}

@@ -397,8 +397,12 @@
 
   /* --- the opening: one full screen, the diagram fixed behind it --- */
   .rp-hero { position: relative; height: calc(100svh - 3.5rem); min-height: 520px; margin-top: 3.5rem; z-index: 2; }
-  /* No ground of its own: the plate and the Sun glow sit on the one sky (ADR-51). */
-  .rp-hsky { position: fixed; inset: 3.5rem 0 0; z-index: 1; display: grid; place-items: center; padding: 14px 10px 56px; }
+  /* The hero owns its sky (ADR-59): R04's radial gradient, and its own starfield and ring of stars mounted inside it. */
+  .rp-hsky { position: fixed; inset: 3.5rem 0 0; z-index: 1; display: grid; place-items: center; padding: 14px 10px 56px;
+    background: radial-gradient(120% 92% at 50% 38%, #141B28 0%, #0B0E14 56%, #06080C 100%); }
+  /* Behind the plate and the corner chrome, above the gradient: the hero layer is its own stacking context. */
+  .rp-sky.hero { position: absolute; inset: 0; z-index: -1; background: transparent; }
+  .rp-sky.hero .veil { background: linear-gradient(180deg, rgba(6,8,12,0), rgba(6,8,12,.35)); }
   .rp-hplate { position: relative; width: 100%; height: 100%; min-height: 0; display: grid; place-items: center; }
   .rp-hplate > svg { display: block; width: 100%; height: 100%; max-height: min(100%, 760px); }
   /* A narrow screen stacks ring, legend and cue as one centred column; nothing stretches to fill. */

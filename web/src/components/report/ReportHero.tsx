@@ -30,6 +30,7 @@ import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { PLANET_LABELS, type ChartData, type ChartPlanet, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { ReportSky } from "@/components/report/ReportSky";
 import type { Ring } from "@/lib/gather";
 
 const SKY = "var(--sky)";
@@ -151,12 +152,13 @@ export interface ReportHeroProps {
   meta: Interpretation["meta"];
   /** Opens the three-way birth time control; the blind hero's third legend line. */
   onAddBirthTime?: () => void;
-  /** Where the ring is on screen, so the sky can gather its stars onto it (ADR-47). */
-  onRing?: (ring: Ring) => void;
+  /** The hero's own sky takes the opening accent; once the door is taken the stars gather onto the ring (ADR-59). */
+  accent: string;
+  gather: boolean;
 }
 
 export function ReportHero({
-  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, onRing,
+  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, accent, gather,
 }: ReportHeroProps) {
   const tier = useTier();
   const narrow = tier !== "wide";
@@ -171,22 +173,24 @@ export function ReportHero({
   const sunRef = useRef<SVGImageElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<SVGCircleElement>(null);
-  const onRingRef = useRef(onRing);
-  onRingRef.current = onRing;
+  const [ring, setRing] = useState<Ring | null>(null);
 
-  // The ring's place on screen, measured at rest: the gather lands on it.
+  // The ring's place on screen, measured at rest and again on every resize,
+  // so the ring of stars follows an address-bar collapse or a rotation.
   useEffect(() => {
     function measure() {
       const el = ringRef.current;
-      if (!el || !onRingRef.current) return;
+      if (!el) return;
       const b = el.getBoundingClientRect();
       if (b.width < 2) return;
-      onRingRef.current({ cx: b.left + b.width / 2, cy: b.top + b.height / 2, r: b.width / 2 });
+      const next = { cx: b.left + b.width / 2, cy: b.top + b.height / 2, r: b.width / 2 };
+      setRing((prev) => (prev && Math.abs(prev.cx - next.cx) < 0.5 && Math.abs(prev.cy - next.cy) < 0.5 && Math.abs(prev.r - next.r) < 0.5 ? prev : next));
     }
     measure();
+    const raf = window.requestAnimationFrame(measure);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [tier, viewport.width, viewport.height]);
+    return () => { window.cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
+  }, [tier, viewport.width, viewport.height, name]);
 
   useEffect(() => {
     let frame = 0;
@@ -319,6 +323,8 @@ export function ReportHero({
   return (
     <>
       <div ref={skyRef} className={`rp-hsky rp-grain no-print${narrow ? " narrow" : ""}${phone ? " phone" : ""}`}>
+        {/* The hero's own starfield and, once opened, the ring of stars, sized to this layer and fading with it. */}
+        <ReportSky variant="hero" accent={accent} opening gatherTo={gather ? ring : null} />
         {/* Under the transparent bar, off the plate's edges, fading with the sky. */}
         <div
           ref={glowRef}
