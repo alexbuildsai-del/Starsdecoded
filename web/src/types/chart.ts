@@ -266,7 +266,7 @@ export interface HorizonPass {
   sections: Record<string, { amended: RevisionMark[]; added: SectionAddition[] }>;
 }
 
-export type Lens = "partners" | "parent_child" | "family";
+export type Lens = "partners" | "parent_child" | "people";
 
 /** One passage of a compatibility chapter, tagged by where it came from (ADR-39). */
 export interface PairPassage {

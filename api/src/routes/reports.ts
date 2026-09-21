@@ -16,7 +16,8 @@ import {
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
 import { generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
 import { SECTION_IDS } from "../prompts/index.js";
-import { PAIR_SECTION_IDS } from "../prompts/pair/index.js";
+import { pairSectionIds } from "../prompts/pair/index.js";
+import type { Lens } from "../lib/pairBrief.js";
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
 import { ownsRelationship, viewerHasGrantOnRelationship, viewerRelationshipIds } from "../lib/access.js";
 import { consumeCredit } from "../lib/credits.js";
@@ -31,10 +32,11 @@ type Viewer = { userId: string | null; sessionId: string };
 /**
  * The section keys a report of this type writes, so the status can say which
  * have landed. A blind natal report never writes the house readings (ADR-34),
- * so its status does not wait for them.
+ * so its status does not wait for them; a compatibility report writes the
+ * eight sections of its lens (ADR-63).
  */
-export function sectionIdsFor(type: string, horizon?: string): readonly string[] {
-  if (type === "compatibility") return PAIR_SECTION_IDS;
+export function sectionIdsFor(type: string, horizon?: string, lens?: string): readonly string[] {
+  if (type === "compatibility") return pairSectionIds((lens ?? "partners") as Lens);
   return horizon === "unknown" ? SECTION_IDS.filter((id) => id !== "houses") : SECTION_IDS;
 }
 
@@ -435,7 +437,7 @@ router.get("/reports/:id/status", async (req, res) => {
       // Real progress is the client's to count from `sections` (ADR-47); the
       // orrery runs from these until the chart is stored.
       provisional: p.chartData == null && r.type === "natal" ? provisionalFor(p) : null,
-      sections: Object.fromEntries(sectionIdsFor(r.type, (written.meta as { horizon?: string } | undefined)?.horizon).map((id) => [id, id in written ? "done" : "pending"])),
+      sections: Object.fromEntries(sectionIdsFor(r.type, (written.meta as { horizon?: string } | undefined)?.horizon, (written.meta as { lens?: string } | undefined)?.lens ?? (r.computeData as { lens?: string } | null)?.lens).map((id) => [id, id in written ? "done" : "pending"])),
       interpretation: r.interpretation ?? null,
     });
   } catch (err) {

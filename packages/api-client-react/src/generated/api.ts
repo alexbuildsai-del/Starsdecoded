@@ -50,13 +50,15 @@ import type {
   Report,
   ReportStatus,
   ReportSummary,
+  SceneResponse,
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
   UpdateBirthTimeBody,
   UpdateProfileBody,
   Workbook,
-  WorkbookPatch
+  WorkbookPatch,
+  WriteSceneBody
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1192,6 +1194,88 @@ export const useCreateCompatibilityReport = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getCreateCompatibilityReportMutationOptions(options));
+    }
+
+export const getWriteSceneUrl = (id: string,) => {
+
+
+
+
+  return `/api/compatibility/${id}/scenes`
+}
+
+/**
+ * A lens chapter carries three curated scenes; the report wrote one. This writes another on the same chapter brief, once per report, chapter and index, stores it on the interpretation and serves the stored text on every later call (ADR-65, ADR-72). Access is the report's.
+ * @summary Write one of a chapter's two unread scenes on tap
+ */
+export const writeScene = async (id: string,
+    writeSceneBody: WriteSceneBody, options?: Parameters<typeof customFetch>[1]): Promise<SceneResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<SceneResponse>(getWriteSceneUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(writeSceneBody)
+  }
+);}
+
+
+
+
+
+export const getWriteSceneMutationKey = () => ['writeScene'] as const;
+
+export const getWriteSceneMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof writeScene>>, TError,WriteSceneMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof writeScene>>, TError,WriteSceneMutationVariables, TContext> => {
+
+const mutationKey = getWriteSceneMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof writeScene>>, WriteSceneMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  writeScene(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type WriteSceneMutationResult = NonNullable<Awaited<ReturnType<typeof writeScene>>>
+    export type WriteSceneMutationBody = BodyType<WriteSceneBody>
+    export type WriteSceneMutationError = ErrorType<ErrorResponse>
+    export type WriteSceneMutationVariables = {id: string;data: BodyType<WriteSceneBody>}
+
+    /**
+ * @summary Write one of a chapter's two unread scenes on tap
+ */
+export const useWriteScene = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof writeScene>>, TError,WriteSceneMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof writeScene>>,
+        TError,
+        WriteSceneMutationVariables,
+        TContext
+      > => {
+      return useMutation(getWriteSceneMutationOptions(options));
     }
 
 export const getGetCompatibilitySummaryUrl = (id: string,) => {

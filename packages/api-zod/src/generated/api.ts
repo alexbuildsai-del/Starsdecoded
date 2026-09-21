@@ -38,8 +38,8 @@ export const ListReportsResponseItem = zod.object({
   "risingSign": zod.string().nullish(),
   "profileId": zod.string().nullish().describe('Profile ID for natal reports. Null for compatibility reports.'),
   "relationshipId": zod.string().nullish().describe('Set for compatibility reports.'),
-  "relationshipType": zod.string().nullish().describe('The lens (partners, parent_child, family). Set for compatibility reports.'),
-  "lens": zod.union([zod.enum(['partners', 'parent_child', 'family']).describe('The lens (ADR-40).'),zod.null()]).optional(),
+  "relationshipType": zod.string().nullish().describe('The lens (partners, parent_child, people). Set for compatibility reports.'),
+  "lens": zod.union([zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),zod.null()]).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -84,8 +84,8 @@ export const CreateReportResponse = zod.object({
   "risingSign": zod.string().nullish(),
   "profileId": zod.string().nullish().describe('Profile ID for natal reports. Null for compatibility reports.'),
   "relationshipId": zod.string().nullish().describe('Set for compatibility reports.'),
-  "relationshipType": zod.string().nullish().describe('The lens (partners, parent_child, family). Set for compatibility reports.'),
-  "lens": zod.union([zod.enum(['partners', 'parent_child', 'family']).describe('The lens (ADR-40).'),zod.null()]).optional(),
+  "relationshipType": zod.string().nullish().describe('The lens (partners, parent_child, people). Set for compatibility reports.'),
+  "lens": zod.union([zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),zod.null()]).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -118,7 +118,7 @@ export const GetReportResponse = zod.object({
   "birthTimeWindowMinutes": zod.number().int(),
   "profileId": zod.string().nullish().describe('The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.'),
   "type": zod.enum(['natal', 'compatibility']),
-  "lens": zod.union([zod.enum(['partners', 'parent_child', 'family']).describe('The lens (ADR-40).'),zod.null()]).optional(),
+  "lens": zod.union([zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),zod.null()]).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
   "reportId": zod.string(),
@@ -378,7 +378,9 @@ export const GetReportResponse = zod.object({
   "meta": zod.object({
   "promptVersion": zod.string(),
   "reportType": zod.enum(['natal', 'compatibility']).optional(),
-  "lens": zod.enum(['partners', 'parent_child', 'family']).optional().describe('The lens (ADR-40).'),
+  "lens": zod.enum(['partners', 'parent_child', 'people']).optional().describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
+  "label": zod.string().nullish().describe('How two people know each other, in their words; null under the other lenses.'),
+  "band": zod.enum(['little', 'school', 'teen', 'grown']).nullish().describe('The child\'s age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.'),
   "horizon": zod.enum(['known', 'approximate', 'unknown']).optional().describe('Mirrors the chart\'s horizon status (ADR-34).'),
   "horizonPass": zod.object({
   "at": zod.string(),
@@ -692,30 +694,13 @@ export const GetReportResponse = zod.object({
   "underPressure": zod.string()
 })
 }).optional(),
-  "howYouMeet": zod.object({
-  "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
-  "claims": zod.array(zod.object({
-  "quote": zod.string(),
-  "evidence": zod.array(zod.object({
-  "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
-}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
-  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
-}))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
   "twoCharts": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "strong": zod.array(zod.string()),
+  "work": zod.array(zod.string()),
+  "paradox": zod.string(),
+  "strengths": zod.array(zod.string()),
+  "pointer": zod.string(),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -725,14 +710,27 @@ export const GetReportResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "twoWays": zod.object({
+}).optional().describe('Chapter 01, Your two charts, the introduction under the wheel (ADR-63).'),
+  "partners02": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -742,14 +740,27 @@ export const GetReportResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "whereItFlows": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "partners03": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -759,14 +770,27 @@ export const GetReportResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "whereItRubs": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "partners04": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -776,14 +800,27 @@ export const GetReportResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "howYouTalk": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "partners05": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -793,14 +830,27 @@ export const GetReportResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "lensOne": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "partners06": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -810,14 +860,27 @@ export const GetReportResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "lensTwo": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild02": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -827,7 +890,277 @@ export const GetReportResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild03": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild04": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild05": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild06": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people02": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people03": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people04": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people05": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people06": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
   "whatToPractise": zod.object({
   "opening": zod.string(),
   "forA": zod.object({
@@ -861,7 +1194,7 @@ export const GetReportResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional().describe('Chapter 09 of the compatibility report, three checklists and a closing paragraph.'),
+}).optional().describe('Chapter 07 of the compatibility report, three checklists collected from the lens chapters and a closing paragraph.'),
   "links": zod.object({
   "links": zod.array(zod.object({
   "kind": zod.enum(['flows', 'rubs', 'overlay']),
@@ -874,7 +1207,12 @@ export const GetReportResponse = zod.object({
   "house": zod.number().int().optional(),
   "reading": zod.string()
 }).describe('One generated link card, 40 to 70 words, ending on a behaviour check (ADR-43).'))
-}).optional()
+}).optional(),
+  "scenes": zod.record(zod.string(), zod.object({
+  "titles": zod.array(zod.string()),
+  "written": zod.number().int(),
+  "texts": zod.record(zod.string(), zod.string())
+}).describe('A lens chapter\'s three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
 }).describe('A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.\n'),zod.null()]).optional(),
   "workbook": zod.record(zod.string(), zod.string()).optional().describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick.'),
   "errorMessage": zod.string().nullish(),
@@ -918,7 +1256,9 @@ export const GetReportStatusResponse = zod.object({
   "meta": zod.object({
   "promptVersion": zod.string(),
   "reportType": zod.enum(['natal', 'compatibility']).optional(),
-  "lens": zod.enum(['partners', 'parent_child', 'family']).optional().describe('The lens (ADR-40).'),
+  "lens": zod.enum(['partners', 'parent_child', 'people']).optional().describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
+  "label": zod.string().nullish().describe('How two people know each other, in their words; null under the other lenses.'),
+  "band": zod.enum(['little', 'school', 'teen', 'grown']).nullish().describe('The child\'s age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.'),
   "horizon": zod.enum(['known', 'approximate', 'unknown']).optional().describe('Mirrors the chart\'s horizon status (ADR-34).'),
   "horizonPass": zod.object({
   "at": zod.string(),
@@ -1232,30 +1572,13 @@ export const GetReportStatusResponse = zod.object({
   "underPressure": zod.string()
 })
 }).optional(),
-  "howYouMeet": zod.object({
-  "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
-  "claims": zod.array(zod.object({
-  "quote": zod.string(),
-  "evidence": zod.array(zod.object({
-  "ref": zod.object({
-  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
-}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
-  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
-}))
-}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
   "twoCharts": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "strong": zod.array(zod.string()),
+  "work": zod.array(zod.string()),
+  "paradox": zod.string(),
+  "strengths": zod.array(zod.string()),
+  "pointer": zod.string(),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -1265,14 +1588,27 @@ export const GetReportStatusResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "twoWays": zod.object({
+}).optional().describe('Chapter 01, Your two charts, the introduction under the wheel (ADR-63).'),
+  "partners02": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -1282,14 +1618,27 @@ export const GetReportStatusResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "whereItFlows": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "partners03": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -1299,14 +1648,27 @@ export const GetReportStatusResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "whereItRubs": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "partners04": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -1316,14 +1678,27 @@ export const GetReportStatusResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "howYouTalk": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "partners05": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -1333,14 +1708,27 @@ export const GetReportStatusResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "lensOne": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "partners06": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -1350,14 +1738,27 @@ export const GetReportStatusResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
-  "lensTwo": zod.object({
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild02": zod.object({
   "headline": zod.string(),
-  "passages": zod.array(zod.object({
-  "text": zod.string(),
-  "source": zod.enum(['natal', 'new']).describe('natal is read from one of the two stored reports; new is written for the pair.'),
-  "of": zod.enum(['A', 'B', 'both']).optional()
-}).describe('One passage of a compatibility chapter, tagged by where it came from (ADR-39).')),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -1367,7 +1768,277 @@ export const GetReportStatusResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional(),
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild03": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild04": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild05": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "parentChild06": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people02": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people03": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people04": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people05": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
+  "people06": zod.object({
+  "headline": zod.string(),
+  "card": zod.object({
+  "a": zod.array(zod.string()),
+  "b": zod.array(zod.string()),
+  "pair": zod.string()
+}).describe('The side-by-side card of a lens chapter: three lines a side in that person\'s own words, one for the pair (ADR-63).'),
+  "scene": zod.string(),
+  "whatJustHappened": zod.object({
+  "becauseA": zod.string(),
+  "becauseB": zod.string()
+}),
+  "pattern": zod.string(),
+  "nextTime": zod.object({
+  "items": zod.array(zod.object({
+  "for": zod.enum(['A', 'B', 'both']),
+  "action": zod.string(),
+  "why": zod.string()
+}))
+}),
+  "claims": zod.array(zod.object({
+  "quote": zod.string(),
+  "evidence": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['placement', 'aspect', 'ruler', 'lot', 'sect', 'angle', 'cross', 'source'])
+}).describe('A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).\n'),
+  "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
+}))
+}).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
+}).optional().describe('Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).'),
   "whatToPractise": zod.object({
   "opening": zod.string(),
   "forA": zod.object({
@@ -1401,7 +2072,7 @@ export const GetReportStatusResponse = zod.object({
   "label": zod.string().describe('Composed by the API from the verified reference; never model text.')
 }))
 }).describe('A verbatim quote from the section\'s prose and the chart facts it rests on.'))
-}).optional().describe('Chapter 09 of the compatibility report, three checklists and a closing paragraph.'),
+}).optional().describe('Chapter 07 of the compatibility report, three checklists collected from the lens chapters and a closing paragraph.'),
   "links": zod.object({
   "links": zod.array(zod.object({
   "kind": zod.enum(['flows', 'rubs', 'overlay']),
@@ -1414,7 +2085,12 @@ export const GetReportStatusResponse = zod.object({
   "house": zod.number().int().optional(),
   "reading": zod.string()
 }).describe('One generated link card, 40 to 70 words, ending on a behaviour check (ADR-43).'))
-}).optional()
+}).optional(),
+  "scenes": zod.record(zod.string(), zod.object({
+  "titles": zod.array(zod.string()),
+  "written": zod.number().int(),
+  "texts": zod.record(zod.string(), zod.string())
+}).describe('A lens chapter\'s three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
 }).describe('A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.\n'),zod.null()]).optional().describe('The interpretation so far. Sections appear as each call lands.')
 })
 
@@ -1632,7 +2308,7 @@ export const PreviewHorizonResponse = zod.object({
 export const CreateCompatibilityReportBody = zod.object({
   "reportAId": zod.string(),
   "reportBId": zod.string(),
-  "lens": zod.enum(['partners', 'parent_child', 'family']).describe('The lens (ADR-40).'),
+  "lens": zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
   "label": zod.string().nullish(),
   "parent": zod.enum(['A', 'B']).optional().describe('Under the parent_child lens, which of the two is the parent. Carried as the participants\' positional role.')
 })
@@ -1641,6 +2317,26 @@ export const CreateCompatibilityReportResponse = zod.object({
   "id": zod.string(),
   "relationshipId": zod.string(),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'complete', 'failed'])
+})
+
+
+/**
+ * A lens chapter carries three curated scenes; the report wrote one. This writes another on the same chapter brief, once per report, chapter and index, stores it on the interpretation and serves the stored text on every later call (ADR-65, ADR-72). Access is the report's.
+ * @summary Write one of a chapter's two unread scenes on tap
+ */
+export const WriteSceneParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const WriteSceneBody = zod.object({
+  "chapter": zod.string().describe('The lens chapter\'s section id, e.g. partners02.'),
+  "index": zod.number().int().describe('Which of the chapter\'s three scenes, 0 to 2; never the one the report wrote.')
+})
+
+export const WriteSceneResponse = zod.object({
+  "chapter": zod.string(),
+  "index": zod.number().int(),
+  "text": zod.string()
 })
 
 
@@ -1654,7 +2350,7 @@ export const GetCompatibilitySummaryParams = zod.object({
 export const GetCompatibilitySummaryResponse = zod.object({
   "id": zod.string(),
   "relationshipId": zod.string(),
-  "lens": zod.enum(['partners', 'parent_child', 'family']).describe('The lens (ADR-40).'),
+  "lens": zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
   "label": zod.string().nullish(),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
   "participants": zod.array(zod.object({
@@ -1674,7 +2370,7 @@ export const GetCompatibilitySummaryResponse = zod.object({
 export const CreateRelationshipBody = zod.object({
   "profileAId": zod.string(),
   "profileBId": zod.string(),
-  "type": zod.enum(['partners', 'parent_child', 'family']).optional().describe('The lens (ADR-40).'),
+  "type": zod.enum(['partners', 'parent_child', 'people']).optional().describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
   "label": zod.string().nullish()
 })
 
@@ -1741,7 +2437,7 @@ export const GetRelationshipResponse = zod.object({
 export const CreateSynastryReportBody = zod.object({
   "profileAId": zod.string(),
   "profileBId": zod.string(),
-  "relationshipType": zod.enum(['partners', 'parent_child', 'family']).optional().describe('The lens (ADR-40).'),
+  "relationshipType": zod.enum(['partners', 'parent_child', 'people']).optional().describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
   "label": zod.string().nullish()
 })
 

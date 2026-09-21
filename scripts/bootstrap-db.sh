@@ -43,7 +43,7 @@ echo "==> 3d/7 The horizon pass"
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-report-revisions.ts
 
 echo "==> 3e/7 Three lenses"
-# Remaps relationships.type to partners, parent_child, family (ADR-40). Idempotent.
+# Remaps relationships.type to partners, parent_child, people (ADR-40, ADR-68). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-remap-relationship-types.ts
 
 echo "==> 3f/7 One credit kind"
@@ -62,8 +62,9 @@ pnpm --filter @workspace/db exec tsx scripts/migrate-drop-meaning-library.ts
 
 echo "==> 6/7 Prompt overrides"
 # Prompts resolve from code; a row exists only where /admin/prompts overrode
-# one. A prompt version bump clears the natal overrides, since they target a
-# contract that no longer exists. Never seeds copies of the defaults.
+# one. A prompt version bump clears that family's overrides, natal or pair,
+# since they target a contract that no longer exists (v6, p2). Never seeds
+# copies of the defaults.
 pnpm --filter @workspace/scripts run prompts:reset-stale
 
 echo "==> 7/7 Promote prompt overrides from staging"

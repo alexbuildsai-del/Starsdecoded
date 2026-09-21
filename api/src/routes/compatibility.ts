@@ -93,7 +93,7 @@ router.post("/compatibility", async (req, res) => {
     return res.status(400).json({ error: "validation_error", message: "Pick two different reports" });
   }
   if (!(RELATIONSHIP_TYPES as readonly string[]).includes(lens)) {
-    return res.status(400).json({ error: "validation_error", message: "lens must be partners, parent_child or family" });
+    return res.status(400).json({ error: "validation_error", message: "lens must be partners, parent_child or people" });
   }
   const viewer = { userId: req.userId, sessionId: req.sessionId };
 
@@ -131,8 +131,9 @@ router.post("/compatibility", async (req, res) => {
     const input = {
       lens,
       parent: parent ?? null,
-      a: { name: a.profile.name, chart: a.profile.chartData as NatalChartData, interpretation: a.report.interpretation as ReportInterpretation },
-      b: { name: b.profile.name, chart: b.profile.chartData as NatalChartData, interpretation: b.report.interpretation as ReportInterpretation },
+      label: label ?? null,
+      a: { name: a.profile.name, birthDate: a.profile.birthDate, chart: a.profile.chartData as NatalChartData, interpretation: a.report.interpretation as ReportInterpretation },
+      b: { name: b.profile.name, birthDate: b.profile.birthDate, chart: b.profile.chartData as NatalChartData, interpretation: b.report.interpretation as ReportInterpretation },
     };
     (async () => {
       try {

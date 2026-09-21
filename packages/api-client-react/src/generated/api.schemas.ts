@@ -97,7 +97,7 @@ export type ReportSummaryParticipantsItem = {
 };
 
 /**
- * The lens (ADR-40).
+ * The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.
  */
 export type RelationshipType = typeof RelationshipType[keyof typeof RelationshipType];
 
@@ -105,7 +105,7 @@ export type RelationshipType = typeof RelationshipType[keyof typeof Relationship
 export const RelationshipType = {
   partners: 'partners',
   parent_child: 'parent_child',
-  family: 'family',
+  people: 'people',
 } as const;
 
 export interface ReportSummary {
@@ -132,7 +132,7 @@ export interface ReportSummary {
   profileId?: string | null;
   /** Set for compatibility reports. */
   relationshipId?: string | null;
-  /** The lens (partners, parent_child, family). Set for compatibility reports. */
+  /** The lens (partners, parent_child, people). Set for compatibility reports. */
   relationshipType?: string | null;
   lens?: RelationshipType | null;
   /** Participant summaries. Set for compatibility reports. */
@@ -175,6 +175,19 @@ export type ReportInterpretationMetaReportType = typeof ReportInterpretationMeta
 export const ReportInterpretationMetaReportType = {
   natal: 'natal',
   compatibility: 'compatibility',
+} as const;
+
+/**
+ * The child's age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.
+ */
+export type ReportInterpretationMetaBand = typeof ReportInterpretationMetaBand[keyof typeof ReportInterpretationMetaBand] | null;
+
+
+export const ReportInterpretationMetaBand = {
+  little: 'little',
+  school: 'school',
+  teen: 'teen',
+  grown: 'grown',
 } as const;
 
 /**
@@ -337,38 +350,61 @@ export interface ReportFocusGroup {
 }
 
 /**
- * natal is read from one of the two stored reports; new is written for the pair.
+ * Chapter 01, Your two charts, the introduction under the wheel (ADR-63).
  */
-export type PairPassageSource = typeof PairPassageSource[keyof typeof PairPassageSource];
+export interface PairTwoCharts {
+  headline: string;
+  strong: string[];
+  work: string[];
+  paradox: string;
+  strengths: string[];
+  pointer: string;
+  claims: Claim[];
+}
+
+/**
+ * The side-by-side card of a lens chapter: three lines a side in that person's own words, one for the pair (ADR-63).
+ */
+export interface PairCard {
+  a: string[];
+  b: string[];
+  pair: string;
+}
+
+export type PairNextTimeItemFor = typeof PairNextTimeItemFor[keyof typeof PairNextTimeItemFor];
 
 
-export const PairPassageSource = {
-  natal: 'natal',
-  new: 'new',
-} as const;
-
-export type PairPassageOf = typeof PairPassageOf[keyof typeof PairPassageOf];
-
-
-export const PairPassageOf = {
+export const PairNextTimeItemFor = {
   A: 'A',
   B: 'B',
   both: 'both',
 } as const;
 
-/**
- * One passage of a compatibility chapter, tagged by where it came from (ADR-39).
- */
-export interface PairPassage {
-  text: string;
-  /** natal is read from one of the two stored reports; new is written for the pair. */
-  source: PairPassageSource;
-  of?: PairPassageOf;
+export interface PairNextTimeItem {
+  for: PairNextTimeItemFor;
+  action: string;
+  why: string;
 }
 
-export interface PairChapter {
+export type PairLensChapterWhatJustHappened = {
+  becauseA: string;
+  becauseB: string;
+};
+
+export type PairLensChapterNextTime = {
+  items: PairNextTimeItem[];
+};
+
+/**
+ * Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64).
+ */
+export interface PairLensChapter {
   headline: string;
-  passages: PairPassage[];
+  card: PairCard;
+  scene: string;
+  whatJustHappened: PairLensChapterWhatJustHappened;
+  pattern: string;
+  nextTime: PairLensChapterNextTime;
   claims: Claim[];
 }
 
@@ -378,7 +414,7 @@ export interface PairChecklist {
 }
 
 /**
- * Chapter 09 of the compatibility report, three checklists and a closing paragraph.
+ * Chapter 07 of the compatibility report, three checklists collected from the lens chapters and a closing paragraph.
  */
 export interface PairPractise {
   opening: string;
@@ -426,6 +462,17 @@ export interface PairLinks {
   links: PairLink[];
 }
 
+export type PairChapterScenesTexts = {[key: string]: string};
+
+/**
+ * A lens chapter's three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).
+ */
+export interface PairChapterScenes {
+  titles: string[];
+  written: number;
+  texts: PairChapterScenesTexts;
+}
+
 export type ReportInterpretationMetaOrbs = {[key: string]: number};
 
 export type ReportInterpretationMetaUsageSectionsItem = UsageTotals & {
@@ -453,6 +500,10 @@ export type ReportInterpretationMeta = {
   promptVersion: string;
   reportType?: ReportInterpretationMetaReportType;
   lens?: RelationshipType;
+  /** How two people know each other, in their words; null under the other lenses. */
+  label?: string | null;
+  /** The child's age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise. */
+  band?: ReportInterpretationMetaBand;
   /** Mirrors the chart's horizon status (ADR-34). */
   horizon?: ReportInterpretationMetaHorizon;
   horizonPass?: HorizonPass;
@@ -594,6 +645,11 @@ export type ReportInterpretationAngleMeanings = {
 };
 
 /**
+ * A compatibility report's scenes by lens chapter id (ADR-65).
+ */
+export type ReportInterpretationScenes = {[key: string]: PairChapterScenes};
+
+/**
  * A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.
  */
 export interface ReportInterpretation {
@@ -613,16 +669,26 @@ export interface ReportInterpretation {
   personalPlanets?: ReportInterpretationPersonalPlanets;
   aspectMeanings?: ReportInterpretationAspectMeanings;
   angleMeanings?: ReportInterpretationAngleMeanings;
-  howYouMeet?: PairChapter;
-  twoCharts?: PairChapter;
-  twoWays?: PairChapter;
-  whereItFlows?: PairChapter;
-  whereItRubs?: PairChapter;
-  howYouTalk?: PairChapter;
-  lensOne?: PairChapter;
-  lensTwo?: PairChapter;
+  twoCharts?: PairTwoCharts;
+  partners02?: PairLensChapter;
+  partners03?: PairLensChapter;
+  partners04?: PairLensChapter;
+  partners05?: PairLensChapter;
+  partners06?: PairLensChapter;
+  parentChild02?: PairLensChapter;
+  parentChild03?: PairLensChapter;
+  parentChild04?: PairLensChapter;
+  parentChild05?: PairLensChapter;
+  parentChild06?: PairLensChapter;
+  people02?: PairLensChapter;
+  people03?: PairLensChapter;
+  people04?: PairLensChapter;
+  people05?: PairLensChapter;
+  people06?: PairLensChapter;
   whatToPractise?: PairPractise;
   links?: PairLinks;
+  /** A compatibility report's scenes by lens chapter id (ADR-65). */
+  scenes?: ReportInterpretationScenes;
 }
 
 export interface ReportStatus {
@@ -1022,6 +1088,19 @@ export interface CreateCompatibilityBody {
   label?: string | null;
   /** Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role. */
   parent?: CreateCompatibilityBodyParent;
+}
+
+export interface WriteSceneBody {
+  /** The lens chapter's section id, e.g. partners02. */
+  chapter: string;
+  /** Which of the chapter's three scenes, 0 to 2; never the one the report wrote. */
+  index: number;
+}
+
+export interface SceneResponse {
+  chapter: string;
+  index: number;
+  text: string;
 }
 
 export type CompatibilityCreateResponseStatus = typeof CompatibilityCreateResponseStatus[keyof typeof CompatibilityCreateResponseStatus];

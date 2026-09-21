@@ -41,8 +41,8 @@ export const LENSES: readonly LensInfo[] = [
     roles: ["parent", "child"],
   },
   {
-    lens: "family",
-    title: "Family",
+    lens: "people",
+    title: "Two people",
     strapline: "Being family, and the conversation nobody starts.",
     chapterSeven: "Being family",
     chapterEight: "Gatherings, gifts and hard talks",
