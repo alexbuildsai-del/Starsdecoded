@@ -1,0 +1,23 @@
+
+> starsdecoded@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded
+> pnpm --filter @workspace/scripts run report:lab "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "curie-winfrey" "--lens" "partners" "--label" "r06-pair2" "--html"
+
+
+> @workspace/scripts@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded/scripts
+> tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "curie-winfrey" "--lens" "partners" "--label" "r06-pair2" "--html"
+
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), partners via https://starsdecoded-staging.vercel.app: two natal reports first ===
+poll error, retrying: /reports/df9b732e-face-473e-8b62-11e027f241ca/status: 502 {"status":"error","code":502,"message":"Application failed to respond","request_id":"vKihvbz1TzaD_4bsGbGh5g"}
+poll error, retrying: /reports/72da182c-404b-4d2e-9b7e-edb6ade48db8/status: 502 {"status":"error","code":502,"message":"Application failed to respond","request_id":"7gJcDN50R7-xhgsgH4GxDA"}
+poll error, retrying: /reports/df9b732e-face-473e-8b62-11e027f241ca/status: 502 {"status":"error","code":502,"message":"Application failed to respond","request_id":"tnat03xnQM2gQQh-PvyhXg"}
+poll error, retrying: /reports/72da182c-404b-4d2e-9b7e-edb6ade48db8/status: 502 {"status":"error","code":502,"message":"Application failed to respond","request_id":"UX2Y84wEQt-oG8wCozsQ6Q"}
+poll error, retrying: /reports/df9b732e-face-473e-8b62-11e027f241ca/status: 502 {"status":"error","code":502,"message":"Application failed to respond","request_id":"4Rf_1VdzSreOO6zIAax-fw"}
+poll error, retrying: /reports/72da182c-404b-4d2e-9b7e-edb6ade48db8/status: 502 {"status":"error","code":502,"message":"Application failed to respond","request_id":"r1EYI4s5T3qMxsMRc9o55Q"}
+poll error, retrying: /reports/df9b732e-face-473e-8b62-11e027f241ca/status: 502 {"status":"error","code":502,"message":"Application failed to respond","request_id":"0hpVLJYyTwCMjpBVg4a9AQ"}
+poll error, retrying: /reports/72da182c-404b-4d2e-9b7e-edb6ade48db8/status: 502 {"status":"error","code":502,"message":"Application failed to respond","request_id":"QkfF_UqSQd-LgsNdPvyhXg"}
+report df9b732e-face-473e-8b62-11e027f241ca still interpreting after 15 minutes
+/home/runner/work/Starsdecoded/Starsdecoded/scripts:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/scripts@0.0.0 report:lab: `tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "curie-winfrey" "--lens" "partners" "--label" "r06-pair2" "--html"`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
