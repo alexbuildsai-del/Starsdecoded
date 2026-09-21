@@ -1,13 +1,15 @@
 /**
- * The natal report: one page, two skies (ADR-48, ADR-59). The opening overlay
- * holds the page until the reader takes the door or it opens itself; the
- * hero's own sky then gathers its stars onto the ring, and the chapters keep
+ * The natal report: one page, two skies (ADR-48, ADR-59). The generation
+ * screen is the page until the reader takes the door or it opens itself:
+ * full-bleed, the scroll locked behind it, the same screen before the chart
+ * exists. Taking the door unmounts it, shows the report at the top, and the
+ * hero's own sky gathers its stars onto the ring once; the chapters keep
  * R04's ground. Ten chapters, the last one Closing
  * (ADR-46); a chapter not yet landed shows a skeleton. A blind report renders
  * no rising text and no house readings, the call to action instead, and the
  * ledger above chapter 01 once a pass has run (ADR-35, ADR-37).
  */
-import { useCallback, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -108,6 +110,11 @@ export default function ReportPage() {
 
   const handlePrint = () => window.print();
 
+  // The door taken: the report shows from the top, and the gather runs from there.
+  useEffect(() => {
+    if (open) window.scrollTo({ top: 0, behavior: "auto" });
+  }, [open]);
+
   if (live.isLoading) return <LoadingState label="Loading your report…" />;
 
   if (live.isError || !report) {
@@ -141,8 +148,9 @@ export default function ReportPage() {
     );
   }
 
-  // Until the door is taken the page is the overlay on the sky; behind it the
-  // body mounts as soon as the chart and the first sections exist.
+  // Until the door is taken the generation screen is the page; behind it the
+  // body mounts as soon as the chart and the first sections exist, so the
+  // hero has measured its ring by the time the screen leaves.
   const ready = !!chartData && !!interpretation;
   const showOverlay = !open || failed;
   const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1);
