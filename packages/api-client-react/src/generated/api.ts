@@ -20,6 +20,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BirthTimeUpdateResponse,
+  CompatibilityCreateResponse,
+  CompatibilitySummary,
+  CreateCompatibilityBody,
   CreateInviteBody,
   CreateProfileBody,
   CreateRelationshipBody,
@@ -32,6 +36,8 @@ import type {
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
   HealthStatus,
+  Horizon,
+  HorizonPreviewBody,
   InviteClaimResponse,
   InvitePreview,
   InviteRecord,
@@ -47,7 +53,10 @@ import type {
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
-  UpdateProfileBody
+  UpdateBirthTimeBody,
+  UpdateProfileBody,
+  Workbook,
+  WorkbookPatch
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -164,7 +173,7 @@ export const getListReportsUrl = () => {
 }
 
 /**
- * Returns all reports visible to the viewer — both natal reports and synastry (compatibility) reports. Use the `kind` discriminator to distinguish.
+ * Returns the natal and compatibility reports visible to the viewer. Old synastry rows are never listed. Use the `kind` discriminator to distinguish.
  * @summary List all reports
  */
 export const listReports = async ( options?: Parameters<typeof customFetch>[1]): Promise<ReportSummary[]> => {
@@ -323,7 +332,7 @@ export const getGetReportUrl = (id: string,) => {
 }
 
 /**
- * Returns a complete natal chart report including chart data and AI interpretation
+ * Returns a report with its chart data and interpretation. A compatibility report carries `lens` and `participants` (both people with their charts) and its birth fields are the first participant's.
  * @summary Get a report by ID
  */
 export const getReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<Report> => {
@@ -401,7 +410,7 @@ export const getDeleteReportUrl = (id: string,) => {
 }
 
 /**
- * Deletes a natal report the viewer owns. The profile behind it is deleted too when no other report or relationship references it. Synastry reports cannot be deleted yet.
+ * Deletes a report the viewer owns. The profile behind a natal report is deleted too when no other report or relationship references it. A compatibility report is deleted through the relationship's access roles.
  * @summary Delete a report
  */
 export const deleteReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
@@ -544,6 +553,88 @@ export function useGetReportStatus<TData = Awaited<ReturnType<typeof getReportSt
 
 
 
+
+export const getUpdateReportWorkbookUrl = (id: string,) => {
+
+
+
+
+  return `/api/reports/${id}/workbook`
+}
+
+/**
+ * Shallow-merges the patch into the report's workbook, the reader's own record of which actions they have taken. A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. The viewer must own the report.
+ * @summary Tick or untick workbook items on a report
+ */
+export const updateReportWorkbook = async (id: string,
+    workbookPatch: WorkbookPatch, options?: Parameters<typeof customFetch>[1]): Promise<Workbook> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<Workbook>(getUpdateReportWorkbookUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workbookPatch)
+  }
+);}
+
+
+
+
+
+export const getUpdateReportWorkbookMutationKey = () => ['updateReportWorkbook'] as const;
+
+export const getUpdateReportWorkbookMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReportWorkbook>>, TError,UpdateReportWorkbookMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateReportWorkbook>>, TError,UpdateReportWorkbookMutationVariables, TContext> => {
+
+const mutationKey = getUpdateReportWorkbookMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateReportWorkbook>>, UpdateReportWorkbookMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateReportWorkbook(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateReportWorkbookMutationResult = NonNullable<Awaited<ReturnType<typeof updateReportWorkbook>>>
+    export type UpdateReportWorkbookMutationBody = BodyType<WorkbookPatch>
+    export type UpdateReportWorkbookMutationError = ErrorType<ErrorResponse>
+    export type UpdateReportWorkbookMutationVariables = {id: string;data: BodyType<WorkbookPatch>}
+
+    /**
+ * @summary Tick or untick workbook items on a report
+ */
+export const useUpdateReportWorkbook = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReportWorkbook>>, TError,UpdateReportWorkbookMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateReportWorkbook>>,
+        TError,
+        UpdateReportWorkbookMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateReportWorkbookMutationOptions(options));
+    }
 
 export const getRegenerateReportUrl = (id: string,) => {
 
@@ -858,6 +949,327 @@ export const useUpdateProfile = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getUpdateProfileMutationOptions(options));
     }
+
+export const getUpdateProfileBirthTimeUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/birth-time`
+}
+
+/**
+ * Owner only. Stores the new time and window on the profile, recomputes its chart, and runs a horizon pass on every complete report of the profile: the previous text is kept in report_revisions, the horizon sections are generated and the rest is amended by quote match, never regenerated (ADR-35). The first pass is free (MB-52).
+ * @summary Add or correct the birth time and run the horizon pass
+ */
+export const updateProfileBirthTime = async (id: string,
+    updateBirthTimeBody: UpdateBirthTimeBody, options?: Parameters<typeof customFetch>[1]): Promise<BirthTimeUpdateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<BirthTimeUpdateResponse>(getUpdateProfileBirthTimeUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateBirthTimeBody)
+  }
+);}
+
+
+
+
+
+export const getUpdateProfileBirthTimeMutationKey = () => ['updateProfileBirthTime'] as const;
+
+export const getUpdateProfileBirthTimeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfileBirthTime>>, TError,UpdateProfileBirthTimeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProfileBirthTime>>, TError,UpdateProfileBirthTimeMutationVariables, TContext> => {
+
+const mutationKey = getUpdateProfileBirthTimeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProfileBirthTime>>, UpdateProfileBirthTimeMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateProfileBirthTime(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateProfileBirthTimeMutationResult = NonNullable<Awaited<ReturnType<typeof updateProfileBirthTime>>>
+    export type UpdateProfileBirthTimeMutationBody = BodyType<UpdateBirthTimeBody>
+    export type UpdateProfileBirthTimeMutationError = ErrorType<ErrorResponse>
+    export type UpdateProfileBirthTimeMutationVariables = {id: string;data: BodyType<UpdateBirthTimeBody>}
+
+    /**
+ * @summary Add or correct the birth time and run the horizon pass
+ */
+export const useUpdateProfileBirthTime = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfileBirthTime>>, TError,UpdateProfileBirthTimeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateProfileBirthTime>>,
+        TError,
+        UpdateProfileBirthTimeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateProfileBirthTimeMutationOptions(options));
+    }
+
+export const getPreviewHorizonUrl = () => {
+
+
+
+
+  return `/api/horizon/preview`
+}
+
+/**
+ * Sweeps the birth-time band with the engine and returns, per fact, whether it holds and where it flips. Pure of the database: nothing is stored, no profile is read, no model is called. Small enough to poll on every debounced change of the form.
+ * @summary What the entered birth time settles
+ */
+export const previewHorizon = async (horizonPreviewBody: HorizonPreviewBody, options?: Parameters<typeof customFetch>[1]): Promise<Horizon> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<Horizon>(getPreviewHorizonUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(horizonPreviewBody)
+  }
+);}
+
+
+
+
+
+export const getPreviewHorizonMutationKey = () => ['previewHorizon'] as const;
+
+export const getPreviewHorizonMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewHorizon>>, TError,PreviewHorizonMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewHorizon>>, TError,PreviewHorizonMutationVariables, TContext> => {
+
+const mutationKey = getPreviewHorizonMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewHorizon>>, PreviewHorizonMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewHorizon(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewHorizonMutationResult = NonNullable<Awaited<ReturnType<typeof previewHorizon>>>
+    export type PreviewHorizonMutationBody = BodyType<HorizonPreviewBody>
+    export type PreviewHorizonMutationError = ErrorType<ErrorResponse>
+    export type PreviewHorizonMutationVariables = {data: BodyType<HorizonPreviewBody>}
+
+    /**
+ * @summary What the entered birth time settles
+ */
+export const usePreviewHorizon = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewHorizon>>, TError,PreviewHorizonMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewHorizon>>,
+        TError,
+        PreviewHorizonMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPreviewHorizonMutationOptions(options));
+    }
+
+export const getCreateCompatibilityReportUrl = () => {
+
+
+
+
+  return `/api/compatibility`
+}
+
+/**
+ * Both reports must be complete and visible to the viewer. Reads their stored interpretations and cached charts; no birth data is read and nothing is regenerated (ADR-39). The report streams through GET /reports/{id} and /reports/{id}/status like a natal report.
+ * @summary Write a compatibility report from two finished natal reports
+ */
+export const createCompatibilityReport = async (createCompatibilityBody: CreateCompatibilityBody, options?: Parameters<typeof customFetch>[1]): Promise<CompatibilityCreateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<CompatibilityCreateResponse>(getCreateCompatibilityReportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createCompatibilityBody)
+  }
+);}
+
+
+
+
+
+export const getCreateCompatibilityReportMutationKey = () => ['createCompatibilityReport'] as const;
+
+export const getCreateCompatibilityReportMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext> => {
+
+const mutationKey = getCreateCompatibilityReportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCompatibilityReport>>, CreateCompatibilityReportMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCompatibilityReport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCompatibilityReportMutationResult = NonNullable<Awaited<ReturnType<typeof createCompatibilityReport>>>
+    export type CreateCompatibilityReportMutationBody = BodyType<CreateCompatibilityBody>
+    export type CreateCompatibilityReportMutationError = ErrorType<ErrorResponse>
+    export type CreateCompatibilityReportMutationVariables = {data: BodyType<CreateCompatibilityBody>}
+
+    /**
+ * @summary Write a compatibility report from two finished natal reports
+ */
+export const useCreateCompatibilityReport = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCompatibilityReport>>,
+        TError,
+        CreateCompatibilityReportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCompatibilityReportMutationOptions(options));
+    }
+
+export const getGetCompatibilitySummaryUrl = (id: string,) => {
+
+
+
+
+  return `/api/compatibility/${id}/summary`
+}
+
+/**
+ * @summary The two names, the lens and the status of a compatibility report
+ */
+export const getCompatibilitySummary = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<CompatibilitySummary> => {
+
+  return customFetch<CompatibilitySummary>(getGetCompatibilitySummaryUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCompatibilitySummaryQueryKey = (id: string,) => {
+    return [
+    `/api/compatibility/${id}/summary`
+    ] as const;
+    }
+
+
+export const getGetCompatibilitySummaryQueryOptions = <TData = Awaited<ReturnType<typeof getCompatibilitySummary>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompatibilitySummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCompatibilitySummaryQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCompatibilitySummary>>> = ({ signal }) => getCompatibilitySummary(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCompatibilitySummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCompatibilitySummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getCompatibilitySummary>>>
+export type GetCompatibilitySummaryQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary The two names, the lens and the status of a compatibility report
+ */
+
+export function useGetCompatibilitySummary<TData = Awaited<ReturnType<typeof getCompatibilitySummary>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompatibilitySummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCompatibilitySummaryQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getCreateRelationshipUrl = () => {
 
@@ -1361,7 +1773,7 @@ export const getGetCreditsUrl = () => {
 }
 
 /**
- * Returns available and used credit counts by type for the signed-in user. Returns all zeros for anonymous users.
+ * One credit is one report, whatever the report (ADR-42). Returns the signed-in user's available and used counts, zeros for anonymous users.
  * @summary Get the current user's credit counts
  */
 export const getCredits = async ( options?: Parameters<typeof customFetch>[1]): Promise<CreditCounts> => {

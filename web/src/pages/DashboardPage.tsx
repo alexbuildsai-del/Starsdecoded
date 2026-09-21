@@ -18,24 +18,29 @@ import { AccountMenu } from "@/components/AccountMenu";
 import InviteModal from "@/components/InviteModal";
 import ProfileInviteHistory from "@/components/ProfileInviteHistory";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
+import { CompatibilityPicker } from "@/components/CompatibilityPicker";
+import { BirthTimeDialog } from "@/components/BirthTimeDialog";
+import { lensInfo } from "@/lib/lenses";
+import type { Lens } from "@/types/chart";
 import {
   useListReports,
   useListProfiles,
-  useListRelationships,
-  useCreateSynastryReport,
   useUpdateProfile,
   useGetCredits,
   getListReportsQueryKey,
   getListProfilesQueryKey,
-  getListRelationshipsQueryKey,
   type ProfileSummary,
   type ReportSummary,
-  type RelationshipSummary,
   type CreditCounts,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Wordmark } from "@/components/Wordmark";
 import { usePageTitle } from "@/lib/page-title";
+
+/** A report is being written or revised: readable, but not finished. */
+function inProgress(status: string | undefined): boolean {
+  return status === "computing" || status === "interpreting" || status === "pending" || status === "revising";
+}
 
 function CreditBadge({ available }: { available: number }) {
   if (available > 0) {
@@ -52,18 +57,12 @@ function CreditBadge({ available }: { available: number }) {
   );
 }
 
-const RELATIONSHIP_TYPE_LABELS: Record<string, string> = {
-  romantic: "Romantic",
-  parent_child: "Parent / Child",
-  sibling: "Sibling",
-  custom: "Custom",
-};
-
 const STATUS_COLORS: Record<string, string> = {
   complete: "text-green-400 bg-green-400/10 border-green-400/20",
   failed: "text-red-400 bg-red-400/10 border-red-400/20",
   computing: "text-primary bg-primary/10 border-primary/20",
   interpreting: "text-secondary bg-secondary/10 border-secondary/20",
+  revising: "text-secondary bg-secondary/10 border-secondary/20",
   pending: "text-muted-foreground bg-muted border-border",
 };
 
@@ -71,9 +70,26 @@ const STATUS_LABELS: Record<string, string> = {
   complete: "Complete",
   failed: "Failed",
   computing: "Computing...",
-  interpreting: "Interpreting...",
+  interpreting: "Writing...",
+  revising: "Revising...",
   pending: "Pending",
 };
+
+/** The blind tile's call to action (ADR-37): the same door as the hero and the explorer. */
+function AddBirthTimeButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="mt-3 w-full font-label gap-1.5 border-brass/50 text-brass hover:bg-brass/10"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      data-testid="button-add-birth-time"
+    >
+      <Clock className="h-3 w-3" />
+      Add your birth time
+    </Button>
+  );
+}
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString("en-GB", {
@@ -99,11 +115,13 @@ function ZoneYou({
   natalReport,
   isLoading,
   onUnmarkSelf,
+  onAddBirthTime,
 }: {
   selfProfile: ProfileSummary | null;
   natalReport: ReportSummary | null;
   isLoading: boolean;
   onUnmarkSelf: (profileId: string) => void;
+  onAddBirthTime: (profile: ProfileSummary) => void;
 }) {
   const [, navigate] = useLocation();
 
@@ -142,16 +160,12 @@ function ZoneYou({
   }
 
   const isComplete = natalReport.status === "complete";
-  const isInProgress =
-    natalReport.status === "computing" ||
-    natalReport.status === "interpreting" ||
-    natalReport.status === "pending";
+  const isInProgress = inProgress(natalReport.status);
   const isClickable = isComplete || isInProgress;
 
   const handleClick = () => {
     if (!natalReport) return;
-    if (isComplete) navigate(`/report/${natalReport.id}`);
-    else if (isInProgress) navigate(`/generating/${natalReport.id}`);
+    if (isClickable) navigate(`/report/${natalReport.id}`);
   };
 
   return (
@@ -191,6 +205,9 @@ function ZoneYou({
               {selfProfile.moonSign && <SignRow sign={selfProfile.moonSign} symbol="☽" />}
               {selfProfile.risingSign && <SignRow sign={selfProfile.risingSign} symbol="↑" />}
             </div>
+          )}
+          {selfProfile.horizon === "unknown" && isComplete && (
+            <AddBirthTimeButton onClick={() => onAddBirthTime(selfProfile)} />
           )}
         </div>
 
@@ -250,11 +267,13 @@ function PersonCard({
   natalReport,
   onInvite,
   onMarkSelf,
+  onAddBirthTime,
 }: {
   profile: ProfileSummary;
   natalReport: ReportSummary | null;
   onInvite: (profileId: string, profileName: string) => void;
   onMarkSelf: (profileId: string) => void;
+  onAddBirthTime: (profile: ProfileSummary) => void;
 }) {
   const [, navigate] = useLocation();
   const ownership: string = profile.ownership ?? "owner";
@@ -262,10 +281,7 @@ function PersonCard({
   const claimedByOther = ownership === "claimed" && !!profile.claimedByName;
 
   const isComplete = natalReport?.status === "complete";
-  const isInProgress =
-    natalReport?.status === "computing" ||
-    natalReport?.status === "interpreting" ||
-    natalReport?.status === "pending";
+  const isInProgress = inProgress(natalReport?.status);
 
   return (
     <div
@@ -326,14 +342,14 @@ function PersonCard({
           size="sm"
           variant="outline"
           className="mt-3 w-full font-label gap-1.5"
-          onClick={() => {
-            if (isComplete) navigate(`/report/${natalReport.id}`);
-            else if (isInProgress) navigate(`/generating/${natalReport.id}`);
-          }}
+          onClick={() => navigate(`/report/${natalReport.id}`)}
         >
-          {isComplete ? "View Report" : "View Progress"}
+          {isComplete ? "View Report" : "Read as it writes"}
           <ArrowRight className="h-3 w-3" />
         </Button>
+      )}
+      {profile.horizon === "unknown" && isComplete && (ownership === "owner" || ownership === "claimed") && (
+        <AddBirthTimeButton onClick={() => onAddBirthTime(profile)} />
       )}
 
       {natalReport && ownership === "owner" && (
@@ -381,188 +397,37 @@ function PersonCard({
   );
 }
 
-// ─── Zone 3: relationships ─────────────────────────────────────────────────
+// ─── Zone 3: compatibility ─────────────────────────────────────────────────
 
-function RelationshipRow({ rel }: { rel: RelationshipSummary }) {
+/** One compatibility report: "{A} & {B} Compatibility", its lens, its status, one button. */
+function PairRow({ report }: { report: ReportSummary }) {
   const [, navigate] = useLocation();
-  const isReady = rel.latestReportStatus === "complete";
-  const isPending =
-    rel.latestReportStatus === "interpreting" ||
-    rel.latestReportStatus === "computing" ||
-    rel.latestReportStatus === "pending";
-  const isShared = rel.ownership === "participant";
-
+  const isReady = report.status === "complete";
+  const lens = report.lens ? lensInfo(report.lens as Lens).title : null;
   return (
-    <li
-      key={rel.id}
-      className="p-4 rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm flex items-center justify-between gap-4"
-    >
+    <li className="p-4 rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm flex items-center justify-between gap-4" data-testid={`row-compatibility-${report.id}`}>
       <div className="min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
           <Heart className="h-3 w-3 text-secondary/70" />
-          <span className="font-label text-[10px] tracking-widest uppercase text-secondary/70">
-            {RELATIONSHIP_TYPE_LABELS[rel.type] ?? rel.type}
-          </span>
+          <span className="font-label text-[10px] tracking-widest uppercase text-secondary/70">{lens ?? "Compatibility"}</span>
         </div>
-        <p className="font-display text-lg truncate">
-          {rel.participants.map((p) => p.name).join("  ·  ")}
-        </p>
+        <p className="font-display text-lg truncate">{report.name} Compatibility</p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        {isShared && (
-          <span
-            className="px-2 py-1 rounded-full text-xs font-label border border-primary/20 text-primary bg-primary/10"
-            data-testid={`badge-shared-${rel.id}`}
-          >
-            Shared
-          </span>
+        {inProgress(report.status) && (
+          <span className="px-2 py-1 rounded-full text-xs font-label border border-secondary/20 text-secondary bg-secondary/10">Writing…</span>
         )}
-        {isPending && (
-          <span className="px-2 py-1 rounded-full text-xs font-label border border-secondary/20 text-secondary bg-secondary/10">
-            Generating…
-          </span>
+        {report.status === "failed" && (
+          <span className="px-2 py-1 rounded-full text-xs font-label border border-red-400/20 text-red-400 bg-red-400/10">Failed</span>
         )}
-        {rel.latestReportStatus === "failed" && (
-          <span className="px-2 py-1 rounded-full text-xs font-label border border-red-400/20 text-red-400 bg-red-400/10">
-            Failed
-          </span>
-        )}
-        {rel.latestReportId && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate(`/synastry/${rel.latestReportId}`)}
-            className="font-label font-medium gap-1.5"
-          >
-            {isReady ? "Open" : "View"}
+        {report.status !== "failed" && (
+          <Button size="sm" variant="outline" onClick={() => navigate(`/compatibility/${report.id}`)} className="font-label font-medium gap-1.5">
+            {isReady ? "Open" : "Read as it writes"}
             <ArrowRight className="h-3 w-3" />
           </Button>
         )}
       </div>
     </li>
-  );
-}
-
-function SynastryComposer({ profiles }: { profiles: ProfileSummary[] }) {
-  const [, navigate] = useLocation();
-  const qc = useQueryClient();
-  const [profileAId, setProfileAId] = useState<string>("");
-  const [profileBId, setProfileBId] = useState<string>("");
-  type RelType = "romantic" | "parent_child" | "sibling" | "custom";
-  const [type, setType] = useState<RelType>("romantic");
-
-  const createSynastry = useCreateSynastryReport({
-    mutation: {
-      onSuccess: (data) => {
-        qc.invalidateQueries({ queryKey: getListRelationshipsQueryKey() });
-        navigate(`/synastry/${data.id}`);
-      },
-    },
-  });
-
-  const canCreate =
-    profileAId !== "" && profileBId !== "" && profileAId !== profileBId && !createSynastry.isPending;
-
-  const handleCreate = () => {
-    if (!canCreate) return;
-    createSynastry.mutate({ data: { profileAId, profileBId, relationshipType: type } });
-  };
-
-  if (profiles.length < 2) {
-    return (
-      <div className="rounded-lg border border-dashed border-border/60 px-4 py-6 text-center">
-        <Users className="h-6 w-6 text-muted-foreground/60 mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">
-          You need at least two people (including yourself) to generate a compatibility report.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm">
-      <h3 className="font-display text-lg mb-1">New compatibility report</h3>
-      <p className="text-sm text-muted-foreground mb-5">
-        Select two people to generate a synastry reading.
-      </p>
-
-      <div className="grid md:grid-cols-3 gap-4 items-end">
-        <div>
-          <label className="font-label text-xs tracking-wide text-muted-foreground uppercase">
-            Person A
-          </label>
-          <select
-            className="mt-2 w-full rounded-lg bg-background border border-border/60 px-3 py-2 text-sm"
-            value={profileAId}
-            onChange={(e) => setProfileAId(e.target.value)}
-            data-testid="select-profile-a"
-          >
-            <option value="">— choose —</option>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="font-label text-xs tracking-wide text-muted-foreground uppercase">
-            Person B
-          </label>
-          <select
-            className="mt-2 w-full rounded-lg bg-background border border-border/60 px-3 py-2 text-sm"
-            value={profileBId}
-            onChange={(e) => setProfileBId(e.target.value)}
-            data-testid="select-profile-b"
-          >
-            <option value="">— choose —</option>
-            {profiles
-              .filter((p) => p.id !== profileAId)
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-          </select>
-        </div>
-        <div>
-          <label className="font-label text-xs tracking-wide text-muted-foreground uppercase">
-            Relationship
-          </label>
-          <select
-            className="mt-2 w-full rounded-lg bg-background border border-border/60 px-3 py-2 text-sm"
-            value={type}
-            onChange={(e) => setType(e.target.value as RelType)}
-          >
-            <option value="romantic">Romantic</option>
-            <option value="parent_child">Parent / Child</option>
-            <option value="sibling">Sibling</option>
-            <option value="custom">Custom</option>
-          </select>
-        </div>
-
-        <div className="md:col-span-3 flex justify-end">
-          <Button
-            disabled={!canCreate}
-            onClick={handleCreate}
-            className="gradient-primary text-white border-0 font-label font-medium gap-1.5"
-            data-testid="button-create-synastry"
-          >
-            {createSynastry.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Heart className="h-4 w-4" />
-            )}
-            Generate report
-          </Button>
-        </div>
-        {createSynastry.isError && (
-          <p className="md:col-span-3 text-sm text-destructive">
-            Could not start the report. Please try again.
-          </p>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -574,13 +439,9 @@ export default function DashboardPage() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
+  // One credit kind (ADR-42): a natal report or a compatibility report each spend one.
   const creditsQ = useGetCredits();
-  const _rawCredits = creditsQ.data;
-  const credits: CreditCounts = {
-    natal: _rawCredits?.natal ?? { available: 0, used: 0 },
-    couple: _rawCredits?.couple ?? { available: 0, used: 0 },
-    parent_child: _rawCredits?.parent_child ?? { available: 0, used: 0 },
-  };
+  const credits: CreditCounts = creditsQ.data ?? { available: 0, used: 0 };
 
   const reportsQ = useListReports({
     query: {
@@ -588,10 +449,7 @@ export default function DashboardPage() {
       refetchInterval: (query) => {
         const data = query.state.data;
         if (!Array.isArray(data)) return false;
-        const hasInProgress = (data as ReportSummary[]).some(
-          (r) =>
-            r.status === "computing" || r.status === "interpreting" || r.status === "pending",
-        );
+        const hasInProgress = (data as ReportSummary[]).some((r) => inProgress(r.status));
         return hasInProgress ? 3000 : false;
       },
     },
@@ -601,33 +459,18 @@ export default function DashboardPage() {
     query: { queryKey: getListProfilesQueryKey() },
   });
 
-  const relsQ = useListRelationships({
-    query: {
-      queryKey: getListRelationshipsQueryKey(),
-      refetchInterval: (q) => {
-        const data = q.state.data;
-        if (!Array.isArray(data)) return false;
-        return (data as RelationshipSummary[]).some(
-          (r) =>
-            r.latestReportStatus === "interpreting" ||
-            r.latestReportStatus === "computing" ||
-            r.latestReportStatus === "pending",
-        )
-          ? 3000
-          : false;
-      },
-    },
-  });
-
   const allReports = Array.isArray(reportsQ.data) ? reportsQ.data : [];
   const allProfiles = Array.isArray(profilesQ.data) ? profilesQ.data : [];
-  const relationships = Array.isArray(relsQ.data) ? relsQ.data : [];
+  const pairReports = useMemo(
+    () => allReports.filter((r) => r.kind === "compatibility").sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
+    [allReports],
+  );
 
   // Natal reports only, indexed by profileId for stable matching (latest per profile).
   const natalReportsByProfileId = useMemo(() => {
     const map = new Map<string, ReportSummary>();
     for (const r of allReports) {
-      if (r.kind === "synastry" || !r.profileId) continue;
+      if (r.kind !== "natal" || !r.profileId) continue;
       const existing = map.get(r.profileId);
       if (!existing || r.createdAt > existing.createdAt) {
         map.set(r.profileId, r);
@@ -657,11 +500,8 @@ export default function DashboardPage() {
     [allProfiles, selfProfile],
   );
 
-  // All profiles pool available for the synastry composer
-  const allProfilesForComposer = allProfiles;
-
-  const isLoading = reportsQ.isLoading || profilesQ.isLoading || relsQ.isLoading;
-  const isError = reportsQ.isError || profilesQ.isError || relsQ.isError;
+  const isLoading = reportsQ.isLoading || profilesQ.isLoading;
+  const isError = reportsQ.isError || profilesQ.isError;
 
   const updateProfile = useUpdateProfile({
     mutation: {
@@ -687,6 +527,8 @@ export default function DashboardPage() {
   const handleInvite = (profileId: string, profileName: string) => {
     setInviteTarget({ profileId, profileName });
   };
+
+  const [timeTarget, setTimeTarget] = useState<ProfileSummary | null>(null);
 
   return (
     <div className="min-h-screen bg-background bg-stars text-foreground">
@@ -751,6 +593,7 @@ export default function DashboardPage() {
             natalReport={selfProfile ? (natalReportsByProfileId.get(selfProfile.id) ?? null) : null}
             isLoading={isLoading}
             onUnmarkSelf={handleUnmarkSelf}
+            onAddBirthTime={setTimeTarget}
           />
         </section>
 
@@ -759,8 +602,8 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl">Your People</h2>
             <div className="flex items-center gap-2">
-              <span className="font-label text-[10px] text-muted-foreground uppercase tracking-wider">Natal credits</span>
-              <CreditBadge available={credits.natal.available} />
+              <span className="font-label text-[10px] text-muted-foreground uppercase tracking-wider">Credits</span>
+              <CreditBadge available={credits.available} />
             </div>
           </div>
 
@@ -782,6 +625,7 @@ export default function DashboardPage() {
                   natalReport={natalReportsByProfileId.get(p.id) ?? null}
                   onInvite={handleInvite}
                   onMarkSelf={handleMarkSelf}
+                  onAddBirthTime={setTimeTarget}
                 />
               ))}
             </div>
@@ -802,43 +646,45 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* ── Zone 3: Relationships ────────────────────────────────────── */}
+        {/* ── Zone 3: Compatibility ────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl">Relationships</h2>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className="font-label text-[10px] text-muted-foreground uppercase tracking-wider">Couple</span>
-                <CreditBadge available={credits.couple.available} />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-label text-[10px] text-muted-foreground uppercase tracking-wider">Parent/Child</span>
-                <CreditBadge available={credits.parent_child.available} />
-              </div>
-            </div>
+            <h2 className="font-display text-xl">Compatibility</h2>
           </div>
 
-          {/* Existing relationships */}
-          {relsQ.isLoading ? (
+          {reportsQ.isLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-primary/50" />
             </div>
-          ) : relationships.length === 0 ? (
+          ) : pairReports.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border/60 px-4 py-6 text-center text-muted-foreground text-sm mb-6">
               No compatibility reports yet.
             </div>
           ) : (
             <ul className="space-y-3 mb-6">
-              {relationships.map((r) => (
-                <RelationshipRow key={r.id} rel={r} />
-              ))}
+              {pairReports.map((r) => <PairRow key={r.id} report={r} />)}
             </ul>
           )}
 
-          {/* Synastry composer */}
-          <SynastryComposer profiles={allProfilesForComposer} />
+          <CompatibilityPicker reports={allReports} />
         </section>
       </main>
+
+      {timeTarget && (
+        <BirthTimeDialog
+          open={!!timeTarget}
+          onClose={() => setTimeTarget(null)}
+          profile={{
+            id: timeTarget.id, name: timeTarget.name, birthDate: timeTarget.birthDate, birthTime: timeTarget.birthTime,
+            birthTimeWindowMinutes: timeTarget.birthTimeWindowMinutes ?? 720, birthPlace: timeTarget.birthPlace,
+            latitude: timeTarget.latitude, longitude: timeTarget.longitude, timezone: timeTarget.timezone, timezoneOffset: timeTarget.timezoneOffset,
+          }}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: getListReportsQueryKey() });
+            qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+          }}
+        />
+      )}
 
       {inviteTarget && (
         <InviteModal

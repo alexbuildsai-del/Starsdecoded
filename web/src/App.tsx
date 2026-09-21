@@ -20,11 +20,10 @@ import { APP_ENV } from "@/lib/appEnv";
 import { usePageTitle } from "@/lib/page-title";
 
 const importBirthForm = () => import("@/pages/BirthFormPage");
-const importGeneration = () => import("@/pages/GenerationPage");
 const importReport = () => import("@/pages/ReportPage");
 const importDashboard = () => import("@/pages/DashboardPage");
+const importCompatibility = () => import("@/pages/CompatibilityReportPage");
 const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
-const importSynastry = () => import("@/pages/SynastryReportPage");
 const importClaim = () => import("@/pages/ClaimPage");
 const importPrivacy = () => import("@/pages/legal/PrivacyPage");
 const importTerms = () => import("@/pages/legal/TermsPage");
@@ -32,11 +31,10 @@ const importRefunds = () => import("@/pages/legal/RefundsPage");
 const importCompany = () => import("@/pages/legal/CompanyPage");
 
 const BirthFormPage = lazy(importBirthForm);
-const GenerationPage = lazy(importGeneration);
 const ReportPage = lazy(importReport);
 const DashboardPage = lazy(importDashboard);
+const CompatibilityReportPage = lazy(importCompatibility);
 const AdminPromptsPage = lazy(importAdminPrompts);
-const SynastryReportPage = lazy(importSynastry);
 const ClaimPage = lazy(importClaim);
 const PrivacyPage = lazy(importPrivacy);
 const TermsPage = lazy(importTerms);
@@ -200,7 +198,7 @@ function ClerkQueryCacheInvalidator() {
 }
 
 function prefetchRoutes() {
-  for (const t of [importBirthForm, importGeneration, importReport]) {
+  for (const t of [importBirthForm, importReport]) {
     t().catch(() => {});
   }
 }
@@ -233,11 +231,12 @@ function Routes() {
         <Route path="/sign-in/*?" component={SignInPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />
         <Route path="/chart">{() => <RequireAuth><BirthFormPage /></RequireAuth>}</Route>
-        <Route path="/generating/:id" component={GenerationPage} />
+        {/* One page: a report is read while it is written (ADR-48), so the old waiting room redirects. */}
+        <Route path="/generating/:id">{(params) => <Redirect to={`/report/${params.id}`} />}</Route>
         <Route path="/report/:id" component={ReportPage} />
+        <Route path="/compatibility/:id" component={CompatibilityReportPage} />
         <Route path="/dashboard" component={DashboardPage} />
         <Route path="/people">{() => <Redirect to="/dashboard" />}</Route>
-        <Route path="/synastry/:id" component={SynastryReportPage} />
         <Route path="/claim" component={ClaimPage} />
         <Route path="/admin/prompts" component={AdminPromptsPage} />
         <Route path="/privacy" component={PrivacyPage} />

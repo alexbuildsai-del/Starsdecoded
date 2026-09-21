@@ -43,21 +43,25 @@ export interface CreateReportBody {
   latitude: number;
   /** Longitude of birth place */
   longitude: number;
-  /** UTC offset in hours (e.g. 1 for CET) */
+  /** UTC offset in hours (e.g. 1 for CET). Used only when no `timezone` is given. */
   timezoneOffset: number;
+  /** IANA zone name of the birth place. The offset in force at the birth instant derives from it (MB-48). */
+  timezone?: string;
+  /** Half-width of the birth-time band around `birthTime`. 0 exact, 180 a part of the day, 720 unknown (ADR-33). Default 0. */
+  birthTimeWindowMinutes?: number;
   /** When true, the profile created (or resolved) for this report is explicitly flagged as the submitter's own self-profile. The server sets `isSelf=true` on the profile row. Only one self-profile per user is intended; this should only be sent from the "Generate My Chart" flow, not the "Add a Person" flow. */
   isForSelf?: boolean;
 }
 
 /**
- * Discriminator for the kind of report. Natal rows describe a single profile; synastry rows describe a relationship between two profiles.
+ * Natal rows describe a single profile; compatibility rows describe a relationship between two profiles.
  */
 export type ReportSummaryKind = typeof ReportSummaryKind[keyof typeof ReportSummaryKind];
 
 
 export const ReportSummaryKind = {
   natal: 'natal',
-  synastry: 'synastry',
+  compatibility: 'compatibility',
 } as const;
 
 export type ReportSummaryStatus = typeof ReportSummaryStatus[keyof typeof ReportSummaryStatus];
@@ -67,8 +71,21 @@ export const ReportSummaryStatus = {
   pending: 'pending',
   computing: 'computing',
   interpreting: 'interpreting',
+  revising: 'revising',
   complete: 'complete',
   failed: 'failed',
+} as const;
+
+/**
+ * The natal chart's horizon status, so a blind report's tile can carry the call to action.
+ */
+export type ReportSummaryHorizon = typeof ReportSummaryHorizon[keyof typeof ReportSummaryHorizon] | null;
+
+
+export const ReportSummaryHorizon = {
+  known: 'known',
+  approximate: 'approximate',
+  unknown: 'unknown',
 } as const;
 
 export type ReportSummaryParticipantsItem = {
@@ -79,11 +96,23 @@ export type ReportSummaryParticipantsItem = {
   risingSign?: string | null;
 };
 
+/**
+ * The lens (ADR-40).
+ */
+export type RelationshipType = typeof RelationshipType[keyof typeof RelationshipType];
+
+
+export const RelationshipType = {
+  partners: 'partners',
+  parent_child: 'parent_child',
+  family: 'family',
+} as const;
+
 export interface ReportSummary {
   id: string;
-  /** Discriminator for the kind of report. Natal rows describe a single profile; synastry rows describe a relationship between two profiles. */
+  /** Natal rows describe a single profile; compatibility rows describe a relationship between two profiles. */
   kind: ReportSummaryKind;
-  /** Display name. For natal, the profile's name. For synastry, a joined label like "Alice · Bob". */
+  /** Display name. For natal, the profile's name. For compatibility, "{A} & {B}". */
   name: string;
   /** Only set for natal reports. */
   birthDate?: string;
@@ -92,18 +121,21 @@ export interface ReportSummary {
   /** Only set for natal reports. */
   birthPlace?: string;
   status: ReportSummaryStatus;
+  /** The natal chart's horizon status, so a blind report's tile can carry the call to action. */
+  horizon?: ReportSummaryHorizon;
   /** The report's overview headline (kept under its historical name for client compatibility). Null until the report completes. */
   archetypeName?: string | null;
   sunSign?: string | null;
   moonSign?: string | null;
   risingSign?: string | null;
-  /** Profile ID for natal reports. Null for synastry reports. */
+  /** Profile ID for natal reports. Null for compatibility reports. */
   profileId?: string | null;
-  /** Set for synastry reports. */
+  /** Set for compatibility reports. */
   relationshipId?: string | null;
-  /** Relationship type (romantic, parent_child, sibling, custom). Set for synastry reports. */
+  /** The lens (partners, parent_child, family). Set for compatibility reports. */
   relationshipType?: string | null;
-  /** Participant summaries. Set for synastry reports. */
+  lens?: RelationshipType | null;
+  /** Participant summaries. Set for compatibility reports. */
   participants?: ReportSummaryParticipantsItem[];
   createdAt: string;
 }
@@ -115,99 +147,47 @@ export const ReportStatusStatus = {
   pending: 'pending',
   computing: 'computing',
   interpreting: 'interpreting',
+  revising: 'revising',
   complete: 'complete',
   failed: 'failed',
 } as const;
 
-export interface ReportStatus {
-  id: string;
-  status: ReportStatusStatus;
-  /** Progress percentage 0-100 */
-  progress: number;
-  /** Human-readable current step description */
-  currentStep?: string | null;
-  errorMessage?: string | null;
-}
-
-export interface PlanetPosition {
-  sign: string;
-  degree: number;
+export type ReportStatusProvisionalBodies = {[key: string]: {
   absoluteDegree: number;
-  house: number;
   retrograde: boolean;
-  speed: number;
-}
-
-export interface Angle {
-  sign: string;
-  degree: number;
-  absoluteDegree: number;
-}
-
-export interface Aspect {
-  planet1: string;
-  planet2: string;
-  type: string;
-  orb: number;
-  applying: boolean;
-}
-
-export type ChartDataPlanets = {[key: string]: PlanetPosition};
-
-export type ChartDataAngles = {
-  ascendant: Angle;
-  midheaven: Angle;
-  descendant: Angle;
-  ic: Angle;
-};
-
-export type ChartDataHouses = {[key: string]: {
-  sign: string;
-  degree: number;
 }};
 
-export type ChartDataElements = {
-  fire: number;
-  earth: number;
-  air: number;
-  water: number;
-};
+/**
+ * While the chart is not yet stored: every body's position on the entered date and time at offset zero, from one local call, so the orrery can run from the birth day (ADR-47). Null once the chart exists, or when the profile is gone.
+ */
+export type ReportStatusProvisional = {
+  bodies: ReportStatusProvisionalBodies;
+} | null;
 
-export type ChartDataModalities = {
-  cardinal: number;
-  fixed: number;
-  mutable: number;
-};
+/**
+ * One entry per section of the report's type, "done" once that section is stored.
+ */
+export type ReportStatusSections = {[key: string]: 'pending' | 'done'};
 
-export type ChartDataDominance = {
-  dominantPlanets: string[];
-  dominantElement: string;
-  dominantModality: string;
-};
+export type ReportInterpretationMetaReportType = typeof ReportInterpretationMetaReportType[keyof typeof ReportInterpretationMetaReportType];
 
-export type ChartDataHemisphereEmphasis = {
-  northern: number;
-  southern: number;
-  eastern: number;
-  western: number;
-};
 
-export interface ChartData {
-  datetimeUtc: string;
-  julianDay: number;
-  latitude: number;
-  longitude: number;
-  timezoneOffset: number;
-  planets: ChartDataPlanets;
-  angles: ChartDataAngles;
-  houses: ChartDataHouses;
-  aspects: Aspect[];
-  elements: ChartDataElements;
-  modalities: ChartDataModalities;
-  dominance: ChartDataDominance;
-  chartShape?: string | null;
-  hemisphereEmphasis?: ChartDataHemisphereEmphasis;
-}
+export const ReportInterpretationMetaReportType = {
+  natal: 'natal',
+  compatibility: 'compatibility',
+} as const;
+
+/**
+ * Mirrors the chart's horizon status (ADR-34).
+ */
+export type ReportInterpretationMetaHorizon = typeof ReportInterpretationMetaHorizon[keyof typeof ReportInterpretationMetaHorizon];
+
+
+export const ReportInterpretationMetaHorizon = {
+  known: 'known',
+  approximate: 'approximate',
+  unknown: 'unknown',
+} as const;
 
 export type EvidenceRefKind = typeof EvidenceRefKind[keyof typeof EvidenceRefKind];
 
@@ -218,10 +198,13 @@ export const EvidenceRefKind = {
   ruler: 'ruler',
   lot: 'lot',
   sect: 'sect',
+  angle: 'angle',
+  cross: 'cross',
+  source: 'source',
 } as const;
 
 /**
- * A structured reference to the chart, verified by the API before storage. Fields vary by kind.
+ * A structured reference to the chart, verified by the API before storage. Fields vary by kind. `cross` and `source` belong to the compatibility report: a cross-chart aspect or overlay, and a claim in one of the two natal reports (ADR-44).
  */
 export interface EvidenceRef {
   kind: EvidenceRefKind;
@@ -235,6 +218,15 @@ export interface StoredEvidence {
 }
 
 /**
+ * One sentence a horizon pass changed, with what it said before and the evidence for the change.
+ */
+export interface SectionRevisionMark {
+  before: string;
+  now: string;
+  evidence: StoredEvidence[];
+}
+
+/**
  * A verbatim quote from the section's prose and the chart facts it rests on.
  */
 export interface Claim {
@@ -242,14 +234,90 @@ export interface Claim {
   evidence: StoredEvidence[];
 }
 
-export interface ActionItem {
-  action: string;
-  why: string;
+export interface SectionAddition {
+  text: string;
+  claims: Claim[];
+}
+
+export type HorizonPassSections = {[key: string]: {
+  amended: SectionRevisionMark[];
+  added: SectionAddition[];
+}};
+
+/**
+ * What the last horizon pass changed. Counts are the report's own; the page never recounts them (ADR-35).
+ */
+export interface HorizonPass {
+  at: string;
+  passes: number;
+  sentencesRevised: number;
+  paragraphsAdded: number;
+  sections: HorizonPassSections;
+}
+
+export type ReportInterpretationMetaHouseSystem = typeof ReportInterpretationMetaHouseSystem[keyof typeof ReportInterpretationMetaHouseSystem];
+
+
+export const ReportInterpretationMetaHouseSystem = {
+  'whole-sign': 'whole-sign',
+} as const;
+
+/**
+ * Absent when the horizon is unknown, as are sectLight, sunAltitude and sectMarginal.
+ */
+export type ReportInterpretationMetaSect = typeof ReportInterpretationMetaSect[keyof typeof ReportInterpretationMetaSect];
+
+
+export const ReportInterpretationMetaSect = {
+  day: 'day',
+  night: 'night',
+} as const;
+
+export type ReportInterpretationMetaSectLight = typeof ReportInterpretationMetaSectLight[keyof typeof ReportInterpretationMetaSectLight];
+
+
+export const ReportInterpretationMetaSectLight = {
+  sun: 'sun',
+  moon: 'moon',
+} as const;
+
+/**
+ * Token counts and time, summed over one section's attempts or a whole report.
+ */
+export interface UsageTotals {
+  /** Calls made. Above one when a reply was rejected and retried. */
+  attempts: number;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  ms: number;
 }
 
 export interface ReportTriadPart {
   label: string;
   text: string;
+}
+
+/**
+ * One generated house-card reading, 40 to 70 words, ending on a behaviour check.
+ */
+export interface HouseReading {
+  house: number;
+  reading: string;
+}
+
+export interface ActionItem {
+  action: string;
+  why: string;
+}
+
+/**
+ * A named item and the concrete reason this chart fits it.
+ */
+export interface ListedItem {
+  item: string;
+  reason: string;
 }
 
 export interface ReportSuperpowerItem {
@@ -269,42 +337,96 @@ export interface ReportFocusGroup {
 }
 
 /**
- * Token counts and time, summed over one section's attempts or a whole report.
+ * natal is read from one of the two stored reports; new is written for the pair.
  */
-export interface UsageTotals {
-  /** Calls made. Above one when a reply was rejected and retried. */
-  attempts: number;
-  inputTokens: number;
-  cachedInputTokens: number;
-  outputTokens: number;
-  reasoningTokens: number;
-  ms: number;
+export type PairPassageSource = typeof PairPassageSource[keyof typeof PairPassageSource];
+
+
+export const PairPassageSource = {
+  natal: 'natal',
+  new: 'new',
+} as const;
+
+export type PairPassageOf = typeof PairPassageOf[keyof typeof PairPassageOf];
+
+
+export const PairPassageOf = {
+  A: 'A',
+  B: 'B',
+  both: 'both',
+} as const;
+
+/**
+ * One passage of a compatibility chapter, tagged by where it came from (ADR-39).
+ */
+export interface PairPassage {
+  text: string;
+  /** natal is read from one of the two stored reports; new is written for the pair. */
+  source: PairPassageSource;
+  of?: PairPassageOf;
 }
 
-export type ReportInterpretationMetaHouseSystem = typeof ReportInterpretationMetaHouseSystem[keyof typeof ReportInterpretationMetaHouseSystem];
+export interface PairChapter {
+  headline: string;
+  passages: PairPassage[];
+  claims: Claim[];
+}
+
+export interface PairChecklist {
+  intro: string;
+  items: ActionItem[];
+}
+
+/**
+ * Chapter 09 of the compatibility report, three checklists and a closing paragraph.
+ */
+export interface PairPractise {
+  opening: string;
+  forA: PairChecklist;
+  forB: PairChecklist;
+  forBoth: PairChecklist;
+  closing: string;
+  claims: Claim[];
+}
+
+export type PairLinkKind = typeof PairLinkKind[keyof typeof PairLinkKind];
 
 
-export const ReportInterpretationMetaHouseSystem = {
-  'whole-sign': 'whole-sign',
+export const PairLinkKind = {
+  flows: 'flows',
+  rubs: 'rubs',
+  overlay: 'overlay',
 } as const;
+
+export type PairLinkOf = typeof PairLinkOf[keyof typeof PairLinkOf];
+
+
+export const PairLinkOf = {
+  A: 'A',
+  B: 'B',
+} as const;
+
+/**
+ * One generated link card, 40 to 70 words, ending on a behaviour check (ADR-43).
+ */
+export interface PairLink {
+  kind: PairLinkKind;
+  planetA?: string;
+  planetB?: string;
+  aspect?: string;
+  orb?: number;
+  /** Overlay cards, the body that sits in the other chart's house. */
+  planet?: string;
+  of?: PairLinkOf;
+  house?: number;
+  reading: string;
+}
+
+export interface PairLinks {
+  links: PairLink[];
+}
 
 export type ReportInterpretationMetaOrbs = {[key: string]: number};
-
-export type ReportInterpretationMetaSect = typeof ReportInterpretationMetaSect[keyof typeof ReportInterpretationMetaSect];
-
-
-export const ReportInterpretationMetaSect = {
-  day: 'day',
-  night: 'night',
-} as const;
-
-export type ReportInterpretationMetaSectLight = typeof ReportInterpretationMetaSectLight[keyof typeof ReportInterpretationMetaSectLight];
-
-
-export const ReportInterpretationMetaSectLight = {
-  sun: 'sun',
-  moon: 'moon',
-} as const;
 
 export type ReportInterpretationMetaUsageSectionsItem = UsageTotals & {
   /** Prompt key, e.g. "natal:overview". */
@@ -329,6 +451,11 @@ export type ReportInterpretationMetaUsage = {
 
 export type ReportInterpretationMeta = {
   promptVersion: string;
+  reportType?: ReportInterpretationMetaReportType;
+  lens?: RelationshipType;
+  /** Mirrors the chart's horizon status (ADR-34). */
+  horizon?: ReportInterpretationMetaHorizon;
+  horizonPass?: HorizonPass;
   /** The model every call used, or "mixed" when the foundation and the sections differ. See usage.sections[].model for each one. */
   model: string;
   houseSystem: ReportInterpretationMetaHouseSystem;
@@ -337,10 +464,11 @@ export type ReportInterpretationMeta = {
   zodiac: string;
   ephemeris: string;
   orbs: ReportInterpretationMetaOrbs;
-  sect: ReportInterpretationMetaSect;
-  sectLight: ReportInterpretationMetaSectLight;
-  sunAltitude: number;
-  sectMarginal: boolean;
+  /** Absent when the horizon is unknown, as are sectLight, sunAltitude and sectMarginal. */
+  sect?: ReportInterpretationMetaSect;
+  sectLight?: ReportInterpretationMetaSectLight;
+  sunAltitude?: number;
+  sectMarginal?: boolean;
   /** Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it. */
   usage?: ReportInterpretationMetaUsage;
 };
@@ -357,8 +485,15 @@ export type ReportInterpretationOverview = {
 export type ReportInterpretationTriad = {
   sun: ReportTriadPart;
   moon: ReportTriadPart;
-  rising: ReportTriadPart;
+  rising?: ReportTriadPart;
   claims: Claim[];
+};
+
+/**
+ * The twelve house-card readings in order. They carry no claims, because the card is its own evidence.
+ */
+export type ReportInterpretationHouses = {
+  houses: HouseReading[];
 };
 
 export type ReportInterpretationMind = {
@@ -374,6 +509,7 @@ export type ReportInterpretationCareer = {
   howYouShowUp: string;
   growthThroughWork: string;
   actions: ActionItem[];
+  careerPaths: ListedItem[];
   claims: Claim[];
 };
 
@@ -390,6 +526,7 @@ export type ReportInterpretationRelationships = {
   theChallenge: string;
   whatPartnershipAsks: string;
   actions: ActionItem[];
+  connectBestWith: ListedItem[];
   claims: Claim[];
 };
 
@@ -457,24 +594,263 @@ export type ReportInterpretationAngleMeanings = {
 };
 
 /**
- * V3 natal report. Every section is schema-enforced at generation time, so all fields are always present and structured. Reports stored before V3 lack `meta` and must be regenerated.
+ * A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.
  */
 export interface ReportInterpretation {
   meta: ReportInterpretationMeta;
-  overview: ReportInterpretationOverview;
-  triad: ReportInterpretationTriad;
-  mind: ReportInterpretationMind;
-  career: ReportInterpretationCareer;
-  money: ReportInterpretationMoney;
-  relationships: ReportInterpretationRelationships;
-  family: ReportInterpretationFamily;
-  superpowers: ReportInterpretationSuperpowers;
-  discoveries: ReportInterpretationDiscoveries;
-  focus: ReportInterpretationFocus;
-  personalPlanets: ReportInterpretationPersonalPlanets;
-  aspectMeanings: ReportInterpretationAspectMeanings;
-  angleMeanings: ReportInterpretationAngleMeanings;
+  overview?: ReportInterpretationOverview;
+  triad?: ReportInterpretationTriad;
+  /** The twelve house-card readings in order. They carry no claims, because the card is its own evidence. */
+  houses?: ReportInterpretationHouses;
+  mind?: ReportInterpretationMind;
+  career?: ReportInterpretationCareer;
+  money?: ReportInterpretationMoney;
+  relationships?: ReportInterpretationRelationships;
+  family?: ReportInterpretationFamily;
+  superpowers?: ReportInterpretationSuperpowers;
+  discoveries?: ReportInterpretationDiscoveries;
+  focus?: ReportInterpretationFocus;
+  personalPlanets?: ReportInterpretationPersonalPlanets;
+  aspectMeanings?: ReportInterpretationAspectMeanings;
+  angleMeanings?: ReportInterpretationAngleMeanings;
+  howYouMeet?: PairChapter;
+  twoCharts?: PairChapter;
+  twoWays?: PairChapter;
+  whereItFlows?: PairChapter;
+  whereItRubs?: PairChapter;
+  howYouTalk?: PairChapter;
+  lensOne?: PairChapter;
+  lensTwo?: PairChapter;
+  whatToPractise?: PairPractise;
+  links?: PairLinks;
 }
+
+export interface ReportStatus {
+  id: string;
+  status: ReportStatusStatus;
+  errorMessage?: string | null;
+  /** The chart is stored, so the report page can open on the hero and the explorer. */
+  chartReady: boolean;
+  /** While the chart is not yet stored: every body's position on the entered date and time at offset zero, from one local call, so the orrery can run from the birth day (ADR-47). Null once the chart exists, or when the profile is gone. */
+  provisional?: ReportStatusProvisional;
+  /** One entry per section of the report's type, "done" once that section is stored. */
+  sections: ReportStatusSections;
+  /** The interpretation so far. Sections appear as each call lands. */
+  interpretation?: ReportInterpretation | null;
+}
+
+/**
+ * Sun and Moon only, when the birth time is a band. Absolute degrees at the band's two ends.
+ */
+export type PlanetPositionBand = {
+  fromDegree: number;
+  toDegree: number;
+};
+
+export interface PlanetPosition {
+  sign: string;
+  degree: number;
+  absoluteDegree: number;
+  /** Whole-sign house. Absent when the horizon is unknown. */
+  house?: number;
+  retrograde: boolean;
+  speed: number;
+  /** Sun and Moon only, when the birth time is a band. Absolute degrees at the band's two ends. */
+  band?: PlanetPositionBand;
+}
+
+/**
+ * One fact the birth hour decides, swept across the band at two-minute steps.
+ */
+export interface HorizonFact {
+  /** The value at the centre time. */
+  value: string;
+  /** True when the value never changed across the band. */
+  holds: boolean;
+  /** Local times (HH:MM) inside the band at which the value changed. */
+  flipsAt: string[];
+  /** The sequence of values across the band. */
+  values: string[];
+  /** Where the centre value's run within the birth day begins (HH:MM). */
+  holdsFrom: string;
+  /** Where it ends (HH:MM, or 24:00). */
+  holdsTo: string;
+}
+
+export type HorizonStatus = typeof HorizonStatus[keyof typeof HorizonStatus];
+
+
+export const HorizonStatus = {
+  known: 'known',
+  approximate: 'approximate',
+  unknown: 'unknown',
+} as const;
+
+/**
+ * The horizon as a status, never a guess (ADR-33).
+ */
+export interface Horizon {
+  status: HorizonStatus;
+  ascendant: HorizonFact;
+  midheaven: HorizonFact;
+  sect: HorizonFact;
+  moonSign: HorizonFact;
+  sunSign: HorizonFact;
+}
+
+export interface HorizonPreviewBody {
+  birthDate: string;
+  /** The band's centre, HH:MM. */
+  birthTime: string;
+  birthTimeWindowMinutes: number;
+  latitude: number;
+  longitude: number;
+  /** IANA zone name. Preferred over `timezoneOffset`. */
+  timezone?: string;
+  timezoneOffset?: number;
+}
+
+export interface UpdateBirthTimeBody {
+  birthTime: string;
+  birthTimeWindowMinutes: number;
+}
+
+export type BirthTimeUpdateResponseHorizon = typeof BirthTimeUpdateResponseHorizon[keyof typeof BirthTimeUpdateResponseHorizon];
+
+
+export const BirthTimeUpdateResponseHorizon = {
+  known: 'known',
+  approximate: 'approximate',
+  unknown: 'unknown',
+} as const;
+
+export interface BirthTimeUpdateResponse {
+  profileId: string;
+  horizon: BirthTimeUpdateResponseHorizon;
+  /** The reports a pass has started on. */
+  reportIds: string[];
+}
+
+export interface Angle {
+  sign: string;
+  degree: number;
+  absoluteDegree: number;
+}
+
+export interface Aspect {
+  planet1: string;
+  planet2: string;
+  type: string;
+  orb: number;
+  applying: boolean;
+}
+
+export type ChartDataPlanets = {[key: string]: PlanetPosition};
+
+/**
+ * Absent when the horizon is unknown.
+ */
+export type ChartDataAngles = {
+  ascendant: Angle;
+  midheaven: Angle;
+  descendant: Angle;
+  ic: Angle;
+};
+
+/**
+ * Absent when the horizon is unknown.
+ */
+export type ChartDataHouses = {[key: string]: {
+  sign: string;
+  degree: number;
+}};
+
+export type ChartDataElements = {
+  fire: number;
+  earth: number;
+  air: number;
+  water: number;
+};
+
+export type ChartDataModalities = {
+  cardinal: number;
+  fixed: number;
+  mutable: number;
+};
+
+export type ChartDataDominance = {
+  dominantPlanets: string[];
+  dominantElement: string;
+  dominantModality: string;
+};
+
+export type ChartDataHemisphereEmphasis = {
+  northern: number;
+  southern: number;
+  eastern: number;
+  western: number;
+};
+
+export interface ChartData {
+  datetimeUtc: string;
+  julianDay: number;
+  latitude: number;
+  longitude: number;
+  timezoneOffset: number;
+  timezone?: string;
+  /** Half-width of the birth-time band. 0 for an exact time. */
+  windowMinutes?: number;
+  horizon: Horizon;
+  /** True altitude of the Sun's centre at birth. Absent when the horizon is unknown. */
+  sunAltitude?: number;
+  planets: ChartDataPlanets;
+  /** Absent when the horizon is unknown. */
+  angles?: ChartDataAngles;
+  /** Absent when the horizon is unknown. */
+  houses?: ChartDataHouses;
+  aspects: Aspect[];
+  elements: ChartDataElements;
+  modalities: ChartDataModalities;
+  dominance: ChartDataDominance;
+  chartShape?: string | null;
+  hemisphereEmphasis?: ChartDataHemisphereEmphasis;
+}
+
+/**
+ * The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick.
+ */
+export interface Workbook {[key: string]: string}
+
+/**
+ * A shallow merge onto the report's workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0".
+ */
+export interface WorkbookPatch {[key: string]: string | null}
+
+/**
+ * One of the two people of a compatibility report, with their chart.
+ */
+export interface ReportParticipant {
+  id: string;
+  reportId: string;
+  name: string;
+  /** Positional. primary or secondary, or parent and child under that lens. */
+  role: string;
+  chartData: ChartData | null;
+}
+
+export interface ReportRevisionSummary {
+  id: string;
+  reason: string;
+  createdAt: string;
+}
+
+export type ReportType = typeof ReportType[keyof typeof ReportType];
+
+
+export const ReportType = {
+  natal: 'natal',
+  compatibility: 'compatibility',
+} as const;
 
 export type ReportStatusProperty = typeof ReportStatusProperty[keyof typeof ReportStatusProperty];
 
@@ -483,6 +859,7 @@ export const ReportStatusProperty = {
   pending: 'pending',
   computing: 'computing',
   interpreting: 'interpreting',
+  revising: 'revising',
   complete: 'complete',
   failed: 'failed',
 } as const;
@@ -496,13 +873,34 @@ export interface Report {
   latitude: number;
   longitude: number;
   timezoneOffset: number;
+  timezone?: string | null;
+  birthTimeWindowMinutes: number;
+  /** The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report. */
+  profileId?: string | null;
+  type: ReportType;
+  lens?: RelationshipType | null;
+  /** The two people of a compatibility report. Null on a natal report. */
+  participants?: ReportParticipant[] | null;
+  horizonPasses: number;
+  /** The passes run on this report, newest last. The previous text is kept. */
+  revisions: ReportRevisionSummary[];
   status: ReportStatusProperty;
   chartData?: ChartData | null;
   interpretation?: ReportInterpretation | null;
+  workbook?: Workbook;
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export type ProfileSummaryHorizon = typeof ProfileSummaryHorizon[keyof typeof ProfileSummaryHorizon] | null;
+
+
+export const ProfileSummaryHorizon = {
+  known: 'known',
+  approximate: 'approximate',
+  unknown: 'unknown',
+} as const;
 
 /**
  * Viewer-relative ownership status of the profile.
@@ -523,6 +921,12 @@ export interface ProfileSummary {
   birthDate: string;
   birthTime: string;
   birthPlace: string;
+  latitude?: number;
+  longitude?: number;
+  timezoneOffset?: number;
+  timezone?: string | null;
+  birthTimeWindowMinutes?: number;
+  horizon?: ProfileSummaryHorizon;
   sunSign?: string | null;
   moonSign?: string | null;
   risingSign?: string | null;
@@ -543,6 +947,10 @@ export interface CreateProfileBody {
   latitude: number;
   longitude: number;
   timezoneOffset: number;
+  /** IANA zone name; preferred over timezoneOffset (MB-48). */
+  timezone?: string;
+  /** 0 exact, 180 a part of the day, 720 unknown (ADR-33). Default 0. */
+  birthTimeWindowMinutes?: number;
 }
 
 /**
@@ -596,15 +1004,71 @@ export interface RelationshipSummary {
   ownership?: RelationshipSummaryOwnership;
 }
 
-export type RelationshipType = typeof RelationshipType[keyof typeof RelationshipType];
+/**
+ * Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role.
+ */
+export type CreateCompatibilityBodyParent = typeof CreateCompatibilityBodyParent[keyof typeof CreateCompatibilityBodyParent];
 
 
-export const RelationshipType = {
-  romantic: 'romantic',
-  parent_child: 'parent_child',
-  sibling: 'sibling',
-  custom: 'custom',
+export const CreateCompatibilityBodyParent = {
+  A: 'A',
+  B: 'B',
 } as const;
+
+export interface CreateCompatibilityBody {
+  reportAId: string;
+  reportBId: string;
+  lens: RelationshipType;
+  label?: string | null;
+  /** Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role. */
+  parent?: CreateCompatibilityBodyParent;
+}
+
+export type CompatibilityCreateResponseStatus = typeof CompatibilityCreateResponseStatus[keyof typeof CompatibilityCreateResponseStatus];
+
+
+export const CompatibilityCreateResponseStatus = {
+  pending: 'pending',
+  computing: 'computing',
+  interpreting: 'interpreting',
+  complete: 'complete',
+  failed: 'failed',
+} as const;
+
+export interface CompatibilityCreateResponse {
+  id: string;
+  relationshipId: string;
+  status: CompatibilityCreateResponseStatus;
+}
+
+export type CompatibilitySummaryStatus = typeof CompatibilitySummaryStatus[keyof typeof CompatibilitySummaryStatus];
+
+
+export const CompatibilitySummaryStatus = {
+  pending: 'pending',
+  computing: 'computing',
+  interpreting: 'interpreting',
+  revising: 'revising',
+  complete: 'complete',
+  failed: 'failed',
+} as const;
+
+export type CompatibilitySummaryParticipantsItem = {
+  id: string;
+  reportId: string;
+  name: string;
+  role: string;
+};
+
+export interface CompatibilitySummary {
+  id: string;
+  relationshipId: string;
+  lens: RelationshipType;
+  label?: string | null;
+  status: CompatibilitySummaryStatus;
+  participants: CompatibilitySummaryParticipantsItem[];
+  createdAt: string;
+}
 
 export interface CreateRelationshipBody {
   profileAId: string;
@@ -846,6 +1310,8 @@ export interface GeocodeResult {
   longitude: number;
   /** UTC offset in hours */
   timezoneOffset: number;
+  /** IANA zone name of the place, when known. */
+  timezone?: string;
   /** Nominatim place type (city, town, village, administrative, etc.) */
   placeType: string;
 }
@@ -862,12 +1328,11 @@ export interface CreditBalance {
 }
 
 /**
- * Credit balances broken down by report type
+ * One credit kind (ADR-42). The typed breakdown went with it; the columns drop with payments (MB-57).
  */
 export interface CreditCounts {
-  natal: CreditBalance;
-  couple: CreditBalance;
-  parent_child: CreditBalance;
+  available: number;
+  used: number;
 }
 
 /**

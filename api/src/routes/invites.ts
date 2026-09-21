@@ -12,7 +12,6 @@ import {
   usersTable,
 } from "@workspace/db";
 import { CreateInviteBody } from "@workspace/api-zod";
-import { ensureSynastryReportForRelationship } from "./synastry.js";
 import { logger } from "../lib/logger.js";
 import { sendInviteEmail } from "../lib/mailer.js";
 
@@ -306,7 +305,7 @@ router.get("/invites/:token", async (req, res) => {
         .where(
           and(
             eq(reportsTable.relationshipId, inv.relationshipId),
-            eq(reportsTable.type, "synastry"),
+            eq(reportsTable.type, "compatibility"),
           ),
         );
       reps.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -481,6 +480,12 @@ router.post("/invites/:token/claim", async (req, res) => {
   }
 });
 
+/**
+ * Where a claim lands: the compatibility report on the relationship when one
+ * exists, else the claimed person's own natal report, else the dashboard.
+ * A claim never generates a report on its own; the retired synastry report
+ * is not written any more (ADR-45, MB-58).
+ */
 async function buildClaimResponse(profileId: string, relationshipId: string | null) {
   let relationshipReportId: string | null = null;
   if (relationshipId) {
@@ -490,34 +495,21 @@ async function buildClaimResponse(profileId: string, relationshipId: string | nu
       .where(
         and(
           eq(reportsTable.relationshipId, relationshipId),
-          eq(reportsTable.type, "synastry"),
+          eq(reportsTable.type, "compatibility"),
         ),
       );
     reps.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     relationshipReportId = reps.at(-1)?.id ?? null;
-
-    // No report yet for this relationship — kick one off so the
-    // claimer lands on a generating-state synastry page instead of
-    // being silently bounced to /people. If kickoff fails for any
-    // reason we keep the previous /people fallback so the claim
-    // itself never regresses.
-    if (!relationshipReportId) {
-      try {
-        relationshipReportId = await ensureSynastryReportForRelationship(relationshipId);
-      } catch (err) {
-        // We deliberately swallow this so the claim itself never
-        // regresses — the user still ends up signed-in and bound to
-        // the profile, just routed to /people instead of a synastry
-        // page. Log loudly so the failure is observable in production.
-        logger.warn(
-          { err, relationshipId, profileId },
-          "Failed to auto-generate synastry report on claim; falling back to /people redirect",
-        );
-        relationshipReportId = null;
-      }
-    }
   }
-  const redirectTo = relationshipReportId ? `/synastry/${relationshipReportId}` : `/people`;
+  const own = await db
+    .select({ id: reportsTable.id, createdAt: reportsTable.createdAt })
+    .from(reportsTable)
+    .where(and(eq(reportsTable.profileId, profileId), eq(reportsTable.type, "natal")));
+  own.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const ownReportId = own.at(-1)?.id ?? null;
+  const redirectTo = relationshipReportId
+    ? `/compatibility/${relationshipReportId}`
+    : ownReportId ? `/report/${ownReportId}` : `/dashboard`;
   return {
     profileId,
     relationshipId,

@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { and, eq, or, isNull, ne } from "drizzle-orm";
-import { db, profilesTable } from "@workspace/db";
-import { CreateProfileBody } from "@workspace/api-zod";
-import { resolveOrCreateProfile } from "../lib/profiles.js";
+import { db, profilesTable, reportsTable } from "@workspace/db";
+import { CreateProfileBody, UpdateProfileBirthTimeBody } from "@workspace/api-zod";
+import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
+import { hasHorizon, type NatalChartData } from "../lib/chartCalculation.js";
+import { runHorizonPass } from "../lib/horizonPass.js";
 import {
   openInvitesByProfile,
   claimerNamesByProfile,
@@ -51,6 +53,12 @@ router.get("/profiles", async (req, res) => {
         birthDate: p.birthDate,
         birthTime: p.birthTime,
         birthPlace: p.birthPlace,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        timezoneOffset: p.timezoneOffset,
+        timezone: p.timezone ?? null,
+        birthTimeWindowMinutes: p.birthTimeWindowMinutes,
+        horizon: (p.chartData as any)?.horizon?.status ?? null,
         sunSign: (p.chartData as any)?.planets?.sun?.sign ?? null,
         moonSign: (p.chartData as any)?.planets?.moon?.sign ?? null,
         risingSign: (p.chartData as any)?.angles?.ascendant?.sign ?? null,
@@ -155,6 +163,9 @@ router.patch("/profiles/:id", async (req, res) => {
       birthDate: updated.birthDate,
       birthTime: updated.birthTime,
       birthPlace: updated.birthPlace,
+      timezone: updated.timezone ?? null,
+      birthTimeWindowMinutes: updated.birthTimeWindowMinutes,
+      horizon: (updated.chartData as any)?.horizon?.status ?? null,
       sunSign: (updated.chartData as any)?.planets?.sun?.sign ?? null,
       moonSign: (updated.chartData as any)?.planets?.moon?.sign ?? null,
       risingSign: (updated.chartData as any)?.angles?.ascendant?.sign ?? null,
@@ -167,6 +178,84 @@ router.patch("/profiles/:id", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to update profile");
     return res.status(500).json({ error: "internal_error", message: "Failed to update profile" });
+  }
+});
+
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const WINDOWS = new Set([0, 60, 180, 720]);
+
+/**
+ * PATCH /profiles/:id/birth-time — add or correct the birth time and run
+ * the horizon pass on every complete natal report of the profile (ADR-35).
+ * The owner, or the person who claimed the profile as their own, may do
+ * this; anyone else sees 404. Dedupe keys on time and window together, so
+ * the same answer twice is a no-op unless a report is still blind.
+ */
+router.patch("/profiles/:id/birth-time", async (req, res) => {
+  const { id } = req.params;
+  const body = UpdateProfileBirthTimeBody.safeParse(req.body);
+  if (!body.success) {
+    return res.status(400).json({ error: "validation_error", message: body.error.message });
+  }
+  const { birthTime, birthTimeWindowMinutes } = body.data;
+  if (!TIME.test(birthTime)) {
+    return res.status(400).json({ error: "validation_error", message: "birthTime must be HH:MM" });
+  }
+  if (!WINDOWS.has(birthTimeWindowMinutes)) {
+    return res.status(400).json({ error: "validation_error", message: "birthTimeWindowMinutes must be 0, 60, 180 or 720" });
+  }
+
+  try {
+    const rows = await db.select().from(profilesTable).where(eq(profilesTable.id, id)).limit(1);
+    const profile = rows[0];
+    const mayUpdate = profile && (req.userId
+      ? profile.userId === req.userId || profile.claimedByUserId === req.userId
+      : profile.sessionId === req.sessionId && !profile.userId);
+    if (!mayUpdate) {
+      return res.status(404).json({ error: "not_found", message: "Profile not found" });
+    }
+
+    const reports = await db.select().from(reportsTable)
+      .where(and(eq(reportsTable.profileId, profile.id), eq(reportsTable.type, "natal")));
+    if (reports.some((r) => r.status === "revising")) {
+      return res.status(409).json({ error: "in_progress", message: "A horizon pass is already running on this report" });
+    }
+    if (reports.some((r) => !["complete", "failed"].includes(r.status))) {
+      return res.status(409).json({ error: "in_progress", message: "The report is still being written" });
+    }
+
+    const previousChart = (profile.chartData as NatalChartData | null) ?? null;
+    const chart = chartForProfile({ ...profile, birthTime, birthTimeWindowMinutes });
+    const previouslyDrawn = previousChart ? hasHorizon(previousChart) : false;
+    if (!hasHorizon(chart) && previouslyDrawn) {
+      return res.status(400).json({ error: "validation_error", message: "A birth time already recorded cannot be widened past the horizon" });
+    }
+
+    await db.update(profilesTable)
+      .set({ birthTime, birthTimeWindowMinutes, chartData: chart as unknown as object, updatedAt: new Date() })
+      .where(eq(profilesTable.id, profile.id));
+
+    // Only a report the new chart can say more about is passed: a complete
+    // one whose text was written under a different horizon than the chart now holds.
+    const unchanged = profile.birthTime === birthTime && profile.birthTimeWindowMinutes === birthTimeWindowMinutes;
+    const toPass = hasHorizon(chart)
+      ? reports.filter((r) => r.status === "complete" && r.interpretation
+        && ((r.interpretation as { meta?: { horizon?: string } }).meta?.horizon !== chart.horizon.status || !unchanged))
+      : [];
+    for (const r of toPass) {
+      runHorizonPass({
+        reportId: r.id,
+        profileId: profile.id,
+        name: profile.name,
+        previous: { birthTime: profile.birthTime, birthTimeWindowMinutes: profile.birthTimeWindowMinutes, chart: previousChart },
+        chart,
+      }).catch((err) => req.log.error({ err, reportId: r.id }, "horizon pass crashed"));
+    }
+
+    return res.status(202).json({ profileId: profile.id, horizon: chart.horizon.status, reportIds: toPass.map((r) => r.id) });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update the birth time");
+    return res.status(500).json({ error: "internal_error", message: "Failed to update the birth time" });
   }
 });
 
@@ -186,6 +275,9 @@ router.post("/profiles", async (req, res) => {
       birthDate: profile.birthDate,
       birthTime: profile.birthTime,
       birthPlace: profile.birthPlace,
+      timezone: profile.timezone ?? null,
+      birthTimeWindowMinutes: profile.birthTimeWindowMinutes,
+      horizon: (profile.chartData as any)?.horizon?.status ?? null,
       sunSign: (profile.chartData as any)?.planets?.sun?.sign ?? null,
       moonSign: (profile.chartData as any)?.planets?.moon?.sign ?? null,
       risingSign: (profile.chartData as any)?.angles?.ascendant?.sign ?? null,

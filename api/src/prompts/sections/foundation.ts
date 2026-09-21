@@ -18,6 +18,9 @@ export const FoundationSchema = z.object({
   }).describe("one sentence per section: the single thing it must establish"),
 });
 
+/** Without a horizon there is no sect to echo. */
+export const FoundationBlindSchema = FoundationSchema.omit({ sect: true, sectLight: true });
+
 export const foundation: SectionSpec<typeof FoundationSchema> = {
   key: "natal:foundation",
   label: "Foundation",
@@ -25,8 +28,14 @@ export const foundation: SectionSpec<typeof FoundationSchema> = {
   wordTarget: [0, 0],
   maxTokens: 4_000,
   schema: FoundationSchema,
+  blindSchema: FoundationBlindSchema,
+  blindRules: [
+    "There is no sect, no chart ruler, no house ruler and no lot: return no sect fields, and read the chart in this order instead: the Sun, the Moon, the dignified planets, the stellium, then the tightest aspects.",
+    "Never name a house, the Ascendant, the Midheaven, rising, day or night, or a lot anywhere in the handoff.",
+  ],
   validate: (out, brief) => {
     const s = brief.sect;
+    if (!s) return [];
     const errors: string[] = [];
     if (out.sect !== s.sect) errors.push(`sect is ${s.sect}, not ${out.sect}`);
     if (out.sectLight !== s.sect_light) errors.push(`sect light is ${s.sect_light}, not ${out.sectLight}`);

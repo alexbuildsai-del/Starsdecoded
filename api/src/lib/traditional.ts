@@ -19,7 +19,7 @@
  *    marginal for the methodology box only.
  *  - Dignity is by sign. Exaltation degrees are recorded but not required.
  */
-import type { NatalChartData } from "./chartCalculation.js";
+import { hasHorizon, type HorizonStatus, type NatalChartData } from "./chartCalculation.js";
 
 export const TRADITIONAL_PLANETS = [
   "sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn",
@@ -131,14 +131,22 @@ export const SECT_MARGINAL_DEGREES = 5;
 /**
  * Sect from the Sun's true altitude: its geometric centre at exactly 0° is
  * the boundary, with no refraction and no upper-limb convention. Above is day.
+ * A chart without a horizon has no sect; callers that may be blind use
+ * `sectOf` and read null.
  */
 export function sect(chart: NatalChartData): SectInfo {
   const sunAltitude = chart.sunAltitude;
+  if (sunAltitude === undefined) throw new Error("Chart has no horizon: sect is not known");
   const day = sunAltitude > 0;
   const marginal = Math.abs(sunAltitude) <= SECT_MARGINAL_DEGREES;
   return day
     ? { sect: "day", light: "sun", beneficOfSect: "jupiter", beneficContrary: "venus", maleficOfSect: "saturn", maleficContrary: "mars", sunAltitude, marginal }
     : { sect: "night", light: "moon", beneficOfSect: "venus", beneficContrary: "jupiter", maleficOfSect: "mars", maleficContrary: "saturn", sunAltitude, marginal };
+}
+
+/** Sect when the horizon holds, null when it does not (R-4.6). */
+export function sectOf(chart: NatalChartData): SectInfo | null {
+  return hasHorizon(chart) ? sect(chart) : null;
 }
 
 export function sectPayload(s: SectInfo): SectPayload {
@@ -193,6 +201,7 @@ export interface HouseRuler {
  * that ruler landed and how it is doing. One entry per house, 1 through 12.
  */
 export function houseRulers(chart: NatalChartData): HouseRuler[] {
+  if (!chart.houses) throw new Error("Chart has no horizon: there are no houses to rule");
   const out: HouseRuler[] = [];
   for (let house = 1; house <= 12; house++) {
     const cusp = chart.houses[String(house)];
@@ -200,7 +209,7 @@ export function houseRulers(chart: NatalChartData): HouseRuler[] {
     const sign = asSign(cusp.sign);
     const ruler = DOMICILE[sign];
     const placement = chart.planets[ruler];
-    if (!placement) throw new Error(`Chart has no placement for ${ruler}`);
+    if (!placement || placement.house === undefined) throw new Error(`Chart has no placement for ${ruler}`);
     const rulerSign = asSign(placement.sign);
     out.push({
       house,
@@ -249,6 +258,7 @@ function project(longitude: number, ascendantLongitude: number): LotPosition {
  * Ascendant in opposite directions.
  */
 export function lots(chart: NatalChartData): Lots {
+  if (!chart.angles) throw new Error("Chart has no horizon: the lots need the Ascendant");
   const asc = chart.angles.ascendant.absoluteDegree;
   const sun = chart.planets.sun.absoluteDegree;
   const moon = chart.planets.moon.absoluteDegree;
@@ -265,44 +275,58 @@ export function lots(chart: NatalChartData): Lots {
 export interface PlanetCondition {
   planet: TraditionalPlanet;
   sign: Sign;
-  house: number;
+  /** Absent when the horizon is unknown, with angularity. */
+  house?: number;
   degree: number;
   retrograde: boolean;
   dignity: Dignity;
-  angularity: Angularity;
-  /** Whether this planet belongs to the chart's sect. Luminaries and Mercury excluded. */
+  angularity?: Angularity;
+  /** Whether this planet belongs to the chart's sect. Luminaries and Mercury excluded; null when the sect is not known. */
   inSect: boolean | null;
 }
 
+/**
+ * Everything the tradition derives. When the horizon is unknown, sect, the
+ * house rulers, the lots and the chart ruler are null: the hour did not
+ * settle them, so nothing downstream may read them (R-4.6).
+ */
 export interface TraditionalFactors {
-  sect: SectInfo;
+  horizon: HorizonStatus;
+  sect: SectInfo | null;
   planets: PlanetCondition[];
-  houseRulers: HouseRuler[];
-  lots: Lots;
+  houseRulers: HouseRuler[] | null;
+  lots: Lots | null;
   /** Domicile ruler of the rising sign: the chart ruler. */
-  chartRuler: HouseRuler;
+  chartRuler: HouseRuler | null;
 }
 
 export function deriveTraditional(chart: NatalChartData): TraditionalFactors {
-  const s = sect(chart);
-  const rulers = houseRulers(chart);
+  const drawn = hasHorizon(chart);
+  const s = drawn ? sect(chart) : null;
+  const rulers = drawn ? houseRulers(chart) : null;
   const planets = TRADITIONAL_PLANETS.map((planet): PlanetCondition => {
     const p = chart.planets[planet];
     if (!p) throw new Error(`Chart has no placement for ${planet}`);
     const sign = asSign(p.sign);
     let inSect: boolean | null = null;
-    if (planet === "jupiter" || planet === "venus") inSect = s.beneficOfSect === planet;
-    if (planet === "saturn" || planet === "mars") inSect = s.maleficOfSect === planet;
+    if (s && (planet === "jupiter" || planet === "venus")) inSect = s.beneficOfSect === planet;
+    if (s && (planet === "saturn" || planet === "mars")) inSect = s.maleficOfSect === planet;
     return {
       planet,
       sign,
-      house: p.house,
+      ...(p.house !== undefined ? { house: p.house, angularity: angularity(p.house) } : {}),
       degree: p.degree,
       retrograde: p.retrograde,
       dignity: essentialDignity(planet, sign) ?? "peregrine",
-      angularity: angularity(p.house),
       inSect,
     };
   });
-  return { sect: s, planets, houseRulers: rulers, lots: lots(chart), chartRuler: rulers[0] };
+  return {
+    horizon: chart.horizon.status,
+    sect: s,
+    planets,
+    houseRulers: rulers,
+    lots: drawn ? lots(chart) : null,
+    chartRuler: rulers ? rulers[0] : null,
+  };
 }

@@ -9,6 +9,8 @@
  *   pnpm report:lab --render marie-curie.staging
  *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
  *   pnpm report:lab --render --all --label staging     (rewrite .md/.html from stored .json)
+ *   pnpm report:lab --pass                                # blind marie-curie-unknown, then the horizon pass
+ *   pnpm report:lab --pair curie-winfrey --lens family    # one compatibility report, measured
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
  * Postgres) and OPENAI_API_KEY. Each run costs one full report's worth of AI
@@ -21,7 +23,7 @@
  */
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -35,25 +37,32 @@ interface ChartFixture {
   latitude: number;
   longitude: number;
   timezoneOffset: number;
+  timezone?: string;
+  /** 0 exact, 180 a part of the day, 720 unknown (ADR-33). */
+  birthTimeWindowMinutes?: number;
   note?: string;
 }
 
+/** A pair fixture names two chart fixtures and holds no birth data (R-3.1). */
+interface PairFixture {
+  name: string;
+  a: string;
+  b: string;
+  note?: string;
+}
+const PAIRS_DIR = join(ROOT, "fixtures", "pairs");
+
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
-import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, validateClaims } from "../../api/src/prompts/index.js";
+import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, hasClaims, sectionById, validateClaims } from "../../api/src/prompts/index.js";
+import { PAIR_CHAPTER_IDS, PAIR_WORD_TARGETS, pairChapterTitle, ratingProblems } from "../../api/src/prompts/pair/index.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
+/** The product target for a compatibility report (ADR-39). */
+const PAIR_TOTAL: [number, number] = [3000, 4500];
 /** Cost comes from the engine's own table, so the lab cannot disagree with the bill. */
 import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
 const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
-/**
- * The product target (Owner, 2026-09-17). The per-section `wordTarget` bands in
- * the registry still sum to 3,500-4,000 and the prompts still name those
- * numbers, so the engine writes a little under this: 3,844 to 4,087 across the
- * five fixtures on 2026-09-16. A report reading OUT OF RANGE just below 4,000
- * is that known gap, not a regression. Closing it means raising the bands and
- * the prompt text with them, which is USER-FACING and needs its own lab run.
- * Decide with MB-38.
- */
-const REPORT_TOTAL: [number, number] = [4000, 4500];
+/** The product target (Owner, 2026-09-18). The registry's bands sum inside it. */
+const REPORT_TOTAL: [number, number] = [3500, 5500];
 
 /**
  * Style-contract rule 1: the report must never explain its own method. These
@@ -90,6 +99,53 @@ const METHOD_TALK = [
   "interesting quirk",
 ];
 
+/**
+ * Style-contract rule 12: a why clause says what the action trains, and a
+ * sentence that trains something has a verb in it. The list plus the common
+ * inflections is deliberately generous, because a why wrongly flagged costs a
+ * human a look and a why wrongly passed costs nothing but this check.
+ */
+const VERBS = new Set([
+  "is", "are", "was", "were", "be", "been", "am", "has", "have", "had", "do", "does", "did",
+  "can", "will", "would", "should", "must", "let", "go", "get", "keep", "make", "take", "give",
+  "know", "see", "say", "tell", "ask", "want", "need", "find", "feel", "come", "put", "hold",
+  "build", "run", "name", "notice", "choose", "leave", "move", "try", "turn", "train", "spend",
+  "cost", "work", "stay", "stop", "start", "show", "read", "write", "meet", "set", "cut", "think",
+]);
+
+function hasVerb(clause: string): boolean {
+  const tokens = clause.toLowerCase().match(/[a-z']+/g) ?? [];
+  return tokens.some((t) => VERBS.has(t) || (t.length > 3 && /(?:s|ing|ed)$/.test(t)));
+}
+
+/** Every `why` a section carries, wherever it sits, with the path that found it. */
+function whyClauses(value: unknown, path: string, out: Array<{ path: string; why: string }>): void {
+  if (Array.isArray(value)) {
+    value.forEach((v, i) => whyClauses(v, `${path}.${i}`, out));
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (k === "claims") continue;
+    if (k === "why" && typeof v === "string") out.push({ path, why: v });
+    else whyClauses(v, path ? `${path}.${k}` : k, out);
+  }
+}
+
+/** The house readings answer to their own shape: 40 to 70 words, ending on a behaviour check. */
+function houseNotes(value: unknown): string[] {
+  const readings = (value as { houses?: Array<{ house: number; reading: string }> } | undefined)?.houses;
+  if (!Array.isArray(readings)) return [];
+  const notes: string[] = [];
+  if (readings.length !== 12) notes.push(`${readings.length} readings, not 12`);
+  for (const r of readings) {
+    const w = words(r.reading ?? "");
+    if (w < 40 || w > 70) notes.push(`house ${r.house}: ${w} words`);
+    if (!/Behaviour check:/.test(r.reading ?? "")) notes.push(`house ${r.house}: no behaviour check`);
+  }
+  return notes;
+}
+
 /** Style-contract rule 8: banned punctuation and formatting. */
 const BANNED_CHARS: Array<[string, RegExp]> = [
   ["em dash", /—/],
@@ -122,6 +178,34 @@ function isStructured(value: unknown): boolean {
   return typeof value === "object" && value !== null;
 }
 
+/**
+ * The blind report never names what the hour did not settle (ADR-34): a house
+ * number, the rising sign, the Ascendant, the Midheaven, sect or a lot. Text
+ * and claims are both searched, and a hit is a failure, not a warning.
+ */
+const HORIZON_WORDS: Array<[string, RegExp]> = [
+  ["house number", /\b\d+(?:st|nd|rd|th) house\b/i],
+  ["house number", /\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) house\b/i],
+  ["rising", /\brising\b/i],
+  ["Ascendant", /\bascendant\b/i],
+  ["Midheaven", /\bmidheaven\b/i],
+  ["sect", /\b(?:day chart|night chart|sect|by day|by night)\b/i],
+  ["lot", /\blot of (?:fortune|spirit)\b/i],
+];
+const HORIZON_KINDS = new Set(["angle", "ruler", "sect", "lot"]);
+
+export function blindFlags(value: unknown): string[] {
+  const flags: string[] = [];
+  const text = proseOf(value);
+  for (const [name, re] of HORIZON_WORDS) if (re.test(text)) flags.push(`blind:${name} in text`);
+  const stored = (value as { claims?: Array<{ evidence: Array<{ ref: { kind: string; house?: number | null } }> }> } | undefined)?.claims ?? [];
+  for (const c of stored) for (const e of c.evidence) {
+    if (HORIZON_KINDS.has(e.ref.kind)) flags.push(`blind:${e.ref.kind} claim`);
+    if (e.ref.kind === "placement" && e.ref.house != null) flags.push("blind:placement claim carries a house");
+  }
+  return [...new Set(flags)];
+}
+
 interface SectionRow {
   section: string;
   words: number;
@@ -132,15 +216,31 @@ interface SectionRow {
   bannedChars: string[];
   /** Validated claims / total; problems when re-validation fails. */
   claims: { count: number; problems: string[] };
+  /** A section the run has not written yet. Everything else on the row is empty. */
+  missing: boolean;
+  whyNotes: string[];
+  houseNotes: string[];
+  /** Horizon words in a blind report. Empty on a drawn one. */
+  blindFlags: string[];
 }
 
 function measure(interpretation: Record<string, unknown>, chart?: NatalChartData): SectionRow[] {
-  return SECTION_IDS.map((section) => {
+  const blind = (interpretation.meta as { horizon?: string } | undefined)?.horizon === "unknown";
+  // A blind report writes no house readings: the row would only ever read "not written".
+  const ids = blind ? SECTION_IDS.filter((id) => id !== "houses") : SECTION_IDS;
+  return ids.map((section) => {
     const value = interpretation[section];
+    const missing = value === undefined || value === null;
+    const spec = sectionById(section);
+    // A section whose schema has no claims is its own evidence, so an empty
+    // claims list there is the contract, not a fault.
+    const wantsClaims = spec ? hasClaims(spec) : true;
     const stored = (value as { claims?: Array<{ quote: string; evidence: Array<{ ref: unknown }> }> } | undefined)?.claims ?? [];
     const asModel = stored.map((c) => ({ quote: c.quote, evidence: c.evidence.map((e) => e.ref) }));
-    const problems = chart ? validateClaims(value, asModel as never, chart) : [];
-    if (stored.length < 3) problems.push(`only ${stored.length} claims`);
+    const problems = chart && !missing ? validateClaims(value, asModel as never, chart) : [];
+    if (wantsClaims && !missing && stored.length < 3) problems.push(`only ${stored.length} claims`);
+    const whys: Array<{ path: string; why: string }> = [];
+    whyClauses(value, "", whys);
     const prose = proseOf(value);
     const w = words(prose);
     const target = WORD_TARGETS[section] ?? null;
@@ -154,6 +254,10 @@ function measure(interpretation: Record<string, unknown>, chart?: NatalChartData
       methodTalk: METHOD_TALK.filter((p) => lower.includes(p)),
       bannedChars: BANNED_CHARS.filter(([, re]) => re.test(prose)).map(([n]) => n),
       claims: { count: stored.length, problems },
+      missing,
+      whyNotes: whys.filter((w) => !hasVerb(w.why)).map((w) => `${w.path || "why"}: "${w.why}"`),
+      houseNotes: houseNotes(value),
+      blindFlags: blind && !missing ? blindFlags(value) : [],
     };
   });
 }
@@ -211,13 +315,17 @@ function renderTable(rows: SectionRow[]): string {
     r.section,
     String(r.words),
     r.target ? `${r.target[0]}-${r.target[1]}` : "-",
-    r.inRange === null ? "-" : r.inRange ? "yes" : "NO",
-    r.structured ? "yes" : "RAW",
-    r.claims.problems.length ? `${r.claims.count} INVALID` : String(r.claims.count),
+    r.missing ? "-" : r.inRange === null ? "-" : r.inRange ? "yes" : "NO",
+    r.missing ? "-" : r.structured ? "yes" : "RAW",
+    r.missing ? "-" : r.claims.problems.length ? `${r.claims.count} INVALID` : String(r.claims.count),
     [
+      ...(r.missing ? ["not written"] : []),
       ...r.methodTalk.map((p) => `method:"${p}"`),
       ...r.bannedChars.map((c) => `char:${c}`),
       ...r.claims.problems.slice(0, 2).map((p) => `claim:${p}`),
+      ...r.whyNotes.slice(0, 2).map((w) => `why without a verb ${w}`),
+      ...r.houseNotes.slice(0, 3).map((h) => `house:${h}`),
+      ...r.blindFlags.map((b) => b.toUpperCase()),
     ].join(" ") || "-",
   ]);
   return table(head, body);
@@ -337,6 +445,17 @@ function renderHtml(fixture: ChartFixture, interpretation: Record<string, unknow
 ${sections}`;
 }
 
+/** The chart a fixture describes: the zone when it names one, the band when it has one. */
+function chartOf(calculate: typeof import("../../api/src/lib/chartCalculation.js").calculateNatalChart, f: ChartFixture, windowOverride?: number): NatalChartData {
+  return calculate(f.birthDate, f.birthTime, f.latitude, f.longitude, f.timezone ?? f.timezoneOffset, windowOverride ?? f.birthTimeWindowMinutes ?? 0);
+}
+
+function loadPair(name: string): PairFixture {
+  const path = join(PAIRS_DIR, `${name}.json`);
+  if (!existsSync(path)) throw new Error(`No pair fixture at ${path}`);
+  return JSON.parse(readFileSync(path, "utf8")) as PairFixture;
+}
+
 function loadFixture(name: string): ChartFixture {
   const path = join(CHARTS_DIR, `${name}.json`);
   if (!existsSync(path)) {
@@ -368,13 +487,7 @@ async function runOne(name: string, label: string): Promise<SectionRow[]> {
   const fixture = loadFixture(name);
   console.log(`\n=== ${fixture.name} (${name}) ===`);
 
-  const chart = calculateNatalChart(
-    fixture.birthDate,
-    fixture.birthTime,
-    fixture.latitude,
-    fixture.longitude,
-    fixture.timezoneOffset,
-  );
+  const chart = chartOf(calculateNatalChart, fixture);
 
   const started = Date.now();
   const interpretation = (await generateInterpretation(
@@ -418,6 +531,8 @@ async function runOneRemote(name: string, label: string, base: string): Promise<
       latitude: fixture.latitude,
       longitude: fixture.longitude,
       timezoneOffset: fixture.timezoneOffset,
+      ...(fixture.timezone ? { timezone: fixture.timezone } : {}),
+      birthTimeWindowMinutes: fixture.birthTimeWindowMinutes ?? 0,
     }),
   });
   const id = created.id as string;
@@ -459,16 +574,23 @@ function report(
 ): SectionRow[] {
   const rows = measure(interpretation, chart);
   const total = rows.reduce((n, r) => n + r.words, 0);
-
-  console.log(renderTable(rows));
-  const totalOk = total >= REPORT_TOTAL[0] && total <= REPORT_TOTAL[1];
-  console.log(`\ntotal: ${total} words (target ${REPORT_TOTAL[0]}-${REPORT_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"})`
-    + (elapsed === "n/a" ? "" : ` in ${elapsed}s`));
   const meta = interpretation.meta as {
     promptVersion?: string; model?: string; sect?: string; sunAltitude?: number;
-    sectMarginal?: boolean; usage?: ReportUsage;
+    sectMarginal?: boolean; usage?: ReportUsage; horizon?: string;
   } | undefined;
-  if (meta) console.log(`prompt ${meta.promptVersion} on ${meta.model}; ${meta.sect} chart (Sun ${meta.sunAltitude}°${meta.sectMarginal ? ", marginal" : ""})`);
+  const blind = meta?.horizon === "unknown";
+  // The blind report is about 900 words shorter: no rising part, no house readings (ADR-34).
+  const band: [number, number] = blind ? [2900, 4600] : REPORT_TOTAL;
+
+  console.log(renderTable(rows));
+  const totalOk = total >= band[0] && total <= band[1];
+  console.log(`\ntotal: ${total} words (target ${band[0]}-${band[1]}: ${totalOk ? "ok" : "OUT OF RANGE"})`
+    + (elapsed === "n/a" ? "" : ` in ${elapsed}s`));
+  if (meta) console.log(blind
+    ? `prompt ${meta.promptVersion} on ${meta.model}; horizon unknown, written blind`
+    : `prompt ${meta.promptVersion} on ${meta.model}; ${meta.sect} chart (Sun ${meta.sunAltitude}°${meta.sectMarginal ? ", marginal" : ""})`);
+  const hits = rows.flatMap((r) => r.blindFlags.map((f) => `${r.section}: ${f}`));
+  if (blind) console.log(hits.length ? `BLIND FLAG: ${hits.join("; ")}` : "blind flag: clean, no house, angle, sect or lot word");
 
   // Absent on any report generated before R02, and on --compare of an old run.
   const usage = meta?.usage;
@@ -649,6 +771,266 @@ function newestRun(): string {
   return runs.sort((a, b) => at(b).localeCompare(at(a)))[0].replace(/\.json$/, "");
 }
 
+// ---------------------------------------------------------------------------
+// The horizon pass: the blind fixture, then the time added back (ADR-35).
+// ---------------------------------------------------------------------------
+
+/** Every string leaf but the claims, with its path. */
+function leavesOf(value: unknown, path = "", out: Array<[string, string]> = []): Array<[string, string]> {
+  if (typeof value === "string") out.push([path, value]);
+  else if (Array.isArray(value)) value.forEach((v, i) => leavesOf(v, `${path}.${i}`, out));
+  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value as Record<string, unknown>)) if (k !== "claims") leavesOf(v, `${path}.${k}`, out);
+  return out;
+}
+
+const sentences = (s: string): string[] => s.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+
+/** What the pass changed: words kept verbatim, sentences amended, claims added, and the cost of each stage. */
+function reportPass(before: Record<string, unknown>, after: Record<string, unknown>): void {
+  const ids = SECTION_IDS.filter((id) => id !== "houses");
+  let keptWords = 0, totalWords = 0, changedSentences = 0;
+  for (const id of ids) {
+    const was = new Map(leavesOf(before[id]));
+    for (const [path, text] of leavesOf(after[id])) {
+      const previous = was.get(path) ?? "";
+      const now = sentences(text);
+      const old = new Set(sentences(previous));
+      for (const sentence of now) {
+        const w = words(sentence);
+        totalWords += w;
+        if (old.has(sentence)) keptWords += w;
+        else changedSentences++;
+      }
+    }
+  }
+  const claimsOf = (i: Record<string, unknown>) => SECTION_IDS.reduce((n, id) => n + (((i[id] as { claims?: unknown[] } | undefined)?.claims?.length) ?? 0), 0);
+  const meta = after.meta as { horizonPass?: { sentencesRevised: number; paragraphsAdded: number }; usage?: ReportUsage } | undefined;
+  const beforeUsage = (before.meta as { usage?: ReportUsage } | undefined)?.usage;
+  const afterUsage = meta?.usage;
+  const passCost = afterUsage && beforeUsage && afterUsage.costUsd !== null && beforeUsage.costUsd !== null ? afterUsage.costUsd - beforeUsage.costUsd : null;
+  console.log(`\n=== the horizon pass ===`);
+  console.log(`words kept verbatim: ${keptWords} of ${totalWords} (${totalWords ? Math.round((keptWords / totalWords) * 100) : 0}%)`);
+  console.log(`sentences amended: ${meta?.horizonPass?.sentencesRevised ?? "?"} (ledger), ${changedSentences} differ on the page; paragraphs added: ${meta?.horizonPass?.paragraphsAdded ?? "?"}`);
+  console.log(`claims: ${claimsOf(before)} before, ${claimsOf(after)} after (${claimsOf(after) - claimsOf(before)} added, rising and houses included)`);
+  console.log(`cost: blind report ${usd(beforeUsage?.costUsd ?? null)}, the pass ${usd(passCost)}, together ${usd(afterUsage?.costUsd ?? null)}`);
+  const passRows = afterUsage?.sections.filter((s) => !beforeUsage?.sections.some((b) => b.section === s.section)) ?? [];
+  if (passRows.length) console.log(renderUsage({ ...afterUsage!, sections: passRows, totals: passRows.reduce((t, s) => ({ attempts: t.attempts + s.attempts, inputTokens: t.inputTokens + s.inputTokens, cachedInputTokens: t.cachedInputTokens + s.cachedInputTokens, outputTokens: t.outputTokens + s.outputTokens, reasoningTokens: t.reasoningTokens + s.reasoningTokens, ms: t.ms + s.ms }), { attempts: 0, inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0, ms: 0 }), costUsd: passCost }));
+}
+
+async function runPassLocal(label: string): Promise<void> {
+  const { calculateNatalChart } = await import("../../api/src/lib/chartCalculation.js");
+  const { generateInterpretation } = await import("../../api/src/lib/aiInterpretation.js");
+  const { runHorizonPass } = await import("../../api/src/lib/horizonPass.js");
+  const blindFixture = loadFixture("marie-curie-unknown");
+  const blindChart = chartOf(calculateNatalChart, blindFixture);
+  console.log(`\n=== ${blindFixture.name} (marie-curie-unknown), blind ===`);
+  const started = Date.now();
+  const before = (await generateInterpretation(blindChart, blindFixture.name)) as unknown as Record<string, unknown>;
+  report("marie-curie-unknown", label, blindFixture, blindChart, before, ((Date.now() - started) / 1000).toFixed(1));
+
+  // The pass against memory: the same code path the route runs, without a database.
+  const drawnChart = chartOf(calculateNatalChart, blindFixture, 0);
+  const state: { interpretation: Record<string, unknown> } = { interpretation: before };
+  const passStarted = Date.now();
+  await runHorizonPass({
+    reportId: "lab", profileId: "lab", name: blindFixture.name,
+    previous: { birthTime: blindFixture.birthTime, birthTimeWindowMinutes: 720, chart: blindChart },
+    chart: drawnChart,
+  }, {
+    async load() { return { interpretation: state.interpretation as never, horizonPasses: 0 }; },
+    async saveRevision() { /* the lab keeps the previous run on disk */ },
+    async setRevising() { /* nothing to mark */ },
+    async writeFrame(_id, i) { state.interpretation = i as unknown as Record<string, unknown>; },
+    async finish(_id, i) { state.interpretation = i as unknown as Record<string, unknown>; },
+    async fail(_id, _previous, message) { throw new Error(`the pass failed: ${message}`); },
+  });
+  const after = state.interpretation;
+  console.log(`\n=== ${blindFixture.name} (marie-curie-unknown), passed in ${((Date.now() - passStarted) / 1000).toFixed(1)}s ===`);
+  report("marie-curie-passed", label, { ...blindFixture, birthTimeWindowMinutes: 0 }, drawnChart, after, "n/a");
+  reportPass(before, after);
+}
+
+async function runPassRemote(label: string, base: string): Promise<void> {
+  const blindFixture = loadFixture("marie-curie-unknown");
+  const { call, cookieJar } = remoteClient(base);
+  console.log(`\n=== ${blindFixture.name} (marie-curie-unknown) via ${base}, blind ===`);
+  const created = await call("/reports", { method: "POST", body: JSON.stringify({
+    name: blindFixture.name, birthDate: blindFixture.birthDate, birthTime: blindFixture.birthTime,
+    birthPlace: "lab fixture marie-curie-unknown", latitude: blindFixture.latitude, longitude: blindFixture.longitude,
+    timezoneOffset: blindFixture.timezoneOffset, birthTimeWindowMinutes: 720,
+  }) });
+  const id = created.id as string;
+  const started = Date.now();
+  await pollUntil(call, id, ["complete"]);
+  const full = await call(`/reports/${id}`);
+  const before = full.interpretation as Record<string, unknown>;
+  report("marie-curie-unknown", label, blindFixture, full.chartData as NatalChartData, before, ((Date.now() - started) / 1000).toFixed(1));
+
+  const list = (await call("/reports")) as unknown as Array<{ id: string; profileId: string | null }>;
+  const profileId = list.find((r) => r.id === id)?.profileId;
+  if (!profileId) throw new Error("the created report is not in the viewer's list");
+  const passStarted = Date.now();
+  await call(`/profiles/${profileId}/birth-time`, { method: "PATCH", body: JSON.stringify({ birthTime: "12:00", birthTimeWindowMinutes: 0 }) });
+  await pollUntil(call, id, ["complete"], "revising");
+  const passed = await call(`/reports/${id}`);
+  const after = passed.interpretation as Record<string, unknown>;
+  if (passed.errorMessage) throw new Error(`the pass failed: ${passed.errorMessage}`);
+  console.log(`\n=== ${blindFixture.name} (marie-curie-unknown), passed in ${((Date.now() - passStarted) / 1000).toFixed(1)}s ===`);
+  report("marie-curie-passed", label, { ...blindFixture, birthTimeWindowMinutes: 0 }, passed.chartData as NatalChartData, after, "n/a");
+  reportPass(before, after);
+  void cookieJar;
+}
+
+/** A remote session: the first response sets the anonymous cookie every later call carries. */
+function remoteClient(base: string) {
+  const jar = { cookie: "" };
+  const call = async (path: string, init?: RequestInit): Promise<Record<string, unknown>> => {
+    const res = await fetch(`${base}/api${path}`, {
+      ...init,
+      headers: { "content-type": "application/json", ...(jar.cookie ? { cookie: jar.cookie } : {}), ...(init?.headers ?? {}) },
+    });
+    const set = res.headers.get("set-cookie");
+    if (set && !jar.cookie) jar.cookie = set.split(";")[0];
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) throw new Error(`${path}: ${res.status} ${JSON.stringify(body)}`);
+    return body;
+  };
+  return { call, cookieJar: jar };
+}
+
+/** Poll a report until it reaches one of the given statuses; a failed poll says nothing about the report. */
+async function pollUntil(call: (path: string) => Promise<Record<string, unknown>>, id: string, done: string[], mustSee?: string): Promise<void> {
+  const deadline = Date.now() + 15 * 60 * 1000;
+  let seen = !mustSee;
+  let last = "";
+  for (;;) {
+    try {
+      const status = await call(`/reports/${id}/status`);
+      last = String(status.status);
+      if (mustSee && last === mustSee) seen = true;
+      if (seen && done.includes(last)) break;
+      if (last === "failed") throw new Error(`report ${id} failed: ${status.errorMessage}`);
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith(`report ${id} failed`)) throw err;
+      console.log(`poll error, retrying: ${err instanceof Error ? err.message : err}`);
+    }
+    if (Date.now() > deadline) throw new Error(`report ${id} still ${last || "unanswered"} after 15 minutes`);
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The compatibility report: one pair fixture, one lens per run (ADR-39).
+// ---------------------------------------------------------------------------
+
+interface PairRow { section: string; words: number; target: [number, number] | null; inRange: boolean | null; flags: string[] }
+
+export function measurePair(interpretation: Record<string, unknown>): { rows: PairRow[]; cards: string[] } {
+  const lens = (interpretation.meta as { lens?: string } | undefined)?.lens ?? "partners";
+  const rows: PairRow[] = PAIR_CHAPTER_IDS.map((id) => {
+    const value = interpretation[id];
+    const missing = value === undefined || value === null;
+    const prose = proseOf(value);
+    const w = words(prose);
+    const target = PAIR_WORD_TARGETS[id];
+    const flags = [
+      ...(missing ? ["not written"] : []),
+      ...METHOD_TALK.filter((p) => prose.toLowerCase().includes(p)).map((p) => `method:"${p}"`),
+      ...BANNED_CHARS.filter(([, re]) => re.test(prose)).map(([n]) => `char:${n}`),
+      ...ratingProblems(prose).map((r) => `RATING: ${r}`),
+    ];
+    const passages = (value as { passages?: Array<{ source: string }> } | undefined)?.passages ?? [];
+    const natal = passages.filter((p) => p.source === "natal").length;
+    const title = pairChapterTitle(id as never, lens as never);
+    return { section: `${id} (${title})${passages.length ? `, ${natal}/${passages.length} natal` : ""}`, words: w, target, inRange: missing ? null : w >= target[0] && w <= target[1], flags };
+  });
+  const cards: string[] = [];
+  const links = (interpretation.links as { links?: Array<{ kind: string; reading: string; planetA?: string; planetB?: string; planet?: string; house?: number }> } | undefined)?.links ?? [];
+  for (const [i, l] of links.entries()) {
+    const w = words(l.reading);
+    const problems: string[] = [];
+    if (w < 40 || w > 70) problems.push(`${w} words`);
+    if (!/Behaviour check:/.test(l.reading)) problems.push("no behaviour check");
+    problems.push(...ratingProblems(l.reading).map((r) => `RATING: ${r}`));
+    const who = l.kind === "overlay" ? `${l.planet} in the ${l.house}th` : `${l.planetA} ${l.planetB}`;
+    cards.push(`card ${i + 1} ${l.kind} ${who}: ${w} words${problems.length ? ` ${problems.join(", ")}` : ""}`);
+  }
+  return { rows, cards };
+}
+
+function reportPair(name: string, lens: string, label: string, fixture: PairFixture, interpretation: Record<string, unknown>, elapsed: string): void {
+  const { rows, cards } = measurePair(interpretation);
+  const linkWords = words(proseOf((interpretation.links as { links?: unknown } | undefined)?.links));
+  const total = rows.reduce((n, r) => n + r.words, 0) + linkWords;
+  console.log(table(["chapter", "words", "target", "ok", "flags"], rows.map((r) => [
+    r.section, String(r.words), r.target ? `${r.target[0]}-${r.target[1]}` : "-",
+    r.inRange === null ? "-" : r.inRange ? "yes" : "NO", r.flags.join(" ") || "-",
+  ])));
+  console.log(cards.join("\n"));
+  const bad = cards.filter((c) => /words [^\n]*(words|check|RATING)|RATING/.test(c));
+  console.log(`link cards: ${cards.length}, ${linkWords} words${bad.length ? `, ${bad.length} OUT OF SHAPE` : ", all 40 to 70 with a behaviour check"}`);
+  const totalOk = total >= PAIR_TOTAL[0] && total <= PAIR_TOTAL[1];
+  console.log(`\ntotal: ${total} words (target ${PAIR_TOTAL[0]}-${PAIR_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"})` + (elapsed === "n/a" ? "" : ` in ${elapsed}s`));
+  const meta = interpretation.meta as { promptVersion?: string; model?: string; usage?: ReportUsage; blind?: boolean } | undefined;
+  console.log(`prompt ${meta?.promptVersion} on ${meta?.model}; lens ${lens}${meta?.blind ? "; a chart is blind, no overlay" : ""}`);
+  const ratings = [...rows.flatMap((r) => r.flags), ...cards].filter((f) => /RATING/.test(f));
+  console.log(ratings.length ? `RATING FLAG: ${ratings.join("; ")}` : "rating flag: clean, no number describes the pair");
+  if (meta?.usage) {
+    console.log(`\n${renderUsage(meta.usage)}`);
+    console.log(`\ncost ${usd(meta.usage.costUsd)} in ${secs(meta.usage.wallClockMs)}s wall clock (${secs(meta.usage.totals.ms)}s of call time across ${meta.usage.totals.attempts} calls).`);
+  }
+  if (label === "render") return;
+  mkdirSync(REPORTS_DIR, { recursive: true });
+  const stem = join(REPORTS_DIR, `${name}.${lens}.${label}`);
+  writeFileSync(`${stem}.json`, JSON.stringify({ fixture, lens, interpretation }, null, 2));
+  console.log(`wrote ${stem}.json`);
+}
+
+async function runPairLocal(name: string, lens: string, label: string): Promise<void> {
+  const { calculateNatalChart } = await import("../../api/src/lib/chartCalculation.js");
+  const { generateInterpretation } = await import("../../api/src/lib/aiInterpretation.js");
+  const { generatePairInterpretation } = await import("../../api/src/lib/pairInterpretation.js");
+  const pair = loadPair(name);
+  const [fa, fb] = [loadFixture(pair.a), loadFixture(pair.b)];
+  console.log(`\n=== ${pair.name} (${name}), ${lens}: two natal reports first ===`);
+  const [ca, cb] = [chartOf(calculateNatalChart, fa), chartOf(calculateNatalChart, fb)];
+  const [ia, ib] = await Promise.all([generateInterpretation(ca, fa.name), generateInterpretation(cb, fb.name)]);
+  const started = Date.now();
+  const out = (await generatePairInterpretation({
+    lens: lens as never,
+    a: { name: fa.name, chart: ca, interpretation: ia },
+    b: { name: fb.name, chart: cb, interpretation: ib },
+  })) as unknown as Record<string, unknown>;
+  console.log(`\n=== ${pair.name} (${name}), ${lens} ===`);
+  reportPair(name, lens, label, pair, out, ((Date.now() - started) / 1000).toFixed(1));
+}
+
+async function runPairRemote(name: string, lens: string, label: string, base: string): Promise<void> {
+  const pair = loadPair(name);
+  const { call } = remoteClient(base);
+  const natal = async (fixtureName: string): Promise<string> => {
+    const f = loadFixture(fixtureName);
+    const created = await call("/reports", { method: "POST", body: JSON.stringify({
+      name: f.name, birthDate: f.birthDate, birthTime: f.birthTime, birthPlace: `lab fixture ${fixtureName}`,
+      latitude: f.latitude, longitude: f.longitude, timezoneOffset: f.timezoneOffset, birthTimeWindowMinutes: f.birthTimeWindowMinutes ?? 0,
+    }) });
+    return created.id as string;
+  };
+  console.log(`\n=== ${pair.name} (${name}), ${lens} via ${base}: two natal reports first ===`);
+  // Created one after the other: the first response sets the session cookie,
+  // and a second report created before it lands belongs to another visitor.
+  const a = await natal(pair.a);
+  const b = await natal(pair.b);
+  await Promise.all([pollUntil(call, a, ["complete"]), pollUntil(call, b, ["complete"])]);
+  const started = Date.now();
+  const created = await call("/compatibility", { method: "POST", body: JSON.stringify({ reportAId: a, reportBId: b, lens }) });
+  const id = created.id as string;
+  await pollUntil(call, id, ["complete"]);
+  const full = await call(`/reports/${id}`);
+  console.log(`\n=== ${pair.name} (${name}), ${lens} ===`);
+  reportPair(name, lens, label, pair, full.interpretation as Record<string, unknown>, ((Date.now() - started) / 1000).toFixed(1));
+}
+
 async function main() {
   if (flag("list")) {
     console.log(listFixtures().join("\n"));
@@ -695,9 +1077,12 @@ async function main() {
   }
 
   const remote = opt("remote");
+  const pairName = opt("pair");
   if (remote !== undefined) {
     if (!/^https?:\/\//.test(remote)) throw new Error(`--remote needs a web origin, got "${remote}"`);
     const base = remote.replace(/\/+$/, "");
+    if (flag("pass")) { await runPassRemote(label, base); return; }
+    if (pairName !== undefined) { await runPairRemote(pairName, opt("lens") ?? "partners", label, base); return; }
     // Every fixture runs even when one fails: a measurement with four charts
     // and one named failure is worth more than a stop at the first.
     const failed: string[] = [];
@@ -728,15 +1113,24 @@ async function main() {
     console.log("defaults-only: ignoring prompt_templates overrides.");
   }
 
-  for (const name of names) {
-    await runOne(name, label);
+  if (flag("pass")) {
+    await runPassLocal(label);
+  } else if (pairName !== undefined) {
+    await runPairLocal(pairName, opt("lens") ?? "partners", label);
+  } else {
+    for (const name of names) {
+      await runOne(name, label);
+    }
   }
 
   const { pool } = await import("@workspace/db");
   await pool.end();
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+// Run only as a script: the test imports the measures without a run.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}

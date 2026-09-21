@@ -5,9 +5,6 @@ import { reportsTable } from "./reports";
 export const BUNDLE_KINDS = ["solo", "couple", "family"] as const;
 export type BundleKind = (typeof BUNDLE_KINDS)[number];
 
-export const CREDIT_TYPES = ["natal", "couple", "parent_child"] as const;
-export type CreditType = (typeof CREDIT_TYPES)[number];
-
 export const CREDIT_STATUSES = ["available", "used"] as const;
 export type CreditStatus = (typeof CREDIT_STATUSES)[number];
 
@@ -36,7 +33,9 @@ export const creditsTable = pgTable(
     bundleId: text("bundle_id")
       .notNull()
       .references(() => bundlesTable.id, { onDelete: "cascade" }),
-    creditType: text("credit_type").notNull(),
+    // One credit is one report, whatever the report (ADR-42). Read nowhere;
+    // the column and the typed bundles drop with the payments round (MB-57).
+    creditType: text("credit_type").default("natal"),
     status: text("status").notNull().default("available"),
     usedForReportId: text("used_for_report_id").references(() => reportsTable.id, {
       onDelete: "set null",

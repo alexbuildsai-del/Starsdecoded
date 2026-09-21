@@ -8,11 +8,28 @@ name: Report lab
 on:
   workflow_dispatch:
     inputs:
+      campaign:
+        description: natal (the chart fixtures), pass (blind, then the horizon pass) or pair (one compatibility report)
+        required: true
+        type: choice
+        options: [natal, pass, pair]
+        default: natal
       chart:
-        description: Fixture name under fixtures/charts, or "all"
+        description: natal only. Fixture name under fixtures/charts, or "all"
         required: true
         type: string
         default: all
+      pair:
+        description: pair only. Fixture name under fixtures/pairs
+        required: false
+        type: string
+        default: curie-winfrey
+      lens:
+        description: pair only
+        required: false
+        type: choice
+        options: [partners, parent_child, family]
+        default: partners
       label:
         description: Label for the written run files
         required: true
@@ -52,7 +69,11 @@ jobs:
       - name: Generate and measure
         run: |
           set -o pipefail
-          if [ "${{ inputs.chart }}" = "all" ]; then sel="--all"; else sel="--chart ${{ inputs.chart }}"; fi
+          case "${{ inputs.campaign }}" in
+            pass) sel="--pass" ;;
+            pair) sel="--pair ${{ inputs.pair }} --lens ${{ inputs.lens }}" ;;
+            *) if [ "${{ inputs.chart }}" = "all" ]; then sel="--all"; else sel="--chart ${{ inputs.chart }}"; fi ;;
+          esac
           status=0
           pnpm report:lab --remote "$WEB_URL" $sel --label "${{ inputs.label }}" --html 2>&1 | tee lab.log || status=$?
           { echo '## Report lab'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
@@ -67,7 +88,8 @@ jobs:
 
       # The reports are the product, so they must be readable without
       # downloading a zip: every run replaces the report-lab/<label> branch,
-      # where GitHub renders the .md files. Partial runs publish too.
+      # where GitHub renders the .md files. Partial runs publish too. One
+      # label per campaign, or the next run's force-push drops the last one.
       - name: Publish the run on the report-lab branch
         if: always()
         run: |
@@ -78,6 +100,6 @@ jobs:
           git checkout -B "$branch"
           git add -f fixtures/reports
           git diff --cached --quiet && { echo "nothing new to publish"; exit 0; }
-          git commit -q -m "Report lab: ${{ inputs.chart }} against staging, run ${{ github.run_id }}"
+          git commit -q -m "Report lab: ${{ inputs.campaign }} ${{ inputs.campaign == 'pair' && inputs.lens || inputs.chart }} against staging, run ${{ github.run_id }}"
           git push -f origin "$branch"
           printf -- '- reports: https://github.com/%s/tree/%s/fixtures/reports\n' "$GITHUB_REPOSITORY" "$branch" >> "$GITHUB_STEP_SUMMARY"

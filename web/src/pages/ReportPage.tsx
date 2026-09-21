@@ -1,95 +1,90 @@
-import { useState, type CSSProperties } from "react";
+/**
+ * The natal report: one page, one sky (ADR-48, ADR-51). The opening overlay
+ * holds the page until the reader takes the door or it opens itself; the
+ * hero ring then gathers the stars. Ten chapters, the last one Closing
+ * (ADR-46); a chapter not yet landed shows a skeleton. A blind report renders
+ * no rising text and no house readings, the call to action instead, and the
+ * ledger above chapter 01 once a pass has run (ADR-35, ADR-37).
+ */
+import { useCallback, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
-import { ArrowLeft, Download, Check } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
-import { BirthLocationHorizon } from "@/components/BirthLocationHorizon";
-import { useGetReport, getGetReportQueryKey, useRegenerateReport } from "@workspace/api-client-react";
-import { NatalWheel } from "@/components/chart/NatalWheel";
-import { houseSign } from "@/components/chart/wheel-geometry";
+import { getGetReportQueryKey, getGetReportStatusQueryKey, useRegenerateReport } from "@workspace/api-client-react";
 import LoadingState from "@/components/LoadingState";
 import {
   PLANET_GLYPHS,
   PLANET_LABELS,
-  isV3Interpretation,
+  isCurrentInterpretation,
   type ChartData,
   type ChartPlanet,
+  type Interpretation,
 } from "@/types/chart";
 import {
-  OverviewBlock, TriadBlock, MindBlock, CareerBlock, MoneyBlock, RelationshipsBlock,
-  FamilyBlock, SuperpowersBlock, DiscoveriesBlock, FocusBlock,
+  OverviewBlock, DeepdiveBlock, MindBlock, MindRail, CareerBlock, CareerRail,
+  MoneyBlock, MoneyRail, RelationshipsBlock, RelationshipsRail,
+  FamilyBlock, FamilyRail, SuperpowersBlock, DiscoveriesBlock,
 } from "@/components/ReportSections";
 import { ReportHero } from "@/components/report/ReportHero";
 import { usePageTitle, reportFileTitle } from "@/lib/page-title";
 import { ReportSky } from "@/components/report/ReportSky";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
-import { HouseCard } from "@/components/report/HouseCard";
-import { HouseGrid, planetsByHouse } from "@/components/report/HouseGrid";
+import { ChapterSkeleton } from "@/components/report/ChapterSkeleton";
+import { ChartExplorer } from "@/components/report/ChartExplorer";
+import { BalanceRail } from "@/components/report/BalanceRail";
+import { DawnClosing } from "@/components/report/DawnClosing";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
-import { chapterAccent, ELEMENT_HEX } from "@/lib/chapter-accent";
+import { OpeningOverlay } from "@/components/report/OpeningOverlay";
+import { RevisionLedger, marksShown, rememberMarks } from "@/components/report/RevisionLedger";
+import { RevisionProvider, revisionSet } from "@/components/report/RevisedText";
+import { BirthTimeDialog } from "@/components/BirthTimeDialog";
+import { WorkbookProvider } from "@/lib/workbook";
+import { useLiveReport } from "@/hooks/useLiveReport";
+import { chapterAccent } from "@/lib/chapter-accent";
+import type { Ring } from "@/lib/gather";
 
+/** Ten chapters, in the locked order (ADR-46). The section each one waits for is its own. */
 const CHAPTERS = [
-  { eyebrow: "Overview", title: "Chart Overview" },
-  { eyebrow: "Chart", title: "Natal Chart" },
-  { eyebrow: "Elements", title: "Elemental Profile" },
-  { eyebrow: "Triad", title: "Core Triad" },
-  { eyebrow: "Mind", title: "Mind & Communication" },
-  { eyebrow: "Work", title: "Career & Calling" },
-  { eyebrow: "Resources", title: "Money & Resources" },
-  { eyebrow: "Relationships", title: "Relationships & Intimacy" },
-  { eyebrow: "Roots", title: "Family & Roots" },
-  { eyebrow: "Self-Knowledge", title: "Superpowers, Chronic Patterns & Growing Edges" },
-  { eyebrow: "Paradoxes", title: "Key Paradoxes & Discoveries" },
-  { eyebrow: "Focus", title: "What to Focus On" },
+  { eyebrow: "Overview", title: "Chart Overview", section: "overview" },
+  { eyebrow: "Chart", title: "Natal Chart Deepdive", section: "houses" },
+  { eyebrow: "Mind", title: "Mind & Communication", section: "mind" },
+  { eyebrow: "Work", title: "Career & Calling", section: "career" },
+  { eyebrow: "Resources", title: "Money & Resources", section: "money" },
+  { eyebrow: "Relationships", title: "Relationships & Intimacy", section: "relationships" },
+  { eyebrow: "Roots", title: "Family & Roots", section: "family" },
+  { eyebrow: "Self-Knowledge", title: "Superpowers, Chronic Patterns & Growing Edges", section: "superpowers" },
+  { eyebrow: "Paradoxes", title: "Key Paradoxes & Discoveries", section: "discoveries" },
+  { eyebrow: "Closing", title: "Closing", section: "focus" },
 ];
 const TOTAL = CHAPTERS.length;
 const OPENING_ACCENT = "#5C6BC0";
 
-function PlanetRow({
-  name,
-  planet,
-  meaning,
-}: {
-  name: string;
-  planet: ChartPlanet;
-  meaning?: string;
-}) {
+function PlanetRow({ name, planet, meaning }: { name: string; planet: ChartPlanet; meaning?: string }) {
   return (
-    <div
-      id={`planet-${name}`}
-      className="py-3 border-b border-border/30 last:border-0 scroll-mt-24"
-    >
+    <div id={`planet-${name}`} className="py-3 border-b border-border/30 last:border-0 scroll-mt-24">
       <div className="flex items-center gap-3">
         <span className="w-6 text-center text-lg text-primary/80">{PLANET_GLYPHS[name] ?? "·"}</span>
         <span className="font-label text-sm w-24 text-muted-foreground">{PLANET_LABELS[name] ?? name}</span>
         <span className="font-numeric text-base flex-1">
           {planet.degree.toFixed(1)}° {planet.sign}
         </span>
-        <span className="font-numeric text-xs text-muted-foreground">H{planet.house}</span>
-        {planet.retrograde && (
-          <span className="text-xs text-amber-400 font-label">Rx</span>
-        )}
+        {planet.house && <span className="font-numeric text-xs text-muted-foreground">H{planet.house}</span>}
+        {planet.retrograde && <span className="text-xs text-amber-400 font-label">Rx</span>}
       </div>
       {meaning && (
-        <p className="mt-2 ml-9 pr-2 text-sm leading-relaxed text-foreground/80 whitespace-pre-line">
-          {meaning}
-        </p>
+        <p className="mt-2 ml-9 pr-2 text-sm leading-relaxed text-foreground/80 whitespace-pre-line">{meaning}</p>
       )}
     </div>
   );
 }
 
-function Bar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
+function Centred({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="rp-lab capitalize" style={{ color }}>{label}</span>
-        <span className="font-numeric text-xs" style={{ color: "var(--muted)" }}>{count} / {total}</span>
-      </div>
-      <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.07)" }}>
-        <div className="h-full rounded-full" style={{ width: `${(count / total) * 100}%`, background: color }} />
-      </div>
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center max-w-md px-6">{children}</div>
     </div>
   );
 }
@@ -97,12 +92,21 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const client = useQueryClient();
   const [active, setActive] = useState(-1);
+  const [ring, setRing] = useState<Ring | null>(null);
+  const [askTime, setAskTime] = useState(false);
+  const [marks, setMarks] = useState(() => marksShown(id ?? ""));
 
-  const regenerate = useRegenerateReport();
-  const { data: report, isLoading, isError } = useGetReport(id!, {
-    query: { enabled: !!id, queryKey: getGetReportQueryKey(id!) },
-  });
+  const live = useLiveReport(id!);
+  const { report, sections, workbook, writing, revising, open, setOpen, progress, horizonPass } = live;
+  const interpretation = live.interpretation as Interpretation | null;
+
+  const refresh = useCallback(() => {
+    client.invalidateQueries({ queryKey: getGetReportQueryKey(id!) });
+    client.invalidateQueries({ queryKey: getGetReportStatusQueryKey(id!) });
+  }, [client, id]);
+  const regenerate = useRegenerateReport({ mutation: { onSuccess: refresh } });
 
   // The browser offers document.title as the print-to-PDF filename, so the
   // complete report's title is the filename we want to hand the buyer.
@@ -113,79 +117,111 @@ export default function ReportPage() {
   );
 
   const handlePrint = () => window.print();
+  const onRing = useCallback((r: Ring) => setRing((prev) => (prev && prev.cx === r.cx && prev.cy === r.cy && prev.r === r.r ? prev : r)), []);
 
-  if (isLoading) return <LoadingState label="Loading your report…" />;
+  if (live.isLoading) return <LoadingState label="Loading your report…" />;
 
-  if (isError || !report) {
+  if (live.isError || !report) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">Report not found.</p>
-          <Button onClick={() => navigate("/chart")} variant="outline">Start over</Button>
-        </div>
+      <Centred>
+        <p className="text-muted-foreground mb-4">Report not found.</p>
+        <Button onClick={() => navigate("/chart")} variant="outline">Start over</Button>
+      </Centred>
+    );
+  }
+
+  const chartData = (report.chartData ?? null) as unknown as ChartData | null;
+  const failed = report.status === "failed" && !interpretation;
+
+  // MB-45 provisional: a finished report from an earlier prompt version keeps
+  // its words but not this page's shape, so it is offered a regeneration and
+  // never regenerated on its own.
+  if (!writing && interpretation && !isCurrentInterpretation(interpretation)) {
+    return (
+      <Centred>
+        <p className="text-muted-foreground mb-4">
+          This report was generated with an earlier version and needs to be regenerated to view.
+        </p>
+        <Button variant="outline" disabled={regenerate.isPending} onClick={() => regenerate.mutate({ id: id! })}>
+          {regenerate.isPending ? "Starting…" : "Regenerate"}
+        </Button>
+        {regenerate.isError && (
+          <p className="text-sm text-destructive mt-3">Could not start regeneration. Please try again in a minute.</p>
+        )}
+      </Centred>
+    );
+  }
+
+  // Until the door is taken the page is the overlay on the sky; behind it the
+  // body mounts as soon as the chart and the first sections exist.
+  const ready = !!chartData && !!interpretation;
+  const showOverlay = !open || failed;
+  const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1);
+  const onHero = active < 0;
+  const revisions = revisionSet(horizonPass, marks);
+
+  if (!ready) {
+    return (
+      <div className="rp-root min-h-screen" style={{ "--accent": OPENING_ACCENT } as CSSProperties}>
+        <ReportSky accent={OPENING_ACCENT} opening />
+        <OpeningOverlay
+          progress={progress}
+          provisional={live.provisional}
+          chart={chartData}
+          errorMessage={live.errorMessage}
+          onOpen={setOpen}
+          onRetry={() => regenerate.mutate({ id: id! })}
+          retrying={regenerate.isPending}
+        />
       </div>
     );
   }
 
-  if (report.status !== "complete") {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">This report is still generating.</p>
-          <Button onClick={() => navigate(`/generating/${id}`)} variant="outline">Check status</Button>
-        </div>
-      </div>
-    );
-  }
-
-  const chartData = report.chartData as unknown as ChartData;
-  if (!isV3Interpretation(report.interpretation)) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md px-6">
-          <p className="text-muted-foreground mb-4">
-            This report was generated with an earlier version and needs to be regenerated to view.
-          </p>
-          <Button
-            variant="outline"
-            disabled={regenerate.isPending}
-            onClick={() => regenerate.mutate({ id: id! }, { onSuccess: () => navigate(`/generating/${id}`) })}
-          >
-            {regenerate.isPending ? "Starting…" : "Regenerate"}
-          </Button>
-          {regenerate.isError && (
-            <p className="text-sm text-destructive mt-3">Could not start regeneration. Please try again in a minute.</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-  const interpretation = report.interpretation;
-
+  const blind = chartData.angles === undefined;
   const mainPlanets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
   const minorPlanets = ["chiron", "north_node", "south_node"];
-  const totalPlanets = Object.values(chartData.elements).reduce((a, b) => a + b, 0);
-  const occupants = planetsByHouse(chartData);
-  const asc = chartData.angles.ascendant;
   const angles = interpretation.angleMeanings;
 
-  const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1, asc.absoluteDegree);
-  const onHero = active < 0;
-  const ch = (n: number) => ({ number: n, total: TOTAL, ...CHAPTERS[n - 1] });
+  const done = (key: string) => !writing || sections[key] === "done";
+  const rail = CHAPTERS.map((c) => ({
+    eyebrow: c.eyebrow, title: c.title,
+    writing: !revising && !done(c.section),
+    revising: revising && !done(c.section),
+  }));
+  const ch = (n: number) => ({ number: n, total: TOTAL, eyebrow: CHAPTERS[n - 1].eyebrow, title: CHAPTERS[n - 1].title });
+  const body = (key: string, node: React.ReactNode) => (done(key) && node ? node : <ChapterSkeleton lines={key === "focus" ? 4 : 5} />);
+  const openTime = () => setAskTime(true);
 
   return (
-    <div className="rp-root min-h-screen" style={{ "--accent": accent } as CSSProperties}>
-      <ReportSky accent={accent} opening={onHero} />
+    <WorkbookProvider reportId={id!} initial={workbook}>
+    <RevisionProvider value={revisions}>
+    <div className={`rp-root min-h-screen${marks ? "" : " marks-off"}`} style={{ "--accent": accent } as CSSProperties}>
+      <ReportSky accent={accent} opening={onHero} gatherTo={open ? ring : null} />
+
+      {showOverlay && (
+        <OpeningOverlay
+          progress={progress}
+          provisional={live.provisional}
+          chart={chartData}
+          errorMessage={live.errorMessage}
+          onOpen={setOpen}
+          onRetry={failed ? () => regenerate.mutate({ id: id! }) : undefined}
+          retrying={regenerate.isPending}
+        />
+      )}
 
       <ReportHero
         name={report.name}
         birthDate={report.birthDate}
         birthTime={report.birthTime}
+        birthTimeWindowMinutes={report.birthTimeWindowMinutes}
         birthPlace={report.birthPlace}
         latitude={report.latitude}
         longitude={report.longitude}
         chartData={chartData}
         meta={interpretation.meta}
+        onAddBirthTime={report.profileId ? openTime : undefined}
+        onRing={onRing}
       />
 
       {/* Chrome sits on the opening plate without a ground, and takes one once the reading starts. */}
@@ -203,58 +239,62 @@ export default function ReportPage() {
             Dashboard
           </button>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrint}
-              className="font-label text-xs gap-1.5"
-            >
+            {/* Export reads the same status the door reads and flips at complete (ADR-48). */}
+            <Button variant="outline" size="sm" disabled={writing} onClick={handlePrint} className="font-label text-xs gap-1.5">
               <Download className="h-3.5 w-3.5" />
-              Export PDF
+              {revising ? "Revising…" : writing ? "Writing…" : "Export PDF"}
             </Button>
             <AccountMenu />
           </div>
         </div>
       </nav>
 
-      <ChapterRail chapters={CHAPTERS} active={active} onActive={setActive} />
+      <ChapterRail
+        chapters={rail}
+        active={active}
+        onActive={setActive}
+        revision={horizonPass ? { sentencesRevised: horizonPass.sentencesRevised, paragraphsAdded: horizonPass.paragraphsAdded, at: horizonPass.at } : null}
+      />
 
       <main className="rp-body pb-20">
-        <Chapter {...ch(1)} lede={interpretation.overview.headline}>
-          <OverviewBlock s={interpretation.overview} />
+        {horizonPass && (
+          <div className="rp-chapter">
+            <RevisionLedger
+              pass={horizonPass}
+              chart={chartData}
+              meta={interpretation.meta}
+              shown={marks}
+              onToggle={(next) => { setMarks(next); rememberMarks(id!, next); }}
+            />
+          </div>
+        )}
+
+        <Chapter {...ch(1)} lede={interpretation.overview?.headline}>
+          {body("overview", interpretation.overview && <OverviewBlock s={interpretation.overview} />)}
         </Chapter>
 
         <Chapter {...ch(2)}>
-          <div className="rp-wheelbox">
-            <NatalWheel
-              chartData={chartData}
-              orbs={interpretation.meta.orbs}
-              renderHouse={(house) => (
-                <HouseCard
-                  house={house}
-                  sign={houseSign(house, asc.absoluteDegree)}
-                  occupants={occupants[house] ?? []}
-                  personalPlanets={interpretation.personalPlanets}
-                  angleMeanings={angles}
-                  open
-                />
-              )}
-            />
+          <ChartExplorer
+            chartData={chartData}
+            orbs={interpretation.meta.orbs}
+            readings={interpretation.houses?.houses}
+            triad={interpretation.triad}
+            birthPlace={report.birthPlace}
+            onAddBirthTime={report.profileId ? openTime : undefined}
+          />
+
+          <div className="mt-10">
+            {body("overview", interpretation.overview && <DeepdiveBlock s={interpretation.overview} />)}
+            <div className="mt-6">
+              <BalanceRail chartData={chartData} />
+            </div>
           </div>
 
-          <div className="mt-6">
-            <HouseGrid
-              chartData={chartData}
-              personalPlanets={interpretation.personalPlanets}
-              angleMeanings={angles}
-            />
-          </div>
-
-          {/* Personal planet detail cards — print-only, so the exported PDF
-              carries the applied interpretation under the wheel. */}
+          {/* Print only: the PDF is where the composed per-planet and angle text
+              lives, since the cards on screen now read the generated section. */}
           <div className="hidden print:block mt-5 space-y-3">
             {(["mercury", "venus", "mars", "jupiter", "saturn"] as const).map((name) => {
-              const text = interpretation.personalPlanets[name];
+              const text = interpretation.personalPlanets?.[name];
               const planet = chartData.planets[name];
               if (!text || !planet) return null;
               return (
@@ -266,18 +306,24 @@ export default function ReportPage() {
                         {PLANET_LABELS[name]} in {planet.sign}
                       </span>
                     </div>
-                    <span className="font-numeric text-[11px] text-muted-foreground">
-                      H{planet.house}
-                    </span>
+                    {planet.house && <span className="font-numeric text-[11px] text-muted-foreground">H{planet.house}</span>}
                   </div>
                   <p className="text-sm leading-relaxed text-foreground/80">{text}</p>
                 </div>
               );
             })}
+            {angles && !blind && (
+              <div className="p-5 rounded-xl border border-border/60 bg-card/40">
+                <p className="font-label text-xs text-muted-foreground tracking-wider uppercase mb-2">Angles</p>
+                <p className="text-sm leading-relaxed text-foreground/80">{angles.ascendant.firstImpression}</p>
+                <p className="text-sm leading-relaxed text-foreground/80 mt-2">{angles.ascendant.orientationStyle}</p>
+                <p className="text-sm leading-relaxed text-foreground/80 mt-2">{angles.midheaven.publicDirection}</p>
+                <p className="text-sm leading-relaxed text-foreground/80 mt-2">{angles.midheaven.whereYouThrive}</p>
+              </div>
+            )}
           </div>
 
-          {/* Placement table — print only; the PDF is the one place every
-              degree appears. */}
+          {/* Placement table, print only; the PDF is the one place every degree appears. */}
           <div className="hidden print:block print:mt-8">
             <div className="rounded-xl border border-border/60 bg-card/40 divide-y divide-border/30 overflow-hidden">
               <div className="px-5 py-3 bg-muted/20">
@@ -287,14 +333,7 @@ export default function ReportPage() {
                 {mainPlanets.map((name) => {
                   const planet = chartData.planets[name];
                   if (!planet) return null;
-                  return (
-                    <PlanetRow
-                      key={name}
-                      name={name}
-                      planet={planet}
-                      meaning={interpretation.personalPlanets?.[name]}
-                    />
-                  );
+                  return <PlanetRow key={name} name={name} planet={planet} meaning={interpretation.personalPlanets?.[name]} />;
                 })}
               </div>
               <div className="px-5 py-3 bg-muted/20">
@@ -304,122 +343,65 @@ export default function ReportPage() {
                 {minorPlanets.map((name) => {
                   const planet = chartData.planets[name];
                   if (!planet) return null;
-                  return (
-                    <PlanetRow
-                      key={name}
-                      name={name}
-                      planet={planet}
-                      meaning={interpretation.personalPlanets?.[name]}
-                    />
-                  );
+                  return <PlanetRow key={name} name={name} planet={planet} meaning={interpretation.personalPlanets?.[name]} />;
                 })}
               </div>
             </div>
           </div>
         </Chapter>
 
-        <Chapter {...ch(3)}>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="rp-box" style={{ marginTop: 0, maxWidth: "none" }}>
-              <span className="rp-lab block mb-4">Elements</span>
-              <div className="space-y-3">
-                {Object.entries(chartData.elements).map(([el, count]) => (
-                  <Bar key={el} label={el} count={count} total={totalPlanets} color={ELEMENT_HEX[el] ?? "var(--accent)"} />
-                ))}
-              </div>
-            </div>
-            <div className="rp-box" style={{ marginTop: 0, maxWidth: "none" }}>
-              <span className="rp-lab block mb-4">Modalities</span>
-              <div className="space-y-3">
-                {Object.entries(chartData.modalities).map(([mod, count]) => (
-                  <Bar key={mod} label={mod} count={count} total={totalPlanets} color="var(--accent)" />
-                ))}
-              </div>
-              <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--line-soft)" }}>
-                <div className="flex justify-between font-numeric text-xs">
-                  <span style={{ color: "var(--muted)" }}>Dominant</span>
-                  <span className="capitalize" style={{ color: "var(--paper-dim)" }}>
-                    {chartData.dominance.dominantElement} · {chartData.dominance.dominantModality}
-                  </span>
-                </div>
-                {chartData.chartShape && (
-                  <div className="flex justify-between font-numeric text-xs mt-1.5">
-                    <span style={{ color: "var(--muted)" }}>Chart shape</span>
-                    <span className="capitalize" style={{ color: "var(--paper-dim)" }}>{chartData.chartShape}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+        <Chapter {...ch(3)} aside={interpretation.mind ? <MindRail s={interpretation.mind} /> : undefined}>
+          {body("mind", interpretation.mind && <MindBlock s={interpretation.mind} />)}
         </Chapter>
 
-        <Chapter {...ch(4)}>
-          <TriadBlock s={interpretation.triad} />
+        <Chapter {...ch(4)} aside={interpretation.career ? <CareerRail s={interpretation.career} /> : undefined}>
+          {body("career", interpretation.career && <CareerBlock s={interpretation.career} />)}
         </Chapter>
 
-        <Chapter {...ch(5)}>
-          <MindBlock s={interpretation.mind} />
+        <Chapter {...ch(5)} aside={interpretation.money ? <MoneyRail s={interpretation.money} /> : undefined}>
+          {body("money", interpretation.money && <MoneyBlock s={interpretation.money} />)}
         </Chapter>
 
-        <Chapter {...ch(6)}>
-          <CareerBlock s={interpretation.career} />
+        <Chapter {...ch(6)} aside={interpretation.relationships ? <RelationshipsRail s={interpretation.relationships} /> : undefined}>
+          {body("relationships", interpretation.relationships && <RelationshipsBlock s={interpretation.relationships} />)}
         </Chapter>
 
-        <Chapter {...ch(7)}>
-          <MoneyBlock s={interpretation.money} />
+        <Chapter {...ch(7)} aside={interpretation.family ? <FamilyRail s={interpretation.family} /> : undefined}>
+          {body("family", interpretation.family && <FamilyBlock s={interpretation.family} />)}
         </Chapter>
 
         <Chapter {...ch(8)}>
-          <RelationshipsBlock s={interpretation.relationships} />
+          {body("superpowers", interpretation.superpowers && <SuperpowersBlock s={interpretation.superpowers} />)}
         </Chapter>
 
         <Chapter {...ch(9)}>
-          <FamilyBlock s={interpretation.family} />
+          {body("discoveries", interpretation.discoveries && <DiscoveriesBlock s={interpretation.discoveries} />)}
         </Chapter>
 
         <Chapter {...ch(10)}>
-          <SuperpowersBlock s={interpretation.superpowers} />
-        </Chapter>
-
-        <Chapter {...ch(11)}>
-          <DiscoveriesBlock s={interpretation.discoveries} />
-        </Chapter>
-
-        <Chapter {...ch(12)}>
-          <FocusBlock s={interpretation.focus} />
+          {body("focus", interpretation.focus && <DawnClosing s={interpretation.focus} />)}
         </Chapter>
 
         <div className="rp-chapter">
-          <BirthLocationHorizon
-            birthPlace={report.birthPlace}
-            birthTime={report.birthTime}
-            latitude={report.latitude}
-            longitude={report.longitude}
-            ascendantSign={asc.sign}
-            ascendantDegree={asc.degree}
-            ascendantAbsoluteDegree={asc.absoluteDegree}
-          />
-
-          <MethodologyStrip meta={interpretation.meta} />
-
-          <div className="text-center pt-8 no-print flex flex-col items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-label text-primary/90">
-              <Check className="h-4 w-4" />
-              Saved to your account
-            </div>
-            <Button
-              onClick={handlePrint}
-              size="lg"
-              variant="outline"
-              className="font-label font-semibold px-8"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export Report as PDF
-            </Button>
-            <p className="text-muted-foreground text-xs">Use your browser's Save as PDF option</p>
-          </div>
+          <MethodologyStrip meta={interpretation.meta} chart={chartData} birthTime={report.birthTime} pass={horizonPass} />
         </div>
       </main>
+
+      {askTime && report.profileId && (
+        <BirthTimeDialog
+          open={askTime}
+          onClose={() => setAskTime(false)}
+          onDone={refresh}
+          profile={{
+            id: report.profileId, name: report.name, birthDate: report.birthDate, birthTime: report.birthTime,
+            birthTimeWindowMinutes: report.birthTimeWindowMinutes, birthPlace: report.birthPlace,
+            latitude: report.latitude, longitude: report.longitude, timezone: report.timezone, timezoneOffset: report.timezoneOffset,
+            horizonPasses: report.horizonPasses,
+          }}
+        />
+      )}
     </div>
+    </RevisionProvider>
+    </WorkbookProvider>
   );
 }

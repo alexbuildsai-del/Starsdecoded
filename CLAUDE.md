@@ -1,8 +1,8 @@
 # CLAUDE.md — working on Stars Decoded
 
 Stars Decoded computes a natal chart locally (`astronomy-engine`, whole sign)
-and writes a 4,000 to 4,500 word psychological report with OpenAI, grounded in a
-written doctrine and a per-chart brief. One-time purchase. The report is the
+and writes a 3,500 to 5,500 word psychological report with OpenAI, grounded in
+a written doctrine and a per-chart brief. One-time purchase. The report is the
 product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 ## Working with the Owner
@@ -100,21 +100,21 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   run twice breaks the deploy.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`,
   `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
-  `/report-lab` runs before the PR merges; otherwise only when the Owner asks.
-  Never generate a report to look at one. Every model id lives in `models.ts`
-  with its price; one outside the catalogue does not compile.
+  `/report-lab` runs on staging right after the merge by dispatching
+  `report-lab.yml`; no key or network is needed here. Never generate a report to
+  look at one. Every model id lives in `models.ts` with its price; one outside
+  the catalogue does not compile.
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-17)
+## Current focus (2026-09-19)
 
-1. R03 Owner acceptance pending (`docs/rounds/R03-report.md`): the natal report
-   UI lands whole — Observatory type, the wheel drawn from real degrees,
-   citations as superscripts, no invented prose, so the grid says less (ADR-18).
-2. Staging landing (`docs/specs/draft/staging-environment.md`): `production` sits
-   at the pre-staging `main`; the Owner works the runbook, switches the
-   dashboards, then the first Promote ships it.
-3. R01 acceptance pending. Next: pricing (MB-5), Stripe test mode on staging.
+1. R05 merged to staging (#52): pass three (ADR-46 to 51), unknown birth time
+   (ADR-33 to 38), the compatibility report (ADR-39 to 45); prompts v6 and p1.
+   The three lab campaigns run from `report-lab.yml`, pasted into `docs/rounds/R05-report.md`.
+2. Owner acceptance on staging for R01, R03, R04 and R05, in that order.
+3. Staging landing (`docs/specs/draft/staging-environment.md`): the Owner works the
+   runbook, then the first Promote. Pricing (MB-5) and Stripe (MB-6) next; MB-57 waits on them.

@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "seed:prompts": "tsx ./src/seed-prompt-templates.ts",
+    "prompts:reset-stale": "tsx ./src/reset-stale-prompt-overrides.ts",
     "backfill:is-self": "tsx ./src/backfill-profile-is-self.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "report:lab": "tsx ./src/report-lab.ts",
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
     "generate:vocabulary": "tsx ./src/generate-vocabulary.ts"
   },
   "dependencies": {

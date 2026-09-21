@@ -14,7 +14,7 @@ import {
   useCreateInvite,
   getListProfilesQueryKey,
   getListRelationshipsQueryKey,
-  getGetSynastryReportQueryKey,
+  getGetReportQueryKey,
   getListInvitesQueryKey,
   type InviteSummary,
 } from "@workspace/api-client-react";
@@ -65,7 +65,7 @@ export default function InviteModal({
         qc.invalidateQueries({ queryKey: getListRelationshipsQueryKey() });
         qc.invalidateQueries({ queryKey: getListInvitesQueryKey({ profileId }) });
         if (reportId) {
-          qc.invalidateQueries({ queryKey: getGetSynastryReportQueryKey(reportId) });
+          qc.invalidateQueries({ queryKey: getGetReportQueryKey(reportId) });
         }
       },
     },

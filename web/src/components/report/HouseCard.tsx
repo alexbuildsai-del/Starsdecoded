@@ -1,64 +1,77 @@
 /**
- * Every word on the back is a string the report already emitted. If nothing
- * generated applies, the back says nothing: the UI does not write astrological
- * prose about this reader (ADR-18).
+ * One house, front and back. The front is drawn from the chart: who stands
+ * there, at what degree. The back is the report's own words, the triad passage
+ * this house carries and the generated reading (ADR-21). The card writes no
+ * astrological prose of its own.
  */
-import { useEffect, useState } from "react";
-import { PLANET_LABELS, type AngleMeanings } from "@/types/chart";
+import { PLANET_GLYPHS, type Claim } from "@/types/chart";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
+import { CitedText, newCitationCounter } from "@/components/report/Citation";
+import { AngleGlyph, type AngleKey } from "@/components/report/AngleGlyph";
+import type { Occupant } from "@/lib/house-occupants";
 import {
   HOUSE_NAMES, HOUSE_QUESTIONS, HOUSE_THEMES, ORDINALS, QUADRANTS,
 } from "@/lib/evidence-glossary";
+import { PLANET_LABELS } from "@/types/chart";
 
-export interface HouseCardProps {
-  house: number;
-  /** The whole-sign sign on this house. */
-  sign: string;
-  /** Body keys that actually sit in this house. */
-  occupants: string[];
-  personalPlanets: Record<string, string>;
-  angleMeanings?: AngleMeanings;
-  /** Start on the back, as the wheel's side panel does. */
-  open?: boolean;
-  className?: string;
-}
+/** Which chapter picks a house's affairs up. Houses not listed here send nowhere (ADR-46: no Your Path). */
+export const HOUSE_CHAPTER: Record<number, { number: number; title: string }> = {
+  1: { number: 3, title: "Mind" },
+  2: { number: 5, title: "Money" },
+  3: { number: 3, title: "Mind" },
+  4: { number: 7, title: "Family" },
+  7: { number: 6, title: "Relationships" },
+  10: { number: 4, title: "Career" },
+};
 
-interface BackLine {
+export interface TriadPassage {
   key: string;
   label: string;
   text: string;
 }
 
+export interface HouseCardProps {
+  house: number;
+  /** The whole-sign sign on this house. */
+  sign: string;
+  occupants: Occupant[];
+  /** The generated reading for this house, absent while the section is still writing. */
+  reading?: string;
+  /** The triad passages this house carries, in the order they should be read. */
+  triad?: TriadPassage[];
+  triadClaims?: Claim[];
+  flipped: boolean;
+  onFlip: () => void;
+  className?: string;
+}
+
+function OccupantMark({ o }: { o: Occupant }) {
+  if (o.kind === "planet") {
+    const src = PLANET_RENDERS[o.key];
+    return src
+      ? <img src={src} alt="" width={36} height={36} className="h-9 w-9" loading="lazy" />
+      : <span aria-hidden className="grid h-9 w-9 place-items-center text-lg text-brass/80">·</span>;
+  }
+  if (o.kind === "point") {
+    return (
+      <span aria-hidden className="grid h-9 w-9 place-items-center rounded-full border border-brass/35 text-base text-brass/90">
+        {PLANET_GLYPHS[o.key] ?? "·"}
+      </span>
+    );
+  }
+  // The R03 marker (ADR-49): the tick points east for the Ascendant, up for the Midheaven.
+  return <AngleGlyph angle={o.key as AngleKey} size={36} className="h-9 w-9" />;
+}
+
 export function HouseCard({
-  house, sign, occupants, personalPlanets, angleMeanings, open = false, className = "",
+  house, sign, occupants, reading, triad, triadClaims, flipped, onFlip, className = "",
 }: HouseCardProps) {
-  const [flipped, setFlipped] = useState(open);
-  useEffect(() => setFlipped(open), [open]);
-
   const i = house - 1;
-  const ruler = TRADITIONAL_RULER[sign];
-  const readThroughRuler = occupants.length === 0 && !!ruler;
-
-  const lines: BackLine[] = [];
-  if (house === 1 && angleMeanings?.ascendant?.firstImpression) {
-    lines.push({ key: "asc", label: "Rising", text: angleMeanings.ascendant.firstImpression });
-  }
-  if (house === 10 && angleMeanings?.midheaven?.whereYouThrive) {
-    lines.push({ key: "mc", label: "Midheaven", text: angleMeanings.midheaven.whereYouThrive });
-  }
-  for (const body of occupants) {
-    const text = personalPlanets?.[body];
-    if (text) lines.push({ key: body, label: PLANET_LABELS[body] ?? body, text });
-  }
-  if (readThroughRuler) {
-    const text = personalPlanets?.[ruler];
-    if (text) lines.push({ key: ruler, label: PLANET_LABELS[ruler] ?? ruler, text });
-  }
-
-  const rulerNote = readThroughRuler && lines.length > 0
-    ? `Read through ${PLANET_LABELS[ruler] ?? ruler}, which rules ${sign}`
-    : null;
+  const rulerKey = TRADITIONAL_RULER[sign];
+  const quiet = occupants.length === 0;
+  const chapter = HOUSE_CHAPTER[house];
+  const counter = newCitationCounter();
 
   return (
     <div
@@ -66,91 +79,92 @@ export function HouseCard({
       tabIndex={0}
       aria-label={`${ORDINALS[i]} house card`}
       aria-pressed={flipped}
-      onClick={() => setFlipped((f) => !f)}
+      onClick={onFlip}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          setFlipped((f) => !f);
+          onFlip();
         }
       }}
-      className={`relative overflow-hidden rounded-xl border bg-card/40 p-5 text-left cursor-pointer transition-colors min-h-[19rem] flex flex-col ${
-        occupants.length ? "border-primary/40" : "border-border/50"
+      className={`relative flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border bg-card/40 p-5 text-left transition-colors ${
+        quiet ? "border-border/50" : "border-primary/40"
       } ${className}`}
     >
       <span
         aria-hidden
-        className="pointer-events-none absolute -top-4 right-2 font-display text-[7rem] leading-none text-foreground/[0.045] select-none"
+        className="pointer-events-none absolute -top-4 right-2 select-none font-display text-[7rem] leading-none text-foreground/[0.045]"
       >
         {house < 10 ? `0${house}` : house}
       </span>
 
+      <p className="rp-kicker">{ORDINALS[i]} house · {sign}</p>
+
       {flipped ? (
         <>
-          <p className="font-label text-[10px] tracking-[0.18em] uppercase text-muted-foreground">
-            {ORDINALS[i]} house · {sign.toUpperCase()}
-          </p>
-          <h4 className="font-display text-lg leading-snug mt-1 mb-3 text-foreground">
+          <h4 className="mb-3 mt-1 font-display text-lg leading-snug text-foreground">
             {HOUSE_QUESTIONS[i]}
           </h4>
-          {rulerNote && (
-            <p className="font-label text-[10px] tracking-[0.14em] uppercase text-brass/80 mb-2">
-              {rulerNote}
-            </p>
-          )}
-          <div className="space-y-3 text-sm leading-[1.6] text-foreground/85 flex-1 overflow-y-auto pr-1">
-            {lines.map((l) => (
-              <p key={l.key}>
-                <span className="font-label text-[10px] tracking-[0.16em] uppercase text-primary/80 mr-1.5">
-                  {l.label}
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-sm leading-[1.6] text-foreground/85">
+            {triad?.map((t) => (
+              <p key={t.key}>
+                <span className="mr-1.5 font-label text-[10px] uppercase tracking-[0.16em] text-primary/80">
+                  {t.label}
                 </span>
-                {l.text}
+                {CitedText({ text: t.text, claims: triadClaims, counter })}
               </p>
             ))}
+            {reading
+              ? <p>{reading}</p>
+              : (
+                <p className="font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+                  Still writing this card
+                </p>
+              )}
           </div>
-          {lines.length > 0 && (
-            <p className="mt-4 pt-3 border-t border-border/40 font-label text-[9px] tracking-[0.2em] uppercase text-muted-foreground/70">
-              From your report
-            </p>
+          {chapter && (
+            <a
+              href={`#chapter-${chapter.number}`}
+              onClick={(e) => e.stopPropagation()}
+              className="mt-4 border-t border-border/40 pt-3 font-label text-[9px] uppercase tracking-[0.2em] text-brass/80 hover:text-brass"
+            >
+              Read chapter · {chapter.title} →
+            </a>
           )}
         </>
       ) : (
         <>
-          <p className="font-label text-[10px] tracking-[0.18em] uppercase text-muted-foreground">
-            {ORDINALS[i]} house · {sign.toUpperCase()}
-          </p>
-          <h4 className="font-display text-2xl leading-tight mt-1 text-foreground">
+          <h4 className="mt-1 font-display text-2xl leading-tight text-foreground">
             {HOUSE_NAMES[i]}
           </h4>
-          <p className="text-xs leading-relaxed text-muted-foreground/85 mt-1.5">
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground/85">
             {HOUSE_THEMES[i]}
           </p>
-          <div className="flex flex-wrap items-center gap-3 mt-5 flex-1 content-start">
-            {occupants.length > 0 ? (
-              occupants.map((body) => {
-                const src = PLANET_RENDERS[body];
-                const label = PLANET_LABELS[body] ?? body;
-                return (
-                  <span key={body} className="inline-flex items-center gap-1.5">
-                    {src
-                      ? <img src={src} alt="" width={40} height={40} className="w-10 h-10" loading="lazy" />
-                      : <span aria-hidden className="w-10 h-10 grid place-items-center text-brass/80 text-lg">·</span>}
-                    <span className="font-label text-[10px] tracking-[0.12em] uppercase text-foreground/70">
-                      {label}
+          <div className="mt-5 min-h-0 flex-1 content-start overflow-y-auto">
+            {quiet ? (
+              <p className="font-label text-[10px] uppercase tracking-[0.14em] text-muted-foreground/80">
+                Quiet house · Influenced by {PLANET_LABELS[rulerKey] ?? rulerKey}, ruler of {sign}
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
+                {occupants.map((o) => (
+                  <span key={o.key} className="inline-flex items-center gap-1.5">
+                    <OccupantMark o={o} />
+                    <span className="font-label text-[10px] uppercase tracking-[0.12em] text-foreground/70">
+                      {o.label}
+                      {o.kind === "angle" && (
+                        <span className="ml-1 font-numeric text-brass/90">{o.degree.toFixed(1)}°</span>
+                      )}
                     </span>
                   </span>
-                );
-              })
-            ) : (
-              <span className="font-label text-[10px] tracking-[0.14em] uppercase text-muted-foreground/70">
-                No planet sits here
-              </span>
+                ))}
+              </div>
             )}
           </div>
-          <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between">
-            <span className="font-label text-[9px] tracking-[0.2em] uppercase text-brass/70">
+          <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
+            <span className="font-label text-[9px] uppercase tracking-[0.2em] text-brass/70">
               {QUADRANTS[Math.floor(i / 3)]}
             </span>
-            <span className="font-label text-[9px] tracking-[0.16em] uppercase text-muted-foreground/70">
+            <span className="font-label text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
               Read →
             </span>
           </div>

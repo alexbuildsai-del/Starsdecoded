@@ -16,7 +16,7 @@ export const discoveries: SectionSpec<typeof DiscoveriesSchema> = {
   key: "natal:discoveries",
   label: "Key Paradoxes & Discoveries",
   adminLabel: "Key Paradoxes",
-  wordTarget: [400, 450],
+  wordTarget: [400, 500],
   maxTokens: 3_000,
   schema: DiscoveriesSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
@@ -24,7 +24,7 @@ export const discoveries: SectionSpec<typeof DiscoveriesSchema> = {
 
 Each paradox: a title of 2 to 5 words; 80 to 100 words showing the two things that do not naturally go together, as lived behaviour the reader will recognise; then 40 to 60 words on what it invites, ending on possibility.
 
-A paradox is a real insight, not a clever opposite. Do not repeat material from the Overview or Superpowers. No planet, sign, or house names in the prose. 400 to 450 words total.
+A paradox is a real insight, not a clever opposite. Do not repeat material from the Overview or Superpowers. No planet, sign, or house names in the prose. 400 to 500 words total.
 
 Sect. The benefic out of sect is a strong paradox source: help that arrives unreliably or at a cost. A dignified planet that is out of sect is another.`,
 };

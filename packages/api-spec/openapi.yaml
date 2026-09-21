@@ -15,7 +15,11 @@ tags:
   - name: profiles
     description: Person/profile management ("My People")
   - name: synastry
-    description: Two-person relationship (synastry) reports
+    description: Relationships between two people, and the retired chart-to-chart synastry report (never listed, MB-58)
+  - name: compatibility
+    description: The compatibility report, written from two finished natal reports
+  - name: horizon
+    description: What a birth time settles, before anything is paid
   - name: invites
     description: Invite & claim flow for sharing a synastry report with the other person
   - name: credits
@@ -40,7 +44,7 @@ paths:
       operationId: listReports
       tags: [reports]
       summary: List all reports
-      description: Returns all reports visible to the viewer — both natal reports and synastry (compatibility) reports. Use the `kind` discriminator to distinguish.
+      description: Returns the natal and compatibility reports visible to the viewer. Old synastry rows are never listed. Use the `kind` discriminator to distinguish.
       responses:
         "200":
           description: List of reports
@@ -80,7 +84,10 @@ paths:
       operationId: getReport
       tags: [reports]
       summary: Get a report by ID
-      description: Returns a complete natal chart report including chart data and AI interpretation
+      description: >
+        Returns a report with its chart data and interpretation. A compatibility
+        report carries `lens` and `participants` (both people with their charts)
+        and its birth fields are the first participant's.
       parameters:
         - name: id
           in: path
@@ -105,9 +112,9 @@ paths:
       tags: [reports]
       summary: Delete a report
       description: >
-        Deletes a natal report the viewer owns. The profile behind it is
-        deleted too when no other report or relationship references it.
-        Synastry reports cannot be deleted yet.
+        Deletes a report the viewer owns. The profile behind a natal report is
+        deleted too when no other report or relationship references it. A
+        compatibility report is deleted through the relationship's access roles.
       parameters:
         - name: id
           in: path
@@ -119,12 +126,6 @@ paths:
           description: Report deleted
         "404":
           description: Report not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Report cannot be deleted in its current form
           content:
             application/json:
               schema:
@@ -149,6 +150,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReportStatus"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reports/{id}/workbook:
+    patch:
+      operationId: updateReportWorkbook
+      tags: [reports]
+      summary: Tick or untick workbook items on a report
+      description: >
+        Shallow-merges the patch into the report's workbook, the reader's own
+        record of which actions they have taken. A string value is the ISO date
+        of the tick, null removes the item. Returns the merged workbook. The
+        viewer must own the report.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkbookPatch"
+      responses:
+        "200":
+          description: The merged workbook
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workbook"
+        "400":
+          description: Unusable item key or value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Report not found
           content:
@@ -282,6 +325,146 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/{id}/birth-time:
+    patch:
+      operationId: updateProfileBirthTime
+      tags: [profiles, horizon]
+      summary: Add or correct the birth time and run the horizon pass
+      description: >
+        Owner only. Stores the new time and window on the profile, recomputes
+        its chart, and runs a horizon pass on every complete report of the
+        profile: the previous text is kept in report_revisions, the horizon
+        sections are generated and the rest is amended by quote match, never
+        regenerated (ADR-35). The first pass is free (MB-52).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBirthTimeBody"
+      responses:
+        "202":
+          description: The pass has started on the listed reports
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BirthTimeUpdateResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found or not owned by the viewer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: A pass is already running on one of the profile's reports
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /horizon/preview:
+    post:
+      operationId: previewHorizon
+      tags: [horizon]
+      summary: What the entered birth time settles
+      description: >
+        Sweeps the birth-time band with the engine and returns, per fact,
+        whether it holds and where it flips. Pure of the database: nothing is
+        stored, no profile is read, no model is called. Small enough to poll on
+        every debounced change of the form.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HorizonPreviewBody"
+      responses:
+        "200":
+          description: The horizon facts across the band
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Horizon"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /compatibility:
+    post:
+      operationId: createCompatibilityReport
+      tags: [compatibility]
+      summary: Write a compatibility report from two finished natal reports
+      description: >
+        Both reports must be complete and visible to the viewer. Reads their
+        stored interpretations and cached charts; no birth data is read and
+        nothing is regenerated (ADR-39). The report streams through
+        GET /reports/{id} and /reports/{id}/status like a natal report.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompatibilityBody"
+      responses:
+        "201":
+          description: Report created and generation started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompatibilityCreateResponse"
+        "400":
+          description: Validation error, or a report that is not complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: A report was not found or not visible to the viewer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /compatibility/{id}/summary:
+    get:
+      operationId: getCompatibilitySummary
+      tags: [compatibility]
+      summary: The two names, the lens and the status of a compatibility report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompatibilitySummary"
+        "404":
+          description: Not found
           content:
             application/json:
               schema:
@@ -448,10 +631,10 @@ paths:
       operationId: getCredits
       tags: [credits]
       summary: Get the current user's credit counts
-      description: Returns available and used credit counts by type for the signed-in user. Returns all zeros for anonymous users.
+      description: One credit is one report, whatever the report (ADR-42). Returns the signed-in user's available and used counts, zeros for anonymous users.
       responses:
         "200":
-          description: Credit counts by type
+          description: Credit counts
           content:
             application/json:
               schema:
@@ -688,7 +871,13 @@ components:
           description: Longitude of birth place
         timezoneOffset:
           type: number
-          description: UTC offset in hours (e.g. 1 for CET)
+          description: UTC offset in hours (e.g. 1 for CET). Used only when no `timezone` is given.
+        timezone:
+          type: string
+          description: IANA zone name of the birth place. The offset in force at the birth instant derives from it (MB-48).
+        birthTimeWindowMinutes:
+          type: integer
+          description: Half-width of the birth-time band around `birthTime`. 0 exact, 180 a part of the day, 720 unknown (ADR-33). Default 0.
         isForSelf:
           type: boolean
           description: >
@@ -713,11 +902,11 @@ components:
           type: string
         kind:
           type: string
-          enum: [natal, synastry]
-          description: Discriminator for the kind of report. Natal rows describe a single profile; synastry rows describe a relationship between two profiles.
+          enum: [natal, compatibility]
+          description: Natal rows describe a single profile; compatibility rows describe a relationship between two profiles.
         name:
           type: string
-          description: Display name. For natal, the profile's name. For synastry, a joined label like "Alice · Bob".
+          description: Display name. For natal, the profile's name. For compatibility, "{A} & {B}".
         birthDate:
           type: string
           description: Only set for natal reports.
@@ -729,7 +918,12 @@ components:
           description: Only set for natal reports.
         status:
           type: string
-          enum: [pending, computing, interpreting, complete, failed]
+          enum: [pending, computing, interpreting, revising, complete, failed]
+        horizon:
+          type: string
+          enum: [known, approximate, unknown]
+          nullable: true
+          description: The natal chart's horizon status, so a blind report's tile can carry the call to action.
         archetypeName:
           description: The report's overview headline (kept under its historical name for client compatibility). Null until the report completes.
           type: string
@@ -746,18 +940,21 @@ components:
         profileId:
           type: string
           nullable: true
-          description: Profile ID for natal reports. Null for synastry reports.
+          description: Profile ID for natal reports. Null for compatibility reports.
         relationshipId:
           type: string
           nullable: true
-          description: Set for synastry reports.
+          description: Set for compatibility reports.
         relationshipType:
           type: string
           nullable: true
-          description: Relationship type (romantic, parent_child, sibling, custom). Set for synastry reports.
+          description: The lens (partners, parent_child, family). Set for compatibility reports.
+        lens:
+          $ref: "#/components/schemas/RelationshipType"
+          nullable: true
         participants:
           type: array
-          description: Participant summaries. Set for synastry reports.
+          description: Participant summaries. Set for compatibility reports.
           items:
             type: object
             properties:
@@ -793,21 +990,48 @@ components:
           type: string
         status:
           type: string
-          enum: [pending, computing, interpreting, complete, failed]
-        progress:
-          type: number
-          description: Progress percentage 0-100
-        currentStep:
-          type: string
-          nullable: true
-          description: Human-readable current step description
+          enum: [pending, computing, interpreting, revising, complete, failed]
         errorMessage:
           type: string
+          nullable: true
+        chartReady:
+          description: The chart is stored, so the report page can open on the hero and the explorer.
+          type: boolean
+        provisional:
+          description: >
+            While the chart is not yet stored: every body's position on the
+            entered date and time at offset zero, from one local call, so the
+            orrery can run from the birth day (ADR-47). Null once the chart
+            exists, or when the profile is gone.
+          type: object
+          nullable: true
+          properties:
+            bodies:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  absoluteDegree:
+                    type: number
+                  retrograde:
+                    type: boolean
+                required: [absoluteDegree, retrograde]
+          required: [bodies]
+        sections:
+          description: One entry per section of the report's type, "done" once that section is stored.
+          type: object
+          additionalProperties:
+            type: string
+            enum: [pending, done]
+        interpretation:
+          description: The interpretation so far. Sections appear as each call lands.
+          $ref: "#/components/schemas/ReportInterpretation"
           nullable: true
       required:
         - id
         - status
-        - progress
+        - chartReady
+        - sections
 
     PlanetPosition:
       type: object
@@ -820,17 +1044,118 @@ components:
           type: number
         house:
           type: integer
+          description: Whole-sign house. Absent when the horizon is unknown.
         retrograde:
           type: boolean
         speed:
           type: number
+        band:
+          description: Sun and Moon only, when the birth time is a band. Absolute degrees at the band's two ends.
+          type: object
+          properties:
+            fromDegree:
+              type: number
+            toDegree:
+              type: number
+          required: [fromDegree, toDegree]
       required:
         - sign
         - degree
         - absoluteDegree
-        - house
         - retrograde
         - speed
+
+    HorizonFact:
+      description: One fact the birth hour decides, swept across the band at two-minute steps.
+      type: object
+      properties:
+        value:
+          type: string
+          description: The value at the centre time.
+        holds:
+          type: boolean
+          description: True when the value never changed across the band.
+        flipsAt:
+          type: array
+          description: Local times (HH:MM) inside the band at which the value changed.
+          items:
+            type: string
+        values:
+          type: array
+          description: The sequence of values across the band.
+          items:
+            type: string
+        holdsFrom:
+          type: string
+          description: Where the centre value's run within the birth day begins (HH:MM).
+        holdsTo:
+          type: string
+          description: Where it ends (HH:MM, or 24:00).
+      required: [value, holds, flipsAt, values, holdsFrom, holdsTo]
+
+    Horizon:
+      description: The horizon as a status, never a guess (ADR-33).
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [known, approximate, unknown]
+        ascendant:
+          $ref: "#/components/schemas/HorizonFact"
+        midheaven:
+          $ref: "#/components/schemas/HorizonFact"
+        sect:
+          $ref: "#/components/schemas/HorizonFact"
+        moonSign:
+          $ref: "#/components/schemas/HorizonFact"
+        sunSign:
+          $ref: "#/components/schemas/HorizonFact"
+      required: [status, ascendant, midheaven, sect, moonSign, sunSign]
+
+    HorizonPreviewBody:
+      type: object
+      properties:
+        birthDate:
+          type: string
+        birthTime:
+          type: string
+          description: The band's centre, HH:MM.
+        birthTimeWindowMinutes:
+          type: integer
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+          description: IANA zone name. Preferred over `timezoneOffset`.
+        timezoneOffset:
+          type: number
+      required: [birthDate, birthTime, birthTimeWindowMinutes, latitude, longitude]
+
+    UpdateBirthTimeBody:
+      type: object
+      properties:
+        birthTime:
+          type: string
+        birthTimeWindowMinutes:
+          type: integer
+      required: [birthTime, birthTimeWindowMinutes]
+
+    BirthTimeUpdateResponse:
+      type: object
+      properties:
+        profileId:
+          type: string
+        horizon:
+          type: string
+          enum: [known, approximate, unknown]
+        reportIds:
+          type: array
+          description: The reports a pass has started on.
+          items:
+            type: string
+      required: [profileId, horizon, reportIds]
 
     Angle:
       type: object
@@ -879,11 +1204,22 @@ components:
           type: number
         timezoneOffset:
           type: number
+        timezone:
+          type: string
+        windowMinutes:
+          type: integer
+          description: Half-width of the birth-time band. 0 for an exact time.
+        horizon:
+          $ref: "#/components/schemas/Horizon"
+        sunAltitude:
+          type: number
+          description: True altitude of the Sun's centre at birth. Absent when the horizon is unknown.
         planets:
           type: object
           additionalProperties:
             $ref: "#/components/schemas/PlanetPosition"
         angles:
+          description: Absent when the horizon is unknown.
           type: object
           properties:
             ascendant:
@@ -900,6 +1236,7 @@ components:
             - descendant
             - ic
         houses:
+          description: Absent when the horizon is unknown.
           type: object
           additionalProperties:
             type: object
@@ -984,21 +1321,24 @@ components:
         - latitude
         - longitude
         - timezoneOffset
+        - horizon
         - planets
-        - angles
-        - houses
         - aspects
         - elements
         - modalities
         - dominance
 
     EvidenceRef:
-      description: A structured reference to the chart, verified by the API before storage. Fields vary by kind.
+      description: >
+        A structured reference to the chart, verified by the API before storage.
+        Fields vary by kind. `cross` and `source` belong to the compatibility
+        report: a cross-chart aspect or overlay, and a claim in one of the two
+        natal reports (ADR-44).
       type: object
       properties:
         kind:
           type: string
-          enum: [placement, aspect, ruler, lot, sect]
+          enum: [placement, aspect, ruler, lot, sect, angle, cross, source]
       required: [kind]
       additionalProperties: true
 
@@ -1032,6 +1372,44 @@ components:
         why:
           type: string
       required: [action, why]
+
+    ListedItem:
+      description: A named item and the concrete reason this chart fits it.
+      type: object
+      properties:
+        item:
+          type: string
+        reason:
+          type: string
+      required: [item, reason]
+
+    HouseReading:
+      description: One generated house-card reading, 40 to 70 words, ending on a behaviour check.
+      type: object
+      properties:
+        house:
+          type: integer
+        reading:
+          type: string
+      required: [house, reading]
+
+    Workbook:
+      description: The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick.
+      type: object
+      additionalProperties:
+        type: string
+
+    WorkbookPatch:
+      description: >
+        A shallow merge onto the report's workbook. A string value is the ISO
+        date the reader ticked the item, null unticks it. A key is a section id,
+        a dot path and an index, for example "career.actions.0".
+      type: object
+      minProperties: 1
+      maxProperties: 200
+      additionalProperties:
+        type: string
+        nullable: true
 
     ReportTriadPart:
       type: object
@@ -1091,11 +1469,164 @@ components:
           type: number
       required: [attempts, inputTokens, cachedInputTokens, outputTokens, reasoningTokens, ms]
 
+    PairPassage:
+      description: One passage of a compatibility chapter, tagged by where it came from (ADR-39).
+      type: object
+      properties:
+        text:
+          type: string
+        source:
+          type: string
+          enum: [natal, new]
+          description: natal is read from one of the two stored reports; new is written for the pair.
+        of:
+          type: string
+          enum: [A, B, both]
+      required: [text, source]
+
+    PairChapter:
+      type: object
+      properties:
+        headline:
+          type: string
+        passages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PairPassage"
+        claims:
+          type: array
+          items:
+            $ref: "#/components/schemas/Claim"
+      required: [headline, passages, claims]
+
+    PairChecklist:
+      type: object
+      properties:
+        intro:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionItem"
+      required: [intro, items]
+
+    PairPractise:
+      description: Chapter 09 of the compatibility report, three checklists and a closing paragraph.
+      type: object
+      properties:
+        opening:
+          type: string
+        forA:
+          $ref: "#/components/schemas/PairChecklist"
+        forB:
+          $ref: "#/components/schemas/PairChecklist"
+        forBoth:
+          $ref: "#/components/schemas/PairChecklist"
+        closing:
+          type: string
+        claims:
+          type: array
+          items:
+            $ref: "#/components/schemas/Claim"
+      required: [opening, forA, forB, forBoth, closing, claims]
+
+    PairLink:
+      description: One generated link card, 40 to 70 words, ending on a behaviour check (ADR-43).
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [flows, rubs, overlay]
+        planetA:
+          type: string
+        planetB:
+          type: string
+        aspect:
+          type: string
+        orb:
+          type: number
+        planet:
+          type: string
+          description: Overlay cards, the body that sits in the other chart's house.
+        of:
+          type: string
+          enum: [A, B]
+        house:
+          type: integer
+        reading:
+          type: string
+      required: [kind, reading]
+
+    PairLinks:
+      type: object
+      properties:
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/PairLink"
+      required: [links]
+
+    SectionRevisionMark:
+      description: One sentence a horizon pass changed, with what it said before and the evidence for the change.
+      type: object
+      properties:
+        before:
+          type: string
+        now:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/StoredEvidence"
+      required: [before, now, evidence]
+
+    SectionAddition:
+      type: object
+      properties:
+        text:
+          type: string
+        claims:
+          type: array
+          items:
+            $ref: "#/components/schemas/Claim"
+      required: [text, claims]
+
+    HorizonPass:
+      description: What the last horizon pass changed. Counts are the report's own; the page never recounts them (ADR-35).
+      type: object
+      properties:
+        at:
+          type: string
+        passes:
+          type: integer
+        sentencesRevised:
+          type: integer
+        paragraphsAdded:
+          type: integer
+        sections:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              amended:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SectionRevisionMark"
+              added:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SectionAddition"
+            required: [amended, added]
+      required: [at, passes, sentencesRevised, paragraphsAdded, sections]
+
     ReportInterpretation:
       description: >
-        V3 natal report. Every section is schema-enforced at generation time,
-        so all fields are always present and structured. Reports stored before
-        V3 lack `meta` and must be regenerated.
+        A report. Every section is schema-enforced at generation time, so a
+        section that is present is complete. Only `meta` is required, because
+        the report is readable while it writes and sections arrive one at a
+        time. A natal report carries the natal sections; a compatibility report
+        the pair sections (`meta.reportType`). A natal report whose horizon is
+        unknown has no `houses`, no `triad.rising` and no `angleMeanings`.
       type: object
       properties:
         meta:
@@ -1103,6 +1634,17 @@ components:
           properties:
             promptVersion:
               type: string
+            reportType:
+              type: string
+              enum: [natal, compatibility]
+            lens:
+              $ref: "#/components/schemas/RelationshipType"
+            horizon:
+              type: string
+              enum: [known, approximate, unknown]
+              description: Mirrors the chart's horizon status (ADR-34).
+            horizonPass:
+              $ref: "#/components/schemas/HorizonPass"
             model:
               description: >
                 The model every call used, or "mixed" when the foundation and
@@ -1126,6 +1668,7 @@ components:
             sect:
               type: string
               enum: [day, night]
+              description: Absent when the horizon is unknown, as are sectLight, sunAltitude and sectMarginal.
             sectLight:
               type: string
               enum: [sun, moon]
@@ -1171,7 +1714,7 @@ components:
                             type: string
                         required: [section, model]
               required: [model, costUsd, wallClockMs, totals, sections]
-          required: [promptVersion, model, houseSystem, generatedAt, wordCount, zodiac, ephemeris, orbs, sect, sectLight, sunAltitude, sectMarginal]
+          required: [promptVersion, model, houseSystem, generatedAt, wordCount, zodiac, ephemeris, orbs]
         overview:
           type: object
           properties:
@@ -1203,7 +1746,16 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
-          required: [sun, moon, rising, claims]
+          required: [sun, moon, claims]
+        houses:
+          description: The twelve house-card readings in order. They carry no claims, because the card is its own evidence.
+          type: object
+          properties:
+            houses:
+              type: array
+              items:
+                $ref: "#/components/schemas/HouseReading"
+          required: [houses]
         mind:
           type: object
           properties:
@@ -1233,11 +1785,15 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ActionItem"
+            careerPaths:
+              type: array
+              items:
+                $ref: "#/components/schemas/ListedItem"
             claims:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
-          required: [vocationalPull, howYouShowUp, growthThroughWork, actions, claims]
+          required: [vocationalPull, howYouShowUp, growthThroughWork, actions, careerPaths, claims]
         money:
           type: object
           properties:
@@ -1269,11 +1825,15 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ActionItem"
+            connectBestWith:
+              type: array
+              items:
+                $ref: "#/components/schemas/ListedItem"
             claims:
               type: array
               items:
                 $ref: "#/components/schemas/Claim"
-          required: [howYouLove, theChallenge, whatPartnershipAsks, actions, claims]
+          required: [howYouLove, theChallenge, whatPartnershipAsks, actions, connectBestWith, claims]
         family:
           type: object
           properties:
@@ -1390,21 +1950,57 @@ components:
                   type: string
               required: [publicDirection, whereYouThrive, atYourBest, underPressure]
           required: [ascendant, midheaven]
+        howYouMeet:
+          $ref: "#/components/schemas/PairChapter"
+        twoCharts:
+          $ref: "#/components/schemas/PairChapter"
+        twoWays:
+          $ref: "#/components/schemas/PairChapter"
+        whereItFlows:
+          $ref: "#/components/schemas/PairChapter"
+        whereItRubs:
+          $ref: "#/components/schemas/PairChapter"
+        howYouTalk:
+          $ref: "#/components/schemas/PairChapter"
+        lensOne:
+          $ref: "#/components/schemas/PairChapter"
+        lensTwo:
+          $ref: "#/components/schemas/PairChapter"
+        whatToPractise:
+          $ref: "#/components/schemas/PairPractise"
+        links:
+          $ref: "#/components/schemas/PairLinks"
       required:
         - meta
-        - overview
-        - triad
-        - mind
-        - career
-        - money
-        - relationships
-        - family
-        - superpowers
-        - discoveries
-        - focus
-        - personalPlanets
-        - aspectMeanings
-        - angleMeanings
+
+    ReportParticipant:
+      description: One of the two people of a compatibility report, with their chart.
+      type: object
+      properties:
+        id:
+          type: string
+        reportId:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          description: Positional. primary or secondary, or parent and child under that lens.
+        chartData:
+          $ref: "#/components/schemas/ChartData"
+          nullable: true
+      required: [id, reportId, name, role, chartData]
+
+    ReportRevisionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        reason:
+          type: string
+        createdAt:
+          type: string
+      required: [id, reason, createdAt]
 
     Report:
       type: object
@@ -1425,15 +2021,45 @@ components:
           type: number
         timezoneOffset:
           type: number
+        timezone:
+          type: string
+          nullable: true
+        birthTimeWindowMinutes:
+          type: integer
+        profileId:
+          type: string
+          nullable: true
+          description: The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.
+        type:
+          type: string
+          enum: [natal, compatibility]
+        lens:
+          $ref: "#/components/schemas/RelationshipType"
+          nullable: true
+        participants:
+          description: The two people of a compatibility report. Null on a natal report.
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/ReportParticipant"
+        horizonPasses:
+          type: integer
+        revisions:
+          description: The passes run on this report, newest last. The previous text is kept.
+          type: array
+          items:
+            $ref: "#/components/schemas/ReportRevisionSummary"
         status:
           type: string
-          enum: [pending, computing, interpreting, complete, failed]
+          enum: [pending, computing, interpreting, revising, complete, failed]
         chartData:
           $ref: "#/components/schemas/ChartData"
           nullable: true
         interpretation:
           $ref: "#/components/schemas/ReportInterpretation"
           nullable: true
+        workbook:
+          $ref: "#/components/schemas/Workbook"
         errorMessage:
           type: string
           nullable: true
@@ -1450,6 +2076,10 @@ components:
         - latitude
         - longitude
         - timezoneOffset
+        - birthTimeWindowMinutes
+        - type
+        - horizonPasses
+        - revisions
         - status
         - createdAt
         - updatedAt
@@ -1462,6 +2092,15 @@ components:
         birthDate: { type: string }
         birthTime: { type: string }
         birthPlace: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        timezoneOffset: { type: number }
+        timezone: { type: string, nullable: true }
+        birthTimeWindowMinutes: { type: integer }
+        horizon:
+          type: string
+          enum: [known, approximate, unknown]
+          nullable: true
         sunSign: { type: string, nullable: true }
         moonSign: { type: string, nullable: true }
         risingSign: { type: string, nullable: true }
@@ -1491,6 +2130,8 @@ components:
         latitude: { type: number }
         longitude: { type: number }
         timezoneOffset: { type: number }
+        timezone: { type: string, description: "IANA zone name; preferred over timezoneOffset (MB-48)." }
+        birthTimeWindowMinutes: { type: integer, description: "0 exact, 180 a part of the day, 720 unknown (ADR-33). Default 0." }
       required: [name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset]
 
     UpdateProfileBody:
@@ -1542,8 +2183,57 @@ components:
       required: [id, type, participants, createdAt]
 
     RelationshipType:
+      description: The lens (ADR-40).
       type: string
-      enum: [romantic, parent_child, sibling, custom]
+      enum: [partners, parent_child, family]
+
+    CreateCompatibilityBody:
+      type: object
+      properties:
+        reportAId: { type: string }
+        reportBId: { type: string }
+        lens:
+          $ref: "#/components/schemas/RelationshipType"
+        label: { type: string, nullable: true }
+        parent:
+          type: string
+          enum: [A, B]
+          description: Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role.
+      required: [reportAId, reportBId, lens]
+
+    CompatibilityCreateResponse:
+      type: object
+      properties:
+        id: { type: string }
+        relationshipId: { type: string }
+        status:
+          type: string
+          enum: [pending, computing, interpreting, complete, failed]
+      required: [id, relationshipId, status]
+
+    CompatibilitySummary:
+      type: object
+      properties:
+        id: { type: string }
+        relationshipId: { type: string }
+        lens:
+          $ref: "#/components/schemas/RelationshipType"
+        label: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [pending, computing, interpreting, revising, complete, failed]
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              reportId: { type: string }
+              name: { type: string }
+              role: { type: string }
+            required: [id, reportId, name, role]
+        createdAt: { type: string }
+      required: [id, relationshipId, lens, status, participants, createdAt]
 
     CreateRelationshipBody:
       type: object
@@ -1802,6 +2492,9 @@ components:
         timezoneOffset:
           type: number
           description: UTC offset in hours
+        timezone:
+          type: string
+          description: IANA zone name of the place, when known.
         placeType:
           type: string
           description: Nominatim place type (city, town, village, administrative, etc.)
@@ -1835,12 +2528,10 @@ components:
 
     CreditCounts:
       type: object
-      description: Credit balances broken down by report type
+      description: One credit kind (ADR-42). The typed breakdown went with it; the columns drop with payments (MB-57).
       properties:
-        natal:
-          $ref: "#/components/schemas/CreditBalance"
-        couple:
-          $ref: "#/components/schemas/CreditBalance"
-        parent_child:
-          $ref: "#/components/schemas/CreditBalance"
-      required: [natal, couple, parent_child]
+        available:
+          type: integer
+        used:
+          type: integer
+      required: [available, used]

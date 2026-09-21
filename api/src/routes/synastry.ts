@@ -511,10 +511,9 @@ router.post("/synastry", async (req, res) => {
 
     kickoffSynastryGeneration(reportId, profileA, profileB, req.log, effectiveType);
 
-    // Soft-consume the appropriate credit type for signed-in users.
+    // Soft-consume one credit for signed-in users: one credit is one report (ADR-42).
     if (req.userId) {
-      const creditType = effectiveType === "parent_child" ? "parent_child" : "couple";
-      consumeCredit(req.userId, creditType, reportId).catch((err) => {
+      consumeCredit(req.userId, reportId).catch((err) => {
         req.log.error({ err, reportId }, "Failed to consume synastry credit");
       });
     }

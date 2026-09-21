@@ -5,11 +5,7 @@ const router = Router();
 
 router.get("/credits", async (req, res) => {
   if (!req.userId) {
-    return res.json({
-      natal: { available: 0, used: 0 },
-      couple: { available: 0, used: 0 },
-      parent_child: { available: 0, used: 0 },
-    });
+    return res.json({ available: 0, used: 0 });
   }
 
   try {

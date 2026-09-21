@@ -106,6 +106,11 @@ const DIGNITY_MEANINGS: Record<string, string> = {
   peregrine: "unsupported, neither strong nor weak",
 };
 
+const ANGLE_MEANINGS: Record<string, string> = {
+  ascendant: "The Ascendant is the degree of the zodiac rising on the eastern horizon at a moment of birth. It is the point the whole-sign houses are counted from, and it describes manner and approach rather than the work of a planet.",
+  midheaven: "The Midheaven is the highest point the ecliptic reaches at a moment of birth. It marks the top of the chart and stands for public direction and standing rather than for a body.",
+};
+
 function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
@@ -157,6 +162,22 @@ export function glossFor(ref: EvidenceRef): string {
         + `${label(ref.sign)}, the ${theHouse(ref.house)}.`;
     case "sect":
       return SECT_MEANINGS[str(ref.role)] ?? "";
+    case "angle": {
+      const meaning = ANGLE_MEANINGS[str(ref.angle)] ?? "";
+      const sign = SIGN_MEANINGS[str(ref.sign)] ?? "";
+      return [meaning, sign && `${label(ref.sign)} ${sign}.`].filter(Boolean).join(" ");
+    }
+    // The pair's two kinds (ADR-41): a cross-chart shape, or a claim read from one of the two natal reports.
+    case "cross": {
+      if (typeof ref.aspect === "string") {
+        const meaning = ASPECT_MEANINGS[str(ref.aspect)] ?? "";
+        return `${meaning} Here it runs between the two charts: one person's ${label(ref.planetA)} and the other's ${label(ref.planetB)}.`.trim();
+      }
+      const body = BODY_MEANINGS[str(ref.planet)] ?? "";
+      return [body && cap(body) + ".", `It falls in the other person's ${theHouse(ref.house)}.`].filter(Boolean).join(" ");
+    }
+    case "source":
+      return `Read from the natal report's ${label(ref.section)} chapter, claim ${typeof ref.claim === "number" ? ref.claim : ""}; the evidence is that report's own, verified when it was written.`.replace(/\s+;/, ";");
     default:
       return "";
   }

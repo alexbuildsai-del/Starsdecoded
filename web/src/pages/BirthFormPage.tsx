@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { useCreateReport, useListProfiles, getListProfilesQueryKey } from "@workspace/api-client-react";
 import { Wordmark } from "@/components/Wordmark";
 import { usePageTitle } from "@/lib/page-title";
+import { BirthTimeControl } from "@/components/BirthTimeControl";
+import { DEFAULT_ANSWER, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
 
 interface GeocodeResult {
   name: string;
@@ -17,6 +19,8 @@ interface GeocodeResult {
   latitude: number;
   longitude: number;
   timezoneOffset: number;
+  /** The IANA zone name, when the zone service gave one; the engine then picks the offset for the birth date (MB-48). */
+  timezone: string | null;
   placeType: string;
 }
 
@@ -54,16 +58,16 @@ function specificityRank(r: NominatimResult): number {
   return 6;
 }
 
-async function getTimezoneOffset(lat: number, lon: number): Promise<number> {
+async function getTimezone(lat: number, lon: number): Promise<{ timezone: string | null; timezoneOffset: number }> {
   try {
     const url = `https://timeapi.io/api/timezone/coordinate?latitude=${lat}&longitude=${lon}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) throw new Error("Timezone API failed");
-    const data = (await res.json()) as { currentUtcOffset?: { seconds: number }; utcOffset?: number };
+    const data = (await res.json()) as { timeZone?: string; currentUtcOffset?: { seconds: number }; utcOffset?: number };
     const offset = data.currentUtcOffset?.seconds ?? data.utcOffset ?? 0;
-    return offset / 3600;
+    return { timezone: data.timeZone ?? null, timezoneOffset: offset / 3600 };
   } catch {
-    return Math.round(lon / 15);
+    return { timezone: null, timezoneOffset: Math.round(lon / 15) };
   }
 }
 
@@ -120,7 +124,7 @@ export default function BirthFormPage() {
 
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  const [birthTime, setBirthTime] = useState("");
+  const [birthTime, setBirthTime] = useState<BirthTimeAnswer>(DEFAULT_ANSWER);
   const [placeQuery, setPlaceQuery] = useState("");
   const [candidates, setCandidates] = useState<GeocodeResult[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<GeocodeResult | null>(null);
@@ -134,7 +138,7 @@ export default function BirthFormPage() {
   const createReport = useCreateReport({
     mutation: {
       onSuccess: (data) => {
-        navigate(`/generating/${data.id}`);
+        navigate(`/report/${data.id}`);
       },
       onError: (err) => {
         console.error("[BirthForm] createReport failed:", err);
@@ -190,7 +194,7 @@ export default function BirthFormPage() {
           const country = addr.country ?? "";
           const parts = [city, region, country].filter((s, i, arr) => s && (i === 0 || s !== arr[i - 1]));
           const displayName = parts.join(", ");
-          const timezoneOffset = await getTimezoneOffset(lat, lon);
+          const { timezone, timezoneOffset } = await getTimezone(lat, lon);
           return {
             name: displayName,
             city,
@@ -199,6 +203,7 @@ export default function BirthFormPage() {
             latitude: Math.round(lat * 10000) / 10000,
             longitude: Math.round(lon * 10000) / 10000,
             timezoneOffset,
+            timezone,
             placeType: place.type,
           } satisfies GeocodeResult;
         }),
@@ -261,21 +266,24 @@ export default function BirthFormPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const canSubmit = name.trim() && birthDate && birthTime && selectedPlace;
+  const time = toValue(birthTime);
+  const canSubmit = name.trim() && birthDate && time !== null && selectedPlace;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !selectedPlace) return;
+    if (!canSubmit || !selectedPlace || !time) return;
 
     createReport.mutate({
       data: {
         name: name.trim(),
         birthDate,
-        birthTime,
+        birthTime: time.birthTime,
+        birthTimeWindowMinutes: time.birthTimeWindowMinutes,
         birthPlace: selectedPlace.name,
         latitude: selectedPlace.latitude,
         longitude: selectedPlace.longitude,
         timezoneOffset: selectedPlace.timezoneOffset,
+        ...(selectedPlace.timezone ? { timezone: selectedPlace.timezone } : {}),
         isForSelf: isSelf,
       },
     });
@@ -333,7 +341,7 @@ export default function BirthFormPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4">
               <div className="space-y-2">
                 <Label htmlFor="birthDate" className="font-label text-xs tracking-wide uppercase text-muted-foreground">
                   Birth Date
@@ -348,20 +356,19 @@ export default function BirthFormPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="birthTime" className="font-label text-xs tracking-wide uppercase text-muted-foreground">
-                  Birth Time
-                </Label>
-                <Input
-                  id="birthTime"
-                  type="time"
-                  value={birthTime}
-                  onChange={(e) => setBirthTime(e.target.value)}
-                  className="bg-card border-border/60 text-foreground h-12 text-base [color-scheme:dark]"
-                  required
-                />
-              </div>
             </div>
+
+            {/* The three-way time with its live readout (ADR-33): the place comes after, so the readout waits for it. */}
+            <BirthTimeControl
+              value={birthTime}
+              onChange={setBirthTime}
+              birthDate={birthDate || undefined}
+              latitude={selectedPlace?.latitude}
+              longitude={selectedPlace?.longitude}
+              timezone={selectedPlace?.timezone}
+              timezoneOffset={selectedPlace?.timezoneOffset}
+              country={selectedPlace?.country}
+            />
 
             <div className="space-y-2" ref={containerRef}>
               <Label htmlFor="birthPlace" className="font-label text-xs tracking-wide uppercase text-muted-foreground">
@@ -520,10 +527,6 @@ export default function BirthFormPage() {
                 </p>
               )}
             </div>
-
-            <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-4 py-3 leading-relaxed">
-              <strong className="text-foreground">Note:</strong> Birth time significantly affects your Ascendant, house placements, and the accuracy of your psychological profile. If unknown, use noon (12:00).
-            </p>
 
             {/* "This chart is for me" toggle */}
             <button

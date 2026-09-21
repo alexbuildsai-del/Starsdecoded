@@ -12,7 +12,7 @@
  * aspect payloads, angle meanings) that the report page renders without any
  * further generation.
  */
-import type { NatalChartData } from "../lib/chartCalculation.js";
+import { hasHorizon, type NatalChartData } from "../lib/chartCalculation.js";
 import { deriveTraditional, sectPayload, type SectPayload, type TraditionalFactors } from "../lib/traditional.js";
 import {
   ASPECT, BODY, BODY_LABELS, HOUSE, SIGN, STRUCTURE, BODIES,
@@ -36,16 +36,19 @@ export interface ChartBrief {
   text: string;
   /** The computed chart, for validators. */
   chart: NatalChartData;
-  /** Sect, computed once, in the brief's six-key form. */
-  sect: SectPayload;
+  /** The horizon status the brief was written under: unknown means the blind brief (ADR-34). */
+  horizon: NatalChartData["horizon"]["status"];
+  /** Sect, computed once, in the brief's six-key form. Null when the horizon is unknown. */
+  sect: SectPayload | null;
   /** Derived factors, for anything that wants them structured. */
   traditional: TraditionalFactors;
   /** One composed sentence pair per body, for the wheel. */
   personalPlanets: Record<string, string>;
   /** Composed payload per top aspect, keyed `${p1}_${type}_${p2}` in chart order. */
   aspectMeanings: Record<string, AspectMeaningPayload>;
-  angleMeanings: AngleMeanings;
-  /** Bodies sharing a sign or house, three or more. */
+  /** Absent when the horizon is unknown: there is no angle to read. */
+  angleMeanings?: AngleMeanings;
+  /** Bodies sharing a sign or, when there is a horizon, a house, three or more. */
   stelliums: string[];
   emptyHouses: number[];
 }
@@ -65,9 +68,8 @@ function isBody(n: string): n is Body {
 
 export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
   const t = deriveTraditional(chart);
+  const drawn = hasHorizon(chart);
   const dignity = new Map(t.planets.map((p) => [p.planet as string, p]));
-  const asc = chart.angles.ascendant;
-  const mc = chart.angles.midheaven;
 
   // --- stelliums and empty houses -----------------------------------------
   const bySign = new Map<string, string[]>();
@@ -76,15 +78,16 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
     const p = chart.planets[b];
     if (!p || b === "south_node") continue;
     bySign.set(p.sign, [...(bySign.get(p.sign) ?? []), b]);
-    byHouse.set(p.house, [...(byHouse.get(p.house) ?? []), b]);
+    if (p.house !== undefined) byHouse.set(p.house, [...(byHouse.get(p.house) ?? []), b]);
   }
   const stelliums: string[] = [];
   for (const [s, bodies] of bySign) if (bodies.length >= 3) stelliums.push(`${s}: ${bodies.map((b) => BODY_LABELS[b as Body]).join(", ")}`);
   for (const [h, bodies] of byHouse) if (bodies.length >= 3) stelliums.push(`${ordinal(h)} house: ${bodies.map((b) => BODY_LABELS[b as Body]).join(", ")}`);
   const emptyHouses: number[] = [];
-  for (let h = 1; h <= 12; h++) if (!byHouse.has(h)) emptyHouses.push(h);
+  if (drawn) for (let h = 1; h <= 12; h++) if (!byHouse.has(h)) emptyHouses.push(h);
 
   // --- placements -----------------------------------------------------------
+  // Blind, a placement carries no house and no sect condition: the hour did not settle them.
   const placementLines: string[] = [];
   const personalPlanets: Record<string, string> = {};
   for (const b of BODIES) {
@@ -92,17 +95,19 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
     if (!p) continue;
     const d = dignity.get(b);
     const bits = [
-      `${BODY_LABELS[b]} ${p.degree.toFixed(1)} ${p.sign}, ${ordinal(p.house)} house`,
+      `${BODY_LABELS[b]} ${p.degree.toFixed(1)} ${p.sign}${p.house !== undefined ? `, ${ordinal(p.house)} house` : ""}`,
       d ? d.dignity : null,
       d?.inSect === true ? "in sect" : d?.inSect === false ? "contrary to sect" : null,
       p.retrograde && b !== "north_node" && b !== "south_node" ? "retrograde" : null,
     ].filter(Boolean);
     placementLines.push(`- ${bits.join(", ")}`);
-    personalPlanets[b] = `${BODY[b].short} ${SIGN[sig(p.sign)].short} ${HOUSE[p.house].short}`;
+    personalPlanets[b] = p.house !== undefined
+      ? `${BODY[b].short} ${SIGN[sig(p.sign)].short} ${HOUSE[p.house].short}`
+      : `${BODY[b].short} ${SIGN[sig(p.sign)].short}`;
   }
 
   // --- house rulers ---------------------------------------------------------
-  const rulerLines = t.houseRulers.map((r) =>
+  const rulerLines = (t.houseRulers ?? []).map((r) =>
     `- ${ordinal(r.house)} (${cap(r.sign)}) ruled by ${BODY_LABELS[r.ruler]}, which sits in ${cap(r.rulerSign)} in the ${ordinal(r.rulerHouse)}, ${r.rulerDignity}${r.inOwnHouse ? ", in its own house" : ""}`,
   );
 
@@ -125,56 +130,96 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
   }
 
   // --- angles ---------------------------------------------------------------
-  const cr = t.chartRuler;
-  const tenth = t.houseRulers[9];
-  const angleMeanings: AngleMeanings = {
-    ascendant: {
-      firstImpression: `${cap(asc.sign)} rising. ${SIGN[sig(asc.sign)].short}`,
-      orientationStyle: `The chart ruler is ${BODY_LABELS[cr.ruler]}, in ${cap(cr.rulerSign)} in the ${ordinal(cr.rulerHouse)}, ${cr.rulerDignity}. ${BODY[cr.ruler].short}`,
-      atYourBest: SIGN[sig(asc.sign)].full.split(". ").slice(1, 3).join(". ") + ".",
-      underStress: SIGN[sig(asc.sign)].full.split("Under strain")[1]?.trim().replace(/^it becomes/, "Under strain this becomes") ?? "",
-    },
-    midheaven: {
-      publicDirection: `Midheaven in ${cap(mc.sign)}. ${SIGN[sig(mc.sign)].short}`,
-      whereYouThrive: `The 10th is ruled by ${BODY_LABELS[tenth.ruler]}, in ${cap(tenth.rulerSign)} in the ${ordinal(tenth.rulerHouse)}, ${tenth.rulerDignity}. ${HOUSE[tenth.rulerHouse].short}`,
-      atYourBest: BODY[tenth.ruler].short,
-      underPressure: STRUCTURE[tenth.rulerDignity]?.short ?? "",
-    },
-  };
+  let angleMeanings: AngleMeanings | undefined;
+  if (drawn && t.chartRuler && t.houseRulers) {
+    const asc = chart.angles.ascendant;
+    const mc = chart.angles.midheaven;
+    const cr = t.chartRuler;
+    const tenth = t.houseRulers[9];
+    angleMeanings = {
+      ascendant: {
+        firstImpression: `${cap(asc.sign)} rising. ${SIGN[sig(asc.sign)].short}`,
+        orientationStyle: `The chart ruler is ${BODY_LABELS[cr.ruler]}, in ${cap(cr.rulerSign)} in the ${ordinal(cr.rulerHouse)}, ${cr.rulerDignity}. ${BODY[cr.ruler].short}`,
+        atYourBest: SIGN[sig(asc.sign)].full.split(". ").slice(1, 3).join(". ") + ".",
+        underStress: SIGN[sig(asc.sign)].full.split("Under strain")[1]?.trim().replace(/^it becomes/, "Under strain this becomes") ?? "",
+      },
+      midheaven: {
+        publicDirection: `Midheaven in ${cap(mc.sign)}. ${SIGN[sig(mc.sign)].short}`,
+        whereYouThrive: `The 10th is ruled by ${BODY_LABELS[tenth.ruler]}, in ${cap(tenth.rulerSign)} in the ${ordinal(tenth.rulerHouse)}, ${tenth.rulerDignity}. ${HOUSE[tenth.rulerHouse].short}`,
+        atYourBest: BODY[tenth.ruler].short,
+        underPressure: STRUCTURE[tenth.rulerDignity]?.short ?? "",
+      },
+    };
+  }
 
   // --- the text -------------------------------------------------------------
   const el = chart.elements, mo = chart.modalities;
   const shapeKey = chart.chartShape ? SHAPE_KEY[chart.chartShape] : undefined;
-  const sp = sectPayload(t.sect);
-  const lines = [
-    `NAME: ${name}`,
-    ``,
-    `SECT (computed once; use these values, never re-derive):`,
-    `  sect: ${sp.sect}`,
-    `  sect_light: ${sp.sect_light}`,
-    `  benefic_of_sect: ${sp.benefic_of_sect}`,
-    `  benefic_out_of_sect: ${sp.benefic_out_of_sect}`,
-    `  malefic_of_sect: ${sp.malefic_of_sect}`,
-    `  malefic_out_of_sect: ${sp.malefic_out_of_sect}`,
-    `  (See ${sp.sect === "day" ? "sect_day" : "sect_night"} in the vocabulary.)`,
-    `ANGLES: Ascendant ${asc.degree.toFixed(1)} ${asc.sign}. Midheaven ${mc.degree.toFixed(1)} ${mc.sign}. Houses are whole-sign.`,
-    `CHART RULER: ${BODY_LABELS[cr.ruler]} in ${cap(cr.rulerSign)}, ${ordinal(cr.rulerHouse)} house, ${cr.rulerDignity}${dignity.get(cr.ruler)?.inSect === false ? ", contrary to sect" : dignity.get(cr.ruler)?.inSect === true ? ", in sect" : ""}.`,
-    ``,
-    `PLACEMENTS:`,
-    ...placementLines,
-    ``,
-    `HOUSE RULERS (read each house through its ruler):`,
-    ...rulerLines,
-    ``,
-    `LOTS: Fortune ${t.lots.fortune.degree.toFixed(1)} ${cap(t.lots.fortune.sign)}, ${ordinal(t.lots.fortune.house)} house. Spirit ${t.lots.spirit.degree.toFixed(1)} ${cap(t.lots.spirit.sign)}, ${ordinal(t.lots.spirit.house)} house.`,
-    ``,
-    `ASPECTS (strongest first):`,
-    ...aspectLines,
-    ``,
-    `DISTRIBUTION: Fire ${el.fire}, Earth ${el.earth}, Air ${el.air}, Water ${el.water}. Cardinal ${mo.cardinal}, Fixed ${mo.fixed}, Mutable ${mo.mutable}. Dominant element ${chart.dominance.dominantElement}. Chart shape ${chart.chartShape ?? "unclassified"}${shapeKey ? ` (see ${shapeKey})` : ""}.`,
-    stelliums.length ? `STELLIUMS: ${stelliums.join("; ")}.` : `STELLIUMS: none.`,
-    `EMPTY HOUSES: ${emptyHouses.length ? emptyHouses.map(ordinal).join(", ") : "none"}. Read each through its ruler above.`,
-  ];
+  const sp = t.sect ? sectPayload(t.sect) : null;
+  const distribution = `DISTRIBUTION: Fire ${el.fire}, Earth ${el.earth}, Air ${el.air}, Water ${el.water}. Cardinal ${mo.cardinal}, Fixed ${mo.fixed}, Mutable ${mo.mutable}. Dominant element ${chart.dominance.dominantElement}. Dominant modality ${chart.dominance.dominantModality}. Chart shape ${chart.chartShape ?? "unclassified"}${shapeKey ? ` (see ${shapeKey})` : ""}.`;
+  const lumBand = (b: "sun" | "moon") => {
+    const p = chart.planets[b];
+    return p.band ? `${BODY_LABELS[b]} travels ${p.band.fromDegree.toFixed(1)} to ${p.band.toDegree.toFixed(1)} across the band, read as ${p.sign}.` : null;
+  };
 
-  return { text: lines.join("\n"), chart, sect: sp, traditional: t, personalPlanets, aspectMeanings, angleMeanings, stelliums, emptyHouses };
+  let lines: string[];
+  if (drawn && sp && t.chartRuler && t.lots) {
+    const asc = chart.angles.ascendant;
+    const mc = chart.angles.midheaven;
+    const cr = t.chartRuler;
+    lines = [
+      `NAME: ${name}`,
+      ``,
+      `SECT (computed once; use these values, never re-derive):`,
+      `  sect: ${sp.sect}`,
+      `  sect_light: ${sp.sect_light}`,
+      `  benefic_of_sect: ${sp.benefic_of_sect}`,
+      `  benefic_out_of_sect: ${sp.benefic_out_of_sect}`,
+      `  malefic_of_sect: ${sp.malefic_of_sect}`,
+      `  malefic_out_of_sect: ${sp.malefic_out_of_sect}`,
+      `  (See ${sp.sect === "day" ? "sect_day" : "sect_night"} in the vocabulary.)`,
+      `ANGLES: Ascendant ${asc.degree.toFixed(1)} ${asc.sign}. Midheaven ${mc.degree.toFixed(1)} ${mc.sign}. Houses are whole-sign.${chart.horizon.status === "approximate" ? " The birth time is approximate and every angle holds across its window." : ""}`,
+      `CHART RULER: ${BODY_LABELS[cr.ruler]} in ${cap(cr.rulerSign)}, ${ordinal(cr.rulerHouse)} house, ${cr.rulerDignity}${dignity.get(cr.ruler)?.inSect === false ? ", contrary to sect" : dignity.get(cr.ruler)?.inSect === true ? ", in sect" : ""}.`,
+      ``,
+      `PLACEMENTS:`,
+      ...placementLines,
+      ...[lumBand("sun"), lumBand("moon")].filter((l): l is string => l !== null),
+      ``,
+      `HOUSE RULERS (read each house through its ruler):`,
+      ...rulerLines,
+      ``,
+      `LOTS: Fortune ${t.lots.fortune.degree.toFixed(1)} ${cap(t.lots.fortune.sign)}, ${ordinal(t.lots.fortune.house)} house. Spirit ${t.lots.spirit.degree.toFixed(1)} ${cap(t.lots.spirit.sign)}, ${ordinal(t.lots.spirit.house)} house.`,
+      ``,
+      `ASPECTS (strongest first):`,
+      ...aspectLines,
+      ``,
+      distribution,
+      stelliums.length ? `STELLIUMS: ${stelliums.join("; ")}.` : `STELLIUMS: none.`,
+      `EMPTY HOUSES: ${emptyHouses.length ? emptyHouses.map(ordinal).join(", ") : "none"}. Read each through its ruler above.`,
+    ];
+  } else {
+    // The blind brief: no sect block, no angles, no chart ruler, no house
+    // rulers, no lots, and no house on any placement. The model is never
+    // handed a fact the hour did not settle (ADR-34).
+    lines = [
+      `NAME: ${name}`,
+      ``,
+      `HORIZON: unknown. The birth time did not settle the horizon: there is no rising sign, no house, no sect and no lot in this chart. Never name one. Read the signs, the dignities and the aspects.`,
+      ``,
+      `PLACEMENTS:`,
+      ...placementLines,
+      ...[lumBand("sun"), lumBand("moon")].filter((l): l is string => l !== null),
+      ``,
+      `ASPECTS (strongest first):`,
+      ...aspectLines,
+      ``,
+      distribution,
+      stelliums.length ? `STELLIUMS: ${stelliums.join("; ")}.` : `STELLIUMS: none.`,
+    ];
+  }
+
+  return {
+    text: lines.join("\n"), chart, horizon: chart.horizon.status, sect: sp, traditional: t,
+    personalPlanets, aspectMeanings, ...(angleMeanings ? { angleMeanings } : {}), stelliums, emptyHouses,
+  };
 }

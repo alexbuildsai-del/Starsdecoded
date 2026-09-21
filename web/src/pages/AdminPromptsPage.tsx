@@ -33,20 +33,15 @@ interface PromptEntry {
   updatedAt: string | null;
 }
 
-type Tab = "natal" | "synastry";
-type RelType = "romantic" | "sibling" | "parent_child" | "custom";
+type Tab = "natal" | "pair";
 
 const TAB_LABELS: Record<Tab, string> = {
   natal: "Natal Report",
-  synastry: "Synastry",
+  pair: "Compatibility",
 };
 
-const REL_TYPE_LABELS: Record<RelType, string> = {
-  romantic: "Romantic",
-  sibling: "Sibling",
-  parent_child: "Parent / Child",
-  custom: "Custom",
-};
+/** The lens reaches the model through the brief, so one prompt serves all three (ADR-40). */
+const LENS_NOTE = "One prompt per chapter serves the three lenses: partners, parent and child, family. The lens, its register and who the parent is reach the model through the pair brief.";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const url = `${BASE_URL}${path}`;
@@ -382,7 +377,6 @@ export default function AdminPromptsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [tab, setTab] = useState<Tab>("natal");
-  const [relType, setRelType] = useState<RelType>("romantic");
 
 
 
@@ -454,11 +448,7 @@ export default function AdminPromptsPage() {
     );
   }
 
-  const filteredByTab = prompts.filter((p) => p.category === tab);
-
-  const displayedPrompts = tab === "synastry"
-    ? filteredByTab.filter((p) => p.subcategory === relType)
-    : filteredByTab;
+  const displayedPrompts = prompts.filter((p) => p.category === tab);
 
   const overrideCount = prompts.filter((p) => p.isOverridden).length;
 
@@ -526,7 +516,7 @@ export default function AdminPromptsPage() {
 
           {/* Tab bar */}
           <div className="mb-4 flex gap-1 p-1 rounded-lg border border-border/60 bg-card/40 w-fit">
-            {(["natal", "synastry"] as Tab[]).map((t) => (
+            {(["natal", "pair"] as Tab[]).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -542,24 +532,8 @@ export default function AdminPromptsPage() {
             ))}
           </div>
 
-          {/* Synastry relationship-type selector */}
-          {tab === "synastry" && (
-            <div className="mb-4 flex gap-1 p-1 rounded-lg border border-border/60 bg-card/40 w-fit">
-              {(["romantic", "sibling", "parent_child", "custom"] as RelType[]).map((rt) => (
-                <button
-                  key={rt}
-                  type="button"
-                  onClick={() => setRelType(rt)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-label tracking-wide transition-colors ${
-                    relType === rt
-                      ? "bg-violet-500/20 text-violet-300"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {REL_TYPE_LABELS[rt]}
-                </button>
-              ))}
-            </div>
+          {tab === "pair" && (
+            <p className="mb-4 text-xs text-muted-foreground max-w-prose">{LENS_NOTE}</p>
           )}
 
 

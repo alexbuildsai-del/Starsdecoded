@@ -5,24 +5,113 @@ import {
   db,
   profilesTable,
   reportsTable,
+  reportRevisionsTable,
   relationshipsTable,
   relationshipParticipantsTable,
 } from "@workspace/db";
-import { CreateReportBody, DeleteReportParams, GetReportParams, GetReportStatusParams } from "@workspace/api-zod";
+import {
+  CreateReportBody, DeleteReportParams, GetReportParams, GetReportStatusParams,
+  UpdateReportWorkbookBody, UpdateReportWorkbookParams,
+} from "@workspace/api-zod";
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
-import { generateInterpretation, type ReportInterpretation } from "../lib/aiInterpretation.js";
-import { resolveOrCreateProfile } from "../lib/profiles.js";
-import { viewerRelationshipIds } from "../lib/access.js";
+import { generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
+import { SECTION_IDS } from "../prompts/index.js";
+import { PAIR_SECTION_IDS } from "../prompts/pair/index.js";
+import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
+import { ownsRelationship, viewerHasGrantOnRelationship, viewerRelationshipIds } from "../lib/access.js";
 import { consumeCredit } from "../lib/credits.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
 
 const router = Router();
 
-// List the current viewer's reports — both natal and synastry.
+type ReportRow = typeof reportsTable.$inferSelect;
+type ProfileRow = typeof profilesTable.$inferSelect;
+type Viewer = { userId: string | null; sessionId: string };
+
+/**
+ * The section keys a report of this type writes, so the status can say which
+ * have landed. A blind natal report never writes the house readings (ADR-34),
+ * so its status does not wait for them.
+ */
+export function sectionIdsFor(type: string, horizon?: string): readonly string[] {
+  if (type === "compatibility") return PAIR_SECTION_IDS;
+  return horizon === "unknown" ? SECTION_IDS.filter((id) => id !== "houses") : SECTION_IDS;
+}
+
+/**
+ * Every body's position on the entered date and time at offset zero, from
+ * one local call and nothing stored, so the orrery can run from the birth
+ * day before the chart exists (ADR-47). Null rather than a failed poll.
+ */
+export function provisionalFor(p: Pick<ProfileRow, "birthDate" | "birthTime" | "latitude" | "longitude">): { bodies: Record<string, { absoluteDegree: number; retrograde: boolean }> } | null {
+  try {
+    const chart = calculateNatalChart(p.birthDate, p.birthTime, p.latitude, p.longitude, 0, 0);
+    const bodies: Record<string, { absoluteDegree: number; retrograde: boolean }> = {};
+    for (const [name, body] of Object.entries(chart.planets)) {
+      if (!Number.isFinite(body.absoluteDegree)) return null;
+      bodies[name] = { absoluteDegree: body.absoluteDegree, retrograde: body.retrograde };
+    }
+    return { bodies };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A report with the viewer's right to read it. A natal report is owned
+ * through its profile or session; a compatibility report through the
+ * relationship's access roles. Null reads as 404, so no id is ever confirmed.
+ */
+async function loadReadable(viewer: Viewer, id: string): Promise<{ report: ReportRow; profile: ProfileRow; relationship: typeof relationshipsTable.$inferSelect | null; owner: boolean } | null> {
+  const rows = await db
+    .select({ report: reportsTable, profile: profilesTable })
+    .from(reportsTable)
+    .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
+    .where(eq(reportsTable.id, id))
+    .limit(1);
+  if (!rows.length) return null;
+  const { report, profile } = rows[0];
+  if (report.type === "compatibility" && report.relationshipId) {
+    const [rel] = await db.select().from(relationshipsTable).where(eq(relationshipsTable.id, report.relationshipId)).limit(1);
+    if (!rel) return null;
+    const owner = ownsRelationship(viewer, rel);
+    if (!owner && !(await viewerHasGrantOnRelationship(viewer, rel.id))) return null;
+    return { report, profile, relationship: rel, owner };
+  }
+  if (report.type !== "natal") return null;
+  if (!viewerOwns(viewer, report, profile)) return null;
+  return { report, profile, relationship: null, owner: true };
+}
+
+/** The two people of a compatibility report, in position order, with their charts and the natal reports it was written from. */
+async function participantsOf(report: ReportRow) {
+  if (!report.relationshipId) return [];
+  const parts = await db
+    .select({ rp: relationshipParticipantsTable, profile: profilesTable })
+    .from(relationshipParticipantsTable)
+    .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
+    .where(eq(relationshipParticipantsTable.relationshipId, report.relationshipId))
+    .orderBy(asc(relationshipParticipantsTable.position));
+  const compute = (report.computeData ?? {}) as { reportAId?: string; reportBId?: string };
+  return parts.map((p, i) => ({
+    id: p.profile.id,
+    reportId: (i === 0 ? compute.reportAId : compute.reportBId) ?? "",
+    name: p.profile.name,
+    role: p.rp.role,
+    chartData: (p.profile.chartData as NatalChartData | null) ?? null,
+  }));
+}
+
+function pairName(participants: Array<{ name: string }>): string {
+  return participants.length === 2 ? `${participants[0].name} & ${participants[1].name}` : "Compatibility";
+}
+
+// List the current viewer's reports: natal and compatibility, never the
+// retired synastry rows (MB-58).
 //   Natal ownership:
 //     - Signed in: reports whose profile is owned by the user.
 //     - Anonymous: reports tied to the current session cookie.
-//   Synastry ownership:
+//   Compatibility ownership:
 //     - Any relationship the viewer owns or participates in (via claim).
 router.get("/reports", async (req, res) => {
   try {
@@ -47,12 +136,14 @@ router.get("/reports", async (req, res) => {
 
     type ReportSummaryOut = {
       id: string;
-      kind: "natal" | "synastry";
+      kind: "natal" | "compatibility";
       name: string;
       birthDate?: string;
       birthTime?: string;
       birthPlace?: string;
       status: string;
+      horizon: string | null;
+      lens: string | null;
       archetypeName: string | null;
       sunSign: string | null;
       moonSign: string | null;
@@ -78,6 +169,8 @@ router.get("/reports", async (req, res) => {
       birthTime: r.profile.birthTime,
       birthPlace: r.profile.birthPlace,
       status: r.status,
+      horizon: (r.profile.chartData as any)?.horizon?.status ?? null,
+      lens: null,
       archetypeName: (r.interpretation as any)?.overview?.headline ?? null,
       sunSign: (r.profile.chartData as any)?.planets?.sun?.sign ?? null,
       moonSign: (r.profile.chartData as any)?.planets?.moon?.sign ?? null,
@@ -95,12 +188,12 @@ router.get("/reports", async (req, res) => {
       createdAt: r.createdAt.toISOString(),
     }));
 
-    // Synastry: include any reports tied to a relationship the viewer can see.
+    // Compatibility: any report tied to a relationship the viewer can see.
     const viewer = { userId: req.userId, sessionId: req.sessionId };
     const { owned, participant } = await viewerRelationshipIds(viewer);
     const visibleRelIds = Array.from(new Set([...owned, ...participant]));
 
-    let synastrySummaries: ReportSummaryOut[] = [];
+    let pairSummaries: ReportSummaryOut[] = [];
     if (visibleRelIds.length > 0) {
       const synRows = await db
         .select({
@@ -116,7 +209,7 @@ router.get("/reports", async (req, res) => {
         .innerJoin(relationshipsTable, eq(reportsTable.relationshipId, relationshipsTable.id))
         .where(
           and(
-            eq(reportsTable.type, "synastry"),
+            eq(reportsTable.type, "compatibility"),
             inArray(reportsTable.relationshipId, visibleRelIds),
           ),
         );
@@ -145,7 +238,7 @@ router.get("/reports", async (req, res) => {
         partsByRel.set(p.relationshipId, arr);
       }
 
-      synastrySummaries = synRows.map((r): ReportSummaryOut => {
+      pairSummaries = synRows.map((r): ReportSummaryOut => {
         const ps = (r.relationshipId && partsByRel.get(r.relationshipId)) || [];
         const participants = ps.map((p) => ({
           id: p.profile.id,
@@ -154,16 +247,13 @@ router.get("/reports", async (req, res) => {
           moonSign: (p.profile.chartData as any)?.planets?.moon?.sign ?? null,
           risingSign: (p.profile.chartData as any)?.angles?.ascendant?.sign ?? null,
         }));
-        const name =
-          r.relLabel
-          || (participants.length
-            ? participants.map((p) => p.name).join(" · ")
-            : "Compatibility");
         return {
           id: r.id,
-          kind: "synastry",
-          name,
+          kind: "compatibility",
+          name: pairName(participants),
           status: r.status,
+          horizon: null,
+          lens: r.relType ?? null,
           archetypeName: null,
           sunSign: null,
           moonSign: null,
@@ -177,11 +267,11 @@ router.get("/reports", async (req, res) => {
       });
     }
 
-    const summaries = [...natalSummaries, ...synastrySummaries].sort((a, b) =>
+    const summaries = [...natalSummaries, ...pairSummaries].sort((a, b) =>
       a.createdAt.localeCompare(b.createdAt),
     );
 
-    // Strip undefined birth fields so the JSON response omits them for synastry rows.
+    // Strip undefined birth fields so the JSON response omits them for compatibility rows.
     const out = summaries.map((s) => {
       const obj: Record<string, unknown> = { ...s };
       if (obj.birthDate === undefined) delete obj.birthDate;
@@ -205,14 +295,14 @@ router.post("/reports", async (req, res) => {
     return res.status(400).json({ error: "validation_error", message: parsed.error.message });
   }
 
-  const { name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset, isForSelf } = parsed.data;
+  const { name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset, timezone, birthTimeWindowMinutes, isForSelf } = parsed.data;
   const id = randomUUID();
 
   try {
     const profile = await resolveOrCreateProfile(
       req.sessionId,
       req.userId ?? null,
-      { name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset },
+      { name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset, timezone, birthTimeWindowMinutes },
       isForSelf ?? false,
     );
 
@@ -226,10 +316,10 @@ router.post("/reports", async (req, res) => {
       status: profile.chartData ? "interpreting" : "pending",
     });
 
-    // Soft-consume a natal credit for signed-in users. Non-blocking — missing credits are just logged.
+    // Soft-consume one credit for signed-in users. Non-blocking — missing credits are just logged.
     if (req.userId) {
-      consumeCredit(req.userId, "natal", id).catch((err) => {
-        req.log.error({ err, id }, "Failed to consume natal credit");
+      consumeCredit(req.userId, id).catch((err) => {
+        req.log.error({ err, id }, "Failed to consume credit");
       });
     }
 
@@ -240,11 +330,14 @@ router.post("/reports", async (req, res) => {
 
     return res.status(201).json({
       id,
+      kind: "natal",
       name: profile.name,
       birthDate: profile.birthDate,
       birthTime: profile.birthTime,
       birthPlace: profile.birthPlace,
       status: profile.chartData ? "interpreting" : "pending",
+      horizon: (profile.chartData as any)?.horizon?.status ?? null,
+      lens: null,
       archetypeName: null,
       sunSign: (profile.chartData as any)?.planets?.sun?.sign ?? null,
       moonSign: (profile.chartData as any)?.planets?.moon?.sign ?? null,
@@ -273,33 +366,39 @@ router.get("/reports/:id", async (req, res) => {
   }
 
   try {
-    const rows = await db
-      .select({ report: reportsTable, profile: profilesTable })
-      .from(reportsTable)
-      .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
-      .where(eq(reportsTable.id, parsed.data.id))
-      .limit(1);
-    if (!rows.length) {
+    // 404 rather than 403 in every refused case, so no id is ever confirmed.
+    const found = await loadReadable(req, parsed.data.id);
+    if (!found) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
-
-    const { report: r, profile: p } = rows[0];
-    if (!viewerOwns(req, r, p)) {
-      // 404 (not 403) so we don't leak which IDs exist.
-      return res.status(404).json({ error: "not_found", message: "Report not found" });
-    }
+    const { report: r, profile: p, relationship } = found;
+    const participants = r.type === "compatibility" ? await participantsOf(r) : null;
+    const revisions = await db
+      .select({ id: reportRevisionsTable.id, reason: reportRevisionsTable.reason, createdAt: reportRevisionsTable.createdAt })
+      .from(reportRevisionsTable)
+      .where(eq(reportRevisionsTable.reportId, r.id))
+      .orderBy(asc(reportRevisionsTable.createdAt));
     return res.json({
       id: r.id,
-      name: p.name,
+      name: participants ? pairName(participants) : p.name,
       birthDate: p.birthDate,
       birthTime: p.birthTime,
       birthPlace: p.birthPlace,
       latitude: p.latitude,
       longitude: p.longitude,
       timezoneOffset: p.timezoneOffset,
+      timezone: p.timezone ?? null,
+      birthTimeWindowMinutes: p.birthTimeWindowMinutes,
+      profileId: r.type === "natal" ? p.id : null,
+      type: r.type,
+      lens: relationship?.type ?? null,
+      participants,
+      horizonPasses: r.horizonPasses,
+      revisions: revisions.map((v) => ({ id: v.id, reason: v.reason, createdAt: v.createdAt.toISOString() })),
       status: r.status,
       chartData: p.chartData ?? null,
       interpretation: r.interpretation ?? null,
+      workbook: (r.workbook ?? {}) as Record<string, string>,
       errorMessage: r.errorMessage ?? null,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
@@ -319,47 +418,78 @@ router.get("/reports/:id/status", async (req, res) => {
   }
 
   try {
-    const rows = await db
-      .select({ report: reportsTable, profile: profilesTable })
-      .from(reportsTable)
-      .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
-      .where(eq(reportsTable.id, parsed.data.id))
-      .limit(1);
-    if (!rows.length) {
+    const found = await loadReadable(req, parsed.data.id);
+    if (!found) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
+    const { report: r, profile: p } = found;
 
-    const { report: r, profile: p } = rows[0];
-    if (!viewerOwns(req, r, p)) {
-      return res.status(404).json({ error: "not_found", message: "Report not found" });
-    }
-
-    const statusToProgress: Record<string, number> = {
-      pending: 5,
-      computing: 30,
-      interpreting: 65,
-      complete: 100,
-      failed: 0,
-    };
-
-    const statusToStep: Record<string, string> = {
-      pending: "Initializing chart calculation...",
-      computing: "Computing planetary positions with astronomy-engine...",
-      interpreting: "Generating psychological interpretation...",
-      complete: "Report complete",
-      failed: "Generation failed",
-    };
-
+    const written = (r.interpretation ?? {}) as Record<string, unknown>;
     return res.json({
       id: r.id,
       status: r.status,
-      progress: statusToProgress[r.status] ?? 0,
-      currentStep: statusToStep[r.status] ?? null,
       errorMessage: r.errorMessage ?? null,
+      // The chart is what the page opens on, so the client stops waiting the
+      // moment it exists rather than when the last section lands (ADR-25).
+      chartReady: p.chartData != null,
+      // Real progress is the client's to count from `sections` (ADR-47); the
+      // orrery runs from these until the chart is stored.
+      provisional: p.chartData == null && r.type === "natal" ? provisionalFor(p) : null,
+      sections: Object.fromEntries(sectionIdsFor(r.type, (written.meta as { horizon?: string } | undefined)?.horizon).map((id) => [id, id in written ? "done" : "pending"])),
+      interpretation: r.interpretation ?? null,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get report status");
     return res.status(500).json({ error: "internal_error", message: "Failed to get report status" });
+  }
+});
+
+
+/**
+ * The reader's workbook. A tick is one shallow merge, so a slow connection
+ * cannot lose the rest of the page's ticks by overwriting them.
+ */
+const WORKBOOK_KEY = /^[a-z][a-zA-Z]*(\.[a-zA-Z]+)+\.\d+$/;
+
+router.patch("/reports/:id/workbook", async (req, res) => {
+  const params = UpdateReportWorkbookParams.safeParse(req.params);
+  if (!params.success) {
+    return res.status(400).json({ error: "validation_error", message: "Invalid ID" });
+  }
+  const body = UpdateReportWorkbookBody.safeParse(req.body);
+  if (!body.success) {
+    return res.status(400).json({ error: "validation_error", message: body.error.message });
+  }
+  const patch = body.data as Record<string, string | null>;
+  const keys = Object.keys(patch);
+  if (keys.length === 0 || keys.length > 200) {
+    return res.status(400).json({ error: "validation_error", message: "A workbook patch carries 1 to 200 items" });
+  }
+  const badKey = keys.find((k) => !WORKBOOK_KEY.test(k));
+  if (badKey) {
+    return res.status(400).json({ error: "validation_error", message: `Not a workbook item key: ${badKey}` });
+  }
+
+  try {
+    const found = await loadReadable(req, params.data.id);
+    if (!found) {
+      return res.status(404).json({ error: "not_found", message: "Report not found" });
+    }
+    const { report: r } = found;
+
+    const merged = { ...((r.workbook ?? {}) as Record<string, string>) };
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null) delete merged[key];
+      else merged[key] = value;
+    }
+    await db
+      .update(reportsTable)
+      .set({ workbook: merged, updatedAt: new Date() })
+      .where(eq(reportsTable.id, r.id));
+    return res.json(merged);
+  } catch (err) {
+    req.log.error({ err }, "Failed to update report workbook");
+    return res.status(500).json({ error: "internal_error", message: "Failed to update report workbook" });
   }
 });
 
@@ -370,9 +500,10 @@ router.get("/reports/:id/status", async (req, res) => {
 const REGENERATE_COOLDOWN_MS = 60_000;
 const lastRegenerateAt = new Map<string, number>();
 
-// Delete a natal report the viewer owns. A report mid-generation is deleted
-// too; generateReport tolerates its row vanishing. Synastry reports wait on
-// MB-9. The orphaned profile goes with the report (MB-32 provisional), which
+// Delete a report the viewer owns. A report mid-generation is deleted too;
+// generateReport tolerates its row vanishing. A compatibility report goes on
+// its own, through the relationship's owner (MB-9, MB-32's 409 gone). The
+// orphaned profile goes with a natal report (MB-32 provisional), which
 // cascades invite_tokens; credits.used_for_report_id nulls out so the payment
 // record survives.
 router.delete("/reports/:id", async (req, res) => {
@@ -381,23 +512,14 @@ router.delete("/reports/:id", async (req, res) => {
     return res.status(400).json({ error: "validation_error", message: "Invalid ID" });
   }
   try {
-    const rows = await db
-      .select({ report: reportsTable, profile: profilesTable })
-      .from(reportsTable)
-      .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
-      .where(eq(reportsTable.id, parsed.data.id))
-      .limit(1);
-    if (!rows.length) {
+    const found = await loadReadable(req, parsed.data.id);
+    if (!found || !found.owner) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
-    const { report: r, profile: p } = rows[0];
-    if (!viewerOwns(req, r, p)) {
-      return res.status(404).json({ error: "not_found", message: "Report not found" });
-    }
-    if (r.type !== "natal") {
-      return res
-        .status(409)
-        .json({ error: "unsupported", message: "Compatibility reports cannot be deleted yet" });
+    const { report: r, profile: p } = found;
+    if (r.type === "compatibility") {
+      await db.delete(reportsTable).where(eq(reportsTable.id, r.id));
+      return res.status(204).end();
     }
 
     await db.transaction(async (tx) => {
@@ -439,10 +561,10 @@ router.post("/reports/:id/regenerate", async (req, res) => {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     const { report: r, profile: p } = rows[0];
-    if (!viewerOwns(req, r, p)) {
+    if (!viewerOwns(req, r, p) || r.type !== "natal") {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
-    if (r.status === "interpreting" || r.status === "computing" || r.status === "pending") {
+    if (r.status === "interpreting" || r.status === "computing" || r.status === "pending" || r.status === "revising") {
       return res
         .status(409)
         .json({ error: "in_progress", message: "Report is already being generated", status: r.status });
@@ -467,16 +589,15 @@ router.post("/reports/:id/regenerate", async (req, res) => {
         if (p.chartData) {
           chartData = p.chartData as NatalChartData;
         } else {
-          chartData = calculateNatalChart(p.birthDate, p.birthTime, p.latitude, p.longitude, p.timezoneOffset);
+          chartData = chartForProfile(p);
           await db
             .update(profilesTable)
             .set({ chartData: chartData as unknown as object, updatedAt: new Date() })
             .where(eq(profilesTable.id, p.id));
         }
-        const interpretation: ReportInterpretation = await generateInterpretation(
-          chartData,
-          p.name,
-        );
+        const interpretation = await generateInterpretation(chartData, p.name, {
+          onSection: streamInto(r.id),
+        });
         await db
           .update(reportsTable)
           .set({ interpretation, status: "complete", updatedAt: new Date() })
@@ -495,6 +616,28 @@ router.post("/reports/:id/regenerate", async (req, res) => {
     return res.status(500).json({ error: "internal_error", message: "Failed to regenerate report" });
   }
 });
+
+/**
+ * Writes each frame to `interpretation` as it lands, so the page can render a
+ * chapter the moment its call finishes. Writes are chained rather than fired in
+ * parallel, because each one rewrites the whole jsonb and two at once would
+ * lose a section. The status stays "interpreting" until the last frame lands.
+ */
+export function streamInto(id: string): (frame: SectionFrame) => Promise<void> {
+  let partial: Record<string, unknown> = {};
+  let chain: Promise<void> = Promise.resolve();
+  return (frame) => {
+    partial = { ...partial, ...frame.patch };
+    const snapshot = partial;
+    chain = chain.then(async () => {
+      await db
+        .update(reportsTable)
+        .set({ interpretation: snapshot, updatedAt: new Date() })
+        .where(eq(reportsTable.id, id));
+    });
+    return chain;
+  };
+}
 
 // Async report generation. Skips chart computation when a cached chartData
 // is available from the profile.
@@ -518,7 +661,7 @@ async function generateReport(
       const p = profile[0];
       // The report (and its profile) may have been deleted while pending.
       if (!p) return;
-      chartData = calculateNatalChart(p.birthDate, p.birthTime, p.latitude, p.longitude, p.timezoneOffset);
+      chartData = chartForProfile(p);
 
       await db
         .update(profilesTable)
@@ -531,12 +674,14 @@ async function generateReport(
         .where(eq(reportsTable.id, id));
     }
 
-    const interpretation = await generateInterpretation(chartData, name);
+    const interpretation = await generateInterpretation(chartData, name, {
+      onSection: streamInto(id),
+    });
 
     await db
       .update(reportsTable)
       .set({
-        interpretation: interpretation as any,
+        interpretation,
         status: "complete",
         updatedAt: new Date(),
       })

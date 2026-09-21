@@ -1,18 +1,32 @@
 /**
- * The opening plate, fixed behind the first screen: Sun and Moon as lit renders
- * at their true angles on a thin brass ring, the Ascendant as an open marker
- * because it is a point on the horizon and never a body (ADR-17), the name at
- * the centre of its own sky, and the birth data in the corners. It fades out
- * over the first 0.6 screens as the reading's sky fades in.
+ * The opening plate, fixed behind the first screen: the Sun and the Moon as
+ * renders at their true angles on a thin brass ring, the Ascendant as an open
+ * marker because it is a point on the horizon and never a body (ADR-17), the
+ * name at the centre of its own sky, and the birth data in the corners.
+ *
+ * East is on the left, as every chart is drawn. The dotted horizon is the
+ * plate's only line: a label sits beside its body with nothing joining them
+ * (ADR-27). The Sun's glow is painted on the sky layer rather than inside the
+ * SVG, so no bar, edge or chapter can clip it. It fades out over the first 0.6
+ * screens as the reading's sky fades in.
+ *
+ * A blind chart (ADR-33, ADR-37) has no horizon to draw: no line, no east or
+ * west, no rising marker. The plate is framed on 0° Aries, the Moon is the arc
+ * it travelled across the band, the Sun sits at its centre-time degree, and the
+ * legend's third line asks for the birth time instead of naming a sign.
  */
 import { useEffect, useRef, useState } from "react";
-import { Mark } from "@/components/Mark";
-import { PLANET_RENDERS } from "@/lib/planet-renders";
+import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { ORDINALS } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
-import { PLANET_LABELS, type ChartData, type Interpretation } from "@/types/chart";
+import { layoutHero, moonArc, type Rect } from "@/components/report/hero-layout";
+import { AngleGlyphShape } from "@/components/report/AngleGlyph";
+import { timeOfBirthLabel } from "@/lib/birth-time";
+import { Mark } from "@/components/Mark";
+import { PLANET_LABELS, type ChartData, type ChartPlanet, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import type { Ring } from "@/lib/gather";
 
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
@@ -21,12 +35,35 @@ const MONTHS = [
   "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
 ];
 
+/** Four stops, transparent by about 1.6 Sun diameters out. */
+const GLOW = "radial-gradient(circle closest-side, rgba(255,196,118,.46) 0%, rgba(236,142,62,.22) 24%,"
+  + " rgba(150,82,38,.08) 56%, rgba(6,8,12,0) 100%)";
+const GLOW_DIAMETERS = 3.2;
+
+/** The name's own ladder: it is page type, so it never scales with the plate. A phone gets a smaller rung of the same ladder. */
+function nameLines(name: string, narrow: boolean): { lines: string[]; size: number } {
+  const n = name.trim();
+  const [big, mid, small] = narrow ? [44, 34, 28] : [64, 48, 40];
+  if (n.length <= 14) return { lines: [n], size: big };
+  if (n.length <= 26) return { lines: [n], size: mid };
+  const words = n.split(/\s+/);
+  if (words.length < 2) return { lines: [n], size: small };
+  // Balanced: the break that leaves the two lines closest in length.
+  let best = 1;
+  let bestGap = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const gap = Math.abs(words.slice(0, i).join(" ").length - words.slice(i).join(" ").length);
+    if (gap < bestGap) { bestGap = gap; best = i; }
+  }
+  return { lines: [words.slice(0, best).join(" "), words.slice(best).join(" ")], size: small };
+}
+
 function useNarrow(): boolean {
   const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches,
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches,
   );
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 640px)");
+    const mq = window.matchMedia("(max-width: 900px)");
     const onChange = () => setNarrow(mq.matches);
     onChange();
     mq.addEventListener("change", onChange);
@@ -52,19 +89,47 @@ function Label({ x, y, anchor, size, fill, children }: {
   );
 }
 
+/** A body's line in the legend: degree and sign, and its house when the chart has one. */
+function placementText(p: ChartPlanet): string {
+  return `${p.degree.toFixed(2)}° ${p.sign}${p.house ? ` · ${ORDINALS[p.house - 1]}` : ""}`;
+}
+
+const ADD_TIME = "add your birth time to draw the horizon";
+
+/** The cue is a button (ADR-50): 44 px hit area, scrolls to chapter 01, fades over the first half screen. */
+function ScrollCue({ flow, reduced, cueRef }: { flow?: boolean; reduced: boolean; cueRef: React.RefObject<HTMLDivElement | null> }) {
+  return (
+    <div ref={cueRef} className={`rp-cue no-print${flow ? " rp-cue-flow" : ""}`}>
+      <button
+        type="button"
+        onClick={() => document.getElementById("chapter-1")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })}
+        aria-label="Scroll to chapter 1"
+      >
+        Scroll<i aria-hidden />
+      </button>
+    </div>
+  );
+}
+
 export interface ReportHeroProps {
   name: string;
   birthDate: string;
   birthTime: string;
+  /** 0 when the time is exact; the corner reads "approximate" or "not recorded" otherwise. */
+  birthTimeWindowMinutes?: number;
   birthPlace: string;
   latitude: number;
   longitude: number;
   chartData: ChartData;
   meta: Interpretation["meta"];
+  /** Opens the three-way birth time control; the blind hero's third legend line. */
+  onAddBirthTime?: () => void;
+  /** Where the ring is on screen, so the sky can gather its stars onto it (ADR-47). */
+  onRing?: (ring: Ring) => void;
 }
 
 export function ReportHero({
-  name, birthDate, birthTime, birthPlace, latitude, longitude, chartData, meta,
+  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, onRing,
 }: ReportHeroProps) {
   const narrow = useNarrow();
   const reduced = useReducedMotion();
@@ -73,6 +138,25 @@ export function ReportHero({
   const cueRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<SVGGElement>(null);
   const nameRef = useRef<HTMLDivElement>(null);
+  const sunRef = useRef<SVGImageElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<SVGCircleElement>(null);
+  const onRingRef = useRef(onRing);
+  onRingRef.current = onRing;
+
+  // The ring's place on screen, measured at rest: the gather lands on it.
+  useEffect(() => {
+    function measure() {
+      const el = ringRef.current;
+      if (!el || !onRingRef.current) return;
+      const b = el.getBoundingClientRect();
+      if (b.width < 2) return;
+      onRingRef.current({ cx: b.left + b.width / 2, cy: b.top + b.height / 2, r: b.width / 2 });
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [narrow]);
 
   useEffect(() => {
     let frame = 0;
@@ -90,11 +174,26 @@ export function ReportHero({
         hudRef.current.style.visibility = gone;
       }
       if (cueRef.current) cueRef.current.style.opacity = Math.max(0, 1 - q * 2.2).toFixed(3);
-      if (reduced) return;
-      // The whole diagram is one group so ring, lines and markers can never
-      // drift apart on scroll; only the name moves at a different depth.
-      diagramRef.current?.setAttribute("transform", `translate(0,${(-top * 0.12 * 1.6).toFixed(1)})`);
-      if (nameRef.current) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
+      if (!reduced) {
+        // The whole diagram is one group so ring, horizon and markers can never
+        // drift apart on scroll; only the name moves at a different depth.
+        diagramRef.current?.setAttribute("transform", `translate(0,${(-top * 0.12 * 1.6).toFixed(1)})`);
+        if (nameRef.current) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
+      }
+      // The glow is painted outside the SVG, so it is told where the Sun ended
+      // up rather than being drawn with it.
+      const sun = sunRef.current;
+      const glow = glowRef.current;
+      const sky = skyRef.current;
+      if (sun && glow && sky) {
+        const s = sun.getBoundingClientRect();
+        const box = sky.getBoundingClientRect();
+        const d = Math.max(s.width, 1) * GLOW_DIAMETERS;
+        glow.style.width = `${d.toFixed(1)}px`;
+        glow.style.height = `${d.toFixed(1)}px`;
+        glow.style.left = `${(s.left - box.left + s.width / 2 - d / 2).toFixed(1)}px`;
+        glow.style.top = `${(s.top - box.top + s.height / 2 - d / 2).toFixed(1)}px`;
+      }
     }
     function onScroll() {
       if (frame) return;
@@ -111,81 +210,97 @@ export function ReportHero({
       window.removeEventListener("resize", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [reduced, narrow]);
+  }, [reduced, narrow, name]);
 
-  const asc = chartData.angles.ascendant;
+  const asc = chartData.angles?.ascendant ?? null;
+  const dsc = chartData.angles?.descendant ?? null;
+  const blind = asc === null;
   const sun = chartData.planets.sun;
   const moon = chartData.planets.moon;
-  const ascRuler = TRADITIONAL_RULER[asc.sign];
-  const rising = `${asc.degree.toFixed(2)}° ${asc.sign}${ascRuler ? ` · ruled by ${PLANET_LABELS[ascRuler]}` : ""}`;
+  const ascRuler = asc ? TRADITIONAL_RULER[asc.sign] : undefined;
+  const rising = asc ? `${asc.degree.toFixed(2)}° ${asc.sign}${ascRuler ? ` · ruled by ${PLANET_LABELS[ascRuler]}` : ""}` : ADD_TIME;
+  const tob = timeOfBirthLabel({ birthTime, birthTimeWindowMinutes });
 
-  const W = narrow ? 680 : 1000;
-  const H = narrow ? 680 : 660;
+  // A phone plate is wider than tall so the ring can fill the width and the
+  // horizon labels still have room outside it.
+  const W = narrow ? 780 : 1000;
+  const H = narrow ? 640 : 660;
   const cx = W / 2;
   const cy = H / 2;
-  const R = narrow ? 196 : 200;
+  const R = narrow ? 236 : 200;
   const places = narrow ? 2 : 4;
 
-  const bodies = [
-    { key: "sun", planet: sun, size: narrow ? 104 : 116 },
-    { key: "moon", planet: moon, size: narrow ? 64 : 72 },
-  ].filter((b) => !!b.planet);
-
-  const ascTheta = theta(asc.absoluteDegree, asc.absoluteDegree);
+  // A drawn plate is framed on the Ascendant, east on the left; a blind one on 0° Aries.
+  const frame = asc ? asc.absoluteDegree : 0;
+  const ascTheta = theta(frame, frame);
   const ascAt = pointAt(cx, cy, R, ascTheta);
-  const ascOut = pointAt(cx, cy, R + 22, ascTheta);
-  const ascIn = pointAt(cx, cy, R - 26, ascTheta);
   const east = pointAt(cx, cy, R + 58, ascTheta);
-  const west = pointAt(cx, cy, R + 58, theta(opposite(asc.absoluteDegree), asc.absoluteDegree));
+  const west = pointAt(cx, cy, R + 58, theta(opposite(frame), frame));
+  const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band) : null;
+
+  const { lines: nameRows, size: nameSize } = nameLines(name, narrow);
+
+  // What a label may not cover: the name plate at the centre and the two
+  // horizon labels. Measured in plate units, like everything else here.
+  const obstacles: Rect[] = [
+    { x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 },
+    ...(blind ? [] : [
+      { x: east.x - 210, y: east.y + 10, w: 210, h: 42 },
+      { x: west.x, y: west.y + 10, w: 210, h: 42 },
+    ]),
+  ];
+
+  const layout = layoutHero({
+    cx, cy, ringRadius: R,
+    frameDegree: frame,
+    // The Sun is placed first, so it takes the room it needs.
+    bodies: [
+      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: narrow ? 108 : 120 },
+      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: narrow ? 64 : 72 },
+    ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
+    labelWidth: 186,
+    labelHeight: 34,
+    obstacles,
+  });
 
   const dob = new Date(`${birthDate}T00:00:00Z`);
   const dobText = `${dob.getUTCDate()} ${MONTHS[dob.getUTCMonth()]} ${dob.getUTCFullYear()}`;
 
   const legend = [
-    sun && { key: "sun", label: "Sun", value: `${sun.degree.toFixed(2)}° ${sun.sign} · ${ORDINALS[sun.house - 1]}` },
-    moon && { key: "moon", label: "Moon", value: `${moon.degree.toFixed(2)}° ${moon.sign} · ${ORDINALS[moon.house - 1]}` },
+    sun && { key: "sun", label: "Sun", value: placementText(sun) },
+    moon && { key: "moon", label: "Moon", value: placementText(moon) },
     { key: null, label: "Rising", value: rising },
   ].filter(Boolean) as { key: string | null; label: string; value: string }[];
 
-  function outside(angle: number, radius: number, kicker: string, value: string) {
-    const p = pointAt(cx, cy, radius, angle);
-    const right = p.x >= cx;
-    const anchor = right ? "start" : "end";
-    const dx = right ? 16 : -16;
-    return (
-      <g>
-        <Label x={p.x + dx} y={p.y - 3} anchor={anchor} size={9.5} fill={SKY_DIM}>{kicker}</Label>
-        <text
-          x={(p.x + dx).toFixed(1)} y={(p.y + 13).toFixed(1)} textAnchor={anchor}
-          fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
-        >
-          {value}
-        </text>
-      </g>
-    );
+  function bodyValue(key: string): string {
+    const p = key === "sun" ? sun : moon;
+    return p ? placementText(p) : "";
   }
+
+  const sectLine = meta.sect && meta.sunAltitude !== undefined
+    ? `${meta.sect} chart · sun alt ${meta.sunAltitude.toFixed(1)}°`
+    : "horizon · not drawn";
 
   return (
     <>
       <div ref={skyRef} className={`rp-hsky rp-grain no-print${narrow ? " narrow" : ""}`}>
+        {/* Under the transparent bar, off the plate's edges, fading with the sky. */}
+        <div
+          ref={glowRef}
+          aria-hidden
+          className="pointer-events-none absolute"
+          style={{ background: GLOW, borderRadius: "50%" }}
+        />
         <div className="rp-hplate">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           role="img"
-          aria-label={`${name}: Sun, Moon and Rising at their true positions`}
+          aria-label={blind ? `${name}: Sun and Moon at their true positions; the horizon is not drawn` : `${name}: Sun, Moon and Rising at their true positions`}
         >
-          <defs>
-            {/* Fades the spokes out under the name, which sits over the centre in page type. */}
-            <radialGradient id="rp-name-veil">
-              <stop offset="0%" stopColor="#121826" stopOpacity={0.92} />
-              <stop offset="62%" stopColor="#121826" stopOpacity={0.66} />
-              <stop offset="100%" stopColor="#121826" stopOpacity={0} />
-            </radialGradient>
-          </defs>
           <g ref={diagramRef}>
-            <circle cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
+            <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
             {Array.from({ length: 12 }, (_, i) => i * 30).map((d) => {
-              const t = theta(d, asc.absoluteDegree);
+              const t = theta(d, frame);
               const p1 = pointAt(cx, cy, R, t);
               const p2 = pointAt(cx, cy, R - (d % 90 === 0 ? 13 : 7), t);
               return (
@@ -195,67 +310,102 @@ export function ReportHero({
                 />
               );
             })}
-            <line
-              x1={east.x.toFixed(1)} y1={east.y.toFixed(1)} x2={west.x.toFixed(1)} y2={west.y.toFixed(1)}
-              stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
-            />
-            {narrow ? (
-              <Label x={east.x + 4} y={east.y + 22} anchor="start" size={9.5} fill={SKY_DIM}>E. HORIZON</Label>
+            {!blind && (
+              <line
+                x1={east.x.toFixed(1)} y1={east.y.toFixed(1)} x2={west.x.toFixed(1)} y2={west.y.toFixed(1)}
+                stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
+              />
+            )}
+            {arc && (
+              // The Moon's day: the arc between its longitudes at the band's edges, the render at its centre.
+              <path d={arc.d} fill="none" stroke={SKY} strokeOpacity={0.7} strokeWidth={3} strokeLinecap="round" data-moon-arc />
+            )}
+            {blind ? null : narrow ? (
+              <>
+                <Label x={east.x} y={east.y + 30} anchor={east.x < cx ? "start" : "end"} size={18} fill={SKY_DIM}>EAST · RISING</Label>
+                <Label x={west.x} y={west.y + 30} anchor={west.x < cx ? "start" : "end"} size={18} fill={SKY_DIM}>WEST · SETTING</Label>
+              </>
             ) : (
               <>
-                <Label x={east.x - 6} y={east.y + 30} anchor="end" size={11} fill={SKY_DIM}>EASTERN HORIZON</Label>
-                <Label x={west.x + 6} y={west.y + 30} anchor="start" size={11} fill={SKY_DIM}>WESTERN HORIZON</Label>
+                <Label x={east.x - 6} y={east.y + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
+                <text
+                  x={(east.x - 6).toFixed(1)} y={(east.y + 44).toFixed(1)} textAnchor="end"
+                  fontFamily="IBM Plex Mono, monospace" fontSize={11} fill="rgba(232,235,242,.5)"
+                >
+                  drawn facing south, so east is on your left
+                </text>
+                <Label x={west.x + 6} y={west.y + 26} anchor="start" size={11} fill={SKY_DIM}>WEST · SETTING</Label>
+                <text
+                  x={(west.x + 6).toFixed(1)} y={(west.y + 44).toFixed(1)} textAnchor="start"
+                  fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
+                >
+                  {dsc ? `${dsc.degree.toFixed(2)}° ${dsc.sign}` : ""}
+                </text>
               </>
             )}
 
-            {/* Every spoke runs from the centre to its body's edge, so each one points where it should. */}
-            {bodies.map((b) => {
-              const t = theta(b.planet.absoluteDegree, asc.absoluteDegree);
-              const edge = pointAt(cx, cy, R - b.size / 2 - 3, t);
-              return (
-                <line
-                  key={b.key} x1={cx} y1={cy} x2={edge.x.toFixed(1)} y2={edge.y.toFixed(1)}
-                  stroke={SKY} strokeOpacity={0.3} strokeDasharray="2 5"
-                />
-              );
-            })}
-            <line
-              x1={cx} y1={cy} x2={ascIn.x.toFixed(1)} y2={ascIn.y.toFixed(1)}
-              stroke={SKY} strokeOpacity={0.3} strokeDasharray="2 5"
-            />
-            <circle cx={cx} cy={cy} r={narrow ? 120 : 136} fill="url(#rp-name-veil)" />
+            {layout.bodies.map((b) => (
+              <image
+                key={b.key}
+                ref={b.key === "sun" ? sunRef : undefined}
+                href={b.key === "sun" ? SUN_HERO : PLANET_RENDERS[b.key]}
+                x={b.x - b.size / 2} y={b.y - b.size / 2}
+                width={b.size} height={b.size}
+              />
+            ))}
 
-            {bodies.map((b) => {
-              const t = theta(b.planet.absoluteDegree, asc.absoluteDegree);
-              const p = pointAt(cx, cy, R, t);
-              return (
-                <g key={b.key}>
-                  <image
-                    href={PLANET_RENDERS[b.key]}
-                    x={p.x - b.size / 2} y={p.y - b.size / 2}
-                    width={b.size} height={b.size}
-                  />
-                  {!narrow && outside(
-                    t, R + b.size * 0.5 + 16,
-                    (PLANET_LABELS[b.key] ?? b.key).toUpperCase(),
-                    `${b.planet.degree.toFixed(2)}° ${b.planet.sign} · ${ORDINALS[b.planet.house - 1]}`,
-                  )}
-                </g>
-              );
-            })}
+            {!narrow && layout.labels.map((l) => (
+              <g key={l.key}>
+                <Label x={l.x} y={l.y - 3} anchor={l.anchor} size={9.5} fill={SKY_DIM}>
+                  {(PLANET_LABELS[l.key] ?? l.key).toUpperCase()}
+                </Label>
+                <text
+                  x={l.x.toFixed(1)} y={(l.y + 13).toFixed(1)} textAnchor={l.anchor}
+                  fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
+                >
+                  {bodyValue(l.key)}
+                </text>
+              </g>
+            ))}
 
-            <circle cx={ascAt.x.toFixed(1)} cy={ascAt.y.toFixed(1)} r={13} fill="#0B0E14" stroke={SKY} strokeWidth={1.5} />
-            <circle cx={ascAt.x.toFixed(1)} cy={ascAt.y.toFixed(1)} r={4} fill={SKY} />
-            <line
-              x1={ascAt.x.toFixed(1)} y1={ascAt.y.toFixed(1)} x2={ascOut.x.toFixed(1)} y2={ascOut.y.toFixed(1)}
-              stroke={SKY} strokeWidth={1.5}
-            />
-            {!narrow && outside(ascTheta, R + 40, "RISING · THE SLICE CLIMBING", rising)}
+            {!blind && (
+              // The R03 marker: ring, centre point, a tick outward along the horizon (ADR-49).
+              <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={13} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.5} />
+            )}
+            {blind && !narrow && (
+              <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{`RISING · ${ADD_TIME.toUpperCase()}`}</Label>
+            )}
           </g>
         </svg>
+        {blind && !narrow && onAddBirthTime && (
+          <button
+            type="button"
+            onClick={onAddBirthTime}
+            className="absolute left-1/2 -translate-x-1/2 rounded-full border border-brass/50 px-4 py-2 font-label text-[11px] uppercase tracking-[0.2em] text-brass hover:bg-brass/10"
+            style={{ bottom: "4%" }}
+          >
+            Add my birth time
+          </button>
+        )}
         <div ref={nameRef} className="rp-hname">
           <span className="k">Natal chart report</span>
-          <h1>{name}</h1>
+          <div className="relative inline-block justify-self-center">
+            {/* A halo fitted to the text box, so the ring reads through around it. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{
+                width: "156%", height: "240%",
+                background: "radial-gradient(ellipse closest-side at center, rgba(18,24,38,.94) 0%,"
+                  + " rgba(18,24,38,.64) 54%, rgba(18,24,38,0) 100%)",
+              }}
+            />
+            <h1 className="relative" style={{ fontSize: `${nameSize}px` }}>
+              {nameRows.map((line, i) => (
+                <span key={i} className="block">{line}</span>
+              ))}
+            </h1>
+          </div>
         </div>
         </div>
 
@@ -264,14 +414,19 @@ export function ReportHero({
             {legend.map((row) => (
               <div key={row.label} className="lr">
                 {row.key
-                  ? <img src={PLANET_RENDERS[row.key]} alt="" width={22} height={22} />
+                  ? <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />
                   : <span aria-hidden className="rp-ascdot" />}
                 <dt className="k">{row.label}</dt>
-                <dd className="v">{row.value}</dd>
+                <dd className="v">
+                  {!row.key && blind && onAddBirthTime
+                    ? <button type="button" onClick={onAddBirthTime} className="text-brass underline-offset-4 hover:underline">{row.value}</button>
+                    : row.value}
+                </dd>
               </div>
             ))}
           </dl>
         )}
+        {narrow && <ScrollCue flow reduced={reduced} cueRef={cueRef} />}
       </div>
 
       <div ref={hudRef} className="rp-hud no-print" aria-hidden>
@@ -281,7 +436,7 @@ export function ReportHero({
         <div className="r">
           <div className="col">
             <span className="live"><i />DOB · {dobText}</span>
-            <span className="d">TOB · {birthTime}</span>
+            <span className="d">TOB · {tob}</span>
           </div>
           <div className="col e">
             <span>Stars Decoded</span>
@@ -294,14 +449,13 @@ export function ReportHero({
             <span className="d">{coordinate(latitude, "N", "S", places)} / {coordinate(longitude, "E", "W", places)}</span>
           </div>
           <div className="col e">
-            <span>Ch. 00 / Horizon</span>
-            <span className="d">{meta.sect} chart · sun alt {meta.sunAltitude.toFixed(1)}°</span>
+            <span className="d">{sectLine}</span>
           </div>
         </div>
       </div>
 
       <section className="rp-hero" aria-label="Opening">
-        <div ref={cueRef} className="rp-cue no-print"><span><i />Scroll</span></div>
+        {!narrow && <ScrollCue reduced={reduced} cueRef={cueRef} />}
         <header className="hidden print:block px-8 pt-12">
           <p className="flex items-center gap-2 font-display text-base mb-6">
             <Mark className="h-[18px] w-[18px]" point="currentColor" />
@@ -310,10 +464,10 @@ export function ReportHero({
           <p className="font-label text-[10px] tracking-[0.28em] uppercase">Natal chart report</p>
           <h1 className="font-display text-5xl mt-2">{name}</h1>
           <p className="font-numeric text-xs mt-3">
-            DOB · {dobText} · TOB · {birthTime} · POB · {birthPlace}
+            DOB · {dobText} · TOB · {tob} · POB · {birthPlace}
           </p>
           <p className="font-numeric text-xs mt-1">
-            {legend.map((row) => `${row.label} ${row.value}`).join(" · ")}
+            {legend.map((row) => `${row.label} ${!row.key && blind ? "not drawn" : row.value}`).join(" · ")}
           </p>
         </header>
       </section>

@@ -2,6 +2,10 @@
  * The natal wheel, drawn from the chart. A body's angle comes only from its
  * absoluteDegree; crowding moves it inward, never around (ADR-17). The
  * Ascendant is a point on the horizon and is never drawn as a body.
+ *
+ * A blind chart (ADR-34) keeps the sign band and every body at its degree,
+ * framed on 0° Aries, and draws no house ring, no axes and no quadrant names:
+ * there is no horizon to hang them on.
  */
 import { useState, type ReactNode } from "react";
 import { PLANET_GLYPHS, PLANET_LABELS, type ChartData } from "@/types/chart";
@@ -84,8 +88,9 @@ export function NatalWheel({
     onSelectHouse?.(h);
   }
 
-  const asc = chartData.angles.ascendant.absoluteDegree;
-  const mc = chartData.angles.midheaven.absoluteDegree;
+  const drawn = chartData.angles !== undefined;
+  const asc = chartData.angles?.ascendant.absoluteDegree ?? 0;
+  const mc = chartData.angles?.midheaven.absoluteDegree ?? 90;
   const r = wheelRadii(PLATE);
   const c = r.centre;
   const pad = PLATE * 0.085;
@@ -99,21 +104,24 @@ export function NatalWheel({
     { lanes: r.lanes, node: r.node, gap: PLATE * 0.01 },
   );
 
-  const axes: { key: string; label: string; degree: number; major: boolean }[] = [
+  const axes: { key: string; label: string; degree: number; major: boolean }[] = drawn ? [
     { key: "asc", label: "ASC", degree: asc, major: true },
     { key: "mc", label: "MC", degree: mc, major: true },
     // ChartData carries only the two; the other pair is their opposition.
     { key: "dsc", label: "DSC", degree: opposite(asc), major: false },
     { key: "ic", label: "IC", degree: opposite(mc), major: false },
-  ];
+  ] : [];
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] items-start">
+    // Without a side panel the wheel takes the whole box: the explorer lays the
+    // card out itself, so the split here would only leave an empty column.
+    <div className={`grid gap-4 items-start${renderHouse ? " lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]" : ""}`}>
       <svg
         viewBox={`${-pad} ${-pad} ${PLATE + 2 * pad} ${PLATE + 2 * pad}`}
         className="w-full h-auto"
         role="img"
-        aria-label="Natal chart wheel"
+        aria-label={drawn ? "Natal chart wheel" : "Natal chart wheel, horizon not drawn"}
+        data-horizon={drawn ? "drawn" : "none"}
       >
         <defs>
           <radialGradient id={uid}>
@@ -123,8 +131,8 @@ export function NatalWheel({
         </defs>
         <circle cx={c} cy={c} r={r.aspect} fill={`url(#${uid})`} />
 
-        {/* Quadrants, named in words, outside the plate. */}
-        {[0, 1, 2, 3].map((q) => {
+        {/* Quadrants, named in words, outside the plate; only a horizon gives them a meaning. */}
+        {drawn && [0, 1, 2, 3].map((q) => {
           const a0 = theta(Math.floor(asc / 30) * 30 + q * 90, asc) + 6;
           const id = `${uid}-q${q}`;
           const t0 = pointAt(c, c, r.signOuter + PLATE * 0.028, a0 - 6);
@@ -160,6 +168,22 @@ export function NatalWheel({
           const selected = h === house;
           const signId = `${uid}-s${h}`;
           const numberAt = pointAt(c, c, (r.houseOuter + r.houseInner) / 2, b0 + 15);
+          if (!drawn) {
+            return (
+              <g key={h}>
+                <path
+                  d={wedgePath(c, c, r.signOuter, r.signInner, b0, b1)}
+                  fill={`hsl(var(--brass) / ${h % 2 ? 0.05 : 0.085})`}
+                  stroke="hsl(var(--brass) / 0.3)"
+                  strokeWidth={1}
+                />
+                <path id={signId} d={arcLabelPath(c, c, (r.signOuter + r.signInner) / 2, b0 + 1.5, b1 - 1.5)} fill="none" />
+                <text fontFamily="Space Grotesk, sans-serif" fontSize={PLATE * 0.0225} letterSpacing="1.4" fill={BRASS} dominantBaseline="middle">
+                  <textPath href={`#${signId}`} startOffset="50%" textAnchor="middle">{sign.toUpperCase()}</textPath>
+                </text>
+              </g>
+            );
+          }
           return (
             <g
               key={h}
@@ -316,15 +340,15 @@ export function NatalWheel({
               key={n.key}
               tabIndex={0}
               role="button"
-              aria-label={`${label} ${p.degree.toFixed(1)} degrees ${p.sign}, house ${p.house}`}
+              aria-label={`${label} ${p.degree.toFixed(1)} degrees ${p.sign}${p.house ? `, house ${p.house}` : ""}`}
               className="cursor-pointer focus:outline-none focus-visible:outline-none"
               onMouseEnter={() => setHovered(n.key)}
               onMouseLeave={() => setHovered((h) => (h === n.key ? null : h))}
               onFocus={() => setHovered(n.key)}
               onBlur={() => setHovered((h) => (h === n.key ? null : h))}
-              onClick={() => selectHouse(p.house)}
+              onClick={() => { if (p.house) selectHouse(p.house); }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
+                if ((e.key === "Enter" || e.key === " ") && p.house) {
                   e.preventDefault();
                   selectHouse(p.house);
                 }
