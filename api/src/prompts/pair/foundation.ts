@@ -36,6 +36,8 @@ export function allocationOf(out: PairFoundationOutput, brief: PairBrief, chapte
     const link = brief.links[o.link - 1];
     if (!link) continue;
     for (const n of o.chapters) {
+      // Chapter 07 collects the others' items and cites freely, so a link given to it binds nothing.
+      if (n > 6) continue;
       const id = chapterIdOf(n);
       if (!id) continue;
       (allocation[id] ??= []).push(link.key);
@@ -59,7 +61,9 @@ export function foundationProblems(out: PairFoundationOutput, brief: PairBrief):
     seen.add(o.link);
     if (o.chapters.length > OWNERS_PER_LINK) problems.push(`owners: L${o.link} is given to ${o.chapters.length} chapters; two at most`);
     for (const c of o.chapters) {
-      if (c < 1 || c > 6) { problems.push(`owners: L${o.link} names chapter ${c}; chapters run 1 to 6`); continue; }
+      if (c < 1 || c > 7) { problems.push(`owners: L${o.link} names chapter ${c}; chapters run 1 to 7`); continue; }
+      // A link given to chapter 07 is tolerated and counts for nothing: the first staging run failed three times on it (R06 lab).
+      if (c === 7) continue;
       perChapter.set(c, (perChapter.get(c) ?? 0) + 1);
     }
   }
@@ -92,5 +96,5 @@ export const pairFoundation: PairSectionSpec<typeof PairFoundationSchema> = {
 
 Name the three strongest links by their number in the LINKS list, with one sentence each on what they do between these two people on an ordinary day from the lens register. Name the one friction that matters and what it trains. Write the pair's three strengths as card lines: twelve words at most, naming only the two people, no body, no number.
 
-Give every link to one or two chapters (owners): chapter 1 is Your two charts and needs at least three links for its strong lines; chapters 2 to 6 are the lens chapters listed under CHAPTERS and each needs at least one link for its pattern. A link given to two chapters is read from two angles; a link given to none is wasted. Then pick, for each lens chapter, which of its three listed scenes fits this pair best (0, 1 or 2). Give each of the seven chapters one distinct thing to establish, in order. No score, rating or number describes the pair. The style contract does not apply to this internal output, but keep it evidence-based and free of generic labels.`,
+Give every link to one or two of chapters 1 to 6 (owners): chapter 1 is Your two charts and needs at least three links for its strong lines; chapters 2 to 6 are the lens chapters listed under CHAPTERS and each needs at least one link for its pattern. Chapter 7 collects the others' items and owns no link. A link given to two chapters is read from two angles; a link given to none is wasted. Then pick, for each lens chapter, which of its three listed scenes fits this pair best (0, 1 or 2). Give each of the seven chapters one distinct thing to establish, in order. No score, rating or number describes the pair. The style contract does not apply to this internal output, but keep it evidence-based and free of generic labels.`,
 };

@@ -10,7 +10,7 @@ const { generateInterpretation } = await import("../../lib/aiInterpretation.js")
 const { buildPairBrief, LENSES, LENS_REGISTER } = await import("../../lib/pairBrief.js");
 const {
   PAIR_ALL_SECTIONS, PAIR_DOCTRINE, PAIR_PROMPT_VERSION, PAIR_SECTIONS, PAIR_SECTION_IDS, PAIR_SYSTEM, PAIR_WORD_TARGETS, PAIR_CLAIMS_CONTRACT,
-  LENS_SECTIONS, bandProblems, cardLineProblems, evidenceProblems, foundationProblems, hasVerb, lensChapterId, lensContext,
+  LENS_SECTIONS, allocationOf, bandProblems, cardLineProblems, evidenceProblems, foundationProblems, hasVerb, lensChapterId, lensContext,
   pairChapterIds, pairChapterTitle, pairHasClaims, pairSectionById, pairSectionIds, sceneProblems, scenesOf, validatePairClaims,
 } = await import("./index.js");
 const { BAND_DOCTRINE } = await import("./sections/parent-child/doctrine.js");
@@ -273,6 +273,12 @@ test("foundation: every link once to one or two chapters, chapter 01 three of th
   assert.ok(foundationProblems(twice as never, brief).some((p) => /listed twice/.test(p)));
   const three = { ...good, owners: owners.map((o, i) => (i === 0 ? { ...o, chapters: [1, 2, 3] } : o)) };
   assert.ok(foundationProblems(three as never, brief).some((p) => /two at most/.test(p)));
+  // A link handed to chapter 07 is tolerated and binds nothing; a chapter past 7 is not a chapter.
+  const seven = { ...good, owners: owners.map((o, i) => (i === 3 ? { ...o, chapters: [7] } : o)) };
+  assert.deepEqual(foundationProblems(seven as never, brief), []);
+  assert.equal(allocationOf(seven as never, brief, (n) => ["twoCharts", "partners02", "partners03", "partners04", "partners05", "partners06", "whatToPractise"][n - 1]).whatToPractise, undefined);
+  const eight = { ...good, owners: owners.map((o, i) => (i === 3 ? { ...o, chapters: [8] } : o)) };
+  assert.ok(foundationProblems(eight as never, brief).some((p) => /chapters run 1 to 7/.test(p)));
   const missing = { ...good, owners: owners.slice(1) };
   assert.ok(foundationProblems(missing as never, brief).some((p) => /L1 is missing/.test(p)));
   const noScene = { ...good, scenes: [2, 3, 4, 5, 5].map((chapter) => ({ chapter, index: 0 })) };
