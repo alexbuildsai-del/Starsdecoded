@@ -100,7 +100,8 @@ jobs:
       - name: Publish the run on the report-lab branch
         if: always()
         run: |
-          ls fixtures/reports/*.${{ inputs.label }}.md fixtures/reports/lab.${{ inputs.label }}.log >/dev/null 2>&1 || { echo "nothing to publish"; exit 0; }
+          # ls fails when either glob is empty, so a run with a log and no report said "nothing to publish".
+          compgen -G "fixtures/reports/*.${{ inputs.label }}.md" >/dev/null || [ -f "fixtures/reports/lab.${{ inputs.label }}.log" ] || { echo "nothing to publish"; exit 0; }
           branch="report-lab/${{ inputs.label }}"
           git config user.name "report-lab"
           git config user.email "report-lab@users.noreply.github.com"
