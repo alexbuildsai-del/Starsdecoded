@@ -1,16 +1,15 @@
 # Draft spec — the model matrix: the lab moves into the admin panel, the Owner judges blind
 
 Raised by the Owner, 2026-09-19, directed 2026-09-20: 28.4 cents a natal report
-(R05 mean) is the high end; find a better mix, possibly a different model per
-section by the reasoning it needs, beyond `gpt-5.2` and `gpt-5-mini`, Groq
-included. Natal reports only in this pass; the compatibility report follows on
-the same tables. Quality over cost; the Owner's blind read is the judge.
+(R05 mean) is the high end; find a better mix, a different model per section by
+the reasoning it needs, beyond `gpt-5.2` and `gpt-5-mini`, Groq included. Natal
+only in this pass. Quality over cost; the Owner's blind read is the judge.
 Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
 
 ## Where the 28 cents go (R05, five fixtures, real usage)
 
 Twelve calls: one serial foundation, then ten chapters and the houses in
-parallel. Read from their prompts they need four levels of reasoning:
+parallel, needing four levels of reasoning, read from their prompts:
 
 | tier | sections | what the prompt asks | share of cost |
 |---|---|---|---|
@@ -19,14 +18,13 @@ parallel. Read from their prompts they need four levels of reasoning:
 | scaffolded | triad, mind, career, money, relationships, family | write against evidence the prompt names, foundation attached verbatim, strict schema, claims checked in code | 48% |
 | mechanical | houses | twelve 45–65 word cards under a per-house whitelist, no claims | 8% |
 
-The foundation takes 34 s of the wait before any chapter starts. At €24 the
-report costs 1.2% of a sale against MASTERFILE §1's "under 1%".
+The foundation takes 34 s before any chapter starts. At €24 the report is 1.2%
+of a sale against MASTERFILE §1's "under 1%".
 
 ## Candidates in the first matrix
 
-Prices September 2026, $/M tokens in / out; ◌ from aggregators because the
-vendor pages are blocked from the sandbox, entered in `CATALOGUE` only after a
-check against the official page. Prose is EQ-Bench Creative Writing v3 Elo.
+Prices September 2026; ◌ from aggregators (vendor pages blocked from the
+sandbox), entered in `CATALOGUE` only after a check against the official page.
 
 | writer | door | $/M in / out | prose | why it is in |
 |---|---|---|---|---|
@@ -55,15 +53,13 @@ priced on the R05 token shape, before retries; M0 is measured.
 | M4 the floor | 5.2 | mini | mini | mini | ≈7.3 |
 | M7 only Groq | Groq | Groq | Groq | Groq | ≈2.1 |
 
-The Owner does not judge mixes; the Owner judges writers, one section at a
-time. M1, M2 and M4 share the stored R05 foundation, so a difference in a
-section is the writer alone. M7 writes its own foundation, so its sections
-carry a different reading of the chart as well. Per section the reading room
-shows every distinct text: a scaffolded section has five (5.2, Luna, Groq,
-mini, Groq-on-Groq), a synthesis section four, the houses five, plus a second
-fresh 5.2 replay as a hidden control: how often the Owner prefers one 5.2 over
-the other is the noise floor a writer must beat. The mixes are read off the
-picks and priced at the reveal.
+The Owner judges writers, not mixes, one section at a time. M1, M2 and M4
+share the stored foundation, so a difference in a section is the writer alone;
+M7 writes its own foundation, so its sections carry a different reading too.
+Per section the room shows every distinct text (five for a scaffolded section,
+four for synthesis, five for the houses) plus a fresh 5.2 replay as a hidden
+control: how often the Owner prefers one 5.2 over the other is the noise floor
+a writer must beat. The mixes are read off the picks and priced at the reveal.
 
 ## Scope
 
@@ -125,12 +121,11 @@ picks and priced at the reveal.
   USER-FACING engine change with a staging lab run pasted (R-4.4, R-5.5).
 - The compatibility report: same tables, its own matrix, after the natal one.
 - A native Anthropic or Gemini adapter, batch or flex tiers, `reasoning_effort`.
-- An LLM judge. The Owner asked to be the judge; the contract faults stay the
-  automatic gate. A model judge can be added to the reveal later as a column.
-- Tightening any token ceiling or word band (MASTERFILE §1). Judging the
-  foundation's text directly; it is judged through the sections it produces.
-- Production. The Lab page ships behind the admin gate on both environments but
-  replay refuses to run when `PROMPTS_READ_ONLY` is set.
+- An LLM judge: the Owner is the judge, the contract faults the automatic gate.
+- Tightening any ceiling or band (MASTERFILE §1); judging the foundation's text
+  directly, it is judged through the sections it produces.
+- Production: the page ships behind the admin gate everywhere, replay refuses
+  to run when `PROMPTS_READ_ONLY` is set.
 
 ## Acceptance criteria
 
@@ -152,9 +147,8 @@ picks and priced at the reveal.
 
 ## Screens
 
-Artifact above: the tier pipeline, the four candidates, the five mixes, the
-flow from stored run to replay to reading room to reveal, the reading-room
-card with five columns and the note, the reveal table.
+Artifact above: tiers, candidates, mixes, the flow from stored run to reveal,
+the reading-room card with its columns and note, the reveal table.
 
 ## The rule for moving a section
 
@@ -203,5 +197,4 @@ section's picks.
 - Providers enter through OpenAI-compatible endpoints named per model in
   `CATALOGUE` with their price; keys live on the Railway service.
 - A section moves to another writer only on the rule above; quality over cost.
-- Natal first; the compatibility report gets its matrix on the same tables.
 - R-5.6 is superseded: `api/src/lib/models.ts` is the single catalogue.
