@@ -37,8 +37,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 ## QA — `docs/qa/` none yet.
 
 ## Annex
-- `docs/annex/staging-runbook.md` — the Owner's one-time dashboard setup for staging (Supabase, Railway, Vercel, GitHub).
-- Bible maintenance checklist arrives here when the bible branch merges.
+- `docs/annex/staging-runbook.md` — the Owner's one-time staging setup; the bible checklist arrives with the bible branch.
 
 ## Code map
 - `web/` React + Vite SPA (Vercel) · `api/` Express API (Railway) · `packages/db` drizzle schema
@@ -56,7 +55,6 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `README.md` — setup, deploy targets, porting notes. Still the human onboarding page.
 
 ## Agents and skills
-- `.claude/agents/` planner · orchestrator · builder · qa
-- `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox — one `SKILL.md` each; the description is the trigger, so plain English works too
+- `.claude/agents/` planner · orchestrator · builder · qa · `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox · /report-lab
 - `.github/pull_request_template.md` — the gate checklist every PR carries
 - `.github/workflows/ci.yml` typecheck, builds, unit tests · `smoke.yml` deploy check on push to main (staging) and production · `smoke-run.yml` its reusable body · `promote.yml` fast-forwards production after a staging smoke
