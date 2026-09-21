@@ -1,0 +1,2690 @@
+{
+  "fixture": {
+    "name": "Marie Curie",
+    "birthDate": "1867-11-07",
+    "birthTime": "12:00",
+    "latitude": 52.2297,
+    "longitude": 21.0122,
+    "timezoneOffset": 1.4,
+    "note": "Warsaw. 12:00 LMT, the time astro-charts.com and the Notion V2 baseline use; not from a birth record. Longitude 21.0E gives LMT = UTC+1.4h. Day chart, Capricorn rising, Scorpio stellium in the 11th (whole-sign), North Node Virgo. Independently verified against Meeus during the engine audit; see api/src/lib/chartCalculation.test.ts."
+  },
+  "chart": {
+    "angles": {
+      "ic": {
+        "sign": "Taurus",
+        "degree": 18.63,
+        "absoluteDegree": 48.63
+      },
+      "ascendant": {
+        "sign": "Capricorn",
+        "degree": 12.07,
+        "absoluteDegree": 282.07
+      },
+      "midheaven": {
+        "sign": "Scorpio",
+        "degree": 18.63,
+        "absoluteDegree": 228.63
+      },
+      "descendant": {
+        "sign": "Cancer",
+        "degree": 12.07,
+        "absoluteDegree": 102.07
+      }
+    },
+    "houses": {
+      "1": {
+        "sign": "Capricorn",
+        "degree": 0
+      },
+      "2": {
+        "sign": "Aquarius",
+        "degree": 0
+      },
+      "3": {
+        "sign": "Pisces",
+        "degree": 0
+      },
+      "4": {
+        "sign": "Aries",
+        "degree": 0
+      },
+      "5": {
+        "sign": "Taurus",
+        "degree": 0
+      },
+      "6": {
+        "sign": "Gemini",
+        "degree": 0
+      },
+      "7": {
+        "sign": "Cancer",
+        "degree": 0
+      },
+      "8": {
+        "sign": "Leo",
+        "degree": 0
+      },
+      "9": {
+        "sign": "Virgo",
+        "degree": 0
+      },
+      "10": {
+        "sign": "Libra",
+        "degree": 0
+      },
+      "11": {
+        "sign": "Scorpio",
+        "degree": 0
+      },
+      "12": {
+        "sign": "Sagittarius",
+        "degree": 0
+      }
+    },
+    "aspects": [
+      {
+        "orb": 1.9,
+        "type": "trine",
+        "planet1": "sun",
+        "planet2": "moon",
+        "applying": true
+      },
+      {
+        "orb": 1.8,
+        "type": "trine",
+        "planet1": "sun",
+        "planet2": "uranus",
+        "applying": false
+      },
+      {
+        "orb": 0.6,
+        "type": "opposition",
+        "planet1": "sun",
+        "planet2": "pluto",
+        "applying": false
+      },
+      {
+        "orb": 3.8,
+        "type": "trine",
+        "planet1": "moon",
+        "planet2": "uranus",
+        "applying": false
+      },
+      {
+        "orb": 1.4,
+        "type": "sextile",
+        "planet1": "moon",
+        "planet2": "pluto",
+        "applying": false
+      },
+      {
+        "orb": 7,
+        "type": "conjunction",
+        "planet1": "mercury",
+        "planet2": "mars",
+        "applying": false
+      },
+      {
+        "orb": 4,
+        "type": "conjunction",
+        "planet1": "venus",
+        "planet2": "mars",
+        "applying": true
+      },
+      {
+        "orb": 2.4,
+        "type": "square",
+        "planet1": "venus",
+        "planet2": "jupiter",
+        "applying": true
+      },
+      {
+        "orb": 0.3,
+        "type": "conjunction",
+        "planet1": "venus",
+        "planet2": "saturn",
+        "applying": false
+      },
+      {
+        "orb": 1.6,
+        "type": "square",
+        "planet1": "mars",
+        "planet2": "jupiter",
+        "applying": true
+      },
+      {
+        "orb": 4.3,
+        "type": "conjunction",
+        "planet1": "mars",
+        "planet2": "saturn",
+        "applying": false
+      },
+      {
+        "orb": 2.7,
+        "type": "square",
+        "planet1": "jupiter",
+        "planet2": "saturn",
+        "applying": false
+      },
+      {
+        "orb": 0.1,
+        "type": "square",
+        "planet1": "uranus",
+        "planet2": "neptune",
+        "applying": false
+      },
+      {
+        "orb": 2.4,
+        "type": "sextile",
+        "planet1": "uranus",
+        "planet2": "pluto",
+        "applying": false
+      }
+    ],
+    "horizon": {
+      "sect": {
+        "holds": true,
+        "value": "day",
+        "values": [
+          "day"
+        ],
+        "flipsAt": [],
+        "holdsTo": "16:16",
+        "holdsFrom": "07:12"
+      },
+      "status": "known",
+      "sunSign": {
+        "holds": true,
+        "value": "Scorpio",
+        "values": [
+          "Scorpio"
+        ],
+        "flipsAt": [],
+        "holdsTo": "24:00",
+        "holdsFrom": "00:00"
+      },
+      "moonSign": {
+        "holds": true,
+        "value": "Pisces",
+        "values": [
+          "Pisces"
+        ],
+        "flipsAt": [],
+        "holdsTo": "24:00",
+        "holdsFrom": "00:00"
+      },
+      "ascendant": {
+        "holds": true,
+        "value": "Capricorn",
+        "values": [
+          "Capricorn"
+        ],
+        "flipsAt": [],
+        "holdsTo": "12:58",
+        "holdsFrom": "11:12"
+      },
+      "midheaven": {
+        "holds": true,
+        "value": "Scorpio",
+        "values": [
+          "Scorpio"
+        ],
+        "flipsAt": [],
+        "holdsTo": "12:48",
+        "holdsFrom": "10:48"
+      }
+    },
+    "planets": {
+      "sun": {
+        "sign": "Scorpio",
+        "house": 11,
+        "speed": 1.004,
+        "degree": 14.58,
+        "retrograde": false,
+        "absoluteDegree": 224.58
+      },
+      "mars": {
+        "sign": "Scorpio",
+        "house": 11,
+        "speed": 0.719,
+        "degree": 29.62,
+        "retrograde": false,
+        "absoluteDegree": 239.62
+      },
+      "moon": {
+        "sign": "Pisces",
+        "house": 3,
+        "speed": 12.668,
+        "degree": 16.48,
+        "retrograde": false,
+        "absoluteDegree": 346.48
+      },
+      "pluto": {
+        "sign": "Taurus",
+        "house": 5,
+        "speed": -0.019,
+        "degree": 15.13,
+        "retrograde": true,
+        "absoluteDegree": 45.13
+      },
+      "venus": {
+        "sign": "Scorpio",
+        "house": 11,
+        "speed": 1.252,
+        "degree": 25.57,
+        "retrograde": false,
+        "absoluteDegree": 235.57
+      },
+      "chiron": {
+        "sign": "Cancer",
+        "house": 7,
+        "speed": 0.038,
+        "degree": 29.36,
+        "retrograde": false,
+        "absoluteDegree": 119.36
+      },
+      "saturn": {
+        "sign": "Scorpio",
+        "house": 11,
+        "speed": 0.118,
+        "degree": 25.27,
+        "retrograde": false,
+        "absoluteDegree": 235.27
+      },
+      "uranus": {
+        "sign": "Cancer",
+        "house": 7,
+        "speed": -0.017,
+        "degree": 12.73,
+        "retrograde": true,
+        "absoluteDegree": 102.73
+      },
+      "jupiter": {
+        "sign": "Aquarius",
+        "house": 2,
+        "speed": 0.048,
+        "degree": 28.01,
+        "retrograde": false,
+        "absoluteDegree": 328.01
+      },
+      "mercury": {
+        "sign": "Sagittarius",
+        "house": 12,
+        "speed": 0.524,
+        "degree": 6.63,
+        "retrograde": false,
+        "absoluteDegree": 246.63
+      },
+      "neptune": {
+        "sign": "Aries",
+        "house": 4,
+        "speed": -0.023,
+        "degree": 12.85,
+        "retrograde": true,
+        "absoluteDegree": 12.85
+      },
+      "north_node": {
+        "sign": "Virgo",
+        "house": 9,
+        "speed": -0.053,
+        "degree": 10.97,
+        "retrograde": true,
+        "absoluteDegree": 160.97
+      },
+      "south_node": {
+        "sign": "Pisces",
+        "house": 3,
+        "speed": -0.053,
+        "degree": 10.97,
+        "retrograde": true,
+        "absoluteDegree": 340.97
+      }
+    },
+    "elements": {
+      "air": 1,
+      "fire": 2,
+      "earth": 1,
+      "water": 6
+    },
+    "latitude": 52.2297,
+    "dominance": {
+      "dominantElement": "water",
+      "dominantPlanets": [
+        "uranus",
+        "neptune"
+      ],
+      "dominantModality": "fixed"
+    },
+    "julianDay": 2403277.9417,
+    "longitude": 21.0122,
+    "chartShape": "bundle",
+    "modalities": {
+      "fixed": 6,
+      "mutable": 2,
+      "cardinal": 2
+    },
+    "datetimeUtc": "1867-11-07T10:36:00.000Z",
+    "sunAltitude": 21.46,
+    "chartVersion": 3,
+    "windowMinutes": 0,
+    "timezoneOffset": 1.4,
+    "hemisphereEmphasis": {
+      "eastern": 4,
+      "western": 6,
+      "northern": 4,
+      "southern": 6
+    }
+  },
+  "interpretation": {
+    "meta": {
+      "orbs": {
+        "trine": 6,
+        "square": 6,
+        "sextile": 4,
+        "opposition": 8,
+        "conjunction": 8
+      },
+      "sect": "day",
+      "model": "gpt-5.2",
+      "usage": {
+        "model": "gpt-5.2",
+        "totals": {
+          "ms": 195954,
+          "attempts": 13,
+          "inputTokens": 25117,
+          "outputTokens": 13921,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 100864
+        },
+        "costUsd": 0.25649995000000003,
+        "sections": [
+          {
+            "ms": 25119,
+            "model": "gpt-5.2",
+            "section": "natal:foundation",
+            "attempts": 1,
+            "inputTokens": 231,
+            "outputTokens": 1652,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7040
+          },
+          {
+            "ms": 13077,
+            "model": "gpt-5.2",
+            "section": "natal:overview",
+            "attempts": 1,
+            "inputTokens": 2225,
+            "outputTokens": 948,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 10583,
+            "model": "gpt-5.2",
+            "section": "natal:triad",
+            "attempts": 1,
+            "inputTokens": 2088,
+            "outputTokens": 872,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 37522,
+            "model": "gpt-5.2",
+            "section": "natal:houses",
+            "attempts": 2,
+            "inputTokens": 2652,
+            "outputTokens": 2120,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15744
+          },
+          {
+            "ms": 9915,
+            "model": "gpt-5.2",
+            "section": "natal:mind",
+            "attempts": 1,
+            "inputTokens": 2143,
+            "outputTokens": 745,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 15218,
+            "model": "gpt-5.2",
+            "section": "natal:career",
+            "attempts": 1,
+            "inputTokens": 2324,
+            "outputTokens": 1085,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 13453,
+            "model": "gpt-5.2",
+            "section": "natal:money",
+            "attempts": 1,
+            "inputTokens": 2177,
+            "outputTokens": 1092,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 14583,
+            "model": "gpt-5.2",
+            "section": "natal:relationships",
+            "attempts": 1,
+            "inputTokens": 2358,
+            "outputTokens": 1119,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 12819,
+            "model": "gpt-5.2",
+            "section": "natal:family",
+            "attempts": 1,
+            "inputTokens": 2100,
+            "outputTokens": 1100,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 16220,
+            "model": "gpt-5.2",
+            "section": "natal:superpowers",
+            "attempts": 1,
+            "inputTokens": 2391,
+            "outputTokens": 1192,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 14656,
+            "model": "gpt-5.2",
+            "section": "natal:discoveries",
+            "attempts": 1,
+            "inputTokens": 2129,
+            "outputTokens": 1017,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          },
+          {
+            "ms": 12789,
+            "model": "gpt-5.2",
+            "section": "natal:focus",
+            "attempts": 1,
+            "inputTokens": 2299,
+            "outputTokens": 979,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7808
+          }
+        ],
+        "wallClockMs": 63735
+      },
+      "zodiac": "tropical",
+      "horizon": "known",
+      "ephemeris": "astronomy-engine (Don Cross), tropical zodiac, mean lunar node",
+      "sectLight": "sun",
+      "wordCount": 4886,
+      "reportType": "natal",
+      "generatedAt": "2026-09-21T11:27:30.466Z",
+      "houseSystem": "whole-sign",
+      "sunAltitude": 21.46,
+      "sectMarginal": false,
+      "promptVersion": "v6"
+    },
+    "mind": {
+      "claims": [
+        {
+          "quote": "You think best when you are alone and unobserved, with time to follow a question past the point where other people get bored.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 9,
+                "ruler": "mercury",
+                "dignity": "detriment",
+                "rulerSign": "sagittarius",
+                "rulerHouse": 12
+              },
+              "label": "Mercury rules the 9th and sits in Sagittarius, 12th house, in detriment"
+            }
+          ]
+        },
+        {
+          "quote": "Your dominant modality is fixed, so you decide slowly, then you stop revisiting it.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Then you choose one line and you endure the consequences without dramatics.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You present your conclusion without showing the trail that got you there, and people assume you are being secretive or stubborn.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "When you do show your trail, you can overshare raw conflict or anger in one burst, and the room focuses on your tone instead of your point.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 7,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "mercury",
+                "body2": "mars"
+              },
+              "label": "Mercury conjunction Mars, 7.0° orb"
+            }
+          ]
+        }
+      ],
+      "practice": "Before you deliver a conclusion, state one observable fact and one question you still have, so people can follow your trail and you stay open to correction.",
+      "howYouThink": "You think best when you are alone and unobserved, with time to follow a question past the point where other people get bored. You notice hidden motives, contradictions, and what someone is not saying, and you file it away for later. You miss the moment where a private hunch needs to be tested out loud, so you can keep refining in your head while the outside facts have already changed. Your reasoning is synthetic and directional. You jump from detail to the larger principle, then you work backward to see what would have to be true for that principle to hold.",
+      "howYouDecide": "Your dominant modality is fixed, so you decide slowly, then you stop revisiting it. You can sit with uncertainty for a long time, gathering proof and watching patterns repeat. Then you choose one line and you endure the consequences without dramatics. A common example is work with a collaborator. You tolerate months of mixed signals while you observe, you say little about what you are tracking, and then you make one clean move: you either bind yourself to the partnership for years, or you cut it off and do not return to negotiation.",
+      "howYouAreUnderstood": "You make yourself understood through precise claims and a refusal to decorate what you mean. You speak as if you are answering a serious question, even when the other person thought you were only chatting. The misfire is that you compress the steps. You present your conclusion without showing the trail that got you there, and people assume you are being secretive or stubborn. When you do show your trail, you can overshare raw conflict or anger in one burst, and the room focuses on your tone instead of your point."
+    },
+    "focus": {
+      "claims": [
+        {
+          "quote": "Choose one mission and one circle of collaborators, then make clear roles, timelines, and decision rights.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 11,
+                "ruler": "mars",
+                "dignity": "domicile",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Mars rules the 11th and sits in Scorpio, 11th house, in domicile"
+            }
+          ]
+        },
+        {
+          "quote": "Notice how quickly you move from suspicion to action, then repair later when trust has already been bruised.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "orb": 7,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "mercury",
+                "body2": "mars"
+              },
+              "label": "Mercury conjunction Mars, 7.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "When resources grow, you may promise more than the system can hold, then clamp down harshly to compensate.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "placement",
+                "sign": "aquarius",
+                "house": 2
+              },
+              "label": "Jupiter 28.0° Aquarius, 2nd house"
+            },
+            {
+              "ref": {
+                "orb": 2.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "jupiter",
+                "body2": "saturn"
+              },
+              "label": "Jupiter square Saturn, 2.7° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mars",
+                "body2": "jupiter"
+              },
+              "label": "Mars square Jupiter, 1.6° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Write down your working assumptions before you argue, and update them only with evidence you can cite.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "north_node",
+                "kind": "placement",
+                "sign": "virgo",
+                "house": 9
+              },
+              "label": "North Node 11.0° Virgo, 9th house"
+            },
+            {
+              "ref": {
+                "lot": "spirit",
+                "kind": "lot",
+                "sign": "virgo",
+                "house": 9
+              },
+              "label": "Lot of Spirit in Virgo, 9th house"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 9,
+                "ruler": "mercury",
+                "dignity": "detriment",
+                "rulerSign": "sagittarius",
+                "rulerHouse": 12
+              },
+              "label": "Mercury rules the 9th and sits in Sagittarius, 12th house, in detriment"
+            }
+          ]
+        },
+        {
+          "quote": "Your harder task is to handle conflict without letting it become your identity or your organising principle.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            }
+          ]
+        }
+      ],
+      "notice": {
+        "intro": "Your sharpest costs come from force and urgency showing up first, especially around groups, status, and shared aims.",
+        "bullets": [
+          {
+            "why": "so you keep allies instead of winning battles",
+            "point": "Notice how quickly you move from suspicion to action, then repair later when trust has already been bruised."
+          },
+          {
+            "why": "so you do not confuse endurance with necessity",
+            "point": "Watch the reflex to prove your value by taking the hardest role and refusing help until you break."
+          },
+          {
+            "why": "so your standards stay stable under expansion",
+            "point": "When resources grow, you may promise more than the system can hold, then clamp down harshly to compensate."
+          }
+        ]
+      },
+      "closing": "You are built to take on work that is bigger than one lifetime of attention, and you do not relax until it is real. You do your best when you choose your people with care and then commit with full weight. Your harder task is to handle conflict without letting it become your identity or your organising principle. You grow fastest when you slow your thinking down, name what you mean, and keep your methods clean even when the stakes feel personal. Consistency will come from rules you set for yourself, not from anyone’s approval.",
+      "leanInto": {
+        "intro": "Build around your capacity to commit, organise, and endure inside long-term alliances without losing your own direction.",
+        "bullets": [
+          {
+            "why": "so your loyalty becomes results, not endless negotiation",
+            "point": "Choose one mission and one circle of collaborators, then make clear roles, timelines, and decision rights."
+          },
+          {
+            "why": "so you stop carrying problems that should have ended sooner",
+            "point": "Let your intensity go into research, elimination, and hard choices, especially when others avoid the real issue."
+          },
+          {
+            "why": "so your steadiness stays human, not merely functional",
+            "point": "Protect daily contact with one trusted person who can hear your feelings without fixing them immediately."
+          }
+        ]
+      },
+      "practice": {
+        "intro": "Real growth lives in disciplined study, precise language, and methods you can repeat when emotions run high.",
+        "bullets": [
+          {
+            "why": "so you stop debating from mood or memory",
+            "point": "Write down your working assumptions before you argue, and update them only with evidence you can cite."
+          },
+          {
+            "why": "so you are understood the first time",
+            "point": "Trade quick explanations for careful definitions, especially with mentors, institutions, and formal commitments."
+          },
+          {
+            "why": "so your mind serves your work, not your fear",
+            "point": "Make solitude part of the schedule, then bring back one concrete contribution rather than a private worry-loop."
+          }
+        ]
+      }
+    },
+    "money": {
+      "claims": [
+        {
+          "quote": "You treat money as something that has to justify itself through usefulness and staying power.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 2,
+                "ruler": "saturn",
+                "dignity": "peregrine",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Saturn rules the 2nd and sits in Scorpio, 11th house, peregrine"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Saturn is the malefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Resources come most reliably when your work is embedded in a committed group, a lab-like setting, or a long-term collective mission, because you show up consistently and become hard to replace.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "placement",
+                "sign": "aquarius",
+                "house": 2
+              },
+              "label": "Jupiter 28.0° Aquarius, 2nd house"
+            },
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "sect",
+                "role": "benefic_of_sect"
+              },
+              "label": "Jupiter is the benefic of sect"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 2,
+                "ruler": "saturn",
+                "dignity": "peregrine",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Saturn rules the 2nd and sits in Scorpio, 11th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "You lose money when growth is pushed too fast by other people’s appetite, timelines, or prestige, because you will say yes to scale before the structure can carry it.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mars",
+                "body2": "jupiter"
+              },
+              "label": "Mars square Jupiter, 1.6° orb"
+            },
+            {
+              "ref": {
+                "orb": 2.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "jupiter",
+                "body2": "saturn"
+              },
+              "label": "Jupiter square Saturn, 2.7° orb"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "For example, you can accept an expanded role with implied funding, then discover the actual budget depends on political goodwill, so you end up covering gaps with your own time, savings, or uncompensated output just to keep the project intact.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "venus",
+                "body2": "jupiter"
+              },
+              "label": "Venus square Jupiter, 2.4° orb"
+            },
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "venus",
+                "body2": "saturn"
+              },
+              "label": "Venus conjunction Saturn, 0.3° orb"
+            },
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Venus 25.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Money that is not solely yours is a high-stakes topic for you, and you do not treat it casually.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 8,
+                "ruler": "sun",
+                "dignity": "peregrine",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Sun rules the 8th and sits in Scorpio, 11th house, peregrine"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Your exposure lives in entanglements where reputation and shared funds mix, because a conflict inside the group can turn into delayed payments, withdrawn support, or obligations that become personal.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 8,
+                "ruler": "sun",
+                "dignity": "peregrine",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Sun rules the 8th and sits in Scorpio, 11th house, peregrine"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "sect",
+                "role": "benefic_out_of_sect"
+              },
+              "label": "Venus is the benefic out of sect"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "why": "so you stop paying with your own labour when someone else changes the terms.",
+          "action": "Put every shared-money agreement in writing, including what happens if funding changes."
+        },
+        {
+          "why": "so you do not trade stability for momentum you cannot maintain.",
+          "action": "Choose one measurable growth target at a time and refuse bundled expansions."
+        },
+        {
+          "why": "so you can say no without panic when pressure comes through the group.",
+          "action": "Keep a private reserve that is not accessible to collaborators or projects."
+        }
+      ],
+      "whatWorks": "Resources come most reliably when your work is embedded in a committed group, a lab-like setting, or a long-term collective mission, because you show up consistently and become hard to replace. You lose money when growth is pushed too fast by other people’s appetite, timelines, or prestige, because you will say yes to scale before the structure can carry it. For example, you can accept an expanded role with implied funding, then discover the actual budget depends on political goodwill, so you end up covering gaps with your own time, savings, or uncompensated output just to keep the project intact.",
+      "sharedAndExposed": "Money that is not solely yours is a high-stakes topic for you, and you do not treat it casually. You read the fine print, you track who owes what, and you remember exactly what was promised. Backing can arrive through patrons, committees, or benefactors, but it comes with scrutiny and unspoken expectations, so you can feel pressure to prove loyalty before you have proof of stability. Your exposure lives in entanglements where reputation and shared funds mix, because a conflict inside the group can turn into delayed payments, withdrawn support, or obligations that become personal.",
+      "relationshipToResources": "You treat money as something that has to justify itself through usefulness and staying power. You would rather have one dependable stream tied to serious work than five exciting experiments you cannot repeat. You notice when a promise is vague, and you will refuse it even if it flatters you. You also link earning with belonging, so you can end up working harder when you feel watched or evaluated by peers. When you feel insecure, you tighten standards, cut “nice-to-haves,” and pour effort into the alliance or institution you believe will still be standing later."
+    },
+    "triad": {
+      "sun": {
+        "text": "You build your identity around work that survives you, and you prefer to be recognised for what you make possible in a group rather than for personal display. You take loyalty seriously and you notice fast who treats a shared aim as a costume. You organise your life around long-term alliances, a few decisive patrons or collaborators, and missions that require discretion. You can feel most alive when the stakes are real and the circle is committed. Behaviour to check: you stay with a collective project long after it stops being socially rewarding, because finishing matters to you.",
+        "label": "Sun in Scorpio, 11th house"
+      },
+      "moon": {
+        "text": "You steady yourself through small, humane rhythms: familiar routes, familiar voices, and a daily flow of messages that tells you who is okay. Under stress, you reach for conversation, reading, note-taking, and quiet observing before you act. You absorb tone and subtext without trying, so loud environments and blunt people can drain you faster than you expect. You function best when your day has space for wandering thought and gentle check-ins. Behaviour to check: when you feel overwhelmed, you send one careful message to the person who feels safest, even if you say almost nothing in it.",
+        "label": "Moon in Pisces, 3rd house"
+      },
+      "claims": [
+        {
+          "quote": "You build your identity around work that survives you, and you prefer to be recognised for what you make possible in a group rather than for personal display.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Sun is the sect light"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 1,
+                "ruler": "saturn",
+                "dignity": "peregrine",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Saturn rules the 1st and sits in Scorpio, 11th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "You organise your life around long-term alliances, a few decisive patrons or collaborators, and missions that require discretion.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Under stress, you reach for conversation, reading, note-taking, and quiet observing before you act.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "Moon 16.5° Pisces, 3rd house"
+            },
+            {
+              "ref": {
+                "body": "south_node",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "South Node 11.0° Pisces, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "You absorb tone and subtext without trying, so loud environments and blunt people can drain you faster than you expect.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "Moon 16.5° Pisces, 3rd house"
+            },
+            {
+              "ref": {
+                "orb": 1.4,
+                "kind": "aspect",
+                "type": "sextile",
+                "body1": "moon",
+                "body2": "pluto"
+              },
+              "label": "Moon sextile Pluto, 1.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You come across as composed, serious, and harder to sway than most.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "angle",
+                "sign": "capricorn",
+                "angle": "ascendant"
+              },
+              "label": "Ascendant · 12.1° Capricorn"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 1,
+                "ruler": "saturn",
+                "dignity": "peregrine",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Saturn rules the 1st and sits in Scorpio, 11th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "In the first minute, people read you as someone who has already counted the cost, and who will not promise what you cannot carry.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "angle",
+                "sign": "capricorn",
+                "angle": "ascendant"
+              },
+              "label": "Ascendant · 12.1° Capricorn"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Saturn is the malefic of sect"
+            }
+          ]
+        }
+      ],
+      "rising": {
+        "text": "You come across as composed, serious, and harder to sway than most. In the first minute, people read you as someone who has already counted the cost, and who will not promise what you cannot carry. You tend to watch before you speak, and you prefer competence over charm. What sharpens this is how quickly you sort people by reliability and by their relationship to power and obligation. Behaviour to check: in a new room, you choose a position where you can see everyone, then you wait until you know the rules before you introduce yourself.",
+        "label": "Capricorn rising"
+      }
+    },
+    "career": {
+      "claims": [
+        {
+          "quote": "You are pulled toward work that advances a collective mission, where results depend on trusted allies, institutions, and long-running collaborations.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 10,
+                "ruler": "venus",
+                "dignity": "detriment",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Venus rules the 10th and sits in Scorpio, 11th house, in detriment"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "People notice your seriousness first.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Saturn is the malefic of sect"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You prefer private concentration to open brainstorming, and you often do your best thinking before you speak.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            },
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "You want to be seen doing work that matters and holds up under pressure, and you are willing to take heat for it.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Sun is the sect light"
+            },
+            {
+              "ref": {
+                "orb": 0.6,
+                "kind": "aspect",
+                "type": "opposition",
+                "body1": "sun",
+                "body2": "pluto"
+              },
+              "label": "Sun opposition Pluto, 0.6° orb"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Your growth edge is moving from instinct and immediacy into method, proof, and teachable structure.",
+          "evidence": [
+            {
+              "ref": {
+                "lot": "spirit",
+                "kind": "lot",
+                "sign": "virgo",
+                "house": 9
+              },
+              "label": "Lot of Spirit in Virgo, 9th house"
+            },
+            {
+              "ref": {
+                "body": "north_node",
+                "kind": "placement",
+                "sign": "virgo",
+                "house": 9
+              },
+              "label": "North Node 11.0° Virgo, 9th house"
+            },
+            {
+              "ref": {
+                "body": "south_node",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "South Node 11.0° Pisces, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "When you push hard for an outcome, you can create enemies without noticing until you feel blocked.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mars",
+                "body2": "jupiter"
+              },
+              "label": "Mars square Jupiter, 1.6° orb"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "why": "so your focus produces reputation instead of scattered respect",
+          "action": "Choose one flagship problem and commit to it for a full year with clear scope, collaborators, and success criteria."
+        },
+        {
+          "why": "so people can trust your standards without fearing your intensity",
+          "action": "Write and share a simple operating charter for how you decide, what evidence counts, and how conflict gets handled."
+        },
+        {
+          "why": "so your work stays deep while your network stays intact",
+          "action": "Schedule one weekly block for solitary research and one weekly block for relationship maintenance with key allies."
+        }
+      ],
+      "careerPaths": [
+        {
+          "item": "Research and investigation roles",
+          "reason": "The work rewards depth, discretion, and long concentration."
+        },
+        {
+          "item": "Institutional science or medicine",
+          "reason": "You operate well inside serious systems with shared standards and stakes."
+        },
+        {
+          "item": "Policy, ethics, or compliance",
+          "reason": "You naturally enforce rules and insist on proof before agreement."
+        },
+        {
+          "item": "Grant-funded or patron-backed projects",
+          "reason": "You build influence through alliances and long-term backing rather than quick wins."
+        }
+      ],
+      "howYouShowUp": "People notice your seriousness first. You listen for what is unsaid, you track motives, and you remember who follows through. In a team, you naturally take on the role of standards keeper, even when no one asked you to, and you can become the person who decides what is acceptable. You prefer private concentration to open brainstorming, and you often do your best thinking before you speak. You want to be seen doing work that matters and holds up under pressure, and you are willing to take heat for it. The cost is that your intensity can make others cautious around you, and small politics can feel like contamination rather than reality you have to manage.",
+      "vocationalPull": "You are pulled toward work that advances a collective mission, where results depend on trusted allies, institutions, and long-running collaborations. You do best when your role is built on depth, discretion, and shared stakes, not on being universally liked. The route that works is choosing a small circle and a specific cause, then letting your reputation grow through the quality and durability of what you deliver. The route you may assume will work, but drains you, is trying to win approval by being agreeable or broadly accessible. You are not here to be easy to work with for everyone. You are here to be essential to the right people.",
+      "growthThroughWork": "Your growth edge is moving from instinct and immediacy into method, proof, and teachable structure. You can default to absorbing the mood of the room and reacting to what is urgent, then wondering later why your own priorities vanished. You build authority faster when you make your process legible, document your decisions, and separate what you know from what you suspect. You also have to budget for friction. When you push hard for an outcome, you can create enemies without noticing until you feel blocked. You grow by choosing your battles, stating terms early, and letting your work speak before your anger does."
+    },
+    "family": {
+      "claims": [
+        {
+          "quote": "You come from an atmosphere where privacy mattered and loyalty was tested, not assumed.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 4,
+                "ruler": "mars",
+                "dignity": "domicile",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Mars rules the 4th and sits in Scorpio, 11th house, in domicile"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Venus 25.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You were handed a role that rewarded self-control and usefulness, so you can default to being the capable one who holds the line while your own reactions stay unspoken.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Saturn is the malefic of sect"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "Moon 16.5° Pisces, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "You root when your home has clear rules and a clear purpose.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 4,
+                "ruler": "mars",
+                "dignity": "domicile",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Mars rules the 4th and sits in Scorpio, 11th house, in domicile"
+            },
+            {
+              "ref": {
+                "body": "neptune",
+                "kind": "placement",
+                "sign": "aries",
+                "house": 4
+              },
+              "label": "Neptune 12.8° Aries, 4th house"
+            }
+          ]
+        },
+        {
+          "quote": "You feel steadier when you can talk things through in plain language every day, not only when something breaks, and when the people you live with respect silence as much as conversation.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Sun is the sect light"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "Moon 16.5° Pisces, 3rd house"
+            },
+            {
+              "ref": {
+                "orb": 1.9,
+                "kind": "aspect",
+                "type": "trine",
+                "body1": "sun",
+                "body2": "moon"
+              },
+              "label": "Sun trine Moon, 1.9° orb"
+            }
+          ]
+        },
+        {
+          "quote": "The pattern to change is confusing devotion with obligation.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Saturn is the malefic of sect"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "venus",
+                "body2": "saturn"
+              },
+              "label": "Venus conjunction Saturn, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You can give more than you have because you were trained to prove love through endurance, then you realise too late that you are resentful.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "orb": 2.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "jupiter",
+                "body2": "saturn"
+              },
+              "label": "Jupiter square Saturn, 2.7° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mars",
+                "body2": "jupiter"
+              },
+              "label": "Mars square Jupiter, 1.6° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Your work is to set boundaries early, to say what you need while you still feel generous, and to treat rest as part of your responsibility rather than a reward.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Saturn is the malefic of sect"
+            },
+            {
+              "ref": {
+                "body": "neptune",
+                "kind": "placement",
+                "sign": "aries",
+                "house": 4
+              },
+              "label": "Neptune 12.8° Aries, 4th house"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 4,
+                "ruler": "mars",
+                "dignity": "domicile",
+                "rulerSign": "scorpio",
+                "rulerHouse": 11
+              },
+              "label": "Mars rules the 4th and sits in Scorpio, 11th house, in domicile"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "why": "so you stop hoping others will guess your limits.",
+          "action": "Write down three non-negotiables for your home and say them out loud to the people affected."
+        },
+        {
+          "why": "so you do not only communicate when you are already overloaded.",
+          "action": "Set a daily check-in habit that lasts ten minutes and happens even on good days."
+        },
+        {
+          "why": "so your private life stops being the first thing you trade away.",
+          "action": "Choose one weekly block of time when you are unreachable and protect it like an appointment."
+        }
+      ],
+      "whatRootsYou": "You root when your home has clear rules and a clear purpose. You do best when your private space supports your long-term commitments instead of competing with them, and when you can close a door and actually be unreachable. You need a home that can handle intensity without turning it into drama, so you keep your environment simple and your routines dependable. You feel steadier when you can talk things through in plain language every day, not only when something breaks, and when the people you live with respect silence as much as conversation.",
+      "whatYouCarry": "You come from an atmosphere where privacy mattered and loyalty was tested, not assumed. You learned to read what people wanted before they said it, and you still pick up on tone, absence, and subtext faster than most. You were handed a role that rewarded self-control and usefulness, so you can default to being the capable one who holds the line while your own reactions stay unspoken. You also carry a quiet confusion about what “home” is allowed to look like, so you sometimes wait for permission to settle, even when you are already safe.",
+      "theInheritedEdge": "The pattern to change is confusing devotion with obligation. You can give more than you have because you were trained to prove love through endurance, then you realise too late that you are resentful. You may also swing between idealising a private life and dismissing it as secondary, which keeps you from making the daily repairs that make closeness livable. Your work is to set boundaries early, to say what you need while you still feel generous, and to treat rest as part of your responsibility rather than a reward."
+    },
+    "houses": {
+      "houses": [
+        {
+          "house": 1,
+          "reading": "You come across as composed and self-controlled, and you rarely reveal your uncertainty in real time. Saturn as ruler ties your self-definition to commitments with other people, so you often measure yourself by what you deliver to a cause or a circle. You respect competence more than charm. Behaviour check: Do you stand taller when you have a duty to meet?"
+        },
+        {
+          "house": 2,
+          "reading": "Jupiter here makes you generous with resources when you believe in the purpose, and you can talk yourself into big swings for the sake of progress. Saturn ruling ties income and security to alliances and institutions, so money decisions are rarely only personal. You prefer durable backing over quick profit, even if it is slower. Behaviour check: Did you spend more freely once you felt the work mattered?"
+        },
+        {
+          "house": 3,
+          "reading": "The Moon with the South Node makes your day run on feeling, repetition, and familiar channels, and you can fall into carrying other people’s moods as if they were tasks. Jupiter ruling links your thinking to practical priorities, so your best ideas usually have a use-case. You write or speak to settle your body, not to perform. Behaviour check: Did a simple conversation change your whole nervous system this week?"
+        },
+        {
+          "house": 4,
+          "reading": "Neptune here makes home feel like a permeable space, so you work better when the private world is quiet, clean, and emotionally uncluttered. Mars ruling ties domestic choices to the demands of your wider mission, so rest can become another thing you organise strategically. You may leave endings loose at home to keep momentum elsewhere. Behaviour check: Did you avoid going home to avoid what you would have to feel there?"
+        },
+        {
+          "house": 5,
+          "reading": "Pluto here makes your pleasure intense and selective, and you do not waste creative energy on what feels trivial. You can become absorbed in a project until time disappears, then surface hungry or overextended. Venus ruling ties enjoyment to serious loyalties, so romance and art are shaped by trust and shared standards, not novelty. Behaviour check: Did you keep working on something long after it stopped being fun because it still felt true?"
+        },
+        {
+          "house": 6,
+          "reading": "Gemini is quiet here, and Mercury ruling puts your work habits behind the scenes, where you can think without interruption and refine in private. You do your best maintenance when you can control inputs, timing, and noise. Under strain you may over-hold information, then scramble alone. Behaviour check: Did you postpone asking for help until the task became heavier than it needed to be?"
+        },
+        {
+          "house": 7,
+          "reading": "Uranus and Chiron here make partnership both awakening and tender, so closeness tends to require room for difference and periodic recalibration. You can attract unusual bonds, or build a conventional bond in an unconventional way. The Moon ruling means daily contact and emotional responsiveness decide everything. Behaviour check: Did you feel closer after a frank check-in, even if it disrupted the plan for the day?"
+        },
+        {
+          "house": 8,
+          "reading": "Leo is quiet here, and the Sun ruling ties shared resources and losses to your social world, so what others owe, offer, or withdraw often arrives through groups and patrons rather than private negotiation. You treat entanglements seriously and remember who was reliable under pressure. You may prefer to manage risk by controlling access. Behaviour check: Did you tighten your boundaries the moment you sensed someone else’s money or influence in the room?"
+        },
+        {
+          "house": 9,
+          "reading": "The North Node here pulls you toward disciplined study, method, and standards you can defend, even when it makes you feel inexperienced at first. Mercury ruling puts your learning in the quiet hours, where you can revise, doubt, and sharpen without spectacle. You trust what you can test. Behaviour check: Did you choose the harder source, the stricter teacher, or the more rigorous method instead of the easier answer?"
+        },
+        {
+          "house": 10,
+          "reading": "Libra is quiet here, and Venus ruling makes your public standing dependent on the quality of your alliances. You gain respect through precision, seriousness, and what you refuse to soften. You may be seen as severe when you are simply unwilling to endorse what you cannot stand behind. Recognition tends to come with obligations attached. Behaviour check: Did you protect your reputation by declining an association that would have benefited you?"
+        },
+        {
+          "house": 11,
+          "reading": "Sun, Venus, Mars, and Saturn here makes your friendships and group ties mission-driven, exacting, and central to how you live. You choose people the way you choose tools, for reliability under strain. Venus with Saturn makes affection show up as loyalty and standards. Mars adds a readiness to confront. Behaviour check: Did you test a relationship this week by asking for a real commitment instead of reassurance?"
+        },
+        {
+          "house": 12,
+          "reading": "Mercury here keeps your mind working when nobody is watching, and you can do your sharpest thinking in solitude, in margins, and in drafts you do not show yet. Jupiter ruling connects retreat to long-term stability, so privacy is not escape for you when used well. When stressed, you can spiral in private logic. Behaviour check: Did you give yourself uninterrupted quiet time before making a consequential decision?"
+        }
+      ]
+    },
+    "overview": {
+      "bridge": "Everything here points toward a life of sustained, consequential collaboration where you choose a mission, choose your people, and learn to spend your force without burning the bonds that make the work possible.",
+      "claims": [
+        {
+          "quote": "You pick a small number of alliances, institutions, or collective aims and you commit so hard that it reshapes your schedule, your priorities, and your sense of who you are.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You run like water and fixed.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "Moon 16.5° Pisces, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "You investigate first and commit second.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Your will and your needs cooperate more often than they fight, so you can work long hours without feeling split inside, and you usually know what you are doing and why you are doing it.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.9,
+                "kind": "aspect",
+                "type": "trine",
+                "body1": "sun",
+                "body2": "moon"
+              },
+              "label": "Sun trine Moon, 1.9° orb"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Sun is the sect light"
+            }
+          ]
+        },
+        {
+          "quote": "The unusual edge is that your central friction is heat that runs ahead of permission.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You rehearse your arguments in solitude, you reveal conclusions rather than process, and you can become hard to read when you are under pressure.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            },
+            {
+              "ref": {
+                "orb": 7,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "mercury",
+                "body2": "mars"
+              },
+              "label": "Mercury conjunction Mars, 7.0° orb"
+            }
+          ]
+        }
+      ],
+      "headline": "You build your life around a clear purpose that only feels real when it is shared, tested, and made durable with other people.",
+      "distinctive": "Your will and your needs cooperate more often than they fight, so you can work long hours without feeling split inside, and you usually know what you are doing and why you are doing it. The unusual edge is that your central friction is heat that runs ahead of permission. You can push a group forward by force of intensity, and later realise you have created fear, rivalry, or silent resistance. You often learn the hard way that being right is not the same as keeping trust. You also carry a private mind that prefers to think offstage. You rehearse your arguments in solitude, you reveal conclusions rather than process, and you can become hard to read when you are under pressure.",
+      "temperament": "You run like water and fixed. You are made of sensitivity, memory, and depth, and once you are on a course you hold it with stubborn endurance. You take in the world by reading under the surface first, not by taking statements at face value. You investigate first and commit second. You test people with time and consistency, then you give them full access once they have earned it. You decide by asking whether something will still matter in five years, not whether it feels easy today. You act by concentrating effort until the problem yields, even if it takes longer than anyone expects. You keep going when others get bored, and you can also stay too long because you hate wasting what you have already built.",
+      "concentration": "You do not spread yourself widely. You pick a small number of alliances, institutions, or collective aims and you commit so hard that it reshapes your schedule, your priorities, and your sense of who you are. You notice immediately who is serious and who is performative, and you stop investing the moment you sense divided loyalty. You can work for years with the same people if the mission stays honest, and you can also cut ties cleanly when trust breaks. What stays quieter is casual socialising, light collaboration, and low-stakes networking. You would rather have one committed partner in the work than a room full of friendly contacts, and you feel exposed when you are asked to promote yourself without substance to stand on."
+    },
+    "foundation": {
+      "sect": "day",
+      "sectLight": "sun",
+      "chartThesis": "You run on visible direction and sustained purpose, but almost all of the action concentrates in one arena: long-term alliances, groups, patrons, and shared aims. Your life force expresses as disciplined commitment to a collective project, with high tolerance for intensity and little patience for superficial affiliation. The cost is that social belonging, recognition, money, and career direction can become entangled, so you have to choose what you will not do for the group even when you could.",
+      "centralTension": "Mars is extremely potent yet out of sect, and it sits fused to the chart ruler’s agenda in the 11th: drive and conflict-management are central to how you pursue goals with others, but they exact a price in strain, controversy, or damaged trust if left ungoverned. Venus is in detriment in the same place and tightly bound to Saturn, so affection, collaboration, and reputation are built through seriousness, constraint, and high standards rather than ease. Jupiter is the benefic of sect but is in a hard square network with Mars and Saturn, so growth and resources expand through collective missions, yet you repeatedly have to calibrate risk, ethics, and timing to keep the whole structure stable.",
+      "dominantPattern": "A tight Scorpio/11th-house concentration (Sun, Venus, Mars, Saturn) makes loyalty, secrecy, research-depth focus, and long-range strategy the default operating mode, especially with collaborators. Because Saturn rules both the 1st and 2nd and sits inside that 11th-house cluster, identity and survival needs are negotiated through networks, institutions, and a few decisive relationships with allies. Fixed-water dominance plus a bundle shape describes sustained, narrow focus that becomes unstoppable once you commit, but can also make it hard to pivot when the social ecosystem shifts.",
+      "sectionGuidance": {
+        "mind": "Focus on Mercury in detriment in the 12th and its link to Mars: how you think in private, what you withhold, how research/strategy or anxiety loops show up, and what improves clarity.",
+        "focus": "Synthesize the tightest aspect engines without repeating other sections: Sun–Pluto opposition as the ‘pressure point’ that drives transformational choices, and the Jupiter–Saturn/Mars/Venus square circuit as the recurring calibration problem that requires a personal rule-set.",
+        "money": "Anchor money strictly through the 2nd ruler Saturn in the 11th plus Jupiter in the 2nd square Mars/Saturn: how income is tied to institutions and patrons, where overreach happens, and what stabilises resources long-term.",
+        "triad": "Differentiate the three anchors without overlap: how you steer (Sun), how you regulate needs and stress (Moon), and how you hold posture and boundaries (Saturn as chart ruler).",
+        "career": "Anchor career strictly through the 10th ruler Venus in Scorpio in the 11th conjunct Saturn and square Jupiter: how reputation is built through alliances, the seriousness of standards, and the specific tradeoffs between approval, ethics, and growth.",
+        "family": "Anchor home and origin through the 4th ruler Mars in domicile in the 11th plus Neptune in the 4th: how private life is shaped by collective demands, what gets idealised or blurred at home, and what boundaries make home workable.",
+        "overview": "Establish the single big operating environment: life organised through a concentrated network-and-mission axis, with purpose leading and collaboration as the primary channel for outcomes.",
+        "discoveries": "Use the nodal axis and Spirit in Virgo 9th to describe the growth edge: moving from familiar emotional narrative and immediacy (SN Pisces 3rd) toward disciplined method, study, and ethical rigor (NN/Spirit Virgo 9th).",
+        "superpowers": "Name the usable strengths that are repeatable: sustained focus (fixed emphasis and bundle), depth endurance (Scorpio concentration), and coherence of will and needs (Sun–Moon trine) expressed in concrete behaviors.",
+        "relationships": "Anchor partnership through the 7th ruler Moon in Pisces in the 3rd with Moon–Pluto sextile and Moon–Uranus trine: how closeness is maintained by communication, emotional attunement, and periodic need for space or unconventional arrangements."
+      },
+      "supportingEvidence": [
+        {
+          "placement": "Sect: day; sect light: Sun",
+          "implication": "Purpose and public direction are the organising priority, with support coming through growth resources (Jupiter) and durable structure (Saturn), while unchecked assertion (Mars) is the main cost center.",
+          "observation": "Day chart with Sun as the leading light; Jupiter is benefic of sect; Saturn is malefic of sect; Mars is malefic out of sect."
+        },
+        {
+          "placement": "Chart ruler Saturn in Scorpio, 11th house, peregrine, in sect",
+          "implication": "Self-definition and money/security are routed through alliances, groups, patrons, and long-range collaborative aims; seriousness about who is ‘in’ or ‘out’ shapes both identity and resources.",
+          "observation": "Saturn rules Capricorn Ascendant and also rules Aquarius 2nd; it sits in the 11th alongside Sun/Venus/Mars."
+        },
+        {
+          "placement": "11th-house Scorpio stellium: Sun 14.6, Venus 25.6 (detriment, contrary), Mars 29.6 (domicile, contrary), Saturn 25.3 (in sect)",
+          "implication": "A life pattern of intense, strategic collaboration where loyalty and shared mission matter more than comfort; relationships inside groups become consequential and sometimes fraught.",
+          "observation": "Four personal/social planets stack in the same sign and house; Mars is dignified; Venus is debilitated; Saturn is closely tied to Venus and Mars."
+        },
+        {
+          "placement": "Rulers: 10th (Libra) ruled by Venus in Scorpio 11th; 2nd (Aquarius) ruled by Saturn in Scorpio 11th; 7th (Cancer) ruled by Moon in Pisces 3rd; 4th (Aries) ruled by Mars in Scorpio 11th",
+          "implication": "Work status and income are dependent on alliances and institutional ecosystems; partnership is maintained through daily communication and emotional attentiveness; home/private life is shaped by collective demands and strong-willed decisions.",
+          "observation": "Career, money, and home foundations all point into the 11th-house cluster; partnership points to Moon in Pisces in the 3rd; home ruler Mars is powerful but out of sect."
+        },
+        {
+          "placement": "Lots: Fortune 14.0 Taurus 5th; Spirit 10.2 Virgo 9th; North Node 11.0 Virgo 9th / South Node 11.0 Pisces 3rd",
+          "implication": "Material circumstance is supported by steady creation, craft, and tangible output; vocation/agency grows through rigorous study, method, and a move from local/habitual narrative (3rd/SN) to disciplined inquiry and meaning-making (9th/NN/Spirit).",
+          "observation": "Fortune lands in the 5th (Taurus); Spirit in the 9th (Virgo) tightly aligned with the nodal axis (NN in Virgo 9th, SN in Pisces 3rd)."
+        },
+        {
+          "placement": "Tight aspects: Sun opp Pluto (0.6); Sun trine Moon (1.9); Sun trine Uranus (1.8); Venus conj Saturn (0.3); Mars square Jupiter (1.6); Venus square Jupiter (2.4); Jupiter square Saturn (2.7)",
+          "implication": "You repeatedly face high-stakes turning points that demand total commitment and ethical clarity; your internal steadiness supports sustained work, but growth is never ‘free’ and must be engineered against friction in alliances, money, and expectations.",
+          "observation": "A very tight power/intensity axis (Sun–Pluto), strong coherence between will and needs (Sun–Moon trine), a reformist streak (Sun–Uranus trine), and a pressured resource/expansion/constraint circuit (Jupiter squared by Mars, Venus, Saturn)."
+        }
+      ]
+    },
+    "discoveries": {
+      "claims": [
+        {
+          "quote": "You tend to accept the opportunity first, then spend months renegotiating terms in your head and in the fine print.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "sect",
+                "role": "benefic_of_sect"
+              },
+              "label": "Jupiter is the benefic of sect"
+            },
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "venus",
+                "body2": "jupiter"
+              },
+              "label": "Venus square Jupiter, 2.4° orb"
+            },
+            {
+              "ref": {
+                "orb": 2.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "jupiter",
+                "body2": "saturn"
+              },
+              "label": "Jupiter square Saturn, 2.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You show love through seriousness: staying, working, being exact, and holding the line when others want a lighter touch.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Venus 25.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "venus",
+                "body2": "saturn"
+              },
+              "label": "Venus conjunction Saturn, 0.3° orb"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "When you feel unsafe or judged, you go quiet instead of asking directly for reassurance.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "Moon 16.5° Pisces, 3rd house"
+            },
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            },
+            {
+              "ref": {
+                "body": "south_node",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "South Node 11.0° Pisces, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "You can give yourself to a shared cause with extreme intensity, then disappear into your own inner world and not explain where you went.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "Yet you are also capable of decisive, forceful statements that land like a verdict.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "orb": 7,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "mercury",
+                "body2": "mars"
+              },
+              "label": "Mercury conjunction Mars, 7.0° orb"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            }
+          ]
+        }
+      ],
+      "opening": "You are built for loyal, long-haul collaboration, yet you keep discovering that your most consequential work asks for solitude, secrecy, and a willingness to disappoint people you respect.",
+      "paradoxes": [
+        {
+          "title": "Help That Complicates",
+          "tension": "You know how to attract support, introductions, and material openings through the right circle. You also notice that every time something expands quickly, it brings a second invoice. A benefactor wants influence. A grant comes with rules that pinch the work. A promising alliance asks you to soften your standards so everyone stays comfortable. You can feel grateful and cornered in the same week. You tend to accept the opportunity first, then spend months renegotiating terms in your head and in the fine print.",
+          "invitation": "You do best when you treat growth as something you architect, not something you simply receive. Name the non‑negotiables before you say yes, and put them in writing early, so you stop paying with your time, your health, or your reputation later. Then support can stay support."
+        },
+        {
+          "title": "Tenderness Under Lock",
+          "tension": "You care deeply, but you rarely lead with warmth. You show love through seriousness: staying, working, being exact, and holding the line when others want a lighter touch. You can be generous with loyalty while still being hard to please. When you feel unsafe or judged, you go quiet instead of asking directly for reassurance. People may think you do not need affection because you look self-contained. You notice the opposite. You want closeness, but you want it on terms that protect the work and your dignity.",
+          "invitation": "Let someone see the simple need underneath the discipline. Ask for comfort without building a case for it, so you stop turning intimacy into a test. When you allow small, ordinary softness alongside high standards, you become easier to stay close to without losing your edge."
+        },
+        {
+          "title": "Private Mind, Public Mission",
+          "tension": "You can give yourself to a shared cause with extreme intensity, then disappear into your own inner world and not explain where you went. You think best when you are alone, and you often edit yourself before speaking, especially when the stakes are high. Under pressure, your mind can loop on what you should have said, what someone meant, and what could go wrong next. Yet you are also capable of decisive, forceful statements that land like a verdict. People experience you as both withheld and unavoidably influential.",
+          "invitation": "Give your thinking a container. Set a time limit for rehearsal, then speak a first draft out loud to a trusted person, so you stop mistaking silence for control. When your private intelligence is shared in small, regular doses, your leadership becomes steadier and less costly."
+        }
+      ]
+    },
+    "superpowers": {
+      "claims": [
+        {
+          "quote": "You commit hard once you decide, and you stay committed long after other people drift.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You can hold confidential information without leaking it through tone or gossip.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You escalate quickly when something matters, especially when other people are vague or slow.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You may notice that your body stays keyed up after meetings, even if you acted calm.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mars",
+                "body2": "jupiter"
+              },
+              "label": "Mars square Jupiter, 1.6° orb"
+            },
+            {
+              "ref": {
+                "orb": 4.3,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "mars",
+                "body2": "saturn"
+              },
+              "label": "Mars conjunction Saturn, 4.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "The pattern does not go away because pressure wakes up your drive.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "orb": 0.6,
+                "kind": "aspect",
+                "type": "opposition",
+                "body1": "sun",
+                "body2": "pluto"
+              },
+              "label": "Sun opposition Pluto, 0.6° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You grow fastest when you turn inspiration into a method: definitions, citations, measurements, and a clear standard for what counts as true.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "north_node",
+                "kind": "placement",
+                "sign": "virgo",
+                "house": 9
+              },
+              "label": "North Node 11.0° Virgo, 9th house"
+            },
+            {
+              "ref": {
+                "lot": "spirit",
+                "kind": "lot",
+                "sign": "virgo",
+                "house": 9
+              },
+              "label": "Lot of Spirit in Virgo, 9th house"
+            }
+          ]
+        },
+        {
+          "quote": "You can check this by noticing how often you trust a feeling first, then have to backfill the evidence later.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "south_node",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "South Node 11.0° Pisces, 3rd house"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "Moon 16.5° Pisces, 3rd house"
+            }
+          ]
+        }
+      ],
+      "superpower": {
+        "text": "You commit hard once you decide, and you stay committed long after other people drift. You notice what is unsaid in groups, track the real incentives, and choose your allies by proof, not by charm. You can hold confidential information without leaking it through tone or gossip. You work well with high standards and tight timelines because you do not need constant reassurance to keep going. When you respect the mission, you will do the unglamorous parts repeatedly and still care about the outcome. People can check this by watching how often you become the person others rely on when something is sensitive, complex, or politically charged.",
+        "title": "Strategic insistence",
+        "actions": [
+          {
+            "why": "so you stop guessing and negotiate from what is actually true.",
+            "action": "Write a one-page alliance map: who decides, who funds, who blocks, who quietly helps."
+          },
+          {
+            "why": "so you prove to yourself that consistency beats intensity.",
+            "action": "Choose one long-term task you have been postponing and do 45 minutes of it daily for seven days."
+          },
+          {
+            "why": "so you avoid silent resentment and keep trust intact.",
+            "action": "Have one direct conversation where you name the non-negotiable standard before you agree to help."
+          }
+        ]
+      },
+      "growingEdge": {
+        "text": "You are comfortable living in intuition, impression, and story, and you can make meaning from fragments. The stretch is choosing precision even when it feels dry. You grow fastest when you turn inspiration into a method: definitions, citations, measurements, and a clear standard for what counts as true. You can feel exposed when you have to show your work, because it removes the protective haze of implication. Still, your confidence increases when you can repeat your results and teach the process to someone else. You can check this by noticing how often you trust a feeling first, then have to backfill the evidence later.",
+        "title": "Method over mood",
+        "actions": [
+          {
+            "why": "so you train your mind to separate belief from proof.",
+            "action": "Pick one question you care about and write five testable statements about it."
+          },
+          {
+            "why": "so focus replaces scrolling and secondhand opinion.",
+            "action": "Schedule two 30-minute study blocks this week with a single source and handwritten notes."
+          },
+          {
+            "why": "so you learn where your reasoning skips steps.",
+            "action": "Teach one concept to a friend in three steps, then ask them to repeat it back."
+          }
+        ]
+      },
+      "chronicPattern": {
+        "text": "You escalate quickly when something matters, especially when other people are vague or slow. You push, you insist, and you can turn a shared goal into a contest without meaning to. You may notice that your body stays keyed up after meetings, even if you acted calm. You can also overextend resources to keep momentum, then feel irritated when others do not match your pace. The pattern does not go away because pressure wakes up your drive. It gets manageable when you can spot the moment you shift from persuasion into force. You can check this by tracking how often conflict appears right after a growth opportunity.",
+        "title": "Overdrive in collaboration",
+        "actions": [
+          {
+            "why": "so you do not trade stability for speed without noticing.",
+            "action": "Before any high-stakes ask, decide your maximum effort and maximum spend in writing."
+          },
+          {
+            "why": "so you keep your power while lowering collateral damage.",
+            "action": "When you feel the urge to push, take a ten-minute delay and draft a two-sentence request instead of a full argument."
+          },
+          {
+            "why": "so your body discharges urgency instead of carrying it into the next conversation.",
+            "action": "Do one hard workout or brisk walk within two hours after a tense interaction."
+          }
+        ]
+      }
+    },
+    "angleMeanings": {
+      "ascendant": {
+        "atYourBest": "Whatever is placed here is serious, strategic, and built for duration: it takes responsibility, climbs steadily, and respects structure. It is capable, reliable, and dry-humoured.",
+        "underStress": "Under strain this becomes cold, rigid, overworked, or unable to rest until it is too late.",
+        "firstImpression": "Capricorn rising. Capricorn is disciplined, ambitious, and plays the long game.",
+        "orientationStyle": "The chart ruler is Saturn, in Scorpio in the 11th, peregrine. Saturn is structure, limit, duration, and the discipline that makes things last."
+      },
+      "midheaven": {
+        "atYourBest": "Venus is attraction, pleasure, taste, and the capacity to draw people in.",
+        "underPressure": "A planet in detriment is out of place and works hard for uneven results.",
+        "whereYouThrive": "The 10th is ruled by Venus, in Scorpio in the 11th, detriment. The 11th is allies, friends, groups, and hopes shared with others.",
+        "publicDirection": "Midheaven in Scorpio. Scorpio goes deep, holds on, and does not do anything by halves."
+      }
+    },
+    "relationships": {
+      "claims": [
+        {
+          "quote": "You feel secure when your bond has a real place in your life rather than being treated as a private indulgence, and when you can speak freely about what is happening each day without having to dilute it into something palatable.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 7,
+                "ruler": "moon",
+                "dignity": "peregrine",
+                "rulerSign": "pisces",
+                "rulerHouse": 3
+              },
+              "label": "Moon rules the 7th and sits in Pisces, 3rd house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "You give by taking responsibility, keeping promises, and staying when things get complicated.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Sun 14.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "You have a history of bonding inside high-stakes commitments, then realising that the relationship has become another arena where you are performing, proving, or enduring.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Venus 25.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "aspect",
+                "type": "conjunction",
+                "body1": "venus",
+                "body2": "saturn"
+              },
+              "label": "Venus conjunction Saturn, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "When you are stressed, you can argue like the outcome is survival, or you can go quiet and do the whole thing alone, then feel resentful that you are alone.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 11
+              },
+              "label": "Mars 29.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "You also tend to over-invest quickly, then get frustrated when reality moves slower than your standards and your appetite for progress.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "venus",
+                "body2": "jupiter"
+              },
+              "label": "Venus square Jupiter, 2.4° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mars",
+                "body2": "jupiter"
+              },
+              "label": "Mars square Jupiter, 1.6° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You grow when you name what you feel in plain words early, before it hardens into strategy.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 3
+              },
+              "label": "Moon 16.5° Pisces, 3rd house"
+            },
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "sagittarius",
+                "house": 12
+              },
+              "label": "Mercury 6.6° Sagittarius, 12th house"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "why": "Because routine contact keeps you from stockpiling pressure until it comes out as a test.",
+          "action": "Schedule one small daily check-in that is about feelings and logistics, not performance."
+        },
+        {
+          "why": "Because it trains you to stay connected while you separate the problem from the person.",
+          "action": "When you feel the urge to win an argument, ask one clarifying question instead."
+        },
+        {
+          "why": "Because chosen privacy prevents secrecy, so you do not disappear and call it self-reliance.",
+          "action": "Keep one part of your life that is yours alone, and say so directly."
+        }
+      ],
+      "howYouLove": "You love through constancy, shared purpose, and daily emotional attunement. You feel secure when your bond has a real place in your life rather than being treated as a private indulgence, and when you can speak freely about what is happening each day without having to dilute it into something palatable. You give by taking responsibility, keeping promises, and staying when things get complicated. What attracts you is intensity you can trust, the kind that holds steady under pressure and does not leak your private life into public chatter. You may say you want ease and simple affection, but you repeatedly choose the person who can meet you in depth, who respects your work, and who can handle an unusual rhythm without taking it personally.",
+      "theChallenge": "You have a history of bonding inside high-stakes commitments, then realising that the relationship has become another arena where you are performing, proving, or enduring. You can slide into a pattern where desire and loyalty feel fused to control, and where disagreement becomes a test of whether the other person is “with you” or “against you.” When you are stressed, you can argue like the outcome is survival, or you can go quiet and do the whole thing alone, then feel resentful that you are alone. You also tend to over-invest quickly, then get frustrated when reality moves slower than your standards and your appetite for progress.",
+      "connectBestWith": [
+        {
+          "item": "A Moon in a water sign",
+          "reason": "matching the emotional immediacy you run on in conversation"
+        },
+        {
+          "item": "A prominent Saturn",
+          "reason": "respecting the seriousness and long-haul loyalty you actually give"
+        },
+        {
+          "item": "A strong Mars with restraint",
+          "reason": "meeting your intensity without turning every conflict into a contest"
+        },
+        {
+          "item": "Air-sign emphasis, especially Mercury",
+          "reason": "keeping words moving so silence does not become strategy"
+        }
+      ],
+      "whatPartnershipAsks": "Partnership asks you to build a steadier bridge between your inner life and your shared life, so closeness does not depend on pressure. You grow when you name what you feel in plain words early, before it hardens into strategy. You also grow when you let a partner have their own methods and timing without reading it as disloyalty, so you stop turning collaboration into a constant referendum on commitment. The more you treat intimacy as a daily practice of honest contact, the less you need intensity to feel real, and the less conflict costs you what you actually want: trust that lasts."
+    },
+    "aspectMeanings": {
+      "sun_trine_moon": {
+        "growth": "Treating the ease as a resource to be invested rather than a comfort to rest in.",
+        "dynamic": "Sun and Moon. The Sun is the centre of identity and the sense of what one is for. The Moon is the body, the habits, and what makes someone feel safe. Two functions in signs of the same element flow into each other without resistance. What they do together comes easily, often so easily that it goes unnoticed and undervalued.",
+        "tension": "Complacency. The gift is taken for granted, left undeveloped, or used as an excuse to avoid harder things.",
+        "behavior": "Effortless talent. The two functions combine naturally and reliably."
+      },
+      "sun_trine_uranus": {
+        "growth": "Treating the ease as a resource to be invested rather than a comfort to rest in.",
+        "dynamic": "Sun and Uranus. The Sun is the centre of identity and the sense of what one is for. Uranus is disruption, independence, and the sudden break from what was expected. Two functions in signs of the same element flow into each other without resistance. What they do together comes easily, often so easily that it goes unnoticed and undervalued.",
+        "tension": "Complacency. The gift is taken for granted, left undeveloped, or used as an excuse to avoid harder things.",
+        "behavior": "Effortless talent. The two functions combine naturally and reliably."
+      },
+      "moon_trine_uranus": {
+        "growth": "Treating the ease as a resource to be invested rather than a comfort to rest in.",
+        "dynamic": "Moon and Uranus. The Moon is the body, the habits, and what makes someone feel safe. Uranus is disruption, independence, and the sudden break from what was expected. Two functions in signs of the same element flow into each other without resistance. What they do together comes easily, often so easily that it goes unnoticed and undervalued.",
+        "tension": "Complacency. The gift is taken for granted, left undeveloped, or used as an excuse to avoid harder things.",
+        "behavior": "Effortless talent. The two functions combine naturally and reliably."
+      },
+      "moon_sextile_pluto": {
+        "growth": "Deliberately using the connection rather than waiting for it to act on its own.",
+        "dynamic": "Moon and Pluto. The Moon is the body, the habits, and what makes someone feel safe. Pluto is intensity, power, and transformation through what cannot be avoided. Two functions in compatible signs support each other when asked. The connection is friendly and productive but not automatic: it is an opportunity rather than a given.",
+        "tension": "Underused. The help is available but not taken, so the opportunity goes quiet.",
+        "behavior": "The two cooperate readily and produce practical results with modest effort."
+      },
+      "mars_square_jupiter": {
+        "growth": "Accepting that the tension is permanent and building something out of it rather than trying to resolve it.",
+        "dynamic": "Mars and Jupiter. Mars is drive, assertion, and the capacity to cut through and go after something. Jupiter is expansion, confidence, generosity, and the sense that more is possible. Two functions in signs that share a mode but not an element push against each other. Neither yields easily, so the pressure is constant and productive: this is where effort is forced and skill is built.",
+        "tension": "Recurring conflict, frustration, and the sense of being pulled two ways at once.",
+        "behavior": "Hard-won competence. The friction has been turned into a driving engine."
+      },
+      "sun_opposition_pluto": {
+        "growth": "Owning both ends instead of projecting one, and finding the position between them.",
+        "dynamic": "Sun and Pluto. The Sun is the centre of identity and the sense of what one is for. Pluto is intensity, power, and transformation through what cannot be avoided. Two functions in opposite signs pull in opposite directions and can see each other clearly. The tension is external and relational: it tends to play out between the person and someone else, or as a swing between two extremes.",
+        "tension": "Polarisation. The person identifies with one side and meets the other in someone else, usually as conflict.",
+        "behavior": "Balance and perspective. Each side tempers the other and the person can hold both."
+      },
+      "venus_square_jupiter": {
+        "growth": "Accepting that the tension is permanent and building something out of it rather than trying to resolve it.",
+        "dynamic": "Venus and Jupiter. Venus is attraction, pleasure, taste, and the capacity to draw people in. Jupiter is expansion, confidence, generosity, and the sense that more is possible. Two functions in signs that share a mode but not an element push against each other. Neither yields easily, so the pressure is constant and productive: this is where effort is forced and skill is built.",
+        "tension": "Recurring conflict, frustration, and the sense of being pulled two ways at once.",
+        "behavior": "Hard-won competence. The friction has been turned into a driving engine."
+      },
+      "jupiter_square_saturn": {
+        "growth": "Accepting that the tension is permanent and building something out of it rather than trying to resolve it.",
+        "dynamic": "Jupiter and Saturn. Jupiter is expansion, confidence, generosity, and the sense that more is possible. Saturn is structure, limit, duration, and the discipline that makes things last. Two functions in signs that share a mode but not an element push against each other. Neither yields easily, so the pressure is constant and productive: this is where effort is forced and skill is built.",
+        "tension": "Recurring conflict, frustration, and the sense of being pulled two ways at once.",
+        "behavior": "Hard-won competence. The friction has been turned into a driving engine."
+      },
+      "venus_conjunction_mars": {
+        "growth": "Learning to feel which of the two is speaking, and to give each its turn.",
+        "dynamic": "Venus and Mars. Venus is attraction, pleasure, taste, and the capacity to draw people in. Mars is drive, assertion, and the capacity to cut through and go after something. Two functions occupy the same place and act as one. Neither can be used without engaging the other, so their natures blend, for better or worse depending on how compatible they are.",
+        "tension": "The two cannot be separated, so the difficulty of one contaminates the other and there is no clean way to use either alone.",
+        "behavior": "The two work as a single combined strength, each amplifying the other."
+      },
+      "mars_conjunction_saturn": {
+        "growth": "Learning to feel which of the two is speaking, and to give each its turn.",
+        "dynamic": "Mars and Saturn. Mars is drive, assertion, and the capacity to cut through and go after something. Saturn is structure, limit, duration, and the discipline that makes things last. Two functions occupy the same place and act as one. Neither can be used without engaging the other, so their natures blend, for better or worse depending on how compatible they are.",
+        "tension": "The two cannot be separated, so the difficulty of one contaminates the other and there is no clean way to use either alone.",
+        "behavior": "The two work as a single combined strength, each amplifying the other."
+      },
+      "mercury_conjunction_mars": {
+        "growth": "Learning to feel which of the two is speaking, and to give each its turn.",
+        "dynamic": "Mercury and Mars. Mercury is how a person thinks, learns, decides and makes themselves understood. Mars is drive, assertion, and the capacity to cut through and go after something. Two functions occupy the same place and act as one. Neither can be used without engaging the other, so their natures blend, for better or worse depending on how compatible they are.",
+        "tension": "The two cannot be separated, so the difficulty of one contaminates the other and there is no clean way to use either alone.",
+        "behavior": "The two work as a single combined strength, each amplifying the other."
+      },
+      "venus_conjunction_saturn": {
+        "growth": "Learning to feel which of the two is speaking, and to give each its turn.",
+        "dynamic": "Venus and Saturn. Venus is attraction, pleasure, taste, and the capacity to draw people in. Saturn is structure, limit, duration, and the discipline that makes things last. Two functions occupy the same place and act as one. Neither can be used without engaging the other, so their natures blend, for better or worse depending on how compatible they are.",
+        "tension": "The two cannot be separated, so the difficulty of one contaminates the other and there is no clean way to use either alone.",
+        "behavior": "The two work as a single combined strength, each amplifying the other."
+      }
+    },
+    "personalPlanets": {
+      "sun": "The Sun is the centre of identity and the sense of what one is for. Scorpio goes deep, holds on, and does not do anything by halves. The 11th is allies, friends, groups, and hopes shared with others.",
+      "mars": "Mars is drive, assertion, and the capacity to cut through and go after something. Scorpio goes deep, holds on, and does not do anything by halves. The 11th is allies, friends, groups, and hopes shared with others.",
+      "moon": "The Moon is the body, the habits, and what makes someone feel safe. Pisces feels everything, blurs boundaries, and gives more than it keeps. The 3rd is the near world: siblings, neighbours, daily talk, and learning.",
+      "pluto": "Pluto is intensity, power, and transformation through what cannot be avoided. Taurus is steady, sensual, slow to start and slower to stop. The 5th is pleasure, creativity, children, and what one does for its own sake.",
+      "venus": "Venus is attraction, pleasure, taste, and the capacity to draw people in. Scorpio goes deep, holds on, and does not do anything by halves. The 11th is allies, friends, groups, and hopes shared with others.",
+      "chiron": "Chiron marks a wound that becomes a source of skill and understanding for others. Cancer protects, remembers, and holds close what it cares about. The 7th is the other: partners, spouses, open rivals, and one-to-one bonds.",
+      "saturn": "Saturn is structure, limit, duration, and the discipline that makes things last. Scorpio goes deep, holds on, and does not do anything by halves. The 11th is allies, friends, groups, and hopes shared with others.",
+      "uranus": "Uranus is disruption, independence, and the sudden break from what was expected. Cancer protects, remembers, and holds close what it cares about. The 7th is the other: partners, spouses, open rivals, and one-to-one bonds.",
+      "jupiter": "Jupiter is expansion, confidence, generosity, and the sense that more is possible. Aquarius stands apart, thinks in systems, and cares about the group. The 2nd is resources: money, possessions, and what one values and keeps.",
+      "mercury": "Mercury is how a person thinks, learns, decides and makes themselves understood. Sagittarius aims far, believes big, and says what it thinks. The 12th is what is hidden: solitude, sorrow, secrets, and self-undoing.",
+      "neptune": "Neptune is dissolution, longing, imagination, and the blurring of hard edges. Aries acts first, directly and fast, and sorts things out afterward. The 4th is home, family, roots, and what a person carries from their origins.",
+      "north_node": "The North Node is the direction of growth: unfamiliar, uncomfortable, and worth it. Virgo notices what is wrong and quietly fixes it. The 9th is the far world: belief, higher learning, travel, and meaning.",
+      "south_node": "The South Node is the default: what comes easily and what gets overused. Pisces feels everything, blurs boundaries, and gives more than it keeps. The 3rd is the near world: siblings, neighbours, daily talk, and learning."
+    }
+  }
+}
