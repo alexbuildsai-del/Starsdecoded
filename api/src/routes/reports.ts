@@ -16,7 +16,7 @@ import {
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
 import { generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
 import { SECTION_IDS } from "../prompts/index.js";
-import { pairSectionIds } from "../prompts/pair/index.js";
+import { PAIR_PROMPT_VERSION, pairSectionIds } from "../prompts/pair/index.js";
 import type { Lens } from "../lib/pairBrief.js";
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
 import { ownsRelationship, viewerHasGrantOnRelationship, viewerRelationshipIds } from "../lib/access.js";
@@ -247,7 +247,9 @@ router.get("/reports", async (req, res) => {
         partsByRel.set(p.relationshipId, arr);
       }
 
-      pairSummaries = synRows.map((r): ReportSummaryOut => {
+      // MB-65 provisional: a report written before p2 cannot render on the seven-chapter page, so it is listed nowhere.
+      const current = synRows.filter((r) => r.status !== "complete" || (r.interpretation as { meta?: { promptVersion?: string } } | null)?.meta?.promptVersion === PAIR_PROMPT_VERSION);
+      pairSummaries = current.map((r): ReportSummaryOut => {
         const ps = (r.relationshipId && partsByRel.get(r.relationshipId)) || [];
         const participants = ps.map((p) => ({
           id: p.profile.id,

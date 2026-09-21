@@ -1,3 +1,5 @@
+import type { Lens } from "@/types/chart";
+
 /**
  * Progress is real, and shown as one percentage, never a count (ADR-47).
  * 4 points once the report exists, 10 when the chart is stored, then 90 ÷ n
@@ -24,11 +26,29 @@ export const CHART_STORED = 10;
 /** How fast the creep approaches its cap, in milliseconds of time constant. */
 export const CREEP_TAU_MS = 20_000;
 
-/** The natal registry and the pair registry, and what each needs before the door. */
+/** The natal registry, and what it needs before the door. */
 export const NATAL_SECTIONS = ["overview", "triad", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"] as const;
-export const PAIR_SECTIONS = ["howYouMeet", "twoCharts", "twoWays", "whereItFlows", "whereItRubs", "howYouTalk", "lensOne", "lensTwo", "whatToPractise", "links"] as const;
 export const NATAL_DOOR: readonly string[] = ["overview", "houses"];
-export const PAIR_DOOR: readonly string[] = ["howYouMeet", "twoCharts"];
+
+/** The lens chapters' ids, as the API keys them: partners02 ... people06 (ADR-63). */
+const LENS_KEY: Record<Lens, string> = { partners: "partners", parent_child: "parentChild", people: "people" };
+
+export function lensChapterId(lens: Lens, n: number): string {
+  return `${LENS_KEY[lens]}${String(n).padStart(2, "0")}`;
+}
+
+/** The eight sections a compatibility report writes under a lens: the two charts, the lens's five, the practice, the link cards. */
+export function pairSectionIds(lens: Lens): string[] {
+  return ["twoCharts", ...[2, 3, 4, 5, 6].map((n) => lensChapterId(lens, n)), "whatToPractise", "links"];
+}
+
+/** The pair's door waits for the two charts and the lens's chapter 02. */
+export function pairDoor(lens: Lens): string[] {
+  return ["twoCharts", lensChapterId(lens, 2)];
+}
+
+/** Every lens's registry, for a status whose lens is not known yet. */
+export const PAIR_SECTIONS: readonly string[] = pairSectionIds("partners");
 
 export interface ProgressInput {
   /** The report's status as the API reports it. */
@@ -103,9 +123,12 @@ export function progressOf(input: ProgressInput): Progress {
   return { real, shown: Math.round(shown * 100) / 100, label, next, door, complete, failed };
 }
 
-/** The registry and the door's requirement for a report of this type and horizon. */
-export function registryFor(type: "natal" | "compatibility", horizon?: string): { registry: readonly string[]; required: readonly string[] } {
-  if (type === "compatibility") return { registry: PAIR_SECTIONS, required: PAIR_DOOR };
+/** The registry and the door's requirement for a report of this type, horizon and lens: n = 8 for a pair. */
+export function registryFor(type: "natal" | "compatibility", horizon?: string, lens?: Lens | null): { registry: readonly string[]; required: readonly string[] } {
+  if (type === "compatibility") {
+    const l = lens ?? "partners";
+    return { registry: pairSectionIds(l), required: pairDoor(l) };
+  }
   const registry: readonly string[] = horizon === "unknown" ? NATAL_SECTIONS.filter((id) => id !== "houses") : NATAL_SECTIONS;
   return { registry, required: NATAL_DOOR.filter((id) => registry.includes(id)) };
 }
