@@ -1,0 +1,15 @@
+
+> starsdecoded@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded
+> pnpm --filter @workspace/scripts run report:lab "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "curie-winfrey" "--lens" "partners" "--label" "r06-pair3" "--html"
+
+
+> @workspace/scripts@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded/scripts
+> tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "curie-winfrey" "--lens" "partners" "--label" "r06-pair3" "--html"
+
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), partners via https://starsdecoded-staging.vercel.app: two natal reports first ===
+report a33086fe-c828-4624-b4f4-ec2fc9697b67 failed: pair:foundation: failed validation after 3 attempts: owners: L1 names chapter 7; chapters run 1 to 6
+/home/runner/work/Starsdecoded/Starsdecoded/scripts:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/scripts@0.0.0 report:lab: `tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "curie-winfrey" "--lens" "partners" "--label" "r06-pair3" "--html"`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
