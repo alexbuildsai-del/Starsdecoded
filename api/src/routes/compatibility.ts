@@ -9,10 +9,11 @@ import {
   relationshipParticipantsTable,
   RELATIONSHIP_TYPES,
 } from "@workspace/db";
-import { CreateCompatibilityReportBody, GetCompatibilitySummaryParams } from "@workspace/api-zod";
+import { CreateCompatibilityReportBody, GetCompatibilitySummaryParams, WriteSceneBody, WriteSceneParams } from "@workspace/api-zod";
 import type { NatalChartData } from "../lib/chartCalculation.js";
 import type { ReportInterpretation } from "../lib/aiInterpretation.js";
 import { generatePairInterpretation } from "../lib/pairInterpretation.js";
+import { SceneRequestError, writeScene } from "../lib/pairScene.js";
 import { consumeCredit } from "../lib/credits.js";
 import { canReadProfile, ownsRelationship, viewerHasGrantOnRelationship } from "../lib/access.js";
 import { streamInto } from "./reports.js";
@@ -189,6 +190,32 @@ router.get("/compatibility/:id/summary", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to get compatibility summary");
     return res.status(500).json({ error: "internal_error", message: "Failed to get compatibility summary" });
+  }
+});
+
+// One of a chapter's two unread scenes, written on tap and served from storage after (ADR-72). Access is the report's.
+router.post("/compatibility/:id/scenes", async (req, res) => {
+  const params = WriteSceneParams.safeParse(req.params);
+  const body = WriteSceneBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    return res.status(400).json({ error: "validation_error", message: "chapter and index are required" });
+  }
+  try {
+    const [r] = await db.select().from(reportsTable)
+      .where(and(eq(reportsTable.id, params.data.id), eq(reportsTable.type, "compatibility"))).limit(1);
+    if (!r || !r.relationshipId) return res.status(404).json({ error: "not_found", message: "Report not found" });
+    const [rel] = await db.select().from(relationshipsTable).where(eq(relationshipsTable.id, r.relationshipId)).limit(1);
+    const viewer = { userId: req.userId, sessionId: req.sessionId };
+    if (!rel || (!ownsRelationship(viewer, rel) && !(await viewerHasGrantOnRelationship(viewer, rel.id)))) {
+      return res.status(404).json({ error: "not_found", message: "Report not found" });
+    }
+    if (r.status !== "complete") return res.status(400).json({ error: "not_ready", message: "The report is still being written" });
+    const scene = await writeScene(params.data.id, body.data.chapter, body.data.index);
+    return res.json(scene);
+  } catch (err) {
+    if (err instanceof SceneRequestError) return res.status(err.status).json({ error: err.status === 404 ? "not_found" : "validation_error", message: err.message });
+    req.log.error({ err }, "Failed to write scene");
+    return res.status(500).json({ error: "internal_error", message: "Failed to write the scene" });
   }
 });
 
