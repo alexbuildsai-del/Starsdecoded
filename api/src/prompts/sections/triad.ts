@@ -17,6 +17,7 @@ export const triad: SectionSpec<typeof TriadSchema> = {
   label: "Core Triad",
   adminLabel: "Core Triad",
   wordTarget: [250, 320],
+  blindWordTarget: [160, 200],
   maxTokens: 2_500,
   schema: TriadSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

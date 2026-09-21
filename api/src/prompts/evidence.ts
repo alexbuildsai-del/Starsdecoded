@@ -56,9 +56,21 @@ export interface StoredClaim { quote: string; evidence: StoredEvidence[] }
 /** Contract appended by code to every reader-facing prompt. Not overridable. */
 export const CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the chart brief: a placement (body, sign, house), an aspect (both bodies, type, orb as listed), a house ruler (house, ruler, ruler's sign and house, dignity as listed), a Lot (fortune or spirit, sign, house), a sect role (role, body), or an angle (the ascendant or the midheaven, and its sign). Copy values exactly from the brief. When the brief reads HORIZON: unknown, only placements with house null and aspects exist; any other kind is rejected. Every reference is checked against the chart by code and the section is rejected if any does not match. Choose the claims that matter most: the sentences a reader would want to verify.`;
 
-/** Typographic variants the model swaps freely and a reader never notices. */
-function norm(s: string): string {
-  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/…/g, "...").replace(/\s+/g, " ").trim();
+/**
+ * Typographic variants the model swaps freely and a reader never notices:
+ * curly quotes, dashes and runs of whitespace. Exactly what the page's
+ * CitedText softens before it looks for a quote, so a claim the validator
+ * accepts is a claim the page marks (MB-62).
+ */
+export function softenQuote(s: string): string {
+  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
+}
+
+const norm = softenQuote;
+
+/** True when every problem is a claim quote that did not match the prose: the prose stands and only the claims need rewriting. */
+export function onlyQuoteProblems(problems: string[]): boolean {
+  return problems.length > 0 && problems.every((p) => /quote not found verbatim|quote too short/.test(p));
 }
 
 /** Every string leaf of a section except the claims themselves, joined as the prose to quote from. */

@@ -11,6 +11,12 @@ export interface SectionSpec<T extends z.ZodType = z.ZodType> {
   /** Prose word target for the whole section. */
   wordTarget: [number, number];
   /**
+   * The band when the horizon is unknown: below the drawn band by about what
+   * the horizon pass adds back, so a blind report plus its pass lands inside
+   * 3,500 to 5,500 (MB-60). Absent on a section the pass does not amend.
+   */
+  blindWordTarget?: [number, number];
+  /**
    * Ceiling on the reply, not a target: the word target sets length. Sized at
    * roughly twice what the prose and eight claims need, because a reply that
    * hits the cap is cut mid-string and the whole report fails.

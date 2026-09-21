@@ -19,6 +19,7 @@ export const relationships: SectionSpec<typeof RelationshipsSchema> = {
   label: "Relationships & Intimacy",
   adminLabel: "Relationships & Intimacy",
   wordTarget: [350, 450],
+  blindWordTarget: [280, 360],
   maxTokens: 3_200,
   schema: RelationshipsSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

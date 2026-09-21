@@ -31,8 +31,8 @@ import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type Sect
 import { MODELS, modelFor } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, ClaimSchema, EvidenceRefSchema, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
-  buildBrief, hasClaims, instructionsFor, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
-  type ChartBrief, type Claim, type ReportSectionId, type SectionSpec, type StoredClaim,
+  buildBrief, hasClaims, instructionsFor, onlyQuoteProblems, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
+  type ChartBrief, type Claim, type EvidenceRef, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
 import type { AngleMeanings, AspectMeaningPayload } from "../prompts/brief.js";
 import { FoundationSchema } from "../prompts/sections/foundation.js";
@@ -51,6 +51,14 @@ import { FocusSchema } from "../prompts/sections/focus.js";
 // Which model each call uses lives in ./models.ts, never here.
 /** One blind try, then two informed by the rejection. A lost section loses the whole report. */
 const ATTEMPTS = 3;
+
+/** The claims field of a section schema, when it has one: the shape a claims-only repair returns. */
+function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
+  const shape = (schema as unknown as { shape?: Record<string, z.ZodType> }).shape;
+  return shape?.claims ?? null;
+}
+
+const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted; do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
 /** Bump when the section set, schemas, or vocabulary change shape. v6: ten chapters, the horizon as a status. */
 export const PROMPT_VERSION = "v6";
 
@@ -193,6 +201,7 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
   // Accumulates across attempts: a section that retried twice cost three calls,
   // and hiding that would understate exactly what we are here to measure.
   let usage = emptySection(call.usageKey, call.model);
+  let repaired = false;
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     // A retry that repeats the identical request mostly repeats the mistake.
@@ -245,6 +254,36 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     const problems = call.validate ? call.validate(parsed.data) : [];
     if (problems.length === 0) return { data: parsed.data, usage };
     lastError = problems.join("; ");
+
+    // A claim whose quote is not in the prose is the one failure the prose
+    // does not deserve: about 7% of R05's natal runs died on it (MB-62). One
+    // cheap call rewrites the claims against the prose already written; the
+    // prose retry below runs only if that fails too.
+    const claimsShape = !repaired && onlyQuoteProblems(problems) ? claimsShapeOf(call.schema) : null;
+    if (claimsShape) {
+      repaired = true;
+      const { claims: _rejected, ...prose } = parsed.data as Record<string, unknown>;
+      const repairSchema = z.object({ claims: claimsShape });
+      const repairStartedAt = Date.now();
+      const repair = await openai.chat.completions.create({
+        model: call.model,
+        max_completion_tokens: call.maxTokens,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: `${call.user}\n\n${CLAIMS_ONLY}\n\nPROSE AS WRITTEN\n${JSON.stringify(prose, null, 2)}\n\nPREVIOUS CLAIMS REJECTED: ${lastError}` },
+        ],
+        response_format: { type: "json_schema", json_schema: { name: `${name}_claims`, strict: true, schema: toStrictJsonSchema(repairSchema) } },
+      });
+      usage = addAttempt(usage, repair.usage, Date.now() - repairStartedAt);
+      const repairedRaw = (() => { try { return JSON.parse(repair.choices[0]?.message?.content ?? ""); } catch { return null; } })();
+      const parsedRepair = repairSchema.safeParse(repairedRaw);
+      if (parsedRepair.success) {
+        const merged = { ...prose, claims: parsedRepair.data.claims } as T;
+        const again = call.validate ? call.validate(merged) : [];
+        if (again.length === 0) return { data: merged, usage };
+        lastError = `claims-only repair rejected too: ${again.join("; ")}`;
+      }
+    }
   }
 
   throw new SectionError(call.usageKey, `failed validation after ${ATTEMPTS} attempts: ${lastError}`);
@@ -550,6 +589,34 @@ export interface AmendedSection {
   added: SectionAddition[];
   /** Quotes the model returned that matched nothing, dropped and logged. */
   dropped: string[];
+  /** Every sentence the pass changed or wrote: the amendments' sentences plus the additions'. The ledger's count. */
+  sentencesChanged: number;
+  /** Claims that no longer verified against the drawn chart, dropped and logged with the quote each took with it. */
+  droppedClaims: string[];
+}
+
+/** The sentences of a passage, so a replacement of two sentences counts as two and each carries a claim. */
+export function sentencesOf(text: string): string[] {
+  return text.split(/(?<=[.!?])\s+(?=[A-Z"“'‘])/).map((s) => s.trim()).filter((s) => s.length > 0);
+}
+
+/**
+ * A blind claim cites a placement with no house; against the drawn chart the
+ * same placement now has one, so the claim is completed rather than dropped
+ * (MB-61: R05 lost every blind placement claim this way).
+ */
+function drawnRef(ref: EvidenceRef, chart: NatalChartData): EvidenceRef {
+  if (ref.kind === "placement" && ref.house === null && hasHorizon(chart)) {
+    const house = chart.planets[ref.body]?.house;
+    if (house !== undefined) return { ...ref, house };
+  }
+  // The Moon's orb was read across the band; at the hour it is exact, so the reference takes the drawn orb.
+  if (ref.kind === "aspect") {
+    const hit = chart.aspects.find((a) => a.type === ref.type
+      && ((a.planet1 === ref.body1 && a.planet2 === ref.body2) || (a.planet1 === ref.body2 && a.planet2 === ref.body1)));
+    if (hit && Math.abs(hit.orb - ref.orb) > 0.2) return { ...ref, orb: hit.orb };
+  }
+  return ref;
 }
 
 /**
@@ -571,6 +638,7 @@ export function applyAmendment(
   const added: SectionAddition[] = [];
   const dropped: string[] = [];
   const newClaims: Claim[] = [];
+  let sentencesChanged = 0;
 
   for (const a of reply.amendments.slice(0, 3)) {
     const re = tolerant(a.quote);
@@ -580,7 +648,10 @@ export function applyAmendment(
     const before = match[0];
     setLeaf(section, leaf.path, leaf.text.replace(before, a.replacement));
     amended.push({ before, now: a.replacement, evidence: storeClaims([{ quote: a.replacement, evidence: a.evidence }], chart)[0].evidence });
-    newClaims.push({ quote: a.replacement, evidence: a.evidence });
+    // Every sentence the amendment wrote carries the claim that changed it.
+    const sentences = sentencesOf(a.replacement);
+    sentencesChanged += sentences.length;
+    for (const sentence of sentences) newClaims.push({ quote: sentence, evidence: a.evidence });
   }
 
   for (const add of reply.additions.slice(0, 1)) {
@@ -599,31 +670,50 @@ export function applyAmendment(
     const text = add.text.trim();
     setLeaf(section, target.path, `${target.text.slice(0, at).trimEnd()}\n\n${text}${target.text.slice(at) ? `\n\n${target.text.slice(at).trimStart()}` : ""}`);
     added.push({ text, claims: storeClaims(add.claims, chart) });
+    sentencesChanged += sentencesOf(text).length;
     newClaims.push(...add.claims);
   }
 
   if (dropped.length) logger.warn({ section: id, dropped }, "horizon pass: amendment quotes matched nothing and were dropped");
 
   // Claims are re-validated against the new text and the drawn chart. An
-  // existing claim whose sentence was amended now quotes the replacement;
-  // one that no longer verifies is dropped rather than kept as a false citation.
+  // existing claim whose sentence was amended now quotes the replacement; a
+  // blind placement claim gains its house; one that still does not verify is
+  // dropped rather than kept as a false citation, and logged with its quote.
   const existing = (section.claims as StoredClaim[] | undefined) ?? [];
-  const followed = existing.map((c) => {
+  const followed: Claim[] = existing.map((c) => {
     const mark = amended.find((m) => soften(c.quote) === soften(m.before) || soften(m.before).includes(soften(c.quote)));
-    return mark ? { quote: mark.now, evidence: c.evidence.map((e) => e.ref) } : { quote: c.quote, evidence: c.evidence.map((e) => e.ref) };
+    const evidence = c.evidence.map((e) => drawnRef(e.ref, chart));
+    return mark ? { quote: mark.now, evidence } : { quote: c.quote, evidence };
   });
-  const candidates: Claim[] = [...followed, ...newClaims];
-  const kept = candidates.filter((c) => validateClaims(section, [c], chart).length === 0);
-  if (kept.length < candidates.length) {
-    logger.warn({ section: id, dropped: candidates.length - kept.length }, "horizon pass: claims that no longer verify were dropped");
+  // One claim per quote: a followed claim and an amendment on the same sentence
+  // merge their evidence, the horizon fact that changed the sentence first.
+  const merged = new Map<string, Claim>();
+  for (const c of [...newClaims, ...followed]) {
+    const key = soften(c.quote);
+    const prior = merged.get(key);
+    if (!prior) { merged.set(key, { quote: c.quote, evidence: [...c.evidence] }); continue; }
+    for (const e of c.evidence) if (!prior.evidence.some((x) => JSON.stringify(x) === JSON.stringify(e)) && prior.evidence.length < 3) prior.evidence.push(e);
   }
+  const kept: Claim[] = [];
+  const droppedClaims: string[] = [];
+  for (const c of merged.values()) {
+    // A reference the drawn chart no longer holds, such as a Moon aspect that
+    // held only across part of the band, leaves the claim; the claim stays
+    // if any of its references still verifies.
+    const evidence = c.evidence.filter((e) => validateClaims(section, [{ quote: c.quote, evidence: [e] }], chart).length === 0);
+    if (!evidence.length) { droppedClaims.push(`"${c.quote.slice(0, 60)}": ${validateClaims(section, [c], chart).join("; ")}`); continue; }
+    kept.push({ quote: c.quote, evidence });
+  }
+  if (droppedClaims.length) logger.warn({ section: id, droppedClaims }, "horizon pass: claims that no longer verify were dropped, each with the quote it took with it");
   if ("claims" in section) section.claims = storeClaims(kept, chart);
 
-  return { section, amended, added, dropped };
+  return { section, amended, added, dropped, sentencesChanged, droppedClaims };
 }
 
 export interface AmendResult {
   interpretation: ReportInterpretation;
+  /** Per section: the sentences the pass changed or wrote, and the paragraphs it added. */
   counts: Record<string, { amended: number; added: number }>;
   record: HorizonPassRecord["sections"];
   usage: SectionUsage[];
@@ -684,7 +774,7 @@ export async function amendSections(
   const record: HorizonPassRecord["sections"] = {};
   for (const r of results) {
     (interpretation as unknown as Record<string, unknown>)[r.id] = r.applied.section;
-    counts[r.id] = { amended: r.applied.amended.length, added: r.applied.added.length };
+    counts[r.id] = { amended: r.applied.sentencesChanged, added: r.applied.added.length };
     record[r.id] = { amended: r.applied.amended, added: r.applied.added };
   }
   return { interpretation, counts, record, usage: results.map((r) => r.usage) };

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.8 (2026-09-19) |
+| Version | 0.9 (2026-09-21) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -58,7 +58,7 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 
 **V1 explicitly excludes:** predictions, transits, daily horoscopes; subscriptions; native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; the old chart-to-chart synastry page and dashboard zone, hidden until the compatibility report ships (ADR-45).
 
-**V1 after payments:** the compatibility report, one product with three lenses (partners, parent and child, family), locked 2026-09-19.
+**V1 after payments:** the compatibility report, one product with three lenses (partners, parent and child, two people), locked 2026-09-19; its second pass, a counselling workbook of seven chapters with the two charts first, locked 2026-09-21 (`docs/specs/locked/compatibility-report-p2.md`, ADR-63 to 71). The natal report is named the Personal natal report wherever it is named (ADR-61).
 
 **V2 candidates (do not build, do not block):** further lenses (friends, colleagues); composite chart add-on; Placidus second view; prompt version history; transit re-runs; family bundles.
 
@@ -71,7 +71,7 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 | `profiles` | A person whose chart we computed | birth data, `chart_data` cache (versioned), `session_id`, `user_id`, `is_self` |
 | `reports` | The unit of revenue | `profile_id`, `type` natal or compatibility, `status`, `interpretation` JSONB, `compute_data` |
 | `users` | Clerk identity | Clerk id is the key |
-| `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / family; positional `role` and `access_role` are deliberately separate |
+| `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / people, the free label carrying family, friends or colleagues; positional `role` and `access_role` are deliberately separate |
 | `invite_tokens` | Invite a second person | only the hash is stored, 7-day TTL |
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
 | `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); the typed columns go with the payments round |
@@ -102,12 +102,12 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 ## 5 · Interpretation rules
 
-- **R-5.1** Tone, every section: second person; short sentences; no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words.
+- **R-5.1** Tone, every section: second person; short sentences; no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words. The compatibility report adds: a verdict headline, a scene that may hold a short quoted exchange, the pattern with a because-line per person from their own report, a next-time checklist; research is doctrine and never named on the page; repetition is measured in the lab, not edited (ADR-63 to 69).
 - **R-5.2** The model may describe behavioural patterns, tendencies and growth edges. It may never predict events, name dates, promise outcomes, give medical or psychological diagnoses, or invoke fate or karma.
 - **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings. House-card readings are a section like any other (ADR-21); the Ascendant and Midheaven are citable evidence (ADR-22).
 - **R-5.4** Source of truth for prompts is the section registry and `promptDefaults.ts`; overrides live in `prompt_templates` via `/admin/prompts`. Never edit a generated copy (the bible, docs). Re-sync instead.
 - **R-5.5** A change to report content is USER-FACING even when no UI moved: someone who bought yesterday would get different words today.
-- **R-5.6** Model ids are hard-coded at the call sites today (`gpt-5.2`). Changing the model is an engine change under R-4.4.
+- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and provider, and one outside it does not compile (ADR-58). A section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
 
 ## 6 · Payments and business model
 
@@ -153,8 +153,8 @@ Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report
 
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
 - **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The weight-300 display serif that pulled the other way is settled — display moves to Newsreader 400 and the numerals to a real monospace. The starfield and gradients stay, budgeted: two moves per chapter change, one easing, and reduced motion is a real state.
-- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The loading wheel is the sky too: every body on its own ring at its mean daily motion, settling onto the stored chart (ADR-47).
-- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; chapter 10, Closing, is teal and its prose reads in paper; element hues stay data, brass stays geometry (ADR-23, ADR-46). The rail lists chapters only (ADR-50); the sky is one canvas from the first pixel and the dawn's sun lives on the fixed layer (ADR-51).
+- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The generation screen is its own screen with the scroll locked: every body on its own ring at its mean daily motion, settling onto the stored chart, and the door at 67% is the only way in (ADR-47, ADR-59). The compatibility hero has no ring: two triad plates and both birth records in the corners (ADR-70).
+- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; chapter 10, Closing, is teal and its prose reads in paper; element hues stay data, brass stays geometry (ADR-23, ADR-46). The rail lists chapters only (ADR-50); two skies: the hero owns the starfield, the gradient and the ring of stars, chapters keep their gradient, blobs and parallax, and the dawn's sun lives on the fixed layer (ADR-51, ADR-59). A why is a sentence on its own line under its action (ADR-62); evidence lives in claims only, never in prose (ADR-60).
 - **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report, and a tick is silent: no counter, and a box unticks (ADR-24, ADR-48).
 - **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
 - **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
@@ -208,7 +208,7 @@ Explore the feature with the Owner. The Owner decides visually: every ideation p
 The Owner's only operational duty is to test the website and say whether it looks good. The QA agent plays the personas from §1 against a preview using real computed charts. Findings land in `docs/qa/QA-NN.md` with severity. The next planner treats every sev-1 as a round goal.
 
 ### 11.4 Report evals
-`fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs before any prompt change ships and its output goes in the round report. Fixtures grow from every real quality problem found in QA.
+`fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs before any prompt change ships and its output goes in the round report. Fixtures grow from every real quality problem found in QA. Every lab run also lands in the staging database and is read in the admin Lab page; a model is compared by replaying a stored run with chart and foundation held fixed, and judged by the Owner blind, per section, in a reading session the Owner spawns (ADR-52 to 56).
 
 ## 12 · Alignment and mailbox
 

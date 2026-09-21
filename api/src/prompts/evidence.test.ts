@@ -5,7 +5,7 @@ import { calculateNatalChart } from "../lib/chartCalculation.js";
 import { deriveTraditional } from "../lib/traditional.js";
 import { buildBrief } from "./brief.js";
 import { DOCTRINE } from "./system.js";
-import { CLAIMS_CONTRACT, EvidenceRefSchema, labelEvidence, validateClaims, type Claim } from "./evidence.js";
+import { CLAIMS_CONTRACT, EvidenceRefSchema, labelEvidence, onlyQuoteProblems, softenQuote, validateClaims, type Claim } from "./evidence.js";
 import { triad } from "./sections/triad.js";
 
 const curie = () => chartFromFixture("marie-curie");
@@ -117,4 +117,18 @@ test("doctrine: one rule for the blind report, and the prose never mentions the 
   assert.match(DOCTRINE, /HORIZON: unknown/);
   assert.match(DOCTRINE, /never name a house, the Ascendant, the Midheaven, rising, day or night, or a lot/);
   assert.match(DOCTRINE, /never mention that the time is missing/);
+});
+
+test("a quote is matched after the page's softening: curly quotes, dashes and whitespace, nothing more", () => {
+  const chart = curie();
+  const prose = { text: "You read a room – “slowly” – before you\n speak in it." };
+  const ok: Claim[] = [{ quote: 'You read a room - "slowly" - before you speak in it.', evidence: [{ kind: "angle", angle: "ascendant", sign: "capricorn" }] }];
+  assert.deepEqual(validateClaims(prose, ok, chart), []);
+  assert.equal(softenQuote("a – b — c ‘d’ “e”   f"), "a - b - c 'd' \"e\" f");
+  const paraphrase: Claim[] = [{ quote: "You read a room before speaking.", evidence: [{ kind: "angle", angle: "ascendant", sign: "capricorn" }] }];
+  const problems = validateClaims(prose, paraphrase, chart);
+  assert.equal(problems.length, 1);
+  assert.equal(onlyQuoteProblems(problems), true);
+  assert.equal(onlyQuoteProblems([...problems, "claim 1 evidence 1: the ascendant is in capricorn, not aquarius"]), false);
+  assert.equal(onlyQuoteProblems([]), false);
 });

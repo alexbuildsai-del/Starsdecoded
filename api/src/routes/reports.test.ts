@@ -24,8 +24,10 @@ test("status: a bad date reads as null rather than failing the poll", () => {
 test("status: the section keys come from the registry the report's type uses", () => {
   assert.equal(sectionIdsFor("natal").length, 11);
   assert.ok(sectionIdsFor("natal").includes("houses"));
-  assert.equal(sectionIdsFor("compatibility").length, 10);
+  assert.equal(sectionIdsFor("compatibility").length, 8);
   assert.ok(sectionIdsFor("compatibility").includes("links"));
+  assert.ok(sectionIdsFor("compatibility", undefined, "people").includes("people04"));
+  assert.ok(!sectionIdsFor("compatibility", undefined, "people").includes("partners04"));
   assert.ok(!sectionIdsFor("compatibility").includes("houses"));
   assert.equal(sectionIdsFor("natal", "unknown").length, 10);
   assert.ok(!sectionIdsFor("natal", "unknown").includes("houses"));

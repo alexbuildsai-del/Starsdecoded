@@ -20,7 +20,7 @@ import type { SectionSpec } from "./types.js";
 export { SHARED_SYSTEM, STYLE_CONTRACT, DOCTRINE, WRITER } from "./system.js";
 export { buildBrief, type ChartBrief } from "./brief.js";
 export { toStrictJsonSchema } from "./jsonSchema.js";
-export { CLAIMS_CONTRACT, ClaimSchema, ClaimsSchema, EvidenceRefSchema, labelEvidence, proseOf, storeClaims, validateClaims, type Claim, type EvidenceRef, type StoredClaim } from "./evidence.js";
+export { CLAIMS_CONTRACT, ClaimSchema, ClaimsSchema, EvidenceRefSchema, labelEvidence, onlyQuoteProblems, proseOf, softenQuote, storeClaims, validateClaims, type Claim, type EvidenceRef, type StoredClaim } from "./evidence.js";
 export type { SectionSpec, Infer } from "./types.js";
 export { FoundationSchema } from "./sections/foundation.js";
 export { HousesSchema } from "./sections/houses.js";
@@ -58,10 +58,15 @@ export function sectionsFor(horizon: "known" | "approximate" | "unknown"): reado
   return horizon === "unknown" ? REPORT_SECTIONS.filter((s) => !s.skipWhenBlind) : REPORT_SECTIONS;
 }
 
-/** The section's instructions as sent: the blind rules are appended when the horizon is unknown. */
+/** The section's instructions as sent: the blind rules and the blind band are appended when the horizon is unknown. */
 export function instructionsFor(spec: SectionSpec, instructions: string, blind: boolean): string {
-  if (!blind || !spec.blindRules?.length) return instructions;
-  return [instructions.trim(), "", "HORIZON UNKNOWN. These rules replace any rule above they contradict:", ...spec.blindRules.map((r) => `- ${r}`)].join("\n");
+  if (!blind) return instructions;
+  const rules = [
+    ...(spec.blindRules ?? []),
+    ...(spec.blindWordTarget ? [`Length: ${spec.blindWordTarget[0]} to ${spec.blindWordTarget[1]} words in total, replacing any count above. Write the section whole at that length; the birth time, when it is added, brings its own paragraph.`] : []),
+  ];
+  if (!rules.length) return instructions;
+  return [instructions.trim(), "", "HORIZON UNKNOWN. These rules replace any rule above they contradict:", ...rules.map((r) => `- ${r}`)].join("\n");
 }
 
 /** The output contract in force: a section may narrow its schema when the horizon is unknown. */
@@ -76,5 +81,26 @@ export function sectionById(id: string): SectionSpec | undefined {
 export const WORD_TARGETS: Record<ReportSectionId, [number, number]> = Object.fromEntries(
   REPORT_SECTIONS.map((s) => [s.key.split(":")[1], s.wordTarget]),
 ) as Record<ReportSectionId, [number, number]>;
+
+/** The bands a blind report is written to: every section the pass amends, at its blind band (MB-60). */
+export const BLIND_WORD_TARGETS: Record<string, [number, number]> = Object.fromEntries(
+  sectionsFor("unknown").map((s) => [s.key.split(":")[1], s.blindWordTarget ?? s.wordTarget]),
+);
+
+/**
+ * What the horizon pass adds to a blind report, as bands: the twelve house
+ * readings, the rising part, and one addition per amended section of 40 to
+ * 90 words. The blind bands plus this must sit inside 3,500 to 5,500.
+ */
+export const PASS_ADDS: [number, number] = (() => {
+  const amended = sectionsFor("unknown").length;
+  const houses = sectionById("houses")!.wordTarget;
+  return [houses[0] + 80 + amended * 40, houses[1] + 100 + amended * 90];
+})();
+
+/** The band in force for a section under this horizon. */
+export function wordTargetFor(spec: SectionSpec, blind: boolean): [number, number] {
+  return blind && spec.blindWordTarget ? spec.blindWordTarget : spec.wordTarget;
+}
 
 export type SectionOutput<S extends SectionSpec> = S extends SectionSpec<infer T> ? z.infer<T> : never;

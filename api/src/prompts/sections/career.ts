@@ -22,6 +22,7 @@ export const career: SectionSpec<typeof CareerSchema> = {
   label: "Career & Calling",
   adminLabel: "Career & Calling",
   wordTarget: [350, 450],
+  blindWordTarget: [280, 360],
   maxTokens: 3_200,
   schema: CareerSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

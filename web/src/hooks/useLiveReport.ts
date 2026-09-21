@@ -61,7 +61,8 @@ export function useLiveReport(id: string) {
   const sections = (status.data?.sections ?? {}) as SectionState;
   const type = (report.data?.type ?? interpretation?.meta?.reportType ?? "natal") as "natal" | "compatibility";
   const horizon = interpretation?.meta?.horizon;
-  const { registry, required } = useMemo(() => registryFor(type, horizon), [type, horizon]);
+  const lens = (report.data?.lens ?? interpretation?.meta?.lens ?? null) as Lens | null;
+  const { registry, required } = useMemo(() => registryFor(type, horizon, lens), [type, horizon, lens]);
   const chartReady = status.data?.chartReady ?? report.data?.chartData != null;
 
   // Real progress moves only on events; the creep between them needs a clock.
@@ -115,7 +116,7 @@ export function useLiveReport(id: string) {
     open,
     setOpen,
     type,
-    lens: (report.data?.lens ?? null) as Lens | null,
+    lens,
     participants: report.data?.participants ?? null,
     horizonPass,
     revisions: report.data?.revisions ?? [],

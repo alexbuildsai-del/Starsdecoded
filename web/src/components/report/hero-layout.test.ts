@@ -8,7 +8,7 @@
  *      console.log(calculateNatalChart("1999-08-11","12:10",51.5074,-0.1278,1))'
  */
 import { describe, expect, it } from "vitest";
-import { CONJUNCTION_DEGREES, OUTSIDE_STEP, layoutHero, moonArc, overlaps, separation } from "./hero-layout";
+import { CONJUNCTION_DEGREES, OUTSIDE_STEP, PHONE, layoutHero, moonArc, overlaps, phoneStack, separation } from "./hero-layout";
 import { pointAt, theta } from "@/components/chart/wheel-geometry";
 
 const PLATE = { cx: 500, cy: 330, ringRadius: 200, labelWidth: 176, labelHeight: 30 };
@@ -142,5 +142,34 @@ describe("moonArc", () => {
       bodies: [{ key: "sun", absoluteDegree: 224.58, size: 116 }, { key: "moon", absoluteDegree: CURIE_BLIND.moon.absoluteDegree, size: 72 }],
     });
     for (const b of layout.bodies) expect(Math.hypot(b.x - PLATE.cx, b.y - PLATE.cy)).toBeCloseTo(PLATE.ringRadius, 6);
+  });
+});
+
+describe("the phone stack", () => {
+  const size = 44;
+
+  it("puts the ring on top at 82vw, then the name, the legend and the cue, with the stem 24 px clear of the corner text", () => {
+    const s = phoneStack({ viewportWidth: 390, viewportHeight: 844, nameLines: 1, nameSize: size });
+    expect(s.order).toEqual(["ring", "name", "legend", "cue"]);
+    expect(s.ring).toBeCloseTo(390 * PHONE.ringShare, 3);
+    expect(s.clearance).toBeGreaterThanOrEqual(PHONE.clearance);
+    expect(s.stemBottom).toBeLessThan(s.hudTop);
+  });
+
+  it("breaks the name to two lines before the ring shrinks", () => {
+    const one = phoneStack({ viewportWidth: 390, viewportHeight: 844, nameLines: 1, nameSize: size });
+    const two = phoneStack({ viewportWidth: 390, viewportHeight: 844, nameLines: 2, nameSize: 28 });
+    expect(two.name).toBeGreaterThan(one.name);
+    // The wrap comes from the name's length, never from the ring giving way; the ring holds within a hair.
+    expect(two.ring).toBeGreaterThanOrEqual(one.ring * 0.98);
+    expect(two.clearance).toBeGreaterThanOrEqual(PHONE.clearance);
+  });
+
+  it("gives up ring, never clearance, on a short phone", () => {
+    const s = phoneStack({ viewportWidth: 390, viewportHeight: 664, nameLines: 2, nameSize: 28 });
+    expect(s.order).toEqual(["ring", "name", "legend", "cue"]);
+    expect(s.ring).toBeLessThan(390 * PHONE.ringShare);
+    expect(s.ring).toBeGreaterThan(150);
+    expect(s.clearance).toBeGreaterThanOrEqual(PHONE.clearance);
   });
 });

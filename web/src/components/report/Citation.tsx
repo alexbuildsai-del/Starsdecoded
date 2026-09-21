@@ -15,9 +15,9 @@ export function newCitationCounter() {
 }
 export type CitationCounter = ReturnType<typeof newCitationCounter>;
 
-/** Length-preserving, so an offset found in the haystack is valid in the display text. */
+/** Length-preserving, so an offset found in the haystack is valid in the display text. The API's softenQuote does the same, so a claim that validated is found here. */
 function soften(s: string): string {
-  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-");
 }
 
 function collapse(s: string): string {

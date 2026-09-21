@@ -110,11 +110,11 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-19)
+## Current focus (2026-09-21)
 
-1. R05 merged to staging (#52): pass three (ADR-46 to 51), unknown birth time
-   (ADR-33 to 38), the compatibility report (ADR-39 to 45); prompts v6 and p1.
-   The three lab campaigns run from `report-lab.yml`, pasted into `docs/rounds/R05-report.md`.
-2. Owner acceptance on staging for R01, R03, R04 and R05, in that order.
-3. Staging landing (`docs/specs/draft/staging-environment.md`): the Owner works the
-   runbook, then the first Promote. Pricing (MB-5) and Stripe (MB-6) next; MB-57 waits on them.
+1. R06 on `round/R06`, PR open to `main`: the nine review fixes (ADR-59 to 62), the compatibility second pass p2 (ADR-63 to 71),
+   on-tap scenes on `gpt-5.2` (ADR-72), MB-60 to 62 closed. After the merge dispatch `report-lab.yml` three times on staging
+   (`natal`, `pass`, `pair`) and paste the measurement into `docs/rounds/R06-report.md`.
+2. Owner acceptance on staging for R01, R03, R04, R05 and R06, in that order; then the staging landing
+   (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote.
+3. Next: `report-lab-model-matrix.md` (needs the Groq key on Railway), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.

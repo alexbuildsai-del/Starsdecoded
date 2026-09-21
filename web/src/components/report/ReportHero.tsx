@@ -14,17 +14,24 @@
  * west, no rising marker. The plate is framed on 0° Aries, the Moon is the arc
  * it travelled across the band, the Sun sits at its centre-time degree, and the
  * legend's third line asks for the birth time instead of naming a sign.
+ *
+ * Three tiers (ADR-59): wide keeps the plate with the name at its centre;
+ * narrow, up to 900 px, stacks the plate, the legend and the cue; the phone,
+ * under 640 px, puts the ring on top at 82vw and the name under it, then the
+ * legend, then the cue clear of the corner text (`phoneStack`).
  */
 import { useEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { ORDINALS } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
-import { layoutHero, moonArc, type Rect } from "@/components/report/hero-layout";
+import { PHONE, layoutHero, moonArc, phoneStack, type Rect } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { PLANET_LABELS, type ChartData, type ChartPlanet, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { PERSONAL_REPORT } from "@/lib/product";
+import { ReportSky } from "@/components/report/ReportSky";
 import type { Ring } from "@/lib/gather";
 
 const SKY = "var(--sky)";
@@ -57,18 +64,41 @@ function nameLines(name: string, narrow: boolean): { lines: string[]; size: numb
   return { lines: [words.slice(0, best).join(" "), words.slice(best).join(" ")], size: small };
 }
 
-function useNarrow(): boolean {
-  const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches,
-  );
+type Tier = "wide" | "narrow" | "phone";
+
+const PHONE_QUERY = "(max-width: 639px)";
+const NARROW_QUERY = "(max-width: 900px)";
+
+function tierNow(): Tier {
+  if (typeof window === "undefined") return "wide";
+  if (window.matchMedia(PHONE_QUERY).matches) return "phone";
+  return window.matchMedia(NARROW_QUERY).matches ? "narrow" : "wide";
+}
+
+function useTier(): Tier {
+  const [tier, setTier] = useState<Tier>(tierNow);
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 900px)");
-    const onChange = () => setNarrow(mq.matches);
+    const queries = [window.matchMedia(PHONE_QUERY), window.matchMedia(NARROW_QUERY)];
+    const onChange = () => setTier(tierNow());
     onChange();
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    for (const mq of queries) mq.addEventListener("change", onChange);
+    return () => { for (const mq of queries) mq.removeEventListener("change", onChange); };
   }, []);
-  return narrow;
+  return tier;
+}
+
+/** The phone's viewport, re-read on resize so the stack follows an address-bar collapse or a rotation. */
+function useViewport(active: boolean): { width: number; height: number } {
+  const read = () => ({ width: typeof window === "undefined" ? 390 : window.innerWidth, height: typeof window === "undefined" ? 844 : window.innerHeight });
+  const [size, setSize] = useState(read);
+  useEffect(() => {
+    if (!active) return;
+    const onResize = () => setSize(read());
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [active]);
+  return size;
 }
 
 function coordinate(value: number, positive: string, negative: string, places: number): string {
@@ -123,14 +153,18 @@ export interface ReportHeroProps {
   meta: Interpretation["meta"];
   /** Opens the three-way birth time control; the blind hero's third legend line. */
   onAddBirthTime?: () => void;
-  /** Where the ring is on screen, so the sky can gather its stars onto it (ADR-47). */
-  onRing?: (ring: Ring) => void;
+  /** The hero's own sky takes the opening accent; once the door is taken the stars gather onto the ring (ADR-59). */
+  accent: string;
+  gather: boolean;
 }
 
 export function ReportHero({
-  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, onRing,
+  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, accent, gather,
 }: ReportHeroProps) {
-  const narrow = useNarrow();
+  const tier = useTier();
+  const narrow = tier !== "wide";
+  const phone = tier === "phone";
+  const viewport = useViewport(phone);
   const reduced = useReducedMotion();
   const skyRef = useRef<HTMLDivElement>(null);
   const hudRef = useRef<HTMLDivElement>(null);
@@ -140,22 +174,24 @@ export function ReportHero({
   const sunRef = useRef<SVGImageElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<SVGCircleElement>(null);
-  const onRingRef = useRef(onRing);
-  onRingRef.current = onRing;
+  const [ring, setRing] = useState<Ring | null>(null);
 
-  // The ring's place on screen, measured at rest: the gather lands on it.
+  // The ring's place on screen, measured at rest and again on every resize,
+  // so the ring of stars follows an address-bar collapse or a rotation.
   useEffect(() => {
     function measure() {
       const el = ringRef.current;
-      if (!el || !onRingRef.current) return;
+      if (!el) return;
       const b = el.getBoundingClientRect();
       if (b.width < 2) return;
-      onRingRef.current({ cx: b.left + b.width / 2, cy: b.top + b.height / 2, r: b.width / 2 });
+      const next = { cx: b.left + b.width / 2, cy: b.top + b.height / 2, r: b.width / 2 };
+      setRing((prev) => (prev && Math.abs(prev.cx - next.cx) < 0.5 && Math.abs(prev.cy - next.cy) < 0.5 && Math.abs(prev.r - next.r) < 0.5 ? prev : next));
     }
     measure();
+    const raf = window.requestAnimationFrame(measure);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [narrow]);
+    return () => { window.cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
+  }, [tier, viewport.width, viewport.height, name]);
 
   useEffect(() => {
     let frame = 0;
@@ -175,9 +211,10 @@ export function ReportHero({
       if (cueRef.current) cueRef.current.style.opacity = Math.max(0, 1 - q * 2.2).toFixed(3);
       if (!reduced) {
         // The whole diagram is one group so ring, horizon and markers can never
-        // drift apart on scroll; only the name moves at a different depth.
+        // drift apart on scroll; only the name moves at a different depth. On
+        // the phone the name sits in the flow under the ring and stays put.
         diagramRef.current?.setAttribute("transform", `translate(0,${(-top * 0.12 * 1.6).toFixed(1)})`);
-        if (nameRef.current) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
+        if (nameRef.current && !phone) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
       }
       // The glow is painted outside the SVG, so it is told where the Sun ended
       // up rather than being drawn with it.
@@ -209,7 +246,7 @@ export function ReportHero({
       window.removeEventListener("resize", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [reduced, narrow, name]);
+  }, [reduced, tier, name]);
 
   const asc = chartData.angles?.ascendant ?? null;
   const dsc = chartData.angles?.descendant ?? null;
@@ -220,29 +257,33 @@ export function ReportHero({
   const rising = asc ? `${asc.degree.toFixed(2)}° ${asc.sign}${ascRuler ? ` · ruled by ${PLANET_LABELS[ascRuler]}` : ""}` : ADD_TIME;
   const tob = timeOfBirthLabel({ birthTime, birthTimeWindowMinutes });
 
-  // A phone plate is wider than tall so the ring can fill the width and the
-  // horizon labels still have room outside it.
-  const W = narrow ? 780 : 1000;
-  const H = narrow ? 640 : 660;
+  // A narrow plate is wider than tall so the ring can fill the width and the
+  // horizon labels still have room outside it. The phone's plate is square
+  // with the ring at 82% of it, so the ring is 82vw when the svg is 100vw.
+  const W = phone ? 560 : narrow ? 780 : 1000;
+  const H = phone ? 560 : narrow ? 640 : 660;
   const cx = W / 2;
   const cy = H / 2;
-  const R = narrow ? 236 : 200;
+  const R = phone ? Math.round(W * PHONE.ringOfSvg / 2) : narrow ? 236 : 200;
+  const horizonReach = phone ? 20 : 58;
   const places = narrow ? 2 : 4;
 
   // A drawn plate is framed on the Ascendant, east on the left; a blind one on 0° Aries.
   const frame = asc ? asc.absoluteDegree : 0;
   const ascTheta = theta(frame, frame);
   const ascAt = pointAt(cx, cy, R, ascTheta);
-  const east = pointAt(cx, cy, R + 58, ascTheta);
-  const west = pointAt(cx, cy, R + 58, theta(opposite(frame), frame));
+  const east = pointAt(cx, cy, R + horizonReach, ascTheta);
+  const west = pointAt(cx, cy, R + horizonReach, theta(opposite(frame), frame));
   const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band) : null;
 
   const { lines: nameRows, size: nameSize } = nameLines(name, narrow);
+  // The name has already broken to its lines from its length; only the viewport's height can now cost the ring.
+  const stack = phone ? phoneStack({ viewportWidth: viewport.width, viewportHeight: viewport.height, nameLines: nameRows.length, nameSize }) : null;
 
   // What a label may not cover: the name plate at the centre and the two
   // horizon labels. Measured in plate units, like everything else here.
   const obstacles: Rect[] = [
-    { x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 },
+    ...(phone ? [] : [{ x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 }]),
     ...(blind ? [] : [
       { x: east.x - 210, y: east.y + 10, w: 210, h: 42 },
       { x: west.x, y: west.y + 10, w: 210, h: 42 },
@@ -254,8 +295,8 @@ export function ReportHero({
     frameDegree: frame,
     // The Sun is placed first, so it takes the room it needs.
     bodies: [
-      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: narrow ? 108 : 120 },
-      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: narrow ? 64 : 72 },
+      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: phone ? 100 : narrow ? 108 : 120 },
+      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: phone ? 60 : narrow ? 64 : 72 },
     ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
     labelWidth: 186,
     labelHeight: 34,
@@ -282,7 +323,9 @@ export function ReportHero({
 
   return (
     <>
-      <div ref={skyRef} className={`rp-hsky rp-grain no-print${narrow ? " narrow" : ""}`}>
+      <div ref={skyRef} className={`rp-hsky rp-grain no-print${narrow ? " narrow" : ""}${phone ? " phone" : ""}`}>
+        {/* The hero's own starfield and, once opened, the ring of stars, sized to this layer and fading with it. */}
+        <ReportSky variant="hero" accent={accent} opening gatherTo={gather ? ring : null} />
         {/* Under the transparent bar, off the plate's edges, fading with the sky. */}
         <div
           ref={glowRef}
@@ -293,6 +336,7 @@ export function ReportHero({
         <div className="rp-hplate">
         <svg
           viewBox={`0 0 ${W} ${H}`}
+          style={stack ? { maxHeight: `${stack.svg.toFixed(0)}px`, maxWidth: `${stack.svg.toFixed(0)}px` } : undefined}
           role="img"
           aria-label={blind ? `${name}: Sun and Moon at their true positions; the horizon is not drawn` : `${name}: Sun, Moon and Rising at their true positions`}
         >
@@ -321,8 +365,8 @@ export function ReportHero({
             )}
             {blind ? null : narrow ? (
               <>
-                <Label x={east.x} y={east.y + 30} anchor={east.x < cx ? "start" : "end"} size={18} fill={SKY_DIM}>EAST · RISING</Label>
-                <Label x={west.x} y={west.y + 30} anchor={west.x < cx ? "start" : "end"} size={18} fill={SKY_DIM}>WEST · SETTING</Label>
+                <Label x={east.x} y={east.y + (phone ? 26 : 30)} anchor={east.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>EAST · RISING</Label>
+                <Label x={west.x} y={west.y + (phone ? 26 : 30)} anchor={west.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>WEST · SETTING</Label>
               </>
             ) : (
               <>
@@ -386,8 +430,9 @@ export function ReportHero({
             Add my birth time
           </button>
         )}
+        {!phone && (
         <div ref={nameRef} className="rp-hname">
-          <span className="k">Natal chart report</span>
+          <span className="k">{PERSONAL_REPORT}</span>
           <div className="relative inline-block justify-self-center">
             {/* A halo fitted to the text box, so the ring reads through around it. */}
             <div
@@ -406,7 +451,20 @@ export function ReportHero({
             </h1>
           </div>
         </div>
+        )}
         </div>
+
+        {/* The phone's name lives under the ring, in the flow, with no halo: the ring is above it, not behind it. */}
+        {phone && (
+          <div ref={nameRef} className="rp-hname rp-hname-flow">
+            <span className="k">{PERSONAL_REPORT}</span>
+            <h1 style={{ fontSize: `${nameSize}px` }}>
+              {nameRows.map((line, i) => (
+                <span key={i} className="block">{line}</span>
+              ))}
+            </h1>
+          </div>
+        )}
 
         {narrow && (
           <dl className="rp-legend">
@@ -456,7 +514,7 @@ export function ReportHero({
       <section className="rp-hero" aria-label="Opening">
         {!narrow && <ScrollCue reduced={reduced} cueRef={cueRef} />}
         <header className="hidden print:block px-8 pt-12">
-          <p className="font-label text-[10px] tracking-[0.28em] uppercase">Natal chart report</p>
+          <p className="font-label text-[10px] tracking-[0.28em] uppercase">{PERSONAL_REPORT}</p>
           <h1 className="font-display text-5xl mt-2">{name}</h1>
           <p className="font-numeric text-xs mt-3">
             DOB · {dobText} · TOB · {tob} · POB · {birthPlace}
