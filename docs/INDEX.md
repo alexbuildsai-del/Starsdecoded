@@ -1,10 +1,10 @@
-# Index — regenerated at the end of every round (last: R05, 2026-09-19)
+# Index — regenerated at the end of every round (last: lock 2026-09-21, after R05)
 
 Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by pointer.
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
-- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (51 rows; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-29 to 32 from the logo lock; ADR-33 to 38 from the unknown-birth-time lock; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26)
+- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (71 rows; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-29 to 32 from the logo lock; ADR-33 to 38 from the unknown-birth-time lock; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26; ADR-59 to 62 from the Review 20/09 lock, amending ADR-44, 47, 51; ADR-63 to 71 from the compatibility second pass, amending ADR-40, 43)
 - Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-38 open until R05's natal lab is pasted; MB-6, 43, 47, 55 built at their defaults; MB-57 credits DDL and no-credit CTA deferred to pricing; MB-58 old synastry rows hidden; MB-59 the claim lands without generating; MB-49/52 credit rules with pricing)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
@@ -19,6 +19,13 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   ticks, one sky, the door at 67% over an orrery of the chart. Artifact: https://claude.ai/artifact/HKt4HYfKKmwadcKTmTxWob
 - `docs/specs/locked/unknown-birth-time.md` — R05: the horizon as a status, three-way birth time with a live readout,
   the blind report, the horizon pass by quote match, one free update. Artifact: https://claude.ai/artifact/GicHa2umwRm5rQDuWVLp9p
+- `docs/specs/locked/review-20-09.md` — next round: the phone hero, two skies and the generation screen as a screen,
+  the Closing gap, evidence in claims only, the evidence sheet, Personal natal report, the why on its own line.
+  Artifact: https://claude.ai/artifact/M9SMzqwbNcXtuSZGws2p2F
+- `docs/specs/locked/compatibility-report-p2.md` — next round, the brain: seven chapters with the two charts first,
+  five lens chapters with cards and three scenes, tone C with B's headline and checklist, the child's age band, the
+  Two people lens, per-chapter briefs, the repetition score, the two-triad hero, the share card, the Groq experiment.
+  Artifact: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL
 - `docs/specs/draft/report-cost-and-latency.md` — 27.1 cents a report measured; output 74%, half of it invisible. Levers re-ranked on the R02 baseline; L0 built.
 - `docs/specs/draft/staging-environment.md` — main → staging, production branch → production, prompts promoted with each release. Owner runbook in the annex and as a tickable page: https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7
 

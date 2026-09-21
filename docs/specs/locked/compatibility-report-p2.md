@@ -2,8 +2,8 @@
 
 Ideation 2026-09-20 and 21 with the Owner, from note 5 of "Review 20/09" and the Owner's two
 replies. Artifact, with the three lenses, every chapter's card and scenes, one whole chapter
-in the blend, the engine table and the sources: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL. Status: **draft**, locked
-together with `review-20-09.md`. Builds on `compatibility-report.md` (ADR-39 to 45) and
+in the blend, the engine table and the sources: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL. Status: **locked 2026-09-21**, ADR-63 to 71,
+with `review-20-09.md`. Builds on `compatibility-report.md` (ADR-39 to 45) and
 amends ADR-40 and ADR-44.
 
 ## Why
@@ -156,12 +156,8 @@ three scenes; the parent bands; the marketing doors; one whole partners chapter 
 blend; the engine table.
 
 ## Open questions
-1. The five lens chapters as laid out, for all three lenses? Recommendation: yes. Default:
-   as laid out.
-2. The third lens is Two people with a "how do you know each other" answer? Recommendation:
-   yes. Default: yes.
-3. A share card on chapter 01 (headline, strengths, both names, the wheel behind, no
-   placements) in this pass? Recommendation: yes, it is the growth loop. Default: yes.
+None open. Answered 21 Sept at their defaults: the five lens chapters as laid out; Two
+people as the third lens; the share card on chapter 01 in this pass.
 
 ## Decisions to record
 1. **Seven chapters, the two charts first.** Your two charts opens as the introduction
@@ -179,3 +175,7 @@ blend; the engine table.
 7. **Evidence lives in claims only**; no body, aspect or orb in prose. Amends ADR-44.
 8. **The research is doctrine**, named nowhere on the page; love languages generic, no
    numbered title; no score, no diagnosis, no birth order.
+9. **The compatibility hero has no ring**: two triad plates, both birth records in the four
+   corners, the starfield and gradient, no gather.
+10. **A share card on chapter 01**: the verdict headline and the strengths card as one image,
+    both names, the wheel behind, no placement names.

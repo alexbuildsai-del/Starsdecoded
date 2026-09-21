@@ -3,7 +3,7 @@
 Ideation 2026-09-20 with the Owner from the Notion page "Review 20/09" (nine notes on the R05
 build on staging), revised the same day on the Owner's five replies. Artifact, with the phone
 mocks, the two skies, the copy fixes, the three pair tones and the blended chapter on the
-Owner's own passages: https://claude.ai/artifact/M9SMzqwbNcXtuSZGws2p2F. Status: **draft**.
+Owner's own passages: https://claude.ai/artifact/M9SMzqwbNcXtuSZGws2p2F. Status: **locked 2026-09-21**, ADR-59 to 62, with `compatibility-report-p2.md`.
 Builds on `natal-report-pass-three.md` (ADR-46 to 51) and `compatibility-report.md`
 (ADR-39 to 45); amends two of those decisions (below).
 
@@ -98,8 +98,8 @@ sky and the chapter sky; notes 6 to 9 now and proposed. The pair report's screen
 p2 artifact.
 
 ## Open questions
-1. "Personal natal report" everywhere the natal report is named? Recommendation: yes.
-   Default: everywhere. The pair questions are in `compatibility-report-p2.md`.
+None open. Answered 21 Sept: "Personal natal report" everywhere. The pair questions are in
+`compatibility-report-p2.md`.
 
 ## Decisions to record
 1. **Two skies.** The hero owns the starfield, the gradient and the ring of stars; chapters
