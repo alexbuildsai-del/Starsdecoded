@@ -60,8 +60,8 @@ Notes 1, 2, 3, 4, 6, 7, 8 and 9 are fixes with no question in them. Note 5 has i
 ### The compatibility report (note 5)
 Moved to its own draft on 21 September, after the Owner's second reply widened it to the
 three lenses, their scenes and the day-to-day themes: `docs/specs/draft/compatibility-report-p2.md`.
-The two are locked together. In one line each, what that spec holds: eight chapters, the
-fixed frame (How you meet, The two charts, What to practise) around five lens chapters; C's
+The two are locked together. In one line each, what that spec holds: seven chapters, the
+two charts first as the introduction and the practice last, five lens chapters between; C's
 voice with B's headline and Next time checklist; three likely scenes per chapter, one
 written and two on tap; a side-by-side card per lens chapter; a per-chapter brief and link
 ownership; a repetition score in the lab instead of an editing pass; on-demand scenes as a
