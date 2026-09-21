@@ -20,7 +20,7 @@ import ProfileInviteHistory from "@/components/ProfileInviteHistory";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
 import { CompatibilityPicker } from "@/components/CompatibilityPicker";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
-import { lensInfo } from "@/lib/lenses";
+import { LENSES, lensInfo } from "@/lib/lenses";
 import type { Lens } from "@/types/chart";
 import {
   useListReports,
@@ -644,8 +644,10 @@ export default function DashboardPage() {
 
         {/* ── Zone 3: Compatibility ────────────────────────────────────── */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
             <h2 className="font-display text-xl">Compatibility</h2>
+            {/* The three doors (ADR-68): who each lens is for, in a few words. */}
+            <p className="text-xs text-muted-foreground">{LENSES.map((l) => l.door).join(" · ")}</p>
           </div>
 
           {reportsQ.isLoading ? (
