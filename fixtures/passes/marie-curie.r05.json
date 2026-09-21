@@ -1,0 +1,2712 @@
+{
+ "note": "The R05 pass on staging (run 35456891244, report-lab/r05-pass): the blind marie-curie-unknown report as written, with the amendment each section received, reconstructed from the ledger (the addition is placed at the end; the ledger does not keep where it landed). Birth data is the marie-curie fixture; the drawn chart is computed at run time. horizonPass.test.ts replays it and asserts the pass keeps every claim it can (MB-61).",
+ "fixture": "marie-curie",
+ "blindClaims": 60,
+ "passedClaimsInR05": 53,
+ "ledgerInR05": {
+  "sentencesRevised": 16,
+  "paragraphsAdded": 10
+ },
+ "sections": {
+  "mind": {
+   "claims": [
+    {
+     "quote": "You notice the principle, the direction, and the implication fast, then you fill in the missing steps later.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mercury",
+        "kind": "placement",
+        "sign": "sagittarius",
+        "house": null
+       },
+       "label": "Mercury 6.6° Sagittarius"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    },
+    {
+     "quote": "Under stress, you miss how much feeling is steering the thought, and you treat an inner tide like a fact from the outside world.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      },
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      }
+     ]
+    },
+    {
+     "quote": "You decide in a fixed way.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "Once you decide, you endure the consequences without much complaint, even if the cost is higher than you expected.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You can speak as if the conclusion is obvious while someone else is still inside the emotional implications, so they experience you as insensitive or abrupt.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      },
+      {
+       "ref": {
+        "body": "mercury",
+        "kind": "placement",
+        "sign": "sagittarius",
+        "house": null
+       },
+       "label": "Mercury 6.6° Sagittarius"
+      }
+     ]
+    }
+   ],
+   "practice": "Before you send the message or make the claim, write one sentence that begins with “What I feel about this is…” so you stop treating a strong inner signal like a completed proof.",
+   "howYouThink": "You think in big arcs, and you prefer an idea that can carry weight over a small point that is technically correct. You notice the principle, the direction, and the implication fast, then you fill in the missing steps later. You can sound certain even while you are still testing the premise. Under stress, you miss how much feeling is steering the thought, and you treat an inner tide like a fact from the outside world. You also go quiet about what you are working on until you have proof in your hands, because you dislike giving people half-built conclusions.",
+   "howYouDecide": "You decide in a fixed way. You circle a question for a while, privately, and you do not announce a choice until you are already committed. Once you decide, you endure the consequences without much complaint, even if the cost is higher than you expected. A typical example is committing to a demanding path of work: you tolerate long uncertainty, you cut distractions, and you keep going after other people would pivot, because stopping would feel like betraying what you already know to be true. When you do reverse a decision, it is usually because reality forced a rewrite, not because you got bored.",
+   "howYouAreUnderstood": "You make yourself understood by stating the thesis plainly and pushing it through resistance. People hear your conviction and assume you are simplifying, when you are actually trying to get to the usable core. The misfire is timing. You can speak as if the conclusion is obvious while someone else is still inside the emotional implications, so they experience you as insensitive or abrupt. Later, you may realise you were arguing with a feeling you had not named yet, and the conversation would have gone better if you had said what you were protecting first."
+  },
+  "focus": {
+   "claims": [
+    {
+     "quote": "Choose one hard question and return to it for years, not weeks, until you can name its root.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "Follow your odd insights into practical experiments, then verify them twice before you announce a conclusion.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 1.3,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "uranus"
+       },
+       "label": "Sun trine Uranus, 1.3° orb"
+      },
+      {
+       "ref": {
+        "orb": 0.1,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "moon",
+        "body2": "uranus"
+       },
+       "label": "Moon trine Uranus, 0.1° orb"
+      }
+     ]
+    },
+    {
+     "quote": "Watch for the moment curiosity turns into compulsion, and you keep digging even after your body says stop.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "Notice how quickly you test people’s devotion by withholding access, information, or warmth until they endure discomfort.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "body": "venus",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Venus 25.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "Track the urge to speak in absolutes when you feel misunderstood, then revisit your wording the next day.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mercury",
+        "kind": "placement",
+        "sign": "sagittarius",
+        "house": null
+       },
+       "label": "Mercury 6.6° Sagittarius"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    },
+    {
+     "quote": "Write down what you know, what you suspect, and what you cannot yet test, and keep the lines separate.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "north_node",
+        "kind": "placement",
+        "sign": "virgo",
+        "house": null
+       },
+       "label": "North Node 11.0° Virgo"
+      },
+      {
+       "ref": {
+        "body": "south_node",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "South Node 11.0° Pisces"
+      }
+     ]
+    },
+    {
+     "quote": "You end up trusted because you do not flinch.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "moon"
+       },
+       "label": "Sun trine Moon, 0.0° orb"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      }
+     ]
+    }
+   ],
+   "notice": {
+    "intro": "Your strongest pressure point is how you handle control, loyalty, and consequences once you are fully committed.",
+    "bullets": [
+     {
+      "why": "so you do not confuse intensity with necessity",
+      "point": "Watch for the moment curiosity turns into compulsion, and you keep digging even after your body says stop."
+     },
+     {
+      "why": "so you stop turning protection into a barrier",
+      "point": "Notice how quickly you test people’s devotion by withholding access, information, or warmth until they endure discomfort."
+     },
+     {
+      "why": "so your mind stays precise under stress",
+      "point": "Track the urge to speak in absolutes when you feel misunderstood, then revisit your wording the next day."
+     }
+    ]
+   },
+   "closing": "You are built for work that asks for privacy, stamina, and a willingness to change your mind after you have gone deep. You do not do well with shallow participation. You do well when you can commit, investigate, and accept the cost of knowing more than you did before. Your sensitivity is real, and it is also a data stream, not a command. When you slow your speech, document what you find, and take care of the ordinary body-needs that keep you steady, your intensity becomes clean and constructive. You end up trusted because you do not flinch.",
+   "leanInto": {
+    "intro": "Build your life around depth, endurance, and the courage to stay with what other people abandon too early.",
+    "bullets": [
+     {
+      "why": "so your persistence becomes mastery rather than rumination",
+      "point": "Choose one hard question and return to it for years, not weeks, until you can name its root."
+     },
+     {
+      "why": "so trust is built on proof, not pressure",
+      "point": "Let intimacy grow through shared work and shared standards, not through constant emotional explanation or display."
+     },
+     {
+      "why": "so originality stays useful and earned",
+      "point": "Follow your odd insights into practical experiments, then verify them twice before you announce a conclusion."
+     }
+    ]
+   },
+   "practice": {
+    "intro": "Real growth comes from choosing discernment over absorption and building a repeatable method that steadies your sensitivity.",
+    "bullets": [
+     {
+      "why": "so you train clarity instead of merging everything together",
+      "point": "Write down what you know, what you suspect, and what you cannot yet test, and keep the lines separate."
+     },
+     {
+      "why": "so your work is carried by routine, not crisis",
+      "point": "Schedule small acts of maintenance before you feel ready, especially sleep, food, and cleaning up loose ends."
+     },
+     {
+      "why": "so compassion stays bounded and sustainable",
+      "point": "When you feel flooded by others’ feelings, choose one concrete help you can offer and decline the rest."
+     }
+    ]
+   }
+  },
+  "money": {
+   "claims": [
+    {
+     "quote": "You treat money like a commitment, not a scoreboard.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "venus",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Venus 25.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      }
+     ]
+    },
+    {
+     "quote": "Resources come to you through focus that other people cannot sustain.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You lose money when you fuse affection, duty, and pressure, then keep paying long after the arrangement has stopped being fair.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "orb": 4,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "mars"
+       },
+       "label": "Venus conjunction Mars, 4.0° orb"
+      },
+      {
+       "ref": {
+        "orb": 2.4,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "venus",
+        "body2": "jupiter"
+       },
+       "label": "Venus square Jupiter, 2.4° orb"
+      }
+     ]
+    },
+    {
+     "quote": "With shared money, you prefer private terms and exact boundaries, but you also attract arrangements where control is the real currency.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "Debt and shared expenses are least safe when emotions are unspoken and decisions are made in a hurry.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    }
+   ],
+   "actions": [
+    {
+     "why": "so you stop paying for confusion and can correct the deal before resentment builds.",
+     "action": "Write the terms down, even with people you love."
+    },
+    {
+     "why": "so your loyalty stays practical and you do not finance someone’s stuckness.",
+     "action": "Separate support from rescue with a fixed amount and a fixed end date."
+    },
+    {
+     "why": "so you catch the quiet leaks that come from duty instead of choice.",
+     "action": "Schedule a monthly money review with one blunt question: “What am I funding that I secretly disagree with?”"
+    }
+   ],
+   "whatWorks": "Resources come to you through focus that other people cannot sustain. You do well when you choose one serious track, stay with it, and let the proof accumulate, even if the payoff is delayed. You lose money when you fuse affection, duty, and pressure, then keep paying long after the arrangement has stopped being fair. For example, you might fund a shared project or support someone’s recovery because you promised you would, then realise later you have been underwriting their avoidance while telling yourself it is loyalty.",
+   "sharedAndExposed": "With shared money, you prefer private terms and exact boundaries, but you also attract arrangements where control is the real currency. You can be the person others rely on in a crisis, which brings backing and access, but it also puts you closest to the consequences when something goes wrong. Debt and shared expenses are least safe when emotions are unspoken and decisions are made in a hurry. Your exposure is in silent obligations, informal loans, and any agreement where you become responsible for the hard part while someone else keeps the freedom.",
+   "relationshipToResources": "You treat money like a commitment, not a scoreboard. You would rather have fewer, cleaner obligations than many small ones that keep you answering to other people. You save and spend based on what will still matter later, and you can be unimpressed by comforts that look impressive but do not hold up under use. You value tools, training, and access that let you go deeper, and you get tense when someone wants you to be casual about costs, deadlines, or repayment."
+  },
+  "triad": {
+   "sun": {
+    "text": "You build your identity through depth, privacy, and the refusal to accept a surface answer. You organise your life around what is consequential, what changes people, and what cannot be undone once it is known. You can tolerate intensity without needing to perform it, and you often feel most like yourself when you are working inside a closed container where the stakes are real. You do not bargain with truth to keep things comfortable. Behavioural example: you keep digging into a problem after others are satisfied, until you can name the hidden cause plainly.",
+    "label": "Sun in Scorpio"
+   },
+   "moon": {
+    "text": "You steady yourself through softness, quiet absorption, and a strong sensitivity to atmosphere. Under stress, you reach for retreat, music, solitude, or a single compassionate act that brings you back into your body. Your daily rhythm works best when it includes porous time with no demands, because you take in more than you admit while you are functioning. When you ignore that need, you start to blur your own limits and lose track of what you are feeling. Behavioural example: after a crowded or emotionally loaded day, you need silence before you can sleep.",
+    "label": "Moon in Pisces"
+   },
+   "claims": [
+    {
+     "quote": "You build your identity through depth, privacy, and the refusal to accept a surface answer.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You organise your life around what is consequential, what changes people, and what cannot be undone once it is known.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You can tolerate intensity without needing to perform it, and you often feel most like yourself when you are working inside a closed container where the stakes are real.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You steady yourself through softness, quiet absorption, and a strong sensitivity to atmosphere.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      }
+     ]
+    },
+    {
+     "quote": "Under stress, you reach for retreat, music, solitude, or a single compassionate act that brings you back into your body.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "moon"
+       },
+       "label": "Sun trine Moon, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "When you ignore that need, you start to blur your own limits and lose track of what you are feeling.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    }
+   ]
+  },
+  "career": {
+   "claims": [
+    {
+     "quote": "You are pulled toward work that asks for depth, privacy, and consequences.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "People notice how contained and relentless you are.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You can feel everything in the room and still push yourself to produce an answer, which makes you vulnerable to saying something too absolute, too soon, or too bluntly.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You assume you should explain your vision early, but you actually move faster when you let results speak, because your work sharpens as you go and you dislike being held to a premature story.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mercury",
+        "kind": "placement",
+        "sign": "sagittarius",
+        "house": null
+       },
+       "label": "Mercury 6.6° Sagittarius"
+      },
+      {
+       "ref": {
+        "body": "mercury",
+        "kind": "placement",
+        "sign": "sagittarius",
+        "house": null
+       },
+       "label": "Mercury 6.6° Sagittarius"
+      }
+     ]
+    },
+    {
+     "quote": "You are hardest to work with when someone wants quick reassurance, loose language, or a casual approach to risk.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "venus",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Venus 25.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You do best where you can commit for a long time, learn a system from the inside, and keep going after other people have lost patience or nerve.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You build credibility by taking on the hard material, doing the unglamorous repetition, and staying with the problem when it turns uncomfortable.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      }
+     ]
+    }
+   ],
+   "actions": [
+    {
+     "why": "so your intensity turns into trackable progress instead of private pressure",
+     "action": "Write a one-page working log at the end of each day: what you changed, why, and what you will test next."
+    },
+    {
+     "why": "so you stop sounding certain when you are still mid-investigation",
+     "action": "Before you send a high-stakes message, force yourself to add two sentences: what you know, and what you still do not know."
+    },
+    {
+     "why": "so you do not become the only witness to your own work",
+     "action": "Choose one collaborator who can challenge you without drama, and schedule a standing review every two weeks."
+    }
+   ],
+   "careerPaths": [
+    {
+     "item": "Research and discovery work",
+     "reason": "You persist through complexity and keep digging after the easy answer fails."
+    },
+    {
+     "item": "Forensic or investigative roles",
+     "reason": "You notice hidden patterns and you are willing to face uncomfortable evidence."
+    },
+    {
+     "item": "Crisis, trauma, or hospice support",
+     "reason": "You can stay present with fear and grief without needing to look away."
+    },
+    {
+     "item": "Risk, safety, or ethics leadership",
+     "reason": "You take consequences seriously and you hold firm lines when others get vague."
+    }
+   ],
+   "howYouShowUp": "People notice how contained and relentless you are. You do not waste motion. You ask pointed questions, you test claims, and you remember what was said six months ago. You can be warm in a quiet way, especially when someone is overwhelmed, but you still keep your standards high. Under pressure you can go silent, cut off distractions, and work as if you are alone even when you are not. You are easiest to work with when others respect confidentiality and competence. You are hardest to work with when someone wants quick reassurance, loose language, or a casual approach to risk.",
+   "vocationalPull": "You are pulled toward work that asks for depth, privacy, and consequences. You do best where you can commit for a long time, learn a system from the inside, and keep going after other people have lost patience or nerve. The route that works is not visibility-first or networking-first. It is mastery-first. You build credibility by taking on the hard material, doing the unglamorous repetition, and staying with the problem when it turns uncomfortable. You assume you should explain your vision early, but you actually move faster when you let results speak, because your work sharpens as you go and you dislike being held to a premature story.",
+   "growthThroughWork": "Your growth edge is precision in communication and process, especially when emotions run high. You can feel everything in the room and still push yourself to produce an answer, which makes you vulnerable to saying something too absolute, too soon, or too bluntly. You also tend to carry the weight privately until it becomes physical. The work asks you to name your terms early, document what you are doing as you do it, and invite one trusted skeptic to stress-test your conclusions. You do not need to soften your standards. You need a cleaner channel for them, so you stop doing damage while trying to be decisive."
+  },
+  "family": {
+   "claims": [
+    {
+     "quote": "You learned to read what was in the room without being told, and you still notice shifts in tone before anyone names them.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      },
+      {
+       "ref": {
+        "orb": 0.1,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "moon",
+        "body2": "uranus"
+       },
+       "label": "Moon trine Uranus, 0.1° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You tend to keep private loyalties and private grief, and you can feel responsible for holding the emotional weather steady for everyone else.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "orb": 2.4,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "moon",
+        "body2": "saturn"
+       },
+       "label": "Moon trine Saturn, 2.4° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You function best when you can close a door, protect your concentration, and let your body settle without performing.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "moon"
+       },
+       "label": "Sun trine Moon, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You feel at home when you can be gentle without being porous, and when your care for others does not turn into absorbing their moods as your own.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    },
+    {
+     "quote": "The pattern to change is equating love with endurance.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "body": "venus",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Venus 25.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You can default to proving devotion by tolerating heaviness, staying silent, or taking on what is not yours to carry.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 2.4,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "moon",
+        "body2": "saturn"
+       },
+       "label": "Moon trine Saturn, 2.4° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You may test trust by withholding access, then feel lonely when people cannot reach you.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    }
+   ],
+   "actions": [
+    {
+     "why": "so you stop training yourself to disappear in order to be safe.",
+     "action": "Say one concrete need out loud before you start coping."
+    },
+    {
+     "why": "so you can stay close without taking on everyone else’s state.",
+     "action": "Choose one boundary that protects your privacy and one that protects your softness."
+    },
+    {
+     "why": "so endurance becomes a choice instead of a reflex.",
+     "action": "When you feel yourself hardening, name the feeling you are trying not to feel."
+    }
+   ],
+   "whatRootsYou": "You root when your home life has quiet, clean edges and a deep interior. You function best when you can close a door, protect your concentration, and let your body settle without performing. You do well with a few chosen people, shared routines, and a sense that what happens inside the home stays inside the home. You feel at home when you can be gentle without being porous, and when your care for others does not turn into absorbing their moods as your own.",
+   "whatYouCarry": "You carry an atmosphere where feeling was everywhere but not always spoken plainly. You learned to read what was in the room without being told, and you still notice shifts in tone before anyone names them. You were handed a role that mixes tenderness with self-control: be devoted, be reliable, and do not make a spectacle of your needs. You tend to keep private loyalties and private grief, and you can feel responsible for holding the emotional weather steady for everyone else.",
+   "theInheritedEdge": "The pattern to change is equating love with endurance. You can default to proving devotion by tolerating heaviness, staying silent, or taking on what is not yours to carry. You may test trust by withholding access, then feel lonely when people cannot reach you. Your work is to let closeness include straightforward asks, clear limits, and repair in real time, so you stop calling self-denial “strength.”"
+  },
+  "overview": {
+   "bridge": "Everything here points toward a life where depth, endurance, and emotional attunement become a disciplined practice you use to solve real problems without losing yourself.",
+   "claims": [
+    {
+     "quote": "You live best when your attention can narrow and stay narrowed.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You investigate first and commit second.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "moon"
+       },
+       "label": "Sun trine Moon, 0.0° orb"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "When you speak under pressure, you can go broad and absolute, and later realise you skipped a crucial nuance that mattered to you.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mercury",
+        "kind": "placement",
+        "sign": "sagittarius",
+        "house": null
+       },
+       "label": "Mercury 6.6° Sagittarius"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    },
+    {
+     "quote": "What is unusual is how cleanly your inner compass lines up while your life still pushes you into irreversible crossings.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "moon"
+       },
+       "label": "Sun trine Moon, 0.0° orb"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You also trust sudden insights that arrive like a solution, not a mood, and you are willing to change method without changing standards.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0.1,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "moon",
+        "body2": "uranus"
+       },
+       "label": "Moon trine Uranus, 0.1° orb"
+      },
+      {
+       "ref": {
+        "orb": 1.3,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "uranus"
+       },
+       "label": "Sun trine Uranus, 1.3° orb"
+      }
+     ]
+    },
+    {
+     "quote": "In love and loyalty, you do not do casual.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "orb": 4,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "mars"
+       },
+       "label": "Venus conjunction Mars, 4.0° orb"
+      }
+     ]
+    }
+   ],
+   "headline": "You are built around going all the way into what is hidden and making it knowable, even when it changes you.",
+   "distinctive": "What is unusual is how cleanly your inner compass lines up while your life still pushes you into irreversible crossings. When you choose a direction, your will and your emotional rhythm tend to cooperate, so you do not need outside reassurance to keep going. At the same time, you repeatedly meet situations where power, control, and consequence are not theoretical, and you have to decide what you will not trade, even for knowledge or progress. You also trust sudden insights that arrive like a solution, not a mood, and you are willing to change method without changing standards. In love and loyalty, you do not do casual. You bond through seriousness, privacy, and shared strain, and you would rather have one relationship that can survive pressure than many that only work when life is easy.",
+   "temperament": "You run on water and fixed energy. You are made of sensitivity, memory, and permeability, and once you are on a course you hold it with stubborn endurance. You notice what is unsaid before you trust what is said. You absorb atmosphere quickly, then you decide slowly and definitively. You investigate first and commit second. You test the limits first and relax second. You can sit with discomfort long enough to learn from it, and you will keep a private promise to yourself long after other people assume you have moved on. When you speak under pressure, you can go broad and absolute, and later realise you skipped a crucial nuance that mattered to you.",
+   "concentration": "You live best when your attention can narrow and stay narrowed. You choose one hard subject and keep returning until it yields, and you get impatient with talk that never touches the core. You share selectively, and you often prefer to be underestimated rather than interrupted. You can go quiet for long stretches while you work, then surface with something finished and unarguable. What stays quieter is casual networking, light experimentation, and doing a little bit of everything just to see what happens. You feel the cost when life gets too scattered. Your body will tell you through fatigue, appetite, or sleep that you have taken on more intensity than you can metabolise."
+  },
+  "discoveries": {
+   "claims": [
+    {
+     "quote": "You can be deeply permeable to mood, suffering, and unspoken currents, and still be the person who holds the line when things get serious.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "moon"
+       },
+       "label": "Sun trine Moon, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "Once you know something, you cannot unknow it, and you do not pretend otherwise.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      },
+      {
+       "ref": {
+        "body": "pluto",
+        "kind": "placement",
+        "sign": "taurus",
+        "house": null
+       },
+       "label": "Pluto 15.1° Taurus"
+      }
+     ]
+    },
+    {
+     "quote": "You may feel compelled to keep going even when part of you wants an ordinary life for a week.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You show devotion through duty, endurance, and sticking around when it is inconvenient.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "When you do not feel safe, you can replace tenderness with standards and call it realism.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "venus",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Venus 25.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    }
+   ],
+   "opening": "You move with rare inner agreement, yet your life keeps presenting you with forces that do not negotiate. You can feel both true at once: a steady, compassionate rhythm and a ruthless demand for change.",
+   "paradoxes": [
+    {
+     "title": "Soft inside, steel outside",
+     "tension": "You can be deeply permeable to mood, suffering, and unspoken currents, and still be the person who holds the line when things get serious. You take in more than you show, then you choose one direction and stay with it long after others have drifted away. People may mistake your quiet for compliance, until they meet your refusal to cut corners. You can comfort someone and also insist on the hard truth in the same conversation. You rarely need drama to be unmovable.",
+     "invitation": "Practice naming your limits early, not only when you have reached the point of no return, so you stop absorbing what is not yours to carry. Let tenderness be visible before you are certain it will be respected, so steadiness becomes a bridge, not a wall, and closeness stays possible."
+    },
+    {
+     "title": "Truth changes you",
+     "tension": "You are drawn to subjects that do not stay theoretical. Once you know something, you cannot unknow it, and you do not pretend otherwise. You can pursue clarity with devotion, yet you also sense the cost of crossing certain thresholds. You may feel compelled to keep going even when part of you wants an ordinary life for a week. You can become protective of your work, your privacy, and your control of the process, because you know consequences arrive after the breakthrough, not before it.",
+     "invitation": "Choose in advance what you will protect as you go deeper, including your body, your sleep, and one relationship that stays non-negotiable. Decide where you will stop for the day, so you learn you can return tomorrow without losing the thread, and power becomes something you handle cleanly."
+    },
+    {
+     "title": "Vow-like love, restless joy",
+     "tension": "You treat attachment as something proven over time, not something declared in a rush. You show devotion through duty, endurance, and sticking around when it is inconvenient. At the same time, you want intensity and aliveness, and you can get impatient with anything that feels lukewarm or performative. You may test people without meaning to, watching how they respond to pressure, silence, or complexity. When you do not feel safe, you can replace tenderness with standards and call it realism.",
+     "invitation": "Say what you want before you start measuring what others fail to offer, so you stop turning desire into a private exam. Let pleasure count as evidence too, not only sacrifice. When you allow warmth to be simple, commitment becomes less heavy and more chosen, with room to grow."
+    }
+   ]
+  },
+  "superpowers": {
+   "claims": [
+    {
+     "quote": "You can stay with a hard problem long after other people need a break, and you do not confuse intensity with chaos.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "When you decide something matters, you simplify your life around it.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You have a repeating pattern of attachment and control around what you value, who you let close, and what you commit to.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "venus",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Venus 25.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      },
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      }
+     ]
+    },
+    {
+     "quote": "Under stress, you either clamp down or cut off, and you may not notice you are doing it until the other person reacts.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You grow when you slow the mind down, check your wording, and ask one clarifying question before you conclude.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "north_node",
+        "kind": "placement",
+        "sign": "virgo",
+        "house": null
+       },
+       "label": "North Node 11.0° Virgo"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    },
+    {
+     "quote": "When you are tired or emotionally saturated, you may argue past people, overstate your certainty, or explain yourself in a way that invites debate instead of understanding.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mercury",
+        "kind": "placement",
+        "sign": "sagittarius",
+        "house": null
+       },
+       "label": "Mercury 6.6° Sagittarius"
+      },
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      }
+     ]
+    }
+   ],
+   "superpower": {
+    "text": "You can stay with a hard problem long after other people need a break, and you do not confuse intensity with chaos. You concentrate your attention until the subject starts giving up its secrets, and you prefer one deep line of work over ten half-finished threads. When you decide something matters, you simplify your life around it. You also have a clean instinct for what is not negotiable, so you do not bargain with yourself once you have crossed a threshold. People can see your steadiness in how you return to the work even after setbacks, and how you keep going without needing constant encouragement.",
+    "title": "Relentless Focus",
+    "actions": [
+     {
+      "why": "So you stop widening the target when you feel pressure.",
+      "action": "Pick one problem to push this week and write a single sentence that defines what “done” means."
+     },
+     {
+      "why": "So your depth is not broken into shallow resets.",
+      "action": "Block two uninterrupted work sessions and put your phone in another room for both."
+     },
+     {
+      "why": "So you do not trade long-term integrity for short-term relief.",
+      "action": "Name one boundary you will not cross for speed and tell one person who would benefit from knowing it."
+     }
+    ]
+   },
+   "growingEdge": {
+    "text": "Your growth edge is learning to speak with precision when your feelings are loud, and to let facts share the room with conviction. You can be so sure of the big picture that you skip the small definitions that would keep everyone oriented. When you are tired or emotionally saturated, you may argue past people, overstate your certainty, or explain yourself in a way that invites debate instead of understanding. You also absorb atmosphere fast, so you can mistake what you picked up for what was actually said. You grow when you slow the mind down, check your wording, and ask one clarifying question before you conclude.",
+    "title": "Precise Communication",
+    "actions": [
+     {
+      "why": "So you separate evidence from interpretation.",
+      "action": "Before an important message, write three concrete points you know and one point you are assuming."
+     },
+     {
+      "why": "So you stop responding to tone instead of content.",
+      "action": "In one discussion, repeat back what you heard in one sentence and ask if you got it right."
+     },
+     {
+      "why": "So your intensity lands as clarity, not pressure.",
+      "action": "Edit one statement this week to remove one absolute word and replace it with a measurable detail."
+     }
+    ]
+   },
+   "chronicPattern": {
+    "text": "You have a repeating pattern of attachment and control around what you value, who you let close, and what you commit to. You test loyalty, you test yourself, and you can make simple needs feel like high-stakes vows. Under stress, you either clamp down or cut off, and you may not notice you are doing it until the other person reacts. You can also push past your own limits because stopping feels like losing. When something changes that you cannot reverse, you replay it in your head and look for the point where you should have predicted it. This does not go away. It gets easier to catch earlier.",
+    "title": "All Or Nothing",
+    "actions": [
+     {
+      "why": "So you do not turn a moment into a life sentence.",
+      "action": "When you feel the urge to escalate, wait 24 hours before making it a rule, a promise, or an ultimatum."
+     },
+     {
+      "why": "So closeness does not require proving endurance.",
+      "action": "Have one conversation where you ask for a specific need without adding a test of devotion."
+     },
+     {
+      "why": "So you learn that safety can survive loosened grip.",
+      "action": "Choose one place you over-control this week and deliberately leave it at “good enough.”"
+     }
+    ]
+   }
+  },
+  "relationships": {
+   "claims": [
+    {
+     "quote": "You love with privacy, loyalty, and a high threshold for trust.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "venus",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Venus 25.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "orb": 4,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "mars"
+       },
+       "label": "Venus conjunction Mars, 4.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "You feel secure when your bond is protected from other people’s opinions and when your partner can hold complexity without demanding quick reassurance.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "saturn",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Saturn 25.3° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "moon",
+        "kind": "placement",
+        "sign": "pisces",
+        "house": null
+       },
+       "label": "Moon 16.5° Pisces"
+      }
+     ]
+    },
+    {
+     "quote": "You can also polarise in conflict: one part of you wants total honesty right now, and another part of you refuses to say anything until you are certain it will not be used against you.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "opposition",
+        "body1": "sun",
+        "body2": "pluto"
+       },
+       "label": "Sun opposition Pluto, 0.0° orb"
+      }
+     ]
+    },
+    {
+     "quote": "It asks you to speak earlier than you prefer, while you are still unsure, so the other person can respond to the real you instead of to your composure.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 3.6,
+        "kind": "aspect",
+        "type": "square",
+        "body1": "moon",
+        "body2": "mercury"
+       },
+       "label": "Moon square Mercury, 3.6° orb"
+      },
+      {
+       "ref": {
+        "body": "mercury",
+        "kind": "placement",
+        "sign": "sagittarius",
+        "house": null
+       },
+       "label": "Mercury 6.6° Sagittarius"
+      }
+     ]
+    },
+    {
+     "quote": "It asks you to separate devotion from endurance, so you stop treating pain as proof that something is real.",
+     "evidence": [
+      {
+       "ref": {
+        "orb": 0.3,
+        "kind": "aspect",
+        "type": "conjunction",
+        "body1": "venus",
+        "body2": "saturn"
+       },
+       "label": "Venus conjunction Saturn, 0.3° orb"
+      },
+      {
+       "ref": {
+        "body": "venus",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Venus 25.6° Scorpio"
+      }
+     ]
+    },
+    {
+     "quote": "You soften when you feel met by competence, restraint, and a calm willingness to go all the way to the root of an issue.",
+     "evidence": [
+      {
+       "ref": {
+        "body": "mars",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Mars 29.6° Scorpio"
+      },
+      {
+       "ref": {
+        "body": "sun",
+        "kind": "placement",
+        "sign": "scorpio",
+        "house": null
+       },
+       "label": "Sun 14.6° Scorpio"
+      },
+      {
+       "ref": {
+        "orb": 0,
+        "kind": "aspect",
+        "type": "trine",
+        "body1": "sun",
+        "body2": "moon"
+       },
+       "label": "Sun trine Moon, 0.0° orb"
+      }
+     ]
+    }
+   ],
+   "actions": [
+    {
+     "why": "Because waiting until you are certain trains you to replace connection with proof-gathering.",
+     "action": "State the simplest version of what you need within twenty-four hours."
+    },
+    {
+     "why": "Because it keeps you from turning conflict into a contest of control.",
+     "action": "Name one fear under your anger before you argue the facts."
+    },
+    {
+     "why": "Because it teaches your body that care can arrive without a crisis.",
+     "action": "Schedule affection that is not earned by performance."
+    }
+   ],
+   "howYouLove": "You love with privacy, loyalty, and a high threshold for trust. You feel secure when your bond is protected from other people’s opinions and when your partner can hold complexity without demanding quick reassurance. You give by staying, by taking responsibility, and by doing the unglamorous work that keeps a shared life intact. You say you want intensity, and you do, but what actually attracts you is steadiness under pressure: someone who does not flinch when feelings get messy, money gets complicated, or the truth is not flattering. You soften when you feel met by competence, restraint, and a calm willingness to go all the way to the root of an issue.\n\nYou tend to repeat a pattern where love becomes a test without you meaning it to. You watch, you wait, you gather evidence, and you keep your vulnerability behind a locked door until the other person has proved they will not misuse it. When you finally commit, you commit hard, and then you can feel betrayed by ordinary human wavering. You can also polarise in conflict: one part of you wants total honesty right now, and another part of you refuses to say anything until you are certain it will not be used against you. The relationship then turns into silence, interrogation, or a private struggle for control, even when both of you still care.\n\nPartnership asks you to practise tenderness without making it conditional. It asks you to speak earlier than you prefer, while you are still unsure, so the other person can respond to the real you instead of to your composure. It asks you to separate devotion from endurance, so you stop treating pain as proof that something is real. It also asks you to let a partner influence you in small, daily ways, because you are used to carrying the deeper burden alone and calling it strength.",
+   "theChallenge": "You tend to repeat a pattern where love becomes a test without you meaning it to. You watch, you wait, you gather evidence, and you keep your vulnerability behind a locked door until the other person has proved they will not misuse it. When you finally commit, you commit hard, and then you can feel betrayed by ordinary human wavering. You can also polarise in conflict: one part of you wants total honesty right now, and another part of you refuses to say anything until you are certain it will not be used against you. The relationship then turns into silence, interrogation, or a private struggle for control, even when both of you still care.",
+   "connectBestWith": [
+    {
+     "item": "A Moon in Pisces or Cancer",
+     "reason": "matching the sensitivity and permeability of your Moon in Pisces"
+    },
+    {
+     "item": "A Venus with strong Saturn aspects",
+     "reason": "meeting your need for loyalty and seriousness that shows in Venus conjunct Saturn"
+    },
+    {
+     "item": "A Mars in Scorpio or a prominent Mars",
+     "reason": "handling your intensity and directness reflected in Mars in Scorpio"
+    },
+    {
+     "item": "A prominent Mercury with emotional aspects",
+     "reason": "helping you translate feelings into words when your Moon squares Mercury"
+    }
+   ],
+   "whatPartnershipAsks": "Partnership asks you to practise tenderness without making it conditional. It asks you to speak earlier than you prefer, while you are still unsure, so the other person can respond to the real you instead of to your composure. It asks you to separate devotion from endurance, so you stop treating pain as proof that something is real. It also asks you to let a partner influence you in small, daily ways, because you are used to carrying the deeper burden alone and calling it strength."
+  }
+ },
+ "replies": {
+  "mind": {
+   "amendments": [
+    {
+     "quote": "You also go quiet about what you are working on until you have proof in your hands, because you dislike giving people half-built conclusions.",
+     "replacement": "You also go quiet about what you are working on because privacy helps you think, and you only bring it out when you can stand behind it.",
+     "evidence": [
+      {
+       "body": "mercury",
+       "kind": "placement",
+       "sign": "sagittarius",
+       "house": 12
+      },
+      {
+       "body": "saturn",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      }
+     ]
+    },
+    {
+     "quote": "You make yourself understood by stating the thesis plainly and pushing it through resistance.",
+     "replacement": "You make yourself understood by stating the thesis plainly, then you test whether the other person can handle the full weight of what you mean.",
+     "evidence": [
+      {
+       "body": "sun",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "orb": 0.6,
+       "kind": "aspect",
+       "type": "opposition",
+       "body1": "sun",
+       "body2": "pluto"
+      }
+     ]
+    },
+    {
+     "quote": "The misfire is timing.",
+     "replacement": "The misfire is pressure.",
+     "evidence": [
+      {
+       "body": "mars",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "mars",
+       "kind": "sect",
+       "role": "malefic_out_of_sect"
+      }
+     ]
+    }
+   ],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You do some of your clearest thinking when you are alone, and you often prefer to prepare in silence rather than process out loud. You notice that you rehearse the argument, refine the wording, and anticipate objections before anyone has asked. You are easier to talk with when you name your uncertainty early, because it gives you room to adjust without feeling like you have to defend the whole position.",
+     "claims": [
+      {
+       "quote": "You do some of your clearest thinking when you are alone, and you often prefer to prepare in silence rather than process out loud.",
+       "evidence": [
+        {
+         "body": "mercury",
+         "kind": "placement",
+         "sign": "sagittarius",
+         "house": 12
+        }
+       ]
+      },
+      {
+       "quote": "You notice that you rehearse the argument, refine the wording, and anticipate objections before anyone has asked.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You are easier to talk with when you name your uncertainty early, because it gives you room to adjust without feeling like you have to defend the whole position.",
+       "evidence": [
+        {
+         "body": "mercury",
+         "kind": "placement",
+         "sign": "sagittarius",
+         "house": 12
+        },
+        {
+         "body": "sun",
+         "kind": "sect",
+         "role": "sect_light"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "focus": {
+   "amendments": [
+    {
+     "quote": "Your strongest pressure point is how you handle control, loyalty, and consequences once you are fully committed.",
+     "replacement": "Your strongest pressure point is how you handle control, loyalty, and consequences when your responsibility to a group is on the line.",
+     "evidence": [
+      {
+       "body": "saturn",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "mars",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "sun",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      }
+     ]
+    },
+    {
+     "quote": "Track the urge to speak in absolutes when you feel misunderstood, then revisit your wording the next day.",
+     "replacement": "Track the urge to speak in absolutes when you feel misunderstood, then write the careful version in private before you speak again.",
+     "evidence": [
+      {
+       "body": "mercury",
+       "kind": "placement",
+       "sign": "sagittarius",
+       "house": 12
+      }
+     ]
+    }
+   ],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You do your best work with a small circle and a clear purpose. You join groups slowly, then become the person who holds the standard when others get tired or distracted. You notice when a team starts rewarding loyalty over accuracy, and you feel physically restless until you name what is off. You earn influence by showing up consistently, not by asking for a spotlight.",
+     "claims": [
+      {
+       "quote": "You do your best work with a small circle and a clear purpose.",
+       "evidence": [
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You join groups slowly, then become the person who holds the standard when others get tired or distracted.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "saturn",
+         "kind": "sect",
+         "role": "malefic_of_sect"
+        }
+       ]
+      },
+      {
+       "quote": "You earn influence by showing up consistently, not by asking for a spotlight.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "mars",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "money": {
+   "amendments": [],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You do your best financial thinking when your income is tied to communities, institutions, or long-term collaborators, not one-off hustle. You notice that friends and networks can open doors, but you also watch how quickly informal expectations appear once you are seen as capable. You may accept uneven terms to keep belonging intact, then get quietly furious when you realise you have been paying the true cost alone.",
+     "claims": [
+      {
+       "quote": "You do your best financial thinking when your income is tied to communities, institutions, or long-term collaborators, not one-off hustle.",
+       "evidence": [
+        {
+         "body": "jupiter",
+         "kind": "placement",
+         "sign": "aquarius",
+         "house": 2
+        },
+        {
+         "kind": "ruler",
+         "house": 2,
+         "ruler": "saturn",
+         "dignity": "peregrine",
+         "rulerSign": "scorpio",
+         "rulerHouse": 11
+        }
+       ]
+      },
+      {
+       "quote": "You notice that friends and networks can open doors, but you also watch how quickly informal expectations appear once you are seen as capable.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "mars",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You may accept uneven terms to keep belonging intact, then get quietly furious when you realise you have been paying the true cost alone.",
+       "evidence": [
+        {
+         "body": "venus",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "orb": 0.3,
+         "kind": "aspect",
+         "type": "conjunction",
+         "body1": "venus",
+         "body2": "saturn"
+        },
+        {
+         "orb": 1.6,
+         "kind": "aspect",
+         "type": "square",
+         "body1": "mars",
+         "body2": "jupiter"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "triad": {
+   "amendments": [
+    {
+     "quote": "You can tolerate intensity without needing to perform it, and you often feel most like yourself when you are working inside a closed container where the stakes are real.",
+     "replacement": "You can tolerate intensity without needing to perform it, and you often feel most like yourself when you are working inside a closed container with a few trusted people where the stakes are real.",
+     "evidence": [
+      {
+       "body": "sun",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "saturn",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "mars",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      }
+     ]
+    },
+    {
+     "quote": "Behavioural example: you keep digging into a problem after others are satisfied, until you can name the hidden cause plainly.",
+     "replacement": "Behavioural example: you keep digging into a group problem after others are satisfied, until you can name the hidden cause plainly.",
+     "evidence": [
+      {
+       "body": "sun",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      }
+     ]
+    },
+    {
+     "quote": "Under stress, you reach for retreat, music, solitude, or a single compassionate act that brings you back into your body.",
+     "replacement": "Under stress, you reach for a quiet walk, music, solitude, or writing out what happened in plain sentences, because naming it helps you settle.",
+     "evidence": [
+      {
+       "body": "moon",
+       "kind": "placement",
+       "sign": "pisces",
+       "house": 3
+      }
+     ]
+    }
+   ],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You take yourself more seriously than most people realise, and you notice when a group is casual about standards. You will do the unglamorous work that keeps a team honest, but you resent being treated like you are only there to hold the weight. You relax when roles are clear and promises are kept, because you stop scanning and can actually participate.",
+     "claims": [
+      {
+       "quote": "You take yourself more seriously than most people realise, and you notice when a group is casual about standards.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You will do the unglamorous work that keeps a team honest, but you resent being treated like you are only there to hold the weight.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You relax when roles are clear and promises are kept, because you stop scanning and can actually participate.",
+       "evidence": [
+        {
+         "kind": "angle",
+         "sign": "capricorn",
+         "angle": "ascendant"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "career": {
+   "amendments": [
+    {
+     "quote": "The route that works is not visibility-first or networking-first.",
+     "replacement": "The route that works is not visibility-first.",
+     "evidence": [
+      {
+       "body": "sun",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "saturn",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "mars",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      }
+     ]
+    },
+    {
+     "quote": "You assume you should explain your vision early, but you actually move faster when you let results speak, because your work sharpens as you go and you dislike being held to a premature story.",
+     "replacement": "You assume you should explain your vision early, but you actually move faster when you share it with a few specific people and let results speak, because your work sharpens as you go and you dislike being held to a premature story.",
+     "evidence": [
+      {
+       "body": "sun",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "saturn",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      }
+     ]
+    }
+   ],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You do your best work inside a small circle that takes the long view with you. You choose allies slowly, then you stay loyal and show up consistently. You can tell when a group is serious by whether people keep their word and do the unglamorous parts without complaint. You get prickly when someone tries to turn your work into a public performance before it is ready.",
+     "claims": [
+      {
+       "quote": "You do your best work inside a small circle that takes the long view with you.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You choose allies slowly, then you stay loyal and show up consistently.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You get prickly when someone tries to turn your work into a public performance before it is ready.",
+       "evidence": [
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "venus",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "family": {
+   "amendments": [],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You settle more easily when you are building home from your own decisions, not just maintaining what you inherited. You can feel compelled to take charge of the private base, set the rules, and make the space defendable, even if no one asked you to. You do better when you name what you want to protect and what you are willing to share, so your guard does not become your whole personality.",
+     "claims": [
+      {
+       "quote": "You settle more easily when you are building home from your own decisions, not just maintaining what you inherited.",
+       "evidence": [
+        {
+         "kind": "ruler",
+         "house": 4,
+         "ruler": "mars",
+         "dignity": "domicile",
+         "rulerSign": "scorpio",
+         "rulerHouse": 11
+        }
+       ]
+      },
+      {
+       "quote": "You can feel compelled to take charge of the private base, set the rules, and make the space defendable, even if no one asked you to.",
+       "evidence": [
+        {
+         "body": "neptune",
+         "kind": "placement",
+         "sign": "aries",
+         "house": 4
+        },
+        {
+         "kind": "ruler",
+         "house": 4,
+         "ruler": "mars",
+         "dignity": "domicile",
+         "rulerSign": "scorpio",
+         "rulerHouse": 11
+        }
+       ]
+      },
+      {
+       "quote": "You do better when you name what you want to protect and what you are willing to share, so your guard does not become your whole personality.",
+       "evidence": [
+        {
+         "body": "neptune",
+         "kind": "placement",
+         "sign": "aries",
+         "house": 4
+        },
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "overview": {
+   "amendments": [
+    {
+     "quote": "Everything here points toward a life where depth, endurance, and emotional attunement become a disciplined practice you use to solve real problems without losing yourself.",
+     "replacement": "Everything here points toward a life where depth, endurance, and emotional attunement become a disciplined practice you use to solve real problems, even when the way you drive yourself runs hotter than your body wants.",
+     "evidence": [
+      {
+       "body": "mars",
+       "kind": "sect",
+       "role": "malefic_out_of_sect"
+      },
+      {
+       "body": "mars",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      }
+     ]
+    },
+    {
+     "quote": "When you choose a direction, your will and your emotional rhythm tend to cooperate, so you do not need outside reassurance to keep going.",
+     "replacement": "When you choose a direction, your will and your emotional rhythm tend to cooperate, so you do not need outside reassurance to keep going, and you can keep showing up for long stretches even when nobody is clapping.",
+     "evidence": [
+      {
+       "body": "sun",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "saturn",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "orb": 1.9,
+       "kind": "aspect",
+       "type": "trine",
+       "body1": "sun",
+       "body2": "moon"
+      }
+     ]
+    },
+    {
+     "quote": "You can go quiet for long stretches while you work, then surface with something finished and unarguable.",
+     "replacement": "You can go quiet for long stretches while you work, then surface with something finished and unarguable, and you often do your best thinking where you cannot be watched or interrupted.",
+     "evidence": [
+      {
+       "body": "mercury",
+       "kind": "placement",
+       "sign": "sagittarius",
+       "house": 12
+      }
+     ]
+    }
+   ],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You do not just want companions. You want comrades. You put your energy where shared aims are real, and you can become fiercely reliable once you decide someone is on the same side. You can also feel exposed when loyalty is vague or performative, and you will withdraw fast if you sense opportunism. You do your most demanding work with a small circle, not a crowd.",
+     "claims": [
+      {
+       "quote": "You do not just want companions.",
+       "evidence": [
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You want comrades.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You do your most demanding work with a small circle, not a crowd.",
+       "evidence": [
+        {
+         "body": "mars",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "discoveries": {
+   "amendments": [],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You tend to become most yourself when your work is embedded in a circle of allies, not when you are operating as a lone specialist. You notice who shows up reliably, who shares credit cleanly, and who stays steady when the stakes rise. You can feel protective of the group’s standards and willing to carry the unglamorous burden to keep the mission intact, so you do not have to keep proving the work matters.",
+     "claims": [
+      {
+       "quote": "You tend to become most yourself when your work is embedded in a circle of allies, not when you are operating as a lone specialist.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "kind": "ruler",
+         "house": 1,
+         "ruler": "saturn",
+         "dignity": "peregrine",
+         "rulerSign": "scorpio",
+         "rulerHouse": 11
+        }
+       ]
+      },
+      {
+       "quote": "You notice who shows up reliably, who shares credit cleanly, and who stays steady when the stakes rise.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "mars",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "venus",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You can feel protective of the group’s standards and willing to carry the unglamorous burden to keep the mission intact, so you do not have to keep proving the work matters.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "saturn",
+         "kind": "sect",
+         "role": "malefic_of_sect"
+        },
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "superpowers": {
+   "amendments": [],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You do some of your best thinking with trusted peers in the background, even when the work itself is solitary. You choose a small circle and you stay loyal to it, and you often end up as the one who holds the line for the group when things get complicated. Money matters when it buys breathing room and protects the work from being rushed, so you can be unusually firm about funding, tools, and timelines.",
+     "claims": [
+      {
+       "quote": "You do some of your best thinking with trusted peers in the background, even when the work itself is solitary.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You choose a small circle and you stay loyal to it, and you often end up as the one who holds the line for the group when things get complicated.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "mars",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "Money matters when it buys breathing room and protects the work from being rushed, so you can be unusually firm about funding, tools, and timelines.",
+       "evidence": [
+        {
+         "body": "jupiter",
+         "kind": "placement",
+         "sign": "aquarius",
+         "house": 2
+        },
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "relationships": {
+   "amendments": [
+    {
+     "quote": "A prominent Mercury with emotional aspects",
+     "replacement": "A prominent Mercury with clear, steady communication habits",
+     "evidence": [
+      {
+       "body": "mercury",
+       "kind": "placement",
+       "sign": "sagittarius",
+       "house": 12
+      },
+      {
+       "body": "moon",
+       "kind": "placement",
+       "sign": "pisces",
+       "house": 3
+      }
+     ]
+    },
+    {
+     "quote": "helping you translate feelings into words when your Moon squares Mercury",
+     "replacement": "helping you translate feelings into words when you go quiet and then try to explain everything at once",
+     "evidence": [
+      {
+       "body": "mercury",
+       "kind": "placement",
+       "sign": "sagittarius",
+       "house": 12
+      },
+      {
+       "body": "moon",
+       "kind": "placement",
+       "sign": "pisces",
+       "house": 3
+      }
+     ]
+    },
+    {
+     "quote": "Because it teaches your body that care can arrive without a crisis.",
+     "replacement": "Because it teaches your body that care can arrive without you having to earn it.",
+     "evidence": [
+      {
+       "body": "venus",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "body": "saturn",
+       "kind": "placement",
+       "sign": "scorpio",
+       "house": 11
+      },
+      {
+       "orb": 0.3,
+       "kind": "aspect",
+       "type": "conjunction",
+       "body1": "venus",
+       "body2": "saturn"
+      }
+     ]
+    }
+   ],
+   "additions": [
+    {
+     "after": "end",
+     "text": "You do best with love that can live in public life without turning into a performance. You relax when a partner can show up consistently among friends and colleagues, keep agreements, and still protect your privacy. You notice quickly when loyalty is real because you watch what people do when nobody is impressed. You can check this by how fast you trust someone who is steady in groups versus someone who is only intense in private.",
+     "claims": [
+      {
+       "quote": "You do best with love that can live in public life without turning into a performance.",
+       "evidence": [
+        {
+         "body": "venus",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "sun",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You relax when a partner can show up consistently among friends and colleagues, keep agreements, and still protect your privacy.",
+       "evidence": [
+        {
+         "body": "saturn",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        },
+        {
+         "body": "venus",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      },
+      {
+       "quote": "You can check this by how fast you trust someone who is steady in groups versus someone who is only intense in private.",
+       "evidence": [
+        {
+         "body": "mars",
+         "kind": "placement",
+         "sign": "scorpio",
+         "house": 11
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
