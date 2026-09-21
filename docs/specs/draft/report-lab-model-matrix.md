@@ -97,9 +97,11 @@ picks and priced at the reveal.
      for any two labels.
    - *Matrix*: pick a base run, tick writers and sections, dispatch replays,
      watch them land.
-   - *Reading room*: one card per fixture and section, the variants side by
-     side as A, B, C, D, E in an order shuffled per card and stored, models,
-     costs and faults hidden. Under each variant a **best** button, a **would
+   - *Reading room*: exists only inside a session the Owner spawns from
+     *Matrix* by choosing runs, sections and charts; nothing is queued
+     otherwise. One card per fixture and section, the variants side by side
+     as A, B, C, D, E in an order shuffled per card and stored, models, costs
+     and faults hidden. Under each variant a **best** button, a **would
      not ship** button, and *same as* to tie two or more; one free-text note
      per card. Career first, then the sections the session lists; a card is
      saved on the pick and the room reopens where it stopped.
@@ -165,8 +167,11 @@ section's picks.
 1. Lab round, INTERNAL: scope 1–6, one branch, gate, merge, staging deploy.
 2. Publish the five R05 runs; dispatch Luna, Groq and mini on the eleven
    sections and M7 whole, five fixtures. About 10 ¢ a fixture, 50 ¢ in all.
-3. First reading session: career, then three more sections, five fixtures,
-   twenty cards. Reveal. Discuss here.
+3. First reading session, spawned by the Owner: career, then three more
+   sections, five fixtures, twenty cards. Reveal. Discuss here. Later sessions
+   are spawned by the Owner, or proposed here when a new writer or prompt
+   version lands in the lab, a run's faults or bands move against the
+   baseline, or a writer at four of five needs its confirmation round.
 4. Second session: the remaining sections. Then the routing round,
    USER-FACING: `models.ts`, staging lab, paste, promote, prices verified on
    the vendor page the same day.
@@ -187,6 +192,8 @@ section's picks.
   admin Lab page; the report-lab branch remains the paste trail only.
 - The Owner is the judge, blind, per section, with a note; there is no LLM
   judge. Models, costs and faults are revealed only after the last card.
+- Lab runs land in the panel automatically; a reading session exists only
+  when the Owner spawns one, or accepts one proposed here.
 - Providers enter through OpenAI-compatible endpoints named per model in
   `CATALOGUE` with their price; keys live on the Railway service.
 - A section moves to another writer only on the rule above; quality over cost.
