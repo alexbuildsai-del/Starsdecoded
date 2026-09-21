@@ -124,6 +124,13 @@ export const GetReportResponse = zod.object({
   "reportId": zod.string(),
   "name": zod.string(),
   "role": zod.string().describe('Positional. primary or secondary, or parent and child under that lens.'),
+  "birthDate": zod.string(),
+  "birthTime": zod.string(),
+  "birthTimeWindowMinutes": zod.number(),
+  "birthPlace": zod.string(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "isSelf": zod.boolean().describe('The profile the account holder marked as their own; the hero puts it on the left.'),
   "chartData": zod.union([zod.object({
   "datetimeUtc": zod.string(),
   "julianDay": zod.number(),
@@ -245,7 +252,7 @@ export const GetReportResponse = zod.object({
   "western": zod.number().int()
 }).optional()
 }),zod.null()])
-}).describe('One of the two people of a compatibility report, with their chart.')).nullish().describe('The two people of a compatibility report. Null on a natal report.'),
+}).describe('One of the two people of a compatibility report, with their chart and their birth record for the hero\'s corners (ADR-70).')).nullish().describe('The two people of a compatibility report. Null on a natal report.'),
   "horizonPasses": zod.number().int(),
   "revisions": zod.array(zod.object({
   "id": zod.string(),

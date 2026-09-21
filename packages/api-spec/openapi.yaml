@@ -2122,7 +2122,7 @@ components:
         - meta
 
     ReportParticipant:
-      description: One of the two people of a compatibility report, with their chart.
+      description: One of the two people of a compatibility report, with their chart and their birth record for the hero's corners (ADR-70).
       type: object
       properties:
         id:
@@ -2134,10 +2134,25 @@ components:
         role:
           type: string
           description: Positional. primary or secondary, or parent and child under that lens.
+        birthDate:
+          type: string
+        birthTime:
+          type: string
+        birthTimeWindowMinutes:
+          type: number
+        birthPlace:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        isSelf:
+          type: boolean
+          description: The profile the account holder marked as their own; the hero puts it on the left.
         chartData:
           $ref: "#/components/schemas/ChartData"
           nullable: true
-      required: [id, reportId, name, role, chartData]
+      required: [id, reportId, name, role, birthDate, birthTime, birthTimeWindowMinutes, birthPlace, latitude, longitude, isSelf, chartData]
 
     ReportRevisionSummary:
       type: object

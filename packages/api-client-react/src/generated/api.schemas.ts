@@ -893,7 +893,7 @@ export interface Workbook {[key: string]: string}
 export interface WorkbookPatch {[key: string]: string | null}
 
 /**
- * One of the two people of a compatibility report, with their chart.
+ * One of the two people of a compatibility report, with their chart and their birth record for the hero's corners (ADR-70).
  */
 export interface ReportParticipant {
   id: string;
@@ -901,6 +901,14 @@ export interface ReportParticipant {
   name: string;
   /** Positional. primary or secondary, or parent and child under that lens. */
   role: string;
+  birthDate: string;
+  birthTime: string;
+  birthTimeWindowMinutes: number;
+  birthPlace: string;
+  latitude: number;
+  longitude: number;
+  /** The profile the account holder marked as their own; the hero puts it on the left. */
+  isSelf: boolean;
   chartData: ChartData | null;
 }
 

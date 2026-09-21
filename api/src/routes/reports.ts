@@ -100,6 +100,13 @@ async function participantsOf(report: ReportRow) {
     reportId: (i === 0 ? compute.reportAId : compute.reportBId) ?? "",
     name: p.profile.name,
     role: p.rp.role,
+    birthDate: p.profile.birthDate,
+    birthTime: p.profile.birthTime,
+    birthTimeWindowMinutes: p.profile.birthTimeWindowMinutes ?? 0,
+    birthPlace: p.profile.birthPlace,
+    latitude: p.profile.latitude,
+    longitude: p.profile.longitude,
+    isSelf: p.profile.isSelf,
     chartData: (p.profile.chartData as NatalChartData | null) ?? null,
   }));
 }
