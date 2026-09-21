@@ -33,17 +33,17 @@ sandbox), entered in `CATALOGUE` only after a check against the official page.
 | gpt-oss-120b on Groq | Groq key | 0.15 / 0.60 | Elo 1079 | the Owner's ask; strict json_schema, hundreds of tokens a second |
 | gpt-5-mini | same key | 0.25 / 2 | none | already catalogued; the control that shows where cheap breaks |
 
-Later, each for a reason in the artifact: Claude Opus 5 (best prose, 2.5× the
-price, native adapter), Sonnet 5, Gemini 3.8 Flash, Kimi K3, DeepSeek, Terra, Sol.
+Later, per the artifact: Opus 5, Sonnet 5, Gemini 3.8 Flash, Kimi K3, DeepSeek, Terra, Sol.
 
 ## Five mixes, one judgement
 
 The matrix reads five charts: day-angular, high-latitude, marie-curie,
-night-angular, and the Owner's own report on staging in place of
-oprah-winfrey. That chart never enters the public repo: *Matrix* lets the
-admin pick one of their own stored reports as a base run beside the fixture
-runs, and its M0 is that report's stored text and usage. Costs below are
-priced on the R05 token shape, before retries; M0 is measured.
+night-angular and `audrey-hepburn` (Ixelles 1929, birth certificate, night
+chart, Aquarius rising), which replaces oprah-winfrey in the matrix; its M0 is
+generated on staging in the round and doubles as the candidate sample report
+for a Belgian landing page. The Owner's own staging report can join as a base
+run too, picked in *Matrix*, so no private birth data enters the public repo.
+Costs below are priced on the R05 token shape, before retries; M0 is measured.
 
 | mix | foundation | synthesis | scaffold | houses | ¢ |
 |---|---|---|---|---|---|
@@ -129,9 +129,9 @@ a writer must beat. The mixes are read off the picks and priced at the reveal.
 
 ## Acceptance criteria
 
-1. The five R05 runs appear under *Runs* on staging after `--publish` with the
-   per-section costs the lab printed; the admin's own report can be chosen as a
-   base run without any birth data leaving the database.
+1. The four R05 runs appear under *Runs* after `--publish` with the costs the
+   lab printed; `audrey-hepburn` gets its M0 there; the admin's own report can
+   be chosen as a base run without birth data leaving the database.
 2. A replay of `career` on `gpt-5.2` against `marie-curie.r05` produces a row
    `--compare` and the *Runs* view show with no fault the original lacked.
 3. A replay on `gpt-oss-120b` runs from the panel with no key in the repo; with
