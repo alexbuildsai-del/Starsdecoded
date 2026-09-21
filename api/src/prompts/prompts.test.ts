@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { z } from "zod/v4";
 import assert from "node:assert/strict";
 import { chartFromFixture } from "../lib/testFixtures.js";
 import {
@@ -8,6 +9,8 @@ import {
 import { BODIES, SIGNS, BODY, SIGN, HOUSE, ASPECT, STRUCTURE } from "./vocabulary.js";
 import { itemsHint } from "./jsonSchema.js";
 import { OverviewSchema } from "./sections/overview.js";
+
+type JsonObj = Record<string, unknown>;
 
 test("registry: eleven reader-facing sections in the agreed order, no path, foundation first overall", () => {
   assert.deepEqual(SECTION_IDS, ["overview", "triad", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"]);
@@ -126,6 +129,14 @@ test("brief: the variable tail differs per chart but the static system block doe
   // The system block is a module constant: identical by construction. Assert
   // the brief never leaks into it.
   assert.ok(!SHARED_SYSTEM.includes("NAME:"));
+});
+
+test("schemas: a property named like a keyword survives the strip", () => {
+  const strict = toStrictJsonSchema(z.object({ pattern: z.string(), format: z.string().min(2), inner: z.object({ minimum: z.number() }) })) as { properties: Record<string, JsonObj>; required: string[] };
+  assert.deepEqual(Object.keys(strict.properties), ["pattern", "format", "inner"]);
+  assert.deepEqual(strict.required, ["pattern", "format", "inner"]);
+  assert.ok(!("minLength" in strict.properties.format), "the keyword under a field is still stripped");
+  assert.deepEqual(Object.keys((strict.properties.inner as { properties: object }).properties), ["minimum"]);
 });
 
 test("schemas: strict JSON schema closes every object and carries no unsupported keywords", () => {

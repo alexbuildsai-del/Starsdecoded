@@ -112,9 +112,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-09-21)
 
-1. R06 on `round/R06`, PR open to `main`: the nine review fixes (ADR-59 to 62), the compatibility second pass p2 (ADR-63 to 71),
-   on-tap scenes on `gpt-5.2` (ADR-72), MB-60 to 62 closed. After the merge dispatch `report-lab.yml` three times on staging
-   (`natal`, `pass`, `pair`) and paste the measurement into `docs/rounds/R06-report.md`.
+1. R06 merged to staging (#55, follow-ups #56 to #59): the nine review fixes (ADR-59 to 62), the compatibility second pass p2
+   (ADR-63 to 71), on-tap scenes on `gpt-5.2` (ADR-72), MB-60 to 62 closed. Natal and pass campaigns measured; the `pair`
+   campaign waits on OpenAI credits (MB-68, blocking): dispatch `report-lab.yml` `pair` and paste it into `docs/rounds/R06-report.md`.
 2. Owner acceptance on staging for R01, R03, R04, R05 and R06, in that order; then the staging landing
    (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote.
 3. Next: `report-lab-model-matrix.md` (needs the Groq key on Railway), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.

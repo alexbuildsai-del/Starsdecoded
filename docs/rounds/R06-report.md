@@ -46,10 +46,14 @@ section on any chart; flags as in R05: house readings 71–76 words on 1–3 of 
 Blind marie-curie-unknown 3,822 words · 22.9 ¢ · blind flag clean, 360 over its blind band (the model did not shrink to 2,740–3,460).
 The pass, run 35593894600 (`report-lab/r06-pass`): blind 3,746 words · 24.5 ¢; passed 5,498 words, inside the 5,500 ceiling (MB-60,
 R05 read 5,769); claims 68 before, 105 after (MB-61, R05 lost 7); the ledger counts 48 sentences, 54 differ on the page (R05: 16 against
-58); 10 paragraphs added; the pass 22.5 ¢, 47.0 ¢ together. The pair campaign, run 35593900887, failed on every run with nothing
-published and its log unreachable from the build session; PR #56 makes the workflow publish the log with the run, and the campaign
-is re-run from it; its measurement lands here when it does.
+58); 10 paragraphs added; the pass 22.5 ¢, 47.0 ¢ together. **The pair campaign has not measured yet.** Its first run failed
+on every pair (run 35593900887, log unreadable until #56 and #57 published it); read on a quiet staging (#58 fixed the first cause):
+the foundation refused a link given to chapter 07 (fixed, #58); the strict-schema converter dropped a field named `pattern`, so every
+lens chapter failed on parse (fixed, #59); the card-line check refused a surname (fixed, #59); then `429 You have no credits remaining`
+on the OpenAI key, which stopped the last five runs and blocks every generation on staging (MB-68, the Owner's). Dispatch
+`report-lab.yml` `pair` once credits exist and paste the result here.
 
 ## Mailbox
 Done: MB-60, MB-61, MB-62. Built at their defaults, still open: MB-63, MB-64, MB-65 (provisional seams in R06-16, 19, 20).
-Raised: MB-66 (the two age-neutral chip scenes per parent chapter), MB-67 (band fixtures age out; the lab prints the band it computed).
+Raised: MB-66 (the two age-neutral chip scenes per parent chapter), MB-67 (band fixtures age out; the lab prints the band it computed),
+MB-68 (blocking: the OpenAI key has no credits; staging cannot write a report until the Owner adds them).

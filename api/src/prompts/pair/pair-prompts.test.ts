@@ -137,6 +137,10 @@ test("schemas: strict JSON schema closes every object; every chapter but links c
   for (const s of PAIR_SECTIONS) assert.equal(s.schema.safeParse({}).success, false, `${s.key} accepted {}`);
   const lensShape = Object.keys((pairSectionById("partners02")!.schema as unknown as { shape: object }).shape);
   assert.deepEqual(lensShape, ["headline", "card", "scene", "whatJustHappened", "pattern", "nextTime", "claims"]);
+  // The strict schema keeps a field called pattern: the first staging run lost it and every lens chapter failed on parse.
+  const strict = toStrictJsonSchema(pairSectionById("partners02")!.schema) as { properties: Record<string, unknown>; required: string[] };
+  assert.ok("pattern" in strict.properties, "pattern survives the keyword strip");
+  assert.ok(strict.required.includes("pattern"));
   const twoShape = Object.keys((pairSectionById("twoCharts")!.schema as unknown as { shape: object }).shape);
   assert.deepEqual(twoShape, ["headline", "strong", "work", "paradox", "strengths", "pointer", "claims"]);
   const mod = await import("./index.js") as Record<string, unknown>;
@@ -152,6 +156,8 @@ test("validators: evidence in prose, a card line, a scene without a name, a why 
   assert.match(evidenceProblems("Within a two-degree orb, the pull is strong.")[0], /the word orb/);
 
   assert.deepEqual(cardLineProblems("Marie plans the weekend twice, once out loud.", names, "line"), []);
+  assert.deepEqual(cardLineProblems("Marie Curie finishes what Oprah Winfrey starts.", names, "line"), [], "a surname is still theirs");
+  assert.deepEqual(cardLineProblems("Curie finishes what Winfrey starts.", names, "line"), []);
   assert.match(cardLineProblems("Marie plans the weekend twice, once out loud, once in private, and the private one wins.", names, "line")[0], /words, a card line takes twelve/);
   assert.match(cardLineProblems("Marie's Moon wants the room quiet.", names, "line")[0], /names Moon/);
   assert.match(cardLineProblems("Marie and Pierre plan the weekend twice.", names, "line")[0], /names "Pierre"/);
