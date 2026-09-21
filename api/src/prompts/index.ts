@@ -20,7 +20,7 @@ import type { SectionSpec } from "./types.js";
 export { SHARED_SYSTEM, STYLE_CONTRACT, DOCTRINE, WRITER } from "./system.js";
 export { buildBrief, type ChartBrief } from "./brief.js";
 export { toStrictJsonSchema } from "./jsonSchema.js";
-export { CLAIMS_CONTRACT, ClaimSchema, ClaimsSchema, EvidenceRefSchema, labelEvidence, proseOf, storeClaims, validateClaims, type Claim, type EvidenceRef, type StoredClaim } from "./evidence.js";
+export { CLAIMS_CONTRACT, ClaimSchema, ClaimsSchema, EvidenceRefSchema, labelEvidence, onlyQuoteProblems, proseOf, softenQuote, storeClaims, validateClaims, type Claim, type EvidenceRef, type StoredClaim } from "./evidence.js";
 export type { SectionSpec, Infer } from "./types.js";
 export { FoundationSchema } from "./sections/foundation.js";
 export { HousesSchema } from "./sections/houses.js";

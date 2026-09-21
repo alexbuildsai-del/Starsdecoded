@@ -87,6 +87,44 @@ test("a blind run writes no houses key and no triad.rising, and says so in meta"
   assert.ok(out.meta.wordCount > 100);
 });
 
+// R05's triad failure (MB-62): the prose was fine and one claim quote was a
+// paraphrase, so the section retried the prose three times and the report
+// failed. Now the claims are rewritten against the prose first.
+test("a claim quote that is not in the prose triggers a claims-only repair, and the prose is kept", async () => {
+  calls.length = 0;
+  const saved = REPLIES.natal_triad;
+  const paraphrased = { ...(saved as object), claims: claims("You investigate first, then you commit.") };
+  REPLIES.natal_triad = paraphrased;
+  REPLIES.natal_triad_claims = { claims: claims() };
+  try {
+    const out = await generateInterpretation(blindCurie(), "Marie Curie");
+    assert.equal(calls.filter((c) => c === "natal_triad").length, 1, "the prose is written once");
+    assert.equal(calls.filter((c) => c === "natal_triad_claims").length, 1, "one claims-only call");
+    assert.equal(out.triad.sun.text, PARA, "the prose stands as written");
+    assert.equal(out.triad.claims[0].quote, "You investigate first and commit second.");
+    assert.equal(out.meta.usage.sections.find((s) => s.section === "natal:triad")?.attempts, 2, "the repair is accounted as an attempt");
+  } finally {
+    REPLIES.natal_triad = saved;
+    delete REPLIES.natal_triad_claims;
+  }
+});
+
+test("a report fails only after the claims-only repair fails too, and the repair runs once", async () => {
+  calls.length = 0;
+  const saved = REPLIES.natal_triad;
+  REPLIES.natal_triad = { ...(saved as object), claims: claims("You investigate first, then you commit.") };
+  REPLIES.natal_triad_claims = { claims: claims("Still not in the prose at all.") };
+  try {
+    await assert.rejects(generateInterpretation(blindCurie(), "Marie Curie"), (err: Error) =>
+      /natal:triad: failed validation after 3 attempts/.test(err.message) && /claims-only repair rejected too|quote not found verbatim/.test(err.message));
+    assert.equal(calls.filter((c) => c === "natal_triad").length, 3, "three prose attempts");
+    assert.equal(calls.filter((c) => c === "natal_triad_claims").length, 1, "the claims repair runs once");
+  } finally {
+    REPLIES.natal_triad = saved;
+    delete REPLIES.natal_triad_claims;
+  }
+});
+
 test("a drawn run calls every section and keeps the rising part", async () => {
   calls.length = 0;
   const drawnTriad = { ...(REPLIES.natal_triad as object), rising: { label: "Capricorn rising", text: PARA }, claims: [

@@ -31,7 +31,7 @@ import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type Sect
 import { MODELS, modelFor } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, ClaimSchema, EvidenceRefSchema, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
-  buildBrief, hasClaims, instructionsFor, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
+  buildBrief, hasClaims, instructionsFor, onlyQuoteProblems, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
   type ChartBrief, type Claim, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
 import type { AngleMeanings, AspectMeaningPayload } from "../prompts/brief.js";
@@ -51,6 +51,14 @@ import { FocusSchema } from "../prompts/sections/focus.js";
 // Which model each call uses lives in ./models.ts, never here.
 /** One blind try, then two informed by the rejection. A lost section loses the whole report. */
 const ATTEMPTS = 3;
+
+/** The claims field of a section schema, when it has one: the shape a claims-only repair returns. */
+function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
+  const shape = (schema as unknown as { shape?: Record<string, z.ZodType> }).shape;
+  return shape?.claims ?? null;
+}
+
+const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted; do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
 /** Bump when the section set, schemas, or vocabulary change shape. v6: ten chapters, the horizon as a status. */
 export const PROMPT_VERSION = "v6";
 
@@ -193,6 +201,7 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
   // Accumulates across attempts: a section that retried twice cost three calls,
   // and hiding that would understate exactly what we are here to measure.
   let usage = emptySection(call.usageKey, call.model);
+  let repaired = false;
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     // A retry that repeats the identical request mostly repeats the mistake.
@@ -245,6 +254,36 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     const problems = call.validate ? call.validate(parsed.data) : [];
     if (problems.length === 0) return { data: parsed.data, usage };
     lastError = problems.join("; ");
+
+    // A claim whose quote is not in the prose is the one failure the prose
+    // does not deserve: about 7% of R05's natal runs died on it (MB-62). One
+    // cheap call rewrites the claims against the prose already written; the
+    // prose retry below runs only if that fails too.
+    const claimsShape = !repaired && onlyQuoteProblems(problems) ? claimsShapeOf(call.schema) : null;
+    if (claimsShape) {
+      repaired = true;
+      const { claims: _rejected, ...prose } = parsed.data as Record<string, unknown>;
+      const repairSchema = z.object({ claims: claimsShape });
+      const repairStartedAt = Date.now();
+      const repair = await openai.chat.completions.create({
+        model: call.model,
+        max_completion_tokens: call.maxTokens,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: `${call.user}\n\n${CLAIMS_ONLY}\n\nPROSE AS WRITTEN\n${JSON.stringify(prose, null, 2)}\n\nPREVIOUS CLAIMS REJECTED: ${lastError}` },
+        ],
+        response_format: { type: "json_schema", json_schema: { name: `${name}_claims`, strict: true, schema: toStrictJsonSchema(repairSchema) } },
+      });
+      usage = addAttempt(usage, repair.usage, Date.now() - repairStartedAt);
+      const repairedRaw = (() => { try { return JSON.parse(repair.choices[0]?.message?.content ?? ""); } catch { return null; } })();
+      const parsedRepair = repairSchema.safeParse(repairedRaw);
+      if (parsedRepair.success) {
+        const merged = { ...prose, claims: parsedRepair.data.claims } as T;
+        const again = call.validate ? call.validate(merged) : [];
+        if (again.length === 0) return { data: merged, usage };
+        lastError = `claims-only repair rejected too: ${again.join("; ")}`;
+      }
+    }
   }
 
   throw new SectionError(call.usageKey, `failed validation after ${ATTEMPTS} attempts: ${lastError}`);
