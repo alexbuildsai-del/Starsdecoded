@@ -15,7 +15,7 @@ export function whySentence(why: string): string {
   return /[.!?]$/.test(capped) ? capped : `${capped}.`;
 }
 
-/** The headings a checklist may carry: the natal four and the pair's three (ADR-40). */
+/** The headings a checklist may carry: the natal four, the pair's three, and a lens chapter's next time (ADR-40, ADR-63). */
 export type ChecklistHeading =
   | "What to do"
   | "How to use it"
@@ -23,7 +23,8 @@ export type ChecklistHeading =
   | "Practice this week"
   | "For you"
   | "For them"
-  | "For both";
+  | "For both"
+  | "Next time";
 
 export interface ChecklistItem {
   key: string;

@@ -268,16 +268,47 @@ export interface HorizonPass {
 
 export type Lens = "partners" | "parent_child" | "people";
 
-/** One passage of a compatibility chapter, tagged by where it came from (ADR-39). */
-export interface PairPassage {
-  text: string;
-  source: "natal" | "new";
-  of?: "A" | "B" | "both";
+/** The child's age band under the parent lens, derived from the birth date at generation (ADR-67). */
+export type Band = "little" | "school" | "teen" | "grown";
+
+/** The side-by-side card of a lens chapter: three lines a side in that person's own words, one for the pair (ADR-63). */
+export interface PairCard {
+  a: string[];
+  b: string[];
+  pair: string;
 }
 
-export interface PairChapter extends WithClaims {
+export interface PairNextTimeItem {
+  for: "A" | "B" | "both";
+  action: string;
+  why: string;
+}
+
+/** Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64). */
+export interface PairLensChapter extends WithClaims {
   headline: string;
-  passages: PairPassage[];
+  card: PairCard;
+  scene: string;
+  whatJustHappened: { becauseA: string; becauseB: string };
+  pattern: string;
+  nextTime: { items: PairNextTimeItem[] };
+}
+
+/** Chapter 01, Your two charts: the introduction under the wheel (ADR-63). */
+export interface PairTwoCharts extends WithClaims {
+  headline: string;
+  strong: string[];
+  work: string[];
+  paradox: string;
+  strengths: string[];
+  pointer: string;
+}
+
+/** A lens chapter's three scenes: the titles, the index the report wrote, the texts written on tap since (ADR-65, ADR-72). */
+export interface PairChapterScenes {
+  titles: string[];
+  written: number;
+  texts: Record<string, string>;
 }
 
 export interface PairChecklist {
@@ -320,6 +351,10 @@ export interface InterpretationMeta {
   promptVersion: string;
   reportType?: "natal" | "compatibility";
   lens?: Lens;
+  /** How two people know each other, in their words; null under the other lenses. */
+  label?: string | null;
+  /** The child's band under the parent lens, null otherwise. */
+  band?: Band | null;
   model: string;
   houseSystem: "whole-sign";
   zodiac: "tropical";
@@ -357,24 +392,28 @@ export interface Interpretation {
   angleMeanings?: AngleMeanings;
 }
 
-/** The compatibility report: nine chapters and the link cards, streamed like a natal report. */
+/**
+ * The compatibility report: seven chapters and the link cards, streamed like
+ * a natal report. The lens chapters sit at their own ids (partners02 ...
+ * people06); read them with `lensChapterOf`.
+ */
 export interface PairInterpretation {
   meta: InterpretationMeta;
-  howYouMeet?: PairChapter;
-  twoCharts?: PairChapter;
-  twoWays?: PairChapter;
-  whereItFlows?: PairChapter;
-  whereItRubs?: PairChapter;
-  howYouTalk?: PairChapter;
-  lensOne?: PairChapter;
-  lensTwo?: PairChapter;
+  twoCharts?: PairTwoCharts;
   whatToPractise?: PairPractise;
   links?: PairLinks;
+  scenes?: Record<string, PairChapterScenes>;
+  [chapter: string]: unknown;
+}
+
+export function lensChapterOf(interpretation: PairInterpretation | null, id: string): PairLensChapter | undefined {
+  const v = interpretation?.[id];
+  return v && typeof v === "object" && "card" in (v as object) ? (v as PairLensChapter) : undefined;
 }
 
 /** The prompt version this page renders. Older stored reports get the regenerate call to action. */
 export const CURRENT_PROMPT_VERSION = "v6";
-export const CURRENT_PAIR_PROMPT_VERSION = "p1";
+export const CURRENT_PAIR_PROMPT_VERSION = "p2";
 
 /**
  * A stored report this page can render. Anything older keeps its words but not
