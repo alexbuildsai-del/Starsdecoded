@@ -35,9 +35,8 @@ check against the official page. Prose is EQ-Bench Creative Writing v3 Elo.
 | gpt-oss-120b on Groq | Groq key | 0.15 / 0.60 | Elo 1079 | the Owner's ask; strict json_schema, hundreds of tokens a second |
 | gpt-5-mini | same key | 0.25 / 2 | none | already catalogued; the control that shows where cheap breaks |
 
-Left for a later matrix, each for a reason in the artifact: Claude Opus 5
-(best prose, 2.5× the price, needs a native adapter), Sonnet 5, Gemini 3.8
-Flash, Kimi K3, DeepSeek V4.1, GPT-5.6 Terra and Sol.
+Later, each for a reason in the artifact: Claude Opus 5 (best prose, 2.5× the
+price, native adapter), Sonnet 5, Gemini 3.8 Flash, Kimi K3, DeepSeek, Terra, Sol.
 
 ## Five mixes, one judgement
 
