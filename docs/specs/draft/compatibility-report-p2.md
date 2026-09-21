@@ -22,8 +22,7 @@ psychology behind the pattern, likely scenes, and men will read it.
   (the pair thesis) · what is naturally strong between you, three lines, each cited to its
   link and pointing at its chapter · what will take work, three lines, framed as what it
   trains (ADR-5) · the paradox, one line · a card, your three strengths as a pair · one
-  pointer sentence. 300 to 360 words. Link cards stay under the wheel. Both triads (Sun,
-  Moon, rising) side by side above the wheel, no generation. "How you meet" is gone.
+  pointer sentence. 300 to 360 words. Link cards stay under the wheel. "How you meet" is gone.
 - 02 to 06 set by the lens · 07 What to practise (the next-time items collected into the
   three checklists, nothing new, the 80 to 100 word closing). Two ways of being, Where it
   flows, Where it rubs and How you talk go; flow and friction live in every lens chapter's
@@ -41,6 +40,17 @@ psychology behind the pattern, likely scenes, and men will read it.
 - Three scenes per chapter, named in the chapter spec. The foundation picks the one that
   fits the pair; the other two are chips under the scene, written on tap by the fast model
   after the Groq experiment is read (Review 20/09); until then no chips.
+
+### The hero (Owner, 21 Sept)
+- No ring on the compatibility hero. Two triad plates side by side, one per person: Sun,
+  Moon and rising with the natal hero's renders; degree and sign on a phone, house and ruler
+  from 640 px up; the reader's own report on the left; a blind chart shows "rising · not
+  drawn" and the Moon's arc as the natal hero does. Eyebrow "Compatibility report · {lens}",
+  the two names with AND between, the plates, the scroll cue clear of the corners.
+- The four corners carry both birth records: left column A's date, time, place and
+  coordinates; right column B's. The "whole-sign · tropical" line joins the eyebrow.
+- The hero keeps the starfield and blobs (two skies); no gather on this page, the opening
+  crossfades from the generation screen. Print: the plates and corners, no sky.
 
 ### Lens 1, Partners (chapters 02 to 06)
 02 How you love (care shown and wanted: words, time, help, gifts, touch, as vocabulary,
@@ -120,7 +130,11 @@ Grounding per chapter and the sources are in the artifact.
 ## Acceptance criteria
 1. `PAIR_CHAPTER_IDS` has seven ids; chapters 02 to 06 differ by lens in title, card, scene
    set and prose; 01 and 07 are the same shape under every lens; 01 opens on the wheel with
-   its legend and both triads, and its strong, work and paradox lines each cite a link.
+   its legend, and its strong, work and paradox lines each cite a link.
+9. The compatibility hero at 390 px shows no ring, two triad plates with both people's
+   Sun, Moon and rising at their true degrees, both birth records in the four corners, and
+   the cue clear of them; at 1440 px the plates flank the names; a blind side reads
+   "rising · not drawn".
 2. Every lens chapter renders headline, card, scene, what just happened with two cited
    because-lines, pattern, next time; the card has three lines a side and one for the pair,
    none over twelve words, none naming a body; the scene names both people.
