@@ -15,6 +15,7 @@ export const mind: SectionSpec<typeof MindSchema> = {
   label: "Mind & Communication",
   adminLabel: "Mind & Communication",
   wordTarget: [250, 320],
+  blindWordTarget: [200, 260],
   maxTokens: 2_500,
   schema: MindSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

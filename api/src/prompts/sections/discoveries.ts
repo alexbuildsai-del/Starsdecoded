@@ -17,6 +17,7 @@ export const discoveries: SectionSpec<typeof DiscoveriesSchema> = {
   label: "Key Paradoxes & Discoveries",
   adminLabel: "Key Paradoxes",
   wordTarget: [400, 500],
+  blindWordTarget: [320, 400],
   maxTokens: 3_000,
   schema: DiscoveriesSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

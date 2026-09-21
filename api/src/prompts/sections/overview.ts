@@ -16,6 +16,7 @@ export const overview: SectionSpec<typeof OverviewSchema> = {
   label: "Chart Overview",
   adminLabel: "Chart Overview",
   wordTarget: [400, 500],
+  blindWordTarget: [320, 400],
   maxTokens: 3_000,
   schema: OverviewSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

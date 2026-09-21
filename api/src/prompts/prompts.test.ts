@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chartFromFixture } from "../lib/testFixtures.js";
 import {
-  ALL_SECTIONS, REPORT_SECTIONS, SECTION_IDS, SHARED_SYSTEM, WORD_TARGETS,
-  buildBrief, hasClaims, instructionsFor, schemaFor, sectionById, sectionsFor, toStrictJsonSchema,
+  ALL_SECTIONS, BLIND_WORD_TARGETS, PASS_ADDS, REPORT_SECTIONS, SECTION_IDS, SHARED_SYSTEM, WORD_TARGETS,
+  buildBrief, hasClaims, instructionsFor, schemaFor, sectionById, sectionsFor, toStrictJsonSchema, wordTargetFor,
 } from "./index.js";
 import { BODIES, SIGNS, BODY, SIGN, HOUSE, ASPECT, STRUCTURE } from "./vocabulary.js";
 import { itemsHint } from "./jsonSchema.js";
@@ -26,6 +26,29 @@ test("registry: word targets sum to 3,930-5,110, inside the 3,500-5,500 product 
   assert.equal(min, 3930);
   assert.equal(max, 5110);
   assert.ok(min >= 3500 && max <= 5500, `bands ${min}-${max} leave the product range`);
+});
+
+// A blind report is written shorter by about what the pass adds back, so
+// blind plus pass lands inside the same range (MB-60: R05's passed report
+// read 5,769 words). The drawn bands above do not move.
+test("registry: the blind bands sum to 2,740-3,460, and with what the pass adds sit inside 3,500-5,500", () => {
+  const min = Object.values(BLIND_WORD_TARGETS).reduce((n, [a]) => n + a, 0);
+  const max = Object.values(BLIND_WORD_TARGETS).reduce((n, [, b]) => n + b, 0);
+  assert.equal(min, 2740);
+  assert.equal(max, 3460);
+  assert.ok(!("houses" in BLIND_WORD_TARGETS));
+  assert.deepEqual(PASS_ADDS, [480 + 80 + 10 * 40, 780 + 100 + 10 * 90]);
+  assert.ok(min + PASS_ADDS[0] >= 3500 && max + PASS_ADDS[1] <= 5500, `blind ${min}-${max} plus the pass ${PASS_ADDS} leave the product range`);
+  for (const spec of sectionsFor("unknown")) {
+    assert.ok(spec.blindWordTarget, `${spec.key} carries a blind band`);
+    assert.ok(spec.blindWordTarget![1] < spec.wordTarget[1], `${spec.key}: the blind band sits below the drawn one`);
+    assert.deepEqual(wordTargetFor(spec, false), spec.wordTarget);
+    assert.deepEqual(wordTargetFor(spec, true), spec.blindWordTarget);
+    const text = instructionsFor(spec, spec.instructions, true);
+    assert.match(text, new RegExp(`Length: ${spec.blindWordTarget![0]} to ${spec.blindWordTarget![1]} words`), spec.key);
+    assert.equal(instructionsFor(spec, spec.instructions, false), spec.instructions, `${spec.key}: drawn instructions untouched`);
+  }
+  assert.deepEqual(BLIND_WORD_TARGETS.triad, [160, 200], "two parts of 80 to 100");
 });
 
 // The horizon is a status (ADR-34): a blind report skips the sections that are
