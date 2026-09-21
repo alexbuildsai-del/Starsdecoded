@@ -38,10 +38,17 @@ Green: `pnpm install --frozen-lockfile` · typecheck (scripts, api, web) · `bui
 · codegen no diff · `db:bootstrap` three times on a scratch Postgres 16 (a seeded `family` and `custom` row both read `people`, default
 `people`, natal v6 and pair p2 overrides reset once). The Vercel preview smoke is CI's; this sandbox cannot reach it.
 
-**Report lab**: no key or network here (R-4.4 by dispatch). After the merge, `report-lab.yml` runs on staging: `natal` (six charts, no failed
-section expected: MB-62), `pass` (blind plus pass inside 3,500–5,500: MB-60; claims after ≥ before: MB-61), `pair` (three lenses, four
-bands, repetition under 3%, prose 1,900–2,500, cost against 25 ¢). The measurement is pasted here when the runs land. Local proxy for
-MB-61: the stored r05 pass replayed by `horizonPass.test.ts` keeps 102 claims of 60 (R05 kept 53) and drops none.
+**Report lab**, remote against staging on `6d2761e` (PR #55, staging Smoke 35593662269 green), dispatched from `report-lab.yml`.
+Natal v6, run 35593887996 (`report-lab/r06`): marie-curie 4,886 words · 25.6 ¢ · houses x2; audrey-hepburn 4,872 · 29.4 ¢ · triad x3
+(the claims-only repair counted, no failure: MB-62); day-angular 4,898 · 27.8 ¢ · discoveries x2; high-latitude 4,840 · 27.4 ¢ · none;
+night-angular 4,858 · 26.6 ¢ · none; oprah-winfrey 4,827 · 26.7 ¢ · foundation x2. Every drawn total inside 3,500–5,500, no failed
+section on any chart; flags as in R05: house readings 71–76 words on 1–3 of 12 per chart, one why without a verb on oprah-winfrey.
+Blind marie-curie-unknown 3,822 words · 22.9 ¢ · blind flag clean, 360 over its blind band (the model did not shrink to 2,740–3,460).
+The pass, run 35593894600 (`report-lab/r06-pass`): blind 3,746 words · 24.5 ¢; passed 5,498 words, inside the 5,500 ceiling (MB-60,
+R05 read 5,769); claims 68 before, 105 after (MB-61, R05 lost 7); the ledger counts 48 sentences, 54 differ on the page (R05: 16 against
+58); 10 paragraphs added; the pass 22.5 ¢, 47.0 ¢ together. The pair campaign, run 35593900887, failed on every run with nothing
+published and its log unreachable from the build session; PR #56 makes the workflow publish the log with the run, and the campaign
+is re-run from it; its measurement lands here when it does.
 
 ## Mailbox
 Done: MB-60, MB-61, MB-62. Built at their defaults, still open: MB-63, MB-64, MB-65 (provisional seams in R06-16, 19, 20).
