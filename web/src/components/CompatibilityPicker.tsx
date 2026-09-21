@@ -10,6 +10,7 @@ import { useLocation } from "wouter";
 import { useCreateCompatibilityReport, useGetCredits, useListReports, getListReportsQueryKey, type ReportSummary } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { PERSONAL_REPORT } from "@/lib/product";
 import { HOW_OPTIONS, HOW_QUESTION, LENSES, PARENT_QUESTION, lensInfo, type HowKnown } from "@/lib/lenses";
 import type { Lens } from "@/types/chart";
 
@@ -38,7 +39,7 @@ function rememberSelection(s: Partial<Selection>): void {
 
 /** Why a report cannot be picked, or null when it can. */
 export function unpickable(r: ReportSummary): string | null {
-  if (r.kind !== "natal") return "not a natal report";
+  if (r.kind !== "natal") return `not a ${PERSONAL_REPORT.toLowerCase()}`;
   if (r.status === "complete") return null;
   if (r.status === "failed") return "could not be written";
   return "still writing";
@@ -96,9 +97,9 @@ export function CompatibilityPicker({ reports: given }: { reports?: ReportSummar
     <section className="rounded-xl border border-border/60 bg-card/30 p-5" aria-label="New compatibility report">
       <p className="font-label text-[10px] tracking-[0.2em] uppercase text-primary/80">New compatibility report</p>
       <h3 className="mt-1 font-display text-xl">Two finished reports in, one report out.</h3>
-      <p className="mt-1 text-sm text-muted-foreground">How compatible you are, and why. Any two natal reports you can see.</p>
+      <p className="mt-1 text-sm text-muted-foreground">How compatible you are, and why. Any two {PERSONAL_REPORT.toLowerCase()}s you can see.</p>
       {reports.length < 2 && (
-        <p className="mt-3 text-sm text-muted-foreground">You need two finished natal reports first. Add the other person the normal way.</p>
+        <p className="mt-3 text-sm text-muted-foreground">You need two finished {PERSONAL_REPORT.toLowerCase()}s first. Add the other person the normal way.</p>
       )}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Select label="Report A" value={a} onChange={setA} exclude={b} />

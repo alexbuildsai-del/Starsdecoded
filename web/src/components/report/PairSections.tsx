@@ -10,6 +10,7 @@
 import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
 import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
 import { SceneChips } from "@/components/report/SceneChips";
+import { fromPersonalReport } from "@/lib/product";
 import { itemKey } from "@/lib/workbook";
 import type { Claim, PairChapterScenes, PairChecklist, PairLensChapter, PairPractise, PairTwoCharts } from "@/types/chart";
 
@@ -19,7 +20,7 @@ export const first = (name: string): string => name.trim().split(/\s+/)[0] ?? na
 
 /** The kicker over a person's own lines: their first name, and where the words come from (ADR-61). */
 export function personKicker(name: string): string {
-  return `${first(name)} · from personal report`;
+  return fromPersonalReport(first(name));
 }
 
 function Lines({ lines, claims, counter }: { lines: string[]; claims?: Claim[]; counter: CitationCounter }) {

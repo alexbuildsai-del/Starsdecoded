@@ -30,6 +30,7 @@ import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { PLANET_LABELS, type ChartData, type ChartPlanet, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { PERSONAL_REPORT } from "@/lib/product";
 import { ReportSky } from "@/components/report/ReportSky";
 import type { Ring } from "@/lib/gather";
 
@@ -431,7 +432,7 @@ export function ReportHero({
         )}
         {!phone && (
         <div ref={nameRef} className="rp-hname">
-          <span className="k">Natal chart report</span>
+          <span className="k">{PERSONAL_REPORT}</span>
           <div className="relative inline-block justify-self-center">
             {/* A halo fitted to the text box, so the ring reads through around it. */}
             <div
@@ -456,7 +457,7 @@ export function ReportHero({
         {/* The phone's name lives under the ring, in the flow, with no halo: the ring is above it, not behind it. */}
         {phone && (
           <div ref={nameRef} className="rp-hname rp-hname-flow">
-            <span className="k">Natal chart report</span>
+            <span className="k">{PERSONAL_REPORT}</span>
             <h1 style={{ fontSize: `${nameSize}px` }}>
               {nameRows.map((line, i) => (
                 <span key={i} className="block">{line}</span>
@@ -513,7 +514,7 @@ export function ReportHero({
       <section className="rp-hero" aria-label="Opening">
         {!narrow && <ScrollCue reduced={reduced} cueRef={cueRef} />}
         <header className="hidden print:block px-8 pt-12">
-          <p className="font-label text-[10px] tracking-[0.28em] uppercase">Natal chart report</p>
+          <p className="font-label text-[10px] tracking-[0.28em] uppercase">{PERSONAL_REPORT}</p>
           <h1 className="font-display text-5xl mt-2">{name}</h1>
           <p className="font-numeric text-xs mt-3">
             DOB · {dobText} · TOB · {tob} · POB · {birthPlace}
