@@ -54,7 +54,7 @@ const PAIRS_DIR = join(ROOT, "fixtures", "pairs");
 
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
 import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, hasClaims, sectionById, validateClaims } from "../../api/src/prompts/index.js";
-import { PAIR_CHAPTER_IDS, PAIR_WORD_TARGETS, pairChapterTitle, ratingProblems } from "../../api/src/prompts/pair/index.js";
+import { PAIR_WORD_TARGETS, pairChapterIds, pairChapterTitle, ratingProblems } from "../../api/src/prompts/pair/index.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
 /** The product target for a compatibility report (ADR-39). */
 const PAIR_TOTAL: [number, number] = [3000, 4500];
@@ -927,7 +927,7 @@ interface PairRow { section: string; words: number; target: [number, number] | n
 
 export function measurePair(interpretation: Record<string, unknown>): { rows: PairRow[]; cards: string[] } {
   const lens = (interpretation.meta as { lens?: string } | undefined)?.lens ?? "partners";
-  const rows: PairRow[] = PAIR_CHAPTER_IDS.map((id) => {
+  const rows: PairRow[] = pairChapterIds(lens as never).map((id) => {
     const value = interpretation[id];
     const missing = value === undefined || value === null;
     const prose = proseOf(value);
@@ -941,7 +941,7 @@ export function measurePair(interpretation: Record<string, unknown>): { rows: Pa
     ];
     const passages = (value as { passages?: Array<{ source: string }> } | undefined)?.passages ?? [];
     const natal = passages.filter((p) => p.source === "natal").length;
-    const title = pairChapterTitle(id as never, lens as never);
+    const title = pairChapterTitle(id);
     return { section: `${id} (${title})${passages.length ? `, ${natal}/${passages.length} natal` : ""}`, words: w, target, inRange: missing ? null : w >= target[0] && w <= target[1], flags };
   });
   const cards: string[] = [];
