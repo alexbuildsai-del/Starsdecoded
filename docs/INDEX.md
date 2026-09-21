@@ -29,10 +29,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 ## Rounds
 - `R01` claims made true, DELETE report, legal drafts, smoke workflow · `R02` usage telemetry, 27.1 cents baseline. Plans
   and reports under `docs/rounds/`; R01 acceptance pending.
-- `docs/rounds/R03-plan.md` · `R03-report.md` — Observatory tokens, the wheel from real degrees, citations, house
-  cards, hero and chapter shell. Owner acceptance pending.
-- `docs/rounds/R04-plan.md` · `R04-report.md` — pass two: eleven chapters, house cards, the workbook, dawn, a report
-  that opens while it writes. Lab pasted, mean 31.0 ¢. Owner acceptance pending.
+- `R03` the wheel from real degrees, citations, house cards, hero and chapter shell · `R04` pass two: eleven chapters,
+  the workbook, dawn, a report that opens while it writes, mean 31.0 ¢. Both await Owner acceptance.
 - `docs/rounds/R05-plan.md` · `R05-report.md` — pass three, unknown birth time and the compatibility report: ten
   chapters, the door over the orrery, the horizon pass, nine pair chapters. Gate green; lab and smoke need credentials.
 

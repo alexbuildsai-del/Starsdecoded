@@ -116,6 +116,5 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
    (ADR-33 to 38), the compatibility report (ADR-39 to 45); prompts v6 and p1.
    The three lab campaigns run from `report-lab.yml`, pasted into `docs/rounds/R05-report.md`.
 2. Locked 21 Sept, `/plan` next: `review-20-09.md` (nine fixes) and `compatibility-report-p2.md` (pair p2).
-3. Owner acceptance on staging for R01, R03, R04 and R05, in that order.
-4. Staging landing (`docs/specs/draft/staging-environment.md`): the Owner works the
+3. Owner acceptance on staging for R01, R03, R04 and R05, in that order; then the staging landing (`docs/specs/draft/staging-environment.md`): the Owner works the
    runbook, then the first Promote. Pricing (MB-5) and Stripe (MB-6) next; MB-57 waits on them.
