@@ -176,9 +176,31 @@ export function glossFor(ref: EvidenceRef): string {
       const body = BODY_MEANINGS[str(ref.planet)] ?? "";
       return [body && cap(body) + ".", `It falls in the other person's ${theHouse(ref.house)}.`].filter(Boolean).join(" ");
     }
+    // A source claim's sheet is two labelled lines, not a sentence (ADR-60): see sourceLines.
     case "source":
-      return `Read from the natal report's ${label(ref.section)} chapter, claim ${typeof ref.claim === "number" ? ref.claim : ""}; the evidence is that report's own, verified when it was written.`.replace(/\s+;/, ";");
+      return "";
     default:
       return "";
   }
+}
+
+/** The natal chapters by section id, as the sheet names where a source claim came from. */
+export const NATAL_CHAPTER_OF: Record<string, string> = {
+  overview: "Chart Overview", triad: "Core Triad", houses: "Natal Chart Deepdive", mind: "Mind & Communication",
+  career: "Career & Calling", money: "Money & Resources", relationships: "Relationships & Intimacy", family: "Family & Roots",
+  superpowers: "Superpowers, Chronic Patterns & Growing Edges", discoveries: "Key Paradoxes & Discoveries", focus: "Closing",
+};
+
+/**
+ * The two lines of a source claim's sheet (ADR-60): where it came from, and
+ * that claim's own evidence labels. The stored label is composed by the API
+ * as "{Name}'s report: {labels}", so both halves are its own.
+ */
+export function sourceLines(ref: EvidenceRef, storedLabel: string): { source: string; evidence: string } {
+  const split = storedLabel.indexOf("'s report: ");
+  const name = split > 0 ? storedLabel.slice(0, split) : "";
+  const evidence = split > 0 ? storedLabel.slice(split + "'s report: ".length) : storedLabel;
+  const firstName = name.trim().split(/\s+/)[0] ?? "";
+  const chapter = NATAL_CHAPTER_OF[str(ref.section)] ?? label(ref.section);
+  return { source: `${firstName ? `${firstName}'s personal report` : "Personal report"} · ${chapter}`, evidence };
 }
