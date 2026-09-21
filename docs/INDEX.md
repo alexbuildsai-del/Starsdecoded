@@ -47,13 +47,12 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `api/src/prompts/` natal sections and `pair/` (two fixed chapters, `sections/{partners,parent-child,people}/`, the band
   doctrine) · `api/src/lib/` chart engine with the horizon status, traditional factors, interpretation with the claims-only
   retry, horizon pass, pair brief per chapter, on-tap scenes (`pairScene.ts`), overlays, credits
-- `packages/api-spec` OpenAPI + Orval → `api-client-react`, `api-zod` · `scripts/` seeds and bootstrap
+- `packages/api-spec` OpenAPI + Orval → `api-client-react`, `api-zod` · `scripts/` seeds and bootstrap · `README.md` human onboarding
 - `e2e/` Playwright (stale) · `fixtures/charts/` seven charts plus six pair-only band fixtures, birth data only · `fixtures/pairs/`
   five pairs · `fixtures/passes/` the stored r05 pass, replayed by a test · `mobile/` empty scaffold
 - `fixtures/reports/` one committed run; `pnpm report:lab --render` re-reads it free; `--pass`; `--pair` runs the campaign
 - `api/src/lib/models.ts` the model catalogue, `usage.ts` token accounting; every call lands on `meta.usage` · `web/src/pages/legal/`
   draft legal pages · `api/src/lib/deletion.ts` profile-fate seam (MB-32)
-- `README.md` — setup, deploy targets, porting notes. Still the human onboarding page.
 
 ## Agents and skills
 - `.claude/agents/` planner · orchestrator · builder · qa · `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox · /report-lab
