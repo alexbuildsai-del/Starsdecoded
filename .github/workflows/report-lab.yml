@@ -79,6 +79,13 @@ jobs:
           { echo '## Report lab'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
+      # The log rides with the run: a failed run publishes its error where the
+      # orchestrator can read it, since the log storage host is not reachable
+      # from every session.
+      - name: Keep the lab's log with the run
+        if: always()
+        run: mkdir -p fixtures/reports && cp lab.log "fixtures/reports/lab.${{ inputs.label }}.log" 2>/dev/null || true
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -93,7 +100,7 @@ jobs:
       - name: Publish the run on the report-lab branch
         if: always()
         run: |
-          ls fixtures/reports/*.${{ inputs.label }}.md >/dev/null 2>&1 || { echo "nothing to publish"; exit 0; }
+          ls fixtures/reports/*.${{ inputs.label }}.md fixtures/reports/lab.${{ inputs.label }}.log >/dev/null 2>&1 || { echo "nothing to publish"; exit 0; }
           branch="report-lab/${{ inputs.label }}"
           git config user.name "report-lab"
           git config user.email "report-lab@users.noreply.github.com"
