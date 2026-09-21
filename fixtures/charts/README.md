@@ -19,6 +19,10 @@ for regression testing, not claims of accuracy.
 the blind report, and the input to the lab's `--pass` run, which adds 12:00 back
 through the horizon pass and measures what changed.
 
+`audrey-hepburn` has a birth-certificate time (Astro-Databank AA) and a zone
+name, so the Belgian summer-time offset of 1929 is derived, not typed. It is
+the model matrix's fifth chart and the candidate sample report for the landing page.
+
 The remaining fixtures are synthetic and exist to pin specific structural cases:
 unambiguous day and night charts for sect, and a high-latitude chart to catch any
 future drift away from whole-sign houses.
