@@ -56,8 +56,10 @@ time. M1, M2 and M4 share the stored R05 foundation, so a difference in a
 section is the writer alone. M7 writes its own foundation, so its sections
 carry a different reading of the chart as well. Per section the reading room
 shows every distinct text: a scaffolded section has five (5.2, Luna, Groq,
-mini, Groq-on-Groq), a synthesis section four, the houses five. The mixes are
-read off the picks and priced at the reveal.
+mini, Groq-on-Groq), a synthesis section four, the houses five, plus a second
+fresh 5.2 replay as a hidden control: how often the Owner prefers one 5.2 over
+the other is the noise floor a writer must beat. The mixes are read off the
+picks and priced at the reveal.
 
 ## Scope
 
@@ -151,9 +153,12 @@ card with five columns and the note, the reveal table.
 Quality over cost. A writer takes a section only when, on every fixture read,
 the Owner picked it best or tied it with the best, never marked it would not
 ship, and the contract gate holds (zero new faults on five fixtures, band
-held, retry rate not up). A writer the Owner picks best over 5.2 moves even
-when it costs more. The foundation moves only on a full session of its own,
-never on one section's picks.
+held, retry rate not up). Five of five is the bar: a coin-flip writer does
+that once in thirty-two. Four of five earns a confirmation session on five
+more charts (new fixtures, real birth data) before it moves; three or fewer
+stays. A writer the Owner picks best over 5.2 moves even when it costs more.
+The foundation moves only on a full session of its own, never on one
+section's picks.
 
 ## Sequence
 
