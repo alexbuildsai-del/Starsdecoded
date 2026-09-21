@@ -2,5 +2,5 @@
   "name": "Marie Curie & Oprah Winfrey",
   "a": "marie-curie",
   "b": "oprah-winfrey",
-  "note": "The compatibility lab pair: two existing chart fixtures by name and no birth data of its own. Run once per lens (partners, parent_child, family); the three runs must differ in chapters 07 and 08 and the examples' register and nowhere structurally else."
+  "note": "The compatibility lab pair: two existing chart fixtures by name and no birth data of its own. The --pair campaign runs it under all three lenses (people with the label friends); the four band pairs run the parent-and-child lens once per band."
 }

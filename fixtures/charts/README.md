@@ -29,3 +29,10 @@ future drift away from whole-sign houses.
 
 `../pairs/` names two of these by fixture name and holds no birth data: the
 compatibility lab runs one per lens.
+
+The six `pairOnly` fixtures (`charles`, `william`, `george`, `charlotte`,
+`beatrice`, `athena`) are published birth records of one family, kept for the
+parent-and-child lens's four band runs in `../pairs/` and never run in the
+natal campaign. A child's band is derived from the birth date at generation,
+so each pair fixture notes the year it leaves its band; the lab prints the band
+it computed. Nothing here is fabricated (R-3.1).
