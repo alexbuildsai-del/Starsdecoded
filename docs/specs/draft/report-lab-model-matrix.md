@@ -32,10 +32,11 @@ day it enters `CATALOGUE`.
 |---|---|---|---|
 | gpt-5.2 | 1.75 / 0.175 / 14 | the stored R05 and R06 text; deprecated | baseline and hidden control |
 | gpt-6-sol | 2.00 / 0.20 / 10 | AA index 48; blind panel: "Sol is competitive" | the thinker, and the like-for-like successor |
-| gpt-6-luna | 0.10 / 0.01 / 0.50 | AA 37, level with 5.6 Luna; AA notes weaker presentation | the cheap writer |
-| gpt-5.6-luna | 0.20 / 0.02 / 1.20 | AA 37; the Owner's suggestion | the cheap writer's check on 6 Luna's presentation |
+| gpt-6-luna | 0.10 / 0.01 / 0.50 | AA 37, level with 5.6 Luna at half its price | the cheap writer |
 
-Left out: **gpt-5.6-sol** at 4 / 20, third on EQ-Bench but 50 ¢ a report, back
+Left out: **gpt-5.6-luna** at 0.20 / 1.20, the same score as 6 Luna at twice the
+price, dropped by the Owner 2026-09-24 as redundant; it returns only if 6 Luna
+fails the scaffold. **gpt-5.6-sol** at 4 / 20, third on EQ-Bench but 50 ¢ a report, back
 only if 6 Sol loses to 5.2 on synthesis. **gpt-5.6-terra** at 2 / 12, "not close"
 in a blind panel and dearer than 6 Sol. **gpt-5.5** at 5 / 30 and OpenAI's $10 / $50
 flagship, out of range for €24. **gpt-5-mini**, shut down in December. **Groq's**
@@ -52,7 +53,6 @@ Per report: 32.5k uncached input, 93k cached, 15.1k output, no reasoning. Cents:
 | M0 today | 5.2 | 5.2 | 5.2 | 5.2 | 28.4 | — |
 | S successor | Sol | Sol | Sol | Sol | 25.1 | −12% |
 | A Sol thinks, Luna writes | Sol | Sol | 6 Luna | 6 Luna | 11.5 | −60% |
-| A5 the Owner's Luna | Sol | Sol | 5.6 Luna | 5.6 Luna | 12.4 | −56% |
 | B Sol plans only | Sol | 6 Luna | 6 Luna | 6 Luna | 4.1 | −86% |
 | L all Luna | 6 Luna | 6 Luna | 6 Luna | 6 Luna | 1.3 | −95% |
 
@@ -68,7 +68,7 @@ across eleven sections and five charts. Instead:
 1. The Owner opens *Spawn a session*, the renamed *Matrix* view. They tick
    sections, charts and writers. The form shows the estimated spend before
    anything runs. For example, career plus three synthesis sections, five
-   charts, four writers and the 5.2 control comes to about 90 ¢.
+   charts, Sol, 6 Luna, the stored 5.2 and the 5.2 control comes to about 85 ¢.
 2. **Spawn** starts the replays for exactly those cards and nothing else. The
    room opens when the last card lands. A replay that fails is retried once,
    then its column is dropped from the card and named at the reveal.
@@ -113,7 +113,7 @@ and says why. Promotes before Stripe are rare, and so are full labs.
 
 The locked scope holds with these changes:
 
-1. **Catalogue.** Add gpt-6-sol, gpt-6-luna and gpt-5.6-luna with their prices.
+1. **Catalogue.** Add gpt-6-sol and gpt-6-luna with their prices.
    Each entry also gets a `reasoningEffort` with default `none`, sent on every
    call. Newer models reason by default, and reasoning bills as output, so the
    effort is pinned in one place.
@@ -169,8 +169,8 @@ writers fail, because 5.2 is retiring.
 1. Lab round, INTERNAL: scope 1 to 7 on the locked scope.
 2. The OpenAI key gets credits (MB-68). Nothing generates until then.
 3. The first session is spawned by the Owner: career, overview, superpowers and
-   discoveries on five charts, with Sol, 6 Luna, 5.6 Luna, the stored 5.2 and
-   the hidden fresh 5.2: about 90 ¢, 45 ¢ on Flex. Then the reveal, discussed here.
+   discoveries on five charts, with Sol, 6 Luna, the stored 5.2 and the hidden
+   fresh 5.2: about 85 ¢, about 45 ¢ on Flex. Then the reveal, discussed here.
 4. The second session covers the remaining sections and the foundation. Then
    the routing round: `models.ts`, a level 2 lab, and a promote through the gate.
 
@@ -189,7 +189,7 @@ Screens: the artifact above (candidates, mixes, spawn form, four levels, release
 ## Decisions to record
 
 - ADR-56 is superseded: the matrix is OpenAI-only, Groq out on September 2026 evidence.
-- The candidates are gpt-6-sol, gpt-6-luna and gpt-5.6-luna against gpt-5.2.
+- The candidates are gpt-6-sol and gpt-6-luna against gpt-5.2; gpt-5.6-luna dropped.
   Each catalogue entry pins its reasoning effort.
 - ADR-55 is amended. Nothing is generated for the reading room until the Owner
   spawns a session. The spend is shown before spawn, and texts load per card.
