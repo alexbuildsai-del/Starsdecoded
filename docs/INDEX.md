@@ -1,11 +1,11 @@
-# Index — regenerated at the end of every round (last: R06, 2026-09-21)
+# Index — regenerated at the end of every round (last: model-matrix revision lock, 2026-09-24)
 
 Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by pointer.
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
-- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (72 rows; ADR-72 the on-tap scenes on gpt-5.2; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-29 to 32 from the logo lock; ADR-33 to 38 from the unknown-birth-time lock; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26; ADR-52 to 58 from the model-matrix lock, R-5.6 rewritten; ADR-59 to 62 from the Review 20/09 lock, amending ADR-44, 47, 51; ADR-63 to 71 from the compatibility second pass, amending ADR-40, 43)
-- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (1 blocking: MB-31 entity; MB-60 to 62 done in R06; MB-63, 64, 65 built at their defaults; MB-66, 67 raised by R06; MB-6, 43, 47, 55 at their defaults; MB-57 credits DDL and no-credit CTA deferred to pricing; MB-58 old synastry rows hidden; MB-59 the claim lands without generating; MB-49/52 credit rules with pricing)
+- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (77 rows; ADR-73 to 77 from the model-matrix revision, superseding ADR-56 and amending ADR-55 and R-4.4; ADR-72 the on-tap scenes on gpt-5.2; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-29 to 32 from the logo lock; ADR-33 to 38 from the unknown-birth-time lock; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26; ADR-52 to 58 from the model-matrix lock, R-5.6 rewritten; ADR-59 to 62 from the Review 20/09 lock, amending ADR-44, 47, 51; ADR-63 to 71 from the compatibility second pass, amending ADR-40, 43)
+- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (2 blocking: MB-31 entity, MB-68 the OpenAI key has no credits; MB-60 to 62 done in R06; MB-63, 64, 65 built at their defaults; MB-66, 67 raised by R06; MB-6, 43, 47, 55 at their defaults; MB-57 credits DDL and no-credit CTA deferred to pricing; MB-58 old synastry rows hidden; MB-59 the claim lands without generating; MB-49/52 credit rules with pricing)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
 ## Specs
@@ -24,8 +24,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   gap, evidence in claims only, Personal natal report, the why line. Artifact: https://claude.ai/artifact/M9SMzqwbNcXtuSZGws2p2F
 - `docs/specs/locked/compatibility-report-p2.md` — R06, the brain: seven chapters, two charts first, five lens chapters
   with cards and scenes, the age band, Two people, per-chapter briefs, the two-triad hero. Artifact: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL
-- `docs/specs/locked/report-lab-model-matrix.md` — next: the lab in the admin panel, server-side replay, runs in the
-  database, the Owner judges writers blind per section; five mixes priced on R05 usage. Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
+- `docs/specs/locked/report-lab-model-matrix.md` — next: GPT-6 Sol and Luna against gpt-5.2, OpenAI only; sessions generate
+  on spawn; the lab at four levels, full only at Promote. Base in the annex. Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
 - Drafts: `report-cost-and-latency.md` (27.1 cents measured, L0 built) · `staging-environment.md` (main → staging,
   production branch → production; runbook page https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7)
 
@@ -36,7 +36,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `R05` pass three, unknown birth time and the compatibility report; lab measured on staging (#53, #54). Acceptance pending.
 - `R06` the nine review fixes, the compatibility second pass (p2), on-tap scenes, MB-60 to 62; lab campaigns dispatched after the merge.
 
-## QA — `docs/qa/` none yet. Annex: `docs/annex/staging-runbook.md`, the Owner's one-time staging setup.
+## QA — `docs/qa/` none yet. Annex: `staging-runbook.md` the Owner's staging setup · `report-lab-model-matrix-annex.md` the matrix's base scope.
 
 ## Code map
 - `web/` React + Vite SPA (Vercel) · `api/` Express API (Railway) · `packages/db` drizzle schema
