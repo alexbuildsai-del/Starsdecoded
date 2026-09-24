@@ -20,6 +20,7 @@ export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
   label: "Superpowers, Chronic Patterns & Growing Edges",
   adminLabel: "Superpowers / Patterns / Edges",
   wordTarget: [600, 700],
+  blindWordTarget: [480, 580],
   maxTokens: 3_600,
   schema: SuperpowersSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

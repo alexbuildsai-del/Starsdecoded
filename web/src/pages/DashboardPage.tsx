@@ -20,7 +20,8 @@ import ProfileInviteHistory from "@/components/ProfileInviteHistory";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
 import { CompatibilityPicker } from "@/components/CompatibilityPicker";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
-import { lensInfo } from "@/lib/lenses";
+import { LENSES, lensInfo } from "@/lib/lenses";
+import { PERSONAL_REPORT } from "@/lib/product";
 import type { Lens } from "@/types/chart";
 import {
   useListReports,
@@ -180,7 +181,7 @@ function ZoneYou({
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <p className="font-label text-[10px] tracking-[0.2em] uppercase text-primary/70 mb-1">
-            Your Natal Chart
+            {PERSONAL_REPORT}
           </p>
           <h2 className="font-display text-2xl truncate mb-0.5">{selfProfile.name}</h2>
           {natalReport?.archetypeName && (
@@ -648,8 +649,10 @@ export default function DashboardPage() {
 
         {/* ── Zone 3: Compatibility ────────────────────────────────────── */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
             <h2 className="font-display text-xl">Compatibility</h2>
+            {/* The three doors (ADR-68): who each lens is for, in a few words. */}
+            <p className="text-xs text-muted-foreground">{LENSES.map((l) => l.door).join(" · ")}</p>
           </div>
 
           {reportsQ.isLoading ? (

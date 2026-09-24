@@ -127,7 +127,7 @@ test("the pass: revision first, then revising, the horizon blocks, the amendment
   assert.equal(out.houses?.houses.length, 12);
   assert.ok(out.angleMeanings);
   assert.equal(out.meta.horizonPass?.passes, 1);
-  assert.equal(out.meta.horizonPass?.sentencesRevised, 10);
+  assert.equal(out.meta.horizonPass?.sentencesRevised, 10, "one sentence a section");
   assert.equal(out.meta.horizonPass?.paragraphsAdded, 0);
   assert.equal(Object.keys(out.meta.horizonPass!.sections).length, 10);
   assert.equal(out.overview.headline, "You investigate first and commit second. You keep going after the room has emptied.");
@@ -135,6 +135,45 @@ test("the pass: revision first, then revising, the horizon blocks, the amendment
   assert.ok(out.meta.usage.sections.length > blindReport.meta.usage.sections.length, "the pass's calls are accounted on top of the report's");
   assert.equal(calls.filter((c) => c.endsWith("_amend")).length, 10);
   assert.ok(!calls.includes("natal_overview"), "the pass never regenerates a section wholesale");
+});
+
+// R05's pass on staging kept 53 claims of the blind report's 60 even with the
+// rising and the houses added (MB-61): every blind placement claim failed
+// re-validation because it carried no house. Replayed from the stored run.
+test("the pass keeps its claims: replaying the r05 pass, claims after are at least claims before, and the ledger counts every sentence", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { applyAmendment, sentencesOf } = await import("./aiInterpretation.js");
+  const stored = JSON.parse(readFileSync(new URL("../../../fixtures/passes/marie-curie.r05.json", import.meta.url), "utf8")) as {
+    blindClaims: number; passedClaimsInR05: number;
+    sections: Record<string, Record<string, unknown> & { claims: Array<{ quote: string }> }>;
+    replies: Record<string, { amendments: Array<{ quote: string; replacement: string; evidence: unknown[] }>; additions: Array<{ after: string; text: string; claims: unknown[] }> }>;
+  };
+  const chart = drawn();
+  let before = 0;
+  let after = 0;
+  let sentences = 0;
+  let sentencesOnPage = 0;
+  for (const [id, section] of Object.entries(stored.sections)) {
+    const reply = stored.replies[id];
+    if (!reply) continue;
+    const out = applyAmendment(id, section, reply as never, chart);
+    before += section.claims.length;
+    after += (out.section.claims as unknown[]).length;
+    sentences += out.sentencesChanged;
+    // What a reader would count: the sentences in the replacements and in the added paragraphs.
+    sentencesOnPage += reply.amendments.reduce((n, a) => n + sentencesOf(a.replacement).length, 0) + reply.additions.reduce((n, a) => n + sentencesOf(a.text).length, 0);
+    // The one legitimate loss: a Moon aspect that held only across part of the band and not at the hour.
+    for (const d of out.droppedClaims) assert.match(d, /no (moon \w+ \w+|\w+ \w+ moon) in the chart/, `${id}: ${d}`);
+    // A blind placement claim now carries its house.
+    for (const c of out.section.claims as Array<{ evidence: Array<{ ref: { kind: string; house?: number | null } }> }>) {
+      for (const e of c.evidence) if (e.ref.kind === "placement") assert.notEqual(e.ref.house, null);
+    }
+  }
+  assert.equal(before, stored.blindClaims);
+  assert.ok(after >= before, `claims after ${after} < before ${before}`);
+  assert.ok(after > stored.passedClaimsInR05, `R05 kept ${stored.passedClaimsInR05}; now ${after}`);
+  assert.equal(sentences, sentencesOnPage);
+  assert.ok(sentences > 16, `the ledger counts every changed sentence, not the sixteen amendments: ${sentences}`);
 });
 
 test("the failure path: the previous text stays, the profile is restored, the error is recorded", async () => {

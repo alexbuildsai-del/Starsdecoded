@@ -10,7 +10,8 @@
  *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
  *   pnpm report:lab --render --all --label staging     (rewrite .md/.html from stored .json)
  *   pnpm report:lab --pass                                # blind marie-curie-unknown, then the horizon pass
- *   pnpm report:lab --pair curie-winfrey --lens family    # one compatibility report, measured
+ *   pnpm report:lab --pair curie-winfrey --lens people    # one compatibility report, measured
+ *   pnpm report:lab --pair                                # the campaign: three lenses, then one parent-and-child run per band
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
  * Postgres) and OPENAI_API_KEY. Each run costs one full report's worth of AI
@@ -40,24 +41,31 @@ interface ChartFixture {
   timezone?: string;
   /** 0 exact, 180 a part of the day, 720 unknown (ADR-33). */
   birthTimeWindowMinutes?: number;
+  /** Kept for the pair campaign's band runs; never in the natal campaign. */
+  pairOnly?: boolean;
   note?: string;
 }
 
-/** A pair fixture names two chart fixtures and holds no birth data (R-3.1). */
+/** A pair fixture names two chart fixtures and holds no birth data (R-3.1); it may name its lens, its parent and its label. */
 interface PairFixture {
   name: string;
   a: string;
   b: string;
+  lens?: string;
+  parent?: "A" | "B";
+  label?: string;
+  band?: string;
   note?: string;
 }
 const PAIRS_DIR = join(ROOT, "fixtures", "pairs");
 
 /** Word targets come from the section registry, so prompt, schema and check cannot disagree. */
-import { ALL_SECTIONS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, hasClaims, sectionById, validateClaims } from "../../api/src/prompts/index.js";
-import { PAIR_CHAPTER_IDS, PAIR_WORD_TARGETS, pairChapterTitle, ratingProblems } from "../../api/src/prompts/pair/index.js";
+import { ALL_SECTIONS, BLIND_WORD_TARGETS, PASS_ADDS, WORD_TARGETS as REGISTRY_TARGETS, SECTION_IDS, hasClaims, sectionById, validateClaims } from "../../api/src/prompts/index.js";
+import { PAIR_WORD_TARGETS, bandProblems, evidenceProblems, pairChapterIds, pairChapterTitle, ratingProblems, sceneProblems } from "../../api/src/prompts/pair/index.js";
+import { BAND_DOCTRINE } from "../../api/src/prompts/pair/sections/parent-child/doctrine.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
-/** The product target for a compatibility report (ADR-39). */
-const PAIR_TOTAL: [number, number] = [3000, 4500];
+/** The product target for a compatibility report's prose, the cards and the items outside it (ADR-63). */
+const PAIR_TOTAL: [number, number] = [1900, 2500];
 /** Cost comes from the engine's own table, so the lab cannot disagree with the bill. */
 import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
 const WORD_TARGETS: Record<string, [number, number]> = { ...REGISTRY_TARGETS };
@@ -243,7 +251,8 @@ function measure(interpretation: Record<string, unknown>, chart?: NatalChartData
     whyClauses(value, "", whys);
     const prose = proseOf(value);
     const w = words(prose);
-    const target = WORD_TARGETS[section] ?? null;
+    // A blind report is written to its blind bands (MB-60).
+    const target = (blind ? BLIND_WORD_TARGETS[section] : WORD_TARGETS[section]) ?? null;
     const lower = prose.toLowerCase();
     return {
       section,
@@ -464,10 +473,12 @@ function loadFixture(name: string): ChartFixture {
   return JSON.parse(readFileSync(path, "utf8")) as ChartFixture;
 }
 
+/** The natal campaign's fixtures: every chart but the pair-only ones. */
 function listFixtures(): string[] {
   return readdirSync(CHARTS_DIR)
     .filter((f) => f.endsWith(".json"))
     .map((f) => f.replace(/\.json$/, ""))
+    .filter((name) => !(JSON.parse(readFileSync(join(CHARTS_DIR, `${name}.json`), "utf8")) as ChartFixture).pairOnly)
     .sort();
 }
 
@@ -579,12 +590,14 @@ function report(
     sectMarginal?: boolean; usage?: ReportUsage; horizon?: string;
   } | undefined;
   const blind = meta?.horizon === "unknown";
-  // The blind report is about 900 words shorter: no rising part, no house readings (ADR-34).
-  const band: [number, number] = blind ? [2900, 4600] : REPORT_TOTAL;
+  // A blind report is written to its blind bands, which plus what the pass adds sit inside the product range (MB-60).
+  const blindSum: [number, number] = [Object.values(BLIND_WORD_TARGETS).reduce((n, [a]) => n + a, 0), Object.values(BLIND_WORD_TARGETS).reduce((n, [, b]) => n + b, 0)];
+  const band: [number, number] = blind ? blindSum : REPORT_TOTAL;
 
   console.log(renderTable(rows));
   const totalOk = total >= band[0] && total <= band[1];
   console.log(`\ntotal: ${total} words (target ${band[0]}-${band[1]}: ${totalOk ? "ok" : "OUT OF RANGE"})`
+    + (blind ? `; with the pass's ${PASS_ADDS[0]}-${PASS_ADDS[1]} the ceiling is ${REPORT_TOTAL[1]}` : "")
     + (elapsed === "n/a" ? "" : ` in ${elapsed}s`));
   if (meta) console.log(blind
     ? `prompt ${meta.promptVersion} on ${meta.model}; horizon unknown, written blind`
@@ -920,17 +933,71 @@ async function pollUntil(call: (path: string) => Promise<Record<string, unknown>
 }
 
 // ---------------------------------------------------------------------------
-// The compatibility report: one pair fixture, one lens per run (ADR-39).
+// The compatibility report (ADR-63): one pair fixture under one lens, or the
+// campaign: the three lenses on curie-winfrey and the parent-and-child lens
+// once per band on the four band pairs. Prose against 1,900 to 2,500, the
+// repetition score under its bar, cost against 25 cents, the failure count.
 // ---------------------------------------------------------------------------
 
 interface PairRow { section: string; words: number; target: [number, number] | null; inRange: boolean | null; flags: string[] }
 
-export function measurePair(interpretation: Record<string, unknown>): { rows: PairRow[]; cards: string[] } {
-  const lens = (interpretation.meta as { lens?: string } | undefined)?.lens ?? "partners";
-  const rows: PairRow[] = PAIR_CHAPTER_IDS.map((id) => {
-    const value = interpretation[id];
+/** The fields outside the prose count: the cards and the items (ADR-63). */
+const OUTSIDE_PROSE = new Set(["card", "strengths", "nextTime"]);
+
+/** A chapter's prose: every string leaf but the claims, the card lines and the next-time items. */
+function pairProseOf(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(pairProseOf).join(" ");
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([k]) => k !== "claims" && !OUTSIDE_PROSE.has(k))
+      .map(([, v]) => pairProseOf(v))
+      .join(" ");
+  }
+  return "";
+}
+
+/** Five-word runs, lowercased, so a sentence reused across chapters shows as shared shingles. */
+export function shingles(text: string, n = 5): string[] {
+  const tokens = text.toLowerCase().replace(/[^a-z' ]+/g, " ").split(/\s+/).filter(Boolean);
+  const out: string[] = [];
+  for (let i = 0; i + n <= tokens.length; i++) out.push(tokens.slice(i, i + n).join(" "));
+  return out;
+}
+
+/** The share of five-word runs that appear in more than one chapter; the bar it sits under. */
+export const REPETITION_BAR = 0.03;
+export function repetitionScore(chapters: string[]): number {
+  const seen = new Map<string, Set<number>>();
+  let total = 0;
+  chapters.forEach((text, i) => {
+    for (const s of shingles(text)) {
+      total++;
+      const set = seen.get(s) ?? new Set<number>();
+      set.add(i);
+      seen.set(s, set);
+    }
+  });
+  if (!total) return 0;
+  let repeated = 0;
+  for (const [, set] of seen) if (set.size > 1) repeated += set.size;
+  return repeated / total;
+}
+
+const twelve = (line: string): boolean => words(line) <= 12;
+
+export function measurePair(interpretation: Record<string, unknown>): { rows: PairRow[]; cards: string[]; repetition: number; prose: number; band: string | null; bandFlags: string[] } {
+  const meta = interpretation.meta as { lens?: string; band?: string | null; names?: { a: string; b: string } } | undefined;
+  const lens = (meta?.lens ?? "partners") as never;
+  const band = meta?.band ?? null;
+  const names = meta?.names ?? { a: "A", b: "B" };
+  const bandFlags: string[] = [];
+  const proses: string[] = [];
+  const rows: PairRow[] = pairChapterIds(lens).map((id) => {
+    const value = interpretation[id] as Record<string, unknown> | undefined;
     const missing = value === undefined || value === null;
-    const prose = proseOf(value);
+    const prose = pairProseOf(value);
+    proses.push(prose);
     const w = words(prose);
     const target = PAIR_WORD_TARGETS[id];
     const flags = [
@@ -938,11 +1005,22 @@ export function measurePair(interpretation: Record<string, unknown>): { rows: Pa
       ...METHOD_TALK.filter((p) => prose.toLowerCase().includes(p)).map((p) => `method:"${p}"`),
       ...BANNED_CHARS.filter(([, re]) => re.test(prose)).map(([n]) => `char:${n}`),
       ...ratingProblems(prose).map((r) => `RATING: ${r}`),
+      ...evidenceProblems(prose).map((r) => `EVIDENCE: ${r}`),
     ];
-    const passages = (value as { passages?: Array<{ source: string }> } | undefined)?.passages ?? [];
-    const natal = passages.filter((p) => p.source === "natal").length;
-    const title = pairChapterTitle(id as never, lens as never);
-    return { section: `${id} (${title})${passages.length ? `, ${natal}/${passages.length} natal` : ""}`, words: w, target, inRange: missing ? null : w >= target[0] && w <= target[1], flags };
+    if (!missing) {
+      const card = value.card as { a?: string[]; b?: string[]; pair?: string } | undefined;
+      const lines = [...(card?.a ?? []), ...(card?.b ?? []), ...(card?.pair ? [card.pair] : []), ...((value.strengths as string[] | undefined) ?? [])];
+      const over = lines.filter((l) => !twelve(l));
+      if (over.length) flags.push(`CARD: ${over.length} line(s) over twelve words`);
+      const scene = value.scene as string | undefined;
+      if (scene) flags.push(...sceneProblems(scene, names).map((p) => `SCENE: ${p}`));
+      if (band) {
+        const hits = bandProblems(prose, band as never, BAND_DOCTRINE);
+        bandFlags.push(...hits.map((h) => `${id}: ${h}`));
+      }
+    }
+    const title = pairChapterTitle(id);
+    return { section: `${id} (${title})`, words: w, target, inRange: missing ? null : w >= target[0] && w <= target[1], flags };
   });
   const cards: string[] = [];
   const links = (interpretation.links as { links?: Array<{ kind: string; reading: string; planetA?: string; planetB?: string; planet?: string; house?: number }> } | undefined)?.links ?? [];
@@ -955,13 +1033,77 @@ export function measurePair(interpretation: Record<string, unknown>): { rows: Pa
     const who = l.kind === "overlay" ? `${l.planet} in the ${l.house}th` : `${l.planetA} ${l.planetB}`;
     cards.push(`card ${i + 1} ${l.kind} ${who}: ${w} words${problems.length ? ` ${problems.join(", ")}` : ""}`);
   }
-  return { rows, cards };
+  return { rows, cards, repetition: repetitionScore(proses), prose: rows.reduce((n, r) => n + r.words, 0), band, bandFlags };
 }
 
+/** The pair's markdown: the measurement, then every chapter as a reader would meet it, the cards and the scenes with it. */
+function renderPairMarkdown(pair: PairFixture, lens: string, interpretation: Record<string, unknown>, rows: PairRow[]): string {
+  const meta = interpretation.meta as { promptVersion?: string; model?: string; generatedAt?: string; band?: string | null; label?: string | null; names?: { a: string; b: string } } | undefined;
+  const names = meta?.names ?? { a: "A", b: "B" };
+  const out: string[] = [
+    `# ${pair.name}`,
+    "",
+    `Compatibility report from the report lab, ${meta?.generatedAt ?? new Date().toISOString()}. Prompt ${meta?.promptVersion ?? "?"} on ${meta?.model ?? "?"}, lens ${lens}${meta?.band ? `, band ${meta.band}` : ""}${meta?.label ? `, ${meta.label}` : ""}, ${rows.reduce((n, r) => n + r.words, 0)} words of prose.`,
+    "",
+    "<details><summary>Measurement</summary>",
+    "",
+    "```",
+    table(["chapter", "words", "target", "ok", "flags"], rows.map((r) => [r.section, String(r.words), r.target ? `${r.target[0]}-${r.target[1]}` : "-", r.inRange === null ? "-" : r.inRange ? "yes" : "NO", r.flags.join(" ") || "-"])),
+    "```",
+    "",
+    "</details>",
+    "",
+  ];
+  const claimsBlock = (value: Record<string, unknown>) => {
+    const claims = (value.claims as Array<{ quote: string; evidence: Array<{ label: string }> }> | undefined) ?? [];
+    if (!claims.length) return;
+    out.push("<details><summary>Claims and evidence</summary>", "");
+    for (const c of claims) out.push(`- "${c.quote}"`, ...c.evidence.map((e) => `  - ${e.label}`));
+    out.push("", "</details>", "");
+  };
+  const ids = pairChapterIds(lens as never);
+  ids.forEach((id, i) => {
+    const value = interpretation[id] as Record<string, unknown> | undefined;
+    if (!value) return;
+    out.push("---", "", `## ${String(i + 1).padStart(2, "0")} ${pairChapterTitle(id)}`, "", `*${value.headline as string}*`, "");
+    if (id === "twoCharts") {
+      const links = (interpretation.links as { links?: Array<{ kind: string; reading: string }> } | undefined)?.links ?? [];
+      if (links.length) { out.push("### Link cards", ""); for (const l of links) out.push(`- **${l.kind}** ${l.reading}`); out.push(""); }
+      out.push("### What is naturally strong between you", "", ...(value.strong as string[]).map((l) => `- ${l}`), "");
+      out.push("### What will take work", "", ...(value.work as string[]).map((l) => `- ${l}`), "");
+      out.push("### The paradox", "", value.paradox as string, "");
+      out.push("### Your three strengths as a pair", "", ...(value.strengths as string[]).map((l) => `- ${l}`), "");
+      out.push(value.pointer as string, "");
+    } else if ("card" in value) {
+      const card = value.card as { a: string[]; b: string[]; pair: string };
+      out.push(`### ${names.a} · from personal report`, "", ...card.a.map((l) => `- ${l}`), "", `### ${names.b} · from personal report`, "", ...card.b.map((l) => `- ${l}`), "", `*${card.pair}*`, "");
+      const scenes = (interpretation.scenes as Record<string, { titles: string[]; written: number; texts: Record<string, string> }> | undefined)?.[id];
+      out.push(`### The scene${scenes ? ` · ${scenes.titles[scenes.written]}` : ""}`, "", value.scene as string, "");
+      if (scenes) out.push(`Other scenes: ${scenes.titles.filter((_, j) => j !== scenes.written).join(" · ")}`, "");
+      const wjh = value.whatJustHappened as { becauseA: string; becauseB: string };
+      out.push("### What just happened", "", `**${names.a} · because** ${wjh.becauseA}`, "", `**${names.b} · because** ${wjh.becauseB}`, "");
+      out.push("### The pattern under it", "", value.pattern as string, "");
+      const items = (value.nextTime as { items: Array<{ for: string; action: string; why: string }> }).items;
+      out.push("### Next time", "", ...items.map((it) => `- [ ] ${it.for === "A" ? names.a : it.for === "B" ? names.b : "Both"}: ${it.action} (${it.why})`), "");
+    } else {
+      out.push(value.opening as string, "");
+      for (const [key, who] of [["forA", names.a], ["forB", names.b], ["forBoth", "Both"]] as const) {
+        const list = value[key] as { intro: string; items: Array<{ action: string; why: string }> };
+        out.push(`### ${who}`, "", list.intro, "", ...list.items.map((it) => `- [ ] ${it.action} (${it.why})`), "");
+      }
+      out.push(value.closing as string, "");
+    }
+    claimsBlock(value);
+  });
+  return out.join("\n");
+}
+
+/** The pair's cost bar (p2 spec, Lab). */
+const PAIR_COST_BAR = 0.25;
+
 function reportPair(name: string, lens: string, label: string, fixture: PairFixture, interpretation: Record<string, unknown>, elapsed: string): void {
-  const { rows, cards } = measurePair(interpretation);
+  const { rows, cards, repetition, prose, band, bandFlags } = measurePair(interpretation);
   const linkWords = words(proseOf((interpretation.links as { links?: unknown } | undefined)?.links));
-  const total = rows.reduce((n, r) => n + r.words, 0) + linkWords;
   console.log(table(["chapter", "words", "target", "ok", "flags"], rows.map((r) => [
     r.section, String(r.words), r.target ? `${r.target[0]}-${r.target[1]}` : "-",
     r.inRange === null ? "-" : r.inRange ? "yes" : "NO", r.flags.join(" ") || "-",
@@ -969,50 +1111,63 @@ function reportPair(name: string, lens: string, label: string, fixture: PairFixt
   console.log(cards.join("\n"));
   const bad = cards.filter((c) => /words [^\n]*(words|check|RATING)|RATING/.test(c));
   console.log(`link cards: ${cards.length}, ${linkWords} words${bad.length ? `, ${bad.length} OUT OF SHAPE` : ", all 40 to 70 with a behaviour check"}`);
-  const totalOk = total >= PAIR_TOTAL[0] && total <= PAIR_TOTAL[1];
-  console.log(`\ntotal: ${total} words (target ${PAIR_TOTAL[0]}-${PAIR_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"})` + (elapsed === "n/a" ? "" : ` in ${elapsed}s`));
-  const meta = interpretation.meta as { promptVersion?: string; model?: string; usage?: ReportUsage; blind?: boolean } | undefined;
-  console.log(`prompt ${meta?.promptVersion} on ${meta?.model}; lens ${lens}${meta?.blind ? "; a chart is blind, no overlay" : ""}`);
-  const ratings = [...rows.flatMap((r) => r.flags), ...cards].filter((f) => /RATING/.test(f));
-  console.log(ratings.length ? `RATING FLAG: ${ratings.join("; ")}` : "rating flag: clean, no number describes the pair");
+  const totalOk = prose >= PAIR_TOTAL[0] && prose <= PAIR_TOTAL[1];
+  console.log(`\nprose: ${prose} words (target ${PAIR_TOTAL[0]}-${PAIR_TOTAL[1]}: ${totalOk ? "ok" : "OUT OF RANGE"}), cards and items outside it` + (elapsed === "n/a" ? "" : `; written in ${elapsed}s`));
+  console.log(`repetition: ${(repetition * 100).toFixed(1)}% of five-word runs appear in more than one chapter (bar ${REPETITION_BAR * 100}%: ${repetition <= REPETITION_BAR ? "under" : "OVER"})`);
+  const meta = interpretation.meta as { promptVersion?: string; model?: string; usage?: ReportUsage; blind?: boolean; label?: string | null } | undefined;
+  console.log(`prompt ${meta?.promptVersion} on ${meta?.model}; lens ${lens}${band ? `; band ${band}` : ""}${meta?.label ? `; ${meta.label}` : ""}${meta?.blind ? "; a chart is blind, no overlay" : ""}`);
+  if (band) console.log(bandFlags.length ? `BAND FLAG: ${bandFlags.join("; ")}` : `band flag: clean, no line contradicts the ${band} band`);
+  const ratings = [...rows.flatMap((r) => r.flags), ...cards].filter((f) => /RATING|EVIDENCE|CARD|SCENE/.test(f));
+  console.log(ratings.length ? `SHAPE FLAG: ${ratings.join("; ")}` : "shape flag: clean, no number, no evidence in prose, every card line inside twelve words, every scene names both");
   if (meta?.usage) {
     console.log(`\n${renderUsage(meta.usage)}`);
-    console.log(`\ncost ${usd(meta.usage.costUsd)} in ${secs(meta.usage.wallClockMs)}s wall clock (${secs(meta.usage.totals.ms)}s of call time across ${meta.usage.totals.attempts} calls).`);
+    const cost = meta.usage.costUsd;
+    console.log(`\ncost ${usd(cost)} in ${secs(meta.usage.wallClockMs)}s wall clock (${secs(meta.usage.totals.ms)}s of call time across ${meta.usage.totals.attempts} calls); bar ${usd(PAIR_COST_BAR)}: ${cost !== null && cost <= PAIR_COST_BAR ? "under" : "OVER"}`);
   }
   if (label === "render") return;
   mkdirSync(REPORTS_DIR, { recursive: true });
   const stem = join(REPORTS_DIR, `${name}.${lens}.${label}`);
   writeFileSync(`${stem}.json`, JSON.stringify({ fixture, lens, interpretation }, null, 2));
-  console.log(`wrote ${stem}.json`);
+  writeFileSync(`${stem}.md`, renderPairMarkdown(fixture, lens, interpretation, rows));
+  console.log(`wrote ${stem}.md and ${stem}.json`);
 }
 
-async function runPairLocal(name: string, lens: string, label: string): Promise<void> {
+/** What a pair run sends: the lens the flag or the fixture names, the parent and the label the fixture carries. */
+function pairInput(pair: PairFixture, lensFlag: string | undefined): { lens: string; parent: "A" | "B" | null; label: string | null } {
+  const lens = lensFlag ?? pair.lens ?? "partners";
+  return { lens, parent: lens === "parent_child" ? (pair.parent ?? "A") : null, label: lens === "people" ? (pair.label ?? "friends") : null };
+}
+
+async function runPairLocal(name: string, lensFlag: string | undefined, label: string): Promise<void> {
   const { calculateNatalChart } = await import("../../api/src/lib/chartCalculation.js");
   const { generateInterpretation } = await import("../../api/src/lib/aiInterpretation.js");
   const { generatePairInterpretation } = await import("../../api/src/lib/pairInterpretation.js");
   const pair = loadPair(name);
+  const { lens, parent, label: how } = pairInput(pair, lensFlag);
   const [fa, fb] = [loadFixture(pair.a), loadFixture(pair.b)];
   console.log(`\n=== ${pair.name} (${name}), ${lens}: two natal reports first ===`);
   const [ca, cb] = [chartOf(calculateNatalChart, fa), chartOf(calculateNatalChart, fb)];
   const [ia, ib] = await Promise.all([generateInterpretation(ca, fa.name), generateInterpretation(cb, fb.name)]);
   const started = Date.now();
   const out = (await generatePairInterpretation({
-    lens: lens as never,
-    a: { name: fa.name, chart: ca, interpretation: ia },
-    b: { name: fb.name, chart: cb, interpretation: ib },
+    lens: lens as never, parent, label: how,
+    a: { name: fa.name, birthDate: fa.birthDate, chart: ca, interpretation: ia },
+    b: { name: fb.name, birthDate: fb.birthDate, chart: cb, interpretation: ib },
   })) as unknown as Record<string, unknown>;
   console.log(`\n=== ${pair.name} (${name}), ${lens} ===`);
   reportPair(name, lens, label, pair, out, ((Date.now() - started) / 1000).toFixed(1));
 }
 
-async function runPairRemote(name: string, lens: string, label: string, base: string): Promise<void> {
+async function runPairRemote(name: string, lensFlag: string | undefined, label: string, base: string): Promise<void> {
   const pair = loadPair(name);
+  const { lens, parent, label: how } = pairInput(pair, lensFlag);
   const { call } = remoteClient(base);
   const natal = async (fixtureName: string): Promise<string> => {
     const f = loadFixture(fixtureName);
     const created = await call("/reports", { method: "POST", body: JSON.stringify({
       name: f.name, birthDate: f.birthDate, birthTime: f.birthTime, birthPlace: `lab fixture ${fixtureName}`,
-      latitude: f.latitude, longitude: f.longitude, timezoneOffset: f.timezoneOffset, birthTimeWindowMinutes: f.birthTimeWindowMinutes ?? 0,
+      latitude: f.latitude, longitude: f.longitude, timezoneOffset: f.timezoneOffset, ...(f.timezone ? { timezone: f.timezone } : {}),
+      birthTimeWindowMinutes: f.birthTimeWindowMinutes ?? 0,
     }) });
     return created.id as string;
   };
@@ -1023,12 +1178,34 @@ async function runPairRemote(name: string, lens: string, label: string, base: st
   const b = await natal(pair.b);
   await Promise.all([pollUntil(call, a, ["complete"]), pollUntil(call, b, ["complete"])]);
   const started = Date.now();
-  const created = await call("/compatibility", { method: "POST", body: JSON.stringify({ reportAId: a, reportBId: b, lens }) });
+  const created = await call("/compatibility", { method: "POST", body: JSON.stringify({ reportAId: a, reportBId: b, lens, ...(parent ? { parent } : {}), ...(how ? { label: how } : {}) }) });
   const id = created.id as string;
   await pollUntil(call, id, ["complete"]);
   const full = await call(`/reports/${id}`);
   console.log(`\n=== ${pair.name} (${name}), ${lens} ===`);
   reportPair(name, lens, label, pair, full.interpretation as Record<string, unknown>, ((Date.now() - started) / 1000).toFixed(1));
+}
+
+/** The campaign: the three lenses on curie-winfrey, then the parent-and-child lens once per band. Every run runs even when one fails. */
+const PAIR_CAMPAIGN: Array<{ pair: string; lens?: string }> = [
+  { pair: "curie-winfrey", lens: "partners" }, { pair: "curie-winfrey", lens: "parent_child" }, { pair: "curie-winfrey", lens: "people" },
+  { pair: "beatrice-athena" }, { pair: "william-charlotte" }, { pair: "william-george" }, { pair: "charles-william" },
+];
+
+async function runPairCampaign(label: string, base: string | undefined): Promise<void> {
+  const failed: string[] = [];
+  for (const run of PAIR_CAMPAIGN) {
+    const tag = `${run.pair}${run.lens ? ` ${run.lens}` : ""}`;
+    try {
+      if (base) await runPairRemote(run.pair, run.lens, label, base);
+      else await runPairLocal(run.pair, run.lens, label);
+    } catch (err) {
+      console.log(`FAILED ${tag}: ${err instanceof Error ? err.message : err}`);
+      failed.push(tag);
+    }
+  }
+  console.log(`\n=== pair campaign: ${PAIR_CAMPAIGN.length - failed.length} of ${PAIR_CAMPAIGN.length} runs complete, ${failed.length} failed${failed.length ? `: ${failed.join(", ")}` : ""} ===`);
+  if (failed.length) throw new Error(`${failed.length} of ${PAIR_CAMPAIGN.length} pair runs failed: ${failed.join(", ")}`);
 }
 
 async function main() {
@@ -1077,12 +1254,19 @@ async function main() {
   }
 
   const remote = opt("remote");
-  const pairName = opt("pair");
+  // --pair alone, or --pair all, is the campaign; --pair <fixture> [--lens <lens>] is one run.
+  const pairName = flag("pair") ? (opt("pair") ?? "all") : undefined;
+  const pairFixture = pairName !== undefined && pairName !== "all" && !pairName.startsWith("--") ? pairName : null;
+  const lensFlag = opt("lens") === "all" ? undefined : opt("lens");
   if (remote !== undefined) {
     if (!/^https?:\/\//.test(remote)) throw new Error(`--remote needs a web origin, got "${remote}"`);
     const base = remote.replace(/\/+$/, "");
     if (flag("pass")) { await runPassRemote(label, base); return; }
-    if (pairName !== undefined) { await runPairRemote(pairName, opt("lens") ?? "partners", label, base); return; }
+    if (pairName !== undefined) {
+      if (pairFixture) await runPairRemote(pairFixture, lensFlag, label, base);
+      else await runPairCampaign(label, base);
+      return;
+    }
     // Every fixture runs even when one fails: a measurement with four charts
     // and one named failure is worth more than a stop at the first.
     const failed: string[] = [];
@@ -1116,7 +1300,8 @@ async function main() {
   if (flag("pass")) {
     await runPassLocal(label);
   } else if (pairName !== undefined) {
-    await runPairLocal(pairName, opt("lens") ?? "partners", label);
+    if (pairFixture) await runPairLocal(pairFixture, lensFlag, label);
+    else await runPairCampaign(label, undefined);
   } else {
     for (const name of names) {
       await runOne(name, label);

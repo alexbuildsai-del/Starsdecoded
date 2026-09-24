@@ -21,6 +21,17 @@ export const DAYS_PER_SECOND = 8;
 /** The most the Moon travels during the settle; the rest is where it already is. */
 export const MOON_SETTLE_CAP = 8;
 export const SETTLE_SECONDS = 1.4;
+/**
+ * Once settled, the sky keeps turning over the horizon at one slow constant
+ * rate, every body together, so the wheel never stands still (ADR-59). It is
+ * the diurnal turn: bodies rise in the east while the horizon stays put.
+ */
+export const TURN_DEGREES_PER_SECOND = 1.5;
+
+/** How far the settled sky has turned after `seconds`, in degrees along the zodiac. */
+export function turnAt(seconds: number): number {
+  return norm360(-Math.max(0, seconds) * TURN_DEGREES_PER_SECOND);
+}
 
 /** The ring a body sits on, 0 innermost. The nodes ride the Moon's ring. */
 export function ringOf(body: string): number {

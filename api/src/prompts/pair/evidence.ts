@@ -7,11 +7,11 @@
  * rejected with a message naming the report and section.
  */
 import { z } from "zod/v4";
-import type { PairBrief } from "../../lib/pairBrief.js";
+import { aspectKey, overlayKey, type PairBrief } from "../../lib/pairBrief.js";
 import { findOverlay } from "../../lib/overlays.js";
 import { ASPECTS, BODIES, BODY_LABELS, cap, ordinal, type Body } from "../vocabulary.js";
 import { SECTION_IDS, type StoredClaim } from "../index.js";
-import { proseOf, type StoredEvidence } from "../evidence.js";
+import { proseOf, softenQuote, type StoredEvidence } from "../evidence.js";
 
 const BodyEnum = z.enum(BODIES);
 const SideEnum = z.enum(["A", "B"]);
@@ -42,18 +42,26 @@ export const PairClaimSchema = z.object({
 export type PairClaim = z.infer<typeof PairClaimSchema>;
 export const PairClaimsSchema = z.array(PairClaimSchema).min(3).max(8);
 
-export const PAIR_CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the brief: a cross aspect (A's body, B's body, type, orb as listed), an overlay (whose body, in whose house, the house as listed), or a source (the letter, section and claim number of a natal claim as listed). Copy values exactly from the brief. A passage tagged natal must cite a source; a passage tagged new must cite a cross aspect or an overlay. Every reference is checked by code and the section is rejected if any does not match.`;
+export const PAIR_CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the brief: a cross aspect (A's body, B's body, type, orb as listed), an overlay (whose body, in whose house, the house as listed), or a source (the letter, section and claim number of a personal-report claim as listed). Copy values exactly from the brief. A cross aspect or an overlay may be cited only from THIS CHAPTER'S LINKS; a claim citing another chapter's link is rejected. A because-line cites a source. Every reference is checked by code and the section is rejected if any does not match.`;
 
-function norm(s: string): string {
-  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/…/g, "...").replace(/\s+/g, " ").trim();
-}
+const norm = softenQuote;
 
 const ORB_TOLERANCE = 0.2;
 
-/** Returns human-readable problems; empty means every claim verified against the computed pair. */
-export function validatePairClaims(section: unknown, claims: PairClaim[], brief: PairBrief): string[] {
+/** The link a cross reference points at, as the brief's allocation keys it (ADR-66). */
+export function crossLinkKey(e: Exclude<PairEvidenceRef, { kind: "source" }>): string {
+  return "planetA" in e ? aspectKey(e.planetA, e.aspect, e.planetB) : overlayKey(e.of, e.planet, e.inHouseOf);
+}
+
+/**
+ * Returns human-readable problems; empty means every claim verified against
+ * the computed pair. With a chapter id and a brief that carries an
+ * allocation, a cross claim outside that chapter's links is rejected.
+ */
+export function validatePairClaims(section: unknown, claims: PairClaim[], brief: PairBrief, chapterId?: string): string[] {
   const errors: string[] = [];
   const prose = norm(proseOf(section));
+  const owned = chapterId && brief.allocation ? brief.allocation[chapterId] : undefined;
   claims.forEach((c, i) => {
     const q = norm(c.quote);
     if (q.length < 8) errors.push(`claim ${i + 1}: quote too short`);
@@ -66,6 +74,10 @@ export function validatePairClaims(section: unknown, claims: PairClaim[], brief:
         if (!list || !list[e.claim - 1]) {
           errors.push(`${tag}: report ${e.report} (${side.name}) has no claim ${e.claim} in ${e.section}`);
         }
+        return;
+      }
+      if (owned && !owned.includes(crossLinkKey(e))) {
+        errors.push(`${tag}: cites a link outside this chapter's allocation; only THIS CHAPTER'S LINKS may be cited`);
         return;
       }
       if ("planetA" in e) {

@@ -1,12 +1,15 @@
 /**
- * The natal report: one page, one sky (ADR-48, ADR-51). The opening overlay
- * holds the page until the reader takes the door or it opens itself; the
- * hero ring then gathers the stars. Ten chapters, the last one Closing
+ * The natal report: one page, two skies (ADR-48, ADR-59). The generation
+ * screen is the page until the reader takes the door or it opens itself:
+ * full-bleed, the scroll locked behind it, the same screen before the chart
+ * exists. Taking the door unmounts it, shows the report at the top, and the
+ * hero's own sky gathers its stars onto the ring once; the chapters keep
+ * R04's ground. Ten chapters, the last one Closing
  * (ADR-46); a chapter not yet landed shows a skeleton. A blind report renders
  * no rising text and no house readings, the call to action instead, and the
  * ledger above chapter 01 once a pass has run (ADR-35, ADR-37).
  */
-import { useCallback, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -44,7 +47,6 @@ import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { chapterAccent } from "@/lib/chapter-accent";
-import type { Ring } from "@/lib/gather";
 
 /** Ten chapters, in the locked order (ADR-46). The section each one waits for is its own. */
 const CHAPTERS = [
@@ -94,7 +96,6 @@ export default function ReportPage() {
   const [, navigate] = useLocation();
   const client = useQueryClient();
   const [active, setActive] = useState(-1);
-  const [ring, setRing] = useState<Ring | null>(null);
   const [askTime, setAskTime] = useState(false);
   const [marks, setMarks] = useState(() => marksShown(id ?? ""));
 
@@ -117,7 +118,11 @@ export default function ReportPage() {
   );
 
   const handlePrint = () => window.print();
-  const onRing = useCallback((r: Ring) => setRing((prev) => (prev && prev.cx === r.cx && prev.cy === r.cy && prev.r === r.r ? prev : r)), []);
+
+  // The door taken: the report shows from the top, and the gather runs from there.
+  useEffect(() => {
+    if (open) window.scrollTo({ top: 0, behavior: "auto" });
+  }, [open]);
 
   if (live.isLoading) return <LoadingState label="Loading your report…" />;
 
@@ -152,8 +157,9 @@ export default function ReportPage() {
     );
   }
 
-  // Until the door is taken the page is the overlay on the sky; behind it the
-  // body mounts as soon as the chart and the first sections exist.
+  // Until the door is taken the generation screen is the page; behind it the
+  // body mounts as soon as the chart and the first sections exist, so the
+  // hero has measured its ring by the time the screen leaves.
   const ready = !!chartData && !!interpretation;
   const showOverlay = !open || failed;
   const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1);
@@ -196,7 +202,7 @@ export default function ReportPage() {
     <WorkbookProvider reportId={id!} initial={workbook}>
     <RevisionProvider value={revisions}>
     <div className={`rp-root min-h-screen${marks ? "" : " marks-off"}`} style={{ "--accent": accent } as CSSProperties}>
-      <ReportSky accent={accent} opening={onHero} gatherTo={open ? ring : null} />
+      <ReportSky accent={accent} opening={onHero} />
 
       {showOverlay && (
         <OpeningOverlay
@@ -221,7 +227,8 @@ export default function ReportPage() {
         chartData={chartData}
         meta={interpretation.meta}
         onAddBirthTime={report.profileId ? openTime : undefined}
-        onRing={onRing}
+        accent={OPENING_ACCENT}
+        gather={open}
       />
 
       {/* Chrome sits on the opening plate without a ground, and takes one once the reading starts. */}

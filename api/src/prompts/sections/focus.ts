@@ -17,6 +17,7 @@ export const focus: SectionSpec<typeof FocusSchema> = {
   label: "What to Focus On",
   adminLabel: "What to Focus On",
   wordTarget: [350, 450],
+  blindWordTarget: [300, 380],
   maxTokens: 3_000,
   schema: FocusSchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

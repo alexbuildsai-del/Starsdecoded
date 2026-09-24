@@ -445,6 +445,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /compatibility/{id}/scenes:
+    post:
+      operationId: writeScene
+      tags: [compatibility]
+      summary: Write one of a chapter's two unread scenes on tap
+      description: >
+        A lens chapter carries three curated scenes; the report wrote one. This
+        writes another on the same chapter brief, once per report, chapter and
+        index, stores it on the interpretation and serves the stored text on
+        every later call (ADR-65, ADR-72). Access is the report's.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WriteSceneBody"
+      responses:
+        "200":
+          description: The scene, written now or served from storage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SceneResponse"
+        "400":
+          description: The chapter is not a lens chapter of this report, or the index is not one of its two unread scenes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /compatibility/{id}/summary:
     get:
       operationId: getCompatibilitySummary
@@ -948,7 +990,7 @@ components:
         relationshipType:
           type: string
           nullable: true
-          description: The lens (partners, parent_child, family). Set for compatibility reports.
+          description: The lens (partners, parent_child, people). Set for compatibility reports.
         lens:
           $ref: "#/components/schemas/RelationshipType"
           nullable: true
@@ -1469,35 +1511,111 @@ components:
           type: number
       required: [attempts, inputTokens, cachedInputTokens, outputTokens, reasoningTokens, ms]
 
-    PairPassage:
-      description: One passage of a compatibility chapter, tagged by where it came from (ADR-39).
+    PairCard:
+      description: "The side-by-side card of a lens chapter: three lines a side in that person's own words, one for the pair (ADR-63)."
       type: object
       properties:
-        text:
+        a:
+          type: array
+          items:
+            type: string
+        b:
+          type: array
+          items:
+            type: string
+        pair:
           type: string
-        source:
-          type: string
-          enum: [natal, new]
-          description: natal is read from one of the two stored reports; new is written for the pair.
-        of:
+      required: [a, b, pair]
+
+    PairNextTimeItem:
+      type: object
+      properties:
+        for:
           type: string
           enum: [A, B, both]
-      required: [text, source]
+        action:
+          type: string
+        why:
+          type: string
+      required: [for, action, why]
 
-    PairChapter:
+    PairLensChapter:
+      description: "Chapters 02 to 06 under every lens: the workbook chapter (ADR-63, ADR-64)."
       type: object
       properties:
         headline:
           type: string
-        passages:
-          type: array
-          items:
-            $ref: "#/components/schemas/PairPassage"
+        card:
+          $ref: "#/components/schemas/PairCard"
+        scene:
+          type: string
+        whatJustHappened:
+          type: object
+          properties:
+            becauseA:
+              type: string
+            becauseB:
+              type: string
+          required: [becauseA, becauseB]
+        pattern:
+          type: string
+        nextTime:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/PairNextTimeItem"
+          required: [items]
         claims:
           type: array
           items:
             $ref: "#/components/schemas/Claim"
-      required: [headline, passages, claims]
+      required: [headline, card, scene, whatJustHappened, pattern, nextTime, claims]
+
+    PairTwoCharts:
+      description: Chapter 01, Your two charts, the introduction under the wheel (ADR-63).
+      type: object
+      properties:
+        headline:
+          type: string
+        strong:
+          type: array
+          items:
+            type: string
+        work:
+          type: array
+          items:
+            type: string
+        paradox:
+          type: string
+        strengths:
+          type: array
+          items:
+            type: string
+        pointer:
+          type: string
+        claims:
+          type: array
+          items:
+            $ref: "#/components/schemas/Claim"
+      required: [headline, strong, work, paradox, strengths, pointer, claims]
+
+    PairChapterScenes:
+      description: "A lens chapter's three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72)."
+      type: object
+      properties:
+        titles:
+          type: array
+          items:
+            type: string
+        written:
+          type: integer
+        texts:
+          type: object
+          additionalProperties:
+            type: string
+      required: [titles, written, texts]
 
     PairChecklist:
       type: object
@@ -1511,7 +1629,7 @@ components:
       required: [intro, items]
 
     PairPractise:
-      description: Chapter 09 of the compatibility report, three checklists and a closing paragraph.
+      description: Chapter 07 of the compatibility report, three checklists collected from the lens chapters and a closing paragraph.
       type: object
       properties:
         opening:
@@ -1639,6 +1757,15 @@ components:
               enum: [natal, compatibility]
             lens:
               $ref: "#/components/schemas/RelationshipType"
+            label:
+              type: string
+              nullable: true
+              description: How two people know each other, in their words; null under the other lenses.
+            band:
+              type: string
+              nullable: true
+              enum: [little, school, teen, grown]
+              description: The child's age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.
             horizon:
               type: string
               enum: [known, approximate, unknown]
@@ -1950,31 +2077,52 @@ components:
                   type: string
               required: [publicDirection, whereYouThrive, atYourBest, underPressure]
           required: [ascendant, midheaven]
-        howYouMeet:
-          $ref: "#/components/schemas/PairChapter"
         twoCharts:
-          $ref: "#/components/schemas/PairChapter"
-        twoWays:
-          $ref: "#/components/schemas/PairChapter"
-        whereItFlows:
-          $ref: "#/components/schemas/PairChapter"
-        whereItRubs:
-          $ref: "#/components/schemas/PairChapter"
-        howYouTalk:
-          $ref: "#/components/schemas/PairChapter"
-        lensOne:
-          $ref: "#/components/schemas/PairChapter"
-        lensTwo:
-          $ref: "#/components/schemas/PairChapter"
+          $ref: "#/components/schemas/PairTwoCharts"
+        partners02:
+          $ref: "#/components/schemas/PairLensChapter"
+        partners03:
+          $ref: "#/components/schemas/PairLensChapter"
+        partners04:
+          $ref: "#/components/schemas/PairLensChapter"
+        partners05:
+          $ref: "#/components/schemas/PairLensChapter"
+        partners06:
+          $ref: "#/components/schemas/PairLensChapter"
+        parentChild02:
+          $ref: "#/components/schemas/PairLensChapter"
+        parentChild03:
+          $ref: "#/components/schemas/PairLensChapter"
+        parentChild04:
+          $ref: "#/components/schemas/PairLensChapter"
+        parentChild05:
+          $ref: "#/components/schemas/PairLensChapter"
+        parentChild06:
+          $ref: "#/components/schemas/PairLensChapter"
+        people02:
+          $ref: "#/components/schemas/PairLensChapter"
+        people03:
+          $ref: "#/components/schemas/PairLensChapter"
+        people04:
+          $ref: "#/components/schemas/PairLensChapter"
+        people05:
+          $ref: "#/components/schemas/PairLensChapter"
+        people06:
+          $ref: "#/components/schemas/PairLensChapter"
         whatToPractise:
           $ref: "#/components/schemas/PairPractise"
         links:
           $ref: "#/components/schemas/PairLinks"
+        scenes:
+          description: A compatibility report's scenes by lens chapter id (ADR-65).
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/PairChapterScenes"
       required:
         - meta
 
     ReportParticipant:
-      description: One of the two people of a compatibility report, with their chart.
+      description: One of the two people of a compatibility report, with their chart and their birth record for the hero's corners (ADR-70).
       type: object
       properties:
         id:
@@ -1986,10 +2134,25 @@ components:
         role:
           type: string
           description: Positional. primary or secondary, or parent and child under that lens.
+        birthDate:
+          type: string
+        birthTime:
+          type: string
+        birthTimeWindowMinutes:
+          type: number
+        birthPlace:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        isSelf:
+          type: boolean
+          description: The profile the account holder marked as their own; the hero puts it on the left.
         chartData:
           $ref: "#/components/schemas/ChartData"
           nullable: true
-      required: [id, reportId, name, role, chartData]
+      required: [id, reportId, name, role, birthDate, birthTime, birthTimeWindowMinutes, birthPlace, latitude, longitude, isSelf, chartData]
 
     ReportRevisionSummary:
       type: object
@@ -2183,9 +2346,9 @@ components:
       required: [id, type, participants, createdAt]
 
     RelationshipType:
-      description: The lens (ADR-40).
+      description: The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.
       type: string
-      enum: [partners, parent_child, family]
+      enum: [partners, parent_child, people]
 
     CreateCompatibilityBody:
       type: object
@@ -2200,6 +2363,25 @@ components:
           enum: [A, B]
           description: Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role.
       required: [reportAId, reportBId, lens]
+
+    WriteSceneBody:
+      type: object
+      properties:
+        chapter:
+          type: string
+          description: The lens chapter's section id, e.g. partners02.
+        index:
+          type: integer
+          description: Which of the chapter's three scenes, 0 to 2; never the one the report wrote.
+      required: [chapter, index]
+
+    SceneResponse:
+      type: object
+      properties:
+        chapter: { type: string }
+        index: { type: integer }
+        text: { type: string }
+      required: [chapter, index, text]
 
     CompatibilityCreateResponse:
       type: object

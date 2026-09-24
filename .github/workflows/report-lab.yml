@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       campaign:
-        description: natal (the chart fixtures), pass (blind, then the horizon pass) or pair (one compatibility report)
+        description: natal (the chart fixtures), pass (blind, then the horizon pass) or pair (the three lenses, then one parent-and-child run per band)
         required: true
         type: choice
         options: [natal, pass, pair]
@@ -20,16 +20,16 @@ on:
         type: string
         default: all
       pair:
-        description: pair only. Fixture name under fixtures/pairs
+        description: pair only. "all" runs the campaign; a fixture name under fixtures/pairs runs that one
         required: false
         type: string
-        default: curie-winfrey
+        default: all
       lens:
-        description: pair only
+        description: pair only, with one fixture. "all" takes the fixture's own lens
         required: false
         type: choice
-        options: [partners, parent_child, family]
-        default: partners
+        options: [all, partners, parent_child, people]
+        default: all
       label:
         description: Label for the written run files
         required: true
@@ -71,13 +71,20 @@ jobs:
           set -o pipefail
           case "${{ inputs.campaign }}" in
             pass) sel="--pass" ;;
-            pair) sel="--pair ${{ inputs.pair }} --lens ${{ inputs.lens }}" ;;
+            pair) if [ "${{ inputs.pair }}" = "all" ]; then sel="--pair"; else sel="--pair ${{ inputs.pair }} --lens ${{ inputs.lens }}"; fi ;;
             *) if [ "${{ inputs.chart }}" = "all" ]; then sel="--all"; else sel="--chart ${{ inputs.chart }}"; fi ;;
           esac
           status=0
           pnpm report:lab --remote "$WEB_URL" $sel --label "${{ inputs.label }}" --html 2>&1 | tee lab.log || status=$?
           { echo '## Report lab'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
+
+      # The log rides with the run: a failed run publishes its error where the
+      # orchestrator can read it, since the log storage host is not reachable
+      # from every session.
+      - name: Keep the lab's log with the run
+        if: always()
+        run: mkdir -p fixtures/reports && cp lab.log "fixtures/reports/lab.${{ inputs.label }}.log" 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -93,13 +100,14 @@ jobs:
       - name: Publish the run on the report-lab branch
         if: always()
         run: |
-          ls fixtures/reports/*.${{ inputs.label }}.md >/dev/null 2>&1 || { echo "nothing to publish"; exit 0; }
+          # ls fails when either glob is empty, so a run with a log and no report said "nothing to publish".
+          compgen -G "fixtures/reports/*.${{ inputs.label }}.md" >/dev/null || [ -f "fixtures/reports/lab.${{ inputs.label }}.log" ] || { echo "nothing to publish"; exit 0; }
           branch="report-lab/${{ inputs.label }}"
           git config user.name "report-lab"
           git config user.email "report-lab@users.noreply.github.com"
           git checkout -B "$branch"
           git add -f fixtures/reports
           git diff --cached --quiet && { echo "nothing new to publish"; exit 0; }
-          git commit -q -m "Report lab: ${{ inputs.campaign }} ${{ inputs.campaign == 'pair' && inputs.lens || inputs.chart }} against staging, run ${{ github.run_id }}"
+          git commit -q -m "Report lab: ${{ inputs.campaign }} ${{ inputs.campaign == 'pair' && inputs.pair || inputs.chart }} against staging, run ${{ github.run_id }}"
           git push -f origin "$branch"
           printf -- '- reports: https://github.com/%s/tree/%s/fixtures/reports\n' "$GITHUB_REPOSITORY" "$branch" >> "$GITHUB_STEP_SUMMARY"

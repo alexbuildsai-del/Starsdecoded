@@ -15,6 +15,7 @@ export const money: SectionSpec<typeof MoneySchema> = {
   label: "Money & Resources",
   adminLabel: "Money & Resources",
   wordTarget: [250, 320],
+  blindWordTarget: [200, 260],
   maxTokens: 2_500,
   schema: MoneySchema,
   validate: (out, brief) => validateClaims(out, out.claims, brief.chart),

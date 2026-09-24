@@ -1,11 +1,13 @@
 /**
- * Three lenses (ADR-40): relationships.type becomes partners, parent_child or
- * family. romantic → partners, sibling and custom → family, the label kept.
- * Participants are untouched.
+ * Three lenses (ADR-40, ADR-68): relationships.type becomes partners,
+ * parent_child or people. romantic → partners; sibling, custom and the R05
+ * family lens → people, the label kept (it carries family, friends or
+ * colleagues). Participants are untouched.
  *
  * Run with: tsx packages/db/scripts/migrate-remap-relationship-types.ts
  *
- * Idempotent: a remapped row matches nothing on the next run.
+ * Idempotent: a remapped row matches nothing on the next run, and the
+ * default is set to the same value every time.
  */
 import pg from "pg";
 
@@ -30,8 +32,9 @@ async function tableExists(client: pg.PoolClient, table: string): Promise<boolea
 
 const REMAP: Array<[string, string]> = [
   ["romantic", "partners"],
-  ["sibling", "family"],
-  ["custom", "family"],
+  ["sibling", "people"],
+  ["custom", "people"],
+  ["family", "people"],
 ];
 
 async function main() {
@@ -47,7 +50,7 @@ async function main() {
       const res = await client.query(`UPDATE relationships SET type = $2, updated_at = now() WHERE type = $1`, [from, to]);
       if (res.rowCount) console.log(`Remapped ${res.rowCount} relationship(s) ${from} → ${to}.`);
     }
-    await client.query(`ALTER TABLE relationships ALTER COLUMN type SET DEFAULT 'family'`);
+    await client.query(`ALTER TABLE relationships ALTER COLUMN type SET DEFAULT 'people'`);
     await client.query("COMMIT");
     console.log("Migration complete.");
   } catch (err) {

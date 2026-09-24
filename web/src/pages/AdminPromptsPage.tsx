@@ -1,3 +1,4 @@
+import { PERSONAL_REPORT } from "@/lib/product";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/react";
@@ -36,7 +37,7 @@ interface PromptEntry {
 type Tab = "natal" | "pair";
 
 const TAB_LABELS: Record<Tab, string> = {
-  natal: "Natal Report",
+  natal: PERSONAL_REPORT,
   pair: "Compatibility",
 };
 

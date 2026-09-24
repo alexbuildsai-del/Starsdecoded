@@ -42,6 +42,8 @@ export type ModelId = keyof typeof CATALOGUE;
 export const MODELS = {
   foundation: "gpt-5.2",
   sections: "gpt-5.2",
+  /** The two on-tap scenes of a lens chapter, written once each and stored (ADR-72). */
+  scenes: "gpt-5.2",
   synastry: "gpt-5.2",
   /** Offline, run once by scripts/src/generate-vocabulary.ts and committed. */
   vocabulary: "gpt-5.2",

@@ -91,7 +91,8 @@ export function DawnClosing({ s, counter }: { s: FocusSection; counter?: Citatio
         <img src={SUN_HERO} alt="" />
       </div>
       <div className="warm no-print" aria-hidden />
-      <div className="body pt-[calc(min(560px,82vw)*0.74)] md:pt-14">
+      {/* The prose starts where every chapter's does; the Sun sits on the fixed layer and takes no room here (ADR-59). */}
+      <div className="body pt-0 md:pt-14">
         <p className="rp-pull max-w-[44ch]">
           {CitedText({ text: s.closing, claims: s.claims, counter: k })}
         </p>

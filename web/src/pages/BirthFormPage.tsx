@@ -1,3 +1,4 @@
+import { PERSONAL_REPORT } from "@/lib/product";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -315,7 +316,7 @@ export default function BirthFormPage() {
         >
           <div className="text-center mb-10">
             <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-3">
-              Natal Chart Report
+              {PERSONAL_REPORT}
             </p>
             <h1 className="font-display text-4xl leading-tight mb-3">
               Enter your birth details
