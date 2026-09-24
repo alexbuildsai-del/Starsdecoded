@@ -117,4 +117,4 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
    campaign waits on OpenAI credits (MB-68, blocking): dispatch `report-lab.yml` `pair` and paste it into `docs/rounds/R06-report.md`.
 2. Owner acceptance on staging for R01, R03, R04, R05 and R06, in that order; then the staging landing
    (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote.
-3. Next: `report-lab-model-matrix.md` (needs the Groq key on Railway), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.
+3. Next: `report-lab-model-matrix.md` (GPT-6, lab at four levels; generation needs MB-68 credits), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.

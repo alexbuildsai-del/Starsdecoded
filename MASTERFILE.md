@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.9 (2026-09-21) |
+| Version | 0.10 (2026-09-24) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -96,7 +96,7 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 - **R-4.1** Positions are computed locally. A user-facing string names the real library. Never fix a wrong claim by changing the library.
 - **R-4.2** Whole sign is the only house system in the product. Placidus is a parked second view with its design already decided (Mailbox).
 - **R-4.3** Every section's output is enforced by a zod schema through structured outputs. `Section | string` types are a bug, not a fallback.
-- **R-4.4** No prompt or engine change ships without the report lab run against the committed chart fixtures under `fixtures/charts/`, with the measurement pasted in the round report.
+- **R-4.4** No prompt or engine change reaches production without the full report lab on the five matrix charts under `fixtures/charts/`, which the Promote workflow runs itself when the brain changed since production's commit and which gates the fast-forward (ADR-76). Inside a round the lab is lighter: a dry render of every prompt at each brain change, a spot replay of the changed sections on merge to staging; the measurement goes in the round report. Lab spend is capped at `LAB_BUDGET_USD` (ADR-77).
 - **R-4.5** A second report for the same profile skips computation. Cache on the profile, never on the request.
 - **R-4.6** The horizon is a status, not a guess. Birth time is a window the engine sweeps; without a horizon that holds, the chart carries no angle, house, sect or lot, the report withholds them and its frame says so. Adding the time later is a pass that amends sentences by quote match, never a regeneration (ADR-33 to ADR-38).
 
@@ -107,7 +107,7 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 - **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings. House-card readings are a section like any other (ADR-21); the Ascendant and Midheaven are citable evidence (ADR-22).
 - **R-5.4** Source of truth for prompts is the section registry and `promptDefaults.ts`; overrides live in `prompt_templates` via `/admin/prompts`. Never edit a generated copy (the bible, docs). Re-sync instead.
 - **R-5.5** A change to report content is USER-FACING even when no UI moved: someone who bought yesterday would get different words today.
-- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and provider, and one outside it does not compile (ADR-58). A section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
+- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and pinned reasoning effort, and one outside it does not compile (ADR-58, 74). Every model is OpenAI's (ADR-73). A section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
 
 ## 6 · Payments and business model
 
@@ -200,7 +200,7 @@ Explore the feature with the Owner. The Owner decides visually: every ideation p
 1. **Planner** reads `CLAUDE.md`, `INDEX.md`, the locked specs named by the Owner (all unplanned ones when none are named; a locked spec is a file under `docs/specs/locked/`, its slug is its id), new QA reports and the open Mailbox. Writes `docs/rounds/RNN-plan.md`: goals, task cards (≤ 15 lines each) cut so they touch disjoint files wherever the work allows, the parallel groups, risks, Mailbox rows raised before building. Parallelism is a planning goal, not an afterthought.
 2. **Approval to build** is one step: when the Owner approves the plan, the same session spawns the orchestrator at once. Nobody waits for a second instruction.
 3. **Orchestrator** branches `round/RNN`, dispatches every builder in a parallel group in one message and the groups in order, each builder with only its card and §0.
-4. **Gate**: `pnpm run typecheck` · `pnpm run build:web` · `pnpm run build:api` · unit tests · report lab against fixtures when the engine or prompts changed · `db:bootstrap` boots clean when the schema changed · smoke on the Vercel preview.
+4. **Gate**: `pnpm run typecheck` · `pnpm run build:web` · `pnpm run build:api` · unit tests · the dry lab and a spot replay when the brain changed (the full lab gates Promote, R-4.4) · `db:bootstrap` boots clean when the schema changed · smoke on the Vercel preview.
 5. **Close**: round report (≤ 60 lines, every shipped line tagged USER-FACING or INTERNAL), `INDEX.md` regenerated, `CLAUDE.md` current focus updated, Mailbox updated, pull request opened and, once the gate is green, merged by the orchestrator. The Owner never merges.
 6. **Acceptance**: after the deploy, the orchestrator confirms `/api/healthz` and the web app load, then hands the Owner the URL and a three-line list of what to look at. The Owner answers "looks good" or says what is wrong; a "no" becomes sev-1 QA findings and the next round's first goal.
 
@@ -208,7 +208,7 @@ Explore the feature with the Owner. The Owner decides visually: every ideation p
 The Owner's only operational duty is to test the website and say whether it looks good. The QA agent plays the personas from §1 against a preview using real computed charts. Findings land in `docs/qa/QA-NN.md` with severity. The next planner treats every sev-1 as a round goal.
 
 ### 11.4 Report evals
-`fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs before any prompt change ships and its output goes in the round report. Fixtures grow from every real quality problem found in QA. Every lab run also lands in the staging database and is read in the admin Lab page; a model is compared by replaying a stored run with chart and foundation held fixed, and judged by the Owner blind, per section, in a reading session the Owner spawns (ADR-52 to 56).
+`fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs at four levels, dry, spot, release and reading (ADR-76), and its output goes in the round report. Fixtures grow from every real quality problem found in QA. Every lab run also lands in the staging database and is read in the admin Lab page; a model is compared by replaying a stored run with chart and foundation held fixed, and judged by the Owner blind, per section, in a reading session the Owner spawns; nothing is generated for a session before it is spawned (ADR-52 to 55, 75).
 
 ## 12 · Alignment and mailbox
 
