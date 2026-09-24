@@ -166,6 +166,13 @@ export function SpawnView({ onSpawned }: { onSpawned: (sessionId: string) => voi
             </label>
           ))}
         </div>
+        <label className="flex items-center gap-1.5 text-xs">
+          <span className="text-muted-foreground">plus the stored text under another label, at no cost:</span>
+          <select value={[...writers].find((w) => w.startsWith("stored:"))?.slice(7) ?? ""} onChange={(e) => { const next = new Set([...writers].filter((w) => !w.startsWith("stored:"))); if (e.target.value) next.add(`stored:${e.target.value}`); setWriters(next); }} className="bg-card/60 border border-border/60 rounded px-2 py-0.5 text-foreground">
+            <option value="">none</option>
+            {labels.filter((l) => l !== baseLabel).map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </label>
         <label className="flex items-center gap-1.5 mt-1"><input type="checkbox" checked={control} onChange={() => setControl(!control)} /> hidden control <span className="text-xs text-muted-foreground">(a fresh {baseline} replay, never named before the reveal)</span></label>
         <label className="flex items-center gap-1.5"><input type="checkbox" checked={tier === "flex"} onChange={() => setTier(tier === "flex" ? "standard" : "flex")} /> Flex tier where offered <span className="text-xs text-muted-foreground">(half price; standard otherwise)</span></label>
       </fieldset>
