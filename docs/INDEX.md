@@ -26,19 +26,16 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   with cards and scenes, the age band, Two people, per-chapter briefs, the two-triad hero. Artifact: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL
 - `docs/specs/locked/report-lab-model-matrix.md` — R07: GPT-6 Sol and Luna against gpt-5.2, OpenAI only; sessions generate
   on spawn; the lab at four levels, full only at Promote. Base in the annex. Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
-- Drafts: `report-cost-and-latency.md` (27.1 cents measured, L0 built) · `staging-environment.md` (main → staging,
-  production branch → production; runbook page https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7)
+- Drafts: `report-cost-and-latency.md` (27.1 cents measured, L0 built) · `staging-environment.md` (main → staging, production branch → production; runbook https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7)
 
 ## Rounds
-- `R01` claims made true, DELETE report, legal drafts, smoke workflow · `R02` usage telemetry, 27.1 cents baseline · `R03` the
-  wheel from real degrees, citations, house cards, hero and chapter shell · `R04` pass two: eleven chapters, the workbook, dawn,
-  a report that opens while it writes, mean 31.0 ¢. Plans and reports under `docs/rounds/`; R01 to R04 await Owner acceptance.
+- `R01` claims made true, DELETE report, legal drafts, smoke workflow · `R02` usage telemetry, 27.1 cents baseline · `R03` the wheel from real
+  degrees, citations, house cards, hero and chapter shell · `R04` pass two: eleven chapters, the workbook, dawn, a report that opens while it
+  writes, mean 31.0 ¢. Plans and reports under `docs/rounds/`; R01 to R04 await Owner acceptance.
 - `R05` pass three, unknown birth time, the compatibility report (#53, #54) · `R06` the nine review fixes, p2, on-tap scenes (`pair` lab waits on MB-68)
   · `R07` the lab in the admin panel, replays and sessions on the server, the release gate in Promote; all INTERNAL; staging steps wait on MB-69.
 
-## QA — `docs/qa/` none yet. Annex: `staging-runbook.md` the Owner's staging setup · `report-lab-model-matrix-annex.md` the matrix's base scope.
-
-## Code map
+## Code map (QA: `docs/qa/` none yet · annex: `staging-runbook.md` the Owner's staging setup · `report-lab-model-matrix-annex.md` the matrix's base scope)
 - `web/` React + Vite SPA (Vercel) · `api/` Express API (Railway) · `packages/db` drizzle schema
 - `web/src/components/chart/` wheel geometry, `NatalWheel`, the bi-wheel · `web/src/components/report/` hero and its
   label solver with the phone stack, the pair hero, angle glyph, explorer, house card, chapter, rail, checklist, orrery
@@ -49,10 +46,9 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   doctrine) · `api/src/lib/` chart engine with the horizon status, traditional factors, interpretation with the claims-only
   retry, horizon pass, pair brief per chapter, on-tap scenes (`pairScene.ts`), overlays, credits
 - `packages/api-spec` OpenAPI + Orval → `api-client-react`, `api-zod` · `scripts/` seeds and bootstrap · `README.md` human onboarding
-- `e2e/` Playwright (stale) · `fixtures/charts/` seven charts plus six pair-only band fixtures, birth data only · `fixtures/pairs/`
-  five pairs · `fixtures/passes/` the stored r05 pass, replayed by a test · `mobile/` empty scaffold
-- `fixtures/reports/` one committed run (pre-R05 chart, MB-73); `--render` re-reads it free · `api/src/lib/models.ts` the catalogue with pinned
-  effort and Flex, `usage.ts` token accounting · `web/src/pages/legal/` draft legal pages · `api/src/lib/deletion.ts` profile-fate seam (MB-32)
+- `e2e/` Playwright (stale) · `fixtures/charts/` seven charts plus six pair-only band fixtures, birth data only · `fixtures/pairs/` five pairs ·
+  `fixtures/passes/` the stored r05 pass · `fixtures/reports/` one committed run (pre-R05 chart, MB-73), `--render` re-reads it free · `mobile/` empty
+- `api/src/lib/models.ts` the catalogue with pinned effort and Flex, `usage.ts` token accounting · `web/src/pages/legal/` draft legal pages · `api/src/lib/deletion.ts` (MB-32)
 - The lab: `api/src/lib/labRules.ts` (faults, bands, the gate) shared with `scripts/src/report-lab.ts` (publish, dry, spot, release, gate, stub) ·
   `labGuard.ts`, `labReplay.ts`, `labSession.ts` · routes `adminLab.ts`, `adminLabSessions.ts` under `/api/admin/lab` (outside the spec) ·
   `web/src/pages/AdminLabPage.tsx`, `web/src/components/lab/`, `web/src/lib/labApi.ts`, `labCards.ts` · tables `lab_runs`, `lab_judgements`
