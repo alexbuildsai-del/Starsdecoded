@@ -1,7 +1,7 @@
 # R07 report — the model matrix: the lab in the admin panel, sessions on spawn, the lab at release
 
 Built 2026-09-24 on `round/R07` from `docs/rounds/R07-plan.md` (`report-lab-model-matrix.md` as re-locked, ADR-73 to 77).
-Ten cards, one commit each. The branch carries the relock's docs merge, so the spec reaches `main` through this pull request.
+Ten cards, one commit each; pull request #61. The branch carries the relock's docs merge, so the spec reaches `main` through this pull request.
 
 ## Mailbox rows open more than two rounds
 MB-5, 6, 8, 11, 12, 13, 15, 17, 19, 20, 21, 22, 23, 24, 25, 30 at 6 · MB-31 (blocking, the legal entity), 33, 35 at 5 · MB-43, 47, 49, 50 at 3.

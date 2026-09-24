@@ -112,7 +112,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-09-24)
 
-1. R07 on `round/R07` → `main`: the lab in the admin panel (`/admin/report-lab`), replays through `writeSection`, sessions on spawn,
+1. R07 (#61) to staging: the lab in the admin panel (`/admin/report-lab`), replays through `writeSection`, sessions on spawn,
    the release gate in Promote (ADR-73 to 77). Every line INTERNAL. Waiting on the Owner: **MB-69** `LAB_TOKEN` on Railway staging and
    the GitHub `staging` environment, **MB-68** OpenAI credits. Then: `report-lab.yml` `publish` r05 and r06 (MB-72), the R06 `pair` campaign.
 2. Owner acceptance on staging for R01, R03, R04, R05, R06 and R07, in that order; then the staging landing
