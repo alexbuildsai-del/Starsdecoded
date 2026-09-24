@@ -33,9 +33,8 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `R01` claims made true, DELETE report, legal drafts, smoke workflow · `R02` usage telemetry, 27.1 cents baseline · `R03` the
   wheel from real degrees, citations, house cards, hero and chapter shell · `R04` pass two: eleven chapters, the workbook, dawn,
   a report that opens while it writes, mean 31.0 ¢. Plans and reports under `docs/rounds/`; R01 to R04 await Owner acceptance.
-- `R05` pass three, unknown birth time and the compatibility report; lab measured on staging (#53, #54). Acceptance pending.
-- `R06` the nine review fixes, the compatibility second pass (p2), on-tap scenes, MB-60 to 62; the `pair` campaign waits on MB-68.
-- `R07` the lab in the admin panel, replays and sessions on the server, the release gate in Promote; every line INTERNAL; staging steps wait on MB-69.
+- `R05` pass three, unknown birth time, the compatibility report (#53, #54) · `R06` the nine review fixes, p2, on-tap scenes (`pair` lab waits on MB-68)
+  · `R07` the lab in the admin panel, replays and sessions on the server, the release gate in Promote; all INTERNAL; staging steps wait on MB-69.
 
 ## QA — `docs/qa/` none yet. Annex: `staging-runbook.md` the Owner's staging setup · `report-lab-model-matrix-annex.md` the matrix's base scope.
 
@@ -52,14 +51,13 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 - `packages/api-spec` OpenAPI + Orval → `api-client-react`, `api-zod` · `scripts/` seeds and bootstrap · `README.md` human onboarding
 - `e2e/` Playwright (stale) · `fixtures/charts/` seven charts plus six pair-only band fixtures, birth data only · `fixtures/pairs/`
   five pairs · `fixtures/passes/` the stored r05 pass, replayed by a test · `mobile/` empty scaffold
-- `fixtures/reports/` one committed run; `pnpm report:lab --render` re-reads it free; `--pass`; `--pair` runs the campaign
-- `api/src/lib/models.ts` the model catalogue with pinned effort and Flex, `usage.ts` token accounting; every call lands on `meta.usage`
+- `fixtures/reports/` one committed run (pre-R05 chart, MB-73); `--render` re-reads it free · `api/src/lib/models.ts` the catalogue with pinned
+  effort and Flex, `usage.ts` token accounting · `web/src/pages/legal/` draft legal pages · `api/src/lib/deletion.ts` profile-fate seam (MB-32)
 - The lab: `api/src/lib/labRules.ts` (faults, bands, the gate) shared with `scripts/src/report-lab.ts` (publish, dry, spot, release, gate, stub) ·
   `labGuard.ts`, `labReplay.ts`, `labSession.ts` · routes `adminLab.ts`, `adminLabSessions.ts` under `/api/admin/lab` (outside the spec) ·
   `web/src/pages/AdminLabPage.tsx`, `web/src/components/lab/`, `web/src/lib/labApi.ts`, `labCards.ts` · tables `lab_runs`, `lab_judgements`
-- `web/src/pages/legal/` draft legal pages · `api/src/lib/deletion.ts` profile-fate seam (MB-32)
 
 ## Agents and skills
 - `.claude/agents/` planner · orchestrator · builder · qa · `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox · /report-lab · `.github/pull_request_template.md` the gate checklist every PR carries
-- `.github/workflows/ci.yml` typecheck, builds, unit tests · `smoke.yml` deploy check on push to main (staging) and production · `smoke-run.yml` its reusable body ·
-  `report-lab.yml` every lab level (needs `LAB_TOKEN` in the `staging` environment) · `lab-spot.yml` the spot replay after a green Smoke · `promote.yml` the release gate, then the fast-forward
+- `.github/workflows/` `ci.yml` typecheck, builds, tests · `smoke.yml` + `smoke-run.yml` deploy check · `report-lab.yml` every lab level (needs `LAB_TOKEN`
+  in the `staging` environment) · `lab-spot.yml` the spot replay after a green Smoke · `promote.yml` the release gate, then the fast-forward

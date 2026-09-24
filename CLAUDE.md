@@ -11,8 +11,7 @@ product. "Astra" left the code on 2026-09-18; never add a new use of the name.
   else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
 - Delegate unasked (R-0.6): independent parts, broad searches and long reads go
   to subagents, in parallel when independent; a single lookup or edit stays here.
-- Model triage (R-0.7): the orchestrator runs a round on the top model (Fable);
-  builders and feature work Opus, simple fixes Sonnet, mechanical Haiku.
+- Model triage (R-0.7): the orchestrator on the top model (Fable); builders Opus, simple fixes Sonnet, mechanical Haiku.
 
 ## Read this first
 
@@ -46,7 +45,7 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab --render|--compare    # re-read stored runs. Free; four levels: /report-lab
+pnpm report:lab --render|--compare    # re-read stored runs, free; the lab levels: /report-lab
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
