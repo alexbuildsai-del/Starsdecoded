@@ -1,0 +1,36 @@
+
+> starsdecoded@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded
+> pnpm --filter @workspace/scripts run report:lab "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "--label" "r06-pair"
+
+
+> @workspace/scripts@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded/scripts
+> tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "--label" "r06-pair"
+
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), partners via https://starsdecoded-staging.vercel.app: two natal reports first ===
+FAILED curie-winfrey partners: report f5860827-2e0f-45ec-9622-213002e29254 failed: pair:links: failed validation after 3 attempts: card 6: 72 words, the card takes 40 to 70; card 7: 72 words, the card takes 40 to 70; card 11: must end on a sentence beginning "Behaviour check:"
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+FAILED curie-winfrey parent_child: report 75dd54ee-0db0-4c13-9598-d4f23d429481 failed: pair:parentChild06: failed validation after 3 attempts: contradicts the grown band: a curfew and screen time belong to a child
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), people via https://starsdecoded-staging.vercel.app: two natal reports first ===
+FAILED curie-winfrey people: report a0752838-6570-41a4-a66e-2a1bb76d3ca1 failed: pair:links: failed validation after 3 attempts: card 6: must end on a sentence beginning "Behaviour check:"
+
+=== Beatrice York & Athena Mapelli Mozzi (beatrice-athena), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+FAILED beatrice-athena: report 1e9b91cf-ca09-473a-8d6d-84df563cda67 failed: pair:parentChild05: failed validation after 3 attempts: card, Beatrice line 1: 16 words, a card line takes twelve at most; card, Beatrice line 3: 13 words, a card line takes twelve at most; contradicts the little band: homework is not fair before school age; claim 2 evidence 1: cites a link outside this chapter's allocation; only THIS CHAPTER'S LINKS may be cited; claim 5 evidence 2: cites a link outside this chapter's allocation; only THIS CHAPTER'S LINKS may be cited
+
+=== William Windsor & Charlotte Windsor (william-charlotte), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+FAILED william-charlotte: report 1774463e-a935-4e78-8212-e6e5940262e3 failed: pair:parentChild06: failed validation after 3 attempts: claim 8 evidence 1: cites a link outside this chapter's allocation; only THIS CHAPTER'S LINKS may be cited
+
+=== William Windsor & George Windsor (william-george), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+FAILED william-george: report 6641043d-f4b7-4650-bd44-c4c745d11efa failed: pair:parentChild03: failed validation after 3 attempts: card, William line 2: 16 words, a card line takes twelve at most; card, George line 2: 15 words, a card line takes twelve at most; card, George line 3: 13 words, a card line takes twelve at most; claim 2: quote not found verbatim in the section prose: "When the tone turns unpredictable, it backfires when you loc"
+
+=== Charles Windsor & William Windsor (charles-william), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+FAILED charles-william: report 9a3c7ba4-d44c-4df3-a1e1-eadd2f567e18 failed: pair:parentChild06: failed validation after 3 attempts: contradicts the grown band: a curfew and screen time belong to a child
+
+=== pair campaign: 0 of 7 runs complete, 7 failed: curie-winfrey partners, curie-winfrey parent_child, curie-winfrey people, beatrice-athena, william-charlotte, william-george, charles-william ===
+7 of 7 pair runs failed: curie-winfrey partners, curie-winfrey parent_child, curie-winfrey people, beatrice-athena, william-charlotte, william-george, charles-william
+/home/runner/work/Starsdecoded/Starsdecoded/scripts:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/scripts@0.0.0 report:lab: `tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "--label" "r06-pair"`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
