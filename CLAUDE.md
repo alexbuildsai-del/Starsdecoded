@@ -3,7 +3,7 @@
 Stars Decoded computes a natal chart locally (`astronomy-engine`, whole sign)
 and writes a 3,500 to 5,500 word psychological report with OpenAI, grounded in
 a written doctrine and a per-chart brief. One-time purchase. The report is the
-product. The app still says "Astra" in places; never add a new use of it.
+product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 ## Working with the Owner
 
@@ -81,12 +81,12 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Things a session should know
 
-- Deploys are git-push driven: `main` → staging (Vercel branch alias
-  `starsdecoded-staging.vercel.app`, Railway environment `staging`, own Supabase
-  project); `production` branch → production, moved only by the Promote workflow,
-  fast-forward from `main`, after the staging smoke passes; dispatch it, never
-  push the branch. Secrets live only in the Railway, Vercel and Supabase
-  dashboards; the repo is public. Runbook: `docs/annex/staging-runbook.md`.
+- Deploys are git-push driven: `main` → staging (`starsdecoded-staging.vercel.app`,
+  Railway `staging`, own Supabase project); `production` branch → production at
+  `mystarsdecoded.com`, moved only by the Promote workflow, fast-forward from
+  `main` after the staging smoke passes; dispatch it, never push the branch.
+  Secrets live only in the Railway, Vercel and Supabase dashboards; the repo is
+  public. Runbook: `docs/annex/staging-runbook.md`.
 - The web app calls `/api` on its own origin; `vercel.json` rewrites that to the
   staging or production Railway host by web host. `/api/healthz` reports `env`
   and `commit`; `smoke.yml` asserts both.

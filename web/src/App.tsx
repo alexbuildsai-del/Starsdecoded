@@ -17,6 +17,7 @@ import LoadingState from "@/components/LoadingState";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { StagingRibbon } from "@/components/StagingRibbon";
 import { APP_ENV } from "@/lib/appEnv";
+import { usePageTitle } from "@/lib/page-title";
 
 const importBirthForm = () => import("@/pages/BirthFormPage");
 const importReport = () => import("@/pages/ReportPage");
@@ -130,6 +131,7 @@ function getReturnTo(): string {
 }
 
 function SignInPage() {
+  usePageTitle("Sign in");
   const ret = getReturnTo();
   const fullRet = `${basePath}${ret === "/" ? "" : ret}` || "/";
   return (
@@ -146,6 +148,7 @@ function SignInPage() {
 }
 
 function SignUpPage() {
+  usePageTitle("Create account");
   const ret = getReturnTo();
   const fullRet = `${basePath}${ret === "/" ? "" : ret}` || "/";
   return (
@@ -264,7 +267,7 @@ function ClerkRoutedProvider() {
         },
         signUp: {
           start: {
-            title: "Create your Astra account",
+            title: "Create your Stars Decoded account",
             subtitle: "Save your reports and access them anywhere",
           },
         },

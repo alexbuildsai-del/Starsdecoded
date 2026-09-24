@@ -19,6 +19,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   ticks, one sky, the door at 67% over an orrery of the chart. Artifact: https://claude.ai/artifact/HKt4HYfKKmwadcKTmTxWob
 - `docs/specs/locked/unknown-birth-time.md` — R05: the horizon as a status, three-way birth time with a live readout,
   the blind report, the horizon pass by quote match, one free update. Artifact: https://claude.ai/artifact/GicHa2umwRm5rQDuWVLp9p
+- `docs/specs/locked/logo.md` — the mark is A · Horizon (wheel, horizon line, brass Ascendant point), plain Newsreader wordmark, one SVG source for six surfaces. Artifact: https://claude.ai/artifact/CooaGybDudirhVvN128dgj
 - `docs/specs/locked/review-20-09.md` — R06: phone hero, two skies, the generation screen as a screen, the Closing
   gap, evidence in claims only, Personal natal report, the why line. Artifact: https://claude.ai/artifact/M9SMzqwbNcXtuSZGws2p2F
 - `docs/specs/locked/compatibility-report-p2.md` — R06, the brain: seven chapters, two charts first, five lens chapters
@@ -55,6 +56,5 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   draft legal pages · `api/src/lib/deletion.ts` profile-fate seam (MB-32)
 
 ## Agents and skills
-- `.claude/agents/` planner · orchestrator · builder · qa · `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox · /report-lab
-- `.github/pull_request_template.md` — the gate checklist every PR carries
+- `.claude/agents/` planner · orchestrator · builder · qa · `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox · /report-lab · `.github/pull_request_template.md` the gate checklist every PR carries
 - `.github/workflows/ci.yml` typecheck, builds, unit tests · `smoke.yml` deploy check on push to main (staging) and production · `smoke-run.yml` its reusable body · `promote.yml` fast-forwards production after a staging smoke

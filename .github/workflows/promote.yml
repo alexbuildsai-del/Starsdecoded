@@ -68,6 +68,6 @@ jobs:
     needs: [resolve, fast-forward]
     uses: ./.github/workflows/smoke-run.yml
     with:
-      web_url: https://starsdecoded.vercel.app/
+      web_url: https://mystarsdecoded.com/
       expect_env: production
       expect_commit: ${{ needs.resolve.outputs.sha }}

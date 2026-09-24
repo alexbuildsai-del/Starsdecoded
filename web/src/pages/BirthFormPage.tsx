@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateReport, useListProfiles, getListProfilesQueryKey } from "@workspace/api-client-react";
+import { Wordmark } from "@/components/Wordmark";
+import { usePageTitle } from "@/lib/page-title";
 import { BirthTimeControl } from "@/components/BirthTimeControl";
 import { DEFAULT_ANSWER, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
 
@@ -94,6 +96,8 @@ function placeLabel(placeType: string): string {
 }
 
 export default function BirthFormPage() {
+  usePageTitle("Your birth data");
+
   const [, navigate] = useLocation();
   // ?self=1 means the user arrived from the "Generate My Chart" CTA — pre-check the toggle.
   // wouter's useLocation() only returns the pathname, so the query string must
@@ -299,7 +303,7 @@ export default function BirthFormPage() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <span className="font-display text-lg gradient-text">Astra</span>
+          <Wordmark />
         </div>
       </nav>
 

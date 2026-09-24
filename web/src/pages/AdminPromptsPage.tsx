@@ -16,6 +16,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BASE_URL } from "@/lib/api";
+import { Wordmark } from "@/components/Wordmark";
+import { usePageTitle } from "@/lib/page-title";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -364,6 +366,8 @@ function PromptCard({ entry, readOnly, onSaved }: { entry: PromptEntry; readOnly
 }
 
 export default function AdminPromptsPage() {
+  usePageTitle("Prompt admin");
+
   const [, navigate] = useLocation();
   const { user, isLoaded } = useUser();
 
@@ -456,9 +460,8 @@ export default function AdminPromptsPage() {
           <button
             type="button"
             onClick={() => navigate("/dashboard")}
-            className="font-display text-lg gradient-text"
           >
-            Astra
+            <Wordmark />
           </button>
           <div className="flex items-center gap-4">
             <span className="font-label text-xs tracking-[0.15em] uppercase text-muted-foreground hidden sm:block">

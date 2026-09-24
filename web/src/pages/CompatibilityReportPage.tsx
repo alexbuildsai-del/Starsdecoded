@@ -26,6 +26,7 @@ import { LensChapterBlock, PractiseBlock, TwoChartsBlock, first } from "@/compon
 import { ShareCard } from "@/components/report/ShareCard";
 import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
+import { usePageTitle } from "@/lib/page-title";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { PAIR_CHAPTER_TITLES, lensInfo, pairTabTitle, pairTitle } from "@/lib/lenses";
 import { pairSectionIds } from "@/lib/progress";
@@ -86,10 +87,10 @@ export default function CompatibilityReportPage() {
   const chartB = (b?.chartData ?? null) as unknown as ChartData | null;
   const names = useMemo(() => ({ a: a?.name ?? "A", b: b?.name ?? "B" }), [a?.name, b?.name]);
 
-  useEffect(() => {
-    if (a && b) document.title = pairTabTitle(a.name, b.name);
-    return () => { document.title = "Stars Decoded"; };
-  }, [a, b]);
+  // The browser offers document.title as the print-to-PDF filename, so the
+  // loaded pair's title is the filename the buyer is handed.
+  const named = Boolean(a && b);
+  usePageTitle(named ? pairTabTitle(a!.name, b!.name) : "Compatibility Report", { raw: named });
 
   // The wheel draws the same set of links the cards were generated from (ADR-43).
   const links: CrossLink[] | undefined = useMemo(() => {

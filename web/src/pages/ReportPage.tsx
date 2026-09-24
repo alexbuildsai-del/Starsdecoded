@@ -31,6 +31,7 @@ import {
   FamilyBlock, FamilyRail, SuperpowersBlock, DiscoveriesBlock,
 } from "@/components/ReportSections";
 import { ReportHero } from "@/components/report/ReportHero";
+import { usePageTitle, reportFileTitle } from "@/lib/page-title";
 import { ReportSky } from "@/components/report/ReportSky";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
@@ -107,6 +108,14 @@ export default function ReportPage() {
     client.invalidateQueries({ queryKey: getGetReportStatusQueryKey(id!) });
   }, [client, id]);
   const regenerate = useRegenerateReport({ mutation: { onSuccess: refresh } });
+
+  // The browser offers document.title as the print-to-PDF filename, so the
+  // complete report's title is the filename we want to hand the buyer.
+  const complete = report?.status === "complete";
+  usePageTitle(
+    complete ? reportFileTitle("Natal Report", report.name) : "Natal Report",
+    { raw: complete },
+  );
 
   const handlePrint = () => window.print();
 

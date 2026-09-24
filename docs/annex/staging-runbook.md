@@ -13,7 +13,7 @@ from the password manager, never retype them.
 
 | | Staging | Production |
 |---|---|---|
-| Address | `starsdecoded-staging.vercel.app` | `starsdecoded.vercel.app` |
+| Address | `starsdecoded-staging.vercel.app` | `mystarsdecoded.com` |
 | Gets new code | every merged change | only when Claude runs Promote |
 | Database | new Supabase project | the existing one |
 | Sign-in | same Clerk Development instance for both, until a custom domain exists | |
@@ -183,7 +183,7 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 - [ ] Say "promote". Claude dispatches Promote: it re-checks staging, moves
       the `production` branch forward, waits for production, confirms
       `env: production`.
-- Check: `starsdecoded.vercel.app/api/healthz` shows `"env":"production"`;
+- Check: `mystarsdecoded.com/api/healthz` shows `"env":"production"`;
   `/admin/prompts` there shows no Save button and the read-only note.
 
 ## K. Stripe, later
@@ -191,6 +191,29 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 - [ ] When the payments pull request exists, test-mode keys and a test
       webhook endpoint pointing at the staging address go into Railway
       `staging`; live keys into `production`.
+
+## L. Domain (Owner, 10 min)
+
+`mystarsdecoded.com` was bought on Vercel on 2026-09-19, so Vercel runs its
+DNS. Staging stays on `starsdecoded-staging.vercel.app`; no subdomain needed.
+
+- [ ] vercel.com → `starsdecoded` → **Settings → Domains → Add**. Untick
+      "Redirect apex domains to www". `mystarsdecoded.com` → Connect to an
+      environment → **Production**.
+- [ ] **Add** again: `www.mystarsdecoded.com` → Redirect to Another Domain →
+      **308 Permanent** → `mystarsdecoded.com`.
+- [ ] Railway `production` → `PUBLIC_APP_URL=https://mystarsdecoded.com`.
+- [ ] resend.com → Domains → Add `mystarsdecoded.com` → copy its DKIM and SPF
+      records into Vercel → Domains → `mystarsdecoded.com` → DNS Records →
+      back in Resend, Verify. Then on Railway `staging` and `production`:
+      `RESEND_FROM_EMAIL=Stars Decoded <noreply@mystarsdecoded.com>`.
+- [ ] Clerk, only at go-live: Create production instance on
+      `mystarsdecoded.com`, add its CNAME records in Vercel DNS, put the
+      `pk_live` key in Vercel Production and `sk_live` in Railway `production`.
+      Staging keeps the Development instance.
+- Check: `https://mystarsdecoded.com/api/healthz` says `"env":"production"`;
+  `www.mystarsdecoded.com` lands on the apex; a test invite arrives from
+  `noreply@mystarsdecoded.com` with the mark in its header.
 
 ## From now on
 

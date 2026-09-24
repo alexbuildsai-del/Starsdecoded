@@ -19,6 +19,6 @@ jobs:
   smoke:
     uses: ./.github/workflows/smoke-run.yml
     with:
-      web_url: ${{ (github.ref_name == 'production' || inputs.target == 'production') && 'https://starsdecoded.vercel.app/' || 'https://starsdecoded-staging.vercel.app/' }}
+      web_url: ${{ (github.ref_name == 'production' || inputs.target == 'production') && 'https://mystarsdecoded.com/' || 'https://starsdecoded-staging.vercel.app/' }}
       expect_env: ${{ (github.ref_name == 'production' || inputs.target == 'production') && 'production' || 'staging' }}
       expect_commit: ${{ github.event_name == 'push' && github.sha || '' }}

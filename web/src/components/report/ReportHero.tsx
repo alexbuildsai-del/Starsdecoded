@@ -28,6 +28,7 @@ import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
 import { PHONE, layoutHero, moonArc, phoneStack, type Rect } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
+import { Mark } from "@/components/Mark";
 import { PLANET_LABELS, type ChartData, type ChartPlanet, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { PERSONAL_REPORT } from "@/lib/product";
@@ -514,6 +515,10 @@ export function ReportHero({
       <section className="rp-hero" aria-label="Opening">
         {!narrow && <ScrollCue reduced={reduced} cueRef={cueRef} />}
         <header className="hidden print:block px-8 pt-12">
+          <p className="flex items-center gap-2 font-display text-base mb-6">
+            <Mark className="h-[18px] w-[18px]" point="currentColor" />
+            Stars Decoded
+          </p>
           <p className="font-label text-[10px] tracking-[0.28em] uppercase">{PERSONAL_REPORT}</p>
           <h1 className="font-display text-5xl mt-2">{name}</h1>
           <p className="font-numeric text-xs mt-3">

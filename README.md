@@ -1,6 +1,6 @@
 # Starsdecoded
 
-Astra — natal chart and synastry reports. Birth data in, accurate planetary
+Stars Decoded — natal chart and synastry reports. Birth data in, accurate planetary
 positions computed locally, AI-written psychological interpretation out.
 
 This repository is the source of truth. It was ported off Replit; see
@@ -78,7 +78,7 @@ below.
 
 **Two environments.** `main` deploys to staging
 (`starsdecoded-staging.vercel.app`, Railway environment `staging`, its own
-Supabase project). The `production` branch deploys to production. Nothing
+Supabase project). The `production` branch deploys to production at `mystarsdecoded.com`. Nothing
 reaches `production` except through the Promote workflow
 (`.github/workflows/promote.yml`), which checks staging is serving the
 requested commit, fast-forwards `production` to it, and checks production came

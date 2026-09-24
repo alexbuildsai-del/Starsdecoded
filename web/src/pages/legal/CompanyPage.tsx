@@ -1,7 +1,10 @@
 import { LegalLayout, LegalSection } from "./LegalLayout";
+import { usePageTitle } from "@/lib/page-title";
 
 // MB-31 provisional: every detail below is a placeholder.
 export default function CompanyPage() {
+  usePageTitle("Company");
+
   return (
     <LegalLayout kicker="Legal" title="Company details" updated="9 September 2026">
       <LegalSection title="Operator">

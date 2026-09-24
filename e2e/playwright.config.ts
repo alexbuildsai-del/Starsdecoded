@@ -27,7 +27,7 @@ export default defineConfig({
       "pnpm --filter @workspace/api-server run dev",
       "&",
       `PORT=${FRONTEND_PORT}`,
-      "pnpm --filter @workspace/astra run dev",
+      "pnpm --filter @workspace/web run dev",
     ].join(" "),
     url: `${BASE_URL}/api/healthz`,
     reuseExistingServer: true,
