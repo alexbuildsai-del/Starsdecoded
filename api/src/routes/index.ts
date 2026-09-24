@@ -8,6 +8,8 @@ import adminPromptsRouter from "./adminPrompts";
 import creditsRouter from "./credits";
 import horizonRouter from "./horizon";
 import compatibilityRouter from "./compatibility";
+import adminLabRouter from "./adminLab";
+import adminLabSessionsRouter from "./adminLabSessions";
 
 // health is mounted directly in app.ts, ahead of auth
 const router: IRouter = Router();
@@ -21,5 +23,7 @@ router.use(adminPromptsRouter);
 router.use(creditsRouter);
 router.use(horizonRouter);
 router.use(compatibilityRouter);
+router.use(adminLabRouter);
+router.use(adminLabSessionsRouter);
 
 export default router;

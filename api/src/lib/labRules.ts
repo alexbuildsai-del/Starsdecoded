@@ -7,6 +7,8 @@
  */
 import { BLIND_WORD_TARGETS, SECTION_IDS, WORD_TARGETS, hasClaims, sectionById, validateClaims, type ReportSectionId } from "../prompts/index.js";
 import type { NatalChartData } from "./chartCalculation.js";
+import { tierFor, type ServiceTier } from "./models.js";
+import { costUsd } from "./usage.js";
 
 /** The five charts every full lab and every release gate runs on (ADR-77); the other fixtures run only when their own brain changed. */
 export const MATRIX_CHARTS = ["day-angular", "high-latitude", "marie-curie", "night-angular", "audrey-hepburn"] as const;
@@ -277,6 +279,21 @@ export function gateProblems(reference: RunNumbers[], candidate: RunNumbers[], c
   }
   if (refCost === 0) problems.push("no reference run to compare cost against");
   return problems;
+}
+
+/** The token shape of one section of a base run, what an estimate is priced on. */
+export interface TokenShape {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+}
+
+/** A section with no stored shape is priced on the R05 mean (spec, mixes table). */
+export const FALLBACK_SHAPE: TokenShape = { inputTokens: 2_700, cachedInputTokens: 7_750, outputTokens: 1_260 };
+
+/** What one section costs on one writer at one tier, from a base shape; Flex only where the model offers it. */
+export function priceSection(model: string, shape: TokenShape, tier: ServiceTier = "standard"): number | null {
+  return costUsd(model, { attempts: 1, reasoningTokens: 0, ms: 0, ...shape }, tierFor(model, tier));
 }
 
 /** The out-of-credit refusal as it reads from a status message, so a campaign can stop on it (ADR-77). */

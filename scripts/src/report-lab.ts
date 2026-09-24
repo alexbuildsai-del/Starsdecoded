@@ -1050,12 +1050,15 @@ export interface RunPayload {
   source: "lab";
   subjectName: string;
   chart: NatalChartData;
+  /** The day the run was generated, so a published run counts against the month it cost (ADR-77). */
+  generatedAt?: string;
   sections: RunSectionRow[];
 }
 
 /** The rows a stored run file publishes: the foundation with the chart, then every section with its numbers. */
 export function runRows(name: string, label: string, file: RunFile): RunPayload {
-  const usage = (file.interpretation.meta as { usage?: ReportUsage } | undefined)?.usage;
+  const meta = file.interpretation.meta as { usage?: ReportUsage; generatedAt?: string } | undefined;
+  const usage = meta?.usage;
   const usageOf = (key: string) => usage?.sections.find((u) => u.section === key) ?? null;
   const rows = measure(file.interpretation, file.chart);
   const rowOf = (section: string, output: unknown, faults: string[], w: number): RunSectionRow => {
@@ -1065,6 +1068,7 @@ export function runRows(name: string, label: string, file: RunFile): RunPayload 
   };
   return {
     runKey: `${name}.${label}`, fixture: name, label, source: "lab", subjectName: file.fixture.name, chart: file.chart,
+    ...(meta?.generatedAt ? { generatedAt: meta.generatedAt } : {}),
     sections: [
       rowOf("foundation", file.interpretation.foundation, [], 0),
       ...rows.map((r) => rowOf(r.section, file.interpretation[r.section], faultsOf(r), r.words)),
@@ -1191,7 +1195,8 @@ async function dry(base: string): Promise<void> {
     r.baselineInputTokens === null ? "-" : `${r.inputTokens - r.baselineInputTokens >= 0 ? "+" : ""}${r.inputTokens - r.baselineInputTokens}`, r.schemaOk ? "ok" : "BROKEN",
   ])));
   const served = body.served as Record<string, boolean> | undefined;
-  if (served) console.log(`served: ${Object.entries(served).map(([m, ok]) => `${m} ${ok ? "yes" : "NO"}`).join(", ")}`);
+  if (served && Object.keys(served).length) console.log(`served: ${Object.entries(served).map(([m, ok]) => `${m} ${ok ? "yes" : "NO"}`).join(", ")}`);
+  if (body.servedError) console.log(`served: unknown, models.list failed: ${String(body.servedError)}`);
   const broken = rows.filter((r) => !r.schemaOk);
   if (broken.length) { console.log(`SCHEMA BROKEN: ${broken.map((r) => `${r.fixture}/${r.section}`).join(", ")}`); process.exitCode = 1; }
 }
