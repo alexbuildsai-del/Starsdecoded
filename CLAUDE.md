@@ -46,13 +46,13 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab --render|--compare    # re-read stored runs. Free; see /report-lab
+pnpm report:lab --render|--compare    # re-read stored runs. Free; four levels: /report-lab
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
 clean when the schema changed, smoke on the Vercel preview. Never skip or
-disable a check. The report lab is not in it: `/report-lab` runs when the brain
-changed, or when the Owner asks.
+disable a check. The lab runs at four levels (ADR-76): dry at every brain
+change, spot on merge to staging, full at Promote, reading when the Owner spawns.
 
 ## Process
 
@@ -100,10 +100,11 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   run twice breaks the deploy.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`,
   `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
-  `/report-lab` runs on staging right after the merge by dispatching
-  `report-lab.yml`; no key or network is needed here. Never generate a report to
-  look at one. Every model id lives in `models.ts` with its price; one outside
-  the catalogue does not compile.
+  the dry lab runs in the round, `lab-spot.yml` replays the changed sections on
+  merge, and Promote runs the full lab and its gate; spend is capped by
+  `LAB_BUDGET_USD` (ADR-77). Never generate a report to look at one: the Lab
+  page and `--render` are free. Every model id lives in `models.ts` with its
+  price and pinned reasoning effort; one outside the catalogue does not compile.
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.

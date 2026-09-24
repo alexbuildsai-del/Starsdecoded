@@ -1,70 +1,64 @@
 ---
 name: report-lab
-description: Run the Stars Decoded report lab against staging and compare it to a stored baseline, per section, on cost, latency and the style contract. Use when the Owner types /report-lab, asks to measure or re-measure report cost or quality, to A/B a model, or to check for model drift. Also run it after any change to the brain. Not for unit tests, CI or the QA personas.
+description: Run the Stars Decoded report lab at one of its four levels (dry, spot, release, reading) against staging, and read the result in the admin Lab page or from a stored run. Use when the Owner types /report-lab, asks to measure or re-measure report cost or quality, to A/B a writer, to check for drift, or after any change to the brain. Not for unit tests, CI or the QA personas.
 ---
 
-Generating reports costs real money: about **$0.27 each**, so five fixtures is
-**$1.35**. Never run this to look at a report. `pnpm report:lab --render`
-re-reads the newest stored run for free, and `--compare` re-measures stored
-runs for free. This skill is only for producing a new measurement.
+Generating spends real money: about **30 ¢ a natal report**, so the five matrix
+charts are about **$1.40**. Never generate a report to look at one.
+`pnpm report:lab --render` re-reads the newest stored run for free, `--compare`
+re-measures stored runs for free, and the Lab page shows every run's numbers.
+Spend is capped at `LAB_BUDGET_USD` ($15 a month, ADR-77): the replay route,
+the sessions and the release lab refuse beyond it, and every campaign stops at
+the first out-of-credit 429.
 
-## When it runs
+## The four levels (ADR-76)
 
-Only on the Owner's word, or when **the brain** changed and a pull request is
-about to merge. The brain is anything that decides what the report says:
+| level | when | what | spend |
+|---|---|---|---|
+| 0 dry | every round with a brain change | `--dry --base r06`: every prompt rendered on staging for the base's charts, tokens against the baseline, schema and served-id checks, no call | free |
+| 1 spot | merge to staging when a prompt changed (`lab-spot.yml`, automatic) | `--spot <sections\|pipeline> --charts a,b --base r06`: the changed sections replayed on Flex, foundation held, compared in Runs | 2–10 ¢ |
+| 2 release | Promote, only when the brain changed since production (`promote.yml`, automatic) | `--release <label>` then `--gate <label> --against last-release`: the five matrix charts through the customer path | about $1.40 |
+| 3 reading | the Owner spawns a session in the Lab page | the session's cards only, priced before **Spawn** | shown first |
 
-- `api/src/prompts/` — section instructions, schemas, vocabulary, the brief
-- `api/src/lib/models.ts` — which model any job calls
-- `api/src/lib/aiInterpretation.ts` — the pipeline, retries, token caps
-- `api/src/lib/traditional.ts`, `chartCalculation.ts` — what the brief says
+The brain: `api/src/prompts/`, `api/src/lib/models.ts`, `aiInterpretation.ts`,
+`traditional.ts`, `chartCalculation.ts`. Not UI, CSS, copy, docs or `web/`.
 
-Not for UI, CSS, copy, docs, the PDF, or anything in `web/`. Those never change
-a word of a report, and `--render` already shows a real one.
+## The panel
 
-## Arguments
+`/admin/report-lab` beside Prompts, gated by `ADMIN_USER_ID`. *Runs* lists every
+stored run by fixture and label with words, cost, seconds and faults, and
+compares any two labels. *Spawn a session* shows the estimate before the
+button. *Reading room* is blind: A, B, C in a stored order, best, would not
+ship, same as, one note. *Reveal* opens after the last card. The script and the
+workflows reach the same routes with `LAB_TOKEN` (MB-69); the browser passes
+the Clerk gate. `--publish <fixture>.<label>[,…]` lands a stored run file in
+Runs; r05 and r06 are the baseline (MB-72).
 
-`/report-lab` alone: run all five fixtures at `label: <today>`, then compare
-against the newest earlier label. This is the drift check.
+## Running one from here
 
-`/report-lab <label>`: run and store under that label.
-
-`/report-lab compare <a> <b>`: no generation, no spend. Diff two stored runs.
-
-## Running one
-
-1. Confirm staging serves the commit under test: the Smoke workflow must be
-   green on it. The lab measures whatever staging is deployed, not the working
-   tree, so a run before the deploy lands measures the old brain.
-2. Dispatch the **Report lab** workflow on `main` with `chart: all` and the
-   label. It needs no credential; it drives staging's public API as an
-   anonymous visitor, so the OpenAI key never leaves Railway.
-3. When it finishes, fetch the runs it published and compare:
-   `git fetch origin report-lab/<label>` then
+1. Staging must serve the commit under test: the Smoke workflow green on it.
+2. Dispatch **Report lab** on `main` with the campaign (`dry`, `spot`,
+   `release`, `stub`, `publish`, or the generating `natal`, `pass`, `pair`),
+   the label, and the base. No credential leaves the dashboards.
+3. Read the run summary; generating campaigns also publish
+   `report-lab/<label>`: `git fetch origin report-lab/<label>` then
    `git checkout origin/report-lab/<label> -- fixtures/reports/` then
    `pnpm report:lab --compare <baseline> <label>`.
 
 ## Reading the result
 
-`--compare` reports each section's model, words, cost, seconds and a verdict.
-Cost and quality are deliberately separate: **a section that got cheaper and
-broke the style contract is not an improvement.** A `WORSE` verdict names the
-fault, which is always one of method-talk, a banned character, an invalid
-claim, an unstructured reply, or falling out of the word band.
+Cost and quality stay apart: **a section that got cheaper and broke the style
+contract is not an improvement.** `WORSE` names the fault: method-talk, a banned
+character, an invalid claim, an unstructured reply, or out of the word band.
+The gate refuses on a new fault, a total outside 3,500 to 5,500, or a cost more
+than 10% over the last release. Relay the cost delta, every `WORSE` section, and
+whether any model changed; the tables go in the round report. The Owner judges
+quality, in the room, on the reading-room rule (ADR-57).
 
-Relay to the Owner: the cost delta, every `WORSE` section with its fault, and
-whether any model changed. Put the tables in the round report when a round is
-running. Nothing here is a decision; the Owner judges quality.
+## Moving a section to another writer
 
-## A/B-ing a model per section
-
-`api/src/lib/models.ts` decides which model each job calls. `MODELS.sections`
-moves all ten; `SECTION_MODELS` moves one. Edit, ship, let staging deploy, run
-this skill under a new label, compare against the baseline. Because the runs
-are stored and labelled, a section can be moved to a cheaper model one at a
-time and the exact section where quality breaks is visible.
-
-Two runs are sequential, not simultaneous: the lab measures staging, and
-staging serves one configuration at a time. For drift that is the point, since
-drift is a comparison across time. For a same-moment comparison both models
-would have to be called from one process, which needs the OpenAI key, which
-lives only on Railway.
+Only on the reading-room rule: best or tied on every chart read blind, never
+would not ship, contract gate held, five of five. Then `models.ts`
+(`MODELS.sections` or `SECTION_MODELS`), a release lab, and a Promote through
+the gate: USER-FACING (R-5.5). A writer the Owner picks over 5.2 moves even
+when it costs more.

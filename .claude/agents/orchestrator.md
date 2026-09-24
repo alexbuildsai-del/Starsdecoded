@@ -17,8 +17,10 @@ You run the round in `docs/rounds/RNN-plan.md`. You do not redesign it.
    `pnpm install --frozen-lockfile` · `pnpm run typecheck` ·
    `pnpm run build:web` · `pnpm run build:api` ·
    `pnpm -r --filter '!@workspace/e2e' --if-present run test`.
-   If any card touched `api/src/lib/` or prompts: the report lab against the
-   committed chart fixtures, and paste the measurement into the report.
+   If any card touched the brain paths (`api/src/prompts/`, `models.ts`,
+   `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`): the dry
+   lab, and after the merge the spot replay `lab-spot.yml` runs itself; paste
+   both into the report. The full lab runs at Promote only (ADR-76).
    If any card touched the schema: `pnpm run db:bootstrap` against a scratch
    database boots clean.
 4. **Close.** Write `docs/rounds/RNN-report.md` (at most 60 lines): shipped
