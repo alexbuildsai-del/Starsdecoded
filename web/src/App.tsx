@@ -24,6 +24,7 @@ const importReport = () => import("@/pages/ReportPage");
 const importDashboard = () => import("@/pages/DashboardPage");
 const importCompatibility = () => import("@/pages/CompatibilityReportPage");
 const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
+const importAdminLab = () => import("@/pages/AdminLabPage");
 const importClaim = () => import("@/pages/ClaimPage");
 const importPrivacy = () => import("@/pages/legal/PrivacyPage");
 const importTerms = () => import("@/pages/legal/TermsPage");
@@ -35,6 +36,7 @@ const ReportPage = lazy(importReport);
 const DashboardPage = lazy(importDashboard);
 const CompatibilityReportPage = lazy(importCompatibility);
 const AdminPromptsPage = lazy(importAdminPrompts);
+const AdminLabPage = lazy(importAdminLab);
 const ClaimPage = lazy(importClaim);
 const PrivacyPage = lazy(importPrivacy);
 const TermsPage = lazy(importTerms);
@@ -239,6 +241,7 @@ function Routes() {
         <Route path="/people">{() => <Redirect to="/dashboard" />}</Route>
         <Route path="/claim" component={ClaimPage} />
         <Route path="/admin/prompts" component={AdminPromptsPage} />
+        <Route path="/admin/report-lab" component={AdminLabPage} />
         <Route path="/privacy" component={PrivacyPage} />
         <Route path="/terms" component={TermsPage} />
         <Route path="/refunds" component={RefundsPage} />
