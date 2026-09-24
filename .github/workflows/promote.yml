@@ -1,9 +1,10 @@
 name: Promote
 
 # Ships what staging is running to production: proves staging is at the
-# requested commit, fast-forwards the production branch to it, then proves
-# production came up on that commit. Fast-forward only, so production never
-# carries anything main did not.
+# requested commit, runs the release lab when the brain changed since
+# production's commit (ADR-76), fast-forwards the production branch, then
+# proves production came up on that commit. Fast-forward only, so production
+# never carries anything main did not, and never past a red gate.
 on:
   workflow_dispatch:
     inputs:
@@ -12,6 +13,17 @@ on:
         required: false
         type: string
         default: ""
+      dry_run:
+        description: Run every check, the release lab and the gate included, and skip the push
+        required: false
+        type: boolean
+        default: false
+      rehearsal:
+        description: Rehearse the gate with no spend. "stub" copies r06 as the release; "stub-fault" seeds one contract fault so the gate must refuse
+        required: false
+        type: choice
+        options: [none, stub, stub-fault]
+        default: none
 
 permissions:
   contents: write
@@ -21,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.pick.outputs.sha }}
+      short: ${{ steps.pick.outputs.short }}
+      brain_changed: ${{ steps.brain.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,18 +49,63 @@ jobs:
             exit 1
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short=$(git rev-parse --short "$sha")" >> "$GITHUB_OUTPUT"
           echo "promoting $sha"
+
+      # The brain is what decides the words (R-4.4). Production's commit is
+      # the reference; with no production branch yet, everything is new.
+      - id: brain
+        run: |
+          sha="${{ steps.pick.outputs.sha }}"
+          if [ "${{ inputs.rehearsal }}" != "none" ] && [ -n "${{ inputs.rehearsal }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"; echo "rehearsal: the gate runs on a stub"; exit 0
+          fi
+          if ! git rev-parse --verify -q origin/production >/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"; echo "no production branch yet: the full lab runs"; exit 0
+          fi
+          files=$(git diff --name-only origin/production "$sha" -- api/src/prompts api/src/lib/models.ts api/src/lib/aiInterpretation.ts api/src/lib/traditional.ts api/src/lib/chartCalculation.ts)
+          if [ -z "$files" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"; echo "the brain is unchanged since production: the lab is skipped"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"; printf 'brain changed:\n%s\n' "$files"
+          fi
+          printf -- '- brain changed since production: %s\n' "$([ -z "$files" ] && echo no || echo yes)" >> "$GITHUB_STEP_SUMMARY"
 
   staging-smoke:
     needs: resolve
+    if: inputs.rehearsal == 'none' || inputs.rehearsal == ''
     uses: ./.github/workflows/smoke-run.yml
     with:
       web_url: https://starsdecoded-staging.vercel.app/
       expect_env: staging
       expect_commit: ${{ needs.resolve.outputs.sha }}
 
+  # The release gate (ADR-76): the full natal lab on the five matrix charts,
+  # then --gate against the last release. The lab job fails closed without
+  # LAB_TOKEN (MB-69) and refuses past LAB_BUDGET_USD (ADR-77). A rehearsal
+  # swaps the lab for a stub of r06, with or without a seeded fault.
+  release-lab:
+    needs: resolve
+    if: needs.resolve.outputs.brain_changed == 'true'
+    uses: ./.github/workflows/report-lab.yml
+    with:
+      campaign: ${{ (inputs.rehearsal == 'stub' || inputs.rehearsal == 'stub-fault') && 'stub' || 'release' }}
+      label: release-${{ needs.resolve.outputs.short }}
+      base: r06
+      seed_fault: ${{ inputs.rehearsal == 'stub-fault' }}
+    secrets: inherit
+
   fast-forward:
-    needs: [resolve, staging-smoke]
+    needs: [resolve, staging-smoke, release-lab]
+    # Skipped jobs would fail `needs` on their own, so the conditions are spelled out:
+    # smoke green, and the gate green whenever the brain changed. A dry run or a rehearsal never pushes.
+    if: >-
+      !cancelled()
+      && needs.resolve.result == 'success'
+      && needs.staging-smoke.result == 'success'
+      && (needs.resolve.outputs.brain_changed != 'true' || needs.release-lab.result == 'success')
+      && inputs.dry_run == false
+      && (inputs.rehearsal == 'none' || inputs.rehearsal == '')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,3 +130,20 @@ jobs:
       web_url: https://mystarsdecoded.com/
       expect_env: production
       expect_commit: ${{ needs.resolve.outputs.sha }}
+
+  # What a dry run or a rehearsal leaves behind: the gate's verdict, no push.
+  verdict:
+    needs: [resolve, release-lab]
+    if: >-
+      !cancelled() && (inputs.dry_run == true || inputs.rehearsal == 'stub' || inputs.rehearsal == 'stub-fault')
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "dry run or rehearsal: nothing was pushed."
+          echo "brain changed: ${{ needs.resolve.outputs.brain_changed }}; release lab: ${{ needs.release-lab.result }}"
+          if [ "${{ inputs.rehearsal }}" = "stub-fault" ] && [ "${{ needs.release-lab.result }}" != "failure" ]; then
+            echo "::error::the gate should have refused the seeded fault"; exit 1
+          fi
+          if [ "${{ inputs.rehearsal }}" = "stub" ] && [ "${{ needs.release-lab.result }}" != "success" ]; then
+            echo "::error::the gate should have passed a clean stub"; exit 1
+          fi
