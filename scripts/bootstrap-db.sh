@@ -50,6 +50,10 @@ echo "==> 3f/7 One credit kind"
 # credits.credit_type becomes nullable with a default; nothing dropped (ADR-42, MB-57). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-credit-type-nullable.ts
 
+echo "==> 3g/7 The lab tables"
+# lab_runs and lab_judgements, the report lab's runs and the reading room's cards (ADR-52, ADR-53). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-lab-tables.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.

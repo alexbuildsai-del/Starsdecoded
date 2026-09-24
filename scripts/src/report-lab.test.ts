@@ -80,3 +80,33 @@ test("the repetition score is the share of five-word runs that appear in more th
 function words(s: string): number {
   return s.trim() ? s.trim().split(/\s+/).length : 0;
 }
+
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { runRows, seedFault } from "./report-lab.js";
+import { gateProblems, type RunNumbers } from "../../api/src/lib/labRules.js";
+
+const REFERENCE = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "fixtures", "reports", "marie-curie.reference.json"), "utf8"));
+
+const numbers = (label: string, file: typeof REFERENCE): RunNumbers[] =>
+  runRows("marie-curie", label, file).sections.map((r) => ({ fixture: "marie-curie", label, section: r.section, words: r.words, costUsd: r.costUsd, faults: r.faults, status: "done" }));
+
+test("a stored run publishes as one foundation row with the chart and one numbers row per section", () => {
+  const payload = runRows("marie-curie", "reference", REFERENCE);
+  assert.equal(payload.runKey, "marie-curie.reference");
+  assert.equal(payload.sections[0].section, "foundation");
+  assert.ok(payload.chart.planets, "the chart rides on the payload for the foundation row");
+  assert.equal(payload.sections.length, 12);
+  const career = payload.sections.find((r) => r.section === "career")!;
+  assert.ok(career.words > 100);
+  assert.equal(typeof career.costUsd, "number");
+  assert.deepEqual(career.faults, []);
+});
+
+test("the gate passes a stored pair of the same run and refuses the seeded fault", () => {
+  const same = gateProblems(numbers("r06", REFERENCE), numbers("r07", REFERENCE), ["marie-curie"]);
+  assert.deepEqual(same, []);
+  const seeded = gateProblems(numbers("r06", REFERENCE), numbers("r07", seedFault(REFERENCE)), ["marie-curie"]);
+  assert.deepEqual(seeded, ["marie-curie/career: new fault char:em dash"]);
+});

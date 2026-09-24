@@ -1,22 +1,28 @@
 name: Report lab
 
-# R-4.4: no prompt or engine change ships without the report lab run against
-# the committed fixtures. This sandbox cannot reach staging, so the run happens
-# here: each fixture becomes a real report on staging through its public API,
-# and the measurement lands in the run summary and an artifact. Staging only;
-# production is read-only for prompts and its reports belong to customers.
+# R-4.4: the lab runs at four levels (ADR-76). This sandbox cannot reach
+# staging, so every level runs here against staging's public API and the lab
+# routes: natal, pass and pair generate real reports as an anonymous visitor
+# and post each run to the panel; dry renders prompts with no call; spot
+# replays the changed sections on Flex; release is the full natal lab on the
+# five matrix charts followed by the gate; stub rehearses the gate with no
+# spend; publish lands stored runs in the panel. Staging only.
+#
+# LAB_TOKEN lives in the GitHub `staging` environment (MB-69). Levels that
+# need the panel fail closed without it; natal, pass and pair still measure
+# and publish to the report-lab branch.
 on:
   workflow_dispatch:
     inputs:
       campaign:
-        description: natal (the chart fixtures), pass (blind, then the horizon pass) or pair (the three lenses, then one parent-and-child run per band)
+        description: natal, pass, pair, dry, spot, release, stub or publish
         required: true
         type: choice
-        options: [natal, pass, pair]
+        options: [natal, pass, pair, dry, spot, release, stub, publish]
         default: natal
       chart:
-        description: natal only. Fixture name under fixtures/charts, or "all"
-        required: true
+        description: natal only. Fixture name under fixtures/charts, or "all" (the five matrix charts)
+        required: false
         type: string
         default: all
       pair:
@@ -27,14 +33,78 @@ on:
       lens:
         description: pair only, with one fixture. "all" takes the fixture's own lens
         required: false
-        type: choice
-        options: [all, partners, parent_child, people]
+        type: string
         default: all
       label:
-        description: Label for the written run files
+        description: Label for the written run files (and the release or stub label)
         required: true
         type: string
         default: staging
+      base:
+        description: dry, spot and stub. The stored label to render, replay or copy from
+        required: false
+        type: string
+        default: r06
+      sections:
+        description: spot only. Comma-separated section ids, or "pipeline" for one whole report
+        required: false
+        type: string
+        default: pipeline
+      charts:
+        description: spot only. Comma-separated fixture names
+        required: false
+        type: string
+        default: marie-curie,day-angular
+      seed_fault:
+        description: stub only. Write one contract fault into career so the gate must refuse
+        required: false
+        type: boolean
+        default: false
+      publish:
+        description: publish only. Comma-separated <fixture>.<label> keys, files fetched from the report-lab/<label> branches
+        required: false
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      campaign:
+        required: true
+        type: string
+      chart:
+        required: false
+        type: string
+        default: all
+      pair:
+        required: false
+        type: string
+        default: all
+      lens:
+        required: false
+        type: string
+        default: all
+      label:
+        required: true
+        type: string
+      base:
+        required: false
+        type: string
+        default: r06
+      sections:
+        required: false
+        type: string
+        default: pipeline
+      charts:
+        required: false
+        type: string
+        default: marie-curie,day-angular
+      seed_fault:
+        required: false
+        type: boolean
+        default: false
+      publish:
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -43,8 +113,11 @@ jobs:
   lab:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    environment: staging
     env:
       WEB_URL: https://starsdecoded-staging.vercel.app
+      LAB_API: https://starsdecoded-staging.vercel.app
+      LAB_TOKEN: ${{ secrets.LAB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,19 +137,58 @@ jobs:
           [ "$(printf '%s' "$body" | jq -r '.env')" = "staging" ] || { echo "::error::$WEB_URL is not staging"; exit 1; }
           printf -- '- commit under test: %s\n' "$(printf '%s' "$body" | jq -r '.commit')" >> "$GITHUB_STEP_SUMMARY"
 
+      # The panel levels cannot run without the token; a silent skip would
+      # read as green, so they refuse instead (MB-69).
+      - name: The panel needs LAB_TOKEN
+        if: contains('dry spot release publish', inputs.campaign)
+        run: |
+          [ -n "$LAB_TOKEN" ] || { echo "::error::LAB_TOKEN is not set in the staging environment (MB-69); the ${{ inputs.campaign }} campaign cannot reach the lab routes"; exit 1; }
+
+      # Stored runs live on the report-lab/<label> branches, not on main.
+      - name: Fetch the stored runs the campaign reads
+        if: inputs.campaign == 'stub' || inputs.campaign == 'publish'
+        run: |
+          labels="${{ inputs.base }}"
+          if [ "${{ inputs.campaign }}" = "publish" ]; then
+            labels=$(echo "${{ inputs.publish }}" | tr ',' '\n' | sed 's/.*\.//' | sort -u | tr '\n' ' ')
+          fi
+          for l in $labels; do
+            git fetch --depth 1 origin "report-lab/$l" && git checkout FETCH_HEAD -- fixtures/reports/ || echo "::warning::no report-lab/$l branch"
+          done
+          git reset -q
+
       # The pipe into tee must not hide the lab's exit code: a failed fixture
       # is a failed run, with its table and error still in the summary.
-      - name: Generate and measure
+      - name: Run the campaign
         run: |
           set -o pipefail
+          label="${{ inputs.label }}"
           case "${{ inputs.campaign }}" in
-            pass) sel="--pass" ;;
-            pair) if [ "${{ inputs.pair }}" = "all" ]; then sel="--pair"; else sel="--pair ${{ inputs.pair }} --lens ${{ inputs.lens }}"; fi ;;
-            *) if [ "${{ inputs.chart }}" = "all" ]; then sel="--all"; else sel="--chart ${{ inputs.chart }}"; fi ;;
+            pass) sel="--remote $WEB_URL --pass --label $label --html" ;;
+            pair) if [ "${{ inputs.pair }}" = "all" ]; then sel="--remote $WEB_URL --pair --label $label"; else sel="--remote $WEB_URL --pair ${{ inputs.pair }} --lens ${{ inputs.lens }} --label $label"; fi ;;
+            dry) sel="--dry --base ${{ inputs.base }}" ;;
+            spot) sel="--spot ${{ inputs.sections }} --charts ${{ inputs.charts }} --base ${{ inputs.base }}" ;;
+            release) sel="--release $label --label $label --html" ;;
+            stub) sel="--stub $label --from ${{ inputs.base }} ${{ inputs.seed_fault && '--seed-fault' || '' }}" ;;
+            publish) sel="--publish ${{ inputs.publish }}" ;;
+            *) if [ "${{ inputs.chart }}" = "all" ]; then sel="--remote $WEB_URL --all --label $label --html"; else sel="--remote $WEB_URL --chart ${{ inputs.chart }} --label $label --html"; fi ;;
           esac
           status=0
-          pnpm report:lab --remote "$WEB_URL" $sel --label "${{ inputs.label }}" --html 2>&1 | tee lab.log || status=$?
-          { echo '## Report lab'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          pnpm report:lab $sel 2>&1 | tee lab.log || status=$?
+          { echo '## Report lab: ${{ inputs.campaign }}'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+      # The release gate (ADR-76): a red gate is a red job, which is what
+      # Promote reads. The stub rehearses it against the label it copied.
+      - name: The gate
+        if: inputs.campaign == 'release' || inputs.campaign == 'stub'
+        run: |
+          set -o pipefail
+          against="last-release"
+          [ "${{ inputs.campaign }}" = "stub" ] && against="${{ inputs.base }}"
+          status=0
+          pnpm report:lab --gate "${{ inputs.label }}" --against "$against" 2>&1 | tee gate.log || status=$?
+          { echo '## The gate'; echo '```'; cat gate.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
       # The log rides with the run: a failed run publishes its error where the
@@ -94,11 +206,11 @@ jobs:
           if-no-files-found: ignore
 
       # The reports are the product, so they must be readable without
-      # downloading a zip: every run replaces the report-lab/<label> branch,
-      # where GitHub renders the .md files. Partial runs publish too. One
-      # label per campaign, or the next run's force-push drops the last one.
+      # downloading a zip: every generating run replaces the report-lab/<label>
+      # branch, where GitHub renders the .md files. Partial runs publish too.
+      # One label per campaign, or the next run's force-push drops the last one.
       - name: Publish the run on the report-lab branch
-        if: always()
+        if: always() && contains('natal pass pair release', inputs.campaign)
         run: |
           # ls fails when either glob is empty, so a run with a log and no report said "nothing to publish".
           compgen -G "fixtures/reports/*.${{ inputs.label }}.md" >/dev/null || [ -f "fixtures/reports/lab.${{ inputs.label }}.log" ] || { echo "nothing to publish"; exit 0; }
@@ -108,6 +220,6 @@ jobs:
           git checkout -B "$branch"
           git add -f fixtures/reports
           git diff --cached --quiet && { echo "nothing new to publish"; exit 0; }
-          git commit -q -m "Report lab: ${{ inputs.campaign }} ${{ inputs.campaign == 'pair' && inputs.pair || inputs.chart }} against staging, run ${{ github.run_id }}"
+          git commit -q -m "Report lab: ${{ inputs.campaign }} against staging, run ${{ github.run_id }}"
           git push -f origin "$branch"
           printf -- '- reports: https://github.com/%s/tree/%s/fixtures/reports\n' "$GITHUB_REPOSITORY" "$branch" >> "$GITHUB_STEP_SUMMARY"

@@ -28,7 +28,7 @@ import { ASPECT_ORBS, EPHEMERIS, hasHorizon, type HorizonStatus, type NatalChart
 import { sectOf } from "./traditional.js";
 import { logger } from "./logger.js";
 import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type SectionUsage } from "./usage.js";
-import { MODELS, modelFor } from "./models.js";
+import { MODELS, effortFor, flexOffered, isModelId, modelFor, type ModelId, type ServiceTier } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, ClaimSchema, EvidenceRefSchema, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
   buildBrief, hasClaims, instructionsFor, onlyQuoteProblems, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
@@ -171,6 +171,35 @@ export class SectionError extends Error {
   }
 }
 
+/**
+ * The key has no credits (ADR-77). Thrown instead of a retry: a second call
+ * cannot succeed, and a campaign that meets this stops at the first one.
+ * The SDK's own six retries on a 429 still run first; they cost time, never
+ * money.
+ */
+export class OutOfCreditError extends Error {
+  constructor(public readonly key: string, message: string) {
+    super(`${key}: out of credit: ${message}`);
+    this.name = "OutOfCreditError";
+  }
+}
+
+function isOutOfCredit(err: unknown): boolean {
+  const e = err as { status?: number; code?: string | null; message?: string } | null;
+  if (!e || e.status !== 429) return false;
+  return e.code === "insufficient_quota" || /insufficient_quota|no credits/i.test(e.message ?? "");
+}
+
+/** Wraps every model call, so an out-of-credit 429 is named once. */
+async function guarded<T>(key: string, call: Promise<T>): Promise<T> {
+  try {
+    return await call;
+  } catch (err) {
+    if (isOutOfCredit(err)) throw new OutOfCreditError(key, (err as Error).message);
+    throw err;
+  }
+}
+
 export interface SectionResult<T> {
   data: T;
   usage: SectionUsage;
@@ -186,6 +215,8 @@ export interface StructuredCall<T> {
   maxTokens: number;
   /** Chart-grounded checks; a non-empty list rejects the reply, retried with the problems named. */
   validate?: (output: T) => string[];
+  /** Flex only when asked and the catalogue offers it; the customer path never asks (ADR-77). */
+  serviceTier?: ServiceTier;
 }
 
 /**
@@ -197,10 +228,17 @@ export interface StructuredCall<T> {
 export async function callStructured<T>(call: StructuredCall<T>): Promise<SectionResult<T>> {
   const jsonSchema = toStrictJsonSchema(call.schema);
   const name = call.usageKey.replace(/[^a-zA-Z0-9_]/g, "_");
+  if (!isModelId(call.model)) throw new SectionError(call.usageKey, `${call.model} is not in the model catalogue`);
+  if (call.serviceTier === "flex" && !flexOffered(call.model)) {
+    throw new SectionError(call.usageKey, `${call.model} does not offer the Flex tier (MB-70)`);
+  }
+  // The effort rides on every call (ADR-74); the tier only on a lab replay.
+  const tier = call.serviceTier === "flex" ? { service_tier: "flex" as const } : {};
+  const pinned = { reasoning_effort: effortFor(call.model), ...tier };
   let lastError = "";
   // Accumulates across attempts: a section that retried twice cost three calls,
   // and hiding that would understate exactly what we are here to measure.
-  let usage = emptySection(call.usageKey, call.model);
+  let usage: SectionUsage = { ...emptySection(call.usageKey, call.model), ...(call.serviceTier === "flex" ? { serviceTier: "flex" as const } : {}) };
   let repaired = false;
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
@@ -211,15 +249,16 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
       ? call.user
       : `${call.user}\n\nPREVIOUS ATTEMPT REJECTED: ${lastError}\nReturn the complete reply again with these fixed. Every claim quote must be copied exactly from the prose in this reply.`;
     const startedAt = Date.now();
-    const response = await openai.chat.completions.create({
+    const response = await guarded(call.usageKey, openai.chat.completions.create({
       model: call.model,
       max_completion_tokens: call.maxTokens,
+      ...pinned,
       messages: [
         { role: "system", content: call.system },
         { role: "user", content },
       ],
       response_format: { type: "json_schema", json_schema: { name, strict: true, schema: jsonSchema } },
-    });
+    }));
     usage = addAttempt(usage, response.usage, Date.now() - startedAt);
 
     const choice = response.choices[0];
@@ -265,15 +304,16 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
       const { claims: _rejected, ...prose } = parsed.data as Record<string, unknown>;
       const repairSchema = z.object({ claims: claimsShape });
       const repairStartedAt = Date.now();
-      const repair = await openai.chat.completions.create({
+      const repair = await guarded(call.usageKey, openai.chat.completions.create({
         model: call.model,
         max_completion_tokens: call.maxTokens,
+        ...pinned,
         messages: [
           { role: "system", content: call.system },
           { role: "user", content: `${call.user}\n\n${CLAIMS_ONLY}\n\nPROSE AS WRITTEN\n${JSON.stringify(prose, null, 2)}\n\nPREVIOUS CLAIMS REJECTED: ${lastError}` },
         ],
         response_format: { type: "json_schema", json_schema: { name: `${name}_claims`, strict: true, schema: toStrictJsonSchema(repairSchema) } },
-      });
+      }));
       usage = addAttempt(usage, repair.usage, Date.now() - repairStartedAt);
       const repairedRaw = (() => { try { return JSON.parse(repair.choices[0]?.message?.content ?? ""); } catch { return null; } })();
       const parsedRepair = repairSchema.safeParse(repairedRaw);
@@ -295,6 +335,7 @@ interface CallOptions<T> {
   validate?: (output: T, brief: ChartBrief) => string[];
   /** Named in the usage row when the call is not the spec's whole section. */
   usageKey?: string;
+  serviceTier?: ServiceTier;
 }
 
 async function callSection<T>(
@@ -312,6 +353,7 @@ async function callSection<T>(
     model, system, user, schema,
     maxTokens: spec.maxTokens,
     validate: validate ? (out) => validate(out, brief) : undefined,
+    serviceTier: options.serviceTier,
   });
 }
 
@@ -452,6 +494,35 @@ export async function generateInterpretation(
     aspectMeanings: brief.aspectMeanings,
     ...(brief.angleMeanings ? { angleMeanings: brief.angleMeanings } : {}),
   };
+}
+
+/**
+ * The lab's hook (ADR-52): one section on any catalogued model at a chosen
+ * tier, through the customer's `callSection`, so the prompt, schema,
+ * validator, claims-only retry and caps are exactly the customer's.
+ * `natal:foundation` with no foundation writes a foundation; every other
+ * section needs one. The claims come back in their stored, labelled form.
+ */
+export async function writeSection(
+  sectionKey: string,
+  chart: NatalChartData,
+  name: string,
+  foundationJson: string | undefined,
+  options: { model: ModelId; serviceTier?: ServiceTier },
+): Promise<SectionResult<unknown>> {
+  const spec = ALL_SECTIONS.find((s) => s.key === sectionKey);
+  if (!spec) throw new Error(`Unknown section ${sectionKey}`);
+  const isFoundation = spec.key === FOUNDATION.key;
+  if (!isFoundation && !foundationJson) throw new Error(`${sectionKey} needs a foundation to write against`);
+  const prompt = await resolveSection(spec.key);
+  const brief = buildBrief(chart, name);
+  const blind = brief.horizon === "unknown";
+  const user = assembleUser(prompt.user, brief, spec, isFoundation ? undefined : foundationJson);
+  const call = await callSection<unknown>(spec, options.model, prompt.system, user, brief, {
+    schema: schemaFor(spec, blind),
+    serviceTier: options.serviceTier,
+  });
+  return { data: isFoundation ? call.data : withStoredClaims(call.data, chart), usage: call.usage };
 }
 
 /** Exposed for the lab and tests: the exact prompt pair a section would send. */

@@ -11,8 +11,7 @@ product. "Astra" left the code on 2026-09-18; never add a new use of the name.
   else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
 - Delegate unasked (R-0.6): independent parts, broad searches and long reads go
   to subagents, in parallel when independent; a single lookup or edit stays here.
-- Model triage (R-0.7): the orchestrator runs a round on the top model (Fable);
-  builders and feature work Opus, simple fixes Sonnet, mechanical Haiku.
+- Model triage (R-0.7): the orchestrator on the top model (Fable); builders Opus, simple fixes Sonnet, mechanical Haiku.
 
 ## Read this first
 
@@ -46,13 +45,13 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab --render|--compare    # re-read stored runs. Free; see /report-lab
+pnpm report:lab --render|--compare    # re-read stored runs, free; the lab levels: /report-lab
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
 clean when the schema changed, smoke on the Vercel preview. Never skip or
-disable a check. The report lab is not in it: `/report-lab` runs when the brain
-changed, or when the Owner asks.
+disable a check. The lab runs at four levels (ADR-76): dry at every brain
+change, spot on merge to staging, full at Promote, reading when the Owner spawns.
 
 ## Process
 
@@ -100,21 +99,22 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   run twice breaks the deploy.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`,
   `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
-  `/report-lab` runs on staging right after the merge by dispatching
-  `report-lab.yml`; no key or network is needed here. Never generate a report to
-  look at one. Every model id lives in `models.ts` with its price; one outside
-  the catalogue does not compile.
+  the dry lab runs in the round, `lab-spot.yml` replays the changed sections on
+  merge, and Promote runs the full lab and its gate; spend is capped by
+  `LAB_BUDGET_USD` (ADR-77). Never generate a report to look at one: the Lab
+  page and `--render` are free. Every model id lives in `models.ts` with its
+  price and pinned reasoning effort; one outside the catalogue does not compile.
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-21)
+## Current focus (2026-09-24)
 
-1. R06 merged to staging (#55, follow-ups #56 to #59): the nine review fixes (ADR-59 to 62), the compatibility second pass p2
-   (ADR-63 to 71), on-tap scenes on `gpt-5.2` (ADR-72), MB-60 to 62 closed. Natal and pass campaigns measured; the `pair`
-   campaign waits on OpenAI credits (MB-68, blocking): dispatch `report-lab.yml` `pair` and paste it into `docs/rounds/R06-report.md`.
-2. Owner acceptance on staging for R01, R03, R04, R05 and R06, in that order; then the staging landing
-   (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote.
-3. Next: `report-lab-model-matrix.md` (needs the Groq key on Railway), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.
+1. R07 (#61) to staging: the lab in the admin panel (`/admin/report-lab`), replays through `writeSection`, sessions on spawn,
+   the release gate in Promote (ADR-73 to 77). Every line INTERNAL. Waiting on the Owner: **MB-69** `LAB_TOKEN` on Railway staging and
+   the GitHub `staging` environment, **MB-68** OpenAI credits. Then: `report-lab.yml` `publish` r05 and r06 (MB-72), the R06 `pair` campaign.
+2. Owner acceptance on staging for R01, R03, R04, R05, R06 and R07, in that order; then the staging landing
+   (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote, which runs the full lab (about $1.40).
+3. Next: the first reading session (career, overview, superpowers, discoveries on five charts), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.

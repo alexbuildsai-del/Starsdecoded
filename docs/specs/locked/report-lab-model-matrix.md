@@ -1,200 +1,196 @@
-# Locked spec — the model matrix: the lab moves into the admin panel, the Owner judges blind
+# Locked spec — the model matrix, re-cast on GPT-6, and a lab that runs at release
 
-Raised by the Owner, 2026-09-19, directed 2026-09-20: 28.4 cents a natal report
-(R05 mean) is the high end; find a better mix, a different model per section by
-the reasoning it needs, beyond `gpt-5.2` and `gpt-5-mini`, Groq included. Natal
-only in this pass. Quality over cost; the Owner's blind read is the judge.
-Locked 2026-09-21. Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
+Revises the version locked 2026-09-21 (ADR-52 to 58), kept as the base in
+`docs/annex/report-lab-model-matrix-annex.md`; this file wins where they differ. Raised by the Owner 2026-09-24: lab
+spend every round is too high. Review the models again, OpenAI and Groq, no Anthropic,
+Luna suggested; generate nothing for the reading room until a session is spawned; run
+the full lab at the staging-to-production release, not every round.
+Locked 2026-09-24. Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub (version 4)
 
-## Where the 28 cents go (R05, five fixtures, real usage)
+## What changed since the lock
 
-Twelve calls: one serial foundation, then ten chapters and the houses in
-parallel, needing four levels of reasoning, read from their prompts:
+- **GPT-6 Sol and GPT-6 Luna shipped on 2026-09-22** at half the GPT-5.6 price.
+  GPT-6 Luna is cheaper per output token than gpt-oss-120b on Groq and scores
+  far higher on every index.
+- **gpt-5.2 is marked deprecated** with no shutdown date, and gpt-5-mini shuts
+  down on 2026-12-11. Every job runs on 5.2 today, so a successor is needed
+  whatever the price.
+- **Groq lost its case.** Kimi K2 and Llama 4 were retired from Groq in 2026.
+  gpt-oss-120b is weak on writing boards: 1652 on EQ-Bench creative writing
+  against 1963 for GPT-5.6 Sol, and 48th on lechmazur's writing board. It costs
+  more per output token than GPT-6 Luna. Its only edge left is speed.
+- **The lab spends by campaign, not by report.** R05 dispatched at least nine
+  campaigns: natal, pass and pair, plus reruns. R06 spent about $4 before the
+  key ran dry (MB-68). `--all` now runs seven charts, not five.
 
-| tier | sections | what the prompt asks | share of cost |
+## Candidates, September 2026
+
+Standard tier, $ per million tokens, from press and aggregators quoting the vendor
+pages (the proxy blocked direct reads); each is checked on the official page the
+day it enters `CATALOGUE`.
+
+| writer | in / cached / out | evidence | role in the matrix |
 |---|---|---|---|
-| open-ended | foundation | read the whole chart, choose thesis, pattern, tension, guide every section | 13% |
-| synthesis | overview, discoveries, superpowers, focus | find paradoxes, partition the chart, reuse without repeating, inside the handover | 31% |
-| scaffolded | triad, mind, career, money, relationships, family | write against evidence the prompt names, foundation attached verbatim, strict schema, claims checked in code | 48% |
-| mechanical | houses | twelve 45–65 word cards under a per-house whitelist, no claims | 8% |
+| gpt-5.2 | 1.75 / 0.175 / 14 | the stored R05 and R06 text; deprecated | baseline and hidden control |
+| gpt-6-sol | 2.00 / 0.20 / 10 | AA index 48; blind panel: "Sol is competitive" | the thinker, and the like-for-like successor |
+| gpt-6-luna | 0.10 / 0.01 / 0.50 | AA 37, level with 5.6 Luna at half its price | the cheap writer |
 
-The foundation takes 34 s before any chapter starts. At €24 the report is 1.2%
-of a sale against MASTERFILE §1's "under 1%".
+Left out: **gpt-5.6-luna** at 0.20 / 1.20, the same score as 6 Luna at twice the
+price, dropped by the Owner 2026-09-24 as redundant; it returns only if 6 Luna
+fails the scaffold. **gpt-5.6-sol** at 4 / 20, third on EQ-Bench but 50 ¢ a report, back
+only if 6 Sol loses to 5.2 on synthesis. **gpt-5.6-terra** at 2 / 12, "not close"
+in a blind panel and dearer than 6 Sol. **gpt-5.5** at 5 / 30 and OpenAI's $10 / $50
+flagship, out of range for €24. **gpt-5-mini**, shut down in December. **Groq's**
+gpt-oss-120b, gpt-oss-20b and qwen3.8-27b (0.80 / 4, 16k output cap), see above.
+From 5.6 onward a cache write bills at 1.25 times the input price. The prices
+below charge it on all uncached input, which overstates the cost.
 
-## Candidates in the first matrix
+## Mixes, priced on real R05 usage
 
-Prices September 2026; ◌ from aggregators (vendor pages blocked from the
-sandbox), entered in `CATALOGUE` only after a check against the official page.
+Per report: 32.5k uncached input, 93k cached, 15.1k output, no reasoning. Cents:
 
-| writer | door | $/M in / out | prose | why it is in |
-|---|---|---|---|---|
-| gpt-5.2 | OpenAI key on Railway | 1.75 / 14 | Hemingway 1049 | the baseline, the stored R05 text |
-| GPT-5.6 Luna ◌ | same key, same API | 0.20 / 1.20 | Elo 1928 | eleven times cheaper on output, prose within noise of Terra |
-| gpt-oss-120b on Groq | Groq key | 0.15 / 0.60 | Elo 1079 | the Owner's ask; strict json_schema, hundreds of tokens a second |
-| gpt-5-mini | same key | 0.25 / 2 | none | already catalogued; the control that shows where cheap breaks |
+| mix | foundation | synthesis | scaffold | houses | ¢ | vs today |
+|---|---|---|---|---|---|---|
+| M0 today | 5.2 | 5.2 | 5.2 | 5.2 | 28.4 | — |
+| S successor | Sol | Sol | Sol | Sol | 25.1 | −12% |
+| A Sol thinks, Luna writes | Sol | Sol | 6 Luna | 6 Luna | 11.5 | −60% |
+| B Sol plans only | Sol | 6 Luna | 6 Luna | 6 Luna | 4.1 | −86% |
+| L all Luna | 6 Luna | 6 Luna | 6 Luna | 6 Luna | 1.3 | −95% |
 
-Later, per the artifact: Opus 5, Sonnet 5, Gemini 3.8 Flash, Kimi K3, DeepSeek, Terra, Sol.
+2k reasoning tokens on a Sol foundation add about 2 ¢. Expected landing: A; B if
+6 Luna holds on synthesis; S if Luna fails the scaffold. Mixes are read off the
+section picks at the reveal; nobody judges a mix.
 
-## Five mixes, one judgement
+## The reading room: nothing is generated until a session is spawned
 
-The matrix reads five charts: day-angular, high-latitude, marie-curie,
-night-angular and `audrey-hepburn` (Ixelles 1929, birth certificate, night
-chart, Aquarius rising), which replaces oprah-winfrey in the matrix; its M0 is
-generated on staging in the round and doubles as the candidate sample report
-for a Belgian landing page. The Owner's own staging report can join as a base
-run too, picked in *Matrix*, so no private birth data enters the public repo.
-Costs below are priced on the R05 token shape, before retries; M0 is measured.
+The base Sequence step 2 is deleted. That step pre-dispatched every writer
+across eleven sections and five charts. Instead:
 
-| mix | foundation | synthesis | scaffold | houses | ¢ |
-|---|---|---|---|---|---|
-| M0 today | 5.2 | 5.2 | 5.2 | 5.2 | 28.4 |
-| M1 5.2 thinks, Luna writes | 5.2 | 5.2 | Luna | Luna | ≈14.0 |
-| M2 5.2 thinks, Groq writes | 5.2 | 5.2 | Groq | Groq | ≈13.7 |
-| M4 the floor | 5.2 | mini | mini | mini | ≈7.3 |
-| M7 only Groq | Groq | Groq | Groq | Groq | ≈2.1 |
+1. The Owner opens *Spawn a session*, the renamed *Matrix* view. They tick
+   sections, charts and writers. The form shows the estimated spend before
+   anything runs. For example, career plus three synthesis sections, five
+   charts, Sol, 6 Luna, the stored 5.2 and the 5.2 control comes to about 85 ¢.
+2. **Spawn** starts the replays for exactly those cards and nothing else. The
+   room opens when the last card lands. A replay that fails is retried once,
+   then its column is dropped from the card and named at the reveal.
+3. Pages load no report text until a card opens. *Runs* lists numbers only:
+   words, cost, seconds and faults. A card fetches its variants when it is
+   opened.
+4. The rest of the room works as in the base: blind columns in a stored shuffled
+   order, best, same as, would not ship, one note per card, and a reveal only
+   after the last card.
 
-The Owner judges writers, not mixes, one section at a time. M1, M2 and M4
-share the stored foundation, so a difference in a section is the writer alone;
-M7 writes its own foundation, so its sections carry a different reading too.
-Per section the room shows every distinct text (five for a scaffolded section,
-four for synthesis, five for the houses) plus a fresh 5.2 replay as a hidden
-control: how often the Owner prefers one 5.2 over the other is the noise floor
-a writer must beat. The mixes are read off the picks and priced at the reveal.
+## When the lab runs: four levels instead of one
+
+| level | when | what runs | spend |
+|---|---|---|---|
+| 0 dry | every round with a brain change | every section's prompt rendered on staging for the five charts; token count and schema check against the baseline; no model call | free |
+| 1 spot | merge to staging when a prompt changed | server replay of only the changed sections on two charts, foundation held from the stored run, compared in *Runs* | about 2–10 ¢ |
+| 2 release | Promote to production, only when the brain changed since production's commit | the full natal lab on the five matrix charts; a pair lens only if the pair brain changed; release gate below | about $1.40 on M0, 60 ¢ on A |
+| 3 reading | spawned by the Owner, or proposed here for a new writer or prompt voice | the session's cards only | shown before spawn |
+
+A pipeline change (`aiInterpretation.ts`, chart engine, `traditional.ts`) spots one
+whole report on one chart, about 28 ¢ today.
+
+**The release gate.** `promote.yml` diffs the brain paths between production and
+the commit being promoted. If they are unchanged, it skips the lab. If they
+changed, it dispatches the release lab and waits. It fast-forwards only when
+three things hold: no new contract fault, every total inside its band, and
+cost within 10% of the last release. A red gate leaves production where it was
+and says why. Promotes before Stripe are rare, and so are full labs.
+
+**Guards.**
+- A lab budget, `LAB_BUDGET_USD` with a default of $15 a month, is summed from
+  `lab_runs`. The replay route and the release lab refuse beyond it, and the
+  panel shows the spend to date.
+- A campaign stops at the first out-of-credit 429 instead of failing every
+  chart.
+- `--all` means the five matrix charts. oprah-winfrey and marie-curie-unknown
+  run only when their own brain changed: the pair fixture, the birth time.
+- Lab replays ask for OpenAI's Flex tier where the model offers it, at half
+  price. The release lab stays on the customer path at the standard tier.
 
 ## Scope
 
-1. **Providers in the catalogue.** Each `CATALOGUE` entry gains
-   `provider: "openai" | "groq"`; the client factory maps a provider to a base
-   URL and a key variable (`OPENAI_API_KEY`, `GROQ_API_KEY`), both read on the
-   Railway service, one client per provider from the exported factory.
-   `ModelId` keeps deriving from `CATALOGUE`. Usage stays OpenAI-shaped, which
-   Groq honours. `GET /admin/lab/providers` reports which keys are present, so
-   a missing key on Railway shows as a light in the panel, not a question here.
-2. **Lab tables.** `lab_runs` (fixture, label, source `lab | replay`, base run,
-   per-section model, text, usage, faults, cost, created_at) and
-   `lab_judgements` (session, fixture, section, the shuffled order, picks, note,
-   judged_at, revealed_at). Declared in `packages/db/src/schema`, one idempotent
-   migration wired into `scripts/bootstrap-db.sh`.
-3. **Replay on the server.** `POST /admin/lab/replay` takes a base run, a
-   model and a section list (`foundation` means write a foundation first, then
-   every section on it). It uses the two hooks the engine already exposes for
-   the lab, `previewSectionPrompt` and `callStructured`, so the prompt, schema,
-   retries and claim validation are the customer's, and stores one `lab_runs`
-   row per section. Runs as a job with a status the page polls, like a report.
-   No `reports` row, no credit, no customer path touched. The regex fault rules
-   move from the script into `api/src/lib/labRules.ts`, imported by both.
-4. **Every lab run lands in the panel.** `report:lab --remote` posts each
-   finished run to `POST /admin/lab/runs`; `--publish <fixture>.<label>`
-   imports a stored file, which is how the five R05 runs become the baseline.
-   The Owner's browser passes the Clerk gate; the workflow and the script pass
-   a `LAB_TOKEN` accepted by the lab routes only, placed once by the Owner in
-   Railway staging and the GitHub `staging` environment (the Groq key joins it
-   on Railway). The report-lab branch stays as the paste trail.
-5. **The admin Lab page** at `/admin/report-lab`, beside Prompts in the admin
-   sidebar, gated like it (`ADMIN_USER_ID`), four views:
-   - *Runs*: every stored run by fixture and label, per-section words, cost,
-     seconds, faults; the compare table the lab prints today, in the browser,
-     for any two labels.
-   - *Matrix*: pick a base run, a fixture run or one of the admin's own
-     stored reports, tick writers and sections, dispatch replays, watch them
-     land.
-   - *Reading room*: exists only inside a session the Owner spawns from
-     *Matrix* by choosing runs, sections and charts; nothing is queued
-     otherwise. One card per fixture and section, the variants side by side
-     as A, B, C, D, E in an order shuffled per card and stored, models, costs
-     and faults hidden. Under each variant a **best** button, a **would
-     not ship** button, and *same as* to tie two or more; one free-text note
-     per card. Career first, then the sections the session lists; a card is
-     saved on the pick and the room reopens where it stopped.
-   - *Reveal*: enabled only when every card of the session is judged. Per
-     writer: best, tied, not-shippable counts by section and by tier, faults
-     and words against the contract, cost per section. Per mix: cost, and how
-     many of its sections the Owner marked worse than 5.2. Every session stays
-     readable afterwards with its notes; that is the history.
-6. **Docs.** `/report-lab` skill gains the panel, `--publish` and the matrix;
-   R-5.6 in MASTERFILE points at `api/src/lib/models.ts`; MB-39's report
-   browser gap is met for lab runs.
+The base scope (annex) holds with these changes:
+
+1. **Catalogue.** Add gpt-6-sol and gpt-6-luna with their prices.
+   Each entry also gets a `reasoningEffort` with default `none`, sent on every
+   call. Newer models reason by default, and reasoning bills as output, so the
+   effort is pinned in one place.
+2. **Groq is dropped.** That removes the
+   provider field, `GROQ_API_KEY` and the providers light. `createOpenAIClient`
+   stays single-provider.
+3. **Replay** takes `serviceTier: flex | standard`, flex by default.
+4. **Spawn a session** replaces *Matrix*: an estimate before spawn, generation
+   on spawn, texts loaded per card.
+5. **Level 0 and level 1.** Add `GET /admin/lab/dry`, which renders prompts
+   through `previewSectionPrompt` with no call. Level 1 runs through
+   `POST /admin/lab/replay`. `report-lab.yml` gains `campaign: release`.
+6. **Release gate** in `promote.yml` as above. The budget guard and the
+   stop-at-429 go in the lab script and the replay route.
+7. **Rules.** R-4.4 and §11.4 in MASTERFILE, CLAUDE.md, and the report-lab,
+   round and orchestrator instructions all say the same four levels. The
+   orchestrator's "anything in `api/src/lib/`" trigger narrows to the brain.
 
 ## Out of scope
 
-- Any edit to `MODELS` or `SECTION_MODELS`: a routing change is its own
-  USER-FACING engine change with a staging lab run pasted (R-4.4, R-5.5).
-- The compatibility report: same tables, its own matrix, after the natal one.
-- A native Anthropic or Gemini adapter, batch or flex tiers, `reasoning_effort`.
-- An LLM judge: the Owner is the judge, the contract faults the automatic gate.
-- Tightening any ceiling or band (MASTERFILE §1); judging the foundation's text
-  directly, it is judged through the sections it produces.
-- Production: the page ships behind the admin gate everywhere, replay refuses
-  to run when `PROMPTS_READ_ONLY` is set.
+- Moving any section off 5.2: the routing round, USER-FACING, on the reading-room
+  rule. Pair, scenes and synastry stay on 5.2 until their own matrix.
+- The Batch API, a non-OpenAI provider, an LLM judge, a scheduled drift check
+  (level 2 at each release is the drift check).
 
 ## Acceptance criteria
 
-1. The four R05 runs appear under *Runs* after `--publish` with the costs the
-   lab printed; `audrey-hepburn` gets its M0 there; the admin's own report can
-   be chosen as a base run without birth data leaving the database.
-2. A replay of `career` on `gpt-5.2` against `marie-curie.r05` produces a row
-   `--compare` and the *Runs* view show with no fault the original lacked.
-3. A replay on `gpt-oss-120b` runs from the panel with no key in the repo; with
-   the Groq key absent the providers light says so and the job fails before
-   any call.
-4. A reading-room card hides model, cost and faults, stores the shuffled order,
-   accepts best, would-not-ship, ties and a note, and reloads judged.
-5. *Reveal* refuses until the last card is judged, then shows the per-writer
-   and per-mix tables; a second session on the same runs starts blank while
-   the first stays readable.
-6. Typecheck, both builds, unit tests, `db:bootstrap` twice on a fresh database
-   green; nothing a customer sees changes; every line INTERNAL.
-
-## Screens
-
-Artifact above: tiers, candidates, mixes, the flow from stored run to reveal,
-the reading-room card with its columns and note, the reveal table.
+1. The base criteria 1, 2, 4 and 5 hold. Criterion 3 goes with Groq.
+2. Before spawn, the *Runs* and *Spawn* views make no model call and load no
+   report text. Checked in the network tab.
+3. A spawned session creates exactly the ticked cards. The spend it shows is
+   within 20% of the cost stored afterwards.
+4. The dry lab returns per-section input tokens for five charts with zero
+   usage recorded.
+5. A promote with no brain diff skips the lab. A promote with one runs it and
+   refuses on a seeded fault. Both are checked on a test branch with no spend,
+   using a stub campaign.
+6. Replays past `LAB_BUDGET_USD` are refused with the spend named. A 429 run
+   stops after one chart.
+7. The gate is green: typecheck, both builds, unit tests, and `db:bootstrap`
+   run twice. Every line is INTERNAL.
 
 ## The rule for moving a section
 
-Quality over cost. A writer takes a section only when, on every fixture read,
-the Owner picked it best or tied it with the best, never marked it would not
-ship, and the contract gate holds (zero new faults on five fixtures, band
-held, retry rate not up). Five of five is the bar: a coin-flip writer does
-that once in thirty-two. Four of five earns a confirmation session on five
-more charts (new fixtures, real birth data) before it moves; three or fewer
-stays. A writer the Owner picks best over 5.2 moves even when it costs more.
-The foundation moves only on a full session of its own, never on one
-section's picks.
+Unchanged. Quality over cost: best or tied on every chart read, never "would
+not ship", and the contract gate held. Five of five moves the section. Four of
+five earns a confirmation session. A writer picked over 5.2 moves even when it
+costs more. Sol is judged as a writer too. S is the fallback if the cheap
+writers fail, because 5.2 is retiring.
 
 ## Sequence
 
-1. Lab round, INTERNAL: scope 1–6, one branch, gate, merge, staging deploy.
-2. Publish the five R05 runs; dispatch Luna, Groq and mini on the eleven
-   sections and M7 whole, five fixtures. About 10 ¢ a fixture, 50 ¢ in all.
-3. First reading session, spawned by the Owner: career, then three more
-   sections, five fixtures, twenty cards. Reveal. Discuss here. Later sessions
-   are spawned by the Owner, or proposed here when a new writer or prompt
-   version lands in the lab, a run's faults or bands move against the
-   baseline, or a writer at four of five needs its confirmation round.
-4. Second session: the remaining sections. Then the routing round,
-   USER-FACING: `models.ts`, staging lab, paste, promote, prices verified on
-   the vendor page the same day.
-5. The compatibility matrix on the same page.
+1. Lab round, INTERNAL: scope 1 to 7 on the base scope.
+2. The OpenAI key gets credits (MB-68). Nothing generates until then.
+3. The first session is spawned by the Owner: career, overview, superpowers and
+   discoveries on five charts, with Sol, 6 Luna, the stored 5.2 and the hidden
+   fresh 5.2: about 85 ¢, about 45 ¢ on Flex. Then the reveal, discussed here.
+4. The second session covers the remaining sections and the foundation. Then
+   the routing round: `models.ts`, a level 2 lab, and a promote through the gate.
+
+Screens: the artifact above (candidates, mixes, spawn form, four levels, release gate).
 
 ## Resolved at lock
 
-First reading session: career, overview, superpowers, discoveries (the default,
-the Owner did not object). Groq and mini on the scaffold, M7 whole, Luna: the
-Owner's list.
+The Owner locked on the three defaults: Groq dropped; the release gate is
+automatic inside Promote; the lab budget is $15 a month, with the OpenAI usage
+alert at $20 from MB-68 set in the OpenAI dashboard by the Owner.
 
 ## Decisions to record
 
-- The lab's A/B instrument is server-side replay of a stored run with chart and
-  foundation held fixed, dispatched from the admin panel; two staging deploys
-  are no longer how a model is compared.
-- Lab runs and judgements live in the staging database and are read in the
-  admin Lab page; the report-lab branch remains the paste trail only.
-- The Owner is the judge, blind, per section, with a note; there is no LLM
-  judge. Models, costs and faults are revealed only after the last card.
-- Lab runs land in the panel automatically; a reading session exists only
-  when the Owner spawns one, or accepts one proposed here.
-- Providers enter through OpenAI-compatible endpoints named per model in
-  `CATALOGUE` with their price; keys live on the Railway service.
-- A section moves to another writer only on the rule above; quality over cost.
-- R-5.6 is superseded: `api/src/lib/models.ts` is the single catalogue.
+- ADR-56 is superseded: the matrix is OpenAI-only, Groq out on September 2026 evidence.
+- The candidates are gpt-6-sol and gpt-6-luna against gpt-5.2; gpt-5.6-luna dropped.
+  Each catalogue entry pins its reasoning effort.
+- ADR-55 is amended. Nothing is generated for the reading room until the Owner
+  spawns a session. The spend is shown before spawn, and texts load per card.
+- R-4.4 is amended. The lab runs at four levels: dry at every brain change,
+  spot on merge to staging, full at release when the brain changed, and
+  reading when spawned. The full lab gates Promote, automatically.
+- Lab spend is capped by `LAB_BUDGET_USD`, $15 a month; lab replays use the Flex tier.
