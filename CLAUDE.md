@@ -111,11 +111,11 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-21)
+## Current focus (2026-09-24)
 
-1. R06 merged to staging (#55, follow-ups #56 to #59): the nine review fixes (ADR-59 to 62), the compatibility second pass p2
-   (ADR-63 to 71), on-tap scenes on `gpt-5.2` (ADR-72), MB-60 to 62 closed. Natal and pass campaigns measured; the `pair`
-   campaign waits on OpenAI credits (MB-68, blocking): dispatch `report-lab.yml` `pair` and paste it into `docs/rounds/R06-report.md`.
-2. Owner acceptance on staging for R01, R03, R04, R05 and R06, in that order; then the staging landing
-   (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote.
-3. Next: `report-lab-model-matrix.md` (GPT-6, lab at four levels; generation needs MB-68 credits), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.
+1. R07 on `round/R07` → `main`: the lab in the admin panel (`/admin/report-lab`), replays through `writeSection`, sessions on spawn,
+   the release gate in Promote (ADR-73 to 77). Every line INTERNAL. Waiting on the Owner: **MB-69** `LAB_TOKEN` on Railway staging and
+   the GitHub `staging` environment, **MB-68** OpenAI credits. Then: `report-lab.yml` `publish` r05 and r06 (MB-72), the R06 `pair` campaign.
+2. Owner acceptance on staging for R01, R03, R04, R05, R06 and R07, in that order; then the staging landing
+   (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote, which runs the full lab (about $1.40).
+3. Next: the first reading session (career, overview, superpowers, discoveries on five charts), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.
