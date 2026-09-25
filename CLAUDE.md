@@ -82,8 +82,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 - Deploys are git-push driven: `main` → staging (`starsdecoded-staging.vercel.app`,
   Railway `staging`, own Supabase project); `production` branch → production at
-  `mystarsdecoded.com`, moved only by the Promote workflow, fast-forward from
-  `main` after the staging smoke passes; dispatch it, never push the branch.
+  `mystarsdecoded.com`, moved only by Promote (fast-forward from `main`); never push it.
+  Any production-release talk lists MB-75 (`GITHUB_RELEASE_TOKEN` on Railway staging) as a todo until placed.
   Secrets live only in the Railway, Vercel and Supabase dashboards; the repo is
   public. Runbook: `docs/annex/staging-runbook.md`. **No secret on GitHub, ever**
   (Owner, 2026-09-25): never ask the Owner to put a key or token there. Anything that
@@ -116,5 +116,5 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 ## Current focus (2026-09-25)
 
 1. R08 next: `pair-reliability-and-prose.md` locked (pair reports failed 7 of 7 on checks that do not matter; the lab and
-   Release move to the admin panel, no secret on GitHub; the prose study). `/plan` it. MB-75 `GITHUB_RELEASE_TOKEN` on Railway.
+   Release move to the admin panel, no secret on GitHub; the prose study). Plan written, awaiting "go".
 2. Owner acceptance on staging for R01, R03 to R07, then the staging landing and the first release from the admin panel.

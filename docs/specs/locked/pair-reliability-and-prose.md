@@ -102,7 +102,7 @@ The inventory found about 80 checks, and 2 of them can never pass:
 10. **Promote starts from the admin panel on staging.** A *Release* view runs, in order:
     - the release lab, when the brain changed since production's commit (five charts,
       plus one pair when the pair brain changed), then the gate;
-    - the QA agent on Railway staging, using the Anthropic key already there. It plays
+    - the QA agent on Railway staging, on OpenAI with the key already there. It plays
       the five personas in headless Chromium, and reads one natal and one pair report
       against the style contract. A sev-1 finding stops the release.
 

@@ -12,7 +12,7 @@ and a p-bump would hide every stored p2 report from the list (`reports.ts:251`).
 ## Mailbox rows above 2 rounds open after this plan's increment
 At **7**: MB-5, 6, 8, 11, 12, 13, 15, 17, 19, 20, 21, 22, 23, 24, 25, 30. At **6**: MB-31 (blocking, the legal entity), 33, 35.
 At **4**: MB-43, 47, 49, 50. At **3**: MB-55, 57, 58, 59. None blocks a card. **MB-68** (blocking, OpenAI credits, at 2) blocks
-the paid acceptance only. MB-69 is superseded by ADR-86. Raised today: **MB-76 to 79** (below).
+the paid acceptance only. MB-69 is superseded by ADR-86. Raised today: **MB-77 to 79** (MB-76 closed: the QA agent uses OpenAI) (below).
 
 ## Goals
 1. **A report no longer dies of a style nit** (scopes 1, 2, 5, 6; ADR-81, 82, 84; the 2026-09-24 pair campaign failed 7 of 7).
@@ -227,14 +227,14 @@ the lab runs only when the brain changed (five charts, plus one pair when the pa
 fast-forward (`PATCH refs/heads/production`, no force) with `GITHUB_RELEASE_TOKEN`, mocked in tests; without the token
 it stops `passed` and names MB-75; staging only (`APP_ENV`); state survives a restart in `lab_releases`.
 
-### R08-14 — The QA agent on Railway staging (INTERNAL) · Opus — provisional MB-76, MB-77, MB-78
+### R08-14 — The QA agent on Railway staging (INTERNAL) · Opus — provisional MB-77, MB-78
 Objective: the five personas walk staging in headless Chromium and two stored reports are read against the style contract.
 Files: new `api/src/lib/qaAgent/` (`index.ts`, `personas.ts`, `browser.ts`, `reader.ts`, + test); `api/package.json`
-(`@anthropic-ai/sdk`, `playwright-core`), `pnpm-lock.yaml`, new `nixpacks.toml` (chromium).
-Refs: spec scope 10; `.claude/agents/qa.md` personas; MASTERFILE §1, §11.3, R-5.1; ADR-86; MB-76, 77, 78.
+(`playwright-core`), `pnpm-lock.yaml`, new `nixpacks.toml` (chromium).
+Refs: spec scope 10; `.claude/agents/qa.md` personas; MASTERFILE §1, §11.3, R-5.1; ADR-86; MB-77, 78.
 Done when: no walk submits a birth form or creates a report; the reads use the release lab's runs by key; the model is
-`QA_AGENT_MODEL` (default `claude-opus-5-5`), outside `CATALOGUE`; no key or no browser → `unconfigured`, never a crash;
-cost is recorded as a `qa` row in `lab_runs`; a stubbed Anthropic client test turns a sev-1 into `fail`.
+a `models.ts` entry (`QA_AGENT_MODEL`, default gpt-5.2, vision), through the existing OpenAI client; no browser → `unconfigured`, never a crash;
+cost is recorded as a `qa` row in `lab_runs`; a stubbed OpenAI client test turns a sev-1 into `fail`.
 
 ### R08-15 — The prose study server (INTERNAL) · Opus — provisional MB-70 (gpt-6-luna price)
 Objective: after a reveal, every variant is measured in code and picked texts are compared with those passed over.
@@ -257,7 +257,7 @@ Objective: preflight, then one button, then each step's state and verdict.
 Files: new `web/src/components/lab/ReleaseView.tsx`.
 Refs: spec scope 10, acceptance 8; artifact (the Release view); MB-75, 76, 79.
 Done when: preflight shows the two heads, the brain diff, the estimate and which keys are present (never values); the run
-shows lab, gate, QA findings by severity and the fast-forward; a stop names its reason (fault, sev-1, MB-75, MB-76).
+shows lab, gate, QA findings by severity and the fast-forward; a stop names its reason (fault, sev-1, MB-75).
 
 ### R08-18 — The Prose study view (INTERNAL, UI) · Sonnet
 Objective: a *Prose study* button in Reveal fills the tables and lists the proposals.
@@ -285,7 +285,7 @@ Objective: every instruction a session reads names the panel, not GitHub, for th
 Files: `.claude/skills/report-lab/SKILL.md`, `round/SKILL.md`, `qa/SKILL.md`; `.claude/agents/orchestrator.md`, `qa.md`;
 `docs/annex/staging-runbook.md`; `.env.example`; CLAUDE.md commands and brain paragraph (not Current focus).
 Refs: spec scope 12; ADR-86; MASTERFILE R-4.4, §11.2 to §11.4 (already amended).
-Done when: no `LAB_TOKEN` or `lab-spot` outside history; `.env.example` lists `GITHUB_RELEASE_TOKEN`, `ANTHROPIC_API_KEY`,
+Done when: no `LAB_TOKEN` or `lab-spot` outside history; `.env.example` lists `GITHUB_RELEASE_TOKEN` and
 `QA_AGENT_MODEL` without values, staging only; every file within budget.
 
 ---
@@ -308,10 +308,10 @@ the first Release (about $1.40 plus one pair and the QA reading), which is also 
    the QA agent stand between them and production.
 2. **Schema**: `generation_failures`, `lab_releases`, `reports.failure_code`, all additive; one idempotent script (R-7.3).
 3. **Contract**: `failureReason` joins the report and status responses and `errorMessage` goes null there (codegen, R-7.2).
-4. **New dependencies**: `@anthropic-ai/sdk`, `playwright-core` and Chromium in the Railway image (MB-77); the image grows
+4. **New dependencies**: `playwright-core` and Chromium in the Railway image (MB-77); the image grows
    on production too, where the browser is never launched.
-5. **The QA model is not OpenAI** (ADR-73 governs writers; ADR-86 names the QA agent). It sits outside `CATALOGUE` and is
-   counted in the lab budget through a `qa` row (MB-76).
+5. **The QA agent uses OpenAI** (Owner, 2026-09-25: one vendor, one key, already on Railway). Its model is in
+   `CATALOGUE`, and its cost counts in the lab budget through a `qa` row. MB-76 is closed.
 6. **Refunds before payments**: `refundCredit` flips a soft-pass ledger (MB-6); harmless now, and the path the payments
    round inherits (R-6.2 will make the provider the ledger).
 7. **Promote changes shape** while MB-75 is open: the fallback fast-forwards only a verdict the Release view passed
@@ -322,10 +322,7 @@ the first Release (about $1.40 plus one pair and the QA reading), which is also 
 For the Owner, highest stakes first (R-12.1):
 1. **MB-68, carried and blocking: OpenAI credits.** *Recommendation:* about $10 covers the pair Spot, the first Release
    and the prose-study notes. *If silent:* the round merges on free acceptance; nothing generates.
-2. **MB-76: is `ANTHROPIC_API_KEY` in Railway staging Variables?** Nothing in the repo names it. *Recommendation:*
-   confirm or add it there, never on GitHub. *If silent:* the QA step shows "not configured" and the release stops before
-   the fast-forward.
-3. **MB-75, carried: place `GITHUB_RELEASE_TOKEN`** (fine-grained, this repo, contents write) in Railway staging.
+2. **MB-75, carried: place `GITHUB_RELEASE_TOKEN`** (fine-grained, this repo, contents write) in Railway staging.
    *If silent:* the Release view stops at `passed`, and Claude dispatches the Promote fallback (MB-79).
 
 For the Mailbox only, at their defaults: MB-77 (Chromium in the API image), MB-78 (the QA agent never creates a report and
