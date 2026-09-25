@@ -1,6 +1,6 @@
 # Dashboard sky
 
-Ideation 2026-09-25 with the Owner. Status: draft 2, nothing built.
+Ideation 2026-09-25 with the Owner. Status: draft 3, nothing built.
 Artifact: https://claude.ai/artifact/6GpndVJxZUfHAdULYYg2GX · reference:
 commit 3cfe873, the first prototype, reverted.
 
@@ -15,8 +15,8 @@ interactive orbit.
 ### The orbit
 
 - **Centre.** The reader's first name on the product gradient, "YOU" above,
-  "Open report ›" below; a tap opens the Personal natal report. With no report
-  of their own: a dashed disc, "Your chart · Generate it ›".
+  "At a glance ›" below; a tap opens the reader's own card (below). With no
+  report of their own: a dashed disc, "Your chart · Generate it ›".
 - **People.** One point per other profile: initials in a disc, first name
   below in Space Grotesk capitals, evenly spaced on a plain dotted orbit.
 - **The orbit is not a chart.** No zodiac, no degrees, no houses and no planet
@@ -25,10 +25,18 @@ interactive orbit.
 - **States on a point.** Report still writing: dashed disc, "· WRITING" after
   the name. A compatibility report shared with the reader: violet ring
   (`#9575CD`). A failed report is not drawn and stays in the list.
-- **Motion.** The orbit drifts slowly (about 4°/s). A tap stops the drift,
-  fills the point, rings it in indigo and dims the rest to .4; anyone who
-  shares a compatibility report with the tapped person keeps full opacity and
-  a lit violet ring. Closing restarts the drift. Reduced motion: no drift.
+- **Motion.** The orbit drifts about 3°/s and each point floats a few pixels
+  on its own rhythm. A tap holds the drift (the float goes on), fills the
+  point and dims the rest to .4; anyone sharing a compatibility report with
+  the tapped person keeps full opacity and a lit violet ring.
+- **Micro animations**, each under a second except the float: points pop onto
+  the orbit 70 ms apart on first load; the glow behind the name breathes every
+  5 s (the dashed no-report disc turns instead); hover lifts a point to 110%;
+  selection pulses a ring out once and springs in partners' rings; a writing
+  point's dashed ring turns; the card rises 10 px as it fades in, its element
+  bars fill from the left and the renders settle into their houses; the phone
+  sheet slides up on the report easing; buttons press to 97%. Reduced motion
+  stops all of it.
 - **Empty orbit.** With nobody else, one dashed "+" point on the orbit reads
   "ADD SOMEONE", or "GET CREDITS" at zero credits.
 
@@ -60,6 +68,11 @@ interactive orbit.
    natal-report-ui dashboard deferral for this strip only.
 5. **Compatibility**, below.
 6. **One primary:** "Open {name}'s report", or "Read as it writes".
+
+**The reader's own card** (tap on the centre): eyebrow "Your Personal natal
+report", the same triad, elements and houses, then "Your compatibility
+reports" (each with Open, or "Tap someone in your orbit to read the two of you
+together"), the credit row, and "Open your report".
 
 No "In your chart" line. Everything reads from `chartData` (`GET
 /reports/{id}` on tap); nothing is generated. No Unicode planet or sign glyph
@@ -123,9 +136,9 @@ writes the report. The Compatibility list below the orbit is also relabelled:
 
 1. The orbit shows one point per other profile with initials and first name;
    no zodiac, degree or planet render on the orbit.
-2. Tapping a point stops the drift and opens the card (panel or sheet);
-   tapping empty space or Escape closes it and restarts the drift; tapping the
-   centre opens the reader's report. Points and centre are keyboard reachable.
+2. Tapping a point holds the drift and opens the card (panel or sheet);
+   tapping empty space or Escape closes it and resumes the drift; tapping the
+   centre opens the reader's own card. Points and centre are keyboard reachable.
 3. No Unicode planet or sign glyph renders on the dashboard (grep gate over
    `web/src/components/dashboard/` and `DashboardPage.tsx`).
 4. The card has no "In your chart" line; the element lead follows the rule and
@@ -138,7 +151,8 @@ writes the report. The Compatibility list below the orbit is also relabelled:
 8. The credit pill, the panel's credit row and every spend reflect the
    balance; at zero each spend offers Get credits.
 9. The four empty states render as specified.
-10. Reduced motion: no drift. At 390 px no sideways scroll.
+10. Reduced motion: no drift, float or micro animation. At 390 px no
+    sideways scroll.
 11. Typecheck, both builds, unit tests (lead rule, house tally, row state
     choice) pass; no lab, the brain is untouched.
 
@@ -165,12 +179,13 @@ the Get credits sheet.
 Numbered at lock, from ADR-78.
 
 1. **The dashboard opens on the orbit.** The reader's name at the centre opens
-   the Personal natal report; people drift on a plain orbit. The orbit is not
+   their own card; people float on a plain orbit. The orbit is not
    a chart: no zodiac, degrees or planet renders on it.
 2. **A person is a named point.** Initials in a disc, first name below; dashed
    while writing; a violet ring for a shared compatibility report.
-3. **A tap opens the card** (panel on desktop, sheet on phone), stops the
-   drift and dims the rest. Reduced motion: no drift.
+3. **A tap opens the card** (panel on desktop, sheet on phone), for a person
+   or the reader, holds the drift and dims the rest. The micro animations as
+   listed; reduced motion stops them.
 4. **The card is computed:** triad plate and legend, balance rows naming a
    lead only at 40% and a margin of 2, planets by whole-sign house with
    renders, compatibility, one door. No "In your chart". No Unicode planet or
