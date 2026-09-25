@@ -16,18 +16,20 @@ import { PARENT_CHILD } from "./sections/parent-child/index.js";
 import { PEOPLE } from "./sections/people/index.js";
 import type { PairSectionSpec } from "./shapes.js";
 
-export { PAIR_CLAIMS_CONTRACT, PairClaimSchema, PairClaimsSchema, PairEvidenceRefSchema, crossLinkKey, labelPairEvidence, storePairClaims, validatePairClaims, type PairClaim, type PairEvidenceRef } from "./evidence.js";
+export { PAIR_CLAIMS_CONTRACT, PairClaimSchema, PairClaimsSchema, PairEvidenceRefSchema, crossLinkKey, labelPairEvidence, reconcilePairClaims, reconcilePairRef, storePairClaims, validatePairClaims, type PairClaim, type PairEvidenceRef } from "./evidence.js";
 export {
+  CARD_LINE_BUFFER, CARD_LINE_WORDS, GROWN_RULE, NOW_AND_LATER_RULE,
   PairLensChapterSchema, PairLinkSchema, PairLinksSchema, PairPractiseSchema, PairTwoChartsSchema,
-  bandProblems, cardLineProblems, evidenceProblems, hasVerb, lensChapter, lensChapterId, lensContext, proseText, ratingProblems, sceneProblems, scenesOf,
+  bandChecks, bandProblems, cardLineChecks, cardLineProblems, evidenceChecks, evidenceProblems, hasVerb, houseChecks, lensChapter, lensChapterChecks, lensChapterId, lensContext,
+  nameRegExp, proseText, ratingChecks, ratingProblems, sceneChecks, sceneProblems, scenesOf, spellSmallNumbers, stripBracketedBodies, stripBracketsDeep, twoChartsChecks, whyChecks, whyProblems,
   type BandDoctrine, type PairLensChapterOutput, type PairSectionSpec, type PairTwoChartsOutput, type SceneSet, type SceneTitles,
 } from "./shapes.js";
-export { pairFoundation, PairFoundationSchema, allocationOf, foundationProblems, LENS_CHAPTERS, type PairFoundationOutput } from "./foundation.js";
+export { pairFoundation, PairFoundationSchema, allocationOf, foundationChecks, foundationProblems, LENS_CHAPTERS, type PairFoundationOutput } from "./foundation.js";
 
 /** Bump when the pair's section set, schemas or doctrine change shape. p2: seven chapters, the two charts first. */
 export const PAIR_PROMPT_VERSION = "p2";
 
-export const PAIR_WRITER = `You are the voice of a perceptive, warm, direct human astrologer writing a premium compatibility report for two people who will read it together. You write in plain, exact prose addressed to both of them by their first names, and to each in turn. You treat astrology as a language for describing patterns between two people, never as fate or a verdict. You are specific to these two charts in every sentence, and what you describe is tangible: a room, an evening, a message, a bill.`;
+export const PAIR_WRITER = `You are the voice of a perceptive, warm, direct human astrologer writing a premium compatibility report for two people who will read it together. You write in plain, exact prose addressed to both of them by their first names, and to each in turn. You treat astrology as a language for describing patterns between two people, never as fate or a verdict. You are specific to these two charts in every sentence, and what you describe is tangible: a room, an evening, a message, a bill. Your sentences average 15 words or fewer and none is over 25; simpler sentences over complicated vocabulary, always.`;
 
 export const PAIR_DOCTRINE = `PAIR DOCTRINE (how to read two charts together, never to be written down for the reader).
 
