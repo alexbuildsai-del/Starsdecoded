@@ -47,7 +47,11 @@ export const ListReportsResponseItem = zod.object({
   "moonSign": zod.string().nullish(),
   "risingSign": zod.string().nullish()
 })).optional().describe('Participant summaries. Set for compatibility reports.'),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "failureReason": zod.union([zod.object({
+  "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
+  "line": zod.string().describe('The plain line the customer reads.')
+}).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional()
 })
 export const ListReportsResponse = zod.array(ListReportsResponseItem)
 
@@ -93,7 +97,11 @@ export const CreateReportResponse = zod.object({
   "moonSign": zod.string().nullish(),
   "risingSign": zod.string().nullish()
 })).optional().describe('Participant summaries. Set for compatibility reports.'),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "failureReason": zod.union([zod.object({
+  "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
+  "line": zod.string().describe('The plain line the customer reads.')
+}).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional()
 })
 
 
@@ -1222,7 +1230,11 @@ export const GetReportResponse = zod.object({
 }).describe('A lens chapter\'s three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
 }).describe('A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.\n'),zod.null()]).optional(),
   "workbook": zod.record(zod.string(), zod.string()).optional().describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick.'),
-  "errorMessage": zod.string().nullish(),
+  "errorMessage": zod.string().nullish().describe('Always null; internal text never reaches a customer response. Kept so older clients build.'),
+  "failureReason": zod.union([zod.object({
+  "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
+  "line": zod.string().describe('The plain line the customer reads.')
+}).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1250,7 +1262,11 @@ export const GetReportStatusParams = zod.object({
 export const GetReportStatusResponse = zod.object({
   "id": zod.string(),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
-  "errorMessage": zod.string().nullish(),
+  "errorMessage": zod.string().nullish().describe('Always null; internal text never reaches a customer response. Kept so older clients build.'),
+  "failureReason": zod.union([zod.object({
+  "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
+  "line": zod.string().describe('The plain line the customer reads.')
+}).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
   "chartReady": zod.boolean().describe('The chart is stored, so the report page can open on the hero and the explorer.'),
   "provisional": zod.object({
   "bodies": zod.record(zod.string(), zod.object({

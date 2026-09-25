@@ -108,6 +108,25 @@ export const RelationshipType = {
   people: 'people',
 } as const;
 
+export type FailureReasonCode = typeof FailureReasonCode[keyof typeof FailureReasonCode];
+
+
+export const FailureReasonCode = {
+  provider_unreachable: 'provider_unreachable',
+  provider_out_of_credit: 'provider_out_of_credit',
+  quality: 'quality',
+  internal: 'internal',
+} as const;
+
+/**
+ * Why a failed report failed, as the customer reads it. Null unless the status is failed.
+ */
+export interface FailureReason {
+  code: FailureReasonCode;
+  /** The plain line the customer reads. */
+  line: string;
+}
+
 export interface ReportSummary {
   id: string;
   /** Natal rows describe a single profile; compatibility rows describe a relationship between two profiles. */
@@ -138,6 +157,7 @@ export interface ReportSummary {
   /** Participant summaries. Set for compatibility reports. */
   participants?: ReportSummaryParticipantsItem[];
   createdAt: string;
+  failureReason?: FailureReason | null;
 }
 
 export type ReportStatusStatus = typeof ReportStatusStatus[keyof typeof ReportStatusStatus];
@@ -694,7 +714,9 @@ export interface ReportInterpretation {
 export interface ReportStatus {
   id: string;
   status: ReportStatusStatus;
+  /** Always null; internal text never reaches a customer response. Kept so older clients build. */
   errorMessage?: string | null;
+  failureReason?: FailureReason | null;
   /** The chart is stored, so the report page can open on the hero and the explorer. */
   chartReady: boolean;
   /** While the chart is not yet stored: every body's position on the entered date and time at offset zero, from one local call, so the orrery can run from the birth day (ADR-47). Null once the chart exists, or when the profile is gone. */
@@ -962,7 +984,9 @@ export interface Report {
   chartData?: ChartData | null;
   interpretation?: ReportInterpretation | null;
   workbook?: Workbook;
+  /** Always null; internal text never reaches a customer response. Kept so older clients build. */
   errorMessage?: string | null;
+  failureReason?: FailureReason | null;
   createdAt: string;
   updatedAt: string;
 }

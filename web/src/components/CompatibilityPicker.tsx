@@ -41,7 +41,7 @@ function rememberSelection(s: Partial<Selection>): void {
 export function unpickable(r: ReportSummary): string | null {
   if (r.kind !== "natal") return `not a ${PERSONAL_REPORT.toLowerCase()}`;
   if (r.status === "complete") return null;
-  if (r.status === "failed") return "could not be written";
+  if (r.status === "failed") return r.failureReason?.line ?? "could not be written";
   return "still writing";
 }
 

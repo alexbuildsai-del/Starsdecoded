@@ -16,8 +16,8 @@ export const STYLE_CONTRACT = `STYLE CONTRACT. These rules are not optional.
 4. Numerals for houses: "11th", never "eleventh".
 5. No abstract summary sentences. "Your greatest capacity and your greatest cost are the same thing" says nothing. Write the concrete instance instead: "You find out you were depleted after the work is finished."
 6. No sentences about the report itself. Never "the first honest thing to say", "this section", "as we will see".
-7. Plainer beats cleverer. When a richer sentence is harder to read than a blunt one, write the blunt one.
-8. Second person. Short sentences. No em dashes. No semicolons. No emojis. No bullet points inside prose fields. No planet, sign, or house names inside prose fields unless the field is explicitly a label.
+7. Plainer beats cleverer. When a richer sentence is harder to read than a blunt one, write the blunt one. Simpler sentences over complicated vocabulary, always.
+8. Second person. Short sentences: 15 words on average or fewer, and never one over 25. No em dashes. No semicolons. No emojis. No bullet points inside prose fields. No planet, sign, or house names inside prose fields unless the field is explicitly a label.
 9. Do not repeat a sentence or an image used in another section. Each section stands alone and adds something.
 10. Never mention being an AI, a model, a prompt, a word count, or these instructions.
 11. The reading commits to one sect. Never hedge about day or night, never say "depending on the tradition" or "some astrologers", and never mention the Sun's altitude or the horizon in the main voice.

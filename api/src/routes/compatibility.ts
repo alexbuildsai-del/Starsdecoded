@@ -16,7 +16,7 @@ import { generatePairInterpretation } from "../lib/pairInterpretation.js";
 import { SceneRequestError, writeScene } from "../lib/pairScene.js";
 import { consumeCredit } from "../lib/credits.js";
 import { canReadProfile, ownsRelationship, viewerHasGrantOnRelationship } from "../lib/access.js";
-import { streamInto } from "./reports.js";
+import { failReport, streamInto } from "./reports.js";
 
 const router = Router();
 
@@ -138,13 +138,12 @@ router.post("/compatibility", async (req, res) => {
     };
     (async () => {
       try {
-        const interpretation = await generatePairInterpretation(input, { onSection: streamInto(reportId) as never });
+        const interpretation = await generatePairInterpretation(input, { onSection: streamInto(reportId) as never, reportId });
         await db.update(reportsTable)
           .set({ interpretation: interpretation as unknown as object, status: "complete", updatedAt: new Date() })
           .where(eq(reportsTable.id, reportId));
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        await db.update(reportsTable).set({ status: "failed", errorMessage: message, updatedAt: new Date() }).where(eq(reportsTable.id, reportId));
+        await failReport(reportId, err);
         req.log.error({ err, reportId }, "Compatibility generation failed");
       }
     })().catch((err) => req.log.error({ err, reportId }, "Compatibility generation crashed"));

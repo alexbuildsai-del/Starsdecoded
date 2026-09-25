@@ -7,10 +7,8 @@ product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 ## Working with the Owner
 
-- Every reply opens with `Alex, ` alone on its first line, before anything
-  else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
-- Delegate unasked (R-0.6): independent parts, broad searches and long reads go
-  to subagents, in parallel when independent; a single lookup or edit stays here.
+- Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
+- Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel; a single lookup or edit stays here.
 - Model triage (R-0.7): the orchestrator on the top model (Fable); builders Opus, simple fixes Sonnet, mechanical Haiku.
 
 ## Read this first
@@ -45,13 +43,13 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab --render|--compare    # re-read stored runs, free; the lab levels: /report-lab
+pnpm report:lab --render|--compare|--dry --base r06   # free: stored runs re-read, every prompt rendered; the levels: /report-lab
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
-clean when the schema changed, smoke on the Vercel preview. Never skip or
-disable a check. The lab runs from the admin panel: dry at every brain change,
-spot and reading on demand, full lab plus QA agent in the Release view before production.
+clean when the schema changed, smoke on the Vercel preview. Never skip or disable a
+check. The lab runs from the admin panel: dry at every brain change, spot and reading on
+demand, full lab plus QA agent in the Release view before production.
 
 ## Process
 
@@ -100,13 +98,14 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step of
   the start command (its preDeployCommand hook never ran here); one that cannot
   run twice breaks the deploy.
-- **The brain** decides the words: `api/src/prompts/`, `models.ts`,
-  `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
-  the dry lab runs in the round; spot runs only on demand from the Lab page, and the
-  Release view runs the full lab, its gate and the QA agent; spend is capped by
-  `LAB_BUDGET_USD` (ADR-77). Never generate a report to look at one: the Lab
-  page and `--render` are free. Every model id lives in `models.ts` with its
-  price and pinned reasoning effort; one outside the catalogue does not compile.
+- **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`,
+  `traditional.ts`, `chartCalculation.ts`. Touch it and the dry lab runs in the round; spot
+  on demand from the Lab page; the Release view runs the full lab, the gate and the QA agent,
+  then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway (MB-75; until placed
+  it stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
+  (ADR-77); the Lab page and `--render` are free. Every model id lives in `models.ts`; one
+  outside the catalogue does not compile. A check blocks only when the text would be wrong
+  for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
@@ -115,6 +114,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-09-25)
 
-1. R08 next: `pair-reliability-and-prose.md` locked (pair reports failed 7 of 7 on checks that do not matter; the lab and
-   Release move to the admin panel, no secret on GitHub; the prose study). Plan written, awaiting "go".
-2. Owner acceptance on staging for R01, R03 to R07, then the staging landing and the first release from the admin panel.
+1. R08 shipped: checks by what matters, the round alone, failure reasons with the refund, the lab
+   and the Release view in the admin panel, the prose study. Owner acceptance on staging for R01, R03 to R08.
+2. Then, free: Import r05 and r06, the Failures tab, the prose study on `session-2026-09-24`; on "go" the
+   paid Spot and the first Release from the Release view (MB-68 decided; MB-75 the standing todo).

@@ -85,14 +85,25 @@ test("a scene is written once by MODELS.scenes on the chapter's brief, stored, a
   assert.equal(state.saves, 1);
 });
 
-test("a scene that names only one of the two is rejected and retried, never stored", async () => {
+test("a scene that names only one of the two is logged and stored, never retried (annex row 27)", async () => {
+  const { store, state } = memoryStore(report);
+  const index = [0, 1, 2].find((i) => i !== report.scenes.partners04.written)!;
+  fake.replies = { ...fake.replies, [`pair_partners04_scene${index}`]: () => ({ scene: "Marie comes in late. The kitchen is dark." }) };
+  fake.calls = [];
+  const out = await writeScene("r1", "partners04", index, store);
+  assert.equal(fake.calls.length, 1);
+  assert.match(out.text, /kitchen is dark/);
+  assert.equal(state.saves, 1);
+});
+
+test("a scene that writes a trine is rejected and retried, never stored (annex row 21)", async () => {
   const { store, state } = memoryStore(report);
   const index = [0, 1, 2].find((i) => i !== report.scenes.partners04.written)!;
   let n = 0;
-  fake.replies = { ...fake.replies, [`pair_partners04_scene${index}`]: () => ({ scene: n++ === 0 ? "Marie comes in late. The kitchen is dark." : "Marie comes in late. Oprah has already eaten." }) };
+  fake.replies = { ...fake.replies, [`pair_partners04_scene${index}`]: () => ({ scene: n++ === 0 ? "Marie comes in late. Oprah trusts the trine." : "Marie comes in late. Oprah has already eaten." }) };
   fake.calls = [];
   const out = await writeScene("r1", "partners04", index, store);
   assert.equal(fake.calls.length, 2);
-  assert.match(out.text, /Oprah/);
+  assert.match(out.text, /already eaten/);
   assert.equal(state.saves, 1);
 });

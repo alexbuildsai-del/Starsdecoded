@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
-import { ClaimsSchema, validateClaims } from "../evidence.js";
+import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
 
 export const RelationshipsSchema = z.object({
   howYouLove: z.string().describe("one paragraph: what they need, how they give, what attracts them"),
@@ -22,7 +22,7 @@ export const relationships: SectionSpec<typeof RelationshipsSchema> = {
   blindWordTarget: [280, 360],
   maxTokens: 3_200,
   schema: RelationshipsSchema,
-  validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
+  validate: (out, brief) => validateSectionClaims(out, brief.chart),
   instructions: `Write Relationships & Intimacy. Primary evidence: the ruler of the 7th and where it sits, Venus and Mars by dignity and sect, the Moon, and the ruler of the 8th.
 
 One paragraph on how they love: what they need to feel secure, how they give, and what actually attracts them versus what they say does. One paragraph on the recurring challenge, written as a pattern they will recognise from their own history, honest and not judgemental. One paragraph on what partnership is asking them to develop. Then exactly three actions with a short why.

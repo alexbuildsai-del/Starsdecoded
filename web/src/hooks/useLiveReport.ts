@@ -121,7 +121,7 @@ export function useLiveReport(id: string) {
     horizonPass,
     revisions: report.data?.revisions ?? [],
     horizonPasses: report.data?.horizonPasses ?? 0,
-    errorMessage: status.data?.errorMessage ?? report.data?.errorMessage ?? null,
+    failureReason: status.data?.failureReason ?? report.data?.failureReason ?? null,
     isLoading: report.isLoading,
     isError: report.isError,
   };

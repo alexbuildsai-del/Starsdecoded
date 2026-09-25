@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
-import { ClaimsSchema, validateClaims } from "../evidence.js";
+import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
 
 export const TriadSchema = z.object({
   sun: z.object({ label: z.string().describe("e.g. 'Sun in Scorpio, 11th house'"), text: z.string().describe("80-100 words with one behavioural example") }),
@@ -20,7 +20,7 @@ export const triad: SectionSpec<typeof TriadSchema> = {
   blindWordTarget: [160, 200],
   maxTokens: 2_500,
   schema: TriadSchema,
-  validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
+  validate: (out, brief) => validateSectionClaims(out, brief.chart),
   blindSchema: TriadBlindSchema,
   blindRules: [
     "There is no rising part. Write the Sun and the Moon parts only, 80 to 100 words each, and return no rising field.",

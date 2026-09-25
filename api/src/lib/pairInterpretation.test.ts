@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chartFromFixture } from "./testFixtures.js";
-import { cannedNatalReplies, installFakeModel, type FakeRequest } from "./testModel.js";
+import { cannedNatalReplies, failureRows, installFakeModel, type FakeRequest } from "./testModel.js";
 
 const { generateInterpretation } = await import("./aiInterpretation.js");
 const { generatePairInterpretation, previewPairSectionPrompt, lensChapterOf } = await import("./pairInterpretation.js");
@@ -14,6 +14,7 @@ const { buildPairBrief } = await import("./pairBrief.js");
 const { pairSectionIds, pairSectionById } = await import("../prompts/pair/index.js");
 const { linkList } = await import("../prompts/pair/sections/links.js");
 const { pairReplies } = await import("./testPair.js");
+const { ReportFailure } = await import("./failureReasons.js");
 type Lens = import("./pairBrief.js").Lens;
 
 const fake = installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "scorpio", sunHouse: 11 }));
@@ -68,17 +69,101 @@ test("one foundation call, then seven sections in parallel, then the practice; e
   assert.ok(!fake.calls.some((c) => c.startsWith("natal_")), "nothing in either natal report was regenerated");
 });
 
-test("a cross claim outside the chapter's allocation fails the section, naming the rule", async () => {
+test("a cross claim outside the chapter's allocation is dropped, not retried; under three claims the claims-only repair runs once (annex rows 9, 11)", async () => {
   const brief = buildPairBrief(input());
   const replies = pairReplies(brief);
   const broken = JSON.parse(JSON.stringify(replies.pair_partners03)) as { claims: Array<{ evidence: unknown[] }> };
   const c = brief.cross[7];
   broken.claims[0].evidence = [{ kind: "cross", planetA: c.planetA, planetB: c.planetB, aspect: c.type, orb: c.orb }];
-  fake.replies = { ...replies, pair_partners03: broken };
-  await assert.rejects(
-    generatePairInterpretation(input()),
-    (err: Error) => /pair:partners03: failed validation after 3 attempts/.test(err.message) && /outside this chapter's allocation/.test(err.message),
-  );
+  fake.replies = { ...replies, pair_partners03: broken, pair_partners03_claims: { claims: (replies.pair_partners03 as { claims: unknown[] }).claims } };
+  fake.calls = [];
+  failureRows.length = 0;
+  const out = await generatePairInterpretation(input());
+  assert.equal(fake.calls.filter((k) => k === "pair_partners03").length, 1, "the prose is never rewritten for a claim problem");
+  assert.equal(fake.calls.filter((k) => k === "pair_partners03_claims").length, 1, "one claims-only repair");
+  assert.equal(lensChapterOf(out, "partners03")!.claims.length, 3);
+  const rows = failureRows.filter((r) => r.section === "pair:partners03");
+  assert.ok(rows.some((r) => r.ruleId === "chk-11" && r.class === "fix"), "the allocation drop is logged by rule");
+  assert.ok(rows.some((r) => r.ruleId === "chk-09" && r.class === "repair"), "the repair is logged by rule");
+  assert.ok(rows.some((r) => r.ruleId === "pass"), "the accepted write logs its pass");
+  assert.ok(rows.every((r) => !/decide late|weekend/.test(r.message)), "no report text in the log");
+});
+
+const TRINE = "You both decide late and then all at once, and the trine makes the weekend plan twice.";
+
+test("a chapter stubbed to fail three times then pass: the report completes, the others are called once, and the rows are written (acceptance 3)", async () => {
+  const brief = buildPairBrief(input());
+  const replies = pairReplies(brief);
+  const good = replies.pair_partners04 as { pattern: string };
+  let n = 0;
+  fake.replies = { ...replies, pair_partners04: () => (n++ < 3 ? { ...good, pattern: TRINE } : good) };
+  fake.calls = [];
+  failureRows.length = 0;
+  const frames: string[] = [];
+  const out = await generatePairInterpretation(input(), { onSection: (f) => { frames.push(f.section); } });
+  assert.equal(fake.calls.filter((k) => k === "pair_partners04").length, 4, "three attempts, then the round alone");
+  for (const id of pairSectionIds("partners").filter((id) => id !== "partners04")) assert.equal(fake.calls.filter((k) => k === `pair_${id}`).length, 1, `${id} called once`);
+  assert.equal(fake.calls[fake.calls.length - 1], "pair_whatToPractise", "chapter 07 waited for the round alone");
+  assert.ok(lensChapterOf(out, "partners04"));
+  assert.equal(frames.filter((f) => f === "partners04").length, 1, "the failed attempts were never stored");
+  const rows = failureRows.filter((r) => r.section === "pair:partners04");
+  assert.equal(rows.filter((r) => r.ruleId === "chk-21a" && r.class === "block").length, 3);
+  assert.equal(rows.filter((r) => r.ruleId === "pass").length, 1);
+  assert.equal(new Set(rows.map((r) => r.writeId)).size, 2, "the three attempts share a write id; the round alone has its own");
+});
+
+test("the round alone carries every earlier error and the previous reply (acceptance 5)", async () => {
+  const brief = buildPairBrief(input());
+  const replies = pairReplies(brief);
+  const good = replies.pair_partners04 as { pattern: string };
+  const seen: string[] = [];
+  let n = 0;
+  fake.replies = { ...replies, pair_partners04: (req: FakeRequest) => { seen.push(req.messages[1].content); return n++ < 3 ? { ...good, pattern: `${TRINE} Attempt ${n}.` } : good; } };
+  fake.calls = [];
+  await generatePairInterpretation(input());
+  assert.equal(seen.length, 4);
+  assert.ok(!/EVERY ERROR SO FAR/.test(seen[0]));
+  assert.match(seen[1], /EVERY ERROR SO FAR:\n1\. .*trine/);
+  assert.match(seen[2], /1\. .*trine[\s\S]*2\. .*trine/);
+  assert.match(seen[3], /1\. [\s\S]*2\. [\s\S]*3\. /, "the round alone starts from all three errors");
+  assert.match(seen[3], /YOUR LAST REPLY:\n\{[\s\S]*Attempt 3/, "and the reply they were found in");
+  assert.match(seen[3], /Fix these and keep the rest\./);
+});
+
+test("stubbed to fail every time: the report fails with code quality and the sections still running are aborted (acceptance 4)", async () => {
+  const brief = buildPairBrief(input());
+  const replies = pairReplies(brief);
+  const good = replies.pair_partners05 as { pattern: string };
+  fake.replies = { ...replies, pair_partners05: { ...good, pattern: TRINE } };
+  fake.delays = { pair_partners06: 400 };
+  fake.calls = [];
+  const frames: string[] = [];
+  try {
+    await assert.rejects(
+      generatePairInterpretation(input(), { onSection: (f) => { frames.push(f.section); } }),
+      (err: unknown) => err instanceof ReportFailure && err.code === "quality" && /pair:partners05: failed validation after 3 attempts/.test(err.message),
+    );
+  } finally {
+    fake.delays = {};
+  }
+  assert.equal(fake.calls.filter((k) => k === "pair_partners05").length, 6, "three attempts and a round alone of three");
+  assert.ok(!frames.includes("partners06"), "the slow chapter was aborted, never stored");
+  assert.ok(!fake.calls.includes("pair_whatToPractise"), "chapter 07 never ran");
+});
+
+test("a network error gives provider_unreachable; a plain outage is internal", async () => {
+  const brief = buildPairBrief(input());
+  fake.replies = pairReplies(brief);
+  fake.failOn = "pair_partners05";
+  fake.failWith = () => Object.assign(new Error("Connection error."), { name: "APIConnectionError", cause: Object.assign(new Error("fetch failed"), { code: "ECONNRESET" }) });
+  try {
+    await assert.rejects(generatePairInterpretation(input()), (err: unknown) => err instanceof ReportFailure && err.code === "provider_unreachable");
+    fake.failWith = undefined;
+    await assert.rejects(generatePairInterpretation(input()), (err: unknown) => err instanceof ReportFailure && err.code === "internal" && /simulated outage on pair_partners05/.test(err.message));
+  } finally {
+    fake.failOn = null;
+    fake.failWith = undefined;
+  }
 });
 
 test("the lens picks the chapters, the band and the label reach the meta, and the brief sits before the instructions", async () => {
@@ -117,6 +202,7 @@ test("a failed section fails the report with its message, never a silent degrade
   fake.failOn = "pair_partners05";
   try {
     await assert.rejects(generatePairInterpretation(input()), /simulated outage on pair_partners05/);
+    assert.equal(fake.calls.filter((k) => k === "pair_partners05").length >= 1, true);
   } finally {
     fake.failOn = null;
   }

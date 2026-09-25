@@ -20,8 +20,10 @@ import { PAIR_PROMPT_VERSION, pairSectionIds } from "../prompts/pair/index.js";
 import type { Lens } from "../lib/pairBrief.js";
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
 import { ownsRelationship, viewerHasGrantOnRelationship, viewerRelationshipIds } from "../lib/access.js";
-import { consumeCredit } from "../lib/credits.js";
+import { consumeCredit, refundCredit } from "../lib/credits.js";
+import { failureCodeOf, failureReasonOf } from "../lib/failureReasons.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -136,6 +138,7 @@ router.get("/reports", async (req, res) => {
         status: reportsTable.status,
         type: reportsTable.type,
         interpretation: reportsTable.interpretation,
+        failureCode: reportsTable.failureCode,
         createdAt: reportsTable.createdAt,
         profile: profilesTable,
       })
@@ -168,6 +171,7 @@ router.get("/reports", async (req, res) => {
         risingSign: string | null;
       }>;
       createdAt: string;
+      failureReason: { code: string; line: string } | null;
     };
 
     const natalSummaries: ReportSummaryOut[] = natalRows.map((r) => ({
@@ -195,6 +199,7 @@ router.get("/reports", async (req, res) => {
         risingSign: string | null;
       }>,
       createdAt: r.createdAt.toISOString(),
+      failureReason: failureReasonOf(r.failureCode),
     }));
 
     // Compatibility: any report tied to a relationship the viewer can see.
@@ -209,6 +214,7 @@ router.get("/reports", async (req, res) => {
           id: reportsTable.id,
           status: reportsTable.status,
           interpretation: reportsTable.interpretation,
+          failureCode: reportsTable.failureCode,
           createdAt: reportsTable.createdAt,
           relationshipId: reportsTable.relationshipId,
           relType: relationshipsTable.type,
@@ -274,6 +280,7 @@ router.get("/reports", async (req, res) => {
           relationshipType: r.relType ?? null,
           participants,
           createdAt: r.createdAt.toISOString(),
+          failureReason: failureReasonOf(r.failureCode),
         };
       });
     }
@@ -410,7 +417,9 @@ router.get("/reports/:id", async (req, res) => {
       chartData: p.chartData ?? null,
       interpretation: r.interpretation ?? null,
       workbook: (r.workbook ?? {}) as Record<string, string>,
-      errorMessage: r.errorMessage ?? null,
+      // The internal message stays in the database; the customer reads the coded line (ADR-84).
+      errorMessage: null,
+      failureReason: failureReasonOf(r.failureCode),
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     });
@@ -439,7 +448,8 @@ router.get("/reports/:id/status", async (req, res) => {
     return res.json({
       id: r.id,
       status: r.status,
-      errorMessage: r.errorMessage ?? null,
+      errorMessage: null,
+      failureReason: failureReasonOf(r.failureCode),
       // The chart is what the page opens on, so the client stops waiting the
       // moment it exists rather than when the last section lands (ADR-25).
       chartReady: p.chartData != null,
@@ -592,7 +602,7 @@ router.post("/reports/:id/regenerate", async (req, res) => {
     lastRegenerateAt.set(r.id, Date.now());
     await db
       .update(reportsTable)
-      .set({ status: "interpreting", errorMessage: null, updatedAt: new Date() })
+      .set({ status: "interpreting", errorMessage: null, failureCode: null, updatedAt: new Date() })
       .where(eq(reportsTable.id, r.id));
     (async () => {
       try {
@@ -608,17 +618,14 @@ router.post("/reports/:id/regenerate", async (req, res) => {
         }
         const interpretation = await generateInterpretation(chartData, p.name, {
           onSection: streamInto(r.id),
+          reportId: r.id,
         });
         await db
           .update(reportsTable)
           .set({ interpretation, status: "complete", updatedAt: new Date() })
           .where(eq(reportsTable.id, r.id));
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        await db
-          .update(reportsTable)
-          .set({ status: "failed", errorMessage: message, updatedAt: new Date() })
-          .where(eq(reportsTable.id, r.id));
+        await failReport(r.id, err);
       }
     })().catch((err) => req.log.error({ err, id: r.id }, "Regenerate failed"));
     return res.status(202).json({ id: r.id, status: "interpreting" });
@@ -687,6 +694,7 @@ async function generateReport(
 
     const interpretation = await generateInterpretation(chartData, name, {
       onSection: streamInto(id),
+      reportId: id,
     });
 
     await db
@@ -698,12 +706,23 @@ async function generateReport(
       })
       .where(eq(reportsTable.id, id));
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    await db
-      .update(reportsTable)
-      .set({ status: "failed", errorMessage: message, updatedAt: new Date() })
-      .where(eq(reportsTable.id, id));
+    await failReport(id, err);
   }
+}
+
+/**
+ * A failed report stores its code beside the internal message, and the
+ * credit it used goes back (ADR-84). Shared by the natal and the pair path.
+ */
+export async function failReport(id: string, err: unknown): Promise<void> {
+  const message = err instanceof Error ? err.message : "Unknown error";
+  const code = failureCodeOf(err);
+  await db
+    .update(reportsTable)
+    .set({ status: "failed", errorMessage: message, failureCode: code, updatedAt: new Date() })
+    .where(eq(reportsTable.id, id));
+  await refundCredit(id).catch((refundErr) => logger.error({ err: refundErr, id }, "refund after a failed report did not land"));
+  logger.warn({ id, code, message }, "report failed");
 }
 
 export default router;

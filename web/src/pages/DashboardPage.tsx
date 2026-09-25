@@ -222,6 +222,9 @@ function ZoneYou({
               {STATUS_LABELS[natalReport.status] ?? natalReport.status}
             </span>
           )}
+          {natalReport?.status === "failed" && natalReport.failureReason && (
+            <p className="text-xs text-red-300/90 text-right max-w-[16rem]">{natalReport.failureReason.line}</p>
+          )}
           {isClickable && (
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           )}
@@ -331,6 +334,9 @@ function PersonCard({
           )}
         </div>
       </div>
+      {natalReport?.status === "failed" && natalReport.failureReason && (
+        <p className="mt-2 text-xs text-red-300/90">{natalReport.failureReason.line}</p>
+      )}
 
       <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
         {profile.sunSign && <span>☉ {profile.sunSign}</span>}
@@ -419,7 +425,7 @@ function PairRow({ report }: { report: ReportSummary }) {
           <span className="px-2 py-1 rounded-full text-xs font-label border border-secondary/20 text-secondary bg-secondary/10">Writing…</span>
         )}
         {report.status === "failed" && (
-          <span className="px-2 py-1 rounded-full text-xs font-label border border-red-400/20 text-red-400 bg-red-400/10">Failed</span>
+          <span className="px-2 py-1 rounded-full text-xs font-label border border-red-400/20 text-red-400 bg-red-400/10" title={report.failureReason?.line ?? undefined}>{report.failureReason?.line ?? "Failed"}</span>
         )}
         {report.status !== "failed" && (
           <Button size="sm" variant="outline" onClick={() => navigate(`/compatibility/${report.id}`)} className="font-label font-medium gap-1.5">

@@ -15,7 +15,7 @@ builders on Opus the same way from `.claude/agents/builder.md` when the
 dispatches every builder in a parallel group in one message and the groups
 in order, runs the gate (typecheck, both builds, unit tests, `db:bootstrap`
 twice when the schema changed, the dry lab when the brain changed; the spot
-replay runs itself on merge and the full lab at Promote, ADR-76), writes the
+runs on demand from the Lab page and the full lab in the Release view, ADR-86), writes the
 round report, refreshes INDEX.md and the CLAUDE.md current-focus block,
 updates the Notion Mailbox, and opens the pull request.
 

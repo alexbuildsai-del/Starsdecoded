@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { LabApiError, cents, labApi, type RevealResponse, type SessionSummary, type WriterTally } from "@/lib/labApi";
+import { ProseStudyView } from "@/components/lab/ProseStudyView";
 
 const tally = (t: WriterTally | undefined) => (t ? `${t.best}/${t.tied}/${t.notShip}` : "-");
 
@@ -109,6 +110,8 @@ export function RevealView({ sessionId, onSession }: { sessionId: string | null;
               </tbody>
             </table>
           </details>
+
+          <ProseStudyView sessionId={reveal.sessionId} revealed />
         </>
       )}
     </div>

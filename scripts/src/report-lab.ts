@@ -13,13 +13,10 @@
  *   pnpm report:lab --pair curie-winfrey --lens people    # one compatibility report, measured
  *   pnpm report:lab --pair                                # the campaign: three lenses, then one parent-and-child run per band
  *
- * The four lab levels (ADR-76, ADR-77), every run posted to the panel when LAB_API and LAB_TOKEN are set:
- *   pnpm report:lab --publish marie-curie.r06,audrey-hepburn.r06   # stored files into the panel's Runs
- *   pnpm report:lab --dry --base r06                               # level 0: prompts rendered, tokens counted, no call
- *   pnpm report:lab --spot career,money --charts marie-curie,day-angular --base r06   # level 1: replay, Flex
- *   pnpm report:lab --release r07                                  # level 2: the five matrix charts, refused past the budget
- *   pnpm report:lab --gate r07 --against last-release              # exit 1 with the reasons (the Promote gate)
- *   pnpm report:lab --stub r07 --from r06 --seed-fault             # a gate rehearsal with no spend
+ * Level 0 of the lab runs here, in process, with no network and no key (ADR-86):
+ *   pnpm report:lab --dry --base r06                               # every natal prompt for the base's stored charts, tokens, schema
+ *   pnpm report:lab --dry --base r06 --pair curie-winfrey [--lens parent_child]   # plus every pair prompt for one pair
+ * Spot, the release lab, the gate and the import of stored runs live in the admin Lab page on staging; GitHub holds no secret.
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
  * Postgres) and OPENAI_API_KEY. Each run costs one full report's worth of AI
@@ -78,8 +75,8 @@ const PAIR_TOTAL: [number, number] = [1900, 2500];
 import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
 /** The rules are the engine's, shared with the lab routes, so the panel and this trail cannot disagree on a fault. */
 import {
-  BANNED_CHARS, MATRIX_CHARTS, METHOD_TALK, REPORT_TOTAL, blindFlags, faultsOf, gateProblems, isOutOfCreditMessage,
-  measureReport, proseOf, reportBand, words, type RunNumbers, type SectionMeasure,
+  BANNED_CHARS, MATRIX_CHARTS, METHOD_TALK, REPORT_TOTAL, blindFlags, faultsOf, isOutOfCreditMessage,
+  measureReport, proseOf, reportBand, words, type SectionMeasure,
 } from "../../api/src/lib/labRules.js";
 export { blindFlags };
 
@@ -388,7 +385,6 @@ async function runOneRemote(name: string, label: string, base: string): Promise<
   if (!interpretation || !chart) throw new Error(`report ${id} came back without interpretation or chart`);
 
   const rows = report(name, label, fixture, chart, interpretation, elapsed);
-  await publishRun(name, label, { fixture, chart, interpretation });
   return rows;
 }
 
@@ -1021,10 +1017,7 @@ async function runPairCampaign(label: string, base: string | undefined): Promise
 
 
 // ---------------------------------------------------------------------------
-// The panel (annex scope 4, ADR-76, ADR-77): every run this script makes is
-// posted to /api/admin/lab on staging, and the four levels drive it from here.
-// LAB_API is the web origin (defaults to --remote); LAB_TOKEN is the bearer
-// the lab routes accept, placed once by the Owner (MB-69).
+// Stored run files: their shape, and the dry render that reads them (ADR-86).
 // ---------------------------------------------------------------------------
 
 /** A stored run file: the fixture, its chart and the interpretation. */
@@ -1076,92 +1069,6 @@ export function runRows(name: string, label: string, file: RunFile): RunPayload 
   };
 }
 
-function labClient(): { api: string; call: (path: string, init?: RequestInit) => Promise<Record<string, unknown>> } | null {
-  const api = (process.env.LAB_API ?? opt("remote") ?? "").replace(/\/+$/, "");
-  const token = process.env.LAB_TOKEN;
-  if (!api || !token) return null;
-  const call = async (path: string, init?: RequestInit): Promise<Record<string, unknown>> => {
-    const res = await fetch(`${api}/api/admin/lab${path}`, {
-      ...init,
-      headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...(init?.headers ?? {}) },
-    });
-    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!res.ok) throw new Error(`${path}: ${res.status} ${JSON.stringify(body)}`);
-    return body;
-  };
-  return { api, call };
-}
-
-function requireLab() {
-  const lab = labClient();
-  if (!lab) throw new Error("LAB_API (or --remote) and LAB_TOKEN must be set to reach the panel (MB-69).");
-  return lab;
-}
-
-function loadRun(name: string, label: string): RunFile {
-  const path = join(REPORTS_DIR, `${name}.${label}.json`);
-  if (!existsSync(path)) throw new Error(`no run at ${path}. ${RUNS_HINT}`);
-  return JSON.parse(readFileSync(path, "utf8")) as RunFile;
-}
-
-/** Post one stored run to the panel; the server replaces the run_key. Silent when the panel is not configured. */
-async function publishRun(name: string, label: string, file: RunFile): Promise<void> {
-  const lab = labClient();
-  if (!lab) return;
-  const payload = runRows(name, label, file);
-  await lab.call("/runs", { method: "POST", body: JSON.stringify(payload) });
-  const cost = payload.sections.reduce((n, r) => n + (r.costUsd ?? 0), 0);
-  console.log(`published ${payload.runKey} to ${lab.api}: ${payload.sections.length} rows, ${usd(cost)}`);
-}
-
-/** --publish <fixture>.<label>[,...]: stored files into Runs, which is how the r05 and r06 runs become the baseline (MB-72). */
-async function publishMany(keys: string[]): Promise<void> {
-  requireLab();
-  for (const key of keys) {
-    const dot = key.lastIndexOf(".");
-    if (dot <= 0) throw new Error(`--publish takes <fixture>.<label>, got "${key}"`);
-    const name = key.slice(0, dot), label = key.slice(dot + 1);
-    await publishRun(name, label, loadRun(name, label));
-  }
-}
-
-/** Numbers for a label: from the run files on disk when they are here, else from the panel. */
-async function numbersFor(label: string, charts: readonly string[]): Promise<RunNumbers[]> {
-  const onDisk = charts.filter((c) => existsSync(join(REPORTS_DIR, `${c}.${label}.json`)));
-  if (onDisk.length) {
-    return onDisk.flatMap((c) => runRows(c, label, loadRun(c, label)).sections
-      .map((r) => ({ fixture: c, label, section: r.section, words: r.words, costUsd: r.costUsd, faults: r.faults, status: "done" })));
-  }
-  const lab = requireLab();
-  const body = await lab.call(`/runs?label=${encodeURIComponent(label)}`);
-  return (body.runs as RunNumbers[] | undefined) ?? [];
-}
-
-/** The newest release label the panel holds, else r06, the first baseline (ADR-76). */
-async function lastReleaseLabel(): Promise<string> {
-  const lab = labClient();
-  if (!lab) return "r06";
-  const body = await lab.call("/runs");
-  const labels = ((body.runs as RunNumbers[] | undefined) ?? []).map((r) => r.label).filter((l) => /^release-/.test(l));
-  return labels.length ? [...new Set(labels)].sort().at(-1)! : "r06";
-}
-
-/** --gate <label> --against <label|last-release>: the release gate; exit 1 with the reasons (ADR-76). */
-async function gate(label: string, against: string): Promise<void> {
-  const reference = against === "last-release" ? await lastReleaseLabel() : against;
-  const [ref, cand] = await Promise.all([numbersFor(reference, MATRIX_CHARTS), numbersFor(label, MATRIX_CHARTS)]);
-  const problems = gateProblems(ref, cand);
-  const refCost = ref.reduce((n, r) => n + (r.costUsd ?? 0), 0), candCost = cand.reduce((n, r) => n + (r.costUsd ?? 0), 0);
-  console.log(`gate: ${label} against ${reference}: ${cand.length} rows against ${ref.length}; cost ${usd(candCost)} against ${usd(refCost)}`);
-  if (problems.length) {
-    console.log(`GATE RED: ${problems.length} reason(s)`);
-    for (const p of problems) console.log(`  - ${p}`);
-    process.exitCode = 1;
-    return;
-  }
-  console.log("gate green: no new fault, every total inside its band, cost within tolerance.");
-}
-
 /** A stored run with one contract fault written into its career section: the gate rehearsal's red case. */
 export function seedFault(file: RunFile): RunFile {
   const copy = JSON.parse(JSON.stringify(file)) as RunFile;
@@ -1173,88 +1080,63 @@ export function seedFault(file: RunFile): RunFile {
   return copy;
 }
 
-/** --stub <label> --from <label> [--seed-fault]: copies of stored runs under a new label, published when the panel is configured. */
-async function stub(label: string, from: string, seed: boolean): Promise<void> {
-  for (const name of MATRIX_CHARTS) {
-    if (!existsSync(join(REPORTS_DIR, `${name}.${from}.json`))) { console.log(`no ${name}.${from} on disk, skipped`); continue; }
-    const file = seed ? seedFault(loadRun(name, from)) : loadRun(name, from);
-    writeFileSync(join(REPORTS_DIR, `${name}.${label}.json`), JSON.stringify(file, null, 2));
-    console.log(`stubbed ${name}.${label} from ${from}${seed ? " with a seeded fault in career" : ""}`);
-    await publishRun(name, label, file);
-  }
+function loadRun(name: string, label: string): RunFile {
+  const path = join(REPORTS_DIR, `${name}.${label}.json`);
+  if (!existsSync(path)) throw new Error(`no run at ${path}. ${RUNS_HINT}`);
+  return JSON.parse(readFileSync(path, "utf8")) as RunFile;
 }
 
-/** --dry --base <label>: level 0, every prompt rendered on staging for the base's charts, tokens against the baseline, no call. */
-async function dry(base: string): Promise<void> {
-  const lab = requireLab();
-  const body = await lab.call(`/dry?base=${encodeURIComponent(base)}`);
-  const rows = (body.rows as Array<{ fixture: string; section: string; inputTokens: number; baselineInputTokens: number | null; schemaOk: boolean }> | undefined) ?? [];
-  console.log(`dry render against ${base}: ${rows.length} prompts, usage recorded ${String(body.usageRecorded ?? 0)}`);
+/**
+ * --dry --base <label> [--pair <fixture> [--lens <lens>]]: level 0, in
+ * process. Every natal prompt for the base's stored charts, and every pair
+ * prompt for one pair built from two of those runs, tokens against the
+ * base's recorded shape, the strict schema checked. No network, no key, no
+ * database: the prompts resolve from their defaults.
+ */
+async function dry(base: string, pairName: string | undefined, lensFlag: string | undefined): Promise<void> {
+  process.env.PROMPT_DEFAULTS_ONLY = "1";
+  process.env.OPENAI_API_KEY ??= "dry-run-never-sent";
+  process.env.DATABASE_URL ??= "postgres://dry:dry@127.0.0.1:1/never";
+  const { dryNatal, dryPair, dryPairPrompt } = await import("../../api/src/lib/labDry.js");
+  const rows: Array<{ fixture: string; section: string; inputTokens: number; baselineInputTokens: number | null; schemaOk: boolean; error?: string }> = [];
+  const shapesOf = (file: RunFile): Record<string, { inputTokens: number; cachedInputTokens: number; outputTokens: number }> => {
+    const usage = (file.interpretation.meta as { usage?: ReportUsage } | undefined)?.usage;
+    const out: Record<string, { inputTokens: number; cachedInputTokens: number; outputTokens: number }> = {};
+    for (const u of usage?.sections ?? []) {
+      const attempts = Math.max(1, u.attempts || 1);
+      out[u.section.replace(/^natal:/, "")] = { inputTokens: Math.round(u.inputTokens / attempts), cachedInputTokens: Math.round(u.cachedInputTokens / attempts), outputTokens: Math.round(u.outputTokens / attempts) };
+    }
+    return out;
+  };
+  const missing: string[] = [];
+  for (const name of MATRIX_CHARTS) {
+    if (!existsSync(join(REPORTS_DIR, `${name}.${base}.json`))) { missing.push(name); continue; }
+    const file = loadRun(name, base);
+    rows.push(...await dryNatal({ fixture: name, chart: file.chart, subjectName: file.fixture.name, foundation: file.interpretation.foundation, shapes: shapesOf(file) }));
+  }
+  if (missing.length) console.log(`no ${base} run on disk for ${missing.join(", ")}: fetch report-lab/${base} first (${RUNS_HINT})`);
+  if (pairName) {
+    const pair = loadPair(pairName);
+    const side = (name: string) => {
+      const file = loadRun(name, base);
+      return { name: file.fixture.name, birthDate: file.fixture.birthDate, chart: file.chart, interpretation: file.interpretation as never };
+    };
+    const picked = pairInput(pair, lensFlag);
+    const input = { lens: picked.lens as never, parent: picked.parent, label: picked.label, a: side(pair.a), b: side(pair.b) };
+    rows.push(...await dryPair(pairName, input));
+    if (picked.lens === "parent_child") {
+      const prompt = await dryPairPrompt(input, "pair:parentChild02");
+      const age = prompt.user.match(/\d+ years old on the day this is written/);
+      console.log(`parent-child brief: ${age ? age[0] : "NO AGE LINE"}; now-and-later rule ${/framed as later/.test(prompt.user) ? "present" : "MISSING"}`);
+    }
+  }
+  console.log(`dry render against ${base}: ${rows.length} prompts, usage recorded 0, no network`);
   console.log(table(["fixture", "section", "tokens", "baseline", "delta", "schema"], rows.map((r) => [
     r.fixture, r.section, String(r.inputTokens), r.baselineInputTokens === null ? "-" : String(r.baselineInputTokens),
     r.baselineInputTokens === null ? "-" : `${r.inputTokens - r.baselineInputTokens >= 0 ? "+" : ""}${r.inputTokens - r.baselineInputTokens}`, r.schemaOk ? "ok" : "BROKEN",
   ])));
-  const served = body.served as Record<string, boolean> | undefined;
-  if (served && Object.keys(served).length) console.log(`served: ${Object.entries(served).map(([m, ok]) => `${m} ${ok ? "yes" : "NO"}`).join(", ")}`);
-  if (body.servedError) console.log(`served: unknown, models.list failed: ${String(body.servedError)}`);
   const broken = rows.filter((r) => !r.schemaOk);
-  if (broken.length) { console.log(`SCHEMA BROKEN: ${broken.map((r) => `${r.fixture}/${r.section}`).join(", ")}`); process.exitCode = 1; }
-}
-
-/** Poll a replay until every section is done or failed. */
-async function pollReplay(lab: ReturnType<typeof requireLab>, runKey: string): Promise<Array<{ section: string; status: string; error: string | null }>> {
-  const deadline = Date.now() + 20 * 60 * 1000;
-  for (;;) {
-    const body = await lab.call(`/replay/${encodeURIComponent(runKey)}`);
-    const sections = (body.sections as Array<{ section: string; status: string; error: string | null }> | undefined) ?? [];
-    if (sections.length && sections.every((x) => x.status === "done" || x.status === "failed")) return sections;
-    if (Date.now() > deadline) throw new Error(`replay ${runKey} still running after 20 minutes`);
-    await new Promise((r) => setTimeout(r, 5000));
-  }
-}
-
-/** --spot <sections|pipeline> --charts a,b --base <label>: level 1, the changed sections replayed on Flex with the foundation held. */
-async function spot(what: string, charts: string[], base: string): Promise<void> {
-  const lab = requireLab();
-  const sections = what === "pipeline" ? ["foundation", ...SECTION_IDS] : what.split(",").map((x) => x.trim()).filter(Boolean);
-  for (const chart of charts) {
-    const baseRunKey = `${chart}.${base}`;
-    console.log(`\n=== spot ${sections.join(",")} on ${baseRunKey} ===`);
-    const started = await lab.call("/replay", { method: "POST", body: JSON.stringify({ baseRunKey, model: "gpt-5.2", sections, serviceTier: "flex" }) });
-    const runKey = started.runKey as string;
-    const done = await pollReplay(lab, runKey);
-    const failed = done.filter((x) => x.status === "failed");
-    for (const f of failed) console.log(`FAILED ${f.section}: ${f.error}`);
-    const compared = await lab.call(`/compare?a=${encodeURIComponent(baseRunKey)}&b=${encodeURIComponent(runKey)}`);
-    const rows = (compared.rows as Array<{ section: string; words: [number, number]; costUsd: [number | null, number | null]; seconds: [number, number]; verdict: string }> | undefined) ?? [];
-    console.log(table(["section", "words", "$", "s", "verdict"], rows.map((r) => [r.section, `${r.words[0]}→${r.words[1]}`, `${usd(r.costUsd[0])}→${usd(r.costUsd[1])}`, `${secs(r.seconds[0] * 1000)}→${secs(r.seconds[1] * 1000)}`, r.verdict])));
-    const out = failed.find((f) => isOutOfCreditMessage(f.error ?? ""));
-    if (out) throw new Error(`stopped at ${chart}/${out.section}: ${out.error}`);
-    if (failed.length) process.exitCode = 1;
-  }
-}
-
-/** --release <label>: level 2, the five matrix charts through the customer path, refused past the budget, stopped at the first out-of-credit failure. */
-async function release(label: string, base: string): Promise<void> {
-  const lab = requireLab();
-  const spend = await lab.call("/spend");
-  const spent = Number(spend.spentUsd ?? 0), budget = Number(spend.budgetUsd ?? 0);
-  // A full natal report costs about 30 cents; the release lab is five of them (ADR-77).
-  const estimate = MATRIX_CHARTS.length * 0.3;
-  console.log(`lab spend this month ${usd(spent)} of ${usd(budget)}; the release lab needs about ${usd(estimate)}`);
-  if (spent + estimate > budget) throw new Error(`refused: ${usd(spent)} spent plus ${usd(estimate)} would pass the ${usd(budget)} budget (LAB_BUDGET_USD)`);
-  const failed: string[] = [];
-  for (const name of MATRIX_CHARTS) {
-    try {
-      await runOneRemote(name, label, base);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.log(`FAILED ${name}: ${message}`);
-      failed.push(name);
-      if (isOutOfCreditMessage(message)) { console.log(`out of credit on ${name}: the release lab stops here (ADR-77).`); break; }
-    }
-  }
-  if (failed.length) throw new Error(`${failed.length} of ${MATRIX_CHARTS.length} charts failed: ${failed.join(", ")}`);
+  if (broken.length) { console.log(`SCHEMA BROKEN: ${broken.map((r) => `${r.fixture}/${r.section}${r.error ? ` (${r.error})` : ""}`).join(", ")}`); process.exitCode = 1; }
 }
 
 async function main() {
@@ -1274,29 +1156,9 @@ async function main() {
   // --all is the five matrix charts (ADR-77); the pair-only and blind fixtures run only when their own brain changed.
   const names = flag("all") ? [...MATRIX_CHARTS] : (opt("chart") ?? "marie-curie").split(",").map((x) => x.trim()).filter(Boolean);
 
-  const publish = opt("publish");
-  if (publish !== undefined) { await publishMany(publish.split(",").map((x) => x.trim()).filter(Boolean)); return; }
-  const gateLabel = opt("gate");
-  if (gateLabel !== undefined) { await gate(gateLabel, opt("against") ?? "last-release"); return; }
-  const stubLabel = opt("stub");
-  if (stubLabel !== undefined) {
-    const from = opt("from");
-    if (!from) throw new Error("--stub <label> needs --from <label>");
-    await stub(stubLabel, from, flag("seed-fault"));
-    return;
-  }
-  if (flag("dry")) { await dry(opt("base") ?? "r06"); return; }
-  const spotWhat = opt("spot");
-  if (spotWhat !== undefined) {
-    const charts = (opt("charts") ?? "marie-curie,day-angular").split(",").map((x) => x.trim()).filter(Boolean);
-    await spot(spotWhat, charts, opt("base") ?? "r06");
-    return;
-  }
-  const releaseLabel = opt("release");
-  if (releaseLabel !== undefined) {
-    const base = (process.env.LAB_API ?? opt("remote") ?? "").replace(/\/+$/, "");
-    if (!/^https?:\/\//.test(base)) throw new Error("--release needs LAB_API or --remote <web origin>");
-    await release(releaseLabel, base);
+  if (flag("dry")) {
+    const pairArg = flag("pair") ? opt("pair") : undefined;
+    await dry(opt("base") ?? "r06", pairArg && !pairArg.startsWith("--") ? pairArg : undefined, opt("lens") === "all" ? undefined : opt("lens"));
     return;
   }
 

@@ -27,10 +27,12 @@ export const BAND_DOCTRINE: Record<Band, BandEntry> = {
     ],
     never: [
       ["homework is not fair before school age", /\bhomework\b/i],
-      ["pocket money and allowances belong to school age", /\b(pocket money|allowance)\b/i],
-      ["their own phone and a midnight rule belong to a teen", /\b(their|a) (own )?phone\b|\bmidnight\b/i],
+      ["pocket money and an allowance belong to school age", /\bpocket money\b|\ban allowance\b/i],
+      // "a phone call" is any age; a phone of their own is a teen's.
+      ["their own phone and a midnight rule belong to a teen", /\b(their|a) own phone\b|\btheir phone\b|\bmidnight\b/i],
       ["a curfew belongs to a teen", /\bcurfew\b/i],
-      ["exams and revision belong to a teen", /\b(exams?|revis(e|es|ed|ion))\b/i],
+      // "revise the plan" is any age; revision for exams is a teen's.
+      ["exams and revision belong to a teen", /\bexams?\b|\brevision\b/i],
     ],
   },
   school: {
@@ -45,7 +47,8 @@ export const BAND_DOCTRINE: Record<Band, BandEntry> = {
       ["nappies, potty training and toddler words belong to a little child", /\b(nappy|nappies|diaper|potty|toddler)\b/i],
       ["a midnight phone belongs to a teen", /\bphone at midnight\b|\bmidnight\b/i],
       ["dating belongs to a teen or a grown child", /\b(dating|boyfriend|girlfriend)\b/i],
-      ["rent and a mortgage belong to a grown child", /\b(rent|mortgage)\b/i],
+      // "rent" alone is a verb and a false hit; a mortgage is a grown child's.
+      ["a mortgage belongs to a grown child", /\bmortgage\b/i],
     ],
   },
   teen: {
@@ -72,8 +75,9 @@ export const BAND_DOCTRINE: Record<Band, BandEntry> = {
     ],
     never: [
       ["tantrums, bedtime and homework belong to a child", /\b(tantrum|bedtime|homework)\b/i],
-      ["pocket money and grounding belong to a child", /\b(pocket money|grounded|grounding)\b/i],
-      ["a curfew and screen time belong to a child", /\b(curfew|screen time|tablet)\b/i],
+      // "grounded" is a compliment for an adult, and a tablet sits on any desk.
+      ["pocket money belongs to a child", /\bpocket money\b/i],
+      ["a curfew and screen time belong to a child", /\b(curfew|screen time)\b/i],
       ["a chore chart belongs to a child", /\bchore chart\b/i],
     ],
   },

@@ -7,9 +7,10 @@
 import { z } from "zod/v4";
 import type { Band, PairBrief } from "../../lib/pairBrief.js";
 import { LENS_REGISTER, type Lens } from "../../lib/pairBrief.js";
-import { PairClaimsSchema, validatePairClaims, type PairClaim } from "./evidence.js";
+import { PairClaimsSchema, reconcilePairClaims, type PairClaim } from "./evidence.js";
 import { ASPECTS, BODIES, BODY_LABELS } from "../vocabulary.js";
 import type { ReportSectionId } from "../index.js";
+import { block, buffered, fixed, warned, type Check, type Validated } from "../checks.js";
 
 export type SceneTitles = readonly [string, string, string];
 export type SceneSet = SceneTitles | ((band: Band | null) => SceneTitles);
@@ -37,7 +38,10 @@ export interface PairSectionSpec<T extends z.ZodType = z.ZodType> {
   /** The personal-report sections whose claims this chapter's brief carries (ADR-66). */
   draws?: readonly ReportSectionId[];
   extraContext?: (brief: PairBrief) => string;
-  validate?: (output: z.infer<T>, brief: PairBrief) => string[];
+  /** Runs on the raw reply before the parse: cuts, drops, spellings (ADR-81). */
+  normalise?: (raw: unknown, brief: PairBrief) => { raw: unknown; checks: Check[] };
+  /** Post-parse: snaps, drops, fills, blocks; the output as it should be stored (ADR-81, ADR-82). */
+  validate?: (output: z.infer<T>, brief: PairBrief) => Validated<z.infer<T>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,143 +126,269 @@ export function proseText(v: unknown): string {
 }
 
 // ---------------------------------------------------------------------------
-// Validators
+// Checks (ADR-81): a block only where the text would be wrong for the reader.
 // ---------------------------------------------------------------------------
 
-/** No number describes the pair (ADR-41): a percentage, a score, a mark out of ten, a rating word. */
+/** No number describes the pair (ADR-41): a percentage, a mark and a named score block; an ordinary rating word is logged (annex rows 18, 19). */
+export function ratingChecks(text: string): Check[] {
+  const checks: Check[] = [];
+  if (/\d+\s?%/.test(text)) checks.push(block("chk-18", "a percentage describes the pair"));
+  if (/\b\d+\s?(?:\/|out of)\s?(?:10|100|ten)\b/i.test(text)) checks.push(block("chk-18", "a mark out of ten describes the pair"));
+  if (/\b(?:compatibility|match|harmony)\s+(?:score|rating|percentage)\b/i.test(text)) checks.push(block("chk-18", "a score names the pair"));
+  const word = text.match(/\b(?:scores?|rated|rating)\b/i);
+  if (word) {
+    const beside = new RegExp(`\\d\\s*\\w*\\s*\\b${word[0]}\\b|\\b${word[0]}\\b\\s*\\w*\\s*\\d|\\b(?:the pair|you both|the two of you)\\b[^.]{0,20}\\b${word[0]}\\b`, "i");
+    checks.push(beside.test(text) ? block("chk-19", `"${word[0]}" sits beside a digit or the pair`) : warned("chk-19", `the word "${word[0]}" describes something; ordinary English, logged`));
+  }
+  return checks;
+}
+
+/** Kept for the lab's fault rules and the scene call: the messages of every rating check. */
 export function ratingProblems(text: string): string[] {
-  const problems: string[] = [];
-  if (/\d+\s?%/.test(text)) problems.push("a percentage describes the pair");
-  if (/\b\d+\s?(?:\/|out of)\s?(?:10|100|ten)\b/i.test(text)) problems.push("a mark out of ten describes the pair");
-  if (/\b(?:compatibility|match|harmony)\s+(?:score|rating|percentage)\b/i.test(text)) problems.push("a score names the pair");
-  if (/\b(?:scores?|rated|rating)\b/i.test(text)) problems.push("a rating word describes the pair");
-  return problems;
+  return ratingChecks(text).map((c) => c.message);
 }
 
 const BODY_NAMES = Object.values(BODY_LABELS);
-const BODY_RE = new RegExp(`\\b(?:${BODY_NAMES.map((n) => n.replace(/\s/g, "\\s")).join("|")})\\b`, "i");
-const BRACKETED_BODY_RE = new RegExp(`[\\[(][^\\])]*\\b(?:${BODY_NAMES.map((n) => n.replace(/\s/g, "\\s")).join("|")})\\b[^\\])]*[\\])]`, "i");
-const ASPECT_RE = new RegExp(`\\b(?:${ASPECTS.join("|")})\\b`, "i");
+const BODY_ALT = BODY_NAMES.map((n) => n.replace(/\s/g, "\\s")).join("|");
+/** Capitalised only: "the sun on the balcony" is weather (annex row 24). */
+const CAPITALISED_BODY_RE = new RegExp(`(?<![\\p{L}])(?:${BODY_ALT})(?![\\p{L}])`, "u");
+const BRACKETED_BODY_RE = new RegExp(`\\s?[\\[(][^\\])]*\\b(?:${BODY_ALT})\\b[^\\])]*[\\])]`, "gi");
+const HARD_ASPECT_RE = /\b(?:trine|sextile)\b/i;
+const SOFT_ASPECT_RE = /\b(?:square|opposition|conjunction)\b/i;
+const BODY_NEAR_RE = new RegExp(`\\b(?:${BODY_ALT})\\b`, "i");
 
-/** Evidence lives in claims only (ADR-60): a passage never writes a bracketed body, an aspect name or an orb. */
+/** A bracketed body name is stripped from a text, so the quote match runs on what prints (annex row 20). */
+export function stripBracketedBodies(text: string): { text: string; stripped: number } {
+  let stripped = 0;
+  const out = text.replace(BRACKETED_BODY_RE, () => { stripped += 1; return ""; }).replace(/\s{2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1");
+  return { text: out, stripped };
+}
+
+/** Every string leaf but the claims, bracketed bodies stripped, with how many were. */
+export function stripBracketsDeep<T>(value: T): { value: T; stripped: number } {
+  let stripped = 0;
+  const walk = (v: unknown, key?: string): unknown => {
+    if (key === "claims") return v;
+    if (typeof v === "string") { const r = stripBracketedBodies(v); stripped += r.stripped; return r.text; }
+    if (Array.isArray(v)) return v.map((x) => walk(x));
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x, k)]));
+    return v;
+  };
+  return { value: walk(value) as T, stripped };
+}
+
+/** Evidence lives in claims only (ADR-60): trine and sextile are jargon and block; square, opposition and conjunction block beside a body name and are logged alone; orb blocks (annex rows 21, 22). */
+export function evidenceChecks(text: string): Check[] {
+  const checks: Check[] = [];
+  const hard = text.match(HARD_ASPECT_RE);
+  if (hard) checks.push(block("chk-21a", `the aspect name "${hard[0]}" sits in the prose; evidence lives in the claims field only`));
+  const soft = text.match(SOFT_ASPECT_RE);
+  if (soft) {
+    const at = soft.index ?? 0;
+    const around = text.slice(Math.max(0, at - 40), at + soft[0].length + 40);
+    checks.push(BODY_NEAR_RE.test(around)
+      ? block("chk-21b", `the aspect word "${soft[0]}" sits beside a body name in the prose`)
+      : warned("chk-21b", `the word "${soft[0]}" sits in the prose; ordinary English, logged`));
+  }
+  if (/\borbs?\b/i.test(text)) checks.push(block("chk-22", "the word orb sits in the prose; evidence lives in the claims field only"));
+  return checks;
+}
+
+/** Kept for the lab's fault rules and the scene call: the messages of every evidence check. */
 export function evidenceProblems(text: string): string[] {
-  const problems: string[] = [];
-  if (BRACKETED_BODY_RE.test(text)) problems.push("a bracketed body name sits in the prose; evidence lives in the claims field only");
-  const aspect = text.match(ASPECT_RE);
-  if (aspect) problems.push(`the aspect name "${aspect[0]}" sits in the prose; evidence lives in the claims field only`);
-  if (/\borbs?\b/i.test(text)) problems.push("the word orb sits in the prose; evidence lives in the claims field only");
-  return problems;
+  return evidenceChecks(text).map((c) => c.message);
 }
 
 const words = (s: string): number => (s.trim() ? s.trim().split(/\s+/).length : 0);
 const first = (name: string): string => name.trim().split(/\s+/)[0];
 
 const NOT_A_NAME = new Set([
-  "I", "You", "Your", "Yours", "Both", "We", "Us", "Mum", "Dad", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
-  "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", "Christmas",
+  "I", "You", "Your", "Yours", "Both", "We", "Us", "Mum", "Dad", "Mom", "Nan", "Gran", "Grandma", "Grandad", "Grandpa", "God",
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+  "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December",
+  "Christmas", "Easter", "Eid", "Diwali", "Hanukkah", "Ramadan", "New", "Year", "Halloween", "Thanksgiving",
+  "Netflix", "Instagram", "Zoom", "Uber", "Ikea", "Amazon", "Google", "Spotify", "Whatsapp", "Facebook", "Tiktok", "Youtube",
+  "English", "French", "Spanish", "German", "Italian", "Polish", "Sunday", "Monday", "Ok", "Okay",
 ]);
 
-/** A capitalised word after the first, not opening a sentence or a quote, that is neither of the two first names: a third person. */
-function strangerIn(line: string, names: { a: string; b: string }): string | undefined {
+const SUBJECT_VERB_RE = /\b(?:you|he|she|they|we|it|both|i)\b\s+(?:(?:both|each|never|always|still|just|only|also|can|will|would|could|should|might|must|do|does|did|don't|won't)\s+)*[a-z']+/i;
+
+/** A why has a verb: it says what the action trains (ADR-62, R-5.1). A pronoun subject followed by a word is a verb phrase, so "so you pause first" passes (annex row 28). */
+export function hasVerb(clause: string): boolean {
+  const tokens = clause.toLowerCase().match(/[a-z']+/g) ?? [];
+  if (tokens.some((t) => VERBS.has(t) || (t.length > 3 && /(?:s|ing|ed)$/.test(t)))) return true;
+  if (SUBJECT_VERB_RE.test(clause)) return true;
+  return /\bto\s+[a-z]+/i.test(clause);
+}
+
+/** A capitalised word after the first, not opening a sentence or a quote, that is neither of the two first names: a third person or a stray. */
+function strangerIn(line: string, names: { a: string; b: string }): { word: string; person: boolean } | undefined {
   // Every part of either name is theirs: "Curie" alone is still Marie.
-  const allowed = new Set([...names.a.split(/\s+/), ...names.b.split(/\s+/), ...NOT_A_NAME]);
+  // A body name is row 24's, not a stranger.
+  const allowed = new Set([...names.a.split(/\s+/), ...names.b.split(/\s+/), ...NOT_A_NAME, ...BODY_NAMES.flatMap((n) => n.split(" "))]);
   const tokens = line.split(/\s+/);
   for (let i = 1; i < tokens.length; i++) {
     const prev = tokens[i - 1];
     if (/[.!?:"“]$/.test(prev)) continue;
-    const word = tokens[i].replace(/^[("“']+|[)"”',.!?;:]+$/g, "");
-    if (/^[A-Z][a-z]+$/.test(word) && !allowed.has(word) && !allowed.has(word.replace(/'s$/, ""))) return word;
+    const raw = tokens[i].replace(/^[("“']+|[)"”',.!?;:]+$/g, "");
+    const word = raw.replace(/['’]s$/, "");
+    if (/^\p{Lu}\p{Ll}+$/u.test(word) && !allowed.has(word)) {
+      // A possessive, or a word that then acts, reads as a person; a place or a brand is logged.
+      const next = (tokens[i + 1] ?? "").replace(/[^a-z']/gi, "").toLowerCase();
+      const person = raw !== word || /^(?:and|with|tells|asks|calls|texts|rings|meets|sees|hugs)$/i.test(prev) || (next.length > 0 && hasVerb(next));
+      return { word, person };
+    }
   }
   return undefined;
 }
 
-/** A card line: twelve words at most, naming only the two people, no body, no number (ADR-63). */
-export function cardLineProblems(line: string, names: { a: string; b: string }, tag: string): string[] {
-  const problems: string[] = [];
-  const w = words(line);
-  if (w > 12) problems.push(`${tag}: ${w} words, a card line takes twelve at most`);
-  const body = line.match(BODY_RE);
-  if (body) problems.push(`${tag}: names ${body[0]}, and a card line names nothing but the two people`);
-  const stranger = strangerIn(line, names);
-  if (stranger) problems.push(`${tag}: names "${stranger}", and a card line names nothing but the two people`);
-  if (/\d/.test(line)) problems.push(`${tag}: carries a number`);
-  return problems;
+const SMALL_NUMBERS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+
+/** Small numbers are spelled out in code (annex row 26); a larger one stays and is logged, and a score is caught by row 18. */
+export function spellSmallNumbers(line: string): { line: string; spelled: number; left: number } {
+  let spelled = 0;
+  let left = 0;
+  const out = line.replace(/(?<![\d.,%])\b(\d+)\b(?![\d.,%]|\s?%|\s?(?:\/|out of))/g, (m) => {
+    const n = Number(m);
+    if (n <= 20) { spelled += 1; return SMALL_NUMBERS[n]; }
+    left += 1;
+    return m;
+  });
+  return { line: out, spelled, left };
 }
 
-/** A scene names both people (ADR-64). */
-export function sceneProblems(scene: string, names: { a: string; b: string }): string[] {
-  const problems: string[] = [];
-  for (const name of [names.a, names.b]) {
-    if (!new RegExp(`\\b${first(name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(scene)) problems.push(`the scene never names ${first(name)}`);
+/** The card line limit and its 20% buffer (annex row 23). */
+export const CARD_LINE_WORDS = 12;
+export const CARD_LINE_BUFFER = 15;
+
+/** A card line: twelve words at most with a buffer to fifteen, naming only the two people, no capitalised body, no number (ADR-63; annex rows 23 to 26). */
+export function cardLineChecks(line: string, names: { a: string; b: string }, tag: string): { line: string; checks: Check[] } {
+  const checks: Check[] = [];
+  const spelled = spellSmallNumbers(line);
+  let out = spelled.line;
+  if (spelled.spelled) checks.push(fixed("chk-26", `${tag}: ${spelled.spelled} small number(s) spelled out`));
+  if (spelled.left) checks.push(warned("chk-26", `${tag}: carries a number`));
+  const w = words(out);
+  if (w > CARD_LINE_BUFFER) checks.push(block("chk-23", `${tag}: ${w} words, a card line takes ${CARD_LINE_WORDS} at most`));
+  else if (w > CARD_LINE_WORDS) checks.push(buffered("chk-23", `${tag}: ${w} words, over the ${CARD_LINE_WORDS} the prompt asks and inside the buffer`));
+  const body = out.match(CAPITALISED_BODY_RE);
+  if (body) checks.push(block("chk-24", `${tag}: names ${body[0]}, and a card line names nothing but the two people`));
+  const stranger = strangerIn(out, names);
+  if (stranger) {
+    checks.push(stranger.person
+      ? block("chk-25", `${tag}: names "${stranger.word}", and a card line names nothing but the two people`)
+      : warned("chk-25", `${tag}: carries the capitalised word "${stranger.word}"; not a person, logged`));
   }
-  return problems;
+  return { line: out, checks };
+}
+
+/** Kept for the lab's fault rules: the messages of every card line check. */
+export function cardLineProblems(line: string, names: { a: string; b: string }, tag: string): string[] {
+  return cardLineChecks(line, names, tag).checks.map((c) => c.message);
+}
+
+/** A name in running text, with letters on neither side: Zoë, José and Élodie match where \b never did (annex row 27). */
+export function nameRegExp(name: string): RegExp {
+  return new RegExp(`(?<![\\p{L}])${first(name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "u");
+}
+
+/** A scene names both people (ADR-64); logged when it does not. */
+export function sceneChecks(scene: string, names: { a: string; b: string }): Check[] {
+  const checks: Check[] = [];
+  for (const name of [names.a, names.b]) {
+    if (!nameRegExp(name).test(scene)) checks.push(warned("chk-27", `the scene never names ${first(name)}`));
+  }
+  return checks;
+}
+
+/** Kept for the lab's fault rules and the scene call: the messages of every scene check. */
+export function sceneProblems(scene: string, names: { a: string; b: string }): string[] {
+  return sceneChecks(scene, names).map((c) => c.message);
 }
 
 const VERBS = new Set([
   "is", "are", "be", "do", "does", "has", "have", "can", "will", "would", "should", "must", "let", "go", "get", "keep", "make",
   "take", "give", "know", "see", "say", "tell", "ask", "want", "need", "find", "feel", "come", "put", "hold", "build", "run",
   "name", "notice", "choose", "leave", "move", "try", "turn", "train", "spend", "cost", "work", "stay", "stop", "start", "show",
-  "read", "write", "meet", "set", "cut", "think", "learn", "hear", "lose", "win", "wait", "plan", "fix", "grow", "teach",
+  "read", "write", "meet", "set", "cut", "think", "learn", "hear", "lose", "win", "wait", "plan", "fix", "grow", "teach", "pause",
 ]);
 
-/** A why has a verb: it says what the action trains (ADR-62, R-5.1). */
-export function hasVerb(clause: string): boolean {
-  const tokens = clause.toLowerCase().match(/[a-z']+/g) ?? [];
-  return tokens.some((t) => VERBS.has(t) || (t.length > 3 && /(?:s|ing|ed)$/.test(t)));
+export function whyChecks(items: Array<{ why: string }>, tag: string): Check[] {
+  return items.flatMap((it, i) => (hasVerb(it.why) ? [] : [warned("chk-28", `${tag} ${i + 1}: the why "${it.why}" has no verb`)]));
 }
 
 export function whyProblems(items: Array<{ why: string }>, tag: string): string[] {
-  return items.flatMap((it, i) => (hasVerb(it.why) ? [] : [`${tag} ${i + 1}: the why "${it.why}" has no verb`]));
+  return whyChecks(items, tag).map((c) => c.message);
 }
 
 /** What a band line may never say, per band: the doctrine table's own contradictions (ADR-67). */
 export type BandDoctrine = Record<Band, { never: Array<[string, RegExp]> }>;
 
-/** A band line never contradicts the doctrine table: the forbidden lines for the band in force. */
-export function bandProblems(text: string, band: Band | null, table: BandDoctrine): string[] {
+/** A band line that reads another age is logged, and the now-and-later rule in the prompt does the rest (annex row 29). */
+export function bandChecks(text: string, band: Band | null, table: BandDoctrine): Check[] {
   if (!band) return [];
-  return table[band].never.filter(([, re]) => re.test(text)).map(([why]) => `contradicts the ${band} band: ${why}`);
+  return table[band].never.filter(([, re]) => re.test(text)).map(([why]) => warned("chk-29", `reads another age than the ${band} band: ${why}`));
 }
 
-function houseProblems(brief: PairBrief, text: string): string[] {
-  return brief.blind && /\b(\d+(st|nd|rd|th)|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) house\b/i.test(text)
-    ? ["a house is named although a chart has no horizon"]
-    : [];
+export function bandProblems(text: string, band: Band | null, table: BandDoctrine): string[] {
+  return bandChecks(text, band, table).map((c) => c.message);
+}
+
+/** A blind pair names no house: a numeral blocks, a word ordinal is logged (annex row 30). */
+export function houseChecks(brief: PairBrief, text: string): Check[] {
+  if (!brief.blind) return [];
+  if (/\b\d+(?:st|nd|rd|th) house\b/i.test(text)) return [block("chk-30", "a house is named by numeral although a chart has no horizon")];
+  if (/\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) house\b/i.test(text)) return [warned("chk-30", "a house is named in words although a chart has no horizon")];
+  return [];
 }
 
 const names = (brief: PairBrief) => ({ a: brief.a.name, b: brief.b.name });
 
-/** The lens chapter's checks: the card, the scene, the whys, evidence out of prose, no number, the claims in allocation. */
-export function lensChapterProblems(out: PairLensChapterOutput, brief: PairBrief, chapterId?: string, table?: BandDoctrine): string[] {
-  const problems: string[] = [];
+/** The lens chapter's checks: the card, the scene, the whys, evidence out of prose, no number, the claims reconciled in allocation. */
+export function lensChapterChecks(out: PairLensChapterOutput, brief: PairBrief, chapterId?: string, table?: BandDoctrine): Validated<PairLensChapterOutput> {
+  const checks: Check[] = [];
   const n = names(brief);
-  out.card.a.forEach((l, i) => problems.push(...cardLineProblems(l, n, `card, ${first(n.a)} line ${i + 1}`)));
-  out.card.b.forEach((l, i) => problems.push(...cardLineProblems(l, n, `card, ${first(n.b)} line ${i + 1}`)));
-  problems.push(...cardLineProblems(out.card.pair, n, "card, the pair line"));
-  problems.push(...sceneProblems(out.scene, n));
-  problems.push(...whyProblems(out.nextTime.items, "next time"));
-  const text = proseText(out);
-  problems.push(...evidenceProblems(text));
-  problems.push(...houseProblems(brief, text));
-  problems.push(...ratingProblems(text));
-  if (table) problems.push(...bandProblems(text, brief.band, table));
-  problems.push(...validatePairClaims(out, out.claims as PairClaim[], brief, chapterId));
-  return problems;
+  const stripped = stripBracketsDeep(out);
+  if (stripped.stripped) checks.push(fixed("chk-20", `${stripped.stripped} bracketed body name(s) stripped from the prose`));
+  const output = stripped.value;
+  const side = (lines: string[], who: string) => lines.map((l, i) => { const r = cardLineChecks(l, n, `card, ${who} line ${i + 1}`); checks.push(...r.checks); return r.line; });
+  const pair = cardLineChecks(output.card.pair, n, "card, the pair line");
+  checks.push(...pair.checks);
+  output.card = { a: side(output.card.a, first(n.a)), b: side(output.card.b, first(n.b)), pair: pair.line };
+  checks.push(...sceneChecks(output.scene, n));
+  checks.push(...whyChecks(output.nextTime.items, "next time"));
+  const text = proseText(output);
+  checks.push(...evidenceChecks(text));
+  checks.push(...houseChecks(brief, text));
+  checks.push(...ratingChecks(text));
+  if (table) checks.push(...bandChecks(text, brief.band, table));
+  const claims = reconcilePairClaims(output, output.claims as PairClaim[], brief, chapterId);
+  checks.push(...claims.checks);
+  return { output: { ...output, claims: claims.claims }, checks };
 }
 
-/** Chapter 01's checks: the strengths card, evidence out of prose, no number, the claims in allocation. */
-export function twoChartsProblems(out: PairTwoChartsOutput, brief: PairBrief, chapterId = "twoCharts"): string[] {
-  const problems: string[] = [];
-  out.strengths.forEach((l, i) => problems.push(...cardLineProblems(l, names(brief), `strengths line ${i + 1}`)));
-  const text = proseText(out);
-  problems.push(...evidenceProblems(text));
-  problems.push(...houseProblems(brief, text));
-  problems.push(...ratingProblems(text));
-  problems.push(...validatePairClaims(out, out.claims as PairClaim[], brief, chapterId));
-  return problems;
+/** Chapter 01's checks: the strengths card, evidence out of prose, no number, the claims reconciled in allocation. */
+export function twoChartsChecks(out: PairTwoChartsOutput, brief: PairBrief, chapterId = "twoCharts"): Validated<PairTwoChartsOutput> {
+  const checks: Check[] = [];
+  const stripped = stripBracketsDeep(out);
+  if (stripped.stripped) checks.push(fixed("chk-20", `${stripped.stripped} bracketed body name(s) stripped from the prose`));
+  const output = stripped.value;
+  output.strengths = output.strengths.map((l, i) => { const r = cardLineChecks(l, names(brief), `strengths line ${i + 1}`); checks.push(...r.checks); return r.line; });
+  const text = proseText(output);
+  checks.push(...evidenceChecks(text));
+  checks.push(...houseChecks(brief, text));
+  checks.push(...ratingChecks(text));
+  const claims = reconcilePairClaims(output, output.claims as PairClaim[], brief, chapterId);
+  checks.push(...claims.checks);
+  return { output: { ...output, claims: claims.claims }, checks };
 }
 
-/** The lens block appended to every section: the register, who is the parent, the band. */
+/** Age bands are now and later (ADR-83): the report is written for the child's age on the day, may look ahead, and never treats a later stage as present. */
+export const NOW_AND_LATER_RULE = "NOW AND LATER. Describe situations of this age now. A later stage may be discussed, framed as later: what will change, what to expect, never as something happening today.";
+/** Over 18, childhood is remembered, never described as present. */
+export const GROWN_RULE = "The child is an adult. Nothing from childhood is described as present: no bedtime, homework, pocket money or curfew today. The focus is a young adult's life: moving out, work, money, partners, visits home. Childhood may be remembered, in the past tense only.";
+
+/** The lens block appended to every section: the register, who is the parent, the band and the child's age on the day. */
 export function lensContext(brief: PairBrief): string {
   const r = LENS_REGISTER[brief.lens];
   const lines = [
@@ -268,7 +398,9 @@ export function lensContext(brief: PairBrief): string {
     const parent = brief.parent === "B" ? brief.b.name : brief.a.name;
     const child = brief.parent === "B" ? brief.a.name : brief.b.name;
     lines.push(`${parent} is the parent and ${child} is the child. Read ${child}'s chart as potential, never a verdict, and address ${parent} as the one who adapts.`);
-    if (brief.band) lines.push(`${child} is in the ${brief.band} band. Every scene, card line and "fair at this age" line is written for that age.`);
+    if (brief.band) lines.push(`${child} is in the ${brief.band} band${brief.childAge !== null ? `, ${brief.childAge} years old on the day this is written` : ""}. Every scene, card line and "fair at this age" line is written for that age.`);
+    lines.push(NOW_AND_LATER_RULE);
+    if (brief.band === "grown") lines.push(GROWN_RULE);
   }
   if (brief.lens === "people" && brief.label) lines.push(`How they know each other, in their words: ${brief.label}. That answer picks which scene fits and a few words of register, nothing else.`);
   return lines.join("\n");
@@ -312,6 +444,6 @@ export function lensChapter(input: LensChapterInput): PairSectionSpec<typeof Pai
     draws: input.draws,
     instructions: `${input.instructions.trim()}\n\n${LENS_CHAPTER_CONTRACT}`,
     extraContext: (brief) => [lensContext(brief), "", `GROUNDING (doctrine, never written for the reader): ${input.grounding}`].join("\n"),
-    validate: (out, brief) => lensChapterProblems(out, brief, id, input.bandDoctrine),
+    validate: (out, brief) => lensChapterChecks(out, brief, id, input.bandDoctrine),
   };
 }
