@@ -85,7 +85,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   `mystarsdecoded.com`, moved only by the Promote workflow, fast-forward from
   `main` after the staging smoke passes; dispatch it, never push the branch.
   Secrets live only in the Railway, Vercel and Supabase dashboards; the repo is
-  public. Runbook: `docs/annex/staging-runbook.md`.
+  public. Runbook: `docs/annex/staging-runbook.md`. **Never ask the Owner to put a
+  key on GitHub** (Owner, 2026-09-25): anything that needs a provider key runs on
+  Railway, and a workflow only triggers it through the lab routes with `LAB_TOKEN`,
+  the one GitHub secret. Production keys never leave Railway.
 - The web app calls `/api` on its own origin; `vercel.json` rewrites that to the
   staging or production Railway host by web host. `/api/healthz` reports `env`
   and `commit`; `smoke.yml` asserts both.
