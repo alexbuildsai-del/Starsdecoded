@@ -4,7 +4,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
-- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (77 rows; ADR-73 to 77 from the model-matrix revision, superseding ADR-56 and amending ADR-55 and R-4.4; ADR-72 the on-tap scenes on gpt-5.2; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-29 to 32 from the logo lock; ADR-33 to 38 from the unknown-birth-time lock; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26; ADR-52 to 58 from the model-matrix lock, R-5.6 rewritten; ADR-59 to 62 from the Review 20/09 lock, amending ADR-44, 47, 51; ADR-63 to 71 from the compatibility second pass, amending ADR-40, 43)
+- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (80 rows; ADR-78 to 80 from the night-sky lock (the ambient slow pulse, §9); ADR-73 to 77 from the model-matrix revision, superseding ADR-56 and amending ADR-55 and R-4.4; ADR-72 the on-tap scenes on gpt-5.2; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-29 to 32 from the logo lock; ADR-33 to 38 from the unknown-birth-time lock; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26; ADR-52 to 58 from the model-matrix lock, R-5.6 rewritten; ADR-59 to 62 from the Review 20/09 lock, amending ADR-44, 47, 51; ADR-63 to 71 from the compatibility second pass, amending ADR-40, 43)
 - Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (3 blocking: MB-31 entity, MB-68 OpenAI credits, MB-69 `LAB_TOKEN`; MB-70 GPT-6 prices provisional, MB-72 publish r05/r06 blocked by MB-69; MB-71 done in R07; MB-73, 74 raised by R07; MB-63, 64, 65 built at their defaults; MB-66, 67 raised by R06; MB-6, 43, 47, 55 at their defaults; MB-57 credits DDL with pricing; MB-58 old synastry rows hidden; MB-59 the claim lands without generating)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
@@ -26,6 +26,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   with cards and scenes, the age band, Two people, per-chapter briefs, the two-triad hero. Artifact: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL
 - `docs/specs/locked/report-lab-model-matrix.md` — R07: GPT-6 Sol and Luna against gpt-5.2, OpenAI only; sessions generate
   on spawn; the lab at four levels, full only at Promote. Base in the annex. Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
+- `docs/specs/locked/night-sky.md` — skies as they are, the ten largest stars pulse slowly. Artifact: https://claude.ai/artifact/A7WmYgjNgncD8ij9ppU6C4
 - Drafts: `report-cost-and-latency.md` (27.1 cents measured, L0 built) · `staging-environment.md` (main → staging, production branch → production; runbook https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7)
 
 ## Rounds
