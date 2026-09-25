@@ -21,24 +21,14 @@ Artifact: https://claude.ai/artifact/6HLtPdSaR3wiVLXx16oWHU
 
 ## What the failures were
 
-| rule | prompt says | check does | pairs |
-|---|---|---|---|
-| link card length (`links.ts:42`) | "45 to 60 words, 70 a hard ceiling"; the 40 floor is never stated | fails outside 40–70 | 1 |
-| "Behaviour check:" ending (`links.ts:44`) | "end on one sentence beginning" | the regex fails on two sentences, "Behavior" and "e.g." | 2 |
-| card line ≤ 12 words (`shapes.ts:179`) | "twelve words a line" | fails at 13 | 2 |
-| age band `never` (`doctrine.ts`) | "never contradicts what is fair"; the banned words are never named | regex: curfew, screen time, tablet, homework… | 3 |
-| link outside allocation (`pair/evidence.ts:79`) | "only THIS CHAPTER'S LINKS" | fails the chapter | 2 |
-| quote not verbatim (`pair/evidence.ts:66`) | "copied exactly" | substring after `softenQuote` | 1 |
-
-How a failure plays out today:
-- `callStructured` (`aiInterpretation.ts:228`) makes 3 attempts.
-- Each retry feeds back only the last attempt's errors, and never the previous reply.
-- The third failure throws, and stage 2's `Promise.all` (`pairInterpretation.ts:247`)
-  rejects the report.
-- The chapters still running keep paying.
-- The credit is not refunded (`compatibility.ts:129`).
-- Nothing records failed attempts. Only the final message lands in
-  `reports.error_message`.
+Six rules, each where the prompt and the check disagree or the prompt never names
+what the check rejects: link card length (`links.ts:42`), the "Behaviour check:"
+ending (`links.ts:44`), card lines over 12 words (`shapes.ts:179`), age-band words
+(`doctrine.ts`), links outside the allocation and non-verbatim quotes
+(`pair/evidence.ts:79, 66`). Table with counts in the artifact. Today 3 attempts in
+`callStructured` feed back only the last errors, the third failure rejects stage 2's
+`Promise.all` (`pairInterpretation.ts:247`), running chapters keep paying, the credit
+is not refunded (`compatibility.ts:129`), and no failed attempt is recorded.
 
 ## Scope
 
@@ -142,71 +132,48 @@ How a failure plays out today:
 - **Moving any section to a new writer.** The rule stays five of five charts
   (ADR-57). Session 2026-09-24 was one chart with 50% control agreement. A second
   session on the other four charts is the Owner's to spawn when they want.
-- **Automatic prompt edits** from the failure log or the study.
-- **Loosening the age-band or allocation checks.**
-- **Natal prompt content changes**, beyond the sentence rule in scope 2.
-- **A scheduled drift check, and QA on every merge.**
+- Automatic prompt edits; loosening the age-band or allocation checks; natal prompt
+  content changes beyond scope 2; a scheduled drift check; QA on every merge.
 
 ## Acceptance criteria
 
-1. Unit tests, one per rule:
-   - a 72-word link card passes and a 90-word one fails;
-   - a 13-word card line passes and a 15-word one fails;
-   - a two-sentence "Behaviour check:" ending passes;
-   - "Behavior check:" passes;
-   - "screen time" in a grown-band chapter fails;
-   - a quote that differs only in case passes.
+1. Unit tests, one per rule: a 72-word link card passes and a 90-word one fails; a
+   13-word card line passes and a 15-word one fails; a two-sentence "Behaviour
+   check:" ending and "Behavior check:" pass; "screen time" in a grown-band chapter
+   fails; a quote that differs only in case passes.
 2. Every band's forbidden words appear in the rendered chapter brief (dry lab, free),
    generated from `doctrine.ts`.
-3. A test stubs one pair chapter to fail three times, then pass:
-   - the report completes;
-   - the other chapters are called once;
-   - `generation_failures` has 3 rows for that chapter.
-4. A test stubs it to fail every time:
-   - the report is `failed`;
-   - the credit is refunded;
-   - in-flight chapters are aborted.
+3. A pair chapter stubbed to fail three times, then pass: the report completes, the
+   other chapters are called once, `generation_failures` has 3 rows for it.
+4. Stubbed to fail every time: the report is `failed`, the credit is refunded,
+   in-flight chapters are aborted.
 5. A retry prompt contains every earlier error and the previous reply (unit test on
    the built messages).
 6. Failures tab: counts per rule and a red flag at the threshold, from seeded rows.
    The route returns no report text.
-7. `lab-spot.yml` is gone. A push to `main` with a brain change spends nothing (the
-   workflow list shows no lab run).
-8. Promote rehearsal:
-   - with `rehearsal: stub`, the QA job runs in dry mode against fixtures;
-   - a seeded sev-1 finding blocks the fast-forward;
-   - with the key absent, the job is skipped and reported as skipped.
-9. The prose study on `session-2026-09-24` fills its table with no model call, and
-   shows a proposed rule only where 8 of 12 cards agree.
-10. The gate:
-    - typecheck, both builds, unit tests;
-    - `db:bootstrap` twice on a fresh database;
-    - the dry lab on the five charts plus one pair shows every prompt rendering.
-
-    Lines are tagged USER-FACING for scopes 1 to 5 (report content and reliability)
-    and INTERNAL for the rest.
+7. `lab-spot.yml` is gone: a push to `main` with a brain change spends nothing.
+8. Promote rehearsal: with `rehearsal: stub` the QA job runs in dry mode against
+   fixtures; a seeded sev-1 blocks the fast-forward; without the key the job is
+   skipped and reported as skipped.
+9. The prose study on `session-2026-09-24` fills its table with no model call and
+   proposes a rule only where 8 of 12 cards agree.
+10. Gate: typecheck, both builds, unit tests, `db:bootstrap` twice on a fresh
+    database, the dry lab on the five charts plus one pair. USER-FACING for scopes 1
+    to 5, INTERNAL for the rest.
 
 ## Screens
 
-Artifact above:
-- the failure table;
-- today's retry flow against the proposed one;
-- the Failures tab;
-- the lab levels before and after;
-- the Promote flow with QA;
-- the 2026-09-24 picks by section;
-- the Prose study panel.
+Artifact above: the failure table, retry flow today and proposed, the Failures tab,
+lab levels before and after, Promote with QA, the 2026-09-24 picks, the Prose study.
 
 ## Open questions
 
 1. **A chapter that still fails after its lone round.** Recommended and default: fail
    the report, refund the credit and log it. The alternative is to ship the report
    without the chapter.
-2. **The QA agent needs two things:**
-   - an Anthropic API key in the GitHub `production` environment;
-   - one staging test account for the returning-user and admin personas.
-
-   Recommended: provide both. Our rough estimate is $1 to $3 per promote, to be
+2. **The QA agent needs** an Anthropic API key in the GitHub `production`
+   environment and one staging test account for the returning-user and admin
+   personas. Recommended: provide both. Our rough estimate is $1 to $3 per promote, to be
    measured on the first run. Default: build the job now, and skip it with a notice
    until the key exists.
 3. **Buffer size.** Recommended and default: about 15% on word ranges and 2 words on
@@ -223,12 +190,9 @@ Artifact above:
 - Every rejected attempt is logged by rule id in `generation_failures`. A rule failing
   on more than 1 in 10 of a section's last 20 writes is a prompt fix for the next
   round, never an automatic edit.
-- ADR-76 and R-4.4 are amended:
-  - no lab spend on staging is automatic (spot on merge is removed);
-  - dry stays at every brain change;
-  - spot and reading run on demand;
-  - Promote runs the release lab and then the QA agent, and moves production only
-    when both pass.
+- ADR-76 and R-4.4 are amended: no lab spend on staging is automatic (spot on merge
+  removed); dry stays at every brain change; spot and reading run on demand; Promote
+  runs the release lab then the QA agent and moves production only when both pass.
 - Simpler sentences over complicated vocabulary, always. The style contract carries
   numeric sentence limits, set first at 15 on average and 25 at most, and then by the
   prose study.
