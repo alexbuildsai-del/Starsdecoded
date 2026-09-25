@@ -1,6 +1,6 @@
 # Dashboard sky
 
-Ideation 2026-09-25 with the Owner. Status: locked 2026-09-25 (ADR-78 to 85).
+Ideation 2026-09-25 with the Owner. Status: locked 2026-09-25 (ADR-89 to 96).
 Artifact: https://claude.ai/artifact/6GpndVJxZUfHAdULYYg2GX · reference:
 commit 3cfe873, the first prototype, reverted.
 
@@ -172,7 +172,7 @@ motion list, the card, six compatibility states, four empty states, credits.
 
 ## Decisions recorded
 
-ADR-78 to ADR-85, in this order.
+ADR-89 to ADR-96, in this order.
 
 1. **The dashboard opens on the orbit.** The reader's name at the centre opens
    their own card; people float on a plain orbit. The orbit is not
