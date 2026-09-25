@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -19,7 +19,6 @@ import InviteModal from "@/components/InviteModal";
 import ProfileInviteHistory from "@/components/ProfileInviteHistory";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
 import { CompatibilityPicker } from "@/components/CompatibilityPicker";
-import { SkyOrbit } from "@/components/dashboard/SkyOrbit";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { LENSES, lensInfo } from "@/lib/lenses";
 import { PERSONAL_REPORT } from "@/lib/product";
@@ -502,11 +501,6 @@ export default function DashboardPage() {
     [allProfiles, selfProfile],
   );
 
-  const reportFor = useCallback(
-    (profileId: string) => natalReportsByProfileId.get(profileId) ?? null,
-    [natalReportsByProfileId],
-  );
-
   const isLoading = reportsQ.isLoading || profilesQ.isLoading;
   const isError = reportsQ.isError || profilesQ.isError;
 
@@ -588,17 +582,6 @@ export default function DashboardPage() {
               Retry
             </Button>
           </div>
-        )}
-
-        {!isLoading && !isError && (
-          <section className="mb-12" aria-label="Your sky">
-            <SkyOrbit
-              selfProfile={selfProfile}
-              selfReport={selfProfile ? reportFor(selfProfile.id) : null}
-              people={otherProfiles}
-              reportFor={reportFor}
-            />
-          </section>
         )}
 
         {/* ── Zone 1: You ─────────────────────────────────────────────── */}
