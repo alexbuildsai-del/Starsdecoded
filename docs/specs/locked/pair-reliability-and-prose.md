@@ -1,4 +1,4 @@
-# Draft spec — pair reliability and prose (R08)
+# Locked spec — pair reliability and prose (R08)
 
 Raised by the Owner 2026-09-25, after two things happened on 2026-09-24:
 - **The pair campaign** (run 35993780324) failed on all 7 pairs. In each report one
@@ -164,14 +164,11 @@ The inventory found about 80 checks, and 2 of them can never pass:
 Artifact above: failures and check classes, retry flow, failure reasons, the Failures
 tab, lab levels, the Release view, the 2026-09-24 picks, the Prose study.
 
-## Open questions
+## Resolved at lock
 
-1. **Past tense for an adult child.** May the report *remember* childhood ("the curfew
-   fights you both remember")? Default: yes.
-2. **A GitHub token on Railway staging** lets the Release view move `production`. It is
-   fine-grained, and limited to this repo's contents. Default: the Owner places one in
-   Railway staging Variables as `GITHUB_RELEASE_TOKEN`. Until it exists, the view stops
-   before the fast-forward and says so.
+Locked 2026-09-25 on the defaults: an adult child's report may remember childhood in the
+past tense; `GITHUB_RELEASE_TOKEN` lives in Railway staging Variables (MB-75), and until
+it exists the Release view stops before the fast-forward and says so.
 
 ## Decisions to record
 
