@@ -18,8 +18,12 @@ import {
   BASELINE, CONTROL, STORED, isStored, controlAgreement, estimateSession, mulberry32, replayWriters, shuffle, tallyMixes, tallyWriters,
   type Picks, type RevealCard, type RevealVariant,
 } from "../lib/labSession.js";
-import { CATALOGUE, type ModelId, type ServiceTier } from "../lib/models.js";
+import { CATALOGUE, MODELS, type ModelId, type ServiceTier } from "../lib/models.js";
 import { logger } from "../lib/logger.js";
+import { costUsd, emptySection } from "../lib/usage.js";
+import { callStructured } from "../lib/aiInterpretation.js";
+import { notesEstimateTokens, proseStudy, type StudyCard } from "../lib/proseStudy.js";
+import { proseText } from "../lib/proseMetrics.js";
 
 const router: IRouter = Router();
 router.use("/admin/lab/sessions", labGuard, labReadOnlyGuard);
@@ -195,7 +199,7 @@ router.get("/admin/lab/sessions/:id", async (req, res) => {
 });
 
 /** A variant id is a lab_runs row, or `report:<id>:<section>` for the stored text of a report base, read in place. */
-async function resolveVariants(ids: string[], actorUserId: string | null): Promise<Array<{ id: string; run: LabRun | null; text: unknown; ok: boolean }>> {
+export async function resolveVariants(ids: string[], actorUserId: string | null): Promise<Array<{ id: string; run: LabRun | null; text: unknown; ok: boolean }>> {
   const runs = await rowsById(ids.filter((id) => !id.startsWith("report:")));
   const out: Array<{ id: string; run: LabRun | null; text: unknown; ok: boolean }> = [];
   for (const id of ids) {
@@ -307,6 +311,101 @@ router.get("/admin/lab/sessions/:id/reveal", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "lab reveal failed");
     return res.status(500).json({ error: "internal_error", message: "Failed to reveal" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The prose study (ADR-88): after the reveal, measured in code, no model call.
+// ---------------------------------------------------------------------------
+
+/** The session's cards with their variants' text and writer, as the reveal named them; null before the reveal. */
+async function studyCards(sessionId: string, actorUserId: string | null): Promise<{ cards: StudyCard[]; label: string } | { unjudged: number; total: number } | null> {
+  const rows = await db.select().from(labJudgementsTable).where(eq(labJudgementsTable.sessionId, sessionId));
+  if (!rows.length) return null;
+  const unjudged = rows.filter((r) => !r.judgedAt).length;
+  if (unjudged || !rows.some((r) => r.revealedAt)) return { unjudged, total: rows.length };
+  const cards: StudyCard[] = [];
+  for (const card of rows.sort((a, b) => rank(a.section) - rank(b.section) || a.cardIndex - b.cardIndex)) {
+    const resolved = await resolveVariants(card.variants as string[], actorUserId);
+    cards.push({
+      id: card.id, fixture: card.fixture, section: card.section, picks: card.picks as Picks | null,
+      variants: resolved.map((v, i) => ({ index: i, writer: writerOf(v.run, v.id, card.sessionId), text: v.text, ok: v.ok })).filter((v) => v.ok).map(({ index, writer, text }) => ({ index, writer, text })),
+    });
+  }
+  return { cards, label: rows[0].sessionLabel };
+}
+
+/** GET /sessions/:id/prose-study : 409 until revealed, then the tables and the proposals; no text. */
+router.get("/admin/lab/sessions/:id/prose-study", async (req, res) => {
+  try {
+    const actorUserId = req.labActor?.kind === "admin" ? req.labActor.userId : null;
+    const loaded = await studyCards(req.params.id, actorUserId);
+    if (!loaded) return res.status(404).json({ error: "not_found", message: "no such session" });
+    if ("unjudged" in loaded) return res.status(409).json({ error: "session_open", message: loaded.unjudged ? `${loaded.unjudged} of ${loaded.total} cards still unjudged` : "reveal the session first" });
+    const study = proseStudy(loaded.cards);
+    return res.json({ sessionId: req.params.id, label: loaded.label, ...study });
+  } catch (err) {
+    req.log.error({ err }, "prose study failed");
+    return res.status(500).json({ error: "internal_error", message: "Failed to measure" });
+  }
+});
+
+/** POST /sessions/:id/prose-study/notes/estimate : what three lines a card would cost on the notes model. */
+router.post("/admin/lab/sessions/:id/prose-study/notes/estimate", async (req, res) => {
+  try {
+    const actorUserId = req.labActor?.kind === "admin" ? req.labActor.userId : null;
+    const loaded = await studyCards(req.params.id, actorUserId);
+    if (!loaded) return res.status(404).json({ error: "not_found", message: "no such session" });
+    if ("unjudged" in loaded) return res.status(409).json({ error: "session_open", message: "reveal the session first" });
+    const tokens = notesEstimateTokens(loaded.cards);
+    const model = MODELS.studyNotes;
+    const estimateUsd = costUsd(model, { attempts: 1, inputTokens: tokens.inputTokens, cachedInputTokens: 0, outputTokens: tokens.outputTokens, reasoningTokens: 0, ms: 0 }) ?? 0;
+    const spentUsd = await dbStore.spentUsd(monthStart());
+    const budget = budgetUsd();
+    return res.json({ model, cards: loaded.cards.length, ...tokens, estimateUsd, spentUsd, budgetUsd: budget, overBudget: spentUsd + estimateUsd > budget });
+  } catch (err) {
+    req.log.error({ err }, "prose study estimate failed");
+    return res.status(500).json({ error: "internal_error", message: "Failed to estimate" });
+  }
+});
+
+const NoteSchema = z.object({ lines: z.array(z.string()).min(3).max(3).describe("three plain lines on what the picked text does better than the passed ones, as a reader would feel it") });
+
+/** POST /sessions/:id/prose-study/notes : the optional step, budget-checked, three lines a card, one `study` row for its cost. The only text this study returns. */
+router.post("/admin/lab/sessions/:id/prose-study/notes", async (req, res) => {
+  try {
+    const actorUserId = req.labActor?.kind === "admin" ? req.labActor.userId : null;
+    const loaded = await studyCards(req.params.id, actorUserId);
+    if (!loaded) return res.status(404).json({ error: "not_found", message: "no such session" });
+    if ("unjudged" in loaded) return res.status(409).json({ error: "session_open", message: "reveal the session first" });
+    const model = MODELS.studyNotes;
+    const tokens = notesEstimateTokens(loaded.cards);
+    const estimateUsd = costUsd(model, { attempts: 1, inputTokens: tokens.inputTokens, cachedInputTokens: 0, outputTokens: tokens.outputTokens, reasoningTokens: 0, ms: 0 }) ?? 0;
+    checkBudget(await dbStore.spentUsd(monthStart()), estimateUsd, budgetUsd());
+    const notes: Array<{ id: string; fixture: string; section: string; lines: string[] }> = [];
+    let usage = emptySection("study:notes", model);
+    for (const card of loaded.cards) {
+      const study = proseStudy([card]).cards[0];
+      if (!study.picked.length || !study.passed.length) continue;
+      const text = (indexes: number[]) => indexes.map((i) => proseText(card.variants.find((v) => v.index === i)?.text)).join("\n\n---\n\n");
+      const out = await callStructured<z.infer<typeof NoteSchema>>({
+        usageKey: "study:notes", model, maxTokens: 600, schema: NoteSchema,
+        system: "You compare two or more versions of the same passage of a self-knowledge report. In three plain lines, say what the version a reader preferred does better than the ones passed over: sentence length, word choice, concreteness, address. No praise, no astrology.",
+        user: `PREFERRED\n\n${text(study.picked)}\n\nPASSED OVER\n\n${text(study.passed)}`,
+      });
+      usage = { ...usage, attempts: usage.attempts + out.usage.attempts, inputTokens: usage.inputTokens + out.usage.inputTokens, cachedInputTokens: usage.cachedInputTokens + out.usage.cachedInputTokens, outputTokens: usage.outputTokens + out.usage.outputTokens, reasoningTokens: usage.reasoningTokens + out.usage.reasoningTokens, ms: usage.ms + out.usage.ms };
+      notes.push({ id: card.id, fixture: card.fixture, section: card.section, lines: out.data.lines });
+    }
+    const cost = costUsd(model, { ...usage }) ?? 0;
+    await db.insert(labRunsTable).values({
+      id: randomUUID(), runKey: `study:${req.params.id}`, fixture: loaded.label, label: loaded.label, source: "study", section: "notes", model, serviceTier: "standard", status: "done",
+      output: null, usage: usage as unknown as object, faults: [], words: 0, costUsd: cost, seconds: usage.ms / 1000, sessionId: req.params.id,
+    });
+    return res.json({ sessionId: req.params.id, model, notes, costUsd: cost });
+  } catch (err) {
+    if (err instanceof BudgetError) return res.status(409).json({ error: "lab_budget", message: err.message, spentUsd: err.spentUsd, budgetUsd: err.budgetUsd });
+    req.log.error({ err }, "prose study notes failed");
+    return res.status(500).json({ error: "internal_error", message: err instanceof Error ? err.message : "Failed to write the notes" });
   }
 });
 
