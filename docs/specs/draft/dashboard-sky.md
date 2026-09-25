@@ -158,10 +158,8 @@ writes the report. The Compatibility list below the orbit is also relabelled:
 
 ## Screens
 
-All in the artifact: the live desktop mock with chips for people, credits and
-the reader's report; the phone sheet; the card's anatomy and element table;
-the six compatibility states; the four empty states; the credit surfaces and
-the Get credits sheet.
+All in the artifact: the live mock with account chips, the phone sheet, the
+motion list, the card, six compatibility states, four empty states, credits.
 
 ## Open questions
 
