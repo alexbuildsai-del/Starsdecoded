@@ -1018,12 +1018,27 @@ components:
               - name
         createdAt:
           type: string
+        failureReason:
+          $ref: "#/components/schemas/FailureReason"
+          nullable: true
       required:
         - id
         - kind
         - name
         - status
         - createdAt
+
+    FailureReason:
+      type: object
+      description: Why a failed report failed, as the customer reads it. Null unless the status is failed.
+      properties:
+        code:
+          type: string
+          enum: [provider_unreachable, provider_out_of_credit, quality, internal]
+        line:
+          type: string
+          description: The plain line the customer reads.
+      required: [code, line]
 
     ReportStatus:
       type: object
@@ -1035,6 +1050,10 @@ components:
           enum: [pending, computing, interpreting, revising, complete, failed]
         errorMessage:
           type: string
+          nullable: true
+          description: Always null; internal text never reaches a customer response. Kept so older clients build.
+        failureReason:
+          $ref: "#/components/schemas/FailureReason"
           nullable: true
         chartReady:
           description: The chart is stored, so the report page can open on the hero and the explorer.
@@ -2225,6 +2244,10 @@ components:
           $ref: "#/components/schemas/Workbook"
         errorMessage:
           type: string
+          nullable: true
+          description: Always null; internal text never reaches a customer response. Kept so older clients build.
+        failureReason:
+          $ref: "#/components/schemas/FailureReason"
           nullable: true
         createdAt:
           type: string

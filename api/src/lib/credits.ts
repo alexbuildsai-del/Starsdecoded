@@ -88,3 +88,21 @@ export async function consumeCredit(userId: string, reportId: string): Promise<b
 
   return true;
 }
+
+/**
+ * The credit a failed report used goes back to `available` (ADR-84).
+ * Idempotent: a second call finds no used credit for the report and is a
+ * no-op, so a retry of the failure path never refunds twice. Flips the
+ * soft-pass ledger today; the payments round inherits the path (MB-6).
+ */
+export async function refundCredit(reportId: string): Promise<boolean> {
+  const rows = await db.execute<{ id: string }>(sql`
+    UPDATE ${creditsTable}
+    SET status = 'available', used_for_report_id = NULL
+    WHERE used_for_report_id = ${reportId}
+      AND status = 'used'
+    RETURNING id
+  `);
+  if (rows.rows.length) logger.info({ reportId, credits: rows.rows.length }, "credit refunded for a failed report");
+  return rows.rows.length > 0;
+}
