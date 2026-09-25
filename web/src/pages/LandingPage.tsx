@@ -85,7 +85,7 @@ export default function LandingPage() {
   const [, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen text-foreground overflow-x-hidden">
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -114,7 +114,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative min-h-screen flex items-center justify-center bg-stars overflow-hidden pt-14">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14">
         {/* Orbital illustration */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
           <div className="relative" style={{ width: 600, height: 600 }}>

@@ -416,7 +416,7 @@ export default function AdminPromptsPage() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center">
+      <div className="min-h-screen text-foreground flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
       </div>
     );
@@ -424,7 +424,7 @@ export default function AdminPromptsPage() {
 
   if (isAdmin === false) {
     return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
+      <div className="min-h-screen text-foreground flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
           <h1 className="font-display text-2xl mb-2">Access Denied</h1>
@@ -439,7 +439,7 @@ export default function AdminPromptsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
+      <div className="min-h-screen text-foreground flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
@@ -454,7 +454,7 @@ export default function AdminPromptsPage() {
   const overrideCount = prompts.filter((p) => p.isOverridden).length;
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
+    <div className="min-h-screen text-foreground">
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <button

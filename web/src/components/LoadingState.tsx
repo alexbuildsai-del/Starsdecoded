@@ -5,7 +5,7 @@ interface LoadingStateProps {
 export default function LoadingState({ label = "Loading…" }: LoadingStateProps) {
   return (
     <div
-      className="min-h-screen bg-background flex items-center justify-center"
+      className="min-h-screen flex items-center justify-center"
       role="status"
       aria-live="polite"
     >

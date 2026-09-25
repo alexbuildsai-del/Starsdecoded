@@ -50,7 +50,7 @@ export default function AdminLabPage() {
 
   if (!isLoaded || isAdmin === null) {
     return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center">
+      <div className="min-h-screen text-foreground flex items-center justify-center">
         {error ? <p className="text-sm text-destructive">{error}</p> : <Loader2 className="h-8 w-8 animate-spin text-primary/40" />}
       </div>
     );
@@ -58,7 +58,7 @@ export default function AdminLabPage() {
 
   if (isAdmin === false) {
     return (
-      <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
+      <div className="min-h-screen text-foreground flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
           <h1 className="font-display text-2xl mb-2">Access Denied</h1>
@@ -70,7 +70,7 @@ export default function AdminLabPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
+    <div className="min-h-screen text-foreground">
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <button type="button" onClick={() => navigate("/dashboard")}><Wordmark /></button>

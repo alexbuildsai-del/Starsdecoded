@@ -293,7 +293,7 @@ export default function BirthFormPage() {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="min-h-screen bg-background bg-stars flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-4">
           <button

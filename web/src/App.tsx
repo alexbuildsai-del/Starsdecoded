@@ -11,6 +11,7 @@ import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { NightSky } from "@/components/ui/night-sky";
 import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import LoadingState from "@/components/LoadingState";
@@ -137,7 +138,7 @@ function SignInPage() {
   const ret = getReturnTo();
   const fullRet = `${basePath}${ret === "/" ? "" : ret}` || "/";
   return (
-    <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10 bg-stars">
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-10">
       <SignIn
         routing="path"
         path={`${basePath}/sign-in`}
@@ -154,7 +155,7 @@ function SignUpPage() {
   const ret = getReturnTo();
   const fullRet = `${basePath}${ret === "/" ? "" : ret}` || "/";
   return (
-    <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10 bg-stars">
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-10">
       <SignUp
         routing="path"
         path={`${basePath}/sign-up`}
@@ -289,6 +290,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <NightSky />
           <WouterRouter base={basePath}>
             <ClerkRoutedProvider />
           </WouterRouter>

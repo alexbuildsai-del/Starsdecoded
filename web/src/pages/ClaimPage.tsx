@@ -269,7 +269,7 @@ export default function ClaimPage() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[100dvh] bg-background bg-stars text-foreground flex items-center justify-center px-4">
+    <div className="min-h-[100dvh] text-foreground flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center p-8 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm">
         {children}
       </div>

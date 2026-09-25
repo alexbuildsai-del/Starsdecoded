@@ -382,16 +382,18 @@
     --ease: cubic-bezier(.16, 1, .3, 1);
     --accent: #5C6BC0;
   }
-  .rp-root { background: var(--void); color: var(--paper); }
+  .rp-root { color: var(--paper); }
 
   /* --- the sky behind the reading: stars, three blobs, a veil --- */
-  .rp-sky { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: var(--void); pointer-events: none; }
+  .rp-sky { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  /* The app's NightSky shows through the reading; the chapters keep their blobs and veil, not a second starfield. */
+  .rp-sky:not(.hero) canvas { display: none; }
   .rp-sky canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .rp-sky .blob { position: absolute; border-radius: 50%; filter: blur(58px); opacity: .5; transition: background .9s linear; }
+  .rp-sky .blob { position: absolute; border-radius: 50%; filter: blur(58px); opacity: .32; transition: background .9s linear; }
   .rp-sky .b1 { width: 62%; aspect-ratio: 1; left: -14%; top: -18%; }
   .rp-sky .b2 { width: 54%; aspect-ratio: 1; right: -16%; top: 26%; }
   .rp-sky .b3 { width: 70%; aspect-ratio: 1; left: 12%; bottom: -38%; }
-  .rp-sky .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,8,12,.18), rgba(6,8,12,.72)); }
+  .rp-sky .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,8,12,.08), rgba(6,8,12,.5)); }
   .rp-grain::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5; mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E"); }
 
@@ -399,7 +401,7 @@
   .rp-hero { position: relative; height: calc(100svh - 3.5rem); min-height: 520px; margin-top: 3.5rem; z-index: 2; }
   /* The hero owns its sky (ADR-59): R04's radial gradient, and its own starfield and ring of stars mounted inside it. */
   .rp-hsky { position: fixed; inset: 3.5rem 0 0; z-index: 1; display: grid; place-items: center; padding: 14px 10px 56px;
-    background: radial-gradient(120% 92% at 50% 38%, #141B28 0%, #0B0E14 56%, #06080C 100%); }
+    background: radial-gradient(120% 92% at 50% 38%, rgba(20,27,40,.6) 0%, rgba(11,14,20,.4) 56%, rgba(6,8,12,.3) 100%); }
   /* Behind the plate and the corner chrome, above the gradient: the hero layer is its own stacking context. */
   .rp-sky.hero { position: absolute; inset: 0; z-index: -1; background: transparent; }
   .rp-sky.hero .veil { background: linear-gradient(180deg, rgba(6,8,12,0), rgba(6,8,12,.35)); }

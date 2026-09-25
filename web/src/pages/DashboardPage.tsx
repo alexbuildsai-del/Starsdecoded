@@ -532,7 +532,7 @@ export default function DashboardPage() {
   const [timeTarget, setTimeTarget] = useState<ProfileSummary | null>(null);
 
   return (
-    <div className="min-h-screen bg-background bg-stars text-foreground">
+    <div className="min-h-screen text-foreground">
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
