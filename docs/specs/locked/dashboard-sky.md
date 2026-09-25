@@ -1,6 +1,6 @@
 # Dashboard sky
 
-Ideation 2026-09-25 with the Owner. Status: draft 3, nothing built.
+Ideation 2026-09-25 with the Owner. Status: locked 2026-09-25 (ADR-78 to 85).
 Artifact: https://claude.ai/artifact/6GpndVJxZUfHAdULYYg2GX · reference:
 commit 3cfe873, the first prototype, reverted.
 
@@ -161,20 +161,18 @@ writes the report. The Compatibility list below the orbit is also relabelled:
 All in the artifact: the live mock with account chips, the phone sheet, the
 motion list, the card, six compatibility states, four empty states, credits.
 
-## Open questions
+## Settled at lock (the defaults)
 
-1. **Does the picker still ask for a lens?** It picks the middle chapters
-   (ADR-40, 68). Recommend: the picker keeps it, nothing else shows it.
-   Default: that.
-2. **At zero credits, block or keep the soft pass?** No checkout exists yet
-   (MB-6). Recommend: build the zero states behind the MB-6 seam; soft pass
-   until payments. Default: that.
-3. **What does a point show?** Recommend initials in a disc, first name below.
-   Default: initials.
+1. **The picker keeps the lens choice.** It sets the middle chapters (ADR-40,
+   68); nothing on the dashboard shows it.
+2. **Zero credits:** the states are built behind the `MB-6 provisional` seam;
+   the soft pass keeps writing until checkout exists.
+3. **A point shows initials** in a disc, the first name below.
 
-## Decisions to record
 
-Numbered at lock, from ADR-78.
+## Decisions recorded
+
+ADR-78 to ADR-85, in this order.
 
 1. **The dashboard opens on the orbit.** The reader's name at the centre opens
    their own card; people float on a plain orbit. The orbit is not
