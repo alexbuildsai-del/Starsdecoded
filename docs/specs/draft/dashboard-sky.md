@@ -1,199 +1,186 @@
 # Dashboard sky
 
-Ideation 2026-09-25 with the Owner. Status: draft, nothing built.
+Ideation 2026-09-25 with the Owner. Status: draft 2, nothing built.
 Artifact: https://claude.ai/artifact/6GpndVJxZUfHAdULYYg2GX · reference:
-commit 3cfe873, a prototype built before this ideation, reverted.
+commit 3cfe873, the first prototype, reverted.
 
-The reader's chart frames the sky, with their name at the centre; everyone
-they have read is a Sun at its true degree; a tap opens a computed quick look.
-Pairs are marked on people, never drawn between them.
+The dashboard opens on an orbit: the reader at the centre, the people they
+have read drifting around them. A tap opens a card computed from the stored
+chart, where the compatibility report is opened or sold. Draft 1 placed
+people as Suns at their true degrees; the Owner rejected it for the original
+interactive orbit.
 
 ## Scope
 
-### The sky (option A, question 1)
+### The orbit
 
-- **Frame.** The report wheel's sign band: twelve wedges, brass fill .05 and
-  .085, stroke brass .3, sign names as words on the band. It is turned so the
-  reader's Ascendant sits on the left (east). Inside it is the house band
-  numbered 1 to 12 in Plex Mono (whole sign), the horizon dashed through the
-  centre, and the angle marker (ADR-49) at its east end: the mark
-  (`logo.md`) made large.
-- **No horizon.** When the reader's birth time is unknown, or they have no
-  report, the band starts at 0° Aries on the left, with no house band, no
-  horizon and no marker.
-- **Centre.** "YOU", the first name, "Open report ›"; a tap opens the reader's
-  Personal natal report. With no report: "Your chart · Generate it ›" to
-  `/chart?self=1`.
-- **Bodies.** One per other profile with a computed chart: the Sun render at
-  the true longitude of that person's Sun, on a lane inside the house band. A
-  brass dot marks the degree on the band's inner edge, with a brass leader to
-  the body.
-- **Crowding.** A Sun closer than one body's width to a placed one takes the
-  next lane inward. A body never leaves its degree (ADR-17).
-- **Labels.** A label sits beside its body with no leader line: the first name
-  in Space Grotesk capitals, and on wide screens the degree in Plex Mono. When
-  a side collides it tries the next: inward, vertical, outward.
-- **States.** A report still writing draws its body at .62 with a dashed ring;
-  a failed one is not drawn and stays in the list. A Sun whose band crosses a
-  sign line sits at the band's midpoint and names no house.
-- **Motion.** On load each Sun travels along its lane onto its degree in 1.4 s
-  on one easing; leaders and labels fade in after. Then nothing moves. A tap
-  rings the body in indigo and dims the rest to .42, and nothing rotates.
-  Reduced motion shows the sky at rest.
-- **Many bodies.** Past ten, names show on hover, focus and selection only.
+- **Centre.** The reader's first name on the product gradient, "YOU" above,
+  "Open report ›" below; a tap opens the Personal natal report. With no report
+  of their own: a dashed disc, "Your chart · Generate it ›".
+- **People.** One point per other profile: initials in a disc, first name
+  below in Space Grotesk capitals, evenly spaced on a plain dotted orbit.
+- **The orbit is not a chart.** No zodiac, no degrees, no houses and no planet
+  renders on it, so nothing on it claims a position (ADR-17 holds because the
+  orbit draws no chart).
+- **States on a point.** Report still writing: dashed disc, "· WRITING" after
+  the name. A compatibility report shared with the reader: violet ring
+  (`#9575CD`). A failed report is not drawn and stays in the list.
+- **Motion.** The orbit drifts slowly (about 4°/s). A tap stops the drift,
+  fills the point, rings it in indigo and dims the rest to .4; anyone who
+  shares a compatibility report with the tapped person keeps full opacity and
+  a lit violet ring. Closing restarts the drift. Reduced motion: no drift.
+- **Empty orbit.** With nobody else, one dashed "+" point on the orbit reads
+  "ADD SOMEONE", or "GET CREDITS" at zero credits.
 
 ### Layout
 
-- **Desktop** (`max-w-4xl`): the sky on the left, at most 440 px, and a panel
-  on the right. The panel shows the quick look for the selected body, or else
-  the sky's legend and the reader's own triad rows.
-- **Phone:** the sky full width, and the quick look in a bottom sheet. The
-  sheet opens at a peek that keeps the tapped body visible and drags up for
-  the rest.
-- **Below the sky** (question 3): Your People and Compatibility stay as the
-  dense lists; the You card folds into the centre and a slim row (Add your
-  birth time, Not me, Delete).
+- **Desktop** (`max-w-4xl`): orbit left (≤ 440 px), panel right. The panel is
+  the card when a point is selected; otherwise the reader's name and triad
+  rows, a hint, and the credit row.
+- **Phone:** orbit full width, the card as a bottom sheet (peek, drag up,
+  tap empty sky to close).
+- **Below:** Your People and Compatibility stay as the dense lists (invite,
+  delete, This is me, the picker). The You card folds into the centre.
 
-### The quick look
+### The card
 
-1. Eyebrow "Personal natal report" in brass, the name and the birth date, plus
-   "birth time unknown" for a blind chart.
-2. **Triad.** The pair hero's plate: the ring, the dashed horizon, Sun and Moon
-   renders at their true degrees, band arcs when the time is a band, and the
-   angle marker. Beside it, the report's legend rows:
-   - a known time reads "16.44° Leo · 7th";
-   - a band reads "10.19°–22.85° Pisces";
-   - a blind Rising reads "Add {name}'s birth time to draw the horizon".
-3. **In your chart.** "Sun in your Nth house": whole sign, counted from the
-   reader's Ascendant, the number only (question 2). Without the reader's
-   horizon it says why no house is named.
-4. **Elements.** BalanceRail's rows, still the only place element hues live
-   (ADR-23).
-   - A lead is named only when it holds at least 40% of the ten planets and
-     is 2 clear of the next element ("Fire leads · 5 of 10"). Otherwise the
-     row reads "Spread across the four".
-   - Empty elements are named ("No air").
-   - The modality counts sit on one mono line.
-5. **Planets by house.** Twelve whole-sign cells with the renders standing in
-   them, as on the house cards. This lifts the natal-report-ui deferral for
-   this strip only.
-   - The busiest house with three or more planets is outlined and named with
-     its explorer label.
-   - A blind chart reads "Houses need a birth time".
-6. **You two.** The compatibility row or rows, described below.
-7. **One primary button:** "Open {name}'s report", or "Read as it writes".
+1. Eyebrow "Personal natal report" in brass (plus "· writing"), name, birth
+   date, "birth time unknown" for a blind chart.
+2. **Triad.** The pair hero's plate (ring, dashed horizon, Sun and Moon
+   renders at true degrees, band arcs, angle marker) and the report's legend
+   rows: "16.44° Leo · 7th"; a band reads "10.19°–22.85° Pisces"; a blind
+   Rising reads "Add {name}'s birth time to draw the horizon".
+3. **Elements.** BalanceRail's rows, the only place element hues live
+   (ADR-23). A lead is named only at ≥ 40% of the ten planets and 2 clear of
+   the next ("Fire leads · 5 of 10"), else "Spread across the four"; empty
+   elements named ("No air"); modality counts on one mono line.
+4. **Planets by house.** Twelve whole-sign cells with the renders standing in
+   them; the busiest house with three or more planets outlined and named with
+   its explorer label; blind: "Houses need a birth time". This lifts the
+   natal-report-ui dashboard deferral for this strip only.
+5. **Compatibility**, below.
+6. **One primary:** "Open {name}'s report", or "Read as it writes".
 
-Everything reads from `chartData` (`GET /reports/{id}`, fetched on tap).
-Nothing on the card is generated; the report headline, if shown, is quoted.
-No Unicode planet or sign glyph appears anywhere on the dashboard. Bodies are
-renders, points are brass dots, angles are the marker and signs are words.
+No "In your chart" line. Everything reads from `chartData` (`GET
+/reports/{id}` on tap); nothing is generated. No Unicode planet or sign glyph
+anywhere on the dashboard.
 
-### Compatibility on the sky
+### Compatibility
 
-- **Halos.** A violet ring (`#9575CD`) on a body means the reader and that
-  person share a compatibility report.
-- **Tapping a person** lights the rings of everyone they share a report with,
-  even two people who are not the reader (ADR-40), and keeps those bodies
-  undimmed.
-- **Not drawn:** lines between bodies (they read as aspects, ADR-17), a body
-  at a midpoint (the composite Sun, V2) and any number (ADR-41).
-- **You two row states:**
-  - A shared report shows the lens, "{A} & {B} Compatibility" and Open.
-  - When there is none and both reports are complete, "Read you two" opens
-    the picker with both people chosen; the lens is still chosen there.
-  - While their report is writing, the button is disabled: "Once {name}'s
-    report is finished".
-  - When the reader has no report, it is disabled: "Needs your own report
-    first".
-  - Pairs between this person and others follow, each with Open.
-- **Unchanged:** the Compatibility list and the picker stay below the sky. The
-  picker remains the only way a pair report is created.
+One product, named by its two people: eyebrow "Compatibility report", title
+"{A} & {B}". The lens never appears on the dashboard, the card or the lists
+(question 1). Rows in the card:
+
+| State | Row |
+|---|---|
+| Shared with the reader | title, Open |
+| None, both finished, credits > 0 | "How the two of you work, and why." · "Uses 1 credit · N credits left" · **Generate** (primary) |
+| None, zero credits | "No credits left" · **Get credits** |
+| Their report still writing | "Available once {name}'s report is finished." · Generate disabled |
+| Reader has no report | "Needs your own report first." · Generate disabled |
+| Pairs between this person and others | title, Open |
+
+Generate opens the existing picker with both people chosen; the picker still
+writes the report. The Compatibility list below the orbit is also relabelled:
+"Compatibility report" and "{A} & {B}", no lens eyebrow.
+
+### Credits
+
+- **Nav:** a credit pill on every dashboard view ("2 credits"; greyed "0
+  credits"). At zero, "+ Add a Person" becomes **Get credits**.
+- **Panel:** a credit row: "N credits left · Each report uses one" with Get
+  more; at zero "No credits left" with Get credits (primary).
+- **Every spend** (add a person, generate a pair, generate my chart) shows
+  "1 credit" beside it; at zero it is disabled next to Get credits.
+- **Get credits sheet:** bundles as counts (1, 3, 5; ADR-42), prices from
+  MB-5, checkout from MB-6. Until payments exist the zero-credit states stay
+  behind the `MB-6 provisional` seam and the soft pass keeps writing
+  (question 2).
+
+### Empty states
+
+| State | Orbit | Panel / message | Actions |
+|---|---|---|---|
+| Only you, credits | "+ ADD SOMEONE" point | "No one in your sky yet. Add someone and they join your orbit." | + Add a person · 1 credit |
+| Only you, zero credits | "+ GET CREDITS" point | "Adding someone uses a credit, and you have none left." | Add a person (disabled), Get credits |
+| New account | dashed centre, add point | "Your chart comes first. It sits at the centre, and everyone you add orbits it." | Generate my chart · 1 credit |
+| People, no own report | dashed centre, people | "Compatibility needs your own report. Their cards still open." | Generate my chart, or Get credits at zero |
 
 ### Data
 
-- `ProfileSummary` gains `sunLongitude` and `ascendantLongitude` (number,
-  nullable), both read from the cached `chart_data`. The Ascendant is null
-  without a horizon. Change `openapi.yaml`, then run codegen. No schema change.
+- No API contract change: the lists the dashboard loads plus `GET
+  /reports/{id}` on tap, and `useGetCredits` for the count.
+- Halos from compatibility `ReportSummary.participants[].id` (profile ids).
 - The picker accepts a preselected pair.
-- The halos come from the compatibility `ReportSummary.participants[].id`,
-  which are profile ids.
 
 ## Out of scope
 
-- Any change to the brain: prompts, models, engine, report content, the lab.
-- Composite charts, pair scores, lines between people, transits, a live sky.
-- The reader's own planets on the band.
-- Moving invite, delete or This is me out of the lists; a picker redesign.
+- The brain: prompts, models, engine, report content, the lab.
+- Any chart geometry on the orbit; pair scores; lines between people.
+- Checkout and prices (MB-5, MB-6); a picker redesign.
 
 ## Acceptance criteria
 
-1. With a horizon, the band's sign boundaries and house numbers match the
-   reader's whole-sign chart, and the angle marker sits on the left at the
-   Ascendant.
-2. Every body's centre lies on the radial line of its person's Sun longitude,
-   within 0.5°. A lane change never changes the angle.
-3. No Unicode planet or sign glyph renders on the dashboard. A grep gate over
-   `web/src/components/dashboard/` and `DashboardPage.tsx` blocks ☉ ☽ ☿ ♀ ♂ ♃
-   ♄ ⛢ ♆ ♇ ⚷ ☊ ☋ and ♈ to ♓.
-4. Tapping a body opens the quick look. Tapping empty sky or pressing Escape
-   closes it. Tapping the centre opens the reader's report. Bodies and the
-   centre are keyboard reachable.
-5. The element lead follows the rule. On the seven fixture charts, the card
-   reads as the artifact's table does.
-6. A blind chart's card draws no horizon, names no house, and shows band arcs
-   for the Sun and Moon.
-7. With reduced motion the sky renders at rest, with no animation frames.
-8. There is one halo per person sharing a report with the reader, and tapping
-   lights partners' rings.
-9. Read you two opens the picker with both people selected, and is disabled
-   with its reason when either report is not complete.
-10. At 390 px the page never scrolls sideways, and the sheet leaves the tapped
-    body visible.
-11. Typecheck, both builds and unit tests pass (lead rule, house tally, lane
-    placement, the reader's house of the Sun); no lab, the brain is untouched.
+1. The orbit shows one point per other profile with initials and first name;
+   no zodiac, degree or planet render on the orbit.
+2. Tapping a point stops the drift and opens the card (panel or sheet);
+   tapping empty space or Escape closes it and restarts the drift; tapping the
+   centre opens the reader's report. Points and centre are keyboard reachable.
+3. No Unicode planet or sign glyph renders on the dashboard (grep gate over
+   `web/src/components/dashboard/` and `DashboardPage.tsx`).
+4. The card has no "In your chart" line; the element lead follows the rule and
+   the seven fixture charts read as the artifact's table.
+5. A blind chart's card draws no horizon, names no house, shows band arcs.
+6. No lens label anywhere on the dashboard; every pair reads "Compatibility
+   report" and "{A} & {B}".
+7. Each compatibility row state in the table renders with its copy and its
+   enabled or disabled button; Generate opens the picker with both chosen.
+8. The credit pill, the panel's credit row and every spend reflect the
+   balance; at zero each spend offers Get credits.
+9. The four empty states render as specified.
+10. Reduced motion: no drift. At 390 px no sideways scroll.
+11. Typecheck, both builds, unit tests (lead rule, house tally, row state
+    choice) pass; no lab, the brain is untouched.
 
 ## Screens
 
-All in the artifact: desktop and phone in the reader's three chart states,
-options A and B, the quick look's anatomy and element table on the fixture
-charts, the three compatibility options and the four You two states.
+All in the artifact: the live desktop mock with chips for people, credits and
+the reader's report; the phone sheet; the card's anatomy and element table;
+the six compatibility states; the four empty states; the credit surfaces and
+the Get credits sheet.
 
 ## Open questions
 
-1. **True sky (A) or orbit of stars (B)?** A keeps ADR-17 with no exception
-   and makes the sky carry information. B keeps the drift, but the sky says
-   nothing. Recommend A. Default: A.
-2. **Name the house the person's Sun falls in?** Option A shows it by position
-   anyway, and the reading stays in the compatibility report. Recommend yes,
-   the number only. Default: yes.
-3. **Fold the You card into the sky and keep the two lists?** The lists hold
-   invite, delete, This is me and the picker, and the dashboard stays dense.
-   Recommend yes. Default: yes.
+1. **Does the picker still ask for a lens?** It picks the middle chapters
+   (ADR-40, 68). Recommend: the picker keeps it, nothing else shows it.
+   Default: that.
+2. **At zero credits, block or keep the soft pass?** No checkout exists yet
+   (MB-6). Recommend: build the zero states behind the MB-6 seam; soft pass
+   until payments. Default: that.
+3. **What does a point show?** Recommend initials in a disc, first name below.
+   Default: initials.
 
 ## Decisions to record
 
 Numbered at lock, from ADR-78.
 
-1. **The dashboard opens on the sky.** The reader's sign band is turned to
-   their Ascendant on the left, with the horizon and the brass point: the mark
-   made large. The name at the centre opens the Personal natal report.
-2. **Each person is their Sun.** A Sun render sits at the true longitude of
-   that person's Sun. Close Suns take inner lanes on a brass leader and never
-   move. Name and degree sit beside the body.
-3. **One move.** On load, a 1.4 s settle onto the degrees on one easing, then
-   stillness. A tap rings the body in indigo and dims the rest. Reduced motion
-   shows the sky at rest.
-4. **The quick look is computed:** triad plate and legend, the house of the
-   reader's chart the Sun falls in, balance rows naming a lead only at 40% and
-   a margin of 2, planets by whole-sign house with renders, the You two row,
-   one door. No Unicode planet or sign glyph on the dashboard.
-5. **Pairs are marked on people.** A violet ring means a shared report. The
-   partner's ring lights when either is tapped. No lines, no midpoint body, no
-   score.
-6. **Read you two** opens the picker with both people chosen, and the lens is
-   chosen there. It is disabled, with its reason, until both reports are
-   finished.
-7. **Profiles carry two longitudes.** `sunLongitude` and `ascendantLongitude`
-   join `ProfileSummary`, from the cached chart.
-8. **The lists stay below.** The You card folds into the centre and a slim
-   row. Your People and Compatibility stay as the dense lists.
+1. **The dashboard opens on the orbit.** The reader's name at the centre opens
+   the Personal natal report; people drift on a plain orbit. The orbit is not
+   a chart: no zodiac, degrees or planet renders on it.
+2. **A person is a named point.** Initials in a disc, first name below; dashed
+   while writing; a violet ring for a shared compatibility report.
+3. **A tap opens the card** (panel on desktop, sheet on phone), stops the
+   drift and dims the rest. Reduced motion: no drift.
+4. **The card is computed:** triad plate and legend, balance rows naming a
+   lead only at 40% and a margin of 2, planets by whole-sign house with
+   renders, compatibility, one door. No "In your chart". No Unicode planet or
+   sign glyph on the dashboard.
+5. **One compatibility report, named by two people.** "Compatibility report"
+   and "{A} & {B}" wherever listed; the lens never shows on the dashboard.
+6. **The card sells the pair:** Generate with the credit it uses and what is
+   left; Get credits at zero; disabled with its reason while a natal report is
+   unfinished or missing.
+7. **Credits are always in sight:** the nav pill and the panel row; at zero
+   every spend becomes Get credits (behind the MB-6 seam until payments).
+8. **Empty states:** only you gets an Add someone point; no report of your own
+   puts the ask at the centre.
