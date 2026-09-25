@@ -174,7 +174,7 @@ export default function ReportPage() {
           progress={progress}
           provisional={live.provisional}
           chart={chartData}
-          errorMessage={live.errorMessage}
+          failureLine={live.failureReason?.line ?? null}
           onOpen={setOpen}
           onRetry={() => regenerate.mutate({ id: id! })}
           retrying={regenerate.isPending}
@@ -209,7 +209,7 @@ export default function ReportPage() {
           progress={progress}
           provisional={live.provisional}
           chart={chartData}
-          errorMessage={live.errorMessage}
+          failureLine={live.failureReason?.line ?? null}
           onOpen={setOpen}
           onRetry={failed ? () => regenerate.mutate({ id: id! }) : undefined}
           retrying={regenerate.isPending}

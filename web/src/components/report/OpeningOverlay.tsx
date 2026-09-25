@@ -24,16 +24,20 @@ export interface OpeningOverlayProps {
   progress: Progress;
   provisional: Positions | null;
   chart: ChartData | null;
-  errorMessage?: string | null;
+  /** The coded line a failed report shows (ADR-84); the internal message never reaches the page. */
+  failureLine?: string | null;
   onOpen: () => void;
   onRetry?: () => void;
   retrying?: boolean;
 }
 
+/** The `internal` line of the failure vocabulary, the fallback when a failed report carries no code yet. */
+export const INTERNAL_LINE = "Something went wrong on our side. We've been alerted.";
+
 /** The hero's ground, so the screen is a page of its own and not a veil over one. */
 const GROUND = "radial-gradient(120% 92% at 50% 38%, #141B28 0%, #0B0E14 56%, #06080C 100%)";
 
-export function OpeningOverlay({ progress, provisional, chart, errorMessage, onOpen, onRetry, retrying }: OpeningOverlayProps) {
+export function OpeningOverlay({ progress, provisional, chart, failureLine, onOpen, onRetry, retrying }: OpeningOverlayProps) {
   const [away, setAway] = useState(false);
   const reduced = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -90,7 +94,7 @@ export function OpeningOverlay({ progress, provisional, chart, errorMessage, onO
         <Orrery provisional={provisional} chart={chart} progress={progress.shown} />
         {progress.failed ? (
           <>
-            <p className="fail">{errorMessage ?? "This report could not be written."}</p>
+            <p className="fail">{failureLine ?? INTERNAL_LINE}</p>
             {onRetry && (
               <div className="door">
                 <button type="button" onClick={onRetry} disabled={retrying}>{retrying ? "Starting…" : "Try again"}</button>

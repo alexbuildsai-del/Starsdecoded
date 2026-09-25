@@ -131,7 +131,7 @@ export default function CompatibilityReportPage() {
     return (
       <div className="rp-root min-h-screen" style={{ "--accent": OPENING_ACCENT } as CSSProperties}>
         <ReportSky accent={OPENING_ACCENT} opening />
-        <OpeningOverlay progress={progress} provisional={null} chart={chartA} errorMessage={live.errorMessage} onOpen={setOpen} />
+        <OpeningOverlay progress={progress} provisional={null} chart={chartA} failureLine={live.failureReason?.line ?? null} onOpen={setOpen} />
       </div>
     );
   }
@@ -163,7 +163,7 @@ export default function CompatibilityReportPage() {
       <ReportSky accent={accent} opening={onHero} />
 
       {(!open || failed) && (
-        <OpeningOverlay progress={progress} provisional={null} chart={chartA} errorMessage={live.errorMessage} onOpen={setOpen} />
+        <OpeningOverlay progress={progress} provisional={null} chart={chartA} failureLine={live.failureReason?.line ?? null} onOpen={setOpen} />
       )}
 
       <nav
