@@ -97,6 +97,8 @@ async function buildAll() {
       "zeromq",
       "zeromq-prebuilt",
       "playwright",
+      // Ships its own CJS bundle with optional requires; loaded at run time by the QA agent only (MB-77).
+      "playwright-core",
       "puppeteer",
       "puppeteer-core",
       "electron",
