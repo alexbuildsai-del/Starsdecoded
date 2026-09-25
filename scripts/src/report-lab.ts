@@ -20,7 +20,6 @@
  *   pnpm report:lab --release r07                                  # level 2: the five matrix charts, refused past the budget
  *   pnpm report:lab --gate r07 --against last-release              # exit 1 with the reasons (the Promote gate)
  *   pnpm report:lab --stub r07 --from r06 --seed-fault             # a gate rehearsal with no spend
- *   pnpm report:lab --study session-2026-09-24                     # a judged session's prose in numbers, no spend
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
  * Postgres) and OPENAI_API_KEY. Each run costs one full report's worth of AI
@@ -31,7 +30,7 @@
  * covers the engine, prompts and overrides that deployment actually runs.
  * The Report lab workflow runs it against staging.
  */
-import { readFileSync, writeFileSync, appendFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -83,7 +82,6 @@ import {
   measureReport, proseOf, reportBand, words, type RunNumbers, type SectionMeasure,
 } from "../../api/src/lib/labRules.js";
 export { blindFlags };
-import { METRIC_KEYS, measureProse, proseText, type ProseMetrics } from "../../api/src/lib/proseMetrics.js";
 
 type SectionRow = SectionMeasure;
 const measure = measureReport;
@@ -1259,104 +1257,6 @@ async function release(label: string, base: string): Promise<void> {
   if (failed.length) throw new Error(`${failed.length} of ${MATRIX_CHARTS.length} charts failed: ${failed.join(", ")}`);
 }
 
-/**
- * The prose study: how the picked variants of a judged session read against
- * the ones passed over, in numbers. The workflow log is public, so nothing
- * derived from the text leaves this function but figures, section names and
- * writer names.
- */
-export interface StudyVariant { writer: string; picked: boolean; metrics: ProseMetrics }
-export interface StudyCard { index: number; section: string; variants: StudyVariant[] }
-
-/** The best picks, and any variant judged the same as one of them. */
-export function pickedIndexes(picks: { best: number[]; same: number[][] } | null): Set<number> {
-  const picked = new Set(picks?.best ?? []);
-  for (const group of picks?.same ?? []) if (group.some((i) => picked.has(i))) for (const i of group) picked.add(i);
-  return picked;
-}
-
-type MetricKey = (typeof METRIC_KEYS)[number];
-const SHORT: Record<MetricKey, string> = {
-  words: "words", sentences: "sent", wordsPerSentenceMean: "w/s", wordsPerSentenceP90: "w/s p90", longestSentence: "longest",
-  longWordShare: "3+syl %", avgWordLength: "w len", fleschReadingEase: "flesch", secondPersonSentenceShare: "you %",
-  emDashes: "em", semicolons: "semi", paragraphs: "paras",
-};
-const SHARES = new Set<MetricKey>(["longWordShare", "secondPersonSentenceShare"]);
-function fmt(key: MetricKey, v: number): string {
-  if (Number.isNaN(v)) return "-";
-  if (SHARES.has(key)) return (v * 100).toFixed(1);
-  return v.toFixed(key === "avgWordLength" ? 2 : 1);
-}
-const mean = (xs: number[]): number => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : Number.NaN);
-const meanOf = (vs: StudyVariant[], key: MetricKey): number => mean(vs.map((v) => v.metrics[key]));
-const mdTable = (head: string[], rows: string[][]): string =>
-  [`| ${head.join(" | ")} |`, `|${head.map(() => "---").join("|")}|`, ...rows.map((r) => `| ${r.join(" | ")} |`)].join("\n");
-
-export function studyMarkdown(sessionId: string, cards: StudyCard[], unresolved: number): string {
-  const out: string[] = [`## Prose study: session ${sessionId}`, ""];
-  const compared = cards.filter((c) => c.variants.some((v) => v.picked) && c.variants.some((v) => !v.picked));
-  out.push(`${cards.length} cards, ${compared.length} with both a picked and a passed-over variant. Card means weigh each card once; shares are percent.`);
-  if (unresolved) out.push(`${unresolved} variants did not resolve for the token and are left out.`);
-  out.push("", "### Per card", "");
-  for (const c of cards) {
-    const picked = c.variants.filter((v) => v.picked), passed = c.variants.filter((v) => !v.picked);
-    out.push(`**Card ${c.index} · ${c.section}**, picked: ${picked.map((v) => v.writer).join(" + ") || "none"}; passed over: ${passed.map((v) => v.writer).join(", ") || "none"}`, "");
-    out.push(mdTable(["", ...METRIC_KEYS.map((k) => SHORT[k])], [
-      ["picked", ...METRIC_KEYS.map((k) => fmt(k, meanOf(picked, k)))],
-      ["passed over", ...METRIC_KEYS.map((k) => fmt(k, meanOf(passed, k)))],
-    ]), "");
-  }
-  out.push("### Overall: picked against passed over", "");
-  out.push(mdTable(["metric", "picked", "passed over", "delta", "picked lower", "picked higher", "equal"], METRIC_KEYS.map((k) => {
-    const pairs = compared.map((c) => [meanOf(c.variants.filter((v) => v.picked), k), meanOf(c.variants.filter((v) => !v.picked), k)]);
-    const p = mean(pairs.map(([a]) => a)), q = mean(pairs.map(([, b]) => b));
-    const eps = 1e-9;
-    const n = pairs.length;
-    return [SHORT[k], fmt(k, p), fmt(k, q), fmt(k, p - q),
-      `${pairs.filter(([a, b]) => a < b - eps).length} of ${n}`, `${pairs.filter(([a, b]) => a > b + eps).length} of ${n}`, `${pairs.filter(([a, b]) => Math.abs(a - b) <= eps).length} of ${n}`];
-  })), "");
-  out.push("### Per writer, every variant", "");
-  const writers = [...new Set(cards.flatMap((c) => c.variants.map((v) => v.writer)))].sort();
-  out.push(mdTable(["writer", "variants", "picked", ...METRIC_KEYS.map((k) => SHORT[k])], writers.map((w) => {
-    const vs = cards.flatMap((c) => c.variants.filter((v) => v.writer === w));
-    return [w, String(vs.length), String(vs.filter((v) => v.picked).length), ...METRIC_KEYS.map((k) => fmt(k, meanOf(vs, k)))];
-  })), "");
-  return out.join("\n");
-}
-
-/** --study <session id or label>: the card list, the reveal for writers and picks, then each card's texts measured and dropped. */
-async function study(wanted: string): Promise<void> {
-  const lab = requireLab();
-  // Sessions are keyed by a uuid; the Owner names them by label, so a label resolves to its newest session.
-  const all = ((await lab.call("/sessions")).sessions as Array<{ id: string; label: string; cards: number; judged: number }> | undefined) ?? [];
-  const matches = all.filter((x) => x.id === wanted || x.label === wanted);
-  if (!matches.length) throw new Error(`no session with id or label "${wanted}" among ${all.length}`);
-  if (matches.length > 1) console.log(`${matches.length} sessions carry "${wanted}"; reading the newest, ${matches[0].id}`);
-  const sessionId = matches[0].id;
-  const id = encodeURIComponent(sessionId);
-  const session = await lab.call(`/sessions/${id}`);
-  const list = (session.list as Array<{ id: string; index: number; section: string }> | undefined) ?? [];
-  const reveal = await lab.call(`/sessions/${id}/reveal`);
-  const named = (reveal.cards as Array<{ id: string; letters: Record<string, string>; picks: { best: number[]; notShip: number[]; same: number[][] } | null }> | undefined) ?? [];
-  const cards: StudyCard[] = [];
-  let unresolved = 0;
-  for (const item of list) {
-    const r = named.find((c) => c.id === item.id);
-    if (!r) throw new Error(`card ${item.index} is missing from the reveal`);
-    const card = await lab.call(`/sessions/${id}/cards/${encodeURIComponent(item.id)}`);
-    const variants = (card.variants as Array<{ index: number; letter: string; text: unknown }> | undefined) ?? [];
-    const picked = pickedIndexes(r.picks);
-    unresolved += [...picked].filter((i) => !variants.some((v) => v.index === i)).length;
-    cards.push({
-      index: item.index, section: item.section,
-      variants: variants.map((v) => ({ writer: r.letters[v.letter] ?? "unknown", picked: picked.has(v.index), metrics: measureProse(proseText(v.text)) })),
-    });
-  }
-  const md = studyMarkdown(wanted === sessionId ? sessionId : `${wanted} (${sessionId})`, cards, unresolved);
-  console.log(md);
-  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${md}\n`);
-}
-
 async function main() {
   if (flag("list")) {
     console.log(listFixtures().join("\n"));
@@ -1374,8 +1274,6 @@ async function main() {
   // --all is the five matrix charts (ADR-77); the pair-only and blind fixtures run only when their own brain changed.
   const names = flag("all") ? [...MATRIX_CHARTS] : (opt("chart") ?? "marie-curie").split(",").map((x) => x.trim()).filter(Boolean);
 
-  const studySession = opt("study");
-  if (studySession !== undefined) { await study(studySession); return; }
   const publish = opt("publish");
   if (publish !== undefined) { await publishMany(publish.split(",").map((x) => x.trim()).filter(Boolean)); return; }
   const gateLabel = opt("gate");

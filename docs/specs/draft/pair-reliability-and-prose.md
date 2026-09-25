@@ -1,200 +1,200 @@
 # Draft spec — pair reliability and prose (R08)
 
-Raised by the Owner 2026-09-25, after two things happened on 2026-09-24.
+Raised by the Owner 2026-09-25, after two things happened on 2026-09-24:
 - **The pair campaign** (run 35993780324) failed on all 7 pairs. In each report one
   chapter failed its checks three times, and that failure took the whole report down.
 - **The first reading session** (`session-2026-09-24`: 12 cards on the Owner's own
-  report, base `report:86686f7c`) was revealed.
+  report) was revealed.
 
-Owner's direction:
-- Tighten the pair prompts.
-- Give the checks a buffer.
-- Retry only the failed chapter, always with the feedback, and treat a failure that
-  keeps coming back as a signal to fix the prompt.
-- Stop spending on the lab automatically on staging. Test on demand, and
-  automatically before a production deploy with a QA agent.
-- Learn from the picks what makes the prose good, so every model writes to that
-  standard.
-- "Simpler sentences over complicated vocabulary, always."
-Artifact: https://claude.ai/artifact/6HLtPdSaR3wiVLXx16oWHU
+The Owner's direction, 2026-09-25: a check blocks only when the text would be wrong
+for the reader or costs money; regenerate only the failed section, always with the
+feedback; every failed report says why; no automatic lab spend, spot on demand from
+the admin panel, the gate before production; no secret on GitHub, ever; buffers of
+about 20%; learn from the picks; "simpler sentences over complicated vocabulary,
+always."
+
+Artifact: https://claude.ai/artifact/6HLtPdSaR3wiVLXx16oWHU (version 2)
+Every check, classified: `docs/annex/pair-reliability-checks.md`.
 
 ## What the failures were
 
-Six rules, each where the prompt and the check disagree or the prompt never names
-what the check rejects: link card length (`links.ts:42`), the "Behaviour check:"
-ending (`links.ts:44`), card lines over 12 words (`shapes.ts:179`), age-band words
-(`doctrine.ts`), links outside the allocation and non-verbatim quotes
-(`pair/evidence.ts:79, 66`). Table with counts in the artifact. Today 3 attempts in
-`callStructured` feed back only the last errors, the third failure rejects stage 2's
-`Promise.all` (`pairInterpretation.ts:247`), running chapters keep paying, the credit
-is not refunded (`compatibility.ts:129`), and no failed attempt is recorded.
+Six rules failed: link card length (`links.ts:43`), the "Behaviour check:" ending
+(`links.ts:44`), card lines over 12 words (`shapes.ts:179`), age-band words whose
+list the prompt never prints (`doctrine.ts`), links outside the allocation and
+non-verbatim quotes (`pair/evidence.ts:79, 68`). Today: 3 attempts fed back only the
+last errors; the third failure rejects stage 2 (`pairInterpretation.ts:247`); running
+chapters keep paying; no refund; no failed attempt recorded.
+
+The inventory found about 80 checks, and 2 of them can never pass:
+- the scene-name check for names like Zoë or José (`shapes.ts:192`);
+- the why-has-a-verb check, which rejects "so you pause first" (`shapes.ts:205`).
 
 ## Scope
 
-1. **Pair prompts say the limits they enforce.**
-   - Every section states its target and names what the check rejects.
-   - Link cards: 45 to 60 words. The last sentence begins "Behaviour check:".
-   - Card lines: at most 12 words.
-   - Each band's forbidden words are listed from `doctrine.ts` `never` into the
-     chapter brief, generated from the same table so the prompt and the check
-     cannot drift.
-   - The chapter's allocated links are listed as the only citable cross links.
-2. **Simpler sentences, always.** Rule 7 of `STYLE_CONTRACT` (plainer beats
-   cleverer) and rule 8 (short sentences) get a number. `PAIR_WRITER` gets the same
-   rule.
-   - Proposed starting numbers, subject to change by the prose study: sentences
-     average 15 words or fewer, none over 25, and the common word always wins over
-     the rare one.
-   - This is a brain change and USER-FACING (R-5.5).
-3. **Buffers on the checks.** The prompt keeps the target; the check accepts a
-   margin around it (Q3).
-   - Word ranges get about 15%: link cards accept 36–80.
-   - Card lines get 2 words: 14.
-   - "Behaviour check:" only has to start the last sentence. Either spelling passes,
-     as does an ending in any punctuation.
-   - Quotes match ignoring case and punctuation.
-   - Age bands and allocation stay strict, because they are about the content being
-     right.
-4. **Retries carry all the feedback.**
-   - Each retry gets every error seen so far plus its own last reply, with "fix
-     these, keep the rest".
-   - A chapter that failed only on claims or allocation goes through the claims-only
-     repair (MB-62), extended to allocation problems.
-5. **Retry only the failed chapter.**
-   - A chapter that exhausts its attempts no longer rejects the report. The other
-     chapters are kept, and the failed one gets one more round alone, with the full
-     error list.
-   - If that fails too, the report fails and the credit is refunded (Q1).
-   - Chapters still running when a report finally fails are cancelled
-     (`AbortController`), so they stop paying.
-   - Natal sections get the same treatment. The foundation is excluded because every
+1. **Every check is reclassified per the annex.**
+   - **BLOCK:** only the checks that protect the reader: a false placement, a
+     score, jargon beside a body name, an invented person, a numeral house on a blind
+     pair, and a card naming another card's body.
+   - **FIX:** chart-fact mismatches, orbs, counts, spelling, quotes, allocation and
+     brackets are corrected in code before or after the parse, reusing `drawnRef` and
+     the `applyAmendment` drop logic.
+   - **WARN:** style nits are logged only.
+   - **BUFFER:** numeric limits get 20% (link cards 32–84 words, card lines 15),
+     while the prompt keeps its target.
+   - The two bugs above are fixed first.
+2. **Claims never force a rewrite.**
+   - A footnote (claim) that nearly matches its sentence snaps to it.
+   - A wrong footnote or a wrong ref is dropped, and the sentence stays.
+   - Only fewer than 3 valid footnotes calls the cheap claims-only repair, widened from
+     quote problems to every claim and ref problem.
+3. **Age bands: now and later.** The brief computes the child's age on the day of
+   generation, and the prompt says:
+   - describe situations of this age now;
+   - later stages may be discussed, framed as later;
+   - over 18, nothing from childhood is described as present, and the focus is on a
+     young adult's life (moving out, work, money, partners, visits home);
+   - childhood may be remembered in the past tense (Q1).
+
+   The band word check becomes WARN, trimmed of its false hits (grounded, a phone call,
+   revise the plan, make allowances, rent, tablet).
+4. **Prompts state what the checks enforce.**
+   - Link cards: 45 to 60 words, ending on "Behaviour check:".
+   - Card lines: 12 words.
+   - Allocated links only.
+   - Rules 7 and 8 of `STYLE_CONTRACT` get numbers: sentences average 15 words or
+     fewer, and none is over 25. `PAIR_WRITER` gets the same rule. Brain,
+     USER-FACING.
+5. **Retries carry everything.** Every retry gets every error so far, plus its own last
+   reply, with the instruction "fix these, keep the rest".
+6. **Only the failed section is regenerated.**
+   - A section that exhausts its attempts no longer rejects the report. The others are
+     kept, and it gets one more round alone.
+   - Natal sections work the same way. The foundation is excluded, because every
      section depends on it.
-6. **The failure log.**
-   - New table `generation_failures`: id, report kind (natal / pair / lab),
-     section, rule id, message, model, attempt, final, created_at.
-   - One idempotent migration, wired into `scripts/bootstrap-db.sh`.
-   - Every validator message gets a stable rule id, such as `card.line.words`,
-     `band.grown.never` or `quote.verbatim`.
-   - Written for every rejected attempt, customer and lab alike.
-7. **Failures tab on the Lab page.**
-   - Per rule and section: the last 20 writes, the first-try failure rate, and final
-     failures.
-   - A rule turns red at more than 1 in 10 over the last 20 writes of a section.
-   - A red rule is a prompt fix for the next round, raised as a Mailbox row by the
-     planner. Nothing edits a prompt automatically: prompts change at their source
-     (R-5.4).
-   - `GET /admin/lab/failures` returns counts only, so a workflow can read it with
-     `LAB_TOKEN` without exposing report text.
-8. **No automatic lab spend on staging.**
-   - Delete `lab-spot.yml`. Spot stays in `report-lab.yml` as an on-demand campaign.
-   - Dry stays at every brain change (free).
-   - This amends ADR-76 and R-4.4 (see Decisions).
-9. **The QA gate in Promote.** After the release lab, and only when that passes, a
-   `qa` job runs the QA agent headless against staging.
-   - It uses `anthropics/claude-code-action` with Playwright in the runner.
-   - It plays the five personas, orders one natal report and one pair report, and
-     reads both against the style contract.
-   - It writes `docs/qa/QA-NN.md` to the report-lab branch. Personas and report text
-     from test fixtures only; no private data.
-   - A sev-1 finding blocks the fast-forward.
-   - Without the key (Q2), the job is skipped and the promote summary says so.
-   - The release lab gains one pair (`curie-winfrey` partners) when the pair brain
-     changed. It is measured, and gated on no new fault.
-10. **The prose study.**
-    - After a reveal, `POST /admin/lab/sessions/:id/study` measures every variant in
-      code, with no model call:
-      - words per sentence (mean and p90);
-      - the share of words with three syllables or more;
-      - the share of words outside a common-word list (5,000 words, committed);
-      - the share of second-person sentences with a verb of action;
-      - Flesch reading ease.
-    - It compares the picked variant with the variants passed over, per card and
-      overall.
-    - An optional step costs under 1¢ on gpt-6-luna: per card, three lines on what
-      the picked text does better.
-    - Results are stored on the session and shown in *Reveal → Prose study*.
-    - A measure that differs in the same direction on at least 8 of 12 cards becomes
-      a proposed rule, shown with its numbers.
-    - The Owner approves in the page. The next round writes the approved rule into
-      `STYLE_CONTRACT` at its source, and adds a measure in `labRules.ts` so the dry
-      lab and the release gate check it.
-    - Report text never leaves the staging database. The study route returns numbers
-      and the Owner-visible lines only; `LAB_TOKEN` reads the numbers.
-11. **Docs.**
-    - The report-lab skill, the round skill, the orchestrator and `qa.md` get the new
-      levels and the QA gate.
-    - CLAUDE.md's brain paragraph and MASTERFILE R-4.4 and §11.2 to §11.4 change to
-      match.
+   - If that round fails too, the report fails, the credit is refunded, and running
+     sections are aborted (`AbortController`).
+7. **Every failure says why.** A failed report stores a reason code and shows the
+   customer a plain line, with the credit back each time:
+
+   | code | what the customer reads |
+   |---|---|
+   | `provider_unreachable` (network, 5xx, timeout) | "Our writing service didn't answer. Try again in a few minutes." |
+   | `provider_out_of_credit` | "We can't write reports right now. We've been alerted. Try again later." |
+   | `quality` | "One chapter didn't meet our quality bar after several tries. Try again." |
+   | `internal` | "Something went wrong on our side. We've been alerted." |
+
+   The same code shows on the Lab page.
+8. **The failure log.**
+   - New table `generation_failures`: kind, section, rule id, class, message, model,
+     attempt, final, created_at. One idempotent migration, in `bootstrap-db.sh`.
+   - Every validator message gets a stable rule id.
+   - Every BLOCK, FIX and WARN writes a row.
+   - A *Failures* tab counts them per rule and section. A rule firing on more than 1 in
+     10 of a section's last 20 writes turns red, and the planner raises it as a prompt
+     fix. Nothing edits a prompt automatically (R-5.4).
+9. **The lab lives in the admin panel. GitHub holds no secret.**
+   - `lab-spot.yml` is deleted, and so are the `LAB_TOKEN` campaigns in `report-lab.yml`
+     (dry, spot, release, stub, publish).
+   - *Spot check* on the Lab page: pick sections, charts and a writer, see the estimate,
+     then run.
+   - Dry becomes a button on the same page (free).
+   - The anonymous natal, pass and pair campaigns stay on demand. They use no secret.
+10. **Promote starts from the admin panel on staging.** A *Release* view runs, in order:
+    - the release lab, when the brain changed since production's commit (five charts,
+      plus one pair when the pair brain changed), then the gate;
+    - the QA agent on Railway staging, using the Anthropic key already there. It plays
+      the five personas in headless Chromium, and reads one natal and one pair report
+      against the style contract. A sev-1 finding stops the release.
+
+    When both pass, the server fast-forwards `production` through the GitHub API, with
+    a GitHub token held on Railway. The `promote.yml` gate jobs go, and GitHub keeps
+    smoke only.
+11. **The prose study.**
+    - A *Prose study* button in Reveal measures every variant in code, with no model
+      call. The metrics module is `api/src/lib/proseMetrics.ts`, built and tested on
+      2026-09-25: sentence length (mean, p90, longest), long-word share, word length,
+      Flesch reading ease, second-person share.
+    - It compares the picked variants with the ones passed over, per card and overall,
+      plus per writer. The admin's own-report columns are included, since this runs as
+      the admin.
+    - An optional step, under 1¢ on gpt-6-luna, adds three lines per card on what the
+      picked text does better.
+    - A measure that agrees on at least 8 of 12 cards becomes a proposed rule, with its
+      numbers. The Owner approves it, and the next round writes it into
+      `STYLE_CONTRACT` at its source, with a `labRules.ts` measure.
+    - Text never leaves the staging database.
+12. **Docs.** "No secret on GitHub; the lab and releases run from the admin panel"
+    goes into CLAUDE.md (written 2026-09-25), MASTERFILE R-4.4 and §11.2 to §11.4, the
+    report-lab, round and qa skills, the orchestrator and qa agents, the runbook.
 
 ## Out of scope
 
-- **Moving any section to a new writer.** The rule stays five of five charts
-  (ADR-57). Session 2026-09-24 was one chart with 50% control agreement. A second
-  session on the other four charts is the Owner's to spawn when they want.
-- Automatic prompt edits; loosening the age-band or allocation checks; natal prompt
-  content changes beyond scope 2; a scheduled drift check; QA on every merge.
+- Moving a section to a new writer (five of five charts, ADR-57; session 2026-09-24
+  was one chart at 50% control agreement); automatic prompt edits; natal prompt
+  content beyond scope 4; a scheduled drift check; QA on every merge.
 
 ## Acceptance criteria
 
-1. Unit tests, one per rule: a 72-word link card passes and a 90-word one fails; a
-   13-word card line passes and a 15-word one fails; a two-sentence "Behaviour
-   check:" ending and "Behavior check:" pass; "screen time" in a grown-band chapter
-   fails; a quote that differs only in case passes.
-2. Every band's forbidden words appear in the rendered chapter brief (dry lab, free),
-   generated from `doctrine.ts`.
-3. A pair chapter stubbed to fail three times, then pass: the report completes, the
-   other chapters are called once, `generation_failures` has 3 rows for it.
-4. Stubbed to fail every time: the report is `failed`, the credit is refunded,
-   in-flight chapters are aborted.
-5. A retry prompt contains every earlier error and the previous reply (unit test on
-   the built messages).
-6. Failures tab: counts per rule and a red flag at the threshold, from seeded rows.
-   The route returns no report text.
-7. `lab-spot.yml` is gone: a push to `main` with a brain change spends nothing.
-8. Promote rehearsal: with `rehearsal: stub` the QA job runs in dry mode against
-   fixtures; a seeded sev-1 blocks the fast-forward; without the key the job is
-   skipped and reported as skipped.
-9. The prose study on `session-2026-09-24` fills its table with no model call and
-   proposes a rule only where 8 of 12 cards agree.
+1. One unit test per reclassified annex row, among them: a 78-word link card and a
+   15-word card line pass; "Behavior check:" and a two-sentence ending pass; Zoë and
+   José match; "so you pause first" passes; a near-verbatim quote snaps and a wrong
+   ref drops; a grown-band "curfew" is logged, not rejected.
+2. The rendered parent-child brief carries the child's age and the now-and-later rule
+   (dry lab).
+3. A pair section stubbed to fail three times, then pass: the report completes, the
+   other sections are called once, and `generation_failures` holds the rows.
+4. Stubbed to fail every time: the report is `failed` with code `quality`, the credit
+   is refunded, and sections still running are aborted. A stubbed network error gives
+   `provider_unreachable`, and the customer sees its line.
+5. A retry prompt holds every earlier error and the previous reply.
+6. The Failures tab shows counts and a red flag from seeded rows. It carries no report
+   text.
+7. No workflow references `LAB_TOKEN`, and `lab-spot.yml` is gone. A push with a brain
+   change spends nothing.
+8. Release view rehearsal with a stub lab and a stub QA verdict: a seeded fault or a
+   sev-1 stops it; a clean run calls the fast-forward (mocked in tests).
+9. The prose study on `session-2026-09-24` fills its tables with no model call, all 12
+   cards included.
 10. Gate: typecheck, both builds, unit tests, `db:bootstrap` twice on a fresh
-    database, the dry lab on the five charts plus one pair. USER-FACING for scopes 1
-    to 5, INTERNAL for the rest.
+    database, the dry lab on five charts plus one pair. Scopes 1 to 7 USER-FACING,
+    the rest INTERNAL.
 
 ## Screens
 
-Artifact above: the failure table, retry flow today and proposed, the Failures tab,
-lab levels before and after, Promote with QA, the 2026-09-24 picks, the Prose study.
+Artifact above: failures and check classes, retry flow, failure reasons, the Failures
+tab, lab levels, the Release view, the 2026-09-24 picks, the Prose study.
 
 ## Open questions
 
-1. **A chapter that still fails after its lone round.** Recommended and default: fail
-   the report, refund the credit and log it. The alternative is to ship the report
-   without the chapter.
-2. **The QA agent needs** an Anthropic API key in the GitHub `production`
-   environment and one staging test account for the returning-user and admin
-   personas. Recommended: provide both. Our rough estimate is $1 to $3 per promote, to be
-   measured on the first run. Default: build the job now, and skip it with a notice
-   until the key exists.
-3. **Buffer size.** Recommended and default: about 15% on word ranges and 2 words on
-   card lines, with the prompt keeping the original target.
+1. **Past tense for an adult child.** May the report *remember* childhood ("the curfew
+   fights you both remember")? Default: yes.
+2. **A GitHub token on Railway staging** lets the Release view move `production`. It is
+   fine-grained, and limited to this repo's contents. Default: the Owner places one in
+   Railway staging Variables as `GITHUB_RELEASE_TOKEN`. Until it exists, the view stops
+   before the fast-forward and says so.
 
 ## Decisions to record
 
-- A check accepts a buffer around the target its prompt states: about 15% on word
-  ranges and 2 words on card lines. Content rules (age bands, allocated links) stay
-  strict, and the prompt names exactly what they reject.
-- A section that exhausts its attempts no longer fails the report on its own: it gets
-  one more round alone with every error so far. A final failure refunds the credit
-  and aborts the chapters still running.
-- Every rejected attempt is logged by rule id in `generation_failures`. A rule failing
-  on more than 1 in 10 of a section's last 20 writes is a prompt fix for the next
-  round, never an automatic edit.
-- ADR-76 and R-4.4 are amended: no lab spend on staging is automatic (spot on merge
-  removed); dry stays at every brain change; spot and reading run on demand; Promote
-  runs the release lab then the QA agent and moves production only when both pass.
-- Simpler sentences over complicated vocabulary, always. The style contract carries
-  numeric sentence limits, set first at 15 on average and 25 at most, and then by the
-  prose study.
-- The prose study turns reveal picks into proposed style rules with numbers. The
-  Owner approves each rule, and it enters the shared style contract at its source for
-  every model. Report text never leaves the staging database.
+- A check blocks only when the text would be wrong or harmful to the reader, or would
+  cost money. Everything else is fixed in code, logged, or buffered by 20% around the
+  target the prompt states. The classification lives in
+  `docs/annex/pair-reliability-checks.md`.
+- A claim problem never rewrites prose. Claims snap or drop, and only fewer than 3
+  valid claims calls the claims-only repair.
+- Age bands are framed now and later. The report is written for the child's age on the
+  day of generation, may look ahead, and over 18 treats childhood as past. Band words
+  are logged, not blocking.
+- A section that exhausts its attempts gets one more round alone. A final failure
+  refunds the credit, aborts running sections, and tells the customer why through a
+  reason code.
+- Every rejected or corrected attempt is logged by rule id. A rule firing on more than
+  1 in 10 of a section's last 20 writes is a prompt fix for the next round, never an
+  automatic edit.
+- No secret on GitHub, ever. Keys live on Railway. The lab (dry, spot, reading, study)
+  and the release (lab, gate, QA agent, fast-forward) run from the admin panel. GitHub
+  builds, tests and smokes. This supersedes the `LAB_TOKEN` door and amends ADR-76 and
+  R-4.4: nothing spends automatically on staging.
+- Simpler sentences over complicated vocabulary, always: 15 words on average, 25 at
+  most, then set by the prose study.
+- The prose study turns reveal picks into proposed style rules with numbers. The Owner
+  approves each one, and it enters the shared style contract for every model.

@@ -6,8 +6,7 @@ name: Report lab
 # and post each run to the panel; dry renders prompts with no call; spot
 # replays the changed sections on Flex; release is the full natal lab on the
 # five matrix charts followed by the gate; stub rehearses the gate with no
-# spend; publish lands stored runs in the panel; study measures a judged
-# session's prose, picked against passed over, with no spend. Staging only.
+# spend; publish lands stored runs in the panel. Staging only.
 #
 # LAB_TOKEN lives in the GitHub `staging` environment (MB-69). Levels that
 # need the panel fail closed without it; natal, pass and pair still measure
@@ -16,10 +15,10 @@ on:
   workflow_dispatch:
     inputs:
       campaign:
-        description: natal, pass, pair, dry, spot, release, stub, publish or study
+        description: natal, pass, pair, dry, spot, release, stub or publish
         required: true
         type: choice
-        options: [natal, pass, pair, dry, spot, release, stub, publish, study]
+        options: [natal, pass, pair, dry, spot, release, stub, publish]
         default: natal
       chart:
         description: natal only. Fixture name under fixtures/charts, or "all" (the five matrix charts)
@@ -66,11 +65,6 @@ on:
         required: false
         type: string
         default: ""
-      session:
-        description: study only. The judged session's id or label
-        required: false
-        type: string
-        default: session-2026-09-24
   workflow_call:
     inputs:
       campaign:
@@ -111,10 +105,6 @@ on:
         required: false
         type: string
         default: ""
-      session:
-        required: false
-        type: string
-        default: session-2026-09-24
 
 permissions:
   contents: write
@@ -150,7 +140,7 @@ jobs:
       # The panel levels cannot run without the token; a silent skip would
       # read as green, so they refuse instead (MB-69).
       - name: The panel needs LAB_TOKEN
-        if: contains('dry spot release publish study', inputs.campaign)
+        if: contains('dry spot release publish', inputs.campaign)
         run: |
           [ -n "$LAB_TOKEN" ] || { echo "::error::LAB_TOKEN is not set in the staging environment (MB-69); the ${{ inputs.campaign }} campaign cannot reach the lab routes"; exit 1; }
 
@@ -181,15 +171,11 @@ jobs:
             release) sel="--release $label --label $label --html" ;;
             stub) sel="--stub $label --from ${{ inputs.base }} ${{ inputs.seed_fault && '--seed-fault' || '' }}" ;;
             publish) sel="--publish ${{ inputs.publish }}" ;;
-            study) sel="--study ${{ inputs.session }}" ;;
             *) if [ "${{ inputs.chart }}" = "all" ]; then sel="--remote $WEB_URL --all --label $label --html"; else sel="--remote $WEB_URL --chart ${{ inputs.chart }} --label $label --html"; fi ;;
           esac
           status=0
           pnpm report:lab $sel 2>&1 | tee lab.log || status=$?
-          # The study writes its own markdown summary; on failure its log is only the error.
-          if [ "${{ inputs.campaign }}" != "study" ] || [ "$status" != 0 ]; then
-            { echo '## Report lab: ${{ inputs.campaign }}'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          { echo '## Report lab: ${{ inputs.campaign }}'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
       # The release gate (ADR-76): a red gate is a red job, which is what
@@ -208,14 +194,12 @@ jobs:
       # The log rides with the run: a failed run publishes its error where the
       # orchestrator can read it, since the log storage host is not reachable
       # from every session.
-      # The study reads report text on a public repo: it keeps no file and
-      # uploads nothing, its numbers live in the job summary alone.
       - name: Keep the lab's log with the run
-        if: always() && inputs.campaign != 'study'
+        if: always()
         run: mkdir -p fixtures/reports && cp lab.log "fixtures/reports/lab.${{ inputs.label }}.log" 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
-        if: always() && inputs.campaign != 'study'
+        if: always()
         with:
           name: report-lab-${{ inputs.label }}
           path: fixtures/reports/
