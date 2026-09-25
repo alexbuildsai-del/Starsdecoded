@@ -54,6 +54,10 @@ echo "==> 3g/7 The lab tables"
 # lab_runs and lab_judgements, the report lab's runs and the reading room's cards (ADR-52, ADR-53). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-lab-tables.ts
 
+echo "==> 3h/7 The failure log and the release record"
+# generation_failures, lab_releases and reports.failure_code (ADR-84 to 86). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-failures-and-releases.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.
