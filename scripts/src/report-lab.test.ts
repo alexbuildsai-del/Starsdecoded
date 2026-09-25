@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { REPETITION_BAR, blindFlags, measurePair, repetitionScore, shingles } from "./report-lab.js";
+import { REPETITION_BAR, blindFlags, measurePair, pickedIndexes, repetitionScore, shingles, studyMarkdown, type StudyCard } from "./report-lab.js";
+import { measureProse, proseText } from "../../api/src/lib/proseMetrics.js";
 
 const clean = { text: "You investigate first and commit second.", claims: [{ quote: "x", evidence: [{ ref: { kind: "placement", body: "sun", sign: "scorpio", house: null }, label: "Sun 14.6° Scorpio" }] }] };
 
@@ -109,4 +110,26 @@ test("the gate passes a stored pair of the same run and refuses the seeded fault
   assert.deepEqual(same, []);
   const seeded = gateProblems(numbers("r06", REFERENCE), numbers("r07", seedFault(REFERENCE)), ["marie-curie"]);
   assert.deepEqual(seeded, ["marie-curie/career: new fault char:em dash"]);
+});
+
+test("the picked variants are the best, and any judged the same as a best", () => {
+  assert.deepEqual([...pickedIndexes({ best: [1], same: [[1, 3], [0, 2]] })].sort(), [1, 3]);
+  assert.deepEqual([...pickedIndexes({ best: [], same: [[0, 2]] })], []);
+  assert.deepEqual([...pickedIndexes(null)], []);
+});
+
+test("the study prints numbers, sections and writers, never a word of the texts", () => {
+  const secret = { text: "Zebracorn marmalade whispers carefully; yes.", claims: [{ quote: "Zebracorn", evidence: [] }] };
+  const short = { text: "You act. You rest." };
+  const card = (index: number, pickShort: boolean): StudyCard => ({
+    index, section: "career",
+    variants: [
+      { writer: "gpt-6-sol", picked: pickShort, metrics: measureProse(proseText(short)) },
+      { writer: "control", picked: !pickShort, metrics: measureProse(proseText(secret)) },
+    ],
+  });
+  const md = studyMarkdown("s1", [card(0, true), card(1, true), card(2, false)], 0);
+  for (const w of ["Zebracorn", "marmalade", "whispers", "carefully", "You act"]) assert.ok(!md.includes(w), w);
+  assert.match(md, /\| w\/s \| 3\.0 \| 4\.0 \| -1\.0 \| 2 of 3 \| 1 of 3 \| 0 of 3 \|/);
+  assert.match(md, /\| gpt-6-sol \| 3 \| 2 \|/);
 });
