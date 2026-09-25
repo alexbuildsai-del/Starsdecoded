@@ -5,11 +5,17 @@
  * link cards in parallel, each on its own brief, then chapter 07 collecting
  * the next-time items. Each section is schema enforced and stored as it
  * lands through the same onSection frame the natal generator uses. Nothing
- * in either natal report is regenerated; a failed section fails the report.
+ * in either natal report is regenerated. A chapter that loses its attempts
+ * gets one round alone while the others are kept; a second loss aborts the
+ * rest and fails the report with its code (ADR-84).
  */
+import { randomUUID } from "node:crypto";
 import type { z } from "zod/v4";
 import { ASPECT_ORBS, EPHEMERIS } from "./chartCalculation.js";
-import { callStructured } from "./aiInterpretation.js";
+import { SectionError, callStructured, type Carry, type SectionResult } from "./aiInterpretation.js";
+import { recordChecks } from "./failureLog.js";
+import { ReportFailure, failureCodeOf } from "./failureReasons.js";
+import type { Validated } from "../prompts/checks.js";
 import { resolveSection } from "./promptLoader.js";
 import { logger } from "./logger.js";
 import { buildReportUsage, type ReportUsage, type SectionUsage } from "./usage.js";
@@ -84,6 +90,8 @@ export interface PairFrame {
 
 export interface PairGenerateOptions {
   onSection?: (frame: PairFrame) => void | Promise<void>;
+  /** The report the checks are logged against (ADR-85). */
+  reportId?: string | null;
 }
 
 /** The chapters the foundation allocates to, numbered as it sees them, with their scenes. */
@@ -199,6 +207,11 @@ export async function generatePairInterpretation(
   } as PairMeta;
   await options.onSection?.({ section: "meta", patch: { meta: openingMeta } });
 
+  const controller = new AbortController();
+  const coded = (err: unknown) => new ReportFailure(failureCodeOf(err), err instanceof Error ? err.message : String(err), err);
+  const logged = (spec: PairSectionSpec, writeId: string) => (checks: Validated<unknown>["checks"], event: { attempt: number; final: boolean }) =>
+    recordChecks({ kind: "pair", section: spec.key, model: MODELS.sections, writeId, reportId: options.reportId, attempt: event.attempt, final: event.final, checks });
+
   // Stage 1: the pair foundation runs alone. It allocates every link to one
   // or two chapters and picks each chapter's scene: the editorial handoff.
   const foundationPrompt = await pairSectionCall(PAIR_FOUNDATION, brief, null);
@@ -209,8 +222,11 @@ export async function generatePairInterpretation(
     user: foundationPrompt.user,
     schema: PairFoundationSchema,
     maxTokens: PAIR_FOUNDATION.maxTokens,
-    validate: (out) => PAIR_FOUNDATION.validate?.(out, brief) ?? [],
-  });
+    normalise: PAIR_FOUNDATION.normalise ? (raw) => PAIR_FOUNDATION.normalise!(raw, brief) : undefined,
+    validate: (out) => (PAIR_FOUNDATION.validate as (o: PairFoundationData, b: PairBrief) => Validated<PairFoundationData>)(out, brief),
+    signal: controller.signal,
+    onChecks: (checks, event) => recordChecks({ kind: "pair", section: PAIR_FOUNDATION.key, model: MODELS.foundation, writeId: randomUUID(), reportId: options.reportId, attempt: event.attempt, final: event.final, checks }),
+  }).catch((err) => { throw coded(err); });
   const foundation = foundationCall.data;
   brief.allocation = allocationOf(foundation, brief, (n) => pairChapterId(brief.lens, n));
   const scenes: PairScenes = {};
@@ -227,15 +243,33 @@ export async function generatePairInterpretation(
 
   async function run(spec: PairSectionSpec, extraTail?: string): Promise<void> {
     const prompt = await pairSectionCall(spec, brief, foundation, extraTail);
-    const call = await callStructured<unknown>({
+    const attempt = (carry?: Carry) => callStructured<unknown>({
       usageKey: spec.key,
       model: MODELS.sections,
       system: prompt.system,
       user: prompt.user,
       schema: spec.schema,
       maxTokens: spec.maxTokens,
-      validate: (out) => (spec.validate as ((o: unknown, b: PairBrief) => string[]) | undefined)?.(out, brief) ?? [],
+      normalise: spec.normalise ? (raw) => spec.normalise!(raw, brief) : undefined,
+      validate: (out) => (spec.validate as ((o: unknown, b: PairBrief) => Validated<unknown>) | undefined)?.(out, brief) ?? { output: out, checks: [] },
+      signal: controller.signal,
+      carry,
+      onChecks: logged(spec, randomUUID()),
     });
+    let call: SectionResult<unknown>;
+    try {
+      call = await attempt();
+    } catch (err) {
+      // Only a section that lost its three attempts earns the round alone; anything else already failed the report.
+      if (!(err instanceof SectionError) || controller.signal.aborted) { controller.abort(); throw err; }
+      logger.warn({ section: spec.key, errors: err.errors.length }, "pair chapter lost its attempts; one round alone");
+      try {
+        call = await attempt({ errors: err.errors, lastReply: err.lastReply ?? "" });
+      } catch (again) {
+        controller.abort();
+        throw again;
+      }
+    }
     const id = spec.key.split(":")[1];
     const stored = withStoredClaims(call.data, brief);
     sections[id] = stored;
@@ -243,10 +277,15 @@ export async function generatePairInterpretation(
     await options.onSection?.({ section: id, patch: { [id]: stored } as Partial<PairInterpretation> });
   }
 
-  // Stage 2: chapter 01, the lens's five chapters and the link cards, in parallel, each on its own brief.
-  await Promise.all(specs.filter((s) => s.key !== "pair:whatToPractise").map((spec) => run(spec)));
+  // Stage 2: chapter 01, the lens's five chapters and the link cards, in
+  // parallel, each on its own brief. One chapter's loss no longer rejects
+  // the stage: the others finish, and chapter 07 waits for the round alone.
+  const settled = await Promise.allSettled(specs.filter((s) => s.key !== "pair:whatToPractise").map((spec) => run(spec)));
+  const failed = settled.find((r): r is PromiseRejectedResult => r.status === "rejected" && failureCodeOf(r.reason) !== "provider_unreachable")
+    ?? settled.find((r): r is PromiseRejectedResult => r.status === "rejected");
+  if (failed) throw coded(failed.reason);
   // Stage 3: chapter 07 collects what the five wrote and adds nothing new.
-  await run(pairSectionById("whatToPractise")!, practiseTail(brief, sections));
+  await run(pairSectionById("whatToPractise")!, practiseTail(brief, sections)).catch((err) => { throw coded(err); });
 
   const usage = buildReportUsage(usages, Date.now() - startedAt);
   logger.info({
