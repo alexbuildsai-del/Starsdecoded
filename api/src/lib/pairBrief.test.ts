@@ -86,3 +86,25 @@ test("a blind chart on either side: the overlays and every house-based line are 
   const tail = chapterBrief(b, { owned: [b.links[0].key] });
   assert.doesNotMatch(tail, /\d+(st|nd|rd|th) house/);
 });
+
+test("the parent brief prints the child's age on the day and the now-and-later rule; over 18 the past-tense line (ADR-83)", async () => {
+  const { buildPairBrief: build } = await import("./pairBrief.js");
+  const { chartFromFixture: fixture } = await import("./testFixtures.js");
+  const { cannedNatalReplies: canned, installFakeModel: install } = await import("./testModel.js");
+  const { generateInterpretation: gen } = await import("./aiInterpretation.js");
+  const { lensContext } = await import("../prompts/pair/index.js");
+  install(canned({ drawn: true, sunSign: "scorpio", sunHouse: 11 }));
+  const curie = await gen(fixture("marie-curie"), "Marie Curie");
+  const at = new Date("2026-09-25T00:00:00Z");
+  const brief = build({ lens: "parent_child", parent: "A", at, a: { name: "Marie Curie", birthDate: "1867-11-07", chart: fixture("marie-curie"), interpretation: curie }, b: { name: "Zoë Curie", birthDate: "2016-03-10", chart: fixture("marie-curie"), interpretation: curie } });
+  assert.equal(brief.childAge, 10);
+  assert.equal(brief.band, "school");
+  assert.match(brief.text, /10 years old on the day this is written/);
+  assert.match(brief.text, /a later stage may be discussed, framed as later/);
+  assert.match(lensContext(brief), /NOW AND LATER/);
+  assert.ok(!/past tense only/.test(lensContext(brief)));
+  const grown = build({ lens: "parent_child", parent: "A", at, a: { name: "Marie Curie", birthDate: "1867-11-07", chart: fixture("marie-curie"), interpretation: curie }, b: { name: "Zoë Curie", birthDate: "2004-03-10", chart: fixture("marie-curie"), interpretation: curie } });
+  assert.equal(grown.childAge, 22);
+  assert.match(grown.text, /childhood is past tense only/);
+  assert.match(lensContext(grown), /remembered, in the past tense only/);
+});

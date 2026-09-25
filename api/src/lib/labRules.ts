@@ -68,9 +68,13 @@ const VERBS = new Set([
   "cost", "work", "stay", "stop", "start", "show", "read", "write", "meet", "set", "cut", "think",
 ]);
 
+const SUBJECT_VERB_RE = /\b(?:you|he|she|they|we|it|both|i)\b\s+(?:(?:both|each|never|always|still|just|only|also|can|will|would|could|should|might|must|do|does|did|don't|won't)\s+)*[a-z']+/i;
+
+/** A pronoun subject followed by a word is a verb phrase, so "so you pause first" passes (annex row 28). */
 export function hasVerb(clause: string): boolean {
   const tokens = clause.toLowerCase().match(/[a-z']+/g) ?? [];
-  return tokens.some((t) => VERBS.has(t) || (t.length > 3 && /(?:s|ing|ed)$/.test(t)));
+  if (tokens.some((t) => VERBS.has(t) || (t.length > 3 && /(?:s|ing|ed)$/.test(t)))) return true;
+  return SUBJECT_VERB_RE.test(clause) || /\bto\s+[a-z]+/i.test(clause);
 }
 
 /** Every `why` a section carries, wherever it sits, with the path that found it. */

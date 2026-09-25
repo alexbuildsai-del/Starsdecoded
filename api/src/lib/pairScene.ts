@@ -18,7 +18,7 @@ import { MODELS } from "./models.js";
 import { buildPairBrief, type Lens, type PairInput } from "./pairBrief.js";
 import { pairSectionCall, type PairInterpretation } from "./pairInterpretation.js";
 import { buildReportUsage } from "./usage.js";
-import { allocationOf, evidenceProblems, pairChapterId, pairChapterIds, pairSectionById, ratingProblems, sceneProblems, bandProblems, scenesOf } from "../prompts/pair/index.js";
+import { allocationOf, bandChecks, evidenceChecks, pairChapterId, pairChapterIds, pairSectionById, ratingChecks, sceneChecks, scenesOf } from "../prompts/pair/index.js";
 import { BAND_DOCTRINE } from "../prompts/pair/sections/parent-child/doctrine.js";
 import { logger } from "./logger.js";
 
@@ -98,12 +98,15 @@ export async function writeScene(reportId: string, chapter: string, index: numbe
     user: prompt.user,
     schema: SceneSchema,
     maxTokens: 1_500,
-    validate: (out) => [
-      ...sceneProblems(out.scene, { a: brief.a.name, b: brief.b.name }),
-      ...evidenceProblems(out.scene),
-      ...ratingProblems(out.scene),
-      ...(brief.lens === "parent_child" ? bandProblems(out.scene, brief.band, BAND_DOCTRINE) : []),
-    ],
+    validate: (out) => ({
+      output: out,
+      checks: [
+        ...sceneChecks(out.scene, { a: brief.a.name, b: brief.b.name }),
+        ...evidenceChecks(out.scene),
+        ...ratingChecks(out.scene),
+        ...(brief.lens === "parent_child" ? bandChecks(out.scene, brief.band, BAND_DOCTRINE) : []),
+      ],
+    }),
   });
 
   const scenes = { ...interpretation.scenes, [chapter]: { ...interpretation.scenes[chapter], texts: { ...interpretation.scenes[chapter].texts, [String(index)]: call.data.scene } } };

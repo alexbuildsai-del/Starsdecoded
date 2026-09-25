@@ -97,6 +97,8 @@ export interface PairBrief {
   label: string | null;
   /** The child's band under the parent lens, null under the other two. */
   band: Band | null;
+  /** The child's age in years on the day of generation, null under the other two lenses (ADR-83). */
+  childAge: number | null;
   a: PairSide;
   b: PairSide;
   /** The drawn cross aspects: within orb, the strongest first, at most DRAWN_LINKS. */
@@ -191,10 +193,13 @@ export function buildPairBrief(input: PairInput): PairBrief {
   const links = linkRefs(cross, notable, blind);
 
   let band: Band | null = null;
+  let childAge: number | null = null;
   if (parent) {
     const child = parent === "A" ? input.b : input.a;
     if (!child.birthDate) throw new Error("the parent and child lens needs the child's birth date to set the band");
-    band = bandOf(child.birthDate, input.at ?? new Date());
+    const at = input.at ?? new Date();
+    band = bandOf(child.birthDate, at);
+    childAge = ageAt(child.birthDate, at);
   }
 
   const who = (s: Side) => (s === "A" ? a.name : b.name);
@@ -207,7 +212,7 @@ export function buildPairBrief(input: PairInput): PairBrief {
 
   const lines = [
     `PAIR: A is ${a.name}. B is ${b.name}. LENS: ${register.label}.`,
-    ...(parent ? [`${who(parent)} is the parent; ${who(parent === "A" ? "B" : "A")} is the child, in the ${BAND_LABELS[band!]} band. Read the child's chart as potential, never a verdict.`] : []),
+    ...(parent ? [`${who(parent)} is the parent; ${who(parent === "A" ? "B" : "A")} is the child, ${childAge} years old on the day this is written, in the ${BAND_LABELS[band!]} band. Read the child's chart as potential, never a verdict. Write for this age now; a later stage may be discussed, framed as later${band === "grown" ? "; childhood is past tense only" : ""}.`] : []),
     ...(input.lens === "people" && input.label ? [`How they know each other: ${input.label}.`] : []),
     `EXAMPLE REGISTER (every example in every section comes from here): ${register.examples.join(", ")}.`,
     ...(blind ? [`HORIZON: one chart has no recorded birth time, so there are no houses across the pair. Never name a house or an overlay.`] : []),
@@ -240,7 +245,7 @@ export function buildPairBrief(input: PairInput): PairBrief {
     );
   }
 
-  return { text: lines.join("\n"), lens: input.lens, parent, label: input.label ?? null, band, a, b, cross, overlays, notable, links, blind };
+  return { text: lines.join("\n"), lens: input.lens, parent, label: input.label ?? null, band, childAge, a, b, cross, overlays, notable, links, blind };
 }
 
 /** The claim lines of one side, for the sections named; every section when none are. */
@@ -278,6 +283,6 @@ export function chapterBrief(brief: PairBrief, tail: ChapterTail): string {
     lines.push(``, `SCENES for this chapter (write the one marked chosen; the other two are not written here):`);
     tail.scenes.titles.forEach((t, i) => lines.push(`  ${i + 1}. ${t}${i === tail.scenes!.written ? "  <- chosen" : ""}`));
   }
-  if (brief.band) lines.push(``, `BAND: the child is in the ${BAND_LABELS[brief.band]} band.`);
+  if (brief.band) lines.push(``, `BAND: the child is in the ${BAND_LABELS[brief.band]} band${brief.childAge !== null ? `, ${brief.childAge} years old today` : ""}. Write for this age now; later stages only as later.`);
   return lines.join("\n");
 }
