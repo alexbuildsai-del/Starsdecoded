@@ -1,0 +1,8 @@
+# Railway builds the API with Nixpacks (railway.json). Chromium rides on the
+# image so the QA agent can walk staging headless from the admin Release view
+# (ADR-86, MB-77); production carries it too and never launches it.
+[phases.setup]
+nixPkgs = ["...", "chromium"]
+
+[variables]
+QA_BROWSER_PATH = "chromium"

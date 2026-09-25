@@ -64,7 +64,7 @@ test("the GPT-6 candidates enter at ADR-74's press prices, provisional until MB-
 });
 
 test("the jobs still run on gpt-5.2: MODELS and SECTION_MODELS did not move", () => {
-  assert.deepEqual(MODELS, { foundation: "gpt-5.2", sections: "gpt-5.2", scenes: "gpt-5.2", synastry: "gpt-5.2", vocabulary: "gpt-5.2" });
+  assert.deepEqual(MODELS, { foundation: "gpt-5.2", sections: "gpt-5.2", scenes: "gpt-5.2", synastry: "gpt-5.2", vocabulary: "gpt-5.2", qa: "gpt-5.2", studyNotes: "gpt-6-luna" });
   assert.deepEqual(SECTION_MODELS, {});
 });
 
