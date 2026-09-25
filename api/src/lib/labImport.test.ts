@@ -23,7 +23,7 @@ test("rowsOfFile: the foundation row carries the chart and the name, every secti
   assert.equal(rows[0].subjectName, "Marie Curie");
   assert.equal(rows.length, 12);
   assert.ok(rows.every((r) => r.runKey === "marie-curie.r06" && r.source === "lab" && r.status === "done"));
-  assert.ok(rows.slice(1).every((r) => !r.chart && r.words > 0));
+  assert.ok(rows.slice(1).every((r) => !r.chart && (r.words ?? 0) > 0));
   assert.equal(rows[1].createdAt?.toISOString(), interpretation.meta.generatedAt);
   assert.equal(runUrl("r06", "marie-curie"), "https://raw.githubusercontent.com/alexbuildsai-del/Starsdecoded/report-lab/r06/fixtures/reports/marie-curie.r06.json");
 });

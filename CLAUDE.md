@@ -45,7 +45,8 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab --render|--compare    # re-read stored runs, free; the lab levels: /report-lab
+pnpm report:lab --render|--compare    # re-read stored runs, free
+pnpm report:lab --dry --base r06 [--pair curie-winfrey]   # every prompt rendered in process, no network; the levels: /report-lab
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
@@ -103,10 +104,14 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`,
   `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
   the dry lab runs in the round; spot runs only on demand from the Lab page, and the
-  Release view runs the full lab, its gate and the QA agent; spend is capped by
-  `LAB_BUDGET_USD` (ADR-77). Never generate a report to look at one: the Lab
-  page and `--render` are free. Every model id lives in `models.ts` with its
-  price and pinned reasoning effort; one outside the catalogue does not compile.
+  Release view runs the full lab, its gate and the QA agent, then fast-forwards
+  `production` with `GITHUB_RELEASE_TOKEN` on Railway (MB-75; until placed it stops at
+  `passed` and `promote.yml` takes the release id). Spend is capped by `LAB_BUDGET_USD`
+  (ADR-77). Never generate a report to look at one: the Lab page and `--render` are free.
+  Every model id lives in `models.ts` with its price and pinned reasoning effort; one
+  outside the catalogue does not compile. A check blocks only when the text would be
+  wrong for the reader (ADR-81); every check that fires is a row in `generation_failures`,
+  counted on the Lab page's *Failures* tab (ADR-85).
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.

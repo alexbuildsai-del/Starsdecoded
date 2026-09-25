@@ -19,8 +19,9 @@ You run the round in `docs/rounds/RNN-plan.md`. You do not redesign it.
    `pnpm -r --filter '!@workspace/e2e' --if-present run test`.
    If any card touched the brain paths (`api/src/prompts/`, `models.ts`,
    `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`): the dry
-   lab, and after the merge the spot replay `lab-spot.yml` runs itself; paste
-   both into the report. The full lab runs at Promote only (ADR-76).
+   lab (`pnpm report:lab --dry`, in process, free); paste it into the report.
+   Spot runs on demand from the Lab page; the full lab, the gate and the QA
+   agent run in the admin Release view before production (ADR-86).
    If any card touched the schema: `pnpm run db:bootstrap` against a scratch
    database boots clean.
 4. **Close.** Write `docs/rounds/RNN-report.md` (at most 60 lines): shipped
@@ -31,7 +32,9 @@ You run the round in `docs/rounds/RNN-plan.md`. You do not redesign it.
    template, watch its checks, and merge it yourself once they are green.
    Then confirm the staging deploy: the Smoke run on `main` is green. Hand
    the Owner the staging URL and three lines on what to look at. Production
-   moves only when the Owner says "promote": dispatch `promote.yml`.
+   moves only when the Owner says "promote": run the Release view on staging;
+   while MB-75 is open it stops at `passed`, then dispatch `promote.yml` with
+   the release id. No secret on GitHub, ever.
 5. **Notion.** Mark Mailbox rows the round resolved as `done`; add rows for
    anything a builder raised. Never touch a Decisions row.
 

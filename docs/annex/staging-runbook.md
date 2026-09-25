@@ -180,10 +180,17 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 - [ ] Tell Claude "runbook done through Part I" plus the Railway domain.
 - [ ] Claude merges the pull request; the Smoke run on `main` turns green
       with `env: staging`. Test staging.
-- [ ] Todo until done: `GITHUB_RELEASE_TOKEN` in Railway staging Variables (MB-75).
-- [ ] Say "promote". Claude dispatches Promote: it re-checks staging, moves
-      the `production` branch forward, waits for production, confirms
-      `env: production`.
+- [ ] Todo until done: `GITHUB_RELEASE_TOKEN` in Railway staging Variables
+      (MB-75): a fine-grained token on this repository with Contents write,
+      pasted into the staging Variables tab and nowhere else. Optional:
+      `QA_AGENT_MODEL` (a `models.ts` id) on staging.
+- [ ] Say "promote". Claude opens `/admin/report-lab` → *Release* on staging:
+      preflight, then **Release** runs the lab when the brain changed, the
+      gate and the QA agent, then fast-forwards `production` with that token.
+      Without the token it stops at `passed`; Claude then dispatches Promote
+      with the release id, which reads the public verdict and moves the
+      branch. Either way Claude waits for production and confirms
+      `env: production`. No secret goes on GitHub, ever.
 - Check: `mystarsdecoded.com/api/healthz` shows `"env":"production"`;
   `/admin/prompts` there shows no Save button and the read-only note.
 
@@ -238,3 +245,5 @@ re-enables editing there.
 | Railway shows the new commit as SKIPPED, "No changes to watched files" | Watch Paths set on the service; clear them, then Redeploy from the card's menu | F |
 | Staging log ends in `DATABASE_URL must be set` | variables added to the wrong environment | E |
 | Promote refuses to run | ruleset restricts updates or requires a pull request | H |
+| The Release view stops at `passed` with "MB-75" | `GITHUB_RELEASE_TOKEN` is not on Railway staging; dispatch Promote with the release id, or add the token | J |
+| The Release view says the QA agent is unconfigured | Chromium is not on the Railway image (`nixpacks.toml`, MB-77); the release still passes on the lab and the gate | J |
