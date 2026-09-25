@@ -5,7 +5,7 @@ import { calculateNatalChart } from "../lib/chartCalculation.js";
 import { deriveTraditional } from "../lib/traditional.js";
 import { buildBrief } from "./brief.js";
 import { DOCTRINE } from "./system.js";
-import { CLAIMS_CONTRACT, EvidenceRefSchema, labelEvidence, onlyQuoteProblems, softenQuote, validateClaims, type Claim } from "./evidence.js";
+import { CLAIMS_CONTRACT, EvidenceRefSchema, labelEvidence, snapQuote, softenQuote, validateClaims, type Claim } from "./evidence.js";
 import { triad } from "./sections/triad.js";
 
 const curie = () => chartFromFixture("marie-curie");
@@ -128,7 +128,88 @@ test("a quote is matched after the page's softening: curly quotes, dashes and wh
   const paraphrase: Claim[] = [{ quote: "You read a room before speaking.", evidence: [{ kind: "angle", angle: "ascendant", sign: "capricorn" }] }];
   const problems = validateClaims(prose, paraphrase, chart);
   assert.equal(problems.length, 1);
-  assert.equal(onlyQuoteProblems(problems), true);
-  assert.equal(onlyQuoteProblems([...problems, "claim 1 evidence 1: the ascendant is in capricorn, not aquarius"]), false);
-  assert.equal(onlyQuoteProblems([]), false);
+  // The quote problem no longer rewrites prose (ADR-82): it snaps to its sentence or the claim drops.
+  const snapped = snapQuote("you read a room before you speak in it", section.text);
+  assert.equal(snapped, section.text);
+  assert.equal(snapQuote("The weekend gets planned twice.", section.text), null);
+});
+
+// ---------------------------------------------------------------------------
+// Reconciliation, one test per annex row (ADR-82): claims snap or drop.
+// ---------------------------------------------------------------------------
+
+const { reconcileClaims } = await import("./evidence.js");
+const PROSE = { text: "You read a room before you speak in it. You leave the room a minute before you are asked to." };
+const SUN = { kind: "placement" as const, body: "sun" as const, sign: "scorpio" as const, house: 11 };
+const ok = (quote = "You read a room before you speak in it.") => ({ quote, evidence: [SUN] });
+const rules = (r: { checks: Array<{ rule: string; cls: string }> }) => r.checks.map((c) => `${c.rule}:${c.cls}`);
+
+test("chk-01: more than three references are cut to three; a claim with none left is dropped", () => {
+  const four = { ...ok(), evidence: [SUN, SUN, SUN, SUN] };
+  const r = reconcileClaims(PROSE, [four, ok(), ok()], curie());
+  assert.equal(r.claims[0].evidence.length, 3);
+  assert.ok(rules(r).includes("chk-01:fix"));
+  const wrong = { ...ok(), evidence: [{ ...SUN, sign: "aries" as const }] };
+  const dropped = reconcileClaims(PROSE, [wrong, ok(), ok(), ok()], curie());
+  assert.equal(dropped.claims.length, 3);
+  assert.ok(dropped.checks.some((c) => c.rule === "chk-01" && /no reference left/.test(c.message)));
+});
+
+test("chk-02: more than eight claims are cut to eight", () => {
+  const r = reconcileClaims(PROSE, Array.from({ length: 10 }, () => ok()), curie());
+  assert.equal(r.claims.length, 8);
+  assert.ok(rules(r).includes("chk-02:fix"));
+});
+
+test("chk-03: a quote under eight characters drops the claim", () => {
+  const r = reconcileClaims(PROSE, [ok("You"), ok(), ok(), ok()], curie());
+  assert.equal(r.claims.length, 3);
+  assert.ok(rules(r).includes("chk-03:fix"));
+});
+
+test("chk-04: a near-verbatim quote snaps to its sentence, case and punctuation ignored; a stranger drops", () => {
+  const r = reconcileClaims(PROSE, [ok("you read a room before you speak in it"), ok(), ok()], curie());
+  assert.equal(r.claims[0].quote, "You read a room before you speak in it.");
+  assert.ok(r.checks.some((c) => c.rule === "chk-04" && /snapped/.test(c.message)));
+  const far = reconcileClaims(PROSE, [ok("The weekend gets planned twice and the private plan wins."), ok(), ok(), ok()], curie());
+  assert.equal(far.claims.length, 3);
+  assert.ok(far.checks.some((c) => c.rule === "chk-04" && /dropped/.test(c.message)));
+});
+
+test("chk-05: a blind chart drops a horizon reference and nulls a house", () => {
+  const angle = { quote: "You read a room before you speak in it.", evidence: [{ kind: "angle" as const, angle: "ascendant" as const, sign: "capricorn" as const }, { ...SUN, house: null }] };
+  const housed = { quote: "You read a room before you speak in it.", evidence: [SUN] };
+  const blind = { quote: "You read a room before you speak in it.", evidence: [{ ...SUN, house: null }] };
+  const r = reconcileClaims(PROSE, [angle, housed, blind, blind], blindCurie());
+  assert.deepEqual(r.claims[0].evidence, [{ ...SUN, house: null }]);
+  assert.deepEqual(r.claims[1].evidence, [{ ...SUN, house: null }]);
+  assert.equal(r.checks.filter((c) => c.rule === "chk-05").length, 2);
+});
+
+test("chk-06: a reference the chart does not hold is dropped, then the claim when it was the only one", () => {
+  const wrongSign = { quote: "You read a room before you speak in it.", evidence: [{ ...SUN, sign: "aries" as const }, SUN] };
+  const r = reconcileClaims(PROSE, [wrongSign, ok(), ok()], curie());
+  assert.deepEqual(r.claims[0].evidence, [SUN]);
+  assert.ok(rules(r).includes("chk-06:fix"));
+});
+
+test("chk-07: a drawn chart fills a null house from the chart", () => {
+  const r = reconcileClaims(PROSE, [{ quote: "You read a room before you speak in it.", evidence: [{ ...SUN, house: null }] }, ok(), ok()], curie());
+  assert.equal(r.claims[0].evidence[0].kind === "placement" && r.claims[0].evidence[0].house, 11);
+  assert.ok(rules(r).includes("chk-07:fix"));
+});
+
+test("chk-08: an orb off by more than 0.2 snaps to the computed orb", () => {
+  const aspect = { quote: "You read a room before you speak in it.", evidence: [{ kind: "aspect" as const, body1: "sun" as const, body2: "moon" as const, type: "trine" as const, orb: 3.5 }] };
+  const r = reconcileClaims(PROSE, [aspect, ok(), ok()], curie());
+  assert.equal(r.claims[0].evidence[0].kind === "aspect" && r.claims[0].evidence[0].orb, 1.9);
+  assert.ok(rules(r).includes("chk-08:fix"));
+});
+
+test("chk-09: fewer than three valid claims is a repair, never a rewrite; the rising part needs one", () => {
+  const r = reconcileClaims(PROSE, [ok(), ok("Nothing like this is in the prose at all.")], curie());
+  assert.equal(r.claims.length, 1);
+  assert.ok(rules(r).includes("chk-09:repair"));
+  assert.ok(!r.checks.some((c) => c.cls === "block"));
+  assert.ok(!rules(reconcileClaims(PROSE, [ok()], curie(), 1)).includes("chk-09:repair"), "chk-10: the rising part's minimum is one");
 });

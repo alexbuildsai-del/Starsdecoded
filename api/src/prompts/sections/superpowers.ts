@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
-import { ClaimsSchema, validateClaims } from "../evidence.js";
+import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
 
 const Item = z.object({
   title: z.string().describe("2-4 words"),
@@ -23,7 +23,7 @@ export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
   blindWordTarget: [480, 580],
   maxTokens: 3_600,
   schema: SuperpowersSchema,
-  validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
+  validate: (out, brief) => validateSectionClaims(out, brief.chart),
   instructions: `Write Superpowers, Chronic Patterns & Growing Edges. Three distinct items that never overlap.
 
 Superpower: what comes naturally and reliably. Evidence: planets in domicile or exaltation, the benefic of sect, angular planets, the South Node. Chronic pattern: what is structurally rooted, cannot be removed, only noticed and managed. Evidence: the malefic contrary to sect, planets in detriment or fall, the tightest hard aspect. Growing edge: what is uncomfortable but possible. Evidence: the North Node, the sect light, the weakest necessary function.

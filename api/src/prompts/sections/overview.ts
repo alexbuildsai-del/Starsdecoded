@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
-import { ClaimsSchema, validateClaims } from "../evidence.js";
+import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
 
 export const OverviewSchema = z.object({
   headline: z.string().describe("one sentence: what this chart is built around"),
@@ -19,7 +19,7 @@ export const overview: SectionSpec<typeof OverviewSchema> = {
   blindWordTarget: [320, 400],
   maxTokens: 3_000,
   schema: OverviewSchema,
-  validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
+  validate: (out, brief) => validateSectionClaims(out, brief.chart),
   instructions: `Write the Chart Overview. This is the entry point: the reader should feel accurately seen within the first two sentences.
 
 Open with a headline that names what the chart is built around. Then one paragraph on where the energy concentrates and what is quiet, written entirely as behaviour the reader will recognise. Then one paragraph on temperament: how they take in the world, decide, and act, with at least two concrete examples of the form "You investigate first and commit second." Then one paragraph on what makes this combination unusual. Close with a single bridging sentence beginning "Everything here points toward".

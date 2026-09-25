@@ -15,6 +15,7 @@ import {
   TRADITIONAL_PLANETS, houseRulers, lots, sect, sectPayload, type Dignity,
 } from "../lib/traditional.js";
 import { ASPECTS, BODIES, BODY_LABELS, SIGNS, cap, ordinal, type Body } from "./vocabulary.js";
+import { fixed, repair, type Check, type Validated } from "./checks.js";
 
 const BodyEnum = z.enum(BODIES);
 const SignEnum = z.enum(SIGNS);
@@ -67,11 +68,6 @@ export function softenQuote(s: string): string {
 }
 
 const norm = softenQuote;
-
-/** True when every problem is a claim quote that did not match the prose: the prose stands and only the claims need rewriting. */
-export function onlyQuoteProblems(problems: string[]): boolean {
-  return problems.length > 0 && problems.every((p) => /quote not found verbatim|quote too short/.test(p));
-}
 
 /** Every string leaf of a section except the claims themselves, joined as the prose to quote from. */
 export function proseOf(section: unknown): string {
@@ -165,6 +161,119 @@ export function validateClaims(section: unknown, claims: Claim[], chart: NatalCh
   return errors;
 }
 
+// ---------------------------------------------------------------------------
+// Reconciliation (ADR-82): claims snap or drop, and never force a rewrite.
+// ---------------------------------------------------------------------------
+
+/** Lower-cased word tokens, punctuation gone, so "Don't stop." and "don't stop" agree. */
+export function quoteTokens(s: string): string[] {
+  return softenQuote(s).toLowerCase().replace(/[^\p{L}\p{N}'\s]/gu, " ").split(/\s+/).filter(Boolean);
+}
+
+/** Sentences of a prose text, for the snap: the nearest sentence to a quote that is not verbatim. */
+export function proseSentences(prose: string): string[] {
+  return prose.split(/\n+|(?<=[.!?])\s+(?=[A-Z"“'‘(])/).map((s) => s.trim()).filter((s) => s.length > 0);
+}
+
+/** Token overlap, quote against sentence: the share of the quote's tokens the sentence holds, tempered by the sentence's own length. */
+export function tokenOverlap(quote: string, sentence: string): number {
+  const q = quoteTokens(quote);
+  const s = quoteTokens(sentence);
+  if (!q.length || !s.length) return 0;
+  const bag = new Map<string, number>();
+  for (const t of s) bag.set(t, (bag.get(t) ?? 0) + 1);
+  let hit = 0;
+  for (const t of q) {
+    const n = bag.get(t) ?? 0;
+    if (n > 0) { hit += 1; bag.set(t, n - 1); }
+  }
+  return hit / Math.max(q.length, s.length);
+}
+
+export const SNAP_THRESHOLD = 0.85;
+
+/**
+ * A quote that is not verbatim snaps to the closest sentence when at least
+ * 85% of the tokens agree, case and punctuation ignored (annex row 4); a
+ * verbatim quote returns itself. Null means nothing close enough.
+ */
+export function snapQuote(quote: string, prose: string): string | null {
+  const q = norm(quote);
+  const p = norm(prose);
+  if (q.length >= 8 && p.includes(q)) return quote;
+  // The softened prose is a search text, never a quote: the snap returns the original sentence's own characters.
+  let best: { sentence: string; score: number } | null = null;
+  for (const sentence of proseSentences(prose)) {
+    const score = tokenOverlap(quote, sentence);
+    if (score >= SNAP_THRESHOLD && (!best || score > best.score)) best = { sentence, score };
+  }
+  return best?.sentence ?? null;
+}
+
+/** The chart's own value for a reference that is nearly right: the drawn house, the computed orb. Null when nothing in the chart matches it. */
+export function reconcileRef(e: EvidenceRef, chart: NatalChartData, tag: string, checks: Check[]): EvidenceRef | null {
+  const drawn = hasHorizon(chart);
+  if (!drawn && HORIZON_KINDS.has(e.kind)) {
+    checks.push(fixed("chk-05", `${tag}: a ${e.kind} reference cannot be made when the horizon is unknown; dropped`));
+    return null;
+  }
+  if (!drawn && e.kind === "placement" && e.house !== null) {
+    checks.push(fixed("chk-05", `${tag}: a placement carries a house although the horizon is unknown; house set to null`));
+    e = { ...e, house: null };
+  }
+  const problems = validateClaims({ text: "" }, [{ quote: "________", evidence: [e] }], chart).filter((m) => !/quote/.test(m));
+  if (problems.length === 0) return e;
+  if (e.kind === "placement" && drawn && e.house === null) {
+    const house = chart.planets[e.body]?.house;
+    if (house !== undefined && chart.planets[e.body]?.sign.toLowerCase() === e.sign) {
+      checks.push(fixed("chk-07", `${tag}: the placement's house was null on a drawn chart; filled from the chart`));
+      return { ...e, house };
+    }
+  }
+  if (e.kind === "aspect") {
+    const hit = chart.aspects.find((a) => a.type === e.type
+      && ((a.planet1 === e.body1 && a.planet2 === e.body2) || (a.planet1 === e.body2 && a.planet2 === e.body1)));
+    if (hit) {
+      checks.push(fixed("chk-08", `${tag}: orb ${e.orb} snapped to the computed ${hit.orb.toFixed(1)}`));
+      return { ...e, orb: hit.orb };
+    }
+  }
+  checks.push(fixed("chk-06", `${tag}: ${problems.join("; ")}; reference dropped`));
+  return null;
+}
+
+export interface ReconciledClaims<C extends { quote: string }> {
+  claims: C[];
+  checks: Check[];
+}
+
+/**
+ * Claims against the section's prose and the chart, in code: refs cut to
+ * three, quotes snapped or dropped, wrong refs dropped and then the claim
+ * when none is left, orbs and houses taken from the chart. Fewer than
+ * `minClaims` valid claims at the end is a `repair`, never a prose rewrite.
+ */
+export function reconcileClaims(section: unknown, claims: Claim[], chart: NatalChartData, minClaims = 3): ReconciledClaims<Claim> {
+  const checks: Check[] = [];
+  const prose = proseOf(section);
+  const kept: Claim[] = [];
+  const list = claims.length > 8 ? (checks.push(fixed("chk-02", `${claims.length} claims; cut to 8`)), claims.slice(0, 8)) : claims;
+  list.forEach((c, i) => {
+    const tag = `claim ${i + 1}`;
+    if (norm(c.quote).length < 8) { checks.push(fixed("chk-03", `${tag}: quote too short; claim dropped`)); return; }
+    const quote = snapQuote(c.quote, prose);
+    if (quote === null) { checks.push(fixed("chk-04", `${tag}: quote not found in the prose and no sentence close enough; claim dropped`)); return; }
+    if (quote !== c.quote) checks.push(fixed("chk-04", `${tag}: quote not verbatim; snapped to its sentence`));
+    let evidence = c.evidence;
+    if (evidence.length > 3) { checks.push(fixed("chk-01", `${tag}: ${evidence.length} references; cut to 3`)); evidence = evidence.slice(0, 3); }
+    const valid = evidence.map((e, j) => reconcileRef(e, chart, `${tag} evidence ${j + 1}`, checks)).filter((e): e is EvidenceRef => e !== null);
+    if (!valid.length) { checks.push(fixed("chk-01", `${tag}: no reference left; claim dropped`)); return; }
+    kept.push({ quote, evidence: valid });
+  });
+  if (kept.length < minClaims) checks.push(repair("chk-09", `${kept.length} valid claims after reconciliation; ${minClaims} needed`));
+  return { claims: kept, checks };
+}
+
 const ROLE_LABEL: Record<z.infer<typeof SectRoleEnum>, string> = {
   sect_light: "the sect light",
   benefic_of_sect: "the benefic of sect",
@@ -211,4 +320,10 @@ export function storeClaims(claims: Claim[], chart: NatalChartData): StoredClaim
     quote: c.quote,
     evidence: c.evidence.map((ref) => ({ ref, label: labelEvidence(ref, chart) })),
   }));
+}
+
+/** The validator every claims-bearing natal section shares: the prose stands, the claims are reconciled. */
+export function validateSectionClaims<T extends { claims: Claim[] }>(out: T, chart: NatalChartData, minClaims = 3): Validated<T> {
+  const { claims, checks } = reconcileClaims(out, out.claims, chart, minClaims);
+  return { output: { ...out, claims }, checks };
 }

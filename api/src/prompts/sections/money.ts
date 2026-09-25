@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
-import { ClaimsSchema, validateClaims } from "../evidence.js";
+import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
 
 export const MoneySchema = z.object({
   relationshipToResources: z.string().describe("one paragraph: how they earn, keep, and value, from the 2nd ruler"),
@@ -18,7 +18,7 @@ export const money: SectionSpec<typeof MoneySchema> = {
   blindWordTarget: [200, 260],
   maxTokens: 2_500,
   schema: MoneySchema,
-  validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
+  validate: (out, brief) => validateSectionClaims(out, brief.chart),
   instructions: `Write Money & Resources. This section is the most likely to drift into generic advice, so it must be anchored: the ruler of the 2nd and where it sits, the ruler of the 8th and where it sits, the Lot of Fortune's house, and Venus and Saturn by sect. Cite the behaviour those facts produce, never the facts.
 
 One paragraph on their relationship to earning, keeping, and valuing. One paragraph on the specific way resources come to them and the specific way they lose them, with an example. One paragraph on money that is not solely theirs: backing, debt, inheritance, shared arrangements, and where the exposure is. Then exactly three actions with a short why.
