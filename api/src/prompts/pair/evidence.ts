@@ -11,7 +11,8 @@ import { aspectKey, overlayKey, type PairBrief } from "../../lib/pairBrief.js";
 import { findOverlay } from "../../lib/overlays.js";
 import { ASPECTS, BODIES, BODY_LABELS, cap, ordinal, type Body } from "../vocabulary.js";
 import { SECTION_IDS, type StoredClaim } from "../index.js";
-import { proseOf, softenQuote, type StoredEvidence } from "../evidence.js";
+import { proseOf, snapQuote, softenQuote, type StoredEvidence } from "../evidence.js";
+import { fixed, repair, type Check } from "../checks.js";
 
 const BodyEnum = z.enum(BODIES);
 const SideEnum = z.enum(["A", "B"]);
@@ -93,6 +94,56 @@ export function validatePairClaims(section: unknown, claims: PairClaim[], brief:
     });
   });
   return errors;
+}
+
+/** One reference against the pair, in code: the orb snaps, a source that resolves stands, anything else is dropped (annex rows 6, 8, 11). */
+export function reconcilePairRef(e: PairEvidenceRef, brief: PairBrief, chapterId: string | undefined, tag: string, checks: Check[]): PairEvidenceRef | null {
+  if (e.kind === "source") {
+    const side = e.report === "A" ? brief.a : brief.b;
+    const list = side.claims[e.section];
+    if (!list || !list[e.claim - 1]) { checks.push(fixed("chk-06", `${tag}: report ${e.report} has no claim ${e.claim} in ${e.section}; reference dropped`)); return null; }
+    return e;
+  }
+  const owned = chapterId && brief.allocation ? brief.allocation[chapterId] : undefined;
+  if (owned && !owned.includes(crossLinkKey(e))) { checks.push(fixed("chk-11", `${tag}: cites a link outside this chapter's allocation; reference dropped`)); return null; }
+  if ("planetA" in e) {
+    const hit = brief.cross.find((x) => x.planetA === e.planetA && x.planetB === e.planetB && x.type === e.aspect);
+    if (!hit) { checks.push(fixed("chk-06", `${tag}: no A ${e.planetA} ${e.aspect} B ${e.planetB} within orb; reference dropped`)); return null; }
+    if (Math.abs(hit.orb - e.orb) > ORB_TOLERANCE) { checks.push(fixed("chk-08", `${tag}: orb ${e.orb} snapped to the computed ${hit.orb.toFixed(1)}`)); return { ...e, orb: hit.orb }; }
+    return e;
+  }
+  if (brief.blind) { checks.push(fixed("chk-05", `${tag}: an overlay cannot be claimed when a chart has no horizon; reference dropped`)); return null; }
+  const o = findOverlay(brief.overlays, e.planet, e.of, e.inHouseOf);
+  if (!o) { checks.push(fixed("chk-06", `${tag}: ${e.of} ${e.planet} is not read against ${e.inHouseOf}'s houses; reference dropped`)); return null; }
+  if (o.house !== e.house) { checks.push(fixed("chk-06", `${tag}: ${e.of} ${e.planet} falls in ${e.inHouseOf}'s ${ordinal(o.house)}, not the ${ordinal(e.house)}; house taken from the chart`)); return { ...e, house: o.house }; }
+  return e;
+}
+
+/**
+ * Pair claims against the prose and the computed pair, in code (ADR-82):
+ * refs cut to three, quotes snapped or dropped, wrong refs dropped and then
+ * the claim when none is left. Fewer than `minClaims` at the end is a
+ * `repair`, never a prose rewrite.
+ */
+export function reconcilePairClaims(section: unknown, claims: PairClaim[], brief: PairBrief, chapterId?: string, minClaims = 3): { claims: PairClaim[]; checks: Check[] } {
+  const checks: Check[] = [];
+  const prose = proseOf(section);
+  const kept: PairClaim[] = [];
+  const list = claims.length > 8 ? (checks.push(fixed("chk-02", `${claims.length} claims; cut to 8`)), claims.slice(0, 8)) : claims;
+  list.forEach((c, i) => {
+    const tag = `claim ${i + 1}`;
+    if (norm(c.quote).length < 8) { checks.push(fixed("chk-03", `${tag}: quote too short; claim dropped`)); return; }
+    const quote = snapQuote(c.quote, prose);
+    if (quote === null) { checks.push(fixed("chk-04", `${tag}: quote not found in the prose and no sentence close enough; claim dropped`)); return; }
+    if (quote !== c.quote) checks.push(fixed("chk-04", `${tag}: quote not verbatim; snapped to its sentence`));
+    let evidence = c.evidence;
+    if (evidence.length > 3) { checks.push(fixed("chk-01", `${tag}: ${evidence.length} references; cut to 3`)); evidence = evidence.slice(0, 3); }
+    const valid = evidence.map((e, j) => reconcilePairRef(e, brief, chapterId, `${tag} evidence ${j + 1}`, checks)).filter((e): e is PairEvidenceRef => e !== null);
+    if (!valid.length) { checks.push(fixed("chk-01", `${tag}: no reference left; claim dropped`)); return; }
+    kept.push({ quote, evidence: valid });
+  });
+  if (kept.length < minClaims) checks.push(repair("chk-09", `${kept.length} valid claims after reconciliation; ${minClaims} needed`));
+  return { claims: kept, checks };
 }
 
 const bodyLabel = (b: string): string => BODY_LABELS[b as Body] ?? cap(b);
