@@ -14,6 +14,10 @@ process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.PROMPT_DEFAULTS_ONLY = "1";
 const { openai } = await import("@workspace/integrations-openai-ai-server");
 const { applyAmendment, amendSections, generateInterpretation, previewSectionPrompt, PROMPT_VERSION } = await import("./aiInterpretation.js");
+const { ReportFailure } = await import("./failureReasons.js");
+const { setFailureSink } = await import("./failureLog.js");
+const failureRows: Array<{ section: string; ruleId: string; class: string; writeId: string }> = [];
+setFailureSink(async (rows) => { for (const r of rows) failureRows.push({ section: r.section, ruleId: r.ruleId, class: r.class, writeId: r.writeId }); });
 const { buildBrief, SECTION_IDS, ALL_SECTIONS } = await import("../prompts/index.js");
 
 const WARSAW = { lat: 52.2297, lon: 21.0122, offset: 1.4 };
@@ -58,10 +62,25 @@ const REPLIES: Record<string, unknown> = {
 };
 
 const calls: string[] = [];
-(openai.chat.completions as unknown as { create: unknown }).create = async (req: { response_format: { json_schema: { name: string } } }) => {
+const prompts: Array<{ name: string; user: string }> = [];
+let failWith: ((name: string) => Error | null) | null = null;
+const delays: Record<string, number> = {};
+(openai.chat.completions as unknown as { create: unknown }).create = async (req: { response_format: { json_schema: { name: string } }; messages: Array<{ content: string }> }, options?: { signal?: AbortSignal }) => {
   const name = req.response_format.json_schema.name;
   calls.push(name);
-  const reply = REPLIES[name];
+  prompts.push({ name, user: req.messages[1].content });
+  const abortError = () => Object.assign(new Error("Request was aborted."), { name: "APIUserAbortError" });
+  if (options?.signal?.aborted) throw abortError();
+  if (delays[name]) {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, delays[name]);
+      options?.signal?.addEventListener("abort", () => { clearTimeout(timer); reject(abortError()); }, { once: true });
+    });
+  }
+  const failure = failWith?.(name);
+  if (failure) throw failure;
+  const entry = REPLIES[name];
+  const reply = typeof entry === "function" ? (entry as () => unknown)() : entry;
   if (!reply) throw new Error(`no canned reply for ${name}`);
   return {
     choices: [{ message: { content: JSON.stringify(reply) }, finish_reason: "stop" }],
@@ -109,16 +128,16 @@ test("a claim quote that is not in the prose triggers a claims-only repair, and 
   }
 });
 
-test("a report fails only after the claims-only repair fails too, and the repair runs once", async () => {
+test("a report fails only after the claims-only repair fails too, and the repair runs once, then the round alone", async () => {
   calls.length = 0;
   const saved = REPLIES.natal_triad;
   REPLIES.natal_triad = { ...(saved as object), claims: claims("You investigate first, then you commit.") };
   REPLIES.natal_triad_claims = { claims: claims("Still not in the prose at all.") };
   try {
     await assert.rejects(generateInterpretation(blindCurie(), "Marie Curie"), (err: Error) =>
-      /natal:triad: failed validation after 3 attempts/.test(err.message) && /claims-only repair rejected too|quote not found verbatim/.test(err.message));
-    assert.equal(calls.filter((c) => c === "natal_triad").length, 3, "three prose attempts");
-    assert.equal(calls.filter((c) => c === "natal_triad_claims").length, 1, "the claims repair runs once");
+      /natal:triad: failed validation after 3 attempts/.test(err.message) && /valid claims after reconciliation|claims-only repair rejected too/.test(err.message));
+    assert.equal(calls.filter((c) => c === "natal_triad").length, 6, "three prose attempts, then a round alone of three");
+    assert.equal(calls.filter((c) => c === "natal_triad_claims").length, 2, "the claims repair runs once a call");
   } finally {
     REPLIES.natal_triad = saved;
     delete REPLIES.natal_triad_claims;
@@ -296,5 +315,111 @@ test("amendSections: one call per stored section, every unamended sentence kept 
     assert.equal(result.usage.length, amendable.length);
   } finally {
     (openai.chat.completions as unknown as { create: unknown }).create = previous;
+  }
+});
+
+test("chk-13, chk-16: an array over its maximum is cut before the parse and logged; one under its minimum parses and is logged", async () => {
+  calls.length = 0;
+  failureRows.length = 0;
+  const foundation = REPLIES.natal_foundation as { supportingEvidence: unknown[] };
+  const career = REPLIES.natal_career as { actions: unknown[] };
+  REPLIES.natal_foundation = { ...foundation, supportingEvidence: Array.from({ length: 8 }, () => foundation.supportingEvidence[0]) };
+  REPLIES.natal_career = { ...career, actions: [ACTION, ACTION, ACTION, ACTION, ACTION] };
+  REPLIES.natal_family = { ...(REPLIES.natal_family as object), actions: [ACTION] };
+  try {
+    const out = await generateInterpretation(blindCurie(), "Marie Curie");
+    assert.equal(out.foundation.supportingEvidence.length, 6);
+    assert.equal(out.career.actions.length, 3);
+    assert.equal(out.family.actions.length, 1, "under the minimum is kept and logged");
+    assert.equal(calls.filter((c) => c === "natal_career").length, 1, "no retry for a count");
+    assert.ok(failureRows.some((r) => r.section === "natal:foundation" && r.ruleId === "chk-13" && r.class === "fix"));
+    assert.ok(failureRows.some((r) => r.section === "natal:career" && r.ruleId === "chk-16" && r.class === "fix"));
+    assert.ok(failureRows.some((r) => r.section === "natal:family" && r.ruleId === "chk-16" && r.class === "warn"));
+  } finally {
+    REPLIES.natal_foundation = foundation;
+    REPLIES.natal_career = career;
+    REPLIES.natal_family = { ...(REPLIES.natal_family as object), actions: [ACTION, ACTION] };
+  }
+});
+
+const BAD_MIND = { ...(REPLIES.natal_mind as object), claims: claims("Not in the prose, and not close to anything in it either.") };
+
+test("a section that fails three times then passes: the report completes, the others are called once, and the rows say so", async () => {
+  calls.length = 0;
+  failureRows.length = 0;
+  const saved = REPLIES.natal_mind;
+  let n = 0;
+  // A claims repair that fails too, so every attempt ends in a block (chk-09 in its fallback).
+  REPLIES.natal_mind_claims = { claims: claims("Still nowhere near the prose.") };
+  REPLIES.natal_mind = () => (n++ < 3 ? BAD_MIND : saved);
+  try {
+    const frames: string[] = [];
+    const out = await generateInterpretation(blindCurie(), "Marie Curie", { onSection: (f) => { frames.push(f.section); } });
+    assert.equal(calls.filter((c) => c === "natal_mind").length, 4, "three attempts, then the round alone");
+    assert.equal(calls.filter((c) => c === "natal_career").length, 1);
+    assert.equal(frames.filter((f) => f === "mind").length, 1);
+    assert.equal(out.mind.claims.length, 3);
+    const rows = failureRows.filter((r) => r.section === "natal:mind");
+    assert.equal(rows.filter((r) => r.ruleId === "chk-09" && r.class === "block").length, 3);
+    assert.equal(rows.filter((r) => r.ruleId === "pass").length, 1);
+    assert.equal(new Set(rows.map((r) => r.writeId)).size, 2);
+  } finally {
+    REPLIES.natal_mind = saved;
+    delete REPLIES.natal_mind_claims;
+  }
+});
+
+test("the retry prompt holds every earlier error and the previous reply; the round alone starts from all of them", async () => {
+  calls.length = 0;
+  prompts.length = 0;
+  const saved = REPLIES.natal_mind;
+  let n = 0;
+  REPLIES.natal_mind_claims = { claims: claims("Still nowhere near the prose.") };
+  REPLIES.natal_mind = () => (n++ < 3 ? { ...BAD_MIND, practice: `${PARA} Attempt ${n}.` } : saved);
+  try {
+    await generateInterpretation(blindCurie(), "Marie Curie");
+    const seen = prompts.filter((p) => p.name === "natal_mind").map((p) => p.user);
+    assert.equal(seen.length, 4);
+    assert.ok(!/EVERY ERROR SO FAR/.test(seen[0]));
+    assert.match(seen[1], /EVERY ERROR SO FAR:\n1\. /);
+    assert.match(seen[2], /1\. [\s\S]*2\. /);
+    assert.match(seen[3], /1\. [\s\S]*2\. [\s\S]*3\. /);
+    assert.match(seen[3], /YOUR LAST REPLY:\n\{[\s\S]*Attempt 3/);
+    assert.match(seen[3], /Fix these and keep the rest\./);
+  } finally {
+    REPLIES.natal_mind = saved;
+    delete REPLIES.natal_mind_claims;
+  }
+});
+
+test("always failing: code quality, the slow section aborted, never stored", async () => {
+  calls.length = 0;
+  const saved = REPLIES.natal_mind;
+  REPLIES.natal_mind_claims = { claims: claims("Still nowhere near the prose.") };
+  REPLIES.natal_mind = BAD_MIND;
+  delays.natal_focus = 400;
+  const frames: string[] = [];
+  try {
+    await assert.rejects(
+      generateInterpretation(blindCurie(), "Marie Curie", { onSection: (f) => { frames.push(f.section); } }),
+      (err: unknown) => err instanceof ReportFailure && err.code === "quality" && /natal:mind/.test(err.message),
+    );
+    assert.equal(calls.filter((c) => c === "natal_mind").length, 6);
+    assert.ok(!frames.includes("focus"), "the slow section was aborted");
+  } finally {
+    REPLIES.natal_mind = saved;
+    delete REPLIES.natal_mind_claims;
+    delete delays.natal_focus;
+  }
+});
+
+test("a network error fails the report as provider_unreachable; a quota 429 as provider_out_of_credit", async () => {
+  failWith = (name) => (name === "natal_money" ? Object.assign(new Error("Connection error."), { name: "APIConnectionError" }) : null);
+  try {
+    await assert.rejects(generateInterpretation(blindCurie(), "Marie Curie"), (err: unknown) => err instanceof ReportFailure && err.code === "provider_unreachable");
+    failWith = (name) => (name === "natal_money" ? Object.assign(new Error("429 insufficient_quota"), { status: 429, code: "insufficient_quota" }) : null);
+    await assert.rejects(generateInterpretation(blindCurie(), "Marie Curie"), (err: unknown) => err instanceof ReportFailure && err.code === "provider_out_of_credit");
+  } finally {
+    failWith = null;
   }
 });
