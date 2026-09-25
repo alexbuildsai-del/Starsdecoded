@@ -25,6 +25,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export type ServiceTier = "flex" | "standard";
+export type FailureCode = "provider_unreachable" | "provider_out_of_credit" | "quality" | "internal";
 
 /** One section of one run, numbers only. */
 export interface LabRunRow {
@@ -32,13 +33,15 @@ export interface LabRunRow {
   runKey: string;
   fixture: string;
   label: string;
-  source: "lab" | "replay" | "report";
+  source: "lab" | "replay" | "report" | "release" | "study" | "qa";
   section: string;
   model: string;
   reasoningEffort: string | null;
   serviceTier: ServiceTier;
   status: "queued" | "running" | "done" | "failed";
   error: string | null;
+  /** The same four codes a customer's failed report carries (ADR-84). */
+  failureCode: FailureCode | null;
   words: number;
   costUsd: number | null;
   seconds: number | null;
@@ -183,7 +186,211 @@ export interface RevealResponse {
   cards: Array<{ id: string; fixture: string; section: string; letters: Record<string, string>; picks: Picks | null; note: string | null }>;
 }
 
+export interface FailureCount {
+  rule: string;
+  section: string;
+  cls: string;
+  count: number;
+  lastAt: string;
+  rate: number;
+  flagged: boolean;
+}
+
+export interface FailuresResponse {
+  counts: FailureCount[];
+  writes: number;
+  rows: number;
+  kinds: string[];
+}
+
+export interface SpotRequest {
+  sections: string[];
+  charts: string[];
+  base: string;
+  model: string;
+  serviceTier: ServiceTier;
+}
+
+export interface SpotEstimateResponse {
+  sections: string[];
+  model: string;
+  serviceTier: ServiceTier;
+  perChart: Array<{ chart: string; runKey: string; estimateUsd: number }>;
+  estimateUsd: number;
+  spentUsd: number;
+  budgetUsd: number;
+  overBudget: boolean;
+}
+
+export interface DryRow {
+  fixture: string;
+  section: string;
+  inputTokens: number;
+  baselineInputTokens: number | null;
+  schemaOk: boolean;
+  error?: string;
+}
+
+export interface DryResponse {
+  base: string;
+  pair: string | null;
+  rows: DryRow[];
+  served: Record<string, boolean>;
+  servedError: string | null;
+  usageRecorded: number;
+}
+
+export interface ReplayStatus {
+  runKey: string;
+  status: "running" | "done" | "failed";
+  sections: LabRunRow[];
+}
+
+export interface ImportResult {
+  label: string;
+  imported: string[];
+  missing: string[];
+  failed: Array<{ fixture: string; error: string }>;
+}
+
+export interface Preflight {
+  sha: string | null;
+  mainHead: string | null;
+  productionSha: string | null;
+  brainChanged: boolean;
+  pairChanged: boolean;
+  files: string[];
+  estimateUsd: number;
+  spentUsd: number;
+  budgetUsd: number;
+  overBudget: boolean;
+  keys: { openai: boolean; githubReleaseToken: boolean; browser: boolean };
+  env: string;
+  stagingOnly: boolean;
+  problems: string[];
+}
+
+export type ReleaseStatus = "running" | "stopped" | "passed" | "failed" | "forwarded";
+
+export interface ReleaseStep {
+  name: "lab" | "gate" | "qa" | "forward";
+  status: "pending" | "running" | "passed" | "failed" | "skipped" | "stopped";
+  detail: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+}
+
+export interface QaFinding {
+  sev: 1 | 2 | 3;
+  where: string;
+  title: string;
+  detail: string;
+}
+
+export interface QaVerdict {
+  status: "pass" | "fail" | "unconfigured";
+  findings: QaFinding[];
+  costUsd: number;
+  reason?: string;
+}
+
+export interface ReleaseSummary {
+  id: string;
+  sha: string;
+  productionSha: string | null;
+  brainChanged: boolean;
+  pairChanged: boolean;
+  status: ReleaseStatus;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReleaseDetail extends ReleaseSummary {
+  steps: ReleaseStep[];
+  qa: QaVerdict | null;
+}
+
+export type MetricDeltas = Record<string, number | null>;
+
+export interface ProseStudyCard {
+  id: string;
+  fixture: string;
+  section: string;
+  picked: number[];
+  passed: number[];
+  pickedMean: Record<string, number>;
+  passedMean: Record<string, number>;
+  delta: MetricDeltas;
+}
+
+export interface ProseStudyWriter {
+  writer: string;
+  variants: number;
+  picked: number;
+  mean: Record<string, number>;
+  delta: MetricDeltas;
+}
+
+export interface ProseProposal {
+  metric: string;
+  direction: "lower" | "higher";
+  agree: number;
+  cards: number;
+  pickedMean: number;
+  passedMean: number;
+  rule: string;
+}
+
+export interface ProseStudyResponse {
+  sessionId: string;
+  label: string;
+  cards: ProseStudyCard[];
+  overall: { cards: number; delta: MetricDeltas; pickedMean: Record<string, number>; passedMean: Record<string, number> };
+  writers: ProseStudyWriter[];
+  proposals: ProseProposal[];
+}
+
+export interface NotesEstimate {
+  model: string;
+  cards: number;
+  inputTokens: number;
+  outputTokens: number;
+  estimateUsd: number;
+  spentUsd: number;
+  budgetUsd: number;
+  overBudget: boolean;
+}
+
+export interface NotesResponse {
+  sessionId: string;
+  model: string;
+  notes: Array<{ id: string; fixture: string; section: string; lines: string[] }>;
+  costUsd: number;
+}
+
+/** The release routes sit beside the lab's, under /api/admin/release. */
+async function callAdmin<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE_URL}admin${path}`, { credentials: "include", ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
+  const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) throw new LabApiError(res.status, String(body.error ?? "error"), String(body.message ?? `HTTP ${res.status}`), body);
+  return body as T;
+}
+
 export const labApi = {
+  failures: () => call<FailuresResponse>("/failures"),
+  spotEstimate: (body: SpotRequest) => call<SpotEstimateResponse>("/spot/estimate", { method: "POST", body: JSON.stringify(body) }),
+  spot: (body: SpotRequest) => call<{ runKeys: string[]; label: string }>("/spot", { method: "POST", body: JSON.stringify(body) }),
+  replay: (runKey: string) => call<ReplayStatus>(`/replay/${encodeURIComponent(runKey)}`),
+  dry: (base: string, pair?: string, lens?: string) => call<DryResponse>(`/dry?base=${encodeURIComponent(base)}${pair ? `&pair=${encodeURIComponent(pair)}` : ""}${lens ? `&lens=${encodeURIComponent(lens)}` : ""}`),
+  importRuns: (labels: string[]) => call<{ results: ImportResult[] }>("/runs/import", { method: "POST", body: JSON.stringify({ labels }) }),
+  preflight: () => callAdmin<Preflight>("/release/preflight"),
+  startRelease: (seedFault = false) => callAdmin<{ id: string; sha: string; status: ReleaseStatus }>("/release", { method: "POST", body: JSON.stringify({ seedFault }) }),
+  releases: () => callAdmin<{ releases: ReleaseSummary[] }>("/release"),
+  release: (id: string) => callAdmin<ReleaseDetail>(`/release/${encodeURIComponent(id)}`),
+  proseStudy: (sessionId: string) => call<ProseStudyResponse>(`/sessions/${encodeURIComponent(sessionId)}/prose-study`),
+  notesEstimate: (sessionId: string) => call<NotesEstimate>(`/sessions/${encodeURIComponent(sessionId)}/prose-study/notes/estimate`, { method: "POST", body: "{}" }),
+  notes: (sessionId: string) => call<NotesResponse>(`/sessions/${encodeURIComponent(sessionId)}/prose-study/notes`, { method: "POST", body: "{}" }),
   runs: (label?: string) => call<RunsResponse>(`/runs${label ? `?label=${encodeURIComponent(label)}` : ""}`),
   compare: (a: string, b: string) => call<CompareResponse>(`/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`),
   spend: () => call<SpendResponse>("/spend"),

@@ -17,10 +17,26 @@ export function RunsView() {
   const [labelB, setLabelB] = useState("");
   const [compared, setCompared] = useState<CompareResponse[] | null>(null);
   const [comparing, setComparing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [imported, setImported] = useState<string | null>(null);
 
-  useEffect(() => {
-    labApi.runs().then((r) => { setRuns(r.runs); setLabels(r.labels); }).catch((e: Error) => setError(e.message)).finally(() => setLoading(false));
-  }, []);
+  const load = () => labApi.runs().then((r) => { setRuns(r.runs); setLabels(r.labels); }).catch((e: Error) => setError(e.message)).finally(() => setLoading(false));
+  useEffect(() => { void load(); }, []);
+
+  // The r05 and r06 runs are the baseline (MB-72); they come from the public report-lab branches, no token.
+  const importBaseline = async () => {
+    setImporting(true);
+    setImported(null);
+    try {
+      const out = await labApi.importRuns(["r05", "r06"]);
+      setImported(out.results.map((r) => `${r.label}: ${r.imported.length} imported${r.missing.length ? `, ${r.missing.length} not on the branch` : ""}${r.failed.length ? `, ${r.failed.length} failed` : ""}`).join(" · "));
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const byRun = useMemo(() => {
     const map = new Map<string, LabRunRow[]>();
@@ -67,7 +83,11 @@ export function RunsView() {
         <Button size="sm" variant="outline" disabled={!labelA || !labelB || comparing} onClick={compare}>
           {comparing ? "Comparing" : "Compare"}
         </Button>
+        <Button size="sm" variant="outline" disabled={importing} onClick={importBaseline} className="ml-auto">
+          {importing ? "Importing" : "Import r05 and r06"}
+        </Button>
       </div>
+      {imported && <p className="text-xs text-muted-foreground">{imported}</p>}
 
       {compared && compared.map((c) => (
         <div key={`${c.a}-${c.b}`} className="rounded-lg border border-border/60 bg-card/40 p-3">
@@ -90,7 +110,7 @@ export function RunsView() {
         </div>
       ))}
 
-      {byRun.length === 0 && <p className="text-sm text-muted-foreground">No run yet. Publish one: <code className="font-numeric">pnpm report:lab --publish marie-curie.r06</code>.</p>}
+      {byRun.length === 0 && <p className="text-sm text-muted-foreground">No run yet. Import r05 and r06 above; they come from the public report-lab branches.</p>}
 
       {byRun.map(([runKey, rows]) => {
         const total = rows.filter((r) => r.section !== "foundation").reduce((n, r) => n + r.words, 0);
@@ -106,7 +126,7 @@ export function RunsView() {
               <span className="font-numeric text-xs ml-auto">{total} words · {cents(cost)} · {seconds.toFixed(0)} s · {faults ? <span className="text-destructive">{faults} faults</span> : "no fault"}</span>
             </summary>
             <table className="w-full text-xs font-numeric mb-2">
-              <thead className="text-muted-foreground"><tr><th className="text-left pl-3">section</th><th className="text-left">model</th><th>tier</th><th>words</th><th>¢</th><th>s</th><th className="text-left">faults</th></tr></thead>
+              <thead className="text-muted-foreground"><tr><th className="text-left pl-3">section</th><th className="text-left">model</th><th>tier</th><th>words</th><th>¢</th><th>s</th><th className="text-left">code</th><th className="text-left">faults</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t border-border/30">
@@ -116,6 +136,7 @@ export function RunsView() {
                     <td className="text-center">{r.status === "done" ? r.words : r.status}</td>
                     <td className="text-center">{cents(r.costUsd)}</td>
                     <td className="text-center">{r.seconds?.toFixed(1) ?? "-"}</td>
+                    <td className={r.failureCode ? "text-destructive" : "text-muted-foreground"}>{r.failureCode ?? "-"}</td>
                     <td className={r.faults.length ? "text-destructive" : "text-muted-foreground"}>{r.error ?? (r.faults.join(" ") || "-")}</td>
                   </tr>
                 ))}
