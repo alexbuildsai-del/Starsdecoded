@@ -1,83 +1,67 @@
 # Night sky
 
 Ideation 2026-09-25 with the Owner, from a photograph of the Milky Way and the GitHubSky card
-(a "find the real star" GitHub CTA). The Owner liked its background and its animation, not the
-card. Artifact, with the sky live, the three placements side by side and the two questions:
-https://claude.ai/artifact/A7WmYgjNgncD8ij9ppU6C4. Status: **draft**.
+(a "find the real star" GitHub CTA). Artifact, with both motions live on the report hero, a
+chapter and the landing: https://claude.ai/artifact/A7WmYgjNgncD8ij9ppU6C4. Status: **draft**,
+revised the same day.
 
-A trial is built and pushed on `claude/loving-maxwell-hzkzdl` (commit 50b48c2) as option A,
-so the Owner can see it on a preview. Locking picks the option; the round then trims the trial
-to it. Touches MASTERFILE §9 and ADR-59 (two skies).
+First pass proposed a Milky Way band (`NightSky`) behind the app and the report; a trial of it
+is on `claude/loving-maxwell-hzkzdl` (commit 50b48c2). The Owner found it too much on the
+report and prefers today's sky there. This version keeps every sky as it looks now and adds
+one small motion to its own stars. The round replaces the trial; nothing of it ships unless Q2
+picks the band for the app screens.
 
 ## Scope
-- `web/src/components/ui/night-sky.tsx`, `NightSky`: one fixed canvas layer under the page.
-  Seeded (mulberry32), so the sky is the same on every load. Two layers:
-  - still, painted once per size to an offscreen canvas: a navy ground (#03060F to #1B355A,
-    top left to bottom right), a diagonal band from lower left to upper right built from soft
-    radial glows (cool at the ends, faintly warm in the middle), about 40 dust lanes, and
-    about 12,000 faint stars (70% inside the band, scaled to the screen's area);
-  - moving: 480 stars (40% in the band) with the GitHubSky twinkle, and within 220 px of the
-    pointer a push of up to 6 px, up to 55% brighter and 12% larger. The pointer is read from
-    the window because the layer sits under the content.
-- Reduced motion: painted once, repainted on resize. A hidden tab pauses with
-  `requestAnimationFrame`. Print: hidden.
-- Mounted once in `App.tsx`, under every route. Page roots drop `bg-background` and
-  `bg-stars`, so the sky shows on landing, sign-in, sign-up, chart form, dashboard, claim,
-  legal, admin and loading. Nav bars keep their frosted `bg-background/80`. The error
-  boundary keeps its solid ground (it renders outside the sky).
-- The report (option B, recommended): `.rp-root` loses its solid ground; the chapters' sky
-  (`ReportSky` default variant) stops drawing its own starfield and keeps its blobs (opacity
-  .5 to .32) and veil (.18/.72 to .08/.5), so the band reads through the reading. The hero
-  (`ReportSky variant="hero"`, `.rp-hsky`) stays exactly as ADR-59 has it: its opaque
-  gradient, its starfield, the gather to the ring. The pair report follows the same rule.
-- `.bg-stars` is removed from `index.css` once nothing uses it.
-
-## Options (artifact, "Where it goes")
-- **A · Everywhere**, the trial as pushed: the hero's gradient turns translucent and the
-  band runs behind the ring. Amends ADR-59 for the hero and the chapters.
-- **B · App and chapters, hero unchanged** (recommended): the ring keeps its dark ground;
-  the band arrives as the reading starts. Amends ADR-59 for the chapters only.
-- **C · App screens only**: the report as R06 shipped it. No ADR amended.
+- **The report's skies stay as R06 shipped them** (ADR-59 untouched): the hero's radial
+  gradient, starfield and gather to the ring; the chapters' fade-in, accent blobs, veil and
+  parallax starfield. The pair report the same.
+- **One micro motion on existing stars**, in `ReportSky` (both variants), per Q1:
+  - *Slow pulse* (recommended): the ten stars with the largest radius in each sky breathe,
+    opacity .55 to 1, radius ×1 to ×1.3 with a soft glow, one sine cycle of 6 to 10 s each
+    with a seeded phase, so they never pulse together.
+  - *Twinkle*: about 20% of the stars, opacity ×0.45 to ×1, cycles of 1.6 to 3.4 s.
+  - Every other star stays still. A star that has landed on the ring never moves.
+- `ReportSky` today repaints on scroll only; it gains one `requestAnimationFrame` loop per
+  mounted sky that repaints while the motion runs (130 dots), stopped on unmount. A hidden
+  tab pauses it by itself.
+- **The app screens** per Q2. Default: today's `.bg-stars` pattern stays, with a small
+  `TwinkleStars` layer (about 40 seeded stars, the same motion as the report) laid over it on
+  every page that uses `.bg-stars` today. Pointer drift is dropped in every option.
+- Reduced motion: no pulse, no twinkle; every sky is painted once, as today. Print: hidden.
+- Trial clean-up: the App-level `NightSky` mount, the page-root background removals and the
+  `.rp-*` CSS edits from 50b48c2 are reverted; `night-sky.tsx` is deleted unless Q2 is the band.
 
 ## Out of scope
-- The GitHubSky card itself: it is a GitHub star CTA and the product has no use for one; it
-  is not copied into the repo.
-- The photograph: the band is drawn in code; no image is shipped.
-- The mobile app, share cards, email and printables (§9 "one register" applies when they
-  are designed).
-- Any change to the gather, the ring, the chapter accents or the motion budget per chapter
-  change.
+- The GitHubSky card and the photograph: neither enters the repo.
+- The Milky Way band on the report, and any change to the gather, the ring, the chapter
+  accents, the blobs' two moves or the veil.
+- Mobile app, share cards, email and printables.
 
 ## Acceptance criteria
-1. Every app route listed above shows the band behind its content; no page root paints an
-   opaque ground over it; nav bars stay legible.
-2. Under B, the report hero is pixel-identical to R06 at 1440×900 and 390×844; chapters show
-   the band under the accent blobs and veil; body text keeps at least 7:1 contrast against the
-   brightest part of the band (checked at the band's centre).
-3. Under reduced motion the sky is painted once and never animates; resize repaints it.
-4. The sky is the same on every load (seeded) and does not move on scroll.
-5. On a phone only the twinkle runs; on desktop the pointer drift runs wherever Q2 allows.
-6. Print output has no sky.
-7. Typecheck, both builds and the unit tests are green; a frame costs one image copy plus
-   480 arcs, and the landing page holds 60 fps on a mid laptop in Chrome's performance panel.
+1. With motion allowed, the report hero and chapters look the same as R06 in a still frame
+   and differ only in the chosen stars' opacity and size over time.
+2. Under reduced motion no star changes between frames.
+3. Landed ring stars and the gather's timing are unchanged; the gather still lands in 1.6 s.
+4. The pulse phases are seeded, so a reload shows the same stars pulsing at the same offsets.
+5. App screens with `.bg-stars` show the same motion (default Q2); none loses its current look.
+6. No layout shift, no pointer handling, and nothing about the motion runs in print.
+7. Typecheck, both builds and unit tests green; a unit test covers the star selection (the ten
+   largest, seeded) and the reduced-motion still frame.
 8. Every shipped line is USER-FACING.
 
 ## Screens
-All in the artifact: the live sky with its three motion modes, today's `.bg-stars` beside
-the proposal, and the report hero and a chapter under each option.
+In the artifact: the hero and a chapter with "Today, still", "Twinkle" and "Slow pulse";
+the landing with today's look plus the motion, beside the band.
 
 ## Open questions
-1. **Where does the sky go?** Recommendation B: the app screens and the chapters, with the
-   hero kept as ADR-59 has it. Default: B.
-2. **How much should it move?** Recommendation: twinkle and pointer drift on the app screens,
-   twinkle only behind the reading, since the report page is the slow one. Default: as
-   recommended.
+1. **Twinkle or slow pulse?** Recommendation: slow pulse; it suits the report, the slow page.
+   Default: slow pulse.
+2. **The app screens: today's look or the band?** Recommendation: today's look with the same
+   motion, so the product has one sky. Default: today's look.
 
 ## Decisions to record
-- The app's background is one seeded canvas sky with a Milky Way band (`NightSky`), mounted
-  once under every route; `.bg-stars` retires. Amends §9's "the starfield and gradients stay".
-- The report's placement per Q1 (default B): the chapters' faint starfield is replaced by the
-  band under their blobs and veil; the hero keeps its own sky. Amends ADR-59 (and ADR-51 as
-  it stands after ADR-59).
-- Ambient motion per Q2 (default: drift on the app screens, twinkle only in the report).
-  Ambient motion is not a chapter move and does not count against §9's two-move budget.
+- The report's skies stay as ADR-59 has them; the Milky Way band is not used on the report.
+- One ambient micro motion on each sky's own stars (default: slow pulse on the ten largest,
+  6 to 10 s); none under reduced motion. Ambient motion is not a chapter move and does not
+  count against §9's two-move budget. Amends §9's motion line.
+- The app screens keep `.bg-stars` with the same motion (default Q2); pointer drift is not used.
