@@ -16,7 +16,6 @@ Owner's direction:
 - Learn from the picks what makes the prose good, so every model writes to that
   standard.
 - "Simpler sentences over complicated vocabulary, always."
-
 Artifact: https://claude.ai/artifact/6HLtPdSaR3wiVLXx16oWHU
 
 ## What the failures were
