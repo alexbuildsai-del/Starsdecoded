@@ -180,6 +180,7 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 - [ ] Tell Claude "runbook done through Part I" plus the Railway domain.
 - [ ] Claude merges the pull request; the Smoke run on `main` turns green
       with `env: staging`. Test staging.
+- [ ] Todo until done: `GITHUB_RELEASE_TOKEN` in Railway staging Variables (MB-75).
 - [ ] Say "promote". Claude dispatches Promote: it re-checks staging, moves
       the `production` branch forward, waits for production, confirms
       `env: production`.

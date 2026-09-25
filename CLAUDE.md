@@ -50,8 +50,8 @@ pnpm report:lab --render|--compare    # re-read stored runs, free; the lab level
 
 Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
 clean when the schema changed, smoke on the Vercel preview. Never skip or
-disable a check. The lab runs at four levels (ADR-76): dry at every brain
-change, spot on merge to staging, full at Promote, reading when the Owner spawns.
+disable a check. The lab runs from the admin panel: dry at every brain change,
+spot and reading on demand, full lab plus QA agent in the Release view before production.
 
 ## Process
 
@@ -82,8 +82,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 - Deploys are git-push driven: `main` → staging (`starsdecoded-staging.vercel.app`,
   Railway `staging`, own Supabase project); `production` branch → production at
-  `mystarsdecoded.com`, moved only by the Promote workflow, fast-forward from
-  `main` after the staging smoke passes; dispatch it, never push the branch.
+  `mystarsdecoded.com`, moved only by Promote (fast-forward from `main`); never push it.
+  Any production-release talk lists MB-75 (`GITHUB_RELEASE_TOKEN` on Railway staging) as a todo until placed.
   Secrets live only in the Railway, Vercel and Supabase dashboards; the repo is
   public. Runbook: `docs/annex/staging-runbook.md`. **No secret on GitHub, ever**
   (Owner, 2026-09-25): never ask the Owner to put a key or token there. Anything that
@@ -102,8 +102,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   run twice breaks the deploy.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`,
   `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
-  the dry lab runs in the round, `lab-spot.yml` replays the changed sections on
-  merge, and Promote runs the full lab and its gate; spend is capped by
+  the dry lab runs in the round; spot runs only on demand from the Lab page, and the
+  Release view runs the full lab, its gate and the QA agent; spend is capped by
   `LAB_BUDGET_USD` (ADR-77). Never generate a report to look at one: the Lab
   page and `--render` are free. Every model id lives in `models.ts` with its
   price and pinned reasoning effort; one outside the catalogue does not compile.
@@ -113,11 +113,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-24)
+## Current focus (2026-09-25)
 
-1. R07 (#61) to staging: the lab in the admin panel (`/admin/report-lab`), replays through `writeSection`, sessions on spawn,
-   the release gate in Promote (ADR-73 to 77). Every line INTERNAL. Waiting on the Owner: **MB-69** `LAB_TOKEN` on Railway staging and
-   the GitHub `staging` environment, **MB-68** OpenAI credits. Then: `report-lab.yml` `publish` r05 and r06 (MB-72), the R06 `pair` campaign.
-2. Owner acceptance on staging for R01, R03, R04, R05, R06 and R07, in that order; then the staging landing
-   (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote, which runs the full lab (about $1.40).
-3. Next: the first reading session (career, overview, superpowers, discoveries on five charts), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.
+1. R08 next: `pair-reliability-and-prose.md` locked (pair reports failed 7 of 7 on checks that do not matter; the lab and
+   Release move to the admin panel, no secret on GitHub; the prose study). Plan written, awaiting "go".
+2. Owner acceptance on staging for R01, R03 to R07, then the staging landing and the first release from the admin panel.

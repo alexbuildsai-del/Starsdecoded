@@ -1,11 +1,11 @@
-# Index — regenerated at the end of every round (last: R07, 2026-09-24)
+# Index — regenerated at the end of every round (last: pair-reliability lock, 2026-09-25)
 
 Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by pointer.
 
 ## Alignment
 - `MASTERFILE.md` — the constitution: thesis, scope, domain, engine, rules, process, budgets.
-- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (77 rows; ADR-73 to 77 from the model-matrix revision, superseding ADR-56 and amending ADR-55 and R-4.4; ADR-72 the on-tap scenes on gpt-5.2; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-29 to 32 from the logo lock; ADR-33 to 38 from the unknown-birth-time lock; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26; ADR-52 to 58 from the model-matrix lock, R-5.6 rewritten; ADR-59 to 62 from the Review 20/09 lock, amending ADR-44, 47, 51; ADR-63 to 71 from the compatibility second pass, amending ADR-40, 43)
-- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (3 blocking: MB-31 entity, MB-68 OpenAI credits, MB-69 `LAB_TOKEN`; MB-70 GPT-6 prices provisional, MB-72 publish r05/r06 blocked by MB-69; MB-71 done in R07; MB-73, 74 raised by R07; MB-63, 64, 65 built at their defaults; MB-66, 67 raised by R06; MB-6, 43, 47, 55 at their defaults; MB-57 credits DDL with pricing; MB-58 old synastry rows hidden; MB-59 the claim lands without generating)
+- Notion Decisions — https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835 (88 rows; ADR-81 to 88 from the pair-reliability lock: checks by what matters, no secret on GitHub, the lab and release in the admin panel, amending ADR-76 and R-4.3, 4.4, 5.1; ADR-73 to 77 from the model-matrix revision, superseding ADR-56 and amending ADR-55 and R-4.4; ADR-72 the on-tap scenes on gpt-5.2; ADR-7 superseded by ADR-15; ADR-20 to 28 from the 18 Sept ideation; ADR-29 to 32 from the logo lock; ADR-33 to 38 from the unknown-birth-time lock; ADR-39 to 45 from the compatibility lock, ADR-5 parity clause and ADR-32 synastry title superseded; ADR-46 to 51 from the pass-three lock, amending ADR-20, 22, 24, 25, 26; ADR-52 to 58 from the model-matrix lock, R-5.6 rewritten; ADR-59 to 62 from the Review 20/09 lock, amending ADR-44, 47, 51; ADR-63 to 71 from the compatibility second pass, amending ADR-40, 43)
+- Notion Mailbox — https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d (2 blocking: MB-31 entity, MB-68 OpenAI credits; MB-69 `LAB_TOKEN` superseded (no secret on GitHub); MB-75 `GITHUB_RELEASE_TOKEN` on Railway; MB-70 GPT-6 prices provisional, MB-72 publish r05/r06 blocked by MB-69; MB-71 done in R07; MB-73, 74 raised by R07; MB-63, 64, 65 built at their defaults; MB-66, 67 raised by R06; MB-6, 43, 47, 55 at their defaults; MB-57 credits DDL with pricing; MB-58 old synastry rows hidden; MB-59 the claim lands without generating)
 - The bible — https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2 (product reference; prompt section is generated)
 
 ## Specs
@@ -26,16 +26,17 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   with cards and scenes, the age band, Two people, per-chapter briefs, the two-triad hero. Artifact: https://claude.ai/artifact/Am3TWP2XpqkbzZy8M9tBXL
 - `docs/specs/locked/report-lab-model-matrix.md` — R07: GPT-6 Sol and Luna against gpt-5.2, OpenAI only; sessions generate
   on spawn; the lab at four levels, full only at Promote. Base in the annex. Artifact: https://claude.ai/artifact/RRnfSk9Ci3VwxapoXwi6ub
+- `docs/specs/locked/pair-reliability-and-prose.md` — R08, next: checks by what matters (annex `pair-reliability-checks.md`),
+  retry the failed section only, failure reasons, age bands now and later, the lab and Release in the admin panel, the prose study. Artifact: https://claude.ai/artifact/6HLtPdSaR3wiVLXx16oWHU
 - Drafts: `report-cost-and-latency.md` (27.1 cents measured, L0 built) · `staging-environment.md` (main → staging, production branch → production; runbook https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7)
 
 ## Rounds
 - `R01` claims made true, DELETE report, legal drafts, smoke workflow · `R02` usage telemetry, 27.1 cents baseline · `R03` the wheel from real
   degrees, citations, house cards, hero and chapter shell · `R04` pass two: eleven chapters, the workbook, dawn, a report that opens while it
   writes, mean 31.0 ¢. Plans and reports under `docs/rounds/`; R01 to R04 await Owner acceptance.
-- `R05` pass three, unknown birth time, the compatibility report (#53, #54) · `R06` the nine review fixes, p2, on-tap scenes (`pair` lab waits on MB-68)
-  · `R07` the lab in the admin panel, replays and sessions on the server, the release gate in Promote; all INTERNAL; staging steps wait on MB-69.
+- `R05` pass three, unknown birth time, the compatibility report (#53, #54) · `R06` the nine review fixes, p2, on-tap scenes (`pair` lab waits on MB-68) · `R07` the lab in the admin panel, replays and sessions on the server, the release gate in Promote; all INTERNAL; staging steps wait on MB-69.
 
-## Code map (QA: `docs/qa/` none yet · annex: `staging-runbook.md` the Owner's staging setup · `report-lab-model-matrix-annex.md` the matrix's base scope)
+## Code map (QA: `docs/qa/` none yet · annex: `staging-runbook.md` the Owner's staging setup · `report-lab-model-matrix-annex.md` the matrix's base scope · `pair-reliability-checks.md` every check classified)
 - `web/` React + Vite SPA (Vercel) · `api/` Express API (Railway) · `packages/db` drizzle schema
 - `web/src/components/chart/` wheel geometry, `NatalWheel`, the bi-wheel · `web/src/components/report/` hero and its
   label solver with the phone stack, the pair hero, angle glyph, explorer, house card, chapter, rail, checklist, orrery
@@ -55,5 +56,5 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
 
 ## Agents and skills
 - `.claude/agents/` planner · orchestrator · builder · qa · `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox · /report-lab · `.github/pull_request_template.md` the gate checklist every PR carries
-- `.github/workflows/` `ci.yml` typecheck, builds, tests · `smoke.yml` + `smoke-run.yml` deploy check · `report-lab.yml` every lab level (needs `LAB_TOKEN`
-  in the `staging` environment) · `lab-spot.yml` the spot replay after a green Smoke · `promote.yml` the release gate, then the fast-forward
+- `.github/workflows/` `ci.yml` typecheck, builds, tests · `smoke.yml` + `smoke-run.yml` deploy check · `report-lab.yml` lab campaigns (the `LAB_TOKEN`
+  ones retire in R08) · `lab-spot.yml` (retires in R08) · `promote.yml` (the gate moves to the admin Release view in R08)
