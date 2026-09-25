@@ -62,7 +62,7 @@ test("the pair measure flags a rating, evidence in prose, a card line over twelv
   assert.ok(oneName.rows[1].flags.some((f) => /SCENE: the scene never names Oprah/.test(f)));
   const parent = measurePair({ ...base, meta: { lens: "parent_child", band: "little", names: { a: "Marie Curie", b: "Oprah Winfrey" } }, parentChild02: lensChapter({ pattern: "Oprah has homework to finish before the bath." }) });
   assert.equal(parent.band, "little");
-  assert.ok(parent.bandFlags.some((f) => /parentChild02: contradicts the little band/.test(f)), parent.bandFlags.join(" "));
+  assert.ok(parent.bandFlags.some((f) => /parentChild02: reads another age than the little band/.test(f)), parent.bandFlags.join(" "));
 });
 
 test("the repetition score is the share of five-word runs that appear in more than one chapter, under a 3% bar", () => {
