@@ -1,19 +1,18 @@
 /**
- * The compatibility report's blocks (ADR-63, ADR-64, ADR-103): chapter 01 is
- * the verdict, three strong lines, three work lines, the paradox, the
- * strengths card and one pointer; a lens chapter reads in story order, the
- * side-by-side card headed Going in, the scene introduced with its chip
- * row, what just happened opening on the pair line with the two
+ * The compatibility report's lens and practice blocks (ADR-63, ADR-64,
+ * ADR-103); chapter 01 is TwoChartsLedger. A lens chapter reads in story
+ * order: the side-by-side card headed Going in, the scene introduced with
+ * its chip row, what just happened opening on the pair line with the two
  * because-kickers, the pattern, and next time through the one checklist;
  * chapter 07 is three checklists that write to the workbook, then a closing
  * paragraph. Nothing here draws a number, a rating or a bar.
  */
-import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
+import { CitedText, newCitationCounter } from "@/components/report/Citation";
 import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
 import { SceneChips, SceneIntro } from "@/components/report/SceneChips";
 import { fromPersonalReport } from "@/lib/product";
 import { itemKey } from "@/lib/workbook";
-import type { Claim, PairChapterScenes, PairChecklist, PairLensChapter, PairPractise, PairTwoCharts } from "@/types/chart";
+import type { PairChapterScenes, PairChecklist, PairLensChapter, PairPractise } from "@/types/chart";
 
 export interface PairNames { a: string; b: string }
 
@@ -22,55 +21,6 @@ export const first = (name: string): string => name.trim().split(/\s+/)[0] ?? na
 /** The kicker over a person's own lines: their first name, and where the words come from (ADR-61). */
 export function personKicker(name: string): string {
   return fromPersonalReport(first(name));
-}
-
-function Lines({ lines, claims, counter }: { lines: string[]; claims?: Claim[]; counter: CitationCounter }) {
-  return (
-    <ul className="mt-2 grid gap-2">
-      {lines.map((line, i) => (
-        <li key={i} className="relative pl-4 before:absolute before:left-0.5 before:text-[var(--accent)] before:content-['·']">
-          {CitedText({ text: line, claims, counter })}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** The pair's three strengths as one card, both names on it; the share card draws from the same lines (ADR-71). */
-export function StrengthsCard({ lines, names }: { lines: string[]; names: PairNames }) {
-  return (
-    <div className="rp-box" data-strengths-card>
-      <span className="rp-lab">{first(names.a)} and {first(names.b)} · your three strengths as a pair</span>
-      <ul className="mt-2 grid gap-2">
-        {lines.map((line, i) => (
-          <li key={i} className="font-display text-[17px] leading-snug text-[var(--paper)]">{line}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** Chapter 01 under the wheel and its cards: the introduction (ADR-63). */
-export function TwoChartsBlock({ s, names }: { s: PairTwoCharts; names: PairNames }) {
-  const k = newCitationCounter();
-  return (
-    <div className="rp-prose">
-      <div className="rp-lblk">
-        <span className="rp-lab">What is naturally strong between you</span>
-        <Lines lines={s.strong} claims={s.claims} counter={k} />
-      </div>
-      <div className="rp-lblk">
-        <span className="rp-lab">What will take work</span>
-        <Lines lines={s.work} claims={s.claims} counter={k} />
-      </div>
-      <div className="rp-lblk">
-        <span className="rp-lab">The paradox</span>
-        <p>{CitedText({ text: s.paradox, claims: s.claims, counter: k })}</p>
-      </div>
-      <StrengthsCard lines={s.strengths} names={names} />
-      <p className="rp-pull">{CitedText({ text: s.pointer, claims: s.claims, counter: k })}</p>
-    </div>
-  );
 }
 
 /** Chapter 02's introduction, under its title (ADR-103): what follows, and that two more scenes wait; print drops the second sentence. */
