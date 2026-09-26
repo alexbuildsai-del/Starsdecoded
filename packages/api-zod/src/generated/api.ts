@@ -20,6 +20,184 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Stores an email address to write to when Stars Decoded opens (ADR-141). Answers the same whether the address is new or already listed, so it cannot be used to learn who signed up. Sets no cookie and reads no account. A filled `website` field is a form-filling bot: it is answered the same and nothing is stored.
+ * @summary Join the pre-launch waitlist
+ */
+export const joinWaitlistBodyEmailMax = 254;
+
+export const joinWaitlistBodySourceMax = 32;
+
+export const joinWaitlistBodyUtmSourceMax = 100;
+
+export const joinWaitlistBodyUtmMediumMax = 100;
+
+export const joinWaitlistBodyUtmCampaignMax = 100;
+
+export const joinWaitlistBodyWebsiteMax = 200;
+
+
+
+export const JoinWaitlistBody = zod.object({
+  "email": zod.string().email().max(joinWaitlistBodyEmailMax),
+  "consent": zod.enum(['launch-email-v1']).describe('The consent wording shown beside the form, stored with the address.'),
+  "source": zod.string().max(joinWaitlistBodySourceMax).optional().describe('Which form on the page sent it, such as hero or dawn.'),
+  "utmSource": zod.string().max(joinWaitlistBodyUtmSourceMax).optional(),
+  "utmMedium": zod.string().max(joinWaitlistBodyUtmMediumMax).optional(),
+  "utmCampaign": zod.string().max(joinWaitlistBodyUtmCampaignMax).optional(),
+  "website": zod.string().max(joinWaitlistBodyWebsiteMax).optional().describe('Hidden from people and left empty by them.')
+})
+
+export const JoinWaitlistResponse = zod.object({
+  "status": zod.enum(['joined'])
+})
+
+
+/**
+ * The chart for this minute over the principal city of an IANA time zone, computed by the engine (ADR-107, ADR-141). An unknown zone falls back to London. Sets no cookie and reads no account; one chart per city per minute is computed, whoever asks.
+ * @summary The sky now over the visitor's city
+ */
+export const getSkyNowQueryZoneMax = 64;
+
+
+export const getSkyNowQueryZoneRegExp = new RegExp('^[A-Za-z0-9_+/-]+$');
+
+
+export const GetSkyNowQueryParams = zod.object({
+  "zone": zod.coerce.string().max(getSkyNowQueryZoneMax).regex(getSkyNowQueryZoneRegExp).optional().describe('The browser\'s time zone, such as Europe\/Brussels.')
+})
+
+export const GetSkyNowResponse = zod.object({
+  "city": zod.string(),
+  "zone": zod.string().describe('The time zone the chart\'s clock reads, after following an old name to today\'s.'),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "at": zod.string().describe('The minute the chart is for, as an ISO 8601 UTC time.'),
+  "ephemeris": zod.string().describe('What computed the positions, as the footer credits it.'),
+  "chart": zod.object({
+  "datetimeUtc": zod.string(),
+  "julianDay": zod.number(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "timezoneOffset": zod.number(),
+  "timezone": zod.string().optional(),
+  "windowMinutes": zod.number().int().optional().describe('Half-width of the birth-time band. 0 for an exact time.'),
+  "horizon": zod.object({
+  "status": zod.enum(['known', 'approximate', 'unknown']),
+  "ascendant": zod.object({
+  "value": zod.string().describe('The value at the centre time.'),
+  "holds": zod.boolean().describe('True when the value never changed across the band.'),
+  "flipsAt": zod.array(zod.string()).describe('Local times (HH:MM) inside the band at which the value changed.'),
+  "values": zod.array(zod.string()).describe('The sequence of values across the band.'),
+  "holdsFrom": zod.string().describe('Where the centre value\'s run within the birth day begins (HH:MM).'),
+  "holdsTo": zod.string().describe('Where it ends (HH:MM, or 24:00).')
+}).describe('One fact the birth hour decides, swept across the band at two-minute steps.'),
+  "midheaven": zod.object({
+  "value": zod.string().describe('The value at the centre time.'),
+  "holds": zod.boolean().describe('True when the value never changed across the band.'),
+  "flipsAt": zod.array(zod.string()).describe('Local times (HH:MM) inside the band at which the value changed.'),
+  "values": zod.array(zod.string()).describe('The sequence of values across the band.'),
+  "holdsFrom": zod.string().describe('Where the centre value\'s run within the birth day begins (HH:MM).'),
+  "holdsTo": zod.string().describe('Where it ends (HH:MM, or 24:00).')
+}).describe('One fact the birth hour decides, swept across the band at two-minute steps.'),
+  "sect": zod.object({
+  "value": zod.string().describe('The value at the centre time.'),
+  "holds": zod.boolean().describe('True when the value never changed across the band.'),
+  "flipsAt": zod.array(zod.string()).describe('Local times (HH:MM) inside the band at which the value changed.'),
+  "values": zod.array(zod.string()).describe('The sequence of values across the band.'),
+  "holdsFrom": zod.string().describe('Where the centre value\'s run within the birth day begins (HH:MM).'),
+  "holdsTo": zod.string().describe('Where it ends (HH:MM, or 24:00).')
+}).describe('One fact the birth hour decides, swept across the band at two-minute steps.'),
+  "moonSign": zod.object({
+  "value": zod.string().describe('The value at the centre time.'),
+  "holds": zod.boolean().describe('True when the value never changed across the band.'),
+  "flipsAt": zod.array(zod.string()).describe('Local times (HH:MM) inside the band at which the value changed.'),
+  "values": zod.array(zod.string()).describe('The sequence of values across the band.'),
+  "holdsFrom": zod.string().describe('Where the centre value\'s run within the birth day begins (HH:MM).'),
+  "holdsTo": zod.string().describe('Where it ends (HH:MM, or 24:00).')
+}).describe('One fact the birth hour decides, swept across the band at two-minute steps.'),
+  "sunSign": zod.object({
+  "value": zod.string().describe('The value at the centre time.'),
+  "holds": zod.boolean().describe('True when the value never changed across the band.'),
+  "flipsAt": zod.array(zod.string()).describe('Local times (HH:MM) inside the band at which the value changed.'),
+  "values": zod.array(zod.string()).describe('The sequence of values across the band.'),
+  "holdsFrom": zod.string().describe('Where the centre value\'s run within the birth day begins (HH:MM).'),
+  "holdsTo": zod.string().describe('Where it ends (HH:MM, or 24:00).')
+}).describe('One fact the birth hour decides, swept across the band at two-minute steps.')
+}).describe('The horizon as a status, never a guess (ADR-33).'),
+  "sunAltitude": zod.number().optional().describe('True altitude of the Sun\'s centre at birth. Absent when the horizon is unknown.'),
+  "planets": zod.record(zod.string(), zod.object({
+  "sign": zod.string(),
+  "degree": zod.number(),
+  "absoluteDegree": zod.number(),
+  "house": zod.number().int().optional().describe('Whole-sign house. Absent when the horizon is unknown.'),
+  "retrograde": zod.boolean(),
+  "speed": zod.number(),
+  "band": zod.object({
+  "fromDegree": zod.number(),
+  "toDegree": zod.number()
+}).optional().describe('Sun and Moon only, when the birth time is a band. Absolute degrees at the band\'s two ends.')
+})),
+  "angles": zod.object({
+  "ascendant": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number(),
+  "absoluteDegree": zod.number()
+}),
+  "midheaven": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number(),
+  "absoluteDegree": zod.number()
+}),
+  "descendant": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number(),
+  "absoluteDegree": zod.number()
+}),
+  "ic": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number(),
+  "absoluteDegree": zod.number()
+})
+}).optional().describe('Absent when the horizon is unknown.'),
+  "houses": zod.record(zod.string(), zod.object({
+  "sign": zod.string(),
+  "degree": zod.number()
+})).optional().describe('Absent when the horizon is unknown.'),
+  "aspects": zod.array(zod.object({
+  "planet1": zod.string(),
+  "planet2": zod.string(),
+  "type": zod.string(),
+  "orb": zod.number(),
+  "applying": zod.boolean()
+})),
+  "elements": zod.object({
+  "fire": zod.number().int(),
+  "earth": zod.number().int(),
+  "air": zod.number().int(),
+  "water": zod.number().int()
+}),
+  "modalities": zod.object({
+  "cardinal": zod.number().int(),
+  "fixed": zod.number().int(),
+  "mutable": zod.number().int()
+}),
+  "dominance": zod.object({
+  "dominantPlanets": zod.array(zod.string()),
+  "dominantElement": zod.string(),
+  "dominantModality": zod.string()
+}),
+  "chartShape": zod.string().nullish(),
+  "hemisphereEmphasis": zod.object({
+  "northern": zod.number().int(),
+  "southern": zod.number().int(),
+  "eastern": zod.number().int(),
+  "western": zod.number().int()
+}).optional()
+})
+})
+
+
+/**
  * Returns the natal and compatibility reports visible to the viewer. Old synastry rows are never listed. Use the `kind` discriminator to distinguish.
  * @summary List all reports
  */
