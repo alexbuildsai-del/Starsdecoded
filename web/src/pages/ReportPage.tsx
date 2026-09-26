@@ -45,6 +45,7 @@ import { OpeningOverlay } from "@/components/report/OpeningOverlay";
 import { RevisionLedger, marksShown, rememberMarks } from "@/components/report/RevisionLedger";
 import { RevisionProvider, revisionSet } from "@/components/report/RevisedText";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
+import { SendDialog, SendLine } from "@/components/SendDialog";
 import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { chapterAccent } from "@/lib/chapter-accent";
@@ -98,6 +99,7 @@ export default function ReportPage() {
   const client = useQueryClient();
   const [active, setActive] = useState(-1);
   const [askTime, setAskTime] = useState(false);
+  const [sending, setSending] = useState(false);
   const [marks, setMarks] = useState(() => marksShown(id ?? ""));
 
   const live = useLiveReport(id!);
@@ -198,6 +200,8 @@ export default function ReportPage() {
   const ch = (n: number) => ({ number: n, total: TOTAL, eyebrow: CHAPTERS[n - 1].eyebrow, title: CHAPTERS[n - 1].title });
   const body = (key: string, node: React.ReactNode) => (done(key) && node ? node : <ChapterSkeleton lines={key === "focus" ? 4 : 5} />);
   const openTime = () => setAskTime(true);
+  // The route refuses a report still being written or revised, so the offer waits, as Export PDF does.
+  const send = writing ? null : report.send ?? null;
 
   return (
     <WorkbookProvider reportId={id!} initial={workbook}>
@@ -390,6 +394,15 @@ export default function ReportPage() {
           {body("focus", interpretation.focus && <DawnClosing s={interpretation.focus} />)}
         </Chapter>
 
+        {/* Where the reading ends, the person it is about can be given it (ADR-120); the server offers it only on a report the reader wrote about someone else. */}
+        {send && (
+          <div className="rp-chapter no-print">
+            <div className="max-w-[64ch]">
+              <SendLine send={send} onSend={() => setSending(true)} />
+            </div>
+          </div>
+        )}
+
         <div className="rp-chapter">
           <MethodologyStrip meta={interpretation.meta} chart={chartData} birthTime={report.birthTime} pass={horizonPass} />
         </div>
@@ -408,6 +421,12 @@ export default function ReportPage() {
           }}
         />
       )}
+
+      <SendDialog
+        open={sending}
+        onClose={() => setSending(false)}
+        target={send ? { kind: "person", reportId: id!, send } : null}
+      />
     </div>
     </RevisionProvider>
     </WorkbookProvider>

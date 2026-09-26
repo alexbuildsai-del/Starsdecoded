@@ -12,9 +12,12 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getGetReportQueryKey, getListReportsQueryKey, useStopSharingCompatibility } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
 import LoadingState from "@/components/LoadingState";
+import { SendDialog } from "@/components/SendDialog";
 import { NatalWheel } from "@/components/chart/NatalWheel";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
@@ -50,6 +53,9 @@ export default function CompatibilityReportPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const [active, setActive] = useState(-1);
+  const [sending, setSending] = useState(false);
+  const client = useQueryClient();
+  const stopSharing = useStopSharingCompatibility();
 
   const live = useLiveReport(id!);
   const { report, sections, workbook, writing, open, setOpen, progress } = live;
@@ -112,6 +118,18 @@ export default function CompatibilityReportPage() {
   const rail = titles.map((title, i) => ({ eyebrow: title, title, writing: !done(ids[i]) }));
   const ch = (n: number) => ({ number: n, total: titles.length, eyebrow: titles[n - 1], title: titles[n - 1] });
   const recipient = recipientOf({ name: a.name, isSelf: a.isSelf }, { name: b.name, isSelf: b.isSelf });
+  // The route refuses a pair still being written, so the offer waits for the last chapter, as Export PDF does.
+  const send = writing ? null : report.send ?? null;
+  // MB-103 provisional: only the pair's sender stops sharing it, and the other person's reading ends at once.
+  // Only its maker can send a pair, so the owner is its sender; a missing access is read as owner.
+  const sender = (report.access ?? "owner") === "owner";
+  const stop = async () => {
+    await stopSharing.mutateAsync({ id: id! });
+    await Promise.all([
+      client.invalidateQueries({ queryKey: getGetReportQueryKey(id!) }),
+      client.invalidateQueries({ queryKey: getListReportsQueryKey() }),
+    ]);
+  };
   const lensChapter = (n: number) => {
     const key = ids[n - 1];
     const s = lensChapterOf(interpretation, key);
@@ -174,6 +192,9 @@ export default function CompatibilityReportPage() {
                   headline={interpretation.twoCharts.headline}
                   strengths={interpretation.twoCharts.strengths}
                   recipient={recipient}
+                  send={send}
+                  onSend={() => setSending(true)}
+                  onStopSharing={sender ? stop : undefined}
                 />
               </>
             )
@@ -197,6 +218,8 @@ export default function CompatibilityReportPage() {
           </div>
         )}
       </main>
+
+      <SendDialog open={sending} onClose={() => setSending(false)} target={send ? { kind: "pair", reportId: id!, send } : null} />
     </div>
     </WorkbookProvider>
   );
