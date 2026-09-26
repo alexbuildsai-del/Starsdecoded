@@ -11,7 +11,7 @@ round), the prompts' house wording (MB-87), and `night-sky` and `dashboard-sky`,
 At **8**: MB-5, 6, 8, 11, 12, 13, 15, 17, 19, 20, 21, 22, 23, 24, 25, 30. At **7**: MB-31 (blocking, the legal entity), 33, 35.
 At **5**: MB-43, 47, 49, 50. At **4**: MB-55, 57, 58, 59. At **3**: MB-64, 65, 66, 67. None blocks a card; MB-31 blocks launch, not
 this round. **MB-75** (`GITHUB_RELEASE_TOKEN` on Railway staging) stays the todo before any production release. All 46 open rows were
-incremented; no Owner comment sits on a Mailbox or Decisions row since R08. Raised today: **MB-88, MB-89** (below).
+incremented; no Owner comment sits on a Mailbox or Decisions row since R08. Raised today: **MB-88** (decided yes, ADR-106), **MB-89** (below).
 
 ## What v7 moves (checked on main)
 - **No stored natal report is hidden, once R09-03 lands.** The list never filters natal reports by version; the page does:
@@ -62,7 +62,7 @@ incremented; no Owner comment sits on a Mailbox or Decisions row since R08. Rais
 4. Inside a wave a card may land before the card it imports from; the orchestrator accepts a red intermediate until the wave ends (R05
    to R08). Without the Agent tool (R06 to R08), take wave A in card order. A builder who needs a pinned shape changed stops (R-0.1).
 5. **No card spends.** Tests stub the model; the dry lab is free. Paid checks sit under Acceptance, on the Owner's go.
-6. MB-88 is answered before wave A is dispatched, or R09-01 leaves `twoCharts.ts` and `shapes.ts` alone (its default).
+6. MB-88 is answered: yes (the Owner, 2026-09-26; ADR-106). R09-01 rewords `twoCharts.ts` and `shapes.ts` as pinned below.
 
 ## Pinned shapes
 - **House words** (`web/src/lib/evidence-glossary.ts`, R09-04): `HOUSE_WORDS = ["Self", "Money", "Mind", "Home", "Play", "Work",
@@ -92,6 +92,10 @@ incremented; no Owner comment sits on a Mailbox or Decisions row since R08. Rais
   `recipientOf(a: { name: string; isSelf: boolean }, b: { name: string; isSelf: boolean }): string` (a first name).
 - **Scenes** (R09-11): `ScenesIntro()` exported from `PairSections.tsx`, the spec's two sentences, the second `print:hidden`.
 - **Guard** (R09-12): `plainProse(text: string): string` in `web/src/lib/plain-prose.ts`; `CitedText` runs it first, signature unchanged.
+- **Chapter 01's premise** (R09-01, ADR-106): `twoCharts.ts`'s opening premise becomes "The reader sees the two charts side by side,
+  each alone. Under them this chapter's lines are set out as a ledger, each beside the link it rests on, with a pointer to the chapter
+  that shows it; the link cards follow." "each pointing at the chapter that shows it, by its title" goes; "the cards under the wheel"
+  becomes "the link cards"; `shapes.ts` drops "pointing at the chapter that shows it" from the strong line's description.
 
 ## Parallel groups
 **Group A**, one message: R09-01 to R09-13. **Group B**, once A is green: R09-14. In card order if the Agent tool is unavailable.
@@ -100,17 +104,18 @@ incremented; no Owner comment sits on a Mailbox or Decisions row since R08. Rais
 
 ## Wave A — the brain, the words, the wheel, the hero, the ledger, the card, the scene, the guard, the gap
 
-### R09-01 — The prompts say plain text (USER-FACING, brain, prompt only) · Sonnet — twoCharts provisional MB-88
-Objective: rules 3 and 8 in every natal and pair system prompt; the doctrine, the natal foundation, Overview, Mind and links follow.
-Files: `api/src/prompts/system.ts`, `pair/index.ts`, `sections/foundation.ts`, `overview.ts`, `mind.ts`, `pair/sections/links.ts`, and
-`style.test.ts`, `pair/pair-prompts.test.ts`, `prompts.test.ts`; only if MB-88 is yes, `pair/sections/twoCharts.ts`, `pair/shapes.ts`.
-Refs: spec note 9 (its quoted texts are verbatim); ADR-104; MASTERFILE R-5.1, R-5.4, R-4.4; readings 1, 2; artifact note 9; MB-88.
+### R09-01 — The prompts say plain text (USER-FACING, brain, prompt only) · Sonnet — twoCharts per ADR-106
+Objective: rules 3 and 8 in every natal and pair system prompt; the doctrine, the natal foundation, Overview, Mind, links and chapter 01 follow.
+Files: `api/src/prompts/system.ts`, `pair/index.ts`, `sections/foundation.ts`, `overview.ts`, `mind.ts`, `pair/sections/links.ts`,
+`pair/sections/twoCharts.ts`, `pair/shapes.ts`, and `style.test.ts`, `pair/pair-prompts.test.ts`, `prompts.test.ts`.
+Refs: spec note 9 (its quoted texts are verbatim); ADR-104, 106; MASTERFILE R-5.1, R-5.4, R-4.4; readings 1, 2; artifact note 9; pinned premise.
 Done when:
 - Rule 3 is the spec's; rule 8 opens on its new sentence (reading 1); `PAIR_DOCTRINE` gains the spec's bullet; the foundation reads
   "Supporting evidence cites chart facts as the brief's own lines give them." and adds "Each guidance sentence is behaviour, with no
   planet, sign, house, ruler or dignity in it."; Overview and Mind "give that paragraph a claim for each placement it rests on";
   links say "under the two charts" and "on the two charts"; titles stay in code; the `links` comment in `pair/index.ts` follows.
-- Tests pin each text in `SHARED_SYSTEM`, `PAIR_SYSTEM` and the sections; no prompt names the bi-wheel (twoCharts only if MB-88 is yes).
+- Tests pin each text in `SHARED_SYSTEM`, `PAIR_SYSTEM` and the sections; no prompt names the bi-wheel, one wheel or a legend; chapter 01
+  carries the pinned premise and asks no strong line to name its chapter.
 - Free fixture run: `git fetch origin report-lab/r06 && git checkout FETCH_HEAD -- fixtures/reports/` (never committed), then
   `pnpm report:lab --dry --base r06 --pair curie-winfrey`: the rules in every natal (five charts) and pair system prompt, the links
   wording, strict schemas, usage 0, input tokens up by the new text only.
@@ -278,17 +283,15 @@ the Vercel preview. Nothing generates.
 **On staging after the merge, free (the Owner's look):** the spec's acceptance 1 to 7 at 390 and 1440 px on a stored pair report and a
 stored natal report; 9 at 390, 820 and 1280 px (the Closing's first line within 26 px of its rule); the stored report with the Career
 label renders without it; the Prompts page shows no `:system` override and no `pair:links` or `pair:twoCharts` override.
-**Paid, on the Owner's go** (nothing spends automatically): the report-lab workflow's pair campaign on `curie-winfrey` (partners),
-anonymous against staging and holding no secret: two natal reports and a pair report under v7, about 90 ¢. Read: no label, heading or
-asterisk in any prose field (Career included), link cards that name their two bodies inside a sentence and complete their checks, the
-Failures tab for new rules (acceptance 8). The Lab page's Spot is natal only (`REPLAY_SECTIONS`); a Spot of Career and Overview on the
-four other matrix charts adds about 20 ¢ and prices itself first.
+**No paid check in this round** (the Owner, 2026-09-26: "no, I will check myself"). The Owner reads v7 on staging: no label, heading or
+asterisk in any prose field (Career included), link cards that name their two bodies inside a sentence, the Failures tab for new rules
+(acceptance 8). Nothing in the round spends; the Release's lab reads v7 before production.
 **Production** moves only on "promote": the Release view runs the full lab (the brain changed) and the QA agent, stops at `passed`
 while MB-75 is open, then `promote.yml` takes the release id; the bible's prompt section re-syncs (R-8.1).
 
 ## Risks
-1. **Report content changes** (USER-FACING, R-5.5): R09-01, R09-02, and twoCharts if MB-88 is yes. Every section writes under the new
-   rules from the deploy on; the dry lab proves the prompts, not the prose; the paid check and the Release stand before production. A
+1. **Report content changes** (USER-FACING, R-5.5): R09-01 (chapter 01 included, ADR-106) and R09-02. Every section writes under the new
+   rules from the deploy on; the dry lab proves the prompts, not the prose; the Owner's read on staging and the Release stand before production. A
    scene's quoted exchange now sits inside one paragraph (rule 8: no blank lines).
 2. **The reset widens**: a natal bump now also clears every pair `:system` override (both families share the style contract); the first
    deploy deletes any such row on staging, and production copies staging's. A pair `:user` override survives with its old wording.
@@ -309,17 +312,13 @@ while MB-75 is open, then `promote.yml` takes the release id; the bible's prompt
 11. **Wave A is thirteen cards**; if the Agent tool is unavailable again they run in card order.
 
 ## Questions raised (Mailbox, before the round starts)
-For the Owner, highest stakes first (R-12.1):
-1. **MB-88: chapter 01's prompt.** `twoCharts.ts` still tells the model the reader sees one wheel with lines and a legend, and asks
-   each strong line to name its chapter, which the new chip already does. *Recommendation:* reword it inside this round's v7 change
-   (the text is in the row), p2 kept. *If silent:* the prompt is untouched and a line may name the chapter its chip names.
-2. **Go for the paid check after the merge**: the pair campaign on curie-winfrey, about 90 ¢ (MB-68's credits are in). *Recommendation:*
-   yes: it is the one way to see acceptance 8, the link cards and the Career label, before the Release. *If silent:* the round merges
-   on free acceptance, and the Release's lab (five charts and one pair, since the pair brain changed) is the first to read it.
+Answered by the Owner on 2026-09-26, with "go" for the round:
+1. **MB-88, chapter 01's prompt: yes.** Reworded inside this round's v7 change, p2 kept (ADR-106; MB-88 decided).
+2. **The paid pair check after the merge (about 90 ¢): no.** The Owner checks v7 on staging; nothing in the round spends.
 
 For the Mailbox only, at its default: MB-89 (the chip read from claims, built provisional in R09-09).
 
 ## Close (the orchestrator)
 MB-86 gains R09's facts for the dashboard sky planner: the plate is `web/src/components/report/TriadPlate.tsx`, the words are
-`HOUSE_WORDS` and `houseWithWord()` in `web/src/lib/evidence-glossary.ts`, a banded Moon row reads "10.20°–22.85° Pisces". MB-88 closes
-if answered; MB-89 stays open at its default with its seam tagged. The INDEX code map loses the bi-wheel, gains the ledger, card, guard.
+`HOUSE_WORDS` and `houseWithWord()` in `web/src/lib/evidence-glossary.ts`, a banded Moon row reads "10.20°–22.85° Pisces". MB-88 is
+decided (ADR-106); MB-89 stays open at its default with its seam tagged. The INDEX code map loses the bi-wheel, gains the ledger, card, guard.
