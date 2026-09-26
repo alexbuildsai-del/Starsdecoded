@@ -2,30 +2,30 @@
 
 Raised by the Owner 2026-09-25: a landing page with beautiful visuals, transitions and
 copy in the brand, found and cited by ChatGPT and other AI search, with the Dashboard
-Sky orbit under the product. Draft 3, 2026-09-26, after the Owner's notes on draft 2.
+Sky orbit under the product. Draft 4, 2026-09-26: feedback said the copy read as AI-written.
 
-Artifact: https://claude.ai/artifact/Rx9GsG4ZUA8Gnxif6fHWbV (draft 3), live: the sky is
+Artifact: https://claude.ai/artifact/Rx9GsG4ZUA8Gnxif6fHWbV (draft 4), live: the sky is
 computed in the browser with astronomy-engine 2.1.19 and the calls in `chartCalculation.ts`,
 to the hundredth of the fixtures (Audrey Hepburn: Sun 13.12° Taurus, Moon 6.45° Pisces,
 rising 28.62° Aquarius). Claims are unedited r06 text; the orbit is Dashboard Sky.
 
-## Drafts 2 and 3, after the Owner's notes
+## Drafts 2 to 4, after the Owner's notes
 
-Kept as loved: the H1, first light, "See your sky first · Free · nothing is saved",
-Inside, Your people, Method, birth time, the two charts on one horizon and the dawn.
+Kept as loved: first light, the sky screen, the chart, the orbit, the two charts on one
+horizon, Inside, Method, birth time and the dawn's Sun.
 - Draft 2: the sky screen, one claim at a time, general chapters, no word counts,
   birth-time copy for people who will never know theirs, pricing parked, Roughly fixed.
 - Draft 3: the birth form's own place field; fields that fit every screen; claims on a
   timer with nothing behind them; Review 25 Sept's named houses on every wheel; a quieter
   orbit that stops at each person; no age band on the parent-and-child lens.
+- Draft 4: every word rewritten with the new `/ux-copy` skill, four plainer real claims,
+  plain chart labels; `/ux-copy` and `/web-taste` join `.claude/skills/`.
 
 ## What today's page gets wrong
 
-- `web/src/data/demoChart.ts` hand-types "Aria Solis" with invented degrees; the engine
-  puts its rising at 26.2° Gemini, not 2.1° Cancer (R-3.1, §9).
-- "€24" is typed at `LandingPage.tsx:163`, `:280` and `BirthFormPage.tsx:566`. No price
-  constant exists (R-6.3).
-- Every CTA goes to `/chart`, behind `RequireAuth` (`App.tsx:171-184`), against R-3.4.
+- `web/src/data/demoChart.ts` hand-types "Aria Solis" (rising 26.2° Gemini, not 2.1°
+  Cancer; R-3.1). "€24" is typed three times (R-6.3). Every CTA goes to `/chart`, behind
+  `RequireAuth` (`App.tsx:171-184`), against R-3.4.
 - "Ten sections of insight" lists registry labels, not the ten chapters
   (`ReportPage.tsx:52-63`), MB-8. Neither product is ever named.
 - The birth form's place list (`BirthFormPage.tsx:156`) shows OpenStreetMap results with
@@ -37,24 +37,23 @@ Inside, Your people, Method, birth time, the two charts on one horizon and the d
 
 **A. The page, top to bottom** (copy as in the artifact; every number read from code)
 
-1. **Nav.** Wordmark; The report, Inside, Your people, Method, FAQ; Sign in; Get my
-   report. Every CTA opens the birth form without an account.
-2. **Hero.** Draft 1's H1, lede and live wheel at full viewport height: the sky now over
-   the visitor's time-zone city, on the Ascendant. The horizon runs the full width, H1
-   above it, form below. The form and its result share one slot; nothing reflows. The
-   fields sit three across, two, or one per row on a phone; the time always shows AM or
-   PM; phone inputs are 16 px so the page never zooms. Below 900 px the hero stacks.
-3. **The sky screen.** Draw my sky lifts the wheel into a full-screen sky (FLIP, 0.75 s).
-   It rewinds to the birth minute (real positions, trails, a countdown date), then names
-   Sun, Moon and Rising, with "Get the report for this sky" and "Draw another". Close or
+1. **Nav.** Wordmark; Example, What's inside, Your people, How it works, FAQ; Sign in;
+   Get my report. Every CTA opens the birth form without an account.
+2. **Hero.** "Your birth chart, explained in plain words." over the live wheel at full
+   height: the sky now over the visitor's city, on the Ascendant, the horizon across the
+   page. Form and result share one slot. Fields sit three, two or one per row; the time
+   always shows AM or PM; phone inputs are 16 px. Below 900 px the hero stacks.
+3. **The sky screen.** Show my chart lifts the wheel into a full-screen sky (FLIP, 0.75
+   s). It rewinds to the birth minute (real positions, trails, a countdown date), then
+   names Sun, Moon and Rising, with "Get my full report" and "Try another date". Close or
    Escape flies it back; the hero keeps that sky with a summary. No time: no horizon or
    houses, and the Moon as the day's arc. Nothing stored; the birth form opens prefilled.
 4. **Places, the birth form's field.** The landing reuses the birth form's place search
    as it is: one component, one behaviour. Its list gains "© OpenStreetMap contributors",
    in the form too. The artifact runs the field on a GeoNames copy only to work offline.
 5. **Every claim, cited.** In view, the wheel rewinds once from now to the sample's
-   birth. Four real claims then take turns every 6.5 s (Sun, Moon, Rising, one aspect),
-   each with kind chips and "n verified references", a line from its number to its place
+   birth. Four real claims, the plainest the run cites by `/ux-copy`'s test, then take
+   turns every 6.5 s, each with its evidence, a line from its number to its place
    and a line filling under its tab. A tap stops the cycle. Nothing sits behind the
    claims, nothing is tied to scrolling; reduced motion shows four still tabs.
 6. **Inside.** The ten chapter names from the registry in their hues. Each has one
@@ -66,8 +65,9 @@ Inside, Your people, Method, birth time, the two charts on one horizon and the d
 8. **Two charts, one horizon.** Two triad plates, each on its own Ascendant, so both
    horizons fall on one dotted line with a violet knot: "ONE HORIZON", "NO SCORE".
    Lower halves shaded; Sun and Moon at their degrees, inner lane within 14° of the
-   Ascendant (ADR-17). Doors and straplines from `lenses.ts`; seven chapters, a line
-   each. A lens change glides the second Sun and Moon. No age band.
+   Ascendant (ADR-17). Doors and straplines from `lenses.ts`, whose three straplines are
+   rewritten plainly; seven chapters, a line each. A lens change glides the second Sun
+   and Moon. No age band.
 9. **Method.** Three steps with the sample's real readout and brief. Three facts: the
    writer never sees birth data, no predictions, the credit back on failure.
 10. **Birth time.** Written for people who only have what a parent remembers, or
@@ -77,8 +77,8 @@ Inside, Your people, Method, birth time, the two charts on one horizon and the d
 11. **Pricing, parked.** A marked slot above the FAQ until the pricing session (MB-5,
     MB-6). The price will come from one constant.
 12. **FAQ.** Ten questions, answer first, all visible. The Owner reviews the wording.
-13. **The dawn.** "Your sky happened once. Read it closely." over the report's dawn
-    light and rising Sun. The footer has `EPHEMERIS`, an Updated date and the credits.
+13. **The dawn.** "Start with your birth date." over the report's dawn light and
+    rising Sun. The footer has `EPHEMERIS`, an Updated date and the credits.
 14. **The wheel.** Every wheel is the product's wheel component, so it follows
     `review-25-09`: the band names each house under its sign ("10 · CAREER"), the inner
     number ring goes, and a printed house carries its word ("1st (self)"). A blind chart
@@ -92,25 +92,22 @@ Inside, Your people, Method, birth time, the two charts on one horizon and the d
 
 **B. Found by AI** (as draft 1)
 
-17. **Real HTML.** The public routes are prerendered at build in the web app with
-    `renderToString` and wouter's `ssrPath`, keep `#root` and hydrate: `/`, `/sky`,
-    `/sample`, `/method`, `/compatibility`, `/learn/*`, `/faq` and the legal pages.
-18. **Crawl surface.** robots.txt allows `*` and disallows `/api/` and `/admin/`. A
-    sitemap with `lastmod`; canonical, OG and Twitter tags. App routes send
-    `X-Robots-Tag: noindex`; unknown public paths answer 404.
+17. **Real HTML.** Public routes (`/`, `/sky`, `/sample`, `/method`, `/compatibility`,
+    `/learn/*`, `/faq`, legal) prerender at build with `renderToString` and `ssrPath`.
+18. **Crawl surface.** robots.txt allows `*`, not `/api/` or `/admin/`; a sitemap with
+    `lastmod`; canonical, OG and Twitter tags; app routes noindex; unknown paths 404.
 19. **Structured data.** Organization, WebSite, Product and Offer, Article with
-    `dateModified`, BreadcrumbList. FAQPage optional; no review markup.
-20. **Answer first.** Each page opens with a sentence that answers its question alone,
-    under question headings, with an Updated date.
-21. **Registration and measurement.** Bing Webmaster Tools, Search Console and IndexNow
-    on deploy; the Vercel AI-bot rule Off or Log. The AI reports in Search Console and
-    Bing, `utm_source=chatgpt.com` referrals, crawler hits. Events ride MB-11. No GitHub
-    secret. **llms.txt** comes last.
+    `dateModified`, BreadcrumbList; FAQPage optional; no review markup.
+20. **Answer first.** Each page opens with a sentence that answers its question alone.
+21. **Registration and measurement.** Bing Webmaster Tools, Search Console, IndexNow on
+    deploy; the AI-bot rule Off or Log; AI reports, `utm_source=chatgpt.com`, crawler
+    hits; events ride MB-11; no GitHub secret. **llms.txt** comes last.
 
 **C. Voice**
 
-22. **Marketing voice v1.** The artifact's seven rules, including "say what it covers,
-    not how long it is", in `docs/annex/marketing-voice.md`, linked from MASTERFILE §9.
+22. **Marketing voice.** `.claude/skills/ux-copy` (the coffee test, twelve rules on the
+    report's style contract) and `.claude/skills/web-taste` for the look. MASTERFILE §9
+    links both in place of "not written yet".
 
 ## Out of scope
 
@@ -118,6 +115,9 @@ Inside, Your people, Method, birth time, the two charts on one horizon and the d
 - Mailbox topics at lock: rectification (a birth time estimated from life events), and
   our own place index (135,233 GeoNames towns with zones, in the artifact) for the day
   Nominatim's limits bite. The wheel's redesign belongs to `review-25-09`.
+- The report's own prose. No Sun or Ascendant claim in the sample run passes `/ux-copy`:
+  the claims echo `vocabulary.ts` ("The Moon is the body…"), and the style contract's
+  model sentence has the "X first, Y second" shape. A Mailbox topic for the prose study.
 - Placement pages, a comparison page, "Is astrology real?" (question 3), off-site
   mentions (MB-25), Astro, a light theme, a new palette, a per-chart mark (§9).
 
@@ -144,6 +144,8 @@ Inside, Your people, Method, birth time, the two charts on one horizon and the d
   every public route.
 - **Crawl files.** robots.txt, sitemap.xml and llms.txt answer 200. App routes carry
   noindex, `/no-such-page` answers 404, and the JSON-LD validates.
+- **Plain words.** Every string on the public pages passes `/ux-copy`, and every page
+  passes `/web-taste`'s checks. Each Release picks the four claims again by that test.
 - **Reduced motion.** Nothing animates; every section is complete at first paint.
 - **Phone at 390 px.** No horizontal scroll, nothing overlaps the wheel, and the sky
   screen fills the phone.
@@ -153,22 +155,19 @@ Inside, Your people, Method, birth time, the two charts on one horizon and the d
 
 ## Screens
 
-All in the artifact: the page (live, desktop), Draft 3, What changes, Phone (live at
+All in the artifact: the page (live, desktop), Draft 4, What changes, Phone (live at
 390 px, sky screen included), Found by AI (engine flow, HTML before and after, page
 table, robots.txt, llms.txt), Voice, Motion, Decisions, Questions.
 
 ## Open questions
 
-1. **Whose report is the public sample?** Recommend Audrey Hepburn, as the fixtures plan:
-   the time is from her birth certificate (AA). Her estate licenses her name, so text
-   and chart only, no photo, with a legal line beside MB-31. Alternatives: Marie Curie,
-   or a synthetic person. Default: Audrey Hepburn, text and chart only.
-2. **Let AI companies train on public pages?** Recommend yes: allow GPTBot, ClaudeBot and
-   Applebot-Extended as well as the search crawlers. Google-Extended stays allowed either
-   way. Default: allow all on public pages.
-3. **How candid, and how far?** Recommend "Is this scientific?" as written, and the eight
-   cornerstone pages at launch; placement pages wait for a checked writer. Default: the
-   FAQ as written, eight pages at launch.
+1. **Whose report is the public sample?** Recommend Audrey Hepburn (birth certificate
+   time, AA), text and chart only with a legal line beside MB-31; or Marie Curie, or a
+   synthetic person. Default: Audrey Hepburn, text and chart only.
+2. **Let AI companies train on public pages?** Recommend yes: GPTBot, ClaudeBot and
+   Applebot-Extended as well as the search crawlers. Default: allow all on public pages.
+3. **How candid, and how far?** Recommend "Is this scientific?" as written, and eight
+   cornerstone pages at launch. Default: the FAQ as written, eight pages at launch.
 
 ## Decisions to record (numbers provisional until lock)
 
@@ -181,8 +180,8 @@ table, robots.txt, llms.txt), Voice, Motion, Decisions, Questions.
 - **ADR-99 One place field.** The landing reuses the birth form's place search as it is,
   with the OpenStreetMap credit. Our own index waits in the Mailbox.
 - **ADR-100 Proof by citation, on a timer.** The wheel rewinds to the sample once in
-  view; four real claims then take turns, each drawn to its place. Nothing behind them,
-  nothing tied to scroll. Each Release regenerates the sample.
+  view; four real claims, picked by `/ux-copy`, take turns, each drawn to its place.
+  Nothing behind them, nothing tied to scroll. Each Release regenerates the sample.
 - **ADR-101 Chapters in general terms, no word counts.** Registry names (closes MB-8),
   each described from its prompt. Marketing copy never states a length.
 - **ADR-102 The orbit sells the second person.** Dashboard Sky with synthetic people; the
@@ -195,6 +194,7 @@ table, robots.txt, llms.txt), Voice, Motion, Decisions, Questions.
   IndexNow and Search Console. The AI-bot firewall is never Deny; llms.txt comes last.
 - **ADR-106 Answer first.** Each public page opens with a sentence that answers its
   question alone, and an Updated date that moves only with its content.
-- **ADR-107 Marketing voice v1.** Seven rules; closes the voice half of MB-25.
+- **ADR-107 Marketing voice lives in `/ux-copy`.** The coffee test on the style contract,
+  with `/web-taste` for the look. Closes the voice half of MB-25.
 - **ADR-108 The dawn closes the page.** Dawn light and the Sun over a full-width
   horizon, with the last call to action. Pricing takes its slot above the FAQ.

@@ -55,6 +55,6 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   Spawn, Reading room, Reveal with the Prose study, Failures, Release) · tables `lab_runs`, `lab_judgements`, `generation_failures`, `lab_releases`
 
 ## Agents and skills
-- `.claude/agents/` planner · orchestrator · builder · qa · `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox · /report-lab · `.github/pull_request_template.md` the gate checklist every PR carries
+- `.claude/agents/` planner · orchestrator · builder · qa · `.claude/skills/` /ideate · /lock · /plan · /round · /qa · /mailbox · /report-lab · /ux-copy (every word a user reads) · /web-taste (every page) · `.github/pull_request_template.md` the gate checklist every PR carries
 - `.github/workflows/` `ci.yml` typecheck, builds, tests · `smoke.yml` + `smoke-run.yml` deploy check · `report-lab.yml` the anonymous natal, pass and pair campaigns, no secret ·
   `promote.yml` the fallback door: reads a release's public verdict, smokes, fast-forwards with the built-in token (MB-79). No workflow holds a secret.
