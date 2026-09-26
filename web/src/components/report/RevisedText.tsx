@@ -10,6 +10,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { HorizonPass, RevisionMark, SectionAddition } from "@/types/chart";
+import { withHouseWords } from "@/lib/evidence-glossary";
 
 export interface RevisionSet {
   marks: RevisionMark[];
@@ -110,7 +111,7 @@ export function RevisedSpan({ mark, children }: { mark: RevisionMark; children: 
           <p className="now"><span className="sr-only">Now: </span>{mark.now}</p>
           <div className="chips" aria-label="Because">
             {mark.evidence.map((e, i) => (
-              <span key={i} className={`chip ${BRASS_KINDS.has(e.ref.kind) ? e.ref.kind : ""}`}>{e.label}</span>
+              <span key={i} className={`chip ${BRASS_KINDS.has(e.ref.kind) ? e.ref.kind : ""}`}>{withHouseWords(e.label)}</span>
             ))}
           </div>
           <div className="foot">Because · your birth time</div>
