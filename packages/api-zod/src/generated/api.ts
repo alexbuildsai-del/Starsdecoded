@@ -51,7 +51,16 @@ export const ListReportsResponseItem = zod.object({
   "failureReason": zod.union([zod.object({
   "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
   "line": zod.string().describe('The plain line the customer reads.')
-}).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional()
+}).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
+  "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
+  "send": zod.union([zod.object({
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
+  "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
+  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+}).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this row; null where it is not offered (ADR-120, ADR-133).'),
+  "sharedBy": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).'),
+  "stoppedBy": zod.string().nullish().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).')
 })
 export const ListReportsResponse = zod.array(ListReportsResponseItem)
 
@@ -101,7 +110,16 @@ export const CreateReportResponse = zod.object({
   "failureReason": zod.union([zod.object({
   "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
   "line": zod.string().describe('The plain line the customer reads.')
-}).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional()
+}).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
+  "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
+  "send": zod.union([zod.object({
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
+  "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
+  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+}).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this row; null where it is not offered (ADR-120, ADR-133).'),
+  "sharedBy": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).'),
+  "stoppedBy": zod.string().nullish().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).')
 })
 
 
@@ -138,7 +156,7 @@ export const GetReportResponse = zod.object({
   "birthPlace": zod.string(),
   "latitude": zod.number(),
   "longitude": zod.number(),
-  "isSelf": zod.boolean().describe('The profile the account holder marked as their own; the hero puts it on the left.'),
+  "isSelf": zod.boolean().describe('The viewer\'s own chart from the viewer\'s side, the owner\'s is_self or the claimer\'s claimed_as_self; the hero puts it on the left (ADR-70, ADR-120).'),
   "chartData": zod.union([zod.object({
   "datetimeUtc": zod.string(),
   "julianDay": zod.number(),
@@ -1236,7 +1254,15 @@ export const GetReportResponse = zod.object({
   "line": zod.string().describe('The plain line the customer reads.')
 }).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
   "createdAt": zod.string(),
-  "updatedAt": zod.string()
+  "updatedAt": zod.string(),
+  "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
+  "send": zod.union([zod.object({
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
+  "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
+  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+}).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this report; null where it is not offered (ADR-120, ADR-133).'),
+  "giverName": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).')
 })
 
 
@@ -2167,7 +2193,15 @@ export const ListProfilesResponseItem = zod.object({
   "ownership": zod.enum(['owner', 'claimed', 'invited', 'unclaimed']).optional().describe('Viewer-relative ownership status of the profile.'),
   "claimedByName": zod.string().nullish(),
   "inviteEmail": zod.string().nullish(),
-  "isSelf": zod.boolean().optional().describe('True if this profile is the authenticated viewer\'s own self-profile. Set explicitly when the user created the report via the \"Generate My Chart\" flow (isForSelf=true in POST \/reports). Never derived by heuristic. Always false for anonymous viewers.\n')
+  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the \"Generate My Chart\" flow (isForSelf=true in POST \/reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
+  "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
+  "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
+  "send": zod.union([zod.object({
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
+  "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
+  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+}).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} for this person; null where it is not offered (ADR-120, ADR-139).')
 })
 export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
 
@@ -2206,12 +2240,20 @@ export const CreateProfileResponse = zod.object({
   "ownership": zod.enum(['owner', 'claimed', 'invited', 'unclaimed']).optional().describe('Viewer-relative ownership status of the profile.'),
   "claimedByName": zod.string().nullish(),
   "inviteEmail": zod.string().nullish(),
-  "isSelf": zod.boolean().optional().describe('True if this profile is the authenticated viewer\'s own self-profile. Set explicitly when the user created the report via the \"Generate My Chart\" flow (isForSelf=true in POST \/reports). Never derived by heuristic. Always false for anonymous viewers.\n')
+  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the \"Generate My Chart\" flow (isForSelf=true in POST \/reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
+  "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
+  "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
+  "send": zod.union([zod.object({
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
+  "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
+  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+}).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} for this person; null where it is not offered (ADR-120, ADR-139).')
 })
 
 
 /**
- * Allows the owner to update mutable profile fields. Currently supports toggling `isSelf`. Setting `isSelf=true` automatically clears any other self-profile for the same user (one per user invariant).
+ * The owner toggles `isSelf`; setting `isSelf=true` automatically clears any other self-profile for the same user (one per user invariant). The claimer of a sent chart sets `claimedAsSelf`, This is me or Not me (ADR-120).
  * @summary Update mutable profile fields
  */
 export const UpdateProfileParams = zod.object({
@@ -2219,8 +2261,9 @@ export const UpdateProfileParams = zod.object({
 })
 
 export const UpdateProfileBody = zod.object({
-  "isSelf": zod.boolean().optional().describe('Set to true to designate this profile as the viewer\'s own self-profile. Setting true automatically clears isSelf on all other profiles owned by the same user (one per user). Set to false to unmark it.\n')
-}).describe('Mutable profile fields the owner can update.')
+  "isSelf": zod.boolean().optional().describe('Set to true to designate this profile as the viewer\'s own self-profile. Setting true automatically clears isSelf on all other profiles owned by the same user (one per user). Set to false to unmark it.\n'),
+  "claimedAsSelf": zod.boolean().optional().describe('The claimer\'s This is me (true) or Not me (false) on a sent chart (ADR-120).')
+}).describe('Mutable profile fields, isSelf for the owner and claimedAsSelf for the claimer.')
 
 export const UpdateProfileResponse = zod.object({
   "id": zod.string(),
@@ -2241,8 +2284,27 @@ export const UpdateProfileResponse = zod.object({
   "ownership": zod.enum(['owner', 'claimed', 'invited', 'unclaimed']).optional().describe('Viewer-relative ownership status of the profile.'),
   "claimedByName": zod.string().nullish(),
   "inviteEmail": zod.string().nullish(),
-  "isSelf": zod.boolean().optional().describe('True if this profile is the authenticated viewer\'s own self-profile. Set explicitly when the user created the report via the \"Generate My Chart\" flow (isForSelf=true in POST \/reports). Never derived by heuristic. Always false for anonymous viewers.\n')
+  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the \"Generate My Chart\" flow (isForSelf=true in POST \/reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
+  "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
+  "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
+  "send": zod.union([zod.object({
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
+  "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
+  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+}).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} for this person; null where it is not offered (ADR-120, ADR-139).')
 })
+
+
+/**
+ * The claimer's Stop sharing, which moves the sent report to their account and out of the giver's list at once (ADR-139).
+ * @summary Stop sharing a sent chart with its giver
+ */
+export const StopSharingProfileParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const StopSharingProfileResponse = zod.void()
 
 
 /**
@@ -2384,6 +2446,44 @@ export const GetCompatibilitySummaryResponse = zod.object({
 })),
   "createdAt": zod.string()
 })
+
+
+/**
+ * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82). MB-103 provisional.
+ * @summary Send a compatibility report to the other of its two people
+ */
+export const SendCompatibilityParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const SendCompatibilityBody = zod.object({
+  "email": zod.string().email().optional()
+}).describe('The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; MB-103 provisional).')
+
+export const SendCompatibilityResponse = zod.object({
+  "state": zod.enum(['invited', 'granted']),
+  "invite": zod.union([zod.object({
+  "id": zod.string(),
+  "token": zod.string(),
+  "email": zod.string(),
+  "profileId": zod.string(),
+  "relationshipId": zod.string().nullish(),
+  "expiresAt": zod.string(),
+  "claimUrl": zod.string(),
+  "emailDelivered": zod.boolean()
+}),zod.null()]).describe('The invite sent; null when access was granted at once.')
+}).describe('How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; MB-103 provisional).')
+
+
+/**
+ * The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, MB-103 provisional).
+ * @summary Stop sharing a compatibility report its sender sent
+ */
+export const StopSharingCompatibilityParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const StopSharingCompatibilityResponse = zod.void()
 
 
 /**
@@ -2582,12 +2682,52 @@ export const GetSynastryReportStatusResponse = zod.object({
 
 
 /**
- * One credit is one report, whatever the report (ADR-42). Returns the signed-in user's available and used counts, zeros for anonymous users.
+ * One credit is one report, whatever the report (ADR-42). Returns the signed-in user's available, used and held counts and last bundle, zeros for anonymous users.
  * @summary Get the current user's credit counts
  */
 export const GetCreditsResponse = zod.object({
   "available": zod.number().int(),
-  "used": zod.number().int()
+  "used": zod.number().int(),
+  "held": zod.number().int().optional().describe('Credits held for waiting gifts, outside available until claimed or returned (ADR-123).'),
+  "lastBundle": zod.object({
+  "id": zod.string(),
+  "count": zod.number().int(),
+  "createdAt": zod.string()
+}).nullish().describe('The newest bundle, which the path after buying plans from; null before any (ADR-125).')
+}).describe('One credit kind (ADR-42). The typed breakdown went with it; the columns drop with payments (MB-57).')
+
+
+/**
+ * History's lines, bought, a gift received and spent (ADR-129); a test bundle's line says so (ADR-138). Empty for anonymous users.
+ * @summary What the viewer's credits did, newest first
+ */
+export const GetCreditHistoryResponseItem = zod.object({
+  "kind": zod.enum(['bought', 'gift', 'spent']),
+  "count": zod.number().int().describe('Credits the line moves, a positive number; bought and gift add them, spent takes them away.'),
+  "date": zod.string().describe('ISO-8601 timestamp of the line'),
+  "label": zod.string().describe('What the line reads, \"A gift from {giver}\" on a gift, the report\'s name when spent, \"Gift to {name}\" on the giver\'s side once claimed.'),
+  "test": zod.boolean().describe('A test bundle\'s line, which says so (ADR-138).')
+}).describe('One line of History, bought, a gift received or spent (ADR-129).')
+export const GetCreditHistoryResponse = zod.array(GetCreditHistoryResponseItem)
+
+
+/**
+ * Get credits off production, 1, 3 or 5 credits free for any signed-in user, marked as test credits (ADR-138). MB-6 provisional until checkout.
+ * @summary Add a free test bundle of credits
+ */
+export const TestCheckoutBody = zod.object({
+  "count": zod.union([zod.literal(1),zod.literal(3),zod.literal(5)])
+}).describe('A test bundle of 1, 3 or 5 credits (ADR-138).')
+
+export const TestCheckoutResponse = zod.object({
+  "available": zod.number().int(),
+  "used": zod.number().int(),
+  "held": zod.number().int().optional().describe('Credits held for waiting gifts, outside available until claimed or returned (ADR-123).'),
+  "lastBundle": zod.object({
+  "id": zod.string(),
+  "count": zod.number().int(),
+  "createdAt": zod.string()
+}).nullish().describe('The newest bundle, which the path after buying plans from; null before any (ADR-125).')
 }).describe('One credit kind (ADR-42). The typed breakdown went with it; the columns drop with payments (MB-57).')
 
 
@@ -2643,7 +2783,8 @@ export const CreateInviteResponse = zod.object({
  * still resolvable (so the landing page can show a "this invite was
  * already accepted" state) and is signaled by `alreadyClaimed: true`
  * in the response body. Tokens that do not exist or have expired
- * return 404.
+ * return 404. A send's token lives 7 days and a gift's 30, expiry
+ * applied on read (ADR-123).
  * @summary Resolve an invite token to its preview metadata
  */
 export const GetInviteParams = zod.object({
@@ -2653,17 +2794,20 @@ export const GetInviteParams = zod.object({
 export const GetInviteResponse = zod.object({
   "token": zod.string(),
   "email": zod.string(),
-  "inviterName": zod.string().nullish(),
+  "inviterName": zod.string().nullish().describe('The giver\'s first name, never an email (ADR-135, MB-85).'),
   "profileName": zod.string(),
   "relationshipId": zod.string().nullish(),
   "relationshipReportId": zod.string().nullish(),
   "expiresAt": zod.string(),
-  "alreadyClaimed": zod.boolean()
+  "alreadyClaimed": zod.boolean(),
+  "kind": zod.enum(['send', 'gift']).optional().describe('A sent report or a gifted credit (ADR-120, ADR-139).'),
+  "recipientName": zod.string().nullish().describe('The name the giver gave a gift\'s recipient, for the cover; null on a send (ADR-128).'),
+  "note": zod.string().nullish().describe('The giver\'s note on a gift\'s cover, at most 280 characters; null without one (ADR-128).')
 })
 
 
 /**
- * Requires Clerk authentication. Marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship.
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139).
  * @summary Claim an invite as the signed-in user
  */
 export const ClaimInviteParams = zod.object({
@@ -2674,8 +2818,78 @@ export const ClaimInviteResponse = zod.object({
   "profileId": zod.string(),
   "relationshipId": zod.string().nullish(),
   "relationshipReportId": zod.string().nullish(),
-  "redirectTo": zod.string()
+  "redirectTo": zod.string().describe('Where the claim lands; a gift answers \/dashboard (ADR-139).'),
+  "kind": zod.enum(['send', 'gift']).optional().describe('A sent report or a gifted credit (ADR-120, ADR-139).'),
+  "askSelf": zod.boolean().optional().describe('Ask \"Is this you?\", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120).')
 })
+
+
+/**
+ * What a giver sees of a gift, its state and nothing the recipient makes (ADR-139). Empty for anonymous users.
+ * @summary The viewer's gifts, waiting, claimed or returned
+ */
+export const ListGiftsResponseItem = zod.object({
+  "id": zod.string(),
+  "recipientName": zod.string(),
+  "email": zod.string(),
+  "note": zod.string().nullable(),
+  "sentAt": zod.string().describe('ISO-8601 timestamp when the gift went out'),
+  "returnsAt": zod.string().describe('When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123).'),
+  "remindedAt": zod.string().nullable().describe('The last reminder; null before any'),
+  "state": zod.enum(['waiting', 'claimed', 'returned']).describe('Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).'),
+  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).')
+}).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).')
+export const ListGiftsResponse = zod.array(ListGiftsResponseItem)
+
+
+/**
+ * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
+ * @summary Gift a report
+ */
+
+export const createGiftBodyNoteMax = 280;
+
+
+
+export const CreateGiftBody = zod.object({
+  "recipientName": zod.string().min(1),
+  "email": zod.string().email(),
+  "note": zod.string().max(createGiftBodyNoteMax).optional()
+}).describe('Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).')
+
+export const CreateGiftResponse = zod.object({
+  "id": zod.string(),
+  "recipientName": zod.string(),
+  "email": zod.string(),
+  "note": zod.string().nullable(),
+  "sentAt": zod.string().describe('ISO-8601 timestamp when the gift went out'),
+  "returnsAt": zod.string().describe('When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123).'),
+  "remindedAt": zod.string().nullable().describe('The last reminder; null before any'),
+  "state": zod.enum(['waiting', 'claimed', 'returned']).describe('Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).'),
+  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).')
+}).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).')
+
+
+/**
+ * Mints a fresh claim link for the same gift and emails it; the gift keeps its return date (ADR-123).
+ * @summary Remind the recipient of a waiting gift
+ */
+export const RemindGiftParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RemindGiftResponse = zod.void()
+
+
+/**
+ * Its claim link stops working and the held credit returns to the giver's balance (ADR-123).
+ * @summary Take a waiting gift back
+ */
+export const TakeBackGiftParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const TakeBackGiftResponse = zod.void()
 
 
 /**

@@ -21,9 +21,11 @@ tags:
   - name: horizon
     description: What a birth time settles, before anything is paid
   - name: invites
-    description: Invite & claim flow for sharing a synastry report with the other person
+    description: The claim link behind Send and Gift, previewed and claimed by its recipient (ADR-120, ADR-139)
+  - name: gifts
+    description: Gift a report, a credit held for someone until they claim it (ADR-123, ADR-139)
   - name: credits
-    description: Credit balance for report generation
+    description: One balance of credits, its History and the test checkout (ADR-129, ADR-138)
 paths:
   /healthz:
     get:
@@ -289,9 +291,9 @@ paths:
       tags: [profiles]
       summary: Update mutable profile fields
       description: >
-        Allows the owner to update mutable profile fields.
-        Currently supports toggling `isSelf`. Setting `isSelf=true` automatically
-        clears any other self-profile for the same user (one per user invariant).
+        The owner toggles `isSelf`; setting `isSelf=true` automatically clears
+        any other self-profile for the same user (one per user invariant). The
+        claimer of a sent chart sets `claimedAsSelf`, This is me or Not me (ADR-120).
       parameters:
         - name: id
           in: path
@@ -318,13 +320,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: Not the owner of this profile
+          description: Not the owner of this profile, or for `claimedAsSelf` not its claimer
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profiles/{id}/stop-sharing:
+    post:
+      operationId: stopSharingProfile
+      tags: [profiles]
+      summary: Stop sharing a sent chart with its giver
+      description: The claimer's Stop sharing, which moves the sent report to their account and out of the giver's list at once (ADR-139).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The giver no longer reads it
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not a chart sent to the viewer
           content:
             application/json:
               schema:
@@ -512,6 +542,75 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /compatibility/{id}/send:
+    post:
+      operationId: sendCompatibility
+      tags: [compatibility]
+      summary: Send a compatibility report to the other of its two people
+      description: >
+        Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139):
+        someone already on Stars Decoded reads it at once, anyone else is invited at `email`
+        (MB-82). MB-103 provisional.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendCompatibilityBody"
+      responses:
+        "201":
+          description: Invited, or granted at once
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PairSendResult"
+        "400":
+          description: An unusable email, or none for someone not yet on Stars Decoded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The viewer is not one of the pair's two (ADR-133)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /compatibility/{id}/stop-sharing:
+    post:
+      operationId: stopSharingCompatibility
+      tags: [compatibility]
+      summary: Stop sharing a compatibility report its sender sent
+      description: The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, MB-103 provisional).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The other person no longer reads it
+        "404":
+          description: Not a compatibility report the viewer sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /relationships:
     post:
       operationId: createRelationship
@@ -673,7 +772,7 @@ paths:
       operationId: getCredits
       tags: [credits]
       summary: Get the current user's credit counts
-      description: One credit is one report, whatever the report (ADR-42). Returns the signed-in user's available and used counts, zeros for anonymous users.
+      description: One credit is one report, whatever the report (ADR-42). Returns the signed-in user's available, used and held counts and last bundle, zeros for anonymous users.
       responses:
         "200":
           description: Credit counts
@@ -681,6 +780,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreditCounts"
+
+  /credits/history:
+    get:
+      operationId: getCreditHistory
+      tags: [credits]
+      summary: What the viewer's credits did, newest first
+      description: History's lines, bought, a gift received and spent (ADR-129); a test bundle's line says so (ADR-138). Empty for anonymous users.
+      responses:
+        "200":
+          description: History lines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditHistoryItem"
+
+  /checkout/test:
+    post:
+      operationId: testCheckout
+      tags: [credits]
+      summary: Add a free test bundle of credits
+      description: Get credits off production, 1, 3 or 5 credits free for any signed-in user, marked as test credits (ADR-138). MB-6 provisional until checkout.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestCheckoutBody"
+      responses:
+        "201":
+          description: The counts with the bundle added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditCounts"
+        "400":
+          description: A count other than 1, 3 or 5
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Signed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: On production, where only a real checkout adds credits (ADR-138)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /invites:
     get:
@@ -768,7 +921,8 @@ paths:
         still resolvable (so the landing page can show a "this invite was
         already accepted" state) and is signaled by `alreadyClaimed: true`
         in the response body. Tokens that do not exist or have expired
-        return 404.
+        return 404. A send's token lives 7 days and a gift's 30, expiry
+        applied on read (ADR-123).
       parameters:
         - name: token
           in: path
@@ -794,7 +948,12 @@ paths:
       operationId: claimInvite
       tags: [invites]
       summary: Claim an invite as the signed-in user
-      description: Requires Clerk authentication. Marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship.
+      description: >
+        Requires Clerk authentication. A send marks the token claimed, sets
+        profile.claimed_by_user_id, and adds the user as a participant on the
+        related relationship. A gift moves its held credit into the claimer's
+        balance and answers `redirectTo: /dashboard`; it puts no one on an
+        orbit (ADR-139).
       parameters:
         - name: token
           in: path
@@ -816,6 +975,108 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Token not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /gifts:
+    get:
+      operationId: listGifts
+      tags: [gifts]
+      summary: The viewer's gifts, waiting, claimed or returned
+      description: What a giver sees of a gift, its state and nothing the recipient makes (ADR-139). Empty for anonymous users.
+      responses:
+        "200":
+          description: The viewer's gifts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Gift"
+    post:
+      operationId: createGift
+      tags: [gifts]
+      summary: Gift a report
+      description: Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGiftBody"
+      responses:
+        "201":
+          description: The gift, waiting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gift"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: A gift needs an account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /gifts/{id}/remind:
+    post:
+      operationId: remindGift
+      tags: [gifts]
+      summary: Remind the recipient of a waiting gift
+      description: Mints a fresh claim link for the same gift and emails it; the gift keeps its return date (ADR-123).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Reminder sent
+        "404":
+          description: No waiting gift of the viewer's with this id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Reminded too recently
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /gifts/{id}:
+    delete:
+      operationId: takeBackGift
+      tags: [gifts]
+      summary: Take a waiting gift back
+      description: Its claim link stops working and the held credit returns to the giver's balance (ADR-123).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Taken back
+        "404":
+          description: No gift of the viewer's with this id
           content:
             application/json:
               schema:
@@ -937,6 +1198,31 @@ components:
         - longitude
         - timezoneOffset
 
+    Access:
+      description: "The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs MB-103 provisional)."
+      type: string
+      enum: [owner, claimed, participant]
+
+    SendState:
+      description: Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).
+      type: object
+      properties:
+        state:
+          type: string
+          enum: [can_send, can_grant, sent, joined]
+          description: can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".
+        profileId:
+          type: string
+          description: The person it goes to, the report's subject or the pair's other person.
+        relationshipId:
+          type: string
+          nullable: true
+          description: The pair's relationship; null on a natal report.
+        firstName:
+          type: string
+          description: The name the control prints, "Send to {firstName}".
+      required: [state, profileId, relationshipId, firstName]
+
     ReportSummary:
       type: object
       properties:
@@ -1021,6 +1307,22 @@ components:
         failureReason:
           $ref: "#/components/schemas/FailureReason"
           nullable: true
+        access:
+          $ref: "#/components/schemas/Access"
+          description: The viewer's standing on this report (ADR-139).
+        send:
+          description: Send to {name} on this row; null where it is not offered (ADR-120, ADR-133).
+          anyOf:
+            - $ref: "#/components/schemas/SendState"
+            - type: "null"
+        sharedBy:
+          type: string
+          nullable: true
+          description: First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).
+        stoppedBy:
+          type: string
+          nullable: true
+          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
       required:
         - id
         - kind
@@ -2167,7 +2469,7 @@ components:
           type: number
         isSelf:
           type: boolean
-          description: The profile the account holder marked as their own; the hero puts it on the left.
+          description: The viewer's own chart from the viewer's side, the owner's is_self or the claimer's claimed_as_self; the hero puts it on the left (ADR-70, ADR-120).
         chartData:
           $ref: "#/components/schemas/ChartData"
           nullable: true
@@ -2253,6 +2555,18 @@ components:
           type: string
         updatedAt:
           type: string
+        access:
+          $ref: "#/components/schemas/Access"
+          description: The viewer's standing on this report (ADR-139).
+        send:
+          description: Send to {name} on this report; null where it is not offered (ADR-120, ADR-133).
+          anyOf:
+            - $ref: "#/components/schemas/SendState"
+            - type: "null"
+        giverName:
+          type: string
+          nullable: true
+          description: First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).
       required:
         - id
         - name
@@ -2300,10 +2614,22 @@ components:
         isSelf:
           type: boolean
           description: >
-            True if this profile is the authenticated viewer's own self-profile.
-            Set explicitly when the user created the report via the
-            "Generate My Chart" flow (isForSelf=true in POST /reports).
+            True if this is the viewer's own chart from the viewer's side: the
+            owner's is_self, set by the "Generate My Chart" flow (isForSelf=true
+            in POST /reports), or the claimer's claimed_as_self (ADR-120).
             Never derived by heuristic. Always false for anonymous viewers.
+        claimedAsSelf:
+          type: boolean
+          description: The claimer marked this sent chart as their own, This is me; false after Not me and on the owner's charts (ADR-120).
+        giverName:
+          type: string
+          nullable: true
+          description: First name of whoever sent this chart to the viewer; null on the viewer's own (ADR-139).
+        send:
+          description: Send to {name} for this person; null where it is not offered (ADR-120, ADR-139).
+          anyOf:
+            - $ref: "#/components/schemas/SendState"
+            - type: "null"
       required: [id, name, birthDate, birthTime, birthPlace, createdAt]
 
     CreateProfileBody:
@@ -2322,7 +2648,7 @@ components:
 
     UpdateProfileBody:
       type: object
-      description: Mutable profile fields the owner can update.
+      description: Mutable profile fields, isSelf for the owner and claimedAsSelf for the claimer.
       properties:
         isSelf:
           type: boolean
@@ -2330,6 +2656,9 @@ components:
             Set to true to designate this profile as the viewer's own self-profile.
             Setting true automatically clears isSelf on all other profiles owned by
             the same user (one per user). Set to false to unmark it.
+        claimedAsSelf:
+          type: boolean
+          description: The claimer's This is me (true) or Not me (false) on a sent chart (ADR-120).
 
     RelationshipParticipant:
       type: object
@@ -2439,6 +2768,26 @@ components:
             required: [id, reportId, name, role]
         createdAt: { type: string }
       required: [id, relationshipId, lens, status, participants, createdAt]
+
+    SendCompatibilityBody:
+      type: object
+      description: The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; MB-103 provisional).
+      properties:
+        email: { type: string, format: email }
+
+    PairSendResult:
+      type: object
+      description: How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; MB-103 provisional).
+      properties:
+        state:
+          type: string
+          enum: [invited, granted]
+        invite:
+          description: The invite sent; null when access was granted at once.
+          anyOf:
+            - $ref: "#/components/schemas/InviteSummary"
+            - type: "null"
+      required: [state, invite]
 
     CreateRelationshipBody:
       type: object
@@ -2658,12 +3007,27 @@ components:
       properties:
         token: { type: string }
         email: { type: string }
-        inviterName: { type: string, nullable: true }
+        inviterName:
+          type: string
+          nullable: true
+          description: The giver's first name, never an email (ADR-135, MB-85).
         profileName: { type: string }
         relationshipId: { type: string, nullable: true }
         relationshipReportId: { type: string, nullable: true }
         expiresAt: { type: string }
         alreadyClaimed: { type: boolean }
+        kind:
+          type: string
+          enum: [send, gift]
+          description: A sent report or a gifted credit (ADR-120, ADR-139).
+        recipientName:
+          type: string
+          nullable: true
+          description: The name the giver gave a gift's recipient, for the cover; null on a send (ADR-128).
+        note:
+          type: string
+          nullable: true
+          description: The giver's note on a gift's cover, at most 280 characters; null without one (ADR-128).
       required: [token, email, profileName, expiresAt, alreadyClaimed]
 
     InviteClaimResponse:
@@ -2672,8 +3036,48 @@ components:
         profileId: { type: string }
         relationshipId: { type: string, nullable: true }
         relationshipReportId: { type: string, nullable: true }
-        redirectTo: { type: string }
+        redirectTo:
+          type: string
+          description: Where the claim lands; a gift answers /dashboard (ADR-139).
+        kind:
+          type: string
+          enum: [send, gift]
+          description: A sent report or a gifted credit (ADR-120, ADR-139).
+        askSelf:
+          type: boolean
+          description: Ask "Is this you?", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120).
       required: [profileId, redirectTo]
+
+    Gift:
+      type: object
+      description: A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).
+      properties:
+        id: { type: string }
+        recipientName: { type: string }
+        email: { type: string }
+        note: { type: string, nullable: true }
+        sentAt: { type: string, description: "ISO-8601 timestamp when the gift went out" }
+        returnsAt:
+          type: string
+          description: When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123).
+        remindedAt: { type: string, nullable: true, description: "The last reminder; null before any" }
+        state:
+          type: string
+          enum: [waiting, claimed, returned]
+          description: Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).
+        creditHeld:
+          type: boolean
+          description: True while one of the giver's credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).
+      required: [id, recipientName, email, note, sentAt, returnsAt, remindedAt, state, creditHeld]
+
+    CreateGiftBody:
+      type: object
+      description: Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).
+      properties:
+        recipientName: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        note: { type: string, maxLength: 280 }
+      required: [recipientName, email]
 
     GeocodeResult:
       type: object
@@ -2739,4 +3143,44 @@ components:
           type: integer
         used:
           type: integer
+        held:
+          type: integer
+          description: Credits held for waiting gifts, outside available until claimed or returned (ADR-123).
+        lastBundle:
+          type: object
+          nullable: true
+          description: The newest bundle, which the path after buying plans from; null before any (ADR-125).
+          properties:
+            id: { type: string }
+            count: { type: integer }
+            createdAt: { type: string }
+          required: [id, count, createdAt]
       required: [available, used]
+
+    CreditHistoryItem:
+      type: object
+      description: One line of History, bought, a gift received or spent (ADR-129).
+      properties:
+        kind:
+          type: string
+          enum: [bought, gift, spent]
+        count:
+          type: integer
+          description: Credits the line moves, a positive number; bought and gift add them, spent takes them away.
+        date: { type: string, description: "ISO-8601 timestamp of the line" }
+        label:
+          type: string
+          description: What the line reads, "A gift from {giver}" on a gift, the report's name when spent, "Gift to {name}" on the giver's side once claimed.
+        test:
+          type: boolean
+          description: A test bundle's line, which says so (ADR-138).
+      required: [kind, count, date, label, test]
+
+    TestCheckoutBody:
+      type: object
+      description: A test bundle of 1, 3 or 5 credits (ADR-138).
+      properties:
+        count:
+          type: integer
+          enum: [1, 3, 5]
+      required: [count]

@@ -24,17 +24,20 @@ import type {
   CompatibilityCreateResponse,
   CompatibilitySummary,
   CreateCompatibilityBody,
+  CreateGiftBody,
   CreateInviteBody,
   CreateProfileBody,
   CreateRelationshipBody,
   CreateReportBody,
   CreateSynastryBody,
   CreditCounts,
+  CreditHistoryItem,
   ErrorResponse,
   GeocodePlaceParams,
   GeocodeSearchResponse,
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
+  Gift,
   HealthStatus,
   Horizon,
   HorizonPreviewBody,
@@ -43,6 +46,7 @@ import type {
   InviteRecord,
   InviteSummary,
   ListInvitesParams,
+  PairSendResult,
   ProfileSummary,
   RegenerateReport202,
   RelationshipCreateResponse,
@@ -51,9 +55,11 @@ import type {
   ReportStatus,
   ReportSummary,
   SceneResponse,
+  SendCompatibilityBody,
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
+  TestCheckoutBody,
   UpdateBirthTimeBody,
   UpdateProfileBody,
   Workbook,
@@ -879,7 +885,7 @@ export const getUpdateProfileUrl = (id: string,) => {
 }
 
 /**
- * Allows the owner to update mutable profile fields. Currently supports toggling `isSelf`. Setting `isSelf=true` automatically clears any other self-profile for the same user (one per user invariant).
+ * The owner toggles `isSelf`; setting `isSelf=true` automatically clears any other self-profile for the same user (one per user invariant). The claimer of a sent chart sets `claimedAsSelf`, This is me or Not me (ADR-120).
  * @summary Update mutable profile fields
  */
 export const updateProfile = async (id: string,
@@ -950,6 +956,81 @@ export const useUpdateProfile = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getUpdateProfileMutationOptions(options));
+    }
+
+export const getStopSharingProfileUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/stop-sharing`
+}
+
+/**
+ * The claimer's Stop sharing, which moves the sent report to their account and out of the giver's list at once (ADR-139).
+ * @summary Stop sharing a sent chart with its giver
+ */
+export const stopSharingProfile = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getStopSharingProfileUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getStopSharingProfileMutationKey = () => ['stopSharingProfile'] as const;
+
+export const getStopSharingProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopSharingProfile>>, TError,StopSharingProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof stopSharingProfile>>, TError,StopSharingProfileMutationVariables, TContext> => {
+
+const mutationKey = getStopSharingProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stopSharingProfile>>, StopSharingProfileMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  stopSharingProfile(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StopSharingProfileMutationResult = NonNullable<Awaited<ReturnType<typeof stopSharingProfile>>>
+
+    export type StopSharingProfileMutationError = ErrorType<ErrorResponse>
+    export type StopSharingProfileMutationVariables = {id: string}
+
+    /**
+ * @summary Stop sharing a sent chart with its giver
+ */
+export const useStopSharingProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopSharingProfile>>, TError,StopSharingProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof stopSharingProfile>>,
+        TError,
+        StopSharingProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStopSharingProfileMutationOptions(options));
     }
 
 export const getUpdateProfileBirthTimeUrl = (id: string,) => {
@@ -1354,6 +1435,163 @@ export function useGetCompatibilitySummary<TData = Awaited<ReturnType<typeof get
 
 
 
+
+export const getSendCompatibilityUrl = (id: string,) => {
+
+
+
+
+  return `/api/compatibility/${id}/send`
+}
+
+/**
+ * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82). MB-103 provisional.
+ * @summary Send a compatibility report to the other of its two people
+ */
+export const sendCompatibility = async (id: string,
+    sendCompatibilityBody: SendCompatibilityBody, options?: Parameters<typeof customFetch>[1]): Promise<PairSendResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<PairSendResult>(getSendCompatibilityUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(sendCompatibilityBody)
+  }
+);}
+
+
+
+
+
+export const getSendCompatibilityMutationKey = () => ['sendCompatibility'] as const;
+
+export const getSendCompatibilityMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCompatibility>>, TError,SendCompatibilityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendCompatibility>>, TError,SendCompatibilityMutationVariables, TContext> => {
+
+const mutationKey = getSendCompatibilityMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendCompatibility>>, SendCompatibilityMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendCompatibility(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendCompatibilityMutationResult = NonNullable<Awaited<ReturnType<typeof sendCompatibility>>>
+    export type SendCompatibilityMutationBody = BodyType<SendCompatibilityBody>
+    export type SendCompatibilityMutationError = ErrorType<ErrorResponse>
+    export type SendCompatibilityMutationVariables = {id: string;data: BodyType<SendCompatibilityBody>}
+
+    /**
+ * @summary Send a compatibility report to the other of its two people
+ */
+export const useSendCompatibility = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCompatibility>>, TError,SendCompatibilityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendCompatibility>>,
+        TError,
+        SendCompatibilityMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendCompatibilityMutationOptions(options));
+    }
+
+export const getStopSharingCompatibilityUrl = (id: string,) => {
+
+
+
+
+  return `/api/compatibility/${id}/stop-sharing`
+}
+
+/**
+ * The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, MB-103 provisional).
+ * @summary Stop sharing a compatibility report its sender sent
+ */
+export const stopSharingCompatibility = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getStopSharingCompatibilityUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getStopSharingCompatibilityMutationKey = () => ['stopSharingCompatibility'] as const;
+
+export const getStopSharingCompatibilityMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopSharingCompatibility>>, TError,StopSharingCompatibilityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof stopSharingCompatibility>>, TError,StopSharingCompatibilityMutationVariables, TContext> => {
+
+const mutationKey = getStopSharingCompatibilityMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stopSharingCompatibility>>, StopSharingCompatibilityMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  stopSharingCompatibility(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StopSharingCompatibilityMutationResult = NonNullable<Awaited<ReturnType<typeof stopSharingCompatibility>>>
+
+    export type StopSharingCompatibilityMutationError = ErrorType<ErrorResponse>
+    export type StopSharingCompatibilityMutationVariables = {id: string}
+
+    /**
+ * @summary Stop sharing a compatibility report its sender sent
+ */
+export const useStopSharingCompatibility = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopSharingCompatibility>>, TError,StopSharingCompatibilityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof stopSharingCompatibility>>,
+        TError,
+        StopSharingCompatibilityMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStopSharingCompatibilityMutationOptions(options));
+    }
 
 export const getCreateRelationshipUrl = () => {
 
@@ -1857,7 +2095,7 @@ export const getGetCreditsUrl = () => {
 }
 
 /**
- * One credit is one report, whatever the report (ADR-42). Returns the signed-in user's available and used counts, zeros for anonymous users.
+ * One credit is one report, whatever the report (ADR-42). Returns the signed-in user's available, used and held counts and last bundle, zeros for anonymous users.
  * @summary Get the current user's credit counts
  */
 export const getCredits = async ( options?: Parameters<typeof customFetch>[1]): Promise<CreditCounts> => {
@@ -1925,6 +2163,165 @@ export function useGetCredits<TData = Awaited<ReturnType<typeof getCredits>>, TE
 
 
 
+
+export const getGetCreditHistoryUrl = () => {
+
+
+
+
+  return `/api/credits/history`
+}
+
+/**
+ * History's lines, bought, a gift received and spent (ADR-129); a test bundle's line says so (ADR-138). Empty for anonymous users.
+ * @summary What the viewer's credits did, newest first
+ */
+export const getCreditHistory = async ( options?: Parameters<typeof customFetch>[1]): Promise<CreditHistoryItem[]> => {
+
+  return customFetch<CreditHistoryItem[]>(getGetCreditHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCreditHistoryQueryKey = () => {
+    return [
+    `/api/credits/history`
+    ] as const;
+    }
+
+
+export const getGetCreditHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getCreditHistory>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreditHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCreditHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreditHistory>>> = ({ signal }) => getCreditHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCreditHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCreditHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getCreditHistory>>>
+export type GetCreditHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary What the viewer's credits did, newest first
+ */
+
+export function useGetCreditHistory<TData = Awaited<ReturnType<typeof getCreditHistory>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreditHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCreditHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getTestCheckoutUrl = () => {
+
+
+
+
+  return `/api/checkout/test`
+}
+
+/**
+ * Get credits off production, 1, 3 or 5 credits free for any signed-in user, marked as test credits (ADR-138). MB-6 provisional until checkout.
+ * @summary Add a free test bundle of credits
+ */
+export const testCheckout = async (testCheckoutBody: TestCheckoutBody, options?: Parameters<typeof customFetch>[1]): Promise<CreditCounts> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<CreditCounts>(getTestCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(testCheckoutBody)
+  }
+);}
+
+
+
+
+
+export const getTestCheckoutMutationKey = () => ['testCheckout'] as const;
+
+export const getTestCheckoutMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext> => {
+
+const mutationKey = getTestCheckoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testCheckout>>, TestCheckoutMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  testCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof testCheckout>>>
+    export type TestCheckoutMutationBody = BodyType<TestCheckoutBody>
+    export type TestCheckoutMutationError = ErrorType<ErrorResponse>
+    export type TestCheckoutMutationVariables = {data: BodyType<TestCheckoutBody>}
+
+    /**
+ * @summary Add a free test bundle of credits
+ */
+export const useTestCheckout = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof testCheckout>>,
+        TError,
+        TestCheckoutMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTestCheckoutMutationOptions(options));
+    }
 
 export const getListInvitesUrl = (params: ListInvitesParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -2109,7 +2506,8 @@ export const getGetInviteUrl = (token: string,) => {
  * still resolvable (so the landing page can show a "this invite was
  * already accepted" state) and is signaled by `alreadyClaimed: true`
  * in the response body. Tokens that do not exist or have expired
- * return 404.
+ * return 404. A send's token lives 7 days and a gift's 30, expiry
+ * applied on read (ADR-123).
  * @summary Resolve an invite token to its preview metadata
  */
 export const getInvite = async (token: string, options?: Parameters<typeof customFetch>[1]): Promise<InvitePreview> => {
@@ -2187,7 +2585,7 @@ export const getClaimInviteUrl = (token: string,) => {
 }
 
 /**
- * Requires Clerk authentication. Marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship.
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139).
  * @summary Claim an invite as the signed-in user
  */
 export const claimInvite = async (token: string, options?: Parameters<typeof customFetch>[1]): Promise<InviteClaimResponse> => {
@@ -2251,6 +2649,315 @@ export const useClaimInvite = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getClaimInviteMutationOptions(options));
+    }
+
+export const getListGiftsUrl = () => {
+
+
+
+
+  return `/api/gifts`
+}
+
+/**
+ * What a giver sees of a gift, its state and nothing the recipient makes (ADR-139). Empty for anonymous users.
+ * @summary The viewer's gifts, waiting, claimed or returned
+ */
+export const listGifts = async ( options?: Parameters<typeof customFetch>[1]): Promise<Gift[]> => {
+
+  return customFetch<Gift[]>(getListGiftsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListGiftsQueryKey = () => {
+    return [
+    `/api/gifts`
+    ] as const;
+    }
+
+
+export const getListGiftsQueryOptions = <TData = Awaited<ReturnType<typeof listGifts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGifts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGiftsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGifts>>> = ({ signal }) => listGifts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGifts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListGiftsQueryResult = NonNullable<Awaited<ReturnType<typeof listGifts>>>
+export type ListGiftsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The viewer's gifts, waiting, claimed or returned
+ */
+
+export function useListGifts<TData = Awaited<ReturnType<typeof listGifts>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGifts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListGiftsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateGiftUrl = () => {
+
+
+
+
+  return `/api/gifts`
+}
+
+/**
+ * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
+ * @summary Gift a report
+ */
+export const createGift = async (createGiftBody: CreateGiftBody, options?: Parameters<typeof customFetch>[1]): Promise<Gift> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<Gift>(getCreateGiftUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createGiftBody)
+  }
+);}
+
+
+
+
+
+export const getCreateGiftMutationKey = () => ['createGift'] as const;
+
+export const getCreateGiftMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext> => {
+
+const mutationKey = getCreateGiftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGift>>, CreateGiftMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGift(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGiftMutationResult = NonNullable<Awaited<ReturnType<typeof createGift>>>
+    export type CreateGiftMutationBody = BodyType<CreateGiftBody>
+    export type CreateGiftMutationError = ErrorType<ErrorResponse>
+    export type CreateGiftMutationVariables = {data: BodyType<CreateGiftBody>}
+
+    /**
+ * @summary Gift a report
+ */
+export const useCreateGift = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGift>>,
+        TError,
+        CreateGiftMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateGiftMutationOptions(options));
+    }
+
+export const getRemindGiftUrl = (id: string,) => {
+
+
+
+
+  return `/api/gifts/${id}/remind`
+}
+
+/**
+ * Mints a fresh claim link for the same gift and emails it; the gift keeps its return date (ADR-123).
+ * @summary Remind the recipient of a waiting gift
+ */
+export const remindGift = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRemindGiftUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemindGiftMutationKey = () => ['remindGift'] as const;
+
+export const getRemindGiftMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remindGift>>, TError,RemindGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof remindGift>>, TError,RemindGiftMutationVariables, TContext> => {
+
+const mutationKey = getRemindGiftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof remindGift>>, RemindGiftMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  remindGift(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemindGiftMutationResult = NonNullable<Awaited<ReturnType<typeof remindGift>>>
+
+    export type RemindGiftMutationError = ErrorType<ErrorResponse>
+    export type RemindGiftMutationVariables = {id: string}
+
+    /**
+ * @summary Remind the recipient of a waiting gift
+ */
+export const useRemindGift = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remindGift>>, TError,RemindGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof remindGift>>,
+        TError,
+        RemindGiftMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemindGiftMutationOptions(options));
+    }
+
+export const getTakeBackGiftUrl = (id: string,) => {
+
+
+
+
+  return `/api/gifts/${id}`
+}
+
+/**
+ * Its claim link stops working and the held credit returns to the giver's balance (ADR-123).
+ * @summary Take a waiting gift back
+ */
+export const takeBackGift = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getTakeBackGiftUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getTakeBackGiftMutationKey = () => ['takeBackGift'] as const;
+
+export const getTakeBackGiftMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof takeBackGift>>, TError,TakeBackGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof takeBackGift>>, TError,TakeBackGiftMutationVariables, TContext> => {
+
+const mutationKey = getTakeBackGiftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof takeBackGift>>, TakeBackGiftMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  takeBackGift(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TakeBackGiftMutationResult = NonNullable<Awaited<ReturnType<typeof takeBackGift>>>
+
+    export type TakeBackGiftMutationError = ErrorType<ErrorResponse>
+    export type TakeBackGiftMutationVariables = {id: string}
+
+    /**
+ * @summary Take a waiting gift back
+ */
+export const useTakeBackGift = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof takeBackGift>>, TError,TakeBackGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof takeBackGift>>,
+        TError,
+        TakeBackGiftMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTakeBackGiftMutationOptions(options));
     }
 
 export const getGeocodePlaceUrl = (params: GeocodePlaceParams,) => {

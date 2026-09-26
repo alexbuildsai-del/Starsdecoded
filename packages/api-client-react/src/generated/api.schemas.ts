@@ -54,6 +54,45 @@ export interface CreateReportBody {
 }
 
 /**
+ * The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs MB-103 provisional).
+ */
+export type Access = typeof Access[keyof typeof Access];
+
+
+export const Access = {
+  owner: 'owner',
+  claimed: 'claimed',
+  participant: 'participant',
+} as const;
+
+/**
+ * can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".
+ */
+export type SendStateState = typeof SendStateState[keyof typeof SendStateState];
+
+
+export const SendStateState = {
+  can_send: 'can_send',
+  can_grant: 'can_grant',
+  sent: 'sent',
+  joined: 'joined',
+} as const;
+
+/**
+ * Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).
+ */
+export interface SendState {
+  /** can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓". */
+  state: SendStateState;
+  /** The person it goes to, the report's subject or the pair's other person. */
+  profileId: string;
+  /** The pair's relationship; null on a natal report. */
+  relationshipId: string | null;
+  /** The name the control prints, "Send to {firstName}". */
+  firstName: string;
+}
+
+/**
  * Natal rows describe a single profile; compatibility rows describe a relationship between two profiles.
  */
 export type ReportSummaryKind = typeof ReportSummaryKind[keyof typeof ReportSummaryKind];
@@ -158,6 +197,14 @@ export interface ReportSummary {
   participants?: ReportSummaryParticipantsItem[];
   createdAt: string;
   failureReason?: FailureReason | null;
+  /** The viewer's standing on this report (ADR-139). */
+  access?: Access;
+  /** Send to {name} on this row; null where it is not offered (ADR-120, ADR-133). */
+  send?: SendState | null;
+  /** First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139). */
+  sharedBy?: string | null;
+  /** On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional). */
+  stoppedBy?: string | null;
 }
 
 export type ReportStatusStatus = typeof ReportStatusStatus[keyof typeof ReportStatusStatus];
@@ -929,7 +976,7 @@ export interface ReportParticipant {
   birthPlace: string;
   latitude: number;
   longitude: number;
-  /** The profile the account holder marked as their own; the hero puts it on the left. */
+  /** The viewer's own chart from the viewer's side, the owner's is_self or the claimer's claimed_as_self; the hero puts it on the left (ADR-70, ADR-120). */
   isSelf: boolean;
   chartData: ChartData | null;
 }
@@ -989,6 +1036,12 @@ export interface Report {
   failureReason?: FailureReason | null;
   createdAt: string;
   updatedAt: string;
+  /** The viewer's standing on this report (ADR-139). */
+  access?: Access;
+  /** Send to {name} on this report; null where it is not offered (ADR-120, ADR-133). */
+  send?: SendState | null;
+  /** First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139). */
+  giverName?: string | null;
 }
 
 export type ProfileSummaryHorizon = typeof ProfileSummaryHorizon[keyof typeof ProfileSummaryHorizon] | null;
@@ -1033,8 +1086,14 @@ export interface ProfileSummary {
   ownership?: ProfileSummaryOwnership;
   claimedByName?: string | null;
   inviteEmail?: string | null;
-  /** True if this profile is the authenticated viewer's own self-profile. Set explicitly when the user created the report via the "Generate My Chart" flow (isForSelf=true in POST /reports). Never derived by heuristic. Always false for anonymous viewers. */
+  /** True if this is the viewer's own chart from the viewer's side: the owner's is_self, set by the "Generate My Chart" flow (isForSelf=true in POST /reports), or the claimer's claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers. */
   isSelf?: boolean;
+  /** The claimer marked this sent chart as their own, This is me; false after Not me and on the owner's charts (ADR-120). */
+  claimedAsSelf?: boolean;
+  /** First name of whoever sent this chart to the viewer; null on the viewer's own (ADR-139). */
+  giverName?: string | null;
+  /** Send to {name} for this person; null where it is not offered (ADR-120, ADR-139). */
+  send?: SendState | null;
 }
 
 export interface CreateProfileBody {
@@ -1052,11 +1111,13 @@ export interface CreateProfileBody {
 }
 
 /**
- * Mutable profile fields the owner can update.
+ * Mutable profile fields, isSelf for the owner and claimedAsSelf for the claimer.
  */
 export interface UpdateProfileBody {
   /** Set to true to designate this profile as the viewer's own self-profile. Setting true automatically clears isSelf on all other profiles owned by the same user (one per user). Set to false to unmark it. */
   isSelf?: boolean;
+  /** The claimer's This is me (true) or Not me (false) on a sent chart (ADR-120). */
+  claimedAsSelf?: boolean;
 }
 
 export interface RelationshipParticipant {
@@ -1179,6 +1240,41 @@ export interface CompatibilitySummary {
   status: CompatibilitySummaryStatus;
   participants: CompatibilitySummaryParticipantsItem[];
   createdAt: string;
+}
+
+/**
+ * The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; MB-103 provisional).
+ */
+export interface SendCompatibilityBody {
+  email?: string;
+}
+
+export type PairSendResultState = typeof PairSendResultState[keyof typeof PairSendResultState];
+
+
+export const PairSendResultState = {
+  invited: 'invited',
+  granted: 'granted',
+} as const;
+
+export interface InviteSummary {
+  id: string;
+  token: string;
+  email: string;
+  profileId: string;
+  relationshipId?: string | null;
+  expiresAt: string;
+  claimUrl: string;
+  emailDelivered: boolean;
+}
+
+/**
+ * How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; MB-103 provisional).
+ */
+export interface PairSendResult {
+  state: PairSendResultState;
+  /** The invite sent; null when access was granted at once. */
+  invite: InviteSummary | null;
 }
 
 export interface CreateRelationshipBody {
@@ -1379,33 +1475,99 @@ export interface CreateInviteBody {
   email: string;
 }
 
-export interface InviteSummary {
-  id: string;
-  token: string;
-  email: string;
-  profileId: string;
-  relationshipId?: string | null;
-  expiresAt: string;
-  claimUrl: string;
-  emailDelivered: boolean;
-}
+/**
+ * A sent report or a gifted credit (ADR-120, ADR-139).
+ */
+export type InvitePreviewKind = typeof InvitePreviewKind[keyof typeof InvitePreviewKind];
+
+
+export const InvitePreviewKind = {
+  send: 'send',
+  gift: 'gift',
+} as const;
 
 export interface InvitePreview {
   token: string;
   email: string;
+  /** The giver's first name, never an email (ADR-135, MB-85). */
   inviterName?: string | null;
   profileName: string;
   relationshipId?: string | null;
   relationshipReportId?: string | null;
   expiresAt: string;
   alreadyClaimed: boolean;
+  /** A sent report or a gifted credit (ADR-120, ADR-139). */
+  kind?: InvitePreviewKind;
+  /** The name the giver gave a gift's recipient, for the cover; null on a send (ADR-128). */
+  recipientName?: string | null;
+  /** The giver's note on a gift's cover, at most 280 characters; null without one (ADR-128). */
+  note?: string | null;
 }
+
+/**
+ * A sent report or a gifted credit (ADR-120, ADR-139).
+ */
+export type InviteClaimResponseKind = typeof InviteClaimResponseKind[keyof typeof InviteClaimResponseKind];
+
+
+export const InviteClaimResponseKind = {
+  send: 'send',
+  gift: 'gift',
+} as const;
 
 export interface InviteClaimResponse {
   profileId: string;
   relationshipId?: string | null;
   relationshipReportId?: string | null;
+  /** Where the claim lands; a gift answers /dashboard (ADR-139). */
   redirectTo: string;
+  /** A sent report or a gifted credit (ADR-120, ADR-139). */
+  kind?: InviteClaimResponseKind;
+  /** Ask "Is this you?", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120). */
+  askSelf?: boolean;
+}
+
+/**
+ * Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).
+ */
+export type GiftState = typeof GiftState[keyof typeof GiftState];
+
+
+export const GiftState = {
+  waiting: 'waiting',
+  claimed: 'claimed',
+  returned: 'returned',
+} as const;
+
+/**
+ * A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).
+ */
+export interface Gift {
+  id: string;
+  recipientName: string;
+  email: string;
+  note: string | null;
+  /** ISO-8601 timestamp when the gift went out */
+  sentAt: string;
+  /** When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123). */
+  returnsAt: string;
+  /** The last reminder; null before any */
+  remindedAt: string | null;
+  /** Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123). */
+  state: GiftState;
+  /** True while one of the giver's credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional). */
+  creditHeld: boolean;
+}
+
+/**
+ * Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).
+ */
+export interface CreateGiftBody {
+  /** @minLength 1 */
+  recipientName: string;
+  email: string;
+  /** @maxLength 280 */
+  note?: string;
 }
 
 export interface GeocodeResult {
@@ -1439,11 +1601,64 @@ export interface CreditBalance {
 }
 
 /**
+ * The newest bundle, which the path after buying plans from; null before any (ADR-125).
+ */
+export type CreditCountsLastBundle = {
+  id: string;
+  count: number;
+  createdAt: string;
+} | null;
+
+/**
  * One credit kind (ADR-42). The typed breakdown went with it; the columns drop with payments (MB-57).
  */
 export interface CreditCounts {
   available: number;
   used: number;
+  /** Credits held for waiting gifts, outside available until claimed or returned (ADR-123). */
+  held?: number;
+  /** The newest bundle, which the path after buying plans from; null before any (ADR-125). */
+  lastBundle?: CreditCountsLastBundle;
+}
+
+export type CreditHistoryItemKind = typeof CreditHistoryItemKind[keyof typeof CreditHistoryItemKind];
+
+
+export const CreditHistoryItemKind = {
+  bought: 'bought',
+  gift: 'gift',
+  spent: 'spent',
+} as const;
+
+/**
+ * One line of History, bought, a gift received or spent (ADR-129).
+ */
+export interface CreditHistoryItem {
+  kind: CreditHistoryItemKind;
+  /** Credits the line moves, a positive number; bought and gift add them, spent takes them away. */
+  count: number;
+  /** ISO-8601 timestamp of the line */
+  date: string;
+  /** What the line reads, "A gift from {giver}" on a gift, the report's name when spent, "Gift to {name}" on the giver's side once claimed. */
+  label: string;
+  /** A test bundle's line, which says so (ADR-138). */
+  test: boolean;
+}
+
+export type TestCheckoutBodyCount = typeof TestCheckoutBodyCount[keyof typeof TestCheckoutBodyCount];
+
+
+export const TestCheckoutBodyCount = {
+  NUMBER_1: 1,
+  NUMBER_3: 3,
+  NUMBER_5: 5,
+} as const;
+
+/**
+ * A test bundle of 1, 3 or 5 credits (ADR-138).
+ */
+export interface TestCheckoutBody {
+  count: TestCheckoutBodyCount;
 }
 
 /**
