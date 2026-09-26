@@ -56,7 +56,7 @@ demand, full lab plus QA agent in the Release view before production.
 `/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock <slug>`
 → locked spec + Decisions rows · `/plan <slugs>` → parallel-grouped plan, and on
 the Owner's approval `/round RNN` starts at once → branch `round/RNN`, builders,
-gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox`. MASTERFILE §11.
+gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox` · `/ux-copy` for words, `/web-taste` for pages. MASTERFILE §11.
 
 The Owner tests the website and says yes or no. Everything else is ours:
 merging once the gate is green, watching CI and the Railway and Vercel deploys,
