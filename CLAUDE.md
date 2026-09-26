@@ -87,9 +87,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   (Owner, 2026-09-25): never ask the Owner to put a key or token there. Anything that
   needs a key or reaches the lab routes runs on Railway and is started from the admin
   panel; GitHub workflows only build, test and smoke. Production keys never leave Railway.
-- The web app calls `/api` on its own origin; `vercel.json` rewrites that to the
-  staging or production Railway host by web host. `/api/healthz` reports `env`
-  and `commit`; `smoke.yml` asserts both.
+- **Until launch, production is a waitlist** (ADR-141): its API serves non-admins only healthz, `/waitlist`, `/sky`
+  and `/admin/*`; staging keeps the whole app. Launch: `LAUNCHED = true` in `packages/launch`, then a Release.
+- The web app calls `/api` on its own origin; `vercel.json` rewrites that to the staging or production Railway host
+  by web host. `/api/healthz` reports `env` and `commit`; `smoke.yml` asserts both. It cannot import `api/` (MB-108).
 - Prompts are edited on staging only; production sets `PROMPTS_READ_ONLY` and
   copies staging's `prompt_templates` in its start-up bootstrap.
 - `openapi.yaml` is the contract; generated client and zod files are rewritten
@@ -106,11 +107,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   (ADR-77); the Lab page and `--render` are free. Every model id lives in `models.ts`; one
   outside the catalogue does not compile. A check blocks only when the text would be wrong
   for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
-- Real chart data only. Fixtures hold birth data; charts are computed at run
-  time. Never fabricate a placement, even in a demo.
+- Real chart data only. Fixtures hold birth data; charts are computed at run time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
-- Anonymous sessions come first; Clerk sign-in claims what the session made.
-  `ADMIN_USER_ID` gates the prompt admin.
+- Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
 ## Current focus (2026-09-26)
 
@@ -118,3 +117,4 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
    one word per house, v7 plain prose. Owner acceptance on staging for R01, R03 to R09; the Owner reads v7 there.
 2. Free on staging: Import r05 and r06, the Failures tab, the prose study on `session-2026-09-24`; on "go" the
    first Release from the Release view (MB-75 the standing todo).
+3. The waitlist (ADR-141): the Owner tries `/waitlist` and `/admin/waitlist` on staging; production needs MB-105 first.

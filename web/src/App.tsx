@@ -16,7 +16,10 @@ import NotFound from "@/pages/not-found";
 import LoadingState from "@/components/LoadingState";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { StagingRibbon } from "@/components/StagingRibbon";
+import { PrelaunchRibbon } from "@/components/PrelaunchRibbon";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { APP_ENV } from "@/lib/appEnv";
+import { OPEN_BEFORE_LAUNCH, PRELAUNCH } from "@/lib/prelaunch";
 import { usePageTitle } from "@/lib/page-title";
 import { forgetSelection } from "@/lib/pair-selection";
 
@@ -31,6 +34,8 @@ const importPrivacy = () => import("@/pages/legal/PrivacyPage");
 const importTerms = () => import("@/pages/legal/TermsPage");
 const importRefunds = () => import("@/pages/legal/RefundsPage");
 const importCompany = () => import("@/pages/legal/CompanyPage");
+const importWaitlist = () => import("@/pages/WaitlistPage");
+const importAdminWaitlist = () => import("@/pages/AdminWaitlistPage");
 
 const BirthFormPage = lazy(importBirthForm);
 const ReportPage = lazy(importReport);
@@ -43,6 +48,8 @@ const PrivacyPage = lazy(importPrivacy);
 const TermsPage = lazy(importTerms);
 const RefundsPage = lazy(importRefunds);
 const CompanyPage = lazy(importCompany);
+const WaitlistPage = lazy(importWaitlist);
+const AdminWaitlistPage = lazy(importAdminWaitlist);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
@@ -248,6 +255,9 @@ function Routes() {
         <Route path="/claim" component={ClaimPage} />
         <Route path="/admin/prompts" component={AdminPromptsPage} />
         <Route path="/admin/report-lab" component={AdminLabPage} />
+        <Route path="/admin/waitlist" component={AdminWaitlistPage} />
+        <Route path="/admin">{() => <Redirect to="/admin/waitlist" />}</Route>
+        <Route path="/waitlist" component={WaitlistPage} />
         <Route path="/privacy" component={PrivacyPage} />
         <Route path="/terms" component={TermsPage} />
         <Route path="/refunds" component={RefundsPage} />
@@ -256,6 +266,28 @@ function Routes() {
         <Route component={NotFound} />
       </Switch>
     </Suspense>
+  );
+}
+
+// Before launch, production shows every visitor the waitlist (ADR-141). The
+// admin's way in and the legal pages stay reachable; once /api/admin/me says
+// the signed-in user is the admin, the whole app is theirs. A visitor's first
+// paint never waits for Clerk: until it loads, the page is the waitlist.
+function PrelaunchRoutes() {
+  const [location] = useLocation();
+  const isAdmin = useIsAdmin();
+  if (!isAdmin && !OPEN_BEFORE_LAUNCH.test(location)) {
+    return (
+      <Suspense fallback={<div className="min-h-[100dvh] bg-background" />}>
+        <WaitlistPage />
+      </Suspense>
+    );
+  }
+  return (
+    <>
+      <Routes />
+      {isAdmin && <PrelaunchRibbon />}
+    </>
   );
 }
 
@@ -287,7 +319,7 @@ function ClerkRoutedProvider() {
       <ClerkQueryCacheInvalidator />
       {/* The outer boundary sits above the router and never sees a navigation; this one resets on each, by prop rather than key, so no page or Clerk sign-in step remounts. */}
       <ErrorBoundary resetKey={location}>
-        <Routes />
+        {PRELAUNCH ? <PrelaunchRoutes /> : <Routes />}
       </ErrorBoundary>
     </ClerkProvider>
   );

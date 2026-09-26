@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { DraftBanner } from "@/components/DraftBanner";
@@ -10,9 +10,9 @@ const LEGAL_LINKS = [
   { href: "/company", label: "Company" },
 ];
 
-export function LegalSection({ title, children }: { title: string; children: ReactNode }) {
+export function LegalSection({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
-    <section className="mb-10">
+    <section id={id} className="mb-10 scroll-mt-20">
       <h2 className="font-display text-2xl mb-3">{title}</h2>
       <div className="space-y-3 text-muted-foreground leading-relaxed text-[15px]">{children}</div>
     </section>
@@ -30,6 +30,12 @@ export function LegalLayout({
   updated: string;
   children: ReactNode;
 }) {
+  // A link to one section (the waitlist form's to #waitlist) lands before this page has rendered, so the browser cannot scroll to it.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">

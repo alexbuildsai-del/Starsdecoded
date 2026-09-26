@@ -24,6 +24,10 @@ tags:
     description: Invite & claim flow for sharing a synastry report with the other person
   - name: credits
     description: Credit balance for report generation
+  - name: waitlist
+    description: The pre-launch list production collects until Stars Decoded opens
+  - name: sky
+    description: The sky now over a city, for the waitlist page's wheel
 paths:
   /healthz:
     get:
@@ -38,6 +42,76 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /waitlist:
+    post:
+      operationId: joinWaitlist
+      tags: [waitlist]
+      summary: Join the pre-launch waitlist
+      description: >
+        Stores an email address to write to when Stars Decoded opens (ADR-141).
+        Answers the same whether the address is new or already listed, so it
+        cannot be used to learn who signed up. Sets no cookie and reads no
+        account. A filled `website` field is a form-filling bot: it is answered
+        the same and nothing is stored.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinWaitlistBody"
+      responses:
+        "200":
+          description: The address is on the list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistJoined"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many sign-ups from one address in a short time
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sky:
+    get:
+      operationId: getSkyNow
+      tags: [sky]
+      summary: The sky now over the visitor's city
+      description: >
+        The chart for this minute over the principal city of an IANA time zone,
+        computed by the engine (ADR-107, ADR-141). An unknown zone falls back to
+        London. Sets no cookie and reads no account; one chart per city per
+        minute is computed, whoever asks.
+      parameters:
+        - name: zone
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+            pattern: "^[A-Za-z0-9_+/-]+$"
+          description: The browser's time zone, such as Europe/Brussels.
+      responses:
+        "200":
+          description: The sky now
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkyNow"
+        "400":
+          description: The zone is not a time zone name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /reports:
     get:
@@ -889,6 +963,47 @@ components:
           type: string
       required:
         - error
+
+    JoinWaitlistBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        consent:
+          type: string
+          enum: [launch-email-v1]
+          description: The consent wording shown beside the form, stored with the address.
+        source:
+          type: string
+          maxLength: 32
+          description: Which form on the page sent it, such as hero or dawn.
+        utmSource:
+          type: string
+          maxLength: 100
+        utmMedium:
+          type: string
+          maxLength: 100
+        utmCampaign:
+          type: string
+          maxLength: 100
+        website:
+          type: string
+          maxLength: 200
+          description: Hidden from people and left empty by them.
+      required:
+        - email
+        - consent
+
+    WaitlistJoined:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [joined]
+      required:
+        - status
 
     CreateReportBody:
       type: object
@@ -2740,3 +2855,32 @@ components:
         used:
           type: integer
       required: [available, used]
+
+    SkyNow:
+      type: object
+      properties:
+        city:
+          type: string
+        zone:
+          type: string
+          description: The time zone the chart's clock reads, after following an old name to today's.
+        latitude:
+          type: number
+        longitude:
+          type: number
+        at:
+          type: string
+          description: The minute the chart is for, as an ISO 8601 UTC time.
+        ephemeris:
+          type: string
+          description: What computed the positions, as the footer credits it.
+        chart:
+          $ref: "#/components/schemas/ChartData"
+      required:
+        - city
+        - zone
+        - latitude
+        - longitude
+        - at
+        - ephemeris
+        - chart

@@ -30,6 +30,50 @@ export interface ErrorResponse {
   message?: string;
 }
 
+/**
+ * The consent wording shown beside the form, stored with the address.
+ */
+export type JoinWaitlistBodyConsent = typeof JoinWaitlistBodyConsent[keyof typeof JoinWaitlistBodyConsent];
+
+
+export const JoinWaitlistBodyConsent = {
+  'launch-email-v1': 'launch-email-v1',
+} as const;
+
+export interface JoinWaitlistBody {
+  /** @maxLength 254 */
+  email: string;
+  /** The consent wording shown beside the form, stored with the address. */
+  consent: JoinWaitlistBodyConsent;
+  /**
+     * Which form on the page sent it, such as hero or dawn.
+     * @maxLength 32
+     */
+  source?: string;
+  /** @maxLength 100 */
+  utmSource?: string;
+  /** @maxLength 100 */
+  utmMedium?: string;
+  /** @maxLength 100 */
+  utmCampaign?: string;
+  /**
+     * Hidden from people and left empty by them.
+     * @maxLength 200
+     */
+  website?: string;
+}
+
+export type WaitlistJoinedStatus = typeof WaitlistJoinedStatus[keyof typeof WaitlistJoinedStatus];
+
+
+export const WaitlistJoinedStatus = {
+  joined: 'joined',
+} as const;
+
+export interface WaitlistJoined {
+  status: WaitlistJoinedStatus;
+}
+
 export interface CreateReportBody {
   /** Name of the person */
   name: string;
@@ -1446,10 +1490,32 @@ export interface CreditCounts {
   used: number;
 }
 
+export interface SkyNow {
+  city: string;
+  /** The time zone the chart's clock reads, after following an old name to today's. */
+  zone: string;
+  latitude: number;
+  longitude: number;
+  /** The minute the chart is for, as an ISO 8601 UTC time. */
+  at: string;
+  /** What computed the positions, as the footer credits it. */
+  ephemeris: string;
+  chart: ChartData;
+}
+
 /**
  * Shared-secret admin key. May also be passed as `?key=`.
  */
 export type AdminKeyParameter = string;
+
+export type GetSkyNowParams = {
+/**
+ * The browser's time zone, such as Europe/Brussels.
+ * @maxLength 64
+ * @pattern ^[A-Za-z0-9_+/-]+$
+ */
+zone?: string;
+};
 
 export type RegenerateReport202 = {
   id: string;

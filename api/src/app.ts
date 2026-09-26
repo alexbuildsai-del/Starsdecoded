@@ -5,9 +5,12 @@ import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import router from "./routes";
 import healthRouter from "./routes/health";
+import waitlistRouter from "./routes/waitlist";
+import skyRouter from "./routes/sky";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
 import { authMiddleware } from "./middlewares/auth";
+import { prelaunchGate } from "./lib/prelaunch";
 
 const app: Express = express();
 
@@ -60,6 +63,9 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Ahead of the session: the waitlist page's two calls set no cookie (ADR-141).
+app.use("/api", waitlistRouter);
+app.use("/api", skyRouter);
 app.use(sessionMiddleware);
 
 app.use(
@@ -74,6 +80,8 @@ app.use("/api", (_req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
 });
+// Before launch, production serves the rest of the API to the admin only (ADR-141).
+app.use("/api", prelaunchGate);
 app.use("/api", router);
 
 export default app;
