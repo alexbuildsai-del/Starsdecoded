@@ -1,6 +1,6 @@
 # The credit loop
 
-Ideation 2026-09-26 with the Owner. Status: draft 2, nothing built.
+Ideation 2026-09-26 with the Owner. Status: locked 2026-09-26.
 Artifact: https://claude.ai/artifact/UST4kga6e2KJZ4M1w78fZ7
 Builds on the two gift modes (ADR-38), `dashboard-sky` (ADR-89 to 96 and its
 MB-81 to 86 amendment) and one credit per report (ADR-42). Prices and
@@ -52,11 +52,15 @@ assumes how two people are related.
 - **Add someone** with credits: "Who is it for? · 1 of your N credits" with
   **Someone you know** (the birth form, then Send), **Gift a report**, **Two
   people together** (the picker). With none: the credits sheet.
-- **The credits sheet** (the pill, ADR-95): "N credits to use", a meter that
-  lights the credits still to use and dims the ones used ("3 to use · 2
-  used"), Add someone and Gift a report, the bundles as counts (1 "One
-  report", 3 "Someone and the two of you", 5 "Your people and how you fit";
-  ADR-42), Get credits.
+- **One balance.** Bundles stack into a single count, however many were
+  bought or on what terms (Audible, gift-card balances): the pill shows the
+  number, nothing per bundle. A gift holds one credit from the balance.
+- **The credits sheet** (the pill, ADR-95): "N credits to use", one lit dot
+  per credit (capped at ten, then "+N"), Add someone and Gift a report, the
+  bundles as counts (1 "One report", 3 "Someone and the two of you", 5 "Your
+  people and how you fit"; ADR-42), Get credits, and a **History** fold:
+  bought (+N, with its date) and spent (−1, named) lines. Used credits appear
+  only there.
 
 ### The path after buying
 
@@ -66,8 +70,11 @@ assumes how two people are related.
     someone close to you (add or gift), the two of you.
   - 5 credits, "Your people, then how you fit": your own chart, two people
     close to you, two compatibility reports (you and each of them).
-- The meter lights the credits still to use. Each step's button opens its
-  flow; a step that needs an earlier one waits with its reason.
+- A dot per credit still to use. Each step's button opens its flow; a step
+  that needs an earlier one waits with its reason.
+- **A top-up** is planned from the whole balance and what exists: 3 left and
+  3 bought reads "6 credits to use", ticks what is written, then suggests the
+  next people and "you and each of them".
 - "Or skip; nothing expires." Any credit can go to any report.
 
 ### The nudges
@@ -123,7 +130,8 @@ an orbit without an email in the giver's name, and anyone can leave one.
    (Get credits at zero); never a point per credit.
 4. Add someone offers exactly the three choices with the credit named; a gift
    holds one credit, Take it back and expiry return it, a claim moves it
-   (ledger tests). The credits meter lights credits still to use.
+   (ledger tests). The pill and dots show the one balance; a second bundle
+   adds to it; used credits appear only in History.
 5. A gift arrives as the cover, previewed to the giver before sending; the
    recipient's form ends with "This is my natal chart" ticked, and unticked
    asks whose chart it is; once written, each is on the other's orbit, and
@@ -142,36 +150,35 @@ waiting gift and the credits sheet (3, 1, none); the path after buying 3 and
 5; Send to Beatrice and Gift to Pierre in four steps each, with the cover;
 who sees what; the loop and the four nudges.
 
-## Open questions
+## Settled at lock (the defaults)
 
-1. **Can the giver read a gifted report?** It puts the recipient on the
-   giver's orbit and lets them read the two together. Recommend: yes by
-   default, a switch for the recipient on sign-in. Default: that.
-2. **A thank-you credit when a recipient buys?** It closes the loop for the
-   giver but is a price decision. Recommend: design for it, decide with MB-5.
-   Default: not in V1, raised as a Mailbox row.
-3. **Show the path after every purchase?** Recommend: every bundle of 3 or
-   more, filled from what exists; a single credit goes to Add someone. Default:
-   that.
+1. The giver reads a gifted report by default; the recipient can Stop sharing.
+2. No thank-you credit in V1; raised as a Mailbox row for pricing (MB-5).
+3. The path shows after bundles of 3 or 5 and after a top-up of 3 or more,
+   planned from the whole balance.
 
-## Decisions to record
+## Decisions recorded
+
+In Notion Decisions, numbered by Notion, in this order.
 
 1. **Two verbs.** Send to {name} for a finished report (ADR-38 mode one,
    theirs by default); Gift a report for a credit (mode two), only on credits
    surfaces. "Share with" and "Invite {name}" leave the dashboard.
 2. **The orbit holds people only**, a waiting gift in teal and one Add
-   someone point; credits live in the pill and its sheet, whose meter lights
-   what is left to use. Credits never expire.
+   someone point; credits live in the pill and its sheet. Credits never expire.
 3. **Add someone offers three choices:** someone you know, gift a report, two
    people together.
 4. **A gift holds a credit** for 30 days: claimed it moves, unclaimed or taken
    back it returns (behind the MB-6 seam until payments).
 5. **A gift claim joins both orbits**, and nobody sees another's people; a
    compatibility report reaches the other person only by Send.
-9. **A gift arrives as a designed cover** previewed before sending; its form
-   ends with "This is my natal chart". Emails never say "made".
 6. **The path after buying** a bundle of 3 or more: one skippable sheet of
-   steps with a credits meter.
+   steps, a dot per credit to use.
 7. **Nudges:** one at a time, inside their card, per the table.
 8. **No dark patterns:** no timers, streaks, badges or expiry; nobody joins an
    orbit without an email in the giver's name.
+9. **A gift arrives as a designed cover** previewed before sending; its form
+   ends with "This is my natal chart". Emails never say "made".
+10. **One balance:** bundles stack into one count; the pill and dots show what
+    is left to use, History holds what was bought and spent; a top-up path is
+    planned from the whole balance.

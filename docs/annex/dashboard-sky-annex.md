@@ -39,6 +39,11 @@ Detail moved out of `docs/specs/locked/dashboard-sky.md` to keep it in budget.
 
 ## Sharing and inviting (MB-81 to 85, amendment 2026-09-26)
 
+Renamed and extended by `docs/specs/locked/credit-loop.md` (2026-09-26): Share
+with is Send to, Stop the giver seeing it is Stop sharing with {giver}, and
+Invite {name} is Gift a report on the credits surfaces. The text below keeps
+the access rules.
+
 - **Share with {first name}** on a finished report made by the reader: on the
   natal report, the person's row and their card. Invites as they are (token,
   email, link, sign-in with that email, the birth-time question). On claim the

@@ -62,7 +62,7 @@ interactive orbit.
    its one word (ADR-98): "4 planets in the 9th (Belief)"; blind: "Houses need a birth time". This lifts the
    natal-report-ui dashboard deferral for this strip only.
 5. **Compatibility**, below.
-6. **Share line:** Share with {first name}, or Joined ✓ (MB-81).
+6. **Send line:** Send to {first name}, or Joined ✓ (credit-loop, MB-81).
 7. **One primary:** "Open {name}'s report"; while it is written, a status
    "Writing {name}'s report" with the dots. Nothing offers to read a report
    before it is finished: no "Read as it writes" on the dashboard.
@@ -84,7 +84,7 @@ One product, named by its two people: eyebrow "Compatibility report", title
 
 | State | Row |
 |---|---|
-| Shared with the reader | the whole row opens it (chevron ›); a quiet link "↥ Share with {B}" inside it until they join, then "{B} can read it too" (MB-82) |
+| Shared with the reader | the whole row opens it (chevron ›); a quiet link "↥ Send to {B}" inside it until they join, then "{B} can read it too" (MB-82) |
 | None, both finished, credits > 0 | "How the two of you work, and why." · "Uses 1 credit · N credits left" · **Generate** (primary) |
 | None, zero credits | "No credits left" · **Get credits** |
 | Their natal report writing | "Generate opens when {name}'s report is finished." (the card's primary carries the Writing status) |
@@ -112,15 +112,15 @@ seam until payments (annex).
 Only you (credits or none), a new account, people but no report of your own:
 the four tiles in the artifact; copy and actions in the annex.
 
-### Sharing and inviting (MB-81 to 85; detail in the annex)
+### Sending and gifting (MB-81 to 85; renamed by `credit-loop.md`)
 
-- **Share with {first name}** on a finished report the reader made (report,
+- **Send to {first name}** on a finished report the reader made (report,
   row, card); on claim it is theirs by default, "Not me" undoes; they may
   delete it or remove the giver's access. Joined shows "Joined ✓".
-- **Share with {B}** for a pair, only when the reader is one of the two; a
+- **Send to {B}** for a pair, only when the reader is one of the two; a
   person already joined gets access at once.
-- **Invite {first name}** for a person with no report; the gifted credit
-  ships with payments.
+- **Gift a report** replaces Invite {first name}: it lives on Add someone
+  and the credits sheet, holds a credit, and is specified in `credit-loop.md`.
 - **Fixed with it:** the claimer's read and list checks (MB-84); invite copy
   and the Terms (MB-85). The pair row never shows the lens (ADR-93).
 
@@ -163,7 +163,7 @@ the four tiles in the artifact; copy and actions in the annex.
     Writing, a pressed Generate shows Generating, a writing pair shows
     Writing; no "Read as it writes" anywhere on the dashboard. An existing
     pair is one tappable row, sharing a link inside it, never a second button.
-11. Share with, Joined and Invite appear per person as specified; a claimer
+11. Send to and Joined appear per person as specified; a claimer
     reads and lists the report made for them (route test, MB-84); a pair is
     shared only by one of its two people; the lens never shows.
 12. Reduced motion: no drift, float or micro animation. At 390 px no

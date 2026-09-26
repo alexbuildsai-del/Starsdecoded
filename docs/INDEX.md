@@ -24,7 +24,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   retry the failed section only, failure reasons, age bands now and later, the lab and Release in the admin panel, the prose study. Artifact: https://claude.ai/artifact/6HLtPdSaR3wiVLXx16oWHU
 - `docs/specs/locked/review-25-09.md` — next, unplanned: the ringless pair hero, the counter alone, two charts side by side, one word per house,
   the ledger, the type-only share card, story order, plain prose said in the prompt (v7), the Closing gap. Artifact: https://claude.ai/artifact/BejywNF3s6rEGEc4aRHTSD
-- `docs/specs/locked/dashboard-sky.md` — the orbit, its card, the pair upsell, credits, empty states, sharing (MB-81 to 86). Artifact: https://claude.ai/artifact/6GpndVJxZUfHAdULYYg2GX · on a branch: `night-sky.md` (`claude/loving-maxwell-hzkzdl`, ADR-78 to 80)
+- `docs/specs/locked/dashboard-sky.md` — the orbit, its card, the pair upsell, credits, empty states, sending (MB-81 to 86) · `credit-loop.md` — Send versus Gift, one balance, the path after buying, nudges: https://claude.ai/artifact/UST4kga6e2KJZ4M1w78fZ7 · Artifact: https://claude.ai/artifact/6GpndVJxZUfHAdULYYg2GX · on a branch: `night-sky.md` (`claude/loving-maxwell-hzkzdl`, ADR-78 to 80)
 - Drafts: `report-cost-and-latency.md` (27.1 cents measured, L0 built) · `staging-environment.md` (main → staging, production branch → production; runbook https://claude.ai/code/artifact/d1091f1b-3923-488c-9596-93c92df325e7)
 
 ## Rounds
