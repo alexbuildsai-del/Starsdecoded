@@ -20,7 +20,7 @@ the giver already in it.
   reader made: ADR-38's first mode. An email and a link; the recipient signs
   in with that email and the report is theirs by default ("This is me" ticked,
   "Not me" undoes, Delete, "Stop {giver} seeing it"). On claim they are asked
-  whether the birth time is right: the horizon pass, free once (ADR-35/38).
+  whether the birth time is right: the horizon pass, free once (ADR-38).
   Costs nothing; the credit was spent when the report was made. A pair is sent
   the same way, only by one of its two people (MB-82).
 - **Gift a report**, only on the credits surfaces (a seat, the credits sheet):
