@@ -2,6 +2,7 @@
 name: builder
 description: Implements exactly one task card from a round plan for Stars Decoded. Touches only the files the card names, validates with typecheck and tests, commits on the round branch. Spawned by the orchestrator.
 model: opus
+effort: max
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
