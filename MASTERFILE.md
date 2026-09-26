@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.12 (2026-09-26) |
+| Version | 0.13 (2026-09-26) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -22,7 +22,7 @@ This file is the constitution. Orchestrators and planners read it in full once p
 - **R-0.4** The product is **Stars Decoded**. "Astra" is the inherited Replit name; never add a new use of it.
 - **R-0.5** Every reply to the Owner opens with `Alex, ` alone on its first line, before any other text, in every session, until the Owner says to stop. Standing instruction from the Owner (2026-09-16); commit messages and repository files are not replies and stay unprefixed.
 - **R-0.6** Delegate without being asked. When a task splits into independent parts, needs a broad search, or a long read whose conclusion is all that matters, spawn subagents (the `.claude/agents/` roles, Explore, general-purpose) in parallel and keep the conclusion. A single lookup or a one-file edit stays in the main loop. The Owner never has to request this.
-- **R-0.7** Model triage. The main loop runs on the model the Owner selected with `/model`; Claude cannot change it and never asks to. Every subagent gets a tier chosen at spawn time: heavy (Opus or above) for planning, feature work, refactors, security audits, algorithm design and elusive concurrency bugs, since planning and execution of the product are what matters; standard (Sonnet) for simple improvements, routine debugging, unit tests and reviews; fast (Haiku) for formatting, typo fixes, boilerplate, renames and plain file searches. Unsure means heavy. The orchestrator is the main agent of a round and pins the top model available (Fable today); the planner and builder agent files pin Opus, and the orchestrator may drop a builder to Sonnet when its card is a simple improvement. A tier the Owner names in the prompt overrides the pick for that task.
+- **R-0.7** Model triage. The main loop runs on the model and effort the Owner selected, except in `/round` (below); Claude never asks the Owner to change them. Every subagent gets a tier chosen at spawn time: heavy (Opus or above) for planning, feature work, refactors, security audits, algorithm design and elusive concurrency bugs, since planning and execution of the product are what matters; standard (Sonnet) for simple improvements, routine debugging, unit tests and reviews; fast (Haiku) for formatting, typo fixes, boilerplate, renames and plain file searches. Unsure means heavy. The orchestrator is the main session running `/round`, never a subagent, because in cloud sessions a subagent cannot spawn builders; the round skill pins Opus (5.5 today) at max effort (Owner, ADR-137). The planner and builder agent files pin Opus at max effort, and the orchestrator may drop a builder to Sonnet when its card is a simple improvement. A tier the Owner names in the prompt overrides the pick for that task.
 
 ## 1 · Thesis
 
@@ -176,7 +176,7 @@ Starsdecoded/
     rounds/                 RNN-plan.md and RNN-report.md
     qa/                     QA-NN.md, findings only
     annex/                  deep dives, long references, overflow from budgeted files
-  .claude/agents/           planner, orchestrator, builder, qa
+  .claude/agents/           planner, builder, qa; the orchestrator is the main session in /round
   .claude/skills/           /ideate /lock /plan /round /qa /mailbox, one SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
 Notion / STARS DECODED
@@ -199,7 +199,7 @@ Explore the feature with the Owner. The Owner decides visually: every ideation p
 
 ### 11.2 Build rounds (`/plan`, then `/round`)
 1. **Planner** reads `CLAUDE.md`, `INDEX.md`, the locked specs named by the Owner (all unplanned ones when none are named; a locked spec is a file under `docs/specs/locked/`, its slug is its id), new QA reports and the open Mailbox. Writes `docs/rounds/RNN-plan.md`: goals, task cards (≤ 15 lines each) cut so they touch disjoint files wherever the work allows, the parallel groups, risks, Mailbox rows raised before building. Parallelism is a planning goal, not an afterthought.
-2. **Approval to build** is one step: when the Owner approves the plan, the same session spawns the orchestrator at once. Nobody waits for a second instruction.
+2. **Approval to build** is one step: when the Owner approves the plan, the same session runs `/round` at once and is its orchestrator (R-0.7). Nobody waits for a second instruction.
 3. **Orchestrator** branches `round/RNN`, dispatches every builder in a parallel group in one message and the groups in order, each builder with only its card and §0.
 4. **Gate**: `pnpm run typecheck` · `pnpm run build:web` · `pnpm run build:api` · unit tests · the dry lab when the brain changed (spot on demand; the full lab and the QA agent gate the release, R-4.4) · `db:bootstrap` boots clean when the schema changed · smoke on the Vercel preview.
 5. **Close**: round report (≤ 60 lines, every shipped line tagged USER-FACING or INTERNAL), `INDEX.md` regenerated, `CLAUDE.md` current focus updated, Mailbox updated, pull request opened and, once the gate is green, merged by the orchestrator. The Owner never merges.

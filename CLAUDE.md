@@ -9,7 +9,7 @@ product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 - Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
 - Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel; a single lookup or edit stays here.
-- Model triage (R-0.7): the orchestrator on the top model (Fable); builders Opus, simple fixes Sonnet, mechanical Haiku.
+- Model triage (R-0.7): `/round` is the orchestrator, run in the main loop on Opus 5.5 at max effort; planner and builders Opus at max, simple fixes Sonnet, mechanical Haiku.
 
 ## Read this first
 
