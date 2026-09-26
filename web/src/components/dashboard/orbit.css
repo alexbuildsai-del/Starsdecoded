@@ -1,0 +1,60 @@
+/*
+ * The orbit's micro animations (dashboard-sky annex), kept here because R10
+ * leaves index.css untouched. Each one-off move ends inside a second; the breath
+ * and the turning rings are the only loops beside the drift and the float, which
+ * Orbit.tsx's frame loop runs. Reduced motion runs none of it, so the sky is
+ * whole and still at first paint.
+ *
+ * Every animated shape is drawn around its own origin and SVG transforms turn
+ * about the local 0 0, so a scale or a turn stays on its disc while the frame
+ * loop carries the group round the ring.
+ */
+.orbit {
+  --orbit-ease: cubic-bezier(.16, 1, .3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.orbit-hit { cursor: pointer; outline: none; }
+.orbit-focus { stroke: transparent; }
+.orbit-hit:focus-visible .orbit-focus { stroke: #9FA8DA; }
+
+.orbit-lift, .orbit-arrive, .orbit-pulse, .orbit-lit, .orbit-breathe, .orbit-turn, .orbit-turn-slow {
+  transform-origin: 0 0;
+}
+
+.orbit-point { transition: opacity .3s var(--orbit-ease); }
+.orbit-lift { transition: transform .24s var(--orbit-ease); }
+.orbit-glow { transition: fill-opacity .2s var(--orbit-ease); }
+
+/* A phone keeps :hover after a tap, which would leave the tapped person lifted. */
+@media (hover: hover) {
+  .orbit-point:hover .orbit-lift { transform: scale(1.1); }
+  .orbit-centre:hover .orbit-lift { transform: scale(1.04); }
+  .orbit-point:hover .orbit-glow { fill-opacity: .14; }
+}
+.orbit-point:focus-visible .orbit-lift { transform: scale(1.1); }
+.orbit-centre:focus-visible .orbit-lift { transform: scale(1.04); }
+
+.orbit-arrive { animation: orbit-pop .7s var(--orbit-ease) backwards; }
+@keyframes orbit-pop { from { transform: scale(.2); opacity: 0; } }
+
+.orbit-pulse { pointer-events: none; animation: orbit-pulse .9s var(--orbit-ease) forwards; }
+@keyframes orbit-pulse {
+  from { transform: scale(.85); opacity: .9; }
+  to { transform: scale(1.7); opacity: 0; }
+}
+
+.orbit-lit { animation: orbit-lit .5s var(--orbit-ease); }
+@keyframes orbit-lit { from { transform: scale(1.4); opacity: 0; } }
+
+.orbit-breathe { animation: orbit-breathe 5s var(--orbit-ease) infinite; }
+@keyframes orbit-breathe { 50% { transform: scale(1.08); fill-opacity: .26; } }
+
+.orbit-turn { animation: orbit-turn 10s linear infinite; }
+.orbit-turn-slow { animation: orbit-turn 60s linear infinite; }
+@keyframes orbit-turn { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit, .orbit * { animation: none !important; transition: none !important; }
+  .orbit .orbit-lift { transform: none !important; }
+}
