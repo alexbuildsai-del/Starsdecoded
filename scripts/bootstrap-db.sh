@@ -58,6 +58,12 @@ echo "==> 3h/7 The failure log and the release record"
 # generation_failures, lab_releases and reports.failure_code (ADR-84 to 86). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-failures-and-releases.ts
 
+echo "==> 3i/7 Send, Gift and the test checkout"
+# profiles.claimed_as_self; invite_tokens gains kind, a nullable profile_id, credit_id,
+# recipient_name, note, reminded_at, revoked_at; bundles.is_test and credits.is_test
+# (ADR-120, 123, 138, 139; MB-81, 83). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-send-and-gift.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.

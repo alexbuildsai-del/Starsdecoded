@@ -1,11 +1,13 @@
-import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index, boolean } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 import { reportsTable } from "./reports";
 
 export const BUNDLE_KINDS = ["solo", "couple", "family"] as const;
 export type BundleKind = (typeof BUNDLE_KINDS)[number];
 
-export const CREDIT_STATUSES = ["available", "used"] as const;
+// "held" is a gift's credit between Gift and its claim (ADR-123, 139); it is
+// app-level only, so no DDL enforces the set.
+export const CREDIT_STATUSES = ["available", "used", "held"] as const;
 export type CreditStatus = (typeof CREDIT_STATUSES)[number];
 
 export const bundlesTable = pgTable(
@@ -16,6 +18,8 @@ export const bundlesTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     bundleKind: text("bundle_kind").notNull(),
+    // A free bundle from the test checkout (ADR-138), never sold.
+    isTest: boolean("is_test").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [
@@ -40,6 +44,8 @@ export const creditsTable = pgTable(
     usedForReportId: text("used_for_report_id").references(() => reportsTable.id, {
       onDelete: "set null",
     }),
+    // From a test-checkout bundle (ADR-138); marks its History line as free.
+    isTest: boolean("is_test").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [
