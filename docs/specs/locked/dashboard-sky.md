@@ -1,7 +1,8 @@
 # Dashboard sky
 
 Ideation 2026-09-25 with the Owner. Status: locked 2026-09-25 (ADR-89 to 96);
-amended 2026-09-26 with Review 25 Sept (MB-81 to 86) and progress states.
+amended 2026-09-26 with Review 25 Sept (MB-81 to 86) and progress states;
+amendment locked 2026-09-26 (ADR-130 to 136).
 Annex: `docs/annex/dashboard-sky-annex.md` (sharing flows, empty states).
 Artifact: https://claude.ai/artifact/6GpndVJxZUfHAdULYYg2GX · reference:
 commit 3cfe873, the first prototype, reverted.
@@ -181,17 +182,14 @@ and progress states, sharing, empty states, credits.
 The picker keeps the lens choice (ADR-40, 68) and nothing on the dashboard
 shows it; zero-credit states sit behind the MB-6 seam; a point shows initials.
 
-## Decisions to record (amendment, at the next lock)
-
-1. In-progress controls become a status with three dots; Generate never
-   shows while a report is written (the Owner, 2026-09-26).
-2. No "Read as it writes" on the dashboard; a report opens when finished.
-3. An existing pair is one tappable row; sharing is a link inside it.
-4. MB-81 to 86 as above, closing those rows.
-
 ## Decisions recorded
 
 ADR-89 to ADR-96, in order: the orbit (not a chart); a person is a named
 point; a tap opens the card; the card is computed; one compatibility report
 named by two people; the card sells the pair; credits always in sight; empty
 states. Full text in Notion Decisions.
+
+Amendment, ADR-130 to ADR-136, in order: a control under way is a status
+with dots; no Read as it writes; a pair is one tappable row; a pair is sent
+only by its two (MB-82); the claimer's checks (MB-84); send copy and Terms
+(MB-85); Generate opens the picker with the pair chosen (MB-86).
