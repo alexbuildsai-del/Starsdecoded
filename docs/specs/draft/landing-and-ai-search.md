@@ -22,7 +22,7 @@ horizon, Inside, Method, birth time and the dawn's Sun.
 - Draft 5: headings said, never "noun, phrase"; both reports named; the method with no
   model or vendor.
 - Draft 6: the seven pages designed; labels back ("No predictions"); `/ux-copy` rebuilt
-  on humanizer, speak-human's reader step and research on what AI search quotes.
+  on the Owner's pick, content-designer/ux-writing-skill, plus AI-search research.
 
 ## What today's page gets wrong
 
@@ -102,10 +102,10 @@ sitemap or JSON-LD, so AI crawlers read a title and one sentence.
 
 **D. Voice**
 
-22. **Marketing voice.** `.claude/skills/ux-copy`, rebuilt on humanizer (MIT) with
-    speak-human's reader step and `references/ai-search.md`: AI-writing patterns ranked
-    and limited, labels allowed, ledes that name Stars Decoded. `/web-taste` for the look.
-    MASTERFILE §9 links both in place of "not written yet".
+22. **Marketing voice.** `.claude/skills/ux-copy`, rebuilt on content-designer's UX
+    writing skill (MIT): four standards, element patterns, a voice chart and a tone map,
+    with AI habits (`ai-tells.md`) and AI search (`ai-search.md`) as extra passes.
+    `/web-taste` for the look. MASTERFILE §9 links both in place of "not written yet".
 
 ## Out of scope
 
@@ -190,9 +190,9 @@ robots.txt, llms.txt), Voice, Motion, Decisions, Questions.
   IndexNow and Search Console. The AI-bot firewall is never Deny; llms.txt comes last.
 - **ADR-106 Answer first.** Each public page opens with a sentence that answers its
   question alone, and an Updated date that moves only with its content.
-- **ADR-107 Marketing voice lives in `/ux-copy`.** AI-writing patterns ranked and
-  limited, not banned; labels allowed; both reports named; no model or vendor, AI never
-  leads; AI-search rules in its references. Closes the voice half of MB-25.
+- **ADR-107 Marketing voice lives in `/ux-copy`.** Four standards (purposeful, concise,
+  conversational, clear), a voice (exact, plain, warm, honest) and a tone per moment;
+  AI habits limited, labels allowed, AI never leads. Closes the voice half of MB-25.
 - **ADR-108 The dawn closes the page.** Dawn light and the Sun over a full-width
   horizon, with the last call to action. Pricing takes its slot above the FAQ.
 - **ADR-109 Eight public pages, one design.** Home, /sky, /sample, /method,

@@ -1,9 +1,10 @@
-# Patterns that make copy read as machine-made
+# AI tells: habits that make copy read as machine-made
 
-Strongest first. Sections A and E justify an edit on one sighting. The rest are *weak
-alone*: act when two or more share a passage, or when one repeats across the page.
-Every example is from our own drafts or the product. Adapted from humanizer (MIT,
-github.com/blader/humanizer), itself based on Wikipedia's "Signs of AI writing".
+The scan for the conversational pass, strongest first. Sections A and E justify an
+edit on one sighting. The rest are *weak alone*: act when two or more share a passage,
+or when one repeats across the page. Every example is from our own drafts or the
+product. Adapted from humanizer (MIT, github.com/blader/humanizer), itself based on
+Wikipedia's "Signs of AI writing".
 
 ## A. Staging instead of saying
 
