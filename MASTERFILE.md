@@ -112,7 +112,7 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 ## 6 · Payments and business model
 
-Nothing is sold yet. The credits ledger exists; the purchase path does not. Pricing is open (Mailbox). No production release before checkout exists (ADR-138): until then credits are enforced on every host but production, and Get credits is a free test checkout whose rows are marked `is_test` and which production refuses.
+Nothing is sold yet. The credits ledger exists; the purchase path does not. Pricing is open (Mailbox). The product reaches production only once checkout exists (ADR-138); until launch production shows the waitlist alone (ADR-141). Until checkout, credits are enforced on every host but production, and Get credits is a free test checkout whose rows are marked `is_test` and which production refuses.
 
 - **R-6.1** One-time purchase grants a bundle of credits; creating a report consumes one credit, hard. The soft pass in `consumeCredit` ends the day payments go live. Only the birth time can change on a report: the first update is free, a second consumes a credit, a changed date or place is a new report on a new credit, and no other user regeneration exists (MB-49).
 - **R-6.2** Once a payment provider exists, it is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation.
