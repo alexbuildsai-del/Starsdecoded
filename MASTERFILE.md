@@ -117,7 +117,7 @@ Nothing is sold yet. The credits ledger exists; the purchase path does not. Pric
 - **R-6.2** Once a payment provider exists, it is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation.
 - **R-6.3** A price appears in exactly one place in code, read by the landing page, the checkout and the receipt. No literal prices in copy.
 - **R-6.4** One credit is one report, whatever the report (ADR-42). A compatibility report needs two natal reports first, so a pair always costs three credits against one; "above solo" holds at the purchase, never at the credit.
-- **R-6.5** Credits are one balance: bundles stack into one count, never shown per bundle; a gift holds one credit, returned if unclaimed; a report already written is sent, never gifted. The orbit, the credits sheet and the path after buying are `docs/specs/locked/credit-loop.md`; no timers, streaks, badges or expiry.
+- **R-6.5** Credits are one balance: bundles stack into one count, never shown per bundle; a gift holds one credit, returned if unclaimed; a report already written is sent, never gifted. The orbit, the credits sheet and the path after buying are `docs/specs/locked/credit-loop.md`; no timers, streaks, badges or expiry (ADR-120 to 129).
 
 ## 7 · Architecture
 

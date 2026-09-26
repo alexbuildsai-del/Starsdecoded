@@ -1,6 +1,6 @@
 # The credit loop
 
-Ideation 2026-09-26 with the Owner. Status: locked 2026-09-26.
+Ideation 2026-09-26 with the Owner. Status: locked 2026-09-26 (ADR-120 to 129; MB-81, 83 decided; MB-96 raised).
 Artifact: https://claude.ai/artifact/UST4kga6e2KJZ4M1w78fZ7
 Builds on the two gift modes (ADR-38), `dashboard-sky` (ADR-89 to 96 and its
 MB-81 to 86 amendment) and one credit per report (ADR-42). Prices and
@@ -159,7 +159,7 @@ who sees what; the loop and the four nudges.
 
 ## Decisions recorded
 
-In Notion Decisions, numbered by Notion, in this order.
+ADR-120 to ADR-129, in this order.
 
 1. **Two verbs.** Send to {name} for a finished report (ADR-38 mode one,
    theirs by default); Gift a report for a credit (mode two), only on credits
