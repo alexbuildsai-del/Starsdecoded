@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ReportSummary } from "@workspace/api-client-react";
 import {
-  SELECTION_KEY, forgetSelection, parseSelection, readSelection, reconcileSelection, rememberSelection, unpickable, type SelectionStore,
+  SELECTION_KEY, enterPreselect, forgetSelection, parseSelection, preselectPair, readSelection, reconcileSelection, rememberSelection, unpickable,
+  type SelectionStore,
 } from "./pair-selection";
 
 // sessionStorage's three calls over a Map: no jsdom here (MB-47).
@@ -79,5 +80,66 @@ describe("unpickable", () => {
     expect(unpickable(report("r1", { status: "failed" }))).toBe("could not be written");
     expect(unpickable(report("r1", { status: "failed", failureReason: { code: "quality", line: "The writing did not hold up." } }))).toBe("The writing did not hold up.");
     expect(unpickable(report("c1", { kind: "compatibility" }))).toBe("not a personal natal report");
+  });
+});
+
+describe("preselectPair", () => {
+  const listed = [report("mine"), report("theirs"), report("other")];
+
+  it("enters whole against a list holding both reports, with no lens, so the picker still asks it", () => {
+    const pre = preselectPair("mine", "theirs");
+    expect(pre).toEqual({ a: "mine", b: "theirs" });
+    expect(reconcileSelection(pre, listed)).toEqual({ state: "kept", selection: { a: "mine", b: "theirs" } });
+  });
+
+  it("is dropped against a list holding only one of the two, whichever it is", () => {
+    expect(reconcileSelection(preselectPair("mine", "gone"), listed)).toEqual({ state: "dropped" });
+    expect(reconcileSelection(preselectPair("gone", "theirs"), listed)).toEqual({ state: "dropped" });
+  });
+
+  it("is dropped against a list holding neither, and waits while the list loads", () => {
+    expect(reconcileSelection(preselectPair("gone", "lost"), listed)).toEqual({ state: "dropped" });
+    expect(reconcileSelection(preselectPair("mine", "theirs"), [])).toEqual({ state: "dropped" });
+    expect(reconcileSelection(preselectPair("mine", "theirs"), undefined)).toEqual({ state: "waiting" });
+  });
+
+  it("keeps unpickable's word: a listed report still writing enters, and the picker names why it cannot be written", () => {
+    const writing = [report("mine"), report("theirs", { status: "interpreting" })];
+    expect(reconcileSelection(preselectPair("mine", "theirs"), writing).state).toBe("kept");
+    expect(unpickable(writing[1])).toBe("still writing");
+  });
+
+  it("never pairs a report with itself and leaves an empty id out", () => {
+    expect(preselectPair("mine", "mine")).toEqual({ a: "mine" });
+    expect(preselectPair("", "theirs")).toEqual({ b: "theirs" });
+    expect(reconcileSelection(preselectPair("mine", "mine"), listed)).toEqual({ state: "dropped" });
+  });
+
+  it("round-trips through the tab's store as the picked selection", () => {
+    const store = memoryStore();
+    rememberSelection(preselectPair("mine", "theirs"), store);
+    expect(reconcileSelection(readSelection(store), listed)).toEqual({ state: "kept", selection: { a: "mine", b: "theirs" } });
+  });
+});
+
+describe("enterPreselect", () => {
+  const pre = preselectPair("mine", "theirs");
+
+  it("keeps the lens and its answers when the press is for the two already chosen", () => {
+    expect(enterPreselect({ a: "mine", b: "theirs", lens: "people", how: "friends", parent: "A" }, pre)).toEqual({
+      a: "mine", b: "theirs", lens: "people", how: "friends", parent: "A",
+    });
+  });
+
+  it("keeps the same person as the parent when the two come the other way round", () => {
+    expect(enterPreselect({ a: "theirs", b: "mine", lens: "parent_child", parent: "A" }, pre)).toEqual({
+      a: "mine", b: "theirs", lens: "parent_child", parent: "B",
+    });
+  });
+
+  it("starts clean for any other pair, and from nothing", () => {
+    expect(enterPreselect({ a: "mine", b: "other", lens: "partners", parent: "B" }, pre)).toEqual({ a: "mine", b: "theirs" });
+    expect(enterPreselect({}, pre)).toEqual({ a: "mine", b: "theirs" });
+    expect(enterPreselect({ a: "mine", lens: "partners" }, preselectPair("mine", "mine"))).toEqual({ a: "mine" });
   });
 });
