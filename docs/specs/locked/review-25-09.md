@@ -2,9 +2,10 @@
 
 Ideation 2026-09-26 with the Owner from the Notion page "Review 25 Sept" (ten notes on the R08
 build on staging), revised twice the same day on the Owner's replies. Artifact, revision 3:
-https://claude.ai/artifact/BejywNF3s6rEGEc4aRHTSD. Status: **draft**.
+https://claude.ai/artifact/BejywNF3s6rEGEc4aRHTSD. Status: **locked 2026-09-26**, ADR-97 to 105.
 Builds on `compatibility-report-p2.md` (ADR-63 to 71) and `review-20-09.md` (ADR-59 to 62);
-amends ADR-71, the p2 chapter 01 shape and lens chapter order, and makes ADR-70 literal.
+amends ADR-43 (the bi-wheel), ADR-60 (the link cards), ADR-71, the p2 chapter 01 shape and lens
+chapter order, and makes ADR-70 literal.
 Touches `dashboard-sky` (locked on `claude/modest-cori-wh0mty`, ADR-89 to 96) through MB-86.
 
 Note 8 shipped in #66 (the Owner: "just fix it"). Sharing a report (note 6's second half)
@@ -106,7 +107,7 @@ waits for the dashboard sky round: MB-81 to MB-86 hold its decisions and designs
   button); MB-83 invite, the gifted credit with payments; MB-84 the claim that lands on a 404;
   MB-85 invite copy and privacy; MB-86 what dashboard-sky takes from this review.
 - Pair prose, schema and the pair lab's own failures (R08's ground); no stored pair run exists.
-- The API's own house wording (`vocabulary.ts`, `HOUSE`): a Mailbox row at lock.
+- The prompts' own house wording (`vocabulary.ts`, `HOUSE`): MB-87.
 - A natal share card, a hosted card or a card link preview; Placidus; the landing page (MB-8).
 
 ## Acceptance criteria
@@ -139,10 +140,14 @@ the two charts; the twelve words in use and the unchanged house card; the ledger
 the share block; the sharing designs kept for dashboard sky; the crash fix; the cause of the
 label and the prompt diff; the Closing measures.
 
-## Open questions
-None. Taken at their defaults: the page's plain-text guard stays.
+## Settled at lock
+The page's plain-text guard stays (the default). The prompts' house wording went to the Mailbox
+as MB-87; MB-63 is decided by ADR-102.
 
-## Decisions to record
+## Decisions recorded
+
+ADR-97 to ADR-105, in this order.
+
 1. **Two charts, side by side**, each alone with its name and rising in the centre; no
    bi-wheel, ring inside a ring, contact lines, toggle, panel or legend, on the page or the
    card. Amends the p2 chapter 01 line and ADR-71's "the wheel behind".
