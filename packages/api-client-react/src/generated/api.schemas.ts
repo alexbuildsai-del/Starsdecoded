@@ -1562,6 +1562,15 @@ export interface Gift {
 }
 
 /**
+ * What POST /gifts answers: the gift, plus the claim link exactly as its email carried it and whether that email reached the recipient, the same two fields POST /invites answers (ADR-123). The raw token lives only in this one response; GET /gifts stores just its hash and can never rebuild the link.
+ */
+export type GiftCreated = Gift & {
+  /** The link to copy and send by hand when the email did not go. */
+  claimUrl: string;
+  emailDelivered: boolean;
+};
+
+/**
  * Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).
  */
 export interface CreateGiftBody {

@@ -1014,11 +1014,11 @@ paths:
               $ref: "#/components/schemas/CreateGiftBody"
       responses:
         "201":
-          description: The gift, waiting
+          description: The gift, waiting, plus the claim link exactly as its email carried it and whether that email went (ADR-123).
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Gift"
+                $ref: "#/components/schemas/GiftCreated"
         "400":
           description: Validation error
           content:
@@ -3075,6 +3075,24 @@ components:
           type: boolean
           description: True while one of the giver's credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).
       required: [id, recipientName, email, note, sentAt, returnsAt, remindedAt, state, creditHeld]
+
+    GiftCreated:
+      description: >-
+        What POST /gifts answers: the gift, plus the claim link exactly as
+        its email carried it and whether that email reached the recipient,
+        the same two fields POST /invites answers (ADR-123). The raw token
+        lives only in this one response; GET /gifts stores just its hash
+        and can never rebuild the link.
+      allOf:
+        - $ref: "#/components/schemas/Gift"
+        - type: object
+          properties:
+            claimUrl:
+              type: string
+              description: The link to copy and send by hand when the email did not go.
+            emailDelivered:
+              type: boolean
+          required: [claimUrl, emailDelivered]
 
     CreateGiftBody:
       type: object

@@ -38,6 +38,7 @@ import type {
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
   Gift,
+  GiftCreated,
   HealthStatus,
   Horizon,
   HorizonPreviewBody,
@@ -2741,7 +2742,7 @@ export const getCreateGiftUrl = () => {
  * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
  * @summary Gift a report
  */
-export const createGift = async (createGiftBody: CreateGiftBody, options?: Parameters<typeof customFetch>[1]): Promise<Gift> => {
+export const createGift = async (createGiftBody: CreateGiftBody, options?: Parameters<typeof customFetch>[1]): Promise<GiftCreated> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -2749,7 +2750,7 @@ export const createGift = async (createGiftBody: CreateGiftBody, options?: Param
     if (Array.isArray(h)) return Object.fromEntries(h);
     return h;
   };
-return customFetch<Gift>(getCreateGiftUrl(),
+return customFetch<GiftCreated>(getCreateGiftUrl(),
   {
     ...options,
     method: 'POST',

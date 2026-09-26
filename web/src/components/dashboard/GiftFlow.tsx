@@ -6,6 +6,7 @@
  */
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation } from "wouter";
+import { Check, Copy } from "lucide-react";
 import { useAuth, useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,6 +17,7 @@ import {
   useGetCredits,
   useListProfiles,
   type Gift,
+  type GiftCreated,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,10 +118,12 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
   const [tried, setTried] = useState(false);
-  const [gift, setGift] = useState<Gift | null>(null);
+  const [gift, setGift] = useState<GiftCreated | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
+  const linkRef = useRef<HTMLInputElement>(null);
 
   // On the hook, not the call, so the lists refresh even when the sheet is closed before the answer comes.
   const create = useCreateGift({
@@ -211,6 +215,17 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
     );
   }
 
+  // Mirrors SendDialog's copy link: the giver's own fallback when the mailer didn't reach the recipient.
+  async function copyClaimLink(link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      setLinkCopied(true);
+    } catch {
+      // Without clipboard access the link is left selected, so the giver can copy it by hand.
+      linkRef.current?.select();
+    }
+  }
+
   if (step === 4 && gift) {
     const back = dateText(gift.returnsAt);
     return (
@@ -221,9 +236,37 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
             ? `One of your credits is held until ${back}. If ${gift.recipientName} hasn't claimed it by then, it comes back to you.`
             : `${gift.recipientName} can claim it until ${back}.`}
         </p>
-        <p className="text-[13px] leading-[1.45] text-muted-foreground">
-          Open the gift on your orbit to send a reminder or take it back.
-        </p>
+        {gift.emailDelivered ? (
+          <p className="text-[13px] leading-[1.45] text-muted-foreground">
+            Open the gift on your orbit to send a reminder or take it back.
+          </p>
+        ) : (
+          <>
+            <p className="text-[13px] leading-[1.45] text-muted-foreground">
+              {`The email didn't go through. Copy this link and send it to ${gift.recipientName} yourself. They sign in with ${gift.email} to claim it.`}
+            </p>
+            <div className="flex gap-2">
+              <Input
+                ref={linkRef}
+                readOnly
+                value={gift.claimUrl}
+                aria-label={`The link for ${gift.recipientName}`}
+                onFocus={(e) => e.currentTarget.select()}
+                data-testid="text-gift-link"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => copyClaimLink(gift.claimUrl)}
+                className="shrink-0 gap-1.5 font-label"
+                data-testid="button-copy-gift-link"
+              >
+                {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {linkCopied ? "Copied" : "Copy link"}
+              </Button>
+            </div>
+          </>
+        )}
         <Button size="lg" className={cn(PRIMARY, "w-full")} onClick={onClose}>
           Done
         </Button>

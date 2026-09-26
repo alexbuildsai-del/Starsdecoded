@@ -2867,7 +2867,10 @@ export const CreateGiftResponse = zod.object({
   "remindedAt": zod.string().nullable().describe('The last reminder; null before any'),
   "state": zod.enum(['waiting', 'claimed', 'returned']).describe('Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).'),
   "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).')
-}).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).')
+}).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).').and(zod.object({
+  "claimUrl": zod.string().describe('The link to copy and send by hand when the email did not go.'),
+  "emailDelivered": zod.boolean()
+})).describe('What POST \/gifts answers: the gift, plus the claim link exactly as its email carried it and whether that email reached the recipient, the same two fields POST \/invites answers (ADR-123). The raw token lives only in this one response; GET \/gifts stores just its hash and can never rebuild the link.')
 
 
 /**

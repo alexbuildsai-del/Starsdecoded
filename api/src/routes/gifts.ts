@@ -158,6 +158,7 @@ router.post("/gifts", async (req, res) => {
 
     const { token, tokenHash } = mintInviteToken();
     const sentAt = new Date();
+    const claimUrl = claimUrlFor(req, token);
     const [row] = await db
       .insert(inviteTokensTable)
       .values({
@@ -186,13 +187,7 @@ router.post("/gifts", async (req, res) => {
     }
 
     const emailDelivered = await mailed(
-      sendGiftEmail({
-        to: email,
-        giverFirstName,
-        recipientFirstName: recipientName,
-        note,
-        claimUrl: claimUrlFor(req, token),
-      }),
+      sendGiftEmail({ to: email, giverFirstName, recipientFirstName: recipientName, note, claimUrl }),
       req,
       row.id,
     );
@@ -207,7 +202,9 @@ router.post("/gifts", async (req, res) => {
       req.log.warn({ giftId: row.id }, "[gift-email] not sent; the giver can send a reminder");
     }
 
-    return res.status(201).json(toGift(row, creditId ? "held" : null, new Date()));
+    // ADR-123: the raw token lives in this one response only, to the giver who just made
+    // it; GET /gifts stores only its hash, so a later list can never rebuild the link.
+    return res.status(201).json({ ...toGift(row, creditId ? "held" : null, new Date()), claimUrl, emailDelivered });
   } catch (err) {
     req.log.error({ err }, "Failed to create a gift");
     return res
