@@ -1,29 +1,26 @@
 /**
- * The compatibility hero (ADR-70): no ring. Two triad plates side by side,
- * one per person, Sun, Moon and rising at their true degrees with the natal
- * hero's renders on a small ring each; degree and sign on a phone, house and
- * ruler from 640 px up; the reader's own report on the left. A blind chart
- * reads "rising · not drawn" and shows the Moon's arc as the natal hero does.
- * The eyebrow is "Compatibility report · {lens}" with the whole-sign line,
- * the two names with AND between, the cue clear of the corners, which carry
- * A's birth record on the left and B's on the right. The hero keeps the
- * starfield and blobs of its own sky and no gather; print keeps the plates
- * and the corners and drops the sky.
+ * The compatibility hero (ADR-70, ADR-99): no ring. One centred group under
+ * the eyebrow "Compatibility report · {lens}": each person's name once,
+ * heading its own column of three rows, Sun, Moon and rising with the natal
+ * hero's renders, AND between; side by side from the measured width and
+ * stacked on a phone; degree and sign on a phone, house and ruler from 640 px
+ * up; the reader's own report on the left. A blind side reads "rising · not
+ * drawn" and a Moon with a band shows its degree range. The cue sits clear of
+ * the corners, which carry A's birth record on the left and B's on the right.
+ * The hero keeps the starfield and blobs of its own sky and no gather; print
+ * keeps the names over their rows and the corners and drops the sky. The
+ * ringed plate the hero drew until R09 is TriadPlate, kept for the dashboard
+ * sky card (MB-86).
  */
 import { useEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
-import { pointAt, theta } from "@/components/chart/wheel-geometry";
-import { layoutHero, moonArc } from "@/components/report/hero-layout";
-import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { ReportSky } from "@/components/report/ReportSky";
-import { pairHeroLayout, pairStack, triadRows, type PairSide } from "@/components/report/pair-hero-layout";
+import { NOT_DRAWN, pairHeroLayout, pairStack, rowText, triadRows, type PairSide } from "@/components/report/pair-hero-layout";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { lensInfo } from "@/lib/lenses";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { ChartData, Lens } from "@/types/chart";
 
-const SKY = "var(--sky)";
-const SKY_DIM = "var(--sky-dim)";
 const MONTHS = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
 
 export interface PairPerson {
@@ -66,48 +63,15 @@ function dateText(birthDate: string): string {
   return Number.isNaN(d.getTime()) ? birthDate : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-/** One person's plate: a small ring with the Sun, the Moon and the rising marker at their true degrees, then the three rows. */
-function Plate({ person, detail }: { person: PairPerson; detail: "degree" | "full" }) {
-  const chart = person.chartData;
-  const asc = chart.angles?.ascendant ?? null;
-  const blind = asc === null;
-  const sun = chart.planets.sun;
-  const moon = chart.planets.moon;
-  const W = 220;
-  const cx = W / 2;
-  const cy = W / 2;
-  const R = 72;
-  const frame = asc ? asc.absoluteDegree : 0;
-  const ascTheta = theta(frame, frame);
-  const ascAt = pointAt(cx, cy, R, ascTheta);
-  const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band) : null;
-  const layout = layoutHero({
-    cx, cy, ringRadius: R, frameDegree: frame,
-    bodies: [
-      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: 44 },
-      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: 28 },
-    ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
-    labelWidth: 0, labelHeight: 0, obstacles: [],
-  });
-  const rows = triadRows(chart, detail);
+const NAME_CLASS = "font-display font-normal text-[clamp(28px,4.2vw,52px)] leading-[1.08] text-[#F2F4F9]";
+
+/** One person's column: the name once, then the three rows at today's sizes. */
+function Column({ person, detail }: { person: PairPerson; detail: "degree" | "full" }) {
+  const blind = !person.chartData.angles;
+  const rows = triadRows(person.chartData, detail);
   return (
-    <div className="grid justify-items-center gap-2 min-w-0" data-side-blind={blind || undefined}>
-      <svg viewBox={`0 0 ${W} ${W}`} className="block w-[min(220px,40vw)] h-auto" role="img" aria-label={`${person.name}: Sun, Moon and rising at their true positions${blind ? "; the horizon is not drawn" : ""}`}>
-        <circle cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
-        {!blind && (
-          <line
-            x1={pointAt(cx, cy, R + 14, ascTheta).x.toFixed(1)} y1={pointAt(cx, cy, R + 14, ascTheta).y.toFixed(1)}
-            x2={pointAt(cx, cy, R + 14, theta(frame + 180, frame)).x.toFixed(1)} y2={pointAt(cx, cy, R + 14, theta(frame + 180, frame)).y.toFixed(1)}
-            stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
-          />
-        )}
-        {arc && <path d={arc.d} fill="none" stroke={SKY} strokeOpacity={0.7} strokeWidth={2.5} strokeLinecap="round" data-moon-arc />}
-        {layout.bodies.map((b) => (
-          <image key={b.key} href={b.key === "sun" ? SUN_HERO : PLANET_RENDERS[b.key]} x={b.x - b.size / 2} y={b.y - b.size / 2} width={b.size} height={b.size} />
-        ))}
-        {!blind && <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={7} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.3} />}
-      </svg>
-      <p className="font-display text-[15px] text-[#F2F4F9] leading-tight text-center">{person.name}</p>
+    <div className="grid gap-2 min-w-0 justify-items-center" data-side-blind={blind || undefined}>
+      <p className={`${NAME_CLASS} text-center`} style={{ letterSpacing: "-0.02em" }}>{person.name}</p>
       <dl className="rp-legend" style={{ width: "auto" }}>
         {rows.map((row) => (
           <div key={row.key} className="lr">
@@ -115,7 +79,7 @@ function Plate({ person, detail }: { person: PairPerson; detail: "degree" | "ful
               ? <span aria-hidden className="rp-ascdot" />
               : <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />}
             <dt className="k">{row.label}</dt>
-            <dd className={`v${row.blind ? " opacity-70" : ""}`}>{row.blind ? `rising · ${row.value}` : row.value}</dd>
+            <dd className={`v${row.blind ? " opacity-70" : ""}`}>{rowText(row)}</dd>
           </div>
         ))}
       </dl>
@@ -188,24 +152,27 @@ export function PairHero({ a, b, lens, accent }: PairHeroProps) {
   }, []);
 
   const eyebrow = `Compatibility report · ${info.title}`;
-  const method = "whole-sign · tropical";
+  const and = <span className="font-label text-[11px] tracking-[0.34em] uppercase text-[var(--sky)]">and</span>;
 
   return (
     <>
       <div ref={skyRef} className="rp-hsky rp-grain no-print narrow" style={{ alignContent: "center", gap: 18, padding: "16px 16px 84px" }}>
         <ReportSky variant="hero" accent={accent} opening />
-        <div className="text-center px-2">
-          <p className="font-label text-[10px] tracking-[0.28em] uppercase text-[var(--sky)] opacity-85">{eyebrow} · {method}</p>
-          <h1 className="mt-3 font-display font-normal text-[clamp(28px,4.2vw,52px)] leading-[1.08] text-[#F2F4F9]" style={{ letterSpacing: "-0.02em" }}>
-            <span className="block">{left.name}</span>
-            <span className="block font-label text-[11px] tracking-[0.34em] uppercase text-[var(--sky)] my-2">and</span>
-            <span className="block">{right.name}</span>
-          </h1>
-        </div>
-        <div className={`grid gap-4 w-full max-w-[560px] ${stack.platesSideBySide ? "grid-cols-2" : "grid-cols-1"}`}>
-          <Plate person={left} detail={layout.detail} />
-          <Plate person={right} detail={layout.detail} />
-        </div>
+        <h1 className="sr-only">{left.name} and {right.name}</h1>
+        <p className="font-label text-[10px] tracking-[0.28em] uppercase text-[var(--sky)] opacity-85 text-center px-2">{eyebrow}</p>
+        {stack.columnsSideBySide ? (
+          <div className="grid grid-cols-[auto_auto_auto] gap-x-6 items-start justify-center w-full" data-columns="side-by-side">
+            <Column person={left} detail={layout.detail} />
+            <div className="pt-[clamp(10px,1.6vw,22px)]">{and}</div>
+            <Column person={right} detail={layout.detail} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 justify-items-center w-full" data-columns="stacked">
+            <Column person={left} detail={layout.detail} />
+            {and}
+            <Column person={right} detail={layout.detail} />
+          </div>
+        )}
         <div ref={cueRef} className="rp-cue rp-cue-flow no-print">
           <button
             type="button"
@@ -233,17 +200,16 @@ export function PairHero({ a, b, lens, accent }: PairHeroProps) {
 
       <section className="rp-hero" aria-label="Opening">
         <header className="hidden print:block px-8 pt-12">
-          <p className="font-label text-[10px] tracking-[0.28em] uppercase">{eyebrow} · {method}</p>
-          <h1 className="font-display text-5xl mt-2">{left.name} and {right.name}</h1>
+          <p className="font-label text-[10px] tracking-[0.28em] uppercase">{eyebrow}</p>
           <div className="mt-6 grid grid-cols-2 gap-8">
             {[left, right].map((p) => (
               <div key={p.name}>
-                <p className="font-display text-xl">{p.name}</p>
+                <p className="font-display text-4xl">{p.name}</p>
+                <p className="font-numeric text-xs mt-3">
+                  {triadRows(p.chartData, "full").map((r) => `${r.label} ${r.blind ? NOT_DRAWN : r.value}`).join(" · ")}
+                </p>
                 <p className="font-numeric text-xs mt-2">DOB · {dateText(p.birthDate)} · TOB · {timeOfBirthLabel({ birthTime: p.birthTime, birthTimeWindowMinutes: p.birthTimeWindowMinutes })}</p>
                 <p className="font-numeric text-xs mt-1">POB · {p.birthPlace} · {coordinate(p.latitude, "N", "S")} / {coordinate(p.longitude, "E", "W")}</p>
-                <p className="font-numeric text-xs mt-1">
-                  {triadRows(p.chartData, "full").map((r) => `${r.label} ${r.blind ? "not drawn" : r.value}`).join(" · ")}
-                </p>
               </div>
             ))}
           </div>
