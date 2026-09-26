@@ -63,7 +63,9 @@ interactive orbit.
    natal-report-ui dashboard deferral for this strip only.
 5. **Compatibility**, below.
 6. **Share line:** Share with {first name}, or Joined ✓ (MB-81).
-7. **One primary:** "Open {name}'s report", or "Read as it writes".
+7. **One primary:** "Open {name}'s report"; while it is written, a status
+   "Writing {name}'s report" with the dots. Nothing offers to read a report
+   before it is finished: no "Read as it writes" on the dashboard.
 
 **The reader's own card** (tap on the centre): eyebrow "Your Personal natal
 report", the same triad, elements and houses, then "Your compatibility
@@ -82,14 +84,14 @@ One product, named by its two people: eyebrow "Compatibility report", title
 
 | State | Row |
 |---|---|
-| Shared with the reader | title, Open, and Share with {B} until they join (MB-82) |
+| Shared with the reader | the whole row opens it (chevron ›); a quiet link "↥ Share with {B}" inside it until they join, then "{B} can read it too" (MB-82) |
 | None, both finished, credits > 0 | "How the two of you work, and why." · "Uses 1 credit · N credits left" · **Generate** (primary) |
 | None, zero credits | "No credits left" · **Get credits** |
-| Their natal report writing | "{name}'s report is being written. Generate opens when it is finished." · **Writing** status |
+| Their natal report writing | "Generate opens when {name}'s report is finished." (the card's primary carries the Writing status) |
 | Generate pressed | **Generating** status until the pair report exists |
-| The pair report writing | **Writing** status · Read as it writes |
+| The pair report writing | **Writing** status; "It opens here when it is finished." |
 | Reader has no report | "Needs your own report first." · Generate disabled |
-| Pairs between this person and others | title, Open |
+| Pairs between this person and others | the whole row opens it |
 
 A control never shows its idle verb while something is under way: it becomes
 a status with three pulsing dots ("Generating", "Writing"; still dots under
@@ -159,7 +161,8 @@ the four tiles in the artifact; copy and actions in the annex.
 9. The four empty states render as specified.
 10. No in-progress control shows Generate: a writing natal report shows
     Writing, a pressed Generate shows Generating, a writing pair shows
-    Writing with Read as it writes.
+    Writing; no "Read as it writes" anywhere on the dashboard. An existing
+    pair is one tappable row, sharing a link inside it, never a second button.
 11. Share with, Joined and Invite appear per person as specified; a claimer
     reads and lists the report made for them (route test, MB-84); a pair is
     shared only by one of its two people; the lens never shows.
@@ -182,7 +185,9 @@ shows it; zero-credit states sit behind the MB-6 seam; a point shows initials.
 
 1. In-progress controls become a status with three dots; Generate never
    shows while a report is written (the Owner, 2026-09-26).
-2. MB-81 to 86 as above, closing those rows.
+2. No "Read as it writes" on the dashboard; a report opens when finished.
+3. An existing pair is one tappable row; sharing is a link inside it.
+4. MB-81 to 86 as above, closing those rows.
 
 ## Decisions recorded
 
