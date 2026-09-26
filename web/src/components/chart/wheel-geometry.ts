@@ -56,27 +56,40 @@ export interface WheelRadii {
   centre: number;
   signOuter: number;
   signInner: number;
+  /** The band's two text lines (ADR-98): the sign on the outer radius, the house's number and word inside it. */
+  bandSign: number;
+  bandHouse: number;
   tick: number;
-  houseOuter: number;
-  houseInner: number;
   aspect: number;
   lanes: [number, number, number];
   node: number;
 }
 
-/** Ring radii as fractions of the plate, so the wheel scales without re-tuning. */
+/**
+ * Ring radii as fractions of the plate, so the wheel scales without re-tuning.
+ * The band is wide enough for two lines and there is no house-number ring, so
+ * the lanes sit further in than they did; every body keeps its true angle.
+ */
 export function wheelRadii(size: number): WheelRadii {
   return {
     centre: size / 2,
     signOuter: size * 0.478,
-    signInner: size * 0.41,
-    tick: size * 0.404,
-    houseOuter: size * 0.2,
-    houseInner: size * 0.152,
+    signInner: size * 0.386,
+    bandSign: size * 0.4535,
+    bandHouse: size * 0.411,
+    tick: size * 0.38,
     aspect: size * 0.146,
-    lanes: [size * 0.348, size * 0.29, size * 0.232],
+    lanes: [size * 0.324, size * 0.266, size * 0.208],
     node: size * 0.05,
   };
+}
+
+/** "12°04′" for 12.07: the degree and the minute inside the sign, as the rising line prints them. */
+export function degreesMinutes(degree: number): string {
+  let d = Math.floor(degree);
+  let m = Math.round((degree - d) * 60);
+  if (m === 60) { d += 1; m = 0; }
+  return `${d}°${String(m).padStart(2, "0")}′`;
 }
 
 export function wedgePath(
