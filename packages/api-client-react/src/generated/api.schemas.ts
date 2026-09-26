@@ -1491,7 +1491,8 @@ export interface InvitePreview {
   email: string;
   /** The giver's first name, never an email (ADR-135, MB-85). */
   inviterName?: string | null;
-  profileName: string;
+  /** The person a sent report is about; null on a gift, which has no profile (ADR-139). */
+  profileName: string | null;
   relationshipId?: string | null;
   relationshipReportId?: string | null;
   expiresAt: string;
@@ -1516,7 +1517,8 @@ export const InviteClaimResponseKind = {
 } as const;
 
 export interface InviteClaimResponse {
-  profileId: string;
+  /** The chart a send hands over; null on a gift, which has no profile (ADR-139). */
+  profileId: string | null;
   relationshipId?: string | null;
   relationshipReportId?: string | null;
   /** Where the claim lands; a gift answers /dashboard (ADR-139). */

@@ -3011,7 +3011,10 @@ components:
           type: string
           nullable: true
           description: The giver's first name, never an email (ADR-135, MB-85).
-        profileName: { type: string }
+        profileName:
+          type: string
+          nullable: true
+          description: The person a sent report is about; null on a gift, which has no profile (ADR-139).
         relationshipId: { type: string, nullable: true }
         relationshipReportId: { type: string, nullable: true }
         expiresAt: { type: string }
@@ -3033,7 +3036,10 @@ components:
     InviteClaimResponse:
       type: object
       properties:
-        profileId: { type: string }
+        profileId:
+          type: string
+          nullable: true
+          description: The chart a send hands over; null on a gift, which has no profile (ADR-139).
         relationshipId: { type: string, nullable: true }
         relationshipReportId: { type: string, nullable: true }
         redirectTo:

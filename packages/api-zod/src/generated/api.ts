@@ -2795,7 +2795,7 @@ export const GetInviteResponse = zod.object({
   "token": zod.string(),
   "email": zod.string(),
   "inviterName": zod.string().nullish().describe('The giver\'s first name, never an email (ADR-135, MB-85).'),
-  "profileName": zod.string(),
+  "profileName": zod.string().nullable().describe('The person a sent report is about; null on a gift, which has no profile (ADR-139).'),
   "relationshipId": zod.string().nullish(),
   "relationshipReportId": zod.string().nullish(),
   "expiresAt": zod.string(),
@@ -2815,7 +2815,7 @@ export const ClaimInviteParams = zod.object({
 })
 
 export const ClaimInviteResponse = zod.object({
-  "profileId": zod.string(),
+  "profileId": zod.string().nullable().describe('The chart a send hands over; null on a gift, which has no profile (ADR-139).'),
   "relationshipId": zod.string().nullish(),
   "relationshipReportId": zod.string().nullish(),
   "redirectTo": zod.string().describe('Where the claim lands; a gift answers \/dashboard (ADR-139).'),
