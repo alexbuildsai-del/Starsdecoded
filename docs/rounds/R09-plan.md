@@ -283,7 +283,7 @@ the Vercel preview. Nothing generates.
 **On staging after the merge, free (the Owner's look):** the spec's acceptance 1 to 7 at 390 and 1440 px on a stored pair report and a
 stored natal report; 9 at 390, 820 and 1280 px (the Closing's first line within 26 px of its rule); the stored report with the Career
 label renders without it; the Prompts page shows no `:system` override and no `pair:links` or `pair:twoCharts` override.
-**No paid check in this round** (the Owner, 2026-09-26: "no, I will check myself"). The Owner reads v7 on staging: no label, heading or
+**No paid check in this round** (the Owner, 2026-09-26: no; the Owner checks it). The Owner reads v7 on staging: no label, heading or
 asterisk in any prose field (Career included), link cards that name their two bodies inside a sentence, the Failures tab for new rules
 (acceptance 8). Nothing in the round spends; the Release's lab reads v7 before production.
 **Production** moves only on "promote": the Release view runs the full lab (the brain changed) and the QA agent, stops at `passed`
