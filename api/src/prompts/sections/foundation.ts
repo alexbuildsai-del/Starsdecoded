@@ -48,5 +48,5 @@ export const foundation: SectionSpec<typeof FoundationSchema> = {
 
 State the sect and sect light exactly as the SECT block gives them; every downstream section reads your value. Read the chart in this order: sect, chart ruler, the Sun, Moon and Ascendant, then the rulers of the 10th, 2nd, 7th, and 4th and where they sit, then the Lots, then the tightest aspects. Weigh rulers over occupants and dignified over peregrine.
 
-Supporting evidence must cite specific chart facts from the brief. Section guidance must give each of the ten sections one distinct thing to establish, so they do not overlap. The style contract does not apply to this internal output, but keep it evidence-based and free of generic personality labels.`,
+Supporting evidence cites chart facts as the brief's own lines give them. Section guidance must give each of the ten sections one distinct thing to establish, so they do not overlap. Each guidance sentence is behaviour, with no planet, sign, house, ruler or dignity in it. The style contract does not apply to this internal output, but keep it evidence-based and free of generic personality labels.`,
 };

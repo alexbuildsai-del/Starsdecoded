@@ -40,6 +40,7 @@ export const PAIR_DOCTRINE = `PAIR DOCTRINE (how to read two charts together, ne
 - No score, no number, no rating, no percentage describes the pair, ever. No research is named on the page: it is doctrine, and the reader gets its conclusion as plain behaviour.
 - Hard aspects are framed as growth, never as doom. A square is a friction that trains something; the report says what. Every chapter's pattern says whether this is where it flows or where it rubs.
 - The lens sets the register, the chapters and the scenes, never the astronomy. Under the parent and child lens the child's chart is read as potential, never a verdict, the parent is addressed as the one who adapts, and every line is fair to the child's age band. Under two people, how they know each other picks the scene and a few words of register.
+- Evidence lives in the claims field only, as rule 3 says. A link, an overlay, a source line or a placement never heads or interrupts a passage, in brackets, in bold or alone on a line.
 - Voice: warm and exact in the body; the headline and the next-time items are drier, a verdict and a list, in the second person's own register.
 - Addressing: use the two first names as the brief gives them. "You both" for the pair, the name for one of them. Never "person A" or "person B" in prose.`;
 
@@ -53,7 +54,7 @@ export const LENS_SECTIONS: Record<Lens, readonly PairSectionSpec[]> = {
   people: PEOPLE,
 };
 
-/** Every reader-facing spec under every lens, the fixed two once; `links` writes the bi-wheel's cards. */
+/** Every reader-facing spec under every lens, the fixed two once; `links` writes the link cards under the two charts. */
 export const PAIR_SECTIONS: readonly PairSectionSpec[] = [
   twoCharts, ...LENSES.flatMap((lens) => LENS_SECTIONS[lens]), whatToPractise, links,
 ];

@@ -23,7 +23,7 @@ export const mind: SectionSpec<typeof MindSchema> = {
 
 One paragraph on how they think: what they notice, what they miss, what kind of reasoning is native to them. One paragraph on how they actually decide, including one example of a decision going the way it usually goes. One paragraph on how they make themselves understood and the specific way it misfires. End with one practice.
 
-How they decide reads the modality. The dominant modality on the DISTRIBUTION line is the shape of a decision: cardinal opens one and moves, fixed settles it once and holds, mutable keeps it revisable. Say what that looks like when this person decides something real, and cite the paragraph to the placements that carry that modality. The modality word itself is allowed, because it is not a planet, sign or house name.
+How they decide reads the modality. The dominant modality on the DISTRIBUTION line is the shape of a decision: cardinal opens one and moves, fixed settles it once and holds, mutable keeps it revisable. Say what that looks like when this person decides something real, and give that paragraph a claim for each placement it rests on. The modality word itself is allowed, because it is not a planet, sign or house name.
 
 Every paragraph contains a checkable behaviour. No planet, sign, or house names in the prose. 250 to 320 words.
 

@@ -105,6 +105,19 @@ test("system prompt: contains the style contract, the vocabulary and the doctrin
   assert.ok(!SHARED_SYSTEM.includes("{"), "system block must contain no template placeholders");
 });
 
+// Plain prose, said in the prompt (ADR-104): the foundation, Overview and Mind follow rule 3.
+test("the foundation, Overview and Mind carry the plain-prose wording", () => {
+  const foundation = ALL_SECTIONS[0];
+  assert.match(foundation.instructions, /Supporting evidence cites chart facts as the brief's own lines give them\./);
+  assert.match(foundation.instructions, /Each guidance sentence is behaviour, with no planet, sign, house, ruler or dignity in it\./);
+  assert.doesNotMatch(foundation.instructions, /must cite specific chart facts/);
+  for (const id of ["overview", "mind"] as const) {
+    const spec = sectionById(id)!;
+    assert.match(spec.instructions, /give that paragraph a claim for each placement it rests on/i, id);
+    assert.doesNotMatch(spec.instructions, /cite (that|the) paragraph to the placements/i, id);
+  }
+});
+
 test("brief: Marie Curie brief carries sect, chart ruler, rulers, lots and stellium", () => {
   const b = buildBrief(chartFromFixture("marie-curie"), "Marie Curie");
   assert.match(b.text, /^NAME: Marie Curie/m);

@@ -24,7 +24,7 @@ export const overview: SectionSpec<typeof OverviewSchema> = {
 
 Open with a headline that names what the chart is built around. Then one paragraph on where the energy concentrates and what is quiet, written entirely as behaviour the reader will recognise. Then one paragraph on temperament: how they take in the world, decide, and act, with at least two concrete examples of the form "You investigate first and commit second." Then one paragraph on what makes this combination unusual. Close with a single bridging sentence beginning "Everything here points toward".
 
-Temperament names the pair. The DISTRIBUTION line gives the dominant element and the dominant modality. Name both in the temperament paragraph, in plain words, as how this person runs: what they are made of and what they do with a course once they are on it. Cardinal starts, fixed holds, mutable adapts. Element and modality words are allowed here, because they are not planet, sign or house names. Cite that paragraph to the placements that carry the pair.
+Temperament names the pair. The DISTRIBUTION line gives the dominant element and the dominant modality. Name both in the temperament paragraph, in plain words, as how this person runs: what they are made of and what they do with a course once they are on it. Cardinal starts, fixed holds, mutable adapts. Element and modality words are allowed here, because they are not planet, sign or house names. Give that paragraph a claim for each placement it rests on.
 
 Ground the whole thing in sect, the chart ruler, and any stellium. Do not name planets, signs, or houses in the prose. Do not list. 400 to 500 words total.
 
