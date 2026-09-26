@@ -35,7 +35,7 @@ Default read set: `CLAUDE.md` + this file + your agent file. Fetch the rest by p
   admin panel, replays and sessions on the server · `R08` checks by class, the round alone, failure codes and the refund, the failure log, the
   Lab page's Spot, Dry, Failures and Release, the QA agent, the prose study; no secret on GitHub.
 
-## Code map (QA: `docs/qa/` none yet · annex: `staging-runbook.md` the Owner's staging setup · `report-lab-model-matrix-annex.md` the matrix's base scope · `pair-reliability-checks.md` every check classified)
+## Code map (QA: `docs/qa/` none yet · annex: `staging-runbook.md` the Owner's staging setup · `report-lab-model-matrix-annex.md` the matrix's base scope · `pair-reliability-checks.md` every check classified · `landing-and-ai-search-pages.md` the seven public pages, draft)
 - `web/` React + Vite SPA (Vercel) · `api/` Express API (Railway, Chromium on the image via `nixpacks.toml`) · `packages/db` drizzle schema
 - `web/src/components/chart/` wheel geometry, `NatalWheel`, the bi-wheel · `web/src/components/report/` hero and its label solver, the pair hero,
   explorer, house card, chapter, rail, checklist, orrery and the generation screen (the failure line), skeletons, revision marks, link cards, pair

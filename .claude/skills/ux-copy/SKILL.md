@@ -1,6 +1,6 @@
 ---
 name: ux-copy
-description: Write or review any words a Stars Decoded user reads outside the report itself: landing and marketing pages, artifact mocks, UI labels, buttons, empty states, errors, emails, FAQ. Plain, human language that passes the coffee test, grounded in the report's style contract. Use before writing or editing any user-facing copy, when the Owner types /ux-copy, or when copy is called AI-sounding, slop, marketing-y or too high level. Not for report prose, which the brain's prompts own.
+description: Write or review any words a Stars Decoded user reads outside the report itself, so they read like a person wrote them and get quoted by AI search. Landing and public pages, artifact mocks, UI labels, buttons, empty states, errors, emails, FAQ. Marks AI-writing patterns strongest first and limits them rather than banning every short line, then checks the page for answer-first sentences ChatGPT and other answer engines can lift. Use before writing or editing user-facing copy, when the Owner types /ux-copy, or when copy is called AI-sounding, slop, marketing-y, dated or too high level. Not for report prose, which the brain's prompts own.
 ---
 
 The target is the text after the command: a page, a file or pasted copy. With none,
@@ -9,56 +9,78 @@ review the copy touched in this session.
 Read first: the style contract and the writer line in `api/src/prompts/system.ts`
 (rules 1 to 12), MASTERFILE R-5.1, R-5.2, R-6.3 and §9 Voice, the names in
 `web/src/lib/product.ts`, and `api/src/lib/failureReasons.ts` as the model for how an
-error talks. Marketing and UI copy keep the report's discipline in an everyday
-register: "You're not selling astrology. You're selling a structured self-knowledge
-report that happens to use planetary data" (MASTERFILE §1).
+error talks. Then `references/patterns.md` every time, and `references/ai-search.md`
+for any public page. "You're not selling astrology. You're selling a structured
+self-knowledge report that happens to use planetary data" (MASTERFILE §1).
 
-**The coffee test.** Ask the question a line answers, answer it out loud as you would
-to a friend across the table, and write down what you actually said. Then cut words,
-never meaning. Warm and simple, never slangy.
+## Why copy reads as machine-made
 
-1. **Headings are said, not styled.** Write the sentence you would say, with a subject
-   and a verb: "Find out what your birth chart says about you", "You can see where every
-   line comes from", "Here's what your report covers". Never the "noun, phrase" fragment
-   every marketing site uses ("Your birth chart, explained in plain words", "Three steps,
-   from X to Y"), in a heading, a tagline or anywhere else. No full stop at the end of a
-   heading or of a description that is not a full sentence.
-2. **Don't chop.** No strings of short sentences or fragments for effect ("No scores.",
-   "Free.", "Ten chapters about you."). Join them the way people talk, with and, but, so.
-   One idea per sentence, 15 words on average, none over 25 (rule 8, R-5.1).
-3. **No rhythm tricks.** No "X first. Y second.", no "not X but Y", no lists of three for
-   the sound, no "Question? Short answer." pairs, no poetic inversions like "read
-   closely".
-4. **Say what it is, about the reader.** A birth chart, a report, the people in your
-   life, and what the reader will see or do (rule 2). No abstract summary sentences
-   (rule 5); give the concrete instance.
-5. **People are people.** You read a report, not a person; nobody "joins your sky".
-   Name them: your partner, your kids, your friends.
-6. **Your, not the.** Your body, your home, your family. Never "the body", "the self",
-   "the private world" or "one's".
-7. **Plainer beats cleverer** (rule 7). Work out, check, show, add, pick. Not compute,
-   surface, unlock, navigate, lean into, resonate, journey, profound. No coined phrases
-   (rule 12). An astrology word only with its plain meaning nearby; no method talk.
-8. **Name the report.** Where two reports could be meant, use the names: "When you both
-   have a Personal natal report, you can get a Compatibility report about the two of
-   you." Never "one", "a report" for the second, or "the pair of you". Never synastry.
-9. **Keep the method simple.** We work out your chart, note what stands out, write your
-   report and check it. No vendor or model names, and never lead with AI: the report
-   must not feel machine-made. Asked directly (the FAQ), say plainly that AI helps
-   write it; never suggest a person writes it (no astrologer, nothing "hand-written").
-10. **Honest and exact.** Facts and numbers come from code, never typed (R-6.3). No word
-    counts, predictions, dates, fate, destiny, energy or hype (R-5.2).
-11. **Punctuation.** No em dashes, semicolons, exclamation marks or emojis. Small-caps
-    labels are fine; whole sentences in capitals are not.
-12. **Buttons and errors.** A button says what happens next: "Show my chart". An error
-    says what happened and what to do: "Our writing service didn't answer. Try again
-    in a few minutes."
-13. **Report text is quoted, never edited.** If a real sentence from a report fails
-    these rules, show a different real one and raise the prompt rule it breaks (report
-    lab or Mailbox). The UI writes no astrological prose of its own (ADR-18).
+A model picks the choice that fits the most readers, so its copy stages importance
+instead of adding a fact, puts things in threes and fragments for rhythm, and dresses
+ordinary facts up. A person writes for one reader about one thing, so their choices
+are uneven and specific. The fix is never a banned-word list alone: say the specific
+thing to the specific reader.
 
-**How to work.** List every string you write or review, including headings, labels,
-buttons, alt text and errors. Mark each pass or fail with the rule it breaks, rewrite
-the fails with the coffee test, then read the whole page aloud once more. A review
-answers with a table: where, current, problem, rewrite. Keep lines the Owner approved
-unless they fail a rule; then name the rule and offer the rewrite.
+## How to work
+
+1. **Know the reader and the job.** Privately finish two sentences: "This reader is
+   trying to find out ___" and "After reading, they can ___". A visitor on /sky wants
+   their chart; someone on /method wants to know if they can trust it.
+2. **Mark the tells.** Read everything once, including headings, labels, buttons, alt
+   text and errors, and mark each pattern from `references/patterns.md`, strongest
+   first. Look at the page as well as the line: the same shape in every section is the
+   tell at page scale.
+3. **Say it out loud.** For each line you keep or rewrite, ask the question it answers,
+   answer it as you would to a friend across the table, and write down what you said.
+   Then cut words, never meaning. Warm and simple, never slangy.
+4. **Check.** No fact, number, name or date added or lost; every number comes from code
+   (R-6.3). Then search once more for the tells that survive a rewrite: the "noun,
+   phrase" tagline, not X but Y, a row of fragments, a triad, a dash.
+5. **Keep what works.** If a line already does its job, say KEEP and leave it. Lines the
+   Owner approved stay unless they break a rule; then name the rule and offer the fix.
+
+## House rules
+
+- **Labels can be labels.** Eyebrows, buttons, table heads, fact titles and short
+  headings don't have to be sentences: "No predictions", "Start with your birth date."
+  The patterns are what we limit. The tagline shape may appear once on a page, on
+  purpose, never as the default.
+- **About the reader.** Say what it is and what they will see or do. Your, not the:
+  your body, your home. People are people: you add your partner, you don't "read" them.
+- **Plain words.** Work out, check, show, add, pick. An astrology word only with its
+  plain meaning nearby; no coined phrases (style contract rules 7 and 12).
+- **Name the report.** Wherever two could be meant: "When you both have a Personal
+  natal report, you can get a Compatibility report about the two of you." Never "one"
+  for the second report, never "the pair of you".
+- **Keep the method simple.** We work out your chart, note what stands out, write your
+  report and check it. No model or vendor names, and AI never leads. Asked directly,
+  say plainly that AI helps write it; never suggest a person does.
+- **Honest and exact.** No word counts, predictions, dates, fate or hype (R-5.2). No
+  fake counters, reviews or experts. Product names and chapter titles come from code.
+- **Punctuation.** No em dashes, semicolons, exclamation marks or emoji. Sentence case.
+- **Buttons and errors.** A button says what happens next ("Show my chart"). An error
+  says what happened and what to do ("Our writing service didn't answer. Try again in a
+  few minutes.").
+- **Report text is quoted, never edited** (ADR-18). If a real line fails these rules,
+  show a different real one and raise the prompt rule it breaks.
+
+## Written to be quoted
+
+AI search lifts passages, not pages, and plain specific writing is what it lifts. On
+every public page, follow `references/ai-search.md`: the first sentence under the H1
+answers the page's question on its own; ledes say "Stars Decoded", not "we"; titles
+and headings use the reader's own nouns, as questions only on /faq and the Learn pages;
+each section makes sense read alone; facts come from code with their source named;
+show what only we can (computed degrees, real report lines); one page per real
+question, never variants; an Updated date that moves only with the words.
+
+## What to return
+
+Writing: the copy first, then a line on any choice the Owner should make. Review: a
+table of where, current, pattern or rule, rewrite, with KEEP rows left out. Then read
+the whole page aloud once more.
+
+Sources: humanizer (MIT) and Wikipedia's "Signs of AI writing" for the patterns;
+speak-human (gitlab.com/LucioLiu/speak-human, the one writing skill on GitLab) for the
+reader-first step, ideas only, since its licence is non-commercial; `ai-search.md`
+lists its own.
