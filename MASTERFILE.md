@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.12 (2026-09-26) |
+| Version | 0.13 (2026-09-26) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -47,7 +47,7 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 
 **V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of ten chapters with a chart explorer and a workbook of ticked actions, keep it on a dashboard, delete it on request.
 
-1. **Landing page** whose every claim matches the code (§14 lists the ones that do not yet).
+1. **Landing page and seven public pages** (/sky, /sample, /method, /compatibility, two Learn pages, /faq), prerendered as real HTML for search and AI search, every claim matching the code and every chart computed (`docs/specs/locked/landing-and-ai-search.md`, ADR-107 to 119).
 2. **Birth form** with geocoding, the timezone in force at the birth instant, and a three-way birth time (known, roughly, unknown) with a live readout of what the answer settles (`docs/specs/locked/unknown-birth-time.md`).
 3. **Report generation** per §4, polled until complete.
 4. **Report page**: ten chapters, the last one Closing, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print. While it writes, the page shows true progress over an orrery of the chart; the reader opens it through a door at 67% or it opens itself at 100%, and chapters stream in behind it (`docs/specs/locked/natal-report-pass-two.md`, `natal-report-pass-three.md`).
@@ -76,7 +76,7 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
 | `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); the typed columns go with the payments round |
 
-- **R-3.1** Birth data is never fabricated, in tests, fixtures, demos or docs. Fixtures hold birth data only; charts are computed at run time.
+- **R-3.1** Birth data is never fabricated for a real person, and no placement is ever typed, in tests, fixtures, demos or docs. Fixtures hold birth data only; charts are computed at run time. A synthetic person exists only as a fixture: a structural case, or a sample person labelled as one on a marketing page (ADR-112).
 - **R-3.2** `chart_data` is a cache keyed by a computation version. A change to the engine bumps the version; cached charts recompute.
 - **R-3.3** Report status machine: `pending → computing → interpreting → complete | failed`, and for the horizon pass `complete → revising → complete | failed`, readable throughout; a failed pass keeps the previous text. A parse failure is a `failed` report with an error message, never a silently degraded one.
 - **R-3.4** Anonymous first. Everything a visitor creates hangs off the session cookie and is claimed by the user on sign-in. Nothing requires an account until the dashboard.
@@ -138,6 +138,7 @@ Shared: packages/api-spec → Orval → api-client-react + api-zod
 - **R-7.3** Schema changes: edit `packages/db/src/schema`, add an idempotent script under `packages/db/scripts` when data must move, wire it into `scripts/bootstrap-db.sh`. Railway runs the bootstrap as its pre-deploy command, so a migration that cannot run twice breaks deploys.
 - **R-7.4** Secrets live only in the Vercel, Railway and Supabase dashboards. `.env.example` lists every variable the code reads, with no values. The repository is public.
 - **R-7.5** Web and API are separate origins, so the session cookie is `SameSite=None; Secure` in production. Serving both from one origin means turning `CROSS_SITE_COOKIES` off.
+- **R-7.6** Public pages are real HTML: the home page, the seven public pages and the legal pages prerender at build into `#root` and hydrate, so every word reaches a crawler; app routes carry noindex and unknown public paths answer 404 (ADR-114).
 
 ## 8 · Prompt operations and the bible
 
@@ -153,13 +154,13 @@ Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report
 
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
 - **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The weight-300 display serif that pulled the other way is settled — display moves to Newsreader 400 and the numerals to a real monospace. The starfield and gradients stay, budgeted: two moves per chapter change, one easing, and reduced motion is a real state.
-- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The generation screen is its own screen with the scroll locked: every body on its own ring at its mean daily motion, settling onto the stored chart, and the door at 67% is the only way in (ADR-47, ADR-59). The compatibility hero has no ring: one centred group, each name once over its three rows, both birth records in the corners (ADR-70, ADR-99). Two people are two charts side by side, each alone: nothing draws two charts on one plate or a line between them (ADR-97). A house is never a bare number: every wheel names it in its band and every house number the page prints carries its one word; the house card keeps its full title (ADR-98).
+- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The generation screen is its own screen with the scroll locked: every body on its own ring at its mean daily motion, settling onto the stored chart, and the door at 67% is the only way in (ADR-47, ADR-59). The compatibility hero has no ring: one centred group, each name once over its three rows, both birth records in the corners (ADR-70, ADR-99). Two people are two charts side by side, each alone: nothing draws two charts on one plate or a line from one chart's body to the other's (ADR-97); on the public pages the two plates stand on one horizon (ADR-113). A house is never a bare number: every wheel names it in its band and every house number the page prints carries its one word; the house card keeps its full title (ADR-98).
 - **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; chapter 10, Closing, is teal and its prose reads in paper; element hues stay data, brass stays geometry (ADR-23, ADR-46). The rail lists chapters only (ADR-50); two skies: the hero owns the starfield, the gradient and the ring of stars, chapters keep their gradient, blobs and parallax, and the dawn's sun lives on the fixed layer (ADR-51, ADR-59). A why is a sentence on its own line under its action (ADR-62); evidence lives in claims only, never in prose, and prose is plain text, said in the prompt rather than checked; a link card alone names its two bodies, inside a sentence (ADR-60, ADR-104).
 - **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report, and a tick is silent: no counter, and a box unticks (ADR-24, ADR-48).
 - **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
 - **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
 - **The mark is the Ascendant.** The logo is A · Horizon (`docs/specs/locked/logo.md`): the wheel, its horizon line, a brass point at the eastern end; one SVG source for favicon, nav, Clerk badge, print header, share card and email. The wordmark is "Stars Decoded" in Newsreader 400, foreground colour, never a gradient.
-- **Voice.** Report voice is R-5.1. Marketing voice is not written yet (Mailbox); until it is, marketing copy follows the same rules: short, specific, no mysticism, no claims the code cannot back.
+- **Voice.** Report voice is R-5.1. Every other word a user reads follows `/ux-copy` (`.claude/skills/ux-copy`): four standards (purposeful, concise, conversational, clear), one voice (exact, plain, warm, honest) and a tone for each moment, with passes for AI-writing habits and for AI search; `/web-taste` checks the look (ADR-117). A public page opens with a sentence that answers its question and names Stars Decoded (ADR-116).
 
 ## 10 · Repo and knowledge base
 
@@ -177,7 +178,7 @@ Starsdecoded/
     qa/                     QA-NN.md, findings only
     annex/                  deep dives, long references, overflow from budgeted files
   .claude/agents/           planner, orchestrator, builder, qa
-  .claude/skills/           /ideate /lock /plan /round /qa /mailbox, one SKILL.md each
+  .claude/skills/           /ideate /lock /plan /round /qa /mailbox /report-lab /ux-copy /web-taste, a SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
 Notion / STARS DECODED
   Decisions                 ADR log, one row per decision, never edited, only superseded

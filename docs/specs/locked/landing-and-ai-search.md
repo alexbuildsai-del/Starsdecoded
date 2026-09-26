@@ -1,10 +1,11 @@
-# Draft spec — the landing page and AI search ("First light")
+# Locked spec — the landing page and AI search ("First light")
 
 Raised by the Owner 2026-09-25: a landing page with beautiful visuals, transitions and
 copy in the brand, found and cited by ChatGPT and other AI search, with the Dashboard
-Sky orbit under the product. Draft 6, 2026-09-26: seven more pages, each designed.
+Sky orbit under the product; draft 6 designed seven more pages. Status: **locked
+2026-09-26**, ADR-107 to 119, on `dashboard-sky` (ADR-89 to 96) and `review-25-09`.
 
-Artifact: https://claude.ai/artifact/Rx9GsG4ZUA8Gnxif6fHWbV (draft 6), live: the sky is
+Artifact: https://claude.ai/artifact/Rx9GsG4ZUA8Gnxif6fHWbV (locked), live: the sky is
 computed in the browser with astronomy-engine 2.1.19 and the calls in `chartCalculation.ts`,
 to the hundredth of the fixtures (Audrey Hepburn: Sun 13.12° Taurus, Moon 6.45° Pisces,
 rising 28.62° Aquarius). Claims are unedited r06 text; the orbit is Dashboard Sky.
@@ -12,17 +13,11 @@ rising 28.62° Aquarius). Claims are unedited r06 text; the orbit is Dashboard S
 ## Drafts 2 to 6, after the Owner's notes
 
 Kept as loved: first light, the sky screen, the chart, the orbit, the two charts on one
-horizon, Inside, Method, birth time and the dawn's Sun.
-- Draft 2: the sky screen, one claim at a time, general chapters, no word counts, copy
-  for people who will never know their birth time, pricing parked.
-- Draft 3: the form's place field; fields that fit; claims on a timer with nothing behind
-  them; named houses on every wheel; a quieter orbit; no age band.
-- Draft 4: every word rewritten with the new `/ux-copy`, four plainer real claims, plain
-  chart labels; `/ux-copy` and `/web-taste` join `.claude/skills/`.
-- Draft 5: headings said, never "noun, phrase"; both reports named; the method with no
-  model or vendor.
-- Draft 6: the seven pages designed; labels back ("No predictions"); `/ux-copy` rebuilt
-  on the Owner's pick, content-designer/ux-writing-skill, plus AI-search research.
+horizon, Inside, Method, birth time and the dawn's Sun. Then: the sky screen and general
+chapters (2); the form's place field, claims on a timer, named houses (3); every word
+through `/ux-copy` (4); headings said, both reports named, no model or vendor (5); the
+seven pages designed, labels back, `/ux-copy` rebuilt on content-designer/ux-writing-skill
+plus AI-search research (6).
 
 ## What today's page gets wrong
 
@@ -53,11 +48,13 @@ sitemap or JSON-LD, so AI crawlers read a title and one sentence.
    line to its place. A tap stops the cycle; nothing sits behind them or follows scroll.
 6. **Inside.** The ten chapter names from the registry in their hues, each with one
    sentence from its prompt and the parts it covers, stepping through until touched.
-7. **Your people.** Dashboard Sky's orbit and card as locked, on synthetic sample people;
-   the ring at .26, cut away around each person and name, on the dashboard too.
+7. **Your people.** Dashboard Sky's orbit and card as locked, on labelled sample people
+   (synthetic fixtures, birth data only, R-3.1); the ring at .26, cut away around each
+   person and name, on the dashboard too.
 8. **Two charts, one horizon.** Two triad plates on their own Ascendants, both horizons
    on one dotted line; Sun and Moon at their degrees, the inner lane within 14° of the
-   Ascendant (ADR-17). Chapter titles from `lenses.ts`, a line each. No score, no age band.
+   Ascendant (ADR-17). Each chart stands alone and no line joins a body of one to the
+   other (ADR-97). Chapter titles from `lenses.ts`, a line each. No score, no age band.
 9. **Method.** Three steps with the sample's readout and brief: we work out your chart,
    note what stands out, write your report and check it. No model or vendor is named.
    Facts: the writing service never sees birth data, no predictions, credit back on failure.
@@ -105,17 +102,17 @@ sitemap or JSON-LD, so AI crawlers read a title and one sentence.
 22. **Marketing voice.** `.claude/skills/ux-copy`, rebuilt on content-designer's UX
     writing skill (MIT): four standards, element patterns, a voice chart and a tone map,
     with AI habits (`ai-tells.md`) and AI search (`ai-search.md`) as extra passes.
-    `/web-taste` for the look. MASTERFILE §9 links both in place of "not written yet".
+    `/web-taste` for the look. MASTERFILE §9 (0.13) points to both.
 
 ## Out of scope
 
 - Pricing, packages, checkout and credits (MB-5, MB-6), and the legal entity (MB-31).
-- Mailbox topics at lock: rectification (a birth time estimated from life events), our
-  own place index (135,233 GeoNames towns with zones) for the day Nominatim's limits
-  bite, and a stored pair run so /compatibility can quote one real claim.
+- Raised at lock: rectification, a birth time estimated from life events (MB-95); our
+  own place index, 135,233 GeoNames towns with zones, for the day Nominatim's limits
+  bite (MB-94); a stored pair run so /compatibility can quote one real claim (MB-93).
 - The report's own prose. No Sun or Ascendant claim in the sample run passes `/ux-copy`:
   the claims echo `vocabulary.ts` ("The Moon is the body…"), and the style contract's
-  model sentence has the "X first, Y second" shape. A Mailbox topic for the prose study.
+  model sentence has the "X first, Y second" shape: MB-92, for the prose study.
 - Pages per placement ("Moon in Pisces"): scaled content, until each is checked like a
   report. Off-site mentions (MB-25), Astro, a light theme, a new palette, a per-chart mark.
 
@@ -138,7 +135,7 @@ sitemap or JSON-LD, so AI crawlers read a title and one sentence.
 - **Houses turn true.** On /learn/whole-sign-houses the houses count from the east
   downward and the signs follow; picking Leo puts Taurus in the 10th.
 - **Compatibility.** Plates are computed from the pair's birth data. No score, number of
-  fit or age band appears.
+  fit or age band appears, and no line runs from one chart's body to the other's.
 - **Crawlable.** `curl -A OAI-SearchBot` returns every page's H1, lede, headings, the
   sample's full text and the FAQ answers.
 - **Crawl files.** robots.txt, sitemap.xml and llms.txt answer 200. App routes carry
@@ -153,48 +150,50 @@ sitemap or JSON-LD, so AI crawlers read a title and one sentence.
 
 ## Screens
 
-All in the artifact, clickable through the Pages bar: the home page (live), the seven
-pages, Draft 6, What changes, Phone, Found by AI (page table with each first sentence,
-robots.txt, llms.txt), Voice, Motion, Decisions, Questions.
+All in the artifact through its Pages bar: the home page (live), the seven pages, Draft 6,
+What changes, Phone, Found by AI (first sentences, robots.txt, llms.txt), Voice, Motion.
 
-## Open questions
+## Settled at lock
 
-1. **Whose report is the public sample?** Recommend Audrey Hepburn (birth certificate
-   time, AA), text and chart only, with a legal line beside MB-31; or Marie Curie, or a
-   synthetic person. Default: Audrey Hepburn, the whole report, text and chart only.
-2. **Let AI companies train on public pages?** Recommend yes: GPTBot, ClaudeBot and
-   Applebot-Extended as well as the search crawlers. Default: allow all on public pages.
-3. **Where do the pages say AI helps write the report?** Recommend plainly, twice and
-   never first: the FAQ and the end of /method. "Is this scientific?" stays as written.
-   Default: those two places only.
+The Owner said "lock it" with the three questions open, so their defaults stand:
+1. **The public sample** is Audrey Hepburn's whole report (birth certificate time, AA),
+   text and chart only; her name gets a legal check beside MB-31 (MB-90).
+2. **AI crawlers**: public pages are open to every crawler, GPTBot, ClaudeBot and
+   Applebot-Extended included.
+3. **AI is named** plainly, twice and never first: in the FAQ and at the end of /method.
+   "Is this scientific?" stays as written.
 
-## Decisions to record (numbers provisional until lock)
+Mailbox: MB-8 decided (ADR-111), MB-25's voice half (ADR-117). Raised: MB-90, MB-91 (failure
+lines that never say the credit is back, fixed in the same copy pass), MB-92 to 95.
 
-- **ADR-97 The landing opens on the live sky.** The sky now over the visitor's city,
+## Decisions recorded
+
+ADR-107 to ADR-119, in this order (ADR-106 went to the R09 plan while this locked).
+
+- **ADR-107 The landing opens on the live sky.** The sky now over the visitor's city,
   computed in the browser, drawn with the product's wheel. Replaces Aria Solis.
-- **ADR-98 The free sky is its own screen.** A date, and time and place if known, open a
+- **ADR-108 The free sky is its own screen.** A date, and time and place if known, open a
   full-screen sky that rewinds to the birth; nothing stored, the form prefilled (R-3.4).
-- **ADR-99 One place field.** The landing reuses the birth form's place search as it is,
-  with the OpenStreetMap credit. Our own index waits in the Mailbox.
-- **ADR-100 Proof by citation, on a timer.** Four real claims, picked by `/ux-copy`, take
-  turns, each drawn to its place; nothing tied to scroll. Each Release regenerates them.
-- **ADR-101 Chapters in general terms, no word counts.** Registry names (closes MB-8),
+- **ADR-109 One place field.** The landing reuses the birth form's place search as it is,
+  with the OpenStreetMap credit. Our own index waits in the Mailbox (MB-94).
+- **ADR-110 Proof by citation, on a timer.** Four real claims, picked by `/ux-copy`, take
+  turns, each drawn to its place; nothing tied to scroll. Each Release picks them again.
+- **ADR-111 Chapters in general terms, no word counts.** Registry names (closes MB-8),
   each described from its prompt. Marketing copy never states a length.
-- **ADR-102 The orbit sells the second person.** Dashboard Sky with synthetic people; the
-  ring at .26 and cut around each person, dashboard included (amends ADR-89 to 96).
-- **ADR-103 Two charts, one horizon.** Two triad plates on one horizon, with the lens's
-  seven chapters. No combined chart, no score, no age band.
-- **ADR-104 Public pages are real HTML.** Prerendered in the app, `#root` kept, app
+- **ADR-112 The orbit sells the second person.** Dashboard Sky on labelled sample people;
+  the ring at .26 and cut around each person, dashboard included (amends ADR-89).
+- **ADR-113 Two charts, one horizon.** Two triad plates, each alone on one horizon, with
+  the lens's chapters. No combined chart, no line between bodies, no score, no age band.
+- **ADR-114 Public pages are real HTML.** Prerendered in the app, `#root` kept, app
   routes noindex, unknown public paths 404. Astro not chosen.
-- **ADR-105 Found by AI.** Open robots.txt, a sitemap, canonical, OG, JSON-LD, Bing,
-  IndexNow and Search Console. The AI-bot firewall is never Deny; llms.txt comes last.
-- **ADR-106 Answer first.** Each public page opens with a sentence that answers its
+- **ADR-115 Found by AI.** robots.txt open to every crawler on public pages, a sitemap,
+  canonical, OG, JSON-LD, Bing, IndexNow, Search Console; never Deny; llms.txt last.
+- **ADR-116 Answer first.** Each public page opens with a sentence that answers its
   question alone, and an Updated date that moves only with its content.
-- **ADR-107 Marketing voice lives in `/ux-copy`.** Four standards (purposeful, concise,
-  conversational, clear), a voice (exact, plain, warm, honest) and a tone per moment;
-  AI habits limited, labels allowed, AI never leads. Closes the voice half of MB-25.
-- **ADR-108 The dawn closes the page.** Dawn light and the Sun over a full-width
+- **ADR-117 Marketing voice lives in `/ux-copy`.** Four standards, one voice and a tone
+  per moment; AI habits limited, labels allowed; AI named twice, never first (MB-25).
+- **ADR-118 The dawn closes the page.** Dawn light and the Sun over a full-width
   horizon, with the last call to action. Pricing takes its slot above the FAQ.
-- **ADR-109 Eight public pages, one design.** Home, /sky, /sample, /method,
-  /compatibility, the two Learn pages and /faq, built from the same parts; /sample is a
-  whole stored run with its citations. No page per placement.
+- **ADR-119 Eight public pages, one design.** Home, /sky, /sample, /method,
+  /compatibility, the two Learn pages and /faq, from the same parts; /sample is Audrey
+  Hepburn's whole stored run with its citations. No page per placement.

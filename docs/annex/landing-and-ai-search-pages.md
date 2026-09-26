@@ -1,9 +1,9 @@
-# Annex: the seven public pages (landing-and-ai-search, draft 6)
+# Annex: the seven public pages (landing-and-ai-search, locked 2026-09-26)
 
 Abstract. Besides the home page, the site gets seven public pages, each designed in the
 artifact (https://claude.ai/artifact/Rx9GsG4ZUA8Gnxif6fHWbV, Pages bar) from the home
 page's parts: the product's wheel, the triad plates, the evidence card, the report's type.
-Each opens with a sentence that answers its question alone (ADR-106), prerenders all its
+Each opens with a sentence that answers its question alone (ADR-116), prerenders all its
 text, and takes every number from code. Copy passes `/ux-copy`, layout `/web-taste`.
 
 ## Shared
@@ -44,7 +44,8 @@ text, and takes every number from code. Copy passes `/ux-copy`, layout `/web-tas
   bottom sheet. All 63 claims of r06 anchor to their text.
 - Chapter 2: the wheel, three triad cards, twelve house cards; a card lights its house.
 - Fine print: public birth data (Astro-Databank, AA); no connection to her family or
-  estate (MB-31). Schema: Article with the run's date as dateModified.
+  estate, checked beside the legal pages (MB-31, MB-90). Schema: Article with the run's
+  date as dateModified.
 
 ## /method: How we make your report
 
