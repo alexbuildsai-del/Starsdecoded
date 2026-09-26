@@ -2,13 +2,21 @@
  * The scene and its chip row (ADR-65, ADR-72). A lens chapter carries three
  * curated scenes; the report wrote one, and the other two are one tap away:
  * a tap calls the scene route once, shows a skeleton, then the scene, and a
- * scene already written renders from storage with no call. Print shows the
- * written scene and no chips.
+ * scene already written renders from storage with no call. The scene is
+ * introduced under its kicker (ADR-103). Print shows the written scene and
+ * no chips.
  */
 import { useState } from "react";
 import { useWriteScene } from "@workspace/api-client-react";
 import { ChapterSkeleton } from "@/components/report/ChapterSkeleton";
 import type { PairChapterScenes } from "@/types/chart";
+
+/** The line under the scene's kicker, with chips and without (ADR-103). */
+export const SCENE_INTRO = "A moment you will both recognise, played out.";
+
+export function SceneIntro() {
+  return <p className="mb-2 text-[13px] leading-[1.5] text-[var(--paper-dim)]" data-scene-intro>{SCENE_INTRO}</p>;
+}
 
 export interface SceneChipsProps {
   reportId: string;
@@ -42,6 +50,7 @@ export function SceneChips({ reportId, chapter, scenes, written }: SceneChipsPro
   return (
     <div className="rp-lblk">
       <span className="rp-lab">The scene · {scenes.titles[active]}</span>
+      <SceneIntro />
       <div className="print:hidden">
         {text !== undefined
           ? <p className="whitespace-pre-line">{text}</p>
