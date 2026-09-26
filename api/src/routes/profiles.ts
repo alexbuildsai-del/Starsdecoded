@@ -1,183 +1,288 @@
-import { Router } from "express";
-import { and, eq, or, isNull, ne } from "drizzle-orm";
-import { db, profilesTable, reportsTable } from "@workspace/db";
-import { CreateProfileBody, UpdateProfileBirthTimeBody } from "@workspace/api-zod";
+import { Router, type Request } from "express";
+import { randomUUID } from "node:crypto";
+import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import { db, profilesTable, reportsTable, type Profile } from "@workspace/db";
+import {
+  CreateProfileBody,
+  StopSharingProfileParams,
+  UpdateProfileBirthTimeBody,
+  UpdateProfileBody,
+  UpdateProfileParams,
+} from "@workspace/api-zod";
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
 import { hasHorizon, type NatalChartData } from "../lib/chartCalculation.js";
 import { runHorizonPass } from "../lib/horizonPass.js";
 import {
-  openInvitesByProfile,
+  accessFor,
   claimerNamesByProfile,
+  giverIdOf,
+  isSelfFor,
+  openInvitesByProfile,
   profileOwnershipFor,
+  sendStateFor,
+  type SendState,
+  type Viewer,
 } from "../lib/access.js";
+import { firstNameOf } from "../lib/names.js";
 
 const router = Router();
 
-function ownership(req: { userId: string | null; sessionId: string }) {
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type NatalReport = { profileId: string; type: string; status: string };
+type StoredChart = {
+  horizon?: { status?: string };
+  planets?: { sun?: { sign?: string }; moon?: { sign?: string } };
+  angles?: { ascendant?: { sign?: string } };
+};
+
+function viewerOf(req: Request): Viewer {
+  return { userId: req.userId, sessionId: req.sessionId };
+}
+
+// A session's anonymous drafts join the account when sign-in attaches them
+// (auth middleware); until then the account cannot open them, so they are
+// not listed as its own.
+function ownership(req: Request) {
   return req.userId
-    ? or(
-        eq(profilesTable.userId, req.userId),
-        eq(profilesTable.claimedByUserId, req.userId),
-        and(eq(profilesTable.sessionId, req.sessionId), isNull(profilesTable.userId)),
-      )
+    ? or(eq(profilesTable.userId, req.userId), eq(profilesTable.claimedByUserId, req.userId))
     : eq(profilesTable.sessionId, req.sessionId);
+}
+
+async function natalReportsOf(profileIds: string[]): Promise<Map<string, NatalReport[]>> {
+  const byProfile = new Map<string, NatalReport[]>();
+  if (!profileIds.length) return byProfile;
+  const rows = await db
+    .select({ profileId: reportsTable.profileId, type: reportsTable.type, status: reportsTable.status })
+    .from(reportsTable)
+    .where(and(inArray(reportsTable.profileId, profileIds), eq(reportsTable.type, "natal")));
+  for (const r of rows) byProfile.set(r.profileId, [...(byProfile.get(r.profileId) ?? []), r]);
+  return byProfile;
+}
+
+// A first name is a courtesy on the card; one that cannot be looked up is left
+// out rather than failing the whole list.
+async function firstNamesOf(userIds: string[]): Promise<Map<string, string | null>> {
+  const unique = [...new Set(userIds)];
+  const names = await Promise.all(
+    unique.map(async (id) => [id, await firstNameOf(id).catch(() => null)] as const),
+  );
+  return new Map(names);
+}
+
+// One finished natal report is enough to offer Send, so a failed retry beside
+// it does not take the button away (reading 11).
+function sendOf(viewer: Viewer, p: Profile, reports: NatalReport[], openInvite: string | null): SendState | null {
+  for (const r of reports) {
+    const state = sendStateFor(viewer, p, r, openInvite);
+    if (state) return state;
+  }
+  return null;
+}
+
+/**
+ * Each profile as its viewer stands to it (ADR-139). The self mark is the
+ * viewer's own (reading 16), and on a chart sent to them their This is me is
+ * never shown to the one who wrote it. Only the person a chart was sent to
+ * learns its giver's name, and a chart sent to someone is never theirs to send on.
+ */
+async function summarize(viewer: Viewer, rows: Profile[]) {
+  const ids = rows.map((p) => p.id);
+  const [invites, claimers, natal, givers] = await Promise.all([
+    openInvitesByProfile(ids),
+    claimerNamesByProfile(rows),
+    natalReportsOf(ids),
+    firstNamesOf(rows.flatMap((p) => giverIdOf(viewer, p) ?? [])),
+  ]);
+  return rows.map((p) => {
+    const access = accessFor(viewer, p);
+    const openInvite = invites.get(p.id) ?? null;
+    const own = profileOwnershipFor(viewer, p, openInvite);
+    const giverId = giverIdOf(viewer, p);
+    const chart = (p.chartData ?? {}) as StoredChart;
+    return {
+      id: p.id,
+      name: p.name,
+      birthDate: p.birthDate,
+      birthTime: p.birthTime,
+      birthPlace: p.birthPlace,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      timezoneOffset: p.timezoneOffset,
+      timezone: p.timezone ?? null,
+      birthTimeWindowMinutes: p.birthTimeWindowMinutes,
+      horizon: chart.horizon?.status ?? null,
+      sunSign: chart.planets?.sun?.sign ?? null,
+      moonSign: chart.planets?.moon?.sign ?? null,
+      risingSign: chart.angles?.ascendant?.sign ?? null,
+      createdAt: p.createdAt.toISOString(),
+      ownership: own,
+      // The claimer's address, for the two people the send joined and no one else.
+      claimedByName: access ? (claimers.get(p.id) ?? null) : null,
+      // The address a send went to is its recipient's; only the sender sees it, and only while it waits.
+      inviteEmail: own === "invited" ? openInvite : null,
+      isSelf: isSelfFor(viewer, p),
+      claimedAsSelf: access === "claimed" && p.claimedAsSelf,
+      giverName: giverId ? (givers.get(giverId) ?? null) : null,
+      send: sendOf(viewer, p, natal.get(p.id) ?? [], openInvite),
+    };
+  });
+}
+
+/**
+ * One chart is the viewer's own (reading 16): marking one unmarks every other,
+ * whether they wrote it or it was sent to them.
+ */
+async function unmarkOtherSelves(tx: Tx, viewer: Viewer, keepId: string, now: Date): Promise<void> {
+  if (!viewer.userId) {
+    // A session marks only its unattached drafts, so it unmarks only those, never a row an account holds.
+    await tx
+      .update(profilesTable)
+      .set({ isSelf: false, updatedAt: now })
+      .where(and(
+        eq(profilesTable.sessionId, viewer.sessionId),
+        isNull(profilesTable.userId),
+        eq(profilesTable.isSelf, true),
+        ne(profilesTable.id, keepId),
+      ));
+    return;
+  }
+  await tx
+    .update(profilesTable)
+    .set({ isSelf: false, updatedAt: now })
+    .where(and(eq(profilesTable.userId, viewer.userId), eq(profilesTable.isSelf, true), ne(profilesTable.id, keepId)));
+  await tx
+    .update(profilesTable)
+    .set({ claimedAsSelf: false, updatedAt: now })
+    .where(and(
+      eq(profilesTable.claimedByUserId, viewer.userId),
+      eq(profilesTable.claimedAsSelf, true),
+      ne(profilesTable.id, keepId),
+    ));
 }
 
 // List the viewer's people (profiles).
 router.get("/profiles", async (req, res) => {
   try {
+    const viewer = viewerOf(req);
     const rows = await db
       .select()
       .from(profilesTable)
       .where(ownership(req))
       .orderBy(profilesTable.createdAt);
-
-    const invites = await openInvitesByProfile(rows.map((r) => r.id));
-    const claimers = await claimerNamesByProfile(rows);
-    const viewer = { userId: req.userId, sessionId: req.sessionId };
-
-    // isSelf is stored directly on the profile row — it is set at creation
-    // time when the user explicitly uses the "Generate My Chart" flow
-    // (isForSelf=true in POST /reports). No heuristic is used here.
-
-    const summaries = rows.map((p) => {
-      const own = profileOwnershipFor(viewer, p, invites.get(p.id) ?? null);
-      // inviteEmail is recipient PII; only the inviter (the profile
-      // owner who is also still the inviter side) may see it. For any
-      // other relation — including a claimer reading their own
-      // claimed profile — we strip it.
-      const isOwnerView = own === "owner" || own === "invited" || own === "unclaimed";
-      return {
-        id: p.id,
-        name: p.name,
-        birthDate: p.birthDate,
-        birthTime: p.birthTime,
-        birthPlace: p.birthPlace,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        timezoneOffset: p.timezoneOffset,
-        timezone: p.timezone ?? null,
-        birthTimeWindowMinutes: p.birthTimeWindowMinutes,
-        horizon: (p.chartData as any)?.horizon?.status ?? null,
-        sunSign: (p.chartData as any)?.planets?.sun?.sign ?? null,
-        moonSign: (p.chartData as any)?.planets?.moon?.sign ?? null,
-        risingSign: (p.chartData as any)?.angles?.ascendant?.sign ?? null,
-        createdAt: p.createdAt.toISOString(),
-        ownership: own,
-        claimedByName: claimers.get(p.id) ?? null,
-        inviteEmail: isOwnerView ? (invites.get(p.id) ?? null) : null,
-        isSelf: p.isSelf,
-      };
-    });
-
-    res.json(summaries);
+    // A session never reads a chart an account has claimed: only the account
+    // can show that its subject still shares it (ADR-139).
+    res.json(await summarize(viewer, rows.filter((p) => accessFor(viewer, p))));
   } catch (err) {
     req.log.error({ err }, "Failed to list profiles");
     res.status(500).json({ error: "internal_error", message: "Failed to list profiles" });
   }
 });
 
-// PATCH /profiles/:id — update mutable fields (currently isSelf only).
-// Only the direct owner of the profile may do this.
+// The writer marks their own chart (isSelf); the person a chart was sent to
+// says This is me or Not me (claimedAsSelf, ADR-120, MB-81).
 router.patch("/profiles/:id", async (req, res) => {
-  const { id } = req.params;
-  const body = req.body as Record<string, unknown>;
-  if (typeof body !== "object" || body === null) {
-    return res.status(400).json({ error: "validation_error", message: "Request body must be an object" });
+  const params = UpdateProfileParams.safeParse(req.params);
+  const body = UpdateProfileBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    return res.status(400).json({
+      error: "validation_error",
+      message: body.success ? "Invalid ID" : body.error.message,
+    });
   }
-  if ("isSelf" in body && typeof body.isSelf !== "boolean") {
-    return res.status(400).json({ error: "validation_error", message: "isSelf must be a boolean" });
-  }
-  const isSelf: boolean | undefined = "isSelf" in body ? (body.isSelf as boolean) : undefined;
+  const { id } = params.data;
+  const { isSelf, claimedAsSelf } = body.data;
+  const viewer = viewerOf(req);
 
   try {
-    // Load the profile — must exist and be owned by the viewer.
-    const rows = await db
+    const [profile] = await db
       .select()
       .from(profilesTable)
       .where(and(eq(profilesTable.id, id), ownership(req)))
       .limit(1);
-
-    if (!rows.length) {
+    const access = profile ? accessFor(viewer, profile) : null;
+    if (!profile || !access) {
       return res.status(404).json({ error: "not_found", message: "Profile not found" });
     }
-
-    const profile = rows[0];
-
-    // Only the original owner (userId match, not just a claimer) may toggle isSelf.
-    // For signed-in users: must be the direct userId owner.
-    // For anonymous: must own by sessionId.
-    const isDirectOwner = req.userId
-      ? profile.userId === req.userId
-      : profile.sessionId === req.sessionId && !profile.userId;
-
-    if (!isDirectOwner) {
+    // A session may mark only its unattached drafts, never a row an account holds.
+    const writer = access === "owner" && (!!viewer.userId || !profile.userId);
+    if (isSelf !== undefined && !writer) {
       return res.status(403).json({ error: "forbidden", message: "Not the owner of this profile" });
     }
-
-    const updates: Partial<typeof profilesTable.$inferInsert> & { updatedAt?: Date } = {};
-
-    if (typeof isSelf === "boolean") {
-      if (isSelf && !profile.isSelf) {
-        // Atomically clear any existing self-profile then set this one.
-        // The DB partial unique index is the final safety net;
-        // the transaction prevents TOCTOU races.
-        await db.transaction(async (tx) => {
-          if (req.userId) {
-            await tx
-              .update(profilesTable)
-              .set({ isSelf: false, updatedAt: new Date() })
-              .where(and(eq(profilesTable.userId, req.userId), ne(profilesTable.id, id)));
-          } else {
-            await tx
-              .update(profilesTable)
-              .set({ isSelf: false, updatedAt: new Date() })
-              .where(and(eq(profilesTable.sessionId, req.sessionId), ne(profilesTable.id, id)));
-          }
-          await tx
-            .update(profilesTable)
-            .set({ isSelf: true, updatedAt: new Date() })
-            .where(eq(profilesTable.id, id));
-        });
-        updates.isSelf = true;
-        updates.updatedAt = new Date();
-      } else if (!isSelf && profile.isSelf) {
-        updates.isSelf = false;
-        updates.updatedAt = new Date();
-        await db.update(profilesTable).set(updates).where(eq(profilesTable.id, id));
-      }
+    if (claimedAsSelf !== undefined && access !== "claimed") {
+      return res.status(403).json({ error: "forbidden", message: "Not the person this chart was sent to" });
     }
 
-    const updated = { ...profile, ...updates };
+    const marks: Partial<Pick<Profile, "isSelf" | "claimedAsSelf">> = {};
+    if (isSelf !== undefined && isSelf !== profile.isSelf) marks.isSelf = isSelf;
+    if (claimedAsSelf !== undefined && claimedAsSelf !== profile.claimedAsSelf) marks.claimedAsSelf = claimedAsSelf;
+    // Unmarking the others runs even when this mark already stands, so two
+    // marks left by an older path settle on the one just confirmed.
+    const marking = isSelf === true || claimedAsSelf === true;
+    if (marking || Object.keys(marks).length) {
+      const now = new Date();
+      // The partial unique index on (user_id) WHERE is_self is the last guard;
+      // the transaction keeps the unmark and the mark from racing.
+      await db.transaction(async (tx) => {
+        if (marking) await unmarkOtherSelves(tx, viewer, id, now);
+        if (Object.keys(marks).length) {
+          await tx.update(profilesTable).set({ ...marks, updatedAt: now }).where(eq(profilesTable.id, id));
+        }
+      });
+    }
 
-    // Fetch invite info for the response summary
-    const invites = await openInvitesByProfile([id]);
-    const claimers = await claimerNamesByProfile([updated]);
-    const viewer = { userId: req.userId, sessionId: req.sessionId };
-    const own = profileOwnershipFor(viewer, updated, invites.get(id) ?? null);
-    const isOwnerView = own === "owner" || own === "invited" || own === "unclaimed";
-
-    return res.json({
-      id: updated.id,
-      name: updated.name,
-      birthDate: updated.birthDate,
-      birthTime: updated.birthTime,
-      birthPlace: updated.birthPlace,
-      timezone: updated.timezone ?? null,
-      birthTimeWindowMinutes: updated.birthTimeWindowMinutes,
-      horizon: (updated.chartData as any)?.horizon?.status ?? null,
-      sunSign: (updated.chartData as any)?.planets?.sun?.sign ?? null,
-      moonSign: (updated.chartData as any)?.planets?.moon?.sign ?? null,
-      risingSign: (updated.chartData as any)?.angles?.ascendant?.sign ?? null,
-      createdAt: updated.createdAt.toISOString(),
-      ownership: own,
-      claimedByName: claimers.get(id) ?? null,
-      inviteEmail: isOwnerView ? (invites.get(id) ?? null) : null,
-      isSelf: updated.isSelf,
-    });
+    const [summary] = await summarize(viewer, [{ ...profile, ...marks }]);
+    return res.json(summary);
   } catch (err) {
     req.log.error({ err }, "Failed to update profile");
     return res.status(500).json({ error: "internal_error", message: "Failed to update profile" });
+  }
+});
+
+/**
+ * The person a chart was sent to ends its giver's reading at once (ADR-139).
+ * The row becomes theirs, and it and its natal reports move to a session no
+ * browser holds, so neither the giver's account nor a cookie left in their
+ * browser reaches them again. The claim stays, so This is me and any pair
+ * sent to them hold as they were.
+ */
+router.post("/profiles/:id/stop-sharing", async (req, res) => {
+  const claimer = req.userId;
+  if (!claimer) {
+    return res.status(401).json({ error: "unauthorized", message: "Sign in to stop sharing" });
+  }
+  const params = StopSharingProfileParams.safeParse(req.params);
+  if (!params.success) {
+    return res.status(404).json({ error: "not_found", message: "Profile not found" });
+  }
+  const { id } = params.data;
+
+  try {
+    const session = randomUUID();
+    const now = new Date();
+    // MB-103 provisional: a pair the giver made from this chart is left as it
+    // is; it closes on read (pairReadable) and nothing is deleted.
+    const handedOver = await db.transaction(async (tx) => {
+      const moved = await tx
+        .update(profilesTable)
+        // The writer's own-chart mark does not travel with the chart; the subject's is claimed_as_self.
+        .set({ userId: claimer, sessionId: session, isSelf: false, updatedAt: now })
+        .where(and(eq(profilesTable.id, id), eq(profilesTable.claimedByUserId, claimer)))
+        .returning({ id: profilesTable.id });
+      if (!moved.length) return false;
+      await tx
+        .update(reportsTable)
+        .set({ sessionId: session, updatedAt: now })
+        .where(and(eq(reportsTable.profileId, id), eq(reportsTable.type, "natal")));
+      return true;
+    });
+    // The giver, a stranger and a missing id read alike, so no id is confirmed.
+    if (!handedOver) {
+      return res.status(404).json({ error: "not_found", message: "Profile not found" });
+    }
+    return res.status(204).end();
+  } catch (err) {
+    req.log.error({ err }, "Failed to stop sharing");
+    return res.status(500).json({ error: "internal_error", message: "Failed to stop sharing" });
   }
 });
 
@@ -269,20 +374,8 @@ router.post("/profiles", async (req, res) => {
   }
   try {
     const profile = await resolveOrCreateProfile(req.sessionId, req.userId ?? null, parsed.data);
-    return res.status(201).json({
-      id: profile.id,
-      name: profile.name,
-      birthDate: profile.birthDate,
-      birthTime: profile.birthTime,
-      birthPlace: profile.birthPlace,
-      timezone: profile.timezone ?? null,
-      birthTimeWindowMinutes: profile.birthTimeWindowMinutes,
-      horizon: (profile.chartData as any)?.horizon?.status ?? null,
-      sunSign: (profile.chartData as any)?.planets?.sun?.sign ?? null,
-      moonSign: (profile.chartData as any)?.planets?.moon?.sign ?? null,
-      risingSign: (profile.chartData as any)?.angles?.ascendant?.sign ?? null,
-      createdAt: profile.createdAt.toISOString(),
-    });
+    const [summary] = await summarize(viewerOf(req), [profile]);
+    return res.status(201).json(summary);
   } catch (err) {
     req.log.error({ err }, "Failed to create profile");
     return res.status(500).json({ error: "internal_error", message: "Failed to create profile" });
