@@ -71,8 +71,9 @@ pnpm --filter @workspace/db exec tsx scripts/migrate-drop-meaning-library.ts
 echo "==> 6/7 Prompt overrides"
 # Prompts resolve from code; a row exists only where /admin/prompts overrode
 # one. A prompt version bump clears that family's overrides, natal or pair,
-# since they target a contract that no longer exists (v6, p2). Never seeds
-# copies of the defaults.
+# since they target a contract that no longer exists (v7, p2); a natal bump
+# also clears every :system override, natal and pair, since both embed the
+# style contract (ADR-104). Never seeds copies of the defaults.
 pnpm --filter @workspace/scripts run prompts:reset-stale
 
 echo "==> 7/7 Promote prompt overrides from staging"
