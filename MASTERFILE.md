@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.13 (2026-09-26) |
+| Version | 0.16 (2026-09-26) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -52,7 +52,7 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 3. **Report generation** per §4, polled until complete.
 4. **Report page**: ten chapters, the last one Closing, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print. While it writes, the page shows true progress over an orrery of the chart; the reader opens it through a door at 67% or it opens itself at 100%, and chapters stream in behind it (`docs/specs/locked/natal-report-pass-two.md`, `natal-report-pass-three.md`).
 5. **Purchase**: one-time payment granting a credit; the credit is consumed when the report is created (§6).
-6. **Account**: anonymous session first, Clerk sign-in claims it, dashboard lists reports.
+6. **Account**: anonymous session first, Clerk sign-in claims it, the dashboard opens on an orbit of the reader's people with a computed card per person and the credit count (`docs/specs/locked/dashboard-sky.md`), and lists reports below it.
 7. **Legal**: privacy, terms, refunds, company details, working deletion.
 8. **Admin**: runtime prompt overrides with preview, gated by `ADMIN_USER_ID`.
 
@@ -117,6 +117,7 @@ Nothing is sold yet. The credits ledger exists; the purchase path does not. Pric
 - **R-6.2** Once a payment provider exists, it is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation.
 - **R-6.3** A price appears in exactly one place in code, read by the landing page, the checkout and the receipt. No literal prices in copy.
 - **R-6.4** One credit is one report, whatever the report (ADR-42). A compatibility report needs two natal reports first, so a pair always costs three credits against one; "above solo" holds at the purchase, never at the credit.
+- **R-6.5** Credits are one balance: bundles stack into one count, never shown per bundle; a gift holds one credit, returned if unclaimed; a report already written is sent, never gifted. The orbit, the credits sheet and the path after buying are `docs/specs/locked/credit-loop.md`; no timers, streaks, badges or expiry (ADR-120 to 129).
 
 ## 7 · Architecture
 
@@ -156,7 +157,7 @@ Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report
 - **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The generation screen is its own screen with the scroll locked: every body on its own ring at its mean daily motion, settling onto the stored chart, and the door at 67% is the only way in (ADR-47, ADR-59). The compatibility hero has no ring: one centred group, each name once over its three rows, both birth records in the corners (ADR-70, ADR-99). Two people are two charts side by side, each alone: nothing draws two charts on one plate or a line between them (ADR-97). A house is never a bare number: every wheel names it in its band and every house number the page prints carries its one word; the house card keeps its full title (ADR-98).
 - **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; chapter 10, Closing, is teal and its prose reads in paper; element hues stay data, brass stays geometry (ADR-23, ADR-46). The rail lists chapters only (ADR-50); two skies: the hero owns the starfield, the gradient and the ring of stars, chapters keep their gradient, blobs and parallax, and the dawn's sun lives on the fixed layer (ADR-51, ADR-59). A why is a sentence on its own line under its action (ADR-62); evidence lives in claims only, never in prose, and prose is plain text, said in the prompt rather than checked; a link card alone names its two bodies, inside a sentence (ADR-60, ADR-104).
 - **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report, and a tick is silent: no counter, and a box unticks (ADR-24, ADR-48).
-- **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
+- **Two tempos.** The report page is slow and airy; the admin and dashboard are dense. The dashboard's one visual is its orbit: a plain orbit, not a chart, so no zodiac, degree or planet render sits on it; renders appear only in its card, and no Unicode planet or sign glyph is used (ADR-89 to 96). A control under way becomes a status with three dots ("Generating", "Writing"), never its idle verb disabled (ADR-130).
 - **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
 - **The mark is the Ascendant.** The logo is A · Horizon (`docs/specs/locked/logo.md`): the wheel, its horizon line, a brass point at the eastern end; one SVG source for favicon, nav, Clerk badge, print header, share card and email. The wordmark is "Stars Decoded" in Newsreader 400, foreground colour, never a gradient.
 - **Voice.** Report voice is R-5.1. Marketing voice is not written yet (Mailbox); until it is, marketing copy follows the same rules: short, specific, no mysticism, no claims the code cannot back.
