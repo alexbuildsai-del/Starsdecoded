@@ -31,6 +31,7 @@ import {
   FamilyBlock, FamilyRail, SuperpowersBlock, DiscoveriesBlock,
 } from "@/components/ReportSections";
 import { ReportHero } from "@/components/report/ReportHero";
+import { houseWithWord } from "@/lib/evidence-glossary";
 import { usePageTitle, reportFileTitle } from "@/lib/page-title";
 import { ReportSky } from "@/components/report/ReportSky";
 import { Chapter } from "@/components/report/Chapter";
@@ -73,7 +74,7 @@ function PlanetRow({ name, planet, meaning }: { name: string; planet: ChartPlane
         <span className="font-numeric text-base flex-1">
           {planet.degree.toFixed(1)}° {planet.sign}
         </span>
-        {planet.house && <span className="font-numeric text-xs text-muted-foreground">H{planet.house}</span>}
+        {planet.house && <span className="font-numeric text-xs text-muted-foreground">{houseWithWord(planet.house)}</span>}
         {planet.retrograde && <span className="text-xs text-amber-400 font-label">Rx</span>}
       </div>
       {meaning && (
@@ -138,9 +139,9 @@ export default function ReportPage() {
   const chartData = (report.chartData ?? null) as unknown as ChartData | null;
   const failed = report.status === "failed" && !interpretation;
 
-  // MB-45 provisional: a finished report from an earlier prompt version keeps
-  // its words but not this page's shape, so it is offered a regeneration and
-  // never regenerated on its own.
+  // MB-45: a finished report from an earlier prompt version keeps its words
+  // but not this page's shape, so it is offered a regeneration and never
+  // regenerated on its own.
   if (!writing && interpretation && !isCurrentInterpretation(interpretation)) {
     return (
       <Centred>
@@ -313,7 +314,7 @@ export default function ReportPage() {
                         {PLANET_LABELS[name]} in {planet.sign}
                       </span>
                     </div>
-                    {planet.house && <span className="font-numeric text-[11px] text-muted-foreground">H{planet.house}</span>}
+                    {planet.house && <span className="font-numeric text-[11px] text-muted-foreground">{houseWithWord(planet.house)}</span>}
                   </div>
                   <p className="text-sm leading-relaxed text-foreground/80">{text}</p>
                 </div>

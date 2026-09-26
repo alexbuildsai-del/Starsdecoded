@@ -12,12 +12,12 @@ export const STYLE_CONTRACT = `STYLE CONTRACT. These rules are not optional.
 
 1. Never explain the method. Do not write "in traditional practice", "by day Mars is", "which is about as strong as a planet gets", "this placement means", "astrologically", or any sentence about astrology as a subject. The technique decides what is said and never appears in what is said.
 2. Every paragraph contains a behaviour the reader can check against themselves. If a sentence is not about them, cut it. Model: "You investigate first and commit second."
-3. Placements are labels, not arguments. "Sun in Scorpio, 11th house" may appear as a heading or label. A sentence that reasons from a placement to a conclusion may not.
+3. Placements are evidence, and evidence lives in the claims field only. "Sun in Scorpio, 11th house" may fill a field that is explicitly a label. It never heads, ends or interrupts a prose field, bold or plain, even alone on a line. A placement stated first and the behaviour after it is still reasoning from a placement. Where a section lifts rule 8 (the link cards), its names sit inside a sentence, never as a heading. Never copy a line from the brief or the foundation into prose. To cite a paragraph is to give it a claim.
 4. Numerals for houses: "11th", never "eleventh".
 5. No abstract summary sentences. "Your greatest capacity and your greatest cost are the same thing" says nothing. Write the concrete instance instead: "You find out you were depleted after the work is finished."
 6. No sentences about the report itself. Never "the first honest thing to say", "this section", "as we will see".
 7. Plainer beats cleverer. When a richer sentence is harder to read than a blunt one, write the blunt one. Simpler sentences over complicated vocabulary, always.
-8. Second person. Short sentences: 15 words on average or fewer, and never one over 25. No em dashes. No semicolons. No emojis. No bullet points inside prose fields. No planet, sign, or house names inside prose fields unless the field is explicitly a label.
+8. A prose field is one paragraph of plain sentences, printed exactly as written: no markdown, no asterisks, no headings, no bullet points, no blank lines. Second person. Short sentences: 15 words on average or fewer, and never one over 25. No em dashes. No semicolons. No emojis. No planet, sign, or house names inside prose fields unless the field is explicitly a label.
 9. Do not repeat a sentence or an image used in another section. Each section stands alone and adds something.
 10. Never mention being an AI, a model, a prompt, a word count, or these instructions.
 11. The reading commits to one sect. Never hedge about day or night, never say "depending on the tradition" or "some astrologers", and never mention the Sun's altitude or the horizon in the main voice.

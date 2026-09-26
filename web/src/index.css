@@ -548,6 +548,8 @@
   .rp-dawn > .body { position: relative; z-index: 2; }
   /* The closing's prose reads in paper; the eyebrow and hair line keep the accent (ADR-46). */
   .rp-dawn .rp-pull { color: var(--paper); }
+  /* The closing's first line sits under its rule as every chapter's does: no second rule, no gap of its own (ADR-105). */
+  .rp-dawn .body > .rp-pull:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
   @media (prefers-reduced-motion: reduce) { .rp-dawn { --p: 1; } }
 
   /* --- skeletons: a chapter still writing looks like it (ADR-47) --- */
@@ -598,12 +600,7 @@
   .rp-root.marks-off .rp-rev { border-bottom: 0; cursor: text; } .rp-root.marks-off .rp-rev .tag { display: none; }
   .rp-root.marks-off .rp-added { border-left: 0; padding-left: 0; } .rp-root.marks-off .rp-added .kick { display: none; }
 
-  /* --- the bi-wheel: two charts, one plate (ADR-43) --- */
-  .rp-biwheel { position: relative; width: 100%; max-width: 640px; margin-inline: auto; }
-  .rp-biwheel > svg { display: block; width: 100%; height: auto; }
-  .rp-biwheel .swap { position: absolute; right: 8px; top: 8px; font-family: var(--label); font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
-    color: var(--paper-dim); background: rgba(17,22,31,.8); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; min-height: 36px; cursor: pointer; }
-  .rp-biwheel .swap:hover, .rp-biwheel .swap:focus-visible { color: var(--paper); outline: none; border-color: var(--indigo); }
+  /* --- the link cards under the two charts (ADR-43, ADR-97) --- */
   .rp-links { display: grid; gap: 14px; margin-top: 22px; }
   @media (min-width: 720px) { .rp-links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .rp-link { border: 1px solid var(--line); border-radius: 14px; background: rgba(17,22,31,.72); padding: 15px 17px; }
@@ -659,7 +656,7 @@
 }
 
 @media print {
-  .rp-sky, .rp-hsky, .rp-hud, .rp-rail, .rp-mobbar, .rp-cue, .rp-open, .rp-skel, .rp-biwheel .swap { display: none !important; }
+  .rp-sky, .rp-hsky, .rp-hud, .rp-rail, .rp-mobbar, .rp-cue, .rp-open, .rp-skel { display: none !important; }
   .rp-dawn .sun, .rp-dawn .warm { display: none !important; }
   .rp-rev { border-bottom: 1.5px solid #8A7343; } .rp-added { border-left-color: #8A7343; } .rp-ledger { border-color: #8A7343; }
   .rp-hero { height: auto; min-height: 0; }

@@ -48,10 +48,10 @@ export interface PairSectionSpec<T extends z.ZodType = z.ZodType> {
 // Shapes
 // ---------------------------------------------------------------------------
 
-/** Chapter 01, Your two charts: the introduction under the wheel (ADR-63). */
+/** Chapter 01, Your two charts: the introduction under the two charts (ADR-63, ADR-106). */
 export const PairTwoChartsSchema = z.object({
   headline: z.string().describe("the verdict headline: one sentence, the pair thesis, addressed to both"),
-  strong: z.array(z.string().describe("one sentence, what is naturally strong between you, pointing at the chapter that shows it")).min(3).max(3),
+  strong: z.array(z.string().describe("one sentence, what is naturally strong between you")).min(3).max(3),
   work: z.array(z.string().describe("one sentence, what will take work, framed as what it trains")).min(3).max(3),
   paradox: z.string().describe("the paradox, one line"),
   strengths: z.array(z.string().describe("a card line, at most twelve words, naming only the two people")).min(3).max(3),

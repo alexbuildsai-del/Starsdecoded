@@ -21,6 +21,35 @@ export const HOUSE_NAMES = [
   "Career & public role", "Friends & collective", "Solitude & the unseen",
 ] as const;
 
+/** One word per house, the first word of each title (ADR-98): on the wheel, in the hero rows and after every house number the page prints. */
+export const HOUSE_WORDS = [
+  "Self", "Money", "Mind", "Home", "Play", "Work",
+  "Partnership", "Depth", "Belief", "Career", "Friends", "Solitude",
+] as const;
+
+/** The house's word in lower case, "" outside 1 to 12. */
+export function houseWord(n: number): string {
+  return Number.isInteger(n) && n >= 1 && n <= 12 ? HOUSE_WORDS[n - 1].toLowerCase() : "";
+}
+
+/** "3rd (mind)"; the bare ordinal outside 1 to 12. */
+export function houseWithWord(n: number): string {
+  const word = houseWord(n);
+  return word ? `${ORDINALS[n - 1]} (${word})` : String(n);
+}
+
+const HOUSE_MENTION_RE = /\b(\d{1,2})(st|nd|rd|th) house\b|\brules the (\d{1,2})(st|nd|rd|th)\b/g;
+
+/** Adds " (word)" once after every "Nth house" and "rules the Nth" in a text; a second pass changes nothing. */
+export function withHouseWords(text: string): string {
+  return text.replace(HOUSE_MENTION_RE, (match, n1: string | undefined, _s1, n2: string | undefined, _s2, offset: number, whole: string) => {
+    const word = houseWord(Number(n1 ?? n2));
+    if (!word) return match;
+    const after = whole.slice(offset + match.length);
+    return after.startsWith(` (${word})`) ? match : `${match} (${word})`;
+  });
+}
+
 export const HOUSE_THEMES = [
   "Self, body, how you arrive",
   "Money, resources, what you value",
@@ -153,8 +182,9 @@ export function glossFor(ref: EvidenceRef): string {
     }
     case "ruler": {
       const dignity = DIGNITY_MEANINGS[str(ref.dignity)];
+      const rulerHouse = houseIndex(ref.rulerHouse) < 0 ? "chart" : houseWithWord(ref.rulerHouse as number);
       return `The ${theHouse(ref.house)} answers to ${label(ref.ruler)}, which sits in `
-        + `${label(ref.rulerSign)} in the ${ORDINALS[houseIndex(ref.rulerHouse)] ?? "chart"}`
+        + `${label(ref.rulerSign)} in the ${rulerHouse}`
         + `${dignity ? `, ${dignity}` : ""}.`;
     }
     case "lot":

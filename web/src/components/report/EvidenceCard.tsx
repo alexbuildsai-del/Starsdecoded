@@ -1,7 +1,7 @@
 import type { Claim } from "@/types/chart";
-import { glossFor, sourceLines } from "@/lib/evidence-glossary";
+import { glossFor, sourceLines, withHouseWords } from "@/lib/evidence-glossary";
 
-/** Children of the portalled `.rp-card`, so no wrapper of its own. */
+/** Children of the portalled `.rp-card`, so no wrapper of its own. Every house number carries its word (ADR-98). */
 export function EvidenceCard({ claim }: { claim: Claim }) {
   const n = claim.evidence.length;
   return (
@@ -14,7 +14,7 @@ export function EvidenceCard({ claim }: { claim: Claim }) {
           return (
             <div className="ev" key={i}>
               <div className="t"><span className="k source">source</span><span className="l">{lines.source}</span></div>
-              <div className="t"><span className="k source">evidence</span><span className="l">{lines.evidence}</span></div>
+              <div className="t"><span className="k source">evidence</span><span className="l">{withHouseWords(lines.evidence)}</span></div>
             </div>
           );
         }
@@ -22,7 +22,7 @@ export function EvidenceCard({ claim }: { claim: Claim }) {
           <div className="ev" key={i}>
             <div className="t">
               <span className={`k ${e.ref.kind}`}>{e.ref.kind}</span>
-              <span className="l">{e.label}</span>
+              <span className="l">{withHouseWords(e.label)}</span>
             </div>
             <div className="w">{glossFor(e.ref)}</div>
           </div>

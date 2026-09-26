@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 
 /**
- * Divider, ghost numeral, eyebrow, title, rule, lede, then the body. The
- * divider carries `data-ch` so the rail and the sky can tell where a chapter
- * begins; every colour here reads `--accent`, which the page morphs as the
- * reader crosses from one chapter into the next.
+ * Divider, ghost numeral, counter, title, rule, intro, lede, then the body.
+ * The divider carries `data-ch` so the rail and the sky can tell where a
+ * chapter begins; every colour here reads `--accent`, which the page morphs as
+ * the reader crosses from one chapter into the next. The counter is the two
+ * padded numbers alone (ADR-100); the eyebrow's word stays on the divider.
  *
  * A chapter given an `aside` lays out in two columns above 960 px, the prose at
  * 64 ch with the aside sticky beside it; below that the aside follows the prose
@@ -15,6 +16,7 @@ export function Chapter({
   total,
   eyebrow,
   title,
+  intro,
   lede,
   aside,
   children,
@@ -23,11 +25,14 @@ export function Chapter({
   total: number;
   eyebrow: string;
   title: string;
+  /** Sits between the title's rule and the lede: a chapter that introduces what follows (ADR-103). */
+  intro?: ReactNode;
   lede?: string;
   aside?: ReactNode;
   children: ReactNode;
 }) {
   const pad = String(number).padStart(2, "0");
+  const padTotal = String(total).padStart(2, "0");
   return (
     <section className="print-section" id={`chapter-${number}`}>
       <div className="rp-div" data-ch={number - 1} aria-hidden>
@@ -37,12 +42,12 @@ export function Chapter({
       <div className="rp-chapter">
         <header className="rp-head">
           <span className="rp-bignum no-print" aria-hidden>{pad}</span>
-          {/* The closing's eyebrow is its title (ADR-46): the word is printed once, over the number. */}
           <p className="rp-eye">
-            <span className="font-numeric">{pad} / {total}</span>{eyebrow !== title && <> · {eyebrow.toUpperCase()}</>}
+            <span className="font-numeric">{pad} / {padTotal}</span>
           </p>
           <h2>{title}</h2>
           <div className="rp-rule" />
+          {intro}
           {lede && <p className="rp-lede">{lede}</p>}
         </header>
         {aside ? (

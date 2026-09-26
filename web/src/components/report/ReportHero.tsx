@@ -22,7 +22,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
-import { ORDINALS } from "@/lib/evidence-glossary";
+import { houseWithWord } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
 import { PHONE, layoutHero, moonArc, phoneStack, type Rect } from "@/components/report/hero-layout";
@@ -119,9 +119,9 @@ function Label({ x, y, anchor, size, fill, children }: {
   );
 }
 
-/** A body's line in the legend: degree and sign, and its house when the chart has one. */
+/** A body's line in the legend: degree and sign, and its house with its word when the chart has one (ADR-98). */
 function placementText(p: ChartPlanet): string {
-  return `${p.degree.toFixed(2)}° ${p.sign}${p.house ? ` · ${ORDINALS[p.house - 1]}` : ""}`;
+  return `${p.degree.toFixed(2)}° ${p.sign}${p.house ? ` · ${houseWithWord(p.house)}` : ""}`;
 }
 
 const ADD_TIME = "add your birth time to draw the horizon";
@@ -299,7 +299,8 @@ export function ReportHero({
       sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: phone ? 100 : narrow ? 108 : 120 },
       moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: phone ? 60 : narrow ? 64 : 72 },
     ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
-    labelWidth: 186,
+    // The widest value, "29.99° Sagittarius · 7th (partnership)": 38 characters at 11.5 px Plex Mono (6.9 px each), plus air.
+    labelWidth: 276,
     labelHeight: 34,
     obstacles,
   });

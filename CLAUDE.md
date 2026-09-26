@@ -112,9 +112,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-25)
+## Current focus (2026-09-26)
 
-1. R08 shipped: checks by what matters, the round alone, failure reasons with the refund, the lab
-   and the Release view in the admin panel, the prose study. Owner acceptance on staging for R01, R03 to R08.
-2. Then, free: Import r05 and r06, the Failures tab, the prose study on `session-2026-09-24`; on "go" the
-   paid Spot and the first Release from the Release view (MB-68 decided; MB-75 the standing todo).
+1. R09 shipped (Review 25 Sept): the ringless pair hero, two charts side by side, the ledger, the type-only card,
+   one word per house, v7 plain prose. Owner acceptance on staging for R01, R03 to R09; the Owner reads v7 there.
+2. Free on staging: Import r05 and r06, the Failures tab, the prose study on `session-2026-09-24`; on "go" the
+   first Release from the Release view (MB-75 the standing todo).

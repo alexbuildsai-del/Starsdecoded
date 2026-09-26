@@ -1,19 +1,21 @@
 /**
- * The compatibility report (ADR-63, ADR-70): a seven-chapter document that
- * opens on the two charts. The hero is two triad plates; chapter 01 is the
- * bi-wheel with its legend, the link cards and the generated introduction;
- * chapters 02 to 06 are the lens's workbook chapters; 07 is the practice.
- * Streams behind the same door as the natal page, n = 8. No number, rating,
- * percentage or bar anywhere, on screen or in the PDF. No dawn, no gather.
+ * The compatibility report (ADR-63, ADR-97 to ADR-103): a seven-chapter
+ * document that opens on the two charts. The hero is one centred group, each
+ * name once over its rows; chapter 01 draws each person's chart alone, side
+ * by side, then the ledger of what is naturally strong and what will take
+ * work beside the links they rest on, the share card and the link cards;
+ * chapters 02 to 06 are the lens's workbook chapters, 02 introducing the
+ * scenes; 07 is the practice. Streams behind the same door as the natal page,
+ * n = 8. No number, rating, percentage or bar anywhere, on screen or in the
+ * PDF. No dawn, no gather.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/AccountMenu";
 import LoadingState from "@/components/LoadingState";
-import { BiWheel } from "@/components/chart/BiWheel";
-import { crossLinks, type CrossLink, type Host } from "@/components/chart/bi-wheel";
+import { NatalWheel } from "@/components/chart/NatalWheel";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
 import { ChapterSkeleton } from "@/components/report/ChapterSkeleton";
@@ -22,18 +24,19 @@ import { MethodologyStrip } from "@/components/report/MethodologyStrip";
 import { OpeningOverlay } from "@/components/report/OpeningOverlay";
 import { PairHero, type PairPerson } from "@/components/report/PairHero";
 import { ReportSky } from "@/components/report/ReportSky";
-import { LensChapterBlock, PractiseBlock, TwoChartsBlock, first } from "@/components/report/PairSections";
+import { LensChapterBlock, PractiseBlock, ScenesIntro, first } from "@/components/report/PairSections";
 import { ShareCard } from "@/components/report/ShareCard";
+import { TwoChartsLedger } from "@/components/report/TwoChartsLedger";
 import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { usePageTitle } from "@/lib/page-title";
 import { chapterAccent } from "@/lib/chapter-accent";
-import { PAIR_CHAPTER_TITLES, lensInfo, pairTabTitle, pairTitle } from "@/lib/lenses";
+import { PAIR_CHAPTER_TITLES, pairTabTitle } from "@/lib/lenses";
 import { pairSectionIds } from "@/lib/progress";
+import { recipientOf } from "@/lib/share-card";
 import { isCurrentPairInterpretation, lensChapterOf, type ChartData, type Lens, type PairInterpretation } from "@/types/chart";
 
 const OPENING_ACCENT = "#5C6BC0";
-const TOTAL = 7;
 
 function Centred({ children }: { children: React.ReactNode }) {
   return (
@@ -43,38 +46,10 @@ function Centred({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** The wheel's legend, static product copy (ADR-63): what the rings and the lines are, and what to do with them. */
-function WheelLegend({ a, b }: { a: string; b: string }) {
-  const rows: Array<[string, string, string?]> = [
-    ["Inner ring", `${first(a)}'s chart`],
-    ["Outer ring", `${first(b)}'s chart`],
-    ["A line", "where one of you meets the other"],
-    ["Brass", "a touch: the same place in both charts", "#D4B06A"],
-    ["Teal", "an ease between you", "#5FB3A1"],
-    ["Rose", "a friction between you", "#D07A8A"],
-  ];
-  return (
-    <dl className="mt-4 grid gap-x-6 gap-y-1.5 sm:grid-cols-2 text-[13px] text-[var(--paper-dim)]" aria-label="How to read the wheel">
-      {rows.map(([k, v, colour]) => (
-        <div key={k} className="flex items-baseline gap-2">
-          <dt className="font-label text-[10px] tracking-[0.18em] uppercase text-[var(--sky)] flex items-center gap-1.5 flex-none w-24">
-            {colour && <span aria-hidden className="inline-block h-2 w-4 rounded-sm" style={{ background: colour }} />}
-            {k}
-          </dt>
-          <dd>{v}</dd>
-        </div>
-      ))}
-      <p className="sm:col-span-2 mt-1">Tap a line to read what that link does between you.</p>
-    </dl>
-  );
-}
-
 export default function CompatibilityReportPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const [active, setActive] = useState(-1);
-  const [host, setHost] = useState<Host>("A");
-  const wheelRef = useRef<HTMLDivElement>(null);
 
   const live = useLiveReport(id!);
   const { report, sections, workbook, writing, open, setOpen, progress } = live;
@@ -91,15 +66,6 @@ export default function CompatibilityReportPage() {
   // loaded pair's title is the filename the buyer is handed.
   const named = Boolean(a && b);
   usePageTitle(named ? pairTabTitle(a!.name, b!.name) : "Compatibility Report", { raw: named });
-
-  // The wheel draws the same set of links the cards were generated from (ADR-43).
-  const links: CrossLink[] | undefined = useMemo(() => {
-    const drawn = interpretation?.links?.links;
-    if (!drawn || !chartA || !chartB) return undefined;
-    const all = crossLinks(chartA, chartB);
-    const chosen = all.filter((l) => drawn.some((d) => d.kind !== "overlay" && d.planetA === l.planetA && d.planetB === l.planetB && d.aspect === l.type));
-    return chosen.length ? chosen : all;
-  }, [interpretation?.links?.links, chartA, chartB]);
 
   if (live.isLoading) return <LoadingState label="Loading your report…" />;
 
@@ -144,12 +110,13 @@ export default function CompatibilityReportPage() {
   const ids = pairSectionIds(lens);
   const done = (key: string) => !writing || sections[key] === "done";
   const rail = titles.map((title, i) => ({ eyebrow: title, title, writing: !done(ids[i]) }));
-  const ch = (n: number) => ({ number: n, total: TOTAL, eyebrow: titles[n - 1], title: titles[n - 1] });
+  const ch = (n: number) => ({ number: n, total: titles.length, eyebrow: titles[n - 1], title: titles[n - 1] });
+  const recipient = recipientOf({ name: a.name, isSelf: a.isSelf }, { name: b.name, isSelf: b.isSelf });
   const lensChapter = (n: number) => {
     const key = ids[n - 1];
     const s = lensChapterOf(interpretation, key);
     return (
-      <Chapter key={key} {...ch(n)} lede={s?.headline}>
+      <Chapter key={key} {...ch(n)} intro={n === 2 ? <ScenesIntro /> : undefined} lede={s?.headline}>
         {done(key) && s
           ? <LensChapterBlock s={s} names={names} chapter={key} scenes={interpretation?.scenes?.[key]} reportId={id!} />
           : <ChapterSkeleton />}
@@ -187,38 +154,33 @@ export default function CompatibilityReportPage() {
       </nav>
 
       <PairHero a={person(a, chartA)} b={person(b, chartB)} lens={lens} accent={OPENING_ACCENT} />
-      <header className="hidden print:block px-8 pt-4">
-        <p className="font-label text-[10px] tracking-[0.28em] uppercase">Compatibility report · {lensInfo(lens).title}</p>
-        <h1 className="font-display text-5xl mt-2">{pairTitle(names.a, names.b)}</h1>
-      </header>
 
       <ChapterRail chapters={rail} active={active} onActive={setActive} />
 
       <main className="rp-body pb-20">
-        {/* Chapter 01 opens on the two charts (ADR-63): the wheel, its legend, the cards, then the introduction. */}
+        {/* Chapter 01 opens on the two charts (ADR-97): each alone, then the ledger, the share card and the link cards (ADR-101, ADR-102). */}
         <Chapter {...ch(1)} lede={interpretation?.twoCharts?.headline}>
-          <div ref={wheelRef}>
-            <BiWheel chartA={chartA} chartB={chartB} nameA={names.a} nameB={names.b} links={links} host={host} onHost={setHost} />
+          <div className="grid gap-6 sm:grid-cols-2 sm:gap-8" data-two-charts>
+            <div className="min-w-0"><NatalWheel chartData={chartA} centreName={first(names.a)} /></div>
+            <div className="min-w-0"><NatalWheel chartData={chartB} centreName={first(names.b)} /></div>
           </div>
-          <WheelLegend a={names.a} b={names.b} />
+          {done("twoCharts") && interpretation?.twoCharts
+            ? (
+              <>
+                <TwoChartsLedger s={interpretation.twoCharts} names={names} interpretation={interpretation} lens={lens} />
+                <ShareCard
+                  names={names}
+                  lens={lens}
+                  headline={interpretation.twoCharts.headline}
+                  strengths={interpretation.twoCharts.strengths}
+                  recipient={recipient}
+                />
+              </>
+            )
+            : <div className="mt-8"><ChapterSkeleton /></div>}
           {done("links") && interpretation?.links
             ? <LinkCards links={interpretation.links.links} nameA={names.a} nameB={names.b} />
             : <div className="mt-6"><ChapterSkeleton lines={4} /></div>}
-          <div className="mt-10">
-            {done("twoCharts") && interpretation?.twoCharts
-              ? (
-                <>
-                  <TwoChartsBlock s={interpretation.twoCharts} names={names} />
-                  <ShareCard
-                    names={names}
-                    headline={interpretation.twoCharts.headline}
-                    strengths={interpretation.twoCharts.strengths}
-                    wheel={() => wheelRef.current?.querySelector("svg") ?? null}
-                  />
-                </>
-              )
-              : <ChapterSkeleton />}
-          </div>
         </Chapter>
 
         {[2, 3, 4, 5, 6].map((n) => lensChapter(n))}

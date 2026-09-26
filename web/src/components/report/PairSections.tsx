@@ -1,18 +1,18 @@
 /**
- * The compatibility report's blocks (ADR-63, ADR-64): chapter 01 is the
- * verdict, three strong lines, three work lines, the paradox, the strengths
- * card and one pointer; a lens chapter is the workbook, the side-by-side
- * card, the scene with its chip row, what just happened with the two
+ * The compatibility report's lens and practice blocks (ADR-63, ADR-64,
+ * ADR-103); chapter 01 is TwoChartsLedger. A lens chapter reads in story
+ * order: the side-by-side card headed Going in, the scene introduced with
+ * its chip row, what just happened opening on the pair line with the two
  * because-kickers, the pattern, and next time through the one checklist;
  * chapter 07 is three checklists that write to the workbook, then a closing
  * paragraph. Nothing here draws a number, a rating or a bar.
  */
-import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
+import { CitedText, newCitationCounter } from "@/components/report/Citation";
 import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
-import { SceneChips } from "@/components/report/SceneChips";
+import { SceneChips, SceneIntro } from "@/components/report/SceneChips";
 import { fromPersonalReport } from "@/lib/product";
 import { itemKey } from "@/lib/workbook";
-import type { Claim, PairChapterScenes, PairChecklist, PairLensChapter, PairPractise, PairTwoCharts } from "@/types/chart";
+import type { PairChapterScenes, PairChecklist, PairLensChapter, PairPractise } from "@/types/chart";
 
 export interface PairNames { a: string; b: string }
 
@@ -23,68 +23,31 @@ export function personKicker(name: string): string {
   return fromPersonalReport(first(name));
 }
 
-function Lines({ lines, claims, counter }: { lines: string[]; claims?: Claim[]; counter: CitationCounter }) {
+/** Chapter 02's introduction, under its title (ADR-103): what follows, and that two more scenes wait; print drops the second sentence. */
+export function ScenesIntro() {
   return (
-    <ul className="mt-2 grid gap-2">
-      {lines.map((line, i) => (
-        <li key={i} className="relative pl-4 before:absolute before:left-0.5 before:text-[var(--accent)] before:content-['·']">
-          {CitedText({ text: line, claims, counter })}
-        </li>
-      ))}
-    </ul>
+    <p className="rp-lede" data-scenes-intro>
+      From here, each chapter plays out one scene between you: how it tends to go, what was going on under it, and one thing to try next time.
+      <span className="print:hidden"> Two more scenes wait under each one.</span>
+    </p>
   );
 }
 
-/** The pair's three strengths as one card, both names on it; the share card draws from the same lines (ADR-71). */
-export function StrengthsCard({ lines, names }: { lines: string[]; names: PairNames }) {
-  return (
-    <div className="rp-box" data-strengths-card>
-      <span className="rp-lab">{first(names.a)} and {first(names.b)} · your three strengths as a pair</span>
-      <ul className="mt-2 grid gap-2">
-        {lines.map((line, i) => (
-          <li key={i} className="font-display text-[17px] leading-snug text-[var(--paper)]">{line}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** Chapter 01 under the wheel and its cards: the introduction (ADR-63). */
-export function TwoChartsBlock({ s, names }: { s: PairTwoCharts; names: PairNames }) {
-  const k = newCitationCounter();
-  return (
-    <div className="rp-prose">
-      <div className="rp-lblk">
-        <span className="rp-lab">What is naturally strong between you</span>
-        <Lines lines={s.strong} claims={s.claims} counter={k} />
-      </div>
-      <div className="rp-lblk">
-        <span className="rp-lab">What will take work</span>
-        <Lines lines={s.work} claims={s.claims} counter={k} />
-      </div>
-      <div className="rp-lblk">
-        <span className="rp-lab">The paradox</span>
-        <p>{CitedText({ text: s.paradox, claims: s.claims, counter: k })}</p>
-      </div>
-      <StrengthsCard lines={s.strengths} names={names} />
-      <p className="rp-pull">{CitedText({ text: s.pointer, claims: s.claims, counter: k })}</p>
-    </div>
-  );
-}
-
-/** The side-by-side card: three lines a side in each person's own words, one for the pair. */
+/** The side-by-side card, headed Going in: three lines a side in each person's own words; the pair line opens What just happened. */
 function SideBySide({ card, names }: { card: PairLensChapter["card"]; names: PairNames }) {
   return (
-    <div className="rp-box grid gap-4 sm:grid-cols-2" data-side-by-side>
-      {([["a", names.a, card.a], ["b", names.b, card.b]] as const).map(([side, name, lines]) => (
-        <div key={side} className="min-w-0">
-          <span className="rp-lab">{personKicker(name)}</span>
-          <ul className="mt-2 grid gap-1.5">
-            {lines.map((line, i) => <li key={i} className="text-[14.5px] leading-[1.55]">{line}</li>)}
-          </ul>
-        </div>
-      ))}
-      <p className="sm:col-span-2 border-t border-[var(--line-soft)] pt-3 font-display text-[16px] text-[var(--paper)]">{card.pair}</p>
+    <div className="rp-box" data-side-by-side>
+      <span className="rp-lab">Going in</span>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        {([["a", names.a, card.a], ["b", names.b, card.b]] as const).map(([side, name, lines]) => (
+          <div key={side} className="min-w-0">
+            <span className="rp-kicker">{personKicker(name)}</span>
+            <ul className="mt-2 grid gap-1.5">
+              {lines.map((line, i) => <li key={i} className="text-[14.5px] leading-[1.55]">{line}</li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -104,10 +67,11 @@ export function LensChapterBlock({ s, names, chapter, scenes, reportId }: {
       <SideBySide card={s.card} names={names} />
       {scenes
         ? <SceneChips reportId={reportId} chapter={chapter} scenes={scenes} written={s.scene} />
-        : <div className="rp-lblk"><span className="rp-lab">The scene</span><p className="whitespace-pre-line">{s.scene}</p></div>}
+        : <div className="rp-lblk"><span className="rp-lab">The scene</span><SceneIntro /><p className="whitespace-pre-line">{s.scene}</p></div>}
       <div className="rp-lblk">
         <span className="rp-lab">What just happened</span>
-        <div className="mt-2 grid gap-3">
+        <p className="font-display text-[17px] leading-[1.4] text-[var(--paper)]" data-pair-line>{s.card.pair}</p>
+        <div className="mt-3 grid gap-3">
           <div>
             <span className="rp-kicker">{first(names.a)} · because</span>
             <p>{CitedText({ text: s.whatJustHappened.becauseA, claims: s.claims, counter: k })}</p>

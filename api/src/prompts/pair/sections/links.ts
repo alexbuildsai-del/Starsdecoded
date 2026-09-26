@@ -122,9 +122,9 @@ export const links: PairSectionSpec<typeof PairLinksSchema> = {
   schema: PairLinksSchema,
   extraContext: (brief) => ["CARDS TO WRITE, one entry each, in this order (the only links and bodies each reading may name; a card for a link not listed here is dropped):", ...linkList(brief).map((l) => `- ${l}`)].join("\n"),
   validate: linksChecks,
-  instructions: `Write the link cards that sit under the bi-wheel in chapter one: one card per listed link, in the listed order, and only the listed links, 45 to 60 words each. The body fields take the key form (sun, moon, mercury, north_node), never the letter or the capitalised name.
+  instructions: `Write the link cards that sit under the two charts in chapter one: one card per listed link, in the listed order, and only the listed links, 45 to 60 words each. The body fields take the key form (sun, moon, mercury, north_node), never the letter or the capitalised name.
 
 An aspect card names only its two bodies, A's and B's, and reads what that contact does between these two people from the lens register: a trine, sextile or conjunction is tagged flows, a square or opposition is tagged rubs. A conjunction between two hard bodies still flows, but say what it costs. An overlay card names only the bodies listed for it and the house they fall in, and is tagged overlay: it reads where that person lands in the other's life, from the host's side; the lead body is the one listed first and goes in the planet field. Copy the bodies, the aspect type, the orb, the owner and the house exactly from the list; set the fields that do not apply to empty, none or 0.
 
-Rule 8 of the style contract is lifted here alone: the two bodies may be named, because the reader is looking at them on the wheel. Never name a third body, and never a sign. End every reading on one sentence beginning "Behaviour check:" that gives the two of them something to test this week; that is the last sentence of the card, nothing after it. No score, no number.`,
+Rule 8 of the style contract is lifted here alone: the two bodies may be named, because the reader is looking at them on the two charts. Never name a third body, and never a sign. End every reading on one sentence beginning "Behaviour check:" that gives the two of them something to test this week; that is the last sentence of the card, nothing after it. No score, no number.`,
 };

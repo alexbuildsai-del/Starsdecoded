@@ -121,6 +121,29 @@ test("no score, rating or percentage is asked for anywhere; every lens chapter k
   for (const spec of LENS_SECTIONS.parent_child) assert.match(spec.instructions, /No diagnosis, no clinical word, no birth order/);
 });
 
+// Two charts side by side, the ledger, the link cards (ADR-97, ADR-101, ADR-104, ADR-106): no prompt draws a bi-wheel or a legend.
+test("chapter 01 carries the ledger premise, the links sit under the two charts, the doctrine keeps evidence in claims, and no prompt names a bi-wheel", () => {
+  const two = pairSectionById("twoCharts")!;
+  assert.match(two.instructions, /The reader sees the two charts side by side, each alone\. Under them this chapter's lines are set out as a ledger, each beside the link it rests on, with a pointer to the chapter that shows it; the link cards follow\./);
+  assert.match(two.instructions, /three lines, one sentence each, each cited to one of this chapter's links\. Then what will take work/);
+  assert.doesNotMatch(two.instructions, /pointing at the chapter that shows it/);
+  assert.doesNotMatch(two.instructions, /by its title/);
+  assert.match(two.instructions, /Do not list every link; the link cards do that\./);
+  const strong = (two.schema as unknown as { shape: { strong: { element: { description: string } } } }).shape.strong.element.description;
+  assert.equal(strong, "one sentence, what is naturally strong between you");
+  const links = pairSectionById("links")!;
+  assert.match(links.instructions, /^Write the link cards that sit under the two charts in chapter one:/);
+  assert.match(links.instructions, /the two bodies may be named, because the reader is looking at them on the two charts\./);
+  assert.match(PAIR_DOCTRINE, /^- Evidence lives in the claims field only, as rule 3 says\. A link, an overlay, a source line or a placement never heads or interrupts a passage, in brackets, in bold or alone on a line\.$/m);
+  assert.ok(PAIR_SYSTEM.includes(PAIR_DOCTRINE));
+  const texts = [PAIR_SYSTEM, ...PAIR_ALL_SECTIONS.map((s) => s.instructions), ...PAIR_ALL_SECTIONS.map((s) => JSON.stringify(toStrictJsonSchema(s.schema)))];
+  for (const t of texts) {
+    assert.doesNotMatch(t, /bi-?wheel/i);
+    assert.doesNotMatch(t, /\bone wheel\b/i);
+    assert.doesNotMatch(t, /\blegend\b/i);
+  }
+});
+
 test("schemas: strict JSON schema closes every object; every chapter but links carries claims; the lens chapter is as pinned", async () => {
   const walk = (node: unknown, path: string) => {
     if (Array.isArray(node)) return node.forEach((n, i) => walk(n, `${path}[${i}]`));
