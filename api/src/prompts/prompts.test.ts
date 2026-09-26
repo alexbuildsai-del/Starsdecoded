@@ -288,17 +288,36 @@ test("houses: the brief names the houses whose card already carries triad text",
 test("houses: a reading may name the house ruler, never a body placed elsewhere", () => {
   const brief = buildBrief(curie(), "Marie Curie");
   const ok = housesSpec.validate!(twelve({ 1: "Saturn rules this ground and sets a slow pace. Behaviour check: count how often you wait." }), brief);
-  assert.deepEqual(ok, []);
-  const bad = housesSpec.validate!(twelve({ 1: "Mars pushes here from the first minute. Behaviour check: notice the rush." }), brief);
-  assert.equal(bad.length, 1, bad.join("\n"));
-  assert.match(bad[0], /house 1: the reading names Mars/);
-  assert.match(bad[0], /neither placed in the 1st nor its ruler/);
+  assert.deepEqual(ok.checks, []);
+  const bad = housesSpec.validate!(twelve({ 1: "Mars pushes here from the first minute. Behaviour check: notice the rush." }), brief).checks;
+  assert.equal(bad.length, 1, bad.map((c) => c.message).join("\n"));
+  assert.equal(bad[0].rule, "chk-15");
+  assert.equal(bad[0].cls, "block");
+  assert.match(bad[0].message, /house 1: the reading names Mars/);
+  assert.match(bad[0].message, /neither placed in the 1st nor its ruler/);
 });
 
 test("houses: the twelve must arrive in order", () => {
   const brief = buildBrief(curie(), "Marie Curie");
   const out = twelve();
   out.houses[4].house = 9;
-  const errors = housesSpec.validate!(out, brief);
-  assert.ok(errors.some((e) => /entry 5 is house 9/.test(e)), errors.join("\n"));
+  // Out of order is sorted in code; a house left without a reading blocks (annex row 14).
+  const result = housesSpec.validate!(out, brief);
+  assert.ok(result.checks.some((c) => c.rule === "chk-14" && c.cls === "block" && /house 5 has no reading/.test(c.message)), result.checks.map((c) => c.message).join("\n"));
+  assert.ok(result.checks.some((c) => c.rule === "chk-14" && c.cls === "fix" && /house 9 appears twice/.test(c.message)));
+  const shuffled = twelve();
+  shuffled.houses.reverse();
+  const sorted = housesSpec.validate!(shuffled, brief);
+  assert.deepEqual(sorted.output.houses.map((h) => h.house), Array.from({ length: 12 }, (_, i) => i + 1));
+  assert.ok(sorted.checks.every((c) => c.cls === "fix"));
+});
+
+test("chk-12: the foundation's sect is overwritten from the brief, never rejected", () => {
+  const brief = buildBrief(curie(), "Marie Curie");
+  const spec = ALL_SECTIONS[0];
+  const out = { sect: "night", sectLight: "moon", chartThesis: "a", dominantPattern: "b", centralTension: "c", supportingEvidence: [], sectionGuidance: {} };
+  const r = spec.validate!(out as never, brief) as { output: { sect: string; sectLight: string }; checks: Array<{ rule: string; cls: string }> };
+  assert.equal(r.output.sect, brief.sect!.sect);
+  assert.equal(r.output.sectLight, brief.sect!.sect_light);
+  assert.deepEqual(r.checks.map((c) => `${c.rule}:${c.cls}`), ["chk-12:fix", "chk-12:fix"]);
 });

@@ -45,6 +45,7 @@ export const labRunsTable = pgTable(
 
 export type LabRun = typeof labRunsTable.$inferSelect;
 export type InsertLabRun = typeof labRunsTable.$inferInsert;
-export type LabRunSource = "lab" | "replay" | "report";
+/** `release`, `study` and `qa` rows are the Release view's lab, the prose-study notes and the QA agent's reading (ADR-86, ADR-88). */
+export type LabRunSource = "lab" | "replay" | "report" | "release" | "study" | "qa";
 export type LabRunStatus = "queued" | "running" | "done" | "failed";
 export type LabServiceTier = "flex" | "standard";

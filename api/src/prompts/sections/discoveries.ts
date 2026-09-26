@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
-import { ClaimsSchema, validateClaims } from "../evidence.js";
+import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
 
 export const DiscoveriesSchema = z.object({
   opening: z.string().describe("one or two sentences introducing the most revealing paradox plainly"),
@@ -20,7 +20,7 @@ export const discoveries: SectionSpec<typeof DiscoveriesSchema> = {
   blindWordTarget: [320, 400],
   maxTokens: 3_000,
   schema: DiscoveriesSchema,
-  validate: (out, brief) => validateClaims(out, out.claims, brief.chart),
+  validate: (out, brief) => validateSectionClaims(out, brief.chart),
   instructions: `Write Key Paradoxes & Discoveries: two or three genuine paradoxes specific to this chart. Look for a dignified planet contrary to sect, a ruler in detriment in a strong house, a stellium that contradicts the chart ruler, a Lot in an unexpected house, or an opposition that plays out between two life areas.
 
 Each paradox: a title of 2 to 5 words; 80 to 100 words showing the two things that do not naturally go together, as lived behaviour the reader will recognise; then 40 to 60 words on what it invites, ending on possibility.

@@ -10,6 +10,7 @@ import horizonRouter from "./horizon";
 import compatibilityRouter from "./compatibility";
 import adminLabRouter from "./adminLab";
 import adminLabSessionsRouter from "./adminLabSessions";
+import adminReleaseRouter from "./adminRelease";
 
 // health is mounted directly in app.ts, ahead of auth
 const router: IRouter = Router();
@@ -25,5 +26,6 @@ router.use(horizonRouter);
 router.use(compatibilityRouter);
 router.use(adminLabRouter);
 router.use(adminLabSessionsRouter);
+router.use(adminReleaseRouter);
 
 export default router;

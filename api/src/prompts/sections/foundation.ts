@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
+import { fixed, type Check } from "../checks.js";
 
 export const FoundationSchema = z.object({
   sect: z.enum(["day", "night"]).describe("copied exactly from the SECT block"),
@@ -33,13 +34,15 @@ export const foundation: SectionSpec<typeof FoundationSchema> = {
     "There is no sect, no chart ruler, no house ruler and no lot: return no sect fields, and read the chart in this order instead: the Sun, the Moon, the dignified planets, the stellium, then the tightest aspects.",
     "Never name a house, the Ascendant, the Midheaven, rising, day or night, or a lot anywhere in the handoff.",
   ],
+  // The sect is computed, never the model's to decide: a wrong echo is overwritten and logged (annex row 12).
   validate: (out, brief) => {
     const s = brief.sect;
-    if (!s) return [];
-    const errors: string[] = [];
-    if (out.sect !== s.sect) errors.push(`sect is ${s.sect}, not ${out.sect}`);
-    if (out.sectLight !== s.sect_light) errors.push(`sect light is ${s.sect_light}, not ${out.sectLight}`);
-    return errors;
+    const checks: Check[] = [];
+    if (!s) return { output: out, checks };
+    const output = { ...out };
+    if (out.sect !== s.sect) { checks.push(fixed("chk-12", `sect is ${s.sect}, not ${out.sect}; overwritten from the brief`)); output.sect = s.sect; }
+    if (out.sectLight !== s.sect_light) { checks.push(fixed("chk-12", `sect light is ${s.sect_light}, not ${out.sectLight}; overwritten from the brief`)); output.sectLight = s.sect_light; }
+    return { output, checks };
   },
   instructions: `Build the internal foundation for this natal report. This is an editorial handoff, not reader-facing prose. Identify the few patterns that should organise the whole report so that every section can be specific and none repeat.
 

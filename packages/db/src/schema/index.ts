@@ -8,3 +8,5 @@ export * from "./promptTemplates";
 export * from "./credits";
 export * from "./labRuns";
 export * from "./labJudgements";
+export * from "./generationFailures";
+export * from "./labReleases";

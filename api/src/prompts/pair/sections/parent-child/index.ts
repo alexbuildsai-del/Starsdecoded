@@ -26,7 +26,7 @@ function chapter(input: { n: number; title: string; draws: PairSectionSpec["draw
     draws: input.draws!,
     scenes: byBand(input.scenes, input.neutral),
     grounding: `${fit} ${input.grounding} ${bandLines()}`,
-    instructions: `${input.instructions}\n\nEvery scene, card line and "fair at this age" line is written for the child's band as the brief gives it, and never contradicts what is fair at that age. Address the parent by name as the one who adapts; describe the child's behaviour as what the child is for, never what is wrong with them. No diagnosis, no clinical word, no birth order.`,
+    instructions: `${input.instructions}\n\nEvery scene, card line and "fair at this age" line is written for the child's age on the day, as the brief gives it, and never contradicts what is fair at that age. Describe situations of this age now; a later stage may be discussed, framed as later. Once the child is over 18, nothing from childhood is described as present: the focus is a young adult's life, moving out, work, money, partners, visits home, and childhood is remembered in the past tense only. Address the parent by name as the one who adapts; describe the child's behaviour as what the child is for, never what is wrong with them. No diagnosis, no clinical word, no birth order.`,
     bandDoctrine: BAND_DOCTRINE as BandDoctrine,
   });
 }

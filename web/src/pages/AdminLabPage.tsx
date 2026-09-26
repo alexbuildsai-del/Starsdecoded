@@ -11,11 +11,16 @@ import { RunsView } from "@/components/lab/RunsView";
 import { SpawnView } from "@/components/lab/SpawnView";
 import { ReadingRoom } from "@/components/lab/ReadingRoom";
 import { RevealView } from "@/components/lab/RevealView";
+import { SpotView } from "@/components/lab/SpotView";
+import { FailuresView } from "@/components/lab/FailuresView";
+import { ReleaseView } from "@/components/lab/ReleaseView";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-type Tab = "runs" | "spawn" | "room" | "reveal";
-const TABS: Array<[Tab, string]> = [["runs", "Runs"], ["spawn", "Spawn a session"], ["room", "Reading room"], ["reveal", "Reveal"]];
+type Tab = "runs" | "spot" | "spawn" | "room" | "reveal" | "failures" | "release";
+const TABS: Array<[Tab, string]> = [
+  ["runs", "Runs"], ["spot", "Spot and dry"], ["spawn", "Spawn a session"], ["room", "Reading room"], ["reveal", "Reveal"], ["failures", "Failures"], ["release", "Release"],
+];
 
 /**
  * The Lab beside Prompts (annex scope 5), gated like it by ADMIN_USER_ID.
@@ -90,7 +95,7 @@ export default function AdminLabPage() {
             <div>
               <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-1">Admin</p>
               <h1 className="font-display text-2xl">Report lab</h1>
-              <p className="text-sm text-muted-foreground mt-1">Stored runs, replays with the chart and foundation held, and the blind reading room. Nothing generates before a session is spawned.</p>
+              <p className="text-sm text-muted-foreground mt-1">Stored runs, the spot and the dry, the blind reading room, the failure log and the release. Nothing generates before you press a button that shows its price.</p>
             </div>
             <div className="text-right font-numeric text-sm">
               <p className="font-label text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Lab spend {spend?.month ?? ""}</p>
@@ -101,7 +106,7 @@ export default function AdminLabPage() {
           {readOnly && (
             <div role="status" className="mb-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 flex items-start gap-3 text-amber-200">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm leading-relaxed">Read-only here. Replays and sessions run on staging only.</p>
+              <p className="text-sm leading-relaxed">Read-only here. Spots, sessions and releases run on staging only.</p>
             </div>
           )}
 
@@ -115,9 +120,12 @@ export default function AdminLabPage() {
           </div>
 
           {tab === "runs" && <RunsView />}
+          {tab === "spot" && <SpotView readOnly={readOnly} />}
           {tab === "spawn" && <SpawnView onSpawned={(id) => { setSessionId(id); setTab("room"); }} />}
           {tab === "room" && <ReadingRoom sessionId={sessionId} onSession={onSession} onReveal={(id) => { setSessionId(id); setTab("reveal"); }} />}
           {tab === "reveal" && <RevealView sessionId={sessionId} onSession={onSession} />}
+          {tab === "failures" && <FailuresView />}
+          {tab === "release" && <ReleaseView readOnly={readOnly} />}
         </main>
       </div>
     </div>

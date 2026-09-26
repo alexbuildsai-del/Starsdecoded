@@ -11,7 +11,7 @@ const { buildPairBrief, LENSES, LENS_REGISTER } = await import("../../lib/pairBr
 const {
   PAIR_ALL_SECTIONS, PAIR_DOCTRINE, PAIR_PROMPT_VERSION, PAIR_SECTIONS, PAIR_SECTION_IDS, PAIR_SYSTEM, PAIR_WORD_TARGETS, PAIR_CLAIMS_CONTRACT,
   LENS_SECTIONS, allocationOf, bandProblems, cardLineProblems, evidenceProblems, foundationProblems, hasVerb, lensChapterId, lensContext,
-  pairChapterIds, pairChapterTitle, pairHasClaims, pairSectionById, pairSectionIds, sceneProblems, scenesOf, validatePairClaims,
+  pairChapterIds, pairChapterTitle, pairHasClaims, pairSectionById, pairSectionIds, sceneProblems, scenesOf, stripBracketedBodies, validatePairClaims,
 } = await import("./index.js");
 const { BAND_DOCTRINE } = await import("./sections/parent-child/doctrine.js");
 const { linkList } = await import("./sections/links.js");
@@ -151,17 +151,21 @@ const names = { a: "Marie Curie", b: "Oprah Winfrey" };
 
 test("validators: evidence in prose, a card line, a scene without a name, a why without a verb, a band line", () => {
   assert.deepEqual(evidenceProblems("You both decide late and then all at once."), []);
-  assert.match(evidenceProblems("You decide late [Moon square Jupiter] and then all at once.")[0], /bracketed body name/);
-  assert.match(evidenceProblems("The square between you shows at 11 pm.")[0], /aspect name "square"/);
+  const stripped = stripBracketedBodies("You decide late [Moon square Jupiter] and then all at once.");
+  assert.equal(stripped.text, "You decide late and then all at once.");
+  assert.equal(stripped.stripped, 1);
+  assert.deepEqual(evidenceProblems(stripped.text), []);
+  assert.match(evidenceProblems("The square between you shows at 11 pm.")[0], /word "square"/);
+  assert.match(evidenceProblems("The trine between you shows at 11 pm.")[0], /aspect name "trine"/);
   assert.match(evidenceProblems("Within a two-degree orb, the pull is strong.")[0], /the word orb/);
 
   assert.deepEqual(cardLineProblems("Marie plans the weekend twice, once out loud.", names, "line"), []);
   assert.deepEqual(cardLineProblems("Marie Curie finishes what Oprah Winfrey starts.", names, "line"), [], "a surname is still theirs");
   assert.deepEqual(cardLineProblems("Curie finishes what Winfrey starts.", names, "line"), []);
-  assert.match(cardLineProblems("Marie plans the weekend twice, once out loud, once in private, and the private one wins.", names, "line")[0], /words, a card line takes twelve/);
+  assert.match(cardLineProblems("Marie plans the weekend twice, once out loud, once in private, and the private one wins.", names, "line")[0], /words, a card line takes 12/);
   assert.match(cardLineProblems("Marie's Moon wants the room quiet.", names, "line")[0], /names Moon/);
   assert.match(cardLineProblems("Marie and Pierre plan the weekend twice.", names, "line")[0], /names "Pierre"/);
-  assert.match(cardLineProblems("Oprah books 3 tables a week.", names, "line")[0], /carries a number/);
+  assert.match(cardLineProblems("Oprah books 3 tables a week.", names, "line")[0], /small number\(s\) spelled out/);
 
   assert.deepEqual(sceneProblems("Marie comes home late. Oprah has already eaten.", names), []);
   assert.deepEqual(sceneProblems("Marie comes home late. The kitchen is dark.", names), ["the scene never names Oprah"]);
@@ -171,9 +175,9 @@ test("validators: evidence in prose, a card line, a scene without a name, a why 
 
   const teen = "Marie slams the door after the text. Oprah waits.";
   assert.deepEqual(bandProblems(teen, "teen", BAND_DOCTRINE), []);
-  assert.match(bandProblems("Marie has a tantrum at bedtime.", "teen", BAND_DOCTRINE)[0], /contradicts the teen band/);
-  assert.match(bandProblems("Marie has homework to finish before the bath.", "little", BAND_DOCTRINE)[0], /contradicts the little band/);
-  assert.match(bandProblems("Oprah sets a curfew for Marie.", "grown", BAND_DOCTRINE)[0], /contradicts the grown band/);
+  assert.match(bandProblems("Marie has a tantrum at bedtime.", "teen", BAND_DOCTRINE)[0], /another age than the teen band/);
+  assert.match(bandProblems("Marie has homework to finish before the bath.", "little", BAND_DOCTRINE)[0], /another age than the little band/);
+  assert.match(bandProblems("Oprah sets a curfew for Marie.", "grown", BAND_DOCTRINE)[0], /another age than the grown band/);
   assert.deepEqual(bandProblems("anything", null, BAND_DOCTRINE), []);
 });
 
@@ -222,13 +226,14 @@ test("links: one card per listed link, 40 to 70 words, a behaviour check, and ne
     const c = brief.cross[i];
     return card({ planetA: c.planetA, planetB: c.planetB, aspect: c.type, orb: c.orb, kind: c.type === "square" || c.type === "opposition" ? "rubs" : "flows" });
   }) };
-  assert.deepEqual(spec.validate!(full as never, brief), []);
+  const messages = (v: { checks: Array<{ message: string; cls: string }> }) => v.checks.filter((c) => c.cls === "block").map((c) => c.message);
+  assert.deepEqual(messages(spec.validate!(full as never, brief)), []);
 
   const third = { links: full.links.map((l, i) => (i === 0 ? { ...l, reading: reading("Your Saturn and their Chiron") } : l)) };
-  const errors = spec.validate!(third as never, brief);
-  assert.ok(errors.some((e) => /names (Saturn|Chiron), which is not one of its two bodies/.test(e)), errors.join("\n"));
+  const errors = messages(spec.validate!(third as never, brief));
+  assert.ok(errors.some((e) => /names (Saturn|Chiron), which is not one of its bodies/.test(e)), errors.join("\n"));
   const rated = { links: full.links.map((l, i) => (i === 0 ? { ...l, reading: reading("Your two").replace("the private one wins", "this scores 8/10") } : l)) };
-  assert.ok(spec.validate!(rated as never, brief).some((e) => /mark out of ten|rating/.test(e)));
+  assert.ok(messages(spec.validate!(rated as never, brief)).some((e) => /mark out of ten|rating|score/.test(e)));
 });
 
 test("claims: a source that does not resolve is rejected, and a cross claim outside the chapter's allocation is rejected", () => {
@@ -278,7 +283,7 @@ test("foundation: every link once to one or two chapters, chapter 01 three of th
   const twice = { ...good, owners: [...owners, { link: 1, chapters: [4] }] };
   assert.ok(foundationProblems(twice as never, brief).some((p) => /listed twice/.test(p)));
   const three = { ...good, owners: owners.map((o, i) => (i === 0 ? { ...o, chapters: [1, 2, 3] } : o)) };
-  assert.ok(foundationProblems(three as never, brief).some((p) => /two at most/.test(p)));
+  assert.ok(foundationProblems(three as never, brief).some((p) => /cut to two/.test(p)));
   // A link handed to chapter 07 is tolerated and binds nothing; a chapter past 7 is not a chapter.
   const seven = { ...good, owners: owners.map((o, i) => (i === 3 ? { ...o, chapters: [7] } : o)) };
   assert.deepEqual(foundationProblems(seven as never, brief), []);
@@ -286,7 +291,7 @@ test("foundation: every link once to one or two chapters, chapter 01 three of th
   const eight = { ...good, owners: owners.map((o, i) => (i === 3 ? { ...o, chapters: [8] } : o)) };
   assert.ok(foundationProblems(eight as never, brief).some((p) => /chapters run 1 to 7/.test(p)));
   const missing = { ...good, owners: owners.slice(1) };
-  assert.ok(foundationProblems(missing as never, brief).some((p) => /L1 is missing/.test(p)));
+  assert.ok(foundationProblems(missing as never, brief).some((p) => /L1 was given to no chapter/.test(p)));
   const noScene = { ...good, scenes: [2, 3, 4, 5, 5].map((chapter) => ({ chapter, index: 0 })) };
   assert.ok(foundationProblems(noScene as never, brief).some((p) => /chapter 6 has no chosen scene/.test(p)));
   const range = { ...good, strongestLinks: [{ link: n + 4, why: "x" }, { link: 1, why: "y" }, { link: 2, why: "z" }] };
@@ -313,9 +318,83 @@ test("chapter validator: a house is never named across a blind pair, and the len
     nextTime: { items: [{ for: "A", action: "Say the first sentence before the coats are off.", why: "for calm" }, { for: "both", action: "Agree who books.", why: "so nobody plans it twice" }] },
     claims: [claim, claim, claim],
   };
-  const errors = spec.validate!(out as never, brief);
-  assert.ok(errors.some((e) => /house is named although a chart has no horizon/.test(e)), errors.join("\n"));
+  const result = spec.validate!(out as never, brief);
+  const errors = result.checks.map((c) => c.message);
+  const blocks = result.checks.filter((c) => c.cls === "block").map((c) => c.message);
+  assert.ok(blocks.some((e) => /house is named by numeral although a chart has no horizon/.test(e)), errors.join("\n"));
   assert.ok(errors.some((e) => /never names Oprah/.test(e)), errors.join("\n"));
   assert.ok(errors.some((e) => /has no verb/.test(e)), errors.join("\n"));
-  assert.ok(errors.some((e) => /the pair line: \d+ words|the pair line: names/.test(e)) || true);
+  // The scene and the why are logged, never blocking (annex rows 27, 28).
+  assert.ok(!blocks.some((e) => /never names|has no verb/.test(e)), blocks.join("\n"));
+});
+
+// One test per annex row the pair shapes touch (ADR-81).
+const { cardLineChecks, evidenceChecks, houseChecks, ratingChecks, sceneChecks, whyChecks, bandChecks, CARD_LINE_BUFFER } = await import("./index.js");
+const kinds = (checks: Array<{ rule: string; cls: string }>) => checks.map((c) => `${c.rule}:${c.cls}`);
+
+test("chk-18, chk-19: a percentage, a mark or a named score blocks; an ordinary rating word is logged", () => {
+  assert.deepEqual(kinds(ratingChecks("You agree 80% of the time.")), ["chk-18:block"]);
+  assert.deepEqual(kinds(ratingChecks("A compatibility score would say so.")), ["chk-18:block", "chk-19:warn"].slice(0, 1).concat(kinds(ratingChecks("A compatibility score would say so.")).slice(1)));
+  assert.deepEqual(kinds(ratingChecks("Marie rated the film and Oprah disagreed.")), ["chk-19:warn"]);
+  assert.deepEqual(kinds(ratingChecks("You both score 7 on patience.")), ["chk-19:block"]);
+});
+
+test("chk-21, chk-22: trine and sextile block; square alone is logged, beside a body it blocks; orb blocks", () => {
+  assert.deepEqual(kinds(evidenceChecks("The sextile carries you.")), ["chk-21a:block"]);
+  assert.deepEqual(kinds(evidenceChecks("You square up to it in the morning.")), ["chk-21b:warn"]);
+  assert.deepEqual(kinds(evidenceChecks("Her Moon square your Sun shows.")), ["chk-21b:block"]);
+  assert.deepEqual(kinds(evidenceChecks("Within a tight orb.")), ["chk-22:block"]);
+});
+
+test("chk-23: a 15-word card line passes inside the buffer, 16 words blocks", () => {
+  const r15 = cardLineChecks("Marie plans the weekend twice, once out loud, once in private, and the private wins", names, "line");
+  assert.equal(r15.line.split(" ").length, 15);
+  assert.deepEqual(kinds(r15.checks), ["chk-23:buffer"]);
+  const r16 = cardLineChecks("Marie plans the weekend twice, once out loud, once in private, and the private one wins", names, "line");
+  assert.deepEqual(kinds(r16.checks), ["chk-23:block"]);
+  assert.equal(CARD_LINE_BUFFER, 15);
+});
+
+test("chk-24, chk-25: only a capitalised body blocks; an invented person blocks, a place is logged", () => {
+  assert.deepEqual(kinds(cardLineChecks("Marie wants the room quiet when the Moon is up.", names, "l").checks), ["chk-24:block"]);
+  assert.deepEqual(kinds(cardLineChecks("Marie wants the sun on the balcony first.", names, "l").checks), []);
+  assert.deepEqual(kinds(cardLineChecks("Marie and Pierre plan the weekend twice.", names, "l").checks), ["chk-25:block"]);
+  assert.deepEqual(kinds(cardLineChecks("Marie asks Pierre's opinion first.", names, "l").checks), ["chk-25:block"]);
+  assert.deepEqual(kinds(cardLineChecks("Marie flies to Paris on Sunday with Oprah.", names, "l").checks), ["chk-25:warn"]);
+  assert.deepEqual(kinds(cardLineChecks("Marie Curie finishes what Winfrey starts on Christmas.", names, "l").checks), []);
+});
+
+test("chk-26: small numbers are spelled out in code; a score stays caught by row 18", () => {
+  const r = cardLineChecks("Oprah books 3 tables a week.", names, "l");
+  assert.equal(r.line, "Oprah books three tables a week.");
+  assert.deepEqual(kinds(r.checks), ["chk-26:fix"]);
+  assert.deepEqual(kinds(cardLineChecks("Oprah books 42 tables a week.", names, "l").checks), ["chk-26:warn"]);
+});
+
+test("chk-27: Zoë, José and Élodie match; a scene without a name is logged, never blocked", () => {
+  assert.deepEqual(sceneChecks("Zoë comes in. José waits by the door.", { a: "Zoë Martin", b: "José Ruiz" }), []);
+  assert.deepEqual(sceneChecks("Élodie comes in. Marie waits.", { a: "Élodie Durand", b: "Marie Curie" }), []);
+  assert.deepEqual(kinds(sceneChecks("Zoë comes in. The kitchen is dark.", { a: "Zoë Martin", b: "José Ruiz" })), ["chk-27:warn"]);
+});
+
+test("chk-28: 'so you pause first' passes in both hasVerbs; a why without a verb is logged", async () => {
+  const lab = await import("../../lib/labRules.js");
+  assert.equal(hasVerb("so you pause first"), true);
+  assert.equal(lab.hasVerb("so you pause first"), true);
+  assert.equal(hasVerb("to breathe"), true);
+  assert.deepEqual(kinds(whyChecks([{ why: "for calm" }], "item")), ["chk-28:warn"]);
+});
+
+test("chk-29: a grown-band curfew is logged, not rejected; the false hits are gone", () => {
+  assert.deepEqual(kinds(bandChecks("Oprah sets a curfew for Marie.", "grown", BAND_DOCTRINE)), ["chk-29:warn"]);
+  for (const line of ["Marie is grounded about money.", "Marie makes a phone call.", "They revise the plan.", "Oprah makes allowances.", "Marie pays rent.", "The tablet sits on the desk."]) {
+    for (const band of ["little", "school", "teen", "grown"] as const) assert.deepEqual(bandChecks(line, band, BAND_DOCTRINE), [], `${line} in ${band}`);
+  }
+});
+
+test("chk-30: a numeral house on a blind pair blocks, a word ordinal is logged", () => {
+  const blind = { blind: true } as never;
+  assert.deepEqual(kinds(houseChecks(blind, "It lands in the 4th house.")), ["chk-30:block"]);
+  assert.deepEqual(kinds(houseChecks(blind, "It lands in the fourth house.")), ["chk-30:warn"]);
+  assert.deepEqual(houseChecks({ blind: false } as never, "It lands in the 4th house."), []);
 });

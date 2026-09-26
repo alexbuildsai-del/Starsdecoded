@@ -10,12 +10,21 @@ process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.PROMPT_DEFAULTS_ONLY = "1";
 
 const { openai } = await import("@workspace/integrations-openai-ai-server");
+const { setFailureSink } = await import("./failureLog.js");
+
+/** Every failure-log row a test run wrote, in memory: no database in a unit test (ADR-85). */
+export const failureRows: Array<{ kind: string; section: string; ruleId: string; class: string; writeId: string; attempt: number; final: boolean; message: string }> = [];
+setFailureSink(async (rows) => { for (const r of rows) failureRows.push({ kind: r.kind, section: r.section, ruleId: r.ruleId, class: r.class, writeId: r.writeId, attempt: r.attempt ?? 1, final: r.final ?? false, message: r.message ?? "" }); });
 
 export interface FakeModel {
   calls: string[];
   /** Replies by schema name; a function may read the request. */
   replies: Record<string, unknown | ((req: FakeRequest) => unknown)>;
   failOn: string | null;
+  /** The error `failOn` throws; a plain outage by default. */
+  failWith?: () => Error;
+  /** Milliseconds a named call waits before answering, honouring the abort signal like the SDK does. */
+  delays: Record<string, number>;
   restore: () => void;
 }
 
@@ -27,11 +36,20 @@ export interface FakeRequest {
 export function installFakeModel(replies: FakeModel["replies"]): FakeModel {
   const target = openai.chat.completions as unknown as { create: unknown };
   const previous = target.create;
-  const fake: FakeModel = { calls: [], replies, failOn: null, restore: () => { target.create = previous; } };
-  target.create = async (req: FakeRequest) => {
+  const fake: FakeModel = { calls: [], replies, failOn: null, delays: {}, restore: () => { target.create = previous; } };
+  target.create = async (req: FakeRequest, options?: { signal?: AbortSignal }) => {
     const name = req.response_format.json_schema.name;
     fake.calls.push(name);
-    if (fake.failOn && name === fake.failOn) throw new Error(`simulated outage on ${name}`);
+    const abortError = () => Object.assign(new Error("Request was aborted."), { name: "APIUserAbortError" });
+    if (options?.signal?.aborted) throw abortError();
+    const delay = fake.delays[name];
+    if (delay) {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, delay);
+        options?.signal?.addEventListener("abort", () => { clearTimeout(timer); reject(abortError()); }, { once: true });
+      });
+    }
+    if (fake.failOn && name === fake.failOn) throw fake.failWith ? fake.failWith() : new Error(`simulated outage on ${name}`);
     const entry = fake.replies[name];
     if (entry === undefined) throw new Error(`no canned reply for ${name}`);
     const reply = typeof entry === "function" ? (entry as (r: FakeRequest) => unknown)(req) : entry;

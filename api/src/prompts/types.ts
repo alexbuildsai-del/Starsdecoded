@@ -1,5 +1,6 @@
 import type { z } from "zod/v4";
 import type { ChartBrief } from "./brief.js";
+import type { Check, Validated } from "./checks.js";
 
 export interface SectionSpec<T extends z.ZodType = z.ZodType> {
   /** Prompt key, e.g. "natal:overview". `:system` and `:user` rows derive from it. */
@@ -29,10 +30,17 @@ export interface SectionSpec<T extends z.ZodType = z.ZodType> {
   /** Extra variable context appended after the brief. Default: nothing. */
   extraContext?: (brief: ChartBrief) => string;
   /**
-   * Post-parse validation against the chart. Returns problems; a non-empty
-   * list rejects the reply (retried once, then fails loudly).
+   * Runs on the raw reply before the zod parse: cuts to maxima, drops
+   * extras, spells small numbers (ADR-81). Returns the raw as it should be
+   * parsed and the checks that fired.
    */
-  validate?: (output: z.infer<T>, brief: ChartBrief) => string[];
+  normalise?: (raw: unknown, brief: ChartBrief) => { raw: unknown; checks: Check[] };
+  /**
+   * Post-parse validation against the chart: snaps, drops, fills, blocks.
+   * A `block` rejects the reply; a `repair` calls the claims-only repair;
+   * `fix`, `warn` and `buffer` are logged only (ADR-81, ADR-82).
+   */
+  validate?: (output: z.infer<T>, brief: ChartBrief) => Validated<z.infer<T>>;
   /** The section is the horizon and nothing else: not written when the birth time is unknown (ADR-34). */
   skipWhenBlind?: true;
   /** Rules appended when the horizon is unknown, replacing the ones they contradict. */

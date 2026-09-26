@@ -69,7 +69,17 @@ export const MODELS = {
   synastry: "gpt-5.2",
   /** Offline, run once by scripts/src/generate-vocabulary.ts and committed. */
   vocabulary: "gpt-5.2",
+  /** The QA agent's reader and its eyes on staging (ADR-86): vision, one vendor, the key already on Railway. */
+  qa: "gpt-5.2",
+  /** The prose study's optional notes, three lines a card, under a cent (ADR-88; MB-70 provisional price). */
+  studyNotes: "gpt-6-luna",
 } as const satisfies Record<string, ModelId>;
+
+/** The QA agent's model: `QA_AGENT_MODEL` when it names a catalogue id, else the pinned default. Never a model outside the catalogue. */
+export function qaAgentModel(env: NodeJS.ProcessEnv = process.env): ModelId {
+  const wanted = env.QA_AGENT_MODEL?.trim();
+  return wanted && isModelId(wanted) ? wanted : MODELS.qa;
+}
 
 /**
  * Per-section overrides, by section id ("overview", "focus", ...). Empty means

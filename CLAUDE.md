@@ -7,10 +7,8 @@ product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 ## Working with the Owner
 
-- Every reply opens with `Alex, ` alone on its first line, before anything
-  else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
-- Delegate unasked (R-0.6): independent parts, broad searches and long reads go
-  to subagents, in parallel when independent; a single lookup or edit stays here.
+- Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
+- Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel; a single lookup or edit stays here.
 - Model triage (R-0.7): the orchestrator on the top model (Fable); builders Opus, simple fixes Sonnet, mechanical Haiku.
 
 ## Read this first
@@ -45,13 +43,13 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab --render|--compare    # re-read stored runs, free; the lab levels: /report-lab
+pnpm report:lab --render|--compare|--dry --base r06   # free: stored runs re-read, every prompt rendered; the levels: /report-lab
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
-clean when the schema changed, smoke on the Vercel preview. Never skip or
-disable a check. The lab runs at four levels (ADR-76): dry at every brain
-change, spot on merge to staging, full at Promote, reading when the Owner spawns.
+clean when the schema changed, smoke on the Vercel preview. Never skip or disable a
+check. The lab runs from the admin panel: dry at every brain change, spot and reading on
+demand, full lab plus QA agent in the Release view before production.
 
 ## Process
 
@@ -82,10 +80,13 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 - Deploys are git-push driven: `main` → staging (`starsdecoded-staging.vercel.app`,
   Railway `staging`, own Supabase project); `production` branch → production at
-  `mystarsdecoded.com`, moved only by the Promote workflow, fast-forward from
-  `main` after the staging smoke passes; dispatch it, never push the branch.
+  `mystarsdecoded.com`, moved only by Promote (fast-forward from `main`); never push it.
+  Any production-release talk lists MB-75 (`GITHUB_RELEASE_TOKEN` on Railway staging) as a todo until placed.
   Secrets live only in the Railway, Vercel and Supabase dashboards; the repo is
-  public. Runbook: `docs/annex/staging-runbook.md`.
+  public. Runbook: `docs/annex/staging-runbook.md`. **No secret on GitHub, ever**
+  (Owner, 2026-09-25): never ask the Owner to put a key or token there. Anything that
+  needs a key or reaches the lab routes runs on Railway and is started from the admin
+  panel; GitHub workflows only build, test and smoke. Production keys never leave Railway.
 - The web app calls `/api` on its own origin; `vercel.json` rewrites that to the
   staging or production Railway host by web host. `/api/healthz` reports `env`
   and `commit`; `smoke.yml` asserts both.
@@ -97,24 +98,23 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step of
   the start command (its preDeployCommand hook never ran here); one that cannot
   run twice breaks the deploy.
-- **The brain** decides the words: `api/src/prompts/`, `models.ts`,
-  `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
-  the dry lab runs in the round, `lab-spot.yml` replays the changed sections on
-  merge, and Promote runs the full lab and its gate; spend is capped by
-  `LAB_BUDGET_USD` (ADR-77). Never generate a report to look at one: the Lab
-  page and `--render` are free. Every model id lives in `models.ts` with its
-  price and pinned reasoning effort; one outside the catalogue does not compile.
+- **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`,
+  `traditional.ts`, `chartCalculation.ts`. Touch it and the dry lab runs in the round; spot
+  on demand from the Lab page; the Release view runs the full lab, the gate and the QA agent,
+  then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway (MB-75; until placed
+  it stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
+  (ADR-77); the Lab page and `--render` are free. Every model id lives in `models.ts`; one
+  outside the catalogue does not compile. A check blocks only when the text would be wrong
+  for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
 - Real chart data only. Fixtures hold birth data; charts are computed at run
   time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
 - Anonymous sessions come first; Clerk sign-in claims what the session made.
   `ADMIN_USER_ID` gates the prompt admin.
 
-## Current focus (2026-09-24)
+## Current focus (2026-09-25)
 
-1. R07 (#61) to staging: the lab in the admin panel (`/admin/report-lab`), replays through `writeSection`, sessions on spawn,
-   the release gate in Promote (ADR-73 to 77). Every line INTERNAL. Waiting on the Owner: **MB-69** `LAB_TOKEN` on Railway staging and
-   the GitHub `staging` environment, **MB-68** OpenAI credits. Then: `report-lab.yml` `publish` r05 and r06 (MB-72), the R06 `pair` campaign.
-2. Owner acceptance on staging for R01, R03, R04, R05, R06 and R07, in that order; then the staging landing
-   (`docs/specs/draft/staging-environment.md`): the Owner works the runbook, then the first Promote, which runs the full lab (about $1.40).
-3. Next: the first reading session (career, overview, superpowers, discoveries on five charts), pricing (MB-5), Stripe (MB-6); MB-31 needs the Owner.
+1. R08 shipped: checks by what matters, the round alone, failure reasons with the refund, the lab
+   and the Release view in the admin panel, the prose study. Owner acceptance on staging for R01, R03 to R08.
+2. Then, free: Import r05 and r06, the Failures tab, the prose study on `session-2026-09-24`; on "go" the
+   paid Spot and the first Release from the Release view (MB-68 decided; MB-75 the standing todo).

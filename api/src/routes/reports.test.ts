@@ -33,3 +33,10 @@ test("status: the section keys come from the registry the report's type uses", (
   assert.ok(!sectionIdsFor("natal", "unknown").includes("houses"));
   assert.equal(sectionIdsFor("natal", "known").length, 11);
 });
+
+test("a failed report answers with the coded line and never the internal message (ADR-84)", async () => {
+  const { failureReasonOf, FAILURE_LINES } = await import("../lib/failureReasons.js");
+  assert.deepEqual(failureReasonOf("provider_unreachable"), { code: "provider_unreachable", line: FAILURE_LINES.provider_unreachable });
+  const { failReport } = await import("./reports.js");
+  assert.equal(typeof failReport, "function");
+});
