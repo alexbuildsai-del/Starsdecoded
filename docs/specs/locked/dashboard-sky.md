@@ -1,6 +1,8 @@
 # Dashboard sky
 
-Ideation 2026-09-25 with the Owner. Status: locked 2026-09-25 (ADR-89 to 96).
+Ideation 2026-09-25 with the Owner. Status: locked 2026-09-25 (ADR-89 to 96);
+amended 2026-09-26 with Review 25 Sept (MB-81 to 86) and progress states.
+Annex: `docs/annex/dashboard-sky-annex.md` (sharing flows, empty states).
 Artifact: https://claude.ai/artifact/6GpndVJxZUfHAdULYYg2GX · reference:
 commit 3cfe873, the first prototype, reverted.
 
@@ -29,16 +31,8 @@ interactive orbit.
   on its own rhythm. A tap holds the drift (the float goes on), fills the
   point and dims the rest to .4; anyone sharing a compatibility report with
   the tapped person keeps full opacity and a lit violet ring.
-- **Micro animations**, each under a second except the float: points pop onto
-  the orbit 70 ms apart on first load; the glow behind the name breathes every
-  5 s (the dashed no-report disc turns instead); hover lifts a point to 110%;
-  selection pulses a ring out once and springs in partners' rings; a writing
-  point's dashed ring turns; the card rises 10 px as it fades in, its element
-  bars fill from the left and the renders settle into their houses; the phone
-  sheet slides up on the report easing; buttons press to 97%. Reduced motion
-  stops all of it.
-- **Empty orbit.** With nobody else, one dashed "+" point on the orbit reads
-  "ADD SOMEONE", or "GET CREDITS" at zero credits.
+- **Micro animations**, each under a second except the float, all stopped by
+  reduced motion: listed in the annex.
 
 ### Layout
 
@@ -54,7 +48,8 @@ interactive orbit.
 
 1. Eyebrow "Personal natal report" in brass (plus "· writing"), name, birth
    date, "birth time unknown" for a blind chart.
-2. **Triad.** The pair hero's plate (ring, dashed horizon, Sun and Moon
+2. **Triad.** The ringed plate, its own component now that the pair hero
+   drops its ring (ADR-99, MB-86) (ring, dashed horizon, Sun and Moon
    renders at true degrees, band arcs, angle marker) and the report's legend
    rows: "16.44° Leo · 7th"; a band reads "10.19°–22.85° Pisces"; a blind
    Rising reads "Add {name}'s birth time to draw the horizon".
@@ -64,10 +59,11 @@ interactive orbit.
    elements named ("No air"); modality counts on one mono line.
 4. **Planets by house.** Twelve whole-sign cells with the renders standing in
    them; the busiest house with three or more planets outlined and named with
-   its explorer label; blind: "Houses need a birth time". This lifts the
+   its one word (ADR-98): "4 planets in the 9th (Belief)"; blind: "Houses need a birth time". This lifts the
    natal-report-ui dashboard deferral for this strip only.
 5. **Compatibility**, below.
-6. **One primary:** "Open {name}'s report", or "Read as it writes".
+6. **Share line:** Share with {first name}, or Joined ✓ (MB-81).
+7. **One primary:** "Open {name}'s report", or "Read as it writes".
 
 **The reader's own card** (tap on the centre): eyebrow "Your Personal natal
 report", the same triad, elements and houses, then "Your compatibility
@@ -82,49 +78,59 @@ anywhere on the dashboard.
 
 One product, named by its two people: eyebrow "Compatibility report", title
 "{A} & {B}". The lens never appears on the dashboard, the card or the lists
-(question 1). Rows in the card:
+(settled at lock). Rows in the card:
 
 | State | Row |
 |---|---|
-| Shared with the reader | title, Open |
+| Shared with the reader | title, Open, and Share with {B} until they join (MB-82) |
 | None, both finished, credits > 0 | "How the two of you work, and why." · "Uses 1 credit · N credits left" · **Generate** (primary) |
 | None, zero credits | "No credits left" · **Get credits** |
-| Their report still writing | "Available once {name}'s report is finished." · Generate disabled |
+| Their natal report writing | "{name}'s report is being written. Generate opens when it is finished." · **Writing** status |
+| Generate pressed | **Generating** status until the pair report exists |
+| The pair report writing | **Writing** status · Read as it writes |
 | Reader has no report | "Needs your own report first." · Generate disabled |
 | Pairs between this person and others | title, Open |
 
-Generate opens the existing picker with both people chosen; the picker still
-writes the report. The Compatibility list below the orbit is also relabelled:
+A control never shows its idle verb while something is under way: it becomes
+a status with three pulsing dots ("Generating", "Writing"; still dots under
+reduced motion). Disabled keeps the verb only when a prerequisite is missing,
+with its reason. Generate opens the existing picker with both people chosen,
+entering as the picked selection through `pair-selection.ts` (#66, MB-86); the
+picker still writes the report. The Compatibility list below the orbit is also relabelled:
 "Compatibility report" and "{A} & {B}", no lens eyebrow.
 
 ### Credits
 
-- **Nav:** a credit pill on every dashboard view ("2 credits"; greyed "0
-  credits"). At zero, "+ Add a Person" becomes **Get credits**.
-- **Panel:** a credit row: "N credits left · Each report uses one" with Get
-  more; at zero "No credits left" with Get credits (primary).
-- **Every spend** (add a person, generate a pair, generate my chart) shows
-  "1 credit" beside it; at zero it is disabled next to Get credits.
-- **Get credits sheet:** bundles as counts (1, 3, 5; ADR-42), prices from
-  MB-5, checkout from MB-6. Until payments exist the zero-credit states stay
-  behind the `MB-6 provisional` seam and the soft pass keeps writing
-  (question 2).
+A credit pill in the nav, a credit row in the panel, "1 credit" beside every
+spend; at zero each spend becomes Get credits, behind the `MB-6 provisional`
+seam until payments (annex).
 
 ### Empty states
 
-| State | Orbit | Panel / message | Actions |
-|---|---|---|---|
-| Only you, credits | "+ ADD SOMEONE" point | "No one in your sky yet. Add someone and they join your orbit." | + Add a person · 1 credit |
-| Only you, zero credits | "+ GET CREDITS" point | "Adding someone uses a credit, and you have none left." | Add a person (disabled), Get credits |
-| New account | dashed centre, add point | "Your chart comes first. It sits at the centre, and everyone you add orbits it." | Generate my chart · 1 credit |
-| People, no own report | dashed centre, people | "Compatibility needs your own report. Their cards still open." | Generate my chart, or Get credits at zero |
+Only you (credits or none), a new account, people but no report of your own:
+the four tiles in the artifact; copy and actions in the annex.
+
+### Sharing and inviting (MB-81 to 85; detail in the annex)
+
+- **Share with {first name}** on a finished report the reader made (report,
+  row, card); on claim it is theirs by default, "Not me" undoes; they may
+  delete it or remove the giver's access. Joined shows "Joined ✓".
+- **Share with {B}** for a pair, only when the reader is one of the two; a
+  person already joined gets access at once.
+- **Invite {first name}** for a person with no report; the gifted credit
+  ships with payments.
+- **Fixed with it:** the claimer's read and list checks (MB-84); invite copy
+  and the Terms (MB-85). The pair row never shows the lens (ADR-93).
 
 ### Data
 
-- No API contract change: the lists the dashboard loads plus `GET
-  /reports/{id}` on tap, and `useGetCredits` for the count.
-- Halos from compatibility `ReportSummary.participants[].id` (profile ids).
-- The picker accepts a preselected pair.
+- The orbit and card read what the dashboard loads, `GET /reports/{id}` on
+  tap and `useGetCredits`; halos from `ReportSummary.participants[].id`.
+- Sharing changes the contract and the schema: `profiles.claimed_as_self`
+  (idempotent bootstrap script), a person's joined state on
+  `ProfileSummary`, the claim's read and list checks (MB-84), a pair invite
+  to someone already joined grants access instead of 409 (MB-82).
+- The picker takes a preselected pair through `pair-selection.ts`.
 
 ## Out of scope
 
@@ -151,47 +157,36 @@ writes the report. The Compatibility list below the orbit is also relabelled:
 8. The credit pill, the panel's credit row and every spend reflect the
    balance; at zero each spend offers Get credits.
 9. The four empty states render as specified.
-10. Reduced motion: no drift, float or micro animation. At 390 px no
+10. No in-progress control shows Generate: a writing natal report shows
+    Writing, a pressed Generate shows Generating, a writing pair shows
+    Writing with Read as it writes.
+11. Share with, Joined and Invite appear per person as specified; a claimer
+    reads and lists the report made for them (route test, MB-84); a pair is
+    shared only by one of its two people; the lens never shows.
+12. Reduced motion: no drift, float or micro animation. At 390 px no
     sideways scroll.
-11. Typecheck, both builds, unit tests (lead rule, house tally, row state
+13. Typecheck, both builds, unit tests (lead rule, house tally, row state
     choice) pass; no lab, the brain is untouched.
 
 ## Screens
 
-All in the artifact: the live mock with account chips, the phone sheet, the
-motion list, the card, six compatibility states, four empty states, credits.
+All in the artifact: the live mock, phone sheet, motion, card, compatibility
+and progress states, sharing, empty states, credits.
 
 ## Settled at lock (the defaults)
 
-1. **The picker keeps the lens choice.** It sets the middle chapters (ADR-40,
-   68); nothing on the dashboard shows it.
-2. **Zero credits:** the states are built behind the `MB-6 provisional` seam;
-   the soft pass keeps writing until checkout exists.
-3. **A point shows initials** in a disc, the first name below.
+The picker keeps the lens choice (ADR-40, 68) and nothing on the dashboard
+shows it; zero-credit states sit behind the MB-6 seam; a point shows initials.
 
+## Decisions to record (amendment, at the next lock)
+
+1. In-progress controls become a status with three dots; Generate never
+   shows while a report is written (the Owner, 2026-09-26).
+2. MB-81 to 86 as above, closing those rows.
 
 ## Decisions recorded
 
-ADR-89 to ADR-96, in this order.
-
-1. **The dashboard opens on the orbit.** The reader's name at the centre opens
-   their own card; people float on a plain orbit. The orbit is not
-   a chart: no zodiac, degrees or planet renders on it.
-2. **A person is a named point.** Initials in a disc, first name below; dashed
-   while writing; a violet ring for a shared compatibility report.
-3. **A tap opens the card** (panel on desktop, sheet on phone), for a person
-   or the reader, holds the drift and dims the rest. The micro animations as
-   listed; reduced motion stops them.
-4. **The card is computed:** triad plate and legend, balance rows naming a
-   lead only at 40% and a margin of 2, planets by whole-sign house with
-   renders, compatibility, one door. No "In your chart". No Unicode planet or
-   sign glyph on the dashboard.
-5. **One compatibility report, named by two people.** "Compatibility report"
-   and "{A} & {B}" wherever listed; the lens never shows on the dashboard.
-6. **The card sells the pair:** Generate with the credit it uses and what is
-   left; Get credits at zero; disabled with its reason while a natal report is
-   unfinished or missing.
-7. **Credits are always in sight:** the nav pill and the panel row; at zero
-   every spend becomes Get credits (behind the MB-6 seam until payments).
-8. **Empty states:** only you gets an Add someone point; no report of your own
-   puts the ask at the centre.
+ADR-89 to ADR-96, in order: the orbit (not a chart); a person is a named
+point; a tap opens the card; the card is computed; one compatibility report
+named by two people; the card sells the pair; credits always in sight; empty
+states. Full text in Notion Decisions.
