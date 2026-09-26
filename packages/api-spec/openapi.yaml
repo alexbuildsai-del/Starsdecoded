@@ -1005,35 +1005,6 @@ components:
       required:
         - status
 
-    SkyNow:
-      type: object
-      properties:
-        city:
-          type: string
-        zone:
-          type: string
-          description: The time zone the chart's clock reads, after following an old name to today's.
-        latitude:
-          type: number
-        longitude:
-          type: number
-        at:
-          type: string
-          description: The minute the chart is for, as an ISO 8601 UTC time.
-        ephemeris:
-          type: string
-          description: What computed the positions, as the footer credits it.
-        chart:
-          $ref: "#/components/schemas/ChartData"
-      required:
-        - city
-        - zone
-        - latitude
-        - longitude
-        - at
-        - ephemeris
-        - chart
-
     CreateReportBody:
       type: object
       properties:
@@ -2884,3 +2855,32 @@ components:
         used:
           type: integer
       required: [available, used]
+
+    SkyNow:
+      type: object
+      properties:
+        city:
+          type: string
+        zone:
+          type: string
+          description: The time zone the chart's clock reads, after following an old name to today's.
+        latitude:
+          type: number
+        longitude:
+          type: number
+        at:
+          type: string
+          description: The minute the chart is for, as an ISO 8601 UTC time.
+        ephemeris:
+          type: string
+          description: What computed the positions, as the footer credits it.
+        chart:
+          $ref: "#/components/schemas/ChartData"
+      required:
+        - city
+        - zone
+        - latitude
+        - longitude
+        - at
+        - ephemeris
+        - chart

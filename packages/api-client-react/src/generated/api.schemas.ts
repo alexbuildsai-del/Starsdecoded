@@ -74,163 +74,6 @@ export interface WaitlistJoined {
   status: WaitlistJoinedStatus;
 }
 
-export type HorizonStatus = typeof HorizonStatus[keyof typeof HorizonStatus];
-
-
-export const HorizonStatus = {
-  known: 'known',
-  approximate: 'approximate',
-  unknown: 'unknown',
-} as const;
-
-/**
- * One fact the birth hour decides, swept across the band at two-minute steps.
- */
-export interface HorizonFact {
-  /** The value at the centre time. */
-  value: string;
-  /** True when the value never changed across the band. */
-  holds: boolean;
-  /** Local times (HH:MM) inside the band at which the value changed. */
-  flipsAt: string[];
-  /** The sequence of values across the band. */
-  values: string[];
-  /** Where the centre value's run within the birth day begins (HH:MM). */
-  holdsFrom: string;
-  /** Where it ends (HH:MM, or 24:00). */
-  holdsTo: string;
-}
-
-/**
- * The horizon as a status, never a guess (ADR-33).
- */
-export interface Horizon {
-  status: HorizonStatus;
-  ascendant: HorizonFact;
-  midheaven: HorizonFact;
-  sect: HorizonFact;
-  moonSign: HorizonFact;
-  sunSign: HorizonFact;
-}
-
-/**
- * Sun and Moon only, when the birth time is a band. Absolute degrees at the band's two ends.
- */
-export type PlanetPositionBand = {
-  fromDegree: number;
-  toDegree: number;
-};
-
-export interface PlanetPosition {
-  sign: string;
-  degree: number;
-  absoluteDegree: number;
-  /** Whole-sign house. Absent when the horizon is unknown. */
-  house?: number;
-  retrograde: boolean;
-  speed: number;
-  /** Sun and Moon only, when the birth time is a band. Absolute degrees at the band's two ends. */
-  band?: PlanetPositionBand;
-}
-
-export interface Angle {
-  sign: string;
-  degree: number;
-  absoluteDegree: number;
-}
-
-export interface Aspect {
-  planet1: string;
-  planet2: string;
-  type: string;
-  orb: number;
-  applying: boolean;
-}
-
-export type ChartDataPlanets = {[key: string]: PlanetPosition};
-
-/**
- * Absent when the horizon is unknown.
- */
-export type ChartDataAngles = {
-  ascendant: Angle;
-  midheaven: Angle;
-  descendant: Angle;
-  ic: Angle;
-};
-
-/**
- * Absent when the horizon is unknown.
- */
-export type ChartDataHouses = {[key: string]: {
-  sign: string;
-  degree: number;
-}};
-
-export type ChartDataElements = {
-  fire: number;
-  earth: number;
-  air: number;
-  water: number;
-};
-
-export type ChartDataModalities = {
-  cardinal: number;
-  fixed: number;
-  mutable: number;
-};
-
-export type ChartDataDominance = {
-  dominantPlanets: string[];
-  dominantElement: string;
-  dominantModality: string;
-};
-
-export type ChartDataHemisphereEmphasis = {
-  northern: number;
-  southern: number;
-  eastern: number;
-  western: number;
-};
-
-export interface ChartData {
-  datetimeUtc: string;
-  julianDay: number;
-  latitude: number;
-  longitude: number;
-  timezoneOffset: number;
-  timezone?: string;
-  /** Half-width of the birth-time band. 0 for an exact time. */
-  windowMinutes?: number;
-  horizon: Horizon;
-  /** True altitude of the Sun's centre at birth. Absent when the horizon is unknown. */
-  sunAltitude?: number;
-  planets: ChartDataPlanets;
-  /** Absent when the horizon is unknown. */
-  angles?: ChartDataAngles;
-  /** Absent when the horizon is unknown. */
-  houses?: ChartDataHouses;
-  aspects: Aspect[];
-  elements: ChartDataElements;
-  modalities: ChartDataModalities;
-  dominance: ChartDataDominance;
-  chartShape?: string | null;
-  hemisphereEmphasis?: ChartDataHemisphereEmphasis;
-}
-
-export interface SkyNow {
-  city: string;
-  /** The time zone the chart's clock reads, after following an old name to today's. */
-  zone: string;
-  latitude: number;
-  longitude: number;
-  /** The minute the chart is for, as an ISO 8601 UTC time. */
-  at: string;
-  /** What computed the positions, as the footer credits it. */
-  ephemeris: string;
-  chart: ChartData;
-}
-
 export interface CreateReportBody {
   /** Name of the person */
   name: string;
@@ -928,6 +771,65 @@ export interface ReportStatus {
   interpretation?: ReportInterpretation | null;
 }
 
+/**
+ * Sun and Moon only, when the birth time is a band. Absolute degrees at the band's two ends.
+ */
+export type PlanetPositionBand = {
+  fromDegree: number;
+  toDegree: number;
+};
+
+export interface PlanetPosition {
+  sign: string;
+  degree: number;
+  absoluteDegree: number;
+  /** Whole-sign house. Absent when the horizon is unknown. */
+  house?: number;
+  retrograde: boolean;
+  speed: number;
+  /** Sun and Moon only, when the birth time is a band. Absolute degrees at the band's two ends. */
+  band?: PlanetPositionBand;
+}
+
+/**
+ * One fact the birth hour decides, swept across the band at two-minute steps.
+ */
+export interface HorizonFact {
+  /** The value at the centre time. */
+  value: string;
+  /** True when the value never changed across the band. */
+  holds: boolean;
+  /** Local times (HH:MM) inside the band at which the value changed. */
+  flipsAt: string[];
+  /** The sequence of values across the band. */
+  values: string[];
+  /** Where the centre value's run within the birth day begins (HH:MM). */
+  holdsFrom: string;
+  /** Where it ends (HH:MM, or 24:00). */
+  holdsTo: string;
+}
+
+export type HorizonStatus = typeof HorizonStatus[keyof typeof HorizonStatus];
+
+
+export const HorizonStatus = {
+  known: 'known',
+  approximate: 'approximate',
+  unknown: 'unknown',
+} as const;
+
+/**
+ * The horizon as a status, never a guess (ADR-33).
+ */
+export interface Horizon {
+  status: HorizonStatus;
+  ascendant: HorizonFact;
+  midheaven: HorizonFact;
+  sect: HorizonFact;
+  moonSign: HorizonFact;
+  sunSign: HorizonFact;
+}
+
 export interface HorizonPreviewBody {
   birthDate: string;
   /** The band's centre, HH:MM. */
@@ -959,6 +861,91 @@ export interface BirthTimeUpdateResponse {
   horizon: BirthTimeUpdateResponseHorizon;
   /** The reports a pass has started on. */
   reportIds: string[];
+}
+
+export interface Angle {
+  sign: string;
+  degree: number;
+  absoluteDegree: number;
+}
+
+export interface Aspect {
+  planet1: string;
+  planet2: string;
+  type: string;
+  orb: number;
+  applying: boolean;
+}
+
+export type ChartDataPlanets = {[key: string]: PlanetPosition};
+
+/**
+ * Absent when the horizon is unknown.
+ */
+export type ChartDataAngles = {
+  ascendant: Angle;
+  midheaven: Angle;
+  descendant: Angle;
+  ic: Angle;
+};
+
+/**
+ * Absent when the horizon is unknown.
+ */
+export type ChartDataHouses = {[key: string]: {
+  sign: string;
+  degree: number;
+}};
+
+export type ChartDataElements = {
+  fire: number;
+  earth: number;
+  air: number;
+  water: number;
+};
+
+export type ChartDataModalities = {
+  cardinal: number;
+  fixed: number;
+  mutable: number;
+};
+
+export type ChartDataDominance = {
+  dominantPlanets: string[];
+  dominantElement: string;
+  dominantModality: string;
+};
+
+export type ChartDataHemisphereEmphasis = {
+  northern: number;
+  southern: number;
+  eastern: number;
+  western: number;
+};
+
+export interface ChartData {
+  datetimeUtc: string;
+  julianDay: number;
+  latitude: number;
+  longitude: number;
+  timezoneOffset: number;
+  timezone?: string;
+  /** Half-width of the birth-time band. 0 for an exact time. */
+  windowMinutes?: number;
+  horizon: Horizon;
+  /** True altitude of the Sun's centre at birth. Absent when the horizon is unknown. */
+  sunAltitude?: number;
+  planets: ChartDataPlanets;
+  /** Absent when the horizon is unknown. */
+  angles?: ChartDataAngles;
+  /** Absent when the horizon is unknown. */
+  houses?: ChartDataHouses;
+  aspects: Aspect[];
+  elements: ChartDataElements;
+  modalities: ChartDataModalities;
+  dominance: ChartDataDominance;
+  chartShape?: string | null;
+  hemisphereEmphasis?: ChartDataHemisphereEmphasis;
 }
 
 /**
@@ -1501,6 +1488,19 @@ export interface CreditBalance {
 export interface CreditCounts {
   available: number;
   used: number;
+}
+
+export interface SkyNow {
+  city: string;
+  /** The time zone the chart's clock reads, after following an old name to today's. */
+  zone: string;
+  latitude: number;
+  longitude: number;
+  /** The minute the chart is for, as an ISO 8601 UTC time. */
+  at: string;
+  /** What computed the positions, as the footer credits it. */
+  ephemeris: string;
+  chart: ChartData;
 }
 
 /**
