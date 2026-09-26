@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import type { Claim } from "@/types/chart";
 import { EvidenceCard } from "@/components/report/EvidenceCard";
 import { AddedBlock, RevisedSpan, findMark, isAdded, useRevisions } from "@/components/report/RevisedText";
+import { plainProse } from "@/lib/plain-prose";
 
 /** Numbering runs per section, so the owning block creates one of these per render. */
 export function newCitationCounter() {
@@ -133,6 +134,8 @@ function Citation({ index, claim }: { index: number; claim: Claim }) {
  * A horizon pass's marks come through the revision context (ADR-35): a
  * paragraph the pass added carries its rule and kicker, and an amended
  * sentence its underline; the marks are the report's own, never a diff.
+ * The text is printed plain first (ADR-104): no asterisk, no line that is
+ * only a placement.
  */
 export function CitedText({
   text,
@@ -144,8 +147,9 @@ export function CitedText({
   counter: CitationCounter;
 }): ReactNode {
   const revisions = useRevisions();
+  const plain = plainProse(text);
   // A pass inserts a paragraph with a blank line; without a pass a field is one paragraph.
-  const paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const paragraphs = plain.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   if (paragraphs.length > 1) {
     return paragraphs.map((p, i) => {
       const inner = citedParagraph(p, claims, counter, revisions);
@@ -155,7 +159,7 @@ export function CitedText({
         : <span key={i} className={i > 0 ? "block mt-[15px]" : "block"}>{inner}</span>;
     });
   }
-  return citedParagraph(text, claims, counter, revisions);
+  return citedParagraph(plain, claims, counter, revisions);
 }
 
 type Revisions = ReturnType<typeof useRevisions>;
