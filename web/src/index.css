@@ -548,6 +548,8 @@
   .rp-dawn > .body { position: relative; z-index: 2; }
   /* The closing's prose reads in paper; the eyebrow and hair line keep the accent (ADR-46). */
   .rp-dawn .rp-pull { color: var(--paper); }
+  /* The closing's first line sits under its rule as every chapter's does: no second rule, no gap of its own (ADR-105). */
+  .rp-dawn .body > .rp-pull:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
   @media (prefers-reduced-motion: reduce) { .rp-dawn { --p: 1; } }
 
   /* --- skeletons: a chapter still writing looks like it (ADR-47) --- */
