@@ -491,6 +491,7 @@ function PersonRow({ profile, report, unmarked, onSend, onMark, onBirthTime, onS
         <DeleteReportDialog
           reportId={report.id}
           personName={profile.name}
+          handsOver={!claimed && profile.ownership === "claimed"}
           className={cn(QUIET, "h-auto gap-1 hover:bg-transparent hover:text-destructive")}
         />
       </div>
