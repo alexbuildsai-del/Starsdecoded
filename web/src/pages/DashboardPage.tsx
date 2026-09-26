@@ -675,7 +675,8 @@ export default function DashboardPage() {
             </ul>
           )}
 
-          <CompatibilityPicker reports={allReports} />
+          {/* Undefined while the list loads, not empty: the picker then waits on the same query before it reads a remembered pair. */}
+          <CompatibilityPicker reports={Array.isArray(reportsQ.data) ? reportsQ.data : undefined} />
         </section>
       </main>
 

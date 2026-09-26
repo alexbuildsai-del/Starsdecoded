@@ -11,59 +11,44 @@ import { useCreateCompatibilityReport, useGetCredits, useListReports, getListRep
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { PERSONAL_REPORT } from "@/lib/product";
-import { HOW_OPTIONS, HOW_QUESTION, LENSES, PARENT_QUESTION, lensInfo, type HowKnown } from "@/lib/lenses";
-import type { Lens } from "@/types/chart";
-
-// MB-6 provisional: with no checkout yet the report runs on the soft credit
-// pass; the selection is kept here so the payments round can attach checkout
-// and return to it.
-const SELECTION_KEY = "sd.pair.selection";
-
-interface Selection { a: string; b: string; lens: Lens; parent: "A" | "B"; how: HowKnown }
-
-function readSelection(): Partial<Selection> {
-  try {
-    return JSON.parse(window.sessionStorage.getItem(SELECTION_KEY) ?? "{}") as Partial<Selection>;
-  } catch {
-    return {};
-  }
-}
-
-function rememberSelection(s: Partial<Selection>): void {
-  try {
-    window.sessionStorage.setItem(SELECTION_KEY, JSON.stringify(s));
-  } catch {
-    // Nothing else depends on it.
-  }
-}
-
-/** Why a report cannot be picked, or null when it can. */
-export function unpickable(r: ReportSummary): string | null {
-  if (r.kind !== "natal") return `not a ${PERSONAL_REPORT.toLowerCase()}`;
-  if (r.status === "complete") return null;
-  if (r.status === "failed") return r.failureReason?.line ?? "could not be written";
-  return "still writing";
-}
+import { HOW_OPTIONS, HOW_QUESTION, LENSES, PARENT_QUESTION, lensInfo } from "@/lib/lenses";
+import { forgetSelection, readSelection, reconcileSelection, rememberSelection, unpickable, type PairSelection } from "@/lib/pair-selection";
 
 export function CompatibilityPicker({ reports: given }: { reports?: ReportSummary[] }) {
   const [, navigate] = useLocation();
   const client = useQueryClient();
   const listed = useListReports({ query: { queryKey: getListReportsQueryKey(), enabled: !given } });
   const credits = useGetCredits();
-  const create = useCreateCompatibilityReport();
-  const reports = useMemo(() => (given ?? listed.data ?? []).filter((r) => r.kind === "natal"), [given, listed.data]);
+  // On the hook, not the call: a call's callbacks are skipped once the viewer has left the page.
+  const create = useCreateCompatibilityReport({ mutation: { onSuccess: () => forgetSelection() } });
+  const loaded = useMemo(() => {
+    const all = given ?? listed.data;
+    return Array.isArray(all) ? all.filter((r) => r.kind === "natal") : undefined;
+  }, [given, listed.data]);
+  const reports = loaded ?? [];
 
-  const remembered = useMemo(readSelection, []);
-  const [a, setA] = useState(remembered.a ?? "");
-  const [b, setB] = useState(remembered.b ?? "");
-  const [lens, setLens] = useState<Lens | "">(remembered.lens ?? "");
-  const [parent, setParent] = useState<"A" | "B">(remembered.parent ?? "A");
-  const [how, setHow] = useState<HowKnown | "">(remembered.how ?? "");
-  useEffect(() => { rememberSelection({ a, b, lens: lens || undefined, parent, how: how || undefined }); }, [a, b, lens, parent, how]);
+  const remembered = useMemo(() => readSelection(), []);
+  const restored = useMemo(() => reconcileSelection(remembered, loaded), [remembered, loaded]);
+  // Derived rather than copied into state, so the remembered pair shows in the
+  // same render the list vouches for it, and a pick made while it loads wins.
+  const [picked, setPicked] = useState<Partial<PairSelection> | null>(null);
+  const shown = picked ?? (restored.state === "kept" ? restored.selection : {});
+  const pick = (change: Partial<PairSelection>) => setPicked({ ...shown, ...change });
+  const a = shown.a ?? "";
+  const b = shown.b ?? "";
+  const lens = shown.lens ?? "";
+  const parent = shown.parent ?? "A";
+  const how = shown.how ?? "";
+  useEffect(() => {
+    if (picked) rememberSelection(picked);
+  }, [picked]);
+  useEffect(() => {
+    if (!picked && restored.state === "dropped") forgetSelection();
+  }, [picked, restored.state]);
 
   const info = lens ? lensInfo(lens) : null;
   const nameOf = (id: string) => reports.find((r) => r.id === id)?.name ?? "";
-  const ready = a && b && a !== b && lens && (!info?.asksHow || how) && !unpickable(reports.find((r) => r.id === a)!) && !unpickable(reports.find((r) => r.id === b)!);
+  const ready = a && b && a !== b && lens && (!info?.asksHow || how) && !unpickable(reports.find((r) => r.id === a)) && !unpickable(reports.find((r) => r.id === b));
   const noCredit = credits.data ? credits.data.available === 0 : false;
 
   function submit() {
@@ -102,15 +87,15 @@ export function CompatibilityPicker({ reports: given }: { reports?: ReportSummar
         <p className="mt-3 text-sm text-muted-foreground">You need two finished {PERSONAL_REPORT.toLowerCase()}s first. Add the other person the normal way.</p>
       )}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Select label="Report A" value={a} onChange={setA} exclude={b} />
-        <Select label="Report B" value={b} onChange={setB} exclude={a} />
+        <Select label="Report A" value={a} onChange={(v) => pick({ a: v })} exclude={b} />
+        <Select label="Report B" value={b} onChange={(v) => pick({ b: v })} exclude={a} />
       </div>
       <div className="mt-4" role="radiogroup" aria-label="Lens">
         <span className="font-label text-[10px] tracking-[0.18em] uppercase text-muted-foreground">Lens</span>
         <div className="mt-1 grid gap-2 sm:grid-cols-3">
           {LENSES.map((l) => (
             <label key={l.lens} className={`cursor-pointer rounded-xl border px-3 py-2 ${lens === l.lens ? "border-primary/60 bg-primary/10" : "border-border/60 hover:border-border"}`}>
-              <input type="radio" name="lens" value={l.lens} checked={lens === l.lens} onChange={() => setLens(l.lens)} className="sr-only" />
+              <input type="radio" name="lens" value={l.lens} checked={lens === l.lens} onChange={() => pick({ lens: l.lens })} className="sr-only" />
               <span className="block font-display text-base">{l.title}</span>
               <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{l.door}</span>
             </label>
@@ -123,7 +108,7 @@ export function CompatibilityPicker({ reports: given }: { reports?: ReportSummar
           <div className="mt-1 flex flex-wrap gap-2">
             {(["A", "B"] as const).map((side) => (
               <label key={side} className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs ${parent === side ? "border-primary/60 bg-primary/10" : "border-border/60 text-muted-foreground"}`}>
-                <input type="radio" name="parent" value={side} checked={parent === side} onChange={() => setParent(side)} className="sr-only" />
+                <input type="radio" name="parent" value={side} checked={parent === side} onChange={() => pick({ parent: side })} className="sr-only" />
                 {nameOf(side === "A" ? a : b) || `Report ${side}`}
               </label>
             ))}
@@ -136,7 +121,7 @@ export function CompatibilityPicker({ reports: given }: { reports?: ReportSummar
           <div className="mt-1 flex flex-wrap gap-2">
             {HOW_OPTIONS.map((option) => (
               <label key={option} className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs capitalize ${how === option ? "border-primary/60 bg-primary/10" : "border-border/60 text-muted-foreground"}`}>
-                <input type="radio" name="how" value={option} checked={how === option} onChange={() => setHow(option)} className="sr-only" />
+                <input type="radio" name="how" value={option} checked={how === option} onChange={() => pick({ how: option })} className="sr-only" />
                 {option}
               </label>
             ))}
