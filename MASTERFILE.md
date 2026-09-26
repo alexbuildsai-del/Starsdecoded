@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.16 (2026-09-26) |
+| Version | 0.17 (2026-09-26) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -68,19 +68,20 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 
 | Table | Essence | Notes |
 |---|---|---|
-| `profiles` | A person whose chart we computed | birth data, `chart_data` cache (versioned), `session_id`, `user_id`, `is_self` |
+| `profiles` | A person whose chart we computed | birth data, `chart_data` cache (versioned), `session_id`, `user_id`, `is_self`, `claimed_as_self` (the subject of a sent report says This is me) |
 | `reports` | The unit of revenue | `profile_id`, `type` natal or compatibility, `status`, `interpretation` JSONB, `compute_data` |
 | `users` | Clerk identity | Clerk id is the key |
 | `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / people, the free label carrying family, friends or colleagues; positional `role` and `access_role` are deliberately separate |
-| `invite_tokens` | Send a report, gift a credit | only the hash is stored; a send lives 7 days, a gift 30 (ADR-123) |
+| `invite_tokens` | Send a report, gift a credit | only the hash is stored; `kind` send or gift; a gift has no profile and carries `credit_id`, `recipient_name`, `note`; `reminded_at`, `revoked_at`; a send lives 7 days, a gift 30 (ADR-123) |
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
-| `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); the typed columns go with the payments round |
+| `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); `is_test` marks free test credits (ADR-138); status `held` is a gift's credit until claimed or returned; the typed columns go with the payments round |
 
 - **R-3.1** Birth data is never fabricated for a real person, and no placement is ever typed, in tests, fixtures, demos or docs. Fixtures hold birth data only; charts are computed at run time. A synthetic person exists only as a fixture: a structural case, or a sample person labelled as one on a marketing page (ADR-112).
 - **R-3.2** `chart_data` is a cache keyed by a computation version. A change to the engine bumps the version; cached charts recompute.
 - **R-3.3** Report status machine: `pending → computing → interpreting → complete | failed`, and for the horizon pass `complete → revising → complete | failed`, readable throughout; a failed pass keeps the previous text. A parse failure is a `failed` report with an error message, never a silently degraded one.
-- **R-3.4** Anonymous first. Everything a visitor creates hangs off the session cookie and is claimed by the user on sign-in. Nothing requires an account until the dashboard.
+- **R-3.4** Anonymous first for looking. What a visitor creates hangs off the session cookie and is claimed by the user on sign-in; writing a report always needs an account (ADR-140).
 - **R-3.5** Birth date, time and place are personal data under GDPR. Deletion = delete the report, anonymise the profile, keep the payment record. No health or clinical claims anywhere. EU-region data stores.
+- **R-3.6** Consent. Nothing about a person (their chart, their report, their point on someone's orbit) reaches anyone else until that person shares it, and Stop sharing ends the access at once (ADR-139). A sent report becomes its subject's; a pair reaches its other person only when one of its two sends it (MB-103).
 
 ## 4 · Report engine
 
@@ -111,13 +112,13 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 ## 6 · Payments and business model
 
-Nothing is sold yet. The credits ledger exists; the purchase path does not. Pricing is open (Mailbox).
+Nothing is sold yet. The credits ledger exists; the purchase path does not. Pricing is open (Mailbox). No production release before checkout exists (ADR-138): until then credits are enforced on every host but production, and Get credits is a free test checkout whose rows are marked `is_test` and which production refuses.
 
 - **R-6.1** One-time purchase grants a bundle of credits; creating a report consumes one credit, hard. The soft pass in `consumeCredit` ends the day payments go live. Only the birth time can change on a report: the first update is free, a second consumes a credit, a changed date or place is a new report on a new credit, and no other user regeneration exists (MB-49).
 - **R-6.2** Once a payment provider exists, it is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation.
 - **R-6.3** A price appears in exactly one place in code, read by the landing page, the checkout and the receipt. No literal prices in copy.
 - **R-6.4** One credit is one report, whatever the report (ADR-42). A compatibility report needs two natal reports first, so a pair always costs three credits against one; "above solo" holds at the purchase, never at the credit.
-- **R-6.5** Credits are one balance: bundles stack into one count, never shown per bundle; a gift holds one credit, returned if unclaimed; a report already written is sent, never gifted. The orbit, the credits sheet and the path after buying are `docs/specs/locked/credit-loop.md`; no timers, streaks, badges or expiry (ADR-120 to 129).
+- **R-6.5** Credits are one balance: bundles stack into one count, never shown per bundle; a gift holds one credit, returned if unclaimed, and its claim moves that credit into the recipient's balance to spend on any report, puts no one on anyone's orbit and shows the giver nothing the recipient makes (ADR-139); a report already written is sent, never gifted. The orbit, the credits sheet and the path after buying are `docs/specs/locked/credit-loop.md`; no timers, streaks, badges or expiry (ADR-120 to 129).
 
 ## 7 · Architecture
 
