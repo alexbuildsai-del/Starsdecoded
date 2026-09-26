@@ -2,6 +2,8 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  /** The route, where the boundary can read it: a new one clears the error screen, so leaving the page leaves it. */
+  resetKey?: string;
 }
 
 interface ErrorBoundaryState {
@@ -9,9 +11,10 @@ interface ErrorBoundaryState {
 }
 
 /**
- * Top-level render error boundary. Without one, any uncaught error during
- * render or in an effect unmounts the whole React tree and the user sees a
- * blank page with nothing to act on.
+ * Render error boundary, at the top of the app and again around the routes,
+ * where it can see the route and let go on navigation. Without one, any
+ * uncaught error during render or in an effect unmounts the whole React tree
+ * and the user sees a blank page with nothing to act on.
  */
 export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { error: null };
@@ -22,6 +25,12 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[ErrorBoundary] Uncaught render error:", error, info.componentStack);
+  }
+
+  componentDidUpdate(prevProps: ErrorBoundaryProps, prevState: ErrorBoundaryState) {
+    // Only an error already on screen is cleared: one thrown by the render that
+    // moved the key is the new page's own, and clearing it would only throw again.
+    if (prevState.error && prevProps.resetKey !== this.props.resetKey) this.setState({ error: null });
   }
 
   render() {

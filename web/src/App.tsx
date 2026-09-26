@@ -18,6 +18,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { StagingRibbon } from "@/components/StagingRibbon";
 import { APP_ENV } from "@/lib/appEnv";
 import { usePageTitle } from "@/lib/page-title";
+import { forgetSelection } from "@/lib/pair-selection";
 
 const importBirthForm = () => import("@/pages/BirthFormPage");
 const importReport = () => import("@/pages/ReportPage");
@@ -184,7 +185,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 // When the signed-in user changes, blow away cached queries so the dashboard
-// doesn't briefly show the previous account's reports.
+// doesn't briefly show the previous account's reports, and forget the pair the
+// picker remembered, whose reports the next account may not see.
 function ClerkQueryCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -192,7 +194,11 @@ function ClerkQueryCacheInvalidator() {
   useEffect(() => {
     return addListener(({ user }) => {
       const id = user?.id ?? null;
-      if (prev.current !== undefined && prev.current !== id) qc.clear();
+      if (prev.current !== undefined && prev.current !== id) {
+        qc.clear();
+        // A sign-in from an anonymous session keeps the pair: it claims that session's reports.
+        if (prev.current !== null) forgetSelection();
+      }
       prev.current = id;
     });
   }, [addListener, qc]);
@@ -254,7 +260,7 @@ function Routes() {
 }
 
 function ClerkRoutedProvider() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
@@ -279,7 +285,10 @@ function ClerkRoutedProvider() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <ClerkQueryCacheInvalidator />
-      <Routes />
+      {/* The outer boundary sits above the router and never sees a navigation; this one resets on each, by prop rather than key, so no page or Clerk sign-in step remounts. */}
+      <ErrorBoundary resetKey={location}>
+        <Routes />
+      </ErrorBoundary>
     </ClerkProvider>
   );
 }
