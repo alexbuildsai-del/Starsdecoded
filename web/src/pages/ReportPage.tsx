@@ -48,20 +48,8 @@ import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { chapterAccent } from "@/lib/chapter-accent";
+import { CHAPTERS } from "@/lib/chapters";
 
-/** Ten chapters, in the locked order (ADR-46). The section each one waits for is its own. */
-const CHAPTERS = [
-  { eyebrow: "Overview", title: "Chart Overview", section: "overview" },
-  { eyebrow: "Chart", title: "Natal Chart Deepdive", section: "houses" },
-  { eyebrow: "Mind", title: "Mind & Communication", section: "mind" },
-  { eyebrow: "Work", title: "Career & Calling", section: "career" },
-  { eyebrow: "Resources", title: "Money & Resources", section: "money" },
-  { eyebrow: "Relationships", title: "Relationships & Intimacy", section: "relationships" },
-  { eyebrow: "Roots", title: "Family & Roots", section: "family" },
-  { eyebrow: "Self-Knowledge", title: "Superpowers, Chronic Patterns & Growing Edges", section: "superpowers" },
-  { eyebrow: "Paradoxes", title: "Key Paradoxes & Discoveries", section: "discoveries" },
-  { eyebrow: "Closing", title: "Closing", section: "focus" },
-];
 const TOTAL = CHAPTERS.length;
 const OPENING_ACCENT = "#5C6BC0";
 

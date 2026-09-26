@@ -88,6 +88,7 @@ export default function AdminLabPage() {
           <p className="font-label text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2 px-3">Admin</p>
           <button type="button" onClick={() => navigate("/admin/prompts")} className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground">Prompts</button>
           <button type="button" onClick={() => navigate("/admin/report-lab")} className="text-left px-3 py-2 rounded-lg text-sm font-label bg-primary/10 text-primary">Lab</button>
+          <button type="button" onClick={() => navigate("/admin/waitlist")} className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground">Waitlist</button>
         </aside>
 
         <main className="flex-1 min-w-0">

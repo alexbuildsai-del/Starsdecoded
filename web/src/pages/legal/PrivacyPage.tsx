@@ -1,8 +1,8 @@
 import { LegalLayout, LegalSection } from "./LegalLayout";
 import { usePageTitle } from "@/lib/page-title";
 
-// MB-31 and MB-33 provisional: entity, region and retention are placeholders
-// until the Owner fills them in.
+// MB-31, MB-33 and MB-105 provisional: entity, contact, region and retention are
+// placeholders until the Owner fills them in.
 export default function PrivacyPage() {
   usePageTitle("Privacy");
 
@@ -26,6 +26,19 @@ export default function PrivacyPage() {
         <p>We do not collect health data, and the report makes no health, medical or clinical claims.</p>
       </LegalSection>
 
+      <LegalSection id="waitlist" title="The waitlist">
+        <p>
+          Before Stars Decoded opens, you can leave your email address on our waitlist. We store the address, the date you
+          joined, which form on the page you used, and the campaign tags in the link you arrived by, if it had any. We do not
+          store your IP address.
+        </p>
+        <p>
+          We use the address for one thing: to email you when Stars Decoded opens. We keep it until we have sent that email,
+          or until you ask us to delete it, whichever comes first. The list is stored in our Supabase database. To be taken
+          off it, write to [CONTACT EMAIL].
+        </p>
+      </LegalSection>
+
       <LegalSection title="How the report is made">
         <p>
           Planetary positions are computed on our server with astronomy-engine. The report is
@@ -38,7 +51,7 @@ export default function PrivacyPage() {
       <LegalSection title="Processors we use">
         <p>These services receive data because the code calls them. Regions are marked where not yet confirmed.</p>
         <ul className="list-disc pl-5 space-y-1.5">
-          <li>Supabase, the Postgres database that stores profiles, reports and accounts. Region: [REGION].</li>
+          <li>Supabase, the Postgres database that stores profiles, reports, accounts and the waitlist. Region: [REGION].</li>
           <li>OpenAI, which receives the name and computed positions to write the report.</li>
           <li>Clerk, which handles sign-in and holds your account email.</li>
           <li>Resend, which sends invitation emails when you invite a second person.</li>

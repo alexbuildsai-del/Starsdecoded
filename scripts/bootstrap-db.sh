@@ -58,6 +58,10 @@ echo "==> 3h/7 The failure log and the release record"
 # generation_failures, lab_releases and reports.failure_code (ADR-84 to 86). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-failures-and-releases.ts
 
+echo "==> 3i/7 The waitlist"
+# waitlist_signups, the pre-launch list production collects until launch (ADR-141). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-waitlist.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.

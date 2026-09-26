@@ -33,6 +33,7 @@ import type {
   ErrorResponse,
   GeocodePlaceParams,
   GeocodeSearchResponse,
+  GetSkyNowParams,
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
   HealthStatus,
@@ -42,6 +43,7 @@ import type {
   InvitePreview,
   InviteRecord,
   InviteSummary,
+  JoinWaitlistBody,
   ListInvitesParams,
   ProfileSummary,
   RegenerateReport202,
@@ -51,11 +53,13 @@ import type {
   ReportStatus,
   ReportSummary,
   SceneResponse,
+  SkyNow,
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
   UpdateBirthTimeBody,
   UpdateProfileBody,
+  WaitlistJoined,
   Workbook,
   WorkbookPatch,
   WriteSceneBody
@@ -154,6 +158,172 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getJoinWaitlistUrl = () => {
+
+
+
+
+  return `/api/waitlist`
+}
+
+/**
+ * Stores an email address to write to when Stars Decoded opens (ADR-141). Answers the same whether the address is new or already listed, so it cannot be used to learn who signed up. Sets no cookie and reads no account. A filled `website` field is a form-filling bot: it is answered the same and nothing is stored.
+ * @summary Join the pre-launch waitlist
+ */
+export const joinWaitlist = async (joinWaitlistBody: JoinWaitlistBody, options?: Parameters<typeof customFetch>[1]): Promise<WaitlistJoined> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<WaitlistJoined>(getJoinWaitlistUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(joinWaitlistBody)
+  }
+);}
+
+
+
+
+
+export const getJoinWaitlistMutationKey = () => ['joinWaitlist'] as const;
+
+export const getJoinWaitlistMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinWaitlist>>, TError,JoinWaitlistMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof joinWaitlist>>, TError,JoinWaitlistMutationVariables, TContext> => {
+
+const mutationKey = getJoinWaitlistMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof joinWaitlist>>, JoinWaitlistMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  joinWaitlist(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JoinWaitlistMutationResult = NonNullable<Awaited<ReturnType<typeof joinWaitlist>>>
+    export type JoinWaitlistMutationBody = BodyType<JoinWaitlistBody>
+    export type JoinWaitlistMutationError = ErrorType<ErrorResponse>
+    export type JoinWaitlistMutationVariables = {data: BodyType<JoinWaitlistBody>}
+
+    /**
+ * @summary Join the pre-launch waitlist
+ */
+export const useJoinWaitlist = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinWaitlist>>, TError,JoinWaitlistMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof joinWaitlist>>,
+        TError,
+        JoinWaitlistMutationVariables,
+        TContext
+      > => {
+      return useMutation(getJoinWaitlistMutationOptions(options));
+    }
+
+export const getGetSkyNowUrl = (params?: GetSkyNowParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/sky?${stringifiedParams}` : `/api/sky`
+}
+
+/**
+ * The chart for this minute over the principal city of an IANA time zone, computed by the engine (ADR-107, ADR-141). An unknown zone falls back to London. Sets no cookie and reads no account; one chart per city per minute is computed, whoever asks.
+ * @summary The sky now over the visitor's city
+ */
+export const getSkyNow = async (params?: GetSkyNowParams, options?: Parameters<typeof customFetch>[1]): Promise<SkyNow> => {
+
+  return customFetch<SkyNow>(getGetSkyNowUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSkyNowQueryKey = (params?: GetSkyNowParams,) => {
+    return [
+    `/api/sky`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSkyNowQueryOptions = <TData = Awaited<ReturnType<typeof getSkyNow>>, TError = ErrorType<ErrorResponse>>(params?: GetSkyNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSkyNowQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSkyNow>>> = ({ signal }) => getSkyNow(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSkyNowQueryResult = NonNullable<Awaited<ReturnType<typeof getSkyNow>>>
+export type GetSkyNowQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary The sky now over the visitor's city
+ */
+
+export function useGetSkyNow<TData = Awaited<ReturnType<typeof getSkyNow>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetSkyNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSkyNowQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

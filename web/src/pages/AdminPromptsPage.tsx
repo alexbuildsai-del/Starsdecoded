@@ -491,6 +491,13 @@ export default function AdminPromptsPage() {
           >
             Lab
           </button>
+          <button
+            type="button"
+            onClick={() => navigate("/admin/waitlist")}
+            className="text-left px-3 py-2 rounded-lg text-sm font-label text-muted-foreground hover:text-foreground"
+          >
+            Waitlist
+          </button>
         </aside>
 
         {/* Main content */}

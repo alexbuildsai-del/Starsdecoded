@@ -89,6 +89,9 @@ importers:
       '@workspace/integrations-openai-ai-server':
         specifier: workspace:*
         version: link:../packages/integrations-openai-ai-server
+      '@workspace/launch':
+        specifier: workspace:*
+        version: link:../packages/launch
       astronomy-engine:
         specifier: ^2.1.19
         version: 2.1.19
@@ -230,6 +233,8 @@ importers:
         specifier: 'catalog:'
         version: 25.9.5
 
+  packages/launch: {}
+
   scripts:
     dependencies:
       '@workspace/db':
@@ -363,6 +368,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../packages/api-client-react
+      '@workspace/launch':
+        specifier: workspace:*
+        version: link:../packages/launch
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
