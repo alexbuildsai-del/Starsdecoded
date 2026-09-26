@@ -411,18 +411,22 @@ export function lensChapterOf(interpretation: PairInterpretation | null, id: str
   return v && typeof v === "object" && "card" in (v as object) ? (v as PairLensChapter) : undefined;
 }
 
-/** The prompt version this page renders. Older stored reports get the regenerate call to action. */
-export const CURRENT_PROMPT_VERSION = "v6";
+/**
+ * The prompt versions this page renders: v7 changed the words, not the shape
+ * (ADR-104), so a stored v6 report reads as it was written. Older stored
+ * reports get the regenerate call to action.
+ */
+export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7"] as const;
 export const CURRENT_PAIR_PROMPT_VERSION = "p2";
 
 /**
  * A stored report this page can render. Anything older keeps its words but not
  * its shape, so it is offered a regeneration rather than rendered half right.
  */
-// MB-45 provisional: a v5 report shows the regenerate CTA and is never regenerated on its own.
+// MB-45: a v5 report shows the regenerate CTA and is never regenerated on its own.
 export function isCurrentInterpretation(v: unknown): v is Interpretation {
   return typeof v === "object" && v !== null
-    && (v as Interpretation).meta?.promptVersion === CURRENT_PROMPT_VERSION;
+    && (RENDERABLE_PROMPT_VERSIONS as readonly string[]).includes((v as Interpretation).meta?.promptVersion as string);
 }
 
 export function isCurrentPairInterpretation(v: unknown): v is PairInterpretation {
