@@ -33,8 +33,8 @@ storing UTM tags (ADR-141); the free chart at /sky, signed out and computed in t
   production the free test checkout stays as ADR-138 built it.
 - **One required tick**, Stripe Checkout's own terms box, unticked: "Start each report when I
   use a credit. A used credit can't be refunded." EU law gives buyers of digital content 14 days
-  to cancel unless they agree to an immediate start and accept losing that right; the tick is
-  that agreement, so a report read cannot be refunded on demand.
+  to cancel unless they agree to an immediate start and accept losing that right (Directive
+  2011/83/EU, Art. 16(m)); the tick is that agreement, and the receipt email repeats it (8(7)).
 - **Refunds, three rules** (the Refunds page says exactly these): an unused credit is refunded on
   request within 14 days of purchase, and the webhook removes it; a report that fails gives its
   credit back automatically; beyond that Alex may refund anyone from Stripe, because a goodwill
@@ -152,7 +152,7 @@ already gives its person an account, so anyone could subscribe.
 
 1. Every price renders from the catalogue; no literal price remains in `web/` or `api/`.
 2. On production, Get credits opens Stripe Checkout, requires the unticked terms box and returns to
-   the step that asked; a replayed webhook grants nothing twice; a Stripe refund removes unspent
+   the step that asked; the receipt repeats the tick; a replayed webhook grants nothing twice; a Stripe refund removes unspent
    credits; `consumeCredit` refuses with no credit.
 3. Off production the free test checkout still grants test bundles; production refuses it.
 4. Terms, Privacy, Refunds and the company page read `LEGAL_IDENTITY`; no `[LEGAL ENTITY]`
