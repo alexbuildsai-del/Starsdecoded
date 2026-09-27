@@ -1,4 +1,7 @@
 {
+  "permissions": {
+    "allow": ["mcp__Notion"]
+  },
   "extraKnownMarketplaces": {
     "claude-code-plugins": {
       "source": { "source": "github", "repo": "anthropics/claude-code" }

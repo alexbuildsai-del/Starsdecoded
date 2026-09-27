@@ -21,19 +21,24 @@
  * time. It is the only channel the report lab has in `--remote` mode, where it
  * reads a deployed report as an anonymous visitor.
  */
+import { randomUUID } from "node:crypto";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { z } from "zod/v4";
+import type { GenerationFailureKind } from "@workspace/db";
 import { resolveSection } from "./promptLoader.js";
 import { ASPECT_ORBS, EPHEMERIS, hasHorizon, type HorizonStatus, type NatalChartData } from "./chartCalculation.js";
 import { sectOf } from "./traditional.js";
 import { logger } from "./logger.js";
 import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type SectionUsage } from "./usage.js";
-import { MODELS, modelFor } from "./models.js";
+import { MODELS, effortFor, flexOffered, isModelId, modelFor, type ModelId, type ServiceTier } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, ClaimSchema, EvidenceRefSchema, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
-  buildBrief, hasClaims, instructionsFor, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
-  type ChartBrief, type Claim, type ReportSectionId, type SectionSpec, type StoredClaim,
+  buildBrief, hasClaims, instructionsFor, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
+  type ChartBrief, type Claim, type EvidenceRef, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
+import { block, blocking, clean, fixed, needsRepair, repair, warned, type Check, type Validated } from "../prompts/checks.js";
+import { recordChecks } from "./failureLog.js";
+import { ReportFailure, failureCodeOf } from "./failureReasons.js";
 import type { AngleMeanings, AspectMeaningPayload } from "../prompts/brief.js";
 import { FoundationSchema } from "../prompts/sections/foundation.js";
 import { OverviewSchema } from "../prompts/sections/overview.js";
@@ -49,10 +54,18 @@ import { HousesSchema } from "../prompts/sections/houses.js";
 import { FocusSchema } from "../prompts/sections/focus.js";
 
 // Which model each call uses lives in ./models.ts, never here.
-/** One blind try, then two informed by the rejection. A lost section loses the whole report. */
-const ATTEMPTS = 3;
-/** Bump when the section set, schemas, or vocabulary change shape. v6: ten chapters, the horizon as a status. */
-export const PROMPT_VERSION = "v6";
+/** One blind try, then two informed by every rejection so far. A section that loses all three gets one round alone (ADR-84). */
+export const ATTEMPTS = 3;
+
+/** The claims field of a section schema, when it has one: the shape a claims-only repair returns. */
+function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
+  const shape = (schema as unknown as { shape?: Record<string, z.ZodType> }).shape;
+  return shape?.claims ?? null;
+}
+
+const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted; do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
+/** Bump when the section set, schemas, or vocabulary change shape. v7: prose is plain text, said in the prompt (ADR-104); v6 reports still render. */
+export const PROMPT_VERSION = "v7";
 
 /** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
 type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
@@ -157,15 +170,65 @@ function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec
 }
 
 export class SectionError extends Error {
-  constructor(public readonly key: string, message: string) {
+  /** Every blocking message across every attempt, numbered as the retry saw them. */
+  public readonly errors: string[];
+  /** The last reply's JSON, so a round alone can start from what was nearly right. */
+  public readonly lastReply?: string;
+  constructor(public readonly key: string, message: string, detail: { errors?: string[]; lastReply?: string } = {}) {
     super(`${key}: ${message}`);
     this.name = "SectionError";
+    this.errors = detail.errors ?? [];
+    this.lastReply = detail.lastReply;
+  }
+}
+
+/**
+ * The key has no credits (ADR-77). Thrown instead of a retry: a second call
+ * cannot succeed, and a campaign that meets this stops at the first one.
+ * The SDK's own six retries on a 429 still run first; they cost time, never
+ * money.
+ */
+export class OutOfCreditError extends Error {
+  constructor(public readonly key: string, message: string) {
+    super(`${key}: out of credit: ${message}`);
+    this.name = "OutOfCreditError";
+  }
+}
+
+function isOutOfCredit(err: unknown): boolean {
+  const e = err as { status?: number; code?: string | null; message?: string } | null;
+  if (!e || e.status !== 429) return false;
+  return e.code === "insufficient_quota" || /insufficient_quota|no credits/i.test(e.message ?? "");
+}
+
+/** Wraps every model call, so an out-of-credit 429 is named once. */
+async function guarded<T>(key: string, call: Promise<T>): Promise<T> {
+  try {
+    return await call;
+  } catch (err) {
+    if (isOutOfCredit(err)) throw new OutOfCreditError(key, (err as Error).message);
+    throw err;
   }
 }
 
 export interface SectionResult<T> {
   data: T;
   usage: SectionUsage;
+  /** Every check the accepted attempt fired: what was fixed, buffered or logged on the way to storage. */
+  checks: Check[];
+}
+
+/** What the engine tells the log after every attempt. */
+export interface ChecksEvent {
+  attempt: number;
+  /** True on the attempt that was accepted or that ended the call. */
+  final: boolean;
+}
+
+/** What a failed call hands the round alone (ADR-84): every error so far and the reply they were found in. */
+export interface Carry {
+  errors: string[];
+  lastReply: string;
 }
 
 export interface StructuredCall<T> {
@@ -176,86 +239,272 @@ export interface StructuredCall<T> {
   user: string;
   schema: z.ZodType<T>;
   maxTokens: number;
-  /** Chart-grounded checks; a non-empty list rejects the reply, retried with the problems named. */
-  validate?: (output: T) => string[];
+  /** Runs on the raw reply before the parse: cuts, drops, spellings; never a model call. */
+  normalise?: (raw: unknown) => { raw: unknown; checks: Check[] };
+  /** Chart-grounded checks; a `block` rejects the reply, a `repair` calls the claims-only repair, the rest are logged. */
+  validate?: (output: T) => Validated<T>;
+  /** Flex only when asked and the catalogue offers it; the customer path never asks (ADR-77). */
+  serviceTier?: ServiceTier;
+  /** Aborts the model call: a report that has already failed stops paying for its other sections. */
+  signal?: AbortSignal;
+  onChecks?: (checks: Check[], event: ChecksEvent) => void | Promise<void>;
+  /** The round alone: the first attempt already knows every earlier error and the reply they came from. */
+  carry?: Carry;
+}
+
+/** The rule a count problem at this path belongs to, so the log names the annex row. */
+function countRule(path: PropertyKey[]): string {
+  const last = String(path[path.length - 1] ?? "");
+  if (last === "claims") return "chk-02";
+  if (last === "evidence") return "chk-01";
+  if (last === "supportingEvidence") return "chk-13";
+  if (last === "links") return "chk-31";
+  return "chk-16";
+}
+
+function getAt(root: unknown, path: PropertyKey[]): unknown {
+  let node: unknown = root;
+  for (const key of path) {
+    if (!node || typeof node !== "object") return undefined;
+    node = (node as Record<PropertyKey, unknown>)[key];
+  }
+  return node;
+}
+
+function setAt(root: unknown, path: PropertyKey[], value: unknown): void {
+  const parent = getAt(root, path.slice(0, -1));
+  if (parent && typeof parent === "object") (parent as Record<PropertyKey, unknown>)[path[path.length - 1]] = value;
+}
+
+interface CountIssue { code: string; origin?: string; path: PropertyKey[]; maximum?: number; minimum?: number }
+
+/**
+ * Counts are cut in code before the parse (annex rows 1, 2, 13, 16, 31):
+ * an array over its maximum loses its tail, and an array under its minimum
+ * parses anyway and is logged, since the count is the only thing wrong with
+ * it. A claim with no reference is dropped. Anything else fails the parse.
+ */
+function parseLenient<T>(schema: z.ZodType<T>, raw: unknown): { data: T; checks: Check[] } | { issues: string } {
+  const checks: Check[] = [];
+  let value = raw;
+  for (let round = 0; round < 4; round++) {
+    const parsed = schema.safeParse(value);
+    if (parsed.success) return { data: parsed.data, checks };
+    const issues = parsed.error.issues as unknown as CountIssue[];
+    const counts = issues.filter((i) => (i.code === "too_big" || i.code === "too_small") && i.origin === "array" && Array.isArray(getAt(value, i.path)));
+    if (counts.length !== issues.length) {
+      return { issues: issues.map((i) => `${i.path.join(".")}: ${(i as unknown as { message: string }).message}`).join("; ") };
+    }
+    value = JSON.parse(JSON.stringify(value));
+    let cut = false;
+    const under: CountIssue[] = [];
+    for (const i of counts) {
+      const list = getAt(value, i.path) as unknown[];
+      const where = i.path.join(".") || "root";
+      if (i.code === "too_big" && typeof i.maximum === "number") {
+        checks.push(fixed(countRule(i.path), `${where}: ${list.length} items; cut to ${i.maximum}`));
+        setAt(value, i.path, list.slice(0, i.maximum));
+        cut = true;
+      } else if (i.code === "too_small" && String(i.path[i.path.length - 1]) === "evidence" && list.length === 0) {
+        const claims = getAt(value, i.path.slice(0, -2)) as unknown[];
+        const index = Number(i.path[i.path.length - 2]);
+        checks.push(fixed("chk-01", `${where}: no reference; claim dropped`));
+        setAt(value, i.path.slice(0, -2), claims.filter((_, n) => n !== index));
+        cut = true;
+      } else {
+        under.push(i);
+      }
+    }
+    if (cut) continue;
+    // Only under-minimum arrays remain: the shape is otherwise the schema's, so the value is taken as parsed and the count is logged.
+    for (const i of under) {
+      const where = i.path.join(".") || "root";
+      const last = String(i.path[i.path.length - 1]);
+      const list = getAt(value, i.path) as unknown[];
+      if (last === "claims") checks.push(repair("chk-09", `${where}: ${list.length} claims; ${i.minimum} needed`));
+      else checks.push(warned(countRule(i.path), `${where}: ${list.length} items; ${i.minimum} wanted`));
+    }
+    return { data: value as T, checks };
+  }
+  return { issues: "count problems did not settle" };
+}
+
+/** The retry's tail: every error so far and the reply they were found in, then the one instruction (ADR-84). */
+export function retryTail(errors: string[], lastReply: string): string {
+  return [
+    "EVERY ERROR SO FAR:",
+    ...errors.map((e, i) => `${i + 1}. ${e}`),
+    "",
+    "YOUR LAST REPLY:",
+    lastReply,
+    "",
+    "Fix these and keep the rest. Every claim quote must be copied exactly from the prose in this reply.",
+  ].join("\n");
 }
 
 /**
  * One schema-enforced call with the retry policy every report shares: a
- * blind try, then two informed by the rejection, then a loud failure. The
- * natal sections, the amendment pass and the pair sections all go through
- * here, so a cap or a refusal is handled once.
+ * blind try, then two informed by every rejection so far and the last
+ * reply, then a loud failure carrying both (ADR-84). A `block` rejects; a
+ * `repair` buys one claims-only call; everything else is logged and the
+ * reply stands (ADR-81, ADR-82). The natal sections, the amendment pass
+ * and the pair sections all go through here, so a cap or a refusal is
+ * handled once.
  */
 export async function callStructured<T>(call: StructuredCall<T>): Promise<SectionResult<T>> {
   const jsonSchema = toStrictJsonSchema(call.schema);
   const name = call.usageKey.replace(/[^a-zA-Z0-9_]/g, "_");
-  let lastError = "";
+  if (!isModelId(call.model)) throw new SectionError(call.usageKey, `${call.model} is not in the model catalogue`);
+  if (call.serviceTier === "flex" && !flexOffered(call.model)) {
+    throw new SectionError(call.usageKey, `${call.model} does not offer the Flex tier (MB-70)`);
+  }
+  // The effort rides on every call (ADR-74); the tier only on a lab replay.
+  const tier = call.serviceTier === "flex" ? { service_tier: "flex" as const } : {};
+  const pinned = { reasoning_effort: effortFor(call.model), ...tier };
+  const requestOptions = call.signal ? { signal: call.signal } : {};
+  const errors: string[] = [...(call.carry?.errors ?? [])];
+  let lastReply = call.carry?.lastReply ?? "";
   // Accumulates across attempts: a section that retried twice cost three calls,
   // and hiding that would understate exactly what we are here to measure.
-  let usage = emptySection(call.usageKey, call.model);
+  let usage: SectionUsage = { ...emptySection(call.usageKey, call.model), ...(call.serviceTier === "flex" ? { serviceTier: "flex" as const } : {}) };
+  let repaired = false;
+
+  const record = async (checks: Check[], attempt: number, final: boolean) => { await call.onChecks?.(checks, { attempt, final }); };
+  const reject = async (checks: Check[], attempt: number) => {
+    errors.push(...checks.filter((c) => c.cls === "block").map((c) => c.message));
+    await record(checks, attempt, attempt === ATTEMPTS);
+  };
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     // A retry that repeats the identical request mostly repeats the mistake.
     // The problems go at the end of the user turn, so the cached system
     // prefix is untouched and the model knows exactly what to fix.
-    const content = attempt === 1
-      ? call.user
-      : `${call.user}\n\nPREVIOUS ATTEMPT REJECTED: ${lastError}\nReturn the complete reply again with these fixed. Every claim quote must be copied exactly from the prose in this reply.`;
+    const content = errors.length === 0 ? call.user : `${call.user}\n\n${retryTail(errors, lastReply)}`;
     const startedAt = Date.now();
-    const response = await openai.chat.completions.create({
+    const response = await guarded(call.usageKey, openai.chat.completions.create({
       model: call.model,
       max_completion_tokens: call.maxTokens,
+      ...pinned,
       messages: [
         { role: "system", content: call.system },
         { role: "user", content },
       ],
       response_format: { type: "json_schema", json_schema: { name, strict: true, schema: jsonSchema } },
-    });
+    }, requestOptions));
     usage = addAttempt(usage, response.usage, Date.now() - startedAt);
 
     const choice = response.choices[0];
     const message = choice?.message;
-    if (message?.refusal) throw new SectionError(call.usageKey, `model refused: ${message.refusal}`);
+    if (message?.refusal) {
+      const refused = block("chk-00-refused", `model refused: ${message.refusal}`);
+      await reject([refused], attempt);
+      throw new SectionError(call.usageKey, refused.message, { errors, lastReply });
+    }
     // A reply cut at the cap is invalid JSON by construction; name the cause
     // instead of the parse error so the cap, not the model, gets fixed.
     if (choice?.finish_reason === "length") {
       const used = response.usage?.completion_tokens;
       const reasoning = response.usage?.completion_tokens_details?.reasoning_tokens;
-      lastError = `output truncated at max_completion_tokens ${call.maxTokens}`
-        + (used !== undefined ? ` (${used} completion tokens` + (reasoning ? `, ${reasoning} reasoning` : "") + ")" : "");
+      await reject([block("chk-00-truncated", `output truncated at max_completion_tokens ${call.maxTokens}`
+        + (used !== undefined ? ` (${used} completion tokens` + (reasoning ? `, ${reasoning} reasoning` : "") + ")" : ""))], attempt);
       continue;
     }
     const reply = message?.content ?? "";
+    lastReply = reply;
 
     let raw: unknown;
     try {
       raw = JSON.parse(reply);
     } catch (err) {
-      lastError = `invalid JSON (${(err as Error).message})`;
+      await reject([block("chk-00-json", `invalid JSON (${(err as Error).message})`)], attempt);
       continue;
     }
-    const parsed = call.schema.safeParse(raw);
-    if (!parsed.success) {
-      lastError = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    const checks: Check[] = [];
+    if (call.normalise) {
+      const normalised = call.normalise(raw);
+      raw = normalised.raw;
+      checks.push(...normalised.checks);
+    }
+    const parsed = parseLenient(call.schema, raw);
+    if ("issues" in parsed) {
+      await reject([...checks, block("chk-00-schema", parsed.issues)], attempt);
       continue;
     }
+    checks.push(...parsed.checks);
     // Chart-grounded checks: claims must cite real placements, foundation
-    // must echo the computed sect. A failure here is a hallucination, and it
-    // never reaches storage.
-    const problems = call.validate ? call.validate(parsed.data) : [];
-    if (problems.length === 0) return { data: parsed.data, usage };
-    lastError = problems.join("; ");
+    // must echo the computed sect. A false fact is fixed or dropped in code;
+    // what cannot be fixed is a block, and it never reaches storage.
+    const validated = call.validate ? call.validate(parsed.data) : clean(parsed.data);
+    let data = validated.output;
+    checks.push(...validated.checks);
+    const repairWanted = needsRepair(checks) && !checks.some((c) => c.rule === "chk-09" && c.cls === "block");
+
+    // Fewer than three valid claims after reconciliation is the one problem
+    // that buys a model call without a prose rewrite (ADR-82): one cheap
+    // claims-only call against the prose already written; a second failure
+    // is a block and the prose retry runs.
+    if (blocking(checks).length === 0 && repairWanted) {
+      const claimsShape = claimsShapeOf(call.schema);
+      if (claimsShape && !repaired) {
+        repaired = true;
+        const { claims: _rejected, ...prose } = data as Record<string, unknown>;
+        const repairSchema = z.object({ claims: claimsShape });
+        const why = checks.filter((c) => c.cls === "repair" || c.cls === "fix").map((c) => c.message).join("; ");
+        const repairStartedAt = Date.now();
+        const repairResponse = await guarded(call.usageKey, openai.chat.completions.create({
+          model: call.model,
+          max_completion_tokens: call.maxTokens,
+          ...pinned,
+          messages: [
+            { role: "system", content: call.system },
+            { role: "user", content: `${call.user}\n\n${CLAIMS_ONLY}\n\nPROSE AS WRITTEN\n${JSON.stringify(prose, null, 2)}\n\nPREVIOUS CLAIMS REJECTED: ${why}` },
+          ],
+          response_format: { type: "json_schema", json_schema: { name: `${name}_claims`, strict: true, schema: toStrictJsonSchema(repairSchema) } },
+        }, requestOptions));
+        usage = addAttempt(usage, repairResponse.usage, Date.now() - repairStartedAt);
+        const repairedRaw = (() => { try { return JSON.parse(repairResponse.choices[0]?.message?.content ?? ""); } catch { return null; } })();
+        const parsedRepair = parseLenient(repairSchema, repairedRaw);
+        if (!("issues" in parsedRepair)) {
+          const merged = { ...prose, claims: parsedRepair.data.claims } as T;
+          const again = call.validate ? call.validate(merged) : clean(merged);
+          const stillBlocked = blocking(again.checks).length > 0 || needsRepair(again.checks);
+          if (!stillBlocked) {
+            const all = [...checks, ...parsedRepair.checks, ...again.checks];
+            await record(all, attempt, true);
+            return { data: again.output, usage, checks: all };
+          }
+          checks.push(block("chk-09", `claims-only repair rejected too: ${[...blocking(again.checks), ...again.checks.filter((c) => c.cls === "repair")].map((c) => c.message).join("; ")}`));
+        } else {
+          checks.push(block("chk-09", `claims-only repair did not parse: ${parsedRepair.issues}`));
+        }
+      } else {
+        checks.push(block("chk-09", checks.filter((c) => c.cls === "repair").map((c) => c.message).join("; ")));
+      }
+    }
+
+    const blocks = blocking(checks);
+    if (blocks.length === 0) {
+      await record(checks, attempt, true);
+      return { data, usage, checks };
+    }
+    data = undefined as unknown as T;
+    await reject(checks, attempt);
   }
 
-  throw new SectionError(call.usageKey, `failed validation after ${ATTEMPTS} attempts: ${lastError}`);
+  throw new SectionError(call.usageKey, `failed validation after ${ATTEMPTS} attempts: ${errors[errors.length - 1] ?? "no reply"}`, { errors, lastReply });
 }
 
 interface CallOptions<T> {
   /** The schema in force for this call. Defaults to the spec's; a blind or partial call narrows it. */
   schema?: z.ZodType<T>;
-  validate?: (output: T, brief: ChartBrief) => string[];
+  validate?: (output: T, brief: ChartBrief) => Validated<T>;
   /** Named in the usage row when the call is not the spec's whole section. */
   usageKey?: string;
+  serviceTier?: ServiceTier;
+  signal?: AbortSignal;
+  carry?: Carry;
+  /** Where the checks are logged: the customer's report or the lab (ADR-85). */
+  log?: { kind: GenerationFailureKind; reportId?: string | null };
 }
 
 async function callSection<T>(
@@ -267,12 +516,20 @@ async function callSection<T>(
   options: CallOptions<T> = {},
 ): Promise<SectionResult<T>> {
   const schema = (options.schema ?? spec.schema) as z.ZodType<T>;
-  const validate = options.validate ?? (spec.validate as ((o: T, b: ChartBrief) => string[]) | undefined);
+  const validate = options.validate ?? (spec.validate as ((o: T, b: ChartBrief) => Validated<T>) | undefined);
+  const usageKey = options.usageKey ?? spec.key;
+  const writeId = randomUUID();
+  const log = options.log ?? { kind: "natal" as const };
   return callStructured<T>({
-    usageKey: options.usageKey ?? spec.key,
+    usageKey,
     model, system, user, schema,
     maxTokens: spec.maxTokens,
+    normalise: spec.normalise ? (raw) => spec.normalise!(raw, brief) : undefined,
     validate: validate ? (out) => validate(out, brief) : undefined,
+    serviceTier: options.serviceTier,
+    signal: options.signal,
+    carry: options.carry,
+    onChecks: (checks, event) => recordChecks({ kind: log.kind, section: usageKey, model, writeId, reportId: log.reportId, attempt: event.attempt, final: event.final, checks }),
   });
 }
 
@@ -326,6 +583,8 @@ export interface SectionFrame {
 
 export interface GenerateOptions {
   onSection?: (frame: SectionFrame) => void | Promise<void>;
+  /** The report the checks are logged against (ADR-85). */
+  reportId?: string | null;
 }
 
 export async function generateInterpretation(
@@ -359,28 +618,54 @@ export async function generateInterpretation(
     foundationPrompt.system,
     assembleUser(foundationPrompt.user, brief, FOUNDATION),
     brief,
-    { schema: schemaFor(FOUNDATION, blind) as z.ZodType<FoundationData> },
-  );
+    { schema: schemaFor(FOUNDATION, blind) as z.ZodType<FoundationData>, log: { kind: "natal", reportId: options.reportId } },
+  ).catch((err) => { throw new ReportFailure(failureCodeOf(err), err instanceof Error ? err.message : String(err), err); });
   const foundation = foundationCall.data;
   const foundationJson = JSON.stringify(foundation, null, 2);
 
   // Stage 2: the sections depend only on the foundation, so they run in
   // parallel. Prompts resolve in parallel too, honouring DB overrides. A
-  // blind report skips the sections that are nothing but the horizon.
+  // blind report skips the sections that are nothing but the horizon. A
+  // section that loses its three attempts gets one round alone while the
+  // others are kept; a second loss aborts the rest and fails the report
+  // with its code (ADR-84).
   const specs = sectionsFor(brief.horizon);
   const prompts = await Promise.all(specs.map((spec) => resolveSection(spec.key)));
-  const calls = await Promise.all(
+  const controller = new AbortController();
+  const log = { kind: "natal" as const, reportId: options.reportId };
+  const settled = await Promise.allSettled(
     specs.map(async (spec, i) => {
-      const call = await callSection<unknown>(
-        spec, modelFor(spec.key), prompts[i].system, assembleUser(prompts[i].user, brief, spec, foundationJson), brief,
-        { schema: schemaFor(spec, blind) },
+      const user = assembleUser(prompts[i].user, brief, spec, foundationJson);
+      const run = (carry?: Carry) => callSection<unknown>(
+        spec, modelFor(spec.key), prompts[i].system, user, brief,
+        { schema: schemaFor(spec, blind), signal: controller.signal, carry, log },
       );
+      let call: SectionResult<unknown>;
+      try {
+        call = await run();
+      } catch (err) {
+        if (!(err instanceof SectionError) || controller.signal.aborted) { controller.abort(); throw err; }
+        logger.warn({ section: spec.key, errors: err.errors.length }, "section lost its attempts; one round alone");
+        try {
+          call = await run({ errors: err.errors, lastReply: err.lastReply ?? "" });
+        } catch (again) {
+          controller.abort();
+          throw again;
+        }
+      }
       const id = spec.key.split(":")[1] as ReportSectionId;
       const stored = withStoredClaims(call.data, chart);
       await options.onSection?.({ section: id, patch: { [id]: stored } as Partial<ReportInterpretation> });
       return { id, usage: call.usage, stored };
     }),
   );
+  const failed = settled.find((r): r is PromiseRejectedResult => r.status === "rejected" && failureCodeOf(r.reason) !== "provider_unreachable")
+    ?? settled.find((r): r is PromiseRejectedResult => r.status === "rejected");
+  if (failed) {
+    const err = failed.reason;
+    throw new ReportFailure(failureCodeOf(err), err instanceof Error ? err.message : String(err), err);
+  }
+  const calls = settled.map((r) => (r as PromiseFulfilledResult<{ id: ReportSectionId; usage: SectionUsage; stored: unknown }>).value);
 
   // Wall clock covers the serial foundation plus one parallel wave, so it is
   // always below the summed call time. The gap is what the fan-out buys.
@@ -413,6 +698,37 @@ export async function generateInterpretation(
     aspectMeanings: brief.aspectMeanings,
     ...(brief.angleMeanings ? { angleMeanings: brief.angleMeanings } : {}),
   };
+}
+
+/**
+ * The lab's hook (ADR-52): one section on any catalogued model at a chosen
+ * tier, through the customer's `callSection`, so the prompt, schema,
+ * validator, claims-only retry and caps are exactly the customer's.
+ * `natal:foundation` with no foundation writes a foundation; every other
+ * section needs one. The claims come back in their stored, labelled form.
+ */
+export async function writeSection(
+  sectionKey: string,
+  chart: NatalChartData,
+  name: string,
+  foundationJson: string | undefined,
+  options: { model: ModelId; serviceTier?: ServiceTier; signal?: AbortSignal },
+): Promise<SectionResult<unknown>> {
+  const spec = ALL_SECTIONS.find((s) => s.key === sectionKey);
+  if (!spec) throw new Error(`Unknown section ${sectionKey}`);
+  const isFoundation = spec.key === FOUNDATION.key;
+  if (!isFoundation && !foundationJson) throw new Error(`${sectionKey} needs a foundation to write against`);
+  const prompt = await resolveSection(spec.key);
+  const brief = buildBrief(chart, name);
+  const blind = brief.horizon === "unknown";
+  const user = assembleUser(prompt.user, brief, spec, isFoundation ? undefined : foundationJson);
+  const call = await callSection<unknown>(spec, options.model, prompt.system, user, brief, {
+    schema: schemaFor(spec, blind),
+    serviceTier: options.serviceTier,
+    signal: options.signal,
+    log: { kind: "lab" },
+  });
+  return { data: isFoundation ? call.data : withStoredClaims(call.data, chart), usage: call.usage, checks: call.checks };
 }
 
 /** Exposed for the lab and tests: the exact prompt pair a section would send. */
@@ -470,7 +786,11 @@ export async function generateHorizonBlocks(
   const [risingCall, housesCall] = await Promise.all([
     callSection<z.infer<typeof RisingSchema>>(triad, modelFor(triad.key), triadPrompt.system, risingUser, brief, {
       schema: RisingSchema,
-      validate: (out, b) => validateClaims(out, out.claims, b.chart),
+      // The rising part's claims append to the triad's, so one is enough (annex row 10).
+      validate: (out, b) => {
+        const { claims, checks } = reconcileClaims(out, out.claims, b.chart, 1);
+        return { output: { ...out, claims }, checks };
+      },
       usageKey: "natal:triad:rising",
     }),
     callSection<HousesSection>(houses, modelFor(houses.key), housesPrompt.system, assembleUser(housesPrompt.user, brief, houses, foundationJson), brief),
@@ -550,6 +870,34 @@ export interface AmendedSection {
   added: SectionAddition[];
   /** Quotes the model returned that matched nothing, dropped and logged. */
   dropped: string[];
+  /** Every sentence the pass changed or wrote: the amendments' sentences plus the additions'. The ledger's count. */
+  sentencesChanged: number;
+  /** Claims that no longer verified against the drawn chart, dropped and logged with the quote each took with it. */
+  droppedClaims: string[];
+}
+
+/** The sentences of a passage, so a replacement of two sentences counts as two and each carries a claim. */
+export function sentencesOf(text: string): string[] {
+  return text.split(/(?<=[.!?])\s+(?=[A-Z"“'‘])/).map((s) => s.trim()).filter((s) => s.length > 0);
+}
+
+/**
+ * A blind claim cites a placement with no house; against the drawn chart the
+ * same placement now has one, so the claim is completed rather than dropped
+ * (MB-61: R05 lost every blind placement claim this way).
+ */
+function drawnRef(ref: EvidenceRef, chart: NatalChartData): EvidenceRef {
+  if (ref.kind === "placement" && ref.house === null && hasHorizon(chart)) {
+    const house = chart.planets[ref.body]?.house;
+    if (house !== undefined) return { ...ref, house };
+  }
+  // The Moon's orb was read across the band; at the hour it is exact, so the reference takes the drawn orb.
+  if (ref.kind === "aspect") {
+    const hit = chart.aspects.find((a) => a.type === ref.type
+      && ((a.planet1 === ref.body1 && a.planet2 === ref.body2) || (a.planet1 === ref.body2 && a.planet2 === ref.body1)));
+    if (hit && Math.abs(hit.orb - ref.orb) > 0.2) return { ...ref, orb: hit.orb };
+  }
+  return ref;
 }
 
 /**
@@ -571,6 +919,7 @@ export function applyAmendment(
   const added: SectionAddition[] = [];
   const dropped: string[] = [];
   const newClaims: Claim[] = [];
+  let sentencesChanged = 0;
 
   for (const a of reply.amendments.slice(0, 3)) {
     const re = tolerant(a.quote);
@@ -580,7 +929,10 @@ export function applyAmendment(
     const before = match[0];
     setLeaf(section, leaf.path, leaf.text.replace(before, a.replacement));
     amended.push({ before, now: a.replacement, evidence: storeClaims([{ quote: a.replacement, evidence: a.evidence }], chart)[0].evidence });
-    newClaims.push({ quote: a.replacement, evidence: a.evidence });
+    // Every sentence the amendment wrote carries the claim that changed it.
+    const sentences = sentencesOf(a.replacement);
+    sentencesChanged += sentences.length;
+    for (const sentence of sentences) newClaims.push({ quote: sentence, evidence: a.evidence });
   }
 
   for (const add of reply.additions.slice(0, 1)) {
@@ -599,31 +951,50 @@ export function applyAmendment(
     const text = add.text.trim();
     setLeaf(section, target.path, `${target.text.slice(0, at).trimEnd()}\n\n${text}${target.text.slice(at) ? `\n\n${target.text.slice(at).trimStart()}` : ""}`);
     added.push({ text, claims: storeClaims(add.claims, chart) });
+    sentencesChanged += sentencesOf(text).length;
     newClaims.push(...add.claims);
   }
 
   if (dropped.length) logger.warn({ section: id, dropped }, "horizon pass: amendment quotes matched nothing and were dropped");
 
   // Claims are re-validated against the new text and the drawn chart. An
-  // existing claim whose sentence was amended now quotes the replacement;
-  // one that no longer verifies is dropped rather than kept as a false citation.
+  // existing claim whose sentence was amended now quotes the replacement; a
+  // blind placement claim gains its house; one that still does not verify is
+  // dropped rather than kept as a false citation, and logged with its quote.
   const existing = (section.claims as StoredClaim[] | undefined) ?? [];
-  const followed = existing.map((c) => {
+  const followed: Claim[] = existing.map((c) => {
     const mark = amended.find((m) => soften(c.quote) === soften(m.before) || soften(m.before).includes(soften(c.quote)));
-    return mark ? { quote: mark.now, evidence: c.evidence.map((e) => e.ref) } : { quote: c.quote, evidence: c.evidence.map((e) => e.ref) };
+    const evidence = c.evidence.map((e) => drawnRef(e.ref, chart));
+    return mark ? { quote: mark.now, evidence } : { quote: c.quote, evidence };
   });
-  const candidates: Claim[] = [...followed, ...newClaims];
-  const kept = candidates.filter((c) => validateClaims(section, [c], chart).length === 0);
-  if (kept.length < candidates.length) {
-    logger.warn({ section: id, dropped: candidates.length - kept.length }, "horizon pass: claims that no longer verify were dropped");
+  // One claim per quote: a followed claim and an amendment on the same sentence
+  // merge their evidence, the horizon fact that changed the sentence first.
+  const merged = new Map<string, Claim>();
+  for (const c of [...newClaims, ...followed]) {
+    const key = soften(c.quote);
+    const prior = merged.get(key);
+    if (!prior) { merged.set(key, { quote: c.quote, evidence: [...c.evidence] }); continue; }
+    for (const e of c.evidence) if (!prior.evidence.some((x) => JSON.stringify(x) === JSON.stringify(e)) && prior.evidence.length < 3) prior.evidence.push(e);
   }
+  const kept: Claim[] = [];
+  const droppedClaims: string[] = [];
+  for (const c of merged.values()) {
+    // A reference the drawn chart no longer holds, such as a Moon aspect that
+    // held only across part of the band, leaves the claim; the claim stays
+    // if any of its references still verifies.
+    const evidence = c.evidence.filter((e) => validateClaims(section, [{ quote: c.quote, evidence: [e] }], chart).length === 0);
+    if (!evidence.length) { droppedClaims.push(`"${c.quote.slice(0, 60)}": ${validateClaims(section, [c], chart).join("; ")}`); continue; }
+    kept.push({ quote: c.quote, evidence });
+  }
+  if (droppedClaims.length) logger.warn({ section: id, droppedClaims }, "horizon pass: claims that no longer verify were dropped, each with the quote it took with it");
   if ("claims" in section) section.claims = storeClaims(kept, chart);
 
-  return { section, amended, added, dropped };
+  return { section, amended, added, dropped, sentencesChanged, droppedClaims };
 }
 
 export interface AmendResult {
   interpretation: ReportInterpretation;
+  /** Per section: the sentences the pass changed or wrote, and the paragraphs it added. */
   counts: Record<string, { amended: number; added: number }>;
   record: HorizonPassRecord["sections"];
   usage: SectionUsage[];
@@ -660,18 +1031,25 @@ export async function amendSections(
     const call = await callSection<Amendment>(spec, modelFor(spec.key), prompts[i].system, user, brief, {
       schema: AmendmentSchema,
       usageKey: `${spec.key}:amend`,
+      // An amendment whose evidence does not verify is dropped, never retried (annex row 17).
       validate: (out, b) => {
-        const problems: string[] = [];
-        out.amendments.forEach((a, n) => {
-          for (const e of a.evidence) {
-            const errs = validateClaims({ text: a.replacement }, [{ quote: a.replacement, evidence: [e] }], b.chart);
-            problems.push(...errs.map((x) => `amendment ${n + 1}: ${x}`));
-          }
+        const checks: Check[] = [];
+        const amendments = out.amendments.filter((a, n) => {
+          const evidence = a.evidence.filter((e) => validateClaims({ text: a.replacement }, [{ quote: a.replacement, evidence: [e] }], b.chart).length === 0);
+          if (evidence.length === a.evidence.length) return true;
+          if (!evidence.length) { checks.push(fixed("chk-17", `amendment ${n + 1}: no reference verified; dropped`)); return false; }
+          checks.push(fixed("chk-17", `amendment ${n + 1}: ${a.evidence.length - evidence.length} reference(s) dropped`));
+          a.evidence = evidence;
+          return true;
         });
-        out.additions.forEach((a, n) => {
-          problems.push(...validateClaims({ text: a.text }, a.claims, b.chart).map((x) => `addition ${n + 1}: ${x}`));
+        const additions = out.additions.filter((a, n) => {
+          const { claims, checks: more } = reconcileClaims({ text: a.text }, a.claims, b.chart, 1);
+          checks.push(...more.filter((c) => c.cls !== "repair").map((c) => ({ ...c, rule: "chk-17", message: `addition ${n + 1}: ${c.message}` })));
+          if (!claims.length) { checks.push(fixed("chk-17", `addition ${n + 1}: no claim verified; dropped`)); return false; }
+          a.claims = claims;
+          return true;
         });
-        return problems;
+        return { output: { amendments, additions }, checks };
       },
     });
     const applied = applyAmendment(id, current, call.data, chart);
@@ -684,7 +1062,7 @@ export async function amendSections(
   const record: HorizonPassRecord["sections"] = {};
   for (const r of results) {
     (interpretation as unknown as Record<string, unknown>)[r.id] = r.applied.section;
-    counts[r.id] = { amended: r.applied.amended.length, added: r.applied.added.length };
+    counts[r.id] = { amended: r.applied.sentencesChanged, added: r.applied.added.length };
     record[r.id] = { amended: r.applied.amended, added: r.applied.added };
   }
   return { interpretation, counts, record, usage: results.map((r) => r.usage) };

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.8 (2026-09-19) |
+| Version | 0.13 (2026-09-26) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -22,7 +22,7 @@ This file is the constitution. Orchestrators and planners read it in full once p
 - **R-0.4** The product is **Stars Decoded**. "Astra" is the inherited Replit name; never add a new use of it.
 - **R-0.5** Every reply to the Owner opens with `Alex, ` alone on its first line, before any other text, in every session, until the Owner says to stop. Standing instruction from the Owner (2026-09-16); commit messages and repository files are not replies and stay unprefixed.
 - **R-0.6** Delegate without being asked. When a task splits into independent parts, needs a broad search, or a long read whose conclusion is all that matters, spawn subagents (the `.claude/agents/` roles, Explore, general-purpose) in parallel and keep the conclusion. A single lookup or a one-file edit stays in the main loop. The Owner never has to request this.
-- **R-0.7** Model triage. The main loop runs on the model the Owner selected with `/model`; Claude cannot change it and never asks to. Every subagent gets a tier chosen at spawn time: heavy (Opus or above) for planning, feature work, refactors, security audits, algorithm design and elusive concurrency bugs, since planning and execution of the product are what matters; standard (Sonnet) for simple improvements, routine debugging, unit tests and reviews; fast (Haiku) for formatting, typo fixes, boilerplate, renames and plain file searches. Unsure means heavy. The orchestrator is the main agent of a round and pins the top model available (Fable today); the planner and builder agent files pin Opus, and the orchestrator may drop a builder to Sonnet when its card is a simple improvement. A tier the Owner names in the prompt overrides the pick for that task.
+- **R-0.7** Model triage. The main loop runs on the model and effort the Owner selected, except in `/round` (below); Claude never asks the Owner to change them. Every subagent gets a tier chosen at spawn time: heavy (Opus or above) for planning, feature work, refactors, security audits, algorithm design and elusive concurrency bugs, since planning and execution of the product are what matters; standard (Sonnet) for simple improvements, routine debugging, unit tests and reviews; fast (Haiku) for formatting, typo fixes, boilerplate, renames and plain file searches. Unsure means heavy. The orchestrator is the main session running `/round`, never a subagent, because in cloud sessions a subagent cannot spawn builders; the round skill pins Opus (5.5 today) at max effort (Owner, ADR-137). The planner and builder agent files pin Opus at max effort, and the orchestrator may drop a builder to Sonnet when its card is a simple improvement. A tier the Owner names in the prompt overrides the pick for that task.
 
 ## 1 · Thesis
 
@@ -58,7 +58,7 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 
 **V1 explicitly excludes:** predictions, transits, daily horoscopes; subscriptions; native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; the old chart-to-chart synastry page and dashboard zone, hidden until the compatibility report ships (ADR-45).
 
-**V1 after payments:** the compatibility report, one product with three lenses (partners, parent and child, family), locked 2026-09-19.
+**V1 after payments:** the compatibility report, one product with three lenses (partners, parent and child, two people), locked 2026-09-19; its second pass, a counselling workbook of seven chapters with the two charts first, locked 2026-09-21 (`docs/specs/locked/compatibility-report-p2.md`, ADR-63 to 71). The natal report is named the Personal natal report wherever it is named (ADR-61).
 
 **V2 candidates (do not build, do not block):** further lenses (friends, colleagues); composite chart add-on; Placidus second view; prompt version history; transit re-runs; family bundles.
 
@@ -71,7 +71,7 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 | `profiles` | A person whose chart we computed | birth data, `chart_data` cache (versioned), `session_id`, `user_id`, `is_self` |
 | `reports` | The unit of revenue | `profile_id`, `type` natal or compatibility, `status`, `interpretation` JSONB, `compute_data` |
 | `users` | Clerk identity | Clerk id is the key |
-| `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / family; positional `role` and `access_role` are deliberately separate |
+| `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / people, the free label carrying family, friends or colleagues; positional `role` and `access_role` are deliberately separate |
 | `invite_tokens` | Invite a second person | only the hash is stored, 7-day TTL |
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
 | `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); the typed columns go with the payments round |
@@ -95,19 +95,19 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 - **R-4.1** Positions are computed locally. A user-facing string names the real library. Never fix a wrong claim by changing the library.
 - **R-4.2** Whole sign is the only house system in the product. Placidus is a parked second view with its design already decided (Mailbox).
-- **R-4.3** Every section's output is enforced by a zod schema through structured outputs. `Section | string` types are a bug, not a fallback.
-- **R-4.4** No prompt or engine change ships without the report lab run against the committed chart fixtures under `fixtures/charts/`, with the measurement pasted in the round report.
+- **R-4.3** Every section's output is enforced by a zod schema through structured outputs. `Section | string` types are a bug, not a fallback. A check blocks only when the text would be wrong or harmful for the reader or would cost money; everything else is fixed in code, logged, or buffered 20% around the target the prompt states (`docs/annex/pair-reliability-checks.md`). A claim problem never rewrites prose. A section that exhausts its attempts gets one more round alone; a report that still fails refunds the credit and tells the customer why. Every rejected or corrected attempt is logged by rule id (ADR-81 to 85).
+- **R-4.4** No prompt or engine change reaches production without the full report lab on the five matrix charts under `fixtures/charts/`, which the admin panel's Release view runs when the brain changed since production's commit, followed by the QA agent on Railway staging; both gate the fast-forward (ADR-76, ADR-86). Inside a round the lab is lighter: a dry render of every prompt at each brain change; a spot replay runs only on demand from the Lab page. Nothing spends automatically on staging, and no secret lives on GitHub (ADR-86). Lab spend is capped at `LAB_BUDGET_USD` (ADR-77).
 - **R-4.5** A second report for the same profile skips computation. Cache on the profile, never on the request.
 - **R-4.6** The horizon is a status, not a guess. Birth time is a window the engine sweeps; without a horizon that holds, the chart carries no angle, house, sect or lot, the report withholds them and its frame says so. Adding the time later is a pass that amends sentences by quote match, never a regeneration (ADR-33 to ADR-38).
 
 ## 5 · Interpretation rules
 
-- **R-5.1** Tone, every section: second person; short sentences; no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words.
+- **R-5.1** Tone, every section: second person; short sentences, simpler words over rarer ones always, sentences averaging 15 words or fewer and none over 25 until the prose study sets the numbers (ADR-87); no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words. The compatibility report adds: a verdict headline, a scene that may hold a short quoted exchange, the pattern with a because-line per person from their own report, a next-time checklist; research is doctrine and never named on the page; repetition is measured in the lab, not edited (ADR-63 to 69).
 - **R-5.2** The model may describe behavioural patterns, tendencies and growth edges. It may never predict events, name dates, promise outcomes, give medical or psychological diagnoses, or invoke fate or karma.
 - **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings. House-card readings are a section like any other (ADR-21); the Ascendant and Midheaven are citable evidence (ADR-22).
 - **R-5.4** Source of truth for prompts is the section registry and `promptDefaults.ts`; overrides live in `prompt_templates` via `/admin/prompts`. Never edit a generated copy (the bible, docs). Re-sync instead.
 - **R-5.5** A change to report content is USER-FACING even when no UI moved: someone who bought yesterday would get different words today.
-- **R-5.6** Model ids are hard-coded at the call sites today (`gpt-5.2`). Changing the model is an engine change under R-4.4.
+- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and pinned reasoning effort, and one outside it does not compile (ADR-58, 74). Every model is OpenAI's (ADR-73). A section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
 
 ## 6 · Payments and business model
 
@@ -153,11 +153,12 @@ Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report
 
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
 - **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The weight-300 display serif that pulled the other way is settled — display moves to Newsreader 400 and the numerals to a real monospace. The starfield and gradients stay, budgeted: two moves per chapter change, one easing, and reduced motion is a real state.
-- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The loading wheel is the sky too: every body on its own ring at its mean daily motion, settling onto the stored chart (ADR-47).
-- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; chapter 10, Closing, is teal and its prose reads in paper; element hues stay data, brass stays geometry (ADR-23, ADR-46). The rail lists chapters only (ADR-50); the sky is one canvas from the first pixel and the dawn's sun lives on the fixed layer (ADR-51).
+- **The picture is the chart.** Anything that looks like a chart is drawn from the chart. A body sits at its true degree; crowding is resolved by radius, never by moving it. The Ascendant is a point, not a body. Planet renders are bodies and never UI. The opening ring keeps the chart convention, east on the left; a label sits beside its body with no leader line; a conjunct Moon stays on the ring and the Sun steps outside it (ADR-22, ADR-27). An angle is the R03 marker: brass ring, centre point, a tick outward along the angle (ADR-49). The generation screen is its own screen with the scroll locked: every body on its own ring at its mean daily motion, settling onto the stored chart, and the door at 67% is the only way in (ADR-47, ADR-59). The compatibility hero has no ring: one centred group, each name once over its three rows, both birth records in the corners (ADR-70, ADR-99). Two people are two charts side by side, each alone: nothing draws two charts on one plate or a line between them (ADR-97). A house is never a bare number: every wheel names it in its band and every house number the page prints carries its one word; the house card keeps its full title (ADR-98).
+- **One accent per chapter.** Six hues in a fixed order by chapter index, identical for every reader; chapter 10, Closing, is teal and its prose reads in paper; element hues stay data, brass stays geometry (ADR-23, ADR-46). The rail lists chapters only (ADR-50); two skies: the hero owns the starfield, the gradient and the ring of stars, chapters keep their gradient, blobs and parallax, and the dawn's sun lives on the fixed layer (ADR-51, ADR-59). A why is a sentence on its own line under its action (ADR-62); evidence lives in claims only, never in prose, and prose is plain text, said in the prompt rather than checked; a link card alone names its two bodies, inside a sentence (ADR-60, ADR-104).
 - **Asides: beside prose, inside a card.** A checklist means do, accent prose means sit with; ticks are the reader's workbook, saved on the report, and a tick is silent: no counter, and a box unticks (ADR-24, ADR-48).
 - **Two tempos.** The report page is slow and airy; the admin and dashboard are dense.
 - **One register.** Marketing, share cards and printables use the product's direction, not a separate campaign language.
+- **The mark is the Ascendant.** The logo is A · Horizon (`docs/specs/locked/logo.md`): the wheel, its horizon line, a brass point at the eastern end; one SVG source for favicon, nav, Clerk badge, print header, share card and email. The wordmark is "Stars Decoded" in Newsreader 400, foreground colour, never a gradient.
 - **Voice.** Report voice is R-5.1. Marketing voice is not written yet (Mailbox); until it is, marketing copy follows the same rules: short, specific, no mysticism, no claims the code cannot back.
 
 ## 10 · Repo and knowledge base
@@ -175,7 +176,7 @@ Starsdecoded/
     rounds/                 RNN-plan.md and RNN-report.md
     qa/                     QA-NN.md, findings only
     annex/                  deep dives, long references, overflow from budgeted files
-  .claude/agents/           planner, orchestrator, builder, qa
+  .claude/agents/           planner, builder, qa; the orchestrator is the main session in /round
   .claude/skills/           /ideate /lock /plan /round /qa /mailbox, one SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
 Notion / STARS DECODED
@@ -198,9 +199,9 @@ Explore the feature with the Owner. The Owner decides visually: every ideation p
 
 ### 11.2 Build rounds (`/plan`, then `/round`)
 1. **Planner** reads `CLAUDE.md`, `INDEX.md`, the locked specs named by the Owner (all unplanned ones when none are named; a locked spec is a file under `docs/specs/locked/`, its slug is its id), new QA reports and the open Mailbox. Writes `docs/rounds/RNN-plan.md`: goals, task cards (≤ 15 lines each) cut so they touch disjoint files wherever the work allows, the parallel groups, risks, Mailbox rows raised before building. Parallelism is a planning goal, not an afterthought.
-2. **Approval to build** is one step: when the Owner approves the plan, the same session spawns the orchestrator at once. Nobody waits for a second instruction.
+2. **Approval to build** is one step: when the Owner approves the plan, the same session runs `/round` at once and is its orchestrator (R-0.7). Nobody waits for a second instruction.
 3. **Orchestrator** branches `round/RNN`, dispatches every builder in a parallel group in one message and the groups in order, each builder with only its card and §0.
-4. **Gate**: `pnpm run typecheck` · `pnpm run build:web` · `pnpm run build:api` · unit tests · report lab against fixtures when the engine or prompts changed · `db:bootstrap` boots clean when the schema changed · smoke on the Vercel preview.
+4. **Gate**: `pnpm run typecheck` · `pnpm run build:web` · `pnpm run build:api` · unit tests · the dry lab when the brain changed (spot on demand; the full lab and the QA agent gate the release, R-4.4) · `db:bootstrap` boots clean when the schema changed · smoke on the Vercel preview.
 5. **Close**: round report (≤ 60 lines, every shipped line tagged USER-FACING or INTERNAL), `INDEX.md` regenerated, `CLAUDE.md` current focus updated, Mailbox updated, pull request opened and, once the gate is green, merged by the orchestrator. The Owner never merges.
 6. **Acceptance**: after the deploy, the orchestrator confirms `/api/healthz` and the web app load, then hands the Owner the URL and a three-line list of what to look at. The Owner answers "looks good" or says what is wrong; a "no" becomes sev-1 QA findings and the next round's first goal.
 
@@ -208,7 +209,7 @@ Explore the feature with the Owner. The Owner decides visually: every ideation p
 The Owner's only operational duty is to test the website and say whether it looks good. The QA agent plays the personas from §1 against a preview using real computed charts. Findings land in `docs/qa/QA-NN.md` with severity. The next planner treats every sev-1 as a round goal.
 
 ### 11.4 Report evals
-`fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs before any prompt change ships and its output goes in the round report. Fixtures grow from every real quality problem found in QA.
+`fixtures/charts/` holds reference people (birth data only) and structural edge cases. The report lab generates and measures a report from a fixture; it runs at four levels, dry, spot, release and reading (ADR-76), and its output goes in the round report. Fixtures grow from every real quality problem found in QA. Every lab run also lands in the staging database and is read in the admin Lab page; a model is compared by replaying a stored run with chart and foundation held fixed, and judged by the Owner blind, per section, in a reading session the Owner spawns; nothing is generated for a session before it is spawned (ADR-52 to 55, 75). After a reveal the prose study measures the picked texts against the ones passed over; a measure that holds across the cards becomes a proposed style rule, which the Owner approves into the style contract for every model (ADR-88).
 
 ## 12 · Alignment and mailbox
 

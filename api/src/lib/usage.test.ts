@@ -103,3 +103,13 @@ test("a single-model report still reports that model, not \"mixed\"", () => {
   const b = addAttempt(emptySection("natal:triad", G5), { completion_tokens: 10 }, 1);
   assert.equal(buildReportUsage([a, b], 1).model, G5);
 });
+
+test("a Flex call is priced at half, and a mixed report sums each section at its own tier (ADR-77)", () => {
+  const t = { attempts: 1, inputTokens: 1_000, cachedInputTokens: 0, outputTokens: 1_000, reasoningTokens: 0, ms: 1 };
+  const standard = costUsd("gpt-5.2", t)!;
+  assert.equal(costUsd("gpt-5.2", t, "flex"), standard / 2);
+  assert.equal(costUsd("gpt-5.2", t, "standard"), standard);
+  const flex = { ...emptySection("natal:career", "gpt-5.2"), ...t, serviceTier: "flex" as const };
+  const plain = { ...emptySection("natal:money", "gpt-5.2"), ...t };
+  assert.equal(reportCostUsd([flex, plain]), standard * 1.5);
+});

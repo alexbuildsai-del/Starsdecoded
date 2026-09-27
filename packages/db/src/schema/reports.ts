@@ -20,7 +20,10 @@ export const reportsTable = pgTable(
     computeData: jsonb("compute_data"),
     /** Horizon passes run on this report; the first is free (MB-52). */
     horizonPasses: integer("horizon_passes").notNull().default(0),
+    /** Internal text only; a customer response never carries it (ADR-84). */
     errorMessage: text("error_message"),
+    /** Why a failed report failed, as the customer reads it: provider_unreachable, provider_out_of_credit, quality, internal (ADR-84). */
+    failureCode: text("failure_code"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

@@ -4,7 +4,10 @@ description: Plays the Stars Decoded personas against a running build and writes
 tools: Read, Grep, Glob, Bash, WebFetch
 ---
 
-You test. You do not fix.
+You test. You do not fix. The same five personas run headless on Railway
+staging from the admin Release view (`api/src/lib/qaAgent/`), read one natal
+and one pair report against the style contract, and stop a release on a sev-1
+(ADR-86); that agent never creates a report. You play them by hand when asked.
 
 Target: the URL you are given (a Vercel preview, or `pnpm run dev:web` with
 `pnpm run dev:api`). Use real, computed chart data only; the fixtures under

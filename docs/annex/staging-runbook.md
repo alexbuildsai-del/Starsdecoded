@@ -13,7 +13,7 @@ from the password manager, never retype them.
 
 | | Staging | Production |
 |---|---|---|
-| Address | `starsdecoded-staging.vercel.app` | `starsdecoded.vercel.app` |
+| Address | `starsdecoded-staging.vercel.app` | `mystarsdecoded.com` |
 | Gets new code | every merged change | only when Claude runs Promote |
 | Database | new Supabase project | the existing one |
 | Sign-in | same Clerk Development instance for both, until a custom domain exists | |
@@ -180,10 +180,18 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 - [ ] Tell Claude "runbook done through Part I" plus the Railway domain.
 - [ ] Claude merges the pull request; the Smoke run on `main` turns green
       with `env: staging`. Test staging.
-- [ ] Say "promote". Claude dispatches Promote: it re-checks staging, moves
-      the `production` branch forward, waits for production, confirms
-      `env: production`.
-- Check: `starsdecoded.vercel.app/api/healthz` shows `"env":"production"`;
+- [ ] Todo until done: `GITHUB_RELEASE_TOKEN` in Railway staging Variables
+      (MB-75): a fine-grained token on this repository with Contents write,
+      pasted into the staging Variables tab and nowhere else. Optional:
+      `QA_AGENT_MODEL` (a `models.ts` id) on staging.
+- [ ] Say "promote". Claude opens `/admin/report-lab` → *Release* on staging:
+      preflight, then **Release** runs the lab when the brain changed, the
+      gate and the QA agent, then fast-forwards `production` with that token.
+      Without the token it stops at `passed`; Claude then dispatches Promote
+      with the release id, which reads the public verdict and moves the
+      branch. Either way Claude waits for production and confirms
+      `env: production`. No secret goes on GitHub, ever.
+- Check: `mystarsdecoded.com/api/healthz` shows `"env":"production"`;
   `/admin/prompts` there shows no Save button and the read-only note.
 
 ## K. Stripe, later
@@ -191,6 +199,29 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
 - [ ] When the payments pull request exists, test-mode keys and a test
       webhook endpoint pointing at the staging address go into Railway
       `staging`; live keys into `production`.
+
+## L. Domain (Owner, 10 min)
+
+`mystarsdecoded.com` was bought on Vercel on 2026-09-19, so Vercel runs its
+DNS. Staging stays on `starsdecoded-staging.vercel.app`; no subdomain needed.
+
+- [ ] vercel.com → `starsdecoded` → **Settings → Domains → Add**. Untick
+      "Redirect apex domains to www". `mystarsdecoded.com` → Connect to an
+      environment → **Production**.
+- [ ] **Add** again: `www.mystarsdecoded.com` → Redirect to Another Domain →
+      **308 Permanent** → `mystarsdecoded.com`.
+- [ ] Railway `production` → `PUBLIC_APP_URL=https://mystarsdecoded.com`.
+- [ ] resend.com → Domains → Add `mystarsdecoded.com` → copy its DKIM and SPF
+      records into Vercel → Domains → `mystarsdecoded.com` → DNS Records →
+      back in Resend, Verify. Then on Railway `staging` and `production`:
+      `RESEND_FROM_EMAIL=Stars Decoded <noreply@mystarsdecoded.com>`.
+- [ ] Clerk, only at go-live: Create production instance on
+      `mystarsdecoded.com`, add its CNAME records in Vercel DNS, put the
+      `pk_live` key in Vercel Production and `sk_live` in Railway `production`.
+      Staging keeps the Development instance.
+- Check: `https://mystarsdecoded.com/api/healthz` says `"env":"production"`;
+  `www.mystarsdecoded.com` lands on the apex; a test invite arrives from
+  `noreply@mystarsdecoded.com` with the mark in its header.
 
 ## From now on
 
@@ -214,3 +245,5 @@ re-enables editing there.
 | Railway shows the new commit as SKIPPED, "No changes to watched files" | Watch Paths set on the service; clear them, then Redeploy from the card's menu | F |
 | Staging log ends in `DATABASE_URL must be set` | variables added to the wrong environment | E |
 | Promote refuses to run | ruleset restricts updates or requires a pull request | H |
+| The Release view stops at `passed` with "MB-75" | `GITHUB_RELEASE_TOKEN` is not on Railway staging; dispatch Promote with the release id, or add the token | J |
+| The Release view says the QA agent is unconfigured | Chromium is not on the Railway image (`nixpacks.toml`, MB-77); the release still passes on the lab and the gate | J |

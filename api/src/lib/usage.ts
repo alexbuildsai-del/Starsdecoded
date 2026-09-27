@@ -1,4 +1,4 @@
-import { priceOf } from "./models.js";
+import { FLEX_DISCOUNT, priceOf, type ServiceTier } from "./models.js";
 
 /**
  * Token accounting for report generation.
@@ -39,6 +39,8 @@ export interface SectionUsage {
   reasoningTokens: number;
   /** Time in the API for this section, summed over attempts. */
   ms: number;
+  /** Absent on the customer path, which always runs standard; a lab replay records the tier it asked for. */
+  serviceTier?: ServiceTier;
 }
 
 export interface UsageTotals {
@@ -117,13 +119,14 @@ export function totalsOf(sections: readonly SectionUsage[]): UsageTotals {
  * catalogue is the type), but a run stored before a model left the catalogue
  * can still name one, and a missing price must read as unknown, never as free.
  */
-export function costUsd(model: string, t: UsageTotals): number | null {
+export function costUsd(model: string, t: UsageTotals, serviceTier: ServiceTier = "standard"): number | null {
   const p = priceOf(model);
   if (!p) return null;
   const perToken = (usd: number) => usd / 1_000_000;
-  return t.inputTokens * perToken(p.input)
+  const standard = t.inputTokens * perToken(p.input)
     + t.cachedInputTokens * perToken(p.cachedInput)
     + t.outputTokens * perToken(p.output);
+  return serviceTier === "flex" ? standard * FLEX_DISCOUNT : standard;
 }
 
 /**
@@ -134,7 +137,7 @@ export function costUsd(model: string, t: UsageTotals): number | null {
 export function reportCostUsd(sections: readonly SectionUsage[]): number | null {
   let total = 0;
   for (const s of sections) {
-    const c = costUsd(s.model, { ...s });
+    const c = costUsd(s.model, { ...s }, s.serviceTier);
     if (c === null) return null;
     total += c;
   }

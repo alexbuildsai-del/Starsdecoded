@@ -1,13 +1,16 @@
 import { test } from "node:test";
+import { z } from "zod/v4";
 import assert from "node:assert/strict";
 import { chartFromFixture } from "../lib/testFixtures.js";
 import {
-  ALL_SECTIONS, REPORT_SECTIONS, SECTION_IDS, SHARED_SYSTEM, WORD_TARGETS,
-  buildBrief, hasClaims, instructionsFor, schemaFor, sectionById, sectionsFor, toStrictJsonSchema,
+  ALL_SECTIONS, BLIND_WORD_TARGETS, PASS_ADDS, REPORT_SECTIONS, SECTION_IDS, SHARED_SYSTEM, WORD_TARGETS,
+  buildBrief, hasClaims, instructionsFor, schemaFor, sectionById, sectionsFor, toStrictJsonSchema, wordTargetFor,
 } from "./index.js";
 import { BODIES, SIGNS, BODY, SIGN, HOUSE, ASPECT, STRUCTURE } from "./vocabulary.js";
 import { itemsHint } from "./jsonSchema.js";
 import { OverviewSchema } from "./sections/overview.js";
+
+type JsonObj = Record<string, unknown>;
 
 test("registry: eleven reader-facing sections in the agreed order, no path, foundation first overall", () => {
   assert.deepEqual(SECTION_IDS, ["overview", "triad", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"]);
@@ -26,6 +29,29 @@ test("registry: word targets sum to 3,930-5,110, inside the 3,500-5,500 product 
   assert.equal(min, 3930);
   assert.equal(max, 5110);
   assert.ok(min >= 3500 && max <= 5500, `bands ${min}-${max} leave the product range`);
+});
+
+// A blind report is written shorter by about what the pass adds back, so
+// blind plus pass lands inside the same range (MB-60: R05's passed report
+// read 5,769 words). The drawn bands above do not move.
+test("registry: the blind bands sum to 2,740-3,460, and with what the pass adds sit inside 3,500-5,500", () => {
+  const min = Object.values(BLIND_WORD_TARGETS).reduce((n, [a]) => n + a, 0);
+  const max = Object.values(BLIND_WORD_TARGETS).reduce((n, [, b]) => n + b, 0);
+  assert.equal(min, 2740);
+  assert.equal(max, 3460);
+  assert.ok(!("houses" in BLIND_WORD_TARGETS));
+  assert.deepEqual(PASS_ADDS, [480 + 80 + 10 * 40, 780 + 100 + 10 * 90]);
+  assert.ok(min + PASS_ADDS[0] >= 3500 && max + PASS_ADDS[1] <= 5500, `blind ${min}-${max} plus the pass ${PASS_ADDS} leave the product range`);
+  for (const spec of sectionsFor("unknown")) {
+    assert.ok(spec.blindWordTarget, `${spec.key} carries a blind band`);
+    assert.ok(spec.blindWordTarget![1] < spec.wordTarget[1], `${spec.key}: the blind band sits below the drawn one`);
+    assert.deepEqual(wordTargetFor(spec, false), spec.wordTarget);
+    assert.deepEqual(wordTargetFor(spec, true), spec.blindWordTarget);
+    const text = instructionsFor(spec, spec.instructions, true);
+    assert.match(text, new RegExp(`Length: ${spec.blindWordTarget![0]} to ${spec.blindWordTarget![1]} words`), spec.key);
+    assert.equal(instructionsFor(spec, spec.instructions, false), spec.instructions, `${spec.key}: drawn instructions untouched`);
+  }
+  assert.deepEqual(BLIND_WORD_TARGETS.triad, [160, 200], "two parts of 80 to 100");
 });
 
 // The horizon is a status (ADR-34): a blind report skips the sections that are
@@ -79,6 +105,19 @@ test("system prompt: contains the style contract, the vocabulary and the doctrin
   assert.ok(!SHARED_SYSTEM.includes("{"), "system block must contain no template placeholders");
 });
 
+// Plain prose, said in the prompt (ADR-104): the foundation, Overview and Mind follow rule 3.
+test("the foundation, Overview and Mind carry the plain-prose wording", () => {
+  const foundation = ALL_SECTIONS[0];
+  assert.match(foundation.instructions, /Supporting evidence cites chart facts as the brief's own lines give them\./);
+  assert.match(foundation.instructions, /Each guidance sentence is behaviour, with no planet, sign, house, ruler or dignity in it\./);
+  assert.doesNotMatch(foundation.instructions, /must cite specific chart facts/);
+  for (const id of ["overview", "mind"] as const) {
+    const spec = sectionById(id)!;
+    assert.match(spec.instructions, /give that paragraph a claim for each placement it rests on/i, id);
+    assert.doesNotMatch(spec.instructions, /cite (that|the) paragraph to the placements/i, id);
+  }
+});
+
 test("brief: Marie Curie brief carries sect, chart ruler, rulers, lots and stellium", () => {
   const b = buildBrief(chartFromFixture("marie-curie"), "Marie Curie");
   assert.match(b.text, /^NAME: Marie Curie/m);
@@ -103,6 +142,14 @@ test("brief: the variable tail differs per chart but the static system block doe
   // The system block is a module constant: identical by construction. Assert
   // the brief never leaks into it.
   assert.ok(!SHARED_SYSTEM.includes("NAME:"));
+});
+
+test("schemas: a property named like a keyword survives the strip", () => {
+  const strict = toStrictJsonSchema(z.object({ pattern: z.string(), format: z.string().min(2), inner: z.object({ minimum: z.number() }) })) as { properties: Record<string, JsonObj>; required: string[] };
+  assert.deepEqual(Object.keys(strict.properties), ["pattern", "format", "inner"]);
+  assert.deepEqual(strict.required, ["pattern", "format", "inner"]);
+  assert.ok(!("minLength" in strict.properties.format), "the keyword under a field is still stripped");
+  assert.deepEqual(Object.keys((strict.properties.inner as { properties: object }).properties), ["minimum"]);
 });
 
 test("schemas: strict JSON schema closes every object and carries no unsupported keywords", () => {
@@ -254,17 +301,36 @@ test("houses: the brief names the houses whose card already carries triad text",
 test("houses: a reading may name the house ruler, never a body placed elsewhere", () => {
   const brief = buildBrief(curie(), "Marie Curie");
   const ok = housesSpec.validate!(twelve({ 1: "Saturn rules this ground and sets a slow pace. Behaviour check: count how often you wait." }), brief);
-  assert.deepEqual(ok, []);
-  const bad = housesSpec.validate!(twelve({ 1: "Mars pushes here from the first minute. Behaviour check: notice the rush." }), brief);
-  assert.equal(bad.length, 1, bad.join("\n"));
-  assert.match(bad[0], /house 1: the reading names Mars/);
-  assert.match(bad[0], /neither placed in the 1st nor its ruler/);
+  assert.deepEqual(ok.checks, []);
+  const bad = housesSpec.validate!(twelve({ 1: "Mars pushes here from the first minute. Behaviour check: notice the rush." }), brief).checks;
+  assert.equal(bad.length, 1, bad.map((c) => c.message).join("\n"));
+  assert.equal(bad[0].rule, "chk-15");
+  assert.equal(bad[0].cls, "block");
+  assert.match(bad[0].message, /house 1: the reading names Mars/);
+  assert.match(bad[0].message, /neither placed in the 1st nor its ruler/);
 });
 
 test("houses: the twelve must arrive in order", () => {
   const brief = buildBrief(curie(), "Marie Curie");
   const out = twelve();
   out.houses[4].house = 9;
-  const errors = housesSpec.validate!(out, brief);
-  assert.ok(errors.some((e) => /entry 5 is house 9/.test(e)), errors.join("\n"));
+  // Out of order is sorted in code; a house left without a reading blocks (annex row 14).
+  const result = housesSpec.validate!(out, brief);
+  assert.ok(result.checks.some((c) => c.rule === "chk-14" && c.cls === "block" && /house 5 has no reading/.test(c.message)), result.checks.map((c) => c.message).join("\n"));
+  assert.ok(result.checks.some((c) => c.rule === "chk-14" && c.cls === "fix" && /house 9 appears twice/.test(c.message)));
+  const shuffled = twelve();
+  shuffled.houses.reverse();
+  const sorted = housesSpec.validate!(shuffled, brief);
+  assert.deepEqual(sorted.output.houses.map((h) => h.house), Array.from({ length: 12 }, (_, i) => i + 1));
+  assert.ok(sorted.checks.every((c) => c.cls === "fix"));
+});
+
+test("chk-12: the foundation's sect is overwritten from the brief, never rejected", () => {
+  const brief = buildBrief(curie(), "Marie Curie");
+  const spec = ALL_SECTIONS[0];
+  const out = { sect: "night", sectLight: "moon", chartThesis: "a", dominantPattern: "b", centralTension: "c", supportingEvidence: [], sectionGuidance: {} };
+  const r = spec.validate!(out as never, brief) as { output: { sect: string; sectLight: string }; checks: Array<{ rule: string; cls: string }> };
+  assert.equal(r.output.sect, brief.sect!.sect);
+  assert.equal(r.output.sectLight, brief.sect!.sect_light);
+  assert.deepEqual(r.checks.map((c) => `${c.rule}:${c.cls}`), ["chk-12:fix", "chk-12:fix"]);
 });

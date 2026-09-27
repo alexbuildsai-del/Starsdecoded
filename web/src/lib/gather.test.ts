@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GATHER_MAX, GATHER_SECONDS, GATHER_SHARE, gatherDone, gatherFrame, planGather } from "./gather";
+import { GATHER_MAX, GATHER_SECONDS, GATHER_SHARE, gatherDone, gatherFrame, landing, planGather } from "./gather";
 
 function field(n: number, seed = 1): Array<{ x: number; y: number }> {
   let s = seed;
@@ -40,9 +40,26 @@ describe("the gather", () => {
 
   it("spreads the landings round the whole ring rather than one arc", () => {
     const plan = planGather(field(130), ring, fixed);
-    const angles = plan.moves.map((m) => Math.atan2(m.to.y - ring.cy, m.to.x - ring.cx));
+    const angles = plan.moves.map((m) => { const to = landing(m, ring); return Math.atan2(to.y - ring.cy, to.x - ring.cx); });
     const quadrants = new Set(angles.map((a) => Math.floor(((a + Math.PI) / (Math.PI * 2)) * 4)));
     expect(quadrants.size).toBe(4);
+  });
+
+  it("keeps a landed star as an angle and a radius, so a moved or resized ring takes it along without re-planning", () => {
+    const plan = planGather(field(130), ring, fixed);
+    const moved = { cx: 195, cy: 300, r: 160 };
+    for (const p of gatherFrame(plan, GATHER_SECONDS, moved)) {
+      expect(Math.abs(Math.hypot(p.x - moved.cx, p.y - moved.cy) - moved.r)).toBeLessThanOrEqual(1.5 * (moved.r / ring.r) + 0.01);
+    }
+    const before = gatherFrame(plan, GATHER_SECONDS);
+    const after = gatherFrame(plan, GATHER_SECONDS, moved);
+    // The same stars, in the same order round the ring, at the same angles.
+    before.forEach((p, i) => {
+      const a = Math.atan2(p.y - ring.cy, p.x - ring.cx);
+      const b = Math.atan2(after[i].y - moved.cy, after[i].x - moved.cx);
+      expect(b).toBeCloseTo(a, 6);
+      expect(after[i].index).toBe(p.index);
+    });
   });
 
   it("is planned once: a second plan from the same frame is a no-op for the loop", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  DAYS_PER_SECOND, MEAN_MOTION, MOON_SETTLE_CAP, RINGS,
-  advance, ringOf, settleAt, settleStart, shortestArc, sweep,
+  DAYS_PER_SECOND, MEAN_MOTION, MOON_SETTLE_CAP, RINGS, TURN_DEGREES_PER_SECOND,
+  advance, ringOf, settleAt, settleStart, shortestArc, sweep, turnAt,
 } from "./orrery";
 
 describe("the orrery's rings", () => {
@@ -71,5 +71,15 @@ describe("the settle", () => {
     expect(shortestArc(350, 10)).toBe(20);
     expect(shortestArc(10, 350)).toBe(-20);
     expect(settleAt(355, 3, 1)).toBeCloseTo(3, 6);
+  });
+});
+
+describe("the turn after the settle", () => {
+  it("moves the whole sky at one slow constant rate and never stands still", () => {
+    expect(TURN_DEGREES_PER_SECOND).toBe(1.5);
+    expect(turnAt(0)).toBe(0);
+    expect(turnAt(10)).toBeCloseTo(360 - 15, 6);
+    expect(turnAt(20) - turnAt(10)).toBeCloseTo(-15, 6);
+    expect(turnAt(1)).not.toBe(turnAt(2));
   });
 });

@@ -17,6 +17,15 @@ export function itemsHint(min: unknown, max: unknown): string | undefined {
   return undefined;
 }
 
+const UNSUPPORTED = ["minLength", "maxLength", "minItems", "maxItems", "pattern", "format", "default", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"];
+
+/** The map under `properties`: its keys are field names, never keywords, so a field called `pattern` survives (the pair's chapter has one). */
+function tightenProperties(props: JsonObject): JsonObject {
+  const out: JsonObject = {};
+  for (const [name, v] of Object.entries(props)) out[name] = tighten(v);
+  return out;
+}
+
 function tighten(node: unknown): unknown {
   if (Array.isArray(node)) return node.map(tighten);
   if (!node || typeof node !== "object") return node;
@@ -24,8 +33,8 @@ function tighten(node: unknown): unknown {
   const out: JsonObject = {};
   for (const [k, v] of Object.entries(src)) {
     // Strict mode rejects these; the zod schema still enforces them on parse.
-    if (["minLength", "maxLength", "minItems", "maxItems", "pattern", "format", "default", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"].includes(k)) continue;
-    out[k] = tighten(v);
+    if (UNSUPPORTED.includes(k)) continue;
+    out[k] = k === "properties" && v && typeof v === "object" && !Array.isArray(v) ? tightenProperties(v as JsonObject) : tighten(v);
   }
   // Stripped bounds are invisible to the model, and an array one item too
   // long fails the whole section on parse, so the count goes into the text.

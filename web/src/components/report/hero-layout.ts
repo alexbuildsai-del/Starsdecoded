@@ -145,3 +145,79 @@ export function moonArc(cx: number, cy: number, ringRadius: number, frameDegree:
   const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
   return { from: points[0], to: points[points.length - 1], span, d };
 }
+
+// ---------------------------------------------------------------------------
+// The phone tier (ADR-59, review 20/09 note 1): the ring on top, the name
+// under it, the triad legend, then the cue, whose stem ends clear of the
+// corner text. Pure, so the stack order and the clearance can be asserted.
+// ---------------------------------------------------------------------------
+
+/** The fixed sizes of the phone stack, in CSS pixels; the component draws from the same numbers. */
+export const PHONE = {
+  /** The transparent top bar. */
+  nav: 56,
+  padTop: 12,
+  gap: 14,
+  /** The ring's diameter as a share of the viewport width, when the height allows it. */
+  ringShare: 0.82,
+  /** The ring's diameter as a share of the plate's square svg. */
+  ringOfSvg: 0.82,
+  eyebrow: 22,
+  nameGap: 8,
+  nameLineHeight: 1.08,
+  legendRow: 29,
+  legendGap: 7,
+  legendRows: 3,
+  /** Label, gap, a 56 px stem, padding. */
+  cue: 92,
+  /** The stem ends at the cue's bottom padding. */
+  cuePad: 4,
+  /** The corner text's two lines and the hud's padding, up from the viewport's bottom. */
+  hudBand: 40,
+  clearance: 24,
+} as const;
+
+export type PhoneStackItem = "ring" | "name" | "legend" | "cue";
+
+export interface PhoneStackInput {
+  viewportWidth: number;
+  viewportHeight: number;
+  nameLines: number;
+  nameSize: number;
+}
+
+export interface PhoneStack {
+  order: PhoneStackItem[];
+  /** The plate svg's side, square. */
+  svg: number;
+  /** The ring's diameter. */
+  ring: number;
+  name: number;
+  legend: number;
+  cue: number;
+  /** Where the cue's stem ends, from the viewport's top. */
+  stemBottom: number;
+  /** The corner text's top edge, from the viewport's top. */
+  hudTop: number;
+  clearance: number;
+}
+
+/**
+ * The stack from the top: ring, name, legend, cue. The ring takes 82vw; when
+ * the viewport is too short for that, the ring gives way, never the name,
+ * which has already broken to its lines from its length alone.
+ */
+export function phoneStack(input: PhoneStackInput): PhoneStack {
+  const name = PHONE.eyebrow + PHONE.nameGap + input.nameLines * input.nameSize * PHONE.nameLineHeight;
+  const legend = PHONE.legendRows * PHONE.legendRow + (PHONE.legendRows - 1) * PHONE.legendGap;
+  const cue = PHONE.cue;
+  const hudTop = input.viewportHeight - PHONE.hudBand;
+  const rest = 3 * PHONE.gap + name + legend + cue;
+  const top = PHONE.nav + PHONE.padTop;
+  const svgMax = hudTop - PHONE.clearance - top - rest;
+  const svgWanted = (input.viewportWidth * PHONE.ringShare) / PHONE.ringOfSvg;
+  const svg = Math.max(0, Math.min(svgWanted, svgMax));
+  const ring = svg * PHONE.ringOfSvg;
+  const stemBottom = top + svg + rest - PHONE.cuePad;
+  return { order: ["ring", "name", "legend", "cue"], svg, ring, name, legend, cue, stemBottom, hudTop, clearance: hudTop - stemBottom };
+}

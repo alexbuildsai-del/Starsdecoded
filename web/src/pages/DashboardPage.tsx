@@ -20,7 +20,8 @@ import ProfileInviteHistory from "@/components/ProfileInviteHistory";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
 import { CompatibilityPicker } from "@/components/CompatibilityPicker";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
-import { lensInfo } from "@/lib/lenses";
+import { LENSES, lensInfo } from "@/lib/lenses";
+import { PERSONAL_REPORT } from "@/lib/product";
 import type { Lens } from "@/types/chart";
 import {
   useListReports,
@@ -34,6 +35,8 @@ import {
   type CreditCounts,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Wordmark } from "@/components/Wordmark";
+import { usePageTitle } from "@/lib/page-title";
 
 /** A report is being written or revised: readable, but not finished. */
 function inProgress(status: string | undefined): boolean {
@@ -178,7 +181,7 @@ function ZoneYou({
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <p className="font-label text-[10px] tracking-[0.2em] uppercase text-primary/70 mb-1">
-            Your Natal Chart
+            {PERSONAL_REPORT}
           </p>
           <h2 className="font-display text-2xl truncate mb-0.5">{selfProfile.name}</h2>
           {natalReport?.archetypeName && (
@@ -218,6 +221,9 @@ function ZoneYou({
             >
               {STATUS_LABELS[natalReport.status] ?? natalReport.status}
             </span>
+          )}
+          {natalReport?.status === "failed" && natalReport.failureReason && (
+            <p className="text-xs text-red-300/90 text-right max-w-[16rem]">{natalReport.failureReason.line}</p>
           )}
           {isClickable && (
             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -328,6 +334,9 @@ function PersonCard({
           )}
         </div>
       </div>
+      {natalReport?.status === "failed" && natalReport.failureReason && (
+        <p className="mt-2 text-xs text-red-300/90">{natalReport.failureReason.line}</p>
+      )}
 
       <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
         {profile.sunSign && <span>☉ {profile.sunSign}</span>}
@@ -416,7 +425,7 @@ function PairRow({ report }: { report: ReportSummary }) {
           <span className="px-2 py-1 rounded-full text-xs font-label border border-secondary/20 text-secondary bg-secondary/10">Writing…</span>
         )}
         {report.status === "failed" && (
-          <span className="px-2 py-1 rounded-full text-xs font-label border border-red-400/20 text-red-400 bg-red-400/10">Failed</span>
+          <span className="px-2 py-1 rounded-full text-xs font-label border border-red-400/20 text-red-400 bg-red-400/10" title={report.failureReason?.line ?? undefined}>{report.failureReason?.line ?? "Failed"}</span>
         )}
         {report.status !== "failed" && (
           <Button size="sm" variant="outline" onClick={() => navigate(`/compatibility/${report.id}`)} className="font-label font-medium gap-1.5">
@@ -432,6 +441,8 @@ function PairRow({ report }: { report: ReportSummary }) {
 // ─── Main page ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  usePageTitle("Dashboard");
+
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
@@ -531,7 +542,7 @@ export default function DashboardPage() {
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="font-display text-lg gradient-text">Astra</span>
+          <Wordmark />
           <div className="flex items-center gap-2">
             <Button
               onClick={() => navigate("/chart")}
@@ -644,8 +655,10 @@ export default function DashboardPage() {
 
         {/* ── Zone 3: Compatibility ────────────────────────────────────── */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
             <h2 className="font-display text-xl">Compatibility</h2>
+            {/* The three doors (ADR-68): who each lens is for, in a few words. */}
+            <p className="text-xs text-muted-foreground">{LENSES.map((l) => l.door).join(" · ")}</p>
           </div>
 
           {reportsQ.isLoading ? (
@@ -662,7 +675,8 @@ export default function DashboardPage() {
             </ul>
           )}
 
-          <CompatibilityPicker reports={allReports} />
+          {/* Undefined while the list loads, not empty: the picker then waits on the same query before it reads a remembered pair. */}
+          <CompatibilityPicker reports={Array.isArray(reportsQ.data) ? reportsQ.data : undefined} />
         </section>
       </main>
 

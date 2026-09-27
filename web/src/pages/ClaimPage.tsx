@@ -21,6 +21,7 @@ import {
   type InvitePreview,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePageTitle } from "@/lib/page-title";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 
 function getToken(): string | null {
@@ -30,6 +31,8 @@ function getToken(): string | null {
 }
 
 export default function ClaimPage() {
+  usePageTitle("Your invite");
+
   const [, navigate] = useLocation();
   const qc = useQueryClient();
   const { isLoaded, isSignedIn } = useAuth();

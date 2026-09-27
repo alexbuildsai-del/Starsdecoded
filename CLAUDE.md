@@ -3,16 +3,13 @@
 Stars Decoded computes a natal chart locally (`astronomy-engine`, whole sign)
 and writes a 3,500 to 5,500 word psychological report with OpenAI, grounded in
 a written doctrine and a per-chart brief. One-time purchase. The report is the
-product. The app still says "Astra" in places; never add a new use of it.
+product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 ## Working with the Owner
 
-- Every reply opens with `Alex, ` alone on its first line, before anything
-  else, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
-- Delegate unasked (R-0.6): independent parts, broad searches and long reads go
-  to subagents, in parallel when independent; a single lookup or edit stays here.
-- Model triage (R-0.7): the orchestrator runs a round on the top model (Fable);
-  builders and feature work Opus, simple fixes Sonnet, mechanical Haiku.
+- Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
+- Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel; a single lookup or edit stays here.
+- Model triage (R-0.7): `/round` is the orchestrator, run in the main loop on Opus 5.5 at max effort; planner and builders Opus at max, simple fixes Sonnet, mechanical Haiku.
 
 ## Read this first
 
@@ -46,13 +43,13 @@ pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
-pnpm report:lab --render|--compare    # re-read stored runs. Free; see /report-lab
+pnpm report:lab --render|--compare|--dry --base r06   # free: stored runs re-read, every prompt rendered; the levels: /report-lab
 ```
 
 Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
-clean when the schema changed, smoke on the Vercel preview. Never skip or
-disable a check. The report lab is not in it: `/report-lab` runs when the brain
-changed, or when the Owner asks.
+clean when the schema changed, smoke on the Vercel preview. Never skip or disable a
+check. The lab runs from the admin panel: dry at every brain change, spot and reading on
+demand, full lab plus QA agent in the Release view before production.
 
 ## Process
 
@@ -81,15 +78,19 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Things a session should know
 
-- Deploys are git-push driven: `main` → staging (Vercel branch alias
-  `starsdecoded-staging.vercel.app`, Railway environment `staging`, own Supabase
-  project); `production` branch → production, moved only by the Promote workflow,
-  fast-forward from `main`, after the staging smoke passes; dispatch it, never
-  push the branch. Secrets live only in the Railway, Vercel and Supabase
-  dashboards; the repo is public. Runbook: `docs/annex/staging-runbook.md`.
-- The web app calls `/api` on its own origin; `vercel.json` rewrites that to the
-  staging or production Railway host by web host. `/api/healthz` reports `env`
-  and `commit`; `smoke.yml` asserts both.
+- Deploys are git-push driven: `main` → staging (`starsdecoded-staging.vercel.app`,
+  Railway `staging`, own Supabase project); `production` branch → production at
+  `mystarsdecoded.com`, moved only by Promote (fast-forward from `main`); never push it.
+  Any production-release talk lists MB-75 (`GITHUB_RELEASE_TOKEN` on Railway staging) as a todo until placed.
+  Secrets live only in the Railway, Vercel and Supabase dashboards; the repo is
+  public. Runbook: `docs/annex/staging-runbook.md`. **No secret on GitHub, ever**
+  (Owner, 2026-09-25): never ask the Owner to put a key or token there. Anything that
+  needs a key or reaches the lab routes runs on Railway and is started from the admin
+  panel; GitHub workflows only build, test and smoke. Production keys never leave Railway.
+- **Until launch, production is a waitlist** (ADR-141): its API serves non-admins only healthz, `/waitlist`, `/sky`
+  and `/admin/*`; staging keeps the whole app. Launch: `LAUNCHED = true` in `packages/launch`, then a Release.
+- The web app calls `/api` on its own origin; `vercel.json` rewrites that to the staging or production Railway host
+  by web host. `/api/healthz` reports `env` and `commit`; `smoke.yml` asserts both. It cannot import `api/` (MB-108).
 - Prompts are edited on staging only; production sets `PROMPTS_READ_ONLY` and
   copies staging's `prompt_templates` in its start-up bootstrap.
 - `openapi.yaml` is the contract; generated client and zod files are rewritten
@@ -98,23 +99,22 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step of
   the start command (its preDeployCommand hook never ran here); one that cannot
   run twice breaks the deploy.
-- **The brain** decides the words: `api/src/prompts/`, `models.ts`,
-  `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`. Touch it and
-  `/report-lab` runs on staging right after the merge by dispatching
-  `report-lab.yml`; no key or network is needed here. Never generate a report to
-  look at one. Every model id lives in `models.ts` with its price; one outside
-  the catalogue does not compile.
-- Real chart data only. Fixtures hold birth data; charts are computed at run
-  time. Never fabricate a placement, even in a demo.
+- **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`,
+  `traditional.ts`, `chartCalculation.ts`. Touch it and the dry lab runs in the round; spot
+  on demand from the Lab page; the Release view runs the full lab, the gate and the QA agent,
+  then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway (MB-75; until placed
+  it stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
+  (ADR-77); the Lab page and `--render` are free. Every model id lives in `models.ts`; one
+  outside the catalogue does not compile. A check blocks only when the text would be wrong
+  for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
+- Real chart data only. Fixtures hold birth data; charts are computed at run time. Never fabricate a placement, even in a demo.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
-- Anonymous sessions come first; Clerk sign-in claims what the session made.
-  `ADMIN_USER_ID` gates the prompt admin.
+- Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-09-19)
+## Current focus (2026-09-26)
 
-1. R05 merged to staging (#52): pass three (ADR-46 to 51), unknown birth time
-   (ADR-33 to 38), the compatibility report (ADR-39 to 45); prompts v6 and p1.
-   The three lab campaigns run from `report-lab.yml`, pasted into `docs/rounds/R05-report.md`.
-2. Owner acceptance on staging for R01, R03, R04 and R05, in that order.
-3. Staging landing (`docs/specs/draft/staging-environment.md`): the Owner works the
-   runbook, then the first Promote. Pricing (MB-5) and Stripe (MB-6) next; MB-57 waits on them.
+1. R09 shipped (Review 25 Sept): the ringless pair hero, two charts side by side, the ledger, the type-only card,
+   one word per house, v7 plain prose. Owner acceptance on staging for R01, R03 to R09; the Owner reads v7 there.
+2. Free on staging: Import r05 and r06, the Failures tab, the prose study on `session-2026-09-24`; on "go" the
+   first Release from the Release view (MB-75 the standing todo).
+3. The waitlist (ADR-141): the Owner tries `/waitlist` and `/admin/waitlist` on staging; production needs MB-105 first.

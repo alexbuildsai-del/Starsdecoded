@@ -22,7 +22,7 @@ Keep the package `name` as `mobile` so the root `dev:mobile` script keeps workin
 
 | Variable              | Purpose                                              |
 | --------------------- | ---------------------------------------------------- |
-| `EXPO_PUBLIC_API_URL` | Base URL of the `api/` deployment, e.g. `https://api.starsdecoded.com` |
+| `EXPO_PUBLIC_API_URL` | Base URL of the `api/` deployment, e.g. `https://api.mystarsdecoded.com` |
 
 `EXPO_PUBLIC_*` variables are inlined into the client bundle at build time, so never
 put a secret in one.

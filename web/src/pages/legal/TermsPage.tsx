@@ -1,7 +1,10 @@
 import { LegalLayout, LegalSection } from "./LegalLayout";
+import { usePageTitle } from "@/lib/page-title";
 
 // MB-31 provisional: the contracting entity is a placeholder.
 export default function TermsPage() {
+  usePageTitle("Terms");
+
   return (
     <LegalLayout kicker="Legal" title="Terms of service" updated="9 September 2026">
       <LegalSection title="The service">

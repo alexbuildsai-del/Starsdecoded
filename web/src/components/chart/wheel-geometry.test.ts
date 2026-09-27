@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  assignLanes, firstHouseCusp, houseOf, houseSign, norm360, opposite, theta, wheelRadii,
+  assignLanes, degreesMinutes, firstHouseCusp, houseOf, houseSign, norm360, opposite, theta, wheelRadii,
 } from "@/components/chart/wheel-geometry";
 
 const MARIE_CURIE = {
@@ -72,6 +72,35 @@ describe("whole-sign houses", () => {
     expect(opposite(ASC)).toBeCloseTo(102.07, 5);
     expect(opposite(MARIE_CURIE.midheaven)).toBeCloseTo(48.63, 5);
     expect(norm360(opposite(opposite(ASC)))).toBeCloseTo(ASC, 5);
+  });
+});
+
+describe("the band names its houses (ADR-98)", () => {
+  const r = wheelRadii(600);
+
+  it("holds two text lines inside the band, the sign outside the house line", () => {
+    expect(r.bandSign).toBeLessThan(r.signOuter);
+    expect(r.bandSign).toBeGreaterThan(r.bandHouse);
+    expect(r.bandHouse).toBeGreaterThan(r.signInner);
+    // Each line's font (0.0225 and 0.019 of the plate) fits its half of the band with air.
+    expect(r.signOuter - r.bandSign).toBeGreaterThan(600 * 0.0225 / 2);
+    expect(r.bandHouse - r.signInner).toBeGreaterThan(600 * 0.019 / 2);
+    expect(r.bandSign - r.bandHouse).toBeGreaterThan(600 * (0.0225 + 0.019) / 2);
+  });
+
+  it("keeps the band clear of the outer lane and has no house-number ring", () => {
+    expect(r.lanes[0] + r.node / 2).toBeLessThan(r.tick);
+    expect(r.tick).toBeLessThan(r.signInner);
+    expect(r.lanes[2] - r.node / 2).toBeGreaterThan(r.aspect);
+    expect("houseOuter" in r).toBe(false);
+    expect("houseInner" in r).toBe(false);
+  });
+
+  it("prints a rising degree as degrees and minutes", () => {
+    expect(degreesMinutes(12.07)).toBe("12°04′");
+    expect(degreesMinutes(29.69)).toBe("29°41′");
+    expect(degreesMinutes(0)).toBe("0°00′");
+    expect(degreesMinutes(14.9999)).toBe("15°00′");
   });
 });
 

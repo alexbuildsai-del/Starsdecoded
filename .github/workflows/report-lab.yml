@@ -1,35 +1,35 @@
 name: Report lab
 
-# R-4.4: no prompt or engine change ships without the report lab run against
-# the committed fixtures. This sandbox cannot reach staging, so the run happens
-# here: each fixture becomes a real report on staging through its public API,
-# and the measurement lands in the run summary and an artifact. Staging only;
-# production is read-only for prompts and its reports belong to customers.
+# The generating campaigns (ADR-86): natal, pass and pair run against
+# staging's public API as an anonymous visitor, measure the report and
+# publish it on the report-lab/<label> branch. They use no secret: the key
+# lives on Railway and every other lab level (dry, spot, the release lab,
+# the import of stored runs) runs from the admin Lab page on staging.
+# On demand only; nothing here runs on a push.
 on:
   workflow_dispatch:
     inputs:
       campaign:
-        description: natal (the chart fixtures), pass (blind, then the horizon pass) or pair (one compatibility report)
+        description: natal, pass or pair
         required: true
         type: choice
         options: [natal, pass, pair]
         default: natal
       chart:
-        description: natal only. Fixture name under fixtures/charts, or "all"
-        required: true
+        description: natal only. Fixture name under fixtures/charts, or "all" (the five matrix charts)
+        required: false
         type: string
         default: all
       pair:
-        description: pair only. Fixture name under fixtures/pairs
+        description: pair only. "all" runs the campaign; a fixture name under fixtures/pairs runs that one
         required: false
         type: string
-        default: curie-winfrey
+        default: all
       lens:
-        description: pair only
+        description: pair only, with one fixture. "all" takes the fixture's own lens
         required: false
-        type: choice
-        options: [partners, parent_child, family]
-        default: partners
+        type: string
+        default: all
       label:
         description: Label for the written run files
         required: true
@@ -66,18 +66,26 @@ jobs:
 
       # The pipe into tee must not hide the lab's exit code: a failed fixture
       # is a failed run, with its table and error still in the summary.
-      - name: Generate and measure
+      - name: Run the campaign
         run: |
           set -o pipefail
+          label="${{ inputs.label }}"
           case "${{ inputs.campaign }}" in
-            pass) sel="--pass" ;;
-            pair) sel="--pair ${{ inputs.pair }} --lens ${{ inputs.lens }}" ;;
-            *) if [ "${{ inputs.chart }}" = "all" ]; then sel="--all"; else sel="--chart ${{ inputs.chart }}"; fi ;;
+            pass) sel="--remote $WEB_URL --pass --label $label --html" ;;
+            pair) if [ "${{ inputs.pair }}" = "all" ]; then sel="--remote $WEB_URL --pair --label $label"; else sel="--remote $WEB_URL --pair ${{ inputs.pair }} --lens ${{ inputs.lens }} --label $label"; fi ;;
+            *) if [ "${{ inputs.chart }}" = "all" ]; then sel="--remote $WEB_URL --all --label $label --html"; else sel="--remote $WEB_URL --chart ${{ inputs.chart }} --label $label --html"; fi ;;
           esac
           status=0
-          pnpm report:lab --remote "$WEB_URL" $sel --label "${{ inputs.label }}" --html 2>&1 | tee lab.log || status=$?
-          { echo '## Report lab'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          pnpm report:lab $sel 2>&1 | tee lab.log || status=$?
+          { echo '## Report lab: ${{ inputs.campaign }}'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
+
+      # The log rides with the run: a failed run publishes its error where the
+      # orchestrator can read it, since the log storage host is not reachable
+      # from every session.
+      - name: Keep the lab's log with the run
+        if: always()
+        run: mkdir -p fixtures/reports && cp lab.log "fixtures/reports/lab.${{ inputs.label }}.log" 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -87,19 +95,19 @@ jobs:
           if-no-files-found: ignore
 
       # The reports are the product, so they must be readable without
-      # downloading a zip: every run replaces the report-lab/<label> branch,
-      # where GitHub renders the .md files. Partial runs publish too. One
-      # label per campaign, or the next run's force-push drops the last one.
+      # downloading a zip: every generating run replaces the report-lab/<label>
+      # branch, where GitHub renders the .md files. Partial runs publish too.
+      # One label per campaign, or the next run's force-push drops the last one.
       - name: Publish the run on the report-lab branch
         if: always()
         run: |
-          ls fixtures/reports/*.${{ inputs.label }}.md >/dev/null 2>&1 || { echo "nothing to publish"; exit 0; }
+          compgen -G "fixtures/reports/*.${{ inputs.label }}.md" >/dev/null || [ -f "fixtures/reports/lab.${{ inputs.label }}.log" ] || { echo "nothing to publish"; exit 0; }
           branch="report-lab/${{ inputs.label }}"
           git config user.name "report-lab"
           git config user.email "report-lab@users.noreply.github.com"
           git checkout -B "$branch"
           git add -f fixtures/reports
           git diff --cached --quiet && { echo "nothing new to publish"; exit 0; }
-          git commit -q -m "Report lab: ${{ inputs.campaign }} ${{ inputs.campaign == 'pair' && inputs.lens || inputs.chart }} against staging, run ${{ github.run_id }}"
+          git commit -q -m "Report lab: ${{ inputs.campaign }} against staging, run ${{ github.run_id }}"
           git push -f origin "$branch"
           printf -- '- reports: https://github.com/%s/tree/%s/fixtures/reports\n' "$GITHUB_REPOSITORY" "$branch" >> "$GITHUB_STEP_SUMMARY"

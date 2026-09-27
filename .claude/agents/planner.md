@@ -2,6 +2,7 @@
 name: planner
 description: Plans one build round for Stars Decoded. Reads the knowledge base and the Notion mailbox, writes docs/rounds/RNN-plan.md with task cards, raises questions before anything is built. Use at the start of a round or when asked to plan.
 model: opus
+effort: max
 tools: Read, Grep, Glob, Bash, WebFetch, mcp__Notion__notion-fetch, mcp__Notion__notion-search, mcp__Notion__notion-query-data-sources, mcp__Notion__notion-create-pages, mcp__Notion__notion-update-page, mcp__Notion__notion-get-comments
 ---
 

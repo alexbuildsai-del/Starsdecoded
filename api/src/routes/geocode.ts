@@ -84,7 +84,7 @@ router.get("/geocode", async (req, res) => {
   try {
     const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=10&addressdetails=1`;
     const nominatimRes = await fetch(nominatimUrl, {
-      headers: { "User-Agent": "Astra-NatalChartApp/1.0" },
+      headers: { "User-Agent": "StarsDecoded/1.0 (natal chart app)" },
       signal: AbortSignal.timeout(8000),
     });
 

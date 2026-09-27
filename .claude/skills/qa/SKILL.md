@@ -4,7 +4,9 @@ description: Stars Decoded QA session. Spawns the qa agent to play the buyer, re
 ---
 
 The target is the text after the command, a URL. With none, use the local
-dev servers (`pnpm run dev:api` and `pnpm run dev:web`).
+dev servers (`pnpm run dev:api` and `pnpm run dev:web`). Before production,
+the QA agent runs itself in the admin Release view on staging (ADR-86); this
+skill is the hand-played session.
 
 Spawn the `qa` agent with that target: Agent tool, `subagent_type` `qa`. If
 that type is not registered in this session, spawn `general-purpose` on

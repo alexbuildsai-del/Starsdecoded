@@ -21,6 +21,35 @@ export const HOUSE_NAMES = [
   "Career & public role", "Friends & collective", "Solitude & the unseen",
 ] as const;
 
+/** One word per house, the first word of each title (ADR-98): on the wheel, in the hero rows and after every house number the page prints. */
+export const HOUSE_WORDS = [
+  "Self", "Money", "Mind", "Home", "Play", "Work",
+  "Partnership", "Depth", "Belief", "Career", "Friends", "Solitude",
+] as const;
+
+/** The house's word in lower case, "" outside 1 to 12. */
+export function houseWord(n: number): string {
+  return Number.isInteger(n) && n >= 1 && n <= 12 ? HOUSE_WORDS[n - 1].toLowerCase() : "";
+}
+
+/** "3rd (mind)"; the bare ordinal outside 1 to 12. */
+export function houseWithWord(n: number): string {
+  const word = houseWord(n);
+  return word ? `${ORDINALS[n - 1]} (${word})` : String(n);
+}
+
+const HOUSE_MENTION_RE = /\b(\d{1,2})(st|nd|rd|th) house\b|\brules the (\d{1,2})(st|nd|rd|th)\b/g;
+
+/** Adds " (word)" once after every "Nth house" and "rules the Nth" in a text; a second pass changes nothing. */
+export function withHouseWords(text: string): string {
+  return text.replace(HOUSE_MENTION_RE, (match, n1: string | undefined, _s1, n2: string | undefined, _s2, offset: number, whole: string) => {
+    const word = houseWord(Number(n1 ?? n2));
+    if (!word) return match;
+    const after = whole.slice(offset + match.length);
+    return after.startsWith(` (${word})`) ? match : `${match} (${word})`;
+  });
+}
+
 export const HOUSE_THEMES = [
   "Self, body, how you arrive",
   "Money, resources, what you value",
@@ -153,8 +182,9 @@ export function glossFor(ref: EvidenceRef): string {
     }
     case "ruler": {
       const dignity = DIGNITY_MEANINGS[str(ref.dignity)];
+      const rulerHouse = houseIndex(ref.rulerHouse) < 0 ? "chart" : houseWithWord(ref.rulerHouse as number);
       return `The ${theHouse(ref.house)} answers to ${label(ref.ruler)}, which sits in `
-        + `${label(ref.rulerSign)} in the ${ORDINALS[houseIndex(ref.rulerHouse)] ?? "chart"}`
+        + `${label(ref.rulerSign)} in the ${rulerHouse}`
         + `${dignity ? `, ${dignity}` : ""}.`;
     }
     case "lot":
@@ -176,9 +206,31 @@ export function glossFor(ref: EvidenceRef): string {
       const body = BODY_MEANINGS[str(ref.planet)] ?? "";
       return [body && cap(body) + ".", `It falls in the other person's ${theHouse(ref.house)}.`].filter(Boolean).join(" ");
     }
+    // A source claim's sheet is two labelled lines, not a sentence (ADR-60): see sourceLines.
     case "source":
-      return `Read from the natal report's ${label(ref.section)} chapter, claim ${typeof ref.claim === "number" ? ref.claim : ""}; the evidence is that report's own, verified when it was written.`.replace(/\s+;/, ";");
+      return "";
     default:
       return "";
   }
+}
+
+/** The natal chapters by section id, as the sheet names where a source claim came from. */
+export const NATAL_CHAPTER_OF: Record<string, string> = {
+  overview: "Chart Overview", triad: "Core Triad", houses: "Natal Chart Deepdive", mind: "Mind & Communication",
+  career: "Career & Calling", money: "Money & Resources", relationships: "Relationships & Intimacy", family: "Family & Roots",
+  superpowers: "Superpowers, Chronic Patterns & Growing Edges", discoveries: "Key Paradoxes & Discoveries", focus: "Closing",
+};
+
+/**
+ * The two lines of a source claim's sheet (ADR-60): where it came from, and
+ * that claim's own evidence labels. The stored label is composed by the API
+ * as "{Name}'s report: {labels}", so both halves are its own.
+ */
+export function sourceLines(ref: EvidenceRef, storedLabel: string): { source: string; evidence: string } {
+  const split = storedLabel.indexOf("'s report: ");
+  const name = split > 0 ? storedLabel.slice(0, split) : "";
+  const evidence = split > 0 ? storedLabel.slice(split + "'s report: ".length) : storedLabel;
+  const firstName = name.trim().split(/\s+/)[0] ?? "";
+  const chapter = NATAL_CHAPTER_OF[str(ref.section)] ?? label(ref.section);
+  return { source: `${firstName ? `${firstName}'s personal report` : "Personal report"} · ${chapter}`, evidence };
 }

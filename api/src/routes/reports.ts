@@ -16,11 +16,14 @@ import {
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
 import { generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
 import { SECTION_IDS } from "../prompts/index.js";
-import { PAIR_SECTION_IDS } from "../prompts/pair/index.js";
+import { PAIR_PROMPT_VERSION, pairSectionIds } from "../prompts/pair/index.js";
+import type { Lens } from "../lib/pairBrief.js";
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
 import { ownsRelationship, viewerHasGrantOnRelationship, viewerRelationshipIds } from "../lib/access.js";
-import { consumeCredit } from "../lib/credits.js";
+import { consumeCredit, refundCredit } from "../lib/credits.js";
+import { failureCodeOf, failureReasonOf } from "../lib/failureReasons.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -31,10 +34,11 @@ type Viewer = { userId: string | null; sessionId: string };
 /**
  * The section keys a report of this type writes, so the status can say which
  * have landed. A blind natal report never writes the house readings (ADR-34),
- * so its status does not wait for them.
+ * so its status does not wait for them; a compatibility report writes the
+ * eight sections of its lens (ADR-63).
  */
-export function sectionIdsFor(type: string, horizon?: string): readonly string[] {
-  if (type === "compatibility") return PAIR_SECTION_IDS;
+export function sectionIdsFor(type: string, horizon?: string, lens?: string): readonly string[] {
+  if (type === "compatibility") return pairSectionIds((lens ?? "partners") as Lens);
   return horizon === "unknown" ? SECTION_IDS.filter((id) => id !== "houses") : SECTION_IDS;
 }
 
@@ -98,6 +102,13 @@ async function participantsOf(report: ReportRow) {
     reportId: (i === 0 ? compute.reportAId : compute.reportBId) ?? "",
     name: p.profile.name,
     role: p.rp.role,
+    birthDate: p.profile.birthDate,
+    birthTime: p.profile.birthTime,
+    birthTimeWindowMinutes: p.profile.birthTimeWindowMinutes ?? 0,
+    birthPlace: p.profile.birthPlace,
+    latitude: p.profile.latitude,
+    longitude: p.profile.longitude,
+    isSelf: p.profile.isSelf,
     chartData: (p.profile.chartData as NatalChartData | null) ?? null,
   }));
 }
@@ -127,6 +138,7 @@ router.get("/reports", async (req, res) => {
         status: reportsTable.status,
         type: reportsTable.type,
         interpretation: reportsTable.interpretation,
+        failureCode: reportsTable.failureCode,
         createdAt: reportsTable.createdAt,
         profile: profilesTable,
       })
@@ -159,6 +171,7 @@ router.get("/reports", async (req, res) => {
         risingSign: string | null;
       }>;
       createdAt: string;
+      failureReason: { code: string; line: string } | null;
     };
 
     const natalSummaries: ReportSummaryOut[] = natalRows.map((r) => ({
@@ -186,6 +199,7 @@ router.get("/reports", async (req, res) => {
         risingSign: string | null;
       }>,
       createdAt: r.createdAt.toISOString(),
+      failureReason: failureReasonOf(r.failureCode),
     }));
 
     // Compatibility: any report tied to a relationship the viewer can see.
@@ -200,6 +214,7 @@ router.get("/reports", async (req, res) => {
           id: reportsTable.id,
           status: reportsTable.status,
           interpretation: reportsTable.interpretation,
+          failureCode: reportsTable.failureCode,
           createdAt: reportsTable.createdAt,
           relationshipId: reportsTable.relationshipId,
           relType: relationshipsTable.type,
@@ -238,7 +253,9 @@ router.get("/reports", async (req, res) => {
         partsByRel.set(p.relationshipId, arr);
       }
 
-      pairSummaries = synRows.map((r): ReportSummaryOut => {
+      // MB-65 provisional: a report written before p2 cannot render on the seven-chapter page, so it is listed nowhere.
+      const current = synRows.filter((r) => r.status !== "complete" || (r.interpretation as { meta?: { promptVersion?: string } } | null)?.meta?.promptVersion === PAIR_PROMPT_VERSION);
+      pairSummaries = current.map((r): ReportSummaryOut => {
         const ps = (r.relationshipId && partsByRel.get(r.relationshipId)) || [];
         const participants = ps.map((p) => ({
           id: p.profile.id,
@@ -263,6 +280,7 @@ router.get("/reports", async (req, res) => {
           relationshipType: r.relType ?? null,
           participants,
           createdAt: r.createdAt.toISOString(),
+          failureReason: failureReasonOf(r.failureCode),
         };
       });
     }
@@ -399,7 +417,9 @@ router.get("/reports/:id", async (req, res) => {
       chartData: p.chartData ?? null,
       interpretation: r.interpretation ?? null,
       workbook: (r.workbook ?? {}) as Record<string, string>,
-      errorMessage: r.errorMessage ?? null,
+      // The internal message stays in the database; the customer reads the coded line (ADR-84).
+      errorMessage: null,
+      failureReason: failureReasonOf(r.failureCode),
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     });
@@ -428,14 +448,15 @@ router.get("/reports/:id/status", async (req, res) => {
     return res.json({
       id: r.id,
       status: r.status,
-      errorMessage: r.errorMessage ?? null,
+      errorMessage: null,
+      failureReason: failureReasonOf(r.failureCode),
       // The chart is what the page opens on, so the client stops waiting the
       // moment it exists rather than when the last section lands (ADR-25).
       chartReady: p.chartData != null,
       // Real progress is the client's to count from `sections` (ADR-47); the
       // orrery runs from these until the chart is stored.
       provisional: p.chartData == null && r.type === "natal" ? provisionalFor(p) : null,
-      sections: Object.fromEntries(sectionIdsFor(r.type, (written.meta as { horizon?: string } | undefined)?.horizon).map((id) => [id, id in written ? "done" : "pending"])),
+      sections: Object.fromEntries(sectionIdsFor(r.type, (written.meta as { horizon?: string } | undefined)?.horizon, (written.meta as { lens?: string } | undefined)?.lens ?? (r.computeData as { lens?: string } | null)?.lens).map((id) => [id, id in written ? "done" : "pending"])),
       interpretation: r.interpretation ?? null,
     });
   } catch (err) {
@@ -581,7 +602,7 @@ router.post("/reports/:id/regenerate", async (req, res) => {
     lastRegenerateAt.set(r.id, Date.now());
     await db
       .update(reportsTable)
-      .set({ status: "interpreting", errorMessage: null, updatedAt: new Date() })
+      .set({ status: "interpreting", errorMessage: null, failureCode: null, updatedAt: new Date() })
       .where(eq(reportsTable.id, r.id));
     (async () => {
       try {
@@ -597,17 +618,14 @@ router.post("/reports/:id/regenerate", async (req, res) => {
         }
         const interpretation = await generateInterpretation(chartData, p.name, {
           onSection: streamInto(r.id),
+          reportId: r.id,
         });
         await db
           .update(reportsTable)
           .set({ interpretation, status: "complete", updatedAt: new Date() })
           .where(eq(reportsTable.id, r.id));
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        await db
-          .update(reportsTable)
-          .set({ status: "failed", errorMessage: message, updatedAt: new Date() })
-          .where(eq(reportsTable.id, r.id));
+        await failReport(r.id, err);
       }
     })().catch((err) => req.log.error({ err, id: r.id }, "Regenerate failed"));
     return res.status(202).json({ id: r.id, status: "interpreting" });
@@ -676,6 +694,7 @@ async function generateReport(
 
     const interpretation = await generateInterpretation(chartData, name, {
       onSection: streamInto(id),
+      reportId: id,
     });
 
     await db
@@ -687,12 +706,23 @@ async function generateReport(
       })
       .where(eq(reportsTable.id, id));
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    await db
-      .update(reportsTable)
-      .set({ status: "failed", errorMessage: message, updatedAt: new Date() })
-      .where(eq(reportsTable.id, id));
+    await failReport(id, err);
   }
+}
+
+/**
+ * A failed report stores its code beside the internal message, and the
+ * credit it used goes back (ADR-84). Shared by the natal and the pair path.
+ */
+export async function failReport(id: string, err: unknown): Promise<void> {
+  const message = err instanceof Error ? err.message : "Unknown error";
+  const code = failureCodeOf(err);
+  await db
+    .update(reportsTable)
+    .set({ status: "failed", errorMessage: message, failureCode: code, updatedAt: new Date() })
+    .where(eq(reportsTable.id, id));
+  await refundCredit(id).catch((refundErr) => logger.error({ err: refundErr, id }, "refund after a failed report did not land"));
+  logger.warn({ id, code, message }, "report failed");
 }
 
 export default router;

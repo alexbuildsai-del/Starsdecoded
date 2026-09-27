@@ -3,6 +3,7 @@ import type { SectionSpec } from "../types.js";
 import type { NatalChartData } from "../../lib/chartCalculation.js";
 import { houseRulers } from "../../lib/traditional.js";
 import { BODIES, BODY_LABELS, ordinal, type Body } from "../vocabulary.js";
+import { block, fixed, type Check } from "../checks.js";
 
 export const HousesSchema = z.object({
   houses: z.array(z.object({
@@ -41,14 +42,20 @@ export const houses: SectionSpec<typeof HousesSchema> = {
       ...allowed,
     ].join("\n");
   },
+  // Order and duplicates are fixed in code; a missing house or a body that is not in the house blocks (annex rows 14, 15).
   validate: (out, brief) => {
-    const errors: string[] = [];
-    out.houses.forEach((h, i) => {
-      if (h.house !== i + 1) errors.push(`entry ${i + 1} is house ${h.house}: return all twelve houses in order, 1 to 12`);
-    });
+    const checks: Check[] = [];
+    const byHouse = new Map<number, { house: number; reading: string }>();
+    for (const h of out.houses) {
+      if (h.house < 1 || h.house > 12) { checks.push(fixed("chk-14", `an entry for house ${h.house} was dropped; houses run 1 to 12`)); continue; }
+      if (byHouse.has(h.house)) { checks.push(fixed("chk-14", `house ${h.house} appears twice; the first reading kept`)); continue; }
+      byHouse.set(h.house, h);
+    }
+    const houses = [...byHouse.values()].sort((a, b) => a.house - b.house);
+    if (houses.some((h, i) => out.houses[i]?.house !== h.house)) checks.push(fixed("chk-14", "the twelve readings were out of order; sorted"));
+    for (let n = 1; n <= 12; n++) if (!byHouse.has(n)) checks.push(block("chk-14", `house ${n} has no reading: return all twelve houses, 1 to 12`));
     const rulers = houseRulers(brief.chart);
-    for (const { house, reading } of out.houses) {
-      if (house < 1 || house > 12) continue;
+    for (const { house, reading } of houses) {
       const allowed = new Set<string>();
       for (const b of BODIES) if (brief.chart.planets[b]?.house === house) allowed.add(BODY_LABELS[b]);
       const ruler = rulers[house - 1];
@@ -57,11 +64,11 @@ export const houses: SectionSpec<typeof HousesSchema> = {
         const label = BODY_LABELS[b];
         if (allowed.has(label)) continue;
         if (new RegExp(`\\b${label}\\b`).test(reading)) {
-          errors.push(`house ${house}: the reading names ${label}, which is neither placed in the ${ordinal(house)} nor its ruler`);
+          checks.push(block("chk-15", `house ${house}: the reading names ${label}, which is neither placed in the ${ordinal(house)} nor its ruler`));
         }
       }
     }
-    return errors;
+    return { output: { houses }, checks };
   },
   instructions: `Write the twelve house readings that sit on the back of the house cards in the chart explorer. One entry per house, 1 through 12, in order, 45 to 65 words each; 70 is a hard ceiling.
 

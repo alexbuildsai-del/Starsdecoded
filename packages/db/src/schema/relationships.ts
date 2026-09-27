@@ -7,8 +7,8 @@ export const relationshipsTable = pgTable(
     id: text("id").primaryKey(),
     sessionId: text("session_id").notNull(),
     userId: text("user_id"),
-    /** The lens: partners, parent_child or family (ADR-40). */
-    type: text("type").notNull().default("family"),
+    /** The lens: partners, parent_child or people (ADR-40, ADR-68); the label carries family, friends or colleagues. */
+    type: text("type").notNull().default("people"),
     label: text("label"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -59,7 +59,7 @@ export const relationshipParticipantsTable = pgTable(
 
 export type Relationship = typeof relationshipsTable.$inferSelect;
 export type RelationshipParticipant = typeof relationshipParticipantsTable.$inferSelect;
-export const RELATIONSHIP_TYPES = ["partners", "parent_child", "family"] as const;
+export const RELATIONSHIP_TYPES = ["partners", "parent_child", "people"] as const;
 export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
 
 export type RelationshipRole = "primary" | "secondary";

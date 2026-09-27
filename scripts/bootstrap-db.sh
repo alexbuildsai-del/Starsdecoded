@@ -43,12 +43,24 @@ echo "==> 3d/7 The horizon pass"
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-report-revisions.ts
 
 echo "==> 3e/7 Three lenses"
-# Remaps relationships.type to partners, parent_child, family (ADR-40). Idempotent.
+# Remaps relationships.type to partners, parent_child, people (ADR-40, ADR-68). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-remap-relationship-types.ts
 
 echo "==> 3f/7 One credit kind"
 # credits.credit_type becomes nullable with a default; nothing dropped (ADR-42, MB-57). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-credit-type-nullable.ts
+
+echo "==> 3g/7 The lab tables"
+# lab_runs and lab_judgements, the report lab's runs and the reading room's cards (ADR-52, ADR-53). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-lab-tables.ts
+
+echo "==> 3h/7 The failure log and the release record"
+# generation_failures, lab_releases and reports.failure_code (ADR-84 to 86). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-failures-and-releases.ts
+
+echo "==> 3i/7 The waitlist"
+# waitlist_signups, the pre-launch list production collects until launch (ADR-141). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-waitlist.ts
 
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
@@ -62,8 +74,10 @@ pnpm --filter @workspace/db exec tsx scripts/migrate-drop-meaning-library.ts
 
 echo "==> 6/7 Prompt overrides"
 # Prompts resolve from code; a row exists only where /admin/prompts overrode
-# one. A prompt version bump clears the natal overrides, since they target a
-# contract that no longer exists. Never seeds copies of the defaults.
+# one. A prompt version bump clears that family's overrides, natal or pair,
+# since they target a contract that no longer exists (v7, p2); a natal bump
+# also clears every :system override, natal and pair, since both embed the
+# style contract (ADR-104). Never seeds copies of the defaults.
 pnpm --filter @workspace/scripts run prompts:reset-stale
 
 echo "==> 7/7 Promote prompt overrides from staging"

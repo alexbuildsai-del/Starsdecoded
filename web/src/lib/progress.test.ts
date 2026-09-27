@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CHART_STORED, DOOR_AT, LABELS, NATAL_SECTIONS, PAIR_SECTIONS, REPORT_EXISTS,
-  creep, landed, progressOf, realProgress, registryFor,
+  creep, landed, lensChapterId, pairDoor, pairSectionIds, progressOf, realProgress, registryFor,
 } from "./progress";
 
 const done = (ids: readonly string[]): Record<string, "pending" | "done"> => Object.fromEntries(ids.map((id) => [id, "done"]));
@@ -23,7 +23,7 @@ describe("real progress", () => {
 
   it("counts only the registry's sections", () => {
     expect(landed(done(["overview", "path", "houses"]), NATAL_SECTIONS)).toBe(2);
-    expect(landed(done(["howYouMeet", "links"]), PAIR_SECTIONS)).toBe(2);
+    expect(landed(done(["twoCharts", "links"]), PAIR_SECTIONS)).toBe(2);
   });
 });
 
@@ -87,23 +87,45 @@ describe("the creep (MB-55)", () => {
   });
 });
 
-describe("the pair registry", () => {
-  it("has ten sections and its door waits for howYouMeet and twoCharts", () => {
-    const { registry, required } = registryFor("compatibility");
-    expect(registry.length).toBe(10);
-    expect(required).toEqual(["howYouMeet", "twoCharts"]);
-    const seven = progressOf({ status: "interpreting", chartReady: true, sections: done(PAIR_SECTIONS.slice(0, 7)), registry, required, sinceMilestoneMs: 0 });
-    expect(seven.real).toBe(73);
-    expect(seven.door).toBe(true);
-    const other = progressOf({ status: "interpreting", chartReady: true, sections: done(PAIR_SECTIONS.slice(2, 9)), registry, required, sinceMilestoneMs: 0 });
-    expect(other.door).toBe(false);
-  });
-
+describe("the registries", () => {
   it("drops houses from a blind natal registry and from its door", () => {
     const { registry, required } = registryFor("natal", "unknown");
     expect(registry.length).toBe(10);
     expect(registry).not.toContain("houses");
     expect(required).toEqual(["overview"]);
     expect(registryFor("natal", "known").registry.length).toBe(11);
+  });
+});
+
+describe("the pair's registry (ADR-63)", () => {
+  it("has eight sections a lens, the two charts first and the link cards last, and n = 8", () => {
+    for (const lens of ["partners", "parent_child", "people"] as const) {
+      const ids = pairSectionIds(lens);
+      expect(ids.length).toBe(8);
+      expect(ids[0]).toBe("twoCharts");
+      expect(ids.slice(6)).toEqual(["whatToPractise", "links"]);
+      expect(registryFor("compatibility", undefined, lens).registry).toEqual(ids);
+    }
+    expect(pairSectionIds("parent_child")[1]).toBe("parentChild02");
+    expect(lensChapterId("people", 6)).toBe("people06");
+    expect(realProgress(true, 1, 8)).toBeCloseTo(10 + 90 / 8, 2);
+  });
+
+  it("opens the door at 67 of real progress once the two charts and the lens's chapter 02 have landed", () => {
+    const lens = "people" as const;
+    const { registry, required } = registryFor("compatibility", undefined, lens);
+    expect(required).toEqual(pairDoor(lens));
+    const pair = (sections: Record<string, "pending" | "done">) => progressOf({ status: "interpreting", chartReady: true, sections, registry, required, sinceMilestoneMs: 0 });
+    const six = pair(done(registry.slice(0, 6)));
+    expect(six.real).toBeGreaterThanOrEqual(DOOR_AT);
+    expect(six.door).toBe(true);
+    const withoutTwoCharts = pair(done(registry.slice(1, 7)));
+    expect(withoutTwoCharts.real).toBeGreaterThanOrEqual(DOOR_AT);
+    expect(withoutTwoCharts.door).toBe(false);
+    const withoutChapterTwo = pair(done(["twoCharts", ...registry.slice(2, 7)]));
+    expect(withoutChapterTwo.door).toBe(false);
+    const five = pair(done(registry.slice(0, 5)));
+    expect(five.real).toBeLessThan(DOOR_AT);
+    expect(five.door).toBe(false);
   });
 });
