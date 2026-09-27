@@ -21,14 +21,18 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 // MB-32 provisional: the copy promises what the server decides today, the
-// report plus its birth data when nothing else uses it.
+// report plus its birth data when nothing else uses it. A report its subject
+// has claimed is theirs, so the writer's delete hands it over instead of
+// deleting it (ADR-139), and `handsOver` says so.
 export function DeleteReportDialog({
   reportId,
   personName,
+  handsOver = false,
   className,
 }: {
   reportId: string;
   personName: string;
+  handsOver?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -41,7 +45,11 @@ export function DeleteReportDialog({
         qc.invalidateQueries({ queryKey: getListReportsQueryKey() });
         qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
         setOpen(false);
-        toast({ title: "Report deleted", description: `${personName}'s report is gone.` });
+        toast(
+          handsOver
+            ? { title: "Removed", description: `${personName}'s report is no longer on your dashboard.` }
+            : { title: "Report deleted", description: `${personName}'s report is gone.` },
+        );
       },
       onError: (err) => {
         setOpen(false);
@@ -65,15 +73,18 @@ export function DeleteReportDialog({
           data-testid={`button-delete-report-${reportId}`}
         >
           <Trash2 className="h-3 w-3" />
-          Delete report
+          {handsOver ? "Remove" : "Delete report"}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent onClick={(e) => e.stopPropagation()}>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-display">Delete {personName}'s report?</AlertDialogTitle>
+          <AlertDialogTitle className="font-display">
+            {handsOver ? `Remove ${personName}'s report?` : `Delete ${personName}'s report?`}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            This deletes the report and its birth data if nothing else uses it. Any purchase record
-            is kept. This cannot be undone.
+            {handsOver
+              ? `It stays with ${personName}, who owns it now. You won't be able to read it again.`
+              : "This deletes the report and its birth data if nothing else uses it. Any purchase record is kept. This cannot be undone."}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -88,7 +99,7 @@ export function DeleteReportDialog({
             data-testid="button-confirm-delete-report"
           >
             {deleteReport.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Delete
+            {handsOver ? "Remove" : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

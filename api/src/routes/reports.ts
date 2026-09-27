@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
-import { and, eq, ne, inArray, asc, count } from "drizzle-orm";
+import { and, eq, ne, inArray, asc, count, or } from "drizzle-orm";
 import {
   db,
   profilesTable,
@@ -19,7 +19,24 @@ import { SECTION_IDS } from "../prompts/index.js";
 import { PAIR_PROMPT_VERSION, pairSectionIds } from "../prompts/pair/index.js";
 import type { Lens } from "../lib/pairBrief.js";
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
-import { ownsRelationship, viewerHasGrantOnRelationship, viewerRelationshipIds } from "../lib/access.js";
+import {
+  canReadProfile,
+  giverIdOf,
+  isSelfFor,
+  natalReportAccess,
+  openInvitesByProfile,
+  openInvitesByRelationship,
+  ownsRelationship,
+  pairReadable,
+  pairSendStateFor,
+  sendStateFor,
+  viewerRelationshipIds,
+  type Access,
+  type PairPerson,
+  type SendState,
+  type Viewer,
+} from "../lib/access.js";
+import { firstNameOf } from "../lib/names.js";
 import { consumeCredit, refundCredit } from "../lib/credits.js";
 import { failureCodeOf, failureReasonOf } from "../lib/failureReasons.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
@@ -29,7 +46,8 @@ const router = Router();
 
 type ReportRow = typeof reportsTable.$inferSelect;
 type ProfileRow = typeof profilesTable.$inferSelect;
-type Viewer = { userId: string | null; sessionId: string };
+type RelationshipRow = typeof relationshipsTable.$inferSelect;
+type PartRow = { rp: typeof relationshipParticipantsTable.$inferSelect; profile: ProfileRow };
 
 /**
  * The section keys a report of this type writes, so the status can say which
@@ -61,12 +79,41 @@ export function provisionalFor(p: Pick<ProfileRow, "birthDate" | "birthTime" | "
   }
 }
 
+/** Each pair's two people in position order, with their profiles and their grants. */
+async function partsOf(relationshipIds: string[]): Promise<Map<string, PartRow[]>> {
+  const byRel = new Map<string, PartRow[]>();
+  if (!relationshipIds.length) return byRel;
+  const rows = await db
+    .select({ rp: relationshipParticipantsTable, profile: profilesTable })
+    .from(relationshipParticipantsTable)
+    .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
+    .where(inArray(relationshipParticipantsTable.relationshipId, relationshipIds))
+    .orderBy(asc(relationshipParticipantsTable.position));
+  for (const row of rows) byRel.set(row.rp.relationshipId, [...(byRel.get(row.rp.relationshipId) ?? []), row]);
+  return byRel;
+}
+
+function pairPerson({ rp, profile }: PartRow): PairPerson {
+  return { ...profile, profileId: profile.id, accessRole: rp.accessRole };
+}
+
+type Loaded = {
+  report: ReportRow;
+  profile: ProfileRow;
+  relationship: RelationshipRow | null;
+  parts: PartRow[];
+  /** Null when the viewer may not open it. */
+  access: Access | null;
+  /** A pair's maker, who keeps it whether it reads or has closed. */
+  maker: boolean;
+};
+
 /**
- * A report with the viewer's right to read it. A natal report is owned
- * through its profile or session; a compatibility report through the
- * relationship's access roles. Null reads as 404, so no id is ever confirmed.
+ * A report with the viewer's standing on it: a natal report through its
+ * profile (MB-84), a pair through the pair reading. The routes answer every
+ * refusal with 404, so no id is ever confirmed.
  */
-async function loadReadable(viewer: Viewer, id: string): Promise<{ report: ReportRow; profile: ProfileRow; relationship: typeof relationshipsTable.$inferSelect | null; owner: boolean } | null> {
+async function loadReport(viewer: Viewer, id: string): Promise<Loaded | null> {
   const rows = await db
     .select({ report: reportsTable, profile: profilesTable })
     .from(reportsTable)
@@ -76,26 +123,20 @@ async function loadReadable(viewer: Viewer, id: string): Promise<{ report: Repor
   if (!rows.length) return null;
   const { report, profile } = rows[0];
   if (report.type === "compatibility" && report.relationshipId) {
-    const [rel] = await db.select().from(relationshipsTable).where(eq(relationshipsTable.id, report.relationshipId)).limit(1);
-    if (!rel) return null;
-    const owner = ownsRelationship(viewer, rel);
-    if (!owner && !(await viewerHasGrantOnRelationship(viewer, rel.id))) return null;
-    return { report, profile, relationship: rel, owner };
+    const [relationship] = await db.select().from(relationshipsTable).where(eq(relationshipsTable.id, report.relationshipId)).limit(1);
+    if (!relationship) return null;
+    const parts = (await partsOf([relationship.id])).get(relationship.id) ?? [];
+    const maker = ownsRelationship(viewer, relationship);
+    // MB-103 provisional
+    const { readable } = pairReadable(viewer, relationship, parts.map(pairPerson));
+    return { report, profile, relationship, parts, maker, access: readable ? (maker ? "owner" : "participant") : null };
   }
   if (report.type !== "natal") return null;
-  if (!viewerOwns(viewer, report, profile)) return null;
-  return { report, profile, relationship: null, owner: true };
+  return { report, profile, relationship: null, parts: [], maker: false, access: natalReportAccess(viewer, profile, report) };
 }
 
-/** The two people of a compatibility report, in position order, with their charts and the natal reports it was written from. */
-async function participantsOf(report: ReportRow) {
-  if (!report.relationshipId) return [];
-  const parts = await db
-    .select({ rp: relationshipParticipantsTable, profile: profilesTable })
-    .from(relationshipParticipantsTable)
-    .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
-    .where(eq(relationshipParticipantsTable.relationshipId, report.relationshipId))
-    .orderBy(asc(relationshipParticipantsTable.position));
+/** The two people of a pair, each with the natal report it was written from, marked from the viewer's side (reading 16). */
+function participantsOut(viewer: Viewer, report: ReportRow, parts: PartRow[]) {
   const compute = (report.computeData ?? {}) as { reportAId?: string; reportBId?: string };
   return parts.map((p, i) => ({
     id: p.profile.id,
@@ -108,27 +149,71 @@ async function participantsOf(report: ReportRow) {
     birthPlace: p.profile.birthPlace,
     latitude: p.profile.latitude,
     longitude: p.profile.longitude,
-    isSelf: p.profile.isSelf,
+    isSelf: isSelfFor(viewer, p.profile),
     chartData: (p.profile.chartData as NatalChartData | null) ?? null,
   }));
+}
+
+/** Send to {B} on a pair its maker can read, from their own side of it to the other. */
+// MB-103 provisional
+function pairSend(viewer: Viewer, report: { status: string; relationshipId: string | null }, parts: PartRow[], openInvite: unknown): SendState | null {
+  const own = parts.filter((p) => isSelfFor(viewer, p.profile));
+  const other = parts.find((p) => !own.includes(p));
+  if (own.length !== 1 || !other || !report.relationshipId) return null;
+  return pairSendStateFor(viewer, own[0].profile.id, {
+    profileId: other.profile.id,
+    name: other.profile.name,
+    claimedByUserId: other.profile.claimedByUserId,
+    accessRole: other.rp.accessRole,
+    relationshipId: report.relationshipId,
+  }, openInvite, report);
+}
+
+/** One lookup per person per request, however many of their reports a list holds. */
+function nameCache(): (userId: string | null) => Promise<string | null> {
+  const seen = new Map<string, Promise<string | null>>();
+  return (userId) => {
+    if (!userId) return Promise.resolve(null);
+    let name = seen.get(userId);
+    if (!name) {
+      name = firstNameOf(userId);
+      seen.set(userId, name);
+    }
+    return name;
+  };
+}
+
+/** Whoever sent the viewer this report and still reads it: a natal report's giver, a pair's sender (ADR-139). */
+function senderIdOf(viewer: Viewer, found: Pick<Loaded, "profile" | "relationship" | "access">): string | null {
+  if (found.access === "participant") return found.relationship?.userId ?? null;
+  return found.relationship ? null : giverIdOf(viewer, found.profile);
+}
+
+/** Send on one report, with the one invite lookup it needs; only its writer or a pair's maker sends. */
+async function sendOn(viewer: Viewer, found: Loaded): Promise<SendState | null> {
+  if (!viewer.userId || found.access !== "owner") return null;
+  if (found.relationship) {
+    const invites = await openInvitesByRelationship([found.relationship.id]);
+    return pairSend(viewer, found.report, found.parts, invites.get(found.relationship.id));
+  }
+  const invites = await openInvitesByProfile([found.profile.id]);
+  return sendStateFor(viewer, found.profile, found.report, invites.get(found.profile.id));
 }
 
 function pairName(participants: Array<{ name: string }>): string {
   return participants.length === 2 ? `${participants[0].name} & ${participants[1].name}` : "Compatibility";
 }
 
-// List the current viewer's reports: natal and compatibility, never the
-// retired synastry rows (MB-58).
-//   Natal ownership:
-//     - Signed in: reports whose profile is owned by the user.
-//     - Anonymous: reports tied to the current session cookie.
-//   Compatibility ownership:
-//     - Any relationship the viewer owns or participates in (via claim).
+// List the viewer's reports: natal and compatibility, never the retired
+// synastry rows (MB-58). Natal: signed in, the reports they wrote and the ones
+// sent to them (MB-84); a session, the reports it asked for. Compatibility:
+// the pairs they made and the ones sent to them, by the pair reading.
 router.get("/reports", async (req, res) => {
   try {
-    const natalOwnerWhere = req.userId
-      ? eq(profilesTable.userId, req.userId)
-      : eq(reportsTable.sessionId, req.sessionId);
+    const viewer: Viewer = { userId: req.userId, sessionId: req.sessionId };
+    const natalOwnerWhere = viewer.userId
+      ? or(eq(profilesTable.userId, viewer.userId), eq(profilesTable.claimedByUserId, viewer.userId))
+      : eq(reportsTable.sessionId, viewer.sessionId);
 
     const natalWhere = and(eq(reportsTable.type, "natal"), natalOwnerWhere);
 
@@ -137,6 +222,7 @@ router.get("/reports", async (req, res) => {
         id: reportsTable.id,
         status: reportsTable.status,
         type: reportsTable.type,
+        sessionId: reportsTable.sessionId,
         interpretation: reportsTable.interpretation,
         failureCode: reportsTable.failureCode,
         createdAt: reportsTable.createdAt,
@@ -145,6 +231,15 @@ router.get("/reports", async (req, res) => {
       .from(reportsTable)
       .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
       .where(natalWhere);
+
+    const nameOf = nameCache();
+    const natal = natalRows.flatMap((r) => {
+      const access = natalReportAccess(viewer, r.profile, r);
+      return access ? [{ ...r, access }] : [];
+    });
+    const natalInvites = viewer.userId
+      ? await openInvitesByProfile(natal.filter((r) => r.access === "owner").map((r) => r.profile.id))
+      : new Map<string, string>();
 
     type ReportSummaryOut = {
       id: string;
@@ -172,9 +267,13 @@ router.get("/reports", async (req, res) => {
       }>;
       createdAt: string;
       failureReason: { code: string; line: string } | null;
+      access: Access;
+      send: SendState | null;
+      sharedBy: string | null;
+      stoppedBy: string | null;
     };
 
-    const natalSummaries: ReportSummaryOut[] = natalRows.map((r) => ({
+    const natalSummaries: ReportSummaryOut[] = await Promise.all(natal.map(async (r) => ({
       id: r.id,
       kind: "natal" as const,
       name: r.profile.name,
@@ -200,10 +299,12 @@ router.get("/reports", async (req, res) => {
       }>,
       createdAt: r.createdAt.toISOString(),
       failureReason: failureReasonOf(r.failureCode),
-    }));
+      access: r.access,
+      send: sendStateFor(viewer, r.profile, r, natalInvites.get(r.profile.id)),
+      sharedBy: await nameOf(giverIdOf(viewer, r.profile)),
+      stoppedBy: null,
+    })));
 
-    // Compatibility: any report tied to a relationship the viewer can see.
-    const viewer = { userId: req.userId, sessionId: req.sessionId };
     const { owned, participant } = await viewerRelationshipIds(viewer);
     const visibleRelIds = Array.from(new Set([...owned, ...participant]));
 
@@ -218,7 +319,8 @@ router.get("/reports", async (req, res) => {
           createdAt: reportsTable.createdAt,
           relationshipId: reportsTable.relationshipId,
           relType: relationshipsTable.type,
-          relLabel: relationshipsTable.label,
+          relUserId: relationshipsTable.userId,
+          relSessionId: relationshipsTable.sessionId,
         })
         .from(reportsTable)
         .innerJoin(relationshipsTable, eq(reportsTable.relationshipId, relationshipsTable.id))
@@ -229,41 +331,34 @@ router.get("/reports", async (req, res) => {
           ),
         );
 
-      const relIds = synRows
-        .map((r) => r.relationshipId)
-        .filter((id): id is string => !!id);
-
-      const partRows = relIds.length
-        ? await db
-            .select({
-              relationshipId: relationshipParticipantsTable.relationshipId,
-              position: relationshipParticipantsTable.position,
-              profile: profilesTable,
-            })
-            .from(relationshipParticipantsTable)
-            .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
-            .where(inArray(relationshipParticipantsTable.relationshipId, relIds))
-            .orderBy(asc(relationshipParticipantsTable.position))
-        : [];
-
-      const partsByRel = new Map<string, typeof partRows>();
-      for (const p of partRows) {
-        const arr = partsByRel.get(p.relationshipId) ?? [];
-        arr.push(p);
-        partsByRel.set(p.relationshipId, arr);
-      }
+      const partsByRel = await partsOf(Array.from(new Set(synRows.map((r) => r.relationshipId).filter((id): id is string => !!id))));
 
       // MB-65 provisional: a report written before p2 cannot render on the seven-chapter page, so it is listed nowhere.
       const current = synRows.filter((r) => r.status !== "complete" || (r.interpretation as { meta?: { promptVersion?: string } } | null)?.meta?.promptVersion === PAIR_PROMPT_VERSION);
-      pairSummaries = current.map((r): ReportSummaryOut => {
-        const ps = (r.relationshipId && partsByRel.get(r.relationshipId)) || [];
-        const participants = ps.map((p) => ({
-          id: p.profile.id,
-          name: p.profile.name,
-          sunSign: (p.profile.chartData as any)?.planets?.sun?.sign ?? null,
-          moonSign: (p.profile.chartData as any)?.planets?.moon?.sign ?? null,
-          risingSign: (p.profile.chartData as any)?.angles?.ascendant?.sign ?? null,
-        }));
+      // MB-103 provisional: a pair the viewer made stays listed once closed, naming who stopped sharing; one sent to them goes when its sender stops.
+      const pairs = current.flatMap((r) => {
+        const rel = { userId: r.relUserId, sessionId: r.relSessionId };
+        const parts = (r.relationshipId && partsByRel.get(r.relationshipId)) || [];
+        const reading = pairReadable(viewer, rel, parts.map(pairPerson));
+        if (!reading.readable && !reading.stoppedBy) return [];
+        return [{ r, rel, parts, reading, maker: ownsRelationship(viewer, rel) }];
+      });
+      const pairInvites = await openInvitesByRelationship(
+        pairs.filter((p) => p.maker && p.reading.readable && p.r.relationshipId).map((p) => p.r.relationshipId as string),
+      );
+
+      pairSummaries = await Promise.all(pairs.map(async ({ r, rel, parts, reading, maker }): Promise<ReportSummaryOut> => {
+        const participants = parts.map((p) => {
+          // A closed pair keeps the names its maker typed but no longer shows the chart of whoever stopped sharing (ADR-139).
+          const chart = reading.readable || canReadProfile(viewer, p.profile) ? (p.profile.chartData as any) : null;
+          return {
+            id: p.profile.id,
+            name: p.profile.name,
+            sunSign: chart?.planets?.sun?.sign ?? null,
+            moonSign: chart?.planets?.moon?.sign ?? null,
+            risingSign: chart?.angles?.ascendant?.sign ?? null,
+          };
+        });
         return {
           id: r.id,
           kind: "compatibility",
@@ -281,8 +376,12 @@ router.get("/reports", async (req, res) => {
           participants,
           createdAt: r.createdAt.toISOString(),
           failureReason: failureReasonOf(r.failureCode),
+          access: maker ? "owner" : "participant",
+          send: maker && reading.readable ? pairSend(viewer, r, parts, r.relationshipId ? pairInvites.get(r.relationshipId) : undefined) : null,
+          sharedBy: maker ? null : await nameOf(rel.userId),
+          stoppedBy: reading.stoppedBy,
         };
-      });
+      }));
     }
 
     const summaries = [...natalSummaries, ...pairSummaries].sort((a, b) =>
@@ -385,17 +484,21 @@ router.get("/reports/:id", async (req, res) => {
 
   try {
     // 404 rather than 403 in every refused case, so no id is ever confirmed.
-    const found = await loadReadable(req, parsed.data.id);
-    if (!found) {
+    const found = await loadReport(req, parsed.data.id);
+    if (!found?.access) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
-    const { report: r, profile: p, relationship } = found;
-    const participants = r.type === "compatibility" ? await participantsOf(r) : null;
-    const revisions = await db
-      .select({ id: reportRevisionsTable.id, reason: reportRevisionsTable.reason, createdAt: reportRevisionsTable.createdAt })
-      .from(reportRevisionsTable)
-      .where(eq(reportRevisionsTable.reportId, r.id))
-      .orderBy(asc(reportRevisionsTable.createdAt));
+    const { report: r, profile: p, relationship, access } = found;
+    const participants = r.type === "compatibility" ? participantsOut(req, r, found.parts) : null;
+    const [revisions, send, giverName] = await Promise.all([
+      db
+        .select({ id: reportRevisionsTable.id, reason: reportRevisionsTable.reason, createdAt: reportRevisionsTable.createdAt })
+        .from(reportRevisionsTable)
+        .where(eq(reportRevisionsTable.reportId, r.id))
+        .orderBy(asc(reportRevisionsTable.createdAt)),
+      sendOn(req, found),
+      nameCache()(senderIdOf(req, found)),
+    ]);
     return res.json({
       id: r.id,
       name: participants ? pairName(participants) : p.name,
@@ -422,6 +525,9 @@ router.get("/reports/:id", async (req, res) => {
       failureReason: failureReasonOf(r.failureCode),
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
+      access,
+      send,
+      giverName,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get report");
@@ -438,8 +544,8 @@ router.get("/reports/:id/status", async (req, res) => {
   }
 
   try {
-    const found = await loadReadable(req, parsed.data.id);
-    if (!found) {
+    const found = await loadReport(req, parsed.data.id);
+    if (!found?.access) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     const { report: r, profile: p } = found;
@@ -492,8 +598,8 @@ router.patch("/reports/:id/workbook", async (req, res) => {
   }
 
   try {
-    const found = await loadReadable(req, params.data.id);
-    if (!found) {
+    const found = await loadReport(req, params.data.id);
+    if (!found?.access) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     const { report: r } = found;
@@ -514,6 +620,23 @@ router.patch("/reports/:id/workbook", async (req, res) => {
   }
 });
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Hands a person's chart to the one it was sent to, as Stop sharing does in
+ * profiles.ts: the row and its natal reports move to their account and to a
+ * session no browser holds, so neither the giver's account nor a cookie left
+ * in their browser reaches it again (ADR-139). The writer's own-chart mark
+ * stays behind; the subject's is claimed_as_self.
+ */
+async function handOver(tx: Tx, profileId: string, toUserId: string): Promise<void> {
+  const sessionId = randomUUID();
+  const now = new Date();
+  await tx.update(profilesTable).set({ userId: toUserId, sessionId, isSelf: false, updatedAt: now }).where(eq(profilesTable.id, profileId));
+  await tx.update(reportsTable).set({ sessionId, updatedAt: now })
+    .where(and(eq(reportsTable.profileId, profileId), eq(reportsTable.type, "natal")));
+}
+
 // Regenerate an existing report's interpretation in place. Reuses cached
 // chartData from the profile when available; falls back to a full recompute.
 //
@@ -521,25 +644,40 @@ router.patch("/reports/:id/workbook", async (req, res) => {
 const REGENERATE_COOLDOWN_MS = 60_000;
 const lastRegenerateAt = new Map<string, number>();
 
-// Delete a report the viewer owns. A report mid-generation is deleted too;
-// generateReport tolerates its row vanishing. A compatibility report goes on
-// its own, through the relationship's owner (MB-9, MB-32's 409 gone). The
-// orphaned profile goes with a natal report (MB-32 provisional), which
-// cascades invite_tokens; credits.used_for_report_id nulls out so the payment
-// record survives.
+// Delete a report its holder deletes: a natal report by whoever wrote it or
+// the person it was sent to, a pair by its maker. A report mid-generation is
+// deleted too; generateReport tolerates its row vanishing. A compatibility
+// report goes on its own (MB-9, MB-32's 409 gone). The orphaned profile goes
+// with a natal report (MB-32 provisional), which cascades invite_tokens;
+// credits.used_for_report_id nulls out so the payment record survives.
 router.delete("/reports/:id", async (req, res) => {
   const parsed = DeleteReportParams.safeParse(req.params);
   if (!parsed.success) {
     return res.status(400).json({ error: "validation_error", message: "Invalid ID" });
   }
   try {
-    const found = await loadReadable(req, parsed.data.id);
-    if (!found || !found.owner) {
+    const found = await loadReport(req, parsed.data.id);
+    if (!found) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     const { report: r, profile: p } = found;
     if (r.type === "compatibility") {
+      // MB-103 provisional: a closed pair is still its maker's to delete; the other of its two only reads it.
+      if (!found.maker) {
+        return res.status(404).json({ error: "not_found", message: "Report not found" });
+      }
       await db.delete(reportsTable).where(eq(reportsTable.id, r.id));
+      return res.status(204).end();
+    }
+    if (!found.access) {
+      return res.status(404).json({ error: "not_found", message: "Report not found" });
+    }
+
+    // A claimed report is its subject's (ADR-139), so its giver's Delete lets
+    // go of it rather than taking it from them.
+    const claimer = p.claimedByUserId;
+    if (found.access === "owner" && claimer) {
+      await db.transaction((tx) => handOver(tx, p.id, claimer));
       return res.status(204).end();
     }
 
@@ -556,6 +694,10 @@ router.delete("/reports/:id", async (req, res) => {
       await tx.delete(reportsTable).where(eq(reportsTable.id, r.id));
       if (shouldDeleteProfile({ otherReportCount, relationshipParticipantCount })) {
         await tx.delete(profilesTable).where(eq(profilesTable.id, p.id));
+      } else if (found.access === "claimed" && req.userId && p.userId !== req.userId) {
+        // Deleting what was sent to you withdraws what is left of it from its
+        // giver too, so no pair made from it stays open to them (MB-103 provisional).
+        await handOver(tx, p.id, req.userId);
       }
     });
     lastRegenerateAt.delete(r.id);

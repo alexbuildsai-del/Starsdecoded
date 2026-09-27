@@ -563,7 +563,7 @@ export default function BirthFormPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Generate My Report · €24
+                  {isSelf ? "Write my report" : "Write their report"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}

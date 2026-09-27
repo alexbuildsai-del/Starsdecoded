@@ -15,13 +15,15 @@ import type { ReportInterpretation } from "../lib/aiInterpretation.js";
 import { generatePairInterpretation } from "../lib/pairInterpretation.js";
 import { SceneRequestError, writeScene } from "../lib/pairScene.js";
 import { consumeCredit } from "../lib/credits.js";
-import { canReadProfile, ownsRelationship, viewerHasGrantOnRelationship } from "../lib/access.js";
+import { canReadProfile, pairReadable, type PairPerson } from "../lib/access.js";
 import { failReport, streamInto } from "./reports.js";
 
 const router = Router();
 
 type ReportRow = typeof reportsTable.$inferSelect;
 type ProfileRow = typeof profilesTable.$inferSelect;
+type RelationshipRow = typeof relationshipsTable.$inferSelect;
+type PartRow = { rp: typeof relationshipParticipantsTable.$inferSelect; profile: ProfileRow };
 
 /** A complete natal report the viewer can see: their own, their session's, or one they claimed as theirs. */
 async function readableNatal(viewer: { userId: string | null; sessionId: string }, id: string): Promise<{ report: ReportRow; profile: ProfileRow } | null> {
@@ -79,6 +81,33 @@ async function relationshipFor(
 function roleFor(side: "A" | "B", lens: string, parent: "A" | "B" | null): string {
   if (lens === "parent_child") return (parent ?? "A") === side ? "parent" : "child";
   return side === "A" ? "primary" : "secondary";
+}
+
+/** One pair row, in the shape `pairReadable` takes (ADR-139). Mirrors reports.ts's own mapper, not exported there, per R10-23. */
+function pairPerson({ rp, profile }: PartRow): PairPerson {
+  return { ...profile, profileId: profile.id, accessRole: rp.accessRole };
+}
+
+/**
+ * The relationship and its two people, only when the viewer may still read
+ * the pair: a closed pair follows the same rule as every other read of one
+ * (ADR-139), so summary and scenes answer 404 alike rather than confirming a
+ * closed id with a different status.
+ */
+// MB-103 provisional
+async function readablePair(
+  viewer: { userId: string | null; sessionId: string },
+  relationshipId: string,
+): Promise<{ rel: RelationshipRow; parts: PartRow[] } | null> {
+  const [rel] = await db.select().from(relationshipsTable).where(eq(relationshipsTable.id, relationshipId)).limit(1);
+  if (!rel) return null;
+  const parts = await db
+    .select({ rp: relationshipParticipantsTable, profile: profilesTable })
+    .from(relationshipParticipantsTable)
+    .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
+    .where(eq(relationshipParticipantsTable.relationshipId, rel.id))
+    .orderBy(asc(relationshipParticipantsTable.position));
+  return pairReadable(viewer, rel, parts.map(pairPerson)).readable ? { rel, parts } : null;
 }
 
 // Write a compatibility report from two finished natal reports (ADR-39). No
@@ -165,17 +194,11 @@ router.get("/compatibility/:id/summary", async (req, res) => {
     const [r] = await db.select().from(reportsTable)
       .where(and(eq(reportsTable.id, parsed.data.id), eq(reportsTable.type, "compatibility"))).limit(1);
     if (!r || !r.relationshipId) return res.status(404).json({ error: "not_found", message: "Report not found" });
-    const [rel] = await db.select().from(relationshipsTable).where(eq(relationshipsTable.id, r.relationshipId)).limit(1);
     const viewer = { userId: req.userId, sessionId: req.sessionId };
-    if (!rel || (!ownsRelationship(viewer, rel) && !(await viewerHasGrantOnRelationship(viewer, rel.id)))) {
-      return res.status(404).json({ error: "not_found", message: "Report not found" });
-    }
-    const parts = await db
-      .select({ rp: relationshipParticipantsTable, profile: profilesTable })
-      .from(relationshipParticipantsTable)
-      .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
-      .where(eq(relationshipParticipantsTable.relationshipId, rel.id))
-      .orderBy(asc(relationshipParticipantsTable.position));
+    // A closed pair follows the same rule as every other read of a pair (ADR-139, MB-103).
+    const found = await readablePair(viewer, r.relationshipId);
+    if (!found) return res.status(404).json({ error: "not_found", message: "Report not found" });
+    const { rel, parts } = found;
     const compute = (r.computeData ?? {}) as { reportAId?: string; reportBId?: string };
     return res.json({
       id: r.id,
@@ -203,9 +226,9 @@ router.post("/compatibility/:id/scenes", async (req, res) => {
     const [r] = await db.select().from(reportsTable)
       .where(and(eq(reportsTable.id, params.data.id), eq(reportsTable.type, "compatibility"))).limit(1);
     if (!r || !r.relationshipId) return res.status(404).json({ error: "not_found", message: "Report not found" });
-    const [rel] = await db.select().from(relationshipsTable).where(eq(relationshipsTable.id, r.relationshipId)).limit(1);
     const viewer = { userId: req.userId, sessionId: req.sessionId };
-    if (!rel || (!ownsRelationship(viewer, rel) && !(await viewerHasGrantOnRelationship(viewer, rel.id)))) {
+    // A closed pair follows the same rule as every other read of a pair (ADR-139, MB-103).
+    if (!(await readablePair(viewer, r.relationshipId))) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     if (r.status !== "complete") return res.status(400).json({ error: "not_ready", message: "The report is still being written" });

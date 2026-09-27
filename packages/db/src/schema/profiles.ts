@@ -10,6 +10,9 @@ export const profilesTable = pgTable(
     sessionId: text("session_id").notNull(),
     userId: text("user_id"),
     claimedByUserId: text("claimed_by_user_id"),
+    // Set by the claimer once they say "This is me" (MB-81); distinct from
+    // isSelf, which the profile's own owner sets on their own chart.
+    claimedAsSelf: boolean("claimed_as_self").notNull().default(false),
     isSelf: boolean("is_self").notNull().default(false),
     name: text("name").notNull(),
     birthDate: text("birth_date").notNull(),
