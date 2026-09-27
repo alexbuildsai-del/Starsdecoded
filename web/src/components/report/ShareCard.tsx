@@ -6,11 +6,15 @@
  * the fonts have loaded, shown on the page, and offered through Web Share
  * with the PNG where the browser can share files, else Copy image where
  * ClipboardItem exists, and Save image always. No request carries it:
- * nothing is uploaded and nothing is hosted.
+ * nothing is uploaded and nothing is hosted. The card is shared; the report
+ * itself is sent, by the block's third button, which only the pair's sender
+ * gets (ADR-133).
  */
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Download, Share2 } from "lucide-react";
+import { Copy, Download, Send, Share2 } from "lucide-react";
+import type { SendState } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { StatusDots } from "@/components/StatusDots";
 import { SHARE_CARD, shareActions, shareCardText, type ShareAction } from "@/lib/share-card";
 import type { Lens } from "@/types/chart";
 
@@ -19,8 +23,13 @@ export interface ShareCardProps {
   lens: Lens;
   headline: string;
   strengths: string[];
-  /** The other person, by first name: who the card is sent to. */
+  /** The other person, by first name: who the card is shared with. */
   recipient: string;
+  /** Send to {B} for this report; null where the server does not offer it (reading 11). */
+  send?: SendState | null;
+  onSend?: () => void;
+  /** Given only to the viewer who sent it. */
+  onStopSharing?: () => Promise<unknown>;
 }
 
 const { width: W, height: H } = SHARE_CARD;
@@ -182,6 +191,54 @@ function probeCopyImage(): boolean {
 const LABELS: Record<ShareAction, string> = { share: "Share the card", copy: "Copy image", save: "Save image" };
 const ICONS: Record<ShareAction, typeof Share2> = { share: Share2, copy: Copy, save: Download };
 
+function PairSend({ send, onSend, onStopSharing }: { send: SendState; onSend: () => void; onStopSharing?: () => Promise<unknown> }) {
+  const [stopping, setStopping] = useState(false);
+  const [stopFailed, setStopFailed] = useState(false);
+  const name = send.firstName;
+
+  async function stop() {
+    if (!onStopSharing) return;
+    setStopping(true);
+    setStopFailed(false);
+    try {
+      await onStopSharing();
+    } catch {
+      setStopFailed(true);
+    } finally {
+      setStopping(false);
+    }
+  }
+
+  if (send.state === "sent") return <span className="font-label text-xs text-[var(--paper-dim)]">Sent · waiting for {name}</span>;
+  if (send.state === "joined") {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-label text-xs text-[var(--paper-dim)]">{name} can read it</span>
+        {/* MB-103 provisional: its sender ends the other person's reading at once, and nothing is deleted (ADR-139). */}
+        {onStopSharing && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={stopping}
+            onClick={stop}
+            aria-label={`Stop sharing with ${name}`}
+            className="font-label text-xs text-[var(--paper-dim)] hover:text-[var(--paper)]"
+          >
+            {stopping ? <StatusDots label="Stopping" /> : "Stop sharing"}
+          </Button>
+        )}
+        {stopFailed && <span className="text-xs text-[var(--paper-dim)]">Sharing did not stop. Try again in a minute.</span>}
+      </span>
+    );
+  }
+  return (
+    <Button variant="outline" size="sm" onClick={onSend} className="font-label text-xs gap-1.5">
+      <Send className="h-3.5 w-3.5" />
+      Send to {name}
+    </Button>
+  );
+}
+
 export function ShareCard(props: ShareCardProps) {
   const [blob, setBlob] = useState<Blob | null>(null);
   const [url, setUrl] = useState<string | null>(null);
@@ -191,6 +248,8 @@ export function ShareCard(props: ShareCardProps) {
   const actions = useMemo(() => shareActions({ canShareFiles: probeShareFiles(), canCopyImage: probeCopyImage() }), []);
   const filename = `${props.names.a} and ${props.names.b} - Stars Decoded.png`.replace(/[^\w .-]+/g, "");
   const { names, lens, headline, strengths } = props;
+  // MB-100 provisional: the card is shared and the report is sent, so the line keeps Send for the button (reading 13).
+  const line = `Share it with ${props.recipient}.`;
 
   useEffect(() => {
     let cancelled = false;
@@ -244,7 +303,7 @@ export function ShareCard(props: ShareCardProps) {
       </div>
       <div className="min-w-0">
         <span className="rp-lab">At the end of chapter 01</span>
-        <p className="mt-2 font-display text-[22px] leading-[1.25] text-[var(--paper)]">Send it to {props.recipient}.</p>
+        <p className="mt-2 font-display text-[22px] leading-[1.25] text-[var(--paper)]">{line}</p>
         <p className="mt-2 text-[14px] leading-[1.6] text-[var(--paper-dim)]">It shows the verdict and your three strengths. Nothing from either birth chart is on it, and nothing is uploaded.</p>
         <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Share card">
           {actions.map((action, i) => {
@@ -256,6 +315,7 @@ export function ShareCard(props: ShareCardProps) {
               </Button>
             );
           })}
+          {props.send && props.onSend && <PairSend send={props.send} onSend={props.onSend} onStopSharing={props.onStopSharing} />}
           {failed && <span className="text-xs text-[var(--paper-dim)]">The card could not be drawn in this browser.</span>}
           {note && <span className="text-xs text-[var(--paper-dim)]">{note}</span>}
         </div>

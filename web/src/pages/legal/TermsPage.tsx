@@ -26,9 +26,33 @@ export default function TermsPage() {
 
       <LegalSection title="Your data and your account">
         <p>
-          You may enter birth data for yourself and for people you have a right to describe. When
-          you invite someone, they see only what the invitation says. Our privacy policy explains
-          what we store and how to delete it.
+          You may enter birth data for yourself and for people you have a right to describe. Our
+          privacy policy explains what we store and how to delete it.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Who sees what">
+        <p>
+          A person's chart and report reach nobody else until that person shares them. Only you
+          can approve sharing something about yourself, because it carries your birth details.
+          Stop sharing ends that access at once.
+        </p>
+        <p>
+          When you send someone their Personal natal report, it becomes theirs. You keep reading
+          it, since you wrote it from details you had, until they choose Stop sharing, which ends
+          your access at once.
+        </p>
+        {/* MB-103 provisional: whether a pair reaches its other person only by its maker's send is still open. */}
+        <p>
+          A Compatibility report reaches its other person only when one of the two people in it
+          sends it. Once sent, it shows both people's birth records and passages from both of
+          their Personal natal reports.
+        </p>
+        <p>
+          A gift gives one credit, not a finished report. We hold it for 30 days and return it to
+          you if nobody claims it. Once claimed, the credit moves into the recipient's balance to
+          spend on any report. You see nothing the recipient writes with it, unless they choose to
+          share it with you.
         </p>
       </LegalSection>
 

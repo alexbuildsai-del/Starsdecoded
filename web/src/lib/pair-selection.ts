@@ -89,6 +89,38 @@ export function reconcileSelection(remembered: Partial<PairSelection>, reports: 
   return listed(remembered.a) && listed(remembered.b) ? { state: "kept", selection: remembered } : { state: "dropped" };
 }
 
+/**
+ * The selection a dashboard Generate hands the picker (dashboard-sky, MB-86):
+ * the reader's report as A, the other person's as B, and no lens, since the
+ * picker still asks it (ADR-40, ADR-68). It enters through
+ * `reconcileSelection` like a remembered pair, so it waits for the list and
+ * only a pair whose two reports are both listed reaches a lookup.
+ */
+export function preselectPair(a: string, b: string): Partial<PairSelection> {
+  const s: Partial<PairSelection> = {};
+  if (a) s.a = a;
+  // A report is never paired with itself; the picker's selects exclude it too.
+  if (b && b !== a) s.b = b;
+  return s;
+}
+
+/**
+ * What the picker holds once a preselect enters. A press for the two already
+ * chosen keeps the lens and its answers, since a second press should cost no
+ * choice; the parent stays the same person when the two come the other way
+ * round. Any other pair starts clean: a lens belongs to the two it was chosen for.
+ */
+export function enterPreselect(current: Partial<PairSelection>, preselect: Partial<PairSelection>): Partial<PairSelection> {
+  const same = current.a === preselect.a && current.b === preselect.b;
+  const swapped = current.a === preselect.b && current.b === preselect.a;
+  if (!preselect.a || !preselect.b || !(same || swapped)) return { ...preselect };
+  const kept: Partial<PairSelection> = { ...preselect };
+  if (current.lens) kept.lens = current.lens;
+  if (current.how) kept.how = current.how;
+  if (current.parent) kept.parent = same ? current.parent : current.parent === "A" ? "B" : "A";
+  return kept;
+}
+
 /** Why a report cannot be picked, or null when it can. An id the list no longer holds has no report behind it. */
 export function unpickable(r: ReportSummary | undefined): string | null {
   if (!r) return "no longer available";
