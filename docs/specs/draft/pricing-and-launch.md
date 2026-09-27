@@ -31,9 +31,14 @@ storing UTM tags (ADR-141); the free chart at /sky, signed out and computed in t
 - **Get credits** on production opens Stripe Checkout for the chosen bundle and returns to the
   step that asked for it: the birth form, the picker with its pair, Gift a report. Off
   production the free test checkout stays as ADR-138 built it.
-- Checkout carries the EU withdrawal line as a required tick: "Start my reports as soon as I use
-  a credit. I lose the 14-day right to cancel for a credit once its report starts." Unspent
-  credits are refundable for 14 days; a refund in Stripe removes them through the webhook.
+- **One required tick**, Stripe Checkout's own terms box, unticked: "Start each report when I
+  use a credit. A used credit can't be refunded." EU law gives buyers of digital content 14 days
+  to cancel unless they agree to an immediate start and accept losing that right; the tick is
+  that agreement, so a report read cannot be refunded on demand.
+- **Refunds, three rules** (the Refunds page says exactly these): an unused credit is refunded on
+  request within 14 days of purchase, and the webhook removes it; a report that fails gives its
+  credit back automatically; beyond that Alex may refund anyone from Stripe, because a goodwill
+  refund costs less than a card dispute and its fee.
 - The webhook grants the bundle through the credits ledger, keyed by the Stripe event id (R-6.2).
   `consumeCredit` goes hard on production and the soft pass is deleted (MB-6, MB-57).
 - Launch is `LAUNCHED = true` plus a Release, after this checkout is live (ADR-138, ADR-141).
@@ -116,14 +121,12 @@ events: Send, Gift a report, claim, and a recipient's first purchase.
 
 ### Offers (bundles only, never the single)
 At most 25% off, one per purchase, a dated row in the catalogue, the end date printed once and no
-countdown (credit-loop: no timers). The waitlist's launch week; December 1 to 24, the 5 at €60
-("Five reports. Send four."); Valentine's, the 3 at €40; Mother's and Father's Day, the 5 at €60.
-If launch lands by early November, December falls inside the run to 100.
+countdown (credit-loop: no timers). The waitlist's first seven days, the 3 at €40; December 1 to
+24, the 5 at €60; Valentine's, the 3 at €40; Mother's and Father's Day, the 5 at €60.
 
 ### Hooks (through `/ux-copy`, ADR-117)
 "Computed, not guessed." · "Two charts, one report, no score." · "Three for the price of two.
-The third is for someone." · "Your rising sign changes every two hours. Your birth time decides
-which." · "What this child needs." · "The gift that is only about them."
+The third is for someone." · "What this child needs." · "The gift that is only about them."
 
 ### Later: the subscription (recorded, not decided)
 A monthly reading of the current sky against a person's stored chart, and a section for each pair
@@ -131,7 +134,7 @@ report they share. It needs its own ideation, which must amend MASTERFILE §1 ("
 subscription") and R-5.2 so a period may be named and an event never. Every claimed report
 already gives its person an account, so anyone could subscribe.
 
-## Challenges to shipped decisions
+## Challenges to shipped decisions (both accepted 2026-09-27)
 
 1. **A gift claim opens the birth form, with Not now** (amends ADR-139's landing only). ADR-139
    opens the dashboard; a recipient holding one credit and no chart is the loop's likeliest leak.
@@ -148,7 +151,7 @@ already gives its person an account, so anyone could subscribe.
 ## Acceptance criteria
 
 1. Every price renders from the catalogue; no literal price remains in `web/` or `api/`.
-2. On production, Get credits opens Stripe Checkout, requires the withdrawal tick and returns to
+2. On production, Get credits opens Stripe Checkout, requires the unticked terms box and returns to
    the step that asked; a replayed webhook grants nothing twice; a Stripe refund removes unspent
    credits; `consumeCredit` refuses with no credit.
 3. Off production the free test checkout still grants test bundles; production refuses it.
@@ -159,7 +162,7 @@ already gives its person an account, so anyone could subscribe.
    customer and the five loop measures, excluding test bundles.
 7. An offer window changes one bundle's price between its dates, never the single, never two at
    once, with no countdown.
-8. If challenge 1 is accepted: a gift claim opens the birth form; Not now opens the dashboard.
+8. A gift claim opens the birth form; Not now opens the dashboard.
 9. Typecheck, both builds, unit tests, codegen, `db:bootstrap` clean twice, staging smoke, and a
    test-mode purchase end to end on staging.
 
@@ -168,13 +171,9 @@ already gives its person an account, so anyone could subscribe.
 In the artifact: the credits sheet with prices, the path from a post to a report, the launch
 phases, three content formats, the budget, the loop study and its gate, the two challenges.
 
-## Open questions (three, each with a recommendation and a default)
+## Open questions
 
-1. **Waitlist offer.** Someone and the two of you at €40 for the waitlist's first seven days?
-   Recommend yes: it rewards the people who came first and seeds the 3 early. Default: yes.
-2. **Gift claim.** Open the birth form with Not now (challenge 1)? Recommend yes. Default: as
-   shipped, the dashboard.
-3. **Ad test.** Organic only until customer 50, then at most €300? Recommend yes. Default: yes.
+None. Answered 2026-09-27: the waitlist offer, the gift claim and the ad test, yes; a plain tick.
 
 ## The Owner supplies (no code can)
 
@@ -186,9 +185,10 @@ registration where the country asks for one; the Instagram and TikTok handles.
 
 1. **Prices €24, €48, €72** for 1, 3 and 5 credits, from one catalogue; the single never
    discounted; the credits sheet shows the price. Closes MB-5.
-2. **Stripe Checkout from Get credits**, returning to the asking step, with the withdrawal tick;
-   the webhook grants; credits hard on production; the test checkout stays off production.
-   Closes MB-6 and MB-57.
+2. **Stripe Checkout from Get credits**, returning to the asking step, with one plain tick; the
+   webhook grants; credits hard on production; the test checkout stays off production. Refunds:
+   unused credits within 14 days, failed reports automatically, goodwill at Alex's call. Closes
+   MB-6 and MB-57.
 3. **Alex sells as an individual trading as Stars Decoded until 100 customers**, one legal
    constant, Stripe Individual paying out to a dedicated account. Closes MB-31.
 4. **Privacy until the company**: Alex as controller, the processor list, double opt-in,
@@ -197,4 +197,4 @@ registration where the country asks for one; the Instagram and TikTok handles.
 6. **The launch is organic to 100 customers** in five phases, a €600 cash cap, ads only from
    customer 50; the gate at 100 decides the company. Closes MB-11 and MB-107.
 7. **The loop study** and its five hypotheses, read in an admin Launch view.
-8. If accepted: **a gift claim opens the birth form**, amending ADR-139's landing.
+8. **A gift claim opens the birth form**, with Not now, amending ADR-139's landing.
