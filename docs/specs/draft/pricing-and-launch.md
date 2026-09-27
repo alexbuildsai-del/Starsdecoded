@@ -33,8 +33,8 @@ storing UTM tags (ADR-141); the free chart at /sky, signed out and computed in t
   production the free test checkout stays as ADR-138 built it.
 - **One required tick**, Stripe Checkout's terms box (`consent_collection.terms_of_service`
   required, our words in `custom_text.terms_of_service_acceptance`, a Terms link beside them):
-  "Start each report when I use a credit. I understand I can't cancel or get a refund for a
-  credit once it's used." EU law gives buyers of digital content 14 days
+  "Write each report as soon as I use a credit on it. I understand I can't cancel or get a
+  refund for a credit once it's used." EU law gives buyers of digital content 14 days
   to cancel unless they agree to an immediate start and accept losing that right (Directive
   2011/83/EU, Art. 16(m)); the tick is that agreement, and the receipt email repeats it (8(7)).
 - **Refunds, three rules** (the Refunds page says exactly these): an unused credit is refunded on
