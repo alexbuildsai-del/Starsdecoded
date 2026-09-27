@@ -1,26 +1,25 @@
 # Pricing and launch
 
-Ideation 2026-09-21, revised 2026-09-26 with the Owner. Prices, the paid checkout, who sells
+Ideation 2026-09-21, revised 2026-09-26 and 27 with the Owner. Prices, the paid checkout, who sells
 until a company exists, and a small launch to the first 100 customers. Artifact:
-https://claude.ai/artifact/LsBoAa2WbJJURqWgvpgb31. Status: **draft**.
+https://claude.ai/artifact/LsBoAa2WbJJURqWgvpgb31. Status: **locked 2026-09-27**.
 
-Builds on what R09 and R10 locked and shipped, taken as given: one credit per report and one
-balance (ADR-42, R-6.5); Send to {name}, Gift a report, Add someone, the credits pill and sheet
-with History and the path after buying (`credit-loop.md`, ADR-120 to 129); the consent rule
-(ADR-139, R-3.6); writing needs an account (ADR-140); no production release before checkout,
-with a free test checkout off production (ADR-138); production is a waitlist until launch,
-storing UTM tags (ADR-141); the free chart at /sky, signed out and computed in the browser
-(`landing-and-ai-search.md`); the type-only share card at 1080×1350 (ADR-102).
+Builds on R09 and R10 as shipped: one credit per report, one balance (ADR-42, R-6.5); Send,
+Gift a report, Add someone and the credits sheet (`credit-loop.md`, ADR-120 to 129); consent
+(ADR-139); writing needs an account (ADR-140); the test checkout off production (ADR-138); the
+waitlist with UTM tags (ADR-141); the free chart at /sky; the share card at 1080×1350 (ADR-102).
 
 ## Scope
 
-### Prices (the Owner's numbers, kept)
-| Bundle, as the credits sheet names it | Credits | Price | Per credit |
-|---|---|---|---|
-| One report | 1 | €24 | €24.00 |
-| Someone and the two of you | 3 | €48 | €16.00 |
-| Your people and how you fit | 5 | €72 | €14.40 |
-- VAT included. EUR only. The single credit is never discounted.
+### Bundles and prices (the Owner's names and numbers)
+| Name | Line under it | Credits | Price | Per credit |
+|---|---|---|---|---|
+| Single | 1 credit · one report | 1 | €24 | €24.00 |
+| Couple | 3 credits · a report each and how you get along | 3 | €48 | €16.00 |
+| Family & friends | 5 credits · for the people close to you | 5 | €72 | €14.40 |
+- The names replace credit-loop's "One report", "Someone and the two of you" and "Your people
+  and how you fit" (`web/src/lib/credits-view.ts`). Sentence case, per `/ux-copy`.
+- VAT included. EUR only. Single is never discounted.
 - One price catalogue in `api/src/` (bundle, credits, cents, Stripe price id, dated offer
   windows), read by the credits sheet, the landing's pricing slot, JSON-LD's Offer and the
   receipt (R-6.3). The birth form's typed "€24" goes.
@@ -121,10 +120,11 @@ events: Send, Gift a report, claim, and a recipient's first purchase.
   refunds at 5% or less, and at least 15% of customers from the loop → form the company and fund
   ads. Any miss names the step to fix before money goes in.
 
-### Offers (bundles only, never the single)
+### Offers (Couple and Family & friends only, never Single)
 At most 25% off, one per purchase, a dated row in the catalogue, the end date printed once and no
-countdown (credit-loop: no timers). The waitlist's first seven days, the 3 at €40; December 1 to
-24, the 5 at €60; Valentine's, the 3 at €40; Mother's and Father's Day, the 5 at €60.
+countdown (credit-loop: no timers). The waitlist's first seven days, Couple at €40; December 1
+to 24, Family & friends at €60; Valentine's, Couple at €40; Mother's and Father's Day, Family &
+friends at €60.
 
 ### Hooks (through `/ux-copy`, ADR-117)
 "Computed, not guessed." · "Two charts, one report, no score." · "Three for the price of two.
@@ -144,7 +144,7 @@ amend §1 and R-5.2 so a period may be named and an event never.
 
 ## Out of scope
 
-- Composite charts (MB-17), a second currency, discounting the single credit, coupon fields,
+- Composite charts (MB-17), a second currency, discounting Single, coupon fields,
   gift cards for people without an account, a thank-you credit, the subscription build, paid
   creator deals, ad spend beyond the cap, forming the company.
 
@@ -161,7 +161,7 @@ amend §1 and R-5.2 so a period may be named and an event never.
 5. The waitlist uses double opt-in; its UTM tags reach the account created from the same browser.
 6. The admin Launch view shows days since launch, customers, revenue, cash entered, cost per
    customer and the five loop measures, excluding test bundles.
-7. An offer window changes one bundle's price between its dates, never the single, never two at
+7. An offer window changes one bundle's price between its dates, never Single, never two at
    once, with no countdown.
 8. A gift claim opens the birth form; Not now opens the dashboard.
 9. Typecheck, both builds, unit tests, codegen, `db:bootstrap` clean twice, staging smoke, and a
@@ -177,14 +177,14 @@ None. Answered 2026-09-27: the waitlist offer, the gift claim, the ad test; the 
 
 ## The Owner supplies (no code can)
 
-Full legal name, a postal or mail-forwarding address, country of residence, the contact address;
-the Stripe account (Individual) and the Revolut account for payouts; the sole-trader
-registration where the country asks for one; the Instagram and TikTok handles.
+Legal name, a postal or forwarding address, country, a contact address; the Stripe and Revolut
+accounts; a sole-trader registration where required; the Instagram and TikTok handles.
 
 ## Decisions to record
 
-1. **Prices €24, €48, €72** for 1, 3 and 5 credits, from one catalogue; the single never
-   discounted; the credits sheet shows the price. Closes MB-5.
+1. **Single €24, Couple €48, Family & friends €72** for 1, 3 and 5 credits, from one catalogue;
+   Single never discounted; the sheet shows name, line and price. Supersedes credit-loop's bundle
+   names. Closes MB-5.
 2. **Stripe Checkout from Get credits**, returning to the asking step, with one plain tick; the
    webhook grants; credits hard on production; the test checkout stays off production. Refunds:
    unused credits within 14 days, failed reports automatically, goodwill at Alex's call. Closes
