@@ -72,7 +72,7 @@ waitlist with UTM tags (ADR-141); the free chart at /sky; the share card at 1080
 - Rights: deletion works (R01); an export is sent by email within 30 days; the privacy mailbox is
   read weekly; a breach is logged and reported to the home authority within 72 hours.
 - Only necessary cookies (the Clerk session). Analytics are cookieless, so there is no banner.
-- Waitlist addresses are deleted 12 months after launch if their owner never signed up.
+- Waitlist addresses are deleted once the opening email has gone out, as ADR-141 states.
 
 ### The launch: slow, organic, measured (the GTM)
 Goal: 100 paying customers, and three numbers when we get there: days from launch, cash spent,
@@ -83,7 +83,7 @@ hold attention.
 |---|---|---|
 | 0 · Warm-up | now to launch, about 4 weeks | Waitlist live on production; @mystarsdecoded on Instagram and TikTok; 20 posts banked, then one a day; bio link to the waitlist with `utm_source` per platform and `utm_content` per post. Target 500 sign-ups. |
 | 1 · Friends | launch week | 10 to 20 people Alex knows buy at full price, read, and say yes or no to a quote and a sentence from their report being used. |
-| 2 · Waitlist | weeks 1 to 2 | The launch email (MB-107) in batches of about 100; the waitlist's one offer (question 1). |
+| 2 · Waitlist | weeks 1 to 2 | The opening email through Resend in batches of about 100; its link carries the waitlist offer; the list is then deleted (ADR-141). |
 | 3 · Organic | weeks 2 to 12 | Daily posts; replies point to the free chart; 10 creators in the self-knowledge niche get a report through Gift a report, no paid deal. |
 | 4 · Ad test | from customer 50 | At most €300 behind the three posts with the best hold rate, as TikTok Spark Ads and Instagram boosts. |
 
@@ -180,7 +180,7 @@ None. Answered 2026-09-27: the waitlist offer, the gift claim, the ad test; the 
 Legal name, a postal or forwarding address, country, a contact address; the Stripe and Revolut
 accounts; a sole-trader registration where required; the Instagram and TikTok handles.
 
-## Decisions to record
+## Decisions recorded (ADR-142 to 149, in this order)
 
 1. **Single €24, Couple €48, Family & friends €72** for 1, 3 and 5 credits, from one catalogue;
    Single never discounted; the sheet shows name, line and price. Supersedes credit-loop's bundle
