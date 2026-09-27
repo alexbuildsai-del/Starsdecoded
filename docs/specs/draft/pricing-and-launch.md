@@ -31,8 +31,10 @@ storing UTM tags (ADR-141); the free chart at /sky, signed out and computed in t
 - **Get credits** on production opens Stripe Checkout for the chosen bundle and returns to the
   step that asked for it: the birth form, the picker with its pair, Gift a report. Off
   production the free test checkout stays as ADR-138 built it.
-- **One required tick**, Stripe Checkout's own terms box, unticked: "Start each report when I
-  use a credit. A used credit can't be refunded." EU law gives buyers of digital content 14 days
+- **One required tick**, Stripe Checkout's terms box (`consent_collection.terms_of_service`
+  required, our words in `custom_text.terms_of_service_acceptance`, a Terms link beside them):
+  "Start each report when I use a credit. I understand I can't cancel or get a refund for a
+  credit once it's used." EU law gives buyers of digital content 14 days
   to cancel unless they agree to an immediate start and accept losing that right (Directive
   2011/83/EU, Art. 16(m)); the tick is that agreement, and the receipt email repeats it (8(7)).
 - **Refunds, three rules** (the Refunds page says exactly these): an unused credit is refunded on
@@ -129,10 +131,8 @@ countdown (credit-loop: no timers). The waitlist's first seven days, the 3 at �
 The third is for someone." · "What this child needs." · "The gift that is only about them."
 
 ### Later: the subscription (recorded, not decided)
-A monthly reading of the current sky against a person's stored chart, and a section for each pair
-report they share. It needs its own ideation, which must amend MASTERFILE §1 ("not a
-subscription") and R-5.2 so a period may be named and an event never. Every claimed report
-already gives its person an account, so anyone could subscribe.
+A monthly reading of the sky against a stored chart and each shared pair. Its own ideation must
+amend §1 and R-5.2 so a period may be named and an event never.
 
 ## Challenges to shipped decisions (both accepted 2026-09-27)
 
@@ -151,8 +151,9 @@ already gives its person an account, so anyone could subscribe.
 ## Acceptance criteria
 
 1. Every price renders from the catalogue; no literal price remains in `web/` or `api/`.
-2. On production, Get credits opens Stripe Checkout, requires the unticked terms box and returns to
-   the step that asked; the receipt repeats the tick; a replayed webhook grants nothing twice; a Stripe refund removes unspent
+2. On production, Get credits opens Stripe Checkout and returns to the step that asked; the box
+   starts unticked (checked in test mode); the webhook grants only with `consent.terms_of_service`
+   `accepted` and never twice; the receipt repeats the tick; a Stripe refund removes unspent
    credits; `consumeCredit` refuses with no credit.
 3. Off production the free test checkout still grants test bundles; production refuses it.
 4. Terms, Privacy, Refunds and the company page read `LEGAL_IDENTITY`; no `[LEGAL ENTITY]`
@@ -168,12 +169,11 @@ already gives its person an account, so anyone could subscribe.
 
 ## Screens
 
-In the artifact: the credits sheet with prices, the path from a post to a report, the launch
-phases, three content formats, the budget, the loop study and its gate, the two challenges.
+In the artifact: the priced credits sheet, the path to a report, the launch, the loop study.
 
 ## Open questions
 
-None. Answered 2026-09-27: the waitlist offer, the gift claim and the ad test, yes; a plain tick.
+None. Answered 2026-09-27: the waitlist offer, the gift claim, the ad test; the tick.
 
 ## The Owner supplies (no code can)
 
