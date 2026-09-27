@@ -17,8 +17,8 @@ waitlist with UTM tags (ADR-141); the free chart at /sky; the share card at 1080
 | Single | 1 credit · one report | 1 | €24 | €24.00 |
 | Couple | 3 credits · a report each and how you get along | 3 | €48 | €16.00 |
 | Family & friends | 5 credits · for the people close to you | 5 | €72 | €14.40 |
-- The names replace credit-loop's "One report", "Someone and the two of you" and "Your people
-  and how you fit" (`web/src/lib/credits-view.ts`). Sentence case, per `/ux-copy`.
+- The names replace credit-loop's "One report", "Someone and the two of you", "Your people and
+  how you fit" and the path title "Your people, then how you fit" (`credits-view.ts`).
 - VAT included. EUR only. Single is never discounted.
 - One price catalogue in `api/src/` (bundle, credits, cents, Stripe price id, dated offer
   windows), read by the credits sheet, the landing's pricing slot, JSON-LD's Offer and the
