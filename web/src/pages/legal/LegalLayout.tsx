@@ -1,68 +1,80 @@
 import { useEffect, type ReactNode } from "react";
 import { Link } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { LEGAL_IDENTITY } from "@workspace/commerce";
 import { DraftBanner } from "@/components/DraftBanner";
+import { PageHead, SiteLayout } from "@/site/SiteLayout";
+import { FOOTER, pageFor, type PagePath } from "@/site/site";
 
-const LEGAL_LINKS = [
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "/refunds", label: "Refunds" },
-  { href: "/company", label: "Company" },
-];
+type LegalPath = Extract<PagePath, "/privacy" | "/terms" | "/refunds" | "/company">;
+
+// The footer's Company column is the legal set, so the two cannot disagree on a label or an order.
+const LEGAL_LINKS = FOOTER.flatMap((column) => column.links).filter((link) => pageFor(link.href).kind === "legal");
+
+// MB-115 provisional: a sentence that needs the contact address is left out while it is missing, never shown with a gap
+// (reading 10); the draft banner says the page is not final meanwhile.
+export const CONTACT: string | null = LEGAL_IDENTITY.contactEmail?.trim() || null;
+
+export function MailLink({ address }: { address: string }) {
+  return <a href={`mailto:${address}`}>{address}</a>;
+}
 
 export function LegalSection({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} className="mb-10 scroll-mt-20">
-      <h2 className="font-display text-2xl mb-3">{title}</h2>
-      <div className="space-y-3 text-muted-foreground leading-relaxed text-[15px]">{children}</div>
+    <section id={id} className="mb-14 last:mb-0">
+      <h2 className="mb-4 text-[26px] leading-tight">{title}</h2>
+      <div className="space-y-4 text-[16px] leading-[1.7] text-[var(--paper-dim)]">{children}</div>
     </section>
   );
 }
 
-export function LegalLayout({
-  kicker,
-  title,
-  updated,
-  children,
-}: {
-  kicker: string;
-  title: string;
-  updated: string;
-  children: ReactNode;
-}) {
-  // A link to one section (the waitlist form's to #waitlist) lands before this page has rendered, so the browser cannot scroll to it.
+function LegalNav({ here }: { here: PagePath }) {
+  return (
+    <nav aria-label="Legal pages">
+      <ul className="-my-2 flex flex-wrap gap-x-6 font-label text-[13px] font-medium">
+        {LEGAL_LINKS.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              aria-current={link.href === here ? "page" : undefined}
+              className="inline-block py-2 text-[var(--paper-dim)] no-underline decoration-[var(--indigo-lt)] underline-offset-[6px] hover:text-[var(--paper)] aria-[current=page]:text-[var(--paper)] aria-[current=page]:underline"
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+export function LegalLayout({ path, children }: { path: LegalPath; children: ReactNode }) {
+  const page = pageFor(path);
+
+  // A link to one section (the waitlist form's to #waitlist) can land before this page has rendered, and the fonts can
+  // arrive after the jump and move the section, so it lands once now and again when they are in.
   useEffect(() => {
     const id = window.location.hash.slice(1);
-    if (id) document.getElementById(id)?.scrollIntoView();
+    if (!id) return;
+    const land = () => document.getElementById(id)?.scrollIntoView();
+    land();
+    void document.fonts?.ready.then(land);
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            Home
-          </Link>
-          <div className="flex items-center gap-4">
-            {LEGAL_LINKS.map((l) => (
-              <Link key={l.href} href={l.href} className="font-label text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {l.label}
-              </Link>
-            ))}
-          </div>
+    <SiteLayout
+      page={page}
+      head={
+        <PageHead page={page}>
+          <LegalNav here={page.path} />
+        </PageHead>
+      }
+    >
+      <div className="sd-wrap pb-24 pt-12 md:pt-16">
+        <div className="max-w-[34rem]">
+          <DraftBanner className="mb-12" />
+          {children}
         </div>
-      </nav>
-
-      <main className="max-w-3xl mx-auto px-6 pt-28 pb-24">
-        <p className="font-label text-xs tracking-[0.2em] uppercase text-primary/80 mb-4">{kicker}</p>
-        <h1 className="font-display text-4xl md:text-5xl leading-tight mb-3">{title}</h1>
-        <p className="font-label text-xs text-muted-foreground mb-8">Draft dated {updated}</p>
-        <div className="mb-12">
-          <DraftBanner />
-        </div>
-        {children}
-      </main>
-    </div>
+      </div>
+    </SiteLayout>
   );
 }
