@@ -387,3 +387,119 @@ Done when:
   shows.
 - `robotsTxt(env)`, `sitemapXml(env)` (every indexable page with its Updated date as `lastmod`, /sample only where live) and
   `llmsTxt()` (the pages and their ledes) follow reading 15; tests pin each file for production and for staging.
+
+### R11-11 — The legal pages read one seller (USER-FACING) · Opus — provisional MB-33, MB-115
+Objective: the four legal pages read `LEGAL_IDENTITY`, say what ADR-143 to 145 decided, and leave draft once the waitlist's fields are in.
+Files: `web/src/pages/legal/*.tsx` (all five); `web/src/components/DraftBanner.tsx`; new `web/src/lib/processors.ts` (+ test).
+Refs: pricing-and-launch Sold by Alex, Privacy until the company, Checkout; ADR-139, 143 to 145; MB-33, 115, 116; readings 9 to 11, 14.
+Done when:
+- No bracketed placeholder; the banner and "Draft dated" or "Updated" follow reading 10; the pages sit inside `SiteLayout`, the
+  legal nav reading Privacy, Terms, Refunds, Who runs Stars Decoded.
+- Who runs Stars Decoded: Alexandra Bendicakova, a private individual trading as Stars Decoded, Belgium, the contact once set, no
+  postal line while it is `null`. Refunds: exactly `REFUND_RULES`. Terms: the seller, bundles of credits priced before paying,
+  another person's details only with their knowledge and a child's only as parent or guardian, accounts 16 and over, the tick's
+  effect (`CHECKOUT_TICK`), R10-05's section kept, Belgian law.
+- Privacy as ADR-145 states it: controller and contact; `processors.ts` (Supabase, Railway, Vercel, OpenAI, Clerk, Resend;
+  Nominatim and timeapi.io from the browser) with reading 10's regions; lawful bases; double opt-in and retention (reading 11);
+  rights (an export by email within 30 days, the mailbox read weekly, a breach reported within 72 hours); necessary cookies only;
+  the browser keys, `sd.form.draft` among them; no analytics; `#waitlist` kept.
+
+### R11-12 — The waitlist asks twice: the API (USER-FACING) · Opus
+Objective: an address joins only when its owner confirms it; production takes none until the privacy page names its contact.
+Files: `api/src/routes/waitlist.ts`, `adminWaitlist.ts`; `api/src/lib/waitlist.ts`, `prelaunch.ts`, `mailer.ts` (each + test).
+Refs: ADR-141, 145; pricing-and-launch Privacy; MB-106 (decided), MB-115; readings 11, 12; pinned contract, waitlist, commerce.
+Done when:
+- POST /waitlist stores the address unconfirmed with a fresh token's hash and `utm_content`, sends `sendWaitlistConfirmEmail`
+  with `{PUBLIC_APP_URL}/waitlist?confirm={token}`, and answers `check_email` whatever the address's state, with reading 11's
+  throttle; on production it answers 503 `waitlist_closed` while `!waitlistReady()`.
+- POST /waitlist/confirm confirms a live token (a repeat answers the same) and 404s an unknown or expired one; unconfirmed rows
+  older than seven days go on each call; `OPEN_PATHS` admits `/waitlist/confirm`.
+- The confirmation email, in the shell the other emails use, says only what confirming does, with the button and the day the
+  link stops working, in words that pass `/ux-copy`; GET /admin/waitlist adds `confirmedAt`, `utmContent` and the two counts.
+- Tests: the token, the throttle, the sweep, the closed state, the gate and the email's words.
+
+### R11-13 — The waitlist asks twice: the web (USER-FACING) · Sonnet
+Objective: the form asks people to confirm by email, the /waitlist page confirms their link, and the admin list shows who did.
+Files: `web/src/components/waitlist/WaitlistForm.tsx`; new `web/src/components/waitlist/ConfirmWaitlist.tsx`;
+`web/src/lib/waitlist.ts` (+ test); `web/src/pages/AdminWaitlistPage.tsx`.
+Refs: ADR-141, 145; readings 11, 12, 17; pinned waitlist and contract.
+Done when:
+- `WaitlistForm` takes any `source`, sends consent `launch-email-v2` (its sentence through `/ux-copy`) and `utmContent`; a join
+  shows "Check your inbox" with the address; production while `!waitlistReady()` shows reading 12's line and no field.
+- `ConfirmWaitlist` posts its token once on load and shows "You're on the list", or a line and the form when the link has
+  expired or is unknown.
+- `readUtm` reads `utm_content`; the admin page shows confirmed and pending, its CSV gains `utm_content` and `confirmed_at`, and
+  its types `confirmedAt` and `utmContent`; the `MB-106` tag goes; tests.
+
+### R11-14 — The hero and the sky screen (USER-FACING) · Opus
+Objective: the sky now over the visitor's city, and a birth date's full-screen sky rewinding to the birth minute (ADR-107, 108).
+Files: `web/src/site/sections/Hero.tsx`; new `sections/SkyScreen.tsx`, `site/components/HorizonWheel.tsx`, `SkyForm.tsx`,
+`site/lib/sky.ts` (+ test), `useLiveSky.ts`; `NatalWheel.tsx` only if it cannot render on the server.
+Refs: landing scope 2, 3, 15, 16 and its acceptance; ADR-107, 108, 140; §9; readings 2, 5, 14; the artifact's home, Motion, Phone.
+Done when:
+- The locked heading and lede; the product's wheel at full height on the Ascendant, the horizon across the page, the live sky
+  from the engine over the zone's city each minute; its square reserved in the HTML and drawn on hydration, so nothing shifts;
+  below 900 px it stacks.
+- `SkyForm`: the date, a time that always shows AM or PM, `PlaceField`; three, two or one per row; 16 px on a phone. Show my
+  chart lifts the wheel into `SkyScreen` (0.75 s), rewinds to the birth minute in 2.9 s (real positions, trails, a counting
+  date), then names Sun, Moon and Rising; no time: no horizon or houses, the Moon as the day's arc; Close flies back, the hero
+  keeps that sky; nothing stored; its button is `ReportCta`, saving the prefill only after launch (reading 14).
+- First light about 2.3 s on the one easing; reduced motion draws it still. Tests: the rewind's last frame equals the birth
+  minute's chart to 0.01° (Audrey Hepburn), the counting dates, the Moon's day range.
+
+### R11-15 — Every claim cited, and Inside (USER-FACING) · Opus
+Objective: four real claims take turns, each drawn to its place on the sample's wheel, and the ten chapters step through with a
+line each (ADR-110, 111).
+Files: `web/src/site/sections/Claims.tsx`, `Inside.tsx`; new `web/src/site/data/inside.ts`.
+Refs: landing scope 5, 6, acceptance "Claims point true", "Reduced motion"; ADR-110, 111; MB-8 (decided), MB-92; reading 8;
+pinned sample.
+Done when:
+- Claims: in view, the sample's wheel rewinds once to her birth; `HOME_CLAIMS` take turns every 6.5 s, each with its evidence
+  (the evidence card's rows) and a line ending on its body or angle at its degree; a tap stops the cycle; nothing sits behind
+  them or follows scroll; on a phone they stack, the line rising from them; "Read her whole report" to /sample while `SAMPLE_LIVE`.
+- Inside: the ten `CHAPTERS` names in their accents, each with its one sentence and its parts (the waitlist page's lines, moved
+  into `inside.ts`), stepping through until touched; no word count anywhere (ADR-111).
+- Reduced motion: no rewind, no cycle; the first claim and the first chapter shown whole.
+
+### R11-16 — Your people, and two charts on one horizon (USER-FACING) · Opus
+Objective: the orbit sells the second person on labelled sample people, and two plates show two people without a score
+(ADR-112, 113).
+Files: `web/src/site/sections/YourPeople.tsx`, `TwoCharts.tsx`; new `web/src/site/components/TwoPlates.tsx`;
+`web/src/components/dashboard/SkyCard.tsx` only to make its controls optional.
+Refs: landing scope 7, 8, acceptance "Compatibility"; dashboard-sky; ADR-17, 89 to 96, 97, 112, 113; reading 7; pinned sample.
+Done when:
+- Your people: R10's `Orbit` and `SkyCard` on `SAMPLE_PEOPLE`, each labelled as a sample, the ring at .26 cut around each person
+  and name; a tap opens the card with no live control (no Generate, Send or credits); on a phone the card is a sheet; the
+  dashboard renders as before.
+- `TwoPlates`: two `TriadPlate`s on their own Ascendants, both horizons on one dotted line, Sun and Moon at their degrees, the
+  inner lane within 14° of the Ascendant; no line joins a body of one to the other; no score, number of fit or age band.
+- TwoCharts: the lens tabs from `LENSES`, the plates of `SAMPLE_PAIRS[lens]`, the seven titles from `PAIR_CHAPTER_TITLES` with a
+  line each, "About the Compatibility report" to /compatibility.
+
+### R11-17 — How it works, and birth time (USER-FACING) · Opus
+Objective: the method in three steps on the sample's real data, and the three birth-time plates carrying the product's own
+readouts.
+Files: `web/src/site/sections/Method.tsx`, `BirthTime.tsx`; new `web/src/site/lib/readouts.ts` (+ test).
+Refs: landing scope 9, 10; annex /method (the facts); ADR-33, 111, 117; readings 6, 17; pinned engine and sample.
+Done when:
+- Method: we work out your chart (the sample's readout: Sun, Moon, rising, the clock), we note what stands out (reading 6), we
+  write your report and check it (one claim with each reference ticked); the three facts (the writing service never sees birth
+  data, no predictions, the credit back on failure); no model or vendor named; "How we make your report, step by step" to /method.
+- Birth time: for people with only what a parent remembers, or nothing; I know it, Roughly and I don't know, each plate's
+  readout from the engine's window sweep, said by `birth-time.ts`'s `readout` (the "3 possible … flips at …" form); the parts of
+  the day from `PART_LABELS`; no time typed.
+- `readouts.ts` tests: each plate's readout equals the engine's sweep for its birth; the notes match the sample's chart.
+
+### R11-18 — Prices, the questions and the dawn (USER-FACING) · Opus
+Objective: the pricing slot shows the three bundles from the catalogue with nothing to buy yet, the FAQ answers first, and the
+dawn closes the page (ADR-118).
+Files: `web/src/site/sections/Pricing.tsx`, `Faq.tsx`, `Dawn.tsx`; new `web/src/site/data/faq.ts` (+ test).
+Refs: landing scope 11 to 13; pricing-and-launch Bundles and prices; ADR-111, 116 to 118, 142; R-6.3, 6.4; readings 2, 13, 17.
+Done when:
+- Prices, above the FAQ: each `BUNDLES` row's name, line, `formatEuro` price and credits, "VAT included", one credit for any
+  report (R-6.4), and `ReportCta`; no offer, no countdown, no literal price.
+- `FAQ_GROUPS`: fifteen questions in five groups, ten marked for the home page, each answered in its first sentence; AI named
+  once, in "How is the report written?"; "Is this scientific?" as locked; any price read from the catalogue; on the home page
+  all ten visible and "See all the questions" to /faq; tests for the counts and the one mention of AI. The Owner reviews them.
+- Dawn: "Start with your birth date." and "Then add where you were born, and your birth time if you know it." over the dawn light
+  and the rising Sun on a full-width horizon, with `ReportCta`; still under reduced motion.
