@@ -20,7 +20,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Stores an email address to write to when Stars Decoded opens (ADR-141). Answers the same whether the address is new or already listed, so it cannot be used to learn who signed up. Sets no cookie and reads no account. A filled `website` field is a form-filling bot: it is answered the same and nothing is stored.
+ * Stores an email address to write to when Stars Decoded opens (ADR-141). Answers the same whether the address is new or already listed, so it cannot be used to learn who signed up. Sets no cookie and reads no account. A filled `website` field is a form-filling bot: it is answered the same and nothing is stored. Double opt-in (ADR-145): the address counts once its owner confirms it through the emailed link, at POST /waitlist/confirm; an address left unconfirmed is deleted after seven days, and a new link goes to the same address at most once in ten minutes.
  * @summary Join the pre-launch waitlist
  */
 export const joinWaitlistBodyEmailMax = 254;
@@ -33,23 +33,43 @@ export const joinWaitlistBodyUtmMediumMax = 100;
 
 export const joinWaitlistBodyUtmCampaignMax = 100;
 
+export const joinWaitlistBodyUtmContentMax = 100;
+
 export const joinWaitlistBodyWebsiteMax = 200;
 
 
 
 export const JoinWaitlistBody = zod.object({
   "email": zod.string().email().max(joinWaitlistBodyEmailMax),
-  "consent": zod.enum(['launch-email-v1']).describe('The consent wording shown beside the form, stored with the address.'),
+  "consent": zod.enum(['launch-email-v1', 'launch-email-v2']).describe('The consent wording shown beside the form, stored with the address. launch-email-v2 is the double opt-in wording (ADR-145).'),
   "source": zod.string().max(joinWaitlistBodySourceMax).optional().describe('Which form on the page sent it, such as hero or dawn.'),
   "utmSource": zod.string().max(joinWaitlistBodyUtmSourceMax).optional(),
   "utmMedium": zod.string().max(joinWaitlistBodyUtmMediumMax).optional(),
   "utmCampaign": zod.string().max(joinWaitlistBodyUtmCampaignMax).optional(),
+  "utmContent": zod.string().max(joinWaitlistBodyUtmContentMax).optional().describe('The post that brought them, one tag per post (ADR-147), kept with the address under the retention rule (ADR-145).'),
   "website": zod.string().max(joinWaitlistBodyWebsiteMax).optional().describe('Hidden from people and left empty by them.')
 })
 
 export const JoinWaitlistResponse = zod.object({
-  "status": zod.enum(['joined'])
+  "status": zod.enum(['joined', 'check_email']).describe('check_email answers every join under double opt-in, whatever the address\'s standing (ADR-145); joined is the answer from before it.')
 })
+
+
+/**
+ * Double opt-in (ADR-145): the page the emailed link opens posts the link's token here, so a mail scanner that fetches the link confirms nothing. A link lives seven days. Sets no cookie and reads no account.
+ * @summary Confirm a waitlist address from its emailed link
+ */
+export const confirmWaitlistBodyTokenMax = 100;
+
+
+
+export const ConfirmWaitlistBody = zod.object({
+  "token": zod.string().max(confirmWaitlistBodyTokenMax).describe('The token from the emailed link; only its SHA-256 is stored (ADR-145).')
+})
+
+export const ConfirmWaitlistResponse = zod.object({
+  "status": zod.enum(['confirmed'])
+}).describe('The address stays on the list until the opening email or a request to delete it (ADR-145).')
 
 
 /**

@@ -56,6 +56,10 @@ paths:
         cannot be used to learn who signed up. Sets no cookie and reads no
         account. A filled `website` field is a form-filling bot: it is answered
         the same and nothing is stored.
+        Double opt-in (ADR-145): the address counts once its owner confirms it
+        through the emailed link, at POST /waitlist/confirm; an address left
+        unconfirmed is deleted after seven days, and a new link goes to the
+        same address at most once in ten minutes.
       requestBody:
         required: true
         content:
@@ -64,7 +68,7 @@ paths:
               $ref: "#/components/schemas/JoinWaitlistBody"
       responses:
         "200":
-          description: The address is on the list
+          description: The same answer for a new, waiting or confirmed address, so nobody learns who is listed (ADR-145)
           content:
             application/json:
               schema:
@@ -77,6 +81,41 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "429":
           description: Too many sign-ups from one address in a short time
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "`waitlist_closed`: production takes no address until the privacy page names its controller and a contact address (ADR-145)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /waitlist/confirm:
+    post:
+      operationId: confirmWaitlist
+      tags: [waitlist]
+      summary: Confirm a waitlist address from its emailed link
+      description: >
+        Double opt-in (ADR-145): the page the emailed link opens posts the
+        link's token here, so a mail scanner that fetches the link confirms
+        nothing. A link lives seven days. Sets no cookie and reads no account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmWaitlistBody"
+      responses:
+        "200":
+          description: The address is confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistConfirmed"
+        "404":
+          description: No address waits on this token, or its seven days are over (ADR-145)
           content:
             application/json:
               schema:
@@ -1234,8 +1273,8 @@ components:
           maxLength: 254
         consent:
           type: string
-          enum: [launch-email-v1]
-          description: The consent wording shown beside the form, stored with the address.
+          enum: [launch-email-v1, launch-email-v2]
+          description: The consent wording shown beside the form, stored with the address. launch-email-v2 is the double opt-in wording (ADR-145).
         source:
           type: string
           maxLength: 32
@@ -1249,6 +1288,10 @@ components:
         utmCampaign:
           type: string
           maxLength: 100
+        utmContent:
+          type: string
+          maxLength: 100
+          description: The post that brought them, one tag per post (ADR-147), kept with the address under the retention rule (ADR-145).
         website:
           type: string
           maxLength: 200
@@ -1262,7 +1305,28 @@ components:
       properties:
         status:
           type: string
-          enum: [joined]
+          enum: [joined, check_email]
+          description: check_email answers every join under double opt-in, whatever the address's standing (ADR-145); joined is the answer from before it.
+      required:
+        - status
+
+    ConfirmWaitlistBody:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 100
+          description: The token from the emailed link; only its SHA-256 is stored (ADR-145).
+      required:
+        - token
+
+    WaitlistConfirmed:
+      type: object
+      description: The address stays on the list until the opening email or a request to delete it (ADR-145).
+      properties:
+        status:
+          type: string
+          enum: [confirmed]
       required:
         - status
 
