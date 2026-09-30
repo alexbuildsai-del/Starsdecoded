@@ -235,6 +235,34 @@ describe("off production", () => {
   });
 });
 
+describe("the build's commit", () => {
+  const COMMIT = "90c6bbf3a1d24e5f8b7c60d9e1f2a3b4c5d6e7f8";
+  const EVERY_PATH = [...PUBLIC.map((page) => page.path), ...APP_PATHS];
+
+  it("names the commit once in every head, the same on every host, for the API to read off the home page", () => {
+    vi.stubEnv("VITE_COMMIT", COMMIT);
+    for (const env of ["production", "staging", "development"] as const) {
+      for (const path of EVERY_PATH) {
+        const head = headFor(path, env);
+        expect(count(head, 'name="commit"'), `${env} ${path}`).toBe(1);
+        expect(metaOf(head, "commit"), `${env} ${path}`).toBe(COMMIT);
+      }
+    }
+  });
+
+  it("writes the tag in the shape api/src/lib/indexNow.ts looks for", () => {
+    vi.stubEnv("VITE_COMMIT", COMMIT);
+    expect(headFor("/", "production")).toContain(`<meta name="commit" content="${COMMIT}" />`);
+  });
+
+  it("writes no tag when the build knows no commit", () => {
+    for (const commit of ["", "  "]) {
+      vi.stubEnv("VITE_COMMIT", commit);
+      for (const path of EVERY_PATH) expect(headFor(path, "production"), path).not.toContain('name="commit"');
+    }
+  });
+});
+
 describe("a path outside the public site", () => {
   it("gets the shell's head: never indexed, no address, no data, and the share card for a shared link", () => {
     for (const env of ["production", "staging"] as const) {

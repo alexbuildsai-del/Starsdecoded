@@ -1,4 +1,5 @@
 import app from "./app";
+import { indexNowOnStart } from "./lib/indexNow";
 import { logger } from "./lib/logger";
 import { repairStalePromptOverrides } from "./lib/promptLoader";
 
@@ -23,4 +24,10 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // After the listen and unawaited: production's IndexNow ping waits on the web deploy for up to twenty minutes and
+  // must never fail or delay the start. It does not reject, so this catch is only the last net for an unhandled rejection.
+  indexNowOnStart().catch((err) => {
+    logger.warn({ err }, "indexNowOnStart failed");
+  });
 });

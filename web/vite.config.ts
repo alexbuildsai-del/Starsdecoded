@@ -29,6 +29,12 @@ const appEnv =
   process.env.VITE_APP_ENV ??
   (vercelEnv === "production" ? "production" : vercelEnv ? "staging" : "development");
 
+// The commit this build is of, written into every page's head (site/head.ts). Production's API waits to read it off the
+// home page before it tells IndexNow about the pages, so it only announces the web its own commit shipped, whether a
+// Release forwarded `production` by token or Promote did (R11-27). Vercel exposes it at build time; any other build
+// knows none and writes no tag.
+const commit = process.env.VERCEL_GIT_COMMIT_SHA?.trim() ?? "";
+
 // Origin of the API. On Vercel the web calls /api on its own origin and
 // vercel.json rewrites that to the correct Railway host per environment, so a
 // base URL here is always wrong: a value set on Vercel (the production host,
@@ -48,6 +54,7 @@ export default defineConfig(({ isSsrBuild }) => ({
   base: basePath,
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv),
+    "import.meta.env.VITE_COMMIT": JSON.stringify(commit),
     "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBaseUrl),
   },
   plugins: [

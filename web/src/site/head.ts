@@ -20,6 +20,15 @@ const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (c) => HTML_ENTITIE
 const meta = (attribute: "name" | "property", key: string, content: string) =>
   `<meta ${attribute}="${key}" content="${escapeHtml(content)}" />`;
 
+/**
+ * The commit this build is of, which production's API waits to read off the home page before it tells IndexNow about the
+ * pages (R11-27). A build that knows no commit, a local one or CI, writes no tag rather than an empty one.
+ */
+function commitTags(): string[] {
+  const commit: unknown = import.meta.env.VITE_COMMIT;
+  return typeof commit === "string" && commit.trim() ? [meta("name", "commit", commit.trim())] : [];
+}
+
 /** Inside a script element `<` and `>` go as escapes, so no answer or lede can close the element or open a comment. */
 function jsonLd(block: Block): string {
   const json = JSON.stringify({ "@context": "https://schema.org", ...block }).replace(/[<>]/g, (c) =>
@@ -139,6 +148,7 @@ function shellHead(): string {
   return [
     `<title>${escapeHtml(SITE.name)}</title>`,
     meta("name", "description", home.lede),
+    ...commitTags(),
     NOINDEX,
     ...socialTags({ type: "website", title: SITE.name, description: home.lede }),
   ].join("\n");
@@ -146,8 +156,9 @@ function shellHead(): string {
 
 /**
  * The tags that change from page to page, for the prerender to write into the page's head: the registry's title and
- * lede, the address, the share card and the structured data (ADR-115). Off production a page asks not to be indexed
- * and names no canonical, so a preview can never pass for the page or hand its noindex to production's.
+ * lede, the address, the share card and the structured data (ADR-115), and the build's commit. Off production a page
+ * asks not to be indexed and names no canonical, so a preview can never pass for the page or hand its noindex to
+ * production's.
  */
 export function headFor(path: string, env: AppEnv): string {
   const page = isPublicPath(path) ? pageFor(path) : undefined;
@@ -163,6 +174,7 @@ export function headFor(path: string, env: AppEnv): string {
   return [
     `<title>${escapeHtml(page.title)}</title>`,
     meta("name", "description", page.lede),
+    ...commitTags(),
     open ? `<link rel="canonical" href="${escapeHtml(url)}" />` : NOINDEX,
     ...socialTags({
       type: page.schema.includes("Article") ? "article" : "website",
