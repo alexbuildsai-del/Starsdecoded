@@ -1,0 +1,120 @@
+{
+ "id": "p02-horoscope-fits",
+ "slides": [
+  {
+   "type": "cover",
+   "kicker": "Computed, not guessed",
+   "title": "Why your horoscope never quite fits",
+   "size": "md",
+   "cue": "It's written for your Sun sign. Your chart has ten planets and a rising sign.",
+   "visual": {
+    "type": "wheel",
+    "date": "1999-12-31",
+    "time": "09:00",
+    "lat": 51.5074,
+    "lon": -0.1278,
+    "tz": "Europe/London",
+    "caption": "The sky over London · 31 Dec 1999 · 09:00"
+   }
+  },
+  {
+   "type": "text",
+   "kicker": "The Sun",
+   "title": "Everyone born on 31 December 1999 has the Sun in Capricorn.",
+   "body": "That's the sign a horoscope is written for. The rest of your chart depends on the hour and the place.",
+   "visual": {
+    "type": "wheel",
+    "date": "1999-12-31",
+    "time": "12:00",
+    "lat": 51.5074,
+    "lon": -0.1278,
+    "tz": "Europe/London",
+    "windowMinutes": 720,
+    "caption": "31 Dec 1999 from the date alone · no hour, so no houses"
+   }
+  },
+  {
+   "type": "strip",
+   "of": "moon",
+   "kicker": "The Moon",
+   "title": "That morning the Moon moved from Libra into Scorpio.",
+   "window": [
+    "06:00",
+    "12:00"
+   ],
+   "tz": "Europe/London",
+   "label": "Moon sign · 31 Dec 1999 · London time",
+   "body": "Born by 09:36, a Libra Moon. From 09:37, a Scorpio Moon.",
+   "zoom": true,
+   "zoomLabel": "The morning, 06:00 to 12:00, up close",
+   "date": "1999-12-31",
+   "lat": 51.5074,
+   "lon": -0.1278
+  },
+  {
+   "type": "strip",
+   "of": "rising",
+   "kicker": "The rising sign",
+   "title": "If all you know is \"sometime in the morning\", five rising signs are possible.",
+   "window": [
+    "06:00",
+    "12:00"
+   ],
+   "tz": "Europe/London",
+   "lat": 51.5074,
+   "lon": -0.1278,
+   "label": "Rising sign · 31 Dec 1999 · London time",
+   "zoom": true,
+   "zoomLabel": "The morning, 06:00 to 12:00, up close",
+   "fact": "Your rising sign changes every hour or two.",
+   "date": "1999-12-31"
+  },
+  {
+   "type": "text",
+   "kicker": "Same birthday",
+   "title": "Born four hours apart, they share a Sun sign but not a Moon or a rising sign.",
+   "body": "A horoscope only knows the first of the three.",
+   "visual": {
+    "type": "pair",
+    "lat": 51.5074,
+    "lon": -0.1278,
+    "tz": "Europe/London",
+    "date": "1999-12-31",
+    "a": {
+     "time": "07:00",
+     "centreName": "07:00",
+     "caption": "Born 07:00, London"
+    },
+    "b": {
+     "time": "11:00",
+     "centreName": "11:00",
+     "caption": "Born 11:00, London"
+    },
+    "rows": [
+     [
+      "Sun",
+      "Capricorn",
+      "Capricorn"
+     ],
+     [
+      "Moon",
+      "Libra",
+      "Scorpio"
+     ],
+     [
+      "Rising",
+      "Sagittarius",
+      "Pisces"
+     ]
+    ]
+   }
+  },
+  {
+   "type": "end",
+   "kicker": "Stars Decoded",
+   "title": "We work out your whole chart from your birth date, time and place.",
+   "body": "Then we write you a report from it. No predictions.",
+   "cta": "Get an email the day we open."
+  }
+ ]
+}

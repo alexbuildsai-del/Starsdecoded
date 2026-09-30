@@ -1,0 +1,112 @@
+{
+ "id": "p01-moon-hurt",
+ "slides": [
+  {
+   "type": "cover",
+   "kicker": "Moon sign",
+   "title": "What you do when you're hurt, by Moon sign",
+   "cue": "Swipe to find yours.",
+   "visual": {
+    "type": "wheel",
+    "date": "2026-09-30",
+    "time": "12:00",
+    "lat": 51.5074,
+    "lon": -0.1278,
+    "tz": "Europe/London",
+    "windowMinutes": 720,
+    "caption": "The sky on 30 Sep 2026, from the date alone · the Moon in Taurus"
+   }
+  },
+  {
+   "type": "sign",
+   "sign": "Aries",
+   "kicker": "Moon in Aries",
+   "line": "You react first and sort it out afterward. It flares fast, and it's over fast.",
+   "help": "Say what hurt before you say what made you angry."
+  },
+  {
+   "type": "sign",
+   "sign": "Taurus",
+   "kicker": "Moon in Taurus",
+   "line": "You go quiet and dig in. Slow to get upset, and slower to let it go.",
+   "help": "Tell them what would help you move on."
+  },
+  {
+   "type": "sign",
+   "sign": "Gemini",
+   "kicker": "Moon in Gemini",
+   "line": "You talk it through with everyone, or make a joke and change the subject.",
+   "help": "Say the one sentence that's really bothering you."
+  },
+  {
+   "type": "sign",
+   "sign": "Cancer",
+   "kicker": "Moon in Cancer",
+   "line": "You pull back into your shell, and you remember it for a long time.",
+   "help": "Let one person in before the shell closes."
+  },
+  {
+   "type": "sign",
+   "sign": "Leo",
+   "kicker": "Moon in Leo",
+   "line": "Your pride takes it hardest. You need them to see it, but you won't ask.",
+   "help": "Ask for the attention you need, out loud."
+  },
+  {
+   "type": "sign",
+   "sign": "Virgo",
+   "kicker": "Moon in Virgo",
+   "line": "You go over it in detail and look for what you did wrong.",
+   "help": "Tell someone before you've worked it all out."
+  },
+  {
+   "type": "sign",
+   "sign": "Libra",
+   "kicker": "Moon in Libra",
+   "line": "You smooth it over and see their side before your own.",
+   "help": "Say what you want first, then listen to them."
+  },
+  {
+   "type": "sign",
+   "sign": "Scorpio",
+   "kicker": "Moon in Scorpio",
+   "line": "You keep it private and hold on to it for a long time.",
+   "help": "Say it out loud instead of keeping score."
+  },
+  {
+   "type": "sign",
+   "sign": "Sagittarius",
+   "kicker": "Moon in Sagittarius",
+   "line": "You say exactly what you think, then go somewhere to cool off.",
+   "help": "Come back and finish the conversation."
+  },
+  {
+   "type": "sign",
+   "sign": "Capricorn",
+   "kicker": "Moon in Capricorn",
+   "line": "You go cold and get back to work, as if nothing happened.",
+   "help": "Let it slow you down for a day."
+  },
+  {
+   "type": "sign",
+   "sign": "Aquarius",
+   "kicker": "Moon in Aquarius",
+   "line": "You step back and analyse it, as if it happened to someone else.",
+   "help": "Say how it felt, not what you think about it."
+  },
+  {
+   "type": "sign",
+   "sign": "Pisces",
+   "kicker": "Moon in Pisces",
+   "line": "You feel all of it, theirs too, then disappear for a while.",
+   "help": "Say no to one thing, and rest."
+  },
+  {
+   "type": "end",
+   "kicker": "Your Moon sign",
+   "title": "The Moon changes sign every two or three days.",
+   "body": "Your birth date usually settles yours. If you were born on a day it changed, your birth time does.",
+   "cta": "Stars Decoded works out your whole chart. Get an email the day we open."
+  }
+ ]
+}
