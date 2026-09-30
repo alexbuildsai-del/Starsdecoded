@@ -37,8 +37,9 @@ failure code, compares any two labels, and **Import r05 and r06** reads the
 baseline from the public `report-lab/<label>` branches (MB-72). *Failures*
 counts every rule that fired per section; a rule on more than 1 in 10 of a
 section's last 20 writes is red and is the next round's prompt fix (ADR-85).
-*Release* stops at `passed` while `GITHUB_RELEASE_TOKEN` is not on Railway
-staging (MB-75); then dispatch `promote.yml` with the release id (MB-79).
+*Release* fast-forwards `production` with `GITHUB_RELEASE_TOKEN` (MB-75, placed
+2026-09-30); if the token is missing or expired it stops at `passed`, then dispatch
+`promote.yml` with the release id (MB-79).
 
 ## The free dry from here
 

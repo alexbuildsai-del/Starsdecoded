@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MATRIX_CHARTS, REPORT_TOTAL, faultsOf, gateProblems, hasVerb, isOutOfCreditMessage, measureSection, type RunNumbers } from "./labRules.js";
+import { FALLBACK_SHAPE, MATRIX_CHARTS, REPORT_TOTAL, faultsOf, gateProblems, hasVerb, isOutOfCreditMessage, measureSection, priceSection, type RunNumbers } from "./labRules.js";
+import { costUsd } from "./usage.js";
 
 const claims = () => [1, 2, 3].map(() => ({ quote: "x", evidence: [{ ref: { kind: "placement", body: "sun", sign: "scorpio", house: null }, label: "Sun" }] }));
 
@@ -56,4 +57,13 @@ test("the out-of-credit refusal is recognised from a status message", () => {
   assert.equal(isOutOfCreditMessage("natal:career: out of credit: 429 You have no credits remaining"), true);
   assert.equal(isOutOfCreditMessage("insufficient_quota"), true);
   assert.equal(isOutOfCreditMessage("natal:career: failed validation after 3 attempts"), false);
+});
+
+test("an estimate adds the writer's thinking as output, and nothing for a writer at none", () => {
+  const plain = { attempts: 1, reasoningTokens: 0, ms: 0, ...FALLBACK_SHAPE };
+  assert.equal(priceSection("gpt-5.2", FALLBACK_SHAPE), costUsd("gpt-5.2", plain));
+  assert.equal(priceSection("gpt-6-luna", FALLBACK_SHAPE), costUsd("gpt-6-luna", plain));
+  const thinking = { ...plain, outputTokens: FALLBACK_SHAPE.outputTokens + 1_000, reasoningTokens: 1_000 };
+  assert.equal(priceSection("gpt-6.1-sol", FALLBACK_SHAPE), costUsd("gpt-6.1-sol", thinking));
+  assert.equal(priceSection("gpt-6.1-sol", FALLBACK_SHAPE, "flex"), costUsd("gpt-6.1-sol", thinking, "flex"));
 });

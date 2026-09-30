@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CATALOGUE, MODELS, SECTION_MODELS, effortFor, isModelId, modelFor, priceOf, tierFor, type ModelId } from "./models.js";
+import { CATALOGUE, MODELS, SECTION_MODELS, completionCap, effortFor, isModelId, modelFor, priceOf, thinkingAllowance, tierFor, type ModelId } from "./models.js";
 
 test("every job points at a model the catalogue prices", () => {
   for (const [job, model] of Object.entries(MODELS)) {
@@ -53,6 +53,25 @@ test("every entry pins its reasoning effort and says whether Flex is offered (AD
   assert.equal(effortFor("gpt-6-luna"), "none");
   assert.equal(effortFor("gpt-5-mini"), "minimal", "mini rejects none");
   assert.equal(effortFor("gpt-5-nano"), "minimal");
+  assert.equal(effortFor("gpt-6.1-sol"), "low", "6.1 Sol accepts nothing below low");
+});
+
+test("gpt-6.1-sol enters at the press prices of 2026-09-29 with Flex, provisional until MB-70 checks it", () => {
+  const p = CATALOGUE["gpt-6.1-sol"];
+  assert.deepEqual([p.input, p.cachedInput, p.output], [2.0, 0.1, 10.0]);
+  assert.equal(p.checked, "");
+  assert.equal(tierFor("gpt-6.1-sol", "flex"), "flex");
+  assert.equal(tierFor("gpt-6.1-sol", "standard"), "standard");
+});
+
+test("a model that thinks gets room above the visible cap and an allowance in estimates; one at none or minimal gets neither", () => {
+  assert.equal(completionCap("gpt-6.1-sol", 4_000), 12_000);
+  assert.equal(thinkingAllowance("gpt-6.1-sol"), 1_000);
+  for (const model of ["gpt-5.2", "gpt-6-sol", "gpt-6-luna", "gpt-5-mini", "gpt-5-nano"] as const) {
+    assert.equal(completionCap(model, 4_000), 4_000, `${model} keeps its cap`);
+    assert.equal(thinkingAllowance(model), 0, `${model} adds no thinking`);
+  }
+  assert.equal(thinkingAllowance("gpt-6-unreleased"), 0);
 });
 
 test("the GPT-6 candidates enter at ADR-74's press prices, provisional until MB-70 checks them", () => {

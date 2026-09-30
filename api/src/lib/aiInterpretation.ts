@@ -30,7 +30,7 @@ import { ASPECT_ORBS, EPHEMERIS, hasHorizon, type HorizonStatus, type NatalChart
 import { sectOf } from "./traditional.js";
 import { logger } from "./logger.js";
 import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type SectionUsage } from "./usage.js";
-import { MODELS, effortFor, flexOffered, isModelId, modelFor, type ModelId, type ServiceTier } from "./models.js";
+import { MODELS, completionCap, effortFor, flexOffered, isModelId, modelFor, type ModelId, type ServiceTier } from "./models.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, ClaimSchema, EvidenceRefSchema, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
   buildBrief, hasClaims, instructionsFor, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
@@ -361,6 +361,7 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
   // The effort rides on every call (ADR-74); the tier only on a lab replay.
   const tier = call.serviceTier === "flex" ? { service_tier: "flex" as const } : {};
   const pinned = { reasoning_effort: effortFor(call.model), ...tier };
+  const cap = completionCap(call.model, call.maxTokens);
   const requestOptions = call.signal ? { signal: call.signal } : {};
   const errors: string[] = [...(call.carry?.errors ?? [])];
   let lastReply = call.carry?.lastReply ?? "";
@@ -383,7 +384,7 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     const startedAt = Date.now();
     const response = await guarded(call.usageKey, openai.chat.completions.create({
       model: call.model,
-      max_completion_tokens: call.maxTokens,
+      max_completion_tokens: cap,
       ...pinned,
       messages: [
         { role: "system", content: call.system },
@@ -405,7 +406,7 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     if (choice?.finish_reason === "length") {
       const used = response.usage?.completion_tokens;
       const reasoning = response.usage?.completion_tokens_details?.reasoning_tokens;
-      await reject([block("chk-00-truncated", `output truncated at max_completion_tokens ${call.maxTokens}`
+      await reject([block("chk-00-truncated", `output truncated at max_completion_tokens ${cap}`
         + (used !== undefined ? ` (${used} completion tokens` + (reasoning ? `, ${reasoning} reasoning` : "") + ")" : ""))], attempt);
       continue;
     }
@@ -453,7 +454,7 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
         const repairStartedAt = Date.now();
         const repairResponse = await guarded(call.usageKey, openai.chat.completions.create({
           model: call.model,
-          max_completion_tokens: call.maxTokens,
+          max_completion_tokens: cap,
           ...pinned,
           messages: [
             { role: "system", content: call.system },
