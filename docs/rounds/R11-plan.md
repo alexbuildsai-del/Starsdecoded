@@ -626,3 +626,135 @@ Done when: on production only, after start, a background task that can never fai
 home page's `commit` meta equals the API's own commit, then posts the sitemap's URLs to IndexNow once per commit, with the key
 the site serves at `/indexnow.txt` (public by design) as `keyLocation`; the outcome is one log line; tests on fake fetches for
 the URL list, the payload and once per commit. It works whether a Release forwards by token or through `promote.yml`.
+
+---
+
+## What moves from the deferred plan (now `docs/rounds/R12-plan.md`)
+**Taken into R11, re-planned under new ids:**
+- R11-01 (its columns) → the waitlist's four only (R11-03); `bundles`, `stripe_events`, `users`, `launch_entries`,
+  `waitlist_sends` and the dropped `credit_type` stay.
+- R11-02 (its contract) → the waitlist's shapes only (R11-03); checkout, attribution and the question stay.
+- R11-03 (the catalogue) → the three rows and `formatEuro`, placed in `@workspace/commerce` (R11-02); the offers, `priceFor` and
+  the offer link stay.
+- R11-04 (the commerce package) → the package with the seller, `CHECKOUT_TICK` and `REFUND_RULES` (R11-01, R11-02);
+  `LAUNCH_DATE` stays.
+- R11-05 (no typed price) → the landing's two prices leave with the old page, and the price gate lands (R11-25).
+- R11-06 (the fonts) → whole (R11-04).
+- R11-09 (the emails) → the confirmation email only (R11-12); the receipt and the opening email stay.
+- R11-10 (the waitlist asks twice) → whole (R11-12), plus production's closed state.
+- R11-17 (the legal pages) → R11-11, without Stripe or a checkout gate, the postal line left out while it is missing.
+- R11-18 (the waitlist page) → "Check your inbox" and the confirmation only (R11-13, R11-23); attribution and analytics stay.
+- R11-22 (the admin waitlist) → the confirmation fields and counts only (R11-12); the opening email stays.
+- R11-25 (the Launch view and nav) → the admin waitlist page's counts and CSV columns only (R11-13); the Launch view and
+  `AdminNav` stay.
+
+**Stay in R12, untouched:** R11-07 the Stripe seam, 08 the ledger, 11 the loop study, 12 attribution and the question, 13 the
+failure lines (MB-91, reading 18), 14 the credits sheet, 15 back from checkout, 16 the gift claim's form, 19 credits hard,
+20 the checkout routes, 21 the webhook, 23 the birth form's credit step, 24 the dashboard's asking steps, 26 the walk; and
+whatever of 01 to 05, 09, 18, 22 and 25 is not listed above. Its "Proposed R12" (the landing) is this plan. The postal address,
+MB-114's check and the Stripe account wait for R12's own /plan.
+
+## Acceptance
+**Free, in the round (the gate):** `pnpm install --frozen-lockfile`, typecheck, `build:web` (the prerender included, which fails
+on a page without its H1 or lede), `build:api`, unit tests (the engine's pins and the sky; the seller and the catalogue; both
+prelaunch seams; the place ranking and the prefill; the registry; the sample's 63 anchors and four claims; the rewind, the
+readouts and the Learn sweeps; the head and the crawl files; the FAQ's counts; the waitlist's token, throttle, sweep and closed
+state; the email's words; the personas; the price gate), codegen twice with no diff after R11-03 and after R11-25,
+`db:bootstrap` on the upgrade path and on an empty scratch Postgres as R11-03 states, **the dry lab once** (R11-01 moved a
+brain file; every prompt renders as it does on `main`), and smoke on the Vercel preview with R11-26's crawl checks. The
+orchestrator opens each app route on the preview and reads the console of every public page for a hydration mismatch. Nothing
+generates or spends; no key is needed. The spec's acceptance is met but for two parts that need production: /sample stays off
+it until MB-90, and IndexNow's first ping comes with the first Release.
+**On staging after the merge (the Owner's look):**
+1. The home page on the live sky: type a birth date and press Show my chart; watch the claims point at the wheel; open your
+   people and the prices; every page from the nav and the footer, and /sample with its citations.
+2. Add `?prelaunch=1`: production's look. Get my report and Sign in open the waitlist; join and confirm from the email (it
+   reaches only the Resend account's own address until runbook L); the admin list shows the address confirmed; Exit on the ribbon.
+3. The legal pages name you as the seller and stay drafts until the contact address is in.
+Signed in on staging, Get my report goes through sign-in to the birth form, prefilled from the sky screen.
+
+## Production after the round
+The round ships nothing to production. The first Release then brings `main` (179 commits ahead of production today, which still
+serves #32 of 2026-09-10) to mystarsdecoded.com with the site and the waitlist over it. It waits on: **ask 1**, the contact
+address (one edit to `packages/commerce/src/seller.ts` opens production's form and ends the drafts); **ask 2**, Resend's domain
+and production's `PUBLIC_APP_URL`, so confirmations reach people and link back to production; and **the Release view on
+staging**: the full lab on the five matrix charts, since the brain has changed since production's commit (R06 to R11, v7 among
+them), then the gate and the QA agent, within `LAB_BUDGET_USD`; then the fast-forward, by `GITHUB_RELEASE_TOKEN` (ask 3) or
+`promote.yml` with the release id (MB-79). The site could go public earlier with the form closed (reading 12), but the four-week
+warm-up (ADR-147) starts only with a working form. After the promote: MB-102's steps (Search Console's TXT record in Vercel's
+DNS, Bing's import, the host's AI-bot rule at Log, never Deny), the sitemap submitted, MB-13 closed on a link preview, the
+bible's release log (R-8.1). Launch stays R12's: checkout, the postal address, `LAUNCHED = true`, a Release.
+
+## Risks
+1. **The overlay is a product decision whose Decisions row comes at close** (ADR-151): built on the Owner's words of today,
+   stated as reading 1, which the Owner can correct on staging with `?prelaunch=1`. ADR-141 still holds for the API gate, the
+   admin's way in and launch as one edit.
+2. **The site is public on production before launch** (USER-FACING at the first Release): crawlers index it, and Audrey
+   Hepburn's name, chart and four claims sit on the home page before MB-90's check (only /sample waits); if the check fails,
+   Marie Curie's run takes the slot in `sample.ts`.
+3. **The brain moves** (R-4.4): `chartCalculation.ts` into `packages/engine` byte for byte behind a re-export; `BRAIN_PATHS`
+   gains the package, so the Release view sees future engine edits; the dry lab runs once; CLAUDE.md's and the round skill's
+   brain lists take the package at close.
+4. **Prerender and routing** (R-7.6): a wrong `vercel.json` can take every app route down on staging, and a hydration mismatch
+   re-renders a page; each app route is opened on the preview, every public page's console is read, and smoke gains crawl checks.
+5. **Schema** (R-7.3): four nullable columns, a unique index and a data update in step 1, tested on the upgrade path staging and
+   production take, and on an empty database.
+6. **Legal and privacy:** four pages go public on production with the Owner's name, drafts until the contact address; the postal
+   address never enters the repo; the fonts leave Google's CDN; one new `sessionStorage` key holds the tab's own birth data
+   (reading 14), and the preview key is staging's.
+7. **Emails** (USER-FACING): one new template; until Resend's domain is verified it reaches only the Resend account's address.
+8. **Weight:** the engine joins the home page's bundle; /sample's run loads only on its page.
+9. **Staging shows two sets of bundle names** until R12: the landing's Single, Couple and Family & friends beside the dashboard
+   sheet's credit-loop names (ADR-142 supersedes them; the sheet is rebuilt with checkout).
+10. **User-visible without a locked spec:** the dialog, the closed line, the confirmation's words, the preview ribbon; each
+    passes `/ux-copy` and is listed for the Owner.
+11. **No report content change:** /sample shows stored text; no prompt, model or computation changes.
+12. **Size:** twenty-seven cards, ten in group B; the shrink path is under Parallel groups. No new npm dependency.
+
+## Questions raised (Notion, 2026-09-30)
+- **Raised:** none. The overlay is the Owner's decision of today (ADR-151 at close); every other choice sits on an existing row.
+- **Updated:** **MB-115**: the name and the country answered on 2026-09-30; the postal address given by the Owner and held out
+  of the public repo until the checkout round; the contact address still open, blocking production's waitlist form; the
+  default revised. **MB-108**: this plan takes the package (R11-01). **MB-90**: the overlay puts her name and chart on
+  production's home page before launch; only /sample waits for the check. **MB-91**: moves to R12 with hard credits (reading
+  18), default revised. **MB-119**: its location half is built here; price_data and the offers wait for R12. **MB-25**: decided
+  by ADR-147. **Rounds open** incremented on all 59 carried-over open rows.
+- **Read at their defaults:** MB-101 (the run committed as recommended), MB-102 (the Owner's steps at close), MB-116 (no
+  analytics), MB-112 (Couple, tagged), MB-33 (regions, tagged), MB-47 (pure tests), MB-93 (no pair text), MB-94 (no place
+  index of our own), MB-114 (the Owner's check; nothing in the build).
+
+## For the Owner (three asks, highest stakes first)
+Nothing blocks the round: approving this plan starts it (§11.2). These three decide when production gets the site.
+1. **A contact address for the legal pages (MB-115), and the name as it will appear.** Before production collects an address,
+   the privacy page must say how to reach the person who holds the list; your name and country are in, and your postal address
+   stays out of the public repo until checkout. Recommendation: a dedicated address on mystarsdecoded.com that forwards to your
+   inbox (a forwarding service's two DNS records go into Vercel's DNS, about ten minutes), or any address you use only for Stars
+   Decoded; and say whether "Alexandra Bendicakova" should carry accents. If silent: the address stays a placeholder, the legal
+   pages keep their draft banner, production's waitlist form stays closed, and the name appears as given.
+2. **Resend's domain (runbook L).** Every sign-up now gets a confirmation email; until mystarsdecoded.com is verified in Resend,
+   only the Resend account's own address receives mail, so nobody else could confirm. Recommendation: runbook L's Resend lines
+   (its DKIM and SPF records into Vercel's DNS, Verify, `RESEND_FROM_EMAIL` on both Railway environments) and
+   `PUBLIC_APP_URL=https://mystarsdecoded.com` on Railway production if it is not there; about ten minutes, with ask 1. If
+   silent: the first Release waits, since a form whose confirmations reach nobody collects addresses deleted after seven days.
+3. **MB-75, `GITHUB_RELEASE_TOKEN` on Railway staging**, still the release todo. Recommendation: place it as the runbook says, so
+   the Release view fast-forwards production itself. If silent: the Release stops at `passed` and `promote.yml` fast-forwards it
+   with the release id (MB-79): one more step for us, none for you.
+
+## Close (the orchestrator)
+- **Decisions: ADR-151** (not ADR-150, which #72 took): "Until launch, production shows the public site to everyone, with the
+  waitlist over every call to write or sign in; the app stays the admin's." Its body from readings 1 to 3 and 12; supersedes
+  ADR-141 in part (every visitor seeing the waitlist page; `GET /api/sky`); Masterfile refs §6, R-3.4, R-7.6; source: the Owner,
+  2026-09-30.
+- **Mailbox:** done MB-50 (the fabricated chart deleted), MB-101 (committed), MB-108 (the package); MB-90, 91, 102, 115 and 119
+  stay open with their notes; rows the builders raise, and the round's new strings for the Owner's look.
+- **MASTERFILE 0.19:** §6's "until launch production shows the waitlist alone (ADR-141)" becomes ADR-151's sentence; §2 item 7
+  names the seller's constant in `@workspace/commerce` and the legal pages as public before launch; R-6.3 says the catalogue
+  lives in `@workspace/commerce` (MB-119); §3 gains `waitlist_signups` with its confirmation columns.
+- **CLAUDE.md:** the brain gains `packages/engine/`; the waitlist line (the site public; the API open to healthz, `/waitlist`,
+  `/waitlist/confirm` and `/admin/*`); the MB-108 line becomes "the web imports the engine package"; the current focus: R11
+  shipped, production waiting on asks 1 and 2 and a Release, R12 next. The round skill's brain list gains `packages/engine/`.
+- **INDEX:** the code map gains `packages/engine`, `packages/commerce`, `web/src/site/` (pages, sections, components, data, head,
+  crawl), `entry-server.tsx`, `web/scripts/prerender.mjs`, `PlaceField`, `form-draft.ts`, `processors.ts`, `indexNow.ts` and
+  `fixtures/sample-people/`, and loses the old landing and waitlist pages, `skyNow.ts`, the sky route and `demoChart.ts`; Specs
+  marks the landing built and pricing-and-launch R12; Decisions counts 151 rows.
+- The Owner gets the staging URL with the three lines above, and MB-102's steps for after the first promote.
