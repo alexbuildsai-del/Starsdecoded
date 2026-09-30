@@ -108,8 +108,8 @@ was raised: every consequential choice here sits on an existing row (MB-90, 101,
    → R11-07; `web/src/site/data/**`, `site/lib/chart.ts`, `fixtures/sample-people/**` → R11-08. Group B: `App.tsx`, `main.tsx`,
    `web/package.json`, `vite.config.ts`, `index.html`, `vercel.json` → R11-09; `api/src/lib/prelaunch.ts` → R11-12; each
    section file to its card. Group C: `site/sections/*` → R11-24 alone; `HorizonWheel.tsx`, `SkyForm.tsx`, `site/lib/sky.ts` →
-   R11-19 alone. Group D: `api/src/app.ts`, `api/src/lib/prelaunch.ts`, `openapi.yaml` → R11-25; `site/head.ts`,
-   `vite.config.ts` → R11-27.
+   R11-19 alone; `web/src/components/report/*` → R11-20 alone. Group D: `api/src/app.ts`, `api/src/lib/prelaunch.ts`,
+   `openapi.yaml` → R11-25; `site/head.ts`, `vite.config.ts` → R11-27.
 4. Inside a group a card may land before one it imports from (pinned shapes): the orchestrator accepts a red intermediate until
    the group ends, and every group ends green. A builder who needs a pinned shape changed stops (R-0.1).
 5. **No card spends.** Nothing generates; mail goes to a stub in tests; the walks of the place field are a builder's own few
@@ -242,7 +242,7 @@ Objective: the chart calculation lives where the browser, the prerender and the 
 Files: new `packages/engine/` (`package.json` with astronomy-engine 2.1.19 and a test script, `tsconfig.json`, `src/index.ts`,
 `src/chartCalculation.ts` and `src/zoneCities.ts` by `git mv` from `api/src/lib/`, new `src/sky.ts`, `engine.test.ts`, `sky.test.ts`);
 new `packages/commerce/package.json`, `tsconfig.json`; `api/src/lib/chartCalculation.ts` (a re-export), `skyNow.ts` (+ test, the
-cache alone), `github.ts` (`BRAIN_PATHS`); the three `tsconfig.json`; both `package.json`; `pnpm-lock.yaml`; `sky-card.test.ts`.
+cache alone), `github.ts` (`BRAIN_PATHS`); three `tsconfig.json`; both `package.json`; the lockfile; `web/src/lib/sky-card.test.ts`.
 Refs: MB-108; ADR-107; R-3.2, R-4.4; CLAUDE.md "the brain"; landing acceptance "Charts are computed"; reading 5; pinned engine.
 Done when:
 - `git diff -M main` shows both moved files as renames with no content change; `sky.ts` holds `placeForZone`, `cityName`,
