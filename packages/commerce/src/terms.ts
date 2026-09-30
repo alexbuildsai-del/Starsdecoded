@@ -14,5 +14,5 @@ export const CHECKOUT_TICK =
 export const REFUND_RULES: readonly [string, string, string] = [
   "If you ask within 14 days of buying, we refund any credit you haven't used and take it off your balance.",
   "If a report fails, its credit comes back to your balance automatically.",
-  "Beyond that, we may refund anyone. A refund we choose to give costs us less than a card dispute and its fee.",
+  "Beyond that, we may refund anyone who asks, case by case.",
 ];

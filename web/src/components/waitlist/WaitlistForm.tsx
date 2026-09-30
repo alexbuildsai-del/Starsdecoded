@@ -16,7 +16,7 @@ function failureLine(err: unknown): string {
  * The page's one form. Both copies share `joined`, so an address given in the
  * hero shows as on the list at the dawn too. Nothing is kept in the browser.
  */
-export function WaitlistForm({ source, joined, onJoined }: { source: "hero" | "dawn"; joined: string | null; onJoined: (email: string) => void }) {
+export function WaitlistForm({ source, joined, onJoined }: { source: string; joined: string | null; onJoined: (email: string) => void }) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
