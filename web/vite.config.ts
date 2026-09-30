@@ -44,7 +44,7 @@ const onVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 const apiBaseUrl =
   onVercel || !/^https?:\/\//i.test(rawApiBaseUrl) ? "" : rawApiBaseUrl;
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   base: basePath,
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv),
@@ -66,8 +66,26 @@ export default defineConfig({
     // looks for `dist` next to the lockfile it installed from, and that is
     // the root of this workspace — putting the output there means a deploy
     // works on defaults, with no Output Directory override to configure.
-    outDir: path.resolve(import.meta.dirname, "..", "dist"),
+    // The server entry only runs during the build (scripts/prerender.mjs),
+    // so it stays out of what is deployed.
+    outDir: isSsrBuild
+      ? path.resolve(import.meta.dirname, "dist-ssr")
+      : path.resolve(import.meta.dirname, "..", "dist"),
     emptyOutDir: true,
+    // The prerender links each page's own stylesheets and chunks from it.
+    manifest: !isSsrBuild,
+    copyPublicDir: !isSsrBuild,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // chartCalculation.ts reads `default` off astronomy-engine's namespace on purpose, for Node's loader.
+        if (warning.code === "MISSING_EXPORT" && warning.binding === "default" && warning.exporter?.includes("astronomy-engine")) return;
+        warn(warning);
+      },
+    },
+  },
+  ssr: {
+    // Bundled whole, so the prerender never depends on how Node would load a dependency, pnpm's strict layout included.
+    noExternal: true,
   },
   server: {
     port,
@@ -97,4 +115,4 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
   },
-});
+}));

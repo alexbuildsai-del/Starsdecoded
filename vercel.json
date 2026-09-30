@@ -4,6 +4,8 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm run build:web",
   "outputDirectory": "dist",
+  "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -19,9 +21,28 @@
       "source": "/api/(.*)",
       "destination": "https://workspaceapi-server-production-18dd.up.railway.app/api/$1"
     },
+    { "source": "/(sign-in|sign-up|chart|report|generating|dashboard|people|login)(/.*)?", "destination": "/app.html" },
+    { "source": "/compatibility/(.+)", "destination": "/app.html" },
+    { "source": "/claim(.*)", "destination": "/app.html" },
+    { "source": "/admin(.*)", "destination": "/app.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(sign-in|sign-up|chart|report|generating|dashboard|people|login)(/.*)?",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
+    },
+    { "source": "/compatibility/(.+)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
+    { "source": "/claim(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
+    { "source": "/admin(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "has": [{ "type": "host", "value": "starsdecoded-(.*)\\.vercel\\.app" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "staging\\.(.*)" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     }
   ]
 }
