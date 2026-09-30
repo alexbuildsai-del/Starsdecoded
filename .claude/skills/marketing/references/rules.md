@@ -5,8 +5,8 @@ true and who approves what; they never limit what a post is about. How to make a
 in `guidelines.md`, which bends when a post needs it. When a rule and a good idea disagree, the
 rule wins and the idea goes to the Owner as a question. A rule changes only with the Owner's yes,
 shown first on the Social rule book page (https://claude.ai/artifact/AvugTm2z3TmPAt1FcJiFU5,
-republished to the same address), under the same numbers. Draft two, after the Owner's review on
-30 Sep. Sources: MASTERFILE §3, §5, §9; ADR-111, 117, 139, 142, 147; `/ux-copy`; `/web-taste`.
+republished to the same address), under the same numbers. Approved by the Owner on 30 Sep
+(draft two). Sources: MASTERFILE §3, §5, §9; ADR-111, 117, 139, 142, 147; `/ux-copy`; `/web-taste`.
 
 ## Truth
 1. **Every degree, time, sign and window comes from the product's engine** (`calculateNatalChart`
@@ -76,17 +76,19 @@ republished to the same address), under the same numbers. Draft two, after the O
     blueprint.
 20. **No bait:** never ask people to like, comment, tag, share or follow for a reward, and no
     giveaways.
-21. **The call to action says launch, never open** (Owner, 30 Sep). Before launch it sends people to
-    the waitlist in the bio; after launch, to the free chart. The exact words come from `/ux-copy`
-    and the Owner's pick on the rule book page.
+21. **The call to action says launch, never open** (Owner, 30 Sep). Before launch the end slide says
+    "Join the waitlist and we'll email you when we launch." over "Link in bio · mystarsdecoded.com"
+    (the Owner's pick), and the caption ends the same way. After launch it points to the free chart,
+    in words from `/ux-copy`.
 
 ## Sound
 22. **Only sound cleared for business use,** or our own track once we have one: TikTok's Commercial
     Music Library, Instagram's Sound Collection. Every post's sound is proposed with the post.
 
 ## Approval (Owner, 30 Sep)
-23. **Nothing is built before the Owner's yes.** Each Friday the proposal is one HTML artifact with
-    every carousel fully rendered, every slide, with its caption and sound. The Owner approves each
+23. **Nothing is built before the Owner's yes.** Each session (usually a Friday, one or two weeks at a
+    time) the proposal is one HTML artifact with every carousel fully rendered, every slide, with its
+    caption and sound. The Owner approves each
     post there. Only then does Claude finish it: both sizes, alt text, the Notion row.
 24. **Video and motion start as words.** The approach, the storyline scene by scene and any
     voiceover script come to the Owner first. Nothing is coded or rendered before a yes.

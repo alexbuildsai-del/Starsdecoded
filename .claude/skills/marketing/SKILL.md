@@ -1,10 +1,10 @@
 ---
 name: marketing
-description: Stars Decoded's Instagram and TikTok posts. Plans next week's posts from the Notion Content board, writes them in the house voice, computes every sky fact with the product's engine, renders the carousels in the product's look with the kit in this folder, shows the Owner every slide on one proposal page for a yes, then finishes the approved posts for scheduling. Use when the Owner says "next week's marketing", "marketing posts", "make the posts", "the Friday session", "a carousel", "content for the week", or types /marketing; also to review a post, hook, caption or reply. Not for the report's prose, the landing page or paid ads.
+description: Stars Decoded's Instagram and TikTok posts. Plans next week's posts from the Notion Content board, writes them in the house voice, computes every sky fact with the product's engine, renders the carousels in the product's look with the kit in this folder, shows the Owner every slide on one proposal page for a yes, then finishes the approved posts for scheduling. Use when the Owner says "next week's marketing", "marketing posts", "make the posts", "the Friday session", "the weekly session", "marketing for the next two weeks", "a carousel", "content for the week", or types /marketing; also to review a post, hook, caption or reply. Not for the report's prose, the landing page or paid ads.
 ---
 
-The Friday session: the Owner spends one morning a week on social, and this skill does the
-making. Posts are carousels (TikTok photo mode and Instagram), faceless, in the product's look,
+The weekly session: the Owner spends one morning a week on social, usually a Friday but any day
+works, and one session may plan one week or two. This skill does the making. Posts are carousels (TikTok photo mode and Instagram), faceless, in the product's look,
 built from real computed data. Nothing is built before the Owner's yes on the proposal page
 (rule 23). Until the waitlist is live on production, approved posts go into the bank (Status
 Made) and nothing is scheduled; from then, one a day (ADR-147, Owner 30 Sep).
@@ -24,7 +24,8 @@ Made) and nothing is scheduled; from then, one a day (ADR-147, Owner 30 Sep).
 ## The session
 1. **Read the board.** Rows in Next week, then Idea; new screenshots in the inbox; last week's
    Posted rows and their numbers. Never Parked rows unless the Owner asks.
-2. **Pick the week:** seven posts with the mix in G3, each with its hook and why. If the Owner is
+2. **Pick the posts:** seven for a week or fourteen for two, with the mix in G3, each with its hook
+   and why. If the Owner is
    in the chat, give the seven hooks in one line each first, so a swap costs nothing; the yes
    itself happens on the proposal page. Set those rows to Next week.
 3. **Write each post** as a JSON file in the scratchpad, copying the shape of `kit/examples/`: the
@@ -43,7 +44,7 @@ Made) and nothing is scheduled; from then, one a day (ADR-147, Owner 30 Sep).
 7. **Propose.** Write `week.json` (the week, and each post's output folder and date), run
    `node .claude/skills/marketing/kit/proposal.mjs week.json --out <scratchpad>/proposal`, and
    publish `proposal.html` with the slides in `files.json` as the `files` map and capabilities
-   `{db: {}}`, to the same Social Week artifact every Friday (its URL goes in the Social hub the
+   `{db: {}}`, to the same Social Posts artifact every session (its URL goes in the Social hub the
    first time). Give the Owner the link and stop: nothing more is made until they answer.
 8. **Read the answers** with `ArtifactData` (`list` on `verdicts`); an answer counts only when its
    `rev` matches the post's. Changes asked: fix, raise `rev`, re-render, republish the same page and
@@ -69,7 +70,7 @@ never the old landing page (it shows a made-up chart). Video waits for the repor
 - `render.mjs`: slide types `cover`, `sign`, `text`, `strip`, `end`; visuals `wheel` (one product
   wheel for a moment and place) and `pair` (two standalone wheels side by side, each alone), and
   the day `strip` with a window and its zoom, fed by the product's horizon sweep.
-- `proposal.mjs`: the Friday proposal page, every slide in both sizes with its words, and Approve
+- `proposal.mjs`: the proposal page, every slide in both sizes with its words, and Approve
   or Ask for changes on each post, kept in the page's db.
 - `sky.mjs`: astronomy-engine 2.1.19, the product's pin and method, for sky events. CLI and importable.
 - `slide.css` and `fonts/` (OFL): the product's tokens at 1080 px; Newsreader and Plex Mono are read

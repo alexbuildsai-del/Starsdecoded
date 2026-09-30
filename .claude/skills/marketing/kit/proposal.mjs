@@ -1,11 +1,12 @@
-// Builds the Friday proposal (rule 23): one page with every post of the week, every slide in both
+// Builds the session's proposal (rule 23): one page with every post planned, every slide in both
 // sizes, its caption, sound and alt text, and Approve or Ask for changes on each post. The page
 // keeps the Owner's answers in its own db (`verdicts/<post id>`), which the session reads back.
 //   node proposal.mjs week.json [--out dir]
-// week.json: { "week": "5 to 11 Oct 2026", "posts": [{ "dir": "<render out>/p03-slug", "date": "2026-10-05" }] }
+// week.json: { "week": "5 to 11 Oct 2026", "title": "Next week's posts", "posts": [{ "dir": "<render out>/p03-slug", "date": "2026-10-05" }] }
+// ("title" defaults to "Next week's posts"; a two-week session says "The next two weeks' posts".)
 // Each dir is a render.mjs output: post.json (with "meta"), alt.txt, 3x4/ and 9x16/.
 // Writes proposal.html and files.json ({ published path: source file }) for the Artifact tool's `files`.
-// Publish with capabilities {db: {}} to the same artifact every week; a post's "rev" goes up when it
+// Publish with capabilities {db: {}} to the same artifact every session; a post's "rev" goes up when it
 // changes, so an answer given to an older version never counts for the new one.
 import fs from "node:fs";
 import path from "node:path";
@@ -199,7 +200,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const list = week.posts.map(load);
   const body = list.map((p, i) => section(p, i + 1, files)).join("\n\n");
   const nav = list.map((p, i) => `<li><a href="#${esc(p.post.id)}">${String(i + 1).padStart(2, "0")} · ${esc(p.meta.hook ?? p.post.id)}</a></li>`).join("");
-  const html = `<title>Social Week</title>
+  const html = `<title>Social Posts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400&family=Space+Grotesk:wght@500&display=swap">
@@ -207,7 +208,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 <div class="wrap">
 <header>
   <p class="eyebrow">For your yes · ${esc(week.week ?? "")}</p>
-  <h1>Next week's posts</h1>
+  <h1>${esc(week.title ?? "Next week's posts")}</h1>
   <p class="lede">Every post as it will look, slide by slide, with its caption and sound. Approve each one or say what to change. Nothing is finished or scheduled until you approve it.</p>
   <p class="tally" data-tally aria-live="polite"></p>
   <p class="fallback" data-fallback hidden>Answers can't be saved on this page right now. Reply in the chat with the post number and "approve", or what to change.</p>

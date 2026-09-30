@@ -1,7 +1,8 @@
 # First posts: Phase 0 in practice
 
-Ideation 2026-09-30 with the Owner, three rounds. Status: **draft**, the rule book (draft two)
-waiting for the Owner's yes. Artifact: https://claude.ai/artifact/AWDQpwmvjy9nsgi3cThtr2. Rule book
+Ideation 2026-09-30 with the Owner, three rounds. Status: **approved** by the Owner on 30 Sep and
+not locked on purpose: this is how we market, not a product build, so the marketing skill
+(`.claude/skills/marketing/`) is the source of truth and this file is the record of how it came to be. Artifact: https://claude.ai/artifact/AWDQpwmvjy9nsgi3cThtr2. Rule book
 page: https://claude.ai/artifact/AvugTm2z3TmPAt1FcJiFU5. Notion Social hub (under GTM):
 https://app.notion.com/p/3ebfefe74931813d9c76c211d07cadcd
 
@@ -39,11 +40,12 @@ This spec is how Phase 0 runs, and the weekly routine that makes the posts.
 - Pillars: by sign, computed not guessed, the sky right now, the product (new), public figures'
   charts. Parked: one sentence, two charts no score, what this child needs.
 
-### The Friday session (the workflow)
-1. The Owner opens a Claude Code session on the repo and says "next week's marketing" (`/marketing`).
+### The weekly session (the workflow)
+1. The Owner opens a Claude Code session on the repo, usually on a Friday but any day works, and says
+   "next week's marketing" (`/marketing`); a session may plan one week or two.
 2. Claude reads the Content board, the inbox and last week's numbers, picks seven posts, writes them,
    computes every fact, renders every slide in both sizes and checks them against the rules.
-3. Claude publishes the proposal: one page (the Social Week artifact, republished each Friday) with
+3. Claude publishes the proposal: one page (the Social Posts artifact, republished each session) with
    every slide of every post, its caption, sound and alt text, and Approve or Ask for changes on
    each post, kept in the page's own db. Nothing more is made until the Owner answers.
 4. Changes are made and shown again on the same page. Approved posts are finished: both sizes, alt
@@ -54,7 +56,7 @@ This spec is how Phase 0 runs, and the weekly routine that makes the posts.
    the top two by shares per reach.
 
 ### Notion
-- **Social** hub under GTM: where things go and the Friday steps.
+- **Social** hub under GTM: where things go and the session steps.
 - **Content** database (`collection://09ebb7ff-2acc-4341-b68e-c3da9ec027d3`), Board and Calendar
   views. Status Idea, Next week, Approved, Made, Scheduled, Posted, Parked. Pillar adds The product.
   Ideas go in as Idea rows from the phone; ideas in a chat are added by Claude.
@@ -68,7 +70,7 @@ This spec is how Phase 0 runs, and the weekly routine that makes the posts.
   config from `calculateNatalChart`: full, blind or standalone, turned so the Ascendant sits on the
   horizon as on the website. No wheel is drawn by hand.
 - `kit/render.mjs` writes each post in both sizes with a contact sheet, `alt.txt` and a copy of the
-  post. `kit/proposal.mjs` builds the Friday proposal page. `kit/sky.mjs` gives sky events.
+  post. `kit/proposal.mjs` builds the proposal page. `kit/sky.mjs` gives sky events.
 - `kit/examples/`: the first two posts as shapes to start from. Neither is approved; both went back
   to Idea on 30 Sep (built before the approval step, with the rejected call to action).
 - `.claude/vendor/`: HyperFrames and claude-ads, pinned and reviewed, switched on when the launch
@@ -104,10 +106,10 @@ wording is MB-122).
 4. Every reading of a placement traces to its doctrine entry or a quoted report line, noted on the row.
 5. No post has licensed music, a length, a price outside the catalogue, a living person, a reader,
    a child, "open" in its call to action or an engagement-bait ask.
-6. A Friday session run from `/marketing` in a fresh container renders a post from `kit/examples/`
+6. A session run from `/marketing` in a fresh container renders a post from `kit/examples/`
    and builds a proposal page without help: `pnpm install`, `npm ci` for the kit, two commands.
 7. From the day the waitlist is live, the bio link carries that day's `utm_content`, and the Posted
-   rows carry the week's numbers each Friday.
+   rows carry the week's numbers each session.
 
 ## Screens
 The artifact (round one): the frame, this week, the reference posts, the research, the templates,
@@ -115,14 +117,15 @@ the bank, the routine, replies, measures, the questions. The rule book page (rou
 the process, the rules, the guidelines, the sound, the tools, the call to action.
 
 ## Open questions
-1. **The rule book:** the Owner approves draft two, or names a rule or guideline by number.
-2. **The call to action:** the Owner picks one of the three lines on the rule book page (default:
-   "Join the waitlist and we'll email you when we launch.").
-3. **Network:** allow api.notion.com in the cloud environment (environment menu, Edit, Network
+Settled on 30 Sep: the rule book (draft two approved), the call to action ("Join the waitlist and
+we'll email you when we launch."), no paid music tool for now, and MB-122 left to the Owner.
+1. **Network:** allow api.notion.com in the cloud environment (environment menu, Edit, Network
    access) so a session attaches slides to the rows itself. Until then they come through the chat.
-4. **Question 3** (whose report fills "One sentence") returns with the product visuals.
+2. **Question 3** (whose report fills "One sentence") returns with the product visuals.
 
-## Decisions to record
+## Decisions
+Kept here and in the skill rather than the ADR log, since the spec is not locked. Items 3 and 6
+amend ADR-147 for Phase 0.
 1. **Phase 0 banks now and publishes from the day the waitlist is live, one a day** (ADR-147's order).
 2. **By sign is a pillar, and so is the product** (Owner): any body, the Sun included.
 3. **Phase 0 runs on carousels,** TikTok photo mode daily and Instagram carousels, faceless. Video,

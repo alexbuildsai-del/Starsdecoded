@@ -78,7 +78,7 @@ the line and date it.
 
 ## Posting and scheduling
 - **Instagram:** the app's own scheduler (Advanced settings, Schedule): 20 slides, 3:4, music and
-  alt text, weeks ahead [u]. Seven posts take about 20 minutes on Friday.
+  alt text, weeks ahead [u]. Seven posts take about 20 minutes.
 - **TikTok:** TikTok Studio on the web schedules videos only. Publer Free (three accounts, ten posts
   queued each, carousels up to 35 photos) does photo carousels, with "Add recommended sound" or a
   reminder to add our own in the app [u].

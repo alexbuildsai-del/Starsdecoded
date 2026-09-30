@@ -1,7 +1,7 @@
 # Guidelines
 
 What makes a post perform and convert, from the research of 30 Sep 2026. They bend when a post
-needs it, and a bend is named in the Friday proposal; the rules in `rules.md` never bend. The
+needs it, and a bend is named on the proposal page; the rules in `rules.md` never bend. The
 Owner reviews them with the rules on the Social rule book page, under the same G numbers.
 Sources and dates are in `platforms.md`; most were read from search summaries because the
 environment's proxy blocked the pages, so they are marked [u] there. Refresh a number when a
@@ -16,7 +16,7 @@ platform or a better study changes it.
   two charts no score, what this child needs.
 - **G2 · Carousels only for now** (Owner, 30 Sep). Video, product screens, the launch video and the
   Compatibility reel wait for the report rework, and the parent posts wait too.
-- **G3 · The week's mix.** Seven posts, no pillar twice in a row, at least one by-sign list and one
+- **G3 · The mix.** Seven posts a week, fourteen when a session plans two weeks, no pillar twice in a row, at least one by-sign list and one
   computed-not-guessed post. Sun-sign posts are fine, but every horoscope account makes them, so
   the Moon, the rising sign and the rest of the chart are where we stand out.
 
@@ -57,13 +57,15 @@ platform or a better study changes it.
 ## Sound
 - **G14 · Every post gets a sound.** An Instagram carousel with music can appear in the Reels tab.
   TikTok gives a Business account the Commercial Music Library only; Instagram gives it the Sound
-  Collection only.
+  Collection only. A track found on a personal account may not be there, so check it in the
+  business library before it goes on a post.
 - **G15 · The Stars Decoded sound.** Slow instrumental ambient electronic, an observatory at night:
   60 to 80 BPM or no beat over a soft pulse, synth pads, a quiet repeating pattern like a clock or
   a pulsar, bell tones, felt piano, a low drone. Low under the reading. No vocals, drops or trends,
   and nothing mystical: no singing bowls, harps, sitar, chimes or "healing frequencies". Until our
   own track exists, one Commercial Music Library track and one Sound Collection track in this
-  style go on every post, so they become ours by repetition. Search TikTok for "space ambient",
+  style go on every post, so they become ours by repetition. No paid music tool for now (Owner,
+  30 Sep). Search TikTok for "space ambient",
   "minimal synth", "arpeggio", "documentary" or "technology" (Ambient or Electronic, Calm), and
   Instagram for "ambient", "space", "minimal piano" or "cinematic ambient".
 
