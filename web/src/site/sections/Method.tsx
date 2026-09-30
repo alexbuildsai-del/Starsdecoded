@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { withHouseWords } from "@/lib/evidence-glossary";
+import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { homeClaims } from "@/site/data/claims";
 import { SAMPLE, sampleChart } from "@/site/data/sample";
 import { chartNotes, chartReadout, type NoteKind } from "@/site/lib/readouts";
@@ -139,6 +140,12 @@ export default function Method() {
             </figure>
           </li>
         </ol>
+
+        {/* Her name, chart and words appear above, so the sample's fine print does too (reading 4). */}
+        <p className="sd-fine">
+          These steps use {SAMPLE.name}'s chart and a line copied word for word from her {PERSONAL_REPORT}. Her birth time comes
+          from her public birth record ({SAMPLE.source}). {PRODUCT} has no connection to her family or estate.
+        </p>
 
         <div className="sd-facts">
           <p className="sd-fact">

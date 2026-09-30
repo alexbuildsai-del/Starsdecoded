@@ -1,10 +1,11 @@
 /**
  * Every claim, cited (landing-and-ai-search scope 5, ADR-110): four lines from
- * the sample's stored run take turns beside her wheel, each with the rows its
- * evidence card lists and a line ending on the body or angle it rests on. In
- * view, the wheel rewinds once from the sky now to her birth minute. The
- * prerendered page, reduced motion and a reader who arrives with the section
- * already on screen all start where the rewind ends: the first claim, whole.
+ * the sample's stored run, each with the rows its evidence card lists and a
+ * line ending on the body or angle it rests on, take a turn each beside her
+ * wheel and then rest on the first. In view, the wheel rewinds once from the
+ * sky now to her birth minute. The prerendered page, reduced motion and a
+ * reader who arrives with the section already on screen all start where the
+ * rewind ends: the first claim, whole.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "wouter";
@@ -496,11 +497,14 @@ export default function Claims() {
     return () => cancelAnimationFrame(raf);
   }, [phase, plan, land]);
 
+  // One pass, then it rests on the first claim: a turn that never ends keeps pulling the eye from the page (/web-taste).
   useEffect(() => {
     if (phase !== "landed" || !cycling || !seen || cur < 0) return;
     const timer = window.setTimeout(() => {
+      const last = cur === claims.length - 1;
       setChanged(true);
-      setCur((c) => (c + 1) % claims.length);
+      if (last) setCycling(false);
+      setCur(last ? 0 : cur + 1);
     }, DWELL_MS);
     return () => window.clearTimeout(timer);
   }, [phase, cycling, seen, cur, claims.length]);
@@ -621,8 +625,9 @@ export default function Claims() {
             </p>
             <div className="grid pt-2 max-[900px]:order-4" onClick={() => setCycling(false)}>
               <div className={cn(PANEL, cur < 0 ? "visible" : "invisible")}>
+                {/* The flex gap spaces the number on screen; the space keeps it a word apart for a crawler or a screen reader. */}
                 <p className={K_LINE}>
-                  <span className={K_NUM}>{two(0)}</span>A real report
+                  <span className={K_NUM}>{two(0)}</span> A real report
                 </p>
                 <p className={QUOTE}>{BORN}</p>
               </div>
@@ -638,8 +643,7 @@ export default function Claims() {
                     className={cn(PANEL, on ? "visible" : "invisible")}
                   >
                     <p className={cn(K_LINE, enter && ENTER[0])}>
-                      <span className={K_NUM}>{two(i + 1)}</span>
-                      {told[i].line}
+                      <span className={K_NUM}>{two(i + 1)}</span> {told[i].line}
                     </p>
                     <p className={cn(QUOTE, enter && ENTER[1])}>
                       <q>{c.claim.quote}</q>

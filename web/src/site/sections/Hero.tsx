@@ -22,6 +22,21 @@ const home = pageFor("/");
 /** First light runs about 2.3 s from the sky's arrival (landing scope 15); a frame or two more before it counts as over. */
 const FIRST_LIGHT_MS = 2400;
 
+/** The locked design sets these last words in italic; the registry keeps the plain heading for the head and the crawl. */
+const H1_ITALIC = "says about you";
+
+function Heading({ text }: { text: string }) {
+  const at = text.lastIndexOf(H1_ITALIC);
+  if (at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <em>{H1_ITALIC}</em>
+      {text.slice(at + H1_ITALIC.length)}
+    </>
+  );
+}
+
 // Visibility flips at once, so the face coming in can take focus in the same commit; only its opacity eases.
 const face = (on: boolean) =>
   `grid [grid-area:1/1] transition-[opacity,transform] duration-[350ms] ease-[cubic-bezier(.16,1,.3,1)] ${on ? "" : "invisible pointer-events-none translate-y-1.5 opacity-0"}`;
@@ -82,7 +97,9 @@ export default function Hero({ onFirstLight }: HeroProps = {}) {
       <div className="sd-wrap sd-hero-grid">
         <div className="sd-h-top">
           <p className="sd-eyebrow">{home.eyebrow}</p>
-          <h1 className="sd-h1">{home.h1}</h1>
+          <h1 className="sd-h1">
+            <Heading text={home.h1} />
+          </h1>
         </div>
         <div className="sd-h-wheel">
           <HorizonWheel sky={kept ?? live} arrival="intro" hud hidden={screen !== null} squareRef={square} />

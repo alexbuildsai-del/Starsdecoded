@@ -10,7 +10,7 @@ import { Fragment, useCallback, useEffect, useId, useRef, useState, type ReactNo
 import { AnimatePresence, animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
 import { Heart } from "lucide-react";
 import { blindRisingText, legendParts } from "@/components/dashboard/CardSections";
-import { CENTRE_ID, Orbit } from "@/components/dashboard/Orbit";
+import { CENTRE_ID, Orbit, type OrbitLabels } from "@/components/dashboard/Orbit";
 import { SkyCard } from "@/components/dashboard/SkyCard";
 import { rowText, triadRows } from "@/components/report/pair-hero-layout";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -56,6 +56,13 @@ const REPORTS: OrbitReport[] = [
 
 // The Add someone point is a control, and a sample card has none.
 const POINTS = orbitPoints({ profiles: PROFILES, reports: REPORTS, gifts: [], credits: 0, enforced: false }).filter((p) => p.kind === "person");
+
+/** The orbit is Mira's, so it speaks of her; its own words say "you" to the dashboard's reader. */
+const LABELS: OrbitLabels = {
+  orbit: `${first(SELF.name)}'s sky, a sample account`,
+  centre: `${first(SELF.name)}'s chart at a glance`,
+  sharedPair: `has a ${COMPATIBILITY_REPORT} with ${first(SELF.name)}`,
+};
 
 const EYEBROW = "font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]";
 const TAG = "font-numeric text-[10.5px] uppercase leading-none tracking-[0.14em] text-[var(--sd-muted)]";
@@ -340,6 +347,7 @@ export default function YourPeople() {
                 selectedId={selected}
                 partners={partners}
                 onSelect={setSelected}
+                labels={LABELS}
               />
             ) : (
               <div aria-hidden className="mx-auto aspect-square w-full max-w-[440px]" />

@@ -1,8 +1,9 @@
 /**
  * Inside the report (landing-and-ai-search scope 6, ADR-111): the chapter names
  * from the registry in their accents, each with what it tells you and the parts
- * it covers, stepping through while in view until the reader touches it. All
- * ten panels are in the HTML, so a crawler reads every chapter, not the first.
+ * it covers, stepping through once while in view, then resting on the first, or
+ * stopping where the reader touches it. All ten panels are in the HTML, so a
+ * crawler reads every chapter, not the first.
  */
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "wouter";
@@ -21,6 +22,7 @@ export default function Inside() {
   const reduced = useReducedMotion();
   const [cur, setCur] = useState(0);
   const [touched, setTouched] = useState(false);
+  const [rested, setRested] = useState(false);
   const [seen, setSeen] = useState(false);
   // The first panel is whole in the HTML; only a change the reader sees slides in.
   const [changed, setChanged] = useState(false);
@@ -35,13 +37,16 @@ export default function Inside() {
     return () => io.disconnect();
   }, []);
 
-  const stepping = seen && !touched && !reduced;
+  const stepping = seen && !touched && !rested && !reduced;
 
+  // One pass, then it rests on the first chapter: a step that never ends keeps pulling the eye from the page (/web-taste).
   useEffect(() => {
     if (!stepping) return;
     const timer = window.setTimeout(() => {
+      const last = cur === CHAPTERS.length - 1;
       setChanged(true);
-      setCur((c) => (c + 1) % CHAPTERS.length);
+      if (last) setRested(true);
+      setCur(last ? 0 : cur + 1);
     }, STEP_MS);
     return () => window.clearTimeout(timer);
   }, [stepping, cur]);
@@ -131,7 +136,7 @@ export default function Inside() {
                   className={cn("col-start-1 row-start-1 grid content-start gap-[18px]", on ? "visible" : "invisible", on && changed && "swap")}
                 >
                   <p className="chap">
-                    <span className="sd-mono">{two(i + 1)}</span>Chapter
+                    <span className="sd-mono">{two(i + 1)}</span> Chapter
                   </p>
                   <h3>{chapter.title}</h3>
                   <p className="glimpse">{glimpse.line}</p>
