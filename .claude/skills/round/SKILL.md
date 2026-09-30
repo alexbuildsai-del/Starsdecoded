@@ -31,7 +31,7 @@ redesign it.
    `pnpm run build:web` · `pnpm run build:api` ·
    `pnpm -r --filter '!@workspace/e2e' --if-present run test`.
    If any card touched the brain paths (`api/src/prompts/`, `models.ts`,
-   `aiInterpretation.ts`, `traditional.ts`, `chartCalculation.ts`): the dry
+   `aiInterpretation.ts`, `traditional.ts`, `packages/engine/`): the dry
    lab (`pnpm report:lab --dry`, in process, free); paste it into the report.
    Spot runs on demand from the Lab page; the full lab, the gate and the QA
    agent run in the admin Release view before production (ADR-86).
