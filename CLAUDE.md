@@ -86,7 +86,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   (Owner, 2026-09-25): never ask the Owner to put a key or token there. Anything that
   needs a key or reaches the lab routes runs on Railway and is started from the admin
   panel; GitHub workflows only build, test and smoke. Production keys never leave Railway.
-- **Until launch, production is the site with the waitlist over it** (ADR-151): public pages open, Get my report and
+- **Until launch, production is the site with the waitlist over it** (ADR-167): public pages open, Get my report and
   Sign in open the waitlist; the API serves non-admins healthz, `/waitlist*`, `/admin/*`. Staging keeps the whole app
   (`?prelaunch=1` previews production). Launch: `LAUNCHED = true` in `packages/launch`, then a Release.
 - The web app calls `/api` on its own origin; `vercel.json` rewrites that to the staging or production Railway host
@@ -114,7 +114,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 ## Current focus (2026-09-30)
 
 1. R11 shipped: the First Light site (home, /sky, /sample, /method, /compatibility, two Learn pages, /faq) as prerendered
-   HTML found by AI search, the waitlist over it with double opt-in, the legal pages naming the Owner (ADR-151).
-2. Production gets the site at the first Release; checkout, the postal address and `LAUNCHED` wait for R12 (ADR-138).
-   /sample stays off production until MB-90. Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your chart).
+   HTML found by AI search, the waitlist over it with double opt-in, the legal pages naming the Owner (ADR-167).
+2. Production gets the site at the first Release, /sample included (ADR-166); checkout, the postal address and `LAUNCHED`
+   wait for R12 (ADR-138). Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your chart).
 3. Next: R12, pricing and launch (`docs/rounds/R12-plan.md`, re-planned at its /plan): Stripe, credits hard, the loop study.

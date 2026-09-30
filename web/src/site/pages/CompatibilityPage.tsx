@@ -177,7 +177,6 @@ function Start() {
       </div>
       <div className="sd-cta-acts">
         <ReportCta source="compatibility" className="sd-btn" />
-        {/* MB-90 provisional: a production build has no /sample until her name clears its check. */}
         {SAMPLE_LIVE && (
           <Link className="sd-btn sd-btn-g" href="/sample">
             Read a sample

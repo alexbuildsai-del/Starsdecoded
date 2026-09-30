@@ -254,7 +254,6 @@ function Related() {
   const faq = pageFor("/faq");
   return (
     <div className="sd-rel">
-      {/* MB-90 provisional: a production build has no /sample until her name clears its check. */}
       {SAMPLE_LIVE && (
         <Link className="sd-relcard" href="/sample">
           <span className="sd-eyebrow">{pageFor("/sample").eyebrow}</span>

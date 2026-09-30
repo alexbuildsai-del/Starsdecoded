@@ -77,7 +77,7 @@ export interface PublicPage {
   source: string;
 }
 
-/** The pages the build writes: PUBLIC_ROUTES, which leaves /sample out while it is gated (reading 4). */
+/** The pages the build writes: PUBLIC_ROUTES, so /sample is written on every host while SAMPLE_LIVE holds (ADR-166). */
 export async function publicPages(): Promise<PublicPage[]> {
   return Promise.all(
     PUBLIC_ROUTES.map(async (route) => {

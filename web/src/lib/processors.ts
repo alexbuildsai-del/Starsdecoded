@@ -22,8 +22,8 @@ export interface Processor {
   country: string | null;
 }
 
-// MB-33 provisional: no hosting region is confirmed yet, so each company shows its country (reading 10), and who runs
-// timeapi.io, and where, is not confirmed at all.
+// MB-33 provisional: only Railway's region is confirmed (ADR-164), so each other company shows its country (reading 10),
+// and who runs timeapi.io, and where, is not confirmed at all.
 export const PROCESSORS: readonly Processor[] = [
   {
     name: "Supabase",
@@ -36,7 +36,7 @@ export const PROCESSORS: readonly Processor[] = [
     name: "Railway",
     does: "runs our servers. Everything you send us, birth details included, passes through them.",
     from: "server",
-    region: null,
+    region: "Railway's EU West region",
     country: "the United States",
   },
   {
@@ -117,7 +117,7 @@ export const BROWSER_KEYS: readonly BrowserKey[] = [
   {
     name: PREVIEW_KEY,
     store: "tab",
-    holds: "Only when we test the site: that this tab shows the site as visitors see it before we open.",
+    holds: "Only when we test the site: that this tab shows the site as visitors see it before we launch.",
   },
   {
     name: NUDGE_SEEN_KEY,

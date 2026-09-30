@@ -35,7 +35,7 @@ const whatIs: FaqItem = {
   q: `What is a ${PERSONAL_REPORT}?`,
   a: `It's the ${PRODUCT} report about you, written from your birth chart. It has ${CHAPTER_COUNT[CHAPTERS.length]} chapters, including a short read of each of your twelve houses. Every sentence shows which part of your chart it is based on.`,
   home: true,
-  // A production build has no /sample until her name clears its check (SAMPLE_LIVE).
+  // Only while the sample is switched on, so the answer never links to a page that answers 404.
   ...(SAMPLE_LIVE ? { link: "/sample" } : {}),
 };
 

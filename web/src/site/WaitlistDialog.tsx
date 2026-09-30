@@ -83,10 +83,10 @@ function WaitlistDialog({ open, source, joined, onJoined, onClose, opener }: Wai
           !phone && "pr-10",
         )}
       >
-        {PRODUCT} isn't open yet
+        {PRODUCT} hasn't launched yet
       </Dialog.Title>
       <Dialog.Description className="mt-2 text-[15px] leading-relaxed text-[#AEB6C6]">
-        Get an email the day we open.
+        Get an email when we launch.
       </Dialog.Description>
       <div className="mt-5">
         <WaitlistForm source={source} joined={joined} onJoined={onJoined} />

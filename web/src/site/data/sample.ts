@@ -23,7 +23,6 @@ export interface Sample {
   generatedAt: string;
 }
 
-// MB-90 provisional: her name waits on a legal check; if it fails, Marie Curie's fixture and run take these imports and this object.
 export const SAMPLE: Sample = {
   name: fixture.name,
   birth: {

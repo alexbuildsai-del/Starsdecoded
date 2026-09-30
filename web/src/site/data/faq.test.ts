@@ -135,7 +135,7 @@ describe("a production build", () => {
     vi.resetModules();
   });
 
-  it("keeps all fifteen and links none to the sample while its page is not live", async () => {
+  it("keeps all fifteen and links the sample, which is live there too (ADR-166)", async () => {
     vi.stubEnv("VITE_APP_ENV", "production");
     vi.resetModules();
     const { FAQ_GROUPS: groups } = await import("./faq");
@@ -144,7 +144,7 @@ describe("a production build", () => {
     expect(all).toHaveLength(15);
     expect(all.filter((item) => item.home)).toHaveLength(10);
     const linked = all.flatMap((item) => (item.link ? [item.link] : []));
-    expect(linked).not.toContain("/sample");
+    expect(linked).toContain("/sample");
     for (const link of linked) expect(site.isPublicPath(link), link).toBe(true);
   });
 });

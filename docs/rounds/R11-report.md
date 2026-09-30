@@ -40,7 +40,7 @@ engine 8), codegen twice with no diff, `db:bootstrap` twice on a scratch Postgre
 sections) against r06, token counts identical to `main`'s: the engine moved, no report's words changed.
 
 ## Deviations
-- The overlay supersedes ADR-141 in part: **ADR-151**. ADR-150 was taken by #72.
+- The overlay supersedes ADR-141 in part: **ADR-167**. ADR-150 (#72) and ADR-151 were already taken.
 - MB-91 kept the locked "credit back" words, tagged, until R12; MB-90: her chart and claims are public on the home page from the first Release.
 - Plates are drawn by `TwoPlates`, not `TriadPlate` (two horizons on one line); `NatalWheel` uses `useId` and rounds positions for hydration.
 - `/faq` gained end cards; the form gained "Use a different email"; the third refund rule no longer states our reason.

@@ -5,36 +5,22 @@ import { PAGES, SITE, isPublicPath, pageFor, type PagePath } from "./site";
 
 type Build = "staging" | "production";
 
-// Held by hand, in the registry's order, so a page joining or leaving the map is a decision a test sees.
-const MAPPED: Record<Build, PagePath[]> = {
-  production: [
-    "/",
-    "/sky",
-    "/method",
-    "/compatibility",
-    "/learn/whole-sign-houses",
-    "/learn/birth-time",
-    "/faq",
-    "/privacy",
-    "/terms",
-    "/refunds",
-    "/company",
-  ],
-  staging: [
-    "/",
-    "/sky",
-    "/sample",
-    "/method",
-    "/compatibility",
-    "/learn/whole-sign-houses",
-    "/learn/birth-time",
-    "/faq",
-    "/privacy",
-    "/terms",
-    "/refunds",
-    "/company",
-  ],
-};
+// Held by hand, in the registry's order, so a page joining or leaving the map is a decision a test sees. One list for
+// both builds, since the sample reached production too (ADR-166).
+const MAPPED: PagePath[] = [
+  "/",
+  "/sky",
+  "/sample",
+  "/method",
+  "/compatibility",
+  "/learn/whole-sign-houses",
+  "/learn/birth-time",
+  "/faq",
+  "/privacy",
+  "/terms",
+  "/refunds",
+  "/company",
+];
 const LEGAL: PagePath[] = ["/privacy", "/terms", "/refunds", "/company"];
 
 const CRAWLERS = [
@@ -151,7 +137,7 @@ describe("sitemap.xml", () => {
       `  <url>\n    <loc>${pageUrl(path)}</loc>\n    <lastmod>${crawl.pageFor(path).updated}</lastmod>\n  </url>\n`;
     const open =
       '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-    expect(crawl.sitemapXml(env)).toBe(`${open}${MAPPED[env].map(entry).join("")}</urlset>\n`);
+    expect(crawl.sitemapXml(env)).toBe(`${open}${MAPPED.map(entry).join("")}</urlset>\n`);
   });
 
   it("dates each page by its Updated date", () => {
@@ -163,13 +149,13 @@ describe("sitemap.xml", () => {
     }
   });
 
-  it("maps the legal pages, never the waitlist, and the sample only while it is live", async () => {
+  it("maps the legal pages and the sample, never the waitlist, whatever the build", async () => {
     for (const env of ["production", "staging"] as const) {
       const crawl = await built(env);
       const mapped = locs(crawl.sitemapXml(env));
       for (const path of LEGAL) expect(mapped).toContain(pageUrl(path));
       expect(mapped).not.toContain(pageUrl("/waitlist"));
-      expect(mapped.includes(pageUrl("/sample"))).toBe(env === "staging");
+      expect(mapped).toContain(pageUrl("/sample"));
     }
   });
 
@@ -194,7 +180,7 @@ describe("llms.txt", () => {
         "",
         "## Pages",
         "",
-        ...MAPPED[env].filter((path) => !LEGAL.includes(path)).map(line),
+        ...MAPPED.filter((path) => !LEGAL.includes(path)).map(line),
         "",
         "## Legal",
         "",
@@ -211,8 +197,8 @@ describe("llms.txt", () => {
     }
   });
 
-  it("leaves the sample out of a production build", async () => {
+  it("offers the sample in a production build (ADR-166)", async () => {
     const crawl = await built("production");
-    expect(crawl.llmsTxt()).not.toContain("/sample");
+    expect(links(crawl.llmsTxt())).toContain(pageUrl("/sample"));
   });
 });

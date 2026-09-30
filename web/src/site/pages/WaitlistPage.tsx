@@ -24,8 +24,8 @@ const STEPS = [
     text: `That puts your address on the list. A link you don't open stops working after ${CONFIRM_LINK_DAYS} days, and we delete the address.`,
   },
   {
-    title: "We email you the day we open",
-    text: `You get one more email from us, on the day you can get your ${PERSONAL_REPORT}. We use your address for nothing else.`,
+    title: "We email you when we launch",
+    text: `You hear from us once more, when you can get your ${PERSONAL_REPORT}. We use your address for nothing else.`,
   },
 ];
 

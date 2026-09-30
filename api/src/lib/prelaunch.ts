@@ -26,5 +26,5 @@ export function prelaunchAllows(path: string, userId: string | null, env: NodeJS
 
 export function prelaunchGate(req: Request, res: Response, next: NextFunction) {
   if (!isPrelaunch() || prelaunchAllows(req.path, req.userId ?? null)) return next();
-  return res.status(403).json({ error: "prelaunch", message: "Stars Decoded is not open yet." });
+  return res.status(403).json({ error: "prelaunch", message: "Stars Decoded hasn't launched yet." });
 }

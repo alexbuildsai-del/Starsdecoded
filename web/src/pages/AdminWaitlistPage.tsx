@@ -103,7 +103,7 @@ export default function AdminWaitlistPage() {
   const all = rows ?? [];
   const counts = waitlistCounts(all, new Date());
   const where = PRELAUNCH
-    ? "Everyone who asked to hear when Stars Decoded opens. Visitors see the site, and its Get my report and Sign in buttons open the waitlist. You see the whole app."
+    ? "Everyone who asked to hear when Stars Decoded launches. Visitors see the site, and its Get my report and Sign in buttons open the waitlist. You see the whole app."
     : APP_ENV === "production"
       ? "Everyone who joined before launch. The waitlist page is at /waitlist."
       : "Test sign-ups on this environment. The real list is on production, at mystarsdecoded.com/admin/waitlist.";

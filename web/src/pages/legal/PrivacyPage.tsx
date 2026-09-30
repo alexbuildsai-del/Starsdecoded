@@ -70,13 +70,17 @@ export default function PrivacyPage() {
           {COMPATIBILITY_REPORT}, it also gets passages from both {PERSONAL_REPORT}s, and for a parent and child, the
           child's age.
         </p>
+        <p>
+          OpenAI keeps what we send it for up to 30 days to check for abuse, then deletes it. Those are its standard terms for
+          businesses that use its API.
+        </p>
         <p>OpenAI doesn't use what we send it to train its models.</p>
         <p>The free birth chart is worked out in your browser, so the birth details you type there never reach our servers.</p>
       </LegalSection>
 
       <LegalSection id="waitlist" title="The waitlist">
         <p>
-          Before {PRODUCT} opens, you can join the waitlist with your email address. We email you a link, and your address
+          Before {PRODUCT} launches, you can join the waitlist with your email address. We email you a link, and your address
           goes on the list only when you click it. The link works for seven days. If you don't click it, we delete your
           address after seven days.
         </p>
@@ -85,7 +89,7 @@ export default function PrivacyPage() {
           brought you had campaign tags, we keep those too. We don't keep your IP address.
         </p>
         <p>
-          We use your address for one thing: to email you when {PRODUCT} opens. We delete it once that email has gone out,
+          We use your address for one thing: to email you when {PRODUCT} launches. We delete it once that email has gone out,
           or sooner if you ask.
           {CONTACT ? (
             <>
@@ -115,7 +119,7 @@ export default function PrivacyPage() {
             for. The legal basis is our contract with you.
           </li>
           <li>
-            <b className="font-semibold text-[var(--paper)]">The waitlist email:</b> to tell you when we open. The legal basis
+            <b className="font-semibold text-[var(--paper)]">The waitlist email:</b> to tell you when we launch. The legal basis
             is your consent, which you can withdraw at any time.
           </li>
           <li>
@@ -135,7 +139,7 @@ export default function PrivacyPage() {
           <li>We keep a record of the credits you buy, without any birth details, for our accounts.</li>
           <li>
             A waitlist address you haven't confirmed goes after seven days. A confirmed one goes once we've emailed you that{" "}
-            {PRODUCT} is open.
+            {PRODUCT} has launched.
           </li>
         </ul>
       </LegalSection>

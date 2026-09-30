@@ -11,7 +11,7 @@ export function indexable(env: AppEnv): boolean {
   return env === "production";
 }
 
-/** The waitlist lasts only until launch and a gated sample answers 404, so neither is offered to an index. */
+/** The waitlist lasts only until launch and a sample switched off answers 404, so neither is offered to an index. */
 function lastingPages(): PageEntry[] {
   return PAGES.filter((page) => page.sitemap && isPublicPath(page.path));
 }

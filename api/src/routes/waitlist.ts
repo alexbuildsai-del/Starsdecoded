@@ -23,7 +23,7 @@ const perClient = new RateLimiter(20, 10 * 60_000);
 router.post("/waitlist", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (waitlistClosed()) {
-    return res.status(503).json({ error: "waitlist_closed", message: "Sign-ups aren't open yet. Check back soon." });
+    return res.status(503).json({ error: "waitlist_closed", message: "The waitlist isn't taking sign-ups yet. Check back soon." });
   }
   if (!perClient.take(clientKey(req.headers, req.ip))) {
     return res.status(429).json({ error: "rate_limited", message: "Too many sign-ups from here. Try again in a few minutes." });
