@@ -2,6 +2,7 @@ name: Smoke run
 
 # Reusable body of the deploy check. smoke.yml and promote.yml call it with
 # the web URL to probe and the environment the API behind it must report.
+# It only reads public URLs: no secret, no key, nothing is posted.
 on:
   workflow_call:
     inputs:
@@ -50,7 +51,7 @@ jobs:
           for asset in $(grep -oE '/assets/[^"'"'"' ]+\.js' index.html | sort -u); do
             curl -sS --max-time 20 "${WEB_URL%/}$asset" | grep -oE 'https://[A-Za-z0-9.-]+\.[a-z]{2,}' >> found.txt || true
           done
-          sort -u found.txt | grep -vE 'googleapis|gstatic|clerk\.|w3\.org|openstreetmap|timeapi|nominatim|github\.com|reactjs|npmjs|vercel\.app' > origins.txt || true
+          sort -u found.txt | grep -vE 'clerk\.|w3\.org|openstreetmap|timeapi|nominatim|github\.com|reactjs|npmjs|vercel\.app' > origins.txt || true
           echo "origins in bundles (candidates for the API):"; cat origins.txt || true
           { echo "${WEB_URL%/}"; grep railway origins.txt || true; } > candidates.txt
           echo "probe order:"; cat candidates.txt
@@ -107,6 +108,91 @@ jobs:
             echo "::warning::$API_URL/api/healthz/db reports the prompt copy from staging failed; the seeded defaults are serving: $body"
           fi
 
+      # What a crawler is handed. Whether the site asks to be found is the one
+      # thing production and staging disagree on, so that follows EXPECT_ENV;
+      # everything else holds on both hosts. The web deploy can land after the
+      # API's, so a failing pass is retried until the deadline.
+      - name: Crawl surface
+        run: |
+          base="${WEB_URL%/}"
+          bot='Mozilla/5.0 (compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot)'
+          work=$(mktemp -d)
+          closed='^[[:space:]]*Disallow:[[:space:]]*/[[:space:]]*$'
+          google='fonts\.(googleapis|gstatic)\.com'
+          problems=""
+          pages=0
+          note() { problems="${problems}${1}"$'\n'; }
+
+          audit() {
+            problems=""
+            pages=0
+            rm -f "$work"/*
+
+            for f in robots.txt sitemap.xml llms.txt; do
+              code=$(curl -sS --max-time 20 -o "$work/$f" -w '%{http_code}' "$base/$f" 2>/dev/null || true)
+              if [ "$code" != 200 ]; then note "/$f answered ${code:-nothing}, expected 200"; fi
+            done
+            if ! grep -qi '^User-agent:' "$work/robots.txt" 2>/dev/null; then note "robots.txt names no User-agent"; fi
+            if ! grep -q '<urlset' "$work/sitemap.xml" 2>/dev/null; then note "sitemap.xml is not a sitemap"; fi
+            if ! head -n 1 "$work/llms.txt" 2>/dev/null | grep -q '^# '; then note "llms.txt does not open with a title"; fi
+
+            code=$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$base/no-such-page" 2>/dev/null || true)
+            if [ "$code" != 404 ]; then note "/no-such-page answered ${code:-nothing}, expected 404"; fi
+
+            curl -sS --max-time 20 -D "$work/dashboard.headers" -o /dev/null "$base/dashboard" 2>/dev/null || true
+            if ! grep -qi '^x-robots-tag:.*noindex' "$work/dashboard.headers" 2>/dev/null; then note "/dashboard carries no X-Robots-Tag: noindex"; fi
+
+            # The sitemap is the crawler's map, so every page it lists must reach the crawler with its H1 already in the HTML (R-7.6), not only the home page.
+            code=$(curl -sS --max-time 20 -A "$bot" -D "$work/home.headers" -o "$work/home.html" -w '%{http_code}' "$base/" 2>/dev/null || true)
+            if [ "$code" != 200 ]; then note "/ answered ${code:-nothing} to OAI-SearchBot, expected 200"; fi
+            if ! grep -qi '<h1' "$work/home.html" 2>/dev/null; then note "/ sent OAI-SearchBot no <h1>"; fi
+            for p in $(grep -oE '<loc>[^<]+</loc>' "$work/sitemap.xml" 2>/dev/null | sed -E 's#</?loc>##g; s#^https?://[^/]+##' | sed '/^\/$/d;/^$/d' | sort -u); do
+              code=$(curl -sS --max-time 20 -A "$bot" -o "$work/page.html" -w '%{http_code}' "$base$p" 2>/dev/null || true)
+              if [ "$code" != 200 ]; then note "$p is in the sitemap but answered ${code:-nothing} to OAI-SearchBot"; continue; fi
+              if ! grep -qi '<h1' "$work/page.html"; then note "$p sent OAI-SearchBot no <h1>"; fi
+              pages=$((pages + 1))
+            done
+
+            # The fonts come from our own origin (R11-04), so a page, stylesheet or script naming Google's font hosts has brought back a third-party request on every visit.
+            if grep -qE "$google" "$work/home.html" 2>/dev/null; then note "the home page names Google's font hosts"; fi
+            for a in $(grep -oE '/assets/[^"'"'"' ]+\.(js|css)' "$work/home.html" 2>/dev/null | sort -u); do
+              rm -f "$work/asset"
+              curl -sS --max-time 20 -o "$work/asset" "$base$a" 2>/dev/null || true
+              if grep -qE "$google" "$work/asset" 2>/dev/null; then note "$a names Google's font hosts"; fi
+            done
+
+            asks_out=false
+            if grep -qi '^x-robots-tag:.*noindex' "$work/home.headers" 2>/dev/null || grep -qiE '<meta name="robots"[^>]*noindex' "$work/home.html" 2>/dev/null; then asks_out=true; fi
+            case "$EXPECT_ENV" in
+              production)
+                if cat "$work/robots.txt" 2>/dev/null | tr -d '\r' | grep -qE "$closed"; then note "robots.txt turns every crawler away on production"; fi
+                if ! grep -qi '^Sitemap:.*sitemap\.xml' "$work/robots.txt" 2>/dev/null; then note "robots.txt names no sitemap on production"; fi
+                if $asks_out; then note "the home page asks not to be indexed on production"; fi
+                ;;
+              staging)
+                if ! cat "$work/robots.txt" 2>/dev/null | tr -d '\r' | grep -qE "$closed"; then note "robots.txt does not turn crawlers away on staging"; fi
+                if ! $asks_out; then note "the home page does not ask to stay out of search on staging"; fi
+                ;;
+            esac
+            return 0
+          }
+
+          end=$((SECONDS + DEADLINE_SECONDS))
+          while :; do
+            audit
+            if [ -z "$problems" ]; then
+              echo "crawl surface ok at $base: robots.txt, sitemap.xml and llms.txt, $((pages + 1)) pages read as OAI-SearchBot, /no-such-page 404, /dashboard noindex, no Google fonts"
+              echo "CRAWL_PAGES=$((pages + 1))" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            if [ "$SECONDS" -ge "$end" ]; then
+              printf '%s' "$problems" | while IFS= read -r line; do echo "::error::$base: $line"; done
+              exit 1
+            fi
+            echo "crawl surface not right yet at $base, waiting for the deploy:"; printf '%s' "$problems"
+            sleep 15
+          done
+
       - name: Summary
         run: |
-          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n- env: %s\n- commit: %s\n- database: %s\n' "$WEB_URL" "$API_URL" "$API_ENV" "$API_COMMIT" "$API_DB" >> "$GITHUB_STEP_SUMMARY"
+          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n- env: %s\n- commit: %s\n- database: %s\n- crawl: %s pages read as OAI-SearchBot\n' "$WEB_URL" "$API_URL" "$API_ENV" "$API_COMMIT" "$API_DB" "$CRAWL_PAGES" >> "$GITHUB_STEP_SUMMARY"
