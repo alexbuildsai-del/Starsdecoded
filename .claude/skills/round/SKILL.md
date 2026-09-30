@@ -46,8 +46,8 @@ redesign it.
    Then confirm the staging deploy: the Smoke run on `main` is green. Hand
    the Owner the staging URL and three lines on what to look at. Production
    moves only when the Owner says "promote": run the Release view on staging;
-   while MB-75 is open it stops at `passed`, then dispatch `promote.yml` with
-   the release id. No secret on GitHub, ever.
+   it fast-forwards `production` itself; if it stops at `passed` (token
+   missing or expired), dispatch `promote.yml` with the release id. No secret on GitHub, ever.
 5. **Notion.** Mark Mailbox rows the round resolved as `done`; add rows for
    anything a builder raised. Never touch a Decisions row.
 

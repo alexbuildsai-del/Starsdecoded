@@ -185,7 +185,7 @@ Starsdecoded/
     qa/                     QA-NN.md, findings only
     annex/                  deep dives, long references, overflow from budgeted files
   .claude/agents/           planner, builder, qa; the orchestrator is the main session in /round
-  .claude/skills/           /ideate /lock /plan /round /qa /mailbox /report-lab /ux-copy /web-taste, a SKILL.md each
+  .claude/skills/           /ideate /lock /plan /round /qa /mailbox /report-lab /ux-copy /web-taste /marketing, a SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
 Notion / STARS DECODED
   Decisions                 ADR log, one row per decision, never edited, only superseded

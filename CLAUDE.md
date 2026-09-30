@@ -56,7 +56,7 @@ demand, full lab plus QA agent in the Release view before production.
 `/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock <slug>`
 → locked spec + Decisions rows · `/plan <slugs>` → parallel-grouped plan, and on
 the Owner's approval `/round RNN` starts at once → branch `round/RNN`, builders,
-gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox` · `/ux-copy` for words, `/web-taste` for pages. MASTERFILE §11.
+gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox` · `/ux-copy` for words, `/web-taste` for pages, `/marketing` for social posts. MASTERFILE §11.
 
 The Owner tests the website and says yes or no. Everything else is ours:
 merging once the gate is green, watching CI and the Railway and Vercel deploys,
@@ -102,8 +102,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`,
   `traditional.ts`, `packages/engine/` (the chart calculation). Touch it and the dry lab runs in the round; spot
   on demand from the Lab page; the Release view runs the full lab, the gate and the QA agent,
-  then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway (`promote.yml` is the
-  fallback that takes the release id). `LAB_BUDGET_USD` caps spend
+  then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway staging (placed 2026-09-30;
+  if it expires the release stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
   (ADR-77); the Lab page and `--render` are free. Every model id lives in `models.ts`; one
   outside the catalogue does not compile. A check blocks only when the text would be wrong
   for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
