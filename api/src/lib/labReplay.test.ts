@@ -5,12 +5,12 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { InsertLabRun } from "@workspace/db";
+import type { InsertLabRun, LabRun } from "@workspace/db";
 import { chartFromFixture } from "./testFixtures.js";
 import { cannedNatalReplies, installFakeModel } from "./testModel.js";
 
 const { OutOfCreditError, generateInterpretation, writeSection } = await import("./aiInterpretation.js");
-const { BudgetError, FALLBACK_SHAPE, budgetUsd, estimateReplayUsd, runReplayJob, startReplay } = await import("./labReplay.js");
+const { BudgetError, FALLBACK_SHAPE, baseFromRows, budgetUsd, estimateReplayUsd, runReplayJob, startReplay } = await import("./labReplay.js");
 type ReplayBase = import("./labReplay.js").ReplayBase;
 type ReplayStore = import("./labReplay.js").ReplayStore;
 
@@ -100,6 +100,16 @@ test("any other failure fails its own row, after one more try when asked, and th
   assert.equal(career.status, "failed");
   assert.equal(career.error, "simulated outage");
   assert.equal(money.status, "done");
+});
+
+test("a base's shape keeps the visible output only, so a writer's thinking is never counted twice", () => {
+  const row = (section: string, usage: object) => ({ id: section, runKey: "marie-curie.r06", fixture: "marie-curie", label: "r06", section, chart, subjectName: "Marie Curie", output: stored.foundation, usage }) as unknown as LabRun;
+  const b = baseFromRows("marie-curie.r06", [
+    row("foundation", { attempts: 1, inputTokens: 900, cachedInputTokens: 100, outputTokens: 3_000, reasoningTokens: 1_000 }),
+    row("career", { attempts: 2, inputTokens: 4_000, cachedInputTokens: 0, outputTokens: 2_000, reasoningTokens: 0 }),
+  ]);
+  assert.deepEqual(b.shapes.foundation, { inputTokens: 900, cachedInputTokens: 100, outputTokens: 2_000 });
+  assert.deepEqual(b.shapes.career, { inputTokens: 2_000, cachedInputTokens: 0, outputTokens: 1_000 });
 });
 
 test.after(() => fake.restore());

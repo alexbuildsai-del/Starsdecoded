@@ -203,7 +203,7 @@ function shapesOf(rows: Array<{ section: string; usage: unknown }>): Record<stri
     const u = r.usage as SectionUsage | null;
     if (!u) continue;
     const attempts = Math.max(1, u.attempts || 1);
-    out[r.section] = { inputTokens: Math.round(u.inputTokens / attempts), cachedInputTokens: Math.round(u.cachedInputTokens / attempts), outputTokens: Math.round(u.outputTokens / attempts) };
+    out[r.section] = { inputTokens: Math.round(u.inputTokens / attempts), cachedInputTokens: Math.round(u.cachedInputTokens / attempts), outputTokens: Math.round((u.outputTokens - (u.reasoningTokens ?? 0)) / attempts) };
   }
   return out;
 }
