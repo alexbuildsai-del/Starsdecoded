@@ -119,3 +119,116 @@ was raised: every consequential choice here sits on an existing row (MB-90, 101,
 7. Code cites ADR-107 to 119 and 140 to 145 where it follows them. Provisional seams: `// MB-90 provisional` (`SAMPLE_LIVE`),
    `MB-101` (the committed run), `MB-112` (Couple), `MB-115` (the two missing seller fields), `MB-119` (the catalogue's home),
    `MB-33` (regions). The `MB-108` tag leaves with `skyNow.ts`; the `MB-106` tag in `web/src/lib/waitlist.ts` goes (ADR-145).
+
+## Readings pinned where the spec is silent
+1. **The overlay** (the Owner, 2026-09-30; ADR-151 at close), the default the Owner can correct on staging: before launch,
+   production shows everyone, and every crawler, the public site: home, /sky, /method, /compatibility, the two Learn pages,
+   /faq, the four legal pages and /waitlist (/sample by reading 4). Every call to write a report or sign in (Get my report, Sign
+   in, the sky screen's and the prices' buttons) opens the waitlist over the page, a dialog on desktop and a bottom sheet on a
+   phone, with the waitlist form; `/waitlist` is its page. The app (sign-up, the birth form, dashboard, reports, claims) shows
+   a non-admin the /waitlist page, as today; `/sign-in` and `/admin` stay the admin's way in, and the signed-in admin sees and
+   uses everything. The API keeps its gate: healthz, `/waitlist`, `/waitlist/confirm`, `/admin/*`; the public pages call
+   nothing else, since they compute in the browser and read build data. Staging and local are never gated.
+2. **One HTML for both states.** The prerendered pages read the same before and after launch. The buttons keep the locked
+   labels (Get my report, Sign in); their `href` is `/waitlist` in a production build before launch and `/chart` or `/sign-in`
+   otherwise, and the click decides on the client: the dialog for a visitor before launch, else ADR-140's sign-in and then
+   the birth form. The dialog's first line says plainly that Stars Decoded is not open yet. Launch stays one edit,
+   `LAUNCHED = true`, then a Release.
+3. **Staging previews the look** with `?prelaunch=1`, kept for the tab in `sessionStorage` `sd.prelaunch.preview`;
+   `?prelaunch=0` or the ribbon's Exit clears it. It shows the visitor's view even to the signed-in admin, on any host. Web
+   only: the API stays open on staging.
+4. **/sample on production** answers 404 and stays out of the sitemap until MB-90 is done (`SAMPLE_LIVE`, `// MB-90
+   provisional`); on staging it is whole. Elsewhere her computed chart, the four home claims and the worked examples appear as
+   the spec locks them, with the fine print (her public birth record, Astro-Databank AA; no connection to her family or
+   estate). One module holds the sample, so Marie Curie's run can take the slot in one edit if MB-90's check fails.
+5. **The engine becomes a package** (MB-108's recommendation, which its default leaves to this plan): `chartCalculation.ts`
+   moves unchanged to `packages/engine`, with `zoneCities.ts` and the pure parts of `skyNow.ts`; `api/src/lib/chartCalculation.ts`
+   re-exports it, so thirty imports keep their path; `BRAIN_PATHS` gains `packages/engine/`; `CHART_VERSION` stays 3, since
+   nothing computes differently (R-3.2). The live sky moves to the browser and `GET /api/sky` retires at the end of the round.
+6. **Method's notes** are what the engine itself computes for the sample: a day or night birth from the Sun's altitude, the
+   dominant planets, element and modality. The brief stays on the server (the web cannot import `api/`).
+7. **Sample people** (ADR-112, R-3.1): four to six synthetic fixtures under `fixtures/sample-people/`, birth data only,
+   labelled as samples wherever shown, one per relation the orbit and the three lenses need; they also give each lens its two
+   plates. The royal pair fixtures stay lab-only (real published births).
+8. **The four home claims** stay r06's, byte-identical, the artifact's four as `/ux-copy` picked them (no Sun or Ascendant
+   claim passes, MB-92); ADR-110's re-pick at a Release belongs to the round that changes the sample run.
+9. **The seller** (ADR-144, MB-115): `LEGAL_IDENTITY` in `@workspace/commerce` holds the name "Alexandra Bendicakova" (as given;
+   accents asked in ask 1), the trading name "Stars Decoded", the country "Belgium" and the statement descriptor
+   "MYSTARSDECODED"; `postalAddress` and `contactEmail` are `null` under `// MB-115 provisional`. **The postal address is
+   never written in the repo, a plan, a commit or Notion**; only R12's sale path will require it (`saleReady`).
+   `waitlistReady()` means the name and the contact address are there.
+10. **The legal pages** (ADR-143 to 145) read `LEGAL_IDENTITY`. The draft banner shows while `!waitlistReady()`; after that,
+    "Draft dated" reads "Updated". A missing postal address is left out, never shown as a placeholder. Processors carry their
+    region where it is confirmed, else the provider's country and the transfer basis ADR-145 names (`// MB-33 provisional`).
+    No Stripe (R12), no analytics (MB-116's default). `/company` keeps its route, titled "Who runs Stars Decoded".
+11. **Double opt-in** (ADR-145; the deferred plan's reading 11): a 32-byte token, only its SHA-256 stored, the link alive seven
+    days; an unconfirmed address is deleted after seven days, swept on each call; every join answers `check_email`, so nobody
+    learns who is listed; a new link at most once per ten minutes per address; `launch-email-v1` rows count as confirmed
+    (staging holds the only ones); a confirmed address is kept until the opening email (R12) or a request to delete it. The
+    page posts the link's token itself, so a mail scanner's GET confirms nothing.
+12. **Production's form before the contact address** shows one line and no field, and POST /waitlist answers 503
+    `waitlist_closed` there while `!waitlistReady()`. Staging and local always take sign-ups.
+13. **Prices** (ADR-142, R-6.3, MB-119's location half): the three rows live in `@workspace/commerce`, with no Stripe column
+    and no offer (both R12's). The pricing slot shows each bundle's name, line, price and "VAT included", with nothing to buy:
+    its button is Get my report (reading 2). JSON-LD gives a Product (the Personal natal report) with an Offer per bundle and
+    sets `availability` only after launch.
+14. **The prefill through sign-in** (ADR-140): after launch only, the sky screen's Get my report keeps the date, time and place
+    in `sessionStorage` `sd.form.draft`, the tab's own, gone once the birth form reads it; the privacy page names it.
+15. **Crawl** (ADR-115; settled at lock 2): production's robots.txt allows every crawler, GPTBot, ClaudeBot and
+    Applebot-Extended included, except `/api/` and `/admin`; staging and previews answer `Disallow: /` and
+    `X-Robots-Tag: noindex`; app routes carry noindex; unknown public paths 404; the sitemap's `lastmod` is each page's Updated
+    date (ADR-116); llms.txt lists the pages from the registry. Measurement needs no code: ChatGPT's `utm_source=chatgpt.com`
+    lands in the waitlist's tags, crawler hits in the host's firewall log (MB-102).
+16. **Tests stay on pure modules** (MB-47): the prerender itself fails the build when a page lacks its H1 or lede; no component
+    rendering test.
+17. **Copy:** the artifact's words where it has them; every new string passes `/ux-copy` and every page `/web-taste`; each
+    builder lists its new strings for the Owner's look (the dialog, the confirmation, the closed line, the legal lines).
+18. **MB-91 waits for R12:** "Your credit is back." is true of every failed report only once credits go hard (the soft pass
+    writes some reports with none), so it moves with the deferred R11-13.
+
+## Pinned shapes
+- **Engine** (`@workspace/engine`, R11-01): every export of today's `chartCalculation.ts` (`calculateNatalChart`, `hasHorizon`,
+  `offsetAtBirth`, `CHART_VERSION`, `EPHEMERIS`, `ASPECT_ORBS` and the types) and, from `sky.ts`, `Place`,
+  `placeForZone(zone?)`, `cityName(zone)`, `localParts(at, zone)`, `skyAt(at, place)`.
+- **Commerce** (R11-02): `SellerIdentity { name; tradingName; country; postalAddress: string | null; contactEmail: string |
+  null; statementDescriptor }`; `LEGAL_IDENTITY`; `missingSellerFields(id = LEGAL_IDENTITY): ("postalAddress" |
+  "contactEmail")[]`; `waitlistReady(id?)`, `saleReady(id?)`: boolean; `CHECKOUT_TICK`; `REFUND_RULES: readonly [string,
+  string, string]`; `BundleId = "solo" | "couple" | "family"`; `Bundle { id; name; line; credits: 1 | 3 | 5; cents }`;
+  `BUNDLES`; `bundleById(id)`; `formatEuro(cents)` ("€24", "€14.40").
+- **Contract** (R11-03): `JoinWaitlistBody.consent` enum + `launch-email-v2`, `utmContent?` (≤ 100); `WaitlistJoined.status`
+  + `check_email`; POST /waitlist + 503; `POST /waitlist/confirm` `ConfirmWaitlistBody { token (≤ 100) }` → 200
+  `WaitlistConfirmed { status: confirmed }` or 404 [confirmWaitlist]. `/admin/*` stays out of the spec.
+- **Site** (R11-06): `SITE = { origin: "https://mystarsdecoded.com", name: "Stars Decoded" }`; `PageEntry { path; title;
+  eyebrow; h1; lede; updated: "YYYY-MM-DD"; kind: home | page | learn | faq | legal | waitlist; schema: ("WebPage" | "Article" |
+  "FAQPage")[]; sitemap: boolean; parent?: string }`; `PAGES`; `pageFor(path)`; `isPublicPath(path)`; `SAMPLE_LIVE`; `NAV`;
+  `FOOTER`; `SiteLayout({ page: PageEntry; children; end?: ReactNode })`; `PUBLIC_ROUTES: readonly { path; load: () =>
+  Promise<{ default: ComponentType }> }[]`. Pages `web/src/site/pages/{Home,Sky,Sample,Method,Compatibility,LearnHouses,
+  LearnBirthTime,Faq,Waitlist}Page.tsx`; sections `web/src/site/sections/{Hero,Claims,Inside,YourPeople,TwoCharts,Method,
+  BirthTime,Pricing,Faq,Dawn}.tsx`, each a default export with no required props.
+- **Overlay** (R11-07): `previewFlag(search?, store?): boolean`, `setPreview(on, store?)`; `PrelaunchViewProvider({ children })`
+  (client only, inside Clerk) and `usePrelaunchView(): boolean` (defaults to `PRELAUNCH` without the provider, as on the
+  server); `WaitlistDialogProvider({ children })`, `useWaitlistDialog(): { open(source: string): void }`; `ReportCta({ source;
+  className?; children? })`, `SignInCta({ source; className? })`.
+- **Waitlist** (R11-12, 13): `sendWaitlistConfirmEmail({ to, confirmUrl, expiresOn }): Promise<boolean>`; `WaitlistForm({
+  source: string; joined: string | null; onJoined(email) })`; `ConfirmWaitlist({ token: string })`.
+- **Place and prefill** (R11-05): `PlaceField({ id; value: GeocodeResult | null; onChange(place: GeocodeResult | null);
+  label? })`, `GeocodeResult` as the birth form types it today; `FormDraft { birthDate; time: BirthTimeAnswer; place:
+  GeocodeResult | null }`; `saveFormDraft(draft, store?)`, `takeFormDraft(store?): FormDraft | null`.
+- **Sample** (R11-08): `toChartData(natal): ChartData`, `chartOf(birth): ChartData` (`web/src/site/lib/chart.ts`); `SAMPLE {
+  name; birth; run; generatedAt }`, `sampleChart()`, `claimsInReadingOrder(): { n; section; claim }[]`; `HOME_CLAIMS: readonly {
+  claimId; target: { kind: "body" | "angle"; key } }[]`; `SAMPLE_PEOPLE: readonly { id; name; relation; birthDate; chart }[]`;
+  `SAMPLE_PAIRS: Record<Lens, [string, string]>`.
+- **Head, crawl, FAQ** (R11-10, 18): `headFor(path, env): string`; `robotsTxt(env)`, `sitemapXml(env)`, `llmsTxt()`: string;
+  `FAQ_GROUPS: readonly { topic; items: readonly { q; a; home: boolean; link?: string }[] }[]`.
+- **Prerender** (R11-09): `web/src/entry-server.tsx` exports `render(path): Promise<{ html: string; head: string }>` and the
+  three crawl builders; `web/scripts/prerender.mjs` writes `dist/{path}.html`, `dist/app.html`, `dist/404.html`,
+  `dist/robots.txt`, `dist/sitemap.xml`, `dist/llms.txt`.
+
+## Parallel groups
+**Group A**, one message: R11-01 to R11-08, no dependencies between them (R11-01 and R11-02 meet at `packages/commerce`,
+R11-06 and R11-07 at `cta.tsx` and `WaitlistDialog.tsx`, R11-08 imports the engine: pinned). **Group B**, one message once A is
+green: R11-09 to R11-18 (R11-09 imports R11-10's builders, R11-10 reads R11-18's `FAQ_GROUPS`: pinned); each section lands in
+the home page's placeholder, so the group-end build prerenders every section on the server. **Group C**, one message once B is
+green: R11-19 to R11-24. **Group D**, one message once C is green: R11-25 to R11-27. Then the gate. **If R11 must shrink**,
+R11-27 (IndexNow) moves to R12 first, then R11-26's smoke half; the pages stay, since they are the goal, and R11-25 stays,
+since the price gate and the retired route close the round.
