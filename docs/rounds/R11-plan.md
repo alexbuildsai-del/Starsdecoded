@@ -232,3 +232,158 @@ the home page's placeholder, so the group-end build prerenders every section on 
 green: R11-19 to R11-24. **Group D**, one message once C is green: R11-25 to R11-27. Then the gate. **If R11 must shrink**,
 R11-27 (IndexNow) moves to R12 first, then R11-26's smoke half; the pages stay, since they are the goal, and R11-25 stays,
 since the price gate and the retired route close the round.
+
+---
+
+## Group A — the packages, the columns and contract, the fonts, the place field, the site's skeleton, the overlay, the sample
+
+### R11-01 — The engine and commerce as workspace packages (INTERNAL) · Opus — MB-108
+Objective: the chart calculation lives where the browser, the prerender and the API all import it; `@workspace/commerce` is wired.
+Files: new `packages/engine/` (`package.json` with astronomy-engine 2.1.19 and a test script, `tsconfig.json`, `src/index.ts`,
+`src/chartCalculation.ts` and `src/zoneCities.ts` by `git mv` from `api/src/lib/`, new `src/sky.ts`, `engine.test.ts`, `sky.test.ts`);
+new `packages/commerce/package.json`, `tsconfig.json`; `api/src/lib/chartCalculation.ts` (a re-export), `skyNow.ts` (+ test, the
+cache alone), `github.ts` (`BRAIN_PATHS`); the three `tsconfig.json`; both `package.json`; `pnpm-lock.yaml`; `sky-card.test.ts`.
+Refs: MB-108; ADR-107; R-3.2, R-4.4; CLAUDE.md "the brain"; landing acceptance "Charts are computed"; reading 5; pinned engine.
+Done when:
+- `git diff -M main` shows both moved files as renames with no content change; `sky.ts` holds `placeForZone`, `cityName`,
+  `localParts` and `skyAt` as `skyNow.ts` has them; `CHART_VERSION` is 3.
+- `engine.test.ts` pins Audrey Hepburn (Sun 13.12° Taurus, Moon 6.45° Pisces, rising 28.62° Aquarius) and Marie Curie to 0.01°;
+  api's `chartCalculation.test.ts` passes unchanged through the re-export; both packages test under the root command.
+- `pnpm install --frozen-lockfile` passes; web and api typecheck against both packages (commerce's sources come with R11-02);
+  `build:web` bundles the engine. The orchestrator runs the dry lab and pastes it into the report.
+
+### R11-02 — One seller, the terms' words, three prices (INTERNAL) · Sonnet — provisional MB-112, MB-115, MB-119
+Objective: the seller, the tick, the refund rules and the bundle catalogue in one package the web, the prerender and the API import.
+Files: new `packages/commerce/src/index.ts`, `seller.ts`, `terms.ts`, `catalogue.ts`, `seller.test.ts`, `catalogue.test.ts`.
+Refs: pricing-and-launch Bundles and prices, Sold by Alex, Checkout; ADR-142 to 144; R-6.3, 6.6; readings 9, 13; pinned commerce.
+Done when:
+- `LEGAL_IDENTITY` holds exactly "Alexandra Bendicakova", "Stars Decoded", "Belgium", "MYSTARSDECODED", and `null` for
+  `postalAddress` and `contactEmail`, each under `// MB-115 provisional`; no street, postcode or town appears in the package.
+- `missingSellerFields`, `waitlistReady` (name and contact address) and `saleReady` (every field) answer for any identity passed
+  in; `CHECKOUT_TICK` is R-6.6's sentence byte for byte; `REFUND_RULES` are ADR-143's three rules in the reader's words.
+- `BUNDLES`: solo "Single", "1 credit · one report", 1, 2400; couple "Couple" (`// MB-112 provisional`), "3 credits · a report
+  each and how you get along", 3, 4800; family "Family & friends", "5 credits · for the people close to you", 5, 7200; the file
+  tagged `// MB-119 provisional` (its home; offers and Stripe's amounts are R12's).
+- Tests: the predicates on complete and incomplete identities, the three rows, `formatEuro`.
+
+### R11-03 — The waitlist's columns and contract for double opt-in (INTERNAL) · Opus
+Objective: a waitlist row can wait for its owner's confirmation, and the contract carries the confirmation and each post's tag.
+Files: `packages/db/src/schema/waitlist.ts`; new `packages/db/scripts/migrate-waitlist-confirmation.ts`; `packages/db/package.json`
+(`migrate` runs it last); `scripts/bootstrap-db.sh` (step 1's comment); `packages/api-spec/openapi.yaml`; the generated
+`api-client-react` and `api-zod` (codegen only).
+Refs: ADR-141, 145, 147 (`utm_content` per post); R-7.2, R-7.3; MB-80, MB-106 (decided); reading 11; pinned contract.
+Done when:
+- `waitlist_signups` gains `utm_content text`, `confirmed_at timestamp`, `confirm_token_hash text` (unique index) and
+  `confirm_sent_at timestamp`; the script adds them `IF NOT EXISTS` in step 1, before `push`, skips a database without the
+  table, marks `launch-email-v1` rows confirmed at their `created_at`, and is idempotent.
+- On a scratch Postgres 16 with a dummy `OPENAI_API_KEY` (MB-80): `db:bootstrap` from `main`'s tree (a worktree), then this
+  branch's twice, then an empty database twice; every run clean, step 2 applying nothing after step 1.
+- The contract as pinned, every change additive with a line naming ADR-145; codegen, typecheck green with no other file
+  changed, and a second codegen leaves no diff.
+
+### R11-04 — The last two fonts from our own origin (INTERNAL) · Sonnet
+Objective: no page calls Google's font CDN, so the privacy page names no font host and the public site sends no visitor's
+address to Google (ADR-145).
+Files: new Inter and Space Grotesk woff2 files and their OFL texts in `web/src/assets/fonts/`; `web/src/index.css` (its first
+three lines); `web/index.html` (its three font links).
+Refs: ADR-145; MB-33, MB-42; §9 (the four families); the Newsreader and IBM Plex Mono `@font-face` rules as the pattern.
+Done when: Inter (400 to 700) and Space Grotesk (400 to 600) load from `./assets/fonts/` as variable woff2, copied once from
+the npm registry's `@fontsource-variable` packages without adding a dependency, the licence named in one comment; no
+`fonts.googleapis.com` or `fonts.gstatic.com` remains in `web/`; `build:web` emits the files; the comment over the block no
+longer says two fonts come from the CDN; pages look as they did.
+
+### R11-05 — One place field, and the birth form's prefill (USER-FACING) · Opus
+Objective: the birth form's place search becomes one component the landing and /sky reuse as it is, with the map data
+credited (ADR-109), and the form takes what the sky screen carried through sign-in (ADR-140).
+Files: new `web/src/components/PlaceField.tsx`; new `web/src/lib/places.ts` (+ test); new `web/src/lib/form-draft.ts`
+(+ test); `web/src/pages/BirthFormPage.tsx`.
+Refs: landing scope 4, acceptance "One place field", "Fields fit"; ADR-109, 140; MB-30, 94 (neither built); reading 14; pinned
+place and prefill.
+Done when:
+- `PlaceField` carries today's search exactly (Nominatim, the ranking, timeapi.io's zone, the list, the chosen place's line),
+  shows "© OpenStreetMap contributors" in its list, and its input is 16 px on a phone; `places.ts` holds the pure ranking and
+  labels with tests; the birth form renders `PlaceField` and behaves as before.
+- `saveFormDraft` writes the date, time answer and place to `sessionStorage` `sd.form.draft`; `takeFormDraft` returns and
+  deletes it; the birth form fills its fields from it once on mount and submits nothing for the reader; tests on a fake store.
+
+### R11-06 — The site's skeleton: registry, shell, routes and stubs (USER-FACING) · Opus
+Objective: one registry names every public page with its head, one shell draws nav, page head and footer, and every page and
+home section exists as a file its own card fills.
+Files: new `web/src/site/site.ts` (+ test), `SiteLayout.tsx`, `site.css`, `routes.tsx`; stubs in `web/src/site/pages/` and
+`web/src/site/sections/` (the pinned names).
+Refs: landing scope 1, 13, 17; annex Shared; ADR-116, 119; §9; readings 1, 2, 4; pinned site; the artifact's nav, footer, heads.
+Done when:
+- `PAGES`: the eight site pages, `/waitlist` and the four legal pages (`/company` titled "Who runs Stars Decoded") with title,
+  eyebrow, H1, the annex's answer-first lede, Updated date, schema and sitemap flag; `isPublicPath`, `SAMPLE_LIVE` per reading 4.
+- `SiteLayout`: the nav (wordmark; Free chart, Sample report while `SAMPLE_LIVE`, Compatibility, How it works, FAQ; `SignInCta`;
+  `ReportCta`), the page head, the footer (Reports, Learn, Company; `EPHEMERIS`, the Updated date, the credits), inside
+  `WaitlistDialogProvider`; a menu on a phone; `site.css` from `waitlist.css`'s rules under its own prefix (the old file goes in R11-25).
+- Page stubs render `SiteLayout` with their registry head; `HomePage` renders the ten sections in the locked order, each stub
+  empty but `Hero`, which renders the home's H1 and lede; `PUBLIC_ROUTES` covers the nine site pages and the four legal pages;
+  no module touches `window` at load; tests for the registry.
+
+### R11-07 — The overlay on the web: who sees the waitlist, and the buttons that open it (USER-FACING) · Opus
+Objective: before launch every call to write or sign in opens the waitlist over the page; after launch the same buttons go
+through sign-in to the birth form; staging can preview the first.
+Files: `web/src/lib/prelaunch.ts` (+ test); new `web/src/site/WaitlistDialog.tsx`, `cta.tsx`; `StagingRibbon.tsx`, `PrelaunchRibbon.tsx`.
+Refs: the Owner 2026-09-30 (ADR-151 at close); ADR-140, 141; R-3.4; readings 1 to 3, 17; pinned overlay; `/ux-copy`.
+Done when:
+- `prelaunch.ts` keeps `PRELAUNCH`, narrows `OPEN_BEFORE_LAUNCH` to `/sign-in` and `/admin`, and adds `previewFlag`, `setPreview`,
+  `PrelaunchViewProvider` and `usePrelaunchView` (readings 1, 3): server and first paint agree, the admin and the flag are
+  learned after mount; tests.
+- `ReportCta` and `SignInCta` render one link with reading 2's `href`; a click gives a visitor before launch the dialog with its
+  source, anyone else `/chart` or `/sign-in?return_to=/dashboard`; signed in after launch, `SignInCta` reads Dashboard.
+- `WaitlistDialog`: a dialog on desktop, a bottom sheet on a phone (framer-motion, as R10's sheets), a first line saying Stars
+  Decoded is not open yet, `WaitlistForm`, the privacy link; focus held and returned; still under reduced motion.
+- `StagingRibbon` adds "Prelaunch preview · Exit" while the flag is on; `PrelaunchRibbon` says visitors see the site with the
+  waitlist; both render after mount.
+
+### R11-08 — The sample: its run, its chart, its claims, its people (INTERNAL) · Opus — provisional MB-90, MB-101
+Objective: one module holds everything the pages show of the sample, with nothing typed: the run's text, the chart computed,
+the four claims, the sample people.
+Files: new `web/src/site/data/sample/audrey-hepburn.r06.json`, `web/src/site/data/sample.ts` (+ test), `claims.ts`, `people.ts`
+(+ test); new `web/src/site/lib/chart.ts`; new `fixtures/sample-people/*.json` and `README.md`.
+Refs: landing scope 5, 7, 8; annex /sample; ADR-110, 112, 119; R-3.1; MB-90, 92, 101; readings 4, 7, 8; pinned sample.
+Done when:
+- The JSON is the `interpretation` of `report-lab/r06`'s `fixtures/reports/audrey-hepburn.r06.json`, its sections and claims
+  byte for byte, without the chart, the fixture, `foundation` or `meta.usage`; `sampleChart()` computes her chart from
+  `fixtures/charts/audrey-hepburn.json` through the engine and `toChartData`.
+- Tests: all 63 claims anchor to their text in the report page's chapter order; each `HOME_CLAIMS` entry, the artifact's four,
+  points at a body or angle the computed chart has at the degree its evidence names.
+- `people.ts` computes `SAMPLE_PEOPLE` from the new fixtures (synthetic, labelled, birth data only) and `SAMPLE_PAIRS` per lens;
+  the README says they are synthetic and marketing-only, and the report lab never reads the directory.
+
+---
+
+## Group B — real HTML, the crawl surface, the legal pages, the waitlist's opt-in, the home page's sections
+
+### R11-09 — Real HTML: prerender, hydrate, route (USER-FACING) · Opus
+Objective: every public page ships its words in the HTML and hydrates; app routes get the empty shell with noindex; an unknown
+path answers 404 (ADR-114, R-7.6).
+Files: `web/src/App.tsx`, `main.tsx`, `pages/not-found.tsx`; new `web/src/entry-server.tsx`, `web/scripts/prerender.mjs`;
+`web/package.json`, `vite.config.ts`, `index.html` (head and root markers); `vercel.json`, `.gitignore`.
+Refs: landing scope 18, 19, acceptance "Crawlable", "Crawl files"; ADR-114, 140; R-7.6; readings 1 to 4, 15; pinned shapes.
+Done when:
+- `build:web` builds the client and the server entry, then writes each `PUBLIC_ROUTES` page (not /sample in a production build
+  while gated), `app.html` (empty `#root`, noindex), `404.html` and the crawl files; it fails when a page lacks its H1 or lede.
+- `main.tsx` hydrates a prerendered page, else renders; `App.tsx` routes the site from `PUBLIC_ROUTES`, drops the old landing
+  and waitlist routes, mounts `PrelaunchViewProvider`, and before launch (or in preview) gives a visitor the /waitlist page on
+  any app path; on the preview no page logs a hydration mismatch.
+- `vercel.json`: `cleanUrls`; the `/api` rewrites first; app routes (`/sign-in`, `/sign-up`, `/chart`, `/report/*`, `/generating/*`,
+  `/compatibility/*`, `/dashboard`, `/people`, `/claim*`, `/admin*`, `/login`) to `/app.html` with `X-Robots-Tag: noindex`;
+  staging and preview hosts noindex throughout; no catch-all; each app route opens on the preview.
+
+### R11-10 — The crawl surface: head tags, structured data, robots, sitemap, llms.txt (USER-FACING) · Opus
+Objective: each page tells search and AI search what it is, in tags and JSON-LD that match what it shows, and the site
+publishes its map (ADR-115, 116).
+Files: new `web/src/site/head.ts` (+ test), `web/src/site/crawl.ts` (+ test).
+Refs: landing scope 19 to 21, acceptance "Crawl files"; ADR-115, 116; R-6.3; MB-13, MB-102; readings 4, 13, 15; pinned head,
+crawl and FAQ; `.claude/skills/ux-copy/references/ai-search.md`.
+Done when:
+- `headFor(path, env)`: the title, the description (the lede), canonical on `https://mystarsdecoded.com`, OG and Twitter tags
+  with `opengraph.jpg`; JSON-LD: Organization and WebSite on every page, BreadcrumbList off the home page, a Product with an
+  Offer per `BUNDLES` row on the home page (reading 13), Article with `dateModified` on /sample (the run's date) and the Learn
+  pages, FAQPage on /faq identical to the visible answers; no review markup; each block parses and names only what its page
+  shows.
+- `robotsTxt(env)`, `sitemapXml(env)` (every indexable page with its Updated date as `lastmod`, /sample only where live) and
+  `llmsTxt()` (the pages and their ledes) follow reading 15; tests pin each file for production and for staging.
