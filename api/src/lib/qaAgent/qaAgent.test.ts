@@ -55,7 +55,7 @@ test("every step opens a path the site serves: a page in the registry, or an app
   const pages = [...registry.matchAll(/^\s+path: "(\/[^"]*)",$/gm)].map((m) => m[1]);
   assert.ok(pages.includes("/") && pages.includes("/sky") && pages.includes("/company"), "the registry's paths were read");
   const { rewrites } = JSON.parse(readFileSync(new URL("../../../../vercel.json", import.meta.url), "utf8")) as { rewrites: { source: string; destination: string }[] };
-  const appRoutes = rewrites.filter((r) => r.destination === "/app.html").map((r) => new RegExp(`^${r.source}$`));
+  const appRoutes = rewrites.filter((r) => r.destination === "/app").map((r) => new RegExp(`^${r.source}$`));
   assert.ok(appRoutes.some((re) => re.test("/dashboard")), "vercel.json's app routes were read");
   const unserved = PERSONAS.flatMap((p) => p.steps.map((s) => ({ persona: p.name, path: s.path.split("?")[0] }))).filter(({ path }) => !pages.includes(path) && !appRoutes.some((re) => re.test(path)));
   assert.deepEqual(unserved, [], "these answer with the 404 page, so the walk would test nothing");
