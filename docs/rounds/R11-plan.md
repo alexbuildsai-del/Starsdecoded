@@ -503,3 +503,126 @@ Done when:
   all ten visible and "See all the questions" to /faq; tests for the counts and the one mention of AI. The Owner reviews them.
 - Dawn: "Start with your birth date." and "Then add where you were born, and your birth time if you know it." over the dawn light
   and the rising Sun on a full-width horizon, with `ReportCta`; still under reduced motion.
+
+---
+
+## Group C — the seven pages and the home page whole
+
+### R11-19 — /sky, the free birth chart (USER-FACING) · Opus
+Objective: the free chart as a page: the sky now until a birth is typed, then that chart with its placements and a guide to the wheel.
+Files: `web/src/site/pages/SkyPage.tsx`; new `web/src/site/components/Placements.tsx`, `ReadTheWheel.tsx`; `HorizonWheel.tsx`,
+`SkyForm.tsx` and `site/lib/sky.ts` only as the page needs.
+Refs: annex /sky; landing scope 4, 17; ADR-107 to 109, 116; readings 2, 5; the artifact's /sky.
+Done when:
+- The annex's H1 and first sentence; copy above the horizon, the form below it, the wheel across both; before input the sky now
+  over the visitor's town; the prerender shows the sample's chart as the worked example; Show my chart rewinds the wheel in
+  place (no sky screen).
+- The result: "Sun in …, Moon in …, … rising." from the chart; the placements table (planet, position, house with its word;
+  Rising and Midheaven rows; no House column and the Moon's day range without a time); "How to read the wheel" in four parts,
+  each lighting its layer on hover or tap; `ReportCta` at the end.
+- At 390 px the table fits without sideways scroll; still under reduced motion.
+
+### R11-20 — /sample, a whole report with every citation (USER-FACING) · Opus — provisional MB-90
+Objective: Audrey Hepburn's stored run read end to end as a Personal natal report, every claim marked and opening its evidence.
+Files: `web/src/site/pages/SamplePage.tsx`; new `web/src/site/components/SampleHead.tsx`, `SampleRail.tsx`; report components it
+reuses, only where they cannot render on the server (named in the builder's report).
+Refs: annex /sample; natal-report-ui (citations); review-25-09; ADR-22, 49, 98, 104, 119; MB-90, 101; reading 4; pinned sample.
+Done when:
+- The annex's first sentence; the head (a brass opening ring with her name, Sun and Moon at their true angles, the Ascendant
+  marker, a legend); a sticky rail of the ten chapters in their accents; every block of the run in the report page's order,
+  chapter 2 with the wheel, three triad cards and twelve house cards, a card lighting its house.
+- Each claim marked in place with its number in reading order; a tap opens the evidence card (the claim, a row per reference
+  with kind, label and glossary line, a footer count), beside the line on desktop, a bottom sheet on a phone; all 63 anchor.
+- The fine print (public birth data, Astro-Databank AA; no connection to her family or estate); the whole text in the
+  prerendered HTML; absent from a production build while `SAMPLE_LIVE` is false.
+
+### R11-21 — /method and /compatibility (USER-FACING) · Opus
+Objective: how we make the report, step by step, and what the Compatibility report is, each on its own page.
+Files: `web/src/site/pages/MethodPage.tsx`, `CompatibilityPage.tsx`.
+Refs: annex /method, /compatibility; ADR-40, 63, 97, 113, 117, 120; R-6.4; MB-93; readings 6, 7, 17.
+Done when:
+- /method: the annex's first sentence; four steps, text left and the sample's real data right: the chart (astronomy-engine,
+  accurate to within one arcminute and tested against NASA's JPL Horizons, per its README), the notes (reading 6), the writing
+  (the ten chapters), the check (one real claim with each reference ticked); the three facts; the one AI answer outside the
+  FAQ, "Is the report written by AI?", at the end.
+- /compatibility: the annex's H1 and first sentence; lens tabs, strapline, `TwoPlates` and the seven chapter titles; three
+  steps (each has a Personal natal report, added from the dashboard or sent; you say who they are; you get it); no score,
+  everyday life, one credit (R-6.4); a table of the two reports; three questions; `ReportCta`; no pair text (MB-93), no "invite".
+
+### R11-22 — The two Learn pages (USER-FACING) · Opus
+Objective: what whole-sign houses are and what happens without a birth time, answered first and shown with live diagrams.
+Files: `web/src/site/pages/LearnHousesPage.tsx`, `LearnBirthTimePage.tsx`; new `web/src/site/components/HouseRing.tsx`,
+`web/src/site/lib/learn.ts` (+ test).
+Refs: annex both Learn pages; landing acceptance "Houses turn true"; ADR-98, 116; R-4.2, 6.1; readings 4, 5.
+Done when:
+- Houses: the H1 answered by definition; a bare ring with a rising-sign picker, the zodiac turning past houses that stay put,
+  counted from the east downward; the sample's wheel with her 1st and 4th houses lit and a computed sentence; the twelve houses
+  (`HOUSE_WORDS`, `HOUSE_THEMES`); whole sign against Placidus (undefined above about 66°); "Why does Stars Decoded use
+  whole-sign houses?" attributed to Brennan's *Hellenistic Astrology* (2017), never "more accurate".
+- Birth time: the H1 and first sentence; what the date settles and what the time settles; the sample's day computed (the rising
+  sign's window over Brussels and her minutes from the next sign); a day slider over today above the visitor's town (the rising
+  sign and its window, houses, the Moon's and Sun's move); R11-17's three plates; where to find a birth time; adding it later,
+  free once.
+- `learn.ts` tests: picking Leo puts Taurus in the 10th; the sample's window equals a minute-by-minute engine sweep; nothing typed.
+
+### R11-23 — /faq and /waitlist (USER-FACING) · Sonnet
+Objective: every question on one page, and the waitlist's own page, which also confirms an address.
+Files: `web/src/site/pages/FaqPage.tsx`, `WaitlistPage.tsx`.
+Refs: annex /faq; ADR-116, 141, 145; readings 1, 11, 12, 17.
+Done when:
+- /faq: "Questions people ask"; a search box that filters as you type; the five topics as a sticky index (chips on a phone);
+  the fifteen from `FAQ_GROUPS`, each answered in its first sentence and linking on where a page goes deeper; every answer in
+  the HTML.
+- /waitlist: an answer-first lede on when Stars Decoded opens and what joining brings; the form (source `page`); what happens next
+  (the confirmation email, seven days); `?confirm=` mounts `ConfirmWaitlist`; links to the home and Learn pages; words through
+  `/ux-copy`.
+
+### R11-24 — The home page, whole (USER-FACING) · Opus
+Objective: the ten sections read as one page at every width and under reduced motion, and a crawler reads all of it.
+Files: `web/src/site/pages/HomePage.tsx`; `web/src/site/sections/*.tsx` for fixes only (no other card in the group edits them).
+Refs: landing scope 1 to 16, acceptance "Plain words", "Reduced motion", "Phone at 390 px", "Crawlable"; ADR-107 to 118;
+`/web-taste`, `/ux-copy`.
+Done when:
+- The sections in the locked order, each linking on to its page; one big moment (first light), motion after it only explaining.
+- From 320 to 1920 px no field leaves its form and nothing overlaps a wheel; at 390 px no sideways scroll; under reduced motion
+  nothing animates and every section is whole at first paint.
+- On the preview, `curl -A OAI-SearchBot` on `/` returns the H1, the lede, every heading and the ten FAQ answers; the page passes
+  `/ux-copy`'s checklist and `/web-taste`'s checks, any deviation listed.
+
+---
+
+## Group D — what the site replaced, the checks that gate a release, IndexNow
+
+### R11-25 — The old pages go, the sky leaves the API, one place for prices (INTERNAL) · Sonnet
+Objective: nothing the site replaced stays behind, and a test keeps every price in the catalogue (R-6.3).
+Files: delete `web/src/pages/LandingPage.tsx`, `WaitlistPage.tsx`, `waitlist.css`, `web/src/components/waitlist/SkyNow.tsx`,
+`web/src/data/demoChart.ts`, `api/src/routes/sky.ts`, `api/src/lib/skyNow.ts` (+ test), and whatever of `web/src/lib/sky-now.ts`
+(+ test) nothing uses; `api/src/app.ts`; `api/src/lib/prelaunch.ts` (+ test); `openapi.yaml` (`/sky`, `SkyNow`) and codegen;
+new `scripts/src/price-gate.test.ts`.
+Refs: landing "What today's page gets wrong", acceptance "No typed numbers"; ADR-107, 142; R-6.3; MB-50, 108; reading 5.
+Done when:
+- No file imports what went; `OPEN_PATHS` loses `/sky`; nothing in the repo names Aria Solis, `getSkyNow` or `demoChart`;
+  codegen twice with no diff; typecheck, both builds and tests green.
+- The price gate reads every `.ts` and `.tsx` under `web/src`, `api/src` and `packages/*/src` except tests, generated code and
+  `packages/commerce/src/catalogue.ts`, fails on a euro amount (`€24`, `24 €`, `EUR 24`) naming file and line, and is green.
+
+### R11-26 — The QA walk and the smoke read the site (INTERNAL) · Sonnet
+Objective: the checks that gate a release walk pages that exist and check what a crawler gets, with no secret.
+Files: `api/src/lib/qaAgent/personas.ts` (+ `qaAgent.test.ts`); `.github/workflows/smoke-run.yml`.
+Refs: landing acceptance "Existing checks", "Crawlable", "Crawl files"; ADR-86, 115; MB-78; CLAUDE.md (no secret on GitHub).
+Done when:
+- The personas walk real paths: the buyer `/`, `/sky`, `/chart` (sign-in asked); the skeptic `/method`,
+  `/learn/whole-sign-houses`, `/privacy`, `/terms`, `/refunds`, `/company`; `/sample` on staging; each keeps its patterns and
+  never the retired name; no persona submits a form (MB-78).
+- `smoke-run.yml` adds: robots.txt, sitemap.xml and llms.txt answer 200; `/no-such-page` answers 404; `curl -A OAI-SearchBot` on
+  the home page returns an `<h1>`; `/dashboard` carries `X-Robots-Tag: noindex`; no secret, no key.
+
+### R11-27 — IndexNow when production's site changes (INTERNAL) · Sonnet
+Objective: Bing, and the AI search that reads its index, hear of changed pages the day they ship, with no secret and no GitHub step.
+Files: new `api/src/lib/indexNow.ts` (+ test); `api/src/index.ts`; `web/src/site/head.ts` (a `commit` meta); `web/vite.config.ts`
+(the build's commit); new `web/public/indexnow.txt`.
+Refs: landing scope 21; ADR-86, 115; MB-75, MB-102; reading 15.
+Done when: on production only, after start, a background task that can never fail the start waits (up to 20 minutes) until the
+home page's `commit` meta equals the API's own commit, then posts the sitemap's URLs to IndexNow once per commit, with the key
+the site serves at `/indexnow.txt` (public by design) as `keyLocation`; the outcome is one log line; tests on fake fetches for
+the URL list, the payload and once per commit. It works whether a Release forwards by token or through `promote.yml`.
