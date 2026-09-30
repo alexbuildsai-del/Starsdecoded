@@ -81,7 +81,6 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - Deploys are git-push driven: `main` → staging (`starsdecoded-staging.vercel.app`,
   Railway `staging`, own Supabase project); `production` branch → production at
   `mystarsdecoded.com`, moved only by Promote (fast-forward from `main`); never push it.
-  Any production-release talk lists MB-75 (`GITHUB_RELEASE_TOKEN` on Railway staging) as a todo until placed.
   Secrets live only in the Railway, Vercel and Supabase dashboards; the repo is
   public. Runbook: `docs/annex/staging-runbook.md`. **No secret on GitHub, ever**
   (Owner, 2026-09-25): never ask the Owner to put a key or token there. Anything that
@@ -102,8 +101,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`,
   `traditional.ts`, `chartCalculation.ts`. Touch it and the dry lab runs in the round; spot
   on demand from the Lab page; the Release view runs the full lab, the gate and the QA agent,
-  then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway (MB-75; until placed
-  it stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
+  then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway staging (placed 2026-09-30;
+  if it expires the release stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
   (ADR-77); the Lab page and `--render` are free. Every model id lives in `models.ts`; one
   outside the catalogue does not compile. A check blocks only when the text would be wrong
   for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
@@ -111,10 +110,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-09-26)
+## Current focus (2026-09-30)
 
 1. R10 shipped: the dashboard opens on the orbit, Send and Gift under the consent rule (ADR-139), one balance with a free
    test checkout off production (ADR-138). The Owner walks it on staging with two accounts; acceptance so far R01, R03 to R09.
 2. Production gets the product only with checkout (ADR-138) and is the waitlist until launch (ADR-141, needs MB-105);
-   MB-75 stays the release todo. Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your own chart).
+   The release token is placed (MB-75 done). Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your own chart).
 3. Next: R11, the landing and AI search (outlined in `docs/rounds/R10-plan.md`; MB-108: the web cannot import `api/`).
