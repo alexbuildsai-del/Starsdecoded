@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { Link } from "wouter";
 import { TriadPlate } from "@/components/report/TriadPlate";
 import { MODE_LABELS } from "@/lib/birth-time";
@@ -23,7 +23,8 @@ const PLATE =
  */
 export default function BirthTime() {
   const person = SAMPLE_PEOPLE[0];
-  const plates = timePlates(person.birth, person.chart);
+  // Two of the plates are sweeps across the day, a phone's tenth of a second each, so a re-render must not redo them.
+  const plates = useMemo(() => timePlates(person.birth, person.chart), [person]);
 
   return (
     <section className="sd-sec pt-0" aria-labelledby="birth-time-h">

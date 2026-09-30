@@ -19,20 +19,35 @@ import SkyScreen, { useKeepForForm } from "./SkyScreen";
 
 const home = pageFor("/");
 
+/** First light runs about 2.3 s from the sky's arrival (landing scope 15); a frame or two more before it counts as over. */
+const FIRST_LIGHT_MS = 2400;
+
 // Visibility flips at once, so the face coming in can take focus in the same commit; only its opacity eases.
 const face = (on: boolean) =>
   `grid [grid-area:1/1] transition-[opacity,transform] duration-[350ms] ease-[cubic-bezier(.16,1,.3,1)] ${on ? "" : "invisible pointer-events-none translate-y-1.5 opacity-0"}`;
 
-export default function Hero() {
+export interface HeroProps {
+  /** Told once first light is over, so the page can start the work of the sections below without costing it a frame. */
+  onFirstLight?: () => void;
+}
+
+export default function Hero({ onFirstLight }: HeroProps = {}) {
   const [kept, setKept] = useState<Sky | null>(null);
   const [screen, setScreen] = useState<{ from: Sky; to: Sky; frames: number } | null>(null);
   const live = useLiveSky(kept !== null || screen !== null);
+  const lit = live !== null;
   const hero = useRef<HTMLElement>(null);
   const square = useRef<HTMLDivElement | null>(null);
   const dateField = useRef<HTMLInputElement | null>(null);
   const summary = useRef<HTMLDivElement>(null);
   const focusNext = useRef<"summary" | "date" | null>(null);
   const keepForForm = useKeepForForm(kept?.birth);
+
+  useEffect(() => {
+    if (!lit || !onFirstLight) return;
+    const timer = window.setTimeout(onFirstLight, FIRST_LIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [lit, onFirstLight]);
 
   useEffect(() => {
     const target = focusNext.current === "summary" ? summary.current : focusNext.current === "date" ? dateField.current : null;
