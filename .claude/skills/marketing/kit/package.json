@@ -1,0 +1,13 @@
+{
+  "name": "stars-decoded-marketing-kit",
+  "private": true,
+  "type": "module",
+  "description": "Renders social slides in the product's look from computed data. Outside the pnpm workspace on purpose.",
+  "scripts": {
+    "render": "node render.mjs",
+    "sky": "node sky.mjs"
+  },
+  "dependencies": {
+    "astronomy-engine": "2.1.19"
+  }
+}

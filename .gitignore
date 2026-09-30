@@ -52,3 +52,6 @@ Thumbs.db
 # deploy tooling
 .vercel
 .railway
+
+# claude-ads run bundles (account data), never in the public repo
+.claude-ads/
