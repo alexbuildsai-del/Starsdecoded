@@ -59,7 +59,7 @@ function strip({ width, segs, from, to, win, height = 56, big = false, marks = [
   const kept = marks.filter((m, i) => i === 0 || (x(m.t) - x(marks[i - 1].t) > 88 && (i < marks.length - 1 || x(m.t) - x(marks[i - 1].t) > 150)));
   kept.forEach((m, i) => {
     const anchor = i === 0 ? "start" : x(m.t) > width - 40 ? "end" : "middle";
-    s += `<text x="${x(m.t).toFixed(1)}" y="${height + 44}" text-anchor="${anchor}" fill="#AEB6C6" font-family="IBM Plex Mono" font-size="24">${m.label}</text>`;
+    s += `<text x="${x(m.t).toFixed(1)}" y="${height + 44}" text-anchor="${anchor}" fill="#AEB6C6" font-family="IBM Plex Mono" font-size="28">${m.label}</text>`;
   });
   return s + "</svg>";
 }
@@ -171,6 +171,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   await prepare(post);
   fs.mkdirSync(out, { recursive: true });
   fs.writeFileSync(path.join(out, "alt.txt"), post.slides.map((sl, i) => `${i + 1}. ${altFor(sl)}`).join("\n") + "\n");
+  fs.writeFileSync(path.join(out, "post.json"), JSON.stringify(post, (k, v) => (k.startsWith("_") ? undefined : v), 1) + "\n");
   for (const f of formats) {
     const dir = path.join(out, f);
     fs.mkdirSync(dir, { recursive: true });
