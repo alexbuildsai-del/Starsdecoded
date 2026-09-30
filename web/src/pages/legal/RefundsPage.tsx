@@ -19,7 +19,7 @@ export default function RefundsPage() {
         <p>
           If the report fails to generate, you are refunded in full without asking. If the report is
           delivered but you believe it does not match the birth data you entered, write to
-          [CONTACT EMAIL] within 14 days and we will regenerate it or refund it.
+          hello@mystarsdecoded.com within 14 days and we will regenerate it or refund it.
         </p>
       </LegalSection>
 

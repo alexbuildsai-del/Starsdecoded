@@ -11,7 +11,7 @@ export default function PrivacyPage() {
       <LegalSection title="Who we are">
         <p>
           Stars Decoded is operated by [LEGAL ENTITY], [ADDRESS], [COUNTRY]. Questions about this
-          policy go to [CONTACT EMAIL].
+          policy go to hello@mystarsdecoded.com.
         </p>
       </LegalSection>
 
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
         <p>
           We use the address for one thing: to email you when Stars Decoded opens. We keep it until we have sent that email,
           or until you ask us to delete it, whichever comes first. The list is stored in our Supabase database. To be taken
-          off it, write to [CONTACT EMAIL].
+          off it, write to hello@mystarsdecoded.com.
         </p>
       </LegalSection>
 
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
       <LegalSection title="Your rights">
         <p>
           You can ask for a copy of your data, ask us to correct or delete it, or object to how we
-          use it, by writing to [CONTACT EMAIL]. You can complain to the supervisory authority in
+          use it, by writing to hello@mystarsdecoded.com. You can complain to the supervisory authority in
           [COUNTRY].
         </p>
       </LegalSection>

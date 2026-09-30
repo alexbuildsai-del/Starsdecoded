@@ -67,7 +67,7 @@ export default function TermsPage() {
         <p>
           We provide the report as it is. To the extent the law allows, we are not liable for
           decisions you make on the basis of it. These terms are governed by the law of
-          [COUNTRY]. Contact: [CONTACT EMAIL].
+          [COUNTRY]. Contact: hello@mystarsdecoded.com.
         </p>
       </LegalSection>
     </LegalLayout>

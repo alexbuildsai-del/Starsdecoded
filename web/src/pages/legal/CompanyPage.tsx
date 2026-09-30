@@ -16,7 +16,7 @@ export default function CompanyPage() {
           <dt className="font-label text-xs uppercase tracking-wide text-muted-foreground/70 pt-0.5">Registration</dt>
           <dd>[COMPANY NUMBER]</dd>
           <dt className="font-label text-xs uppercase tracking-wide text-muted-foreground/70 pt-0.5">Contact</dt>
-          <dd>[CONTACT EMAIL]</dd>
+          <dd>hello@mystarsdecoded.com</dd>
         </dl>
       </LegalSection>
 
