@@ -1,13 +1,13 @@
 /**
- * The home page's skies are the engine's: the rewind's frames are engine
- * charts and its last is the birth chart itself, its date counts on the birth
- * place's calendar, and a day with no time keeps the Moon's whole arc and no
- * horizon.
+ * The home page's and /sky's skies are the engine's: the rewind's frames are
+ * engine charts and its last is the birth chart itself, its date counts on the
+ * birth place's calendar, a day with no time keeps the Moon's whole arc and no
+ * horizon, and /sky's table lists what the wheel draws.
  */
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart } from "@workspace/engine";
 import type { GeocodeResult } from "@/lib/places";
-import { sampleChart } from "@/site/data/sample";
+import { SAMPLE, sampleChart } from "@/site/data/sample";
 import {
   BODIES,
   birthDateProblem,
@@ -15,18 +15,24 @@ import {
   bodiesAt,
   countAt,
   countLine,
+  countWord,
   draftOf,
   ease,
+  houseParts,
   hudLines,
   keyCount,
   moonDay,
   placementLine,
+  placementRows,
   plainLine,
   planRewind,
+  positionParts,
   prepareRewind,
+  resultLines,
   rewindAt,
   rewindFrame,
   risingLine,
+  sampleSky,
   skyNow,
   summaryLine,
   visitorPlace,
@@ -200,6 +206,85 @@ describe("the sky now", () => {
     const here = visitorPlace(new Date("2026-09-30T12:00:00Z"), "Europe/Brussels");
     expect(here).toMatchObject({ name: "Brussels", region: "Europe", country: "", timezone: "Europe/Brussels", timezoneOffset: 2, latitude: 50.83, longitude: 4.33 });
     expect(visitorPlace(new Date("2026-01-15T12:00:00Z"), "Etc/Unknown")).toMatchObject({ city: "London", timezoneOffset: 0 });
+  });
+});
+
+describe("/sky's worked example", () => {
+  const example = sampleSky(SAMPLE.name, SAMPLE.place, SAMPLE.birth, sampleChart());
+
+  it("is the sample's own chart at the minute the engine gives her birth", () => {
+    const engine = calculateNatalChart(audrey.birthDate, audrey.birthTime, audrey.latitude, audrey.longitude, audrey.timezone, 0);
+    expect(example.at.toISOString()).toBe(engine.datetimeUtc);
+    expect(example.chart).toBe(sampleChart());
+    expect(example.place).toMatchObject({ city: "Ixelles", region: "Brussels", timezone: "Europe/Brussels" });
+    expect(example.birth).toMatchObject({ date: "1929-05-04", time: "03:00" });
+  });
+
+  it("names her as a sample in the corners, to a screen reader and over the table", () => {
+    expect(hudLines(example)).toEqual({
+      tl: "Sample · Audrey Hepburn · 4 May 1929 · 03:00",
+      tr: "Ixelles · 50.83°N 4.37°E",
+      bl: "Whole sign · tropical",
+      br: "SUN 16.6° BELOW THE HORIZON",
+    });
+    expect(wheelLabel(example)).toBe("Audrey Hepburn's birth chart, a sample: Sun in Taurus, Moon in Pisces, Aquarius rising.");
+    expect(resultLines(example)).toEqual({
+      eyebrow: "Sample chart",
+      title: "Sun in Taurus, Moon in Pisces, Aquarius rising.",
+      summary: "Audrey Hepburn · 4 May 1929 · 03:00 · Ixelles",
+      caption: "Where each planet was",
+    });
+  });
+
+  it("rewinds to a birth from where it stands, as the sky now does", async () => {
+    const target = birthSky(CURIE);
+    const { keys } = await prepared(example, target, 12);
+    for (const body of BODIES) expect(within(keys[0].longitudes[body], example.chart.planets[body].absoluteDegree)).toBeLessThanOrEqual(0.01);
+    expect(planRewind(example, target).turn).toBeLessThanOrEqual(-540);
+  });
+});
+
+describe("/sky's placements", () => {
+  it("lists the ten bodies the wheel draws, then Rising in the 1st and the Midheaven in its whole-sign house", () => {
+    const rows = placementRows(sampleChart());
+    expect(rows.map((r) => r.label)).toEqual([
+      "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Rising", "Midheaven",
+    ]);
+    expect(rows[0]).toEqual({ key: "sun", label: "Sun", angle: false, position: ["13.12°", "Taurus"], house: 4 });
+    expect(rows[1]).toMatchObject({ position: ["6.45°", "Pisces"], house: 2 });
+    expect(rows[10]).toEqual({ key: "ascendant", label: "Rising", angle: true, position: ["28.62°", "Aquarius"], house: 1 });
+    expect(rows[11]).toEqual({ key: "midheaven", label: "Midheaven", angle: true, position: ["16.97°", "Sagittarius"], house: 11 });
+    for (const row of rows.slice(0, 10)) {
+      expect(`${row.position.join(" ")} · ${houseParts(row.house!).join(" ")}`).toBe(placementLine(sampleChart(), row.key));
+    }
+    expect(houseParts(4)).toEqual(["4th", "(home)"]);
+  });
+
+  it("gives a day with no time no houses and no angles, and the Moon's range across the day", () => {
+    const chart = birthSky(CURIE_NO_TIME).chart;
+    const rows = placementRows(chart);
+    expect(rows).toHaveLength(10);
+    expect(rows.every((r) => r.house === null && !r.angle)).toBe(true);
+    const moon = positionParts(chart, "moon");
+    expect(moon).toHaveLength(2);
+    expect(moon[0]).toMatch(/^\d+\.\d\d° \w+$/);
+    expect(moon[1]).toMatch(/^to \d+\.\d\d° \w+$/);
+    expect(moon.join(" ")).toBe(placementLine(chart, "moon"));
+  });
+
+  it("heads the sky now with its city and a birth with its day, minute and place", () => {
+    expect(resultLines(NOW)).toEqual({
+      eyebrow: "The sky right now",
+      title: "Where the planets are over Brussels right now",
+      summary: "50.83°N 4.33°E · Whole sign · tropical",
+      caption: "Where each planet is now",
+    });
+    expect(resultLines(birthSky(CURIE_NO_TIME))).toMatchObject({ eyebrow: "Your birth chart", summary: "7 Nov 1867 · Time unknown · Warsaw" });
+  });
+
+  it("says a count as a sentence does", () => {
+    expect(countWord(10)).toBe("ten");
+    expect(countWord(13)).toBe("13");
   });
 });
 

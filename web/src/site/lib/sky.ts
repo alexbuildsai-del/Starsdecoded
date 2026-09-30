@@ -1,9 +1,9 @@
 /**
- * The skies the home page draws (ADR-107, 108): the minute now over the
- * visitor's city, a birth, and the rewind from one to the other. Every
- * position is the engine's, the one a report is written from (R-3.1); this
- * module only picks the minutes and says what they show, so it runs the same
- * in the browser, the prerender and a test.
+ * The skies the home page and /sky draw (ADR-107, 108): the minute now over
+ * the visitor's city, a birth, the sample as a worked example, and the rewind
+ * from one to another. Every position is the engine's, the one a report is
+ * written from (R-3.1); this module only picks the minutes and says what they
+ * show, so it runs the same in the browser, the prerender and a test.
  */
 import {
   calculateNatalChart,
@@ -14,13 +14,14 @@ import {
   type NatalChartData,
   type Place,
 } from "@workspace/engine";
+import { houseOf } from "@/components/chart/wheel-geometry";
 import { DEFAULT_ANSWER, WINDOW_UNKNOWN, isTime, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
-import { houseWithWord } from "@/lib/evidence-glossary";
+import { ORDINALS, houseWithWord, houseWord } from "@/lib/evidence-glossary";
 import type { FormDraft } from "@/lib/form-draft";
 import { placeTitle, type GeocodeResult } from "@/lib/places";
 import { clockLine, latLngLine, sunLine } from "@/lib/sky-now";
-import { toChartData } from "@/site/lib/chart";
-import type { ChartData, ChartPlanet } from "@/types/chart";
+import { toChartData, type Birth } from "@/site/lib/chart";
+import { PLANET_LABELS, type ChartData, type ChartPlanet } from "@/types/chart";
 
 /** The ten bodies the landing's wheel draws, each as its render, as the locked artifact does; the points stay in the report's. */
 export const BODIES = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"] as const;
@@ -36,13 +37,16 @@ export interface SkyBirth {
 }
 
 export interface Sky {
-  kind: "now" | "birth";
+  /** "sample": someone else's birth, shown as a worked example until the reader's own sky is drawn. */
+  kind: "now" | "birth" | "sample";
   chart: ChartData;
   /** The minute drawn: now, the birth minute, or noon on a birth day with no time. */
   at: Date;
   /** Where it is drawn from, and whose calendar and clock name its dates. */
   place: GeocodeResult;
   birth?: SkyBirth;
+  /** Whose birth a sample is. */
+  name?: string;
 }
 
 /** A zone's first part, as a reader would say it: "Europe/Brussels" is in Europe. */
@@ -102,6 +106,45 @@ function timeAnswer(birth: SkyBirth): BirthTimeAnswer {
 /** What the birth form opens with after sign-in (ADR-140, reading 14): the date, the time answer and the place. */
 export function draftOf(birth: SkyBirth): FormDraft {
   return { birthDate: birth.date, time: timeAnswer(birth), place: birth.place };
+}
+
+/** The UTC minute of a time on a place's clock, turned as the engine turns a birth into one. */
+function instantAt(date: string, time: string, place: GeocodeResult): Date {
+  const offset = place.timezone ? offsetAtBirth(place.timezone, date, time) : place.timezoneOffset;
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const wall = new Date(0);
+  wall.setUTCFullYear(year, month - 1, day);
+  wall.setUTCHours(hour, minute, 0, 0);
+  return new Date(wall.getTime() - offset * 3_600_000);
+}
+
+/**
+ * A named person's birth as the worked example, on a chart the sample module
+ * has already worked out, so the page pays for no second engine run. `where`
+ * is the place as her record names it, "Ixelles, Brussels".
+ */
+export function sampleSky(name: string, where: string, birth: Birth, chart: ChartData): Sky {
+  const [city, ...rest] = where.split(",").map((part) => part.trim());
+  const place: GeocodeResult = {
+    name: where,
+    city,
+    region: rest.join(", "),
+    country: "",
+    latitude: birth.latitude,
+    longitude: birth.longitude,
+    timezoneOffset: birth.timezoneOffset,
+    timezone: birth.timezone ?? null,
+    placeType: "city",
+  };
+  return {
+    kind: "sample",
+    name,
+    chart,
+    at: instantAt(birth.birthDate, birth.birthTime, place),
+    place,
+    birth: { date: birth.birthDate, time: birth.birthTime, place },
+  };
 }
 
 /** The date and minute on the place's own clock: its zone when the search found one, else the offset it gave. */
@@ -307,10 +350,15 @@ export function summaryLine(birth: SkyBirth): string {
   return `${dayLine(birth.date)} · ${birth.time ?? "Time unknown"} · ${placeTitle(birth.place)}`;
 }
 
-/** "13.12° Taurus", from the engine's longitude, already to the hundredth every readout prints. */
-function degreeAt(absoluteDegree: number): string {
+/** ["13.12°", "Taurus"], from the engine's longitude, to the hundredth every readout prints. */
+function degreeParts(absoluteDegree: number): [string, string] {
   const d = norm360(absoluteDegree);
-  return `${(d % 30).toFixed(2)}° ${SIGNS[Math.floor(d / 30) % 12]}`;
+  return [`${(d % 30).toFixed(2)}°`, SIGNS[Math.floor(d / 30) % 12]];
+}
+
+/** "13.12° Taurus" */
+function degreeAt(absoluteDegree: number): string {
+  return degreeParts(absoluteDegree).join(" ");
 }
 
 /** The Moon's arc across a birth day with no time (ADR-34): where it was at the day's first and last minute. */
@@ -332,17 +380,71 @@ export function plainLine(chart: ChartData): string {
   return `Sun in ${signsOf(chart, "sun")}, Moon in ${signsOf(chart, "moon")}${rising}.`;
 }
 
+/**
+ * A body's position in the parts a narrow table stacks: ["13.12°", "Taurus"],
+ * or, on a day with no time, the Moon's range across it (and the Sun's when it
+ * changed sign): ["2.10° Pisces", "to 15.40° Pisces"].
+ */
+export function positionParts(chart: ChartData, body: string): string[] {
+  const p: ChartPlanet | undefined = chart.planets[body];
+  if (!p) return [];
+  const moved = body === "moon" || (body === "sun" && signsOf(chart, "sun").includes(" or "));
+  if (!chart.angles && p.band && moved) return [degreeAt(p.band.fromDegree), `to ${degreeAt(p.band.toDegree)}`];
+  return degreeParts(p.absoluteDegree);
+}
+
 /** "13.12° Taurus · 4th (home)"; a day with no time gives the range when the body changed sign. */
 export function placementLine(chart: ChartData, body: string): string {
   const p: ChartPlanet | undefined = chart.planets[body];
   if (!p) return "";
-  const moved = body === "moon" || (body === "sun" && signsOf(chart, "sun").includes(" or "));
-  if (!chart.angles && p.band && moved) return `${degreeAt(p.band.fromDegree)} to ${degreeAt(p.band.toDegree)}`;
-  return `${degreeAt(p.absoluteDegree)}${p.house ? ` · ${houseWithWord(p.house)}` : ""}`;
+  return `${positionParts(chart, body).join(" ")}${p.house ? ` · ${houseWithWord(p.house)}` : ""}`;
 }
 
 export function risingLine(chart: ChartData): string | null {
   return chart.angles ? degreeAt(chart.angles.ascendant.absoluteDegree) : null;
+}
+
+/** ["4th", "(home)"]: `houseWithWord` in the two parts a narrow table stacks. */
+export function houseParts(house: number): [string, string] {
+  return [ORDINALS[house - 1], `(${houseWord(house)})`];
+}
+
+export interface PlacementRow {
+  key: string;
+  label: string;
+  /** Rising and the Midheaven, which the table marks as angles rather than bodies. */
+  angle: boolean;
+  position: string[];
+  /** The whole-sign house, null when the chart has no horizon. */
+  house: number | null;
+}
+
+/**
+ * The placements table's rows: the ten bodies the wheel draws, then Rising and
+ * the Midheaven with the house each falls in, which a chart with no time has
+ * none of (ADR-34).
+ */
+export function placementRows(chart: ChartData): PlacementRow[] {
+  const rows: PlacementRow[] = BODIES.filter((body) => chart.planets[body]).map((body) => ({
+    key: body,
+    label: PLANET_LABELS[body],
+    angle: false,
+    position: positionParts(chart, body),
+    house: chart.planets[body].house ?? null,
+  }));
+  if (!chart.angles) return rows;
+  const { ascendant, midheaven } = chart.angles;
+  return [
+    ...rows,
+    { key: "ascendant", label: "Rising", angle: true, position: degreeParts(ascendant.absoluteDegree), house: 1 },
+    {
+      key: "midheaven",
+      label: "Midheaven",
+      angle: true,
+      position: degreeParts(midheaven.absoluteDegree),
+      house: houseOf(midheaven.absoluteDegree, ascendant.absoluteDegree),
+    },
+  ];
 }
 
 export interface HudLines {
@@ -356,9 +458,10 @@ export interface HudLines {
 export function hudLines(sky: Sky): HudLines {
   const { chart, place } = sky;
   const at = latLngLine(place.latitude, place.longitude);
+  const whose = sky.kind === "sample" ? `Sample · ${sky.name ?? ""}` : "Your chart";
   const tl = sky.kind === "now" && place.timezone
     ? `Live · ${clockLine(sky.at, place.timezone)}`
-    : sky.birth ? `Your chart · ${dayLine(sky.birth.date)} · ${sky.birth.time ?? "Time unknown"}` : "";
+    : sky.birth ? `${whose} · ${dayLine(sky.birth.date)} · ${sky.birth.time ?? "Time unknown"}` : "";
   return {
     tl,
     tr: `${sky.kind === "now" ? "Over " : ""}${placeTitle(place)} · ${at}`,
@@ -369,8 +472,46 @@ export function hudLines(sky: Sky): HudLines {
 
 /** What a screen reader hears for the wheel: whose sky it is, then its facts. */
 export function wheelLabel(sky: Sky): string {
-  const whose = sky.kind === "now" ? `The sky now over ${placeTitle(sky.place)}, drawn as a birth chart` : "Your birth chart";
+  const whose = sky.kind === "now"
+    ? `The sky now over ${placeTitle(sky.place)}, drawn as a birth chart`
+    : sky.kind === "sample" ? `${sky.name ?? ""}'s birth chart, a sample` : "Your birth chart";
   return `${whose}: ${plainLine(sky.chart)}`;
+}
+
+export interface ResultLines {
+  eyebrow: string;
+  title: string;
+  /** Set in capitals by the page, as the corners are. */
+  summary: string;
+  /** The placements table's caption, for a screen reader. */
+  caption: string;
+}
+
+/** The words over /sky's placements: whose sky the table lists, and when and where it is from. */
+export function resultLines(sky: Sky): ResultLines {
+  const { chart, place, birth } = sky;
+  if (sky.kind === "now") {
+    return {
+      eyebrow: "The sky right now",
+      title: `Where the planets are over ${placeTitle(place)} right now`,
+      summary: `${latLngLine(place.latitude, place.longitude)} · Whole sign · tropical`,
+      caption: "Where each planet is now",
+    };
+  }
+  const when = birth ? summaryLine(birth) : "";
+  return {
+    eyebrow: sky.kind === "sample" ? "Sample chart" : "Your birth chart",
+    title: plainLine(chart),
+    summary: sky.kind === "sample" ? `${sky.name ?? ""} · ${when}` : when,
+    caption: "Where each planet was",
+  };
+}
+
+const COUNT_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+
+/** A count as a sentence says it: "ten", and the figure past twelve. */
+export function countWord(n: number): string {
+  return COUNT_WORDS[n] ?? String(n);
 }
 
 /** The sky form's earliest birth, the bound its error line names. */

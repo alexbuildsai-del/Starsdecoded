@@ -8,6 +8,7 @@
  */
 import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
 import { PlaceField } from "@/components/PlaceField";
+import { StatusDots } from "@/components/StatusDots";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { GeocodeResult } from "@/lib/places";
@@ -22,9 +23,17 @@ export interface SkyFormProps {
   onShow: (birth: SkyBirth) => void;
   /** The date field, so a page can bring the reader back to it. */
   dateRef?: RefObject<HTMLInputElement | null>;
+  /** The line over the fields; /sky leaves it out, since its heading and lede already say what the form is. */
+  heading?: boolean;
+  /**
+   * While the page works out and draws a chart, the button says so and takes
+   * no second birth (ADR-130). It stays focusable, so the reader keeps their
+   * place in the form.
+   */
+  busy?: boolean;
 }
 
-export function SkyForm({ onShow, dateRef }: SkyFormProps) {
+export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFormProps) {
   const id = useId();
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -48,6 +57,7 @@ export function SkyForm({ onShow, dateRef }: SkyFormProps) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (busy) return;
     const wrongDate = birthDateProblem(date, today ?? todayOf(new Date()));
     if (wrongDate) {
       setProblem({ field: "date", text: wrongDate });
@@ -64,13 +74,15 @@ export function SkyForm({ onShow, dateRef }: SkyFormProps) {
   };
 
   return (
-    <form className="@container grid gap-3.5" onSubmit={submit} noValidate aria-labelledby={`${id}title`}>
-      <div className="sd-row">
-        <p className="sd-eyebrow" id={`${id}title`}>
-          See your chart first
-        </p>
-        <span className="sd-tag">Free · nothing is saved</span>
-      </div>
+    <form className="@container grid gap-3.5" onSubmit={submit} noValidate aria-labelledby={heading ? `${id}title` : undefined}>
+      {heading ? (
+        <div className="sd-row">
+          <p className="sd-eyebrow" id={`${id}title`}>
+            See your chart first
+          </p>
+          <span className="sd-tag">Free · nothing is saved</span>
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 items-start gap-2.5 @min-[380px]:grid-cols-2 @min-[480px]:grid-cols-[minmax(156px,1fr)_minmax(132px,.85fr)_minmax(0,1.5fr)]">
         <div className="min-w-0 space-y-2">
           <Label htmlFor={`${id}date`} className={LABEL}>
@@ -126,8 +138,8 @@ export function SkyForm({ onShow, dateRef }: SkyFormProps) {
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
-        <button type="submit" className="sd-btn">
-          Show my chart
+        <button type="submit" className="sd-btn aria-disabled:cursor-progress" aria-disabled={busy || undefined}>
+          {busy ? <StatusDots label="Working out your chart" /> : "Show my chart"}
         </button>
         <p id={`${id}hint`} className="max-w-[46ch] flex-[1_1_180px] text-[12.5px] leading-snug text-[color:var(--sd-muted)]">
           If you don't know your birth time, leave it blank.

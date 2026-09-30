@@ -15,7 +15,10 @@
  * once: the minute's update, and everything under reduced motion.
  *
  * The square is empty until the browser has a sky: the prerender cannot know
- * the visitor's minute or city, and the square keeps its place meanwhile.
+ * the visitor's minute or city, and the square keeps its place meanwhile. A
+ * page may give an example instead, a chart the prerender can draw (/sky's
+ * worked example); the first sky then replaces it as it would fill the empty
+ * square.
  */
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { ASPECT_ORBS } from "@workspace/engine";
@@ -81,8 +84,14 @@ const INTRO_END = BODY_START + (BODIES.length - 1) * BODY_STEP + BODY_RISE;
 const LAND_MS = 600;
 /** How far a body may move between two frames and still draw a line rather than a dot. */
 const TRAIL_JOIN = 38;
+/** What the layers a guide is not pointing at fade to, and the page's horizon with them. */
+const UNLIT = 0.14;
+const UNLIT_HORIZON = 0.15;
 
 type Phase = "rest" | "intro" | "flying" | "landing";
+
+/** The wheel's parts a guide can light, one at a time; the aspects dim whenever any is lit. */
+export type WheelLayer = "signs" | "houses" | "horizon" | "bodies";
 
 interface Geometry {
   chart: ChartData;
@@ -109,9 +118,27 @@ function geometryOf(chart: ChartData): Geometry {
 
 const f2 = (n: number) => n.toFixed(2);
 
+/** A body at rest in its lane. The markup carries it, so the prerender draws each body at its degree. */
+function restAt(g: Geometry, key: string, lon: number): string {
+  const p = pointAt(C, C, g.lane[key], g.theta(lon));
+  return `translate(${f2(p.x)} ${f2(p.y)})`;
+}
+
 export interface HorizonWheelProps {
-  /** Null until the browser has a sky. */
+  /**
+   * Null until the browser has a sky. One given at the first render is drawn
+   * in it, prerender included, so it must be a sky the server works out the
+   * same: never the visitor's minute or city.
+   */
   sky: Sky | null;
+  /** Drawn by the prerender and at first paint while `sky` is null; the first sky then arrives as it would on an empty square. */
+  example?: Sky | null;
+  /**
+   * For a guide to reading the wheel: one layer at full strength and the
+   * others faded, or null for none yet. A wheel no guide points at leaves it
+   * out and carries no lighting.
+   */
+  lit?: WheelLayer | null;
   /** "intro": the first sky arrives by first light and later ones at once; "still": always at once. */
   arrival?: "intro" | "still";
   /** Given with a new sky, the frames worked out ahead for it: the wheel rewinds from the sky on show to that one. */
@@ -134,10 +161,21 @@ interface Flight {
   canvas: CanvasRenderingContext2D | null;
 }
 
-export function HorizonWheel({ sky, arrival = "still", rewind = null, hud = false, horizon = true, hidden = false, onArrived, squareRef }: HorizonWheelProps) {
+export function HorizonWheel({
+  sky,
+  example = null,
+  lit,
+  arrival = "still",
+  rewind = null,
+  hud = false,
+  horizon = true,
+  hidden = false,
+  onArrived,
+  squareRef,
+}: HorizonWheelProps) {
   const uid = useId();
   const reduced = useReducedMotion();
-  const [shown, setShown] = useState<Sky | null>(null);
+  const [shown, setShown] = useState<Sky | null>(() => sky ?? example);
   const [phase, setPhase] = useState<Phase>("rest");
   const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null);
   const geo = useMemo(() => (shown ? geometryOf(shown.chart) : null), [shown]);
@@ -155,7 +193,9 @@ export function HorizonWheel({ sky, arrival = "still", rewind = null, hud = fals
   const moonArc = useRef<SVGGElement>(null);
   const bodyEls = useRef(new Map<string, SVGGElement>());
 
-  const taken = useRef<Sky | null>(null);
+  const taken = useRef<Sky | null>(sky ?? example);
+  // The example holds the square only until the first sky, which comes in by first light like a sky on an empty square.
+  const standIn = useRef(!sky && example !== null);
   const latest = useRef<Sky | null>(null);
   const flight = useRef<Flight | null>(null);
   const stop = useRef<(() => void) | null>(null);
@@ -181,10 +221,12 @@ export function HorizonWheel({ sky, arrival = "still", rewind = null, hud = fals
     const before = taken.current;
     const flies = before !== null && rewind !== null && rewind.plan.to.getTime() === sky.at.getTime() && !reduced;
     if (stop.current && !flies) return; // settles when the motion under way ends
+    const first = !before || (standIn.current && !flies);
+    standIn.current = false;
     taken.current = sky;
     stop.current?.();
     stop.current = null;
-    if (!before) {
+    if (first) {
       setShown(sky);
       setPhase(arrival === "intro" && !reduced ? "intro" : "rest");
       return;
@@ -414,16 +456,20 @@ export function HorizonWheel({ sky, arrival = "still", rewind = null, hud = fals
   const lines = shown ? hudLines(shown) : null;
   const flying = phase === "flying";
   const showHorizon = horizon && drawn && !flying;
+  const horizonOpacity = showHorizon ? (lit && lit !== "horizon" ? UNLIT_HORIZON : 1) : 0;
   const plan = flight.current?.rewind.plan;
-  const back = !plan || plan.to.getTime() < plan.from.getTime();
+  const back = plan !== undefined && plan.to.getTime() < plan.from.getTime();
+  // A wrapper per layer, so the lighting never meets the opacity that first light and the rewind animate inside it.
+  const layer = (name: WheelLayer | "aspects") =>
+    lit === undefined ? undefined : { opacity: lit && lit !== name ? UNLIT : 1, transition: `opacity .35s ${EASE_CSS}` };
 
   return (
     <div className="relative" data-phase={phase}>
-      <div className="sd-hz sd-hz-l" aria-hidden="true" style={{ opacity: showHorizon ? 1 : 0, transition: `opacity .6s ${EASE_CSS}` }}>
+      <div className="sd-hz sd-hz-l" aria-hidden="true" style={{ opacity: horizonOpacity, transition: `opacity .6s ${EASE_CSS}` }}>
         <i />
         <b>EAST · RISING</b>
       </div>
-      <div className="sd-hz sd-hz-r" aria-hidden="true" style={{ opacity: showHorizon ? 1 : 0, transition: `opacity .6s ${EASE_CSS}` }}>
+      <div className="sd-hz sd-hz-r" aria-hidden="true" style={{ opacity: horizonOpacity, transition: `opacity .6s ${EASE_CSS}` }}>
         <i />
         <b>WEST · SETTING</b>
       </div>
@@ -455,40 +501,51 @@ export function HorizonWheel({ sky, arrival = "still", rewind = null, hud = fals
                   </radialGradient>
                 </defs>
                 <circle cx={C} cy={C} r={R.aspect} fill={`url(#${uid}g)`} />
-                <Band uid={uid} geo={geo} ref={band} />
-                <g ref={houses}>{geo.drawn && <Houses uid={uid} geo={geo} />}</g>
-                <g ref={aspects}>
-                  <Aspects geo={geo} />
+                <g style={layer("signs")}>
+                  <Band uid={uid} geo={geo} ref={band} />
                 </g>
-                <g ref={axes}>{geo.drawn && <Axes geo={geo} markerRef={marker} />}</g>
-                <g ref={leaders}>
-                  {geo.bodies.map(({ key, lon }) => {
-                    const a = geo.theta(lon);
-                    const tick = pointAt(C, C, R.tick, a);
-                    const end = pointAt(C, C, geo.lane[key] + R.node * 0.5, a);
-                    return (
-                      <g key={key}>
-                        <line x1={f2(tick.x)} y1={f2(tick.y)} x2={f2(end.x)} y2={f2(end.y)} stroke={BRASS} strokeOpacity={geo.lane[key] < R.lanes[0] ? 0.42 : 0.3} />
-                        <circle cx={f2(tick.x)} cy={f2(tick.y)} r={1.7} fill={BRASS} fillOpacity={0.85} />
-                      </g>
-                    );
-                  })}
+                <g style={layer("houses")}>
+                  <g ref={houses}>{geo.drawn && <Houses uid={uid} geo={geo} />}</g>
                 </g>
-                <g ref={moonArc}>
-                  <MoonArc geo={geo} />
+                <g style={layer("aspects")}>
+                  <g ref={aspects}>
+                    <Aspects geo={geo} />
+                  </g>
                 </g>
-                <g>
-                  {geo.bodies.map(({ key }) => (
-                    <BodyMark
-                      key={key}
-                      body={key}
-                      retrograde={phase === "rest" && geo.chart.planets[key].retrograde}
-                      register={(el) => {
-                        if (el) bodyEls.current.set(key, el);
-                        else bodyEls.current.delete(key);
-                      }}
-                    />
-                  ))}
+                <g style={layer("horizon")}>
+                  <g ref={axes}>{geo.drawn && <Axes geo={geo} markerRef={marker} />}</g>
+                </g>
+                <g style={layer("bodies")}>
+                  <g ref={leaders}>
+                    {geo.bodies.map(({ key, lon }) => {
+                      const a = geo.theta(lon);
+                      const tick = pointAt(C, C, R.tick, a);
+                      const end = pointAt(C, C, geo.lane[key] + R.node * 0.5, a);
+                      return (
+                        <g key={key}>
+                          <line x1={f2(tick.x)} y1={f2(tick.y)} x2={f2(end.x)} y2={f2(end.y)} stroke={BRASS} strokeOpacity={geo.lane[key] < R.lanes[0] ? 0.42 : 0.3} />
+                          <circle cx={f2(tick.x)} cy={f2(tick.y)} r={1.7} fill={BRASS} fillOpacity={0.85} />
+                        </g>
+                      );
+                    })}
+                  </g>
+                  <g ref={moonArc}>
+                    <MoonArc geo={geo} />
+                  </g>
+                  <g>
+                    {geo.bodies.map(({ key, lon }) => (
+                      <BodyMark
+                        key={key}
+                        body={key}
+                        at={restAt(geo, key, lon)}
+                        retrograde={phase === "rest" && geo.chart.planets[key].retrograde}
+                        register={(el) => {
+                          if (el) bodyEls.current.set(key, el);
+                          else bodyEls.current.delete(key);
+                        }}
+                      />
+                    ))}
+                  </g>
                 </g>
               </svg>
             </div>
@@ -500,9 +557,12 @@ export function HorizonWheel({ sky, arrival = "still", rewind = null, hud = fals
               aria-hidden="true"
             >
               <text ref={count} x={C} y={C + 4} textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize={27} fill="#F2F4F9" />
-              <text x={C} y={C + 30} textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontSize={9.5} letterSpacing={2.4} fill="#9FA8DA">
-                {back ? "REWINDING THE SKY" : "RUNNING THE SKY FORWARD"}
-              </text>
+              {/* Only with a flight, so a page's prerendered words never say the sky is rewinding. */}
+              {plan ? (
+                <text x={C} y={C + 30} textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontSize={9.5} letterSpacing={2.4} fill="#9FA8DA">
+                  {back ? "REWINDING THE SKY" : "RUNNING THE SKY FORWARD"}
+                </text>
+              ) : null}
             </svg>
             {tip && phase === "rest" ? (
               <div
@@ -659,11 +719,16 @@ function MoonArc({ geo }: { geo: Geometry }) {
   return <path d={arcPath(C, C, R.tick - PLATE * 0.015, a0, a1)} fill="none" stroke="#E8EBF2" strokeOpacity={0.7} strokeWidth={3} strokeLinecap="round" />;
 }
 
-function BodyMark({ body, retrograde, register }: { body: Body; retrograde: boolean; register: (el: SVGGElement | null) => void }) {
+/**
+ * `at` is where the body rests; while a sky arrives or rewinds, the motion
+ * moves it by hand and React writes `at` again only when the chart changes,
+ * in a commit whose layout effect places it before paint.
+ */
+function BodyMark({ body, at, retrograde, register }: { body: Body; at: string; retrograde: boolean; register: (el: SVGGElement | null) => void }) {
   const size = R.node;
   const src = renderFor(body, size);
   return (
-    <g ref={register} data-k={body}>
+    <g ref={register} data-k={body} transform={at}>
       <circle r={R.node * 0.62} fill="hsl(var(--background))" fillOpacity={0.92} />
       {src ? <image href={src} x={-size / 2} y={-size / 2} width={size} height={size} preserveAspectRatio="xMidYMid meet" /> : null}
       {retrograde ? (
