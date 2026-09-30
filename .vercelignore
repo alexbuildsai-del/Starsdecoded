@@ -4,9 +4,9 @@
 # gives it a second copy of drizzle-orm, so the check fails on types that are
 # fine everywhere else. Keeping the directory out of the upload is what stops
 # the detection — the web build never needs it.
-api
+/api
 
 # Not part of the web app either, and no reason to upload them.
-e2e
-mobile
-scripts
+/e2e
+/mobile
+/scripts
