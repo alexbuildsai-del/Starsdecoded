@@ -7,7 +7,7 @@
  */
 import { BLIND_WORD_TARGETS, SECTION_IDS, WORD_TARGETS, hasClaims, sectionById, validateClaims, type ReportSectionId } from "../prompts/index.js";
 import type { NatalChartData } from "./chartCalculation.js";
-import { tierFor, type ServiceTier } from "./models.js";
+import { thinkingAllowance, tierFor, type ServiceTier } from "./models.js";
 import { costUsd } from "./usage.js";
 
 /** The five charts every full lab and every release gate runs on (ADR-77); the other fixtures run only when their own brain changed. */
@@ -285,7 +285,7 @@ export function gateProblems(reference: RunNumbers[], candidate: RunNumbers[], c
   return problems;
 }
 
-/** The token shape of one section of a base run, what an estimate is priced on. */
+/** The token shape of one section of a base run, what an estimate is priced on; visible output only, since each writer thinks for itself. */
 export interface TokenShape {
   inputTokens: number;
   cachedInputTokens: number;
@@ -295,9 +295,10 @@ export interface TokenShape {
 /** A section with no stored shape is priced on the R05 mean (spec, mixes table). */
 export const FALLBACK_SHAPE: TokenShape = { inputTokens: 2_700, cachedInputTokens: 7_750, outputTokens: 1_260 };
 
-/** What one section costs on one writer at one tier, from a base shape; Flex only where the model offers it. */
+/** What one section costs on one writer at one tier, from a base shape plus the writer's thinking; Flex only where the model offers it. */
 export function priceSection(model: string, shape: TokenShape, tier: ServiceTier = "standard"): number | null {
-  return costUsd(model, { attempts: 1, reasoningTokens: 0, ms: 0, ...shape }, tierFor(model, tier));
+  const thinking = thinkingAllowance(model);
+  return costUsd(model, { attempts: 1, ms: 0, ...shape, outputTokens: shape.outputTokens + thinking, reasoningTokens: thinking }, tierFor(model, tier));
 }
 
 /** The out-of-credit refusal as it reads from a status message, so a campaign can stop on it (ADR-77). */
