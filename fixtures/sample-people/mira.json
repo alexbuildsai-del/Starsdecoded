@@ -1,0 +1,11 @@
+{
+  "name": "Mira Costa",
+  "synthetic": true,
+  "birthDate": "1991-03-14",
+  "birthTime": "07:40",
+  "latitude": 38.7223,
+  "longitude": -9.1393,
+  "timezone": "Europe/Lisbon",
+  "timezoneOffset": 0,
+  "note": "Synthetic: invented birth data, not a real person. Lisbon. The sample account's own chart, at the centre of the landing's orbit and the first plate under every lens."
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Hanna Berg",
+  "synthetic": true,
+  "birthDate": "1993-08-09",
+  "birthTime": "18:30",
+  "latitude": 52.52,
+  "longitude": 13.405,
+  "timezone": "Europe/Berlin",
+  "timezoneOffset": 2,
+  "note": "Synthetic: invented birth data, not a real person. Berlin. Mira's friend, the second plate under the two people lens."
+}
