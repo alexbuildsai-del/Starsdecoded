@@ -198,6 +198,17 @@ describe("structured data", () => {
     expect(only(headFor("/sample", "production"), "Article").dateModified).toBe(SAMPLE.generatedAt.slice(0, 10));
   });
 
+  it("gives the sample its whole head in a production build too (ADR-166)", async () => {
+    vi.stubEnv("VITE_APP_ENV", "production");
+    vi.resetModules();
+    const { headFor: productionHead } = await import("./head");
+    const head = productionHead("/sample", "production");
+    expect(metaOf(head, "robots")).toBeUndefined();
+    expect(canonicalOf(head)).toBe(`${SITE.origin}/sample`);
+    expect(titleOf(head)).toBe(pageFor("/sample").title);
+    expect(ofType(head, "Article")).toHaveLength(1);
+  });
+
   it("answers the FAQ word for word, every question once", () => {
     const faq = only(headFor("/faq", "production"), "FAQPage");
     const questions = faq.mainEntity as Question[];
@@ -277,17 +288,6 @@ describe("a path outside the public site", () => {
         expect(scriptsOf(head)).toHaveLength(0);
       }
     }
-  });
-
-  it("covers the sample in a production build, where it answers 404", async () => {
-    vi.stubEnv("VITE_APP_ENV", "production");
-    vi.resetModules();
-    const { headFor: productionHead } = await import("./head");
-    const head = productionHead("/sample", "production");
-    expect(metaOf(head, "robots")).toBe("noindex");
-    expect(canonicalOf(head)).toBeUndefined();
-    expect(scriptsOf(head)).toHaveLength(0);
-    expect(head).not.toContain(SAMPLE.name);
   });
 });
 

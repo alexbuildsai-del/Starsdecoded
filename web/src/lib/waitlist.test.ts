@@ -48,7 +48,8 @@ describe("the double opt-in wording", () => {
   it("sends the key for it, and its sentence says what confirming and joining mean", () => {
     expect(WAITLIST_CONSENT).toBe("launch-email-v2");
     expect(WAITLIST_CONSENT_TEXT).toContain("link to confirm your email");
-    expect(WAITLIST_CONSENT_TEXT).toContain("tell you when Stars Decoded opens");
+    expect(WAITLIST_CONSENT_TEXT).toContain("tell you when Stars Decoded launches");
+    expect(WAITLIST_CONSENT_TEXT).not.toMatch(/\bopen/i);
     expect(WAITLIST_CONSENT_TEXT).toContain("delete your email at any time");
   });
 

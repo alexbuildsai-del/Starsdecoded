@@ -343,7 +343,7 @@ function linkDay(at: Date): string {
 
 export function buildWaitlistConfirmEmail(opts: SendWaitlistConfirmOptions): EmailContent {
   const { confirmUrl } = opts;
-  const lede = "Confirm your email and you're on the waitlist. We'll only use it to tell you when Stars Decoded opens.";
+  const lede = "Confirm your email and you're on the waitlist. We'll only use it to tell you when Stars Decoded launches.";
   const lastDay = `The link stops working on ${linkDay(opts.expiresOn)}.`;
   // "That day" rather than a count of days: the date is the email's only number, so it cannot disagree with the link's life.
   const notYou = "If you didn't ask to join, ignore this email. We'll delete your address after that day.";

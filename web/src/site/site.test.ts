@@ -6,7 +6,6 @@ import {
   FOOTER,
   NAV,
   PAGES,
-  SAMPLE_LIVE,
   SITE,
   formatUpdated,
   isPublicPath,
@@ -76,12 +75,8 @@ describe("the registry", () => {
     }
   });
 
-  it("maps every page but the waitlist, and the sample only while it is live", () => {
-    for (const page of PAGES) {
-      if (page.path === "/waitlist") expect(page.sitemap).toBe(false);
-      else if (page.path === "/sample") expect(page.sitemap).toBe(SAMPLE_LIVE);
-      else expect(page.sitemap).toBe(true);
-    }
+  it("maps every page but the waitlist, the sample included (ADR-166)", () => {
+    for (const page of PAGES) expect(page.sitemap, page.path).toBe(page.path !== "/waitlist");
   });
 
   it("names the sample's person and dates the page as the stored run does", () => {
@@ -105,8 +100,8 @@ describe("pageFor and isPublicPath", () => {
     }
   });
 
-  it("opens every registered page, the sample only while it is live", () => {
-    for (const page of PAGES) expect(isPublicPath(page.path)).toBe(page.path === "/sample" ? SAMPLE_LIVE : true);
+  it("opens every registered page, the sample included (ADR-166)", () => {
+    for (const page of PAGES) expect(isPublicPath(page.path), page.path).toBe(true);
   });
 });
 
@@ -114,7 +109,7 @@ describe("the nav and the footer", () => {
   it("lists the locked nav", () => {
     expect(NAV.map((l) => l.label)).toEqual([
       "Free chart",
-      ...(SAMPLE_LIVE ? ["Sample report"] : []),
+      "Sample report",
       "Compatibility",
       "How it works",
       "FAQ",
@@ -161,18 +156,18 @@ describe("a production build", () => {
     vi.resetModules();
   });
 
-  it("leaves the sample out of the pages, the nav, the map and the routes", async () => {
+  it("keeps the sample in the pages, the nav, the map and the routes (ADR-166)", async () => {
     vi.stubEnv("VITE_APP_ENV", "production");
     vi.resetModules();
     const site = await import("./site");
     const { PUBLIC_ROUTES: routes } = await import("./routes");
     const sample: PagePath = "/sample";
-    expect(site.SAMPLE_LIVE).toBe(false);
-    expect(site.isPublicPath(sample)).toBe(false);
-    expect(site.pageFor(sample).sitemap).toBe(false);
-    expect(site.NAV.map((l) => l.href)).not.toContain(sample);
-    expect(site.FOOTER.flatMap((c) => c.links.map((l) => l.href))).not.toContain(sample);
-    expect(routes.map((r) => r.path)).not.toContain(sample);
-    expect(routes).toHaveLength(12);
+    expect(site.SAMPLE_LIVE).toBe(true);
+    expect(site.isPublicPath(sample)).toBe(true);
+    expect(site.pageFor(sample).sitemap).toBe(true);
+    expect(site.NAV.map((l) => l.href)).toContain(sample);
+    expect(site.FOOTER.flatMap((c) => c.links.map((l) => l.href))).toContain(sample);
+    expect(routes.map((r) => r.path)).toContain(sample);
+    expect(routes).toHaveLength(13);
   });
 });

@@ -9,7 +9,7 @@ export interface PublicRoute {
 export const PUBLIC_ROUTES: readonly PublicRoute[] = [
   { path: "/", load: () => import("./pages/HomePage") },
   { path: "/sky", load: () => import("./pages/SkyPage") },
-  // MB-90 provisional: behind the constant, a production build never reaches the import, so her report stays out of it.
+  // Behind the switch, a build with the sample off never reaches the import, so her report stays out of it.
   ...(SAMPLE_LIVE ? [{ path: "/sample" as const, load: () => import("./pages/SamplePage") }] : []),
   { path: "/method", load: () => import("./pages/MethodPage") },
   { path: "/compatibility", load: () => import("./pages/CompatibilityPage") },

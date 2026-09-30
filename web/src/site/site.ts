@@ -1,5 +1,4 @@
 import { LEGAL_IDENTITY, waitlistReady } from "@workspace/commerce";
-import { APP_ENV } from "@/lib/appEnv";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 
 export const SITE = { origin: "https://mystarsdecoded.com", name: PRODUCT } as const;
@@ -40,8 +39,8 @@ export interface PageEntry {
   parent?: PagePath;
 }
 
-// MB-90 provisional: the sample's name waits on a legal check, so a production build leaves her whole report out until it clears.
-export const SAMPLE_LIVE: boolean = APP_ENV !== "production";
+// ADR-166 put her report on production too, text and chart only; the constant stays as the one switch that takes it down.
+export const SAMPLE_LIVE = true;
 
 const titled = (words: string) => `${words} · ${PRODUCT}`;
 
@@ -69,7 +68,7 @@ export const PAGES: readonly PageEntry[] = [
     sitemap: true,
   },
   // The registry loads on every page and the run is far too heavy to import here, so her name and the run's day are
-  // written here too, and site.test.ts fails the day they drift from data/sample.ts (MB-90, MB-101).
+  // written here too, and site.test.ts fails the day they drift from data/sample.ts (ADR-166, MB-101).
   {
     path: "/sample",
     title: titled(`Audrey Hepburn's ${PERSONAL_REPORT}`),
@@ -142,9 +141,9 @@ export const PAGES: readonly PageEntry[] = [
   {
     path: "/waitlist",
     title: titled("Join the waitlist"),
-    eyebrow: "Opening soon",
-    h1: "Get an email the day we open",
-    lede: `${PRODUCT} isn't open yet. Join the waitlist and we'll email you the day you can get your ${PERSONAL_REPORT}.`,
+    eyebrow: "Launching soon",
+    h1: "Get an email when we launch",
+    lede: `${PRODUCT} hasn't launched yet. Join the waitlist and we'll email you when you can get your ${PERSONAL_REPORT}.`,
     updated: "2026-09-30",
     kind: "waitlist",
     schema: ["WebPage"],

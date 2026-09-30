@@ -691,7 +691,7 @@ function SampleEnd() {
           </Link>
         </div>
       </div>
-      {/* MB-90 provisional: the line the legal check beside MB-31 confirms or rewrites. */}
+      {/* ADR-166 lets the sample show her report and chart, never a photo, with this line crediting her public birth record. */}
       <p className="sd-fine">
         {SAMPLE.name}'s birth details are public. Her birth time comes from her birth record ({SAMPLE.source}). {PRODUCT} has no
         connection to her family or estate.

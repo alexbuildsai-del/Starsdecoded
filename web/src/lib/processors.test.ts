@@ -47,6 +47,12 @@ describe("who handles a visitor's data", () => {
     }
   });
 
+  it("confirms Railway's EU West region and no other yet (ADR-164, MB-33)", () => {
+    expect(PROCESSORS.filter((p) => p.region).map((p) => [p.name, whereLine(p)])).toEqual([
+      ["Railway", "Stores data in Railway's EU West region"],
+    ]);
+  });
+
   it("covers a company in the US with ADR-145's two bases", () => {
     expect(PROCESSORS.some((p) => p.from === "server" && p.country === "the United States")).toBe(true);
     expect(US_TRANSFER).toContain("standard contractual clauses");

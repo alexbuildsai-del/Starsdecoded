@@ -728,7 +728,6 @@ export default function Claims() {
               These lines are copied word for word from {SAMPLE.name}'s {PERSONAL_REPORT}. Her birth time comes from her public
               birth record ({SAMPLE.source}). {PRODUCT} has no connection to her family or estate.
             </p>
-            {/* MB-90 provisional: her whole report stays out of a production build until her name clears its check. */}
             {SAMPLE_LIVE && (
               <Link className="sd-more mt-0 justify-self-start max-[900px]:order-7" href="/sample">
                 Read her whole report

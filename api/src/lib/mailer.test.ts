@@ -128,7 +128,7 @@ const confirmOpts = {
 
 test("buildWaitlistConfirmEmail: what confirming does, the button, the link's last day, and nothing else", () => {
   const content = buildWaitlistConfirmEmail(confirmOpts);
-  const lede = "Confirm your email and you're on the waitlist. We'll only use it to tell you when Stars Decoded opens.";
+  const lede = "Confirm your email and you're on the waitlist. We'll only use it to tell you when Stars Decoded launches.";
   const lastDay = "The link stops working on 7 October.";
   const notYou = "If you didn't ask to join, ignore this email. We'll delete your address after that day.";
   assert.equal(content.subject, "Confirm your email to join the waitlist");

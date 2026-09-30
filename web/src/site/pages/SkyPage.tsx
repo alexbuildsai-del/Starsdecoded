@@ -151,7 +151,6 @@ export default function SkyPage() {
           <span className="contents" onClickCapture={keepForForm}>
             <ReportCta source="sky" className="sd-btn" />
           </span>
-          {/* MB-90 provisional: her whole report stays out of a production build until her name clears its check. */}
           {SAMPLE_LIVE ? (
             <Link className="sd-btn sd-btn-g" href="/sample">
               Read a sample

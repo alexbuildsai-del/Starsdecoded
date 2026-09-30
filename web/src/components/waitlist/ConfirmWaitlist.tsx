@@ -42,7 +42,7 @@ export function ConfirmWaitlist({ token }: { token: string }) {
           {phase === "confirmed" && (
             <>
               <h3>You're on the list</h3>
-              <p>We'll email you when {PRODUCT} opens.</p>
+              <p>We'll email you when {PRODUCT} launches.</p>
             </>
           )}
           {phase === "unknown_link" && (

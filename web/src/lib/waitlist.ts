@@ -4,16 +4,17 @@ import { PRODUCT } from "@/lib/product";
 /**
  * The waitlist's consent (ADR-141, 145). The key travels with every sign-up and is
  * stored beside the address, so the list shows what each person agreed to; a
- * new wording gets a new key in openapi.yaml.
+ * new wording gets a new key in openapi.yaml. "Opens" became "launches" (MB-122)
+ * under the same key, because production had taken no address under the old words.
  */
 export const WAITLIST_CONSENT = "launch-email-v2" as const;
-export const WAITLIST_CONSENT_TEXT = `We'll send you a link to confirm your email. After that, we'll only use it to tell you when ${PRODUCT} opens. You can ask us to delete your email at any time.`;
+export const WAITLIST_CONSENT_TEXT = `We'll send you a link to confirm your email. After that, we'll only use it to tell you when ${PRODUCT} launches. You can ask us to delete your email at any time.`;
 
 /** The API decides how long the emailed link lives and the web cannot import api/ (MB-108), so this only words it: keep the two equal (ADR-145). */
 export const CONFIRM_LINK_DAYS = 7;
 
 /** Kept equal to the message the API sends with its 503, so a closed form and a refused join read alike. */
-export const WAITLIST_CLOSED_LINE = "Sign-ups aren't open yet. Check back soon.";
+export const WAITLIST_CLOSED_LINE = "The waitlist isn't taking sign-ups yet. Check back soon.";
 
 /** Production takes no address until the privacy page names its contact (ADR-145, reading 12); staging and local always do. */
 export function waitlistOpen(env: AppEnv, ready: boolean): boolean {
