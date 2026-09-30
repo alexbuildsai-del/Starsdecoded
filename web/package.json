@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "vite build --config vite.config.ts",
+    "build": "vite build --config vite.config.ts && vite build --config vite.config.ts --ssr src/entry-server.tsx && node scripts/prerender.mjs",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
@@ -47,6 +47,8 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "@workspace/api-client-react": "workspace:*",
+    "@workspace/commerce": "workspace:*",
+    "@workspace/engine": "workspace:*",
     "@workspace/launch": "workspace:*",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",

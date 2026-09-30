@@ -29,6 +29,12 @@ const appEnv =
   process.env.VITE_APP_ENV ??
   (vercelEnv === "production" ? "production" : vercelEnv ? "staging" : "development");
 
+// The commit this build is of, written into every page's head (site/head.ts). Production's API waits to read it off the
+// home page before it tells IndexNow about the pages, so it only announces the web its own commit shipped, whether a
+// Release forwarded `production` by token or Promote did (R11-27). Vercel exposes it at build time; any other build
+// knows none and writes no tag.
+const commit = process.env.VERCEL_GIT_COMMIT_SHA?.trim() ?? "";
+
 // Origin of the API. On Vercel the web calls /api on its own origin and
 // vercel.json rewrites that to the correct Railway host per environment, so a
 // base URL here is always wrong: a value set on Vercel (the production host,
@@ -44,10 +50,11 @@ const onVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 const apiBaseUrl =
   onVercel || !/^https?:\/\//i.test(rawApiBaseUrl) ? "" : rawApiBaseUrl;
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   base: basePath,
   define: {
     "import.meta.env.VITE_APP_ENV": JSON.stringify(appEnv),
+    "import.meta.env.VITE_COMMIT": JSON.stringify(commit),
     "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBaseUrl),
   },
   plugins: [
@@ -66,8 +73,26 @@ export default defineConfig({
     // looks for `dist` next to the lockfile it installed from, and that is
     // the root of this workspace — putting the output there means a deploy
     // works on defaults, with no Output Directory override to configure.
-    outDir: path.resolve(import.meta.dirname, "..", "dist"),
+    // The server entry only runs during the build (scripts/prerender.mjs),
+    // so it stays out of what is deployed.
+    outDir: isSsrBuild
+      ? path.resolve(import.meta.dirname, "dist-ssr")
+      : path.resolve(import.meta.dirname, "..", "dist"),
     emptyOutDir: true,
+    // The prerender links each page's own stylesheets and chunks from it.
+    manifest: !isSsrBuild,
+    copyPublicDir: !isSsrBuild,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // chartCalculation.ts reads `default` off astronomy-engine's namespace on purpose, for Node's loader.
+        if (warning.code === "MISSING_EXPORT" && warning.binding === "default" && warning.exporter?.includes("astronomy-engine")) return;
+        warn(warning);
+      },
+    },
+  },
+  ssr: {
+    // Bundled whole, so the prerender never depends on how Node would load a dependency, pnpm's strict layout included.
+    noExternal: true,
   },
   server: {
     port,
@@ -97,4 +122,4 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
   },
-});
+}));

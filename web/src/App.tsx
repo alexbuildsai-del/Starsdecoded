@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, type ComponentType, type ReactNode } from "react";
 import {
   Switch,
   Route,
@@ -11,7 +11,6 @@ import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import LoadingState from "@/components/LoadingState";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -19,9 +18,10 @@ import { StagingRibbon } from "@/components/StagingRibbon";
 import { PrelaunchRibbon } from "@/components/PrelaunchRibbon";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { APP_ENV } from "@/lib/appEnv";
-import { OPEN_BEFORE_LAUNCH, PRELAUNCH } from "@/lib/prelaunch";
+import { OPEN_BEFORE_LAUNCH, PRELAUNCH, PrelaunchViewProvider, useMounted, usePrelaunchView } from "@/lib/prelaunch";
 import { usePageTitle } from "@/lib/page-title";
 import { forgetSelection } from "@/lib/pair-selection";
+import { PUBLIC_ROUTES } from "@/site/routes";
 
 const importBirthForm = () => import("@/pages/BirthFormPage");
 const importReport = () => import("@/pages/ReportPage");
@@ -30,11 +30,6 @@ const importCompatibility = () => import("@/pages/CompatibilityReportPage");
 const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
 const importAdminLab = () => import("@/pages/AdminLabPage");
 const importClaim = () => import("@/pages/ClaimPage");
-const importPrivacy = () => import("@/pages/legal/PrivacyPage");
-const importTerms = () => import("@/pages/legal/TermsPage");
-const importRefunds = () => import("@/pages/legal/RefundsPage");
-const importCompany = () => import("@/pages/legal/CompanyPage");
-const importWaitlist = () => import("@/pages/WaitlistPage");
 const importAdminWaitlist = () => import("@/pages/AdminWaitlistPage");
 
 const BirthFormPage = lazy(importBirthForm);
@@ -44,12 +39,16 @@ const CompatibilityReportPage = lazy(importCompatibility);
 const AdminPromptsPage = lazy(importAdminPrompts);
 const AdminLabPage = lazy(importAdminLab);
 const ClaimPage = lazy(importClaim);
-const PrivacyPage = lazy(importPrivacy);
-const TermsPage = lazy(importTerms);
-const RefundsPage = lazy(importRefunds);
-const CompanyPage = lazy(importCompany);
-const WaitlistPage = lazy(importWaitlist);
 const AdminWaitlistPage = lazy(importAdminWaitlist);
+
+const SITE_PAGES = new Map(PUBLIC_ROUTES.map((route) => [route.path, lazy(route.load)]));
+const SiteWaitlistPage = lazy(() => import("@/site/pages/WaitlistPage"));
+
+/** The public page a prerendered document is, already loaded, so hydration renders it without suspending. */
+export interface FirstPage {
+  path: string;
+  Page: ComponentType;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
@@ -193,8 +192,9 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 // When the signed-in user changes, blow away cached queries so the dashboard
 // doesn't briefly show the previous account's reports, and forget the pair the
-// picker remembered, whose reports the next account may not see.
-function ClerkQueryCacheInvalidator() {
+// picker remembered, whose reports the next account may not see. It wraps
+// rather than sits beside the routes, for WithSiblings' reason.
+function ClerkQueryCacheInvalidator({ children }: { children: ReactNode }) {
   const { addListener } = useClerk();
   const qc = useQueryClient();
   const prev = useRef<string | null | undefined>(undefined);
@@ -209,7 +209,7 @@ function ClerkQueryCacheInvalidator() {
       prev.current = id;
     });
   }, [addListener, qc]);
-  return null;
+  return children;
 }
 
 function prefetchRoutes() {
@@ -225,6 +225,8 @@ type IdleAPI = {
 
 function useRoutePrefetch() {
   useEffect(() => {
+    // Before launch a visitor never reaches these pages, so the public site does not spend their data on them.
+    if (PRELAUNCH) return;
     const w = window as unknown as IdleAPI;
     if (typeof w.requestIdleCallback === "function") {
       const handle = w.requestIdleCallback(prefetchRoutes, { timeout: 2000 });
@@ -237,31 +239,93 @@ function useRoutePrefetch() {
   }, []);
 }
 
-function Routes() {
+/**
+ * useId hands hydration the ids the server rendered only while every level above the page holds a single child, as
+ * the prerender's shell does (entry-server.tsx). So a level's other children join once it has hydrated, which leaves
+ * the ids already given as they are.
+ */
+function WithSiblings({ children, siblings }: { children: ReactNode; siblings: ReactNode }) {
+  const mounted = useMounted();
+  return mounted ? (
+    <>
+      {children}
+      {siblings}
+    </>
+  ) : (
+    children
+  );
+}
+
+/**
+ * Before launch, and in the preview, a visitor on an app path gets the waitlist page instead (readings 1 and 3);
+ * sign-in and the admin stay the admin's way in, and once /api/admin/me says the signed-in user is the admin, the
+ * whole app is theirs. A first paint never waits for Clerk: until it loads, everyone is a visitor.
+ */
+function AppGate({ children }: { children: ReactNode }) {
+  const visitor = usePrelaunchView();
+  const [location] = useLocation();
+  if (!visitor || OPEN_BEFORE_LAUNCH.test(location)) return children;
+  return (
+    <Suspense fallback={<div className="min-h-[100dvh] bg-background" />}>
+      <SiteWaitlistPage />
+    </Suspense>
+  );
+}
+
+/** The rest is spread whole because Switch passes in the match it found, which spares Route a second match. */
+function AppRoute({ children, ...route }: { path: string; children: ReactNode }) {
+  return (
+    <Route {...route}>
+      <AppGate>{children}</AppGate>
+    </Route>
+  );
+}
+
+/** The public site comes first and is everyone's; an unknown path answers with the page 404.html prerenders. */
+function Routes({ first }: { first?: FirstPage }) {
   useRoutePrefetch();
   return (
     <Suspense fallback={<LoadingState />}>
       <Switch>
-        <Route path="/" component={LandingPage} />
-        <Route path="/sign-in/*?" component={SignInPage} />
-        <Route path="/sign-up/*?" component={SignUpPage} />
-        <Route path="/chart">{() => <RequireAuth><BirthFormPage /></RequireAuth>}</Route>
+        {PUBLIC_ROUTES.map(({ path }) => (
+          <Route key={path} path={path} component={first && first.path === path ? first.Page : SITE_PAGES.get(path)} />
+        ))}
+        <AppRoute path="/sign-in/*?">
+          <SignInPage />
+        </AppRoute>
+        <AppRoute path="/sign-up/*?">
+          <SignUpPage />
+        </AppRoute>
+        <AppRoute path="/chart">
+          <RequireAuth>
+            <BirthFormPage />
+          </RequireAuth>
+        </AppRoute>
         {/* One page: a report is read while it is written (ADR-48), so the old waiting room redirects. */}
         <Route path="/generating/:id">{(params) => <Redirect to={`/report/${params.id}`} />}</Route>
-        <Route path="/report/:id" component={ReportPage} />
-        <Route path="/compatibility/:id" component={CompatibilityReportPage} />
-        <Route path="/dashboard" component={DashboardPage} />
+        <AppRoute path="/report/:id">
+          <ReportPage />
+        </AppRoute>
+        <AppRoute path="/compatibility/:id">
+          <CompatibilityReportPage />
+        </AppRoute>
+        <AppRoute path="/dashboard">
+          <DashboardPage />
+        </AppRoute>
         <Route path="/people">{() => <Redirect to="/dashboard" />}</Route>
-        <Route path="/claim" component={ClaimPage} />
-        <Route path="/admin/prompts" component={AdminPromptsPage} />
-        <Route path="/admin/report-lab" component={AdminLabPage} />
-        <Route path="/admin/waitlist" component={AdminWaitlistPage} />
+        <AppRoute path="/claim">
+          <ClaimPage />
+        </AppRoute>
+        <AppRoute path="/admin/prompts">
+          <AdminPromptsPage />
+        </AppRoute>
+        <AppRoute path="/admin/report-lab">
+          <AdminLabPage />
+        </AppRoute>
+        <AppRoute path="/admin/waitlist">
+          <AdminWaitlistPage />
+        </AppRoute>
         <Route path="/admin">{() => <Redirect to="/admin/waitlist" />}</Route>
-        <Route path="/waitlist" component={WaitlistPage} />
-        <Route path="/privacy" component={PrivacyPage} />
-        <Route path="/terms" component={TermsPage} />
-        <Route path="/refunds" component={RefundsPage} />
-        <Route path="/company" component={CompanyPage} />
         <Route path="/login">{() => <Redirect to="/sign-in" />}</Route>
         <Route component={NotFound} />
       </Switch>
@@ -269,29 +333,13 @@ function Routes() {
   );
 }
 
-// Before launch, production shows every visitor the waitlist (ADR-141). The
-// admin's way in and the legal pages stay reachable; once /api/admin/me says
-// the signed-in user is the admin, the whole app is theirs. A visitor's first
-// paint never waits for Clerk: until it loads, the page is the waitlist.
-function PrelaunchRoutes() {
-  const [location] = useLocation();
+/** The admin's reminder, on production before launch, that visitors see the waitlist over the site (ADR-141). */
+function AdminRibbon() {
   const isAdmin = useIsAdmin();
-  if (!isAdmin && !OPEN_BEFORE_LAUNCH.test(location)) {
-    return (
-      <Suspense fallback={<div className="min-h-[100dvh] bg-background" />}>
-        <WaitlistPage />
-      </Suspense>
-    );
-  }
-  return (
-    <>
-      <Routes />
-      {isAdmin && <PrelaunchRibbon />}
-    </>
-  );
+  return PRELAUNCH && isAdmin ? <PrelaunchRibbon /> : null;
 }
 
-function ClerkRoutedProvider() {
+function ClerkRoutedProvider({ first }: { first?: FirstPage }) {
   const [location, setLocation] = useLocation();
   return (
     <ClerkProvider
@@ -316,25 +364,37 @@ function ClerkRoutedProvider() {
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
-      <ClerkQueryCacheInvalidator />
-      {/* The outer boundary sits above the router and never sees a navigation; this one resets on each, by prop rather than key, so no page or Clerk sign-in step remounts. */}
-      <ErrorBoundary resetKey={location}>
-        {PRELAUNCH ? <PrelaunchRoutes /> : <Routes />}
-      </ErrorBoundary>
+      <ClerkQueryCacheInvalidator>
+        <PrelaunchViewProvider>
+          <WithSiblings siblings={<AdminRibbon />}>
+            {/* The outer boundary sits above the router and never sees a navigation; this one resets on each, by prop rather than key, so no page or Clerk sign-in step remounts. */}
+            <ErrorBoundary resetKey={location}>
+              <Routes first={first} />
+            </ErrorBoundary>
+          </WithSiblings>
+        </PrelaunchViewProvider>
+      </ClerkQueryCacheInvalidator>
     </ClerkProvider>
   );
 }
 
-function App() {
+function App({ first }: { first?: FirstPage }) {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <WouterRouter base={basePath}>
-            <ClerkRoutedProvider />
-          </WouterRouter>
-          <Toaster />
-          {APP_ENV === "staging" && <StagingRibbon />}
+          <WithSiblings
+            siblings={
+              <>
+                <Toaster />
+                {APP_ENV === "staging" && <StagingRibbon />}
+              </>
+            }
+          >
+            <WouterRouter base={basePath}>
+              <ClerkRoutedProvider first={first} />
+            </WouterRouter>
+          </WithSiblings>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>

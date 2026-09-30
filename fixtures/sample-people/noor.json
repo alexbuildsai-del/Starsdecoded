@@ -1,0 +1,12 @@
+{
+  "name": "Noor Haddad",
+  "synthetic": true,
+  "birthDate": "1996-01-27",
+  "birthTime": "12:00",
+  "birthTimeWindowMinutes": 720,
+  "latitude": 52.3676,
+  "longitude": 4.9041,
+  "timezone": "Europe/Amsterdam",
+  "timezoneOffset": 1,
+  "note": "Synthetic: invented birth data, not a real person. Amsterdam. Mira's colleague. The birth time is not known, so the chart has no horizon or houses (ADR-33, ADR-34); noon is the day's centre for positions, never a birth time."
+}

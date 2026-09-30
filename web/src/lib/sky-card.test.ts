@@ -8,7 +8,7 @@
  * table when checked; had any not, the computed chart would win (R-3.1).
  */
 import { describe, expect, it } from "vitest";
-import { calculateNatalChart } from "../../../api/src/lib/chartCalculation";
+import { calculateNatalChart } from "@workspace/engine";
 import { busiestHouse, elementLead, houseCells, modalityLine } from "./sky-card";
 import type { ChartData } from "@/types/chart";
 

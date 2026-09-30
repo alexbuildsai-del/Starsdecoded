@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, waitlistSignupsTable } from "@workspace/db";
 import { labGuard } from "../lib/labGuard.js";
+import { dbWaitlistStore, sweepBefore, waitlistListing } from "../lib/waitlist.js";
 
 const router: IRouter = Router();
 
@@ -11,20 +12,10 @@ router.use("/admin/waitlist", labGuard);
 
 router.get("/admin/waitlist", async (req, res) => {
   try {
+    // The sweep runs first, so neither the list nor its CSV shows an address past its seven days (ADR-145).
+    await dbWaitlistStore.sweep(sweepBefore(new Date()));
     const rows = await db.select().from(waitlistSignupsTable).orderBy(desc(waitlistSignupsTable.createdAt));
-    res.json({
-      total: rows.length,
-      signups: rows.map((r) => ({
-        id: r.id,
-        email: r.email,
-        consent: r.consent,
-        source: r.source,
-        utmSource: r.utmSource,
-        utmMedium: r.utmMedium,
-        utmCampaign: r.utmCampaign,
-        createdAt: r.createdAt.toISOString(),
-      })),
-    });
+    res.json(waitlistListing(rows));
   } catch (err) {
     req.log.error({ err }, "waitlist list failed");
     res.status(500).json({ error: "server_error", message: "The waitlist could not be read." });

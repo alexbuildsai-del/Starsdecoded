@@ -18,6 +18,12 @@
     },
     {
       "path": "../packages/launch"
+    },
+    {
+      "path": "../packages/engine"
+    },
+    {
+      "path": "../packages/commerce"
     }
   ]
 }

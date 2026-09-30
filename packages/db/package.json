@@ -8,7 +8,7 @@
     "./schema": "./src/schema/index.ts"
   },
   "scripts": {
-    "migrate": "tsx ./scripts/migrate-profile-split.ts && tsx ./scripts/migrate-add-users.ts && tsx ./scripts/migrate-add-relationships.ts",
+    "migrate": "tsx ./scripts/migrate-profile-split.ts && tsx ./scripts/migrate-add-users.ts && tsx ./scripts/migrate-add-relationships.ts && tsx ./scripts/migrate-waitlist-confirmation.ts",
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
     "test": "node --import tsx --test 'src/**/*.test.ts'"

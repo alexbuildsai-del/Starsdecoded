@@ -23,6 +23,7 @@ import type {
   BirthTimeUpdateResponse,
   CompatibilityCreateResponse,
   CompatibilitySummary,
+  ConfirmWaitlistBody,
   CreateCompatibilityBody,
   CreateGiftBody,
   CreateInviteBody,
@@ -35,7 +36,6 @@ import type {
   ErrorResponse,
   GeocodePlaceParams,
   GeocodeSearchResponse,
-  GetSkyNowParams,
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
   Gift,
@@ -59,13 +59,13 @@ import type {
   ReportSummary,
   SceneResponse,
   SendCompatibilityBody,
-  SkyNow,
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
   TestCheckoutBody,
   UpdateBirthTimeBody,
   UpdateProfileBody,
+  WaitlistConfirmed,
   WaitlistJoined,
   Workbook,
   WorkbookPatch,
@@ -186,7 +186,7 @@ export const getJoinWaitlistUrl = () => {
 }
 
 /**
- * Stores an email address to write to when Stars Decoded opens (ADR-141). Answers the same whether the address is new or already listed, so it cannot be used to learn who signed up. Sets no cookie and reads no account. A filled `website` field is a form-filling bot: it is answered the same and nothing is stored.
+ * Stores an email address to write to when Stars Decoded opens (ADR-141). Answers the same whether the address is new or already listed, so it cannot be used to learn who signed up. Sets no cookie and reads no account. A filled `website` field is a form-filling bot: it is answered the same and nothing is stored. Double opt-in (ADR-145): the address counts once its owner confirms it through the emailed link, at POST /waitlist/confirm; an address left unconfirmed is deleted after seven days, and a new link goes to the same address at most once in ten minutes.
  * @summary Join the pre-launch waitlist
  */
 export const joinWaitlist = async (joinWaitlistBody: JoinWaitlistBody, options?: Parameters<typeof customFetch>[1]): Promise<WaitlistJoined> => {
@@ -258,33 +258,32 @@ export const useJoinWaitlist = <TError = ErrorType<ErrorResponse>,
       return useMutation(getJoinWaitlistMutationOptions(options));
     }
 
-export const getGetSkyNowUrl = (params?: GetSkyNowParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getConfirmWaitlistUrl = () => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/sky?${stringifiedParams}` : `/api/sky`
+  return `/api/waitlist/confirm`
 }
 
 /**
- * The chart for this minute over the principal city of an IANA time zone, computed by the engine (ADR-107, ADR-141). An unknown zone falls back to London. Sets no cookie and reads no account; one chart per city per minute is computed, whoever asks.
- * @summary The sky now over the visitor's city
+ * Double opt-in (ADR-145): the page the emailed link opens posts the link's token here, so a mail scanner that fetches the link confirms nothing. A link lives seven days. Sets no cookie and reads no account.
+ * @summary Confirm a waitlist address from its emailed link
  */
-export const getSkyNow = async (params?: GetSkyNowParams, options?: Parameters<typeof customFetch>[1]): Promise<SkyNow> => {
+export const confirmWaitlist = async (confirmWaitlistBody: ConfirmWaitlistBody, options?: Parameters<typeof customFetch>[1]): Promise<WaitlistConfirmed> => {
 
-  return customFetch<SkyNow>(getGetSkyNowUrl(params),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<WaitlistConfirmed>(getConfirmWaitlistUrl(),
   {
     ...options,
-    method: 'GET'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(confirmWaitlistBody)
   }
 );}
 
@@ -292,56 +291,53 @@ export const getSkyNow = async (params?: GetSkyNowParams, options?: Parameters<t
 
 
 
-export const getGetSkyNowQueryKey = (params?: GetSkyNowParams,) => {
-    return [
-    `/api/sky`, ...(params ? [params] : [])
-    ] as const;
-    }
+export const getConfirmWaitlistMutationKey = () => ['confirmWaitlist'] as const;
 
+export const getConfirmWaitlistMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmWaitlist>>, TError,ConfirmWaitlistMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmWaitlist>>, TError,ConfirmWaitlistMutationVariables, TContext> => {
 
-export const getGetSkyNowQueryOptions = <TData = Awaited<ReturnType<typeof getSkyNow>>, TError = ErrorType<ErrorResponse>>(params?: GetSkyNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetSkyNowQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSkyNow>>> = ({ signal }) => getSkyNow(params, { signal, ...requestOptions });
+const mutationKey = getConfirmWaitlistMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
 
 
 
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmWaitlist>>, ConfirmWaitlistMutationVariables> = (props) => {
+          const {data} = props ?? {};
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetSkyNowQueryResult = NonNullable<Awaited<ReturnType<typeof getSkyNow>>>
-export type GetSkyNowQueryError = ErrorType<ErrorResponse>
+          return  confirmWaitlist(data,requestOptions)
+        }
 
 
-/**
- * @summary The sky now over the visitor's city
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmWaitlistMutationResult = NonNullable<Awaited<ReturnType<typeof confirmWaitlist>>>
+    export type ConfirmWaitlistMutationBody = BodyType<ConfirmWaitlistBody>
+    export type ConfirmWaitlistMutationError = ErrorType<ErrorResponse>
+    export type ConfirmWaitlistMutationVariables = {data: BodyType<ConfirmWaitlistBody>}
+
+    /**
+ * @summary Confirm a waitlist address from its emailed link
  */
-
-export function useGetSkyNow<TData = Awaited<ReturnType<typeof getSkyNow>>, TError = ErrorType<ErrorResponse>>(
- params?: GetSkyNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetSkyNowQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
+export const useConfirmWaitlist = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmWaitlist>>, TError,ConfirmWaitlistMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmWaitlist>>,
+        TError,
+        ConfirmWaitlistMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmWaitlistMutationOptions(options));
+    }
 
 export const getListReportsUrl = () => {
 

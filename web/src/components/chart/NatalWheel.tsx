@@ -13,19 +13,23 @@
  * (ADR-97): the name and the rising degree sit in the centre, no aspect line
  * is drawn and no house is selected or selectable; the degree chip stays.
  */
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { PLANET_GLYPHS, PLANET_LABELS, type ChartData } from "@/types/chart";
 import { renderFor } from "@/lib/planet-renders";
 import { HOUSE_WORDS } from "@/lib/evidence-glossary";
 import {
   QUADRANT_NAMES, arcLabelPath, aspectStrength, assignLanes, degreesMinutes, houseSign, opposite,
-  pointAt, theta, wedgePath, wheelRadii,
+  pointAt, theta, wedgePath, wheelRadii, type Point,
 } from "@/components/chart/wheel-geometry";
 
 const PLATE = 600;
 
-/* SVG ids must be valid XML names, which React's useId output is not. */
-let instances = 0;
+// To the hundredth, as wheel-geometry writes its paths: the engine that prerenders a wheel and the browser that hydrates
+// it can differ in a sine's last digit, and hydration needs the attributes the server wrote.
+function spot(cx: number, cy: number, r: number, angle: number): Point {
+  const p = pointAt(cx, cy, r, angle);
+  return { x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100 };
+}
 
 const ASPECT_STROKE: Record<string, string> = {
   conjunction: "hsl(var(--brass))",
@@ -93,7 +97,9 @@ export function NatalWheel({
   renderHouse,
   centreName,
 }: NatalWheelProps) {
-  const [uid] = useState(() => `natal-wheel-${++instances}`);
+  // useId, not a module counter, so a prerendered wheel hydrates with the ids the server gave it however many pages
+  // one build renders; SVG ids must be XML names, which React's older ":r0:" form is not, hence the filter.
+  const uid = `natal-wheel${useId().replace(/[^\w-]/g, "")}`;
   const [internalHouse, setInternalHouse] = useState(1);
   const [hovered, setHovered] = useState<string | null>(null);
 
@@ -155,8 +161,8 @@ export function NatalWheel({
         {drawn && [0, 1, 2, 3].map((q) => {
           const a0 = theta(Math.floor(asc / 30) * 30 + q * 90, asc) + 6;
           const id = `${uid}-q${q}`;
-          const t0 = pointAt(c, c, r.signOuter + PLATE * 0.028, a0 - 6);
-          const t1 = pointAt(c, c, r.signOuter + PLATE * 0.062, a0 - 6);
+          const t0 = spot(c, c, r.signOuter + PLATE * 0.028, a0 - 6);
+          const t1 = spot(c, c, r.signOuter + PLATE * 0.062, a0 - 6);
           return (
             <g key={q}>
               <path id={id} d={arcLabelPath(c, c, r.signOuter + PLATE * 0.052, a0, a0 + 78)} fill="none" />
@@ -268,8 +274,8 @@ export function NatalWheel({
         {/* Every fifth degree, so a leader line has a tick to land on. */}
         {Array.from({ length: 72 }, (_, i) => i * 5).map((d) => {
           const a = theta(d, asc);
-          const t0 = pointAt(c, c, r.tick, a);
-          const t1 = pointAt(c, c, r.tick - (d % 30 === 0 ? PLATE * 0.02 : PLATE * 0.008), a);
+          const t0 = spot(c, c, r.tick, a);
+          const t1 = spot(c, c, r.tick - (d % 30 === 0 ? PLATE * 0.02 : PLATE * 0.008), a);
           return (
             <line
               key={d}
@@ -286,8 +292,8 @@ export function NatalWheel({
           const p1 = chartData.planets[a.planet1];
           const p2 = chartData.planets[a.planet2];
           if (!p1 || !p2) return null;
-          const q1 = pointAt(c, c, r.aspect, theta(p1.absoluteDegree, asc));
-          const q2 = pointAt(c, c, r.aspect, theta(p2.absoluteDegree, asc));
+          const q1 = spot(c, c, r.aspect, theta(p1.absoluteDegree, asc));
+          const q2 = spot(c, c, r.aspect, theta(p2.absoluteDegree, asc));
           const strength = aspectStrength(a.orb, orbs?.[a.type] ?? 6);
           return (
             <line
@@ -331,9 +337,9 @@ export function NatalWheel({
 
         {axes.map((axis) => {
           const a = theta(axis.degree, asc);
-          const q0 = pointAt(c, c, r.aspect, a);
-          const q1 = pointAt(c, c, r.signInner + PLATE * 0.012, a);
-          const labelAt = pointAt(c, c, r.signOuter + PLATE * 0.026, a);
+          const q0 = spot(c, c, r.aspect, a);
+          const q1 = spot(c, c, r.signInner + PLATE * 0.012, a);
+          const labelAt = spot(c, c, r.signOuter + PLATE * 0.026, a);
           return (
             <g key={axis.key}>
               <line
@@ -361,8 +367,8 @@ export function NatalWheel({
 
         {/* Leaders first, so a node always sits above every line. */}
         {placements.map((n) => {
-          const tickAt = pointAt(c, c, r.tick, n.theta);
-          const nodeAt = pointAt(c, c, n.radius + r.node * 0.5, n.theta);
+          const tickAt = spot(c, c, r.tick, n.theta);
+          const nodeAt = spot(c, c, n.radius + r.node * 0.5, n.theta);
           return (
             <g key={`leader-${n.key}`}>
               <line
@@ -378,7 +384,7 @@ export function NatalWheel({
 
         {placements.map((n) => {
           const p = chartData.planets[n.key];
-          const at = pointAt(c, c, n.radius, n.theta);
+          const at = spot(c, c, n.radius, n.theta);
           const side = Math.cos((n.theta * Math.PI) / 180) >= 0 ? 1 : -1;
           const chipW = PLATE * 0.118;
           const chipX = at.x + side * r.node * 0.95 - (side > 0 ? 0 : chipW);

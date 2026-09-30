@@ -86,12 +86,13 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   (Owner, 2026-09-25): never ask the Owner to put a key or token there. Anything that
   needs a key or reaches the lab routes runs on Railway and is started from the admin
   panel; GitHub workflows only build, test and smoke. Production keys never leave Railway.
-- **Until launch, production is a waitlist** (ADR-141): its API serves non-admins only healthz, `/waitlist`, `/sky`
-  and `/admin/*`; staging keeps the whole app. Launch: `LAUNCHED = true` in `packages/launch`, then a Release.
+- **Until launch, production is the site with the waitlist over it** (ADR-151): public pages open, Get my report and
+  Sign in open the waitlist; the API serves non-admins healthz, `/waitlist*`, `/admin/*`. Staging keeps the whole app
+  (`?prelaunch=1` previews production). Launch: `LAUNCHED = true` in `packages/launch`, then a Release.
 - The web app calls `/api` on its own origin; `vercel.json` rewrites that to the staging or production Railway host
-  by web host. `/api/healthz` reports `env` and `commit`; `smoke.yml` asserts both. It cannot import `api/` (MB-108).
-- Prompts are edited on staging only; production sets `PROMPTS_READ_ONLY` and
-  copies staging's `prompt_templates` in its start-up bootstrap.
+  by web host. `/api/healthz` reports `env` and `commit`; `smoke.yml` asserts both. The web cannot import `api/`; shared code
+  lives in packages (`@workspace/engine`, `@workspace/commerce`), and public pages are prerendered at build (R-7.6).
+- Prompts are edited on staging only; production sets `PROMPTS_READ_ONLY` and copies staging's `prompt_templates` at start.
 - `openapi.yaml` is the contract; generated client and zod files are rewritten
   by codegen, never hand-edited. `/admin/*` is not in the spec yet.
 - Schema changes go through `packages/db/src/schema` plus an idempotent script
@@ -99,7 +100,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   the start command (its preDeployCommand hook never ran here); one that cannot
   run twice breaks the deploy.
 - **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`,
-  `traditional.ts`, `chartCalculation.ts`. Touch it and the dry lab runs in the round; spot
+  `traditional.ts`, `packages/engine/` (the chart calculation). Touch it and the dry lab runs in the round; spot
   on demand from the Lab page; the Release view runs the full lab, the gate and the QA agent,
   then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway staging (placed 2026-09-30;
   if it expires the release stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
@@ -112,8 +113,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-09-30)
 
-1. R10 shipped: the dashboard opens on the orbit, Send and Gift under the consent rule (ADR-139), one balance with a free
-   test checkout off production (ADR-138). The Owner walks it on staging with two accounts; acceptance so far R01, R03 to R09.
-2. Production gets the product only with checkout (ADR-138) and is the waitlist until launch (ADR-141, needs MB-105);
-   The release token is placed (MB-75 done). Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your own chart).
-3. Next: R11, the landing and AI search (outlined in `docs/rounds/R10-plan.md`; MB-108: the web cannot import `api/`).
+1. R11 shipped: the First Light site (home, /sky, /sample, /method, /compatibility, two Learn pages, /faq) as prerendered
+   HTML found by AI search, the waitlist over it with double opt-in, the legal pages naming the Owner (ADR-151).
+2. Production gets the site at the first Release; checkout, the postal address and `LAUNCHED` wait for R12 (ADR-138).
+   /sample stays off production until MB-90. Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your chart).
+3. Next: R12, pricing and launch (`docs/rounds/R12-plan.md`, re-planned at its /plan): Stripe, credits hard, the loop study.

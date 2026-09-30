@@ -1,8 +1,8 @@
 import { PERSONAL_REPORT } from "@/lib/product";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, MapPin, Loader2, Search, X, Check, Building2, Trees, Landmark } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,90 +10,10 @@ import { useCreateReport, useListProfiles, getListProfilesQueryKey } from "@work
 import { Wordmark } from "@/components/Wordmark";
 import { usePageTitle } from "@/lib/page-title";
 import { BirthTimeControl } from "@/components/BirthTimeControl";
+import { PlaceField } from "@/components/PlaceField";
 import { DEFAULT_ANSWER, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
-
-interface GeocodeResult {
-  name: string;
-  city: string;
-  region: string;
-  country: string;
-  latitude: number;
-  longitude: number;
-  timezoneOffset: number;
-  /** The IANA zone name, when the zone service gave one; the engine then picks the offset for the birth date (MB-48). */
-  timezone: string | null;
-  placeType: string;
-}
-
-interface NominatimResult {
-  display_name: string;
-  lat: string;
-  lon: string;
-  class: string;
-  type: string;
-  importance?: number;
-  address?: {
-    country?: string;
-    city?: string;
-    town?: string;
-    village?: string;
-    hamlet?: string;
-    suburb?: string;
-    municipality?: string;
-    county?: string;
-    state?: string;
-    region?: string;
-    state_district?: string;
-  };
-}
-
-function specificityRank(r: NominatimResult): number {
-  if (r.class === "place" && SETTLEMENT_TYPES.has(r.type)) {
-    if (r.type === "city") return 0;
-    if (r.type === "town") return 1;
-    if (r.type === "village" || r.type === "municipality") return 2;
-    if (r.type === "suburb" || r.type === "borough" || r.type === "neighbourhood") return 3;
-    return 4;
-  }
-  if (r.class === "boundary" && r.type === "administrative") return 5;
-  return 6;
-}
-
-async function getTimezone(lat: number, lon: number): Promise<{ timezone: string | null; timezoneOffset: number }> {
-  try {
-    const url = `https://timeapi.io/api/timezone/coordinate?latitude=${lat}&longitude=${lon}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) throw new Error("Timezone API failed");
-    const data = (await res.json()) as { timeZone?: string; currentUtcOffset?: { seconds: number }; utcOffset?: number };
-    const offset = data.currentUtcOffset?.seconds ?? data.utcOffset ?? 0;
-    return { timezone: data.timeZone ?? null, timezoneOffset: offset / 3600 };
-  } catch {
-    return { timezone: null, timezoneOffset: Math.round(lon / 15) };
-  }
-}
-
-const SETTLEMENT_TYPES = new Set([
-  "city",
-  "town",
-  "village",
-  "hamlet",
-  "municipality",
-  "suburb",
-  "neighbourhood",
-  "borough",
-]);
-
-function placeIcon(placeType: string) {
-  if (placeType === "city" || placeType === "town" || placeType === "borough") return Building2;
-  if (placeType === "village" || placeType === "hamlet" || placeType === "municipality") return Trees;
-  if (SETTLEMENT_TYPES.has(placeType)) return MapPin;
-  return Landmark;
-}
-
-function placeLabel(placeType: string): string {
-  if (placeType === "administrative") return "Region";
-  return placeType.charAt(0).toUpperCase() + placeType.slice(1);
-}
+import { takeFormDraft } from "@/lib/form-draft";
+import type { GeocodeResult } from "@/lib/places";
 
 export default function BirthFormPage() {
   usePageTitle("Your birth data");
@@ -126,15 +46,17 @@ export default function BirthFormPage() {
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState<BirthTimeAnswer>(DEFAULT_ANSWER);
-  const [placeQuery, setPlaceQuery] = useState("");
-  const [candidates, setCandidates] = useState<GeocodeResult[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<GeocodeResult | null>(null);
-  const [placeError, setPlaceError] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [isPendingSearch, setIsPendingSearch] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+
+  // The sky screen's date, time and place arrive through sign-in once (ADR-140); read after mount, so a
+  // render React throws away cannot use up the draft. The reader still names the chart and submits it.
+  useEffect(() => {
+    const draft = takeFormDraft();
+    if (!draft) return;
+    setBirthDate(draft.birthDate);
+    setBirthTime(draft.time);
+    setSelectedPlace(draft.place);
+  }, []);
 
   const createReport = useCreateReport({
     mutation: {
@@ -146,126 +68,6 @@ export default function BirthFormPage() {
       },
     },
   });
-
-  const doSearch = useCallback(async (query: string) => {
-    if (!query || query.length < 2) return;
-    setIsPendingSearch(false);
-    setIsSearching(true);
-    setPlaceError("");
-    try {
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=10&addressdetails=1`;
-      const nominatimRes = await fetch(nominatimUrl, { signal: AbortSignal.timeout(8000) });
-      if (!nominatimRes.ok) throw new Error("Nominatim error");
-      const rawResults = await nominatimRes.json();
-      if (!Array.isArray(rawResults) || rawResults.length === 0) {
-        setPlaceError("No matching places found. Try a different spelling or nearby city.");
-        setCandidates([]);
-        setShowDropdown(false);
-        return;
-      }
-      const allResults = rawResults as NominatimResult[];
-
-      const sorted = [...allResults].sort((a, b) => {
-        const rankDiff = specificityRank(a) - specificityRank(b);
-        if (rankDiff !== 0) return rankDiff;
-        return (b.importance ?? 0) - (a.importance ?? 0);
-      });
-
-      const seen = new Set<string>();
-      const candidates = sorted
-        .filter((r) => {
-          const addr = r.address ?? {};
-          const cityName = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? addr.municipality ?? addr.suburb ?? r.display_name.split(",")[0].trim();
-          const region = addr.state ?? addr.region ?? addr.county ?? addr.state_district ?? "";
-          const country = addr.country ?? "";
-          const key = `${cityName.toLowerCase()}|${region.toLowerCase()}|${country.toLowerCase()}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        })
-        .slice(0, 5);
-
-      const results = await Promise.all(
-        candidates.map(async (place) => {
-          const lat = parseFloat(place.lat);
-          const lon = parseFloat(place.lon);
-          const addr = place.address ?? {};
-          const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? addr.municipality ?? addr.suburb ?? place.display_name.split(",")[0].trim();
-          const region = addr.state ?? addr.region ?? addr.county ?? addr.state_district ?? "";
-          const country = addr.country ?? "";
-          const parts = [city, region, country].filter((s, i, arr) => s && (i === 0 || s !== arr[i - 1]));
-          const displayName = parts.join(", ");
-          const { timezone, timezoneOffset } = await getTimezone(lat, lon);
-          return {
-            name: displayName,
-            city,
-            region,
-            country,
-            latitude: Math.round(lat * 10000) / 10000,
-            longitude: Math.round(lon * 10000) / 10000,
-            timezoneOffset,
-            timezone,
-            placeType: place.type,
-          } satisfies GeocodeResult;
-        }),
-      );
-
-      setCandidates(results);
-      setShowDropdown(true);
-    } catch {
-      setPlaceError("Search failed — please try again.");
-      setCandidates([]);
-      setShowDropdown(false);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
-
-  const handlePlaceInput = (value: string) => {
-    setPlaceQuery(value);
-    setSelectedPlace(null);
-    setPlaceError("");
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (value.length >= 2) {
-      setIsPendingSearch(true);
-      searchTimer.current = setTimeout(() => doSearch(value), 600);
-    } else {
-      setIsPendingSearch(false);
-      setCandidates([]);
-      setShowDropdown(false);
-    }
-  };
-
-  const handleSearchButton = () => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (placeQuery.length >= 2) doSearch(placeQuery);
-  };
-
-  const selectCandidate = (place: GeocodeResult) => {
-    setSelectedPlace(place);
-    setPlaceQuery(place.name);
-    setShowDropdown(false);
-    setCandidates([]);
-  };
-
-  const clearPlace = () => {
-    setPlaceQuery("");
-    setCandidates([]);
-    setSelectedPlace(null);
-    setPlaceError("");
-    setShowDropdown(false);
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const time = toValue(birthTime);
   const canSubmit = name.trim() && birthDate && time !== null && selectedPlace;
@@ -371,163 +173,7 @@ export default function BirthFormPage() {
               country={selectedPlace?.country}
             />
 
-            <div className="space-y-2" ref={containerRef}>
-              <Label htmlFor="birthPlace" className="font-label text-xs tracking-wide uppercase text-muted-foreground">
-                Birth Place
-              </Label>
-              <div className="relative">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                  {isSearching || isPendingSearch ? (
-                    <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                  ) : selectedPlace ? (
-                    <MapPin className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </div>
-                <Input
-                  id="birthPlace"
-                  type="text"
-                  value={placeQuery}
-                  onChange={(e) => handlePlaceInput(e.target.value)}
-                  onFocus={() => candidates.length > 0 && setShowDropdown(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleSearchButton();
-                    }
-                  }}
-                  placeholder="Type a city name, e.g. Milan, Rome…"
-                  className="bg-card border-border/60 text-foreground placeholder:text-muted-foreground/50 h-12 text-base pl-10 pr-24"
-                  autoComplete="off"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  {placeQuery && !isSearching && !isPendingSearch && (
-                    <button
-                      type="button"
-                      onClick={clearPlace}
-                      className="text-muted-foreground hover:text-foreground p-1"
-                      aria-label="Clear"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  {placeQuery.length >= 2 && !selectedPlace && (
-                    <button
-                      type="button"
-                      onClick={handleSearchButton}
-                      disabled={isSearching || isPendingSearch}
-                      className="text-xs font-label font-semibold px-2 py-1 rounded-md bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-40 transition-colors"
-                    >
-                      Search
-                    </button>
-                  )}
-                </div>
-
-                {/* Dropdown of candidates */}
-                <AnimatePresence>
-                  {showDropdown && candidates.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      data-testid="city-dropdown"
-                      className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-xl border border-border/60 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/40 overflow-hidden max-h-80 overflow-y-auto"
-                    >
-                      <div className="px-3 py-2 border-b border-border/40 flex items-center justify-between">
-                        <span className="text-[11px] font-label tracking-wider uppercase text-muted-foreground">
-                          {candidates.length} match{candidates.length !== 1 ? "es" : ""} — pick the exact city
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowDropdown(false)}
-                          className="text-muted-foreground hover:text-foreground"
-                          aria-label="Close suggestions"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <ul>
-                        {candidates.map((c, idx) => {
-                          const Icon = placeIcon(c.placeType);
-                          const isSettlement = SETTLEMENT_TYPES.has(c.placeType);
-                          return (
-                            <li key={`${c.latitude}-${c.longitude}-${idx}`}>
-                              <button
-                                type="button"
-                                onClick={() => selectCandidate(c)}
-                                className="w-full text-left px-3 py-2.5 hover:bg-primary/10 transition-colors flex items-start gap-3 group"
-                              >
-                                <div className={`mt-0.5 flex-shrink-0 rounded-md p-1.5 ${isSettlement ? "bg-primary/15 text-primary" : "bg-muted/40 text-muted-foreground"}`}>
-                                  <Icon className="h-3.5 w-3.5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm text-foreground font-medium truncate">
-                                      {c.city || c.name.split(",")[0]}
-                                    </span>
-                                    <span className={`text-[10px] font-label uppercase tracking-wider px-1.5 py-0.5 rounded ${isSettlement ? "bg-primary/15 text-primary" : "bg-muted/40 text-muted-foreground"}`}>
-                                      {placeLabel(c.placeType)}
-                                    </span>
-                                  </div>
-                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
-                                    {[c.region, c.country].filter(Boolean).join(", ")}
-                                  </div>
-                                </div>
-                                <div className="text-[10px] text-muted-foreground/70 font-label flex-shrink-0 mt-1">
-                                  UTC{c.timezoneOffset >= 0 ? "+" : ""}{c.timezoneOffset}
-                                </div>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <AnimatePresence>
-                {selectedPlace && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="mt-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2 text-sm">
-                      <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-foreground font-medium truncate">{selectedPlace.city || selectedPlace.name.split(",")[0]}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {[selectedPlace.region, selectedPlace.country].filter(Boolean).join(", ")} · <span className="font-numeric">{selectedPlace.latitude.toFixed(2)}°, {selectedPlace.longitude.toFixed(2)}°</span>
-                        </div>
-                      </div>
-                      <span className="text-muted-foreground text-xs font-label">
-                        UTC{selectedPlace.timezoneOffset >= 0 ? "+" : ""}{selectedPlace.timezoneOffset}
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-                {placeError && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-sm text-destructive mt-1"
-                  >
-                    {placeError}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              {!selectedPlace && !placeError && placeQuery.length >= 2 && !isSearching && !isPendingSearch && candidates.length === 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Press Enter or tap Search to find matching cities.
-                </p>
-              )}
-            </div>
+            <PlaceField id="birthPlace" value={selectedPlace} onChange={setSelectedPlace} />
 
             {/* "This chart is for me" toggle */}
             <button

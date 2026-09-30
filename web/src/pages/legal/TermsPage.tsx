@@ -1,33 +1,72 @@
-import { LegalLayout, LegalSection } from "./LegalLayout";
-import { usePageTitle } from "@/lib/page-title";
+import { Link } from "wouter";
+import { BUNDLES, CHECKOUT_TICK, LEGAL_IDENTITY } from "@workspace/commerce";
+import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
+import { CONTACT, LegalLayout, LegalSection, MailLink } from "./LegalLayout";
 
-// MB-31 provisional: the contracting entity is a placeholder.
+/** "1, 3 or 5": the bundle sizes read from the catalogue, so the terms move with it (R-6.3). */
+function orList(items: readonly (string | number)[]): string {
+  const words = items.map(String);
+  return words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} or ${words[words.length - 1]}`;
+}
+
 export default function TermsPage() {
-  usePageTitle("Terms");
+  const { name, tradingName, country } = LEGAL_IDENTITY;
 
   return (
-    <LegalLayout kicker="Legal" title="Terms of service" updated="9 September 2026">
-      <LegalSection title="The service">
+    <LegalLayout path="/terms">
+      <LegalSection title="Who we are">
         <p>
-          Stars Decoded, operated by [LEGAL ENTITY], [COUNTRY], computes a natal chart from the
-          birth data you enter and writes a psychological report from it. The report is a one-time
-          digital product. There is no subscription.
+          In these terms, “we” means {name}, a private individual based in {country} who trades as {tradingName}.
+          {CONTACT ? (
+            <>
+              {" "}
+              You can write to us at <MailLink address={CONTACT} />.
+            </>
+          ) : null}
         </p>
       </LegalSection>
 
-      <LegalSection title="What the report is and is not">
+      <LegalSection title={`What ${PRODUCT} does`}>
         <p>
-          The report describes patterns, tendencies and growth edges. It does not predict events,
-          name dates, promise outcomes or invoke fate. It is not medical, psychological or
-          financial advice and is not a diagnosis of anything. Use it as one lens on yourself, not
-          as an instruction.
+          {PRODUCT} works out a birth chart from the birth details you enter and writes a report from it. Each report is
+          digital content, written for you when you use a credit on it.
         </p>
       </LegalSection>
 
-      <LegalSection title="Your data and your account">
+      <LegalSection title="What a report is and isn't">
         <p>
-          You may enter birth data for yourself and for people you have a right to describe. Our
-          privacy policy explains what we store and how to delete it.
+          The report describes patterns, tendencies and growth edges. It does not predict events, name dates, promise
+          outcomes or invoke fate. It is not medical, psychological or financial advice and is not a diagnosis of anything.
+          Use it as one lens on yourself, not as an instruction.
+        </p>
+      </LegalSection>
+
+      <LegalSection id="credits" title="Credits and prices">
+        <p>
+          You buy credits in bundles of {orList(BUNDLES.map((bundle) => bundle.credits))}. Each report, a {PERSONAL_REPORT} or
+          a {COMPATIBILITY_REPORT}, uses one credit. Prices are in euros, include VAT and are shown before you pay. There's no
+          subscription.
+        </p>
+        <p>When you buy credits, you tick a box that says: “{CHECKOUT_TICK}”</p>
+        <p>
+          EU law usually gives you 14 days to cancel an online purchase. For digital content like a report, that right ends
+          once you ask for it to start straight away and accept losing the right. Ticking the box does both for each credit
+          you use.
+        </p>
+        <p>So within 14 days of buying, you can get a refund for any credit you haven't used, but not for one you've used.</p>
+        <p>
+          <Link href="/refunds">When we refund you</Link>
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Your account and other people's details">
+        <p>You need to be 16 or over to make an account.</p>
+        <p>
+          Only enter someone else's birth details if they know you're doing it. Enter a child's details only if you're their
+          parent or guardian.
+        </p>
+        <p>
+          Our <Link href="/privacy">privacy policy</Link> explains what we keep and how to delete it.
         </p>
       </LegalSection>
 
@@ -56,18 +95,13 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="Payment and refunds">
-        <p>
-          A purchase grants one report. Refunds are described on the refunds page. Prices are
-          shown before you pay.
-        </p>
-      </LegalSection>
-
       <LegalSection title="Liability and law">
         <p>
-          We provide the report as it is. To the extent the law allows, we are not liable for
-          decisions you make on the basis of it. These terms are governed by the law of
-          [COUNTRY]. Contact: [CONTACT EMAIL].
+          We provide each report as it is. As far as the law allows, we're not liable for decisions you make because of it.
+        </p>
+        <p>
+          These terms are governed by the law of {country}. If you live elsewhere in the EU, you keep the protection your own
+          country's consumer law gives you.
         </p>
       </LegalSection>
     </LegalLayout>

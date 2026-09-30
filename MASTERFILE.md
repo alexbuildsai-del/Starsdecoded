@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.17 (2026-09-26) |
+| Version | 0.19 (2026-09-30) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -53,8 +53,8 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 4. **Report page**: ten chapters, the last one Closing, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print. While it writes, the page shows true progress over an orrery of the chart; the reader opens it through a door at 67% or it opens itself at 100%, and chapters stream in behind it (`docs/specs/locked/natal-report-pass-two.md`, `natal-report-pass-three.md`).
 5. **Purchase**: one-time payment granting a credit; the credit is consumed when the report is created (§6).
 6. **Account**: anonymous session first, Clerk sign-in claims it, the dashboard opens on an orbit of the reader's people with a computed card per person and the credit count (`docs/specs/locked/dashboard-sky.md`), and lists reports below it.
-7. **Legal**: privacy, terms, refunds, company details, working deletion.
-8. **Admin**: runtime prompt overrides with preview, gated by `ADMIN_USER_ID`.
+7. **Legal**: privacy, terms, refunds, who runs Stars Decoded, working deletion. One constant in `@workspace/commerce` names the seller: the Owner as a private individual until the company exists (ADR-144). The legal pages are public before launch.
+8. **Admin**: runtime prompt overrides with preview, gated by `ADMIN_USER_ID`, and the Launch view that reads the loop study (ADR-148).
 
 **V1 explicitly excludes:** predictions, transits, daily horoscopes; subscriptions; native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; the old chart-to-chart synastry page and dashboard zone, hidden until the compatibility report ships (ADR-45).
 
@@ -74,13 +74,14 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 | `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / people, the free label carrying family, friends or colleagues; positional `role` and `access_role` are deliberately separate |
 | `invite_tokens` | Send a report, gift a credit | only the hash is stored; `kind` send or gift; a gift has no profile and carries `credit_id`, `recipient_name`, `note`; `reminded_at`, `revoked_at`; a send lives 7 days, a gift 30 (ADR-123) |
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
+| `waitlist_signups` | One address waiting for launch | `consent`, the tags and `utm_content`; `confirm_token_hash` (only the hash), `confirm_sent_at`, `confirmed_at`: an address counts once confirmed, and an unconfirmed one is deleted seven days after its latest link (ADR-145) |
 | `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); `is_test` marks free test credits (ADR-138); status `held` is a gift's credit until claimed or returned; the typed columns go with the payments round |
 
 - **R-3.1** Birth data is never fabricated for a real person, and no placement is ever typed, in tests, fixtures, demos or docs. Fixtures hold birth data only; charts are computed at run time. A synthetic person exists only as a fixture: a structural case, or a sample person labelled as one on a marketing page (ADR-112).
 - **R-3.2** `chart_data` is a cache keyed by a computation version. A change to the engine bumps the version; cached charts recompute.
 - **R-3.3** Report status machine: `pending → computing → interpreting → complete | failed`, and for the horizon pass `complete → revising → complete | failed`, readable throughout; a failed pass keeps the previous text. A parse failure is a `failed` report with an error message, never a silently degraded one.
 - **R-3.4** Anonymous first for looking. What a visitor creates hangs off the session cookie and is claimed by the user on sign-in; writing a report always needs an account (ADR-140).
-- **R-3.5** Birth date, time and place are personal data under GDPR. Deletion = delete the report, anonymise the profile, keep the payment record. No health or clinical claims anywhere. EU-region data stores.
+- **R-3.5** Birth date, time and place are personal data under GDPR. Deletion = delete the report, anonymise the profile, keep the payment record. No health or clinical claims anywhere. EU-region data stores. Until the company exists the Owner is the controller; the privacy page lists every processor; the waitlist uses double opt-in; page analytics are cookieless (ADR-145).
 - **R-3.6** Consent. Nothing about a person (their chart, their report, their point on someone's orbit) reaches anyone else until that person shares it, and Stop sharing ends the access at once (ADR-139). A sent report becomes its subject's; a pair reaches its other person only when one of its two sends it (MB-103).
 
 ## 4 · Report engine
@@ -112,13 +113,17 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 ## 6 · Payments and business model
 
-Nothing is sold yet. The credits ledger exists; the purchase path does not. Pricing is open (Mailbox). The product reaches production only once checkout exists (ADR-138); until launch production shows the waitlist alone (ADR-141). Until checkout, credits are enforced on every host but production, and Get credits is a free test checkout whose rows are marked `is_test` and which production refuses.
+Three bundles: Single €24, Couple €48, Family & friends €72, for 1, 3 and 5 credits (ADR-142). Get credits opens Stripe Checkout (ADR-143). The Owner sells as a private individual until 100 customers (ADR-144). Spec: `docs/specs/locked/pricing-and-launch.md`. The product reaches production only once checkout exists (ADR-138); until launch production shows the public site to everyone, every call to write or sign in opens the waitlist over the page, and the app stays the admin's (ADR-151). Off production, Get credits stays a free test checkout whose rows are marked `is_test` and which production refuses.
 
 - **R-6.1** One-time purchase grants a bundle of credits; creating a report consumes one credit, hard. The soft pass in `consumeCredit` ends the day payments go live. Only the birth time can change on a report: the first update is free, a second consumes a credit, a changed date or place is a new report on a new credit, and no other user regeneration exists (MB-49).
-- **R-6.2** Once a payment provider exists, it is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation.
-- **R-6.3** A price appears in exactly one place in code, read by the landing page, the checkout and the receipt. No literal prices in copy.
+- **R-6.2** Stripe is the ledger; our tables mirror its webhooks and never compute money state on their own. Idempotency keys on every mutation. The webhook grants a bundle only when the checkout's terms box was accepted, keyed by the Stripe event id (ADR-143).
+- **R-6.3** A price appears in exactly one place in code, read by the landing page, the checkout and the receipt. No literal prices in copy. That place is `packages/commerce/src/catalogue.ts`, and a gate test fails on a euro amount anywhere else (MB-119).
 - **R-6.4** One credit is one report, whatever the report (ADR-42). A compatibility report needs two natal reports first, so a pair always costs three credits against one; "above solo" holds at the purchase, never at the credit.
 - **R-6.5** Credits are one balance: bundles stack into one count, never shown per bundle; a gift holds one credit, returned if unclaimed, and its claim moves that credit into the recipient's balance to spend on any report, puts no one on anyone's orbit and shows the giver nothing the recipient makes (ADR-139); a report already written is sent, never gifted. The orbit, the credits sheet and the path after buying are `docs/specs/locked/credit-loop.md`; no timers, streaks, badges or expiry (ADR-120 to 129).
+- **R-6.6** One required tick at checkout, unticked: "Write each report as soon as I use a credit on it. I understand I can't cancel or get a refund for a credit once it's used." The receipt repeats it. Refunds: an unused credit within 14 days on request; a failed report returns its credit; any other refund is the Owner's call (ADR-143).
+- **R-6.7** Offers touch Couple and Family & friends only, never Single: at most 25% off, one per purchase, a dated catalogue row, the end date printed once and no countdown (ADR-146).
+- **R-6.8** A gift claim opens the birth form, with Not now to the dashboard (ADR-149, amending ADR-139's landing).
+- **R-6.9** The launch is organic to 100 customers, with no ads before customer 50 and a €600 cash cap; the gate at 100 decides the company (ADR-147, ADR-148).
 
 ## 7 · Architecture
 
@@ -240,7 +245,7 @@ The Owner's only operational duty is to test the website and say whether it look
 
 ## 14 · Open topics
 
-The live list is the Notion Mailbox. As of this version the blocking rows are: the false Swiss Ephemeris string, the "AI trained on Jungian astrology" claim, the promised-but-missing delete, the missing legal pages, and landing the prompt-library rework (PR #6). The next ideation session is pricing and packaging. Everything else is tagged `launch` or `later` with a recommendation and a default.
+The live list is the Notion Mailbox. As of this version the blocking rows are: the false Swiss Ephemeris string, the "AI trained on Jungian astrology" claim, the promised-but-missing delete, the missing legal pages, and landing the prompt-library rework (PR #6). Pricing and launch is locked (ADR-142 to 149): the launch runs to 100 customers and its gate decides the company. Everything else is tagged `launch` or `later` with a recommendation and a default.
 
 ## 15 · Decision log
 

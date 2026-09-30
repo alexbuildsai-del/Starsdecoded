@@ -31,6 +31,16 @@ export interface OrbitCentre {
   writing: boolean;
 }
 
+/** What a screen reader hears when the orbit is someone else's, as on the landing's sample account, where "you" is not the reader. */
+export interface OrbitLabels {
+  /** The orbit as a whole. */
+  orbit: string;
+  /** The centre, whose chart is drawn. */
+  centre: string;
+  /** Said after a person's name when they share a Compatibility report with the centre. */
+  sharedPair: string;
+}
+
 export interface OrbitProps {
   centre: OrbitCentre;
   /** In ring order, clockwise from the top: `orbitPoints`. */
@@ -40,6 +50,8 @@ export interface OrbitProps {
   /** Who keeps full light and a lit violet ring while something is open: `partnersOf`. Ids the orbit does not draw are ignored. */
   partners: readonly string[];
   onSelect: (id: string | null) => void;
+  /** Left out on the dashboard, where the reader is the centre and every label speaks to them. */
+  labels?: OrbitLabels;
 }
 
 /** The name's box and the disc, relative to the disc's centre, as far as the ring must stay clear of them. */
@@ -193,10 +205,10 @@ function phaseOf(id: string): number {
   return ((h >>> 0) % 6283) / 1000;
 }
 
-function pointName(p: OrbitPoint): string {
+function pointName(p: OrbitPoint, sharedPair = "you share a Compatibility report"): string {
   if (p.kind === "add") return p.name;
   if (p.kind === "gift") return `${p.name}, gift waiting`;
-  return [p.name, p.writing ? "writing" : "", p.sharedPair ? "you share a Compatibility report" : ""].filter(Boolean).join(", ");
+  return [p.name, p.writing ? "writing" : "", p.sharedPair ? sharedPair : ""].filter(Boolean).join(", ");
 }
 
 function centreName(c: OrbitCentre): string {
@@ -209,7 +221,7 @@ function targetOf(el: EventTarget | null): string | null {
   return el instanceof Element ? el.closest("[data-orbit-id]")?.getAttribute("data-orbit-id") ?? null : null;
 }
 
-export function Orbit({ centre, points, selectedId, partners, onSelect }: OrbitProps) {
+export function Orbit({ centre, points, selectedId, partners, onSelect, labels }: OrbitProps) {
   const reduced = useReducedMotion();
   const uid = useId().replace(/[^A-Za-z0-9_-]/g, "");
   const svgRef = useRef<SVGSVGElement>(null);
@@ -282,7 +294,7 @@ export function Orbit({ centre, points, selectedId, partners, onSelect }: OrbitP
     place(performance.now());
   });
 
-  // Space Grotesk arrives from its CDN after first paint (MB-42); the names are measured again in it.
+  // Space Grotesk can land after first paint, so the names are measured again once the fonts are in.
   useEffect(() => {
     let alive = true;
     document.fonts?.ready.then(() => {
@@ -389,7 +401,7 @@ export function Orbit({ centre, points, selectedId, partners, onSelect }: OrbitP
       ref={svgRef}
       viewBox={`0 0 ${SIZE} ${SIZE}`}
       role="group"
-      aria-label="Your orbit"
+      aria-label={labels?.orbit ?? "Your orbit"}
       className="orbit mx-auto block aspect-square h-auto w-full max-w-[440px] select-none overflow-visible"
       onClick={onClick}
       onKeyDown={onKeyDown}
@@ -407,11 +419,12 @@ export function Orbit({ centre, points, selectedId, partners, onSelect }: OrbitP
       </defs>
       <circle cx={MID} cy={MID} r={MID} fill={`url(#${uid}-haze)`} />
       <path ref={ringRef} fill="none" stroke={PAPER} strokeOpacity={0.26} strokeWidth={1} strokeDasharray="1 5" />
-      <Centre centre={centre} selected={active === CENTRE_ID} reduced={reduced} plate={`url(#${uid}-plate)`} />
+      <Centre centre={centre} selected={active === CENTRE_ID} reduced={reduced} plate={`url(#${uid}-plate)`} label={labels?.centre} />
       {points.map((p) => (
         <PointMark
           key={p.id}
           point={p}
+          sharedLabel={labels?.sharedPair}
           selected={p.id === active}
           lit={lit.has(p.id)}
           opacity={opacityOf(p.id)}
@@ -424,7 +437,7 @@ export function Orbit({ centre, points, selectedId, partners, onSelect }: OrbitP
   );
 }
 
-function Centre({ centre, selected, reduced, plate }: { centre: OrbitCentre; selected: boolean; reduced: boolean; plate: string }) {
+function Centre({ centre, selected, reduced, plate, label }: { centre: OrbitCentre; selected: boolean; reduced: boolean; plate: string; label?: string }) {
   const name = centre.firstName.trim();
   const nameSize = centreNameSize(name);
   return (
@@ -434,7 +447,7 @@ function Centre({ centre, selected, reduced, plate }: { centre: OrbitCentre; sel
       role="button"
       tabIndex={0}
       aria-pressed={centre.hasReport ? selected : undefined}
-      aria-label={centreName(centre)}
+      aria-label={label ?? centreName(centre)}
       transform={`translate(${MID} ${MID})`}
     >
       <g className="orbit-lift">
@@ -488,6 +501,8 @@ function Centre({ centre, selected, reduced, plate }: { centre: OrbitCentre; sel
 
 interface PointMarkProps {
   point: OrbitPoint;
+  /** `OrbitLabels.sharedPair`, when the orbit is not the reader's own. */
+  sharedLabel?: string;
   selected: boolean;
   lit: boolean;
   opacity: number;
@@ -497,7 +512,7 @@ interface PointMarkProps {
   onArrived: (e: ReactAnimationEvent<SVGGElement>) => void;
 }
 
-function PointMark({ point, selected, lit, opacity, delay, reduced, onArrived }: PointMarkProps) {
+function PointMark({ point, sharedLabel, selected, lit, opacity, delay, reduced, onArrived }: PointMarkProps) {
   const out = point.kind === "add" && point.label === OUT_OF_CREDITS;
   const tint = point.kind === "gift" ? TEAL : point.kind === "add" ? (out ? MUTED : INDIGO_LT) : PAPER;
   const labelOpacity = point.kind !== "person" ? 0.9 : selected ? 1 : 0.8;
@@ -510,7 +525,7 @@ function PointMark({ point, selected, lit, opacity, delay, reduced, onArrived }:
       role="button"
       tabIndex={0}
       aria-pressed={selected}
-      aria-label={pointName(point)}
+      aria-label={pointName(point, sharedLabel)}
       style={{ opacity }}
     >
       <g

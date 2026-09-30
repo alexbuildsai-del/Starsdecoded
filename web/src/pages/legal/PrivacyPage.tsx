@@ -1,84 +1,194 @@
-import { LegalLayout, LegalSection } from "./LegalLayout";
-import { usePageTitle } from "@/lib/page-title";
+import { LEGAL_IDENTITY } from "@workspace/commerce";
+import { BROWSER_KEYS, PROCESSORS, US_TRANSFER, whereLine, type Processor } from "@/lib/processors";
+import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
+import { CONTACT, LegalLayout, LegalSection, MailLink } from "./LegalLayout";
 
-// MB-31, MB-33 and MB-105 provisional: entity, contact, region and retention are
-// placeholders until the Owner fills them in.
+const LIST = "list-disc space-y-3 pl-5 marker:text-[var(--sd-muted)]";
+
+function ProcessorList({ rows }: { rows: readonly Processor[] }) {
+  return (
+    <ul className={LIST}>
+      {rows.map((row) => {
+        const where = whereLine(row);
+        return (
+          <li key={row.name}>
+            <b className="font-semibold text-[var(--paper)]">{row.name}</b> {row.does}
+            {where ? (
+              <>
+                {" "}
+                <span className="sd-meta mt-1 block">{where}</span>
+              </>
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function PrivacyPage() {
-  usePageTitle("Privacy");
+  const { name, tradingName, country } = LEGAL_IDENTITY;
+  const servers = PROCESSORS.filter((row) => row.from === "server");
+  const browser = PROCESSORS.filter((row) => row.from === "browser");
+  const anyInTheUs = servers.some((row) => row.country === "the United States");
 
   return (
-    <LegalLayout kicker="Legal" title="Privacy policy" updated="9 September 2026">
-      <LegalSection title="Who we are">
+    <LegalLayout path="/privacy">
+      <LegalSection title="Who is responsible for your data">
         <p>
-          Stars Decoded is operated by [LEGAL ENTITY], [ADDRESS], [COUNTRY]. Questions about this
-          policy go to [CONTACT EMAIL].
+          In this policy, “we” means {name}, a private individual based in {country} who trades as {tradingName}. We decide
+          how your data is used, which makes us its controller under the GDPR.
         </p>
+        {CONTACT ? (
+          <p>
+            Write to <MailLink address={CONTACT} /> with any question about your data.
+          </p>
+        ) : null}
       </LegalSection>
 
-      <LegalSection title="What we collect">
+      <LegalSection title="What we keep">
+        <ul className={LIST}>
+          <li>
+            The birth details you enter, for yourself or someone else: a name, birth date, time and place, with the place's
+            coordinates and time zone.
+          </li>
+          <li>The chart we work out from them, and the reports we write.</li>
+          <li>Your account, if you make one: the ID our sign-in provider gives it and your email address.</li>
+          <li>
+            When you send a report or give a credit as a gift: the other person's email address, and the name and note you
+            add.
+          </li>
+          <li>The credits you buy and use.</li>
+        </ul>
+        <p>We don't collect health data, and reports make no health, medical or clinical claims.</p>
+      </LegalSection>
+
+      <LegalSection title="How your report is written">
+        <p>We work out your chart on our servers, from your birth details. OpenAI then writes your report's text from that chart.</p>
         <p>
-          To compute a natal chart we need a name, a birth date, a birth time and a birth place.
-          Birth data is personal data under the GDPR. We also store the computed planetary
-          positions, the report text written from them, and the session cookie that ties them to
-          your browser. If you sign in, we store the account identifier our sign-in provider gives
-          us and the email address on that account.
+          OpenAI gets the name you gave and the positions we worked out, never your birth date, time or place. For a{" "}
+          {COMPATIBILITY_REPORT}, it also gets passages from both {PERSONAL_REPORT}s, and for a parent and child, the
+          child's age.
         </p>
-        <p>We do not collect health data, and the report makes no health, medical or clinical claims.</p>
+        <p>OpenAI doesn't use what we send it to train its models.</p>
+        <p>The free birth chart is worked out in your browser, so the birth details you type there never reach our servers.</p>
       </LegalSection>
 
       <LegalSection id="waitlist" title="The waitlist">
         <p>
-          Before Stars Decoded opens, you can leave your email address on our waitlist. We store the address, the date you
-          joined, which form on the page you used, and the campaign tags in the link you arrived by, if it had any. We do not
-          store your IP address.
+          Before {PRODUCT} opens, you can join the waitlist with your email address. We email you a link, and your address
+          goes on the list only when you click it. The link works for seven days. If you don't click it, we delete your
+          address after seven days.
         </p>
         <p>
-          We use the address for one thing: to email you when Stars Decoded opens. We keep it until we have sent that email,
-          or until you ask us to delete it, whichever comes first. The list is stored in our Supabase database. To be taken
-          off it, write to [CONTACT EMAIL].
+          With your address, we keep the date you joined, the form you used and the wording you agreed to. If the link that
+          brought you had campaign tags, we keep those too. We don't keep your IP address.
         </p>
-      </LegalSection>
-
-      <LegalSection title="How the report is made">
         <p>
-          Planetary positions are computed on our server with astronomy-engine. The report is
-          written by a general language model at OpenAI, which receives the name you entered and
-          the computed positions, not your raw birth date, time or place. Nothing is trained on
-          your data. OpenAI keeps what it receives for [RETENTION].
+          We use your address for one thing: to email you when {PRODUCT} opens. We delete it once that email has gone out,
+          or sooner if you ask.
+          {CONTACT ? (
+            <>
+              {" "}
+              To be taken off the list, write to <MailLink address={CONTACT} />.
+            </>
+          ) : null}
         </p>
+        <p>The form answers the same way for every address, so nobody can use it to find out who's on the list.</p>
       </LegalSection>
 
-      <LegalSection title="Processors we use">
-        <p>These services receive data because the code calls them. Regions are marked where not yet confirmed.</p>
-        <ul className="list-disc pl-5 space-y-1.5">
-          <li>Supabase, the Postgres database that stores profiles, reports, accounts and the waitlist. Region: [REGION].</li>
-          <li>OpenAI, which receives the name and computed positions to write the report.</li>
-          <li>Clerk, which handles sign-in and holds your account email.</li>
-          <li>Resend, which sends invitation emails when you invite a second person.</li>
-          <li>Vercel, which serves the web app. Region: [REGION].</li>
-          <li>Railway, which runs the API. Region: [REGION].</li>
+      <LegalSection id="processors" title="Who handles your data for us">
+        <p>These companies run parts of {PRODUCT} for us.</p>
+        <ProcessorList rows={servers} />
+        {anyInTheUs ? <p>{US_TRANSFER}</p> : null}
+        <p>
+          Your browser also contacts these services directly when you look up a birth place. Like any website, they see your
+          IP address, but never your name or birth date.
+        </p>
+        <ProcessorList rows={browser} />
+      </LegalSection>
+
+      <LegalSection title="Why we can use your data">
+        <ul className={LIST}>
           <li>
-            Nominatim (OpenStreetMap) and timeapi.io, which your browser calls directly to look up
-            the birth place and its time zone. Those requests carry the place name you type, not your name.
+            <b className="font-semibold text-[var(--paper)]">Charts, reports and your account:</b> to give you what you asked
+            for. The legal basis is our contract with you.
+          </li>
+          <li>
+            <b className="font-semibold text-[var(--paper)]">The waitlist email:</b> to tell you when we open. The legal basis
+            is your consent, which you can withdraw at any time.
+          </li>
+          <li>
+            <b className="font-semibold text-[var(--paper)]">Logs of requests to our servers:</b> to keep {PRODUCT} secure and
+            working. The legal basis is our legitimate interest in running a safe service.
           </li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="Retention and deletion">
-        <p>
-          Reports and birth data are kept for [RETENTION] or until you delete them. You can delete
-          a report from your dashboard at any time. Deleting a report removes the report itself and,
-          when no other report or relationship uses it, the birth data behind it. A record of any
-          purchase is kept, without birth data, for accounting.
-        </p>
+      <LegalSection title="How long we keep it">
+        <ul className={LIST}>
+          <li>
+            Your charts and reports stay until you delete them. Deleting a report removes it, and the birth details behind it
+            unless another report uses them.
+          </li>
+          <li>Your account stays until you ask us to close it.</li>
+          <li>We keep a record of the credits you buy, without any birth details, for our accounts.</li>
+          <li>
+            A waitlist address you haven't confirmed goes after seven days. A confirmed one goes once we've emailed you that{" "}
+            {PRODUCT} is open.
+          </li>
+        </ul>
       </LegalSection>
 
       <LegalSection title="Your rights">
+        <p>You can delete any report yourself, from your dashboard.</p>
+        {CONTACT ? (
+          <>
+            <p>
+              Write to <MailLink address={CONTACT} /> to:
+            </p>
+            <ul className={LIST}>
+              <li>get a copy of your data, which we email you within 30 days</li>
+              <li>correct or delete your data</li>
+              <li>close your account</li>
+              <li>object to how we use your data</li>
+            </ul>
+            <p>We read that inbox every week.</p>
+          </>
+        ) : null}
+        <p>You can also complain to {country}'s data protection authority, or to the one where you live.</p>
+      </LegalSection>
+
+      <LegalSection title="Data breaches">
         <p>
-          You can ask for a copy of your data, ask us to correct or delete it, or object to how we
-          use it, by writing to [CONTACT EMAIL]. You can complain to the supervisory authority in
-          [COUNTRY].
+          If a breach ever exposes your data, we record what happened. We report it to {country}'s data protection authority
+          within 72 hours of finding out.
         </p>
+      </LegalSection>
+
+      <LegalSection id="cookies" title="Cookies and your browser">
+        <p>
+          We don't use analytics, advertising or tracking tools. The only cookies are the ones {PRODUCT} needs to work, so
+          there's no cookie banner.
+        </p>
+        <p>
+          Our own cookie, <code className="sd-mono text-[14px] text-[var(--paper)]">sd_session_id</code>, remembers which
+          charts and reports are yours before you sign in. It lasts a year. Clerk, our sign-in provider, sets its own cookies
+          to know whether you're signed in.
+        </p>
+        <p>
+          Some pages also keep a small note in your browser's storage, which stays on your device. Notes marked “This tab” go
+          when you close the tab. The rest stay until you clear your browser's data.
+        </p>
+        <ul className={LIST}>
+          {BROWSER_KEYS.map((key) => (
+            <li key={key.name}>
+              <code className="sd-mono text-[14px] text-[var(--paper)]">{key.name}</code>{" "}
+              <span className="sd-meta ml-2 whitespace-nowrap">{key.store === "tab" ? "This tab" : "Until cleared"}</span>{" "}
+              <span className="mt-1 block">{key.holds}</span>
+            </li>
+          ))}
+        </ul>
       </LegalSection>
     </LegalLayout>
   );

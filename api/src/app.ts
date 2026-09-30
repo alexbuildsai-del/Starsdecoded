@@ -6,7 +6,6 @@ import { clerkMiddleware } from "@clerk/express";
 import router from "./routes";
 import healthRouter from "./routes/health";
 import waitlistRouter from "./routes/waitlist";
-import skyRouter from "./routes/sky";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
 import { authMiddleware } from "./middlewares/auth";
@@ -63,9 +62,8 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// Ahead of the session: the waitlist page's two calls set no cookie (ADR-141).
+// Ahead of the session: the waitlist's two calls, joining and confirming, set no cookie (ADR-141, 145).
 app.use("/api", waitlistRouter);
-app.use("/api", skyRouter);
 app.use(sessionMiddleware);
 
 app.use(

@@ -17,7 +17,10 @@ fi
 echo "==> 1/7 SQL migrations"
 # These run first. Drizzle's `push` cannot do this on its own, because column
 # rename detection prompts interactively while the legacy `reports` columns are
-# still present, and a deploy has no one to answer it.
+# still present, and a deploy has no one to answer it. The waitlist's
+# confirmation columns (ADR-145) come last, here rather than from `push`, so
+# the `launch-email-v1` rows are marked confirmed in the transaction that adds
+# confirmed_at: the API deletes an address left unconfirmed for seven days.
 pnpm --filter @workspace/db run migrate
 
 echo "==> 2/7 Schema push"

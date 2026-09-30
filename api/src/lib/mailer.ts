@@ -1,7 +1,8 @@
 // Resend integration — every transactional email Stars Decoded sends: a
 // finished report handed to its subject, a Compatibility report sent or
-// granted, a gift and its reminder. Each is written in the giver's name and
-// never says "made" or "created" (credit-loop.md "Two verbs", ADR-128, 135).
+// granted, a gift and its reminder, and the waitlist's confirmation. All but
+// the last are written in the giver's name, and none says "made" or
+// "created" (credit-loop.md "Two verbs", ADR-128, 135).
 // Credentials come straight from the environment (RESEND_API_KEY,
 // RESEND_FROM_EMAIL), so any host that can set env vars can send mail.
 import { Resend } from "resend";
@@ -54,7 +55,7 @@ function paddedSection(html: string): string {
 }
 
 // One frame for every email: the mark and wordmark, the caller's body,
-// a plain footer. Keeps the four templates below to their own content.
+// a plain footer. Keeps the templates below to their own content.
 function shell(origin: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -99,7 +100,13 @@ interface EmailContent {
   text: string;
 }
 
-async function deliver(to: string, content: EmailContent, logLabel: string): Promise<boolean> {
+async function deliver(
+  to: string,
+  content: EmailContent,
+  logLabel: string,
+  { logRecipient = true }: { logRecipient?: boolean } = {},
+): Promise<boolean> {
+  const who = logRecipient ? { to } : {};
   try {
     const { apiKey, fromEmail } = getResendCredentials();
     const resend = new Resend(apiKey);
@@ -113,14 +120,14 @@ async function deliver(to: string, content: EmailContent, logLabel: string): Pro
     });
 
     if (error) {
-      logger.warn({ error, to }, `[${logLabel}] Resend returned an error`);
+      logger.warn({ error, ...who }, `[${logLabel}] Resend returned an error`);
       return false;
     }
 
-    logger.info({ to }, `[${logLabel}] sent successfully via Resend`);
+    logger.info(who, `[${logLabel}] sent successfully via Resend`);
     return true;
   } catch (err) {
-    logger.warn({ err, to }, `[${logLabel}] failed to send via Resend`);
+    logger.warn({ err, ...who }, `[${logLabel}] failed to send via Resend`);
     return false;
   }
 }
@@ -316,4 +323,46 @@ export function buildGiftReminderEmail(opts: SendGiftReminderOptions): EmailCont
 
 export async function sendGiftReminder(opts: SendGiftReminderOptions): Promise<boolean> {
   return deliver(opts.to, buildGiftReminderEmail(opts), "gift-reminder");
+}
+
+// The waitlist's double opt-in (ADR-145). It says what confirming does and the
+// day the link stops working, nothing more, since whoever reads it may never
+// have asked to join.
+
+export interface SendWaitlistConfirmOptions {
+  to: string;
+  confirmUrl: string;
+  expiresOn: Date;
+}
+
+// The server cannot know the reader's time zone, so the day is UTC's: at most
+// a few hours off the moment the link really stops.
+function linkDay(at: Date): string {
+  return at.toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
+}
+
+export function buildWaitlistConfirmEmail(opts: SendWaitlistConfirmOptions): EmailContent {
+  const { confirmUrl } = opts;
+  const lede = "Confirm your email and you're on the waitlist. We'll only use it to tell you when Stars Decoded opens.";
+  const lastDay = `The link stops working on ${linkDay(opts.expiresOn)}.`;
+  // "That day" rather than a count of days: the date is the email's only number, so it cannot disagree with the link's life.
+  const notYou = "If you didn't ask to join, ignore this email. We'll delete your address after that day.";
+
+  const subject = "Confirm your email to join the waitlist";
+  const html = shell(
+    originOf(confirmUrl),
+    paddedSection(
+      `<p style="margin:0 0 32px;font-size:16px;line-height:1.6;color:#C9D1D9;">${lede}</p>` +
+        `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Confirm my email", confirmUrl)}</div>` +
+        `<p style="margin:0 0 8px;font-size:12px;color:#6E7681;text-align:center;">${lastDay}</p>` +
+        `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">${notYou}</p>`,
+    ),
+  );
+  const text = textShell([lede, ``, `Confirm my email:`, confirmUrl, ``, lastDay, notYou]);
+  return { subject, html, text };
+}
+
+export async function sendWaitlistConfirmEmail(opts: SendWaitlistConfirmOptions): Promise<boolean> {
+  // An address nobody confirms is deleted after seven days (ADR-145); a log line would keep it longer.
+  return deliver(opts.to, buildWaitlistConfirmEmail(opts), "waitlist-confirm", { logRecipient: false });
 }

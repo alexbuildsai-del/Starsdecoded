@@ -1,30 +1,41 @@
-import { LegalLayout, LegalSection } from "./LegalLayout";
-import { usePageTitle } from "@/lib/page-title";
+import type { ReactNode } from "react";
+import { LEGAL_IDENTITY } from "@workspace/commerce";
+import { CONTACT, LegalLayout, LegalSection, MailLink } from "./LegalLayout";
 
-// MB-31 provisional: every detail below is a placeholder.
+// MB-115 provisional: the postal address is kept out of this public repo until the sale needs it, and a missing one is
+// left out, never shown as a placeholder (reading 10).
+const POSTAL: string | null = LEGAL_IDENTITY.postalAddress?.trim() || null;
+
+function Row({ term, children }: { term: string; children: ReactNode }) {
+  return (
+    <>
+      <dt className="pt-1 font-label text-[11px] uppercase tracking-[.16em] text-[var(--sd-muted)]">{term}</dt>
+      <dd className="text-[var(--paper)]">{children}</dd>
+    </>
+  );
+}
+
 export default function CompanyPage() {
-  usePageTitle("Company");
+  const { name, tradingName, country } = LEGAL_IDENTITY;
 
   return (
-    <LegalLayout kicker="Legal" title="Company details" updated="9 September 2026">
-      <LegalSection title="Operator">
-        <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2">
-          <dt className="font-label text-xs uppercase tracking-wide text-muted-foreground/70 pt-0.5">Entity</dt>
-          <dd>[LEGAL ENTITY]</dd>
-          <dt className="font-label text-xs uppercase tracking-wide text-muted-foreground/70 pt-0.5">Address</dt>
-          <dd>[ADDRESS], [COUNTRY]</dd>
-          <dt className="font-label text-xs uppercase tracking-wide text-muted-foreground/70 pt-0.5">Registration</dt>
-          <dd>[COMPANY NUMBER]</dd>
-          <dt className="font-label text-xs uppercase tracking-wide text-muted-foreground/70 pt-0.5">Contact</dt>
-          <dd>[CONTACT EMAIL]</dd>
-        </dl>
-      </LegalSection>
+    <LegalLayout path="/company">
+      <dl className="mb-14 grid grid-cols-[max-content_1fr] gap-x-8 gap-y-3 text-[16px] leading-[1.6]">
+        <Row term="Run by">{name}</Row>
+        <Row term="Sells as">A private individual, trading as {tradingName}</Row>
+        <Row term="Based in">{country}</Row>
+        {CONTACT ? (
+          <Row term="Email">
+            <MailLink address={CONTACT} />
+          </Row>
+        ) : null}
+        {POSTAL ? <Row term="Postal address">{POSTAL}</Row> : null}
+      </dl>
 
-      <LegalSection title="Method">
+      <LegalSection title={`If ${tradingName} becomes a company`}>
         <p>
-          Planetary positions are computed locally with astronomy-engine using whole-sign houses.
-          Reports are written by a general language model from those positions and a written
-          doctrine. See the privacy policy for what leaves our servers.
+          {tradingName} is sold by a private individual, not a company. If that changes, we'll update this page and email
+          everyone who has an account.
         </p>
       </LegalSection>
     </LegalLayout>

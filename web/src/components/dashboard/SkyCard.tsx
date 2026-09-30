@@ -2,7 +2,9 @@
  * A person's chart at a glance, computed from the stored chart the page
  * fetched (ADR-92), with one door to the report. The card is content only:
  * the panel on desktop and the bottom sheet on a phone own its frame and its
- * Close, so the same card serves both and R11's sample people.
+ * Close, so the same card serves both and R11's sample people, whose cards
+ * leave every control out, the door included, since a sample has no report
+ * to open (ADR-112).
  *
  * `rp-root` scopes the report's tokens (paper, line, brass as `--sky`) to the
  * card and everything slotted into it; the ringed plate draws in them.
@@ -50,7 +52,7 @@ export interface SkyCardProps {
   nudge?: ReactNode;
   send?: ReactNode;
   credit?: ReactNode;
-  primary: SkyCardPrimary;
+  primary?: SkyCardPrimary;
 }
 
 // Key it by the point it opens for, so each open rises afresh.
@@ -79,14 +81,14 @@ export function SkyCard({ person, self = false, compatibility, nudge, send, cred
         <div className="flex min-h-10 w-full items-center justify-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] px-4 font-label text-[13.5px] font-medium text-[var(--indigo-lt)]">
           <StatusDots label={writingText(name, self)} />
         </div>
-      ) : (
+      ) : primary ? (
         <Button asChild size="lg" className="w-full whitespace-normal px-4 text-center font-label text-[13.5px]">
           <Link href={primary.href}>
             {doorText(name, self)}
             <ArrowRight aria-hidden />
           </Link>
         </Button>
-      )}
+      ) : null}
     </article>
   );
 }

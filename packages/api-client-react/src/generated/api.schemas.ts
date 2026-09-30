@@ -31,19 +31,20 @@ export interface ErrorResponse {
 }
 
 /**
- * The consent wording shown beside the form, stored with the address.
+ * The consent wording shown beside the form, stored with the address. launch-email-v2 is the double opt-in wording (ADR-145).
  */
 export type JoinWaitlistBodyConsent = typeof JoinWaitlistBodyConsent[keyof typeof JoinWaitlistBodyConsent];
 
 
 export const JoinWaitlistBodyConsent = {
   'launch-email-v1': 'launch-email-v1',
+  'launch-email-v2': 'launch-email-v2',
 } as const;
 
 export interface JoinWaitlistBody {
   /** @maxLength 254 */
   email: string;
-  /** The consent wording shown beside the form, stored with the address. */
+  /** The consent wording shown beside the form, stored with the address. launch-email-v2 is the double opt-in wording (ADR-145). */
   consent: JoinWaitlistBodyConsent;
   /**
      * Which form on the page sent it, such as hero or dawn.
@@ -57,21 +58,53 @@ export interface JoinWaitlistBody {
   /** @maxLength 100 */
   utmCampaign?: string;
   /**
+     * The post that brought them, one tag per post (ADR-147), kept with the address under the retention rule (ADR-145).
+     * @maxLength 100
+     */
+  utmContent?: string;
+  /**
      * Hidden from people and left empty by them.
      * @maxLength 200
      */
   website?: string;
 }
 
+/**
+ * check_email answers every join under double opt-in, whatever the address's standing (ADR-145); joined is the answer from before it.
+ */
 export type WaitlistJoinedStatus = typeof WaitlistJoinedStatus[keyof typeof WaitlistJoinedStatus];
 
 
 export const WaitlistJoinedStatus = {
   joined: 'joined',
+  check_email: 'check_email',
 } as const;
 
 export interface WaitlistJoined {
+  /** check_email answers every join under double opt-in, whatever the address's standing (ADR-145); joined is the answer from before it. */
   status: WaitlistJoinedStatus;
+}
+
+export interface ConfirmWaitlistBody {
+  /**
+     * The token from the emailed link; only its SHA-256 is stored (ADR-145).
+     * @maxLength 100
+     */
+  token: string;
+}
+
+export type WaitlistConfirmedStatus = typeof WaitlistConfirmedStatus[keyof typeof WaitlistConfirmedStatus];
+
+
+export const WaitlistConfirmedStatus = {
+  confirmed: 'confirmed',
+} as const;
+
+/**
+ * The address stays on the list until the opening email or a request to delete it (ADR-145).
+ */
+export interface WaitlistConfirmed {
+  status: WaitlistConfirmedStatus;
 }
 
 export interface CreateReportBody {
@@ -1716,32 +1749,10 @@ export interface TestCheckoutBody {
   count: TestCheckoutBodyCount;
 }
 
-export interface SkyNow {
-  city: string;
-  /** The time zone the chart's clock reads, after following an old name to today's. */
-  zone: string;
-  latitude: number;
-  longitude: number;
-  /** The minute the chart is for, as an ISO 8601 UTC time. */
-  at: string;
-  /** What computed the positions, as the footer credits it. */
-  ephemeris: string;
-  chart: ChartData;
-}
-
 /**
  * Shared-secret admin key. May also be passed as `?key=`.
  */
 export type AdminKeyParameter = string;
-
-export type GetSkyNowParams = {
-/**
- * The browser's time zone, such as Europe/Brussels.
- * @maxLength 64
- * @pattern ^[A-Za-z0-9_+/-]+$
- */
-zone?: string;
-};
 
 export type RegenerateReport202 = {
   id: string;
