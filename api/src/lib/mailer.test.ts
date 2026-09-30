@@ -5,10 +5,12 @@ import {
   buildPairEmail,
   buildGiftEmail,
   buildGiftReminderEmail,
+  buildWaitlistConfirmEmail,
   sendReportEmail,
   sendPairEmail,
   sendGiftEmail,
   sendGiftReminder,
+  sendWaitlistConfirmEmail,
 } from "./mailer.js";
 
 // The report engine writes reports; nothing else does. Every email says so
@@ -118,6 +120,41 @@ test("buildGiftReminderEmail: repeats the button, states no countdown", () => {
   }
 });
 
+const confirmOpts = {
+  to: "ada@example.com",
+  confirmUrl: "https://mystarsdecoded.com/waitlist?confirm=abc_DEF-123",
+  expiresOn: new Date("2026-10-07T09:30:00Z"),
+};
+
+test("buildWaitlistConfirmEmail: what confirming does, the button, the link's last day, and nothing else", () => {
+  const content = buildWaitlistConfirmEmail(confirmOpts);
+  const lede = "Confirm your email and you're on the waitlist. We'll only use it to tell you when Stars Decoded opens.";
+  const lastDay = "The link stops working on 7 October.";
+  const notYou = "If you didn't ask to join, ignore this email. We'll delete your address after that day.";
+  assert.equal(content.subject, "Confirm your email to join the waitlist");
+  for (const line of [lede, lastDay, notYou]) {
+    assert.ok(content.html.includes(line), `html: ${line}`);
+    assert.ok(content.text.includes(line), `text: ${line}`);
+  }
+  assert.match(content.html, /href="https:\/\/mystarsdecoded\.com\/waitlist\?confirm=abc_DEF-123"[^>]*>Confirm my email<\/a>/);
+  assert.match(content.html, /src="https:\/\/mystarsdecoded\.com\/mark-email\.png"/);
+  assert.match(content.text, /\nConfirm my email:\nhttps:\/\/mystarsdecoded\.com\/waitlist\?confirm=abc_DEF-123\n/);
+  for (const body of allBodies(content)) {
+    assert.doesNotMatch(body, FORBIDDEN_VERBS);
+    assert.doesNotMatch(body, /€|\boffer\b|\bdiscount\b|\bcredit|\breport\b/i, "it sells nothing");
+    assert.ok(!body.includes("ada@example.com"), "no address in the body");
+  }
+  // The house rules for our own words; the shared shell's sign-off is not ours to change here.
+  const ownWords = [content.subject, ...content.text.split("\n").slice(0, -1)].join("\n");
+  assert.doesNotMatch(ownWords, /[—–;!]/);
+});
+
+test("buildWaitlistConfirmEmail: the last day is the calendar day, in UTC, on which the link stops", () => {
+  const day = (iso: string) => buildWaitlistConfirmEmail({ ...confirmOpts, expiresOn: new Date(iso) }).text;
+  assert.match(day("2026-12-31T23:30:00Z"), /stops working on 31 December\./);
+  assert.match(day("2027-01-01T00:10:00Z"), /stops working on 1 January\./);
+});
+
 test("names are escaped defensively", () => {
   const content = buildReportEmail({
     to: "x@example.com",
@@ -174,6 +211,7 @@ test("send* functions resolve false without RESEND_API_KEY, never throw", async 
       }),
       false,
     );
+    assert.equal(await sendWaitlistConfirmEmail(confirmOpts), false);
   } finally {
     if (saved !== undefined) process.env.RESEND_API_KEY = saved;
   }

@@ -1,6 +1,29 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { RateLimiter, clientKey, normaliseEmail, tag } from "./waitlist.js";
+import { createHash } from "node:crypto";
+
+process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
+const {
+  CONFIRM_LINK_MS,
+  RELINK_AFTER_MS,
+  RateLimiter,
+  clientKey,
+  confirmUrl,
+  confirmWaitlist,
+  hashConfirmToken,
+  joinAction,
+  joinWaitlist,
+  linkLive,
+  newConfirmToken,
+  normaliseEmail,
+  sweepBefore,
+  tag,
+  waitlistClosed,
+  waitlistListing,
+} = await import("./waitlist.js");
+const { LEGAL_IDENTITY } = await import("@workspace/commerce");
+type WaitlistStore = import("./waitlist.js").WaitlistStore;
+type WaitlistSignup = import("@workspace/db").WaitlistSignup;
 
 test("an address is stored one way whatever its case or spacing", () => {
   assert.equal(normaliseEmail("  Ada.Lovelace@Example.COM "), "ada.lovelace@example.com");
@@ -28,4 +51,239 @@ test("the limiter admits the limit in a window, then frees as it slides", () => 
   assert.equal(limiter.take("a", 200), false);
   assert.equal(limiter.take("b", 200), true);
   assert.equal(limiter.take("a", 1001), true);
+});
+
+// The same rules as dbWaitlistStore's SQL, over an array.
+function memoryStore(seed: WaitlistSignup[] = []): WaitlistStore & { rows: WaitlistSignup[] } {
+  const rows = [...seed];
+  const lastLink = (r: WaitlistSignup) => r.confirmSentAt ?? r.createdAt;
+  return {
+    rows,
+    async sweep(before) {
+      for (let i = rows.length - 1; i >= 0; i--) {
+        if (rows[i].confirmedAt === null && lastLink(rows[i]) <= before) rows.splice(i, 1);
+      }
+    },
+    async find(email) {
+      return rows.find((r) => r.email === email) ?? null;
+    },
+    async findByTokenHash(hash) {
+      return rows.find((r) => r.confirmTokenHash === hash) ?? null;
+    },
+    async insert(row) {
+      if (rows.some((r) => r.email === row.email)) return false;
+      rows.push({ ...row, createdAt: row.confirmSentAt, confirmedAt: null });
+      return true;
+    },
+    async relink(id, link, sentBefore) {
+      const r = rows.find((x) => x.id === id);
+      if (!r || r.confirmedAt || (r.confirmSentAt && r.confirmSentAt > sentBefore)) return false;
+      Object.assign(r, { confirmTokenHash: link.hash, confirmSentAt: link.sentAt, consent: link.consent });
+      return true;
+    },
+    async markConfirmed(id, at) {
+      const r = rows.find((x) => x.id === id);
+      if (!r) return false;
+      r.confirmedAt = at;
+      return true;
+    },
+  };
+}
+
+const T0 = new Date("2026-10-01T09:30:00Z");
+const after = (ms: number) => new Date(T0.getTime() + ms);
+const MINUTE = 60_000;
+const DAY = 86_400_000;
+const join = { email: " Ada@Example.com ", consent: "launch-email-v2", source: "nav", utmSource: "chatgpt.com", utmContent: "post-7" };
+
+function row(over: Partial<WaitlistSignup>): WaitlistSignup {
+  return {
+    id: "r1",
+    email: "old@example.com",
+    consent: "launch-email-v2",
+    source: null,
+    utmSource: null,
+    utmMedium: null,
+    utmCampaign: null,
+    utmContent: null,
+    createdAt: T0,
+    confirmedAt: null,
+    confirmTokenHash: null,
+    confirmSentAt: null,
+    ...over,
+  };
+}
+
+test("the token: 32 random bytes in the link, only their SHA-256 in the table", async () => {
+  const { token, hash } = newConfirmToken();
+  assert.equal(Buffer.from(token, "base64url").length, 32);
+  assert.match(token, /^[A-Za-z0-9_-]{43}$/);
+  assert.equal(hash, createHash("sha256").update(token).digest("hex"));
+  assert.equal(hashConfirmToken(token), hash);
+  assert.notEqual(newConfirmToken().token, token);
+
+  const store = memoryStore();
+  const mail = await joinWaitlist(store, join, T0);
+  assert.ok(mail);
+  assert.equal(mail.to, "ada@example.com");
+  assert.deepEqual(mail.expiresOn, after(CONFIRM_LINK_MS));
+  const [stored] = store.rows;
+  assert.equal(stored.confirmTokenHash, hashConfirmToken(mail.token));
+  assert.ok(!Object.values(stored).includes(mail.token), "the token itself is never stored");
+  assert.equal(stored.confirmedAt, null);
+  assert.deepEqual(stored.confirmSentAt, T0);
+  assert.equal(stored.source, "nav");
+  assert.equal(stored.utmSource, "chatgpt.com");
+  assert.equal(stored.utmContent, "post-7");
+});
+
+test("the link opens the web app's /waitlist page, from configuration and never the request", () => {
+  assert.equal(confirmUrl("abc_DEF-1", { PUBLIC_APP_URL: "https://mystarsdecoded.com/" }), "https://mystarsdecoded.com/waitlist?confirm=abc_DEF-1");
+  assert.equal(confirmUrl("t", { APP_ENV: "production" }), "https://mystarsdecoded.com/waitlist?confirm=t");
+  assert.equal(confirmUrl("t", { APP_ENV: "staging" }), "https://starsdecoded-staging.vercel.app/waitlist?confirm=t");
+  assert.equal(confirmUrl("t", {}), "http://localhost:5173/waitlist?confirm=t");
+});
+
+test("confirming: a live link confirms, a repeat answers the same, a wrong or malformed one does not", async () => {
+  const store = memoryStore();
+  const mail = await joinWaitlist(store, join, T0);
+  assert.ok(mail);
+  assert.equal(await confirmWaitlist(store, newConfirmToken().token, after(MINUTE)), false);
+  assert.equal(await confirmWaitlist(store, "", after(MINUTE)), false);
+  assert.equal(await confirmWaitlist(store, `${mail.token}x`, after(MINUTE)), false);
+  assert.equal(store.rows[0].confirmedAt, null);
+
+  assert.equal(await confirmWaitlist(store, mail.token, after(DAY)), true);
+  assert.deepEqual(store.rows[0].confirmedAt, after(DAY));
+  assert.equal(await confirmWaitlist(store, mail.token, after(30 * DAY)), true, "a confirmed address answers the same, however late");
+  assert.deepEqual(store.rows[0].confirmedAt, after(DAY), "a repeat changes nothing");
+});
+
+test("confirming: a link past its seven days confirms nothing, and its address is gone", async () => {
+  const store = memoryStore();
+  const mail = await joinWaitlist(store, join, T0);
+  assert.ok(mail);
+  assert.equal(await confirmWaitlist(store, mail.token, after(CONFIRM_LINK_MS - 1)), true);
+
+  const late = memoryStore();
+  const lateMail = await joinWaitlist(late, join, T0);
+  assert.ok(lateMail);
+  assert.equal(await confirmWaitlist(late, lateMail.token, after(CONFIRM_LINK_MS)), false);
+  assert.equal(late.rows.length, 0);
+});
+
+test("the throttle: one link per address in ten minutes, and a new link retires the old", async () => {
+  const store = memoryStore();
+  const first = await joinWaitlist(store, join, T0);
+  assert.ok(first);
+  assert.equal(await joinWaitlist(store, join, after(RELINK_AFTER_MS - 1)), null);
+  assert.equal(store.rows[0].confirmTokenHash, hashConfirmToken(first.token));
+  assert.equal(store.rows.length, 1);
+
+  const second = await joinWaitlist(store, { ...join, consent: "launch-email-v1", utmContent: "post-9" }, after(RELINK_AFTER_MS));
+  assert.ok(second);
+  assert.notEqual(second.token, first.token);
+  assert.deepEqual(second.expiresOn, after(RELINK_AFTER_MS + CONFIRM_LINK_MS));
+  assert.equal(store.rows[0].consent, "launch-email-v1", "the consent is the wording the new link confirms");
+  assert.equal(store.rows[0].utmContent, "post-7", "the tags stay the first join's");
+  assert.equal(await confirmWaitlist(store, first.token, after(RELINK_AFTER_MS + MINUTE)), false);
+  assert.equal(await confirmWaitlist(store, second.token, after(RELINK_AFTER_MS + MINUTE)), true);
+});
+
+test("a confirmed address that joins again gets no email and changes nothing", async () => {
+  const store = memoryStore();
+  const mail = await joinWaitlist(store, join, T0);
+  assert.ok(mail);
+  await confirmWaitlist(store, mail.token, after(MINUTE));
+  const before = { ...store.rows[0] };
+  assert.equal(await joinWaitlist(store, join, after(DAY)), null);
+  assert.deepEqual(store.rows[0], before);
+});
+
+test("what a join does, by the address's standing", () => {
+  assert.equal(joinAction(null, T0), "insert");
+  assert.equal(joinAction(row({ confirmedAt: T0 }), after(DAY)), "none");
+  assert.equal(joinAction(row({ confirmSentAt: T0 }), after(RELINK_AFTER_MS - 1)), "none");
+  assert.equal(joinAction(row({ confirmSentAt: T0 }), after(RELINK_AFTER_MS)), "relink");
+  assert.equal(joinAction(row({ confirmSentAt: null }), T0), "relink");
+});
+
+test("a join that loses a race to another sends nothing", async () => {
+  const store = memoryStore();
+  const lost: WaitlistStore = { ...store, find: async () => null, insert: async () => false };
+  assert.equal(await joinWaitlist(lost, join, T0), null);
+  const beaten: WaitlistStore = { ...store, find: async () => row({ confirmSentAt: T0 }), relink: async () => false };
+  assert.equal(await joinWaitlist(beaten, join, after(DAY)), null);
+});
+
+test("the sweep: an unconfirmed address goes seven days after its latest link; a confirmed one stays", async () => {
+  const store = memoryStore([
+    row({ id: "fresh", email: "a@x.io", confirmSentAt: after(-CONFIRM_LINK_MS + 1) }),
+    row({ id: "stale", email: "b@x.io", confirmSentAt: after(-CONFIRM_LINK_MS) }),
+    row({ id: "unsent", email: "c@x.io", createdAt: after(-CONFIRM_LINK_MS), confirmSentAt: null }),
+    row({ id: "kept", email: "d@x.io", confirmSentAt: after(-90 * DAY), confirmedAt: after(-89 * DAY) }),
+    row({ id: "v1", email: "e@x.io", consent: "launch-email-v1", createdAt: after(-60 * DAY), confirmedAt: after(-60 * DAY) }),
+  ]);
+  await store.sweep(sweepBefore(T0));
+  assert.deepEqual(store.rows.map((r) => r.id).sort(), ["fresh", "kept", "v1"]);
+});
+
+test("the sweep runs on every join and every confirmation", async () => {
+  const stale = () => row({ id: "stale", email: "b@x.io", confirmSentAt: after(-CONFIRM_LINK_MS) });
+  const joined = memoryStore([stale()]);
+  await joinWaitlist(joined, join, T0);
+  assert.deepEqual(joined.rows.map((r) => r.email), ["ada@example.com"]);
+  const confirmed = memoryStore([stale()]);
+  await confirmWaitlist(confirmed, "not-a-token", T0);
+  assert.equal(confirmed.rows.length, 0);
+});
+
+test("a relinked address lives seven days from its latest link", async () => {
+  const store = memoryStore();
+  await joinWaitlist(store, join, T0);
+  const second = await joinWaitlist(store, join, after(5 * DAY));
+  assert.ok(second);
+  await store.sweep(sweepBefore(after(CONFIRM_LINK_MS + DAY)));
+  assert.equal(store.rows.length, 1);
+  assert.equal(await confirmWaitlist(store, second.token, after(5 * DAY + CONFIRM_LINK_MS - 1)), true);
+});
+
+test("a link is live exactly while the sweep keeps its row", () => {
+  for (const age of [0, RELINK_AFTER_MS, CONFIRM_LINK_MS - 1, CONFIRM_LINK_MS, CONFIRM_LINK_MS + 1]) {
+    const sentAt = after(-age);
+    const swept = sentAt <= sweepBefore(T0);
+    assert.equal(linkLive({ confirmSentAt: sentAt }, T0), !swept, `age ${age}`);
+  }
+  assert.equal(linkLive({ confirmSentAt: null }, T0), false);
+});
+
+test("the closed state: production without a contact address takes no sign-up; staging and local always do", () => {
+  const noContact = { ...LEGAL_IDENTITY, contactEmail: null };
+  const blankContact = { ...LEGAL_IDENTITY, contactEmail: "  " };
+  const complete = { ...LEGAL_IDENTITY, contactEmail: "hello@example.com" };
+  assert.equal(waitlistClosed({ APP_ENV: "production" }, noContact), true);
+  assert.equal(waitlistClosed({ RAILWAY_ENVIRONMENT_NAME: "production" }, noContact), true);
+  assert.equal(waitlistClosed({ APP_ENV: "production" }, blankContact), true);
+  assert.equal(waitlistClosed({ APP_ENV: "production" }, { ...complete, name: "" }), true);
+  assert.equal(waitlistClosed({ APP_ENV: "production" }, complete), false);
+  assert.equal(waitlistClosed({ APP_ENV: "production" }, { ...complete, postalAddress: null }), false, "the waitlist does not wait on the postal address");
+  assert.equal(waitlistClosed({ APP_ENV: "staging" }, noContact), false);
+  assert.equal(waitlistClosed({}, noContact), false);
+});
+
+test("the admin's list: confirmed and pending counts, the new fields, never the token's hash", () => {
+  const listing = waitlistListing([
+    row({ id: "a", email: "a@x.io", utmContent: "post-7", confirmTokenHash: "secret-hash-a", confirmSentAt: T0, confirmedAt: after(MINUTE) }),
+    row({ id: "b", email: "b@x.io", confirmTokenHash: "secret-hash-b", confirmSentAt: T0 }),
+    row({ id: "c", email: "c@x.io", consent: "launch-email-v1", confirmedAt: T0 }),
+  ]);
+  assert.equal(listing.total, 3);
+  assert.equal(listing.confirmed, 2);
+  assert.equal(listing.pending, 1);
+  assert.equal(listing.signups[0].utmContent, "post-7");
+  assert.equal(listing.signups[0].confirmedAt, after(MINUTE).toISOString());
+  assert.equal(listing.signups[1].confirmedAt, null);
+  assert.equal(listing.signups[0].createdAt, T0.toISOString());
+  const leaked = JSON.stringify(listing);
+  assert.ok(!leaked.includes("secret-hash") && !leaked.includes("confirmTokenHash") && !leaked.includes("confirmSentAt"));
 });
