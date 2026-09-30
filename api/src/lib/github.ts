@@ -8,7 +8,7 @@ export const REPO = "alexbuildsai-del/Starsdecoded";
 const API = "https://api.github.com";
 
 /** The brain: what decides the words (R-4.4). */
-export const BRAIN_PATHS = ["api/src/prompts/", "api/src/lib/models.ts", "api/src/lib/aiInterpretation.ts", "api/src/lib/traditional.ts", "api/src/lib/chartCalculation.ts"];
+export const BRAIN_PATHS = ["api/src/prompts/", "api/src/lib/models.ts", "api/src/lib/aiInterpretation.ts", "api/src/lib/traditional.ts", "api/src/lib/chartCalculation.ts", "packages/engine/"];
 /** The pair brain: a change here adds one pair to the release lab. */
 export const PAIR_BRAIN_PATHS = ["api/src/prompts/pair/", "api/src/lib/pairInterpretation.ts", "api/src/lib/pairBrief.ts"];
 
