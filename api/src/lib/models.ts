@@ -26,7 +26,7 @@ export interface ModelPrice {
   input: number;
   cachedInput: number;
   output: number;
-  /** Sent on every call. gpt-5-mini and gpt-5-nano reject `none`, so they pin `minimal`. */
+  /** Sent on every call. gpt-5-mini and gpt-5-nano reject `none`, so they pin `minimal`; gpt-6.1-sol accepts nothing below `low`. */
   reasoningEffort: ReasoningEffort;
   /** Whether OpenAI offers the Flex tier for this model; a Flex call is refused otherwise. */
   flex: boolean;
@@ -44,6 +44,8 @@ export const CATALOGUE = {
   // MB-70 provisional: press prices, ids and Flex unverified from the sandbox (ADR-74).
   "gpt-6-sol": { input: 2.0, cachedInput: 0.2, output: 10.0, reasoningEffort: "none", flex: false, checked: "" },
   "gpt-6-luna": { input: 0.1, cachedInput: 0.01, output: 0.5, reasoningEffort: "none", flex: false, checked: "" },
+  // MB-70 provisional: press prices and Flex of 2026-09-29; a lab writer only, no job calls it.
+  "gpt-6.1-sol": { input: 2.0, cachedInput: 0.1, output: 10.0, reasoningEffort: "low", flex: true, checked: "" },
 } as const satisfies Record<string, ModelPrice>;
 
 export type ModelId = keyof typeof CATALOGUE;
@@ -111,4 +113,25 @@ export function flexOffered(model: string): boolean {
 /** The tier a lab call actually runs at: Flex where the model offers it, standard otherwise. */
 export function tierFor(model: string, requested: ServiceTier | undefined): ServiceTier {
   return requested === "flex" && flexOffered(model) ? "flex" : "standard";
+}
+
+/**
+ * Thinking counts against `max_completion_tokens` and bills as output. From
+ * `low` up it is real work, so the call gets room above its visible cap and a
+ * long think never cuts the JSON; only what is spent is billed.
+ */
+const THINKING_HEADROOM: Record<ReasoningEffort, number> = { none: 0, minimal: 0, low: 8_000, medium: 16_000, high: 32_000 };
+
+// MB-70 provisional: the thinking an estimate adds to each call, a guess until a session measures the model.
+const THINKING_ESTIMATE: Record<ReasoningEffort, number> = { none: 0, minimal: 0, low: 1_000, medium: 4_000, high: 10_000 };
+
+/** The `max_completion_tokens` a call sends: its visible cap plus the model's thinking headroom. */
+export function completionCap(model: ModelId, visibleCap: number): number {
+  return visibleCap + THINKING_HEADROOM[effortFor(model)];
+}
+
+/** The thinking tokens an estimate adds to one call; none for a model that does not think or is not catalogued. */
+export function thinkingAllowance(model: string): number {
+  const p = priceOf(model);
+  return p ? THINKING_ESTIMATE[p.reasoningEffort] : 0;
 }

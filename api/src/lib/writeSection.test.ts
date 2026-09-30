@@ -11,10 +11,11 @@ import { cannedNatalReplies, installFakeModel, type FakeRequest } from "./testMo
 
 const { openai } = await import("@workspace/integrations-openai-ai-server");
 const { callStructured, generateInterpretation, writeSection, OutOfCreditError, SectionError } = await import("./aiInterpretation.js");
-const { CATALOGUE, MODELS } = await import("./models.js");
+const { CATALOGUE, MODELS, completionCap } = await import("./models.js");
+const { FOUNDATION } = await import("../prompts/index.js");
 const { z } = await import("zod/v4");
 
-type PinnedRequest = FakeRequest & { model: string; reasoning_effort?: string; service_tier?: string };
+type PinnedRequest = FakeRequest & { model: string; reasoning_effort?: string; service_tier?: string; max_completion_tokens?: number };
 
 const fake = installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "scorpio", sunHouse: 11 }));
 const seen: PinnedRequest[] = [];
@@ -67,6 +68,17 @@ test("Flex is refused where the catalogue says the model does not offer it, and 
   } finally {
     entry.flex = was;
   }
+});
+
+test("a model that thinks sends its effort and a cap with room to think, and gpt-6.1-sol takes Flex", async () => {
+  seen.length = 0;
+  await writeSection("natal:foundation", chart, "Marie Curie", undefined, { model: "gpt-5.2" });
+  await writeSection("natal:foundation", chart, "Marie Curie", undefined, { model: "gpt-6.1-sol", serviceTier: "flex" });
+  assert.equal(seen[0].max_completion_tokens, FOUNDATION.maxTokens, "a model at none keeps the section's cap");
+  assert.equal(seen[1].reasoning_effort, "low");
+  assert.equal(seen[1].max_completion_tokens, completionCap("gpt-6.1-sol", FOUNDATION.maxTokens));
+  assert.ok(seen[1].max_completion_tokens! > FOUNDATION.maxTokens);
+  assert.equal(seen[1].service_tier, "flex");
 });
 
 test("an insufficient_quota 429 throws OutOfCreditError after one call, with no retry", async () => {
