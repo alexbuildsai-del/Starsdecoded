@@ -28,8 +28,6 @@ tags:
     description: One balance of credits, its History and the test checkout (ADR-129, ADR-138)
   - name: waitlist
     description: The pre-launch list production collects until Stars Decoded opens
-  - name: sky
-    description: The sky now over a city, for the waitlist page's wheel
 paths:
   /healthz:
     get:
@@ -116,39 +114,6 @@ paths:
                 $ref: "#/components/schemas/WaitlistConfirmed"
         "404":
           description: No address waits on this token, or its seven days are over (ADR-145)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /sky:
-    get:
-      operationId: getSkyNow
-      tags: [sky]
-      summary: The sky now over the visitor's city
-      description: >
-        The chart for this minute over the principal city of an IANA time zone,
-        computed by the engine (ADR-107, ADR-141). An unknown zone falls back to
-        London. Sets no cookie and reads no account; one chart per city per
-        minute is computed, whoever asks.
-      parameters:
-        - name: zone
-          in: query
-          required: false
-          schema:
-            type: string
-            maxLength: 64
-            pattern: "^[A-Za-z0-9_+/-]+$"
-          description: The browser's time zone, such as Europe/Brussels.
-      responses:
-        "200":
-          description: The sky now
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SkyNow"
-        "400":
-          description: The zone is not a time zone name
           content:
             application/json:
               schema:
@@ -3387,32 +3352,3 @@ components:
           type: integer
           enum: [1, 3, 5]
       required: [count]
-
-    SkyNow:
-      type: object
-      properties:
-        city:
-          type: string
-        zone:
-          type: string
-          description: The time zone the chart's clock reads, after following an old name to today's.
-        latitude:
-          type: number
-        longitude:
-          type: number
-        at:
-          type: string
-          description: The minute the chart is for, as an ISO 8601 UTC time.
-        ephemeris:
-          type: string
-          description: What computed the positions, as the footer credits it.
-        chart:
-          $ref: "#/components/schemas/ChartData"
-      required:
-        - city
-        - zone
-        - latitude
-        - longitude
-        - at
-        - ephemeris
-        - chart

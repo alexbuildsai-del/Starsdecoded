@@ -12,14 +12,14 @@ test("only production waits for launch", () => {
 
 test("health, the waitlist's calls and the admin routes stay open to everyone", () => {
   const env = { ADMIN_USER_ID: "user_admin" };
-  for (const path of ["/healthz", "/healthz/db", "/waitlist", "/waitlist/confirm", "/waitlist/confirm/", "/sky", "/admin/me", "/admin/waitlist", "/admin/lab/runs"]) {
+  for (const path of ["/healthz", "/healthz/db", "/waitlist", "/waitlist/confirm", "/waitlist/confirm/", "/admin/me", "/admin/waitlist", "/admin/lab/runs"]) {
     assert.equal(prelaunchAllows(path, null, env), true, path);
   }
 });
 
 test("the product's routes open to the admin alone", () => {
   const env = { ADMIN_USER_ID: "user_admin" };
-  for (const path of ["/reports", "/reports/abc/status", "/profiles", "/geocode", "/compatibility", "/invites/tok/claim", "/release/r1/verdict", "/waitlister", "/waitlist/confirmed", "/waitlist/confirm/abc", "/waitlist/other", "/skyline", "/healthzz"]) {
+  for (const path of ["/reports", "/reports/abc/status", "/profiles", "/geocode", "/compatibility", "/invites/tok/claim", "/release/r1/verdict", "/waitlister", "/waitlist/confirmed", "/waitlist/confirm/abc", "/waitlist/other", "/sky", "/skyline", "/healthzz"]) {
     assert.equal(prelaunchAllows(path, null, env), false, `anonymous ${path}`);
     assert.equal(prelaunchAllows(path, "user_other", env), false, `signed in ${path}`);
     assert.equal(prelaunchAllows(path, "user_admin", env), true, `admin ${path}`);

@@ -36,7 +36,6 @@ import type {
   ErrorResponse,
   GeocodePlaceParams,
   GeocodeSearchResponse,
-  GetSkyNowParams,
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
   Gift,
@@ -60,7 +59,6 @@ import type {
   ReportSummary,
   SceneResponse,
   SendCompatibilityBody,
-  SkyNow,
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
@@ -340,91 +338,6 @@ export const useConfirmWaitlist = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getConfirmWaitlistMutationOptions(options));
     }
-
-export const getGetSkyNowUrl = (params?: GetSkyNowParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/sky?${stringifiedParams}` : `/api/sky`
-}
-
-/**
- * The chart for this minute over the principal city of an IANA time zone, computed by the engine (ADR-107, ADR-141). An unknown zone falls back to London. Sets no cookie and reads no account; one chart per city per minute is computed, whoever asks.
- * @summary The sky now over the visitor's city
- */
-export const getSkyNow = async (params?: GetSkyNowParams, options?: Parameters<typeof customFetch>[1]): Promise<SkyNow> => {
-
-  return customFetch<SkyNow>(getGetSkyNowUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetSkyNowQueryKey = (params?: GetSkyNowParams,) => {
-    return [
-    `/api/sky`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getGetSkyNowQueryOptions = <TData = Awaited<ReturnType<typeof getSkyNow>>, TError = ErrorType<ErrorResponse>>(params?: GetSkyNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetSkyNowQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSkyNow>>> = ({ signal }) => getSkyNow(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetSkyNowQueryResult = NonNullable<Awaited<ReturnType<typeof getSkyNow>>>
-export type GetSkyNowQueryError = ErrorType<ErrorResponse>
-
-
-/**
- * @summary The sky now over the visitor's city
- */
-
-export function useGetSkyNow<TData = Awaited<ReturnType<typeof getSkyNow>>, TError = ErrorType<ErrorResponse>>(
- params?: GetSkyNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSkyNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetSkyNowQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
 
 export const getListReportsUrl = () => {
 

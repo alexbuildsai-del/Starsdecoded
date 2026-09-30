@@ -1749,32 +1749,10 @@ export interface TestCheckoutBody {
   count: TestCheckoutBodyCount;
 }
 
-export interface SkyNow {
-  city: string;
-  /** The time zone the chart's clock reads, after following an old name to today's. */
-  zone: string;
-  latitude: number;
-  longitude: number;
-  /** The minute the chart is for, as an ISO 8601 UTC time. */
-  at: string;
-  /** What computed the positions, as the footer credits it. */
-  ephemeris: string;
-  chart: ChartData;
-}
-
 /**
  * Shared-secret admin key. May also be passed as `?key=`.
  */
 export type AdminKeyParameter = string;
-
-export type GetSkyNowParams = {
-/**
- * The browser's time zone, such as Europe/Brussels.
- * @maxLength 64
- * @pattern ^[A-Za-z0-9_+/-]+$
- */
-zone?: string;
-};
 
 export type RegenerateReport202 = {
   id: string;

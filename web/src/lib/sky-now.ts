@@ -1,8 +1,8 @@
 import type { ChartData } from "@/types/chart";
 
 /**
- * The words around the waitlist page's live wheel. The sky itself comes from
- * the API's engine (GET /api/sky); these only say it.
+ * The words around the site's live wheels. The sky itself is the engine's,
+ * computed in the browser (site/lib/sky.ts); these only say it.
  */
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
