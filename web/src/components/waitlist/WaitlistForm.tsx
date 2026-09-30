@@ -1,33 +1,53 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { joinWaitlist } from "@workspace/api-client-react";
-import { WAITLIST_CONSENT, WAITLIST_CONSENT_TEXT, looksLikeEmail, readUtm } from "@/lib/waitlist";
+import { waitlistReady } from "@workspace/commerce";
+import { APP_ENV } from "@/lib/appEnv";
+import {
+  CONFIRM_LINK_DAYS, WAITLIST_CLOSED_LINE, WAITLIST_CONSENT, WAITLIST_CONSENT_TEXT,
+  joinFailure, looksLikeEmail, readUtm, sourceTag, waitlistOpen, type JoinFailure,
+} from "@/lib/waitlist";
 
 const BAD_EMAIL = "Enter an email address, like name@example.com.";
 
-function failureLine(err: unknown): string {
-  const status = (err as { status?: number } | null)?.status;
-  if (status === 400) return BAD_EMAIL;
-  if (status === 429) return "Too many sign-ups from here. Try again in a few minutes.";
-  return "We couldn't add you just now. Try again in a minute.";
-}
+const FAILURE_LINES: Record<Exclude<JoinFailure, "closed">, string> = {
+  bad_email: BAD_EMAIL,
+  rate_limited: "Too many sign-ups from here. Try again in a few minutes.",
+  retry: "We couldn't add you just now. Try again in a minute.",
+};
+
+// Fixed for the build, so the prerender and the browser agree on which one they show.
+const TAKES_SIGNUPS = waitlistOpen(APP_ENV, waitlistReady());
+
+// Utilities rather than a site.css rule, so the button looks the same wherever the form sits, the dialog included.
+const CHANGE_BUTTON =
+  "justify-self-start mt-1 cursor-pointer text-[13px] text-[color:var(--indigo-lt)] underline underline-offset-[3px] hover:text-[color:var(--paper)]";
 
 /**
- * The page's one form. Both copies share `joined`, so an address given in the
- * hero shows as on the list at the dawn too. Nothing is kept in the browser.
+ * The waitlist's one form: the dialog, /waitlist and the home page's sections all
+ * use it. The parent holds `joined`, so a second copy shows where the first left
+ * off. A join sends a link to confirm the address (ADR-145), so the form never
+ * says the visitor is on the list. Nothing is kept in the browser.
  */
 export function WaitlistForm({ source, joined, onJoined }: { source: string; joined: string | null; onJoined: (email: string) => void }) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [trap, setTrap] = useState("");
+  const [refused, setRefused] = useState(false);
+  const [changing, setChanging] = useState(false);
+  const [joins, setJoins] = useState(0);
   const done = useRef<HTMLDivElement>(null);
-  const [justJoined, setJustJoined] = useState(false);
-  const id = `wl-email-${source}`;
+  const field = useRef<HTMLInputElement>(null);
+  const id = `wl-email-${source.trim().replace(/\s+/g, "-")}`;
 
   useEffect(() => {
-    if (justJoined) done.current?.focus();
-  }, [justJoined]);
+    if (joins > 0) done.current?.focus();
+  }, [joins]);
+
+  useEffect(() => {
+    if (changing) field.current?.focus();
+  }, [changing]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -39,21 +59,36 @@ export function WaitlistForm({ source, joined, onJoined }: { source: string; joi
     setSending(true);
     setError(null);
     try {
-      await joinWaitlist({ email: address, consent: WAITLIST_CONSENT, source, website: trap || undefined, ...readUtm(window.location.search) });
-      setJustJoined(true);
+      await joinWaitlist({ email: address, consent: WAITLIST_CONSENT, source: sourceTag(source), website: trap || undefined, ...readUtm(window.location.search) });
+      setChanging(false);
+      setJoins((n) => n + 1);
       onJoined(address);
     } catch (err) {
-      setError(failureLine(err));
+      const failure = joinFailure(err);
+      if (failure === "closed") setRefused(true);
+      else setError(FAILURE_LINES[failure]);
     } finally {
       setSending(false);
     }
   }
 
-  if (joined) {
+  if (!TAKES_SIGNUPS || refused) {
+    return (
+      <div className="wl-done" role="status">
+        <p>{WAITLIST_CLOSED_LINE}</p>
+      </div>
+    );
+  }
+
+  if (joined && !changing) {
     return (
       <div className="wl-done" role="status" tabIndex={-1} ref={done}>
-        <h3>You're on the list</h3>
-        <p>We'll email {joined} when Stars Decoded opens.</p>
+        <h3>Check your inbox</h3>
+        <p className="break-words">We sent a link to {joined}. Open it to confirm your email.</p>
+        <p>The link works for {CONFIRM_LINK_DAYS} days. If you can't find it, check your spam folder.</p>
+        <button type="button" className={CHANGE_BUTTON} onClick={() => { setEmail(joined); setChanging(true); }}>
+          Use a different email
+        </button>
       </div>
     );
   }
@@ -65,6 +100,7 @@ export function WaitlistForm({ source, joined, onJoined }: { source: string; joi
           <label htmlFor={id}>Email</label>
           <input
             id={id}
+            ref={field}
             type="email"
             inputMode="email"
             autoComplete="email"
