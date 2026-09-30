@@ -1,7 +1,8 @@
 # First posts: Phase 0 in practice
 
-Ideation 2026-09-30 with the Owner, two rounds. Status: **draft**, answers in. Artifact:
-https://claude.ai/artifact/AWDQpwmvjy9nsgi3cThtr2. Notion Social hub (under GTM):
+Ideation 2026-09-30 with the Owner, two rounds. Status: **draft**, answers in, the rule book
+waiting for the Owner's yes. Artifact: https://claude.ai/artifact/AWDQpwmvjy9nsgi3cThtr2. Rule book
+page: https://claude.ai/artifact/AvugTm2z3TmPAt1FcJiFU5. Notion Social hub (under GTM):
 https://app.notion.com/p/3ebfefe74931813d9c76c211d07cadcd
 
 Builds on `pricing-and-launch` (locked 2026-09-27, ADR-142 to 149; on
@@ -78,9 +79,10 @@ This spec is how Phase 0 runs, and the weekly routine that makes the posts.
   HyperFrames for turning the kit's HTML slides into video. Paid ads at Phase 4: claude-ads.
 
 ### Rules every post keeps
-The rule book in full is `references/rules.md`. Among them: every fact from the product's engine
+The rule book is `references/rules.md`, 36 numbered rules, shown to the Owner under the same
+numbers on the rule book page; nothing new is made until the Owner approves it. Among them: every fact from the product's engine
 with its moment and place; no forecasts or timing posts; sign meanings from the doctrine; readers
-who said yes, only dead public figures, never a child's name or face; the product's names, never
+who said yes, public figures only from the fixtures and only the dead, never a child's name or face; the product's names, never
 a length; the product's look with brass only on geometry; the house voice with no emoji, dashes or
 exclamation marks; no engagement bait; business-cleared sound only.
 
@@ -115,11 +117,13 @@ the templates, the bank, the routine, replies, measures, the questions. Round tw
 in the chat as contact sheets and zips; the rendered posts live on their Content rows.
 
 ## Open questions
-1. **Network:** allow api.notion.com in the cloud environment (environment menu, Edit, Network
+1. **The rule book:** the Owner approves the page, or names rules by number to change (Owner, 30 Sep:
+   no more content until the process and the rules are set).
+2. **Network:** allow api.notion.com in the cloud environment (environment menu, Edit, Network
    access) so a session attaches slides to the rows itself. Until then they come through the chat.
-2. **Sign slides:** type only for now. A wheel on a sign slide would be a new version of the
+3. **Sign slides:** type only for now. A wheel on a sign slide would be a new version of the
    product's wheel, so it goes to the Owner as an HTML artifact first if wanted.
-3. **Question 3** (whose report fills "One sentence") returns with the product visuals.
+4. **Question 3** (whose report fills "One sentence") returns with the product visuals.
 
 ## Decisions to record
 1. **Phase 0 banks now and publishes from opening day, one a day** (Owner, question 1; ADR-147's
@@ -138,5 +142,7 @@ in the chat as contact sheets and zips; the rendered posts live on their Content
    `marketing` skill makes the posts; the Owner reviews and schedules.
 8. **The free tool stack:** Instagram's scheduler, Publer Free for TikTok, the Creative Center sound
    routine; no Canva; Remotion and HyperFrames when video starts; claude-ads at Phase 4.
-9. **The rule book** (`references/rules.md`) binds every post, including: public figures only if dead
-   and with public birth data, from the date alone when no time is recorded, never a living person.
+9. **The rule book** (`references/rules.md`, 36 numbered rules) binds every post and changes only with
+   the Owner's yes, including: public figures only from the fixtures, organic only and never in an ad
+   (ADR-147), and only the dead, from the date alone when no birth record gives the time; never a
+   living person.

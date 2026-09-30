@@ -9,7 +9,9 @@ built from real computed data. Until the waitlist opens on production, finished 
 bank (Status Made) and nothing is scheduled; from opening day, one a day (ADR-147, Owner 30 Sep).
 
 ## Read first
-- `references/rules.md`, the rule book. Always, before a word or a pixel.
+- `references/rules.md`, the rule book: 36 numbered rules. Always, before a word or a pixel. The
+  Social rule book page (https://claude.ai/artifact/AvugTm2z3TmPAt1FcJiFU5) shows the same rules
+  under the same numbers; a change goes there first, for the Owner's yes.
 - `references/platforms.md` for sizes, sound, scheduling and what the apps reward. Dated: refresh a
   fact when a platform changes it.
 - The Notion Social hub, https://app.notion.com/p/3ebfefe74931813d9c76c211d07cadcd: the Content board
@@ -37,7 +39,9 @@ bank (Status Made) and nothing is scheduled; from opening day, one a day (ADR-14
    Date-stamped visuals (the Moon today) are re-rendered in the week they post.
 7. **Hand over** on each post's row: zip each size and upload both to Slides, embed the contact
    sheets in the page, fill Caption, Tag (`pNN-slug`), Sound (a mood; the Owner picks the track in
-   each app) and set Status Made. Send the Owner the contact sheets in chat too.
+   each app) and set Status Made. Send the Owner the contact sheets in chat too. If the upload is
+   refused (the environment does not allow api.notion.com yet), send the zips in the chat and say
+   so in the row's Notes.
 8. **Report** in five lines: what's ready, what needs their eye, the week's sound mood, and
    anything a rule stopped.
 
