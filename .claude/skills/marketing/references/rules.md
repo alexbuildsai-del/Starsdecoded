@@ -33,8 +33,8 @@ republished to the same address), under the same numbers. Approved by the Owner 
    Compatibility report or who it was with. How to show anonymised results, and how a reader says
    yes, waits in the Mailbox (MB-121); until then no reader's chart, report or words.
 8. **Public figures come only from the fixtures, organic only, never in an ad** (ADR-147), and only
-   the dead: Marie Curie from her date alone (her time is not from a birth record), Audrey Hepburn
-   in full once her name clears the legal check (MB-90). Never a living person, so never Oprah
+   the dead: Marie Curie from her date alone (her time is not from a birth record). Audrey Hepburn
+   never: her name stays on the website's sample, never in posts or ads (ADR-166). Never a living person, so never Oprah
    Winfrey or the family fixtures.
 9. **Never a child's name or face** (ADR-147).
 
