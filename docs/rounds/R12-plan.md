@@ -1,3 +1,6 @@
+> **Deferred.** Written as R11 on 2026-09-27 and 28; the Owner deferred it on 2026-09-30 behind the website, which is now R11 (`docs/rounds/R11-plan.md`).
+> Its card ids (R11-01 to R11-26), and anything the new R11 absorbs, get re-planned at its own /plan as R12; the body below is unchanged.
+
 # R11 plan — Pricing and launch: one catalogue, Stripe behind a seam, one seller, double opt-in, the Launch view
 
 Planned 2026-09-28 on `claude/compassionate-clarke-l16qww` (`main` at 8a48534, R10's merge, plus the lock at 106b6f0) for the
