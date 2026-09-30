@@ -1,5 +1,7 @@
+import { useLocation } from "wouter";
 import { setPreview, useMounted, usePreviewFlag, withoutPreview } from "@/lib/prelaunch";
 import { cn } from "@/lib/utils";
+import { isPublicPath } from "@/site/site";
 
 /** Ends the preview for the tab and drops ?prelaunch=1 from the address, so a reload keeps it ended. */
 function exitPreview() {
@@ -13,15 +15,19 @@ function exitPreview() {
 export function StagingRibbon() {
   const mounted = useMounted();
   const preview = usePreviewFlag();
+  const [location] = useLocation();
   if (!mounted) return null;
+
+  // On a phone the public site's sticky nav and its Get my report sit at the top, so the badge goes to the bottom there
+  // and in the preview, whose longer line has no room in a top bar. An app screen keeps it at the top, clear of its own
+  // bottom controls (ADR-59).
+  const atBottom = preview || isPublicPath(location);
 
   return (
     <div
       className={cn(
         "pointer-events-none fixed bottom-3 left-3 z-[60] flex items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1 font-label text-[10px] tracking-[0.2em] uppercase text-amber-200 backdrop-blur-sm",
-        // On a phone the badge sits in the top bar, so it never lands on the hero's corner text (ADR-59). The preview's
-        // longer line has no room there, and the visitor's view it shows has no app screen at the bottom to cover.
-        preview
+        atBottom
           ? "max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:left-1/2 max-sm:-translate-x-1/2"
           : "max-sm:bottom-auto max-sm:left-1/2 max-sm:top-4 max-sm:-translate-x-1/2",
       )}
