@@ -232,12 +232,12 @@ async function createSendInvite(
 }
 
 /**
- * A giver keeps reading what they sent only through their account, and a session loses
- * a report once its subject claims it, so Send needs an account (ADR-139, as `sendStateFor`
+ * A giver keeps reading what they shared only through their account, and a session loses
+ * a report once its subject claims it, so sharing needs an account (ADR-139, as `sendStateFor`
  * reads it).
  */
 function signInToSend(res: Response) {
-  return res.status(401).json({ error: "unauthorized", message: "Sign in to send a report." });
+  return res.status(401).json({ error: "unauthorized", message: "Sign in to share a report." });
 }
 
 async function recordDelivery(req: Request, inviteId: string, delivered: boolean): Promise<void> {
@@ -310,7 +310,7 @@ router.get("/invites", async (req, res) => {
   }
 });
 
-// POST /invites — Send to {name}: a finished Personal natal report goes to the person it is about (ADR-120).
+// POST /invites — Share with {name}: a finished Personal report goes to the person it is about (ADR-120, 181).
 router.post("/invites", async (req, res) => {
   const parsed = CreateInviteBody.safeParse(req.body);
   if (!parsed.success) {
@@ -323,7 +323,7 @@ router.post("/invites", async (req, res) => {
   if (relationshipId) {
     return res.status(400).json({
       error: "validation_error",
-      message: "Send a Compatibility report from the report itself.",
+      message: "Share a Compatibility report from the report itself.",
     });
   }
 
@@ -342,7 +342,7 @@ router.post("/invites", async (req, res) => {
     if (profile.isSelf) {
       return res.status(409).json({
         error: "own_chart",
-        message: "This report is about you. Send goes to the person a report is about.",
+        message: "This report is about you. You can share a report with the person it's about.",
       });
     }
     if (profile.claimedByUserId) {
@@ -354,7 +354,7 @@ router.post("/invites", async (req, res) => {
     if (!(await finishedNatalId(profile.id))) {
       return res.status(409).json({
         error: "not_ready",
-        message: "The report is still being written. Send it once it's ready.",
+        message: "The report is still being written. Share it once it's ready.",
       });
     }
 
@@ -374,7 +374,7 @@ router.post("/invites", async (req, res) => {
   }
 });
 
-// POST /compatibility/:id/send — Send to {B}; someone already joined reads it at once (MB-82).
+// POST /compatibility/:id/send — Share with {B}; someone already joined reads it at once (MB-82).
 // MB-103 provisional: a pair reaches the other of its two only when its maker, one of the
 // two, sends it, and the send is the maker's consent to their own chart reaching that
 // person (ADR-133, ADR-139).
@@ -400,7 +400,7 @@ router.post("/compatibility/:id/send", async (req, res) => {
       if (await viewerHasGrantOnRelationship(viewer, pair.relationship.id)) {
         return res.status(403).json({
           error: "forbidden",
-          message: "Only the person who had this report written can send it.",
+          message: "Only the person who had this report written can share it.",
         });
       }
       return res.status(404).json({ error: "not_found", message: "Report not found" });
@@ -426,13 +426,13 @@ router.post("/compatibility/:id/send", async (req, res) => {
     if (!split || !send) {
       return res.status(403).json({
         error: "forbidden",
-        message: "You can send a Compatibility report only when you're one of the two.",
+        message: "You can share a Compatibility report only when you're one of the two.",
       });
     }
     if (!FINISHED_STATUSES.includes(pair.report.status)) {
       return res.status(400).json({
         error: "not_ready",
-        message: "The report is still being written. Send it once it's ready.",
+        message: "The report is still being written. Share it once it's ready.",
       });
     }
 
@@ -468,7 +468,7 @@ router.post("/compatibility/:id/send", async (req, res) => {
     if (!body.data.email) {
       return res.status(400).json({
         error: "validation_error",
-        message: `Add ${send.firstName}'s email to send it.`,
+        message: `Add ${send.firstName}'s email to share it.`,
       });
     }
     const invite = await createSendInvite(req, {
@@ -487,7 +487,7 @@ router.post("/compatibility/:id/send", async (req, res) => {
     return res.status(201).json({ state: "invited", invite: { ...invite, emailDelivered } });
   } catch (err) {
     req.log.error({ err }, "Failed to send compatibility report");
-    return res.status(500).json({ error: "internal_error", message: "Failed to send the report" });
+    return res.status(500).json({ error: "internal_error", message: "Failed to share the report" });
   }
 });
 
