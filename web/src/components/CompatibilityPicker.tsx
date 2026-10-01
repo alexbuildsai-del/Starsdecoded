@@ -5,11 +5,10 @@
  * asking who the parent is, two people asking how they know each other
  * (ADR-68); one call to action. No birth form, ever.
  *
- * The dashboard's Generate hands it a pair (MB-86), which enters as the picked
- * selection once the list vouches for both reports. There it never leaves the
- * page after creating: the button reads Generating until the list holds the
- * pair, whose own row then reads Writing and opens when finished (reading 6,
- * ADR-131).
+ * A pair handed to it (MB-86) enters as the picked selection once the list
+ * vouches for both reports. On the dashboard it never leaves the page after
+ * creating: the button reads Writing until the list holds the pair, whose own
+ * row then reads Writing too and opens when finished (reading 6, ADR-131).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -33,7 +32,7 @@ export interface CompatibilityPickerProps {
   preselect?: Partial<PairSelection> | null;
   /** Opens the new report once it exists; the dashboard passes false and the pair's own row takes over (reading 6). */
   openOnCreate?: boolean;
-  /** The pair being written, from the press until the list holds it, then null: the dashboard row's Generating (ADR-130). */
+  /** The pair being written, from the press until the list holds it, then null (ADR-130). */
   onGenerating?: (pair: Pick<PairSelection, "a" | "b"> | null) => void;
   /** `creditsEnforced()` (ADR-138): at zero the button becomes Get credits. False keeps the soft pass. */
   enforced?: boolean;
@@ -148,8 +147,8 @@ export function CompatibilityPicker({
           navigate(`/compatibility/${res.id}`);
           return;
         }
-        // Generating holds until the list carries the pair, so its row turns
-        // Writing with no idle Generate in between (reading 6).
+        // Writing holds until the list carries the pair, so its row takes the
+        // status over with no idle button in between (reading 6).
         void listedAgain.then(() => {
           setPicked({});
           settle();
@@ -217,8 +216,9 @@ export function CompatibilityPicker({
       <div className="mt-5 flex flex-wrap items-center gap-3">
         {busy ? (
           // ADR-130: under way, the control is a status with dots, never its idle verb.
+          // MB-113 provisional: making a report says Write, and under way, Writing.
           <Button disabled className="font-label border-primary/35 bg-primary/10 text-[#9FA8DA] disabled:opacity-100">
-            <StatusDots label="Generating" />
+            <StatusDots label="Writing" />
           </Button>
         ) : outOfCredits ? (
           <>
