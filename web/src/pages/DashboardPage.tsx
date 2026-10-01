@@ -109,12 +109,14 @@ function plural(n: number, one: string): string {
  * the Compatibility reports they can open.
  */
 function summaryLine(home: Home): string {
-  const personal = (home.you ? 1 : 0) + home.people.length;
+  // A failed report keeps its seat so it can say so (R12-26), but it is not a report the reader has.
+  const you = home.you && home.you.status !== "failed" ? home.you : null;
+  const personal = (you ? 1 : 0) + home.people.filter((p) => p.status !== "failed").length;
   const pairs = home.pairs.filter(opens).length;
   if (personal === 0 && pairs === 0) return `Start with your own ${PERSONAL_REPORT}.`;
   const reports = plural(personal, "report");
   if (pairs > 0) return `${reports} · ${plural(pairs, COMPATIBILITY_REPORT)}`;
-  return home.you && personal === 1 ? `${reports} · you` : reports;
+  return you && personal === 1 ? `${reports} · you` : reports;
 }
 
 function giftGiver(history: readonly CreditHistoryItem[] | undefined): string | null {
