@@ -4,14 +4,22 @@
  * and in the pair writer alike, so every system prompt carries the numbers.
  * Rule 13 is the voice (ADR-185): two friends over coffee, too fancy and too
  * trendy named, in every natal and pair prompt, both foundations included.
+ * Rule 8 and the self-check that closes every user turn keep the semicolon
+ * out of every field (MB-129).
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SHARED_SYSTEM, STYLE_CONTRACT, WRITER } from "./system.js";
-import { FOUNDATION } from "./index.js";
-import { PAIR_FOUNDATION, PAIR_SYSTEM, PAIR_WRITER } from "./pair/index.js";
+import { ALL_SECTIONS, FOUNDATION } from "./index.js";
+import { PAIR_FOUNDATION, PAIR_SYSTEM, PAIR_WRITER, pairSpecsFor } from "./pair/index.js";
 import { REGISTER } from "./checks.js";
 import { PROMPT_DEFAULTS } from "../lib/promptDefaults.js";
+import { LENSES, type Lens } from "../lib/pairBrief.js";
+import { chartFromFixture } from "../lib/testFixtures.js";
+import { cannedNatalReplies, installFakeModel } from "../lib/testModel.js";
+
+const { SELF_CHECK, generateInterpretation, previewSectionPrompt } = await import("../lib/aiInterpretation.js");
+const { previewPairSectionPrompt } = await import("../lib/pairInterpretation.js");
 
 test("rules 7 and 8 carry the sentence numbers and the Owner's line", () => {
   const rule7 = STYLE_CONTRACT.split("\n").find((l) => l.startsWith("7."))!;
@@ -40,12 +48,49 @@ test("rule 3 is the spec's and rule 8 opens on the plain-text sentence, in both 
   assert.equal(rule3, RULE_3);
   assert.ok(rule8.startsWith(RULE_8_OPENING), rule8);
   assert.doesNotMatch(rule8, /No bullet points inside prose fields\./);
-  assert.match(rule8, /No em dashes\. No semicolons\. No emojis\./);
   assert.match(rule8, /No planet, sign, or house names inside prose fields unless the field is explicitly a label\.$/);
   assert.doesNotMatch(STYLE_CONTRACT, /may appear as a heading or label/);
   for (const system of [SHARED_SYSTEM, PAIR_SYSTEM]) {
     assert.ok(system.includes(RULE_3));
     assert.ok(system.includes(RULE_8_OPENING));
+  }
+});
+
+// Mix B wrote semicolons in 5 of 60 natal sections, three of them in the two
+// sections that lift rule 8, and in most pair chapters (MB-129).
+const RULE_8_PUNCTUATION = "No em dashes and not one semicolon, in any field, even where a section lifts this rule. Where two thoughts meet, end the first sentence and start the next. No emojis.";
+
+test("rule 8 bans the semicolon in every field, lifted or not, and says what to write instead, in both system prompts", () => {
+  const rule8 = STYLE_CONTRACT.split("\n").find((l) => l.startsWith("8."))!;
+  assert.ok(rule8.includes(RULE_8_PUNCTUATION), rule8);
+  for (const system of [SHARED_SYSTEM, PAIR_SYSTEM]) assert.ok(system.includes(RULE_8_PUNCTUATION));
+});
+
+test("the self-check closes every natal and pair user turn, both foundations included, and stays out of the cached system prompt", async () => {
+  assert.equal(SELF_CHECK, "Before you answer, check every field: no semicolons, no em dashes.");
+  const fake = installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "scorpio", sunHouse: 11 }));
+  const curie = await generateInterpretation(chartFromFixture("marie-curie"), "Marie Curie");
+  fake.replies = cannedNatalReplies({ drawn: true, sunSign: "aquarius", sunHouse: 3, sect: "night" });
+  const winfrey = await generateInterpretation(chartFromFixture("oprah-winfrey"), "Oprah Winfrey");
+  fake.restore();
+  const closes = (prompt: { system: string; user: string }, where: string) => {
+    assert.ok(prompt.user.endsWith(`\n\n${SELF_CHECK}`), where);
+    assert.equal(prompt.user.split(SELF_CHECK).length, 2, `${where}: once`);
+    assert.ok(!prompt.system.includes(SELF_CHECK), where);
+  };
+  for (const spec of ALL_SECTIONS) {
+    const foundationJson = spec.key === FOUNDATION.key ? undefined : JSON.stringify(curie.foundation, null, 2);
+    closes(await previewSectionPrompt(spec.key, chartFromFixture("marie-curie"), "Marie Curie", foundationJson), spec.key);
+  }
+  const input = (lens: Lens) => ({
+    lens,
+    parent: lens === "parent_child" ? ("B" as const) : null,
+    label: lens === "people" ? "colleagues" : null,
+    a: { name: "Marie Curie", birthDate: "1867-11-07", chart: chartFromFixture("marie-curie"), interpretation: curie },
+    b: { name: "Oprah Winfrey", birthDate: "1954-01-29", chart: chartFromFixture("oprah-winfrey"), interpretation: winfrey },
+  });
+  for (const lens of LENSES) {
+    for (const spec of [PAIR_FOUNDATION, ...pairSpecsFor(lens)]) closes(await previewPairSectionPrompt(spec.key, input(lens)), `${lens} ${spec.key}`);
   }
 });
 

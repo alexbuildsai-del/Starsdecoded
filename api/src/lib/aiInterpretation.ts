@@ -158,6 +158,13 @@ export interface ReportInterpretation {
 // Assembly. Static first, variable last, so the cached prefix is shared.
 // ---------------------------------------------------------------------------
 
+/**
+ * Closes every user turn the natal and pair assemblers build, the foundations'
+ * too, since every chapter picks up their words. A model weighs the end of a
+ * prompt most, and on mix B rule 8 alone did not keep the semicolon out (MB-129).
+ */
+export const SELF_CHECK = "Before you answer, check every field: no semicolons, no em dashes.";
+
 function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec, foundationJson?: string): string {
   const blind = brief.horizon === "unknown";
   const parts = [instructionsFor(spec, instructions, blind).trim()];
@@ -166,6 +173,7 @@ function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec
   if (foundationJson) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", foundationJson);
   const extra = spec.extraContext?.(brief);
   if (extra) parts.push("", extra);
+  parts.push("", SELF_CHECK);
   return parts.join("\n");
 }
 
