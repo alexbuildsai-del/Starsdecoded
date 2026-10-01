@@ -2,6 +2,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { MODELS } from "./models.js";
 import { resolveSection } from "./promptLoader.js";
 import type { NatalChartData } from "./chartCalculation.js";
+import { DATA_RULE, dataBlock } from "../prompts/data.js";
 import { ASPECT, BODY, BODY_LABELS, type AspectName, type Body } from "../prompts/vocabulary.js";
 import {
   computeSynastry,
@@ -65,6 +66,11 @@ const DEFAULT_SYNASTRY_SYSTEM = `You are an expert psychological astrologer spec
 - Focused on relational patterns, behavioral signatures, and growth opportunities
 You write in second person plural ("you both", "between you"). You do not name planets, signs, houses, or aspects in the body of the prose — you describe the underlying relational reality.`;
 
+/** The rule rides on every system prompt, a stored override included (ADR-202). */
+export function synastrySystem(system: string): string {
+  return `${system || DEFAULT_SYNASTRY_SYSTEM}\n\n${DATA_RULE}`;
+}
+
 function fillTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, k: string) =>
     Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : `{${k}}`,
@@ -86,15 +92,13 @@ async function callAI(systemPrompt: string, userPrompt: string, maxTokens = 600)
 function aspectsContextBlock(
   cross: CrossAspect[],
   meanings: Map<string, SynastryAspectPayload>,
-  nameA: string,
-  nameB: string,
   limit = 12,
 ): string {
   const lines: string[] = [];
   for (const c of cross.slice(0, limit)) {
     const key = synastryAspectKey(c.planetA, c.type, c.planetB);
     const m = meanings.get(key);
-    const header = `${nameA}'s ${c.planetA} ${c.type} ${nameB}'s ${c.planetB} (orb ${c.orb}°)`;
+    const header = `A's ${c.planetA} ${c.type} B's ${c.planetB} (orb ${c.orb}°)`;
     if (m) {
       lines.push(
         `- ${header}\n  dynamic: ${m.dynamic}\n  inFlow: ${m.inFlow}\n  underStress: ${m.underStress}\n  growth: ${m.growth}`,
@@ -106,7 +110,8 @@ function aspectsContextBlock(
   return lines.join("\n\n");
 }
 
-function summaryBlock(
+// The typed names appear once, each in its block; every other line says A and B (ADR-202).
+export function summaryBlock(
   compute: SynastryComputeResult,
   nameA: string,
   nameB: string,
@@ -115,7 +120,11 @@ function summaryBlock(
     .map((c) => `${c.category}: ${c.score} (${c.rating}, ${c.count} contacts)`)
     .join("\n  ");
   return [
-    `Pair: ${nameA} & ${nameB}`,
+    `Pair: A & B`,
+    `A's name:`,
+    dataBlock("name", nameA),
+    `B's name:`,
+    dataBlock("name", nameB),
     `Overall score: ${compute.overallScore} (${compute.overallRating})`,
     `Themes: ${compute.themes.join(", ") || "none"}`,
     `Category scores:\n  ${cats}`,
@@ -140,40 +149,30 @@ export async function generateSynastryInterpretation(
   }
 
   const summary = summaryBlock(compute, nameA, nameB);
-  const aspectContext = aspectsContextBlock(top, meanings, nameA, nameB);
+  const aspectContext = aspectsContextBlock(top, meanings);
   const emotionalContext = aspectsContextBlock(
     compute.crossAspects.filter((c) => c.categories.includes("emotional")),
     meanings,
-    nameA,
-    nameB,
     8,
   );
   const commContext = aspectsContextBlock(
     compute.crossAspects.filter((c) => c.categories.includes("communication")),
     meanings,
-    nameA,
-    nameB,
     8,
   );
   const physContext = aspectsContextBlock(
     compute.crossAspects.filter((c) => c.categories.includes("physical")),
     meanings,
-    nameA,
-    nameB,
     8,
   );
   const tensionContext = aspectsContextBlock(
     compute.tensions,
     meanings,
-    nameA,
-    nameB,
     8,
   );
   const growthContext = aspectsContextBlock(
     compute.crossAspects.filter((c) => c.categories.includes("growth")),
     meanings,
-    nameA,
-    nameB,
     8,
   );
 
@@ -189,17 +188,17 @@ export async function generateSynastryInterpretation(
       resolveSection(`${rtKey}:growth`),
     ]);
 
-  const commonVars = { nameA, nameB, summary };
+  const commonVars = { nameA: "A", nameB: "B", summary };
 
   const [overview, emotional, communication, physical, conflict, growth] =
     await Promise.all([
       callAI(
-        overviewP.system || DEFAULT_SYNASTRY_SYSTEM,
+        synastrySystem(overviewP.system),
         fillTemplate(overviewP.user, { ...commonVars, aspectContext }),
         700,
       ),
       callAI(
-        emotionalP.system || DEFAULT_SYNASTRY_SYSTEM,
+        synastrySystem(emotionalP.system),
         fillTemplate(emotionalP.user, {
           ...commonVars,
           emotionalContext: emotionalContext || "(few direct emotional contacts — describe what this emptiness implies)",
@@ -207,7 +206,7 @@ export async function generateSynastryInterpretation(
         500,
       ),
       callAI(
-        communicationP.system || DEFAULT_SYNASTRY_SYSTEM,
+        synastrySystem(communicationP.system),
         fillTemplate(communicationP.user, {
           ...commonVars,
           commContext: commContext || "(few direct mental contacts — describe how the broader chart implies their dialogue style)",
@@ -215,7 +214,7 @@ export async function generateSynastryInterpretation(
         500,
       ),
       callAI(
-        physicalP.system || DEFAULT_SYNASTRY_SYSTEM,
+        synastrySystem(physicalP.system),
         fillTemplate(physicalP.user, {
           ...commonVars,
           physContext: physContext || "(few direct physical contacts — be honest about what that implies)",
@@ -223,7 +222,7 @@ export async function generateSynastryInterpretation(
         500,
       ),
       callAI(
-        conflictP.system || DEFAULT_SYNASTRY_SYSTEM,
+        synastrySystem(conflictP.system),
         fillTemplate(conflictP.user, {
           ...commonVars,
           tensionContext: tensionContext || "(few hard contacts — describe what easy compatibility might quietly cost the relationship)",
@@ -231,7 +230,7 @@ export async function generateSynastryInterpretation(
         500,
       ),
       callAI(
-        growthP.system || DEFAULT_SYNASTRY_SYSTEM,
+        synastrySystem(growthP.system),
         fillTemplate(growthP.user, {
           ...commonVars,
           growthContext: growthContext || aspectContext,

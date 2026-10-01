@@ -54,3 +54,13 @@ test("a failed report answers with the coded line and never the internal message
   const { failReport } = await import("./reports.js");
   assert.equal(typeof failReport, "function");
 });
+
+test("regenerate cooldown: the 429 body names the seconds left and matches the Retry-After it is sent with (ADR-199)", async () => {
+  const { regenerateCooldown } = await import("./reports.js");
+  const c = regenerateCooldown(15_000);
+  assert.ok(c);
+  assert.equal(c.retryAfterSeconds, 45);
+  assert.deepEqual(c.body, { error: "rate_limited", message: "Please wait 45s before regenerating again", retryAfterSeconds: 45 });
+  assert.equal(regenerateCooldown(59_999)?.retryAfterSeconds, 1);
+  assert.equal(regenerateCooldown(60_000), null);
+});

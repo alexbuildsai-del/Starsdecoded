@@ -653,6 +653,13 @@ async function handOver(tx: Tx, profileId: string, toUserId: string): Promise<vo
 //
 // Abuse guard: per-report cooldown to prevent tight-loop LLM spam.
 const REGENERATE_COOLDOWN_MS = 60_000;
+
+/** The refusal pinned for every 429 (reading: Refusals); null once the cooldown has passed. */
+export function regenerateCooldown(elapsedMs: number): { retryAfterSeconds: number; body: { error: "rate_limited"; message: string; retryAfterSeconds: number } } | null {
+  if (elapsedMs >= REGENERATE_COOLDOWN_MS) return null;
+  const retryAfterSeconds = Math.max(1, Math.ceil((REGENERATE_COOLDOWN_MS - elapsedMs) / 1000));
+  return { retryAfterSeconds, body: { error: "rate_limited", message: `Please wait ${retryAfterSeconds}s before regenerating again`, retryAfterSeconds } };
+}
 const lastRegenerateAt = new Map<string, number>();
 
 // Delete a report its holder deletes: a natal report by whoever wrote it or
@@ -745,12 +752,10 @@ router.post("/reports/:id/regenerate", async (req, res) => {
     }
     const last = lastRegenerateAt.get(r.id) ?? 0;
     const elapsed = Date.now() - last;
-    if (elapsed < REGENERATE_COOLDOWN_MS) {
-      const retryAfter = Math.ceil((REGENERATE_COOLDOWN_MS - elapsed) / 1000);
-      res.setHeader("Retry-After", String(retryAfter));
-      return res
-        .status(429)
-        .json({ error: "rate_limited", message: `Please wait ${retryAfter}s before regenerating again` });
+    const cooldown = regenerateCooldown(elapsed);
+    if (cooldown) {
+      res.setHeader("Retry-After", String(cooldown.retryAfterSeconds));
+      return res.status(429).json(cooldown.body);
     }
     lastRegenerateAt.set(r.id, Date.now());
     await db
