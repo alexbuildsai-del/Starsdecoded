@@ -1,9 +1,11 @@
 /**
  * The one balance in sight (ADR-95, 129): the pill in the nav on every
- * dashboard view, the dots both credit sheets draw, and the panel's credit
- * row (dashboard-sky acceptance 8). Each reads the same credits query, so the
- * numbers never disagree, and none shows a bundle or a price.
+ * dashboard view, the dots both credit sheets and every bundle list draw, and
+ * the panel's credit row (dashboard-sky acceptance 8). Each reads the same
+ * credits query, so the numbers never disagree, and none shows a bundle or a
+ * price; the row says what a credit buys, as every price list does (ADR-170).
  */
+import { CREDIT_LINE } from "@workspace/commerce";
 import { useGetCredits } from "@workspace/api-client-react";
 import { creditDots, creditsEnforced } from "@/lib/credits-view";
 import { cn } from "@/lib/utils";
@@ -56,17 +58,17 @@ export interface CreditDotsProps {
   className?: string;
 }
 
-/** Decorative: whatever draws the dots also states the number in words. */
+/**
+ * Decorative: whatever draws the dots also states the number in words. A balance and a bundle draw the same dot, so
+ * three credits look alike on the price list and in the sheet (ADR-172).
+ */
 export function CreditDots({ count, className }: CreditDotsProps) {
   const { lit, more } = creditDots(count);
   if (lit === 0) return null;
   return (
-    <div aria-hidden="true" className={cn("flex flex-wrap items-center gap-[7px]", className)}>
+    <div aria-hidden="true" className={cn("flex flex-wrap items-center gap-1.5", className)}>
       {Array.from({ length: lit }, (_, i) => (
-        <i
-          key={i}
-          className="block h-3 w-3 rounded-full bg-[linear-gradient(135deg,#5C6BC0,#8967C1)] shadow-[0_0_8px_rgba(137,103,193,.5)]"
-        />
+        <i key={i} className="block h-[9px] w-[9px] rounded-full bg-[#9575CD] shadow-[0_0_8px_rgba(149,117,205,.53)]" />
       ))}
       {more > 0 && <span className="ml-0.5 font-numeric text-xs text-[#9FA8DA]">+{more}</span>}
     </div>
@@ -104,9 +106,7 @@ export function CreditRow({ onGetCredits, enforced, className }: CreditRowProps)
             </>
           )}
         </p>
-        <p className="text-xs leading-snug text-muted-foreground">
-          {zero && live ? "Get credits to add someone or see how two people fit." : "Each report uses one."}
-        </p>
+        <p className="text-xs leading-snug text-muted-foreground">{CREDIT_LINE}</p>
       </div>
       {live && (
         <button

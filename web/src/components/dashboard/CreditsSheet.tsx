@@ -1,8 +1,9 @@
 /**
  * The credits sheet (credit-loop, Credits you can see): what is left to use as
- * one count and its dots, the two ways to spend a credit, the three bundles as
- * counts, and History behind a fold. It frames itself like the other dashboard
- * sheets, from the right on a desktop and from the bottom on a phone.
+ * one count and its dots, the two ways to spend a credit, the bundles as the
+ * site prices them (ADR-170, 172), and History behind a fold. It frames itself
+ * like the other dashboard sheets, from the right on a desktop and from the
+ * bottom on a phone.
  */
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -17,10 +18,11 @@ import {
   useTestCheckout,
 } from "@workspace/api-client-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { BundleList } from "@/components/BundleList";
 import { StatusDots } from "@/components/StatusDots";
 import { CreditDots } from "@/components/dashboard/CreditPill";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { BUNDLES, creditCount, creditsEnforced, historyLine } from "@/lib/credits-view";
+import { TEST_CHECKOUT, creditCount, creditsEnforced, historyLine } from "@/lib/credits-view";
 import { cn } from "@/lib/utils";
 
 const EYEBROW = "font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]";
@@ -173,9 +175,8 @@ export function CreditsSheet({ open, onClose, onAddSomeone, onGift, enforced }: 
         </SheetHeader>
 
         <CreditDots count={available} />
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
-          {zero ? "Your orbit has room for more." : "One credit is one report: yours, someone else's, or two people together."}
-        </p>
+        {/* A balance above zero needs no line here: what a credit buys is said once, under the bundles (ADR-170). */}
+        {zero && <p className="text-[13px] leading-relaxed text-muted-foreground">Your circle has room for more.</p>}
 
         {/* The soft pass spends with no balance, so production keeps both doors at zero (ADR-138). */}
         {(!zero || !live) && (
@@ -189,52 +190,52 @@ export function CreditsSheet({ open, onClose, onAddSomeone, onGift, enforced }: 
           </div>
         )}
 
-        <div className="grid gap-2.5">
-          {/* MB-6 provisional: Get credits is the free test checkout until real checkout exists (ADR-138). */}
-          {live && <p className="text-[13px] text-[#AEB6C6]">Credits are free while we test.</p>}
-          <ul className="grid gap-2">
-            {BUNDLES.map((bundle) => (
-              <li
-                key={bundle.count}
-                className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-[rgba(17,22,31,.7)] px-3.5 py-3"
+        <BundleList compact />
+
+        {/* MB-6 provisional: Get credits is the free test checkout until real checkout exists (ADR-138). */}
+        {live && (
+          <div className="grid gap-2.5">
+            <p className="text-[13px] text-[#AEB6C6]">Credits are free while we test.</p>
+            {isSignedIn === false ? (
+              <button
+                type="button"
+                onClick={then(() => navigate(`/sign-in?return_to=${encodeURIComponent(location)}`))}
+                className={cn(BUTTON, FILLED, "h-10 w-full text-[13.5px]")}
               >
-                <span className="font-display text-[26px] leading-none">{bundle.count}</span>
-                <span className="min-w-0 text-[13px] leading-snug text-[#AEB6C6]">{bundle.name}</span>
-                {live && isSignedIn !== false && (
-                  adding === bundle.count ? (
-                    <span className={cn(BUTTON, "border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.1)] text-[#9FA8DA]")}>
+                Sign in to get credits
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                {TEST_CHECKOUT.map((count) =>
+                  adding === count ? (
+                    <span
+                      key={count}
+                      className={cn(BUTTON, "border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.1)] text-[#9FA8DA]")}
+                    >
                       <StatusDots label="Adding" />
                     </span>
                   ) : (
                     <button
+                      key={count}
                       type="button"
                       disabled={adding !== null}
                       onClick={() => {
                         setNotice(null);
-                        checkout.mutate({ data: { count: bundle.count } });
+                        checkout.mutate({ data: { count } });
                       }}
                       className={cn(BUTTON, OUTLINED)}
                     >
-                      Get {creditCount(bundle.count)}
+                      Get {creditCount(count)}
                     </button>
-                  )
+                  ),
                 )}
-              </li>
-            ))}
-          </ul>
-          {live && isSignedIn === false && (
-            <button
-              type="button"
-              onClick={then(() => navigate(`/sign-in?return_to=${encodeURIComponent(location)}`))}
-              className={cn(BUTTON, FILLED, "h-10 w-full text-[13.5px]")}
-            >
-              Sign in to get credits
-            </button>
-          )}
-          <p role="status" aria-live="polite" className="text-[13px] text-muted-foreground empty:hidden">
-            {notice}
-          </p>
-        </div>
+              </div>
+            )}
+            <p role="status" aria-live="polite" className="text-[13px] text-muted-foreground empty:hidden">
+              {notice}
+            </p>
+          </div>
+        )}
 
         <History />
       </SheetContent>
