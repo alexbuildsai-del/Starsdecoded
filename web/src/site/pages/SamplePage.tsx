@@ -284,7 +284,7 @@ const BODIES: Record<OpenChapter, Body> = {
             <p className={PROSE}>
               <Words printed={p.tension} />
             </p>
-            <p className="mt-1 font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[.18em] text-[color:var(--accent)]">
+            <p className="mt-1 font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[.18em] text-[color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">
               A way through
             </p>
             <p className={PROSE}>
@@ -318,7 +318,7 @@ function ChapterSection({ index, section, chart }: { index: number; section: Ope
       // reading keeps its measure; the deck takes the column's width, for its wheel and card side by side.
       className={cn(STRETCH, ANCHOR, "grid grid-cols-[minmax(0,1fr)] gap-[22px]", section !== "houses" && "max-w-[70ch]")}
     >
-      <p className="font-label text-[11px] font-medium uppercase leading-[1.2] tracking-[.22em] text-[color:var(--accent)]">
+      <p className="font-label text-[11px] font-medium uppercase leading-[1.2] tracking-[.22em] text-[color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">
         <span className="font-numeric">{counter(index + 1)}</span> · {chapter.eyebrow}
       </p>
       <h2 id={`${id}-title`} className="text-[clamp(32px,3.4vw,44px)] leading-[1.08]">
@@ -346,7 +346,7 @@ function DimmedSection({ index, section }: { index: number; section: DimmedChapt
       className={cn(ANCHOR, "rounded-[12px] border border-[color:var(--line)]")}
     >
       <div className={cn("grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 px-3 pt-[11px]", first ? "pb-1" : "pb-[11px]")}>
-        <span className="font-numeric text-[12px] font-medium text-[color:var(--accent)]">{two(index + 1)}</span>
+        <span className="font-numeric text-[12px] font-medium text-[color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">{two(index + 1)}</span>
         <div className="grid min-w-0 gap-0.5">
           <h2 id={`${id}-title`} className="font-sans text-[15px] leading-[1.35] tracking-normal text-[color:var(--paper-dim)]">
             {chapter.title}

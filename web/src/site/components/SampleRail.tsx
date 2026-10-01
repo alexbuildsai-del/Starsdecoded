@@ -94,7 +94,7 @@ export function SampleRail() {
                   on && "bg-[rgba(232,235,242,.05)] text-[color:var(--paper)] max-[1000px]:border-[color:var(--c)]",
                 )}
               >
-                <span className={cn("font-numeric text-[10.5px] font-medium leading-[1.6] text-[color:var(--c)]", !open && "opacity-60")}>{two(i + 1)}</span>
+                <span className={cn("font-numeric text-[10.5px] font-medium leading-[1.6]", open ? "text-[color:color-mix(in_srgb,var(--c)_45%,var(--paper))]" : "text-[color:var(--sd-muted)]")}>{two(i + 1)}</span>
                 <span className="max-[1000px]:hidden">{chapter.title}</span>
                 <span className="min-[1000px]:hidden">{chapter.eyebrow}</span>
                 {/* A screen reader hears what the dimming shows. */}
