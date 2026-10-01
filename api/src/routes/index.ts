@@ -15,9 +15,27 @@ import adminLabSessionsRouter from "./adminLabSessions";
 import adminReleaseRouter from "./adminRelease";
 import adminWaitlistRouter from "./adminWaitlist";
 import homeRouter from "./home";
+import { checkoutLimit, generationLimits, geocodeLimit, previewLimit, sendLimit } from "../lib/limits";
+import { spendGate } from "../lib/spendCap";
 
 // health is mounted directly in app.ts, ahead of auth
 const router: IRouter = Router();
+
+// Every route that spends or sends meets its limit here, ahead of the router that answers it, so the routes a limit guards
+// read as one list (ADR-199). Writing then meets the day's spend breaker, after the limits, which cost no query.
+const writing = [...generationLimits, spendGate()];
+router.post("/reports", writing);
+router.post("/reports/:id/regenerate", writing);
+router.post("/compatibility", writing);
+router.post("/synastry", writing);
+router.patch("/profiles/:id/birth-time", writing);
+router.get("/geocode", geocodeLimit);
+// MB-146 provisional
+router.post("/horizon/preview", previewLimit);
+router.post("/invites", sendLimit);
+router.post("/compatibility/:id/send", sendLimit);
+router.post("/gifts", sendLimit);
+router.post("/checkout/test", checkoutLimit);
 
 router.use(reportsRouter);
 router.use(geocodeRouter);

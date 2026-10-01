@@ -3,7 +3,8 @@
 // to a local stub, and every report here is a stored row, never generated,
 // since nothing in this file may call OpenAI (dashboard-sky acceptance 11;
 // credit-loop acceptance 2, 4; review-01-10 acceptance 4, 11; ADR-138, 139,
-// 174, 182; MB-84, 103, 110).
+// 174, 182; MB-84, 103, 110). R13-08 adds the limits, the spend breaker and
+// the origin guard (security acceptance 2, 6, 7; ADR-197, 199).
 // MB-49 provisional: the ledger this proves is the soft-pass one `consumeCredit`
 // still runs, so this file's checks retire with that pass, not before it.
 //
@@ -64,53 +65,55 @@ const { chartForProfile } = await import("../lib/profiles.js");
 const { PAIR_PROMPT_VERSION } = await import("../prompts/pair/index.js");
 const { grantBundle, getCredits } = await import("../lib/credits.js");
 const { logger } = await import("../lib/logger.js");
-const { default: reportsRouter } = await import("../routes/reports.js");
-const { default: invitesRouter } = await import("../routes/invites.js");
-const { default: profilesRouter } = await import("../routes/profiles.js");
-const { default: giftsRouter } = await import("../routes/gifts.js");
-const { default: creditsRouter } = await import("../routes/credits.js");
-const { default: checkoutRouter } = await import("../routes/checkout.js");
-const { default: compatibilityRouter } = await import("../routes/compatibility.js");
-const { default: homeRouter } = await import("../routes/home.js");
+const { LIMIT_LINES } = await import("../lib/limits.js");
+const { apiHeaders, originGuard, webOrigins } = await import("../middlewares/origin.js");
+const { default: router } = await import("../routes/index.js");
 const { GetHomeResponse } = await import("@workspace/api-zod");
 
 const q = (sql: string, params: unknown[] = []) => pool.query(sql, params);
 
-// A bare Express app whose stub sets userId and sessionId from headers, the
-// same shape every route already expects from the real cookie/Clerk middleware.
+// app.ts's order, with a stub where the cookie and Clerk middleware stand: it
+// sets userId and sessionId from headers, the shape every route expects. The
+// router is the one app.ts mounts, so each limit stands where it does there.
+// The guard takes the default origins, so a shell's NODE_ENV=development,
+// which lets every Origin through, cannot pass the foreign write below.
 const app = express();
-app.use(express.json());
+app.use(apiHeaders());
+app.use(originGuard(webOrigins({})));
+app.use(express.json({ limit: "32kb" }));
 app.use((req: Request, _res: Response, next: NextFunction) => {
   req.userId = req.header("x-user") || null;
   req.sessionId = req.header("x-session") || "s-none";
   req.log = logger;
   next();
 });
-app.use("/api", reportsRouter);
-app.use("/api", invitesRouter);
-app.use("/api", profilesRouter);
-app.use("/api", giftsRouter);
-app.use("/api", creditsRouter);
-app.use("/api", checkoutRouter);
-app.use("/api", compatibilityRouter);
-app.use("/api", homeRouter);
+app.use("/api", router);
 const server = app.listen(0, "127.0.0.1");
 await new Promise<void>((resolve) => server.on("listening", () => resolve()));
 const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
 
-async function call(who: Viewer, method: string, path: string, body?: unknown) {
+// Any response in the walk that let another origin read it; the last step expects none.
+const corsAllowed: string[] = [];
+
+async function call(who: Viewer, method: string, path: string, body?: unknown, extra: Record<string, string> = {}) {
   const headers: Record<string, string> = {
     "x-session": who.session,
     "content-type": "application/json",
     // Send/gift links resolve a public origin from this; harmless elsewhere.
     "x-forwarded-host": "starsdecoded-staging.vercel.app",
+    ...extra,
   };
   if (who.user) headers["x-user"] = who.user;
   const res = await fetch(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  if (res.headers.has("access-control-allow-origin")) corsAllowed.push(`${method} ${path}`);
   const text = await res.text();
   // A route that no longer exists answers Express's own HTML 404, which has no JSON to parse.
   const json = res.headers.get("content-type")?.includes("application/json");
-  return { status: res.status, body: text && json ? JSON.parse(text) : text || null };
+  return { status: res.status, headers: res.headers, body: text && json ? JSON.parse(text) : text || null };
+}
+async function until(done: () => boolean, ms = 3000) {
+  const end = Date.now() + ms;
+  while (!done() && Date.now() < end) await new Promise((resolve) => setTimeout(resolve, 25));
 }
 async function listReports(who: Viewer) {
   const r = await call(who, "GET", "/reports");
@@ -226,6 +229,11 @@ const CHECKOUT_USER = { user: "user_checkout", session: "s-checkout" };
 const GIFT_GIVER = { user: "user_gift_giver", session: "s-gift-giver" };
 const GIFT_RECIPIENT = { user: "user_gift_recipient", session: "s-gift-recipient" };
 const ANON = { user: null, session: "s-anon" };
+const LIMITED = { user: "user_limited", session: "s-limited" };
+const BREAKER = { user: "user_breaker", session: "s-breaker" };
+const WALK_ADMIN = { id: "user_walk_admin", email: "walk-admin@example.com" };
+const FOREIGN_PAGE = "https://evil.example";
+const OUR_PAGE = "https://starsdecoded-staging.vercel.app";
 
 let setupError: unknown = null;
 try {
@@ -242,6 +250,9 @@ try {
     [CHECKOUT_USER.user, "checkout@example.com"],
     [GIFT_GIVER.user, "gift-giver@example.com"],
     [GIFT_RECIPIENT.user, "gift-recipient@example.com"],
+    [LIMITED.user, "limited@example.com"],
+    [BREAKER.user, "breaker@example.com"],
+    [WALK_ADMIN.id, WALK_ADMIN.email],
   ]) {
     await q("insert into users (id, email) values ($1, $2)", [id, email]);
   }
@@ -253,6 +264,12 @@ try {
   await natal("RA", "PA", GIVER.session);
   await natal("RO", "PO", GIVER.session);
   await pair("REL", "RP", GIVER, "partners", { profileId: "PM", reportId: "RM" }, { profileId: "PA", reportId: "RA" });
+  // Today's one priced report, there before any step can read the day's spend, which the breaker then holds for a minute.
+  await person("PBK", "Athena Mapelli Mozzi", "athena", BREAKER, true);
+  await q(
+    "insert into reports (id, profile_id, session_id, type, status, interpretation) values ('RBK', 'PBK', $1, 'natal', 'complete', $2)",
+    [BREAKER.session, JSON.stringify({ meta: { usage: { costUsd: 0.02 } } })],
+  );
 
   await step("reports: the writer lists everything, a stranger 404s everywhere, Send waits out a revision", async () => {
     const g = await listReports(GIVER);
@@ -706,6 +723,63 @@ try {
 
     assert.deepEqual((await call(ANON, "GET", "/credits")).body, { available: 0, used: 0, held: 0, lastBundle: null });
     assert.deepEqual((await call(ANON, "GET", "/credits/history")).body, []);
+  });
+
+  await step("limits: the 11th checkout in an hour answers 429 with Retry-After and its line, and grants nothing (ADR-199)", async () => {
+    for (let i = 1; i <= 10; i++) {
+      assert.equal((await call(LIMITED, "POST", "/checkout/test", { count: 1 })).status, 201, `checkout ${i}`);
+    }
+    const eleventh = await call(LIMITED, "POST", "/checkout/test", { count: 1 });
+    assert.equal(eleventh.status, 429);
+    const wait = Number(eleventh.headers.get("retry-after"));
+    assert.ok(Number.isInteger(wait) && wait > 0 && wait <= 3600, `Retry-After: ${wait}`);
+    assert.deepEqual(eleventh.body, { error: "rate_limited", message: LIMIT_LINES.checkout, retryAfterSeconds: wait });
+    assert.equal((await call(LIMITED, "GET", "/credits")).body.available, 10);
+  });
+
+  await step("the breaker: past DAILY_SPEND_CAP_USD, POST /reports answers 503 paused before its route, and the admin hears once (ADR-199)", async () => {
+    const before = { mails: mails.length, cap: process.env.DAILY_SPEND_CAP_USD, admin: process.env.ADMIN_USER_ID };
+    process.env.DAILY_SPEND_CAP_USD = "0.01";
+    process.env.ADMIN_USER_ID = WALK_ADMIN.id;
+    try {
+      // A body the route itself would refuse, so a gate that failed to pause could start no generation: nothing here calls OpenAI.
+      for (const attempt of [1, 2]) {
+        const paused = await call(BREAKER, "POST", "/reports", {});
+        assert.equal(paused.status, 503, `attempt ${attempt}`);
+        assert.deepEqual([paused.body.error, paused.body.reason, typeof paused.body.message], ["paused", "paused", "string"]);
+      }
+      await until(() => mails.length > before.mails);
+      // Long enough for a second email, were the once-a-day rule to fail.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    } finally {
+      for (const [name, value] of [["DAILY_SPEND_CAP_USD", before.cap], ["ADMIN_USER_ID", before.admin]] as const) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
+    assert.deepEqual(mails.slice(before.mails).map((m) => m.to), [WALK_ADMIN.email]);
+    assert.doesNotMatch(mails.at(-1)!.text, /Athena|breaker@example\.com/);
+    assert.equal((await q("select count(*)::int as n from reports where session_id = $1", [BREAKER.session])).rows[0].n, 1);
+  });
+
+  await step("no CORS: a foreign page's write answers 403 and changes nothing, ours goes through, and no response in the walk let another origin read it (ADR-197)", async () => {
+    const giftsBefore = (await listGifts(GIFT_GIVER)).length;
+    const mailsBefore = mails.length;
+    const forged = await call(GIFT_GIVER, "POST", "/gifts", { recipientName: "Eve", email: "eve@example.com" }, { origin: FOREIGN_PAGE });
+    assert.equal(forged.status, 403);
+    assert.equal(forged.body.error, "forbidden_origin");
+    assert.equal((await listGifts(GIFT_GIVER)).length, giftsBefore);
+    assert.equal(mails.length, mailsBefore);
+
+    const tick = { "career.actions.0": day(6) };
+    const stored = async () => (await q("select workbook from reports where id = 'RM'")).rows[0].workbook as Record<string, string>;
+    assert.equal((await call(GIVER, "PATCH", "/reports/RM/workbook", tick, { origin: FOREIGN_PAGE })).status, 403);
+    assert.equal((await stored())["career.actions.0"], undefined);
+    assert.equal((await call(GIVER, "PATCH", "/reports/RM/workbook", tick, { origin: OUR_PAGE })).status, 200);
+    assert.equal((await stored())["career.actions.0"], day(6));
+
+    assert.equal((await call(GIVER, "GET", "/reports", undefined, { origin: FOREIGN_PAGE })).status, 200);
+    assert.deepEqual(corsAllowed, []);
   });
 } catch (err) {
   setupError = err;
