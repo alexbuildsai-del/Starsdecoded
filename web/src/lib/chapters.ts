@@ -5,7 +5,7 @@
  */
 export const CHAPTERS = [
   { eyebrow: "Overview", title: "Chart Overview", section: "overview" },
-  { eyebrow: "Chart", title: "Natal Chart Deepdive", section: "houses" },
+  { eyebrow: "Chart", title: "House by House", section: "houses" },
   { eyebrow: "Mind", title: "Mind & Communication", section: "mind" },
   { eyebrow: "Work", title: "Career & Calling", section: "career" },
   { eyebrow: "Resources", title: "Money & Resources", section: "money" },
