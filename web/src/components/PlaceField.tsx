@@ -95,7 +95,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
       setShowDropdown(true);
     } catch {
       if (stale()) return;
-      setPlaceError("Search failed — please try again.");
+      setPlaceError("Search failed. Please try again.");
       setCandidates([]);
       setShowDropdown(false);
     } finally {
