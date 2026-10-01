@@ -227,3 +227,90 @@ test("the route holds one client to 60 reports a minute, and a store that fails 
   assert.equal(tries, 60);
   assert.equal((await post(base, REPORT_URI, reportUri({}), "198.51.100.4")).status, 204, "another client is not held");
 });
+
+test("a page's host is judged whole: userinfo, a port, a look-alike prefix or a path that names ours does not make a page ours", () => {
+  for (const page of [
+    "https://mystarsdecoded.com@evil.example/",
+    "https://evil.example/https://mystarsdecoded.com/",
+    "https://evil.example/?next=mystarsdecoded.com",
+    "https://mystarsdecoded.com:8443/",
+    "https://[::1]/",
+  ]) {
+    const report = parseCspReport(REPORT_URI, reportUri({ "document-uri": page }));
+    assert.deepEqual(cspCounts(report ? [report] : [], OURS), [], page);
+  }
+  const upper = parseCspReport(REPORT_URI, reportUri({ "document-uri": "https://MyStarsDecoded.com/Sample" }));
+  assert.equal(upper?.documentHost, "mystarsdecoded.com");
+  assert.equal(cspCounts([upper!], OURS).length, 1);
+});
+
+test("a blocked URL's credentials, path and query never reach the count; only host and port stay", () => {
+  assert.equal(blockedOf("https://user:secret@host.example:8443/a/b?token=1#frag"), "host.example:8443");
+  assert.equal(blockedOf("HTTPS://Host.Example/"), "host.example");
+  const report = parseCspReport(REPORT_URI, reportUri({ "blocked-uri": "https://user:secret@host.example/a?token=1" }));
+  assert.doesNotMatch(JSON.stringify(report), /user|secret|token|\/a/);
+});
+
+test("an empty batch, an empty object and a batch of other reports count nothing", () => {
+  assert.deepEqual(parseCspReports(REPORTING_API, []), []);
+  assert.deepEqual(parseCspReports(REPORTING_API, {}), []);
+  assert.deepEqual(parseCspReports(REPORTING_API, [null, "x", 1, [], { type: "csp-violation" }, { type: "csp-violation", body: null }]), []);
+  assert.deepEqual(cspCounts([], OURS), []);
+});
+
+test("a report with a missing field is nothing: no directive, no blocked value, no page", () => {
+  assert.equal(parseCspReport(REPORT_URI, reportUri({ "effective-directive": undefined, "violated-directive": undefined })), null);
+  assert.equal(parseCspReport(REPORT_URI, reportUri({ "blocked-uri": "about:blank" })), null);
+  assert.equal(parseCspReport(REPORT_URI, reportUri({ "document-uri": undefined })), null);
+  assert.equal(parseCspReport(REPORTING_API, reportingApi({ documentURL: undefined }, "")), null);
+});
+
+test("the Reporting API's entry falls back on its own url when the body has no documentURL", () => {
+  const entry = reportingApi({ documentURL: undefined });
+  const report = parseCspReport(REPORTING_API, entry);
+  assert.equal(report?.documentHost, "www.mystarsdecoded.com");
+});
+
+test("the admin's week crosses a month and a year", () => {
+  assert.equal(cspWindowStart(new Date("2027-01-03T10:00:00Z")), "2026-12-28");
+  assert.equal(cspWindowStart(new Date("2024-03-03T00:00:00Z")), "2024-02-26", "a leap year's 29th is a day of the week");
+  assert.equal(utcDay(new Date("2026-12-31T23:59:59.999Z")), "2026-12-31");
+});
+
+function ofSize(bytes: number): string {
+  const base = JSON.stringify(reportUri({ "script-sample": "" }));
+  return JSON.stringify(reportUri({ "script-sample": "x".repeat(bytes - Buffer.byteLength(base)) }));
+}
+
+test("the route's 8 kB limit: a body of exactly 8192 bytes is read, one byte more is refused with 413", async (t) => {
+  const added: unknown[] = [];
+  const { base, close } = await serve({ add: async (_day, counts) => void added.push(counts) });
+  t.after(close);
+  const exact = ofSize(8192);
+  assert.equal(Buffer.byteLength(exact), 8192);
+  assert.equal((await post(base, REPORT_URI, exact)).status, 204);
+  assert.equal(added.length, 1, "the last allowed report is counted");
+  const over = ofSize(8193);
+  assert.equal(Buffer.byteLength(over), 8193);
+  assert.equal((await post(base, REPORT_URI, over)).status, 413);
+  assert.equal(added.length, 1);
+  assert.equal((await post(base, REPORTING_API, ofSize(8193))).status, 413);
+});
+
+test("the route answers a report with no Origin and no cookie, and an empty batch with 204", async (t) => {
+  const added: unknown[] = [];
+  const { base, close } = await serve({ add: async (_day, counts) => void added.push(counts) });
+  t.after(close);
+  const res = await fetch(base, { method: "POST", headers: { "content-type": `${REPORTING_API}; charset=utf-8`, origin: "null" }, body: JSON.stringify([reportingApi({})]) });
+  assert.equal(res.status, 204);
+  assert.equal(added.length, 1);
+  assert.equal((await post(base, REPORTING_API, [])).status, 204);
+  assert.equal(added.length, 1);
+});
+
+test("a report that fails the rate limit is refused before its body is read, so a flood of junk costs no parsing", async (t) => {
+  const { base, close } = await serve({ add: async () => {} });
+  t.after(close);
+  for (let i = 0; i < 60; i += 1) await post(base, REPORT_URI, reportUri({}), "203.0.113.50");
+  assert.equal((await post(base, REPORT_URI, "{not json", "203.0.113.50")).status, 429, "junk past the limit is a 429, not a 400");
+});
