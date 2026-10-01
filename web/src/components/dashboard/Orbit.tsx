@@ -1,37 +1,42 @@
 /**
- * The dashboard's orbit (ADR-89 to 91, 96, 112): the reader at the centre, the
- * people they wrote on a plain dotted ring, a tap that holds the drift and
- * opens the card. It is not a chart (ADR-89): nothing on it sits at a degree,
- * so no zodiac, house, render or glyph is drawn. Who is on it, and in what
- * order, is `orbitPoints` (ADR-121 as ADR-139 narrows it); this only draws them.
+ * The dashboard's circle (ADR-89 to 91, 96, 112, 182): the reader at the
+ * centre, everyone whose Personal report they can read on a plain dotted ring,
+ * a tap that holds the drift and opens the quick look. It is not a chart
+ * (ADR-89, MASTERFILE §9): nothing on it sits at a degree, so no zodiac,
+ * degree, house, render or glyph is drawn; those wait in the quick look. Who
+ * is on it, and in what order, is `circlePoints` (ADR-182); this only draws
+ * them. The landing's sample orbit (R11) is drawn by the same component.
  *
  * One SVG on a fixed 440 box that scales with its column, so the phone's full
  * width and the desktop's 440 px share one geometry. React draws the points;
  * one frame loop moves them in place (the drift, the float, the ring's cuts),
- * so no frame re-renders. Under reduced motion the same sky is drawn once,
+ * so no frame re-renders. Under reduced motion the same circle is drawn once,
  * whole and still at first paint.
  */
 import {
   useCallback, useEffect, useId, useLayoutEffect, useRef, useState,
   type AnimationEvent as ReactAnimationEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent,
 } from "react";
-import { pointAngles, ringGaps, type OrbitPoint, type RingGap } from "@/lib/orbit";
+import { CENTRE_ID, pointAngles, ringGaps, type OrbitPoint, type RingGap } from "@/lib/orbit";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import "./orbit.css";
 
-/** What a tap on the centre selects: the reader's own card, or the chart they still have to generate. */
-export const CENTRE_ID = "self";
+export { CENTRE_ID };
 
 export interface OrbitCentre {
-  /** The reader's first name, drawn once their own chart exists. */
+  /** The reader's first name, drawn once their own report exists. */
   firstName: string;
-  /** False with no chart of their own, or several marked as theirs (reading 3): the dashed disc asks for it. */
+  /** False with no report of their own, or several marked as theirs (reading 3): the dashed disc asks for it. */
   hasReport: boolean;
   /** Their own report is still being written. */
   writing: boolean;
 }
 
-/** What a screen reader hears when the orbit is someone else's, as on the landing's sample account, where "you" is not the reader. */
+/**
+ * What a screen reader hears when the orbit is someone else's, as on the
+ * landing's sample account, where "you" is not the reader. Its centre keeps
+ * R10's "At a glance" cue, since it opens R10's card (reading 2).
+ */
 export interface OrbitLabels {
   /** The orbit as a whole. */
   orbit: string;
@@ -47,8 +52,9 @@ export interface OrbitProps {
   points: readonly OrbitPoint[];
   /** A point's id, `CENTRE_ID`, or null while nothing is open. */
   selectedId: string | null;
-  /** Who keeps full light and a lit violet ring while something is open: `partnersOf`. Ids the orbit does not draw are ignored. */
+  /** Who keeps full light and a lit violet ring while something is open: `partnersOf`. Ids the circle does not draw are ignored. */
   partners: readonly string[];
+  /** A ghost seat is never selected: a tap on one reads as a tap on empty sky. */
   onSelect: (id: string | null) => void;
   /** Left out on the dashboard, where the reader is the centre and every label speaks to them. */
   labels?: OrbitLabels;
@@ -89,8 +95,12 @@ const CLEAR = Math.hypot(FLOAT_X, FLOAT_Y) + 5;
 const REACH_STEP_DEG = 0.25;
 const SIDES = [-1, 1] as const;
 
-/** `orbitPoints` names the add point this way at zero credits where credits are enforced (ADR-138). */
+/** `circlePoints` names the add point this way at zero credits where credits are enforced (ADR-138). */
 const OUT_OF_CREDITS = "GET CREDITS";
+/** The sample's centre opens R10's card, so it keeps R10's cue; the dashboard's centre opens a quick look and carries none (the approved mock). */
+const SAMPLE_CUE = "At a glance ›";
+/** A ghost seat is an invitation, not a person: quieter than the add point, as the approved mock draws it. */
+const GHOST_OPACITY = 0.6;
 
 const PAPER = "#E8EBF2";
 const GROUND = "#0D1117";
@@ -212,9 +222,9 @@ function pointName(p: OrbitPoint, sharedPair = "you share a Compatibility report
 }
 
 function centreName(c: OrbitCentre): string {
-  if (!c.hasReport) return "Your chart. Generate it";
-  const glance = c.firstName.trim() ? `${c.firstName.trim()}, your chart at a glance` : "Your chart at a glance";
-  return c.writing ? `${glance}. Writing your report` : glance;
+  if (!c.hasReport) return "Get your Personal report";
+  const look = c.firstName.trim() ? `${c.firstName.trim()}, your quick look` : "Your quick look";
+  return c.writing ? `${look}. Writing your report` : look;
 }
 
 function targetOf(el: EventTarget | null): string | null {
@@ -232,22 +242,22 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
   const seen = useRef(new Set<string>());
   const [arriving, setArriving] = useState<ReadonlyMap<string, number>>(() => new Map());
 
-  const lone = points.length === 1 && points[0].kind === "add";
-  const active = selectedId !== null && (selectedId === CENTRE_ID || points.some((p) => p.id === selectedId)) ? selectedId : null;
-  // The centre never moves, so only a point holds the drift still under its card.
+  // With nobody on it yet, only the add point and ghost seats, the circle stands still, as the approved mock's first states do.
+  const still = !points.some((p) => p.kind === "person" || p.kind === "gift");
+  const active = selectedId !== null && (selectedId === CENTRE_ID || points.some((p) => p.id === selectedId && p.kind !== "ghost")) ? selectedId : null;
+  // The centre never moves, so only a point holds the drift still under its quick look.
   const held = active !== null && active !== CENTRE_ID;
   const lit = new Set(active === null ? [] : partners);
 
-  const live = useRef({ points, lone, held, reduced });
-  live.current = { points, lone, held, reduced };
+  const live = useRef({ points, still, held, reduced });
+  live.current = { points, still, held, reduced };
 
   const place = useCallback((now: number) => {
-    const { points: pts, lone: alone, reduced: still } = live.current;
+    const { points: pts, still: resting, reduced: calm } = live.current;
     const { nodes, labels } = els.current;
     const secs = now / 1000;
-    const bob = still || alone ? 0 : 1;
-    // The lone Add someone point waits at the bottom of an empty ring, as the empty states show it.
-    const angles = alone ? pointAngles(1, 90) : pointAngles(pts.length).map((a) => a + motion.current.drift);
+    const bob = calm || resting ? 0 : 1;
+    const angles = pointAngles(pts.length).map((a) => a + (resting ? 0 : motion.current.drift));
     const reach = pts.map((p, i) => {
       const phase = phaseOf(p.id);
       const x = MID + RADIUS * Math.cos(rad(angles[i])) + bob * FLOAT_X * Math.sin(secs * 0.55 + phase);
@@ -331,9 +341,9 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
     });
   }, []);
 
-  // The lone Add someone point stands still, so an empty orbit runs no frame loop at all.
+  // A still circle runs no frame loop at all.
   useEffect(() => {
-    if (reduced || lone) return;
+    if (reduced || still) return;
     const m = motion.current;
     const svg = svgRef.current;
     let frame = 0;
@@ -346,7 +356,7 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
       place(now);
       frame = visible ? requestAnimationFrame(tick) : 0;
     };
-    // Scrolled out of sight, the sky stops drawing and resumes where it was.
+    // Scrolled out of sight, the circle stops drawing and resumes where it was.
     const io = svg && typeof IntersectionObserver !== "undefined"
       ? new IntersectionObserver(([entry]) => {
         visible = entry?.isIntersecting ?? true;
@@ -363,13 +373,13 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
       io?.disconnect();
       m.last = 0;
     };
-  }, [reduced, lone, place]);
+  }, [reduced, still, place]);
 
   useEffect(() => {
     if (active === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;
-      // A dialog opened from the card closes on its own Escape and leaves the card open.
+      // A dialog opened from the quick look closes on its own Escape and leaves the quick look open.
       if (e.target instanceof Element && e.target.closest("[role='dialog'], [role='alertdialog']")) return;
       onSelect(null);
     };
@@ -401,7 +411,7 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
       ref={svgRef}
       viewBox={`0 0 ${SIZE} ${SIZE}`}
       role="group"
-      aria-label={labels?.orbit ?? "Your orbit"}
+      aria-label={labels?.orbit ?? "Your circle"}
       className="orbit mx-auto block aspect-square h-auto w-full max-w-[440px] select-none overflow-visible"
       onClick={onClick}
       onKeyDown={onKeyDown}
@@ -419,8 +429,17 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
       </defs>
       <circle cx={MID} cy={MID} r={MID} fill={`url(#${uid}-haze)`} />
       <path ref={ringRef} fill="none" stroke={PAPER} strokeOpacity={0.26} strokeWidth={1} strokeDasharray="1 5" />
-      <Centre centre={centre} selected={active === CENTRE_ID} reduced={reduced} plate={`url(#${uid}-plate)`} label={labels?.centre} />
-      {points.map((p) => (
+      <Centre
+        centre={centre}
+        selected={active === CENTRE_ID}
+        reduced={reduced}
+        plate={`url(#${uid}-plate)`}
+        label={labels?.centre}
+        cue={labels ? SAMPLE_CUE : null}
+      />
+      {points.map((p) => p.kind === "ghost" ? (
+        <GhostMark key={p.id} point={p} opacity={opacityOf(p.id)} delay={reduced ? undefined : arriving.get(p.id)} onArrived={arrived} />
+      ) : (
         <PointMark
           key={p.id}
           point={p}
@@ -437,9 +456,22 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
   );
 }
 
-function Centre({ centre, selected, reduced, plate, label }: { centre: OrbitCentre; selected: boolean; reduced: boolean; plate: string; label?: string }) {
+interface CentreProps {
+  centre: OrbitCentre;
+  selected: boolean;
+  reduced: boolean;
+  plate: string;
+  label?: string;
+  /** The line under the name; null sets YOU and the name as one group on the plate's centre. */
+  cue: string | null;
+}
+
+function Centre({ centre, selected, reduced, plate, label, cue }: CentreProps) {
   const name = centre.firstName.trim();
   const nameSize = centreNameSize(name);
+  // Without a cue, YOU and the name stand as one group on the plate's centre, the name's baseline under its cap height.
+  const youY = cue ? -PLATE * 0.34 : -9;
+  const nameY = cue ? round2(nameSize / 3) : round2(5 + 0.45 * nameSize);
   return (
     <g
       data-orbit-id={CENTRE_ID}
@@ -471,27 +503,29 @@ function Centre({ centre, selected, reduced, plate, label }: { centre: OrbitCent
             )}
             <circle r={PLATE} fill={plate} fillOpacity={0.92} stroke={selected ? PAPER : "none"} strokeWidth={1.5} />
             <circle r={PLATE - 3} fill={GROUND} fillOpacity={selected ? 0.45 : 0.58} />
-            <text y={-PLATE * 0.34} textAnchor="middle" fontFamily={GROTESK} fontSize={8.5} fontWeight={500} letterSpacing={centre.writing ? 1.4 : 2} fill={BRASS} fillOpacity={0.9}>
+            <text y={youY} textAnchor="middle" fontFamily={GROTESK} fontSize={8.5} fontWeight={500} letterSpacing={centre.writing ? 1.4 : 2} fill={BRASS} fillOpacity={0.9}>
               {centre.writing ? "YOU · WRITING" : "YOU"}
             </text>
-            <text y={round2(nameSize / 3)} textAnchor="middle" fontFamily={SERIF} fontSize={nameSize} fill="#F2F4F9">{name}</text>
-            <text y={PLATE * 0.5} textAnchor="middle" fontFamily={GROTESK} fontSize={9.5} letterSpacing={0.8} fill={INDIGO_LT}>At a glance ›</text>
+            <text y={nameY} textAnchor="middle" fontFamily={SERIF} fontSize={nameSize} fill="#F2F4F9">{name}</text>
+            {cue && <text y={PLATE * 0.5} textAnchor="middle" fontFamily={GROTESK} fontSize={9.5} letterSpacing={0.8} fill={INDIGO_LT}>{cue}</text>}
           </>
         ) : (
           <>
             {selected && !reduced && <circle className="orbit-pulse" r={PLATE + 4} fill="none" stroke={INDIGO_LT} strokeWidth={1.5} />}
             <circle className="orbit-focus" r={PLATE + 6} fill="none" strokeWidth={1.5} />
+            <circle r={PLATE} fill={GROUND} />
             <circle
               className={reduced ? undefined : "orbit-turn-slow"}
               r={PLATE}
-              fill={GROUND}
+              fill={INDIGO}
+              fillOpacity={0.12}
               stroke={INDIGO}
               strokeOpacity={0.7}
               strokeDasharray="3 4"
               pathLength={364}
             />
-            <text y={-2} textAnchor="middle" fontFamily={SERIF} fontSize={16} fill={PAPER}>Your chart</text>
-            <text y={18} textAnchor="middle" fontFamily={GROTESK} fontSize={9.5} fill={INDIGO_LT}>Generate it ›</text>
+            <text y={-9} textAnchor="middle" fontFamily={GROTESK} fontSize={8.5} fontWeight={500} letterSpacing={2} fill={BRASS} fillOpacity={0.9}>YOU</text>
+            <text y={13} textAnchor="middle" fontFamily={SERIF} fontSize={16} fill={PAPER}>Your report</text>
           </>
         )}
       </g>
@@ -570,6 +604,52 @@ function PointMark({ point, sharedLabel, selected, lit, opacity, delay, reduced,
               : lines.map((line, i) => <tspan key={i} x={0} dy={i === 0 ? 0 : LINE_GAP}>{line}</tspan>)}
           </text>
         </g>
+      </g>
+    </g>
+  );
+}
+
+interface GhostMarkProps {
+  point: OrbitPoint;
+  opacity: number;
+  delay: number | undefined;
+  onArrived: (e: ReactAnimationEvent<SVGGElement>) => void;
+}
+
+/**
+ * A seat someone could take: a dashed ring and its name in muted capitals. It
+ * is no control, so it carries no `data-orbit-id`, takes no focus and is
+ * hidden from a screen reader; a tap on it is a tap on empty sky.
+ */
+function GhostMark({ point, opacity, delay, onArrived }: GhostMarkProps) {
+  const lines = labelLines(point.label);
+  return (
+    <g data-orbit-point={point.id} aria-hidden="true" className="orbit-point" style={{ opacity: opacity * GHOST_OPACITY }}>
+      <g
+        data-arrive={point.id}
+        className={delay === undefined ? undefined : "orbit-arrive"}
+        style={delay ? { animationDelay: `${delay}ms` } : undefined}
+        onAnimationEnd={onArrived}
+      >
+        <circle r={NODE} fill={GROUND} stroke={PAPER} strokeOpacity={0.35} strokeWidth={1.2} strokeDasharray="3 3" pathLength={120} />
+        <text
+          data-orbit-label=""
+          y={LABEL_Y}
+          textAnchor="middle"
+          fontFamily={GROTESK}
+          fontSize={LABEL_SIZE}
+          fontWeight={500}
+          letterSpacing={LABEL_TRACK}
+          fill={MUTED}
+          stroke={GROUND}
+          strokeWidth={3}
+          strokeLinejoin="round"
+          style={{ paintOrder: "stroke" }}
+        >
+          {lines.length === 1
+            ? point.label
+            : lines.map((line, i) => <tspan key={i} x={0} dy={i === 0 ? 0 : LINE_GAP}>{line}</tspan>)}
+        </text>
       </g>
     </g>
   );

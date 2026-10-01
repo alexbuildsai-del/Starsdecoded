@@ -1,36 +1,28 @@
 /**
  * The card's chart sections, each read from the stored chart and nothing else
  * (ADR-92): the ringed plate with the report's legend rows, the element rows,
- * and the twelve whole-sign houses. Every word the card prints is a plain
- * function here, so a node test can pin the copy without a DOM.
+ * and the twelve whole-sign houses. Since Review 01/10 the landing's sample
+ * card is their one reader (reading 2); the dashboard's quick look shares the
+ * person words, which live in `home-view.ts` so a node test pins them.
  */
 import { Children, Fragment, type ReactNode } from "react";
 import { TriadPlate } from "@/components/report/TriadPlate";
 import { rowText, triadRows } from "@/components/report/pair-hero-layout";
 import { WINDOW_UNKNOWN } from "@/lib/birth-time";
 import { ELEMENT_HEX } from "@/lib/chapter-accent";
+import { birthDateText, blindRisingText, doorText, firstName, writingText } from "@/lib/home-view";
 import { PLANET_RENDERS, SUN_HERO, renderFor } from "@/lib/planet-renders";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { busiestHouse, elementLead, houseCells, modalityLine, type ElementKey } from "@/lib/sky-card";
 import { PLANET_LABELS, type ChartData } from "@/types/chart";
 
+export { birthDateText, blindRisingText, doorText, firstName, writingText };
+
 const ELEMENTS: ElementKey[] = ["fire", "earth", "air", "water"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 const HOUSE_RENDER_PX = 15;
 
 export const HOUSES_NEED_TIME = "Houses need a birth time.";
-export const NO_PAIRS_YET = "None yet. Tap someone in your orbit to read the two of you together.";
-
-export function firstName(name: string): string {
-  return name.trim().split(/\s+/)[0] || name;
-}
-
-/** Read from the stored string rather than a Date, so no time zone can move a birthday by a day. */
-export function birthDateText(birthDate: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
-  const month = m ? MONTHS[Number(m[2]) - 1] : undefined;
-  return m && month ? `${Number(m[3])} ${month} ${m[1]}` : birthDate;
-}
+export const NO_PAIRS_YET = "None yet. Tap someone in your circle to read the two of you together.";
 
 export type BirthTimeNote = "unknown" | "approximate" | null;
 
@@ -53,21 +45,8 @@ export function eyebrowText(self: boolean, writing: boolean): string {
   return `${self ? `Your ${PERSONAL_REPORT}` : PERSONAL_REPORT}${writing ? " · writing" : ""}`;
 }
 
-export function doorText(name: string, self: boolean): string {
-  return self ? "Open your report" : `Open ${firstName(name)}'s report`;
-}
-
-/** The status that stands where the door will be; nothing offers to read a report before it is finished (ADR-131). */
-export function writingText(name: string, self: boolean): string {
-  return self ? "Writing your report" : `Writing ${firstName(name)}'s report`;
-}
-
 export function pendingText(name: string, self: boolean): string {
   return self ? "Loading your chart" : `Loading ${firstName(name)}'s chart`;
-}
-
-export function blindRisingText(name: string, self: boolean): string {
-  return `Add ${self ? "your" : `${firstName(name)}'s`} birth time to draw the horizon`;
 }
 
 /** "No air", "No fire or air": an element nobody stands in is itself a fact about the chart. */
