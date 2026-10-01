@@ -201,6 +201,14 @@ export interface FailuresResponse {
   writes: number;
   rows: number;
   kinds: string[];
+  csp: CspViolation[];
+}
+
+export interface CspViolation {
+  day: string;
+  directive: string;
+  blocked: string;
+  count: number;
 }
 
 export interface SpotRequest {
