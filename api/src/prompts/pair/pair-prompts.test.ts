@@ -536,9 +536,9 @@ test("chk-30: a numeral house on a blind pair blocks, a word ordinal is logged",
 });
 
 // Real lines from staging's fixture runs on mix B (report-lab/r12-pair, report-lab/r12b-pair): the fixture people's own words, no chart data.
-const { followRepairs, pairProseChecks, proseText, semicolonsToFullStops, stripBriefLabels, validatePairSection } = await import("./index.js");
+const { followRepairs, pairProseChecks, proseText, semicolonsToFullStops, stripBriefLabels, stripWordCounts, validatePairSection } = await import("./index.js");
 const { proseOf, softenQuote } = await import("../evidence.js");
-const { blocking } = await import("../checks.js");
+const { RULES, blocking } = await import("../checks.js");
 
 test("chk-40: a bracket of nothing but brief labels goes with the space before it, in every form the runs wrote", () => {
   const cases: Array<[string, string]> = [
@@ -702,4 +702,45 @@ test("followRepairs leaves a verbatim quote and a paraphrase alone: the snap sti
   const r = followRepairs(section);
   assert.equal(r.value, section);
   assert.deepEqual(r.checks, []);
+});
+
+/** r12b-pair, william-george, parentChild06: the model closed three fields on its own word count. */
+const COUNTED = {
+  pattern: "This is the challenge: George can push for freedom while William needs time to think, and each can read the other as refusing to listen. William can name the limit, explain its purpose, and hear George's objection before ending the discussion. That trains William to be clear before withdrawing and George to argue without pushing harder. (56 words)",
+  whatJustHappened: {
+    becauseA: "William needs trust and honest talk before sharing what matters. When a decision affects others, he may withdraw to think, then leave them guessing. Explaining the reason before stepping back helps him protect privacy without creating mistrust. (31 words)",
+    becauseB: "George is reaching for room to pursue what matters to him and to have his views heard. When a disagreement touches his beliefs, he may press hard, then feel hurt if the other person pulls away. A plain answer helps him check what is happening. (43 words)",
+  },
+  claims: [
+    { quote: "William needs trust and honest talk before sharing what matters.", evidence: [source("A", "relationships", 1)] },
+    { quote: "This is the challenge: George can push for freedom while William needs time to think, and each can read the other as refusing to listen.", evidence: [cross("mars", "square", "mars", 3.1)] },
+  ],
+};
+
+test("chk-42: a bracket of nothing but a word count goes like a label bracket, a count left as its own sentence blocks, a count in an action stays", () => {
+  const r = pairProseChecks(structuredClone(COUNTED));
+  const out = r.value as typeof COUNTED;
+  assert.equal(out.pattern, COUNTED.pattern.replace(" (56 words)", ""));
+  assert.equal(out.whatJustHappened.becauseA, COUNTED.whatJustHappened.becauseA.replace(" (31 words)", ""));
+  assert.equal(out.whatJustHappened.becauseB, COUNTED.whatJustHappened.becauseB.replace(" (43 words)", ""));
+  assert.equal(out.claims, r.value.claims);
+  assert.deepEqual(out.claims, COUNTED.claims, "the claims list is never walked");
+  assert.deepEqual(r.checks.map((c) => `${c.rule}:${c.cls}:${c.message}`), ["chk-42:fix:3 word count(s) stripped from the prose"]);
+
+  for (const note of ["(56 words)", "(about 40 words)", "(40-60 words)", "(40–60 words)", "(40 to 60 words)", "[56 words]", "(56 words.)", "(Word count: 56)", "(pattern: 56 words)"]) {
+    assert.deepEqual(stripWordCounts(`A plain answer helps him check what is happening. ${note}`), { text: "A plain answer helps him check what is happening.", stripped: 1, bare: [] }, note);
+  }
+  assert.deepEqual(stripWordCounts("A plain answer helps him check what is happening. 43 words").bare, ["43 words"]);
+  assert.deepEqual(stripWordCounts("A plain answer helps him check what is happening. About 40 words.").bare, ["About 40 words"]);
+  assert.deepEqual(stripWordCounts("Word count: 43. A plain answer helps him check what is happening.").bare, ["Word count: 43"]);
+  for (const plain of ["Send George the plan in 10 words or fewer.", "Say it in two words.", "Write a 50-word note for the fridge.", "Keep the message short (10 words or fewer) and plain."]) {
+    assert.deepEqual(stripWordCounts(plain), { text: plain, stripped: 0, bare: [] }, plain);
+  }
+  const left = pairProseChecks({ pattern: "That trains William to be clear before withdrawing. 56 words" });
+  assert.deepEqual(kinds(left.checks), ["chk-42:block"]);
+  assert.equal(left.checks[0].message, "pattern: the word count \"56 words\" sits in the prose. Never mention a word count.");
+});
+
+test("the rules table carries rows 40 to 42, each a fix as designed", () => {
+  assert.deepEqual([RULES["chk-40"], RULES["chk-41"], RULES["chk-42"]], [{ row: 40, cls: "fix" }, { row: 41, cls: "fix" }, { row: 42, cls: "fix" }]);
 });

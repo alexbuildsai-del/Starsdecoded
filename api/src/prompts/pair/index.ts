@@ -22,7 +22,7 @@ export {
   PairLensChapterSchema, PairLinkSchema, PairLinksSchema, PairPractiseSchema, PairTwoChartsSchema,
   bandChecks, bandProblems, cardLineChecks, cardLineProblems, evidenceChecks, evidenceProblems, followRepairs, hasVerb, houseChecks, lensChapter, lensChapterChecks, lensChapterId, lensContext,
   nameRegExp, pairProseChecks, proseText, ratingChecks, ratingProblems, sceneChecks, sceneOf, sceneProblems, semicolonsToFullStops, spellSmallNumbers, stripBracketedBodies, stripBracketsDeep,
-  stripBriefLabels, twoChartsChecks, validatePairSection, whyChecks, whyProblems,
+  stripBriefLabels, stripWordCounts, twoChartsChecks, validatePairSection, whyChecks, whyProblems,
   type BandDoctrine, type ChapterScene, type PairLensChapterOutput, type PairSectionSpec, type PairTwoChartsOutput,
 } from "./shapes.js";
 export { pairFoundation, PairFoundationSchema, allocationOf, foundationChecks, foundationProblems, type PairFoundationOutput } from "./foundation.js";

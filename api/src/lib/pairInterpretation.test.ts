@@ -258,7 +258,7 @@ test("the request never carries birth data: the brief is built from stored chart
 const { proseText } = await import("../prompts/pair/index.js");
 const { proseOf, softenQuote } = await import("../prompts/evidence.js");
 
-test("the prose of every reader-facing section is repaired before its checks: labels and semicolons out, no claim lost, no call spent (annex rows 40, 41)", async () => {
+test("the prose of every reader-facing section is repaired before its checks: labels, word counts and semicolons out, no claim lost, no call spent (annex rows 40 to 42)", async () => {
   const brief = buildPairBrief(input());
   const replies = pairReplies(brief) as Record<string, Record<string, unknown>>;
   // r12b-pair, curie-winfrey under the partners lens: chapter 01's three work lines, each quoted whole by a claim.
@@ -274,9 +274,14 @@ test("the prose of every reader-facing section is repaired before its checks: la
     strong: [two.strong[0], two.strong[1], `${two.strong[2]} (source: A/overview claim 1; L2)`],
     claims: [...work.map((quote, i) => ({ quote, evidence: two.claims[i].evidence })), two.claims[3]],
   };
-  const chapter = replies.pair_partners03 as { card: Record<string, unknown>; whatJustHappened: { becauseA: string; becauseB: string } };
-  // r12b-pair, curie-winfrey, parentChild03: the pair line as written.
-  const partners03 = { ...chapter, card: { ...chapter.card, pair: "Marie asks; Oprah decides what she wants to share." }, whatJustHappened: { ...chapter.whatJustHappened, becauseA: `${chapter.whatJustHappened.becauseA} (A/overview claim 1)` } };
+  const chapter = replies.pair_partners03 as { card: Record<string, unknown>; whatJustHappened: { becauseA: string; becauseB: string }; pattern: string };
+  // r12b-pair, curie-winfrey, parentChild03: the pair line as written. r12b-pair, william-george, parentChild06: the count after a field.
+  const partners03 = {
+    ...chapter,
+    card: { ...chapter.card, pair: "Marie asks; Oprah decides what she wants to share." },
+    whatJustHappened: { ...chapter.whatJustHappened, becauseA: `${chapter.whatJustHappened.becauseA} (A/overview claim 1)` },
+    pattern: `${chapter.pattern} (56 words)`,
+  };
   const cards = (replies.pair_links as { links: Array<{ reading: string }> }).links;
   const links = { links: cards.map((l, i) => (i === 0 ? { ...l, reading: l.reading.replace(", and the private one wins.", "; the private one wins (L1).") } : l)) };
   const practise = { ...replies.pair_whatToPractise, closing: "You leave the room a minute before you are asked to; that is the habit to keep." };
@@ -287,7 +292,8 @@ test("the prose of every reader-facing section is repaired before its checks: la
 
   for (const id of ["twoCharts", "partners03", "links", "whatToPractise"]) assert.equal(fake.calls.filter((k) => k === `pair_${id}`).length, 1, `${id}: a repair costs no call`);
   const sections = { twoCharts: out.twoCharts, partners03: lensChapterOf(out, "partners03")!, links: out.links, whatToPractise: out.whatToPractise };
-  for (const [id, section] of Object.entries(sections)) assert.doesNotMatch(proseText(section), /;|claim \d|\bL\d/, id);
+  for (const [id, section] of Object.entries(sections)) assert.doesNotMatch(proseText(section), /;|claim \d|\bL\d|words\)/, id);
+  assert.equal(lensChapterOf(out, "partners03")!.pattern, chapter.pattern);
   assert.deepEqual(out.twoCharts.work, work.map((w) => w.replace(/; (\w)/, (_, c: string) => `. ${c.toUpperCase()}`)));
   assert.equal(lensChapterOf(out, "partners03")!.card.pair, "Marie asks. Oprah decides what she wants to share.");
   assert.equal(out.whatToPractise.closing, "You leave the room a minute before you are asked to. That is the habit to keep.");
@@ -300,7 +306,7 @@ test("the prose of every reader-facing section is repaired before its checks: la
   }
   const rows = (section: string) => failureRows.filter((r) => r.section === `pair:${section}`).map((r) => `${r.ruleId}:${r.class}`);
   assert.deepEqual(rows("twoCharts").filter((r) => /^chk-(04|40|41)/.test(r)), ["chk-40:fix", "chk-41:fix", "chk-04:fix", "chk-04:fix", "chk-04:fix"]);
-  assert.deepEqual(rows("partners03").filter((r) => /^chk-(40|41)/.test(r)), ["chk-40:fix", "chk-41:fix"]);
+  assert.deepEqual(rows("partners03").filter((r) => /^chk-4[0-2]/.test(r)), ["chk-40:fix", "chk-42:fix", "chk-41:fix"]);
   assert.deepEqual(rows("links").filter((r) => /^chk-(40|41)/.test(r)), ["chk-40:fix", "chk-41:fix"]);
   assert.deepEqual(rows("whatToPractise").filter((r) => /^chk-(40|41)/.test(r)), ["chk-41:fix"]);
   assert.ok(!failureRows.some((r) => r.class === "block"), "a repair never blocks");

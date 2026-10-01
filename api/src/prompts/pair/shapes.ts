@@ -204,10 +204,33 @@ const BARE_LABEL_RE = new RegExp(String.raw`(?<![\p{L}\p{N}/])${STRICT_LABEL}(?!
  * bracket whole.
  */
 export function stripBriefLabels(text: string): { text: string; stripped: number; bare: string[] } {
-  let stripped = 0;
-  let out = text.replace(BRACKETED_LABELS_RE, () => { stripped += 1; return ""; });
-  if (stripped && !/^\s/.test(text)) out = out.trimStart();
+  const { text: out, stripped } = stripBrackets(text, BRACKETED_LABELS_RE);
   const bare = [...out.replace(BRACKETED_BODY_RE, "").matchAll(BARE_LABEL_RE)].map((m) => m[0]);
+  return { text: out, stripped, bare };
+}
+
+/** A bracket opening the field leaves no space in front of the text. */
+function stripBrackets(text: string, re: RegExp): { text: string; stripped: number } {
+  let stripped = 0;
+  const out = text.replace(re, () => { stripped += 1; return ""; });
+  return { text: stripped && !/^\s/.test(text) ? out.trimStart() : out, stripped };
+}
+
+// The model's own count of a field, which rule 10 says never to mention: "56 words", "about 40 words", "40-60 words".
+const COUNT = String.raw`(?:(?:about|around|roughly|approximately|approx\.?|~)\s*)?\d+(?:\s*(?:[-–]|to)\s*\d+)?\s*words?`;
+const COUNT_LABEL = String.raw`word[- ]count\s*:?\s*\d+`;
+const BRACKETED_COUNT_RE = new RegExp(String.raw`\s*[(\[]\s*(?:[\p{L} ]{1,24}:\s*)?(?:${COUNT}|${COUNT_LABEL})\s*[.;,]?\s*[)\]]`, "giu");
+// Outside a bracket a count is a note only as a sentence of its own, so "send the plan in 10 words" stays.
+const BARE_COUNT_RE = new RegExp(String.raw`(?:^|(?<=[.!?]["”’)\]]*\s))\s*${COUNT}(?=\s*(?:[.!?]|$))|${COUNT_LABEL}`, "giu");
+
+/**
+ * A bracket holding nothing but a word count goes like a label bracket (annex
+ * row 42, style rule 10). A count standing as its own sentence, or "word
+ * count: 56" anywhere, is returned to block.
+ */
+export function stripWordCounts(text: string): { text: string; stripped: number; bare: string[] } {
+  const { text: out, stripped } = stripBrackets(text, BRACKETED_COUNT_RE);
+  const bare = [...out.matchAll(BARE_COUNT_RE)].map((m) => m[0].trim());
   return { text: out, stripped, bare };
 }
 
@@ -232,29 +255,34 @@ export function semicolonsToFullStops(text: string): { text: string; replaced: n
   return { text: out, replaced };
 }
 
-/** Both repairs in order: a label bracket can hold a semicolon, and it goes whole. */
+/** Every repair in order: a label or count bracket can hold a semicolon, and it goes whole. */
 function repairProse(text: string): string {
-  return semicolonsToFullStops(stripBriefLabels(text).text).text;
+  return semicolonsToFullStops(stripWordCounts(stripBriefLabels(text).text).text).text;
 }
 
+const quoted = (found: string[]): string => found.map((f) => `"${f}"`).join(", ");
+
 /**
- * Every prose string of a section, never the claims list: the brief's labels
- * and the semicolons repaired in code, a label left in a sentence a block,
- * since a reader would see it (annex rows 40, 41; ADR-81).
+ * Every prose string of a section, never the claims list: the brief's labels,
+ * the word counts and the semicolons repaired in code, a label or a count
+ * left in a sentence a block, since a reader would see it (annex rows 40 to
+ * 42; ADR-81).
  */
 export function pairProseChecks<T>(value: T): { value: T; checks: Check[] } {
   const checks: Check[] = [];
-  let stripped = 0;
+  let labelled = 0;
+  let counted = 0;
   let replaced = 0;
   const walk = (v: unknown, path: string, key?: string): unknown => {
     if (key === "claims") return v;
     if (typeof v === "string") {
       const labels = stripBriefLabels(v);
-      stripped += labels.stripped;
-      if (labels.bare.length) {
-        checks.push(block("chk-40", `${path}: the brief's label ${labels.bare.map((l) => `"${l}"`).join(", ")} sits in a sentence. A citation lives in the claims field only, never in the prose.`));
-      }
-      const stops = semicolonsToFullStops(labels.text);
+      const counts = stripWordCounts(labels.text);
+      labelled += labels.stripped;
+      counted += counts.stripped;
+      if (labels.bare.length) checks.push(block("chk-40", `${path}: the brief's label ${quoted(labels.bare)} sits in a sentence. A citation lives in the claims field only, never in the prose.`));
+      if (counts.bare.length) checks.push(block("chk-42", `${path}: the word count ${quoted(counts.bare)} sits in the prose. Never mention a word count.`));
+      const stops = semicolonsToFullStops(counts.text);
       replaced += stops.replaced;
       return stops.text;
     }
@@ -263,7 +291,8 @@ export function pairProseChecks<T>(value: T): { value: T; checks: Check[] } {
     return v;
   };
   const out = walk(value, "") as T;
-  if (stripped) checks.unshift(fixed("chk-40", `${stripped} bracket(s) of brief labels stripped from the prose`));
+  if (counted) checks.unshift(fixed("chk-42", `${counted} word count(s) stripped from the prose`));
+  if (labelled) checks.unshift(fixed("chk-40", `${labelled} bracket(s) of brief labels stripped from the prose`));
   if (replaced) checks.push(fixed("chk-41", `${replaced} semicolon(s) in the prose became full stops`));
   return { value: out, checks };
 }
