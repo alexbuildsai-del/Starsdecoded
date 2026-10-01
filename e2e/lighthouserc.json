@@ -1,0 +1,19 @@
+{
+  "ci": {
+    "collect": {
+      "numberOfRuns": 3,
+      "settings": {
+        "formFactor": "mobile",
+        "onlyCategories": ["performance", "accessibility"]
+      }
+    },
+    "assert": {
+      "aggregationMethod": "median",
+      "assertions": {
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "categories:accessibility": ["error", { "minScore": 0.95 }]
+      }
+    }
+  }
+}

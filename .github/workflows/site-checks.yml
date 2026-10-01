@@ -1,0 +1,99 @@
+name: Site checks
+
+# Every Vercel preview is measured the way a visitor meets it (ADR-192, 193): Lighthouse for speed and accessibility,
+# axe over every public page, and the web half of the security probe. Keyless: it reads only the public preview, holds
+# no secret, and keeps every report as a workflow artifact, never on a public link. A preview's /api is staging's API
+# (vercel.json), so the probe's API half runs in smoke after the merge instead.
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    name: Preview address
+    # Vercel posts a pending status before the final one, and Railway posts its own deploys; only a finished Vercel
+    # preview has pages to read.
+    if: github.event.deployment_status.state == 'success' && startsWith(github.event.deployment.environment, 'Preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      url: ${{ steps.url.outputs.url }}
+    steps:
+      - id: url
+        env:
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url }}
+        run: |
+          url="${DEPLOYMENT_URL%/}"
+          if ! printf '%s' "$url" | grep -qE '^https://starsdecoded-[a-z0-9-]+\.vercel\.app$'; then
+            echo "::error::The deployment's address '$url' is not a Vercel preview of this project, so there is nothing to check."
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+  probe:
+    name: Security probe (web)
+    needs: preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.deployment.sha }}
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - run: .github/scripts/security-probe.sh "$WEB_URL" web
+        env:
+          WEB_URL: ${{ needs.preview.outputs.url }}
+          DEADLINE_SECONDS: 60
+
+  lighthouse:
+    name: Lighthouse
+    needs: preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.deployment.sha }}
+          sparse-checkout: e2e
+          persist-credentials: false
+      # The Action brings Lighthouse with it, so none enters the lockfile or the Vercel and Railway installs. The budgets,
+      # the phone preset and the median of three runs live in the config.
+      - uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # 12.6.2
+        with:
+          urls: |
+            ${{ needs.preview.outputs.url }}/
+            ${{ needs.preview.outputs.url }}/sample
+            ${{ needs.preview.outputs.url }}/faq
+          configPath: e2e/lighthouserc.json
+          uploadArtifacts: true
+          artifactName: lighthouse
+          temporaryPublicStorage: false
+
+  axe:
+    name: axe
+    needs: preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.deployment.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      # Only the checks' own packages: the pages come built from the preview.
+      - run: pnpm install --frozen-lockfile --filter @workspace/e2e
+      - run: pnpm --filter @workspace/e2e exec playwright install --with-deps --only-shell chromium
+      - run: pnpm --filter @workspace/e2e test
+        env:
+          BASE_URL: ${{ needs.preview.outputs.url }}
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: axe
+          path: e2e/test-results/

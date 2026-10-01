@@ -1,36 +1,28 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const BASE_URL = process.env.BASE_URL ?? "http://localhost:5173";
-const API_PORT = process.env.API_PORT ?? "8080";
-const FRONTEND_PORT = process.env.FRONTEND_PORT ?? "5173";
+// The checks read a deployed build, never a dev server: the public pages are prerendered at build (R-7.6), so only a
+// build shows what a visitor and a crawler are sent. site-checks.yml passes each Vercel preview's address.
+const BASE_URL = process.env.BASE_URL;
+if (!BASE_URL) {
+  throw new Error("Set BASE_URL to the site to check, such as a Vercel preview: BASE_URL=https://… pnpm --filter @workspace/e2e test");
+}
 
 export default defineConfig({
   testDir: "./tests",
-  fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // A preview can drop a request now and then, so one retry; a page that fails twice is failing.
+  retries: process.env.CI ? 1 : 0,
   reporter: "list",
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",
+    // Reduced motion is a real state on these pages (§9) and shows each one settled, so contrast is measured on the
+    // colours a reader is left with, not on a fade caught halfway.
+    reducedMotion: "reduce",
   },
   projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
+    // Phone first (§9); the desktop navigation and layout differ enough to be read as well.
+    { name: "phone", use: { ...devices["Pixel 7"] } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
   ],
-  webServer: {
-    command: [
-      `PORT=${API_PORT}`,
-      "pnpm --filter @workspace/api-server run dev",
-      "&",
-      `PORT=${FRONTEND_PORT}`,
-      "pnpm --filter @workspace/web run dev",
-    ].join(" "),
-    url: `${BASE_URL}/api/healthz`,
-    reuseExistingServer: true,
-    timeout: 60000,
-  },
 });
