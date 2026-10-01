@@ -30,6 +30,48 @@ export interface ErrorResponse {
   message?: string;
 }
 
+export type RateLimitedError = typeof RateLimitedError[keyof typeof RateLimitedError];
+
+
+export const RateLimitedError = {
+  rate_limited: 'rate_limited',
+} as const;
+
+/**
+ * A rate limit's 429 body (ADR-199).
+ */
+export interface RateLimited {
+  error: RateLimitedError;
+  /** The one line the page shows, so its words live in the API. */
+  message: string;
+  /** The wait Retry-After carries. */
+  retryAfterSeconds: number;
+}
+
+export type PausedError = typeof PausedError[keyof typeof PausedError];
+
+
+export const PausedError = {
+  paused: 'paused',
+} as const;
+
+export type PausedReason = typeof PausedReason[keyof typeof PausedReason];
+
+
+export const PausedReason = {
+  paused: 'paused',
+} as const;
+
+/**
+ * The 503 body while the daily spend cap pauses writing (ADR-199).
+ */
+export interface Paused {
+  error: PausedError;
+  reason: PausedReason;
+  /** The one line the page shows, so its words live in the API. */
+  message: string;
+}
+
 /**
  * The consent wording shown beside the form, stored with the address. launch-email-v2 is the double opt-in wording (ADR-145).
  */
@@ -108,7 +150,10 @@ export interface WaitlistConfirmed {
 }
 
 export interface CreateReportBody {
-  /** Name of the person */
+  /**
+     * The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).
+     * @pattern ^[\p{L}\p{M} '’.·-]{1,60}$
+     */
   name: string;
   /** Birth date in YYYY-MM-DD format */
   birthDate: string;
@@ -1351,6 +1396,10 @@ export interface ProfileSummary {
 }
 
 export interface CreateProfileBody {
+  /**
+     * The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).
+     * @pattern ^[\p{L}\p{M} '’.·-]{1,60}$
+     */
   name: string;
   birthDate: string;
   birthTime: string;
@@ -1418,6 +1467,18 @@ export interface RelationshipSummary {
 }
 
 /**
+ * How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202).
+ */
+export type CreateCompatibilityBodyLabel = typeof CreateCompatibilityBodyLabel[keyof typeof CreateCompatibilityBodyLabel] | null;
+
+
+export const CreateCompatibilityBodyLabel = {
+  family: 'family',
+  friends: 'friends',
+  colleagues: 'colleagues',
+} as const;
+
+/**
  * Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role.
  */
 export type CreateCompatibilityBodyParent = typeof CreateCompatibilityBodyParent[keyof typeof CreateCompatibilityBodyParent];
@@ -1432,7 +1493,8 @@ export interface CreateCompatibilityBody {
   reportAId: string;
   reportBId: string;
   lens: RelationshipType;
-  label?: string | null;
+  /** How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202). */
+  label?: CreateCompatibilityBodyLabel;
   /** Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role. */
   parent?: CreateCompatibilityBodyParent;
 }
@@ -1518,11 +1580,24 @@ export interface PairSendResult {
   invite: InviteSummary | null;
 }
 
+/**
+ * How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202).
+ */
+export type CreateRelationshipBodyLabel = typeof CreateRelationshipBodyLabel[keyof typeof CreateRelationshipBodyLabel] | null;
+
+
+export const CreateRelationshipBodyLabel = {
+  family: 'family',
+  friends: 'friends',
+  colleagues: 'colleagues',
+} as const;
+
 export interface CreateRelationshipBody {
   profileAId: string;
   profileBId: string;
   type?: RelationshipType;
-  label?: string | null;
+  /** How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202). */
+  label?: CreateRelationshipBodyLabel;
 }
 
 export interface RelationshipCreateResponse {
@@ -1815,7 +1890,10 @@ export type GiftCreated = Gift & {
  * Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).
  */
 export interface CreateGiftBody {
-  /** @minLength 1 */
+  /**
+     * The recipient's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), the same rule as every typed name (ADR-202).
+     * @pattern ^[\p{L}\p{M} '’.·-]{1,60}$
+     */
   recipientName: string;
   email: string;
   /** @maxLength 280 */
@@ -1912,6 +1990,16 @@ export const TestCheckoutBodyCount = {
 export interface TestCheckoutBody {
   count: TestCheckoutBodyCount;
 }
+
+/**
+ * Too many requests of this kind in the window its limit counts (ADR-199). `message` is the line the page shows; Retry-After and `retryAfterSeconds` carry the same wait.
+ */
+export type RateLimitedResponse = RateLimited;
+
+/**
+ * Writing is paused: today's (UTC) generation spend has reached DAILY_SPEND_CAP_USD (ADR-199). `message` is the line the page shows.
+ */
+export type PausedResponse = Paused;
 
 /**
  * Shared-secret admin key. May also be passed as `?key=`.

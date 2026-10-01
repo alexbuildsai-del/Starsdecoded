@@ -235,8 +235,11 @@ export const ListReportsResponse = zod.array(ListReportsResponseItem)
  * Accepts birth data, computes the natal chart, and starts AI interpretation
  * @summary Create a new natal chart report
  */
+export const createReportBodyNameRegExp = new RegExp('^[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
+
+
 export const CreateReportBody = zod.object({
-  "name": zod.string().describe('Name of the person'),
+  "name": zod.string().regex(createReportBodyNameRegExp).describe('The person\'s name, 1 to 60 letters, marks, spaces, apostrophes (\' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).'),
   "birthDate": zod.string().describe('Birth date in YYYY-MM-DD format'),
   "birthTime": zod.string().describe('Birth time in HH:MM format (24h)'),
   "birthPlace": zod.string().describe('Birth place name (e.g. \"Milan, Italy\")'),
@@ -2324,7 +2327,7 @@ export const UpdateReportWorkbookResponse = zod.record(zod.string(), zod.string(
 
 
 /**
- * Re-runs interpretation on the stored chart. Used for reports generated before the current prompt version. Rate-limited per report.
+ * Re-runs interpretation on the stored chart. Used for reports generated before the current prompt version. Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
  * @summary Regenerate a report's interpretation
  */
 export const RegenerateReportParams = zod.object({
@@ -2375,8 +2378,11 @@ export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
 /**
  * @summary Create or de-dupe-resolve a profile
  */
+export const createProfileBodyNameRegExp = new RegExp('^[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
+
+
 export const CreateProfileBody = zod.object({
-  "name": zod.string(),
+  "name": zod.string().regex(createProfileBodyNameRegExp).describe('The person\'s name, 1 to 60 letters, marks, spaces, apostrophes (\' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).'),
   "birthDate": zod.string(),
   "birthTime": zod.string(),
   "birthPlace": zod.string(),
@@ -2560,7 +2566,7 @@ export const CreateCompatibilityReportBody = zod.object({
   "reportAId": zod.string(),
   "reportBId": zod.string(),
   "lens": zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
-  "label": zod.string().nullish(),
+  "label": zod.enum(['family', 'friends', 'colleagues']).nullish().describe('How two people under the `people` lens know each other, one of the picker\'s three words, so no typed text reaches the prompt (ADR-202).'),
   "parent": zod.enum(['A', 'B']).optional().describe('Under the parent_child lens, which of the two is the parent. Carried as the participants\' positional role.')
 })
 
@@ -2640,7 +2646,7 @@ export const CreateRelationshipBody = zod.object({
   "profileAId": zod.string(),
   "profileBId": zod.string(),
   "type": zod.enum(['partners', 'parent_child', 'people']).optional().describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
-  "label": zod.string().nullish()
+  "label": zod.enum(['family', 'friends', 'colleagues']).nullish().describe('How two people under the `people` lens know each other, one of the picker\'s three words, so no typed text reaches the prompt (ADR-202).')
 })
 
 export const CreateRelationshipResponse = zod.object({
@@ -2992,13 +2998,13 @@ export const ListGiftsResponse = zod.array(ListGiftsResponseItem)
  * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
  * @summary Gift a report
  */
-
+export const createGiftBodyRecipientNameRegExp = new RegExp('^[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
 export const createGiftBodyNoteMax = 280;
 
 
 
 export const CreateGiftBody = zod.object({
-  "recipientName": zod.string().min(1),
+  "recipientName": zod.string().regex(createGiftBodyRecipientNameRegExp).describe('The recipient\'s name, 1 to 60 letters, marks, spaces, apostrophes (\' ’), hyphens and dots (. ·), the same rule as every typed name (ADR-202).'),
   "email": zod.string().email(),
   "note": zod.string().max(createGiftBodyNoteMax).optional()
 }).describe('Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).')

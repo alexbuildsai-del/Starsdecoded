@@ -31,6 +31,9 @@ tags:
   - name: waitlist
     description: The pre-launch list production collects until Stars Decoded opens
 paths:
+  # /csp-report is left out on purpose: browsers post their CSP violation reports
+  # to it on their own and the generated client never calls it, as with /admin/*,
+  # which the admin pages reach through their own fetch (ADR-198).
   /healthz:
     get:
       operationId: healthCheck
@@ -180,6 +183,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Paused"
 
   /reports/{id}:
     get:
@@ -312,7 +319,9 @@ paths:
       summary: Regenerate a report's interpretation
       description: >
         Re-runs interpretation on the stored chart. Used for reports generated
-        before the current prompt version. Rate-limited per report.
+        before the current prompt version. Its 429 is the writing limit, or a
+        second regenerate of the same report within a minute, which sends
+        Retry-After but no `retryAfterSeconds` in its body.
       parameters:
         - name: id
           in: path
@@ -345,11 +354,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "429":
-          description: Regenerated too recently
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Paused"
 
   /profiles:
     get:
@@ -512,6 +519,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Paused"
 
   /horizon/preview:
     post:
@@ -542,6 +553,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /compatibility:
     post:
@@ -578,6 +591,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Paused"
 
   /compatibility/{id}/summary:
     get:
@@ -650,6 +667,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /compatibility/{id}/stop-sharing:
     post:
@@ -766,6 +785,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Paused"
 
   /synastry/{id}:
     get:
@@ -896,6 +919,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /invites:
     get:
@@ -971,6 +996,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /invites/{token}:
     get:
@@ -1093,6 +1120,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /gifts/{id}/remind:
     post:
@@ -1176,6 +1205,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
 components:
   parameters:
@@ -1186,6 +1217,33 @@ components:
       schema:
         type: string
       description: Shared-secret admin key. May also be passed as `?key=`.
+
+  # The origin guard's 403 (`forbidden_origin`) is on no route: it refuses only a
+  # write from an Origin outside WEB_ORIGINS, and the client calls /api from the
+  # site's own origin, so it never meets one (ADR-197).
+  responses:
+    RateLimited:
+      description: >
+        Too many requests of this kind in the window its limit counts (ADR-199).
+        `message` is the line the page shows; Retry-After and `retryAfterSeconds`
+        carry the same wait.
+      headers:
+        Retry-After:
+          description: Seconds until the limit lets the next request of this kind through.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RateLimited"
+    Paused:
+      description: >
+        Writing is paused: today's (UTC) generation spend has reached
+        DAILY_SPEND_CAP_USD (ADR-199). `message` is the line the page shows.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Paused"
 
   schemas:
     HealthStatus:
@@ -1212,6 +1270,36 @@ components:
           type: string
       required:
         - error
+
+    RateLimited:
+      type: object
+      description: A rate limit's 429 body (ADR-199).
+      properties:
+        error:
+          type: string
+          enum: [rate_limited]
+        message:
+          type: string
+          description: The one line the page shows, so its words live in the API.
+        retryAfterSeconds:
+          type: integer
+          description: The wait Retry-After carries.
+      required: [error, message, retryAfterSeconds]
+
+    Paused:
+      type: object
+      description: The 503 body while the daily spend cap pauses writing (ADR-199).
+      properties:
+        error:
+          type: string
+          enum: [paused]
+        reason:
+          type: string
+          enum: [paused]
+        message:
+          type: string
+          description: The one line the page shows, so its words live in the API.
+      required: [error, reason, message]
 
     JoinWaitlistBody:
       type: object
@@ -1284,7 +1372,11 @@ components:
       properties:
         name:
           type: string
-          description: Name of the person
+          pattern: '^[\p{L}\p{M} ''’.·-]{1,60}$'
+          description: >-
+            The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’),
+            hyphens and dots (. ·), so what reaches the prompt is a name and
+            never markup or an instruction (ADR-202).
         birthDate:
           type: string
           description: Birth date in YYYY-MM-DD format
@@ -2966,7 +3058,13 @@ components:
     CreateProfileBody:
       type: object
       properties:
-        name: { type: string }
+        name:
+          type: string
+          pattern: '^[\p{L}\p{M} ''’.·-]{1,60}$'
+          description: >-
+            The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’),
+            hyphens and dots (. ·), so what reaches the prompt is a name and
+            never markup or an instruction (ADR-202).
         birthDate: { type: string }
         birthTime: { type: string }
         birthPlace: { type: string }
@@ -3040,7 +3138,11 @@ components:
         reportBId: { type: string }
         lens:
           $ref: "#/components/schemas/RelationshipType"
-        label: { type: string, nullable: true }
+        label:
+          type: string
+          enum: [family, friends, colleagues]
+          nullable: true
+          description: How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202).
         parent:
           type: string
           enum: [A, B]
@@ -3108,7 +3210,11 @@ components:
         profileBId: { type: string }
         type:
           $ref: "#/components/schemas/RelationshipType"
-        label: { type: string, nullable: true }
+        label:
+          type: string
+          enum: [family, friends, colleagues]
+          nullable: true
+          description: How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202).
       required: [profileAId, profileBId]
 
     RelationshipCreateResponse:
@@ -3410,7 +3516,13 @@ components:
       type: object
       description: Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).
       properties:
-        recipientName: { type: string, minLength: 1 }
+        recipientName:
+          type: string
+          pattern: '^[\p{L}\p{M} ''’.·-]{1,60}$'
+          description: >-
+            The recipient's name, 1 to 60 letters, marks, spaces, apostrophes
+            (' ’), hyphens and dots (. ·), the same rule as every typed name
+            (ADR-202).
         email: { type: string, format: email }
         note: { type: string, maxLength: 280 }
       required: [recipientName, email]
