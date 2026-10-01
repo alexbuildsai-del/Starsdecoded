@@ -1,6 +1,6 @@
 # Timeline
 
-Locked 2026-10-01 from ideation v10; behind a switch, off at launch; closes MB-26.
+Locked 2026-10-01 from ideation v10 (ADR-205 to 217); behind a switch, off at launch; closes MB-26.
 https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE
 
 Timeline is the one subscription, sold only to an owner of a Personal natal report. It
@@ -95,11 +95,11 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
   person in the circle: the sky event, what it touches in the reader's chart, how astrology
   reads it, and the pair chapter it lands in (Venus turning back through the 8th and 7th:
   chapter 07, Love and closeness), opening it; with no pair, "Read the two of you · 1
-  credit" through R13's asking steps. Never another person's sky. One a week at most.
+  credit" through pricing's asking steps. Never another person's sky. One a week at most.
 - **Ask** answers about someone from the reader's side and offers the pair, or Gift a report.
 - **Share cards** per life cycle (1080×1350, ADR-102): ring, age, name, sky date, "When is
   yours?", to `/timeline`'s finder. MB-104's answer governs what a card may show.
-- **The yearly plan: "€69.99 a year (1 credit to give, included)"**, granted through R13's
+- **The yearly plan: "€69.99 a year (1 credit to give, included)"**, granted through pricing's
   ledger on each yearly payment (History "+1 · with Timeline"), taken back if refunded unspent.
 - **The letter ends at the circle** (a pair, a share, a gift waiting). Measured in the loop
   study against owners without Timeline: one more report a year.
@@ -120,7 +120,7 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
 
 ### The switch and the order of building
 - `TIMELINE` in `packages/launch`, off everywhere, the admin sees it on staging; on is a Release.
-- Built after R13 (pricing and launch); R13 stays as planned. Launch is the two reports.
+- Built after pricing and launch (R14 since ADR-204, ADR-217), which stays as planned. Launch is the two reports.
 
 ### Coming soon on the site (screen 7, no switch)
 - `/timeline`, prerendered like the other public pages (R-7.6), opening with an answer
@@ -168,7 +168,7 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
 
 ## The Owner's answers (2026-10-01)
 1. Timing: **B**, the reading with reasons, never yes, no or a score. Only the reader.
-2. €9.99 a month, VAT included, no free trial, promotions only. Behind a switch, after R13.
+2. €9.99 a month, VAT included, no free trial, promotions only. Behind a switch, after pricing and launch.
 3. On v2 to v5: Ask a chat capped by cost, no tier; the dial, not a Gantt; Ask everywhere
    with its own mark; Life's why first, ages on top; coming soon as cards; tone colours.
 4. On v6 to v8: reports and sharing are the core and the money; keep R12's dashboard, change
@@ -194,7 +194,7 @@ free question, rose #C46B78, easy/mixed/intense, the why card, the invitation la
 9. Ask: a chat that asks back with cards, computed answers, reads only what the reader
    can, no diagnosis or advice, a fixed harm reply, 50 a month, its mark everywhere.
 10. The weekly letter: opt-in, Monday, only in weeks that touch the chart.
-11. `TIMELINE` off everywhere, admin sees it on staging; built after R13. `/timeline`
+11. `TIMELINE` off everywhere, admin sees it on staging; built after pricing and launch (R14). `/timeline`
     coming soon with the finder, no switch, may ship with the launch.
 12. Timeline sells reports: the why card, Ask's pair offer, share cards, 1 credit to give
     with the yearly plan, the letter's circle line; success is one more report a year.
