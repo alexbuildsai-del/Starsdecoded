@@ -1,7 +1,8 @@
 /**
- * The Compatibility report on its own page (annex /compatibility): the sample people under each lens on one horizon
- * (ADR-113), then how to get the report in three steps drawn with the site's own pieces (ADR-180). Its questions are on
- * /faq. It quotes no pair text until a pair run is stored (MB-93), and it never scores the two people.
+ * The Compatibility report on its own page (annex /compatibility): how to get it, in three steps drawn with the site's
+ * own pieces (ADR-180): the sample people on one horizon (ADR-113), the lenses, and each lens's seven chapters with what
+ * they cover. Its questions are on /faq. It quotes no pair text until a pair run is stored (MB-93), and it never scores
+ * the two people.
  */
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
@@ -15,7 +16,7 @@ import { SiteLayout } from "../SiteLayout";
 import { TwoPlates } from "../components/TwoPlates";
 import { ReportCta } from "../cta";
 import { SAMPLE_PAIRS, samplePerson } from "../data/people";
-import { PairLenses } from "../sections/TwoCharts";
+import { CLOSING_LINE, LENS_COPY, OPENING_LINE } from "../sections/TwoCharts";
 import { SAMPLE_LIVE, pageFor } from "../site";
 
 const page = pageFor("/compatibility");
@@ -28,6 +29,9 @@ const two = (n: number): string => String(n).padStart(2, "0");
 // Each lens writes its own five chapters between the same first and last (ADR-63), so any lens gives both counts.
 const PAIR_CHAPTERS = countWord(PAIR_CHAPTER_TITLES(LENSES[0].lens).length);
 const SCENE_CHAPTERS = capital(countWord(LENSES[0].chapters.length));
+
+/** The home page's line for each chapter, so the two pages say what a lens covers in the same words. */
+const chapterLines = (lens: Lens): string[] => [OPENING_LINE, ...LENS_COPY[lens].lines, CLOSING_LINE];
 
 // Under parent and child the parent comes first (people.ts), so step 01's mother and daughter are also the parent pick's.
 const [PARENT, CHILD] = SAMPLE_PAIRS.parent_child.map((id) => samplePerson(id));
@@ -52,16 +56,20 @@ const TITLES_BEAT: Beat = { from: 1300, every: 120 };
 const LENS_BEAT: Beat = { from: 60, every: 90 };
 /** Both Suns, then both Moons, then both Risings, so the two readouts fill side by side. */
 const ROW_ORDER = [0, 3, 1, 4, 2, 5];
-const ON_VIEW = 0.35;
+/** The list can fill most of a phone's screen, so it starts with a third of it in view, as the artifact has it. */
+const LIST_ON_VIEW = 0.35;
+/** A row is one line, so it counts as in view only when nearly all of it is. */
+const ROW_ON_VIEW = 0.95;
 
 const moving = (): boolean =>
   typeof Element.prototype.animate === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // TwoPlates keeps its readouts to itself, so its rows are found by their markup: one <dl> per person, a row per body.
-function plateRows(box: HTMLElement | null): HTMLElement[] {
-  const rows = box ? [...box.querySelectorAll<HTMLElement>("dl > div")] : [];
-  return ROW_ORDER.flatMap((i) => (rows[i] ? [rows[i]] : []));
+function readoutRows(box: HTMLElement | null): HTMLElement[] {
+  return box ? [...box.querySelectorAll<HTMLElement>("dl > div")] : [];
 }
+
+const inTurn = (rows: readonly HTMLElement[]): HTMLElement[] => ROW_ORDER.flatMap((i) => (rows[i] ? [rows[i]] : []));
 
 function chapterRows(box: HTMLElement | null, lens?: Lens): HTMLElement[] {
   return box ? [...box.querySelectorAll<HTMLElement>(lens ? `ol[data-lens="${lens}"] > li` : "ol > li")] : [];
@@ -84,25 +92,9 @@ function arrive(els: readonly HTMLElement[], beat: Beat): Animation[] {
 
 const CHOICE =
   "relative inline-flex items-center has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--indigo-lt)]";
-// The lens tabs' look above, where a choice is a radio rather than a tab.
+// The home page's lens tabs' look, where a choice is a radio rather than a tab.
 const LENS_CHIP = `sd-lensbtn ${CHOICE} has-checked:border-[rgba(149,117,205,.75)] has-checked:bg-[rgba(149,117,205,.15)] has-checked:text-[var(--paper)]`;
 const PARENT_CHIP = `${CHOICE} h-8 cursor-pointer rounded-full border border-[var(--line)] px-3 font-label text-[12.5px] text-[var(--paper-dim)] transition-colors has-checked:border-[var(--indigo)] has-checked:bg-[rgba(92,107,192,.15)] has-checked:text-[var(--paper)]`;
-
-function Lenses() {
-  return (
-    <section className="sd-pg-sec sd-sec-a sd-line" aria-labelledby="lens-h">
-      <div className="sd-wrap grid gap-7">
-        <div className="sd-shead mb-0">
-          <p className="sd-eyebrow">Pick who they are to you</p>
-          <h2 className="sd-h2" id="lens-h">
-            What it covers depends on who they are to you
-          </h2>
-        </div>
-        <PairLenses />
-      </div>
-    </section>
-  );
-}
 
 /** Words first, so on a phone each piece comes after the step that explains it. */
 function Step({ n, title, titleId, text, children }: { n: number; title: string; titleId?: string; text: string; children: ReactNode }) {
@@ -146,7 +138,7 @@ function HowToGetIt() {
     stop("titles");
     waiting.current.rows = false;
     waiting.current.titles = false;
-    unhide(plateRows(plates.current));
+    unhide(readoutRows(plates.current));
     unhide(chapterRows(titles.current));
   };
 
@@ -155,44 +147,55 @@ function HowToGetIt() {
     const platesEl = plates.current;
     const titlesEl = titles.current;
     if (!platesEl || !titlesEl || !moving() || !("IntersectionObserver" in window)) return;
-    const below = (el: Element) => el.getBoundingClientRect().top >= window.innerHeight;
-    if (below(platesEl)) {
+    const below = (el: Element | undefined) => el !== undefined && el.getBoundingClientRect().top >= window.innerHeight;
+    const rows = readoutRows(platesEl);
+    const list = chapterRows(titlesEl, shownLens.current);
+    const watching: IntersectionObserver[] = [];
+
+    if (below(rows[0])) {
       waiting.current.rows = true;
-      hide(plateRows(platesEl));
+      hide(rows);
+      // Every row in view first, so none arrives off screen, whichever way the reader comes to them.
+      const seen = new Set<Element>();
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.intersectionRatio >= ROW_ON_VIEW) seen.add(entry.target);
+            else seen.delete(entry.target);
+          }
+          if (waiting.current.rows && seen.size < rows.length) return;
+          io.disconnect();
+          if (!waiting.current.rows) return;
+          waiting.current.rows = false;
+          rowsAt.current = performance.now();
+          runs.current.rows = arrive(inTurn(rows), ROWS_BEAT);
+        },
+        { threshold: ROW_ON_VIEW },
+      );
+      for (const row of rows) io.observe(row);
+      watching.push(io);
     }
-    if (below(titlesEl)) {
+
+    if (below(list[0])) {
       waiting.current.titles = true;
-      hide(chapterRows(titlesEl, shownLens.current));
-    }
-    // Each piece starts on its own view: on a phone step 03 is a screen below the plates, and would finish unseen.
-    const onView = (el: Element, play: () => void) => {
+      hide(list);
       const io = new IntersectionObserver(
         ([entry]) => {
-          if (!entry?.isIntersecting) return;
+          if (waiting.current.titles && (!entry || entry.intersectionRatio < LIST_ON_VIEW)) return;
           io.disconnect();
-          play();
+          if (!waiting.current.titles) return;
+          waiting.current.titles = false;
+          // In view with the plates, the titles keep the artifact's place after the rows; reached later, they start at once.
+          const since = rowsAt.current === null ? Infinity : performance.now() - rowsAt.current;
+          const from = Math.max(LENS_BEAT.from, TITLES_BEAT.from - since);
+          runs.current.titles = arrive(chapterRows(titlesEl, shownLens.current), { from, every: TITLES_BEAT.every });
         },
-        { threshold: ON_VIEW },
+        { threshold: LIST_ON_VIEW },
       );
-      io.observe(el);
-      return io;
-    };
-    const watching = [
-      onView(platesEl, () => {
-        if (!waiting.current.rows) return;
-        waiting.current.rows = false;
-        rowsAt.current = performance.now();
-        runs.current.rows = arrive(plateRows(platesEl), ROWS_BEAT);
-      }),
-      onView(titlesEl, () => {
-        if (!waiting.current.titles) return;
-        waiting.current.titles = false;
-        // In view with the plates, the titles keep the artifact's place after the rows; reached later, they start at once.
-        const since = rowsAt.current === null ? Infinity : performance.now() - rowsAt.current;
-        const from = Math.max(LENS_BEAT.from, TITLES_BEAT.from - since);
-        runs.current.titles = arrive(chapterRows(titlesEl, shownLens.current), { from, every: TITLES_BEAT.every });
-      }),
-    ];
+      io.observe(titlesEl);
+      watching.push(io);
+    }
+
     return () => {
       for (const io of watching) io.disconnect();
       settle();
@@ -218,7 +221,7 @@ function HowToGetIt() {
     if (!moving()) return;
     settle();
     rowsAt.current = performance.now();
-    runs.current.rows = arrive(plateRows(plates.current), ROWS_BEAT);
+    runs.current.rows = arrive(inTurn(readoutRows(plates.current)), ROWS_BEAT);
     runs.current.titles = arrive(chapterRows(titles.current, lens), TITLES_BEAT);
   };
 
@@ -303,23 +306,29 @@ function HowToGetIt() {
             title={`Read ${PAIR_CHAPTERS} chapters about everyday life`}
             text={`${SCENE_CHAPTERS} of them play out one scene between you and end with something to try together. Pick a relationship in step 2 to see its chapters.`}
           >
-            {/* Every lens's titles are in the HTML, so a crawler reads all three, not the one picked first. */}
+            {/* Every lens's chapters are in the HTML, so a crawler reads all three, not the one picked first. */}
             <div ref={titles}>
-              {LENSES.map(({ lens: shown }) => (
-                <ol key={shown} data-lens={shown} hidden={shown !== lens} className="m-0 grid list-none gap-1.5 p-0">
-                  {PAIR_CHAPTER_TITLES(shown).map((title, i) => (
-                    <li
-                      key={title}
-                      className="grid grid-cols-[30px_minmax(0,1fr)] items-baseline gap-2 rounded-[10px] border border-[var(--line-soft)] bg-[rgba(6,8,12,.55)] px-3.5 py-2.5"
-                    >
-                      <span aria-hidden="true" className="font-numeric text-[11.5px] font-medium" style={{ color: chapterAccent(i + 1) }}>
-                        {two(i + 1)}
-                      </span>
-                      <span className="font-display text-[17px] leading-[1.3] text-[var(--paper)]">{title}</span>
-                    </li>
-                  ))}
-                </ol>
-              ))}
+              {LENSES.map(({ lens: shown }) => {
+                const lines = chapterLines(shown);
+                return (
+                  <ol key={shown} data-lens={shown} hidden={shown !== lens} className="m-0 grid list-none gap-1.5 p-0">
+                    {PAIR_CHAPTER_TITLES(shown).map((title, i) => (
+                      <li
+                        key={title}
+                        className="grid grid-cols-[30px_minmax(0,1fr)] items-baseline gap-2 rounded-[10px] border border-[var(--line-soft)] bg-[rgba(6,8,12,.55)] px-3.5 py-2.5"
+                      >
+                        <span aria-hidden="true" className="font-numeric text-[11.5px] font-medium" style={{ color: chapterAccent(i + 1) }}>
+                          {two(i + 1)}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-display text-[17px] leading-[1.3] text-[var(--paper)]">{title}</span>
+                          <span className="mt-0.5 block text-[14px] leading-[1.45] text-[var(--sd-muted)]">{lines[i]}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                );
+              })}
             </div>
           </Step>
         </ol>
@@ -351,7 +360,6 @@ function Start() {
 export default function CompatibilityPage() {
   return (
     <SiteLayout page={page} end={<Start />}>
-      <Lenses />
       <HowToGetIt />
     </SiteLayout>
   );
