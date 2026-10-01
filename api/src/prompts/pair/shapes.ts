@@ -8,8 +8,9 @@ import { z } from "zod/v4";
 import type { Band, PairBrief } from "../../lib/pairBrief.js";
 import { LENS_REGISTER, writtenAge, type Lens } from "../../lib/pairBrief.js";
 import { PairClaimsSchema, reconcilePairClaims, type PairClaim } from "./evidence.js";
-import { ASPECTS, BODIES, BODY_LABELS } from "../vocabulary.js";
-import type { ReportSectionId } from "../index.js";
+import { ASPECTS, BODIES, BODY_LABELS, cap } from "../vocabulary.js";
+import { SECTION_IDS, type ReportSectionId } from "../index.js";
+import { proseOf, softenQuote } from "../evidence.js";
 import { block, buffered, fixed, warned, type Check, type Validated } from "../checks.js";
 
 /** A chapter's one scene, or one per band under the parent lens, so the scene always fits the child (ADR-176). */
@@ -40,7 +41,7 @@ export interface PairSectionSpec<T extends z.ZodType = z.ZodType> {
   extraContext?: (brief: PairBrief) => string;
   /** Runs on the raw reply before the parse: cuts, drops, spellings (ADR-81). */
   normalise?: (raw: unknown, brief: PairBrief) => { raw: unknown; checks: Check[] };
-  /** Post-parse: snaps, drops, fills, blocks; the output as it should be stored (ADR-81, ADR-82). */
+  /** Post-parse, on prose `validatePairSection` has already repaired: snaps, drops, fills, blocks; the output as it should be stored (ADR-81, ADR-82). */
   validate?: (output: z.infer<T>, brief: PairBrief) => Validated<z.infer<T>>;
 }
 
@@ -174,6 +175,158 @@ export function stripBracketsDeep<T>(value: T): { value: T; stripped: number } {
     return v;
   };
   return { value: walk(value) as T, stripped };
+}
+
+// The pair brief lists each person's claims as "A/mind claim 1" and each link
+// as "L12" (`pairBrief.ts`); the model echoes them with "source", or a name
+// for the letter. Only a known section before "claim N" counts, so "claim"
+// in a sentence is never touched.
+const SECTION_ALT = SECTION_IDS.map((s) => `[${s[0]}${s[0].toUpperCase()}]${s.slice(1)}`).join("|");
+// A surname has two letters at least, so "As A/mind claim 1" is not read as a name.
+const WHO = String.raw`(?:[AB]|\p{Lu}[\p{L}\p{M}'’-]*(?: \p{Lu}[\p{L}\p{M}'’-]+)?)\s*[/:]\s*`;
+const SOURCE = String.raw`[Ss]ources?\s*:?\s*`;
+const CLAIM_NO = String.raw`(?:${SECTION_ALT})\s+[Cc]laims?\s+\d+`;
+const LINK_LABEL = String.raw`(?:[Ll]inks?\s*:?\s*)?L\d{1,2}`;
+// Inside a bracket of nothing but labels the prefix may go; in a sentence it
+// has to be there, so a stray "money claim" is not taken for one.
+const LOOSE_LABEL = String.raw`(?:(?:${SOURCE})?(?:${WHO})?${CLAIM_NO}|${LINK_LABEL})`;
+const STRICT_LABEL = String.raw`(?:(?:${SOURCE})?${WHO}${CLAIM_NO}|${SOURCE}${CLAIM_NO}|${LINK_LABEL})`;
+// The bare word is what "[claim]" left where a label should have gone.
+const LABEL_ITEM = String.raw`(?:${LOOSE_LABEL}|[Cc]laims?|[Ss]ources?)`;
+const BRACKETED_LABELS_RE = new RegExp(String.raw`\s*[(\[]\s*${LABEL_ITEM}(?:\s*(?:[;,.&]|\band\b)\s*${LABEL_ITEM})*\s*[.;,]?\s*[)\]]`, "gu");
+const BARE_LABEL_RE = new RegExp(String.raw`(?<![\p{L}\p{N}/])${STRICT_LABEL}(?![\p{L}\p{N}])`, "gu");
+
+/**
+ * A bracket of nothing but brief labels goes, with its brackets and the space
+ * before it (annex row 40). A label left in a sentence is returned, not cut:
+ * the sentence was written around it, so only a rewrite can mend it. A label
+ * in a bracket that names a body is not returned, since row 20 strips that
+ * bracket whole.
+ */
+export function stripBriefLabels(text: string): { text: string; stripped: number; bare: string[] } {
+  const { text: out, stripped } = stripBrackets(text, BRACKETED_LABELS_RE);
+  const bare = [...out.replace(BRACKETED_BODY_RE, "").matchAll(BARE_LABEL_RE)].map((m) => m[0]);
+  return { text: out, stripped, bare };
+}
+
+/** A bracket opening the field leaves no space in front of the text. */
+function stripBrackets(text: string, re: RegExp): { text: string; stripped: number } {
+  let stripped = 0;
+  const out = text.replace(re, () => { stripped += 1; return ""; });
+  return { text: stripped && !/^\s/.test(text) ? out.trimStart() : out, stripped };
+}
+
+// The model's own count of a field, which rule 10 says never to mention: "56 words", "about 40 words", "40-60 words".
+const COUNT = String.raw`(?:(?:about|around|roughly|approximately|approx\.?|~)\s*)?\d+(?:\s*(?:[-–]|to)\s*\d+)?\s*words?`;
+const COUNT_LABEL = String.raw`word[- ]count\s*:?\s*\d+`;
+const BRACKETED_COUNT_RE = new RegExp(String.raw`\s*[(\[]\s*(?:[\p{L} ]{1,24}:\s*)?(?:${COUNT}|${COUNT_LABEL})\s*[.;,]?\s*[)\]]`, "giu");
+// Outside a bracket a count is a note only as a sentence of its own, so "send the plan in 10 words" stays.
+const BARE_COUNT_RE = new RegExp(String.raw`(?:^|(?<=[.!?]["”’)\]]*\s))\s*${COUNT}(?=\s*(?:[.!?]|$))|${COUNT_LABEL}`, "giu");
+
+/**
+ * A bracket holding nothing but a word count goes like a label bracket (annex
+ * row 42, style rule 10). A count standing as its own sentence, or "word
+ * count: 56" anywhere, is returned to block.
+ */
+export function stripWordCounts(text: string): { text: string; stripped: number; bare: string[] } {
+  const { text: out, stripped } = stripBrackets(text, BRACKETED_COUNT_RE);
+  const bare = [...out.matchAll(BARE_COUNT_RE)].map((m) => m[0].trim());
+  return { text: out, stripped, bare };
+}
+
+const SEMICOLON_RE = /\s*;+(\s*)(["'“‘([]*)(?:(\p{Ll})(?![\p{L}\p{M}'’-]*\p{Lu}))?/gu;
+
+/**
+ * A semicolon becomes a full stop and the word after it opens the sentence
+ * (annex row 41). Only a lowercase word is raised, and not one cased inside
+ * like "iPhone", so a name stays as written.
+ */
+export function semicolonsToFullStops(text: string): { text: string; replaced: number } {
+  let replaced = 0;
+  const out = text.replace(SEMICOLON_RE, (m: string, space: string, open: string, first: string | undefined, at: number, whole: string) => {
+    replaced += 1;
+    const stop = /[.!?]["'”’)\]]*$/.test(whole.slice(0, at)) ? "" : ".";
+    const rest = whole.slice(at + m.length);
+    // Hard against the semicolon, a quote mark or bracket closes what it ended: no space before it.
+    const closing = !space && (/^["']/.test(open) || (!open && !first && /^[”’)\]]/.test(rest)));
+    if (closing || (!open && !first && !rest)) return `${stop}${open}${first ?? ""}`;
+    return `${stop} ${open}${first ? first.toUpperCase() : ""}`;
+  });
+  return { text: out, replaced };
+}
+
+/** Every repair in order: a label or count bracket can hold a semicolon, and it goes whole. */
+function repairProse(text: string): string {
+  return semicolonsToFullStops(stripWordCounts(stripBriefLabels(text).text).text).text;
+}
+
+const quoted = (found: string[]): string => found.map((f) => `"${f}"`).join(", ");
+
+/**
+ * Every prose string of a section, never the claims list: the brief's labels,
+ * the word counts and the semicolons repaired in code, a label or a count
+ * left in a sentence a block, since a reader would see it (annex rows 40 to
+ * 42; ADR-81).
+ */
+export function pairProseChecks<T>(value: T): { value: T; checks: Check[] } {
+  const checks: Check[] = [];
+  let labelled = 0;
+  let counted = 0;
+  let replaced = 0;
+  const walk = (v: unknown, path: string, key?: string): unknown => {
+    if (key === "claims") return v;
+    if (typeof v === "string") {
+      const labels = stripBriefLabels(v);
+      const counts = stripWordCounts(labels.text);
+      labelled += labels.stripped;
+      counted += counts.stripped;
+      if (labels.bare.length) checks.push(block("chk-40", `${path}: the brief's label ${quoted(labels.bare)} sits in a sentence. A citation lives in the claims field only, never in the prose.`));
+      if (counts.bare.length) checks.push(block("chk-42", `${path}: the word count ${quoted(counts.bare)} sits in the prose. Never mention a word count.`));
+      const stops = semicolonsToFullStops(counts.text);
+      replaced += stops.replaced;
+      return stops.text;
+    }
+    if (Array.isArray(v)) return v.map((x, i) => walk(x, `${path} ${i + 1}`));
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x, path ? `${path}.${k}` : k, k)]));
+    return v;
+  };
+  const out = walk(value, "") as T;
+  if (counted) checks.unshift(fixed("chk-42", `${counted} word count(s) stripped from the prose`));
+  if (labelled) checks.unshift(fixed("chk-40", `${labelled} bracket(s) of brief labels stripped from the prose`));
+  if (replaced) checks.push(fixed("chk-41", `${replaced} semicolon(s) in the prose became full stops`));
+  return { value: out, checks };
+}
+
+/**
+ * A claim quoting a sentence the repairs changed now quotes it as it prints:
+ * the snap scores one sentence at a time, so a quote across a semicolon that
+ * became a full stop would score under its threshold against either half
+ * and the claim would be lost. A quote that opened after the semicolon is
+ * tried with its first word raised (annex rows 4, 41).
+ */
+export function followRepairs<T>(value: T): { value: T; checks: Check[] } {
+  const section = value as T & { claims?: unknown };
+  if (!Array.isArray(section.claims)) return { value, checks: [] };
+  const prose = softenQuote(proseOf(section));
+  const verbatim = (q: string) => prose.includes(softenQuote(q));
+  const checks: Check[] = [];
+  const claims = (section.claims as Array<{ quote?: unknown }>).map((c, i) => {
+    if (typeof c?.quote !== "string" || verbatim(c.quote)) return c;
+    const repaired = repairProse(c.quote);
+    const quote = [repaired, cap(repaired)].find((q) => q !== c.quote && verbatim(q));
+    if (quote === undefined) return c;
+    checks.push(fixed("chk-04", `claim ${i + 1}: the quote follows the repaired prose`));
+    return { ...c, quote };
+  });
+  return checks.length ? { value: { ...section, claims } as T, checks } : { value, checks };
+}
+
+/** What every pair section's write runs: the prose repaired, the claims following it, then the section's own checks on what will print. */
+export function validatePairSection(spec: PairSectionSpec, out: unknown, brief: PairBrief): Validated<unknown> {
+  const prose = pairProseChecks(out);
+  const quotes = followRepairs(prose.value);
+  const own = (spec.validate as ((o: unknown, b: PairBrief) => Validated<unknown>) | undefined)?.(quotes.value, brief) ?? { output: quotes.value, checks: [] };
+  return { output: own.output, checks: [...prose.checks, ...quotes.checks, ...own.checks] };
 }
 
 /** Evidence lives in claims only (ADR-60): trine and sextile are jargon and block; square, opposition and conjunction block beside a body name and are logged alone; orb blocks (annex rows 21, 22). */

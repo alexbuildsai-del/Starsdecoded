@@ -24,6 +24,7 @@ every group ended green. The Owner approved with "go" and left MB-93, 128 and 12
 - **R12-19** the Lab page defaults a spot to production's writers — INTERNAL. **R12-20** /sample at four of ten chapters, ending on the differences — USER-FACING.
 - **R12-21 to 24** the dashboard as a home: the circle and its quick look, People and Compatibility rows, Stop sharing naming its four consequences, what you're practising, your pairs, your stories, one `GET /home` — USER-FACING.
 - **R12-27** after the merge: staging's first fixture runs on mix B put semicolons in 5 of 60 natal sections and most pair chapters (5.2: almost none), a new fault the release gate refuses. Rule 8 now says it plainly, a self-check ends every prompt, and the prompts stop using semicolons themselves (MB-129's default) — USER-FACING.
+- **R12-28** after the second fixture runs: a Compatibility report's prose loses leaked brief labels ("(A/family claim 3; …)", 3 of 7 reports), word-count notes and leftover semicolons before its claims are checked; claims follow the repair (chk-40 to 42) — USER-FACING.
 - **R12-26** a failed Personal report keeps its row and says "Could not be written." (R12-04 had dropped it); the summary leaves it out — USER-FACING.
 
 ## Gate

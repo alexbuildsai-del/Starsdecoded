@@ -20,8 +20,9 @@ export { PAIR_CLAIMS_CONTRACT, PairClaimSchema, PairClaimsSchema, PairEvidenceRe
 export {
   CARD_LINE_BUFFER, CARD_LINE_WORDS, GROWN_RULE, NOW_AND_LATER_RULE,
   PairLensChapterSchema, PairLinkSchema, PairLinksSchema, PairPractiseSchema, PairTwoChartsSchema,
-  bandChecks, bandProblems, cardLineChecks, cardLineProblems, evidenceChecks, evidenceProblems, hasVerb, houseChecks, lensChapter, lensChapterChecks, lensChapterId, lensContext,
-  nameRegExp, proseText, ratingChecks, ratingProblems, sceneChecks, sceneOf, sceneProblems, spellSmallNumbers, stripBracketedBodies, stripBracketsDeep, twoChartsChecks, whyChecks, whyProblems,
+  bandChecks, bandProblems, cardLineChecks, cardLineProblems, evidenceChecks, evidenceProblems, followRepairs, hasVerb, houseChecks, lensChapter, lensChapterChecks, lensChapterId, lensContext,
+  nameRegExp, pairProseChecks, proseText, ratingChecks, ratingProblems, sceneChecks, sceneOf, sceneProblems, semicolonsToFullStops, spellSmallNumbers, stripBracketedBodies, stripBracketsDeep,
+  stripBriefLabels, stripWordCounts, twoChartsChecks, validatePairSection, whyChecks, whyProblems,
   type BandDoctrine, type ChapterScene, type PairLensChapterOutput, type PairSectionSpec, type PairTwoChartsOutput,
 } from "./shapes.js";
 export { pairFoundation, PairFoundationSchema, allocationOf, foundationChecks, foundationProblems, type PairFoundationOutput } from "./foundation.js";
