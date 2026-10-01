@@ -46,13 +46,13 @@ test("the pair brief reads both stored reports and both cached charts, numbers e
   assert.equal(b.label, null);
 });
 
-test("a chapter's tail carries only its own links, the claims of the sections it draws on, its scenes and the band", () => {
+test("a chapter's tail carries only its own links, the claims of the sections it draws on, its one scene and the band", () => {
   const b = buildPairBrief({ ...input(), lens: "parent_child", parent: "B", a: { ...input().a, birthDate: "2018-03-02" }, at: new Date("2026-09-21T00:00:00Z") });
   assert.equal(b.band, "school");
   const tail = chapterBrief(b, {
     owned: [b.links[0].key, b.links[2].key],
     draws: ["overview"],
-    scenes: { titles: ["the morning rush", "the drive home", "the day they came home upset"], written: 2 },
+    scene: "The morning rush",
   });
   assert.match(tail, /THIS CHAPTER'S LINKS/);
   assert.match(tail, new RegExp(`- L1: `));
@@ -60,12 +60,12 @@ test("a chapter's tail carries only its own links, the claims of the sections it
   assert.doesNotMatch(tail, /- L2: /);
   assert.match(tail, /A\/overview claim 1: "You investigate first and commit second\."/);
   assert.doesNotMatch(tail, /A\/relationships claim/);
-  assert.match(tail, /3\. the day they came home upset  <- chosen/);
-  assert.match(tail, /1\. the morning rush$/m);
-  assert.match(tail, /BAND: the child is in the school \(6 to 12\) band/);
+  assert.match(tail, /^SCENE for this chapter \(write this one and no other\): The morning rush$/m);
+  assert.doesNotMatch(tail, /chosen|SCENES/);
+  assert.match(tail, /BAND: the child is in the school \(6 to 12\) band, 8 years old today\./);
   const none = chapterBrief(b, { owned: [], draws: [] });
   assert.match(none, /none: cite sources only/);
-  assert.doesNotMatch(none, /SCENES/);
+  assert.doesNotMatch(none, /SCENE/);
 });
 
 test("a blind chart on either side: the overlays and every house-based line are omitted, not guessed", () => {
@@ -107,4 +107,29 @@ test("the parent brief prints the child's age on the day and the now-and-later r
   assert.equal(grown.childAge, 22);
   assert.match(grown.text, /childhood is past tense only/);
   assert.match(lensContext(grown), /remembered, in the past tense only/);
+});
+
+test("a child under 3 is written as 3 wherever a prompt states the age; the band stays little and the brief keeps the real age (ADR-176)", async () => {
+  const { lensContext } = await import("../prompts/pair/index.js");
+  const { writtenAge } = await import("./pairBrief.js");
+  const model = installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "leo", sunHouse: 7 }));
+  const beatrice = await generateInterpretation(chartFromFixture("beatrice"), "Beatrice York");
+  model.replies = cannedNatalReplies({ drawn: true, sunSign: "aquarius", sunHouse: 9 });
+  const athena = await generateInterpretation(chartFromFixture("athena"), "Athena Mapelli Mozzi");
+  model.restore();
+  // Athena Mapelli Mozzi, born 2025-01-22, is ten months old on this day.
+  const at = new Date("2025-11-25T00:00:00Z");
+  const brief = buildPairBrief({
+    lens: "parent_child", parent: "A", at,
+    a: { name: "Beatrice York", birthDate: "1988-08-08", chart: chartFromFixture("beatrice"), interpretation: beatrice },
+    b: { name: "Athena Mapelli Mozzi", birthDate: "2025-01-22", chart: chartFromFixture("athena"), interpretation: athena },
+  });
+  assert.equal(brief.band, "little");
+  assert.equal(brief.childAge, 0, "the brief keeps the real age; only the words say 3");
+  const texts = [brief.text, lensContext(brief), chapterBrief(brief, { owned: [], scene: "Bedtime, the third call" })];
+  assert.match(texts[0], /Athena Mapelli Mozzi is the child, 3 years old on the day this is written, in the little \(0 to 5\) band\./);
+  assert.match(texts[1], /Athena Mapelli Mozzi is in the little band, 3 years old on the day this is written\./);
+  assert.match(texts[2], /BAND: the child is in the little \(0 to 5\) band, 3 years old today\./);
+  for (const t of texts) assert.doesNotMatch(t, /\b[0-2] years? old\b|\bmonths? old\b/);
+  assert.deepEqual([0, 1, 2, 3, 4, 17].map(writtenAge), [3, 3, 3, 3, 4, 17]);
 });

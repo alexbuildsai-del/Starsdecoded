@@ -1,23 +1,23 @@
 /**
- * The shapes every pair section is built from: the spec type, the p2 chapter
+ * The shapes every pair section is built from: the spec type, the chapter
  * schemas, the lens chapter factory and the validators (ADR-63, ADR-69).
  * Sections import from here and the registry imports the sections, so
  * nothing is circular.
  */
 import { z } from "zod/v4";
 import type { Band, PairBrief } from "../../lib/pairBrief.js";
-import { LENS_REGISTER, type Lens } from "../../lib/pairBrief.js";
+import { LENS_REGISTER, writtenAge, type Lens } from "../../lib/pairBrief.js";
 import { PairClaimsSchema, reconcilePairClaims, type PairClaim } from "./evidence.js";
 import { ASPECTS, BODIES, BODY_LABELS } from "../vocabulary.js";
 import type { ReportSectionId } from "../index.js";
 import { block, buffered, fixed, warned, type Check, type Validated } from "../checks.js";
 
-export type SceneTitles = readonly [string, string, string];
-export type SceneSet = SceneTitles | ((band: Band | null) => SceneTitles);
+/** A chapter's one scene, or one per band under the parent lens, so the scene always fits the child (ADR-176). */
+export type ChapterScene = string | ((band: Band | null) => string);
 
-/** A chapter's three scene titles for the band in force. */
-export function scenesOf(spec: { scenes?: SceneSet }, band: Band | null): SceneTitles | undefined {
-  return typeof spec.scenes === "function" ? spec.scenes(band) : spec.scenes;
+/** The chapter's scene for the band in force. */
+export function sceneOf(spec: { scene?: ChapterScene }, band: Band | null): string | undefined {
+  return typeof spec.scene === "function" ? spec.scene(band) : spec.scene;
 }
 
 export interface PairSectionSpec<T extends z.ZodType = z.ZodType> {
@@ -33,8 +33,8 @@ export interface PairSectionSpec<T extends z.ZodType = z.ZodType> {
   maxTokens: number;
   schema: T;
   instructions: string;
-  /** The three curated scenes, in the spec's order, or per band under the parent lens; the foundation picks the written one (ADR-65). */
-  scenes?: SceneSet;
+  /** The one scene every report of the lens writes in this chapter; nothing picks it (ADR-176). */
+  scene?: ChapterScene;
   /** The personal-report sections whose claims this chapter's brief carries (ADR-66). */
   draws?: readonly ReportSectionId[];
   extraContext?: (brief: PairBrief) => string;
@@ -55,7 +55,6 @@ export const PairTwoChartsSchema = z.object({
   work: z.array(z.string().describe("one sentence, what will take work, framed as what it trains")).min(3).max(3),
   paradox: z.string().describe("the paradox, one line"),
   strengths: z.array(z.string().describe("a card line, at most twelve words, naming only the two people")).min(3).max(3),
-  pointer: z.string().describe("one pointer sentence: where the report goes from here"),
   claims: PairClaimsSchema,
 });
 export type PairTwoChartsOutput = z.infer<typeof PairTwoChartsSchema>;
@@ -81,7 +80,7 @@ export const PairLensChapterSchema = z.object({
     becauseA: z.string().describe("25 to 40 words: the need, fear or habit under A's side, in A's report's words"),
     becauseB: z.string().describe("25 to 40 words: the same for B"),
   }),
-  pattern: z.string().describe("40 to 60 words: the pattern under it, whether this is where it flows or rubs"),
+  pattern: z.string().describe("40 to 60 words: the pattern under it, whether this comes naturally or is the challenge"),
   nextTime: z.object({ items: z.array(NextTimeItem).min(2).max(3) }),
   claims: PairClaimsSchema,
 });
@@ -143,7 +142,7 @@ export function ratingChecks(text: string): Check[] {
   return checks;
 }
 
-/** Kept for the lab's fault rules and the scene call: the messages of every rating check. */
+/** Kept for the lab's fault rules: the messages of every rating check. */
 export function ratingProblems(text: string): string[] {
   return ratingChecks(text).map((c) => c.message);
 }
@@ -194,7 +193,7 @@ export function evidenceChecks(text: string): Check[] {
   return checks;
 }
 
-/** Kept for the lab's fault rules and the scene call: the messages of every evidence check. */
+/** Kept for the lab's fault rules: the messages of every evidence check. */
 export function evidenceProblems(text: string): string[] {
   return evidenceChecks(text).map((c) => c.message);
 }
@@ -301,7 +300,7 @@ export function sceneChecks(scene: string, names: { a: string; b: string }): Che
   return checks;
 }
 
-/** Kept for the lab's fault rules and the scene call: the messages of every scene check. */
+/** Kept for the lab's fault rules: the messages of every scene check. */
 export function sceneProblems(scene: string, names: { a: string; b: string }): string[] {
   return sceneChecks(scene, names).map((c) => c.message);
 }
@@ -398,11 +397,11 @@ export function lensContext(brief: PairBrief): string {
     const parent = brief.parent === "B" ? brief.b.name : brief.a.name;
     const child = brief.parent === "B" ? brief.a.name : brief.b.name;
     lines.push(`${parent} is the parent and ${child} is the child. Read ${child}'s chart as potential, never a verdict, and address ${parent} as the one who adapts.`);
-    if (brief.band) lines.push(`${child} is in the ${brief.band} band${brief.childAge !== null ? `, ${brief.childAge} years old on the day this is written` : ""}. Every scene, card line and "fair at this age" line is written for that age.`);
+    if (brief.band) lines.push(`${child} is in the ${brief.band} band${brief.childAge !== null ? `, ${writtenAge(brief.childAge)} years old on the day this is written` : ""}. Every scene, card line and "fair at this age" line is written for that age.`);
     lines.push(NOW_AND_LATER_RULE);
     if (brief.band === "grown") lines.push(GROWN_RULE);
   }
-  if (brief.lens === "people" && brief.label) lines.push(`How they know each other, in their words: ${brief.label}. That answer picks which scene fits and a few words of register, nothing else.`);
+  if (brief.lens === "people" && brief.label) lines.push(`How they know each other, in their words: ${brief.label}. That answer sets a few words of register in the scene, never the scene itself.`);
   return lines.join("\n");
 }
 
@@ -413,7 +412,7 @@ export interface LensChapterInput {
   title: string;
   /** What the chapter is grounded in, appended to the lens doctrine and never written for the reader. */
   grounding: string;
-  scenes: SceneSet;
+  scene: ChapterScene;
   draws: readonly ReportSectionId[];
   instructions: string;
   /** Parent and child only: the band doctrine the validator checks lines against. */
@@ -427,7 +426,7 @@ export function lensChapterId(lens: Lens, n: number): string {
 }
 
 /** The instruction every lens chapter carries after its own: evidence in claims only, the shape, the register. */
-export const LENS_CHAPTER_CONTRACT = `Citations live in the claims field only. A passage never writes a body, a sign, an aspect or an orb; the reader sees the evidence on the card, not in the sentence. The headline is one sentence in B's voice: plain, a little dry, a verdict. The side-by-side card takes three lines a side in that person's own words from their personal report and one line for the pair, twelve words a line, naming only the two people, no body, no number. The scene is the one the brief marks as chosen, written in four to six present-tense sentences with both names, and may hold a short quoted exchange; it invents no fact outside the brief. What just happened gives because A and because B, 25 to 40 words each, the need, fear or habit under that side in that report's words, each cited as a source claim. The pattern is 40 to 60 words, cited to one of this chapter's own links, and says whether this is where it flows or where it rubs. Next time gives two or three items, each for A, for B or for both, an action of 8 to 18 words and a why with a verb that says what it trains. 230 to 300 words across the headline, scene, what just happened and pattern; the card and the items sit outside that count. No score, no number, no research named on the page.`;
+export const LENS_CHAPTER_CONTRACT = `Citations live in the claims field only. A passage never writes a body, a sign, an aspect or an orb; the reader sees the evidence on the card, not in the sentence. The headline is one sentence in B's voice: plain, a little dry, a verdict. The side-by-side card takes three lines a side in that person's own words from their personal report and one line for the pair, twelve words a line, naming only the two people, no body, no number. The scene is the one the brief names for this chapter and no other, written in four to six present-tense sentences with both names, and may hold a short quoted exchange; it invents no fact outside the brief. What just happened gives because A and because B, 25 to 40 words each, the need, fear or habit under that side in that report's words, each cited as a source claim. The pattern is 40 to 60 words, cited to one of this chapter's own links, and says whether this comes naturally to the two of them or is the challenge. A challenge is written as "This is the challenge:" followed by what it is and what it trains. Next time gives two or three items, each for A, for B or for both, an action of 8 to 18 words and a why with a verb that says what it trains. 230 to 300 words across the headline, scene, what just happened and pattern; the card and the items sit outside that count. No score, no number, no research named on the page.`;
 
 export function lensChapter(input: LensChapterInput): PairSectionSpec<typeof PairLensChapterSchema> {
   const id = lensChapterId(input.lens, input.n);
@@ -440,7 +439,7 @@ export function lensChapter(input: LensChapterInput): PairSectionSpec<typeof Pai
     wordTarget: [230, 300],
     maxTokens: 4_000,
     schema: PairLensChapterSchema,
-    scenes: input.scenes,
+    scene: input.scene,
     draws: input.draws,
     instructions: `${input.instructions.trim()}\n\n${LENS_CHAPTER_CONTRACT}`,
     extraContext: (brief) => [lensContext(brief), "", `GROUNDING (doctrine, never written for the reader): ${input.grounding}`].join("\n"),
