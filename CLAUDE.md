@@ -108,7 +108,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   outside the catalogue does not compile. A check blocks only when the text would be wrong
   for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
 - Real chart data only. Fixtures hold birth data; charts are computed at run time. Never fabricate a placement, even in a demo.
-- CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
+- CI runs typecheck, both builds and unit tests; no lint step. Playwright only for axe on public pages (ADR-192, R13).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
 ## Current focus (2026-10-01)
@@ -116,5 +116,5 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 1. R12 shipped to staging: Review 01/10 (the dashboard as a home, one scene per chapter, House by House, /sample at four
    chapters, €54 with a launch price, Personal report and Your circle) and production's writers on Sol and Luna (ADR-184, 185).
 2. Production waits for a Release: R11's site and R12 together, after the full lab and the QA agent on Sol. Checkout, the postal
-   address and `LAUNCHED` wait for R13 (ADR-138). Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your chart).
-3. Next: R13, pricing and launch (`docs/rounds/R13-plan.md`, re-planned at its /plan).
+   address and `LAUNCHED` wait for R14 (ADR-138). Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your chart).
+3. Next: R13 security-hardening + agent-roster (ADR-187 to 204), /qa on staging, the first Release; then R14, pricing (`R14-plan.md`).

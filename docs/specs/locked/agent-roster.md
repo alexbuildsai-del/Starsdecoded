@@ -1,7 +1,7 @@
 # Agent roster
 
 Ideation 2026-10-01 with the Owner, after a read of Ruflo (ruvnet/ruflo, ex
-claude-flow). Status: draft. Artifact: https://claude.ai/artifact/6gBLyAD4yNBzhLJ82Ut8xp
+claude-flow). Status: locked 2026-10-01 (ADR-187 to 196), built in R13. Artifact: https://claude.ai/artifact/6gBLyAD4yNBzhLJ82Ut8xp
 
 Ruflo's routing turned out to be keyword matching that only prints a suggestion,
 and its savings figures are marked unverified in its own repo. Its 300 MCP tools
@@ -60,7 +60,7 @@ has read the spec and judges difficulty better than a keyword list.
      edits a non-test file; a bug it finds goes to the orchestrator as a failing
      test.
    - **sentinel** reviews code, not a running site, so it needs no deploy. It
-     reads the checklist in `docs/specs/draft/security-hardening.md` (scope 9)
+     reads the checklist in `docs/specs/locked/security-hardening.md` (scope 9)
      and runs the built-in `/security-review`. A blocking finding stops the
      round until a builder card fixes it, and the sentinel re-reads the fix. A
      non-blocking finding becomes a Mailbox row. It cannot run in GitHub CI,
@@ -71,7 +71,7 @@ has read the spec and judges difficulty better than a keyword list.
        A finding never reaches `main` or staging.
      - **Before a Release.** When the Owner says "promote", it audits all of
        `main`, not a diff, before the Release view runs. Its first run is such
-       an audit, which covers R12's payment code, built before it existed.
+       an audit, which covers every round built before it existed.
 7. **Hooks** in `.claude/settings.json`. A `PreToolUse` script exits 2, which
    blocks the call, on:
    - an Edit or Write to `.env*` or to the generated client and zod files
@@ -111,7 +111,6 @@ has read the spec and judges difficulty better than a keyword list.
     orchestrator runs `/qa` on the staging URL. The qa agent plays the
     personas and writes `docs/qa/QA-NN.md`. The Owner gets the URL and that
     report together, and the next plan takes every sev-1 as a goal.
-    This fills today's gap: `docs/qa/` has no report yet.
 
 12. **The learning loop.** Two files, each at most 60 lines of rules, not a
     diary. Both are kept in `docs/annex/`.
@@ -177,6 +176,8 @@ None. Playwright in CI for axe on public pages was approved by the Owner on
 2026-10-01, with no key and no sign-in.
 
 ## Decisions to record
+
+Recorded as ADR-187 to 196, in this order.
 
 - Planner sets a model tier per card using the rubric in scope 1; the
   orchestrator spawns by it (amends R-0.7).

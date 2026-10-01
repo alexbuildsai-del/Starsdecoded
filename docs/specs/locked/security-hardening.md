@@ -1,18 +1,19 @@
 # Security hardening
 
-Ideation 2026-10-01 with the Owner. Status: draft. Artifact: https://claude.ai/artifact/9XS8C1BgKVtLSP3cdNFQ7d
+Ideation 2026-10-01 with the Owner. Status: locked 2026-10-01 (ADR-197 to 204), built in R13. Artifact: https://claude.ai/artifact/9XS8C1BgKVtLSP3cdNFQ7d
 
 Before launch, close the gaps found by a read of the API, `vercel.json` and
 CI against the OWASP Top 10:2025 and LLM Top 10:2025. The fixes are built in
-R13, after R12's pricing round, and nothing ships as a hotfix (Owner,
-2026-10-01). That is safe because production serves non-admins only healthz,
-the waitlist and the admin (ADR-167). The full app and its session data live
-on staging only, which has no real visitors.
+R13 with agent-roster, before pricing, which moves to R14. Then comes a full
+QA on staging and the first Release (Owner, 2026-10-01). Nothing ships as a
+hotfix, because production serves non-admins only healthz, the waitlist and
+the admin (ADR-167). The full app and its session data live on staging only,
+which has no real visitors.
 
-The Stripe webhook is already planned correctly in `docs/rounds/R12-plan.md`:
-raw body before any parser, event ids recorded, signed test headers. So it is
-not repeated here. The sentinel's first full audit of `main`, in R13, covers
-it.
+The Stripe webhook is already planned correctly in the pricing plan (now
+`docs/rounds/R14-plan.md`): raw body before any parser, event ids recorded,
+signed test headers. So it is not repeated here. The sentinel reviews it when
+R14 builds it.
 
 ## Findings that drive it
 
@@ -163,10 +164,13 @@ Artifact: https://claude.ai/artifact/9XS8C1BgKVtLSP3cdNFQ7d
 ## Open questions
 
 None. The Owner decided on 2026-10-01 that there is no hotfix and that this
-spec and agent-roster are R13, after R12's pricing. F1 is R13's first card,
-and launch waits for R13.
+spec and agent-roster are R13, ahead of pricing (R14). F1 is R13's first
+card, and the first Release waits for R13 and the QA after it.
 
 ## Decisions to record
+
+Recorded as ADR-197 to 203, in this order; ADR-204 sets the sequence (R13, then QA, then the first Release; pricing is R14).
+
 
 - The API sends no CORS headers. A foreign-Origin write gets 403. The cookie
   is `SameSite=Lax`, superseding R-7.5.
