@@ -1,5 +1,4 @@
 import express, { type Express } from "express";
-import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
@@ -9,6 +8,7 @@ import waitlistRouter from "./routes/waitlist";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
 import { authMiddleware } from "./middlewares/auth";
+import { apiHeaders, originGuard } from "./middlewares/origin";
 import { prelaunchGate } from "./lib/prelaunch";
 
 const app: Express = express();
@@ -23,6 +23,9 @@ app.set("trust proxy", 1);
 // The api-client treats 304 as "no content" and resolves with null, which
 // crashed the birth form (profiles.some on null) and blanked the dashboard.
 app.set("etag", false);
+
+// First, so health and every refusal below carry them too.
+app.use(apiHeaders());
 
 app.use(
   pinoHttp({
@@ -53,15 +56,13 @@ app.use(
 // for the process itself and nothing else.
 app.use("/api", healthRouter);
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
+// Ahead of the parsers, so a foreign page's write is refused before its body is read or a session is touched.
+app.use(originGuard());
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ADR-202's cap sits close to the largest body the web sends, a pair system prompt from the admin's prompt editor (31 kB on
+// 2026-10-01): a prompt edited past 32 kB answers 413 and cannot be saved.
+app.use(express.json({ limit: "32kb" }));
+app.use(express.urlencoded({ extended: true, limit: "32kb" }));
 // Ahead of the session: the waitlist's two calls, joining and confirming, set no cookie (ADR-141, 145).
 app.use("/api", waitlistRouter);
 app.use(sessionMiddleware);
