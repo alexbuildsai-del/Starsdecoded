@@ -612,7 +612,7 @@ function Band({ uid, geo, ref }: { uid: string; geo: Geometry; ref: RefObject<SV
           </g>
         );
       })}
-      <circle cx={C} cy={C} r={R.signInner} fill="none" stroke="hsl(var(--brass) / 0.28)" strokeWidth={0.5} />
+      <circle cx={C} cy={C} r={R.signInner} fill="none" stroke="hsl(var(--brass) / 0.28)" />
       <circle cx={C} cy={C} r={R.aspect} fill="none" stroke="hsl(var(--brass) / 0.2)" />
       {Array.from({ length: 72 }, (_, i) => i * 5).map((d) => {
         const a = geo.theta(d);
@@ -729,7 +729,8 @@ function BodyMark({ body, at, retrograde, register }: { body: Body; at: string; 
   const src = renderFor(body, size);
   return (
     <g ref={register} data-k={body} transform={at}>
-      <circle r={R.node * 0.62} fill="hsl(var(--background))" fillOpacity={0.92} />
+      {/* The Sun's render fills more of its frame than the others, so its backing disc only needs a thin rim (ADR-183). */}
+      <circle r={R.node * (body === "sun" ? 0.48 : 0.62)} fill="hsl(var(--background))" fillOpacity={0.92} />
       {src ? <image href={src} x={-size / 2} y={-size / 2} width={size} height={size} preserveAspectRatio="xMidYMid meet" /> : null}
       {retrograde ? (
         <text x={R.node * 0.46} y={-R.node * 0.32} fontFamily="IBM Plex Mono, monospace" fontSize={PLATE * 0.019} fill="hsl(var(--destructive))">
