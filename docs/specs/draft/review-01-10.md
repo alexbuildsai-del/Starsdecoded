@@ -1,17 +1,16 @@
 # Review 01/10
 
 Ideation 2026-10-01 with the Owner from the Notion page "Review 01/10" (fifteen notes on the
-R11 build on staging). Artifact, revision 3: https://claude.ai/artifact/7sRXjmJcybAmnQHrbxJ5Rc.
+R11 build on staging). Artifact, revision 4: https://claude.ai/artifact/7sRXjmJcybAmnQHrbxJ5Rc.
 Status: **draft**. Supersedes in part ADR-142 (Couple's price), ADR-146 (offers), ADR-72 (on-tap
 scenes), ADR-103 (the scene intro), ADR-101 (the ledger's words); touches `pricing-and-launch`
 (R12), `dashboard-sky`, `landing-and-ai-search`, `compatibility-report-p2`. Brain: the pair
 prompts change (dry lab). **Phone first**: every screen is designed at 390 px before desktop.
 
-Only what the Owner asked is in scope. The artifact's "Noted, not changed" list stays out unless
-the Owner says yes. Answered in revision 1: launch price against the Singles total with no end
-date for now; Personal report and Compatibility report; the sample at four chapters with the
-app's chapter 02 matching it; one sun. Revision 3: share images are 9:16 stories only (their
-look in a later session); the circle opens a quick look, the lists open the report.
+Only what the Owner asked is in scope; the artifact's "Noted, not changed" list stays out unless
+the Owner says yes. Answers so far: launch price, no end date; the names; the sample at four
+chapters; one sun; stories only; quick look on the circle, lists open reports; Q1 A; Q2 A; the
+share preview, Košice and the circle by who shares with you, at the Owner's word.
 
 ## Scope
 
@@ -37,35 +36,35 @@ people close to you, real situations, a pair headline and two "Try together" ite
 Copy through `/ux-copy`; the pair quotes a sample pair, never a customer (MB-93).
 
 ### 3. The dashboard, phone first (notes 10, 11)
-- Order on a phone: title **"Dashboard"** with a one-line summary; **Your circle** with the
-  switch **Circle · People · Compatibility**; **What you're practising**; **Your pairs**;
-  **Share** last. Desktop: the circle with its quick-look panel beside it, then the rows. The
-  switch behaves the same on every screen size.
-- **Circle → quick look.** Tapping a person opens a sheet from the bottom on a phone, the panel
-  beside the circle on desktop: name as the title, birth date under it, Sun, Moon and Rising
-  with degrees, then something from a report instead of a line out of context: for a person
-  you share a pair with, "With you · {lens}" and the pair block (three "Comes naturally", one
-  "Challenge to work on", the same component as Your pairs); for you, your superpower and
-  your growing edge from chapter 08. Then the buttons: "Open Compatibility report" (or "Open
-  your report"), "{name}'s report", "Share with {name}", "Share story". A close control; no
-  elements bars or house grid.
-- **People and Compatibility → the report.** A tap on a row opens that report directly; no
-  quick look. Each row shows the name (or "You & {name}" and the lens), birth date and the
-  three signs, and keeps its actions: "This is me ✓" or "Share with {name}", "Share story" on
-  a pair, Not me and Delete report behind "⋯". No hearts anywhere.
-- **What you're practising**: up to 3 pinned items per report, from the Closing or a pair's
-  "Next time"; with none pinned, the Closing's first Practice item. Same tick-box component.
-- **Your pairs**: a sideways row of pair blocks.
-- **Share**: one ready 9:16 story image per pair (WhatsApp status, Instagram story) with "Share
-  story" (Web Share with the file) and "Save". Its look is settled in a later session.
-- **Share with** replaces "Send to" for giving someone their report (Q3); emails follow ("Alexandra
-  shared your report with you"); a credit given stays a Gift.
-- **Four states**: empty (ghost seats, the three bundles under "Your circle starts with you",
-  one sample practice item), one Personal report, two reports and a pair, family.
-- **Underneath**: pins stored with the workbook ticks (ADR-24), `PATCH /reports/{id}/workbook`
-  carries `pinned`; a new `GET /home` (in `openapi.yaml`) returns pins or defaults, birth dates,
-  triads, each pair's strong lines and one challenge, the chapter 08 lines and the story text,
-  so no full report loads.
+- Order: **"Dashboard"** with a one-line summary; **Your circle** with **Circle · People ·
+  Compatibility** (same on every size); **What you're practising**; **Your pairs**; **Share**.
+  Desktop: the circle with its quick-look panel beside it, then the rows.
+- **Circle → quick look** (a bottom sheet on a phone, the side panel on desktop): name, birth
+  date, Sun, Moon and Rising with degrees; for a pair, "With you · {lens}" and the pair block
+  (three "Comes naturally", one "Challenge to work on"); for you, chapter 08's superpower and
+  growing edge. Buttons: "Open Compatibility report" (or "Open your report"), "{name}'s
+  report", "Share with {name}", "Share story"; a close control.
+- **People and Compatibility → the report**, directly. Rows show the name (or "You & {name}" and
+  the lens), birth date and three signs, and keep their actions: "This is me ✓" or "Share with
+  {name}", "Share story" on a pair, Not me and Delete report behind "⋯". No hearts.
+- **What you're practising**: up to 3 pins per report from the Closing or a pair's "Next time";
+  none pinned, the Closing's first Practice item. **Your pairs**: a sideways row of pair blocks.
+- **Share**: one ready 9:16 story per pair, "Share story" (Web Share with the file) and "Save";
+  its look in a later session. **Share with** replaces "Send to" (Q3); emails: "Alexandra
+  shared your report with you"; a credit given stays a Gift.
+- **The circle** is you plus everyone whose Personal report you can read: ones you wrote, until
+  that person stops sharing, and ones shared with you (it now matches People). A stop removes
+  them from your circle, People and quick look at once.
+- **Stop sharing** keeps today's dialog and lists the consequences: "{giver} can no longer read
+  your Personal report." "You leave {giver}'s circle. Your birth date and your Sun, Moon and
+  Rising go from {giver}'s dashboard." "Compatibility reports {giver} made with you close for
+  {giver} too. Nothing is deleted." (MB-103's rule today.) "Your report stays yours. You can't
+  undo this." Keep sharing / Stop sharing.
+- **Four states**: empty (ghost seats, the bundles under "Your circle starts with you", one
+  sample practice item), one Personal report, two reports and a pair, family.
+- **Underneath**: pins stored with the ticks (ADR-24) via `PATCH /reports/{id}/workbook`; a new
+  `GET /home` (`openapi.yaml`) returns pins or defaults, the circle's birth dates and triads with
+  degrees, each pair's strong lines and challenge, chapter 08's lines and the story text.
 
 ### 4. The Compatibility report (notes 12 to 17)
 - **"Where your charts meet"** replaces the link cards' unnamed list (Q2). Each card is tagged
@@ -90,16 +89,13 @@ head says "A sample: 4 of 10 chapters from Audrey Hepburn's Personal report"; th
 dimmed in the rail and the page with one line each, opening to their first paragraph (kept in
 the HTML). The page ends on the two pillars, then "Get my report".
 
-### 6. Chart deep dive, phone first (note 8)
-In the app's chapter 02 and on /sample (one component). The existing `NatalWheel` at thumbnail
-size with its `selectedHouse`, no new wheel. A **pinned bar**: the wheel (92 px), "02 / 10",
-the title, the current house ("4th house · Home · Taurus") and twelve ticks. Under it, per Q1:
-**A, a swipe deck** of twelve house cards, one per swipe, each the house and sign, its planet
-renders, the title, the first sentence in the display face, "Read the rest" for the remainder,
-and the Behaviour check; swiping lights the wedge. **B, twelve rows**, one line each (word,
-sign, renders, first sentence), tap to open. No triad cards (the triad is still written; pairs
-cite it). Desktop: the wheel full size on the left, the same deck or rows on the right. Display
-only; the houses prompt is unchanged. Reduced motion: no fade or scale.
+### 6. Chart deep dive, the swipe deck (note 8, Q1 A)
+One component for chapter 02 and /sample; `NatalWheel` **unchanged**, driven by `selectedHouse`.
+Phone: a pinned bar (wheel 92 px, "02 / 10", the Q4 title, "4th house · Home · Taurus", twelve
+ticks); "Swipe through the houses" with a brass arrow nudging three times; one card per swipe
+(house, sign, renders, title, first sentence, "Read the rest", Behaviour check). Desktop: the
+full wheel fixed on the left, one card with the whole text, Previous / Next, ← →, wedge clicks
+(`onSelectHouse`). No triad cards; the houses prompt is unchanged; reduced motion is still.
 
 ### 7. How it works pages (notes 2, 3)
 - **The reference check** is drawn as the report draws it: the sentence underlined, the indigo
@@ -112,7 +108,10 @@ only; the houses prompt is unchanged. Reduced motion: no fade or scale.
   Three large steps built from the site's own pieces: 01 the two plates (Mira and June, the
   computed sample people); 02 the lens chips and, for a parent and a child, "Who is the
   parent?"; 03 the seven chapter titles of the chosen lens in their chapter colours, changing
-  with step 02. The page's three questions move to /faq's FAQPage schema.
+  with step 02. The page's three questions move to /faq's FAQPage schema. Step 01 reads "You
+  can share it with them once it's written." Motion, the page's one moment: on view the plates'
+  Sun, Moon and Rising arrive in turn, then the seven titles one by one in their colours; a new
+  lens replays step 03 only; once, replayable, still under reduced motion.
 - lucide line icons where a step needs one; no Material Symbols.
 
 ### 8. One sun (note 6)
@@ -121,12 +120,18 @@ only; the houses prompt is unchanged. Reduced motion: no fade or scale.
 ### 9. Birth place (note 18)
 In `SkyForm` the place gets its own full row; the match list is the form's width; each match is
 one column: the name (wrapping, never truncated), then "REGION · SLOVAKIA · UTC+2" under it.
-Same field on the birth form.
+Same field on the birth form. **Košice**: Nominatim likely returns the city as an administrative
+boundary, so it reads as a region; `places.ts` ranks and labels by `addresstype` ("City"). A unit
+test pins a saved "kosice" answer; the live list is checked on the preview.
+
+### 10. The share preview image (MB-13)
+`scripts/render-brand.mjs` footer: "One report · one purchase" becomes "Every reference
+checked"; `opengraph.jpg` re-rendered with `pnpm brand:render`. Nothing else on it changes.
 
 ## Out of scope
-The artifact's noted list: the failed pairs on staging, the "In a room together" title, "Deep
-dive" spelling, the share image (MB-13), the regions-only search, a Personal share image
-(MB-104), cutting the triad prompt, degrees in list rows. Stripe, checkout and `LAUNCHED` stay R12's.
+The noted list: failed pairs on staging, "In a room together", a Personal share image (MB-104),
+the unused `geocode.ts`, the second chapter-title copy, cancelling a pending share. The triad
+stays written. Stripe, checkout and `LAUNCHED` stay R12's.
 
 ## Acceptance criteria
 1. Pricing at 390 and 1440 px: €24, €54, €72, two launch chips, the struck Singles totals, the
@@ -145,25 +150,24 @@ dive" spelling, the share image (MB-13), the regions-only search, a Personal sha
 6. The dry lab renders every pair prompt with the challenge wording, the room rule, no
    `pointer` and one scene per chapter; a 10-month-old child renders as 3.
 7. /sample shows four chapters open and six dimmed with first paragraphs in the HTML.
-8. Chapter 02 at 390 px shows the pinned bar with the existing wheel and the chosen deck or
-   rows; the wedge follows the card; no triad cards; reduced motion is still.
+8. Chapter 02 at 390 px shows the pinned bar with the unchanged wheel, the swipe hint and the
+   deck; the wedge follows the card; at 1440 px the full text, arrows, keys and wedge clicks.
 9. The reference check matches the report's evidence card, plays once and replays.
-10. /compatibility shows three visual steps and no table; its questions are in /faq's schema.
-11. Every Sun render is the new one; a long place name wraps, with no gap column.
+9. /compatibility shows three visual steps and no table; its questions are in /faq's schema.
+10. Every Sun render is the new one; a long place name wraps, with no gap column; "kosice"
+    lists Košice first as City; the share preview ends "Every reference checked".
+11. A circle shows only reports the reader can read; after a stop, that person is gone from
+    the giver's circle, People and `GET /home`; the dialog lists the four consequences.
 12. Typecheck, both builds, unit tests, codegen no diff, the dry lab, Vercel preview smoke.
 
 ## Screens
-All in the artifact, revision 2: the noted list, the new questions, pricing, the pillars with
-the shared tick box, the dashboard in a phone frame in four states, "Where your charts meet",
-the scene table, the sample map, both deep-dive options in phone frames, the evidence card
-animation, the three compatibility steps, the suns, the place field in a phone frame.
+All in the artifact, revision 4, phone first; the deep dive also at desktop.
 
 ## Open questions
-1. **Q1, deep dive on a phone.** A ★ swipe deck; B twelve rows. Default A.
-2. **Q2, the pair's words.** A ★ "Where your charts meet", Comes naturally / Challenge, the
-   ledger matching; B Strength / Challenge; C What works / Challenge. Default A.
-3. **Q3, send or share.** A ★ "Share with {name}" for giving a report, "Share story" for the
+1. **Q3, send or share.** A ★ "Share with {name}" for giving a report, "Share story" for the
    image; B keep "Send to" (ADR-120). Default A.
+2. **Q4, chapter 02's name.** A ★ "House by House"; B "Your Twelve Houses"; C "Natal Chart Deep
+   Dive". One string in `chapters.ts`, no lab. Default A.
 
 ## Decisions to record
 1. Couple is €54; Single €24 and Family & friends €72 stay (supersedes ADR-142 for Couple).
@@ -175,20 +179,22 @@ animation, the three compatibility steps, the suns, the place field in a phone f
 5. One kind of thing, one look, everywhere: a thing to try always carries its tick box.
 6. Home and /sample state the two differences: a personality report with things to try, and
    your circle with everyday scenes.
-7. The dashboard is a home: titled; the circle opens a quick look (name, birth date, triad,
-   something from a report, buttons); People and Compatibility rows open the report and keep
-   their actions; pinned practice, pair strengths and one challenge, stories last; one endpoint.
-8. A reader pins up to 3 items per report, stored with the ticks.
-9. Share images are ready 9:16 stories only; their look is settled in a later session.
-10. A Compatibility report has one fixed scene per chapter, no chips, no intro line; a child
+7. The dashboard is a home: the circle opens a quick look (name, birth date, triad, something
+   from a report, buttons); rows open the report and keep their actions; up to 3 pins per report
+   stored with the ticks, pair strengths and one challenge, stories last; one endpoint.
+8. Share images are ready 9:16 stories only; their look is settled in a later session.
+9. A Compatibility report has one fixed scene per chapter, no chips, no intro line; a child
     under 3 is written as 3 (supersedes ADR-72, ADR-103 in part).
-11. "Where your charts meet", tagged Comes naturally or Challenge, titled in people words with
+10. "Where your charts meet", tagged Comes naturally or Challenge, titled in people words with
     the astrology under it; the ledger uses the same words (amends ADR-101); "challenge" in the
     prose; "room" never a figure of speech; no chapter 01 pointer.
-12. /sample shows four of ten chapters and ends on the two differences.
-13. Chapter 02 is one component in the app and on /sample: the existing wheel pinned with the
-    house counter, short house cards, no triad cards.
-14. The how-it-works pages draw evidence exactly as the report does; /compatibility explains
+11. /sample shows four of ten chapters and ends on the two differences.
+12. Chapter 02 is one component in the app and on /sample: the unchanged wheel pinned with the
+    house counter, a swipe deck of house cards (full text on desktop), no triad cards; its
+    title is "House by House" (Q4).
+13. The how-it-works pages draw evidence exactly as the report does; /compatibility explains
     itself in three visual steps with no table, its questions on /faq.
-15. One Sun render everywhere.
-16. "Share with {name}" replaces "Send to {name}" for giving a report (amends ADR-120's word).
+14. "Share with {name}" replaces "Send to {name}" for giving a report (amends ADR-120's word).
+15. Your circle is you and everyone whose Personal report you can read; whoever stops sharing
+    leaves it at once, after a dialog that names every consequence.
+16. One Sun render everywhere; the share preview says "Every reference checked".
