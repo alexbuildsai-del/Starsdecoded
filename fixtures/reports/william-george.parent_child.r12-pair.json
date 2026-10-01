@@ -1,0 +1,1639 @@
+{
+  "fixture": {
+    "name": "William Windsor & George Windsor",
+    "a": "william",
+    "b": "george",
+    "lens": "parent_child",
+    "parent": "A",
+    "band": "teen",
+    "note": "The teen band: a parent and a child of 13 in September 2026. The band is derived at generation, so this fixture leaves the band in July 2031."
+  },
+  "lens": "parent_child",
+  "interpretation": {
+    "meta": {
+      "band": "teen",
+      "lens": "parent_child",
+      "orbs": {
+        "trine": 6,
+        "square": 6,
+        "sextile": 4,
+        "opposition": 8,
+        "conjunction": 8
+      },
+      "blind": false,
+      "label": null,
+      "model": "mixed",
+      "names": {
+        "a": "William Windsor",
+        "b": "George Windsor"
+      },
+      "usage": {
+        "model": "mixed",
+        "totals": {
+          "ms": 129573,
+          "attempts": 13,
+          "inputTokens": 74416,
+          "outputTokens": 14155,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 96926
+        },
+        "costUsd": 0.025931520000000003,
+        "sections": [
+          {
+            "ms": 9481,
+            "model": "gpt-6-sol",
+            "section": "pair:foundation",
+            "attempts": 1,
+            "inputTokens": 2140,
+            "outputTokens": 530,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7064
+          },
+          {
+            "ms": 7422,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild03",
+            "attempts": 1,
+            "inputTokens": 6210,
+            "outputTokens": 1107,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7543
+          },
+          {
+            "ms": 10073,
+            "model": "gpt-6-luna",
+            "section": "pair:twoCharts",
+            "attempts": 1,
+            "inputTokens": 5251,
+            "outputTokens": 1114,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7350
+          },
+          {
+            "ms": 15658,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild06",
+            "attempts": 2,
+            "inputTokens": 13899,
+            "outputTokens": 2090,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15086
+          },
+          {
+            "ms": 17744,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild05",
+            "attempts": 2,
+            "inputTokens": 13300,
+            "outputTokens": 2260,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15086
+          },
+          {
+            "ms": 19123,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild02",
+            "attempts": 2,
+            "inputTokens": 13416,
+            "outputTokens": 2167,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15086
+          },
+          {
+            "ms": 20591,
+            "model": "gpt-6-luna",
+            "section": "pair:links",
+            "attempts": 1,
+            "inputTokens": 2972,
+            "outputTokens": 1689,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7106
+          },
+          {
+            "ms": 21965,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild04",
+            "attempts": 2,
+            "inputTokens": 13459,
+            "outputTokens": 2368,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15086
+          },
+          {
+            "ms": 7516,
+            "model": "gpt-6-luna",
+            "section": "pair:whatToPractise",
+            "attempts": 1,
+            "inputTokens": 3769,
+            "outputTokens": 830,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7519
+          }
+        ],
+        "wallClockMs": 41390
+      },
+      "zodiac": "tropical",
+      "crossOrb": 4,
+      "ephemeris": "astronomy-engine (Don Cross), tropical zodiac, mean lunar node",
+      "wordCount": 2981,
+      "reportType": "compatibility",
+      "generatedAt": "2026-10-01T15:33:27.112Z",
+      "houseSystem": "whole-sign",
+      "promptVersion": "p3"
+    },
+    "links": {
+      "links": [
+        {
+          "of": "none",
+          "orb": 0,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "moon",
+          "planetB": "saturn",
+          "reading": "William, your steady attention can help George keep going when homework gets difficult. George, you may find it easier to stay with the task when William is nearby without taking over. Let him ask what kind of help you want, then stick to that. Behaviour check: At the kitchen table, agree whether William will help or simply sit nearby."
+        },
+        {
+          "of": "none",
+          "orb": 2.6,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "venus",
+          "planetB": "moon",
+          "reading": "William, practical care can reassure George without asking him to explain every feeling. George, you may accept help more easily when it is offered plainly and leaves you some choice. Small acts can settle the morning rush, but do not assume either of you knows what the other needs. Behaviour check: Before school, ask whether help with one practical thing would be welcome."
+        },
+        {
+          "of": "none",
+          "orb": 1.2,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "moon",
+          "planetB": "mars",
+          "reading": "George, your frustration can quickly stir William's worry, and William may step in before you are ready. William, your concern is real, but pressing for an answer can make George defend his privacy. Pause first, then offer a time to talk. Behaviour check: At bedtime, try one calm question and give George time to answer."
+        },
+        {
+          "of": "none",
+          "orb": 0.1,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "moon",
+          "planetB": "neptune",
+          "reading": "William, you may sense that George is upset before he says so. George, you may appreciate being understood without having to explain everything at once. But a guess can miss the mark, even when it comes from care. Ask rather than assume, and let George correct you. Behaviour check: After a difficult evening, ask George what would help instead of deciding for him."
+        },
+        {
+          "of": "none",
+          "orb": 0,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "sun",
+          "planetB": "venus",
+          "reading": "William, you can make it easier for George to share what matters by showing interest without turning it into a test. George, you may respond well when William notices your effort and gives you space to enjoy it. A warm exchange can make the next hard conversation easier. Behaviour check: Ask George about something he enjoys, then listen without correcting."
+        },
+        {
+          "of": "none",
+          "orb": 0.5,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "jupiter",
+          "planetB": "sun",
+          "reading": "William, your confidence in what George could do may lead you to ask for more than he can manage now. George, you may push back when encouragement sounds like a demand or a promise made for you. Let his present effort count before raising the bar. Behaviour check: When George says, “I've revised,” ask him to show what he knows."
+        },
+        {
+          "of": "none",
+          "orb": 1.5,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "uranus",
+          "planetB": "sun",
+          "reading": "William, George's different ideas can help you loosen a plan that no longer fits. George, you may find William more encouraging when you explain what you want to try. His support works best when it leaves room for your own choices. Behaviour check: This week, let George suggest one change to a shared plan and hear him out."
+        },
+        {
+          "of": "none",
+          "orb": 1,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "moon",
+          "planetB": "jupiter",
+          "reading": "George, your strong reactions may draw William into helping quickly and generously. William, that care can steady him, but too much help may leave him feeling managed. Ask what he wants before adding advice or taking over. Behaviour check: When George is upset, ask whether he wants company, advice, or time alone."
+        },
+        {
+          "of": "none",
+          "orb": 0.6,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "mars",
+          "planetB": "pluto",
+          "reading": "William, your firm response can feel intense to George when he is protecting his privacy. George, a sharp answer may make William press harder, even when you want him to stop. Both of you can learn to pause before the disagreement grows. Behaviour check: After a door slam following a text, wait until calm before asking what upset George."
+        },
+        {
+          "of": "none",
+          "orb": 3.1,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "mars",
+          "planetB": "mars",
+          "reading": "William, you may want to settle a disagreement quickly, while George may answer quickly to defend his choice. Neither of you has to win the first exchange. A pause can help George say what he needs and help William respond without escalating. Behaviour check: At bedtime, take a short break before returning to a disagreement."
+        },
+        {
+          "of": "none",
+          "orb": 2.2,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "jupiter",
+          "planetB": "moon",
+          "reading": "William, your wish to reassure George may become a promise or explanation before he feels heard. George, you may need a quiet response more than a bigger plan. Keep support close to what he asked for, and check that you understood. Behaviour check: In the morning rush, ask George what would make the next step easier."
+        },
+        {
+          "of": "none",
+          "orb": 1.4,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "uranus",
+          "planetB": "venus",
+          "reading": "George, a sudden change of mind or plan may unsettle William when he is trying to offer steady support. William, insisting that things stay pleasant can make George feel he cannot be honest. Make room for a changed answer while keeping agreed limits clear. Behaviour check: When a plan changes, ask what changed before deciding what to do."
+        }
+      ]
+    },
+    "scenes": {
+      "parentChild02": {
+        "texts": {},
+        "titles": [
+          "The closed door"
+        ],
+        "written": 0
+      },
+      "parentChild03": {
+        "texts": {},
+        "titles": [
+          "The door slam after a text"
+        ],
+        "written": 0
+      },
+      "parentChild04": {
+        "texts": {},
+        "titles": [
+          "The kitchen after they cooked"
+        ],
+        "written": 0
+      },
+      "parentChild05": {
+        "texts": {},
+        "titles": [
+          "\"I've revised\""
+        ],
+        "written": 0
+      },
+      "parentChild06": {
+        "texts": {},
+        "titles": [
+          "The phone at midnight"
+        ],
+        "written": 0
+      }
+    },
+    "twoCharts": {
+      "work": [
+        "This is the challenge: William, pause before pressing for an answer, so George can practise asking for help without a fight.",
+        "This is the challenge: George, say whether you want company or time alone, so William can respect your choice.",
+        "This is the challenge: William, name the limit and hear George out, so he can practise disagreeing without feeling shut down."
+      ],
+      "claims": [
+        {
+          "quote": "At homework, William, your calm follow-through can help George stay with a hard question without taking the pencil from him.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "moon",
+                "planetB": "saturn"
+              },
+              "label": "William Windsor's Moon trine George Windsor's Saturn, 0.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "William Windsor's report: Saturn 15.5° Libra, 11th house; Saturn is the malefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "In the morning rush, William, practical help can reassure George before either of you has to explain much.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.6,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "venus",
+                "planetB": "moon"
+              },
+              "label": "William Windsor's Venus trine George Windsor's Moon, 2.6° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "William Windsor's report: Venus 25.7° Taurus, 6th house; Venus is the benefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "At bedtime, George’s strong feelings can reach William quickly, and William can offer care that helps him settle.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "moon",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Moon conjunction George Windsor's Mars, 1.2° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "George Windsor's report: Sun 30.0° Cancer, 9th house; Moon 28.3° Capricorn, 3rd house; Mars 6.1° Cancer, 9th house"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: William, pause before pressing for an answer, so George can practise asking for help without a fight.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "moon",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Moon conjunction George Windsor's Mars, 1.2° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "George Windsor's report: Mercury rules the 8th and sits in Cancer, 9th house, peregrine; Mars 6.1° Cancer, 9th house; Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: George, say whether you want company or time alone, so William can respect your choice.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "sun",
+                "planetB": "venus"
+              },
+              "label": "William Windsor's Sun sextile George Windsor's Venus, 0.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "George Windsor's report: South Node 12.9° Taurus, 7th house; North Node 12.9° Scorpio, 1st house"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: William, name the limit and hear George out, so he can practise disagreeing without feeling shut down.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "sun",
+                "planetB": "venus"
+              },
+              "label": "William Windsor's Sun sextile George Windsor's Venus, 0.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "William Windsor's report: Mars 9.2° Libra, 11th house; Saturn 15.5° Libra, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Your quick care can steady George, yet stepping in too soon can make him feel managed; offer help, then wait for his answer.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "moon",
+                "planetB": "saturn"
+              },
+              "label": "William Windsor's Moon trine George Windsor's Saturn, 0.0° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "moon",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Moon conjunction George Windsor's Mars, 1.2° orb"
+            }
+          ]
+        }
+      ],
+      "strong": [
+        "At homework, William, your calm follow-through can help George stay with a hard question without taking the pencil from him.",
+        "In the morning rush, William, practical help can reassure George before either of you has to explain much.",
+        "At bedtime, George’s strong feelings can reach William quickly, and William can offer care that helps him settle."
+      ],
+      "paradox": "Your quick care can steady George, yet stepping in too soon can make him feel managed; offer help, then wait for his answer.",
+      "headline": "William and George, your best days come when your care is steady and George still gets a say.",
+      "strengths": [
+        "William helps George stick with what matters.",
+        "William notices George's practical needs.",
+        "George brings William into honest conversations."
+      ]
+    },
+    "foundation": {
+      "owners": [
+        {
+          "link": 1,
+          "chapters": [
+            1,
+            5
+          ]
+        },
+        {
+          "link": 2,
+          "chapters": [
+            1,
+            4
+          ]
+        },
+        {
+          "link": 3,
+          "chapters": [
+            1,
+            3
+          ]
+        },
+        {
+          "link": 4,
+          "chapters": [
+            2
+          ]
+        },
+        {
+          "link": 5,
+          "chapters": [
+            1,
+            4
+          ]
+        },
+        {
+          "link": 6,
+          "chapters": [
+            5
+          ]
+        },
+        {
+          "link": 7,
+          "chapters": [
+            2
+          ]
+        },
+        {
+          "link": 8,
+          "chapters": [
+            3
+          ]
+        },
+        {
+          "link": 9,
+          "chapters": [
+            6
+          ]
+        },
+        {
+          "link": 10,
+          "chapters": [
+            3,
+            6
+          ]
+        },
+        {
+          "link": 11,
+          "chapters": [
+            4
+          ]
+        },
+        {
+          "link": 12,
+          "chapters": [
+            6
+          ]
+        },
+        {
+          "link": 13,
+          "chapters": [
+            4
+          ]
+        },
+        {
+          "link": 14,
+          "chapters": [
+            1,
+            3
+          ]
+        },
+        {
+          "link": 15,
+          "chapters": [
+            2,
+            5
+          ]
+        },
+        {
+          "link": 16,
+          "chapters": [
+            2,
+            6
+          ]
+        }
+      ],
+      "guidance": [
+        "Show how William's steady help meets George's growing wish to decide things for himself.",
+        "At the closed door, William asks whether George wants company or time alone, then honours the answer.",
+        "After the door slam following a text, William waits for calm before asking what upset George.",
+        "In the kitchen after George cooked, William thanks him before discussing cleanup or cost.",
+        "When George says, “I've revised,” William asks him to show what he knows instead of asking for more promises.",
+        "At midnight, William states the phone rule and listens before deciding what happens next.",
+        "Give William one pause to practise and George one clear way to ask for what he needs."
+      ],
+      "strengths": [
+        "William helps George stick with what matters.",
+        "William notices George's practical needs.",
+        "George brings William into honest conversations."
+      ],
+      "pairThesis": "William, you notice when George needs help, often before he asks. George may welcome your steadiness but push back when help arrives before he has chosen it. Give him a clear choice, then keep the agreement you make.",
+      "strongestLinks": [
+        {
+          "why": "During homework at the kitchen table, William's calm attention can help George stay with a difficult task.",
+          "link": 1
+        },
+        {
+          "why": "In the morning rush, William's practical help can reassure George without making him explain himself.",
+          "link": 2
+        },
+        {
+          "why": "At bedtime, George's frustration can stir William's worry, prompting William to step in too quickly.",
+          "link": 3
+        }
+      ],
+      "frictionThatMatters": "William may press for an answer when George is upset, while George may answer sharply to protect his privacy. William can pause and offer a time to talk, so George practises saying what he needs without a fight."
+    },
+    "parentChild02": {
+      "card": {
+        "a": [
+          "You check what a choice will mean for those tied to you.",
+          "You need quiet to think before answering.",
+          "You can stop carrying uncertainty alone."
+        ],
+        "b": [
+          "You feel steadier when the day has a clear plan.",
+          "You keep difficult reactions private and handle practical matters first.",
+          "You feel at home when daily life is calm and fair."
+        ],
+        "pair": "William gives steady help; George needs privacy and a say."
+      },
+      "scene": "George closes his door after William asks what is wrong. William wants to protect him and understand what the problem may affect. George is trying to keep his reaction private and handle what feels practical first. William asks, “Do you want company, or time alone?” George gets to choose, and William respects the answer.",
+      "claims": [
+        {
+          "quote": "George gets to choose, and William respects the answer.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.5,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "uranus",
+                "planetB": "sun"
+              },
+              "label": "William Windsor's Uranus trine George Windsor's Sun, 1.5° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William wants to protect him and understand what the problem may affect.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Sun 0.1° Cancer, 8th house; Sun conjunction Moon, 4.9° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Moon square Mars, 4.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "George is trying to keep his reaction private and handle what feels practical first.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "George Windsor's report: Moon 28.3° Capricorn, 3rd house; Saturn 5.0° Scorpio, 1st house"
+            }
+          ]
+        },
+        {
+          "quote": "At 13, closing the door can protect privacy without meaning you want William gone.",
+          "evidence": [
+            {
+              "ref": {
+                "of": "A",
+                "kind": "cross",
+                "house": 12,
+                "planet": "mars",
+                "inHouseOf": "B"
+              },
+              "label": "William Windsor's Mars in George Windsor's 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "William’s instinct is to step in, while George needs privacy and a choice about when to talk.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.1,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "moon",
+                "planetB": "neptune"
+              },
+              "label": "William Windsor's Moon trine George Windsor's Neptune, 0.1° orb"
+            },
+            {
+              "ref": {
+                "of": "A",
+                "kind": "cross",
+                "house": 9,
+                "planet": "sun",
+                "inHouseOf": "B"
+              },
+              "label": "William Windsor's Sun in George Windsor's 9th house"
+            }
+          ]
+        },
+        {
+          "quote": "At 13, a closed door is a fair request for privacy, not a rejection.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "George Windsor's report: Moon 28.3° Capricorn, 3rd house; Saturn 5.0° Scorpio, 1st house"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: William’s instinct is to step in, while George needs privacy and a choice about when to talk. The fit can come naturally when William stays calm, but pressing for an answer at the door can make George defend his space. William’s pause trains George to name what he needs. At 13, a closed door is a fair request for privacy, not a rejection.",
+      "headline": "I need privacy, and I still need you to be there.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so George can practise asking for what he needs",
+            "action": "At the closed door, ask whether George wants company or time alone, then honour his answer."
+          },
+          {
+            "for": "A",
+            "why": "so you do not turn his first reaction into a fight",
+            "action": "After a slammed door, wait until George is calm before asking what upset him."
+          },
+          {
+            "for": "both",
+            "why": "so you both know what to expect",
+            "action": "Agree when the tablet stays outside the bedroom at night, and keep the rule together."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William, you want to know whom a choice affects before you act. When George shuts the door, you may read his privacy as a problem to solve, then keep carrying the worry until you have an answer.",
+        "becauseB": "George, you feel steadier when duties are clear, and you may keep difficult reactions private while handling the practical matter first. At 13, closing the door can protect privacy without meaning you want William gone."
+      }
+    },
+    "parentChild03": {
+      "card": {
+        "a": [
+          "You notice shifts in wording quickly.",
+          "Your reasoning works best in conversation.",
+          "You notice what needs doing and keep at it."
+        ],
+        "b": [
+          "You notice the feeling behind a statement.",
+          "You may push back before the other person has finished.",
+          "You can move quickly once a choice feels tied to what you believe."
+        ],
+        "pair": "William can wait; George can choose when to talk."
+      },
+      "scene": "After a text, George slams the door and steps away. William follows to the doorway and asks what is wrong. George answers sharply, wanting privacy before he can explain. William feels the need to understand what happened and asks another question. The door stays closed, and neither has settled the feeling yet.",
+      "claims": [
+        {
+          "quote": "After a text, George slams the door and steps away.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "moon",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Moon conjunction George Windsor's Mars, 1.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William follows to the doorway and asks what is wrong.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Saturn rules the 3rd and sits in Libra, 11th house, exalted"
+            },
+            {
+              "ref": {
+                "orb": 1.2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "moon",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Moon conjunction George Windsor's Mars, 1.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "George answers sharply, wanting privacy before he can explain.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 7,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mercury conjunction Mars, 7.4° orb; Mercury square Uranus, 1.0° orb"
+            },
+            {
+              "ref": {
+                "orb": 3.1,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mars",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Mars square George Windsor's Mars, 3.1° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William feels the need to understand what happened and asks another question.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Sun rules the 9th and sits in Cancer, 8th house, peregrine"
+            },
+            {
+              "ref": {
+                "orb": 1,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "moon",
+                "planetB": "jupiter"
+              },
+              "label": "William Windsor's Moon conjunction George Windsor's Jupiter, 1.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "The door stays closed, and neither has settled the feeling yet.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.1,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mars",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Mars square George Windsor's Mars, 3.1° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 7,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mercury conjunction Mars, 7.4° orb; Mercury square Uranus, 1.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William learns to pause, offer a time to talk, and let George choose.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "moon",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Moon conjunction George Windsor's Mars, 1.2° orb"
+            },
+            {
+              "ref": {
+                "orb": 3.1,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mars",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Mars square George Windsor's Mars, 3.1° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: William's urge to ask and George's quick defence can turn a slammed door into a longer argument. George's strong feelings can draw William in before George is ready to talk. William learns to pause, offer a time to talk, and let George choose. That helps George practise asking for what he needs without a fight.",
+      "headline": "George needs time before he can explain the text.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so George can choose before explaining",
+            "action": "William pauses at the doorway and asks whether George wants company or time alone."
+          },
+          {
+            "for": "both",
+            "why": "so you both learn to trust the pause",
+            "action": "Agree on a time to talk, then keep the time you chose together."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William notices shifts in wording quickly and hears what George leaves unsaid. When someone close is affected, the feeling is hard to set aside. He wants the terms clear, so he may ask questions before George is ready.",
+        "becauseB": "George notices the feeling behind a statement and remembers the details that explain it. When a concern feels tied to what he believes, he can move quickly. A sharp answer may protect his privacy while he works out what to say."
+      }
+    },
+    "parentChild04": {
+      "card": {
+        "a": [
+          "You build security through steady work and dependable allies.",
+          "You feel at home when there is room to think before answering.",
+          "You do important thinking out of sight, then speak with a workable answer."
+        ],
+        "b": [
+          "You feel at home when daily life is calm and shared fairly.",
+          "You keep difficult reactions private and handle the practical matter first.",
+          "You have a steadying side that makes useful work from a bold plan."
+        ],
+        "pair": "William notices what needs doing; George needs a say in how."
+      },
+      "scene": "After George cooks, William thanks him before mentioning the cleanup. George is ready to move on, while William wants the kitchen left orderly. William says, “Would you rather wash up or put things away?” George chooses, and William lets him do it his way. At 13, George can fairly cook a meal, do his laundry, care for his room, and be counted on for agreed tasks.",
+      "claims": [
+        {
+          "quote": "After George cooks, William thanks him before mentioning the cleanup.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.6,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "venus",
+                "planetB": "moon"
+              },
+              "label": "William Windsor's Venus trine George Windsor's Moon, 2.6° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "money"
+              },
+              "label": "William Windsor's report: Saturn rules the 2nd and sits in Libra, 11th house, exalted; Venus 25.7° Taurus, 6th house; Lot of Fortune in Capricorn, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "George is ready to move on, while William wants the kitchen left orderly.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.2,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "jupiter",
+                "planetB": "moon"
+              },
+              "label": "William Windsor's Jupiter square George Windsor's Moon, 2.2° orb"
+            },
+            {
+              "ref": {
+                "of": "B",
+                "kind": "cross",
+                "house": 2,
+                "planet": "moon",
+                "inHouseOf": "A"
+              },
+              "label": "George Windsor's Moon in William Windsor's 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "At 13, George can fairly cook a meal, do his laundry, care for his room, and be counted on for agreed tasks.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "sun",
+                "planetB": "venus"
+              },
+              "label": "William Windsor's Sun sextile George Windsor's Venus, 0.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William, you value steady work and a calm home, and you notice when others need help.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "money"
+              },
+              "label": "William Windsor's report: Saturn rules the 2nd and sits in Libra, 11th house, exalted; Venus 25.7° Taurus, 6th house; Lot of Fortune in Capricorn, 2nd house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Moon square Mars, 4.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "George, you want daily life to feel clear and fair, but you may handle the practical matter before showing how you feel.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "George Windsor's report: Saturn rules the 4th and sits in Scorpio, 1st house, peregrine; Moon 28.3° Capricorn, 3rd house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "George Windsor's report: Moon 28.3° Capricorn, 3rd house; Saturn 5.0° Scorpio, 1st house"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: William may assume that help means taking charge, while George needs a choice inside the limit.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.2,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "jupiter",
+                "planetB": "moon"
+              },
+              "label": "William Windsor's Jupiter square George Windsor's Moon, 2.2° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "William’s practical care and George’s wish for fairness can meet naturally when the job is clear. This is the challenge: William may assume that help means taking charge, while George needs a choice inside the limit. William, explain the reason and agree on the task, so George can practise taking responsibility without feeling controlled.",
+      "headline": "George, dinner counts more when you choose your share of the work.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you let him take responsibility in a way that fits his age",
+            "action": "Ask George to choose cooking, his laundry, or his room as his regular job."
+          },
+          {
+            "for": "A",
+            "why": "so you separate appreciation from the cleanup agreement",
+            "action": "After George cooks, thank him, then ask when he will clear his things."
+          },
+          {
+            "for": "both",
+            "why": "so you both know what dependable help looks like",
+            "action": "Agree which kitchen tasks George owns and when they need to be done."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William, you value steady work and a calm home, and you notice when others need help. You may take on extra responsibility to contain uncertainty, then wait until you have a complete answer before asking for support.",
+        "becauseB": "George, you want daily life to feel clear and fair, but you may handle the practical matter before showing how you feel. At 13, choosing a real contribution can help you feel trusted without giving up your own pace."
+      }
+    },
+    "parentChild05": {
+      "card": {
+        "a": [
+          "You notice shifts in wording quickly.",
+          "Your reasoning works best in conversation.",
+          "You open the question, talk, then move."
+        ],
+        "b": [
+          "You connect facts to wider meaning.",
+          "You start something and adjust as you go.",
+          "You explain yourself through personal examples."
+        ],
+        "pair": "William asks; George shows what he knows."
+      },
+      "scene": "At the kitchen table, George says, “I've revised,” and William asks him to show what he knows. George explains the ideas through examples and adjusts as he goes. William listens for what George means, then starts asking about next steps. George may hear those questions as pressure before he has finished. William waits, then asks what kind of help George wants.",
+      "claims": [
+        {
+          "quote": "George explains the ideas through examples and adjusts as he goes.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mercury 13.5° Cancer, 9th house; Saturn rules the 3rd and sits in Scorpio, 1st house, peregrine"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mercury 13.5° Cancer, 9th house; Mercury square Uranus, 1.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William listens for what George means, then starts asking about next steps.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Saturn rules the 3rd and sits in Libra, 11th house, exalted"
+            },
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "moon",
+                "planetB": "saturn"
+              },
+              "label": "William Windsor's Moon trine George Windsor's Saturn, 0.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "George may hear those questions as pressure before he has finished.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.5,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "jupiter",
+                "planetB": "sun"
+              },
+              "label": "William Windsor's Jupiter square George Windsor's Sun, 0.5° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William waits, then asks what kind of help George wants.",
+          "evidence": [
+            {
+              "ref": {
+                "of": "A",
+                "kind": "cross",
+                "house": 9,
+                "planet": "sun",
+                "inHouseOf": "B"
+              },
+              "label": "William Windsor's Sun in George Windsor's 9th house"
+            }
+          ]
+        },
+        {
+          "quote": "William notices shifts in wording and reasons best through conversation.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Saturn rules the 3rd and sits in Libra, 11th house, exalted"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Sun rules the 9th and sits in Cancer, 8th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "George connects facts to wider meaning and explains through personal examples.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mercury 13.5° Cancer, 9th house; Moon rules the 9th and sits in Capricorn, 3rd house, in detriment"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mercury 13.5° Cancer, 9th house; Saturn rules the 3rd and sits in Scorpio, 1st house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "At 13, revision is George's to own; William can ask how it is going, not check it.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mars 6.1° Cancer, 9th house; Mercury square Uranus, 1.0° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: William's steady questions can help George stay with difficult work, but may arrive before George has chosen his next step. George is learning to explain what he knows and ask for the help he wants. William trains himself to offer support without taking over. At 13, revision is George's to own; William can ask how it is going, not check it.",
+      "headline": "George wants to show what he knows; William does best by asking first.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so George can practise choosing his next step",
+            "action": "Ask George what kind of help he wants before discussing his revision."
+          },
+          {
+            "for": "both",
+            "why": "so you can return to the task after a pause",
+            "action": "Agree on a time to talk if homework questions start feeling like pressure."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William notices shifts in wording and reasons best through conversation. When a plan affects others, he wants the terms clear before moving. Asking questions helps him understand what George needs, but can become steering.",
+        "becauseB": "George connects facts to wider meaning and explains through personal examples. He may move quickly when a choice matters, then revise as new information unsettles the plan. Showing his work lets him make the thinking visible."
+      }
+    },
+    "parentChild06": {
+      "card": {
+        "a": [
+          "You feel secure when a partner says what they mean.",
+          "You give through steady care, practical help, and close attention.",
+          "You do not need perfect certainty before you speak."
+        ],
+        "b": [
+          "Your first reaction can be forceful when something matters.",
+          "Confidence comes readily, while steady pacing takes more effort.",
+          "Clear terms can make generosity easier to trust."
+        ],
+        "pair": "William sets a clear limit; George gets a real say in how it works."
+      },
+      "scene": "At midnight, William sees George still using the tablet and says it needs to stay outside the bedroom overnight. George answers, “I need to finish this.” William asks whether George wants to put it away now or finish in the kitchen first. George chooses, and William keeps the device out of the bedroom. At 13, privacy matters, and devices still stay out of the bedroom at night.",
+      "claims": [
+        {
+          "quote": "At midnight, William sees George still using the tablet and says it needs to stay outside the bedroom overnight.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.6,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mars",
+                "planetB": "pluto"
+              },
+              "label": "William Windsor's Mars square George Windsor's Pluto, 0.6° orb"
+            },
+            {
+              "ref": {
+                "of": "A",
+                "kind": "cross",
+                "house": 12,
+                "planet": "mars",
+                "inHouseOf": "B"
+              },
+              "label": "William Windsor's Mars in George Windsor's 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "William, you check what a promise asks of you and look for words everyone can live with.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "focus"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Sun conjunction Moon, 4.9° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You may wait until you have a balanced case, but a clear limit protects the people who depend on you.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "William Windsor's report: Mars 9.2° Libra, 11th house; Moon square Mars, 4.2° orb; Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "George, you want your own needs taken seriously, and your first reaction can be forceful when something matters.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "focus"
+              },
+              "label": "George Windsor's report: Mars 6.1° Cancer, 9th house; Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "You may move quickly from feeling sure to questioning the whole connection, while still wanting the agreement to hold.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "George Windsor's report: Moon 28.3° Capricorn, 3rd house; Sun opposition Moon, 1.7° orb; Mercury square Uranus, 1.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "George Windsor's report: Mercury rules the 8th and sits in Cancer, 9th house, peregrine; Mars 6.1° Cancer, 9th house; Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: William may press for an answer when George is upset, and George may answer sharply to protect his privacy.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.1,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mars",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Mars square George Windsor's Mars, 3.1° orb"
+            },
+            {
+              "ref": {
+                "of": "A",
+                "kind": "cross",
+                "house": 12,
+                "planet": "mars",
+                "inHouseOf": "B"
+              },
+              "label": "William Windsor's Mars in George Windsor's 12th house"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: William may press for an answer when George is upset, and George may answer sharply to protect his privacy. William, pause and offer a time to talk. A firm rule with a choice inside it helps George practise asking for what he needs without a fight.",
+      "headline": "William, keep the phone out of the bedroom; let George help set the terms.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you protect sleep while keeping the limit clear",
+            "action": "Keep the overnight rule: the phone stays outside George's bedroom."
+          },
+          {
+            "for": "B",
+            "why": "so he practises taking responsibility inside the boundary",
+            "action": "Let George choose where the phone goes and how he finishes a task."
+          },
+          {
+            "for": "both",
+            "why": "so you build trust through a promise you both keep",
+            "action": "Agree on the phone rule together, then follow it every night."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William, you check what a promise asks of you and look for words everyone can live with. You may wait until you have a balanced case, but a clear limit protects the people who depend on you. (source A/focus claim 1; source A/relationships claim 4)",
+        "becauseB": "George, you want your own needs taken seriously, and your first reaction can be forceful when something matters. You may move quickly from feeling sure to questioning the whole connection, while still wanting the agreement to hold. (source B/focus claim 3; source B/relationships claim 4)"
+      }
+    },
+    "whatToPractise": {
+      "forA": {
+        "intro": "William, these steps let you offer help while giving George room to choose.",
+        "items": [
+          {
+            "why": "so George can practise asking for what he needs",
+            "action": "At the closed door, ask whether George wants company or time alone, then honour his answer."
+          },
+          {
+            "why": "so you do not turn his first reaction into a fight",
+            "action": "After a slammed door, wait until George is calm before asking what upset him."
+          },
+          {
+            "why": "so George can practise choosing his next step",
+            "action": "Ask George what kind of help he wants before discussing his revision."
+          }
+        ]
+      },
+      "forB": {
+        "intro": "George, these steps help you take responsibility while the limits stay clear.",
+        "items": [
+          {
+            "why": "so you practise taking responsibility inside the boundary",
+            "action": "Choose where your phone goes and how you finish a task."
+          },
+          {
+            "why": "so you can get the kind of support you need",
+            "action": "At the closed door, ask clearly for company or time alone."
+          },
+          {
+            "why": "so you can choose your next step",
+            "action": "At the kitchen table, say what help you want with revision."
+          }
+        ]
+      },
+      "claims": [
+        {
+          "quote": "William, George needs your steadiness, but he also needs a say in how help arrives.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Sun 0.1° Cancer, 8th house; Sun conjunction Moon, 4.9° orb"
+            }
+          ]
+        },
+        {
+          "quote": "At 13, clear limits and real choices can work together.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "George Windsor's report: Moon 28.3° Capricorn, 3rd house; Saturn 5.0° Scorpio, 1st house"
+            }
+          ]
+        },
+        {
+          "quote": "At the closed door, ask whether George wants company or time alone, then honour his answer.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Saturn rules the 3rd and sits in Libra, 11th house, exalted"
+            }
+          ]
+        },
+        {
+          "quote": "After a slammed door, wait until George is calm before asking what upset him.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 7,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mercury conjunction Mars, 7.4° orb; Mercury square Uranus, 1.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Ask George what kind of help he wants before discussing his revision.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Sun rules the 9th and sits in Cancer, 8th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "Choose where your phone goes and how you finish a task.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "focus"
+              },
+              "label": "George Windsor's report: Mars 6.1° Cancer, 9th house; Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Agree on the phone rule together, then follow it every night.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "George Windsor's report: Mercury rules the 8th and sits in Cancer, 9th house, peregrine; Mars 6.1° Cancer, 9th house; Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "At homework time, a pause can keep a question from feeling like pressure.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "George Windsor's report: Mercury 13.5° Cancer, 9th house; Saturn rules the 3rd and sits in Scorpio, 1st house, peregrine"
+            }
+          ]
+        }
+      ],
+      "closing": "William, you can make your care easier for George to accept when you ask before stepping in. George, you can help William understand what you need by giving a clear answer, even when it is only “later.” At homework time, a pause can keep a question from feeling like pressure. At bedtime, one agreed phone rule can protect sleep without reopening the debate each night. These small agreements give George practice with choice and responsibility, while William stays present and dependable. Keep the conversation open, and let each promise be something you can both point to.",
+      "forBoth": {
+        "intro": "You both can make routines clearer by agreeing on the rule and the return time.",
+        "items": [
+          {
+            "why": "so you build trust through a promise you both keep",
+            "action": "Agree on the phone rule together, then follow it every night."
+          },
+          {
+            "why": "so you can return to the task after a pause",
+            "action": "Agree on a time to talk if homework questions start feeling like pressure."
+          },
+          {
+            "why": "so you both know what dependable help looks like",
+            "action": "Agree which kitchen tasks George owns and when they need to be done."
+          }
+        ]
+      },
+      "opening": "William, George needs your steadiness, but he also needs a say in how help arrives. George, you can ask for privacy or support without having to turn the moment into a fight. At 13, clear limits and real choices can work together. Keep agreements simple, then follow through without making every reminder a test."
+    }
+  }
+}

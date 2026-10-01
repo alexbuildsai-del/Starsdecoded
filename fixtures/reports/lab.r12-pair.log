@@ -1,0 +1,360 @@
+
+> starsdecoded@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded
+> pnpm --filter @workspace/scripts run report:lab "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "--label" "r12-pair"
+
+
+> @workspace/scripts@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded/scripts
+> tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "--label" "r12-pair"
+
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), partners via https://starsdecoded-staging.vercel.app: two natal reports first ===
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), partners ===
+chapter                                  words  target   ok   flags
+---------------------------------------  -----  -------  ---  ---------------------------------
+twoCharts (Your two charts)              170    300-360  NO   char:semicolon
+partners02 (How you love)                208    230-300  NO   -
+partners03 (How you fight and repair)    200    230-300  NO   -
+partners04 (Home, chores and money)      194    230-300  NO   CARD: 2 line(s) over twelve words
+partners05 (Fun, weekends and holidays)  220    230-300  NO   -
+partners06 (What you are building)       230    230-300  yes  CARD: 1 line(s) over twelve words
+whatToPractise (What to practise)        379    450-560  NO   -
+card 1 rubs moon jupiter: 59 words
+card 2 flows venus mars: 60 words
+card 3 flows mercury moon: 59 words
+card 4 rubs venus pluto: 64 words
+card 5 flows moon uranus: 57 words
+card 6 rubs saturn pluto: 65 words
+card 7 flows mercury sun: 61 words
+card 8 flows mercury venus: 60 words
+card 9 flows jupiter neptune: 59 words
+card 10 flows uranus saturn: 60 words
+card 11 flows neptune sun: 52 words
+card 12 rubs pluto mercury: 68 words
+card 13 overlay sun in the 2th: 54 words
+card 14 overlay moon in the 12th: 55 words
+card 15 overlay moon in the 4th: 61 words
+card 16 overlay sun in the 12th: 59 words
+link cards: 16, 1025 words, all 40 to 70 with a behaviour check
+
+prose: 1601 words (target 1900-2500: OUT OF RANGE), cards and items outside it; written in 45.3s
+repetition: 1.3% of five-word runs appear in more than one chapter (bar 3%: under)
+prompt p3 on mixed; lens partners
+SHAPE FLAG: CARD: 2 line(s) over twelve words; CARD: 1 line(s) over twelve words
+
+call                 model       tries  in       cached  out     reason  $        s
+-------------------  ----------  -----  -------  ------  ------  ------  -------  -----
+pair:foundation      gpt-6-sol   1      9,047    0       592     0       $0.0240  8.2
+pair:twoCharts       gpt-6-luna  1      12,366   0       783     0       $0.0016  7.7
+pair:partners04      gpt-6-luna  1      12,921   0       1,079   0       $0.0018  9.4
+pair:partners05      gpt-6-luna  2      19,162   7,543   1,763   0       $0.0029  13.4
+pair:partners03      gpt-6-luna  2      19,770   7,543   2,167   0       $0.0031  16.3
+pair:partners06      gpt-6-luna  2      19,034   7,543   2,416   0       $0.0032  17.5
+pair:links           gpt-6-luna  1      10,088   0       1,714   0       $0.0019  23.6
+pair:partners02      gpt-6-luna  2      19,918   7,543   2,675   0       $0.0034  24.5
+pair:whatToPractise  gpt-6-luna  1      11,229   0       839     0       $0.0015  7.9
+TOTAL                            13     133,535  30,172  14,028  0       $0.0435  128.6
+
+cost $0.0435 in 42.0s wall clock (128.6s of call time across 13 calls); bar $0.2500: under
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/curie-winfrey.partners.r12-pair.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/curie-winfrey.partners.r12-pair.json
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), parent_child ===
+chapter                                              words  target   ok  flags
+---------------------------------------------------  -----  -------  --  ------------------------------------------------
+twoCharts (Your two charts)                          155    300-360  NO  char:semicolon
+parentChild02 (What your child needs from you)       204    230-300  NO  char:semicolon
+parentChild03 (Feelings and the big reactions)       175    230-300  NO  char:semicolon
+parentChild04 (Home, chores and contributing)        219    230-300  NO  char:semicolon CARD: 1 line(s) over twelve words
+parentChild05 (School, homework and how they learn)  220    230-300  NO  char:semicolon
+parentChild06 (Rules, freedom and screens)           187    230-300  NO  char:semicolon
+whatToPractise (What to practise)                    371    450-560  NO  char:semicolon
+card 1 rubs moon jupiter: 62 words
+card 2 flows venus mars: 57 words
+card 3 flows mercury moon: 58 words
+card 4 rubs venus pluto: 63 words
+card 5 flows moon uranus: 54 words
+card 6 rubs saturn pluto: 61 words
+card 7 flows mercury sun: 55 words
+card 8 flows mercury venus: 59 words
+card 9 flows jupiter neptune: 55 words
+card 10 flows uranus saturn: 54 words
+card 11 flows neptune sun: 47 words
+card 12 rubs pluto mercury: 56 words
+card 13 overlay sun in the 2th: 55 words
+card 14 overlay moon in the 12th: 57 words
+card 15 overlay moon in the 4th: 55 words
+link cards: 15, 917 words, all 40 to 70 with a behaviour check
+
+prose: 1531 words (target 1900-2500: OUT OF RANGE), cards and items outside it; written in 56.7s
+repetition: 1.6% of five-word runs appear in more than one chapter (bar 3%: under)
+prompt p3 on mixed; lens parent_child; band grown
+band flag: clean, no line contradicts the grown band
+SHAPE FLAG: CARD: 1 line(s) over twelve words
+
+call                 model       tries  in       cached  out     reason  $        s
+-------------------  ----------  -----  -------  ------  ------  ------  -------  -----
+pair:foundation      gpt-6-sol   1      2,167    7,064   565     0       $0.0114  8.7
+pair:twoCharts       gpt-6-luna  1      5,174    7,350   647     0       $0.0009  6.5
+pair:parentChild05   gpt-6-luna  1      13,558   0       929     0       $0.0018  7.6
+pair:parentChild03   gpt-6-luna  1      13,555   0       1,164   0       $0.0019  9.0
+pair:parentChild06   gpt-6-luna  1      13,849   0       1,050   0       $0.0019  9.8
+pair:links           gpt-6-luna  1      2,959    7,106   1,676   0       $0.0012  21.8
+pair:parentChild04   gpt-6-luna  2      21,205   7,543   2,562   0       $0.0035  24.9
+pair:parentChild02   gpt-6-luna  3      27,873   15,086  3,043   0       $0.0045  29.5
+pair:whatToPractise  gpt-6-luna  1      3,837    7,519   1,313   0       $0.0011  11.2
+TOTAL                            12     104,177  51,668  12,949  0       $0.0282  128.8
+
+cost $0.0282 in 50.8s wall clock (128.8s of call time across 12 calls); bar $0.2500: under
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/curie-winfrey.parent_child.r12-pair.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/curie-winfrey.parent_child.r12-pair.json
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), people via https://starsdecoded-staging.vercel.app: two natal reports first ===
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), people ===
+chapter                                   words  target   ok   flags
+----------------------------------------  -----  -------  ---  ------------------------------------------------
+twoCharts (Your two charts)               170    300-360  NO   -
+people02 (In a room together)             221    230-300  NO   char:semicolon CARD: 1 line(s) over twelve words
+people03 (Working on something together)  211    230-300  NO   -
+people04 (Having fun)                     232    230-300  yes  char:semicolon CARD: 2 line(s) over twelve words
+people05 (The hard talk)                  225    230-300  NO   char:semicolon
+people06 (What you give each other)       210    230-300  NO   char:semicolon CARD: 1 line(s) over twelve words
+whatToPractise (What to practise)         385    450-560  NO   -
+card 1 rubs moon jupiter: 62 words
+card 2 flows venus mars: 61 words
+card 3 flows mercury moon: 63 words
+card 4 rubs venus pluto: 58 words
+card 5 flows moon uranus: 66 words
+card 6 rubs saturn pluto: 62 words
+card 7 flows mercury sun: 61 words
+card 8 flows mercury venus: 62 words
+card 9 flows jupiter neptune: 56 words
+card 10 flows uranus saturn: 59 words
+card 11 flows neptune sun: 57 words
+card 12 rubs pluto mercury: 66 words
+card 13 overlay sun in the 2th: 65 words
+card 14 overlay moon in the 12th: 59 words
+card 15 overlay moon in the 4th: 59 words
+card 16 overlay sun in the 12th: 64 words
+link cards: 16, 1052 words, all 40 to 70 with a behaviour check
+
+prose: 1654 words (target 1900-2500: OUT OF RANGE), cards and items outside it; written in 45.4s
+repetition: 1.8% of five-word runs appear in more than one chapter (bar 3%: under)
+prompt p3 on mixed; lens people; friends
+SHAPE FLAG: CARD: 1 line(s) over twelve words; CARD: 2 line(s) over twelve words; CARD: 1 line(s) over twelve words
+
+call                 model       tries  in      cached  out     reason  $        s
+-------------------  ----------  -----  ------  ------  ------  ------  -------  -----
+pair:foundation      gpt-6-sol   1      2,032   7,064   537     0       $0.0108  8.7
+pair:twoCharts       gpt-6-luna  1      5,242   7,350   720     0       $0.0010  6.9
+pair:people06        gpt-6-luna  1      12,695  0       1,115   0       $0.0018  9.6
+pair:people02        gpt-6-luna  1      13,271  0       1,217   0       $0.0019  12.8
+pair:people03        gpt-6-luna  2      19,393  7,542   1,820   0       $0.0029  15.3
+pair:people05        gpt-6-luna  2      19,542  7,542   2,413   0       $0.0032  20.6
+pair:links           gpt-6-luna  1      2,952   7,106   1,756   0       $0.0012  22.5
+pair:people04        gpt-6-luna  2      20,113  7,542   2,823   0       $0.0035  23.2
+pair:whatToPractise  gpt-6-luna  1      3,743   7,519   779     0       $0.0008  7.4
+TOTAL                            12     98,983  51,665  13,180  0       $0.0273  127.0
+
+cost $0.0273 in 41.7s wall clock (127.0s of call time across 12 calls); bar $0.2500: under
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/curie-winfrey.people.r12-pair.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/curie-winfrey.people.r12-pair.json
+
+=== Beatrice York & Athena Mapelli Mozzi (beatrice-athena), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+
+=== Beatrice York & Athena Mapelli Mozzi (beatrice-athena), parent_child ===
+chapter                                              words  target   ok  flags
+---------------------------------------------------  -----  -------  --  ---------------------------------
+twoCharts (Your two charts)                          139    300-360  NO  -
+parentChild02 (What your child needs from you)       200    230-300  NO  char:semicolon
+parentChild03 (Feelings and the big reactions)       200    230-300  NO  CARD: 1 line(s) over twelve words
+parentChild04 (Home, chores and contributing)        187    230-300  NO  char:semicolon
+parentChild05 (School, homework and how they learn)  218    230-300  NO  char:semicolon
+parentChild06 (Rules, freedom and screens)           219    230-300  NO  char:semicolon
+whatToPractise (What to practise)                    382    450-560  NO  char:semicolon
+card 1 flows jupiter sun: 59 words
+card 2 flows jupiter pluto: 62 words
+card 3 rubs mercury uranus: 67 words
+card 4 rubs saturn neptune: 70 words
+card 5 flows mars jupiter: 60 words
+card 6 flows neptune moon: 58 words
+card 7 rubs venus neptune: 62 words
+card 8 rubs uranus neptune: 63 words
+card 9 flows pluto moon: 64 words
+card 10 overlay sun in the 1th: 59 words
+card 11 overlay venus in the 2th: 59 words
+card 12 overlay moon in the 10th: 62 words
+card 13 overlay moon in the 2th: 58 words
+card 14 overlay sun in the 3th: 60 words
+link cards: 14, 923 words, all 40 to 70 with a behaviour check
+
+prose: 1545 words (target 1900-2500: OUT OF RANGE), cards and items outside it; written in 51.8s
+repetition: 1.2% of five-word runs appear in more than one chapter (bar 3%: under)
+prompt p3 on mixed; lens parent_child; band little
+BAND FLAG: parentChild05: reads another age than the little band: homework is not fair before school age
+SHAPE FLAG: CARD: 1 line(s) over twelve words
+
+call                 model       tries  in      cached  out     reason  $        s
+-------------------  ----------  -----  ------  ------  ------  ------  -------  -----
+pair:foundation      gpt-6-sol   1      2,147   7,064   547     0       $0.0112  8.6
+pair:twoCharts       gpt-6-luna  1      5,214   7,350   861     0       $0.0010  6.9
+pair:parentChild03   gpt-6-luna  1      6,242   7,543   960     0       $0.0012  7.4
+pair:parentChild06   gpt-6-luna  1      6,056   7,543   1,191   0       $0.0013  11.4
+pair:parentChild05   gpt-6-luna  2      13,879  15,086  1,729   0       $0.0024  14.7
+pair:links           gpt-6-luna  1      2,910   7,106   1,549   0       $0.0011  19.3
+pair:parentChild02   gpt-6-luna  2      13,682  15,086  2,587   0       $0.0028  20.5
+pair:parentChild04   gpt-6-luna  2      14,057  15,086  2,744   0       $0.0029  26.0
+pair:whatToPractise  gpt-6-luna  1      3,727   7,519   834     0       $0.0009  8.7
+TOTAL                            12     67,914  89,383  13,002  0       $0.0248  123.4
+
+cost $0.0248 in 45.7s wall clock (123.4s of call time across 12 calls); bar $0.2500: under
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/beatrice-athena.parent_child.r12-pair.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/beatrice-athena.parent_child.r12-pair.json
+
+=== William Windsor & Charlotte Windsor (william-charlotte), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+
+=== William Windsor & Charlotte Windsor (william-charlotte), parent_child ===
+chapter                                              words  target   ok  flags
+---------------------------------------------------  -----  -------  --  ------------------------------------------------
+twoCharts (Your two charts)                          163    300-360  NO  -
+parentChild02 (What your child needs from you)       204    230-300  NO  CARD: 1 line(s) over twelve words
+parentChild03 (Feelings and the big reactions)       209    230-300  NO  char:semicolon CARD: 1 line(s) over twelve words
+parentChild04 (Home, chores and contributing)        206    230-300  NO  -
+parentChild05 (School, homework and how they learn)  200    230-300  NO  -
+parentChild06 (Rules, freedom and screens)           196    230-300  NO  -
+whatToPractise (What to practise)                    384    450-560  NO  -
+card 1 flows pluto venus: 60 words
+card 2 flows venus mars: 62 words
+card 3 rubs saturn pluto: 63 words
+card 4 rubs mercury neptune: 62 words
+card 5 rubs neptune venus: 61 words
+card 6 rubs uranus mercury: 63 words
+card 7 flows saturn jupiter: 60 words
+card 8 rubs saturn uranus: 62 words
+card 9 flows pluto moon: 67 words
+card 10 flows uranus saturn: 56 words
+card 11 overlay sun in the 6th: 56 words
+card 12 overlay moon in the 11th: 59 words
+card 13 overlay sun in the 1th: 59 words
+link cards: 13, 849 words, all 40 to 70 with a behaviour check
+
+prose: 1562 words (target 1900-2500: OUT OF RANGE), cards and items outside it; written in 45.5s
+repetition: 1.2% of five-word runs appear in more than one chapter (bar 3%: under)
+prompt p3 on mixed; lens parent_child; band school
+band flag: clean, no line contradicts the school band
+SHAPE FLAG: CARD: 1 line(s) over twelve words; CARD: 1 line(s) over twelve words
+
+call                 model       tries  in      cached  out     reason  $        s
+-------------------  ----------  -----  ------  ------  ------  ------  -------  -----
+pair:foundation      gpt-6-sol   1      2,088   7,064   574     0       $0.0113  9.4
+pair:parentChild06   gpt-6-luna  1      6,331   7,543   1,039   0       $0.0012  9.7
+pair:parentChild02   gpt-6-luna  1      6,336   7,543   1,181   0       $0.0013  9.6
+pair:twoCharts       gpt-6-luna  1      5,532   7,350   1,161   0       $0.0012  11.1
+pair:parentChild03   gpt-6-luna  2      13,763  15,086  1,862   0       $0.0025  13.0
+pair:parentChild05   gpt-6-luna  2      13,357  15,086  1,674   0       $0.0023  13.7
+pair:parentChild04   gpt-6-luna  2      13,777  15,086  1,521   0       $0.0023  15.7
+pair:links           gpt-6-luna  1      2,897   7,106   1,523   0       $0.0011  20.3
+pair:whatToPractise  gpt-6-luna  1      3,742   7,519   838     0       $0.0009  8.1
+TOTAL                            12     67,823  89,383  11,373  0       $0.0241  110.6
+
+cost $0.0241 in 39.7s wall clock (110.6s of call time across 12 calls); bar $0.2500: under
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/william-charlotte.parent_child.r12-pair.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/william-charlotte.parent_child.r12-pair.json
+
+=== William Windsor & George Windsor (william-george), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+
+=== William Windsor & George Windsor (william-george), parent_child ===
+chapter                                              words  target   ok  flags
+---------------------------------------------------  -----  -------  --  ------------------------------------------------
+twoCharts (Your two charts)                          158    300-360  NO  char:semicolon
+parentChild02 (What your child needs from you)       204    230-300  NO  -
+parentChild03 (Feelings and the big reactions)       199    230-300  NO  CARD: 1 line(s) over twelve words
+parentChild04 (Home, chores and contributing)        208    230-300  NO  CARD: 2 line(s) over twelve words
+parentChild05 (School, homework and how they learn)  209    230-300  NO  char:semicolon
+parentChild06 (Rules, freedom and screens)           221    230-300  NO  char:semicolon CARD: 1 line(s) over twelve words
+whatToPractise (What to practise)                    384    450-560  NO  -
+card 1 flows moon saturn: 59 words
+card 2 flows venus moon: 63 words
+card 3 flows moon mars: 55 words
+card 4 flows moon neptune: 63 words
+card 5 flows sun venus: 60 words
+card 6 rubs jupiter sun: 60 words
+card 7 flows uranus sun: 58 words
+card 8 flows moon jupiter: 52 words
+card 9 rubs mars pluto: 59 words
+card 10 rubs mars mars: 55 words
+card 11 rubs jupiter moon: 56 words
+card 12 rubs uranus venus: 58 words
+link cards: 12, 758 words, all 40 to 70 with a behaviour check
+
+prose: 1583 words (target 1900-2500: OUT OF RANGE), cards and items outside it; written in 46.0s
+repetition: 2.8% of five-word runs appear in more than one chapter (bar 3%: under)
+prompt p3 on mixed; lens parent_child; band teen
+band flag: clean, no line contradicts the teen band
+SHAPE FLAG: CARD: 1 line(s) over twelve words; CARD: 2 line(s) over twelve words; CARD: 1 line(s) over twelve words
+
+call                 model       tries  in      cached  out     reason  $        s
+-------------------  ----------  -----  ------  ------  ------  ------  -------  -----
+pair:foundation      gpt-6-sol   1      2,140   7,064   530     0       $0.0110  9.5
+pair:parentChild03   gpt-6-luna  1      6,210   7,543   1,107   0       $0.0012  7.4
+pair:twoCharts       gpt-6-luna  1      5,251   7,350   1,114   0       $0.0012  10.1
+pair:parentChild06   gpt-6-luna  2      13,899  15,086  2,090   0       $0.0026  15.7
+pair:parentChild05   gpt-6-luna  2      13,300  15,086  2,260   0       $0.0026  17.7
+pair:parentChild02   gpt-6-luna  2      13,416  15,086  2,167   0       $0.0026  19.1
+pair:links           gpt-6-luna  1      2,972   7,106   1,689   0       $0.0012  20.6
+pair:parentChild04   gpt-6-luna  2      13,459  15,086  2,368   0       $0.0027  22.0
+pair:whatToPractise  gpt-6-luna  1      3,769   7,519   830     0       $0.0009  7.5
+TOTAL                            13     74,416  96,926  14,155  0       $0.0259  129.6
+
+cost $0.0259 in 41.4s wall clock (129.6s of call time across 13 calls); bar $0.2500: under
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/william-george.parent_child.r12-pair.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/william-george.parent_child.r12-pair.json
+
+=== Charles Windsor & William Windsor (charles-william), parent_child via https://starsdecoded-staging.vercel.app: two natal reports first ===
+
+=== Charles Windsor & William Windsor (charles-william), parent_child ===
+chapter                                              words  target   ok  flags
+---------------------------------------------------  -----  -------  --  ---------------------------------
+twoCharts (Your two charts)                          159    300-360  NO  char:semicolon
+parentChild02 (What your child needs from you)       210    230-300  NO  -
+parentChild03 (Feelings and the big reactions)       200    230-300  NO  CARD: 4 line(s) over twelve words
+parentChild04 (Home, chores and contributing)        221    230-300  NO  -
+parentChild05 (School, homework and how they learn)  216    230-300  NO  char:semicolon
+parentChild06 (Rules, freedom and screens)           207    230-300  NO  char:semicolon
+whatToPractise (What to practise)                    376    450-560  NO  -
+card 1 flows mercury moon: 56 words
+card 2 flows moon sun: 58 words
+card 3 flows venus saturn: 59 words
+card 4 flows uranus sun: 57 words
+card 5 rubs moon jupiter: 57 words
+card 6 rubs jupiter sun: 58 words
+card 7 flows saturn moon: 58 words
+card 8 rubs sun venus: 57 words
+card 9 flows uranus jupiter: 58 words
+card 10 flows neptune saturn: 54 words
+card 11 flows pluto saturn: 56 words
+card 12 rubs saturn mercury: 57 words
+card 13 overlay sun in the 12th: 57 words
+card 14 overlay sun in the 12th: 57 words
+link cards: 14, 865 words, all 40 to 70 with a behaviour check
+
+prose: 1589 words (target 1900-2500: OUT OF RANGE), cards and items outside it; written in 45.3s
+repetition: 3.3% of five-word runs appear in more than one chapter (bar 3%: OVER)
+prompt p3 on mixed; lens parent_child; band grown
+BAND FLAG: parentChild05: reads another age than the grown band: tantrums, bedtime and homework belong to a child
+SHAPE FLAG: CARD: 4 line(s) over twelve words
+
+call                 model       tries  in      cached  out     reason  $        s
+-------------------  ----------  -----  ------  ------  ------  ------  -------  -----
+pair:foundation      gpt-6-sol   1      2,187   7,064   543     0       $0.0112  9.6
+pair:twoCharts       gpt-6-luna  1      5,190   7,350   882     0       $0.0010  7.7
+pair:parentChild06   gpt-6-luna  1      6,206   7,543   1,108   0       $0.0013  8.8
+pair:parentChild02   gpt-6-luna  1      6,130   7,543   1,170   0       $0.0013  9.5
+pair:parentChild05   gpt-6-luna  2      13,307  15,086  1,576   0       $0.0023  13.0
+pair:parentChild03   gpt-6-luna  2      13,423  15,086  1,733   0       $0.0024  13.2
+pair:links           gpt-6-luna  1      2,965   7,106   1,676   0       $0.0012  19.9
+pair:parentChild04   gpt-6-luna  2      14,124  15,086  2,332   0       $0.0027  21.4
+pair:whatToPractise  gpt-6-luna  1      3,848   7,519   1,348   0       $0.0011  9.2
+TOTAL                            12     67,380  89,383  12,368  0       $0.0245  112.2
+
+cost $0.0245 in 42.1s wall clock (112.2s of call time across 12 calls); bar $0.2500: under
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/charles-william.parent_child.r12-pair.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/charles-william.parent_child.r12-pair.json
+
+=== pair campaign: 7 of 7 runs complete, 0 failed ===

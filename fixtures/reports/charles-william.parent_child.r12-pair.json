@@ -1,0 +1,1592 @@
+{
+  "fixture": {
+    "name": "Charles Windsor & William Windsor",
+    "a": "charles",
+    "b": "william",
+    "lens": "parent_child",
+    "parent": "A",
+    "band": "grown",
+    "note": "The grown band of the parent-and-child lens: a parent and a child of 44. Two existing chart fixtures by name and no birth data of its own."
+  },
+  "lens": "parent_child",
+  "interpretation": {
+    "meta": {
+      "band": "grown",
+      "lens": "parent_child",
+      "orbs": {
+        "trine": 6,
+        "square": 6,
+        "sextile": 4,
+        "opposition": 8,
+        "conjunction": 8
+      },
+      "blind": false,
+      "label": null,
+      "model": "mixed",
+      "names": {
+        "a": "Charles Windsor",
+        "b": "William Windsor"
+      },
+      "usage": {
+        "model": "mixed",
+        "totals": {
+          "ms": 112236,
+          "attempts": 12,
+          "inputTokens": 67380,
+          "outputTokens": 12368,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 89383
+        },
+        "costUsd": 0.024471790000000004,
+        "sections": [
+          {
+            "ms": 9550,
+            "model": "gpt-6-sol",
+            "section": "pair:foundation",
+            "attempts": 1,
+            "inputTokens": 2187,
+            "outputTokens": 543,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7064
+          },
+          {
+            "ms": 7666,
+            "model": "gpt-6-luna",
+            "section": "pair:twoCharts",
+            "attempts": 1,
+            "inputTokens": 5190,
+            "outputTokens": 882,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7350
+          },
+          {
+            "ms": 8815,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild06",
+            "attempts": 1,
+            "inputTokens": 6206,
+            "outputTokens": 1108,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7543
+          },
+          {
+            "ms": 9533,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild02",
+            "attempts": 1,
+            "inputTokens": 6130,
+            "outputTokens": 1170,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7543
+          },
+          {
+            "ms": 12968,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild05",
+            "attempts": 2,
+            "inputTokens": 13307,
+            "outputTokens": 1576,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15086
+          },
+          {
+            "ms": 13173,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild03",
+            "attempts": 2,
+            "inputTokens": 13423,
+            "outputTokens": 1733,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15086
+          },
+          {
+            "ms": 19949,
+            "model": "gpt-6-luna",
+            "section": "pair:links",
+            "attempts": 1,
+            "inputTokens": 2965,
+            "outputTokens": 1676,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7106
+          },
+          {
+            "ms": 21401,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild04",
+            "attempts": 2,
+            "inputTokens": 14124,
+            "outputTokens": 2332,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15086
+          },
+          {
+            "ms": 9181,
+            "model": "gpt-6-luna",
+            "section": "pair:whatToPractise",
+            "attempts": 1,
+            "inputTokens": 3848,
+            "outputTokens": 1348,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7519
+          }
+        ],
+        "wallClockMs": 42073
+      },
+      "zodiac": "tropical",
+      "crossOrb": 4,
+      "ephemeris": "astronomy-engine (Don Cross), tropical zodiac, mean lunar node",
+      "wordCount": 3078,
+      "reportType": "compatibility",
+      "generatedAt": "2026-10-01T15:34:42.855Z",
+      "houseSystem": "whole-sign",
+      "promptVersion": "p3"
+    },
+    "links": {
+      "links": [
+        {
+          "of": "none",
+          "orb": 2,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "mercury",
+          "planetB": "moon",
+          "reading": "Charles, your questions can help William put a private worry into words. William, you may feel understood before you have explained everything. On the Sunday call, that can make a useful exchange feel easy, but it does not mean you want advice. Behaviour check: Charles asks what William wants from the conversation before offering a solution."
+        },
+        {
+          "of": "none",
+          "orb": 0.3,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "moon",
+          "planetB": "sun",
+          "reading": "Charles, you can give William steady attention without pressing him to explain every detail. William, you may find it easier to stay in contact when Charles listens without turning the call into a review. The care is available, but you need to use it deliberately. Behaviour check: Charles gives William time to answer, then lets that answer stand."
+        },
+        {
+          "of": "none",
+          "orb": 0.9,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "venus",
+          "planetB": "saturn",
+          "reading": "Charles, you and William take loyalty seriously and tend to honour what you have promised. That steadiness can make the Sunday call dependable, but it can also make a complaint feel like a breach of duty. William, you may keep quiet rather than risk disappointing Charles. Behaviour check: each of you names one small thing you would like changed."
+        },
+        {
+          "of": "none",
+          "orb": 0.2,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "uranus",
+          "planetB": "sun",
+          "reading": "Charles, your unexpected questions can unsettle William's settled view of what he should do. William, you may welcome a fresh possibility, then need to make the choice privately. This can help you loosen an old rule, but Charles cannot choose the new one for him. Behaviour check: Charles asks what William thinks before suggesting a different course."
+        },
+        {
+          "of": "none",
+          "orb": 0.1,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "opposition",
+          "planet": "",
+          "planetA": "moon",
+          "planetB": "jupiter",
+          "reading": "Charles, you may offer more reassurance or help than William asked for. William, you may appreciate the care and still feel crowded by it. On the Sunday call, one of you can keep expanding the discussion while the other needs it to stop. Behaviour check: Charles asks whether William wants support, advice, or simply a listening ear."
+        },
+        {
+          "of": "none",
+          "orb": 0.2,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "opposition",
+          "planet": "",
+          "planetA": "jupiter",
+          "planetB": "sun",
+          "reading": "Charles, your confidence in a wider plan can meet William's need to decide for himself. William, you may hear encouragement as pressure when the choice already feels consequential. You can still discuss the future without treating agreement as proof of trust. Behaviour check: Charles asks which part of the plan William wants to consider, and accepts his answer."
+        },
+        {
+          "of": "none",
+          "orb": 0.3,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "saturn",
+          "planetB": "moon",
+          "reading": "Charles, your reliability can help William feel that he does not have to manage every concern alone. William, you may trust care that arrives consistently and without a demand for disclosure. But neither of you benefits if duty replaces an honest answer. Behaviour check: Charles offers one practical kind of help, and William says whether it would help."
+        },
+        {
+          "of": "none",
+          "orb": 3.2,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "opposition",
+          "planet": "",
+          "planetA": "sun",
+          "planetB": "venus",
+          "reading": "Charles, what feels like a clear expression of your choices may not feel warm to William. William, keeping the conversation pleasant may lead you to hide what you would prefer. The difference is workable when neither of you treats politeness as agreement. Behaviour check: William says what he wants plainly, and Charles asks one question before replying."
+        },
+        {
+          "of": "none",
+          "orb": 0.6,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "uranus",
+          "planetB": "jupiter",
+          "reading": "Charles, you can help William consider options beyond the plan he first expected to follow. William, you may enjoy exploring an idea with him, while keeping the final choice your own. That exchange can be lively without becoming a promise. Behaviour check: you discuss one new possibility, then name clearly whether either of you is committing to it."
+        },
+        {
+          "of": "none",
+          "orb": 1.4,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "neptune",
+          "planetB": "saturn",
+          "reading": "Charles, your hopes can soften William's firm sense of what duty requires. William, you may help give those hopes a practical shape, but you could also take on more than you meant to. Keep kindness separate from an assumed obligation. Behaviour check: before agreeing to a plan, William says what he can realistically do."
+        },
+        {
+          "of": "none",
+          "orb": 1.1,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "pluto",
+          "planetB": "saturn",
+          "reading": "Charles, you can stay present when William has to make a difficult long-term choice. William, you may value his willingness to take serious concerns seriously. This support works best when Charles does not mistake persistence for permission to direct the decision. Behaviour check: Charles asks what William has already decided, then offers help only if invited."
+        },
+        {
+          "of": "none",
+          "orb": 3.7,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "saturn",
+          "planetB": "mercury",
+          "reading": "Charles, your careful questions can sound to William like a decision he has already been asked to accept. William, you may answer politely, then share less. This friction can teach Charles to wait and William to name a limit before the call goes quiet. Behaviour check: Charles lets William finish, then asks what he has not understood."
+        },
+        {
+          "of": "B",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 12,
+          "aspect": "",
+          "planet": "sun",
+          "planetA": "",
+          "planetB": "",
+          "reading": "William, Charles can touch private parts of your life that you may not discuss readily. His concern may feel steady, but you still get to decide what to share. Charles, a quiet answer does not always mean William wants another question. Behaviour check: William names what he is willing to discuss, and Charles stays with that boundary."
+        },
+        {
+          "of": "A",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 12,
+          "aspect": "",
+          "planet": "sun",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Charles, William's presence can reach the private concerns you do not always put into words. You may care deeply about what he is carrying, yet find it hard to know when to ask. William, you may not want every feeling brought into the open. Behaviour check: Charles asks whether William wants to talk, then respects his answer."
+        }
+      ]
+    },
+    "scenes": {
+      "parentChild02": {
+        "texts": {},
+        "titles": [
+          "The Sunday call"
+        ],
+        "written": 0
+      },
+      "parentChild03": {
+        "texts": {},
+        "titles": [
+          "The call that ends in silence"
+        ],
+        "written": 0
+      },
+      "parentChild04": {
+        "texts": {},
+        "titles": [
+          "A week back home"
+        ],
+        "written": 0
+      },
+      "parentChild05": {
+        "texts": {},
+        "titles": [
+          "The choice you don't understand"
+        ],
+        "written": 0
+      },
+      "parentChild06": {
+        "texts": {},
+        "titles": [
+          "The rule that no longer applies"
+        ],
+        "written": 0
+      }
+    },
+    "twoCharts": {
+      "work": [
+        "This is the challenge: Charles, ask what help William wants before offering a solution, so William can answer without feeling managed. L1",
+        "Charles, let William finish before asking about a private concern, so he can choose what he is ready to share. L2",
+        "Charles and William, name a complaint while the Sunday call is still calm, so care does not turn into silence. L3"
+      ],
+      "claims": [
+        {
+          "quote": "On the Sunday call, Charles, you can hear strain in William’s voice and ask a question that helps him speak.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Charles Windsor's Mercury trine William Windsor's Moon, 2.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles, your steady attention can reassure William without asking him to explain every private concern.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "moon",
+                "planetB": "sun"
+              },
+              "label": "Charles Windsor's Moon sextile William Windsor's Sun, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "When a visit home involves plans or promises, Charles and William can both show up and follow through.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.9,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "saturn"
+              },
+              "label": "Charles Windsor's Venus conjunction William Windsor's Saturn, 0.9° orb"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Charles, ask what help William wants before offering a solution, so William can answer without feeling managed.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Charles Windsor's Mercury trine William Windsor's Moon, 2.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles, let William finish before asking about a private concern, so he can choose what he is ready to share.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "moon",
+                "planetB": "sun"
+              },
+              "label": "Charles Windsor's Moon sextile William Windsor's Sun, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles and William, name a complaint while the Sunday call is still calm, so care does not turn into silence.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.9,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "saturn"
+              },
+              "label": "Charles Windsor's Venus conjunction William Windsor's Saturn, 0.9° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles, your careful attention helps William feel cared for, but can make him hold back; asking first helps him speak.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Charles Windsor's Mercury trine William Windsor's Moon, 2.0° orb"
+            }
+          ]
+        }
+      ],
+      "strong": [
+        "On the Sunday call, Charles, you can hear strain in William’s voice and ask a question that helps him speak. L1",
+        "Charles, your steady attention can reassure William without asking him to explain every private concern. L2",
+        "When a visit home involves plans or promises, Charles and William can both show up and follow through. L3"
+      ],
+      "paradox": "Charles, your careful attention helps William feel cared for, but can make him hold back; asking first helps him speak. L1",
+      "headline": "Charles, you offer steady care; William, you can accept it while keeping the choice of when to talk.",
+      "strengths": [
+        "Charles hears what William has trouble saying.",
+        "Charles offers care William can use.",
+        "Charles and William keep their promises."
+      ]
+    },
+    "foundation": {
+      "owners": [
+        {
+          "link": 1,
+          "chapters": [
+            1,
+            2
+          ]
+        },
+        {
+          "link": 2,
+          "chapters": [
+            1,
+            2
+          ]
+        },
+        {
+          "link": 3,
+          "chapters": [
+            1,
+            4
+          ]
+        },
+        {
+          "link": 4,
+          "chapters": [
+            5,
+            6
+          ]
+        },
+        {
+          "link": 5,
+          "chapters": [
+            3
+          ]
+        },
+        {
+          "link": 6,
+          "chapters": [
+            3,
+            5
+          ]
+        },
+        {
+          "link": 7,
+          "chapters": [
+            4
+          ]
+        },
+        {
+          "link": 8,
+          "chapters": [
+            1,
+            4
+          ]
+        },
+        {
+          "link": 9,
+          "chapters": [
+            5
+          ]
+        },
+        {
+          "link": 10,
+          "chapters": [
+            2,
+            6
+          ]
+        },
+        {
+          "link": 11,
+          "chapters": [
+            4
+          ]
+        },
+        {
+          "link": 12,
+          "chapters": [
+            3,
+            5
+          ]
+        },
+        {
+          "link": 13,
+          "chapters": [
+            3
+          ]
+        },
+        {
+          "link": 14,
+          "chapters": [
+            2
+          ]
+        },
+        {
+          "link": 15,
+          "chapters": [
+            4
+          ]
+        },
+        {
+          "link": 16,
+          "chapters": [
+            2,
+            6
+          ]
+        }
+      ],
+      "guidance": [
+        "Charles and William have steady care and real trust, but careful words can leave a complaint unsaid.",
+        "On the Sunday call, Charles checks whether William wants help before asking about private concerns.",
+        "In the call that ends in silence, Charles lets William finish before questioning his account.",
+        "During a week back home, Charles offers practical care without treating William's visit as a return to childhood.",
+        "When William makes a choice Charles does not understand, Charles asks for his reasons before offering advice.",
+        "When an old rule no longer applies, Charles says which household needs are current and leaves William's decisions to him.",
+        "Charles practises asking once and waiting; William practises saying what he wants before ending the conversation."
+      ],
+      "strengths": [
+        "Charles hears what William has trouble saying.",
+        "Charles offers care William can use.",
+        "Charles and William keep their promises."
+      ],
+      "pairThesis": "Charles, you can hear when William is carrying more than he says. William, you may welcome that care but still want to choose when to talk. Charles, asking before offering help gives William space to answer honestly.",
+      "strongestLinks": [
+        {
+          "why": "On the Sunday call, Charles can hear strain in William's voice and ask a useful question.",
+          "link": 1
+        },
+        {
+          "why": "On the Sunday call, Charles can offer steady attention without asking William to explain everything.",
+          "link": 2
+        },
+        {
+          "why": "On the Sunday call, Charles and William keep their promises, though both may hesitate to raise a complaint.",
+          "link": 3
+        }
+      ],
+      "frictionThatMatters": "Charles, your careful questions can sound like a decision William has already been asked to accept. William may answer politely, then stop sharing. Asking what help he wants trains Charles to wait and William to state a limit before the call goes quiet."
+    },
+    "parentChild02": {
+      "card": {
+        "a": [
+          "You need room to make them privately.",
+          "You feel steadier when your responsibilities are clear.",
+          "You give affection through thoughtful words and tact."
+        ],
+        "b": [
+          "You build your sense of self through trust and loyalty.",
+          "You often speak warmly while keeping deepest judgments private.",
+          "You feel secure when a partner is steady and clear."
+        ],
+        "pair": "Charles asks; William chooses what to share."
+      },
+      "scene": "On the Sunday call, Charles hears strain in William’s voice and asks about it. William answers politely, then pauses before saying what he wants. Charles offers practical help, hoping to make things easier. William may welcome the care but still want to choose when to talk. The call can go quiet before either says what would help.",
+      "claims": [
+        {
+          "quote": "Charles hears strain in William’s voice and asks about it.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Charles Windsor's Mercury trine William Windsor's Moon, 2.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "Charles Windsor's report: Sun 22.4° Scorpio, 4th house; Sun rules the 1st and sits in Scorpio, 4th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "William may welcome the care but still want to choose when to talk.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "moon",
+                "planetB": "sun"
+              },
+              "label": "Charles Windsor's Moon sextile William Windsor's Sun, 0.3° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 7,
+                "report": "B",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Ascendant · 27.5° Sagittarius; Jupiter 0.5° Scorpio, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "You may hold private concerns back until you have thought them through, so your questions can arrive before William has asked for help.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Mercury 7.0° Scorpio, 4th house; Sun 22.4° Scorpio, 4th house"
+            }
+          ]
+        },
+        {
+          "quote": "You may keep private concerns private while tracking what others need, then answer politely before naming your own limit.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine; Jupiter 0.5° Scorpio, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "You have a natural fit: Charles can hear strain in William’s voice and offer steady attention.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Charles Windsor's Mercury trine William Windsor's Moon, 2.0° orb"
+            },
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "moon",
+                "planetB": "sun"
+              },
+              "label": "Charles Windsor's Moon sextile William Windsor's Sun, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Charles’s careful questions can sound like a decision already made, so he practises asking and waiting.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.4,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "neptune",
+                "planetB": "saturn"
+              },
+              "label": "Charles Windsor's Neptune conjunction William Windsor's Saturn, 1.4° orb"
+            },
+            {
+              "ref": {
+                "of": "B",
+                "kind": "cross",
+                "house": 12,
+                "planet": "sun",
+                "inHouseOf": "A"
+              },
+              "label": "William Windsor's Sun in Charles Windsor's 12th house"
+            }
+          ]
+        }
+      ],
+      "pattern": "You have a natural fit: Charles can hear strain in William’s voice and offer steady attention. William may still need to choose the moment and subject. This is the challenge: Charles’s careful questions can sound like a decision already made, so he practises asking and waiting. Fair at this age: William makes his own choices, and advice is best given when he asks.",
+      "headline": "William, care is useful when Charles asks before offering it.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you practise waiting for his answer",
+            "action": "On the Sunday call, ask William whether he wants help before asking about private concerns."
+          },
+          {
+            "for": "A",
+            "why": "so he can choose what to share",
+            "action": "Let William finish his account before asking a follow-up question."
+          },
+          {
+            "for": "both",
+            "why": "so you both know what to expect",
+            "action": "Agree whether you will keep the Sunday call each week, and say so plainly."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Charles, you feel steadier when responsibilities are clear, and you show care through thoughtful words. You may hold private concerns back until you have thought them through, so your questions can arrive before William has asked for help.",
+        "becauseB": "William, you need trust and time to decide what to share. You may keep private concerns private while tracking what others need, then answer politely before naming your own limit. A calm reply does not always mean you are ready to talk."
+      }
+    },
+    "parentChild03": {
+      "card": {
+        "a": [
+          "You look for what is hidden beneath the first explanation.",
+          "You explain yourself with care and choose words that keep a conversation fair.",
+          "You are learning to let your own judgment guide visible decisions."
+        ],
+        "b": [
+          "You think best when someone asks a clear question and gives you room to answer.",
+          "Privacy helps you think, but it can leave others guessing about what you need.",
+          "You want open discussion, but need proof that words will hold once the call ends."
+        ],
+        "pair": "Charles asks; William gets to choose whether to answer."
+      },
+      "scene": "On the Sunday call, William goes quiet after Charles asks about a private concern. Charles hears the pause and follows with a careful question. William answers briefly, then ends the call. Charles wants to understand what happened, while William needs time before he can say what he wants.",
+      "claims": [
+        {
+          "quote": "William answers briefly, then ends the call.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.7,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "mercury"
+              },
+              "label": "Charles Windsor's Saturn square William Windsor's Mercury, 3.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles hears the pause and follows with a careful question.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.1,
+                "kind": "cross",
+                "aspect": "opposition",
+                "planetA": "moon",
+                "planetB": "jupiter"
+              },
+              "label": "Charles Windsor's Moon opposition William Windsor's Jupiter, 0.1° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles, you look beneath the first explanation and think privately before speaking.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Charles Windsor's report: Mercury 7.0° Scorpio, 4th house; Mercury sextile Saturn, 1.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "When the questions continue, ending the call gives you space to decide what you want.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "superpowers"
+              },
+              "label": "William Windsor's report: Jupiter 0.5° Scorpio, 12th house; Sun is the sect light"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Charles, your wish to understand can sound like pressure, while William may end the call before naming what he needs.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.7,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "mercury"
+              },
+              "label": "Charles Windsor's Saturn square William Windsor's Mercury, 3.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Your steady attention can help, but it works best when you ask whether he wants help, then listen without another question.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.1,
+                "kind": "cross",
+                "aspect": "opposition",
+                "planetA": "moon",
+                "planetB": "jupiter"
+              },
+              "label": "Charles Windsor's Moon opposition William Windsor's Jupiter, 0.1° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: Charles, your wish to understand can sound like pressure, while William may end the call before naming what he needs. Your steady attention can help, but it works best when you ask whether he wants help, then listen without another question. That trains you to wait and gives William room to answer honestly.",
+      "headline": "William can end the call before either of you says what is needed.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "It trains you to listen before trying to solve the concern.",
+            "action": "Charles, notice the pause, say you hear strain, and ask whether William wants help."
+          },
+          {
+            "for": "both",
+            "why": "It trains you both to state a limit before silence takes over.",
+            "action": "Let William finish; agree whether to continue now or keep the Sunday call."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Charles, you look beneath the first explanation and think privately before speaking. When William goes quiet, you may ask another careful question to find the cause. Your concern is real, but William may hear a decision already made.",
+        "becauseB": "William, you think best when a question is clear and you have room to answer. You may keep your needs private while weighing the terms of a serious promise. When the questions continue, ending the call gives you space to decide what you want."
+      }
+    },
+    "parentChild04": {
+      "card": {
+        "a": [
+          "You protect family history and keep it close.",
+          "Practical care helps you settle at home.",
+          "You can let younger people try their own way."
+        ],
+        "b": [
+          "You take loyalty seriously and steady shared matters.",
+          "You need time to think before choosing when to talk.",
+          "Say what you can offer before duty grows."
+        ],
+        "pair": "Charles asks; William names what he can do."
+      },
+      "scene": "During a week back home, Charles sees jobs that keep the house working and wants them handled reliably. William is a 44-year-old guest, not a child returning to old rules. Charles asks, “What can you take on while you’re here?” William names a fair share, and they agree on it. Fair at this age: William can reasonably be asked to contribute a guest’s share, by mutual agreement.",
+      "claims": [
+        {
+          "quote": "During a week back home, Charles sees jobs that keep the house working and wants them handled reliably.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Moon 0.4° Taurus, 10th house; Moon trine Jupiter, 0.5° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "Charles Windsor's report: Saturn is the malefic out of sect; Saturn 5.3° Virgo, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "William is a 44-year-old guest, not a child returning to old rules.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine; Jupiter 0.5° Scorpio, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "Charles asks, “What can you take on while you’re here?”",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Mars rules the 4th and sits in Sagittarius, 5th house, peregrine"
+            },
+            {
+              "ref": {
+                "orb": 1.1,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "pluto",
+                "planetB": "saturn"
+              },
+              "label": "Charles Windsor's Pluto sextile William Windsor's Saturn, 1.1° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Fair at this age: William can reasonably be asked to contribute a guest’s share, by mutual agreement.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Saturn 15.5° Libra, 11th house; Saturn is the malefic of sect; Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine"
+            },
+            {
+              "ref": {
+                "orb": 0.9,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "saturn"
+              },
+              "label": "Charles Windsor's Venus conjunction William Windsor's Saturn, 0.9° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles, family history matters to you, and practical care helps you settle.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Sun 22.4° Scorpio, 4th house; South Node 3.9° Scorpio, 4th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Moon 0.4° Taurus, 10th house; Moon trine Jupiter, 0.5° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William, loyalty makes shared matters feel personal, and you may take on a family concern before noticing its cost.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Saturn 15.5° Libra, 11th house; Saturn is the malefic of sect"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Moon square Mars, 4.2° orb; Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Charles, your standard for a working home can meet William’s adult pace as an assignment rather than an invitation.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.2,
+                "kind": "cross",
+                "aspect": "opposition",
+                "planetA": "sun",
+                "planetB": "venus"
+              },
+              "label": "Charles Windsor's Sun opposition William Windsor's Venus, 3.2° orb"
+            },
+            {
+              "ref": {
+                "orb": 0.9,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "saturn"
+              },
+              "label": "Charles Windsor's Venus conjunction William Windsor's Saturn, 0.9° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: Charles, your standard for a working home can meet William’s adult pace as an assignment rather than an invitation. Your care is real, and William can be relied on, but duty may leave either of you holding back a complaint. Agreeing on a guest’s share trains you to adapt without treating a visit as a return to childhood.",
+      "headline": "William, a week at home works better when the chores are agreed, not assigned.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you practise asking before deciding for him",
+            "action": "Ask William which household job he is willing to take on this week."
+          },
+          {
+            "for": "B",
+            "why": "so you state your limit before resentment builds",
+            "action": "Tell Charles plainly what you can contribute during your visit."
+          },
+          {
+            "for": "both",
+            "why": "so you each know what was actually promised",
+            "action": "Agree on the job and timing before the week gets underway."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Charles, family history matters to you, and practical care helps you settle. You may carry duty too long when changing course feels like letting someone down, so an unspoken expectation can feel like part of keeping the home intact.",
+        "becauseB": "William, loyalty makes shared matters feel personal, and you may take on a family concern before noticing its cost. You settle best when you can choose when to talk, so a clear agreement lets you contribute without feeling managed."
+      }
+    },
+    "parentChild05": {
+      "card": {
+        "a": [
+          "You look beneath the first explanation.",
+          "You choose words that keep a conversation fair.",
+          "You let practical judgment guide visible decisions."
+        ],
+        "b": [
+          "You think best when asked a clear question.",
+          "You test options in conversation before deciding.",
+          "Privacy helps you think, but others may guess what you need."
+        ],
+        "pair": "Charles asks first; William chooses what he shares."
+      },
+      "scene": "Charles asks William about a work or study choice he does not understand. William talks through the options, then says which terms feel workable. Charles hears a reason to question the decision and starts offering advice. William answers politely, but gives less detail. The conversation moves better when Charles asks what William wants from him first.",
+      "claims": [
+        {
+          "quote": "William talks through the options, then says which terms feel workable.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Sun rules the 9th and sits in Cancer, 8th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "Charles hears a reason to question the decision and starts offering advice.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.7,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "mercury"
+              },
+              "label": "Charles Windsor's Saturn square William Windsor's Mercury, 3.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles, you look beneath the first explanation and think privately before speaking.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Charles Windsor's report: Mercury 7.0° Scorpio, 4th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Charles Windsor's report: Mercury 7.0° Scorpio, 4th house; Mercury sextile Saturn, 1.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William, you think best when someone asks a clear question and gives you room to answer.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Saturn rules the 3rd and sits in Libra, 11th house, exalted"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Charles can let careful questions turn into steering, while William may stop sharing rather than state a limit.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.7,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "mercury"
+              },
+              "label": "Charles Windsor's Saturn square William Windsor's Mercury, 3.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "At 44, William's course or job is his choice to discuss, not homework for Charles to correct.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Sun rules the 9th and sits in Cancer, 8th house, peregrine"
+            }
+          ]
+        }
+      ],
+      "pattern": "The conversation comes naturally when Charles listens for what William has not yet said, and William gets time to explain his reasons. This is the challenge: Charles can let careful questions turn into steering, while William may stop sharing rather than state a limit. Charles trains himself to ask what help William wants, then wait for the answer. At 44, William's course or job is his choice to discuss, not homework for Charles to correct.",
+      "headline": "William, your choices are yours; Charles, ask before offering advice.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you practise waiting for his answer",
+            "action": "Ask William what kind of help he wants before offering advice about his choice."
+          },
+          {
+            "for": "both",
+            "why": "so you keep the agreement clear",
+            "action": "Agree on one time for the Sunday call, and say plainly if plans change."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Charles, you look beneath the first explanation and think privately before speaking. You also choose careful words to keep a conversation fair, so concern can sound like a settled judgment before William has finished explaining.",
+        "becauseB": "William, you think best when someone asks a clear question and gives you room to answer. You test options in conversation, but privacy helps you think, so you may share less when advice arrives before you have asked for it."
+      }
+    },
+    "parentChild06": {
+      "card": {
+        "a": [
+          "You feel secure when promises hold up in ordinary life.",
+          "You give affection through thoughtful words and tact.",
+          "You wait too long to say what is bothering you."
+        ],
+        "b": [
+          "You need steady affection and clear words.",
+          "You may keep your needs private until the work is done.",
+          "You need proof that words will hold."
+        ],
+        "pair": "Charles asks first; William names the agreement he wants."
+      },
+      "scene": "Charles raises the old rule about the tablet during William’s visit home. William says, “That rule no longer applies; let’s agree what works now.” Charles asks what William wants, instead of correcting his choice. They talk about what they each expect during the visit. The old rule gives way to an agreement they both can keep.",
+      "claims": [
+        {
+          "quote": "Charles raises the old rule about the tablet during William’s visit home.",
+          "evidence": [
+            {
+              "ref": {
+                "of": "A",
+                "kind": "cross",
+                "house": 12,
+                "planet": "sun",
+                "inHouseOf": "B"
+              },
+              "label": "Charles Windsor's Sun in William Windsor's 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "William says, “That rule no longer applies; let’s agree what works now.”",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "uranus",
+                "planetB": "sun"
+              },
+              "label": "Charles Windsor's Uranus conjunction William Windsor's Sun, 0.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charles, you feel secure when promises hold up in ordinary life, and you give affection through thoughtful words.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Charles Windsor's report: Saturn rules the 7th and sits in Virgo, 2nd house, peregrine; Saturn is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Charles Windsor's report: Venus 16.4° Libra, 3rd house; Venus is the benefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "You may keep things calm by choosing careful words, then wait too long to say what bothers you.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Charles Windsor's report: Venus 16.4° Libra, 3rd house; Moon opposition Mercury, 6.5° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William, you need steady affection and clear words, but you may keep your needs private until the work is done.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "William Windsor's report: Venus 25.7° Taurus, 6th house; Mercury rules the 7th and sits in Gemini, 7th house, in domicile"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "discoveries"
+              },
+              "label": "William Windsor's report: Saturn 15.5° Libra, 11th house; Jupiter 0.5° Scorpio, 12th house"
+            }
+          ]
+        }
+      ],
+      "pattern": "Keeping promises comes naturally to you both, but deciding whose rule applies is the challenge. William’s choices can change what Charles expected, while Charles’s careful questions may sound settled already. This is the challenge: Charles asks before offering advice, so William can state what agreement he wants and Charles can wait for his answer. The old rule does not apply; at 44, the rule is now an agreement.",
+      "headline": "I can choose my own terms now, and we can still keep our promises.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you separate your needs from William’s choices",
+            "action": "Keep one household limit you need, and explain why it matters."
+          },
+          {
+            "for": "A",
+            "why": "so you practise treating him as an adult",
+            "action": "Hand over decisions about William’s screen use and ask what he agrees to."
+          },
+          {
+            "for": "both",
+            "why": "so you make contact dependable without making it compulsory",
+            "action": "Agree how often you will talk, and what each of you can manage."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Charles, you feel secure when promises hold up in ordinary life, and you give affection through thoughtful words. You may keep things calm by choosing careful words, then wait too long to say what bothers you.",
+        "becauseB": "William, you need steady affection and clear words, but you may keep your needs private until the work is done. You want reliable agreements, while resisting being managed by a group or partner."
+      }
+    },
+    "whatToPractise": {
+      "forA": {
+        "intro": "Charles, these three actions ask you to check what William wants before stepping in.",
+        "items": [
+          {
+            "why": "so you practise waiting for his answer",
+            "action": "On the Sunday call, ask William whether he wants help before asking about private concerns."
+          },
+          {
+            "why": "so he can choose what to share",
+            "action": "Let William finish his account before asking a follow-up question."
+          },
+          {
+            "why": "so you practise asking before deciding for him",
+            "action": "Ask William which household job he is willing to take on this week."
+          }
+        ]
+      },
+      "forB": {
+        "intro": "William, these actions help you state your limits and preferences before resentment builds.",
+        "items": [
+          {
+            "why": "so you state your limit before resentment builds",
+            "action": "Tell Charles plainly what you can contribute during your visit."
+          },
+          {
+            "why": "so you can choose what support you accept",
+            "action": "Say what kind of help you want before Charles offers advice about your choice."
+          },
+          {
+            "why": "so you state a limit before silence takes over",
+            "action": "Tell Charles plainly if you need to end or pause the Sunday call."
+          }
+        ]
+      },
+      "claims": [
+        {
+          "quote": "Charles, you are asked to offer care without deciding what William needs.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Mercury 7.0° Scorpio, 4th house; Sun 22.4° Scorpio, 4th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine; Jupiter 0.5° Scorpio, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "William, you are asked to say what you want and what you can manage before frustration builds.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine; Jupiter 0.5° Scorpio, 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "William Windsor's report: Venus 25.7° Taurus, 6th house; Mercury rules the 7th and sits in Gemini, 7th house, in domicile"
+            }
+          ]
+        },
+        {
+          "quote": "On the Sunday call, ask William whether he wants help before asking about private concerns.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Mercury 7.0° Scorpio, 4th house; Sun 22.4° Scorpio, 4th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine; Jupiter 0.5° Scorpio, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "Let William finish his account before asking a follow-up question.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Charles Windsor's report: Mercury 7.0° Scorpio, 4th house; Mercury sextile Saturn, 1.7° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Sun rules the 9th and sits in Cancer, 8th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "Tell Charles plainly what you can contribute during your visit.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine; Jupiter 0.5° Scorpio, 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "William Windsor's report: Venus 25.7° Taurus, 6th house; Mercury rules the 7th and sits in Gemini, 7th house, in domicile"
+            }
+          ]
+        },
+        {
+          "quote": "Agree whether you will keep the Sunday call each week, and say so plainly.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Mars rules the 4th and sits in Sagittarius, 5th house, peregrine"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Saturn 15.5° Libra, 11th house; Saturn is the malefic of sect; Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "You can make care easier to accept when Charles asks before offering help, and William says what would be useful.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Charles Windsor's report: Mercury 7.0° Scorpio, 4th house; Sun 22.4° Scorpio, 4th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "William Windsor's report: Jupiter rules the 4th and sits in Scorpio, 12th house, peregrine; Jupiter 0.5° Scorpio, 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "William Windsor's report: Venus 25.7° Taurus, 6th house; Mercury rules the 7th and sits in Gemini, 7th house, in domicile"
+            }
+          ]
+        }
+      ],
+      "closing": "You can make care easier to accept when Charles asks before offering help, and William says what would be useful. Charles, your attention can catch strain William has not yet put into words. William, your clear answer can help Charles care without taking over. A regular Sunday call gives you a simple place to check what is working and what needs to change. You do not need to settle every concern in one conversation. Keep the promises you make, and let each of you choose what to share.",
+      "forBoth": {
+        "intro": "You both can make contact and shared plans clearer by agreeing on what you can manage.",
+        "items": [
+          {
+            "why": "so you both know what to expect",
+            "action": "Agree whether you will keep the Sunday call each week, and say so plainly."
+          },
+          {
+            "why": "so you each know what was actually promised",
+            "action": "Agree on the household job and timing before the week gets underway."
+          },
+          {
+            "why": "so you make contact dependable without making it compulsory",
+            "action": "Agree how often you will talk, and what each of you can manage."
+          }
+        ]
+      },
+      "opening": "Charles, you are asked to offer care without deciding what William needs. William, you are asked to say what you want and what you can manage before frustration builds. On the Sunday call, both of you can keep the connection dependable by agreeing on its timing. The work is to make care clear, while leaving William’s adult choices with him."
+    }
+  }
+}
