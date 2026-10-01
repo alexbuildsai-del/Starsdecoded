@@ -1,0 +1,203 @@
+
+> starsdecoded@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded
+> pnpm --filter @workspace/scripts run report:lab "--remote" "https://starsdecoded-staging.vercel.app" "--all" "--label" "r12b" "--html"
+
+
+> @workspace/scripts@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded/scripts
+> tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--all" "--label" "r12b" "--html"
+
+
+=== Day Chart Fixture (day-angular) via https://starsdecoded-staging.vercel.app ===
+section        words  target   ok   struct  claims  flags
+-------------  -----  -------  ---  ------  ------  -----
+overview       379    400-500  NO   yes     6       -
+triad          282    250-320  yes  yes     6       -
+houses         726    480-780  yes  yes     0       -
+mind           236    250-320  NO   yes     6       -
+career         393    350-450  yes  yes     6       -
+money          321    250-320  NO   yes     6       -
+relationships  353    350-450  yes  yes     7       -
+family         302    250-320  yes  yes     7       -
+superpowers    433    600-700  NO   yes     5       -
+discoveries    424    400-500  yes  yes     5       -
+focus          374    350-450  yes  yes     7       -
+
+total: 4223 words (target 3500-5500: ok) in 28.9s
+prompt v8 on mixed; day chart (Sun 56.33°)
+
+call           model       tries  in       cached  out     reason  $        s
+-------------  ----------  -----  -------  ------  ------  ------  -------  -----
+foundation     gpt-6-sol   1      7,631    0       884     0       $0.0241  13.1
+overview       gpt-6-luna  1      9,567    0       956     0       $0.0014  8.6
+triad          gpt-6-luna  1      9,430    0       706     0       $0.0013  6.7
+houses         gpt-6-luna  1      8,687    0       933     0       $0.0013  11.0
+mind           gpt-6-luna  1      9,485    0       807     0       $0.0014  7.6
+career         gpt-6-luna  1      9,665    0       1,467   0       $0.0017  10.9
+money          gpt-6-luna  1      9,518    0       796     0       $0.0013  7.3
+relationships  gpt-6-luna  1      9,699    0       951     0       $0.0014  8.3
+family         gpt-6-luna  1      9,441    0       868     0       $0.0014  8.8
+superpowers    gpt-6-luna  1      9,732    0       926     0       $0.0014  10.0
+discoveries    gpt-6-luna  1      9,470    0       1,214   0       $0.0016  10.5
+focus          gpt-6-luna  1      9,640    0       966     0       $0.0014  10.7
+TOTAL                      12     111,965  0       11,474  0       $0.0398  113.4
+
+cost $0.0398 in 25.9s wall clock (113.4s of call time across 12 calls).
+output 11,474 tokens: ~5,701 of prose, ~5,773 the reader never sees (50%).
+input cache hit 0%. retries: none.
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/day-angular.r12b.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/day-angular.r12b.json and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/day-angular.r12b.html
+
+=== High Latitude Fixture (high-latitude) via https://starsdecoded-staging.vercel.app ===
+section        words  target   ok   struct  claims  flags
+-------------  -----  -------  ---  ------  ------  -----
+overview       387    400-500  NO   yes     7       -
+triad          265    250-320  yes  yes     6       -
+houses         641    480-780  yes  yes     0       -
+mind           279    250-320  yes  yes     5       -
+career         401    350-450  yes  yes     5       -
+money          298    250-320  yes  yes     6       -
+relationships  410    350-450  yes  yes     6       -
+family         340    250-320  NO   yes     5       -
+superpowers    464    600-700  NO   yes     5       -
+discoveries    417    400-500  yes  yes     6       -
+focus          383    350-450  yes  yes     6       -
+
+total: 4285 words (target 3500-5500: ok) in 28.0s
+prompt v8 on mixed; night chart (Sun -36.25°)
+
+call           model       tries  in      cached  out     reason  $        s
+-------------  ----------  -----  ------  ------  ------  ------  -------  -----
+foundation     gpt-6-sol   1      1,206   6,405   905     0       $0.0127  13.5
+overview       gpt-6-luna  1      2,498   7,082   1,243   0       $0.0009  9.7
+triad          gpt-6-luna  1      2,369   7,074   710     0       $0.0007  6.1
+houses         gpt-6-luna  1      2,548   6,175   852     0       $0.0007  9.9
+mind           gpt-6-luna  1      2,436   7,062   752     0       $0.0007  7.3
+career         gpt-6-luna  1      2,506   7,172   948     0       $0.0008  8.9
+money          gpt-6-luna  1      2,444   7,087   803     0       $0.0007  7.1
+relationships  gpt-6-luna  1      2,532   7,180   964     0       $0.0008  8.6
+family         gpt-6-luna  1      2,377   7,077   818     0       $0.0007  8.6
+superpowers    gpt-6-luna  1      2,450   7,295   929     0       $0.0008  10.9
+discoveries    gpt-6-luna  1      2,398   7,085   962     0       $0.0008  8.8
+focus          gpt-6-luna  1      2,440   7,213   1,437   0       $0.0010  12.2
+TOTAL                      12     28,204  83,907  11,323  0       $0.0214  111.5
+
+cost $0.0214 in 26.3s wall clock (111.5s of call time across 12 calls).
+output 11,323 tokens: ~5,785 of prose, ~5,538 the reader never sees (49%).
+input cache hit 75%. retries: none.
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/high-latitude.r12b.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/high-latitude.r12b.json and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/high-latitude.r12b.html
+
+=== Marie Curie (marie-curie) via https://starsdecoded-staging.vercel.app ===
+section        words  target   ok   struct  claims  flags
+-------------  -----  -------  ---  ------  ------  -----
+overview       395    400-500  NO   yes     7       -
+triad          291    250-320  yes  yes     7       -
+houses         690    480-780  yes  yes     0       -
+mind           218    250-320  NO   yes     7       -
+career         372    350-450  yes  yes     5       -
+money          289    250-320  yes  yes     5       -
+relationships  344    350-450  NO   yes     6       -
+family         337    250-320  NO   yes     5       -
+superpowers    477    600-700  NO   yes     5       -
+discoveries    413    400-500  yes  yes     5       -
+focus          369    350-450  yes  yes     6       -
+
+total: 4195 words (target 3500-5500: ok) in 33.2s
+prompt v8 on mixed; day chart (Sun 21.46°)
+
+call           model       tries  in      cached  out     reason  $        s
+-------------  ----------  -----  ------  ------  ------  ------  -------  -----
+foundation     gpt-6-sol   1      3       7,631   1,152   0       $0.0131  17.0
+overview       gpt-6-luna  1      2,768   7,082   1,179   0       $0.0009  9.8
+triad          gpt-6-luna  1      2,639   7,074   810     0       $0.0007  7.0
+houses         gpt-6-luna  1      2,813   6,175   884     0       $0.0008  9.2
+mind           gpt-6-luna  1      2,706   7,062   724     0       $0.0007  6.7
+career         gpt-6-luna  1      2,776   7,172   1,182   0       $0.0009  8.8
+money          gpt-6-luna  1      2,714   7,087   841     0       $0.0008  7.4
+relationships  gpt-6-luna  1      2,802   7,180   1,024   0       $0.0009  7.5
+family         gpt-6-luna  1      2,647   7,077   738     0       $0.0007  7.5
+superpowers    gpt-6-luna  1      2,720   7,295   1,209   0       $0.0009  11.5
+discoveries    gpt-6-luna  1      2,668   7,085   1,226   0       $0.0010  9.7
+focus          gpt-6-luna  1      2,710   7,213   993     0       $0.0008  10.7
+TOTAL                      12     29,966  85,133  11,962  0       $0.0222  112.6
+
+cost $0.0222 in 29.8s wall clock (112.6s of call time across 12 calls).
+output 11,962 tokens: ~5,663 of prose, ~6,299 the reader never sees (53%).
+input cache hit 74%. retries: none.
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/marie-curie.r12b.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/marie-curie.r12b.json and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/marie-curie.r12b.html
+
+=== Night Chart Fixture (night-angular) via https://starsdecoded-staging.vercel.app ===
+section        words  target   ok   struct  claims  flags
+-------------  -----  -------  ---  ------  ------  -----
+overview       314    400-500  NO   yes     7       -
+triad          266    250-320  yes  yes     6       -
+houses         700    480-780  yes  yes     0       -
+mind           277    250-320  yes  yes     7       -
+career         397    350-450  yes  yes     6       -
+money          303    250-320  yes  yes     6       -
+relationships  316    350-450  NO   yes     7       -
+family         309    250-320  yes  yes     5       -
+superpowers    478    600-700  NO   yes     6       -
+discoveries    439    400-500  yes  yes     4       -
+focus          384    350-450  yes  yes     5       -
+
+total: 4183 words (target 3500-5500: ok) in 33.3s
+prompt v8 on mixed; night chart (Sun -62.85°)
+
+call           model       tries  in      cached  out     reason  $        s
+-------------  ----------  -----  ------  ------  ------  ------  -------  -----
+foundation     gpt-6-sol   1      1,204   6,405   1,017   0       $0.0139  15.3
+overview       gpt-6-luna  1      2,607   7,082   1,199   0       $0.0009  9.0
+triad          gpt-6-luna  1      2,478   7,074   739     0       $0.0007  6.4
+houses         gpt-6-luna  1      2,652   6,175   902     0       $0.0008  9.5
+mind           gpt-6-luna  1      2,545   7,062   916     0       $0.0008  9.0
+career         gpt-6-luna  1      2,615   7,172   916     0       $0.0008  13.3
+money          gpt-6-luna  1      2,553   7,087   933     0       $0.0008  7.4
+relationships  gpt-6-luna  1      2,641   7,180   983     0       $0.0008  6.8
+family         gpt-6-luna  1      2,486   7,077   788     0       $0.0007  7.5
+superpowers    gpt-6-luna  1      2,559   7,295   1,034   0       $0.0008  10.7
+discoveries    gpt-6-luna  1      2,507   7,085   806     0       $0.0007  7.6
+focus          gpt-6-luna  1      2,549   7,213   948     0       $0.0008  9.0
+TOTAL                      12     29,396  83,907  11,181  0       $0.0225  111.5
+
+cost $0.0225 in 29.8s wall clock (111.5s of call time across 12 calls).
+output 11,181 tokens: ~5,647 of prose, ~5,534 the reader never sees (49%).
+input cache hit 74%. retries: none.
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/night-angular.r12b.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/night-angular.r12b.json and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/night-angular.r12b.html
+
+=== Audrey Hepburn (audrey-hepburn) via https://starsdecoded-staging.vercel.app ===
+section        words  target   ok   struct  claims  flags
+-------------  -----  -------  ---  ------  ------  -----
+overview       341    400-500  NO   yes     7       -
+triad          248    250-320  NO   yes     6       -
+houses         622    480-780  yes  yes     0       -
+mind           256    250-320  yes  yes     5       -
+career         316    350-450  NO   yes     6       -
+money          298    250-320  yes  yes     6       -
+relationships  355    350-450  yes  yes     6       -
+family         318    250-320  yes  yes     7       -
+superpowers    486    600-700  NO   yes     6       -
+discoveries    446    400-500  yes  yes     4       -
+focus          371    350-450  yes  yes     7       -
+
+total: 4057 words (target 3500-5500: ok) in 33.5s
+prompt v8 on mixed; night chart (Sun -16.61°)
+
+call           model       tries  in      cached  out     reason  $        s
+-------------  ----------  -----  ------  ------  ------  ------  -------  -----
+foundation     gpt-6-sol   1      1,163   6,405   842     0       $0.0120  13.3
+overview       gpt-6-luna  1      2,391   7,082   1,123   0       $0.0009  9.3
+triad          gpt-6-luna  1      2,262   7,074   660     0       $0.0006  5.7
+houses         gpt-6-luna  1      2,431   6,175   808     0       $0.0007  8.5
+mind           gpt-6-luna  1      2,329   7,062   630     0       $0.0006  6.6
+career         gpt-6-luna  1      2,399   7,172   787     0       $0.0007  7.7
+money          gpt-6-luna  1      2,337   7,087   920     0       $0.0008  7.4
+relationships  gpt-6-luna  1      2,425   7,180   965     0       $0.0008  7.1
+family         gpt-6-luna  1      2,270   7,077   878     0       $0.0007  8.0
+superpowers    gpt-6-luna  1      2,343   7,295   1,320   0       $0.0010  13.4
+discoveries    gpt-6-luna  1      2,291   7,085   1,067   0       $0.0008  9.3
+focus          gpt-6-luna  1      2,333   7,213   944     0       $0.0008  8.8
+TOTAL                      12     26,974  83,907  10,944  0       $0.0204  105.0
+
+cost $0.0204 in 28.0s wall clock (105.0s of call time across 12 calls).
+output 10,944 tokens: ~5,477 of prose, ~5,467 the reader never sees (50%).
+input cache hit 76%. retries: none.
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/audrey-hepburn.r12b.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/audrey-hepburn.r12b.json and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/audrey-hepburn.r12b.html
