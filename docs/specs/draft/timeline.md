@@ -1,7 +1,6 @@
 # Timeline
 
-Ideation 2026-10-01, draft v9, ready to lock; behind a switch, off at launch. Picks up MB-26
-and "Later: the subscription" (`pricing-and-launch.md`).
+Ideation 2026-10-01, draft v10, ready to lock; behind a switch, off at launch; picks up MB-26.
 https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE
 
 Timeline is the one subscription, sold only to an owner of a Personal natal report. It
@@ -106,8 +105,11 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
   study against owners without Timeline: one more report a year.
 
 ### Free and paid
-- Free for a report owner: the offer (their dial today, one Ask question), one dashboard
-  line, "Your next big cycle is at 37, in 2 years", with Share; and the public finder.
+- Free for a report owner: the offer (their dial today, one Ask question), the public finder
+  and **the dashboard invitation**, last, after Share: "Your life's big cycles", the Saturn
+  ring with its age, then the four cycles soonest first ("Your next big cycle is at 37"),
+  dates from the stored birth date, Start Timeline with the price, Not now (back once, when
+  the next cycle is under a year away). Never on an empty dashboard; subscribers see none.
 - Timeline: Your week, every reading, Now and ahead, Life, Ask, the letter, for the
   reader; the yearly plan adds 1 credit to give.
 - **€9.99 a month or €69.99 a year** (58% of twelve months), VAT included, EUR only, like
@@ -150,11 +152,10 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
 ## Out of scope
 - Timeline for anyone but the reader until readers ask; pairs (MB-103); sharing (MB-104).
 - Daily horoscopes, push notifications, progressions, solar returns, Lilith, Placidus.
-- Ask as therapy or coaching: it reflects, it doesn't counsel. Voice or images in Ask.
+- Ask as therapy or coaching, voice or images in Ask.
 
 ## Acceptance criteria
-1. Every date and degree on a Timeline screen, email or reading comes from the engine
-   for that profile; a test fails a reading that cites any other.
+1. Every date and degree on a Timeline surface comes from the engine; a test fails others.
 2. Exact dates match JPL Horizons to the hour for pinned fixtures (unit tests).
 3. No horizon: no angle, house or natal Moon contact. A quiet week writes and sends nothing.
 5. No reading predicts a life event, promises an outcome or answers the asked plan with
@@ -175,7 +176,7 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
    only what must; Your week under it with Play; explain the chapter; 1 credit to give; At a
    glance; one triad row with Rising's house.
 Claude's calls (the Owner may overturn any): the switch, the name Ask, €69.99 a year, one
-free question, rose #C46B78, easy/mixed/intense, the why card, the free next-cycle line.
+free question, rose #C46B78, easy/mixed/intense, the why card, the invitation last.
 
 ## Decisions to record (at /lock)
 1. Timeline is the one subscription, only for an owner of a Personal natal report.
@@ -189,7 +190,7 @@ free question, rose #C46B78, easy/mixed/intense, the why card, the free next-cyc
    any date or degree not computed blocks.
 7. Sold after Closing on an owned report, once. R12's dashboard is unchanged; a subscriber
    gets Your week after Your circle, its dial playable. At a glance and one triad row for all.
-8. Free: the offer, one question, the next-cycle line with Share. €9.99 / €69.99, VAT
+8. Free: the offer, one question, the dashboard invitation at the end. €9.99 / €69.99, VAT
    included, no free trial; dated promotions only, the first 30 days after launch.
 9. Ask: a chat that asks back with cards, computed answers, reads only what the reader
    can, no diagnosis or advice, a fixed harm reply, 50 a month, its mark everywhere.
