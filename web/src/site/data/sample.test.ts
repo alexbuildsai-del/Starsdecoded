@@ -1,17 +1,21 @@
 /**
  * The sample is only as true as its sources: the committed run is r06's
  * text, her chart is the engine's, the chart the run cites is the chart the
- * page draws, and every claim lands where the reader meets it.
+ * page draws, and every claim /sample prints is marked where the reader meets
+ * it.
  */
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart } from "@workspace/engine";
-import { CHAPTERS } from "@/lib/chapters";
+import { CHAPTERS, type ChapterSection } from "@/lib/chapters";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { isCurrentInterpretation, isDrawn, type Claim, type EvidenceRef } from "@/types/chart";
 import { toChartData } from "@/site/lib/chart";
 import { HOME_CLAIMS, homeClaims } from "./claims";
-import { SAMPLE, chapterTexts, claimById, claimsInReadingOrder, printedParagraphs, quoteNeedle, sampleChart, type ClaimSection } from "./sample";
+import {
+  CLAIMS_OF, CLAIM_SECTIONS, DIMMED_LINES, OPEN_CHAPTERS, SAMPLE, chapterTexts, claimById, isOpenChapter, markedClaims,
+  printedParagraphs, quoteNeedle, sampleChart, sampleTexts, type ClaimSection,
+} from "./sample";
 import fixture from "../../../../fixtures/charts/audrey-hepburn.json";
 
 const SECTIONS: ClaimSection[] = ["overview", "triad", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"];
@@ -131,30 +135,89 @@ describe("the chart the run cites is the chart the page draws", () => {
   });
 });
 
-describe("claimsInReadingOrder", () => {
-  it("anchors all 63 claims, each once", () => {
-    const order = claimsInReadingOrder();
-    expect(order).toHaveLength(63);
-    expect(new Set(order.map((c) => c.id)).size).toBe(63);
-    expect(new Set(order.map((c) => c.claim))).toEqual(new Set(storedClaims()));
+/** Each claim section's own prose, the triad's three passages included, which no chapter prints any more (reading 9). */
+function writtenTexts(section: ClaimSection): string[] {
+  if (section !== "triad") return chapterTexts(CHAPTERS.find((c) => CLAIMS_OF[c.section] === section)!.section);
+  const t = SAMPLE.run.triad;
+  return t ? [t.sun.text, t.moon.text, ...(t.rising ? [t.rising.text] : [])] : [];
+}
+
+const printedIn = (section: ChapterSection) => sampleTexts(section).flatMap(printedParagraphs);
+
+describe("the run as written", () => {
+  it("quotes every one of its 63 claims from its own section's prose, the triad's too", () => {
+    for (const section of SECTIONS) {
+      const paragraphs = writtenTexts(section).flatMap(printedParagraphs);
+      for (const claim of SAMPLE.run[section]?.claims ?? []) {
+        expect(paragraphs.some((p) => p.includes(quoteNeedle(claim))), `${section}: ${claim.quote}`).toBe(true);
+      }
+    }
+    expect(CLAIM_SECTIONS).toEqual(SECTIONS);
+  });
+
+  it("finds a claim by its address, printed on /sample or not", () => {
+    expect(claimById("triad.5")?.claim).toBe(SAMPLE.run.triad?.claims[5]);
+    expect(claimById("focus.2")).toMatchObject({ id: "focus.2", section: "focus", claim: SAMPLE.run.focus?.claims[2] });
+    for (const id of ["nowhere.0", "houses.0", "triad.99", "triad", "triad.1.2", "triad.x", "overview.-1"]) expect(claimById(id), id).toBeUndefined();
+  });
+});
+
+describe("what /sample prints (ADR-178)", () => {
+  it("opens the artifact's four chapters whole and gives each of the other six one line", () => {
+    expect(OPEN_CHAPTERS).toEqual(["overview", "houses", "superpowers", "discoveries"]);
+    const dimmed = CHAPTERS.map((c) => c.section).filter((s) => !isOpenChapter(s));
+    expect(Object.keys(DIMMED_LINES).sort()).toEqual([...dimmed].sort());
+    for (const line of Object.values(DIMMED_LINES)) expect(line.trim()).not.toBe("");
+    for (const section of OPEN_CHAPTERS) expect(sampleTexts(section)).toEqual(chapterTexts(section));
+  });
+
+  it("prints a dimmed chapter's first paragraph and nothing after it", () => {
+    for (const c of CHAPTERS.filter((x) => !isOpenChapter(x.section))) {
+      const texts = sampleTexts(c.section);
+      expect(texts, c.section).toHaveLength(1);
+      expect(printedParagraphs(texts[0])).toEqual([printedParagraphs(chapterTexts(c.section)[0])[0]]);
+    }
+  });
+
+  it("prints chapter 2 as its twelve house readings, with no triad passage (reading 9)", () => {
+    const readings = SAMPLE.run.houses?.houses ?? [];
+    expect(readings.map((h) => h.house)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(sampleTexts("houses")).toEqual(readings.map((h) => h.reading));
+    const triad = writtenTexts("triad").flatMap(printedParagraphs);
+    for (const p of printedIn("houses")) expect(triad).not.toContain(p);
+  });
+});
+
+describe("markedClaims", () => {
+  it("marks every claim the page prints, each once, and no other", () => {
+    const order = markedClaims();
+    const printed = CHAPTERS.flatMap((c) => printedIn(c.section));
+    const shown = SECTIONS.flatMap((s) =>
+      (SAMPLE.run[s]?.claims ?? []).flatMap((claim, k) => (printed.some((p) => p.includes(quoteNeedle(claim))) ? [`${s}.${k}`] : [])),
+    );
+    expect(order.map((c) => c.id).sort()).toEqual([...shown].sort());
+    expect(new Set(order.map((c) => c.id)).size).toBe(order.length);
     for (const c of order) {
       const [section, index] = c.id.split(".");
       expect(SAMPLE.run[section as ClaimSection]?.claims[Number(index)]).toBe(c.claim);
       expect(c.section).toBe(section);
+      expect(CLAIMS_OF[CHAPTERS[c.chapter - 1].section]).toBe(c.section);
     }
   });
 
-  it("runs in the report page's chapter order, the triad's claims in chapter 2", () => {
-    const order = claimsInReadingOrder();
-    const chapters = [...new Set(order.map((c) => c.chapter))];
-    expect(chapters).toEqual(CHAPTERS.map((_, i) => i + 1));
-    expect([...new Set(order.map((c) => c.section))]).toEqual(SECTIONS);
-    expect(order.find((c) => c.chapter === 2)?.section).toBe("triad");
-    for (const c of order) expect(CHAPTERS[c.chapter - 1].section).toBe(c.section === "triad" ? "houses" : c.section);
+  it("counts what the page prints: four chapters whole and six first paragraphs, no longer all 63", () => {
+    const counts = CHAPTERS.map((_, i) => markedClaims().filter((c) => c.chapter === i + 1).length);
+    expect(counts).toEqual([7, 0, 2, 2, 1, 3, 2, 6, 6, 0]);
+    expect(markedClaims()).toHaveLength(29);
+  });
+
+  it("marks no triad claim, in chapter 2 or anywhere (reading 9)", () => {
+    expect(markedClaims().filter((c) => c.section === "triad" || c.chapter === 2)).toEqual([]);
+    expect(CLAIMS_OF.houses).toBeNull();
   });
 
   it("numbers the marks from 1 in each chapter", () => {
-    const order = claimsInReadingOrder();
+    const order = markedClaims();
     for (let i = 0; i < order.length; i++) {
       const prev = order[i - 1];
       expect(order[i].n).toBe(prev && prev.chapter === order[i].chapter ? prev.n + 1 : 1);
@@ -162,9 +225,9 @@ describe("claimsInReadingOrder", () => {
   });
 
   it("puts each mark after the one before it in the chapter's printed text", () => {
-    const order = claimsInReadingOrder();
+    const order = markedClaims();
     for (const [i, c] of CHAPTERS.entries()) {
-      const paragraphs = chapterTexts(c.section).flatMap(printedParagraphs);
+      const paragraphs = printedIn(c.section);
       const at = order
         .filter((x) => x.chapter === i + 1)
         .map((x) => {
@@ -176,18 +239,18 @@ describe("claimsInReadingOrder", () => {
     }
   });
 
-  it("reads the closing's claims after the three lists, as /sample prints the chapter", () => {
-    const indices = (section: ClaimSection) => claimsInReadingOrder().filter((c) => c.section === section).map((c) => Number(c.id.split(".")[1]));
+  it("reads each chapter's claims in the order /sample prints them", () => {
+    const indices = (section: ClaimSection) => markedClaims().filter((c) => c.section === section).map((c) => Number(c.id.split(".")[1]));
     expect(indices("overview")).toEqual([0, 1, 2, 3, 4, 5, 6]);
-    expect(indices("triad")).toEqual([0, 1, 2, 3, 4, 5]);
-    expect(indices("focus")).toEqual([0, 1, 3, 4, 5, 6, 2]);
+    expect(indices("superpowers")).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(indices("discoveries")).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(indices("relationships")).toEqual([0, 1, 2]);
+    expect(indices("focus")).toEqual([]);
   });
 
   it("hands every caller its own array", () => {
-    claimsInReadingOrder().reverse();
-    expect(claimsInReadingOrder()[0].id).toBe("overview.0");
-    expect(claimById("focus.2")?.n).toBe(7);
-    expect(claimById("nowhere.0")).toBeUndefined();
+    markedClaims().reverse();
+    expect(markedClaims()[0].id).toBe("overview.0");
   });
 });
 

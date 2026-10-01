@@ -28,8 +28,9 @@ Then write `docs/rounds/RNN-plan.md` (NN = last round + 1) with:
    locked spec, anything that changes report content (USER-FACING).
 4. **Questions raised**: for every consequential unknown, add a Mailbox row
    (Type, Priority, Recommendation, Default if silent) before the round starts.
-   Increment `Rounds open` on every open row you carried over; list any row now
-   above 2 at the top of the plan.
+   List open rows created more than 14 days ago at the top of the plan, oldest
+   first, with their Created date. A row's age is its Created time; nothing
+   counts rounds (ADR-186).
 
 Rules: never plan on top of an open Mailbox topic without marking the card
 `provisional MB-NN`. Never plan a change to report content without a fixture

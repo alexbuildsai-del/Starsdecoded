@@ -843,7 +843,7 @@ export function measurePair(interpretation: Record<string, unknown>): { rows: Pa
   return { rows, cards, repetition: repetitionScore(proses), prose: rows.reduce((n, r) => n + r.words, 0), band, bandFlags };
 }
 
-/** The pair's markdown: the measurement, then every chapter as a reader would meet it, the cards and the scenes with it. */
+/** The pair's markdown: the measurement, then every chapter as a reader would meet it, the cards and the one scene with it. */
 function renderPairMarkdown(pair: PairFixture, lens: string, interpretation: Record<string, unknown>, rows: PairRow[]): string {
   const meta = interpretation.meta as { promptVersion?: string; model?: string; generatedAt?: string; band?: string | null; label?: string | null; names?: { a: string; b: string } } | undefined;
   const names = meta?.names ?? { a: "A", b: "B" };
@@ -880,13 +880,11 @@ function renderPairMarkdown(pair: PairFixture, lens: string, interpretation: Rec
       out.push("### What will take work", "", ...(value.work as string[]).map((l) => `- ${l}`), "");
       out.push("### The paradox", "", value.paradox as string, "");
       out.push("### Your three strengths as a pair", "", ...(value.strengths as string[]).map((l) => `- ${l}`), "");
-      out.push(value.pointer as string, "");
     } else if ("card" in value) {
       const card = value.card as { a: string[]; b: string[]; pair: string };
       out.push(`### ${names.a} · from personal report`, "", ...card.a.map((l) => `- ${l}`), "", `### ${names.b} · from personal report`, "", ...card.b.map((l) => `- ${l}`), "", `*${card.pair}*`, "");
       const scenes = (interpretation.scenes as Record<string, { titles: string[]; written: number; texts: Record<string, string> }> | undefined)?.[id];
       out.push(`### The scene${scenes ? ` · ${scenes.titles[scenes.written]}` : ""}`, "", value.scene as string, "");
-      if (scenes) out.push(`Other scenes: ${scenes.titles.filter((_, j) => j !== scenes.written).join(" · ")}`, "");
       const wjh = value.whatJustHappened as { becauseA: string; becauseB: string };
       out.push("### What just happened", "", `**${names.a} · because** ${wjh.becauseA}`, "", `**${names.b} · because** ${wjh.becauseB}`, "");
       out.push("### The pattern under it", "", value.pattern as string, "");

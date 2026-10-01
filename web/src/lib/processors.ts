@@ -27,7 +27,7 @@ export interface Processor {
 export const PROCESSORS: readonly Processor[] = [
   {
     name: "Supabase",
-    does: "holds our database: birth details and charts, reports, accounts, the people you send a report or gift to, and the waitlist.",
+    does: "holds our database: birth details and charts, reports, accounts, the people you share a report with or give a gift to, and the waitlist.",
     from: "server",
     region: null,
     country: "the United States",
@@ -62,7 +62,7 @@ export const PROCESSORS: readonly Processor[] = [
   },
   {
     name: "Resend",
-    does: "sends our emails, such as the link that confirms your place on the waitlist, or a report or gift you send someone. It gets the address each email goes to.",
+    does: "sends our emails, such as the link that confirms your place on the waitlist, or a report you share or a gift you give someone. It gets the address each email goes to.",
     from: "server",
     region: null,
     country: "the United States",
@@ -102,7 +102,7 @@ export interface BrowserKey {
   holds: string;
 }
 
-// The explorer's hint and the ledger's marks keep their keys inside their components, so those two are written out here.
+// The house deck's hint and the ledger's marks keep their keys inside their components, so those two are written out here.
 export const BROWSER_KEYS: readonly BrowserKey[] = [
   {
     name: FORM_DRAFT_KEY,

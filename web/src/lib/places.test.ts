@@ -2,35 +2,42 @@ import { describe, expect, it } from "vitest";
 import {
   addressOf,
   fallbackZone,
-  matchesLabel,
   nominatimUrl,
+  placeLine,
   placeTitle,
   placeTypeLabel,
   placeWhere,
   rankResults,
+  settlementOf,
   specificityRank,
-  toPlace,
+  toMatch,
   utcLabel,
+  withZone,
   zoneFrom,
   zoneUrl,
   type GeocodeResult,
+  type Match,
   type NominatimResult,
+  type Zone,
 } from "@/lib/places";
 
-// Hits in Nominatim's format=json shape, trimmed to what the field reads.
+// Hits in Nominatim's format=jsonv2 shape, trimmed to what the field reads.
 const hit = (over: Partial<NominatimResult> & Pick<NominatimResult, "display_name">): NominatimResult => ({
   lat: "45.4641943",
   lon: "9.1896346",
-  class: "place",
+  category: "place",
   type: "city",
   ...over,
 });
 
+// The place the field hands its form: a hit read as a match, with the zone read for that place.
+const placeFrom = (r: NominatimResult, zone: Zone): GeocodeResult => withZone(toMatch(r), zone);
+
 const lombardy = { city: "Milan", state: "Lombardy", country: "Italy" };
 
 const MILAN_HITS: NominatimResult[] = [
-  hit({ display_name: "Milan, Lombardy, Italy", class: "boundary", type: "administrative", importance: 0.83, address: lombardy }),
-  hit({ display_name: "Milano Centrale, Piazza Duca d'Aosta, Milan, Lombardy, Italy", class: "railway", type: "station", importance: 0.61, address: lombardy }),
+  hit({ display_name: "Milan, Lombardy, Italy", category: "boundary", type: "administrative", importance: 0.83, address: lombardy }),
+  hit({ display_name: "Milano Centrale, Piazza Duca d'Aosta, Milan, Lombardy, Italy", category: "railway", type: "station", importance: 0.61, address: lombardy }),
   hit({ display_name: "Milan, Lombardy, Italy", importance: 0.8, address: lombardy }),
   hit({
     display_name: "Milan, Rock Island County, Illinois, United States",
@@ -61,7 +68,7 @@ const MILAN_HITS: NominatimResult[] = [
 
 describe("the ranking", () => {
   it("puts a city before a town before a village, any settlement before a region, and a region before anything else", () => {
-    const rank = (klass: string, type: string) => specificityRank(hit({ display_name: "x", class: klass, type }));
+    const rank = (category: string, type: string) => specificityRank(hit({ display_name: "x", category, type }));
     expect(rank("place", "city")).toBe(0);
     expect(rank("place", "town")).toBe(1);
     expect([rank("place", "village"), rank("place", "municipality")]).toEqual([2, 2]);
@@ -69,6 +76,37 @@ describe("the ranking", () => {
     expect(rank("place", "hamlet")).toBe(4);
     expect(rank("boundary", "administrative")).toBe(5);
     expect([rank("place", "state"), rank("railway", "station"), rank("amenity", "university")]).toEqual([6, 6, 6]);
+  });
+
+  it("reads a boundary's addresstype: a city or town filed as administrative ranks as that settlement, a region or district stays a region", () => {
+    const boundary = (addresstype: string | undefined) =>
+      hit({ display_name: "x", category: "boundary", type: "administrative", addresstype });
+    expect([boundary("city"), boundary("town"), boundary("village"), boundary("hamlet")].map(specificityRank)).toEqual([0, 1, 2, 4]);
+    expect([boundary("state"), boundary("county"), boundary("city_district"), boundary(undefined)].map(specificityRank)).toEqual([5, 5, 5, 5]);
+    expect(settlementOf(boundary("city"))).toBe("city");
+    expect(settlementOf(boundary("state"))).toBeNull();
+    expect(settlementOf(hit({ display_name: "x", type: "village" }))).toBe("village");
+  });
+
+  it("takes an addresstype from a boundary only, never from a landmark that happens to be in a city", () => {
+    expect(specificityRank(hit({ display_name: "x", category: "railway", type: "station", addresstype: "city" }))).toBe(6);
+    expect(settlementOf(hit({ display_name: "x", category: "railway", type: "station", addresstype: "city" }))).toBeNull();
+  });
+
+  it("reads the category of an answer in the json shape, where it is called class", () => {
+    const json = (klass: string, type: string, addresstype?: string): NominatimResult => ({
+      display_name: "x", lat: "0", lon: "0", class: klass, type, addresstype,
+    });
+    expect(specificityRank(json("place", "town"))).toBe(1);
+    expect(specificityRank(json("boundary", "administrative"))).toBe(5);
+    expect(specificityRank(json("boundary", "administrative", "city"))).toBe(0);
+  });
+
+  it("keeps a city's boundary when one of its own districts shares its town, region and country", () => {
+    const kosicky = { state: "Košický kraj", country: "Slovakia" };
+    const city = hit({ display_name: "Košice, Košický kraj, Slovakia", category: "boundary", type: "administrative", addresstype: "city", importance: 0.5, address: { city: "Košice", ...kosicky } });
+    const district = hit({ display_name: "Staré Mesto, Košice, Košický kraj, Slovakia", category: "boundary", type: "administrative", addresstype: "suburb", importance: 0.6, address: { suburb: "Staré Mesto", city: "Košice", ...kosicky } });
+    expect(rankResults([district, city]).map((r) => r.display_name)).toEqual(["Košice, Košický kraj, Slovakia"]);
   });
 
   it("re-ranks Nominatim's order, shows a town listed twice once, as its place, and keeps five", () => {
@@ -92,6 +130,54 @@ describe("the ranking", () => {
   });
 });
 
+// "kosice": Nominatim most likely files the city of Košice as an administrative boundary, the same type as its region and its
+// districts, so the list called it a Region, ranked it among them and could drop it as their duplicate. NOT RECORDED: Nominatim is
+// blocked from the build sandbox, so this answer is built to the documented jsonv2 shape, trimmed to what the field reads, the way
+// the service is expected to answer: the city says "city" in addresstype, the region and districts do not, and a village of the
+// same name sits elsewhere. The live list is read on the preview.
+const kosickyKraj = { state: "Košický kraj", country: "Slovakia" };
+
+const KOSICE_BUILT: NominatimResult[] = [
+  hit({ display_name: "Košický kraj, Slovakia", lat: "48.6", lon: "21.2", category: "boundary", type: "administrative", addresstype: "state", importance: 0.55, address: kosickyKraj }),
+  hit({ display_name: "Košice, Košický kraj, Slovakia", lat: "48.7164", lon: "21.2611", category: "boundary", type: "administrative", addresstype: "city", importance: 0.5, address: { city: "Košice", ...kosickyKraj } }),
+  hit({ display_name: "okres Košice I, Košický kraj, Slovakia", lat: "48.72", lon: "21.25", category: "boundary", type: "administrative", addresstype: "county", importance: 0.34, address: { county: "okres Košice I", ...kosickyKraj } }),
+  hit({ display_name: "okres Košice II, Košický kraj, Slovakia", lat: "48.7", lon: "21.3", category: "boundary", type: "administrative", addresstype: "county", importance: 0.33, address: { county: "okres Košice II", ...kosickyKraj } }),
+  hit({
+    display_name: "Košice, okres Kutná Hora, Central Bohemian Region, Czechia",
+    lat: "49.91", lon: "14.9", category: "place", type: "village", importance: 0.3,
+    address: { village: "Košice", county: "okres Kutná Hora", state: "Central Bohemian Region", country: "Czechia" },
+  }),
+];
+
+describe("kosice, an answer built to Nominatim's documented jsonv2 shape (not recorded: the service is out of reach here)", () => {
+  it("lists Košice first, as City, ahead of its region and districts and a village of the same name", () => {
+    const rows = rankResults(KOSICE_BUILT).map(toMatch);
+    expect(rows.map((m) => [placeTitle(m), placeLine(m)])).toEqual([
+      ["Košice", "City · Košický kraj · Slovakia"],
+      ["Košice", "Village · Central Bohemian Region · Czechia"],
+      ["Košický kraj", "Region · Slovakia"],
+      ["okres Košice I", "Region · Košický kraj · Slovakia"],
+      ["okres Košice II", "Region · Košický kraj · Slovakia"],
+    ]);
+    expect(placeTypeLabel(rows[0].placeType)).toBe("City");
+  });
+
+  it("chooses Košice as a city, named with its region and country", () => {
+    const [kosice] = rankResults(KOSICE_BUILT);
+    expect(placeFrom(kosice, { timezone: "Europe/Bratislava", timezoneOffset: 2 })).toEqual({
+      name: "Košice, Košický kraj, Slovakia",
+      city: "Košice",
+      region: "Košický kraj",
+      country: "Slovakia",
+      latitude: 48.7164,
+      longitude: 21.2611,
+      timezoneOffset: 2,
+      timezone: "Europe/Bratislava",
+      placeType: "city",
+    } satisfies GeocodeResult);
+  });
+});
+
 describe("a hit's address", () => {
   it("names the town from the first settlement key it has, the region from the state down", () => {
     expect(addressOf(hit({ display_name: "x", address: { town: "Stratford-upon-Avon", county: "Warwickshire", state: "England", country: "United Kingdom" } })))
@@ -111,7 +197,7 @@ describe("a hit's address", () => {
 
 describe("a place from a hit", () => {
   it("joins town, region and country, rounds to four places and carries the zone and the type", () => {
-    const milan = toPlace(rankResults(MILAN_HITS)[0], { timezone: "Europe/Rome", timezoneOffset: 2 });
+    const milan = placeFrom(rankResults(MILAN_HITS)[0], { timezone: "Europe/Rome", timezoneOffset: 2 });
     expect(milan).toEqual({
       name: "Milan, Lombardy, Italy",
       city: "Milan",
@@ -127,9 +213,17 @@ describe("a place from a hit", () => {
 
   it("says a part equal to the one before it once, and leaves an empty one out", () => {
     const berlin = hit({ display_name: "Berlin, Germany", lat: "52.5170365", lon: "13.3888599", address: { city: "Berlin", state: "Berlin", country: "Germany" } });
-    expect(toPlace(berlin, fallbackZone(13.3888599)).name).toBe("Berlin, Germany");
+    expect(placeFrom(berlin, fallbackZone(13.3888599)).name).toBe("Berlin, Germany");
     const noRegion = hit({ display_name: "Reykjavík, Iceland", lat: "64.1466", lon: "-21.9426", address: { city: "Reykjavík", country: "Iceland" } });
-    expect(toPlace(noRegion, fallbackZone(-21.9426))).toMatchObject({ name: "Reykjavík, Iceland", region: "", latitude: 64.1466, longitude: -21.9426 });
+    expect(placeFrom(noRegion, fallbackZone(-21.9426))).toMatchObject({ name: "Reykjavík, Iceland", region: "", latitude: 64.1466, longitude: -21.9426 });
+  });
+
+  it("makes a match with no zone, and a place from it with the zone read for that place alone", () => {
+    const match = toMatch(rankResults(MILAN_HITS)[0]);
+    expect(Object.keys(match).sort()).toEqual(["city", "country", "latitude", "longitude", "name", "placeType", "region"]);
+    const place = withZone(match, { timezone: "Europe/Rome", timezoneOffset: 2 });
+    expect(Object.keys(place).sort()).toEqual([...Object.keys(match), "timezone", "timezoneOffset"].sort());
+    expect(place).toMatchObject({ ...match, timezone: "Europe/Rome", timezoneOffset: 2 });
   });
 });
 
@@ -149,9 +243,9 @@ describe("the zone", () => {
 });
 
 describe("the addresses it calls", () => {
-  it("asks Nominatim for ten hits with their addresses, the query encoded", () => {
+  it("asks Nominatim for ten hits in jsonv2, which documents addresstype, with their addresses, the query encoded", () => {
     expect(nominatimUrl("São Paulo, Brazil")).toBe(
-      "https://nominatim.openstreetmap.org/search?q=S%C3%A3o%20Paulo%2C%20Brazil&format=json&limit=10&addressdetails=1",
+      "https://nominatim.openstreetmap.org/search?q=S%C3%A3o%20Paulo%2C%20Brazil&format=jsonv2&limit=10&addressdetails=1",
     );
     expect(nominatimUrl("a&b=c")).toContain("q=a%26b%3Dc&");
   });
@@ -182,6 +276,20 @@ describe("the labels", () => {
     expect(placeWhere(place({ region: "", country: "" }))).toBe("");
   });
 
+  it("leaves a region the name already says out of where a place is, a city-state's or a region's own", () => {
+    expect(placeWhere(place({ name: "Berlin, Germany", city: "Berlin", region: "Berlin", country: "Germany" }))).toBe("Germany");
+    expect(placeWhere(place({ name: "Košický kraj, Slovakia", city: "Košický kraj", region: "Košický kraj", country: "Slovakia" }))).toBe("Slovakia");
+  });
+
+  it("says a match in one line under its name: what it is, its region, its country, and no offset (MB-130)", () => {
+    const match: Match = { name: "Košice, Košický kraj, Slovakia", city: "Košice", region: "Košický kraj", country: "Slovakia", latitude: 48.7164, longitude: 21.2611, placeType: "city" };
+    expect(placeLine(match)).toBe("City · Košický kraj · Slovakia");
+    expect(placeLine({ ...match, name: "Košický kraj, Slovakia", city: "Košický kraj", placeType: "administrative" })).toBe("Region · Slovakia");
+    expect(placeLine({ ...match, name: "Reykjavík, Iceland", city: "Reykjavík", region: "", country: "Iceland" })).toBe("City · Iceland");
+    expect(placeLine({ ...match, region: "", country: "" })).toBe("City");
+    expect(placeLine(place({}))).toBe("City · Lombardy · Italy");
+  });
+
   it("signs the offset, halves and quarters included", () => {
     expect(utcLabel(2)).toBe("UTC+2");
     expect(utcLabel(0)).toBe("UTC+0");
@@ -189,10 +297,5 @@ describe("the labels", () => {
     expect(utcLabel(5.5)).toBe("UTC+5.5");
     expect(utcLabel(5.75)).toBe("UTC+5.75");
     expect(utcLabel(-3.5)).toBe("UTC-3.5");
-  });
-
-  it("counts the matches in the list's head", () => {
-    expect(matchesLabel(1)).toBe("1 match — pick the exact city");
-    expect(matchesLabel(5)).toBe("5 matches — pick the exact city");
   });
 });

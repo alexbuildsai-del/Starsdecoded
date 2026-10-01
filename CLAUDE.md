@@ -111,10 +111,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-09-30)
+## Current focus (2026-10-01)
 
-1. R11 shipped: the First Light site (home, /sky, /sample, /method, /compatibility, two Learn pages, /faq) as prerendered
-   HTML found by AI search, the waitlist over it with double opt-in, the legal pages naming the Owner (ADR-167).
-2. Production gets the site at the first Release, /sample included (ADR-166); checkout, the postal address and `LAUNCHED`
-   wait for R12 (ADR-138). Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your chart).
-3. Next: R12, pricing and launch (`docs/rounds/R12-plan.md`, re-planned at its /plan): Stripe, credits hard, the loop study.
+1. R12 shipped to staging: Review 01/10 (the dashboard as a home, one scene per chapter, House by House, /sample at four
+   chapters, €54 with a launch price, Personal report and Your circle) and production's writers on Sol and Luna (ADR-184, 185).
+2. Production waits for a Release: R11's site and R12 together, after the full lab and the QA agent on Sol. Checkout, the postal
+   address and `LAUNCHED` wait for R13 (ADR-138). Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your chart).
+3. Next: R13, pricing and launch (`docs/rounds/R13-plan.md`, re-planned at its /plan).

@@ -1,14 +1,13 @@
 /**
- * Your people (ADR-112, landing scope 7): R10's orbit and card on the sample
- * account, so a visitor meets the second person before they have one. Mira
+ * Your circle (ADR-112, landing scope 7): the dashboard's circle and card on the
+ * sample account, so a visitor meets the second person before they have one. Mira
  * sits at the centre with the people she added around her; a tap opens a card
  * with no live control, in the panel on desktop and a bottom sheet on a phone.
- * The orbit's rules are the dashboard's own (`orbitPoints`, `partnersOf`), fed
+ * The circle's rules are the dashboard's own (`orbitPoints`, `partnersOf`), fed
  * the sample account as a profile list and its reports.
  */
 import { Fragment, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
-import { Heart } from "lucide-react";
 import { blindRisingText, legendParts } from "@/components/dashboard/CardSections";
 import { CENTRE_ID, Orbit, type OrbitLabels } from "@/components/dashboard/Orbit";
 import { SkyCard } from "@/components/dashboard/SkyCard";
@@ -29,7 +28,7 @@ const SELF = SAMPLE_PEOPLE.find((p) => p.relation === "self") ?? SAMPLE_PEOPLE[0
 /** Two of the pairs the plates show below are the account's reports, so some people wear the violet ring and some do not. */
 const SHARED: readonly (readonly [string, string])[] = [SAMPLE_PAIRS.partners, SAMPLE_PAIRS.parent_child];
 
-/** One report still being written, so the orbit shows that state as the dashboard draws it. */
+/** One report still being written, so the circle shows that state as the dashboard draws it. */
 const WRITING = new Set(["idris"]);
 
 const PROFILES: OrbitProfile[] = SAMPLE_PEOPLE.map((p) => ({ id: p.id, name: p.name, isSelf: p.id === SELF.id }));
@@ -57,9 +56,9 @@ const REPORTS: OrbitReport[] = [
 // The Add someone point is a control, and a sample card has none.
 const POINTS = orbitPoints({ profiles: PROFILES, reports: REPORTS, gifts: [], credits: 0, enforced: false }).filter((p) => p.kind === "person");
 
-/** The orbit is Mira's, so it speaks of her; its own words say "you" to the dashboard's reader. */
+/** The circle is Mira's, so it speaks of her; its own words say "you" to the dashboard's reader. */
 const LABELS: OrbitLabels = {
-  orbit: `${first(SELF.name)}'s sky, a sample account`,
+  orbit: `${first(SELF.name)}'s circle, a sample account`,
   centre: `${first(SELF.name)}'s chart at a glance`,
   sharedPair: `has a ${COMPATIBILITY_REPORT} with ${first(SELF.name)}`,
 };
@@ -70,7 +69,7 @@ const CLOSE =
   "rounded px-1 py-1 font-label text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 const FRAME = "min-w-0 rounded-[14px] border border-[#242C3B]";
 
-/** The phone sheet's first stop, as on the dashboard: the card's head and triad, with the orbit above still in view to tap. */
+/** The phone sheet's first stop, as on the dashboard: the card's head and triad, with the circle above still in view to tap. */
 const PEEK = 0.45;
 const SHEET_HEIGHT = 0.96;
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -83,10 +82,7 @@ function SamplePairs({ pairs }: { pairs: readonly (readonly [string, string])[] 
     <ul className="grid gap-2">
       {pairs.map(([x, y]) => (
         <li key={`${x}:${y}`} className="rounded-xl border border-border/60 bg-card/60 px-3 py-2.5">
-          <span className="mb-1 flex items-center gap-1.5 font-label text-[10px] font-medium uppercase tracking-[0.16em] text-secondary">
-            <Heart aria-hidden="true" className="h-3 w-3 shrink-0" />
-            {COMPATIBILITY_REPORT}
-          </span>
+          <span className="mb-1 block font-label text-[10px] font-medium uppercase tracking-[0.16em] text-secondary">{COMPATIBILITY_REPORT}</span>
           <span className="block font-display text-[15px] leading-snug">{pairTitle(firstOf(x), firstOf(y))}</span>
         </li>
       ))}
@@ -147,7 +143,7 @@ function IdlePanel() {
   return (
     <section aria-labelledby={headingId} className={cn(FRAME, "rp-root grid gap-3.5 bg-[rgba(17,22,31,.7)] p-[18px]")}>
       <div className="min-w-0">
-        <p className={EYEBROW}>{`${name}'s sky`}</p>
+        <p className={EYEBROW}>{`${name}'s circle`}</p>
         <h3 id={headingId} className="mt-1.5 font-display text-[22px] leading-[1.15] [overflow-wrap:anywhere]">{SELF.name}</h3>
       </div>
       <TriadRows chart={SELF.chart} name={SELF.name} />
@@ -199,7 +195,7 @@ interface CardSheetProps {
 /**
  * The card as a bottom sheet on a phone, the dashboard's sheet in behaviour
  * (dashboard-sky, Layout): a peek, a drag up for the rest, and not modal, so
- * the orbit above stays live: a tap on empty sky closes it and a tap on
+ * the circle above stays live: a tap on empty space closes it and a tap on
  * someone else swaps the card. The dashboard's sheet lives inside its page,
  * so this one is drawn here to the same measures.
  */
@@ -226,7 +222,7 @@ function CardSheet({ open, cardKey, label, onClose, children }: CardSheetProps) 
     return () => controls.stop();
   }, [open, full, peekY, reduced, y]);
 
-  // Escape inside the sheet closes it; the orbit already answers Escape pressed anywhere outside a dialog.
+  // Escape inside the sheet closes it; the circle already answers Escape pressed anywhere outside a dialog.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -310,7 +306,7 @@ export default function YourPeople() {
   const root = useRef<HTMLElement>(null);
   const phone = useIsMobile();
   const [selected, setSelected] = useState<string | null>(null);
-  // The orbit places its points in a layout effect, so the prerendered page holds its square and it draws on hydration.
+  // The circle places its points in a layout effect, so the prerendered page holds its square and it draws on hydration.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
 
@@ -320,16 +316,16 @@ export default function YourPeople() {
   const closeCard = useCallback(() => {
     const was = selected;
     setSelected(null);
-    // Back to the point the card opened from, so a keyboard reader keeps their place on the orbit.
+    // Back to the point the card opened from, so a keyboard reader keeps their place in the circle.
     if (was) root.current?.querySelector<SVGElement>(`[data-orbit-id="${CSS.escape(was)}"]`)?.focus();
   }, [selected]);
 
-  // The short bottom padding is the gap to TwoCharts' box, which follows on the home page 72 px under the orbit, as the artifact sets it.
+  // The short bottom padding is the gap to TwoCharts' box, which follows on the home page 72 px under the circle, as the artifact sets it.
   return (
     <section ref={root} id="people" aria-labelledby={headingId} className="sd-sec sd-sec-a sd-line pb-[72px]">
       <div className="sd-wrap">
         <div className="sd-shead">
-          <p className="sd-eyebrow">Your people</p>
+          <p className="sd-eyebrow">Your circle</p>
           <h2 id={headingId} className="sd-h2">
             Add the people you care about
           </h2>

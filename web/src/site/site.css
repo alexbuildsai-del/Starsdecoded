@@ -120,7 +120,9 @@
   .sd-hero::before { opacity: .75; }
   .sd-hero-grid { position: relative; min-height: inherit; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,min(570px,48%)); grid-template-rows: 1fr 1fr; column-gap: 56px; padding-block: 36px 48px; }
   .sd-h-top { grid-column: 1; grid-row: 1; align-self: end; padding-bottom: 28px; }
-  .sd-h-bot { grid-column: 1; grid-row: 2; align-self: start; padding-top: 28px; display: grid; gap: 24px; min-width: 0; }
+  /* Above the wheel: /sky puts it after the form, and the form's place list opens over it, where the wheel's HUD text would
+     otherwise paint across the list (the panel's backdrop blur makes the list's own z-index count only inside the panel). */
+  .sd-h-bot { grid-column: 1; grid-row: 2; align-self: start; padding-top: 28px; display: grid; gap: 24px; min-width: 0; z-index: 1; }
   .sd-h-wheel { grid-column: 2; grid-row: 1 / span 2; align-self: center; position: relative; min-width: 0; }
   .sd-h1 { font-size: clamp(44px, 6.1vw, 80px); line-height: 1.02; letter-spacing: -.028em; margin-top: 16px; max-width: 15ch; }
   .sd-h1 em { font-style: italic; color: var(--paper-hi); }

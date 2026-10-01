@@ -37,7 +37,7 @@ import { ReportSky } from "@/components/report/ReportSky";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
 import { ChapterSkeleton } from "@/components/report/ChapterSkeleton";
-import { ChartExplorer } from "@/components/report/ChartExplorer";
+import { HouseDeck } from "@/components/report/HouseDeck";
 import { BalanceRail } from "@/components/report/BalanceRail";
 import { DawnClosing } from "@/components/report/DawnClosing";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
@@ -186,6 +186,7 @@ export default function ReportPage() {
     revising: revising && !done(c.section),
   }));
   const ch = (n: number) => ({ number: n, total: TOTAL, eyebrow: CHAPTERS[n - 1].eyebrow, title: CHAPTERS[n - 1].title });
+  const counter = (n: number) => `${String(n).padStart(2, "0")} / ${String(TOTAL).padStart(2, "0")}`;
   const body = (key: string, node: React.ReactNode) => (done(key) && node ? node : <ChapterSkeleton lines={key === "focus" ? 4 : 5} />);
   const openTime = () => setAskTime(true);
   // The route refuses a report still being written or revised, so the offer waits, as Export PDF does.
@@ -274,14 +275,17 @@ export default function ReportPage() {
         </Chapter>
 
         <Chapter {...ch(2)}>
-          <ChartExplorer
-            chartData={chartData}
-            orbs={interpretation.meta.orbs}
-            readings={interpretation.houses?.houses}
-            triad={interpretation.triad}
-            birthPlace={report.birthPlace}
-            onAddBirthTime={report.profileId ? openTime : undefined}
-          />
+          {/* Up to 960 px the chapter bar sits under the nav, so the deck pins below the two of them. */}
+          <div className="[--deck-top:6rem] min-[961px]:[--deck-top:4.5rem]">
+            <HouseDeck
+              chart={chartData}
+              readings={interpretation.houses?.houses}
+              counter={counter(2)}
+              orbs={interpretation.meta.orbs}
+              birthPlace={report.birthPlace}
+              onAddBirthTime={report.profileId ? openTime : undefined}
+            />
+          </div>
 
           <div className="mt-10">
             {body("overview", interpretation.overview && <DeepdiveBlock s={interpretation.overview} />)}

@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CONTROL, STORED, bestGroup, controlAgreement, estimateSession, mulberry32, replayWriters, sectionsWorse, shuffle, tallyMixes, tallyWriters, type RevealCard, type SessionBase } from "./labSession.js";
-import { priceSection } from "./labRules.js";
+import { BASELINE, CONTROL, MIXES, SECTION_TIERS, STORED, bestGroup, controlAgreement, estimateSession, mulberry32, replayWriters, sectionsWorse, shuffle, tallyMixes, tallyWriters, type RevealCard, type SessionBase } from "./labSession.js";
+import { FALLBACK_SHAPE, priceSection } from "./labRules.js";
+import { MODELS, modelFor } from "./models.js";
 
 const shape = { inputTokens: 2_000, cachedInputTokens: 8_000, outputTokens: 1_200 };
 const bases: SessionBase[] = [{ key: "marie-curie.r06", shapes: { career: shape } }, { key: "day-angular.r06", shapes: {} }];
@@ -79,4 +80,33 @@ test("mixes are priced on the base shapes and read off the section picks; the co
   assert.equal(control.cards, 3);
   assert.equal(control.agree, 2, "the overview card tied them and the second career card passed both over; only the first preferred the stored 5.2");
   assert.ok(Math.abs(control.rate! - 1 / 3) < 1e-9);
+});
+
+test("the control is gpt-5.2 by name whatever production runs: a 5.2 run is the control, a Luna run never is (ADR-184)", () => {
+  assert.equal(BASELINE, "gpt-5.2");
+  assert.notEqual(BASELINE, MODELS.sections, "production's sections moved to Luna and the control stayed");
+  assert.notEqual(BASELINE, MODELS.foundation);
+  assert.deepEqual(replayWriters({ writers: ["gpt-6-luna", "gpt-6-sol"], control: true }), [
+    { writer: "gpt-6-luna", model: "gpt-6-luna" },
+    { writer: "gpt-6-sol", model: "gpt-6-sol" },
+    { writer: CONTROL, model: "gpt-5.2" },
+  ]);
+  const est = estimateSession({ bases, sections: ["career"], writers: ["gpt-6-luna"], control: true });
+  const control = est.perWriter.find((w) => w.writer === CONTROL)!;
+  assert.ok(Math.abs(control.standardUsd - (priceSection("gpt-5.2", shape)! + priceSection("gpt-5.2", FALLBACK_SHAPE)!)) < 1e-9, "the control is priced as a 5.2 replay");
+  assert.ok(control.standardUsd > est.perWriter.find((w) => w.writer === "gpt-6-luna")!.standardUsd);
+  const lunaLost: RevealCard[] = [{ fixture: "marie-curie", section: "career", variants: [v(0, STORED), v(1, "gpt-6-luna"), v(2, CONTROL)], picks: { best: [2], notShip: [1], same: [[0, 2]] } }];
+  const byMix = Object.fromEntries(tallyMixes(lunaLost, { career: shape }, ["foundation", "career"]).map((m) => [m.mix, m]));
+  assert.deepEqual(byMix.M0.worseThanBaseline, [], "M0 is the baseline and is never judged against itself");
+  assert.deepEqual(byMix.B.worseThanBaseline, ["career"], "B's Luna is judged against the 5.2 control and the stored text");
+});
+
+test("M0 is production to R11 and B is production from R12: B routes every section as MODELS does", () => {
+  const byMix = Object.fromEntries(MIXES.map((m) => [m.mix, m]));
+  assert.equal(byMix.M0.description, "gpt-5.2 everywhere (production to R11)");
+  assert.match(byMix.B.description, /\(production from R12\)$/);
+  for (const section of Object.keys(SECTION_TIERS)) {
+    assert.equal(byMix.M0.writerFor(section), "gpt-5.2");
+    assert.equal(byMix.B.writerFor(section), section === "foundation" ? MODELS.foundation : modelFor(section), `${section} ships on B's writer`);
+  }
 });

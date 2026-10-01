@@ -5,6 +5,7 @@ import { pageFor } from "../site";
 import BirthTime from "../sections/BirthTime";
 import Claims from "../sections/Claims";
 import Dawn from "../sections/Dawn";
+import Differences from "../sections/Differences";
 import Faq from "../sections/Faq";
 import Hero from "../sections/Hero";
 import Inside from "../sections/Inside";
@@ -114,7 +115,10 @@ function Later({ ahead = "50%", children }: { ahead?: string; children: ReactNod
   return <div ref={box} className="contents" dangerouslySetInnerHTML={KEEP} suppressHydrationWarning />;
 }
 
-/** The sections stand in the locked order (landing-and-ai-search, scope 2 to 13), prices above the questions (ADR-118). */
+/**
+ * The sections stand in the locked order (landing-and-ai-search, scope 2 to 13), the two differences right after the
+ * hero (ADR-173) and prices above the questions (ADR-118).
+ */
 export default function HomePage() {
   useEffect(() => {
     const fallback = window.setTimeout(firstLightOver, FIRST_LIGHT_FALLBACK_MS);
@@ -126,6 +130,9 @@ export default function HomePage() {
       <Hero onFirstLight={firstLightOver} />
       {/* Its top sits on the fold on a desktop, so only the reader's own scroll brings it in before first light ends. */}
       <Later ahead="0px">
+        <Differences />
+      </Later>
+      <Later>
         <Claims />
       </Later>
       <Inside />

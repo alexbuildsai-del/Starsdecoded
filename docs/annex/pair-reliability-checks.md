@@ -34,7 +34,7 @@ drops bad refs and empty claims: the model for FIX (drop).
 | 13 | S/foundation.ts:14 | supportingEvidence 3–6 | FIX: cut extras; under 3 WARN |
 | 14 | S/houses.ts:11, 47 | 12 houses in order | FIX: sort, dedupe; BLOCK only when a house is missing |
 | 15 | S/houses.ts:56 | a house reading names a body not in or ruling it | **BLOCK**: implies a false placement |
-| 16 | S/* list counts, SH:50-87, PF:16-28 | actions, strengths, items, checklists, scenes | FIX: cut to the maximum before the parse; under the minimum WARN |
+| 16 | S/* list counts, SH:50-87, PF:16-28 | actions, strengths, items, checklists | FIX: cut to the maximum before the parse; under the minimum WARN |
 | 17 | AI:601-607, 826-834 | amendment caps and refs | FIX: cut, drop the bad amendment or claim |
 | 18 | SH:131-133 | a percentage, a mark, a "compatibility score" | **BLOCK**: ADR-41, no score |
 | 19 | SH:134 | the words score, rated, rating | WARN (ordinary English); BLOCK only next to a digit or the pair |
@@ -56,7 +56,8 @@ drops bad refs and empty claims: the model for FIX (drop).
 | 35 | LK:56 | flows/rubs tag | FIX: set from the aspect type |
 | 36 | LK:64 | a card names another card's body | **BLOCK**: wrong factor |
 | 37 | PF:50, 54 | foundation rating words, strength lines | WARN (internal; chapter 01 re-checks what prints) |
-| 38 | PF:53-81 | link and chapter numbers, duplicates, owners, scene picks | FIX: drop, merge, give the nearest link, default the scene to 0 |
+| 38 | PF:53-81 | link and chapter numbers, duplicates, owners | FIX: drop, merge, give the nearest link. No scene pick since p3: one fixed scene a chapter (ADR-176) |
+| 39 | AI:442 (`registerChecks`, R12) | style-contract rule 13's words in prose, too high or too low (ADR-185); "energy" only as a mood | WARN on every structured call, natal and pair, foundations included: one row per list, the words named, never the sentence; never a block, a retry or a lab fault |
 
 Still blocking after R08: rows 15, 18, 21 (trine, sextile, aspect beside a body), 22, 24
 (capitalised), 25 (person names), 30 (numerals), 36; plus rows 9 and 14 in their fallback.

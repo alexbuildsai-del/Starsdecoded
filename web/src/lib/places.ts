@@ -14,16 +14,23 @@ export interface GeocodeResult {
   timezoneOffset: number;
   /** The IANA zone name, when the zone service gave one; the engine then picks the offset for the birth date (MB-48). */
   timezone: string | null;
+  /** A settlement's own type, or "administrative" for a region or a district. */
   placeType: string;
 }
 
-/** The part of a Nominatim `format=json` hit the field reads. */
+/** A hit as the list shows it: Nominatim gives no zone, so a match has none until the reader chooses it. */
+export type Match = Omit<GeocodeResult, "timezoneOffset" | "timezone">;
+
+/** The part of a Nominatim `format=jsonv2` hit the field reads. `json` names `category` "class", and either is read. */
 export interface NominatimResult {
   display_name: string;
   lat: string;
   lon: string;
-  class: string;
+  category?: string;
+  class?: string;
   type: string;
+  /** What the hit is as a part of an address: a city mapped as a boundary has type "administrative" and addresstype "city". */
+  addresstype?: string;
   importance?: number;
   address?: {
     country?: string;
@@ -63,24 +70,43 @@ export const SETTLEMENT_TYPES: ReadonlySet<string> = new Set([
   "borough",
 ]);
 
+/**
+ * An administrative boundary whose addresstype is one of these is the settlement
+ * itself: Nominatim files Košice under the same type as its region and its
+ * districts, and says in addresstype that it is a city. A region or a district
+ * does not carry one of these.
+ */
+const BOUNDARY_SETTLEMENTS: ReadonlySet<string> = new Set(["city", "town", "village", "hamlet"]);
+
+/** `jsonv2` is the format that documents `addresstype`, which is how a city mapped as a boundary says it is one. */
 export function nominatimUrl(query: string): string {
-  return `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=10&addressdetails=1`;
+  return `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=jsonv2&limit=10&addressdetails=1`;
 }
 
 export function zoneUrl(lat: number, lon: number): string {
   return `https://timeapi.io/api/timezone/coordinate?latitude=${lat}&longitude=${lon}`;
 }
 
+const categoryOf = (r: NominatimResult): string | undefined => r.category ?? r.class;
+
+/** What a hit is as a settlement, if it is one: a town mapped as a boundary is still a town to the reader, so the ranking and the label both ask here. */
+export function settlementOf(r: NominatimResult): string | null {
+  if (categoryOf(r) === "place" && SETTLEMENT_TYPES.has(r.type)) return r.type;
+  if (categoryOf(r) === "boundary" && r.type === "administrative" && r.addresstype && BOUNDARY_SETTLEMENTS.has(r.addresstype)) {
+    return r.addresstype;
+  }
+  return null;
+}
+
 /** Lower is more specific. People are born in towns, so any settlement outranks a region, and a region anything else. */
 export function specificityRank(r: NominatimResult): number {
-  if (r.class === "place" && SETTLEMENT_TYPES.has(r.type)) {
-    if (r.type === "city") return 0;
-    if (r.type === "town") return 1;
-    if (r.type === "village" || r.type === "municipality") return 2;
-    if (r.type === "suburb" || r.type === "borough" || r.type === "neighbourhood") return 3;
-    return 4;
-  }
-  if (r.class === "boundary" && r.type === "administrative") return 5;
+  const settlement = settlementOf(r);
+  if (settlement === "city") return 0;
+  if (settlement === "town") return 1;
+  if (settlement === "village" || settlement === "municipality") return 2;
+  if (settlement === "suburb" || settlement === "borough" || settlement === "neighbourhood") return 3;
+  if (settlement) return 4;
+  if (categoryOf(r) === "boundary" && r.type === "administrative") return 5;
   return 6;
 }
 
@@ -118,7 +144,7 @@ export function rankResults(results: readonly NominatimResult[]): NominatimResul
 }
 
 /** A part equal to the one before it (a city-state's city and region, say) is said once in the name. */
-export function toPlace(r: NominatimResult, zone: Zone): GeocodeResult {
+export function toMatch(r: NominatimResult): Match {
   const lat = parseFloat(r.lat);
   const lon = parseFloat(r.lon);
   const { city, region, country } = addressOf(r);
@@ -130,10 +156,13 @@ export function toPlace(r: NominatimResult, zone: Zone): GeocodeResult {
     country,
     latitude: Math.round(lat * 10000) / 10000,
     longitude: Math.round(lon * 10000) / 10000,
-    timezoneOffset: zone.timezoneOffset,
-    timezone: zone.timezone,
-    placeType: r.type,
+    placeType: settlementOf(r) ?? r.type,
   };
+}
+
+/** The place the form gets: the match the reader chose, with the zone read for it alone. */
+export function withZone(match: Match, zone: Zone): GeocodeResult {
+  return { ...match, timezoneOffset: zone.timezoneOffset, timezone: zone.timezone };
 }
 
 /** A failed lookup still gives the form an offset: the hour the longitude keeps by the sun. */
@@ -152,18 +181,25 @@ export function placeTypeLabel(placeType: string): string {
   return placeType.charAt(0).toUpperCase() + placeType.slice(1);
 }
 
-export function placeTitle(p: GeocodeResult): string {
+export function placeTitle(p: Match): string {
   return p.city || p.name.split(",")[0];
 }
 
-export function placeWhere(p: GeocodeResult): string {
-  return [p.region, p.country].filter(Boolean).join(", ");
+/** A region the name already says (a region's own hit, a city-state) is left out. */
+function whereParts(p: Match): string[] {
+  return [p.region === placeTitle(p) ? "" : p.region, p.country].filter(Boolean);
+}
+
+export function placeWhere(p: Match): string {
+  return whereParts(p).join(", ");
+}
+
+/** The line under a match's name. What it is comes first, because a city, its region and its districts can share one name. */
+export function placeLine(p: Match): string {
+  // MB-130 provisional: no offset, since a hit has no zone and a call per match would multiply timeapi.io's calls.
+  return [placeTypeLabel(p.placeType), ...whereParts(p)].join(" · ");
 }
 
 export function utcLabel(offset: number): string {
   return `UTC${offset >= 0 ? "+" : ""}${offset}`;
-}
-
-export function matchesLabel(count: number): string {
-  return `${count} match${count !== 1 ? "es" : ""} — pick the exact city`;
 }

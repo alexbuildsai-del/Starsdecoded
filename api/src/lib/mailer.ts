@@ -1,8 +1,9 @@
 // Resend integration — every transactional email Stars Decoded sends: a
-// finished report handed to its subject, a Compatibility report sent or
+// finished report shared with its subject, a Compatibility report shared or
 // granted, a gift and its reminder, and the waitlist's confirmation. All but
-// the last are written in the giver's name, and none says "made" or
-// "created" (credit-loop.md "Two verbs", ADR-128, 135).
+// the last are written in the giver's name. A written report is shared and a
+// credit is given: none says "send" for a report, or "made" or "created"
+// (ADR-181; credit-loop.md "Two verbs", ADR-128, 135).
 // Credentials come straight from the environment (RESEND_API_KEY,
 // RESEND_FROM_EMAIL), so any host that can set env vars can send mail.
 import { Resend } from "resend";
@@ -132,7 +133,7 @@ async function deliver(
   }
 }
 
-// ---- Send to {name}: a finished Personal natal report, theirs to claim ----
+// ---- Share with {name}: a finished Personal report, theirs to claim ----
 
 export interface SendReportEmailOptions {
   to: string;
@@ -149,22 +150,21 @@ export function buildReportEmail(opts: SendReportEmailOptions): EmailContent {
   const person = escapeHtml(personFirstName);
   const origin = originOf(claimUrl);
 
-  // The locked line (credit-loop.md "Two verbs"): never "made" or "created".
-  const subject = "Your Personal natal report is ready";
+  // The giver is in the subject so the inbox says who shared it; the verb is ADR-181's,
+  // which replaces credit-loop.md's "had it written for you" and still never says "made".
+  const subject = `${giverFirstName} shared your report with you`;
   const html = shell(
     origin,
     paddedSection(
       `<p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#C9D1D9;">Hi ${person},</p>` +
-        `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${giver}</strong> had it written for you.</p>` +
+        `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${giver}</strong> shared your report with you.</p>` +
         `<p style="margin:0 0 32px;font-size:15px;line-height:1.6;color:#8B949E;">Sign in with this email and it's yours to keep.</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Claim my report", claimUrl)}</div>` +
         `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This link is private to you and expires in 7 days.</p>`,
     ),
   );
   const text = textShell([
-    `Your Personal natal report is ready.`,
-    ``,
-    `${giverFirstName} had it written for you.`,
+    `${giverFirstName} shared your report with you.`,
     ``,
     `Claim my report:`,
     claimUrl,
@@ -178,7 +178,7 @@ export async function sendReportEmail(opts: SendReportEmailOptions): Promise<boo
   return deliver(opts.to, buildReportEmail(opts), "report-email");
 }
 
-// ---- A Compatibility report, sent to its other person or granted at once ----
+// ---- A Compatibility report, shared with its other person or granted at once ----
 // MB-103 provisional: pairs are still the provisional reading in the plan.
 
 export interface SendPairEmailOptions {
@@ -199,17 +199,16 @@ export function buildPairEmail(opts: SendPairEmailOptions): EmailContent {
   const origin = originOf(url);
 
   // Named by both real people, as the report itself is (dashboard-sky "{A} & {B}");
-  // never a "you and {name}" line, which is the MB-85 bug this fixes.
-  const lede = granted
-    ? `<strong>${giver}</strong> shared it with you, so you can read it right away.`
-    : `<strong>${giver}</strong> had it written for you.`;
+  // never a "you and {name}" line, which is the MB-85 bug this fixes. The subject and
+  // the first line say the giver shared it, as the report email does (ADR-181).
+  const tail = granted ? ", so you can read it right away." : ".";
   const cta = granted ? "Read the report" : "Claim my report";
-  const subject = "Your Compatibility report is ready";
+  const subject = `${giverFirstName} shared a Compatibility report with you`;
   const html = shell(
     origin,
     paddedSection(
       `<p style="margin:0 0 8px;font-size:13px;letter-spacing:0.06em;color:#8B949E;text-transform:uppercase;">${giver} &amp; ${other}</p>` +
-        `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;">Your Compatibility report is ready. ${lede}</p>` +
+        `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${giver}</strong> shared a Compatibility report with you${tail}</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton(cta, url)}</div>` +
         (granted
           ? ""
@@ -220,9 +219,7 @@ export function buildPairEmail(opts: SendPairEmailOptions): EmailContent {
     [
       `${giverFirstName} & ${otherFirstName}`,
       ``,
-      `Your Compatibility report is ready. ${
-        granted ? `${giverFirstName} shared it with you, so you can read it right away.` : `${giverFirstName} had it written for you.`
-      }`,
+      `${giverFirstName} shared a Compatibility report with you${tail}`,
       ``,
       `${cta}:`,
       url,
@@ -255,8 +252,8 @@ export function buildGiftEmail(opts: SendGiftEmailOptions): EmailContent {
   const origin = originOf(claimUrl);
   const trimmedNote = note?.trim() ?? "";
 
-  // The locked copy (credit-loop.md "Two verbs" and Settled at lock 9).
-  const subject = `${giverFirstName} gave you a Personal natal report`;
+  // The locked copy (credit-loop.md "Two verbs" and Settled at lock 9), in ADR-170's name.
+  const subject = `${giverFirstName} gave you a Personal report`;
   const noteHtml = trimmedNote
     ? `<p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#E6EDF3;font-style:italic;">“${escapeHtml(trimmedNote)}”</p>`
     : "";
@@ -266,14 +263,14 @@ export function buildGiftEmail(opts: SendGiftEmailOptions): EmailContent {
     `<img src="${origin}/gift-cover.png" width="560" height="347" alt="A gift from ${giver}" style="display:block;width:100%;height:auto;border:0;">` +
       paddedSection(
         `<p style="margin:0 0 12px;font-size:13px;letter-spacing:0.08em;color:#D4B06A;text-transform:uppercase;">A gift from ${giver}</p>` +
-          `<p style="margin:0 0 20px;font-size:22px;line-height:1.35;color:#F2F4F9;font-family:Georgia,serif;">Your Personal natal report, for ${recipient}</p>` +
+          `<p style="margin:0 0 20px;font-size:22px;line-height:1.35;color:#F2F4F9;font-family:Georgia,serif;">Your Personal report, for ${recipient}</p>` +
           noteHtml +
           `<div style="text-align:center;margin-bottom:24px;">${ctaButton("Claim my report", claimUrl)}</div>` +
           `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This gift is open for 30 days.</p>`,
       ),
   );
   const text = textShell(
-    [`${giverFirstName} gave you a Personal natal report.`, ``, `Your Personal natal report, for ${recipientFirstName}.`, ``]
+    [`${giverFirstName} gave you a Personal report.`, ``, `Your Personal report, for ${recipientFirstName}.`, ``]
       .concat(noteText)
       .concat([`Claim my report:`, claimUrl, ``, `This gift is open for 30 days.`]),
   );
@@ -305,13 +302,13 @@ export function buildGiftReminderEmail(opts: SendGiftReminderOptions): EmailCont
   const html = shell(
     origin,
     paddedSection(
-      `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${giver}</strong> gave you a Personal natal report. It's still waiting for you, ${recipient}.</p>` +
+      `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${giver}</strong> gave you a Personal report. It's still waiting for you, ${recipient}.</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Claim my report", claimUrl)}</div>` +
         `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This gift is open for 30 days.</p>`,
     ),
   );
   const text = textShell([
-    `${giverFirstName} gave you a Personal natal report. It's still waiting for you, ${recipientFirstName}.`,
+    `${giverFirstName} gave you a Personal report. It's still waiting for you, ${recipientFirstName}.`,
     ``,
     `Claim my report:`,
     claimUrl,

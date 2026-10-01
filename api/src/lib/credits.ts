@@ -377,7 +377,7 @@ function plural(n: number, word: string): string {
 
 // The name the report list gives it (GET /reports), so History and the list agree.
 function reportName(report: { names: string[]; pair: boolean }): string {
-  if (!report.pair) return report.names[0] ?? "Personal natal report";
+  if (!report.pair) return report.names[0] ?? "Personal report";
   return report.names.length === 2 ? `${report.names[0]} & ${report.names[1]}` : "Compatibility";
 }
 

@@ -77,15 +77,15 @@ export default function TermsPage() {
           Stop sharing ends that access at once.
         </p>
         <p>
-          When you send someone their Personal natal report, it becomes theirs. You keep reading
+          When you share someone's Personal report with them, it becomes theirs. You keep reading
           it, since you wrote it from details you had, until they choose Stop sharing, which ends
           your access at once.
         </p>
-        {/* MB-103 provisional: whether a pair reaches its other person only by its maker's send is still open. */}
+        {/* MB-103 provisional: whether a pair reaches its other person only by its maker's share is still open. */}
         <p>
           A Compatibility report reaches its other person only when one of the two people in it
-          sends it. Once sent, it shows both people's birth records and passages from both of
-          their Personal natal reports.
+          shares it. Once shared, it shows both people's birth records and passages from both of
+          their Personal reports.
         </p>
         <p>
           A gift gives one credit, not a finished report. We hold it for 30 days and return it to

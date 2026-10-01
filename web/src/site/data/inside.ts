@@ -1,5 +1,5 @@
 /**
- * What each chapter of the Personal natal report tells its reader, for the home
+ * What each chapter of the Personal report tells its reader, for the home
  * page's Inside (ADR-111): one sentence written from the chapter's own prompt,
  * and the parts it covers in the order the chapter prints them. The names and
  * their order stay in `CHAPTERS`, so a chapter is still named once. No word
@@ -18,8 +18,8 @@ export const INSIDE: Record<ChapterSection, ChapterGlimpse> = {
     parts: ["Headline", "What makes it unusual", "Where it all points"],
   },
   houses: {
-    line: "Your Sun, Moon and rising sign, and a short read of each of your twelve houses",
-    parts: ["Sun", "Moon", "Rising", "Where the weight sits", "How you run", "Twelve houses"],
+    line: "A short read of each of your twelve houses, and where the weight of your chart sits",
+    parts: ["Twelve houses", "Where the weight sits", "How you run"],
   },
   mind: {
     line: "How you think, how you make decisions and why people sometimes get you wrong",

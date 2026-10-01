@@ -5,7 +5,7 @@
  * every rule is proven against memory.
  */
 import { FALLBACK_SHAPE, priceSection, type TokenShape } from "./labRules.js";
-import { MODELS, type ServiceTier } from "./models.js";
+import type { ModelId, ServiceTier } from "./models.js";
 
 /**
  * The stored base text costs nothing; `stored:<label>` is the same chart's
@@ -15,7 +15,12 @@ import { MODELS, type ServiceTier } from "./models.js";
 export const STORED = "stored";
 export const CONTROL = "control";
 export const isStored = (writer: string): boolean => writer === STORED || writer.startsWith("stored:");
-export const BASELINE = MODELS.sections;
+/**
+ * Pinned by name, not to `MODELS`: the stored r05 and r06 text and every past
+ * control were written on gpt-5.2, so production's move to Sol and Luna
+ * leaves the control, and the labels of past reveals, where they were (ADR-184).
+ */
+export const BASELINE = "gpt-5.2" satisfies ModelId;
 
 /** The four levels of reasoning a section asks for (annex), for the reveal's by-tier tallies. */
 export const SECTION_TIERS: Record<string, string> = {
@@ -197,10 +202,10 @@ export function sectionsWorse(cards: RevealCard[], writer: string): string[] {
 
 /** The mixes of the spec, read off the section picks; nobody judges a mix. */
 export const MIXES: Array<{ mix: string; description: string; writerFor: (section: string) => string }> = [
-  { mix: "M0", description: "today: gpt-5.2 everywhere", writerFor: () => BASELINE },
+  { mix: "M0", description: "gpt-5.2 everywhere (production to R11)", writerFor: () => BASELINE },
   { mix: "S", description: "successor: gpt-6-sol everywhere", writerFor: () => "gpt-6-sol" },
   { mix: "A", description: "Sol thinks, Luna writes: sol on the foundation and synthesis, luna on the scaffold and houses", writerFor: (s) => (["open-ended", "synthesis"].includes(SECTION_TIERS[s] ?? "") ? "gpt-6-sol" : "gpt-6-luna") },
-  { mix: "B", description: "Sol plans only: sol on the foundation, luna on everything else", writerFor: (s) => (s === "foundation" ? "gpt-6-sol" : "gpt-6-luna") },
+  { mix: "B", description: "Sol plans only: sol on the foundation, luna on everything else (production from R12)", writerFor: (s) => (s === "foundation" ? "gpt-6-sol" : "gpt-6-luna") },
   { mix: "L", description: "all Luna", writerFor: () => "gpt-6-luna" },
 ];
 

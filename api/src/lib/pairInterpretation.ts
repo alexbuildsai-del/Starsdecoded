@@ -1,13 +1,13 @@
 /**
  * Compatibility report generation (ADR-39, ADR-63): two finished natal
- * reports in, one report out. One foundation call that allocates the links
- * and picks the scenes, then chapter 01, the lens's five chapters and the
- * link cards in parallel, each on its own brief, then chapter 07 collecting
- * the next-time items. Each section is schema enforced and stored as it
- * lands through the same onSection frame the natal generator uses. Nothing
- * in either natal report is regenerated. A chapter that loses its attempts
- * gets one round alone while the others are kept; a second loss aborts the
- * rest and fails the report with its code (ADR-84).
+ * reports in, one report out. One foundation call that allocates the links,
+ * then chapter 01, the lens's five chapters, each writing its one fixed
+ * scene (ADR-176), and the link cards in parallel, each on its own brief,
+ * then chapter 07 collecting the next-time items. Each section is schema
+ * enforced and stored as it lands through the same onSection frame the natal
+ * generator uses. Nothing in either natal report is regenerated. A chapter
+ * that loses its attempts gets one round alone while the others are kept; a
+ * second loss aborts the rest and fails the report with its code (ADR-84).
  */
 import { randomUUID } from "node:crypto";
 import type { z } from "zod/v4";
@@ -25,7 +25,7 @@ import { toStrictJsonSchema, type StoredClaim } from "../prompts/index.js";
 import {
   PAIR_CLAIMS_CONTRACT, PAIR_FOUNDATION, PAIR_PROMPT_VERSION,
   PairFoundationSchema, PairLensChapterSchema, PairLinksSchema, PairPractiseSchema, PairTwoChartsSchema,
-  allocationOf, pairChapterId, pairChapterIds, pairHasClaims, pairSectionById, pairSpecsFor, scenesOf, storePairClaims,
+  allocationOf, pairChapterId, pairChapterIds, pairHasClaims, pairSectionById, pairSpecsFor, sceneOf, storePairClaims,
   type PairClaim, type PairSectionSpec,
 } from "../prompts/pair/index.js";
 
@@ -37,7 +37,7 @@ export type PairLensChapterSection = Stored<z.infer<typeof PairLensChapterSchema
 export type PairPractiseSection = Stored<z.infer<typeof PairPractiseSchema>>;
 export type PairLinksSection = z.infer<typeof PairLinksSchema>;
 
-/** A chapter's three scenes: the titles, which one the foundation wrote, and the texts written on tap since (ADR-65, ADR-72). */
+/** A chapter's scene as stored: one title since p3 (ADR-176); a p2 report keeps its three, the index it wrote and any text written on tap. */
 export interface PairChapterScenes {
   titles: string[];
   written: number;
@@ -94,29 +94,21 @@ export interface PairGenerateOptions {
   reportId?: string | null;
 }
 
-/** The chapters the foundation allocates to, numbered as it sees them, with their scenes. */
+/** The chapters the foundation allocates to, numbered as it sees them, each with its scene. */
 function chaptersBlock(brief: PairBrief): string {
   const ids = pairChapterIds(brief.lens);
   const lines = ids.map((id, i) => {
     const spec = pairSectionById(id)!;
-    const titles = scenesOf(spec, brief.band);
-    const scenes = titles ? `: scenes ${titles.map((s, j) => `${j} ${s}`).join(" · ")}` : "";
-    return `  ${i + 1}. ${spec.label}${scenes}`;
+    const scene = sceneOf(spec, brief.band);
+    return `  ${i + 1}. ${spec.label}${scene ? ` (scene: ${scene})` : ""}`;
   });
-  return ["CHAPTERS (numbered as owners and scenes refer to them):", ...lines].join("\n");
+  return ["CHAPTERS (numbered as owners refer to them):", ...lines].join("\n");
 }
 
-/** The chapter's own tail of the brief: its links, its claims, its scenes. */
-function tailFor(brief: PairBrief, spec: PairSectionSpec, foundation: PairFoundationData | null): string {
+/** The chapter's own tail of the brief: its links, its claims, its scene. */
+function tailFor(brief: PairBrief, spec: PairSectionSpec): string {
   const id = spec.key.split(":")[1];
-  const owned = brief.allocation?.[id] ?? [];
-  const chosen = foundation?.scenes.find((s) => pairChapterId(brief.lens, s.chapter) === id);
-  const titles = scenesOf(spec, brief.band);
-  return chapterBrief(brief, {
-    owned,
-    draws: spec.draws,
-    scenes: titles ? { titles, written: chosen?.index ?? 0 } : undefined,
-  });
+  return chapterBrief(brief, { owned: brief.allocation?.[id] ?? [], draws: spec.draws, scene: sceneOf(spec, brief.band) });
 }
 
 /**
@@ -128,7 +120,7 @@ export function assemblePairUser(instructions: string, brief: PairBrief, spec: P
   const parts = ["PAIR BRIEF", brief.text];
   if (spec.key === PAIR_FOUNDATION.key) parts.push("", chaptersBlock(brief));
   if (foundation) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", JSON.stringify(foundation, null, 2));
-  if (spec.key !== PAIR_FOUNDATION.key && spec.key !== "pair:links") parts.push("", tailFor(brief, spec, foundation));
+  if (spec.key !== PAIR_FOUNDATION.key && spec.key !== "pair:links") parts.push("", tailFor(brief, spec));
   if (extraTail) parts.push("", extraTail);
   parts.push("", instructions.trim());
   if (spec.key !== PAIR_FOUNDATION.key && pairHasClaims(spec)) parts.push("", PAIR_CLAIMS_CONTRACT);
@@ -174,7 +166,7 @@ function practiseTail(brief: PairBrief, chapters: Record<string, unknown>): stri
   ].join("\n");
 }
 
-/** The prompt a section's fresh generation would send, and the scene call reuses (ADR-72). */
+/** The prompt a section's generation sends, shared with the preview so the lab reads what ships. */
 export async function pairSectionCall(spec: PairSectionSpec, brief: PairBrief, foundation: PairFoundationData | null, extraTail?: string) {
   const prompt = await resolveSection(spec.key);
   return { system: prompt.system, user: assemblePairUser(prompt.user, brief, spec, foundation, extraTail) };
@@ -213,7 +205,7 @@ export async function generatePairInterpretation(
     recordChecks({ kind: "pair", section: spec.key, model: MODELS.sections, writeId, reportId: options.reportId, attempt: event.attempt, final: event.final, checks });
 
   // Stage 1: the pair foundation runs alone. It allocates every link to one
-  // or two chapters and picks each chapter's scene: the editorial handoff.
+  // or two chapters: the editorial handoff.
   const foundationPrompt = await pairSectionCall(PAIR_FOUNDATION, brief, null);
   const foundationCall = await callStructured<PairFoundationData>({
     usageKey: PAIR_FOUNDATION.key,
@@ -231,10 +223,8 @@ export async function generatePairInterpretation(
   brief.allocation = allocationOf(foundation, brief, (n) => pairChapterId(brief.lens, n));
   const scenes: PairScenes = {};
   for (const id of chapterIds) {
-    const titles = scenesOf(pairSectionById(id)!, brief.band);
-    if (!titles) continue;
-    const chosen = foundation.scenes.find((s) => pairChapterId(brief.lens, s.chapter) === id);
-    scenes[id] = { titles: [...titles], written: chosen?.index ?? 0, texts: {} };
+    const title = sceneOf(pairSectionById(id)!, brief.band);
+    if (title) scenes[id] = { titles: [title], written: 0, texts: {} };
   }
   await options.onSection?.({ section: "meta", patch: { foundation, scenes } });
 

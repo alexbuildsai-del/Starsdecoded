@@ -39,7 +39,7 @@ const og = `<!doctype html><meta charset="utf-8"><style>${css}
 </style><div class="og"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
 <div class="in"><div class="lock">${markOnDark}<span>Stars Decoded</span></div>
 <div class="claim">A psychological report built on your computed natal chart.</div>
-<div class="foot"><span>Whole sign · astronomy-engine</span><span>One report · one purchase</span></div></div></div>`;
+<div class="foot"><span>Whole sign · astronomy-engine</span><span>Every reference checked</span></div></div></div>`;
 
 const email = `<!doctype html><meta charset="utf-8"><style>${css} .m { width: 56px; height: 56px; } .m svg { width: 56px; height: 56px; }</style><div class="m">${markOnDark}</div>`;
 

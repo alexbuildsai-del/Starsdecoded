@@ -139,7 +139,7 @@ export function NatalWheel({
   const risingLine = ascendant ? `Rising ${degreesMinutes(ascendant.degree)} ${ascendant.sign}` : "Rising · not drawn";
 
   return (
-    // Without a side panel the wheel takes the whole box: the explorer lays the
+    // Without a side panel the wheel takes the whole box: the house deck lays its
     // card out itself, so the split here would only leave an empty column.
     <div className={`grid gap-4 items-start${renderHouse ? " lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]" : ""}`}>
       <svg

@@ -5,7 +5,8 @@
  */
 import { describe, expect, it } from "vitest";
 import { chapterOf, ledgerRows, linkAnchor, linkOf } from "./ledger";
-import type { Claim, PairInterpretation, PairTwoCharts } from "@/types/chart";
+import { ledgerLinksOf, meetCards } from "./charts-meet";
+import type { Claim, PairInterpretation, PairLink, PairTwoCharts } from "@/types/chart";
 
 const cross = (planetA: string, aspect: string, planetB: string, orb: number) =>
   ({ ref: { kind: "cross", planetA, planetB, aspect, orb }, label: `Marie Curie's ${planetA} ${aspect} Oprah Winfrey's ${planetB}, ${orb.toFixed(1)}° orb` });
@@ -46,7 +47,6 @@ const twoCharts: PairTwoCharts = {
   strong, work,
   paradox: "The more you trust each other's minds, the less you say what you feel.",
   strengths: ["Marie and Oprah think better out loud, together.", "A shared belief that the work has to matter.", "Standards neither of you lowers for the other."],
-  pointer: "From here, each chapter plays out one scene between you.",
   claims,
 };
 
@@ -57,7 +57,7 @@ const lensChapter = (quote: string, evidence: Claim["evidence"]) => ({
 });
 
 const interpretation = {
-  meta: { promptVersion: "p2" },
+  meta: { promptVersion: "p3" },
   twoCharts,
   partners02: lensChapter("x", [LINKS.mercuryMoon, LINKS.moonJupiter]),
   partners03: lensChapter("x", [LINKS.venusPluto]),
@@ -103,5 +103,21 @@ describe("chapter 01's ledger (ADR-101)", () => {
     const bare = { ...twoCharts, strong: ["A line with no claim.", strong[1], strong[2]] };
     const rows = ledgerRows(bare, interpretation, "partners");
     expect(rows.strong[0]).toEqual({ text: "A line with no claim.", link: null, glyph: null, chapter: null });
+  });
+
+  it("puts every line's link among the first cards of Where your charts meet, so each glyph lands on a card on view (ADR-177)", () => {
+    // The brief's twelve cross aspects for the pair, strongest first, at their computed orbs.
+    const brief: Array<[string, string, string, number]> = [
+      ["moon", "square", "jupiter", 0.2], ["venus", "conjunction", "mars", 2.0], ["mercury", "conjunction", "moon", 2.1],
+      ["venus", "square", "pluto", 1.4], ["moon", "trine", "uranus", 3.8], ["saturn", "square", "pluto", 1.1],
+      ["mercury", "sextile", "sun", 2.4], ["mercury", "sextile", "venus", 2.2], ["jupiter", "trine", "neptune", 1.9],
+      ["uranus", "trine", "saturn", 3.7], ["neptune", "sextile", "sun", 3.9], ["pluto", "square", "mercury", 4.0],
+    ];
+    const links: PairLink[] = brief.map(([planetA, aspect, planetB, orb]) => ({
+      kind: aspect === "square" ? "rubs" : "flows", planetA, aspect, planetB, orb, reading: "r. Behaviour check: c.",
+    }));
+    const rows = ledgerRows(twoCharts, interpretation, "partners");
+    const { lead } = meetCards(links, ledgerLinksOf(twoCharts), { a: "Marie Curie", b: "Oprah Winfrey" });
+    expect(lead.map((c) => c.anchor)).toEqual([...rows.strong, ...rows.work].map((r) => linkAnchor(r.link!)));
   });
 });

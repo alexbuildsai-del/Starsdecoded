@@ -123,20 +123,18 @@ test("chk-35, chk-36: flows or rubs is set from the aspect; a card naming anothe
   assert.ok(third.checks.some((c) => c.rule === "chk-36" && c.cls === "block"));
 });
 
-test("chk-37, chk-38: the foundation's numbers, duplicates, owners and scene picks are fixed in code; a rating word is logged", () => {
+test("chk-37, chk-38: the foundation's numbers, duplicates and owners are fixed in code; a rating word is logged; no scene is picked", () => {
   const b = pair();
-  const good = pairReplies(b).pair_foundation as { owners: Array<{ link: number; chapters: number[] }>; scenes: Array<{ chapter: number; index: number }>; pairThesis: string };
+  const good = pairReplies(b).pair_foundation as { owners: Array<{ link: number; chapters: number[] }>; pairThesis: string };
   const messy = {
     ...good,
     pairThesis: "Two slow deciders, rated highly.",
     owners: [...good.owners.slice(1), { link: 2, chapters: [1, 2, 3] }, { link: b.links.length + 5, chapters: [4] }],
-    scenes: good.scenes.slice(1).concat([{ chapter: 2, index: 7 }]),
   };
   const r = foundationChecks(messy as never, b);
   assert.equal(r.output.owners.length, b.links.length, "every link once");
   assert.ok(r.output.owners.every((o) => o.chapters.filter((c) => c <= 6).length <= 2));
-  assert.deepEqual(r.output.scenes.map((s) => s.chapter), [2, 3, 4, 5, 6]);
-  assert.equal(r.output.scenes.find((s) => s.chapter === 2)!.index, 0);
+  assert.ok(!r.checks.some((c) => /scene/.test(c.message)), "the scenes are fixed per chapter, so nothing about them is reconciled (ADR-176)");
   assert.ok(rules(r).includes("chk-38:fix") && rules(r).includes("chk-37:warn"));
   assert.ok(!r.checks.some((c) => c.cls === "block"));
   assert.equal(PAIR_FOUNDATION.validate, foundationChecks);
