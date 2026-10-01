@@ -502,7 +502,8 @@ export interface PairTwoCharts {
   work: string[];
   paradox: string;
   strengths: string[];
-  pointer: string;
+  /** Stored by p2 reports; p3 writes none and the page prints none (ADR-176). */
+  pointer?: string;
   claims: Claim[];
 }
 
@@ -609,7 +610,7 @@ export interface PairLinks {
 export type PairChapterScenesTexts = {[key: string]: string};
 
 /**
- * A lens chapter's three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).
+ * A lens chapter's scene. Since p3 titles holds the one fixed scene and written is 0; a p2 report stored three titles and wrote one, and any text written on tap stays stored, unread (ADR-65, ADR-176).
  */
 export interface PairChapterScenes {
   titles: string[];
@@ -1434,19 +1435,6 @@ export interface CreateCompatibilityBody {
   label?: string | null;
   /** Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role. */
   parent?: CreateCompatibilityBodyParent;
-}
-
-export interface WriteSceneBody {
-  /** The lens chapter's section id, e.g. partners02. */
-  chapter: string;
-  /** Which of the chapter's three scenes, 0 to 2; never the one the report wrote. */
-  index: number;
-}
-
-export interface SceneResponse {
-  chapter: string;
-  index: number;
-  text: string;
 }
 
 export type CompatibilityCreateResponseStatus = typeof CompatibilityCreateResponseStatus[keyof typeof CompatibilityCreateResponseStatus];

@@ -899,7 +899,7 @@ export const GetReportResponse = zod.object({
   "work": zod.array(zod.string()),
   "paradox": zod.string(),
   "strengths": zod.array(zod.string()),
-  "pointer": zod.string(),
+  "pointer": zod.string().optional().describe('Stored by p2 reports; p3 writes none and the page prints none (ADR-176).'),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -1411,7 +1411,7 @@ export const GetReportResponse = zod.object({
   "titles": zod.array(zod.string()),
   "written": zod.number().int(),
   "texts": zod.record(zod.string(), zod.string())
-}).describe('A lens chapter\'s three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
+}).describe('A lens chapter\'s scene. Since p3 titles holds the one fixed scene and written is 0; a p2 report stored three titles and wrote one, and any text written on tap stays stored, unread (ADR-65, ADR-176).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
 }).describe('A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.\n'),zod.null()]).optional(),
   "workbook": zod.record(zod.string(), zod.string()).optional().describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under \"pin.\" and its item key, valued by the ISO date it was pinned (ADR-174).'),
   "errorMessage": zod.string().nullish().describe('Always null; internal text never reaches a customer response. Kept so older clients build.'),
@@ -1793,7 +1793,7 @@ export const GetReportStatusResponse = zod.object({
   "work": zod.array(zod.string()),
   "paradox": zod.string(),
   "strengths": zod.array(zod.string()),
-  "pointer": zod.string(),
+  "pointer": zod.string().optional().describe('Stored by p2 reports; p3 writes none and the page prints none (ADR-176).'),
   "claims": zod.array(zod.object({
   "quote": zod.string(),
   "evidence": zod.array(zod.object({
@@ -2305,7 +2305,7 @@ export const GetReportStatusResponse = zod.object({
   "titles": zod.array(zod.string()),
   "written": zod.number().int(),
   "texts": zod.record(zod.string(), zod.string())
-}).describe('A lens chapter\'s three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
+}).describe('A lens chapter\'s scene. Since p3 titles holds the one fixed scene and written is 0; a p2 report stored three titles and wrote one, and any text written on tap stays stored, unread (ADR-65, ADR-176).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
 }).describe('A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.\n'),zod.null()]).optional().describe('The interpretation so far. Sections appear as each call lands.')
 })
 
@@ -2568,26 +2568,6 @@ export const CreateCompatibilityReportResponse = zod.object({
   "id": zod.string(),
   "relationshipId": zod.string(),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'complete', 'failed'])
-})
-
-
-/**
- * A lens chapter carries three curated scenes; the report wrote one. This writes another on the same chapter brief, once per report, chapter and index, stores it on the interpretation and serves the stored text on every later call (ADR-65, ADR-72). Access is the report's.
- * @summary Write one of a chapter's two unread scenes on tap
- */
-export const WriteSceneParams = zod.object({
-  "id": zod.coerce.string()
-})
-
-export const WriteSceneBody = zod.object({
-  "chapter": zod.string().describe('The lens chapter\'s section id, e.g. partners02.'),
-  "index": zod.number().int().describe('Which of the chapter\'s three scenes, 0 to 2; never the one the report wrote.')
-})
-
-export const WriteSceneResponse = zod.object({
-  "chapter": zod.string(),
-  "index": zod.number().int(),
-  "text": zod.string()
 })
 
 

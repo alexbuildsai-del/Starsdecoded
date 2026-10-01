@@ -108,7 +108,9 @@ async function call(who: Viewer, method: string, path: string, body?: unknown) {
   if (who.user) headers["x-user"] = who.user;
   const res = await fetch(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await res.text();
-  return { status: res.status, body: text ? JSON.parse(text) : null };
+  // A route that no longer exists answers Express's own HTML 404, which has no JSON to parse.
+  const json = res.headers.get("content-type")?.includes("application/json");
+  return { status: res.status, body: text && json ? JSON.parse(text) : text || null };
 }
 async function listReports(who: Viewer) {
   const r = await call(who, "GET", "/reports");
@@ -362,6 +364,11 @@ try {
     assert.deepEqual(h.practising.slice(2).map((p) => p.action), [`Audrey: ${items[1].action}`, `Both: ${items[2].action}`]);
   });
 
+  await step("R12-13: nothing writes a scene on tap, so the live pair's own reader gets a 404 where its summary answers 200 (ADR-176)", async () => {
+    assert.equal((await call(GIVER, "GET", "/compatibility/RP/summary")).status, 200);
+    assert.equal((await call(GIVER, "POST", "/compatibility/RP/scenes", { chapter: "partners02", index: 0 })).status, 404);
+  });
+
   await step("send a natal report; the claimer reads, lists and works it (MB-84)", async () => {
     const sent = await call(GIVER, "POST", "/invites", { profileId: "PA", email: "subject@example.com" });
     assert.equal(sent.status, 201);
@@ -471,7 +478,7 @@ try {
     assert.deepEqual(s.pairs, []);
   });
 
-  await step("R10-23: the closed pair also 404s on compatibility summary and scenes", async () => {
+  await step("R10-23, R12-13: the closed pair 404s on compatibility summary, and the scene route that stood beside it is gone", async () => {
     assert.equal((await call(GIVER, "GET", "/compatibility/RP/summary")).status, 404);
     assert.equal((await call(GIVER, "POST", "/compatibility/RP/scenes", { chapter: "partners02", index: 0 })).status, 404);
   });

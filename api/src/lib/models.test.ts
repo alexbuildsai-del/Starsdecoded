@@ -83,7 +83,8 @@ test("the GPT-6 writers keep ADR-74's press prices, provisional until MB-70 chec
 });
 
 test("production runs mix B (ADR-184): Sol on both foundations, the QA agent and the vocabulary, Luna on every other prose call", () => {
-  assert.deepEqual(MODELS, { foundation: "gpt-6-sol", sections: "gpt-6-luna", scenes: "gpt-6-luna", synastry: "gpt-6-luna", vocabulary: "gpt-6-sol", qa: "gpt-6-sol", studyNotes: "gpt-6-luna" });
+  // No `scenes` job: p3 writes one fixed scene a chapter inside the chapter's own call (ADR-176).
+  assert.deepEqual(MODELS, { foundation: "gpt-6-sol", sections: "gpt-6-luna", synastry: "gpt-6-luna", vocabulary: "gpt-6-sol", qa: "gpt-6-sol", studyNotes: "gpt-6-luna" });
   assert.deepEqual(SECTION_MODELS, {});
   assert.equal(modelFor("natal:triad"), "gpt-6-luna");
   assert.equal(modelFor("houses"), "gpt-6-luna");

@@ -68,8 +68,6 @@ export const MODELS = {
   // MB-128 provisional: gpt-6-sol plans both foundations, natal and pair, until a session shows gpt-6.1-sol better (ADR-150).
   foundation: "gpt-6-sol",
   sections: "gpt-6-luna",
-  /** The two on-tap scenes of a lens chapter, written once each and stored (ADR-72). */
-  scenes: "gpt-6-luna",
   synastry: "gpt-6-luna",
   /** Offline, run once by scripts/src/generate-vocabulary.ts and committed: moving it rewrites nothing until the script runs again. */
   vocabulary: "gpt-6-sol",

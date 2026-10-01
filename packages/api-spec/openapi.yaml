@@ -579,48 +579,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /compatibility/{id}/scenes:
-    post:
-      operationId: writeScene
-      tags: [compatibility]
-      summary: Write one of a chapter's two unread scenes on tap
-      description: >
-        A lens chapter carries three curated scenes; the report wrote one. This
-        writes another on the same chapter brief, once per report, chapter and
-        index, stores it on the interpretation and serves the stored text on
-        every later call (ADR-65, ADR-72). Access is the report's.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WriteSceneBody"
-      responses:
-        "200":
-          description: The scene, written now or served from storage
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SceneResponse"
-        "400":
-          description: The chapter is not a lens chapter of this report, or the index is not one of its two unread scenes
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /compatibility/{id}/summary:
     get:
       operationId: getCompatibilitySummary
@@ -2288,14 +2246,15 @@ components:
             type: string
         pointer:
           type: string
+          description: Stored by p2 reports; p3 writes none and the page prints none (ADR-176).
         claims:
           type: array
           items:
             $ref: "#/components/schemas/Claim"
-      required: [headline, strong, work, paradox, strengths, pointer, claims]
+      required: [headline, strong, work, paradox, strengths, claims]
 
     PairChapterScenes:
-      description: "A lens chapter's three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72)."
+      description: "A lens chapter's scene. Since p3 titles holds the one fixed scene and written is 0; a p2 report stored three titles and wrote one, and any text written on tap stays stored, unread (ADR-65, ADR-176)."
       type: object
       properties:
         titles:
@@ -3087,25 +3046,6 @@ components:
           enum: [A, B]
           description: Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role.
       required: [reportAId, reportBId, lens]
-
-    WriteSceneBody:
-      type: object
-      properties:
-        chapter:
-          type: string
-          description: The lens chapter's section id, e.g. partners02.
-        index:
-          type: integer
-          description: Which of the chapter's three scenes, 0 to 2; never the one the report wrote.
-      required: [chapter, index]
-
-    SceneResponse:
-      type: object
-      properties:
-        chapter: { type: string }
-        index: { type: integer }
-        text: { type: string }
-      required: [chapter, index, text]
 
     CompatibilityCreateResponse:
       type: object
