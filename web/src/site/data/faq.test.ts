@@ -161,7 +161,9 @@ describe("the questions", () => {
     for (const line of text) {
       expect(line).not.toMatch(/[—–;!]/);
       expect(line).not.toMatch(/\bastra\b/i);
-      for (const match of line.matchAll(/(\w+ )?natal report/gi)) expect(match[0]).toBe(PERSONAL_REPORT);
+      // "natal chart" stays where people search; the report itself is never a "natal report" (ADR-170).
+      expect(line).not.toMatch(/natal report/i);
+      for (const match of line.matchAll(/personal report/gi)) expect(match[0]).toBe(PERSONAL_REPORT);
       for (const match of line.matchAll(/compatibility report/gi)) expect(match[0]).toBe(COMPATIBILITY_REPORT);
     }
   });

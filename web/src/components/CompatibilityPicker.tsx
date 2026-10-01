@@ -19,7 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { StatusDots } from "@/components/StatusDots";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { PERSONAL_REPORT } from "@/lib/product";
+import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { HOW_OPTIONS, HOW_QUESTION, LENSES, PARENT_QUESTION, lensInfo } from "@/lib/lenses";
 import {
   enterPreselect, forgetSelection, readSelection, reconcileSelection, rememberSelection, unpickable, type PairSelection,
@@ -166,7 +166,7 @@ export function CompatibilityPicker({
       aria-label="New compatibility report"
     >
       <p className="font-label text-[10px] tracking-[0.2em] uppercase text-primary/80">New compatibility report</p>
-      <h3 className="mt-1 font-display text-xl">Two finished reports in, one report out.</h3>
+      <h3 className="mt-1 font-display text-xl">Two finished reports in, one {COMPATIBILITY_REPORT} out.</h3>
       <p className="mt-1 text-sm text-muted-foreground">How compatible you are, and why. Any two {PERSONAL_REPORT.toLowerCase()}s you can see.</p>
       {reports.length < 2 && (
         <p className="mt-3 text-sm text-muted-foreground">You need two finished {PERSONAL_REPORT.toLowerCase()}s first. Add the other person the normal way.</p>

@@ -117,13 +117,13 @@ export function historyLine(item: Pick<CreditHistoryItem, "kind" | "count" | "la
 export interface PathHave {
   /** The reader's own Personal report, finished or being written: its credit is spent either way. */
   ownChart: boolean;
-  /** First names of the people on the reader's orbit. */
+  /** First names of the people in the reader's circle. */
   people: readonly string[];
   /** How many of those people share a Compatibility report with the reader. */
   pairs: number;
 }
 
-/** Read from the lists the dashboard already loads, through the orbit's own membership rule so the two never disagree. */
+/** Read from the lists the dashboard already loads, through the circle's own membership rule (`orbitPoints`) so the two never disagree. */
 export function pathHave({ profiles, reports }: { profiles: readonly OrbitProfile[]; reports: readonly OrbitReport[] }): PathHave {
   const people = orbitPoints({ profiles, reports, gifts: [], credits: 0, enforced: false }).filter((p) => p.kind === "person");
   const selfIds = new Set(profiles.filter((p) => p.isSelf === true).map((p) => p.id));
@@ -184,7 +184,7 @@ function writtenTitle(have: PathHave): string | null {
  * plan (ADR-125, 129). Each new person comes with the Compatibility report of
  * the reader and them, which is what the bundles' example mixes hold; the people
  * step asks the reader to add them because a gifted person never reaches the
- * reader's orbit (ADR-139). Every open step waits for the one before, so
+ * reader's circle (ADR-139). Every open step waits for the one before, so
  * exactly one can start.
  */
 export function pathSteps(balance: number, have: PathHave): PathStep[] {

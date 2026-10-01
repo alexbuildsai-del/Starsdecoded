@@ -55,7 +55,7 @@ export default function PrivacyPage() {
           <li>The chart we work out from them, and the reports we write.</li>
           <li>Your account, if you make one: the ID our sign-in provider gives it and your email address.</li>
           <li>
-            When you send a report or give a credit as a gift: the other person's email address, and the name and note you
+            When you share a report or give a credit as a gift: the other person's email address, and the name and note you
             add.
           </li>
           <li>The credits you buy and use.</li>

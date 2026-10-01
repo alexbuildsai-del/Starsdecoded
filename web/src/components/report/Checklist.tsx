@@ -49,7 +49,8 @@ export interface ChecklistItem {
 // Outside a report there is no chapter accent, so a list given its own store takes the Closing's teal, the colour of things to try.
 const TEAL = "#3FA796";
 
-const PIN_LABEL = "Pin to your dashboard";
+// Named for the list it keeps the item in, so it reads right on a report and on the dashboard's own list.
+const PIN_LABEL = "Pin to What you're practising";
 const COUNT_WORDS = ["no", "one", "two", "three", "four", "five", "six"];
 const LIMIT_LINE = `You can pin ${COUNT_WORDS[PIN_LIMIT] ?? PIN_LIMIT} per report. Unpin one first, here or on your dashboard.`;
 

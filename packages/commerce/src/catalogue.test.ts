@@ -8,7 +8,7 @@ test("catalogue: the three bundles are the Owner's names, lines, credits, prices
     {
       id: "solo",
       name: "Single",
-      line: "1 credit · one report",
+      line: "1 credit · a Personal report or a Compatibility report",
       credits: 1,
       cents: 2400,
       fullCents: 2400,

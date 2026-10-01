@@ -147,7 +147,7 @@ export function AddSomeoneSheet({
             tone="indigo"
             icon={<Plus className="h-4 w-4" />}
             title="Someone you know"
-            detail="You enter their birth details. Send them the report when it's written."
+            detail="You enter their birth details. Share the report with them when it's written."
             onSelect={choose(onSomeoneYouKnow)}
           />
           {/* ADR-139: a gift is a credit, and what its recipient writes reaches the giver only if they share it. */}

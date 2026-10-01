@@ -91,7 +91,7 @@ function offer(bundle: Bundle): Block {
   };
 }
 
-/** The home page's prices: one Product, the Personal natal report, with an Offer per bundle (ADR-142, reading 13). */
+/** The home page's prices: one Product, the Personal report, with an Offer per bundle (ADR-142, reading 13). */
 function product(home: PageEntry): Block {
   return {
     "@type": "Product",

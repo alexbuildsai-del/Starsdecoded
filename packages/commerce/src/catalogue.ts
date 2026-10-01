@@ -32,7 +32,7 @@ export const BUNDLES: readonly Bundle[] = [
   withSinglesTotal({
     id: "solo",
     name: "Single",
-    line: "1 credit · one report",
+    line: "1 credit · a Personal report or a Compatibility report",
     credits: 1,
     cents: SINGLE_CENTS,
     launch: false,

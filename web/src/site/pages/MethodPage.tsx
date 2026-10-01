@@ -209,8 +209,8 @@ function Related() {
       {SAMPLE_LIVE && (
         <Link className="sd-relcard" href="/sample">
           <span className="sd-eyebrow">{pageFor("/sample").eyebrow}</span>
-          <b>Read a full report</b>
-          <span>{`${SAMPLE.name}'s, word for word`}</span>
+          <b>Read a sample report</b>
+          <span>{`Chapters from ${SAMPLE.name}'s ${PERSONAL_REPORT}, word for word`}</span>
         </Link>
       )}
       <Link className="sd-relcard" href={houses.path}>

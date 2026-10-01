@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { SendState } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { StatusDots } from "@/components/StatusDots";
+import { sharedWaiting } from "@/lib/pair-row";
 import {
   SHARE_CARD, SHARE_LABELS, STORY_CAPTION, STORY_LINES, shareActions, shareCardText, shareLine, shareWith, storyFilename, storyLayout,
   wrapLines, type ShareAction, type ShareCardText,
@@ -297,7 +298,7 @@ function PairSend({ send, onSend, onStopSharing }: { send: SendState; onSend: ()
     }
   }
 
-  if (send.state === "sent") return <span className="font-label text-xs text-[var(--paper-dim)]">Sent · waiting for {name}</span>;
+  if (send.state === "sent") return <span className="font-label text-xs text-[var(--paper-dim)]">{sharedWaiting(name)}</span>;
   if (send.state === "joined") {
     return (
       <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">

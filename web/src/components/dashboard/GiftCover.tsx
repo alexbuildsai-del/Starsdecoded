@@ -1,6 +1,6 @@
 /**
  * How a gift arrives (ADR-128): the starfield and the mark, "A gift from
- * {giver}", "Your Personal natal report, for {name}" and the note. The giver
+ * {giver}", "Your Personal report, for {name}" and the note. The giver
  * sees it under "How it arrives" before sending, and the claim page shows the
  * same cover, so both import this one component.
  *
