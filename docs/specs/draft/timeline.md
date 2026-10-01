@@ -1,6 +1,6 @@
 # Timeline
 
-Ideation 2026-10-01, draft v4, ready to lock; behind a switch, off at launch. Picks up MB-26
+Ideation 2026-10-01, draft v5, ready to lock; behind a switch, off at launch. Picks up MB-26
 and "Later: the subscription" (`pricing-and-launch.md`).
 https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE
 
@@ -31,25 +31,25 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   Timeline says so once and shows the planet contacts it can.
 
 ### Life (screen 3)
-- **It opens on why it matters**, before any planet row: four ages people already
-  know, each a card with the reader's own date and a ring drawn from the chart (brass
-  at birth, an arc to today). 29, the late-twenties reset (Saturn return); every 12,
-  a fresh start (Jupiter); 19 and 37, a change of direction (the nodes); the early
-  forties, the midlife shake-up (Uranus opposition). A card opens its cycle.
-- One ribbon, a row per planet with a plain word (fresh starts, responsibility, direction,
-  shake-ups, doubt and dreams, power): in-orb bars, brass exact ticks, today, the past kept.
-- A cycle's card leads with its name, plain word, ring (birth, this cycle's point, the arc
-  to today), a one-line astronomy fact and the reading. Quieter on the left: in-orb dates,
-  exact passes, the point and house (ADR-98), natal position, sign season, last and next
-  time. Repeating cycles carry a look-back prompt ("Think back to summer 2014").
+- **It opens on why it matters**: four ages people know, each a card with the reader's date
+  and a ring (brass at birth, an arc to today). 29, the late-twenties reset (Saturn); every
+  12, a fresh start (Jupiter); 19 and 37, a change of direction (nodes); early forties, the
+  midlife shake-up (Uranus opposition). A card opens its cycle.
+- Waves, ages on top: per planet, its distance from its birth place, monthly from the
+  engine; a return at the bottom, opposite at the top, cycles as markers; the past shaded.
+- A cycle's card leads with its name, plain word, ring, one astronomy fact and the reading;
+  the numbers (in-orb dates, passes, point and house, ADR-98, last and next) sit quieter on
+  the left. Repeating cycles carry a look-back prompt ("Think back to summer 2014").
 
 ### Now and ahead (screen 4)
 - **The dial**, no Gantt: the natal chart inside, each planet from Mercury to Pluto on its
   own track outside (slowest outermost, the Moon never), a brass line for each doctrine
   contact, a dashed ring on a retrograde. A range (this week, this month, six months) sets
   a day slider and draws each planet's path; Play steps day by day, only when pressed.
-- Beside it: the contacts that day as cards (orb, exact dates or "never exact"; tap to
-  read) and what begins, peaks, ends or turns next in the range (tap to jump the dial).
+- Beside it, why it matters first: the day's mix as one bar, then a card per contact with
+  its tone (smoother teal, mixed grey, harder rose, by a fixed planet-and-aspect table), a
+  plain headline, one everyday line, how long it lasts; the planet, house, orb and dates
+  small underneath; tap to read. Then what starts, peaks or eases next (tap to jump).
   The dashboard's "Your chart today" is the same dial standing on today.
 
 ### Ask (screen 5)
@@ -113,9 +113,9 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   that names Stars Decoded (ADR-116): "When is your Saturn return?" A free finder takes
   a birth date and computes, in the browser with the engine, the Saturn returns, the
   next Jupiter return, the nodal returns and the Uranus opposition. Dates only.
-- Cards, few words: a big ring for the Saturn return, four cycle cards (ring, age, dates,
-  behind you or in N years, one fixed why line), three previews (the dial, Ask, the letter),
-  Get my report (the waitlist before launch, ADR-167), a folded FAQ. May ship with launch.
+- Cards: a ring with the age at the Saturn return; four cycle cards (ring, age, dates, "next
+  in N years" while a pass is ahead, else "behind you", a why line); three previews; Get my
+  report (the waitlist before launch, ADR-167); a folded FAQ. May ship with the launch.
 
 ### The weekly letter (screen 6)
 - Opt-in when Timeline starts: every week with something, only the big ones (outer
@@ -139,8 +139,7 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   ("Timeline will be optional"), Method, Terms, ux-copy's date rule. The rest at switch-on.
 
 ## Out of scope
-- Timeline for anyone but the reader (children, partners) until readers ask; pairs on a
-  timeline until MB-103; sharing one (MB-104).
+- Timeline for anyone but the reader until readers ask; pairs (MB-103); sharing (MB-104).
 - Daily horoscopes, Moon-of-the-day content, push notifications; progressions, solar
   returns, Chiron, Lilith, asteroids, Placidus.
 - Ask as therapy or coaching: it reflects, it doesn't counsel. Voice or images in Ask.
@@ -154,8 +153,7 @@ horoscope for the day. The dates are free; what they mean is the subscription.
 5. No reading predicts a life event, promises an outcome or answers the asked plan with
    do or don't; the checks log every attempt that did (`generation_failures`).
 6. The end-of-report offer shows only on an owned Personal natal report, computed, once.
-7. The free layer works with no subscription; a lapsed subscription keeps its readings
-   readable and stops new ones.
+7. The free layer works without a subscription; a lapsed one keeps readings, stops new ones.
 8. Cancelling takes two clicks; the letter stops in one. Prices live only in
    `catalogue.ts`; the gate test still passes.
 9. Dry lab clean, a spot run before the Release; the finder matches the engine per fixture.
@@ -169,20 +167,22 @@ horoscope for the day. The dates are free; what they mean is the subscription.
    chat; Life explains why it matters first; a coming-soon page for search.
 4. Notes on v2: only you; quieter numbers on the cycle card; one consistent Now view;
    cap Ask by cost, no new tier; design the dashboard and the letter; explain the finder.
-5. Notes on v3: the dial instead of the Gantt; Ask always visible with its own mark; sell
-   Ask at the end of the report; coming soon as cards; the letter's button.
+5. Notes on v3/v4: the dial, not a Gantt; Ask always visible with its own mark; sell Ask
+   at the end of the report; coming soon as cards; why it matters first, tone colours; Life
+   as a clearer chart with ages on top.
 Claude's calls (the Owner may overturn any): the switch's form, coming soon first, the
 name Ask, a partner for one day, the dashboard band, €69.99 a year, one free question,
-the launcher inside reports, this week's dial free.
+the launcher inside reports, this week's dial free, rose #C46B78 for harder.
 
 ## Decisions to record (at /lock)
 1. Timeline is the one subscription, only for an owner of a Personal natal report.
    Supersedes ADR-4 in part; amends §1 and §2 (daily horoscopes stay excluded).
 2. R-5.2 amended: sky dates may be named, life dates never, no do or don't.
-3. No horoscope for the day; Now and ahead is the moving dial, content only on contacts.
+3. No horoscope for the day; Now and ahead is the moving dial, plain words before terms,
+   tone by a fixed table (one new token, rose, for harder); content only on contacts.
 4. The doctrine: bodies, aspects, orbs, mean node, Chiron out, whole sign, no-time rules.
-5. The reader's own chart only (others wait for demand, pairs for MB-103). Life: birth to
-   90, past cycles kept, opens on four recognisable ages, look-back prompts.
+5. The reader's own chart only (others wait for demand, pairs for MB-103). Life: waves,
+   birth to 90, opens on four recognisable ages, look-back prompts.
 6. Readings: a new prompt family, once per event per person, stored, tied to the report;
    any date or degree not computed blocks.
 7. Sold after Closing on an owned report (dial, three questions, one free) and in the
