@@ -1,11 +1,12 @@
 /**
- * Send hands a finished report to the person it is about (ADR-120), or a
- * Compatibility report to the other of its two people when the reader is one
- * of them (ADR-133). One dialog for both: an email, unless the other person is
- * already on Stars Decoded and is granted it at once; then one line on what
- * happened, with the link to pass on by hand when the email did not go.
- * Sending is the sender's consent (ADR-139), so the dialog says what the other
- * person will see and how it stops.
+ * Share with {name} hands a finished report to the person it is about
+ * (ADR-120), or a Compatibility report to the other of its two people when the
+ * reader is one of them (ADR-133); "share" replaced "send" for giving a report
+ * (ADR-181), and a credit given stays a Gift. One dialog for both: an email,
+ * unless the other person is already on Stars Decoded and is granted it at
+ * once; then one line on what happened, with the link to pass on by hand when
+ * the email did not go. Sharing is the sharer's consent (ADR-139), so the
+ * dialog says what the other person will see and how it stops.
  */
 import { useRef, useState, type FormEvent } from "react";
 import { Check, Copy } from "lucide-react";
@@ -25,7 +26,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusDots } from "@/components/StatusDots";
+import { useOpenerFocus } from "@/components/dashboard/RowMenu";
+import { sharedWaiting } from "@/lib/pair-row";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
+import { shareWith } from "@/lib/share-card";
 
 /**
  * Who a send goes to; `send` names them and holds the state. A person's
@@ -72,7 +76,7 @@ function introOf(target: SendTarget, askEmail: boolean): string {
   const shows = `It shows your birth record and theirs, and passages from both ${PERSONAL_REPORT}s. You can stop sharing it at any time.`;
   return askEmail
     ? `We email ${name} a link to this ${COMPATIBILITY_REPORT}. ${shows}`
-    : `${name} already has an account, so they can read this ${COMPATIBILITY_REPORT} as soon as you send it. ${shows}`;
+    : `${name} already has an account, so they can read this ${COMPATIBILITY_REPORT} as soon as you share it. ${shows}`;
 }
 
 function outcomeLine(outcome: Outcome, name: string): string {
@@ -83,9 +87,9 @@ function outcomeLine(outcome: Outcome, name: string): string {
 
 function failureLine(code: string | undefined, name: string, askedEmail: boolean): string {
   if (code === "already_claimed") return `${name} already has it.`;
-  if (code === "not_ready") return "You can send it once it is finished.";
+  if (code === "not_ready") return "You can share it once it is finished.";
   if (code === "validation_error" && askedEmail) return "That email address did not work. Check it and try again.";
-  return "It did not send. Try again in a minute.";
+  return "We couldn't share it. Try again in a minute.";
 }
 
 function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void }) {
@@ -150,7 +154,7 @@ function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="font-display text-xl">Send to {name}</DialogTitle>
+        <DialogTitle className="font-display text-xl">{shareWith(name)}</DialogTitle>
         <DialogDescription aria-live="polite">{outcome ? outcomeLine(outcome, name) : introOf(target, askEmail)}</DialogDescription>
       </DialogHeader>
 
@@ -200,7 +204,7 @@ function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose} className="font-label">Cancel</Button>
             <Button type="submit" disabled={!ready || pending} className="font-label" data-testid="button-send">
-              {pending ? <StatusDots label="Sending" /> : "Send"}
+              {pending ? <StatusDots label="Sharing" /> : "Share"}
             </Button>
           </div>
         </form>
@@ -209,11 +213,12 @@ function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void
   );
 }
 
-/** The one Send dialog, for a person and for a pair; its state resets each time it closes. */
+/** The one Share with dialog, for a person and for a pair; its state resets each time it closes. */
 export function SendDialog({ open, onClose, target }: SendDialogProps) {
+  const focus = useOpenerFocus();
   return (
     <Dialog open={open && target !== null} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" {...focus}>
         {target && <SendBody target={target} onClose={onClose} />}
       </DialogContent>
     </Dialog>
@@ -222,16 +227,16 @@ export function SendDialog({ open, onClose, target }: SendDialogProps) {
 
 function lineText(send: SendState): { title: string; note: string } {
   const name = send.firstName;
-  if (send.state === "sent") return { title: `Sent · waiting for ${name}`, note: "When they sign in, the report is theirs." };
+  if (send.state === "sent") return { title: sharedWaiting(name), note: "When they sign in, the report is theirs." };
   if (send.state === "joined") return { title: `${name} joined`, note: "The report is theirs now. They can delete it or stop you seeing it." };
   return { title: `Give ${name} their report`, note: "An email and a link. When they sign in, it is theirs." };
 }
 
 /**
- * A person's send line, for their card, their row and their natal report.
- * The server decides where Send is offered (reading 11), so a null `send`
- * draws nothing. A pair's send lives in its row and the share block instead,
- * where its sender's Stop sharing can sit beside it (MB-103).
+ * A person's share line, on their Personal report. The server decides where
+ * Share with is offered (reading 11), so a null `send` draws nothing. A pair's
+ * lives in its row and the share block instead, where its sender's Stop
+ * sharing can sit beside it (MB-103).
  */
 export function SendLine({ send, onSend }: SendLineProps) {
   if (!send) return null;
@@ -259,7 +264,7 @@ export function SendLine({ send, onSend }: SendLineProps) {
           className="shrink-0 font-label text-xs text-[#9FA8DA] [border-color:rgba(92,107,192,.6)]"
           data-testid="button-send-to"
         >
-          Send to {send.firstName}
+          {shareWith(send.firstName)}
         </Button>
       )}
     </div>

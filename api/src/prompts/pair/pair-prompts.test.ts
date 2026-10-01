@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { calculateNatalChart } from "../../lib/chartCalculation.js";
 import { chartFromFixture } from "../../lib/testFixtures.js";
 import { toStrictJsonSchema } from "../jsonSchema.js";
@@ -7,12 +8,13 @@ import { STYLE_CONTRACT } from "../system.js";
 import { cannedNatalReplies, installFakeModel } from "../../lib/testModel.js";
 
 const { generateInterpretation } = await import("../../lib/aiInterpretation.js");
-const { buildPairBrief, LENSES, LENS_REGISTER } = await import("../../lib/pairBrief.js");
+const { BANDS, buildPairBrief, chapterBrief, LENSES, LENS_REGISTER } = await import("../../lib/pairBrief.js");
 const {
-  PAIR_ALL_SECTIONS, PAIR_DOCTRINE, PAIR_PROMPT_VERSION, PAIR_SECTIONS, PAIR_SECTION_IDS, PAIR_SYSTEM, PAIR_WORD_TARGETS, PAIR_CLAIMS_CONTRACT,
-  LENS_SECTIONS, allocationOf, bandProblems, cardLineProblems, evidenceProblems, foundationProblems, hasVerb, lensChapterId, lensContext,
-  pairChapterIds, pairChapterTitle, pairHasClaims, pairSectionById, pairSectionIds, sceneProblems, scenesOf, stripBracketedBodies, validatePairClaims,
+  PAIR_ALL_SECTIONS, PAIR_DOCTRINE, PAIR_FOUNDATION, PAIR_PROMPT_VERSION, PAIR_SECTIONS, PAIR_SECTION_IDS, PAIR_SYSTEM, PAIR_WORD_TARGETS, PAIR_CLAIMS_CONTRACT,
+  LENS_SECTIONS, PairFoundationSchema, allocationOf, bandProblems, cardLineProblems, evidenceProblems, foundationProblems, hasVerb, lensChapterId, lensContext,
+  pairChapterIds, pairChapterTitle, pairHasClaims, pairSectionById, pairSectionIds, sceneOf, sceneProblems, stripBracketedBodies, validatePairClaims,
 } = await import("./index.js");
+const { LENS_CHAPTER_CONTRACT } = await import("./shapes.js");
 const { BAND_DOCTRINE } = await import("./sections/parent-child/doctrine.js");
 const { linkList } = await import("./sections/links.js");
 type PairBrief = import("../../lib/pairBrief.js").PairBrief;
@@ -33,8 +35,8 @@ function pair(lens: Lens = "partners", extra: Partial<Parameters<typeof buildPai
   });
 }
 
-test("registry: seventeen specs plus the link cards and the foundation, eight ids a lens, seven chapters, version p2", () => {
-  assert.equal(PAIR_PROMPT_VERSION, "p2");
+test("registry: seventeen specs plus the link cards and the foundation, eight ids a lens, seven chapters, version p3", () => {
+  assert.equal(PAIR_PROMPT_VERSION, "p3");
   assert.equal(PAIR_SECTIONS.length, 18, "two fixed, fifteen lens chapters, the link cards");
   assert.equal(PAIR_ALL_SECTIONS.length, 19);
   assert.equal(PAIR_ALL_SECTIONS[0].key, "pair:foundation");
@@ -52,7 +54,7 @@ test("registry: seventeen specs plus the link cards and the foundation, eight id
       assert.equal(spec.key, `pair:${lensChapterId(lens, i + 2)}`);
       assert.equal(spec.lens, lens);
       assert.deepEqual(spec.wordTarget, [230, 300]);
-      assert.equal(scenesOf(spec, lens === "parent_child" ? "school" : null)!.length, 3, spec.key);
+      assert.ok(sceneOf(spec, lens === "parent_child" ? "school" : null), `${spec.key} has its scene`);
       assert.ok(spec.draws && spec.draws.length >= 2, `${spec.key} draws on personal-report sections`);
     }
   }
@@ -76,7 +78,7 @@ test("bands: chapter 01 300 to 360, lens chapters 230 to 300, prose total inside
   }
 });
 
-test("lens: the register, the parent, the band and the free label reach the prompt; scenes follow the band", () => {
+test("lens: the register, the parent, the band and the free label reach the prompt; the scene follows the band", () => {
   for (const lens of LENSES) {
     const ctx = lensContext(pair(lens, lens === "parent_child" ? { parent: "A" } : {}));
     for (const example of LENS_REGISTER[lens].examples) assert.ok(ctx.includes(example), `${lens}: ${example}`);
@@ -88,12 +90,38 @@ test("lens: the register, the parent, the band and the free label reach the prom
   assert.match(parentChild.text, /Oprah Winfrey is the parent/);
   const people = pair("people", { label: "colleagues" });
   assert.match(lensContext(people), /colleagues/);
+  assert.match(lensContext(people), /sets a few words of register in the scene, never the scene itself/);
   assert.match(people.text, /How they know each other: colleagues/);
   const needs = pairSectionById("parentChild02")!;
-  assert.equal(scenesOf(needs, "little")![0], "bedtime, the third call");
-  assert.equal(scenesOf(needs, "teen")![0], "the closed door");
-  assert.equal(scenesOf(needs, "grown")![0], "the Sunday call");
-  assert.deepEqual(scenesOf(pairSectionById("partners02")!, null), ["the end of a long day", "a birthday, planned badly", "the thumbs-up"]);
+  assert.equal(sceneOf(needs, "little"), "Bedtime, the third call");
+  assert.equal(sceneOf(needs, "teen"), "The closed door");
+  assert.equal(sceneOf(needs, "grown"), "The Sunday call");
+  assert.equal(sceneOf(pairSectionById("partners02")!, null), "The end of a long day");
+});
+
+// The artifact's scene table (ADR-176): one fixed scene a chapter, nothing picks it, and the parent lens has only the band's own.
+const SCENES: Record<string, readonly string[]> = {
+  partners: ["The end of a long day", "The argument at 11 pm", "The bill nobody expected", "The weekend away", "The job offer in another city"],
+  people: ["The big dinner", "The project with the deadline", "The weekend away", "Money between you", "The favour too big to ask"],
+  little: ["Bedtime, the third call", "The supermarket floor", "Tidying before dinner", "The drawing that isn't \"right\"", "Turning off the tablet"],
+  school: ["The morning rush", "Losing the game", "The room, the deal, the pocket money", "Homework at the kitchen table", "One more episode"],
+  teen: ["The closed door", "The door slam after a text", "The kitchen after they cooked", "\"I've revised\"", "The phone at midnight"],
+  grown: ["The Sunday call", "The call that ends in silence", "A week back home", "The choice you don't understand", "The rule that no longer applies"],
+};
+
+test("one scene a chapter: partners and two people as the table sets them, the parent lens the band's own and no neutral one", () => {
+  assert.deepEqual(LENS_SECTIONS.partners.map((s) => sceneOf(s, null)), SCENES.partners);
+  assert.deepEqual(LENS_SECTIONS.people.map((s) => sceneOf(s, null)), SCENES.people);
+  for (const band of BANDS) assert.deepEqual(LENS_SECTIONS.parent_child.map((s) => sceneOf(s, band)), SCENES[band], band);
+  for (const lens of LENSES) for (const spec of LENS_SECTIONS[lens]) {
+    assert.doesNotMatch(spec.instructions, /\bchosen\b|three scenes|other two/i, `${spec.key} picks nothing`);
+    assert.match(spec.instructions, /The scene is the one the brief names for this chapter and no other/);
+  }
+  for (const s of [PAIR_SYSTEM, ...PAIR_ALL_SECTIONS.map((x) => x.instructions)]) assert.doesNotMatch(s, /picks? (which|the) scene|which scene fits/i);
+  const brief = pair();
+  const tail = chapterBrief(brief, { owned: [], scene: "The end of a long day" });
+  assert.match(tail, /^SCENE for this chapter \(write this one and no other\): The end of a long day$/m);
+  assert.doesNotMatch(tail, /chosen|SCENES/);
 });
 
 test("no score, rating or percentage is asked for anywhere; every lens chapter keeps evidence in claims; the numbered title appears nowhere", () => {
@@ -124,7 +152,8 @@ test("no score, rating or percentage is asked for anywhere; every lens chapter k
 // Two charts side by side, the ledger, the link cards (ADR-97, ADR-101, ADR-104, ADR-106): no prompt draws a bi-wheel or a legend.
 test("chapter 01 carries the ledger premise, the links sit under the two charts, the doctrine keeps evidence in claims, and no prompt names a bi-wheel", () => {
   const two = pairSectionById("twoCharts")!;
-  assert.match(two.instructions, /The reader sees the two charts side by side, each alone\. Under them this chapter's lines are set out as a ledger, each beside the link it rests on, with a pointer to the chapter that shows it; the link cards follow\./);
+  assert.match(two.instructions, /The reader sees the two charts side by side, each alone\. Under them this chapter's lines are set out as a ledger, each beside the link it rests on and the chapter that shows it; the link cards follow\./);
+  assert.match(two.instructions, /300 to 360 words across the headline, the six lines and the paradox;/);
   assert.match(two.instructions, /three lines, one sentence each, each cited to one of this chapter's links\. Then what will take work/);
   assert.doesNotMatch(two.instructions, /pointing at the chapter that shows it/);
   assert.doesNotMatch(two.instructions, /by its title/);
@@ -165,7 +194,7 @@ test("schemas: strict JSON schema closes every object; every chapter but links c
   assert.ok("pattern" in strict.properties, "pattern survives the keyword strip");
   assert.ok(strict.required.includes("pattern"));
   const twoShape = Object.keys((pairSectionById("twoCharts")!.schema as unknown as { shape: object }).shape);
-  assert.deepEqual(twoShape, ["headline", "strong", "work", "paradox", "strengths", "pointer", "claims"]);
+  assert.deepEqual(twoShape, ["headline", "strong", "work", "paradox", "strengths", "claims"]);
   const mod = await import("./index.js") as Record<string, unknown>;
   assert.ok(!("PairPassageSchema" in mod) && !("PairChapterSchema" in mod), "the p1 shapes are gone");
 });
@@ -289,7 +318,7 @@ test("claims: a source that does not resolve is rejected, and a cross claim outs
   assert.deepEqual(validatePairClaims(section, [{ quote: "You read a room before you speak in it.", evidence: [crossRef(c1)] }], brief, "whatToPractise"), []);
 });
 
-test("foundation: every link once to one or two chapters, chapter 01 three of them, one scene per lens chapter", () => {
+test("foundation: every link once to one or two chapters, chapter 01 three of them, and no scene left to pick", () => {
   const brief = pair();
   const n = brief.links.length;
   const owners = brief.links.map((l, i) => ({ link: l.n, chapters: i < 3 ? [1, 2 + (i % 5)] : [2 + (i % 5)] }));
@@ -299,9 +328,11 @@ test("foundation: every link once to one or two chapters, chapter 01 three of th
     frictionThatMatters: "The plan made twice.",
     strengths: ["Marie finishes what Oprah starts.", "Oprah says the thing out loud first.", "Neither of you leaves a room angry."],
     owners,
-    scenes: [2, 3, 4, 5, 6].map((chapter) => ({ chapter, index: 1 })),
     guidance: ["a", "b", "c", "d", "e", "f", "g"],
   };
+  assert.deepEqual(Object.keys(PairFoundationSchema.shape), ["pairThesis", "strongestLinks", "frictionThatMatters", "strengths", "owners", "guidance"]);
+  assert.doesNotMatch(PAIR_FOUNDATION.instructions, /\bpick\b|listed scenes|0, 1 or 2/);
+  assert.match(PAIR_FOUNDATION.instructions, /each with the one scene it plays out/);
   assert.deepEqual(foundationProblems(good as never, brief), []);
   const twice = { ...good, owners: [...owners, { link: 1, chapters: [4] }] };
   assert.ok(foundationProblems(twice as never, brief).some((p) => /listed twice/.test(p)));
@@ -315,10 +346,92 @@ test("foundation: every link once to one or two chapters, chapter 01 three of th
   assert.ok(foundationProblems(eight as never, brief).some((p) => /chapters run 1 to 7/.test(p)));
   const missing = { ...good, owners: owners.slice(1) };
   assert.ok(foundationProblems(missing as never, brief).some((p) => /L1 was given to no chapter/.test(p)));
-  const noScene = { ...good, scenes: [2, 3, 4, 5, 5].map((chapter) => ({ chapter, index: 0 })) };
-  assert.ok(foundationProblems(noScene as never, brief).some((p) => /chapter 6 has no chosen scene/.test(p)));
   const range = { ...good, strongestLinks: [{ link: n + 4, why: "x" }, { link: 1, why: "y" }, { link: 2, why: "z" }] };
   assert.ok(foundationProblems(range as never, brief).some((p) => /not in the LINKS list/.test(p)));
+});
+
+// The words the reader meets (ADR-177): the challenge named as one, a room only ever a real room, and chapter 01 points nowhere.
+const person = (fixture: string) => JSON.parse(readFileSync(new URL(`../../../../fixtures/charts/${fixture}.json`, import.meta.url), "utf8")) as { name: string; birthDate: string };
+/** The four band pairs of the lab's campaign, their own charts computed here; the reports are canned, since only the lens and the band are read. */
+const bandPair = (parent: string, child: string): PairBrief => buildPairBrief({
+  lens: "parent_child", parent: "A", at: new Date("2026-09-21T00:00:00Z"),
+  a: { ...person(parent), chart: chartFromFixture(parent), interpretation: curieReport },
+  b: { ...person(child), chart: chartFromFixture(child), interpretation: winfreyReport },
+});
+const lensBriefs = (): PairBrief[] => [
+  pair("partners"), pair("people", { label: "colleagues" }),
+  bandPair("beatrice", "athena"), bandPair("william", "charlotte"), bandPair("william", "george"), bandPair("charles", "william"),
+];
+
+test("the lab's band pairs cover the four bands", () => {
+  assert.deepEqual(lensBriefs().slice(2).map((b) => b.band), ["little", "school", "teen", "grown"]);
+});
+
+/** Every text a pair prompt is assembled from that is not the two reports' own data: the system, each spec, its schema, its lens and band context, its scene. */
+function promptTexts(opts: { links: boolean } = { links: true }): string[] {
+  const specs = PAIR_ALL_SECTIONS.filter((s) => opts.links || s.key !== "pair:links");
+  const texts = [PAIR_SYSTEM, PAIR_CLAIMS_CONTRACT];
+  for (const spec of specs) texts.push(spec.label, spec.instructions, JSON.stringify(toStrictJsonSchema(spec.schema)));
+  for (const brief of lensBriefs()) {
+    for (const spec of specs.filter((s) => !s.lens || s.lens === brief.lens)) {
+      const extra = spec.extraContext?.(brief);
+      if (extra) texts.push(extra);
+      const scene = sceneOf(spec, brief.band);
+      if (scene) texts.push(chapterBrief(brief, { owned: [], draws: [], scene }));
+    }
+  }
+  return texts;
+}
+
+test("the challenge: the doctrine, the lens contract and the fifteen chapters say \"This is the challenge:\", and nothing says it rubs", () => {
+  assert.match(PAIR_DOCTRINE, /says whether this comes naturally to the two of them or is the challenge\. A challenge is named in those words, "This is the challenge:", then what it is and what it trains, never as "where it rubs"\./);
+  assert.match(LENS_CHAPTER_CONTRACT, /says whether this comes naturally to the two of them or is the challenge\. A challenge is written as "This is the challenge:" followed by what it is and what it trains\./);
+  let chapters = 0;
+  for (const lens of LENSES) for (const spec of LENS_SECTIONS[lens]) {
+    const own = spec.instructions.replace(LENS_CHAPTER_CONTRACT, "");
+    assert.notEqual(own, spec.instructions, `${spec.key} carries the lens contract`);
+    assert.match(own, /\("This is the challenge: …"\)/, spec.key);
+    chapters += 1;
+  }
+  assert.equal(chapters, 15);
+  // The link cards' tags keep the enum (flows, rubs); the doctrine names the old words once, to forbid them.
+  const rubs = (t: string) => (t.match(/\brubs?\b|\bwhere it flows\b/gi) ?? []).length;
+  assert.equal(rubs(PAIR_SYSTEM), 1);
+  for (const t of promptTexts({ links: false }).filter((t) => t !== PAIR_SYSTEM)) assert.equal(rubs(t), 0, t.slice(0, 120));
+  const pattern = (pairSectionById("partners02")!.schema as unknown as { shape: { pattern: { description: string } } }).shape.pattern.description;
+  assert.equal(pattern, "40 to 60 words: the pattern under it, whether this comes naturally or is the challenge");
+});
+
+test("a room is only ever a real room: the doctrine says so, and every room left in a pair prompt is one", () => {
+  assert.match(PAIR_DOCTRINE, /^- A room is only ever a real room, like the kitchen or the meeting room, never a figure of speech: "in public", never "public rooms", and never "read the room", "room to breathe" or "make room"\.$/m);
+  assert.doesNotMatch(PAIR_DOCTRINE, /private room/);
+  // A new room in a prompt is added here on purpose, with the real room it names.
+  const real = [
+    /a room, an evening, a message, a bill/,
+    /the way they arrive in a room/,
+    /In a room together/,
+    /in the same room with other people/,
+    /In a room one of two people usually fills the silence/,
+    /their own room/,
+    /The room, the deal, the pocket money/,
+    /leaves the room the same way/,
+    /A room is only ever a real room/,
+    /"public rooms", and never "read the room", "room to breathe" or "make room"/,
+  ];
+  const strays: string[] = [];
+  for (const t of promptTexts()) {
+    for (const m of t.matchAll(/\brooms?\b/gi)) {
+      const around = t.slice(Math.max(0, m.index! - 80), m.index! + m[0].length + 80);
+      if (!real.some((r) => r.test(around))) strays.push(around);
+    }
+  }
+  assert.deepEqual(strays, []);
+});
+
+test("chapter 01 has no pointer and no scene has an intro line: not in a schema, a prompt or any pair prompt", () => {
+  const two = pairSectionById("twoCharts")!;
+  assert.ok(!("pointer" in (two.schema as unknown as { shape: object }).shape));
+  for (const t of promptTexts()) assert.doesNotMatch(t, /pointer|where the report goes|Next, we name|A moment you will both recognise/i, t.slice(0, 120));
 });
 
 test("chapter validator: a house is never named across a blind pair, and the lens chapter's card, scene and whys are checked", () => {

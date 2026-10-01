@@ -20,7 +20,7 @@ republished to the same address), under the same numbers. Approved by the Owner 
 3. **Sign meanings come from the doctrine,** `api/src/prompts/vocabulary.ts`: the body's function
    in the sign's style, "under strain" for hard moments. Never invent a meaning (R-5.3). The
    entries used go in the row's Notes.
-4. **The product, exactly.** Its names from `web/src/lib/product.ts` (Personal natal report,
+4. **The product, exactly.** Its names from `web/src/lib/product.ts` (Personal report,
    Compatibility report). Never a length or word count (ADR-111). A price only from the catalogue
    (ADR-142). Only what it does today. "Accurate to within one arcminute" is the planets' claim,
    never Chiron's.

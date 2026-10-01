@@ -55,7 +55,8 @@ export function isModelId(id: string): id is ModelId {
 }
 
 /**
- * Which model each job calls.
+ * Which model each job calls: the lab's mix B, Sol plans and Luna writes
+ * (ADR-184). gpt-5.2 stays in the catalogue as the lab's control.
  *
  * `foundation` reads the chart open-endedly and decides what the whole report
  * says, so it carries the most risk from a weaker model. `sections` write
@@ -64,15 +65,14 @@ export function isModelId(id: string): id is ModelId {
  * cheaper model a fair question there.
  */
 export const MODELS = {
-  foundation: "gpt-5.2",
-  sections: "gpt-5.2",
-  /** The two on-tap scenes of a lens chapter, written once each and stored (ADR-72). */
-  scenes: "gpt-5.2",
-  synastry: "gpt-5.2",
-  /** Offline, run once by scripts/src/generate-vocabulary.ts and committed. */
-  vocabulary: "gpt-5.2",
+  // MB-128 provisional: gpt-6-sol plans both foundations, natal and pair, until a session shows gpt-6.1-sol better (ADR-150).
+  foundation: "gpt-6-sol",
+  sections: "gpt-6-luna",
+  synastry: "gpt-6-luna",
+  /** Offline, run once by scripts/src/generate-vocabulary.ts and committed: moving it rewrites nothing until the script runs again. */
+  vocabulary: "gpt-6-sol",
   /** The QA agent's reader and its eyes on staging (ADR-86): vision, one vendor, the key already on Railway. */
-  qa: "gpt-5.2",
+  qa: "gpt-6-sol",
   /** The prose study's optional notes, three lines a card, under a cent (ADR-88; MB-70 provisional price). */
   studyNotes: "gpt-6-luna",
 } as const satisfies Record<string, ModelId>;

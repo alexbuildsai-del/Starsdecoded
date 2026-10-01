@@ -1,21 +1,24 @@
 /**
- * Chapter 01's ledger (ADR-101): "Naturally strong" in teal and "Will take
- * work" in rose, side by side from 760 px, each line in the display face
- * beside the glyph of the cross link its claims cite, A's render, the link,
- * B's render, the two body names under; a strong link is a straight line,
- * brass for a touch and teal otherwise, a work link the rose zigzag. A chip
- * points at the lens chapter whose claims cite the link. The paradox spans
- * both columns under a teal-to-rose rule and the pointer closes. No number,
- * bar or score, and no strengths block: those live on the share card.
+ * Chapter 01's ledger (ADR-101, ADR-177): Comes naturally in teal and
+ * Challenge in rose, the words and colours of the cards under it, side by
+ * side from 760 px, each line in the display face beside the glyph of the
+ * cross link its claims cite, A's render, the link, B's render, the two body
+ * names under; a natural link is a straight line, brass for a touch and teal
+ * otherwise, a challenge the rose zigzag. A chip points at the lens chapter
+ * whose claims cite the link. The paradox spans both columns under a
+ * teal-to-rose rule and closes the ledger: a p2 report's stored pointer is
+ * never printed. No number, bar or score, and no strengths block: those live
+ * on the share card.
  */
 import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
+import { MEET_COLOURS, MEET_TAGS, aspectTitle, ledgerLinksOf, meetCards } from "@/lib/charts-meet";
 import { ledgerRows, linkAnchor, type LedgerRow } from "@/lib/ledger";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { PLANET_GLYPHS, PLANET_LABELS, type Lens, type PairInterpretation, type PairTwoCharts } from "@/types/chart";
 
-const TEAL = "#5FB3A1";
-const ROSE = "#D07A8A";
+const TEAL = MEET_COLOURS.comes;
+const ROSE = MEET_COLOURS.challenge;
 const BRASS = "#D4B06A";
 
 export interface TwoChartsLedgerProps {
@@ -55,7 +58,7 @@ function Glyph({ row }: { row: LedgerRow }) {
 function Row({ row, names, claims, counter, hasCard }: { row: LedgerRow; names: { a: string; b: string }; claims: PairTwoCharts["claims"]; counter: CitationCounter; hasCard: boolean }) {
   const reduced = useReducedMotion();
   const label = row.link ? `${PLANET_LABELS[row.link.planetA] ?? row.link.planetA} · ${PLANET_LABELS[row.link.planetB] ?? row.link.planetB}` : "";
-  const title = row.link ? `${names.a}'s ${PLANET_LABELS[row.link.planetA] ?? row.link.planetA}, ${names.b}'s ${PLANET_LABELS[row.link.planetB] ?? row.link.planetB}` : "";
+  const title = row.link ? aspectTitle(row.link.planetA, row.link.planetB, names) : "";
   const open = () => {
     if (!row.link) return;
     const card = document.getElementById(linkAnchor(row.link));
@@ -73,7 +76,7 @@ function Row({ row, names, claims, counter, hasCard }: { row: LedgerRow; names: 
     <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-2 border-t border-[var(--line-soft)] py-4 first:border-t-0 first:pt-2" data-ledger-row>
       <div className="min-w-0">
         {row.link && hasCard
-          ? <button type="button" onClick={open} title={`${title}: read the link card`} aria-label={`${title}: read the link card`} className="block w-[90px] rounded-md p-0 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)]">{glyph}</button>
+          ? <button type="button" onClick={open} title={`${title}: read the card`} aria-label={`${title}: read the card`} className="block w-[90px] rounded-md p-0 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)]">{glyph}</button>
           : row.link ? <span className="block w-[90px]" title={title}>{glyph}</span> : null}
       </div>
       <div className="min-w-0">
@@ -111,23 +114,21 @@ function Column({ title, colour, rows, names, claims, counter, cards }: {
 export function TwoChartsLedger({ s, names, interpretation, lens }: TwoChartsLedgerProps) {
   const counter = newCitationCounter();
   const rows = ledgerRows(s, interpretation, lens);
+  // A glyph scrolls only to a card on view; one past the first three of its tag waits behind Show all.
   const cards = new Set(
-    (interpretation.links?.links ?? [])
-      .filter((l) => l.kind !== "overlay" && l.planetA && l.aspect && l.planetB)
-      .map((l) => linkAnchor({ planetA: l.planetA!, aspect: l.aspect!, planetB: l.planetB! })),
+    meetCards(interpretation.links?.links ?? [], ledgerLinksOf(s), names).lead.flatMap((c) => (c.anchor ? [c.anchor] : [])),
   );
   return (
     <div className="mt-8" data-two-charts-ledger>
       <div className="grid gap-8 min-[760px]:grid-cols-2 min-[760px]:gap-x-10">
-        <Column title="Naturally strong" colour={TEAL} rows={rows.strong} names={names} claims={s.claims} counter={counter} cards={cards} />
-        <Column title="Will take work" colour={ROSE} rows={rows.work} names={names} claims={s.claims} counter={counter} cards={cards} />
+        <Column title={MEET_TAGS.comes} colour={TEAL} rows={rows.strong} names={names} claims={s.claims} counter={counter} cards={cards} />
+        <Column title={MEET_TAGS.challenge} colour={ROSE} rows={rows.work} names={names} claims={s.claims} counter={counter} cards={cards} />
       </div>
       <div className="mx-auto mt-10 max-w-[44ch] text-center" data-paradox>
         <span className="font-label text-[10px] tracking-[0.2em] uppercase text-[var(--paper-dim)]">The paradox</span>
         <span aria-hidden className="mx-auto mt-3 block h-px w-full" style={{ background: `linear-gradient(90deg, ${TEAL}, ${ROSE})` }} />
         <p className="mt-4 font-display italic text-[22px] leading-[1.35] text-[var(--paper)]">{CitedText({ text: s.paradox, claims: s.claims, counter })}</p>
       </div>
-      <p className="rp-pull mx-auto">{CitedText({ text: s.pointer, claims: s.claims, counter })}</p>
     </div>
   );
 }

@@ -2,7 +2,8 @@
 // end to end on a scratch Postgres, with no Clerk and no network — mail goes
 // to a local stub, and every report here is a stored row, never generated,
 // since nothing in this file may call OpenAI (dashboard-sky acceptance 11;
-// credit-loop acceptance 2, 4; ADR-138, 139; MB-84, 103).
+// credit-loop acceptance 2, 4; review-01-10 acceptance 4, 11; ADR-138, 139,
+// 174, 182; MB-84, 103, 110).
 // MB-49 provisional: the ledger this proves is the soft-pass one `consumeCredit`
 // still runs, so this file's checks retire with that pass, not before it.
 //
@@ -70,6 +71,8 @@ const { default: giftsRouter } = await import("../routes/gifts.js");
 const { default: creditsRouter } = await import("../routes/credits.js");
 const { default: checkoutRouter } = await import("../routes/checkout.js");
 const { default: compatibilityRouter } = await import("../routes/compatibility.js");
+const { default: homeRouter } = await import("../routes/home.js");
+const { GetHomeResponse } = await import("@workspace/api-zod");
 
 const q = (sql: string, params: unknown[] = []) => pool.query(sql, params);
 
@@ -90,6 +93,7 @@ app.use("/api", giftsRouter);
 app.use("/api", creditsRouter);
 app.use("/api", checkoutRouter);
 app.use("/api", compatibilityRouter);
+app.use("/api", homeRouter);
 const server = app.listen(0, "127.0.0.1");
 await new Promise<void>((resolve) => server.on("listening", () => resolve()));
 const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
@@ -104,7 +108,9 @@ async function call(who: Viewer, method: string, path: string, body?: unknown) {
   if (who.user) headers["x-user"] = who.user;
   const res = await fetch(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await res.text();
-  return { status: res.status, body: text ? JSON.parse(text) : null };
+  // A route that no longer exists answers Express's own HTML 404, which has no JSON to parse.
+  const json = res.headers.get("content-type")?.includes("application/json");
+  return { status: res.status, body: text && json ? JSON.parse(text) : text || null };
 }
 async function listReports(who: Viewer) {
   const r = await call(who, "GET", "/reports");
@@ -116,6 +122,56 @@ async function listGifts(who: Viewer) {
   assert.equal(r.status, 200);
   return r.body as any[];
 }
+async function readHome(who: Viewer) {
+  const r = await call(who, "GET", "/home");
+  assert.equal(r.status, 200);
+  return GetHomeResponse.parse(r.body);
+}
+async function listProfiles(who: Viewer) {
+  const r = await call(who, "GET", "/profiles");
+  assert.equal(r.status, 200);
+  return (r.body as any[]).map((p) => p.id as string);
+}
+const day = (d: number) => `2026-10-0${d}T09:00:00.000Z`;
+
+// Stored text for the home's lines, pair block, story and practice; words only,
+// no placement, since every placement the walk shows comes from a computed chart.
+const NATAL_TEXT = {
+  superpowers: {
+    superpower: { title: "Steady hands", text: "You stay calm when a plan falls apart. People notice it before you do.", actions: [] },
+    growingEdge: { title: "Asking first", text: "You grow when you ask before you fix. It feels slower, and it is not.", actions: [] },
+  },
+  focus: {
+    practice: {
+      intro: "Growth lives in small asks.",
+      bullets: [
+        { point: "Ask one person this week what they need before you offer help.", why: "you learn what help lands" },
+        { point: "Write down one decision you made too fast, and what you would ask next time.", why: "you slow the reflex" },
+        { point: "Say no once this week without a reason attached.", why: "your yes means more" },
+      ],
+    },
+  },
+};
+const PAIR_TEXT = {
+  meta: { promptVersion: PAIR_PROMPT_VERSION },
+  twoCharts: {
+    headline: "You both decide late and then all at once.",
+    strong: ["You finish what the other starts.", "You keep a promise once it is made.", "Neither of you leaves a room angry."],
+    work: ["Your two speeds train patience on both sides.", "Money talk trains you to say the number first.", "A plan made twice trains you to say it once."],
+    paradox: "The calm that holds you is the calm that hides the plan.",
+    strengths: ["Marie finishes what Audrey starts.", "Audrey says it out loud first.", "Neither leaves a room angry."],
+    claims: [],
+  },
+  partners02: {
+    nextTime: {
+      items: [
+        { for: "A", action: "Say the plan out loud on Thursday, before the weekend fills.", why: "trains saying it once" },
+        { for: "B", action: "Ask for the quiet hour before you need it.", why: "trains asking early" },
+        { for: "both", action: "Pick one evening a week with no plans at all.", why: "trains resting together" },
+      ],
+    },
+  },
+};
 const tokenOf = (m: Mail) => decodeURIComponent(/claim\?token=([^\s"&]+)/.exec(m.text)![1]);
 const row = async (id: string) => (await q("select * from invite_tokens where id = $1", [id])).rows[0];
 const creditRow = async (id: string) => (await q("select status, user_id from credits where id = $1", [id])).rows[0];
@@ -221,6 +277,98 @@ try {
     await q("update reports set status='complete' where id='RO'");
   });
 
+  await step("home: the writer's circle is what GET /reports lists, with each chart's triad, the pair block, the story and the Closing's offer (ADR-174, ADR-182)", async () => {
+    await q("update reports set interpretation = $1 where id = 'RM'", [JSON.stringify(NATAL_TEXT)]);
+    await q("update reports set interpretation = $1 where id = 'RP'", [JSON.stringify(PAIR_TEXT)]);
+    const h = await readHome(GIVER);
+    assert.equal(h.several, false);
+    assert.deepEqual([h.you?.profileId, h.you?.reportId, h.you?.access, h.you?.isSelf], ["PM", "RM", "owner", true]);
+    assert.deepEqual(h.you?.triad?.sun, { sign: marie.planets.sun.sign, degree: marie.planets.sun.degree, house: marie.planets.sun.house });
+    assert.deepEqual(h.you?.triad?.rising, { sign: marie.angles!.ascendant.sign, degree: marie.angles!.ascendant.degree, house: null });
+    assert.deepEqual(h.you?.lines, {
+      superpower: "Steady hands. You stay calm when a plan falls apart.",
+      growingEdge: "Asking first. You grow when you ask before you fix.",
+    });
+    assert.deepEqual(h.people.map((p) => [p.profileId, p.reportId, p.access, p.isSelf, p.lines]), [
+      ["PA", "RA", "owner", false, null], ["PO", "RO", "owner", false, null],
+    ]);
+    assert.equal(h.people[0].triad?.moon.sign, audrey.planets.moon.sign);
+
+    const listed = [...(await listReports(GIVER)).values()];
+    const natalListed = new Set(listed.filter((r) => r.kind === "natal").map((r) => r.profileId));
+    assert.deepEqual(new Set([h.you!.profileId, ...h.people.map((p) => p.profileId)]), natalListed);
+    assert.deepEqual(new Set(h.pairs.map((p) => p.reportId)), new Set(listed.filter((r) => r.kind === "compatibility").map((r) => r.id)));
+
+    assert.deepEqual(h.pairs.find((p) => p.reportId === "RP"), {
+      reportId: "RP", lens: "partners", label: null,
+      a: { profileId: "PM", name: "Marie Curie" }, b: { profileId: "PA", name: "Audrey Hepburn" },
+      status: "complete", stoppedBy: null,
+      strong: PAIR_TEXT.twoCharts.strong, challenge: PAIR_TEXT.twoCharts.work[0],
+      story: { headline: PAIR_TEXT.twoCharts.headline, strengths: PAIR_TEXT.twoCharts.strengths },
+    });
+    const first = NATAL_TEXT.focus.practice.bullets[0];
+    assert.deepEqual(h.practising, [{
+      reportId: "RM", kind: "natal", key: "focus.practice.bullets.0", action: first.point, why: first.why, pinned: false, ticked: false,
+    }]);
+
+    const empty = { you: null, several: false, people: [], pairs: [], practising: [] };
+    assert.deepEqual(await readHome(STRANGER), empty);
+    assert.deepEqual(await readHome(ANON), empty);
+    assert.deepEqual(await readHome(SUBJECT), empty);
+  });
+
+  await step("pins: a pair's Next time tick saves, a pin round-trips through GET /home, a fourth answers pin_limit even in a race (ADR-174, MB-110)", async () => {
+    const items = PAIR_TEXT.partners02.nextTime.items;
+    const patchRP = (body: Record<string, string | null>) => call(GIVER, "PATCH", "/reports/RP/workbook", body);
+    const storedRP = async () => (await q("select workbook from reports where id = 'RP'")).rows[0].workbook as Record<string, string>;
+    const pinKeys = (workbook: Record<string, string>) => Object.keys(workbook).filter((k) => k.startsWith("pin."));
+
+    assert.equal((await patchRP({ "partners02.nextTime.items.0": day(1) })).status, 200);
+    const ticks = await Promise.all([patchRP({ "partners02.nextTime.items.1": day(1) }), patchRP({ "partners02.nextTime.items.2": day(1) })]);
+    assert.deepEqual(ticks.map((t) => t.status), [200, 200]);
+    assert.deepEqual(Object.keys(await storedRP()).sort(), ["partners02.nextTime.items.0", "partners02.nextTime.items.1", "partners02.nextTime.items.2"]);
+
+    const pinned = await patchRP({ "pin.partners02.nextTime.items.0": day(1) });
+    assert.equal(pinned.status, 200);
+    assert.equal(pinned.body["pin.partners02.nextTime.items.0"], day(1));
+    let h = await readHome(GIVER);
+    assert.deepEqual(h.practising.map((p) => [p.reportId, p.key, p.pinned, p.ticked]), [
+      ["RP", "partners02.nextTime.items.0", true, true], ["RM", "focus.practice.bullets.0", false, false],
+    ]);
+    assert.deepEqual([h.practising[0].action, h.practising[0].why], [`Marie: ${items[0].action}`, items[0].why]);
+
+    assert.equal((await call(GIVER, "PATCH", "/reports/RM/workbook", { "pin.focus.practice.bullets.2": day(2) })).status, 200);
+    assert.equal((await patchRP({ "pin.partners02.nextTime.items.1": day(3) })).status, 200);
+    const raced = await Promise.all([patchRP({ "pin.partners03.nextTime.items.0": day(4) }), patchRP({ "pin.partners03.nextTime.items.1": day(4) })]);
+    assert.deepEqual(raced.map((r) => r.status).sort(), [200, 400]);
+    assert.equal(raced.find((r) => r.status === 400)?.body.error, "pin_limit");
+    assert.equal(pinKeys(await storedRP()).length, 3);
+
+    const fourth = await patchRP({ "pin.partners02.nextTime.items.2": day(4), "partners03.nextTime.items.0": day(4) });
+    assert.equal(fourth.status, 400);
+    assert.equal(fourth.body.error, "pin_limit");
+    assert.equal((await storedRP())["partners03.nextTime.items.0"], undefined);
+
+    const won = pinKeys(await storedRP()).find((k) => k.startsWith("pin.partners03."))!;
+    assert.equal((await patchRP({ [won]: null, "pin.partners02.nextTime.items.2": day(5) })).status, 200);
+    for (const bad of ["pin.pin.partners02.nextTime.items.0", "pin.partners02"]) {
+      assert.equal((await patchRP({ [bad]: day(5) })).status, 400, bad);
+    }
+    assert.equal((await call(STRANGER, "PATCH", "/reports/RP/workbook", { "pin.partners02.nextTime.items.0": day(5) })).status, 404);
+
+    h = await readHome(GIVER);
+    assert.deepEqual(h.practising.map((p) => [p.reportId, p.key, p.pinned, p.ticked]), [
+      ["RP", "partners02.nextTime.items.0", true, true], ["RM", "focus.practice.bullets.2", true, false],
+      ["RP", "partners02.nextTime.items.1", true, true], ["RP", "partners02.nextTime.items.2", true, true],
+    ]);
+    assert.deepEqual(h.practising.slice(2).map((p) => p.action), [`Audrey: ${items[1].action}`, `Both: ${items[2].action}`]);
+  });
+
+  await step("R12-13: nothing writes a scene on tap, so the live pair's own reader gets a 404 where its summary answers 200 (ADR-176)", async () => {
+    assert.equal((await call(GIVER, "GET", "/compatibility/RP/summary")).status, 200);
+    assert.equal((await call(GIVER, "POST", "/compatibility/RP/scenes", { chapter: "partners02", index: 0 })).status, 404);
+  });
+
   await step("send a natal report; the claimer reads, lists and works it (MB-84)", async () => {
     const sent = await call(GIVER, "POST", "/invites", { profileId: "PA", email: "subject@example.com" });
     assert.equal(sent.status, 201);
@@ -256,6 +404,15 @@ try {
     assert.equal(asGiver.body.giverName, null);
   });
 
+  await step("home: a claimed report marked as theirs sits at its subject's centre, and its giver still seats them (ADR-182)", async () => {
+    const s = await readHome(SUBJECT);
+    assert.deepEqual([s.you?.profileId, s.you?.reportId, s.you?.access, s.you?.isSelf], ["PA", "RA", "claimed", true]);
+    assert.deepEqual(s.you?.triad?.sun, { sign: audrey.planets.sun.sign, degree: audrey.planets.sun.degree, house: audrey.planets.sun.house });
+    assert.deepEqual([s.people, s.pairs, s.practising], [[], [], []]);
+    const g = await readHome(GIVER);
+    assert.deepEqual(g.people.find((p) => p.profileId === "PA")?.access, "owner");
+  });
+
   await step("a pair to a joined person is granted at once, and stops at once when its sender stops sharing", async () => {
     // PA is already claimed by SUBJECT, so this second pair's Send grants
     // it at once rather than minting an invite (reading 11, MB-82).
@@ -280,6 +437,12 @@ try {
     assert.equal(patched.body.isSelf, false);
   });
 
+  await step("home: Not me leaves a sent report in the circle as a person, not at the centre (reading 6)", async () => {
+    const s = await readHome(SUBJECT);
+    assert.equal(s.you, null);
+    assert.deepEqual(s.people.map((p) => [p.profileId, p.access, p.isSelf]), [["PA", "claimed", false]]);
+  });
+
   await step("Stop sharing a claimed chart ends the giver's reading at once", async () => {
     assert.equal((await call(SUBJECT, "POST", "/profiles/PA/stop-sharing")).status, 204);
     assert.equal((await call(GIVER, "GET", "/reports/RA")).status, 404);
@@ -297,7 +460,25 @@ try {
     assert.equal((await call(GIVER, "GET", "/reports/RP/status")).status, 404);
   });
 
-  await step("R10-23: the closed pair also 404s on compatibility summary and scenes", async () => {
+  await step("home: after Stop sharing the giver's GET /home, /profiles and /reports drop them, and the pair with them closes (ADR-182, MB-103)", async () => {
+    const g = await readHome(GIVER);
+    assert.equal(g.you?.profileId, "PM");
+    assert.deepEqual(g.people.map((p) => p.profileId), ["PO"]);
+    for (const id of ["RP", "RP2"]) {
+      const closed = g.pairs.find((p) => p.reportId === id);
+      assert.deepEqual([closed?.stoppedBy, closed?.strong, closed?.challenge, closed?.story], ["Audrey", [], null, null], id);
+    }
+    assert.deepEqual(g.practising.map((p) => [p.reportId, p.key]), [["RM", "focus.practice.bullets.2"]]);
+    assert.ok(!(await listProfiles(GIVER)).includes("PA"));
+    assert.ok(!(await listReports(GIVER)).has("RA"));
+    assert.equal((await call(GIVER, "PATCH", "/reports/RP/workbook", { "pin.partners02.nextTime.items.2": day(5) })).status, 404);
+
+    const s = await readHome(SUBJECT);
+    assert.deepEqual(s.people.map((p) => [p.profileId, p.access]), [["PA", "claimed"]]);
+    assert.deepEqual(s.pairs, []);
+  });
+
+  await step("R10-23, R12-13: the closed pair 404s on compatibility summary, and the scene route that stood beside it is gone", async () => {
     assert.equal((await call(GIVER, "GET", "/compatibility/RP/summary")).status, 404);
     assert.equal((await call(GIVER, "POST", "/compatibility/RP/scenes", { chapter: "partners02", index: 0 })).status, 404);
   });

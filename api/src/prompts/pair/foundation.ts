@@ -4,8 +4,6 @@ import type { PairSectionSpec } from "./shapes.js";
 import { cardLineChecks, lensContext, ratingChecks, proseText } from "./shapes.js";
 import { fixed, warned, type Check, type Validated } from "../checks.js";
 
-/** The lens chapters are 2 to 6; chapter 1 is the two charts and 7 the practice. */
-export const LENS_CHAPTERS = [2, 3, 4, 5, 6] as const;
 /** At most this many chapters own one link (ADR-66). */
 export const OWNERS_PER_LINK = 2;
 
@@ -22,10 +20,6 @@ export const PairFoundationSchema = z.object({
     link: z.int().describe("the link's number in the LINKS list"),
     chapters: z.array(z.int()).min(1).max(2).describe("the chapter numbers, 1 to 6, that may cite this link; at most two"),
   })).describe("every link in the LINKS list, once, with the chapters it belongs to"),
-  scenes: z.array(z.object({
-    chapter: z.int().describe("a lens chapter, 2 to 6"),
-    index: z.int().describe("which of that chapter's three listed scenes fits this pair: 0, 1 or 2"),
-  })).min(5).max(5).describe("one entry per lens chapter, 2 to 6"),
   guidance: z.array(z.string()).min(7).max(7).describe("one sentence per chapter, 1 to 7 in order: the single thing it must establish"),
 });
 export type PairFoundationOutput = z.infer<typeof PairFoundationSchema>;
@@ -50,9 +44,8 @@ export function allocationOf(out: PairFoundationOutput, brief: PairBrief, chapte
 /**
  * The foundation reconciled in code (annex rows 37, 38): numbers out of the
  * list dropped, duplicate owners merged, a link given to too many chapters
- * cut, a link given to none given the nearest link's chapters, a chapter
- * with no chosen scene given scene 0. Rating words and thin chapters are
- * logged; chapter 01 re-checks what prints.
+ * cut, a link given to none given the nearest link's chapters. Rating words
+ * and thin chapters are logged; chapter 01 re-checks what prints.
  */
 export function foundationChecks(out: PairFoundationOutput, brief: PairBrief): Validated<PairFoundationOutput> {
   const checks: Check[] = ratingChecks(proseText(out)).map((c) => warned("chk-37", c.message));
@@ -104,18 +97,11 @@ export function foundationChecks(out: PairFoundationOutput, brief: PairBrief): V
     }
   }
 
-  const scenes = LENS_CHAPTERS.map((chapter) => {
-    const picked = out.scenes.find((s) => s.chapter === chapter);
-    if (!picked) { checks.push(fixed("chk-38", `scenes: chapter ${chapter} has no chosen scene; scene 0`)); return { chapter, index: 0 }; }
-    if (picked.index < 0 || picked.index > 2) { checks.push(fixed("chk-38", `scenes: chapter ${chapter} picks scene ${picked.index}; the three are 0, 1 and 2; scene 0`)); return { chapter, index: 0 }; }
-    return { chapter, index: picked.index };
-  });
   const output: PairFoundationOutput = {
     ...out,
     strongestLinks,
     strengths,
     owners: [...owners.entries()].sort((a, b) => a[0] - b[0]).map(([link, chapters]) => ({ link, chapters })),
-    scenes,
   };
   return { output, checks };
 }
@@ -139,5 +125,5 @@ export const pairFoundation: PairSectionSpec<typeof PairFoundationSchema> = {
 
 Name the three strongest links by their number in the LINKS list, with one sentence each on what they do between these two people on an ordinary day from the lens register. Name the one friction that matters and what it trains. Write the pair's three strengths as card lines: twelve words at most, naming only the two people, no body, no number.
 
-Give every link to one or two of chapters 1 to 6 (owners): chapter 1 is Your two charts and needs at least three links for its strong lines; chapters 2 to 6 are the lens chapters listed under CHAPTERS and each needs at least one link for its pattern. Chapter 7 collects the others' items and owns no link. A link given to two chapters is read from two angles; a link given to none is wasted. Then pick, for each lens chapter, which of its three listed scenes fits this pair best (0, 1 or 2). Give each of the seven chapters one distinct thing to establish, in order. No score, rating or number describes the pair. The style contract does not apply to this internal output, but keep it evidence-based and free of generic labels.`,
+Give every link to one or two of chapters 1 to 6 (owners): chapter 1 is Your two charts and needs at least three links for its strong lines; chapters 2 to 6 are the lens chapters listed under CHAPTERS, each with the one scene it plays out, and each needs at least one link for its pattern. Chapter 7 collects the others' items and owns no link. A link given to two chapters is read from two angles; a link given to none is wasted. Give each of the seven chapters one distinct thing to establish, in order. No score, rating or number describes the pair. The style contract does not apply to this internal output, except rule 13: chapter 1's card carries your three strengths and every chapter picks up your words, so write the whole handoff in the same plain words as the report. Keep it evidence-based and free of generic labels.`,
 };

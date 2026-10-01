@@ -1,13 +1,12 @@
-import { BUNDLES, formatEuro } from "@workspace/commerce";
-import { CreditDots } from "@/components/dashboard/CreditPill";
-import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
+import { BundleList } from "@/components/BundleList";
 import { ReportCta } from "../cta";
 
 /**
- * The three bundles from the one catalogue, above the questions (ADR-118, ADR-142, R-6.3), drawn as the credits sheet
- * draws them so the buyer meets the same rows again. Nothing is bought here: the one button is Get my report, which
- * opens the waitlist before launch and the birth form after it (reading 13). Offers are R12's, and never counted down
- * (ADR-146).
+ * The three bundles from the one catalogue, above the questions (ADR-118, R-6.3), drawn by the list the credits sheet
+ * draws so the buyer meets the same rows again (ADR-172): Couple and Family & friends at a launch price against the struck
+ * Singles total, with no end date until the Owner sets one (ADR-168, 169). The list's foot says what a credit buys, so the
+ * lede doesn't say it twice (ADR-170). Nothing is bought here: the one button is Get my report, which opens the waitlist
+ * before launch and the birth form after it (reading 13).
  */
 export default function Pricing() {
   return (
@@ -18,29 +17,11 @@ export default function Pricing() {
           <h2 className="sd-h2" id="price-h">
             What a report costs
           </h2>
-          <p className="sd-sub">
-            You pay once, with no subscription. Each report uses one credit, whether it's a {PERSONAL_REPORT} or a{" "}
-            {COMPATIBILITY_REPORT}.
-          </p>
+          <p className="sd-sub">You pay once, with no subscription.</p>
         </div>
-        <div>
-          <ul className="divide-y divide-[color:var(--line-soft)] rounded-[18px] border border-[color:var(--line)] bg-[rgba(17,22,31,.62)]">
-            {BUNDLES.map((bundle) => (
-              <li
-                key={bundle.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-2 px-5 py-5 min-[560px]:px-6"
-              >
-                <CreditDots count={bundle.credits} className="col-start-1 row-start-1" />
-                <h3 className="col-start-1 row-start-2 text-[26px] leading-tight">{bundle.name}</h3>
-                <p className="sd-mono col-start-2 row-span-3 row-start-1 text-[26px] leading-none text-[color:var(--paper-hi)]">
-                  {formatEuro(bundle.cents)}
-                </p>
-                <p className="col-start-1 row-start-3 text-[15px] leading-normal text-[color:var(--paper-dim)]">{bundle.line}</p>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-            <p className="sd-tag">VAT included</p>
+        <div className="max-w-[620px]">
+          <BundleList />
+          <div className="mt-6 flex">
             <ReportCta source="pricing" className="sd-btn" />
           </div>
         </div>

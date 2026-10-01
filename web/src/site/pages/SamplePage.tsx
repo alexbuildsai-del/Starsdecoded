@@ -1,37 +1,41 @@
 /**
- * /sample (annex /sample, ADR-119): the sample's stored run read end to end as
- * a Personal natal report. The chapters stand in the report page's order and
- * each chapter's blocks in the order the sample module reads them, so every
- * claim is marked in place with its number in reading order, in the lists and
- * checklists too, where the report page leaves them unmarked. A mark opens the
- * report's own evidence card: beside the line on a wide screen, R10's bottom
- * sheet on a phone. Everything but the card is in the prerendered HTML.
+ * /sample (annex /sample, ADR-119, ADR-178): four of the stored run's ten
+ * chapters read whole, in the report page's order, and the other six dimmed
+ * where they fall, one line each, each opening to its first paragraph. Every
+ * claim the page prints is marked in place with its number in reading order,
+ * in a dimmed chapter's paragraph too. A mark opens the report's own evidence
+ * card: beside the line on a wide screen, R10's bottom sheet on a phone.
+ * Chapter 2 is the report's own House by House deck on her chart. The page
+ * ends on the two differences (ADR-173), then Get my report. Everything but
+ * the card is in the prerendered HTML.
  */
 import {
   Fragment, createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type CSSProperties, type KeyboardEvent, type ReactNode,
 } from "react";
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { Link } from "wouter";
-import { NatalWheel } from "@/components/chart/NatalWheel";
-import { houseSign } from "@/components/chart/wheel-geometry";
+import { Checklist, localTicks, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
 import { EvidenceCard } from "@/components/report/EvidenceCard";
+import { HouseDeck } from "@/components/report/HouseDeck";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { CHAPTERS, type ChapterSection } from "@/lib/chapters";
-import { HOUSE_NAMES, ORDINALS, withHouseWords } from "@/lib/evidence-glossary";
-import { houseOccupants } from "@/lib/house-occupants";
 import { plainProse } from "@/lib/plain-prose";
-import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { skySentence } from "@/lib/sky-now";
 import { cn } from "@/lib/utils";
-import type { ActionItem, ChartData, Claim, Interpretation, ListedItem } from "@/types/chart";
-import { SAMPLE_TITLE_ID, SampleHead } from "../components/SampleHead";
-import { SampleRail, chapterId } from "../components/SampleRail";
+import { itemKey } from "@/lib/workbook";
+import type { ActionItem, ChartData, Claim, Interpretation, SuperpowerItem } from "@/types/chart";
+import { SAMPLE_KICKER_ID, SAMPLE_TITLE_ID, SampleHead } from "../components/SampleHead";
+import { RAIL_STRIP, SampleRail, chapterId } from "../components/SampleRail";
 import { ReportCta } from "../cta";
-import { SAMPLE, chapterTexts, claimsInReadingOrder, printedParagraphs, quoteNeedle, sampleChart, type ClaimSection } from "../data/sample";
+import {
+  CLAIMS_OF, DIMMED_LINES, DIMMED_STATUS, SAMPLE, isOpenChapter, markedClaims, printedParagraphs, quoteNeedle, sampleChart,
+  sampleTexts, type DimmedChapter, type OpenChapter,
+} from "../data/sample";
+import Differences from "../sections/Differences";
 import { SiteLayout } from "../SiteLayout";
 import { pageFor } from "../site";
 
@@ -49,18 +53,18 @@ type Run = string | Cite;
 type Printed = Run[][];
 
 const two = (n: number) => String(n).padStart(2, "0");
+const counter = (n: number) => `${two(n)} / ${two(CHAPTERS.length)}`;
 const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
-const claimSectionOf = (section: ChapterSection): ClaimSection => (section === "houses" ? "triad" : section);
 
 // The sample module's reading order, walked again to cut each text at its marks: hits in a paragraph left to right,
 // one inside another skipped, each claim marked once in its chapter and numbered from 1 in it.
 function printChapter(section: ChapterSection): Printed[] {
-  const owner = claimSectionOf(section);
-  const claims = SAMPLE.run[owner]?.claims ?? [];
+  const owner = CLAIMS_OF[section];
+  const claims = owner ? (SAMPLE.run[owner]?.claims ?? []) : [];
   const needles = claims.map(quoteNeedle);
   const marked = new Set<number>();
   let n = 0;
-  return chapterTexts(section).map((text) => {
+  return sampleTexts(section).map((text) => {
     const hays = printedParagraphs(text);
     const shown = plainProse(text).split(/\n{2,}/).map(collapse).filter(Boolean);
     return shown.map((display, p) => {
@@ -88,16 +92,17 @@ function printChapter(section: ChapterSection): Printed[] {
 
 let printedCache: Printed[][] | undefined;
 
-// Throws rather than print a claim unmarked or misnumbered, so the prerender fails the build instead (acceptance: 63 of 63).
+// Throws rather than print a claim unmarked or misnumbered, so the prerender fails the build instead: the marks the page
+// cuts must be the claims data/sample.ts counts in what the page prints, one for one.
 function printedChapters(): Printed[][] {
   if (printedCache) return printedCache;
   const chapters = CHAPTERS.map((c) => printChapter(c.section));
   const marks = chapters.flatMap((texts, i) =>
     texts.flat(2).flatMap((run) => (typeof run === "string" ? [] : [`${i + 1}:${run.n}:${run.id}`])),
   );
-  const expected = claimsInReadingOrder().map((c) => `${c.chapter}:${c.n}:${c.id}`);
+  const expected = markedClaims().map((c) => `${c.chapter}:${c.n}:${c.id}`);
   if (marks.join() !== expected.join()) {
-    throw new Error(`/sample marks ${marks.length} claims where data/sample.ts anchors ${expected.length} in reading order: the two have drifted apart.`);
+    throw new Error(`/sample marks ${marks.length} claims where data/sample.ts counts ${expected.length} printed in reading order: the two have drifted apart.`);
   }
   printedCache = chapters;
   return chapters;
@@ -111,7 +116,7 @@ interface Reader {
 // A chapter hands its texts out in the module's order only, so a block moved on the page fails the build rather than
 // quietly numbering its marks out of reading order.
 function reader(index: number): Reader {
-  const texts = chapterTexts(CHAPTERS[index].section);
+  const texts = sampleTexts(CHAPTERS[index].section);
   const chapter = printedChapters()[index];
   let at = 0;
   return {
@@ -179,22 +184,10 @@ function Words({ printed: text }: { printed: Printed }) {
   );
 }
 
-// A why reads as a sentence on its own line, capitalised and closed by the page, as the report's checklists print it (ADR-62).
-function asSentence(text: Printed): Printed {
-  if (text.length !== 1 || text[0].length === 0) return text;
-  const runs = [...text[0]];
-  const first = runs[0];
-  if (typeof first === "string") runs[0] = first.charAt(0).toUpperCase() + first.slice(1);
-  const last = runs[runs.length - 1];
-  if (!/[.!?]$/.test(typeof last === "string" ? last : last.text)) runs.push(".");
-  return [runs];
-}
-
 const LABEL = "font-label text-[11px] font-medium uppercase leading-[1.2] tracking-[.18em] text-[color:var(--sd-muted)]";
 const PROSE = "text-[16.5px] leading-[1.75] text-[color:var(--paper-dim)] max-[760px]:text-base";
 const CARD = "grid content-start gap-2 rounded-[14px] border border-[color:var(--line)] bg-[rgba(17,22,31,.45)] p-4";
 const TITLE = "text-2xl leading-tight";
-const ITEM = "rounded-[10px] border border-[color:var(--line-soft)] bg-[rgba(17,22,31,.45)] px-3.5 py-3 text-[15.5px] leading-[1.55] text-[color:var(--paper)]";
 
 function Lede({ printed: text }: { printed: Printed }) {
   return (
@@ -215,135 +208,21 @@ function Block({ label, printed: text }: { label: string; printed: Printed }) {
   );
 }
 
-interface Item {
-  main: Printed;
-  why?: Printed;
-}
+const hasMark = (text: Printed) => text.some((runs) => runs.some((run) => typeof run !== "string"));
 
-function ItemList({ items }: { items: Item[] }) {
-  return (
-    <ul className="m-0 grid list-none gap-2.5 p-0">
-      {items.map((item, i) => (
-        <li key={i} className={ITEM}>
-          <Words printed={item.main} />
-          {item.why && (
-            <span className="mt-0.5 block text-sm text-[color:var(--sd-muted)]">
-              <Words printed={asSentence(item.why)} />
-            </span>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Items({ label, items, heading: Heading = "h3" }: { label: string; items: Item[]; heading?: "h3" | "h4" }) {
-  return (
-    <div className="grid gap-2">
-      <Heading className={LABEL}>{label}</Heading>
-      <ItemList items={items} />
-    </div>
-  );
-}
-
-function Listed({ label, items }: { label: string; items: { item: Printed; reason: Printed }[] }) {
-  return (
-    <div className="grid gap-2">
-      <h3 className={LABEL}>{label}</h3>
-      <ul className="m-0 grid list-none gap-2.5 p-0">
-        {items.map((entry, i) => (
-          <li key={i} className={ITEM}>
-            <Words printed={entry.item} />
-            <span className="text-[color:var(--paper-dim)]">
-              : <Words printed={entry.reason} />
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-const actions = (xs: ActionItem[], r: Reader): Item[] => xs.map((a) => ({ main: r.take(a.action), why: r.take(a.why) }));
-const listed = (xs: ListedItem[], r: Reader) => xs.map((l) => ({ item: r.take(l.item), reason: r.take(l.reason) }));
-
-interface TriadCard {
-  key: string;
-  label: string;
-  house?: number;
-  text: Printed;
-}
-
-interface HouseText {
-  house: number;
-  text: Printed;
-}
-
-// Chapter 2's picture, paired as the report's explorer pairs them: her wheel held in view beside the triad and the twelve
-// house cards while they scroll, and each card lighting its house on it.
-function HouseChart({ chart, triad, houses }: { chart: ChartData; triad: TriadCard[]; houses: HouseText[] }) {
-  const [lit, setLit] = useState(0);
-  const asc = chart.angles?.ascendant.absoluteDegree;
-  const lights = (house?: number) => {
-    const on = () => {
-      if (house) setLit(house);
-    };
-    const off = () => {
-      if (house) setLit((was) => (was === house ? 0 : was));
-    };
-    return { onPointerEnter: on, onPointerLeave: off, onFocus: on, onBlur: off };
-  };
-  const litCard = (house?: number) => cn(CARD, "transition-colors", house !== undefined && lit === house && "border-[color:rgba(159,168,218,.55)] bg-[rgba(92,107,192,.08)]");
-
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] items-start gap-8 max-[760px]:grid-cols-1 max-[760px]:gap-6">
-      <div className="sticky top-[calc(var(--nav)+24px)] max-[1000px]:top-[calc(var(--nav)+72px)] max-[760px]:static max-[760px]:w-full max-[760px]:max-w-[460px]">
-        <NatalWheel chartData={chart} orbs={SAMPLE.run.meta.orbs} selectedHouse={lit} onSelectHouse={setLit} />
-        <p className="sr-only">{`${SAMPLE.name}'s birth chart: ${skySentence(chart)}`}</p>
-      </div>
-      <div className="grid min-w-0 gap-3">
-        {triad.map((t) => (
-          <div key={t.key} className={litCard(t.house)} {...lights(t.house)}>
-            <p className="font-numeric text-[10.5px] font-medium uppercase leading-[1.4] tracking-[.1em] text-[color:var(--sd-brass)]">{t.label}</p>
-            <p className="text-[15px] leading-[1.65] text-[color:var(--paper-dim)]">
-              <Words printed={t.text} />
-            </p>
-          </div>
-        ))}
-        {asc !== undefined && houses.length > 0 && (
-          <>
-            <h3 className={cn(LABEL, "mt-5")}>Your twelve houses</h3>
-            {houses.map(({ house, text }) => {
-              const i = house - 1;
-              const planets = houseOccupants(chart, house).filter((o) => o.kind === "planet");
-              return (
-                <article key={house} tabIndex={0} aria-labelledby={`sd-house-${house}`} className={cn(litCard(house), "gap-1.5")} {...lights(house)}>
-                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-numeric text-[10.5px] font-medium uppercase leading-[1.4] tracking-[.12em] text-[color:var(--sd-brass)]">
-                    {ORDINALS[i]} house · {houseSign(house, asc)}
-                    {planets.map((o) => (
-                      <img key={o.key} src={PLANET_RENDERS[o.key]} alt={o.label} width={18} height={18} className="h-[18px] w-[18px]" />
-                    ))}
-                  </p>
-                  <h4 id={`sd-house-${house}`} className="text-[20px] leading-[1.2] text-[color:var(--paper)]">
-                    {HOUSE_NAMES[i]}
-                  </h4>
-                  <p className="text-[14.5px] leading-[1.65] text-[color:var(--paper-dim)]">
-                    <Words printed={text} />
-                  </p>
-                </article>
-              );
-            })}
-          </>
-        )}
-      </div>
-    </div>
-  );
+// A thing to try carries the one tick box (ADR-172), which prints its words plain: a claim inside one would go unmarked,
+// so the build stops instead.
+function tryItems(section: string, path: string, actions: ActionItem[], r: Reader): ChecklistItem[] {
+  return actions.map((a, i) => {
+    if ([r.take(a.action), r.take(a.why)].some(hasMark)) throw new Error(`/sample would print a claim unmarked in ${section}'s ${path}.`);
+    return { key: itemKey(section, path, i), action: a.action, why: a.why };
+  });
 }
 
 type Body = (run: Interpretation, r: Reader, chart: ChartData) => ReactNode;
 
 // Labels are the report page's own where it has them; the overview's five fields share chapter 1 here (data/sample.ts).
-const BODIES: Record<ChapterSection, Body> = {
+const BODIES: Record<OpenChapter, Body> = {
   overview: ({ overview: s }, r) =>
     s && (
       <>
@@ -356,81 +235,37 @@ const BODIES: Record<ChapterSection, Body> = {
         </p>
       </>
     ),
-  houses: ({ triad, houses }, r, chart) => {
-    const cards = triad
-      ? [
-          { key: "sun", label: withHouseWords(triad.sun.label), house: chart.planets.sun?.house, text: r.take(triad.sun.text) },
-          { key: "moon", label: withHouseWords(triad.moon.label), house: chart.planets.moon?.house, text: r.take(triad.moon.text) },
-          ...(triad.rising ? [{ key: "rising", label: withHouseWords(triad.rising.label), house: 1, text: r.take(triad.rising.text) }] : []),
-        ]
-      : [];
-    const readings = (houses?.houses ?? []).map((h) => ({ house: h.house, text: r.take(h.reading) }));
-    return <HouseChart chart={chart} triad={cards} houses={readings} />;
+  houses: ({ houses, meta }, r, chart) => {
+    const readings = houses?.houses ?? [];
+    // The deck draws each reading itself and a house reading carries no claim; taking them in turn still holds the deck to
+    // the module's texts, so a passage added there and not here fails the build.
+    for (const h of readings) r.take(h.reading);
+    return (
+      <>
+        <p className="sr-only">{`${SAMPLE.name}'s birth chart: ${skySentence(chart)}`}</p>
+        <HouseDeck chart={chart} readings={readings} counter={counter(2)} orbs={meta.orbs} />
+      </>
+    );
   },
-  mind: ({ mind: s }, r) =>
-    s && (
-      <>
-        <Block label="How you think" printed={r.take(s.howYouThink)} />
-        <Block label="How you decide" printed={r.take(s.howYouDecide)} />
-        <Block label="How you are understood" printed={r.take(s.howYouAreUnderstood)} />
-        <Items label="Practice this week" items={[{ main: r.take(s.practice) }]} />
-      </>
-    ),
-  career: ({ career: s }, r) =>
-    s && (
-      <>
-        <Block label="Vocational pull" printed={r.take(s.vocationalPull)} />
-        <Block label="How you show up" printed={r.take(s.howYouShowUp)} />
-        <Block label="Growth through work" printed={r.take(s.growthThroughWork)} />
-        <Items label="What to do" items={actions(s.actions, r)} />
-        <Listed label="Career paths" items={listed(s.careerPaths, r)} />
-      </>
-    ),
-  money: ({ money: s }, r) =>
-    s && (
-      <>
-        <Block label="Your relationship to resources" printed={r.take(s.relationshipToResources)} />
-        <Block label="What works, and what does not" printed={r.take(s.whatWorks)} />
-        <Block label="Shared money and exposure" printed={r.take(s.sharedAndExposed)} />
-        <Items label="What to do" items={actions(s.actions, r)} />
-      </>
-    ),
-  relationships: ({ relationships: s }, r) =>
-    s && (
-      <>
-        <Block label="How you love" printed={r.take(s.howYouLove)} />
-        <Block label="The challenge" printed={r.take(s.theChallenge)} />
-        <Block label="What partnership asks of you" printed={r.take(s.whatPartnershipAsks)} />
-        <Items label="What to do" items={actions(s.actions, r)} />
-        <Listed label="You connect best with" items={listed(s.connectBestWith, r)} />
-      </>
-    ),
-  family: ({ family: s }, r) =>
-    s && (
-      <>
-        <Block label="What you carry" printed={r.take(s.whatYouCarry)} />
-        <Block label="What roots you" printed={r.take(s.whatRootsYou)} />
-        <Block label="The inherited edge" printed={r.take(s.theInheritedEdge)} />
-        <Items label="What to do" items={actions(s.actions, r)} />
-      </>
-    ),
   superpowers: ({ superpowers: s }, r) => {
     if (!s) return null;
-    const trio = [
-      { kicker: "Your superpower", heading: "How to use it", item: s.superpower },
-      { kicker: "The pattern you will always navigate", heading: "How to manage it", item: s.chronicPattern },
-      { kicker: "Your growing edge", heading: "Practice this week", item: s.growingEdge },
-    ].map((t) => ({ ...t, text: r.take(t.item.text), items: actions(t.item.actions, r) }));
+    const trio: { kicker: string; heading: ChecklistHeading; path: string; item: SuperpowerItem }[] = [
+      { kicker: "Your superpower", heading: "How to use it", path: "superpower.actions", item: s.superpower },
+      { kicker: "The pattern you will always navigate", heading: "How to manage it", path: "chronicPattern.actions", item: s.chronicPattern },
+      { kicker: "Your growing edge", heading: "Practice this week", path: "growingEdge.actions", item: s.growingEdge },
+    ];
+    const cards = trio.map((t) => ({ ...t, text: r.take(t.item.text), items: tryItems("superpowers", t.path, t.item.actions, r) }));
     return (
       <div className="grid gap-3.5">
-        {trio.map((t) => (
+        {cards.map((t) => (
           <div key={t.kicker} className={cn(CARD, "gap-2.5 p-[18px]")}>
             <p className={LABEL}>{t.kicker}</p>
             <h3 className={TITLE}>{t.item.title}</h3>
             <p className={PROSE}>
               <Words printed={t.text} />
             </p>
-            <Items label={t.heading} items={t.items} heading="h4" />
+            {/* Ticks stay in this page's memory, as the site's other things to try do; nothing is sent. */}
+            <Checklist heading={t.heading} items={t.items} store={localTicks()} />
           </div>
         ))}
       </div>
@@ -460,42 +295,17 @@ const BODIES: Record<ChapterSection, Body> = {
       </>
     );
   },
-  focus: ({ focus: s }, r) => {
-    if (!s) return null;
-    const groups = (
-      [
-        ["Lean into", s.leanInto],
-        ["Notice", s.notice],
-        ["Practice", s.practice],
-      ] as const
-    ).map(([label, g]) => ({ label, intro: r.take(g.intro), items: g.bullets.map((b) => ({ main: r.take(b.point), why: r.take(b.why) })) }));
-    const closing = r.take(s.closing);
-    return (
-      <>
-        {groups.map((g) => (
-          <div key={g.label} className="grid gap-2">
-            <h3 className={LABEL}>{g.label}</h3>
-            <p className={PROSE}>
-              <Words printed={g.intro} />
-            </p>
-            <div className="mt-1">
-              <ItemList items={g.items} />
-            </div>
-          </div>
-        ))}
-        {/* Upright, as the report prints its closing (natal-report-pass-two), in paper (ADR-46). */}
-        <p className="font-display text-[24px] leading-[1.5] text-[color:var(--paper)]">
-          <Words printed={closing} />
-        </p>
-      </>
-    );
-  },
 };
 
-function ChapterSection({ index, chart }: { index: number; chart: ChartData }) {
+// Under the strip of chapter chips on a narrow screen, so a chapter the rail jumps to starts below it.
+const ANCHOR = "max-[1000px]:scroll-mt-[calc(var(--nav)+var(--rail-strip)+16px)]";
+// An open chapter or a run of dimmed ones, each closed by the same rule and space, the last by none.
+const STRETCH = "mb-14 border-b border-[color:var(--line-soft)] pb-[72px] last:mb-0 last:border-b-0 last:pb-0";
+
+function ChapterSection({ index, section, chart }: { index: number; section: OpenChapter; chart: ChartData }) {
   const chapter = CHAPTERS[index];
   const r = reader(index);
-  const body = BODIES[chapter.section](SAMPLE.run, r, chart);
+  const body = BODIES[section](SAMPLE.run, r, chart);
   r.finish();
   const id = chapterId(index);
 
@@ -504,17 +314,12 @@ function ChapterSection({ index, chart }: { index: number; chart: ChartData }) {
       id={id}
       aria-labelledby={`${id}-title`}
       style={{ "--accent": chapterAccent(index + 1) } as CSSProperties}
-      className={cn(
-        "mb-14 grid gap-[22px] border-b border-[color:var(--line-soft)] pb-[72px] last:mb-0 last:border-b-0 last:pb-0 max-[1000px]:scroll-mt-[calc(var(--nav)+68px)]",
-        // The reading keeps its measure; chapter 2 takes the column's width, for its wheel and cards side by side.
-        chapter.section !== "houses" && "max-w-[70ch]",
-      )}
+      // One column no wider than the page's: the deck's row of twelve cards would otherwise widen it past the screen. The
+      // reading keeps its measure; the deck takes the column's width, for its wheel and card side by side.
+      className={cn(STRETCH, ANCHOR, "grid grid-cols-[minmax(0,1fr)] gap-[22px]", section !== "houses" && "max-w-[70ch]")}
     >
       <p className="font-label text-[11px] font-medium uppercase leading-[1.2] tracking-[.22em] text-[color:var(--accent)]">
-        <span className="font-numeric">
-          {two(index + 1)} / {two(CHAPTERS.length)}
-        </span>{" "}
-        · {chapter.eyebrow}
+        <span className="font-numeric">{counter(index + 1)}</span> · {chapter.eyebrow}
       </p>
       <h2 id={`${id}-title`} className="text-[clamp(32px,3.4vw,44px)] leading-[1.08]">
         {chapter.title}
@@ -524,6 +329,65 @@ function ChapterSection({ index, chart }: { index: number; chart: ChartData }) {
   );
 }
 
+// The artifact's chapter row: number, title, what the chapter holds and where to find it. The first paragraph sits in a
+// details element, so it opens before the page has hydrated and is in the HTML closed.
+function DimmedSection({ index, section }: { index: number; section: DimmedChapter }) {
+  const chapter = CHAPTERS[index];
+  const r = reader(index);
+  const [first] = sampleTexts(section).map((text) => r.take(text));
+  r.finish();
+  const id = chapterId(index);
+
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      style={{ "--accent": chapterAccent(index + 1) } as CSSProperties}
+      className={cn(ANCHOR, "rounded-[12px] border border-[color:var(--line)]")}
+    >
+      <div className={cn("grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 px-3 pt-[11px]", first ? "pb-1" : "pb-[11px]")}>
+        <span className="font-numeric text-[12px] font-medium text-[color:var(--accent)]">{two(index + 1)}</span>
+        <div className="grid min-w-0 gap-0.5">
+          <h2 id={`${id}-title`} className="font-sans text-[15px] leading-[1.35] tracking-normal text-[color:var(--paper-dim)]">
+            {chapter.title}
+          </h2>
+          <p className="text-[12.5px] leading-[1.45] text-[color:var(--sd-muted)]">{DIMMED_LINES[section]}</p>
+        </div>
+        <span className="font-label text-[10px] font-medium uppercase leading-[1.3] tracking-[.12em] text-[color:var(--sd-muted)]">
+          {DIMMED_STATUS}
+        </span>
+      </div>
+      {first && (
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 pb-[11px] pl-[58px] pr-3 pt-1 font-label text-[12.5px] font-medium text-[color:var(--indigo-lt)] transition-colors hover:text-[color:var(--paper)] pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">Read the first paragraph</span>
+            <span className="hidden group-open:inline">Show less</span>
+            <span className="sr-only">{` of ${chapter.title}`}</span>
+            <ChevronDown aria-hidden className="h-3.5 w-3.5 transition-transform duration-300 group-open:rotate-180 motion-reduce:transition-none" />
+          </summary>
+          <p className={cn(PROSE, "px-3 pb-4 min-[760px]:pl-[58px] min-[760px]:pr-5")}>
+            <Words printed={first} />
+          </p>
+        </details>
+      )}
+    </section>
+  );
+}
+
+type Stretch =
+  | { open: true; index: number; section: OpenChapter }
+  | { open: false; chapters: { index: number; section: DimmedChapter }[] };
+
+// An open chapter stands alone; dimmed neighbours share one stretch, so five in a row read as one list, as the artifact
+// draws them, rather than five chapters.
+const STRETCHES: Stretch[] = CHAPTERS.reduce<Stretch[]>((out, { section }, index) => {
+  const last = out[out.length - 1];
+  if (isOpenChapter(section)) out.push({ open: true, index, section });
+  else if (last && !last.open) last.chapters.push({ index, section });
+  else out.push({ open: false, chapters: [{ index, section }] });
+  return out;
+}, []);
+
 // The report's citation classes read --label; the site names its label face --f-label.
 const REPORT_TOKENS = { "--label": "var(--f-label)" } as CSSProperties;
 
@@ -531,10 +395,18 @@ const REPORT_TOKENS = { "--label": "var(--f-label)" } as CSSProperties;
 const Report = memo(function Report() {
   const chart = sampleChart();
   return (
-    <article aria-labelledby={SAMPLE_TITLE_ID} style={REPORT_TOKENS} className="min-w-0">
-      {CHAPTERS.map((chapter, i) => (
-        <ChapterSection key={chapter.section} index={i} chart={chart} />
-      ))}
+    <article aria-labelledby={`${SAMPLE_KICKER_ID} ${SAMPLE_TITLE_ID}`} style={REPORT_TOKENS} className="min-w-0">
+      {STRETCHES.map((s) =>
+        s.open ? (
+          <ChapterSection key={s.section} index={s.index} section={s.section} chart={chart} />
+        ) : (
+          <div key={s.chapters[0].section} className={cn(STRETCH, "grid max-w-[70ch] gap-2")}>
+            {s.chapters.map((c) => (
+              <DimmedSection key={c.section} index={c.index} section={c.section} />
+            ))}
+          </div>
+        ),
+      )}
     </article>
   );
 });
@@ -678,7 +550,8 @@ function EvidenceLayer({ open, onClose }: { open: Opened | null; onClose: (refoc
 function SampleEnd() {
   return (
     <>
-      <div className="sd-cta">
+      {/* Clear of the differences band's dark edge, which the end would otherwise sit right on. */}
+      <div className="sd-cta mt-14 max-[760px]:mt-10">
         <div>
           <p className="sd-eyebrow">{PERSONAL_REPORT}</p>
           <h2>Get a report like this about you</h2>
@@ -699,6 +572,9 @@ function SampleEnd() {
     </>
   );
 }
+
+// The deck's bar and wheel pin under the site's nav, and under the strip of chapter chips where the rail becomes one.
+const PINS = "[--deck-top:calc(var(--nav)+8px)] max-[1000px]:[--deck-top:calc(var(--nav)+var(--rail-strip)+8px)]";
 
 export default function SamplePage() {
   const [open, setOpen] = useState<Opened | null>(null);
@@ -724,13 +600,17 @@ export default function SamplePage() {
     <SiteLayout page={page} head={<SampleHead page={page} />} end={<SampleEnd />}>
       <CardContext.Provider value={api}>
         <div className="border-t border-[color:var(--line-soft)] pb-16 pt-[72px] max-[760px]:pb-12 max-[760px]:pt-12">
-          <div className="sd-wrap grid grid-cols-[220px_minmax(0,1fr)] items-start gap-14 max-[1000px]:grid-cols-1 max-[1000px]:gap-7">
+          <div
+            style={{ "--rail-strip": RAIL_STRIP } as CSSProperties}
+            className={cn("sd-wrap grid grid-cols-[220px_minmax(0,1fr)] items-start gap-14 max-[1000px]:grid-cols-1 max-[1000px]:gap-7", PINS)}
+          >
             <SampleRail />
             <Report />
           </div>
         </div>
         <EvidenceLayer open={open} onClose={close} />
       </CardContext.Provider>
+      <Differences />
     </SiteLayout>
   );
 }

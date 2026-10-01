@@ -79,7 +79,7 @@ describe("unpickable", () => {
     expect(unpickable(report("r1", { status: "interpreting" }))).toBe("still writing");
     expect(unpickable(report("r1", { status: "failed" }))).toBe("could not be written");
     expect(unpickable(report("r1", { status: "failed", failureReason: { code: "quality", line: "The writing did not hold up." } }))).toBe("The writing did not hold up.");
-    expect(unpickable(report("c1", { kind: "compatibility" }))).toBe("not a personal natal report");
+    expect(unpickable(report("c1", { kind: "compatibility" }))).toBe("not a personal report");
   });
 });
 

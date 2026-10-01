@@ -1,7 +1,6 @@
 import { Link } from "wouter";
-import { withHouseWords } from "@/lib/evidence-glossary";
 import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
-import { homeClaims } from "@/site/data/claims";
+import { ReferenceCheck } from "@/site/components/ReferenceCheck";
 import { SAMPLE, sampleChart } from "@/site/data/sample";
 import { chartNotes, chartReadout, type NoteKind } from "@/site/lib/readouts";
 import { formatUpdated } from "@/site/site";
@@ -20,36 +19,16 @@ const PROSE = "max-w-[62ch]";
 // Chips wrap onto a second line rather than hold the artifact's fixed height, so the longest note fits a 320 px phone.
 const CHIP =
   "sd-mono inline-flex min-h-[26px] items-center gap-[6px] rounded-[4px] border border-[var(--line)] bg-[rgba(6,8,12,.4)] px-[9px] py-[5px] text-[10.5px] leading-[1.3] font-medium tracking-[.06em] uppercase text-[var(--paper-dim)]";
-const CHECK =
-  "sd-mono flex items-center gap-[10px] rounded-[10px] border border-[rgba(127,176,139,.35)] bg-[rgba(127,176,139,.07)] px-3 py-[9px] text-[12px] leading-[1.4] text-[var(--paper-dim)]";
-
-function Tick() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.4}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="size-[14px] shrink-0 text-[#7FB08B]"
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
 
 /**
  * How it works, on the sample's own data (landing scope 9): her chart as the
  * engine works it out, what the engine notes in it, and one line of her report
- * with each of its references ticked. No model or vendor is named here; AI is
- * named in the FAQ and at the end of /method (settled at lock, 3).
+ * with its evidence as the report shows it (review-01-10 scope 7). No model or
+ * vendor is named here; AI is named in the FAQ and at the end of /method
+ * (settled at lock, 3).
  */
 export default function Method() {
   const chart = sampleChart();
-  // The locked design's /method checks the first home claim, so the home page shows the same proof.
-  const cited = homeClaims()[0].claim;
 
   return (
     <section id="method" className="sd-sec sd-sec-c sd-line" aria-labelledby="method-h">
@@ -112,7 +91,9 @@ export default function Method() {
             </figure>
           </li>
 
-          <li className="sd-step">
+          {/* The evidence card makes this step twice the height of the others, so on a wide screen it takes two columns and
+              the first two steps stack beside it, rather than leaving two cards half empty. */}
+          <li className="sd-step min-[901px]:col-span-2 min-[901px]:col-start-2 min-[901px]:row-span-2 min-[901px]:row-start-1">
             <span className="sn" aria-hidden="true">
               03
             </span>
@@ -121,23 +102,7 @@ export default function Method() {
               Each chapter is written from those notes. Then every reference is checked against your chart, and anything that
               doesn't match is fixed or taken out before you see it.
             </p>
-            <figure className={FIGURE}>
-              <figcaption className="sd-tag">One line from her report</figcaption>
-              <blockquote className="font-(family-name:--f-display) text-[17px] leading-[1.45] italic text-[var(--paper)]">
-                {`“${cited.quote}”`}
-              </blockquote>
-              <ul className="grid gap-[6px]">
-                {cited.evidence.map((e, i) => (
-                  <li key={i} className={CHECK}>
-                    <Tick />
-                    <span>
-                      <span className="sr-only">Checked against her chart: </span>
-                      {withHouseWords(e.label)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </figure>
+            <ReferenceCheck />
           </li>
         </ol>
 

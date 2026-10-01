@@ -18,29 +18,51 @@ import {
 const FORBIDDEN_VERBS = /\b(made|created)\b/i;
 // ADR-139: nothing tells either side they will see the other's reports.
 const OVER_PROMISES = /\b(sees what|see what|reads your|will see|their reports)\b/i;
+// ADR-170, 181: a report is the Personal report, and one that is written is shared, never sent.
+const RETIRED = /natal report|\bsen(d|ds|ding|t)\b/i;
 
 function allBodies(content: { subject: string; html: string; text: string }): string[] {
   return [content.subject, content.html, content.text];
 }
 
-test("sendReportEmail: the locked line, no address, no over-promise", () => {
+test("sendReportEmail: shared in the giver's name, no address, no over-promise", () => {
   const content = buildReportEmail({
     to: "beatrice@example.com",
     giverFirstName: "Alex",
     personFirstName: "Beatrice",
     claimUrl: "https://mystarsdecoded.com/claim?token=abc",
   });
-  assert.equal(content.subject, "Your Personal natal report is ready");
-  assert.match(content.html, /Alex<\/strong> had it written for you\./);
-  assert.match(content.text, /Alex had it written for you\./);
+  assert.equal(content.subject, "Alex shared your report with you");
+  assert.match(content.html, /Alex<\/strong> shared your report with you\./);
+  assert.equal(content.text.split("\n")[0], "Alex shared your report with you.");
+  assert.match(content.html, /Claim my report/);
   for (const body of allBodies(content)) {
     assert.doesNotMatch(body, FORBIDDEN_VERBS);
     assert.doesNotMatch(body, OVER_PROMISES);
+    assert.doesNotMatch(body, RETIRED);
     assert.ok(!body.includes("beatrice@example.com"), "no address in the body");
   }
 });
 
-test("buildPairEmail: names the other person, never the invitee alone", () => {
+test("a giver with no first name reads Someone, in the subject too", () => {
+  const report = buildReportEmail({
+    to: "beatrice@example.com",
+    giverFirstName: null,
+    personFirstName: "Beatrice",
+    claimUrl: "https://mystarsdecoded.com/claim?token=abc",
+  });
+  assert.equal(report.subject, "Someone shared your report with you");
+  const pair = buildPairEmail({
+    to: "beatrice@example.com",
+    giverFirstName: null,
+    otherFirstName: "Beatrice",
+    url: "https://mystarsdecoded.com/claim?token=abc",
+    granted: false,
+  });
+  assert.equal(pair.subject, "Someone shared a Compatibility report with you");
+});
+
+test("buildPairEmail: shared, naming the other person, never the invitee alone", () => {
   const pending = buildPairEmail({
     to: "beatrice@example.com",
     giverFirstName: "Alex",
@@ -48,8 +70,10 @@ test("buildPairEmail: names the other person, never the invitee alone", () => {
     url: "https://mystarsdecoded.com/claim?token=abc",
     granted: false,
   });
-  assert.equal(pending.subject, "Your Compatibility report is ready");
+  assert.equal(pending.subject, "Alex shared a Compatibility report with you");
   assert.match(pending.html, />Alex &amp; Beatrice<\/p>/);
+  assert.match(pending.html, /Alex<\/strong> shared a Compatibility report with you\./);
+  assert.match(pending.text, /\nAlex shared a Compatibility report with you\.\n/);
   assert.match(pending.html, /Claim my report/);
   assert.match(pending.html, /expires in 7 days/);
   assert.doesNotMatch(pending.html, /you and Beatrice/i);
@@ -61,16 +85,20 @@ test("buildPairEmail: names the other person, never the invitee alone", () => {
     url: "https://mystarsdecoded.com/compatibility/xyz",
     granted: true,
   });
+  assert.equal(granted.subject, "Alex shared a Compatibility report with you");
+  assert.match(granted.html, /Alex<\/strong> shared a Compatibility report with you, so you can read it right away\./);
+  assert.match(granted.text, /\nAlex shared a Compatibility report with you, so you can read it right away\.\n/);
   assert.match(granted.html, /Read the report/);
   assert.doesNotMatch(granted.html, /expires in 7 days/);
   for (const body of [...allBodies(pending), ...allBodies(granted)]) {
     assert.doesNotMatch(body, FORBIDDEN_VERBS);
     assert.doesNotMatch(body, OVER_PROMISES);
+    assert.doesNotMatch(body, RETIRED);
     assert.ok(!body.includes("beatrice@example.com"));
   }
 });
 
-test("buildGiftEmail: the locked copy, the cover, the escaped note", () => {
+test("buildGiftEmail: a gift is given, in the new name, with the cover and the escaped note", () => {
   const content = buildGiftEmail({
     to: "pierre@example.com",
     giverFirstName: "Alex",
@@ -78,16 +106,18 @@ test("buildGiftEmail: the locked copy, the cover, the escaped note", () => {
     note: "Happy birthday, Pierre. <script>alert(1)</script> & congrats",
     claimUrl: "https://mystarsdecoded.com/claim?token=xyz",
   });
-  assert.equal(content.subject, "Alex gave you a Personal natal report");
+  assert.equal(content.subject, "Alex gave you a Personal report");
   assert.match(content.html, /gift-cover\.png/);
   assert.match(content.html, />A gift from Alex<\/p>/);
-  assert.match(content.html, /Your Personal natal report, for Pierre/);
+  assert.match(content.html, /Your Personal report, for Pierre/);
+  assert.match(content.text, /^Alex gave you a Personal report\.\n\nYour Personal report, for Pierre\.\n/);
   assert.match(content.html, /Claim my report/);
   assert.ok(!content.html.includes("<script>"), "the note is escaped");
   assert.match(content.html, /&lt;script&gt;alert\(1\)&lt;\/script&gt; &amp; congrats/);
   for (const body of allBodies(content)) {
     assert.doesNotMatch(body, FORBIDDEN_VERBS);
     assert.doesNotMatch(body, OVER_PROMISES);
+    assert.doesNotMatch(body, RETIRED);
     assert.ok(!body.includes("pierre@example.com"));
   }
 });
@@ -110,12 +140,14 @@ test("buildGiftReminderEmail: repeats the button, states no countdown", () => {
     recipientFirstName: "Pierre",
     claimUrl: "https://mystarsdecoded.com/claim?token=xyz",
   });
-  assert.match(content.subject, /still waiting/);
+  assert.equal(content.subject, "Your gift from Alex is still waiting");
+  assert.match(content.html, /Alex<\/strong> gave you a Personal report\. It's still waiting for you, Pierre\./);
   assert.match(content.html, /Claim my report/);
   assert.doesNotMatch(content.html, /\d+ days? left|hurry|last chance/i);
   for (const body of allBodies(content)) {
     assert.doesNotMatch(body, FORBIDDEN_VERBS);
     assert.doesNotMatch(body, OVER_PROMISES);
+    assert.doesNotMatch(body, RETIRED);
     assert.ok(!body.includes("pierre@example.com"));
   }
 });
@@ -142,6 +174,7 @@ test("buildWaitlistConfirmEmail: what confirming does, the button, the link's la
   for (const body of allBodies(content)) {
     assert.doesNotMatch(body, FORBIDDEN_VERBS);
     assert.doesNotMatch(body, /€|\boffer\b|\bdiscount\b|\bcredit|\breport\b/i, "it sells nothing");
+    assert.doesNotMatch(body, RETIRED);
     assert.ok(!body.includes("ada@example.com"), "no address in the body");
   }
   // The house rules for our own words; the shared shell's sign-off is not ours to change here.

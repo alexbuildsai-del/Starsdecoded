@@ -44,7 +44,7 @@ test("one foundation call, then seven sections in parallel, then the practice; e
   assert.deepEqual(frames.slice(0, 2), ["meta", "meta"], "the meta frame, then the foundation with the scenes");
   assert.deepEqual(frames.slice(2).sort(), [...ids].sort());
   assert.equal(frames[frames.length - 1], "whatToPractise");
-  assert.equal(out.meta.promptVersion, "p2");
+  assert.equal(out.meta.promptVersion, "p3");
   assert.equal(out.meta.reportType, "compatibility");
   assert.equal(out.meta.lens, "partners");
   assert.equal(out.meta.band, null);
@@ -52,10 +52,13 @@ test("one foundation call, then seven sections in parallel, then the practice; e
   assert.equal(out.meta.blind, false);
   assert.ok(out.meta.wordCount > 300);
   assert.equal(out.meta.usage.sections.length, 9);
-  // The scenes: three titles a lens chapter, the chosen index, no text written yet.
+  // One fixed scene a lens chapter, stored in the p2 shape so both versions read alike (ADR-176).
   assert.deepEqual(Object.keys(out.scenes), ["partners02", "partners03", "partners04", "partners05", "partners06"]);
-  assert.deepEqual(out.scenes.partners02, { titles: ["the end of a long day", "a birthday, planned badly", "the thumbs-up"], written: 2, texts: {} });
-  assert.equal(out.scenes.partners03.written, 0);
+  assert.deepEqual(out.scenes.partners02, { titles: ["The end of a long day"], written: 0, texts: {} });
+  assert.deepEqual(Object.values(out.scenes).map((s) => s.titles), [["The end of a long day"], ["The argument at 11 pm"], ["The bill nobody expected"], ["The weekend away"], ["The job offer in another city"]]);
+  // The canned foundation still carries p2's scene picks and chapter 01 a pointer: the schemas drop both before anything is stored.
+  assert.ok(!("scenes" in out.foundation), "the foundation picks no scene");
+  assert.ok(!("pointer" in out.twoCharts), "chapter 01 stores no pointer");
   // A source claim carries the natal report's own evidence label; a cross claim names both people.
   const love = lensChapterOf(out, "partners02")!;
   const labels = love.claims.flatMap((c) => c.evidence.map((e) => e.label));
@@ -174,7 +177,7 @@ test("the lens picks the chapters, the band and the label reach the meta, and th
   const out = await generatePairInterpretation(parent);
   assert.equal(out.meta.band, "grown");
   assert.deepEqual(Object.keys(out.scenes), ["parentChild02", "parentChild03", "parentChild04", "parentChild05", "parentChild06"]);
-  assert.equal(out.scenes.parentChild02.titles[0], "the Sunday call");
+  assert.deepEqual(out.scenes.parentChild02, { titles: ["The Sunday call"], written: 0, texts: {} });
   assert.ok(lensChapterOf(out, "parentChild04"));
   assert.equal(lensChapterOf(out, "partners02"), undefined);
 
@@ -189,11 +192,45 @@ test("the lens picks the chapters, the band and the label reach the meta, and th
   assert.ok(preview.user.indexOf("PAIR BRIEF") < preview.user.indexOf("THIS CHAPTER'S LINKS"));
   assert.ok(preview.user.indexOf("THIS CHAPTER'S LINKS") < preview.user.indexOf(spec.instructions.slice(0, 40)), "the brief sits before the instructions");
   assert.match(preview.user, /LENS: partners/);
-  assert.match(preview.user, /<- chosen/);
+  assert.match(preview.user, /^SCENE for this chapter \(write this one and no other\): The end of a long day$/m);
+  assert.doesNotMatch(preview.user, /chosen/);
   const partnersSystem = preview.system;
   const peoplePreview = await previewPairSectionPrompt("pair:people02", people);
   assert.equal(peoplePreview.system, partnersSystem, "the cached system prompt is identical across lenses");
   assert.match(peoplePreview.user, /colleagues/);
+});
+
+test("a ten-month-old child: every prompt says 3 years old, the band and the meta stay little, the scenes are the little band's own (ADR-176)", async () => {
+  fake.replies = cannedNatalReplies({ drawn: true, sunSign: "leo", sunHouse: 7 });
+  const beatrice = await generateInterpretation(chartFromFixture("beatrice"), "Beatrice York");
+  fake.replies = cannedNatalReplies({ drawn: true, sunSign: "aquarius", sunHouse: 9 });
+  const athena = await generateInterpretation(chartFromFixture("athena"), "Athena Mapelli Mozzi");
+  // Athena Mapelli Mozzi, born 2025-01-22, is ten months old on this day.
+  const baby = {
+    lens: "parent_child" as const, parent: "A" as const, at: new Date("2025-11-25T00:00:00Z"),
+    a: { name: "Beatrice York", birthDate: "1988-08-08", chart: chartFromFixture("beatrice"), interpretation: beatrice },
+    b: { name: "Athena Mapelli Mozzi", birthDate: "2025-01-22", chart: chartFromFixture("athena"), interpretation: athena },
+  };
+  const brief = buildPairBrief(baby);
+  // The canned pair replies speak of Marie and Oprah; here they speak of these two.
+  const canned = JSON.parse(JSON.stringify(pairReplies(brief)).replaceAll("Marie", "Beatrice").replaceAll("Oprah", "Athena")) as Record<string, unknown>;
+  const users: string[] = [];
+  fake.replies = Object.fromEntries(Object.entries(canned).map(([k, v]) => [k, (req: FakeRequest) => { users.push(req.messages[1].content); return v; }]));
+  fake.calls = [];
+  const out = await generatePairInterpretation(baby);
+  assert.equal(out.meta.band, "little");
+  assert.equal(users.length, 9, "the foundation, seven chapters and the link cards");
+  for (const user of users) {
+    assert.match(user, /Athena Mapelli Mozzi is the child, 3 years old on the day this is written, in the little \(0 to 5\) band\./);
+    assert.doesNotMatch(user, /\b[0-2] years? old\b/);
+  }
+  const little = ["Bedtime, the third call", "The supermarket floor", "Tidying before dinner", "The drawing that isn't \"right\"", "Turning off the tablet"];
+  assert.deepEqual(Object.values(out.scenes).map((s) => s.titles), little.map((t) => [t]));
+  const foundation = users.find((u) => u.includes("CHAPTERS (numbered as owners refer to them):"))!;
+  for (const t of little) assert.ok(foundation.includes(`(scene: ${t})`), t);
+  const needs = users.find((u) => u.includes("Write What your child needs from you"))!;
+  assert.match(needs, /^SCENE for this chapter \(write this one and no other\): Bedtime, the third call$/m);
+  assert.match(needs, /BAND: the child is in the little \(0 to 5\) band, 3 years old today\./);
 });
 
 test("a failed section fails the report with its message, never a silent degrade", async () => {

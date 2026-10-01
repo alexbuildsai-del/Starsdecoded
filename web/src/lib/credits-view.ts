@@ -1,16 +1,18 @@
 /**
  * What the credit surfaces print, pure so a test can pin it: the one balance
- * as dots, the three bundles as counts, History's lines, and the path after a
- * bundle of 3 or more, planned from the whole balance and what the reader
- * already has (ADR-95, 125, 129). No price anywhere: MB-5 is open.
+ * as dots, the bundles as the catalogue names and prices them, History's
+ * lines, and the path after a bundle of 3 or more, planned from the whole
+ * balance and what the reader already has (ADR-95, 125, 129, 168 to 170).
  */
 import type {
   CreditCountsLastBundle,
   CreditHistoryItem,
   TestCheckoutBodyCount,
 } from "@workspace/api-client-react";
+import { BUNDLES, bundleById, formatEuro, type Bundle, type BundleId } from "@workspace/commerce";
 import { APP_ENV, type AppEnv } from "./appEnv";
 import { orbitPoints, type OrbitProfile, type OrbitReport } from "./orbit";
+import { COMPATIBILITY_REPORT } from "./product";
 
 /**
  * ADR-138: zero means zero on every host but production, where Get credits is
@@ -37,17 +39,53 @@ export function creditDots(n: number): { lit: number; more: number } {
   return { lit, more: count - lit };
 }
 
-export interface Bundle {
-  count: TestCheckoutBodyCount;
-  name: string;
+export interface BundleMix {
+  text: string;
+  kind: "personal" | "compatibility";
 }
 
-/** Counts only (ADR-42); what each costs waits for the pricing session (MB-5). */
-export const BUNDLES: readonly Bundle[] = [
-  { count: 1, name: "One report" },
-  { count: 3, name: "Someone and the two of you" },
-  { count: 5, name: "Your people and how you fit" },
-];
+/** One bundle as every price list prints it (ADR-172). */
+export interface BundleRow {
+  id: BundleId;
+  name: string;
+  credits: number;
+  /** "1 credit", or "3 credits, for example:" over mixes that are only one way to spend them. */
+  count: string;
+  /** Single's mixes are alternatives, read with "or" between them; the others add up to the credits (ADR-170). */
+  either: boolean;
+  mixes: BundleMix[];
+  price: string;
+  launch: boolean;
+  /** The same credits bought as Singles, struck through beside a launch price; null where there is none (ADR-169). */
+  singles: string | null;
+  save: string | null;
+}
+
+export function bundleRow(bundle: Bundle): BundleRow {
+  const saved = bundle.fullCents - bundle.cents;
+  // A launch price that saves nothing would strike a total the price equals, so it shows no comparison at all.
+  const launch = bundle.launch && saved > 0;
+  const either = bundle.credits === 1;
+  return {
+    id: bundle.id,
+    name: bundle.name,
+    credits: bundle.credits,
+    count: either ? creditCount(bundle.credits) : `${creditCount(bundle.credits)}, for example:`,
+    either,
+    mixes: bundle.mixes.map((text) => ({ text, kind: text.includes(COMPATIBILITY_REPORT) ? "compatibility" : "personal" })),
+    price: formatEuro(bundle.cents),
+    launch,
+    singles: launch ? `${bundle.credits} ${bundleById("solo").name}s ${formatEuro(bundle.fullCents)}` : null,
+    save: launch ? `you save ${formatEuro(saved)}` : null,
+  };
+}
+
+export function bundleRows(bundles: readonly Bundle[] = BUNDLES): BundleRow[] {
+  return bundles.map(bundleRow);
+}
+
+/** The free test checkout grants a bundle by its count, one button per bundle, off production only (ADR-138). */
+export const TEST_CHECKOUT: readonly TestCheckoutBodyCount[] = BUNDLES.map((bundle) => bundle.credits);
 
 export interface HistoryLine {
   amount: string;
@@ -77,15 +115,15 @@ export function historyLine(item: Pick<CreditHistoryItem, "kind" | "count" | "la
 
 /** What the reader already has, which the path ticks rather than plans again. */
 export interface PathHave {
-  /** The reader's own Personal natal report, finished or being written: its credit is spent either way. */
+  /** The reader's own Personal report, finished or being written: its credit is spent either way. */
   ownChart: boolean;
-  /** First names of the people on the reader's orbit. */
+  /** First names of the people in the reader's circle. */
   people: readonly string[];
   /** How many of those people share a Compatibility report with the reader. */
   pairs: number;
 }
 
-/** Read from the lists the dashboard already loads, through the orbit's own membership rule so the two never disagree. */
+/** Read from the lists the dashboard already loads, through the circle's own membership rule (`orbitPoints`) so the two never disagree. */
 export function pathHave({ profiles, reports }: { profiles: readonly OrbitProfile[]; reports: readonly OrbitReport[] }): PathHave {
   const people = orbitPoints({ profiles, reports, gifts: [], credits: 0, enforced: false }).filter((p) => p.kind === "person");
   const selfIds = new Set(profiles.filter((p) => p.isSelf === true).map((p) => p.id));
@@ -144,9 +182,9 @@ function writtenTitle(have: PathHave): string | null {
 /**
  * Planned from the whole balance, not the bundle, so a top-up reads as one
  * plan (ADR-125, 129). Each new person comes with the Compatibility report of
- * the reader and them, which is what the bundles are named for; the people
+ * the reader and them, which is what the bundles' example mixes hold; the people
  * step asks the reader to add them because a gifted person never reaches the
- * reader's orbit (ADR-139). Every open step waits for the one before, so
+ * reader's circle (ADR-139). Every open step waits for the one before, so
  * exactly one can start.
  */
 export function pathSteps(balance: number, have: PathHave): PathStep[] {
@@ -159,7 +197,7 @@ export function pathSteps(balance: number, have: PathHave): PathStep[] {
 
   const open: Pick<PathStep, "kind" | "title" | "line" | "credits">[] = [];
   if (!have.ownChart && left > 0) {
-    open.push({ kind: "own", title: "Your own chart", line: "It sits at the centre, and everyone you add orbits it.", credits: 1 });
+    open.push({ kind: "own", title: "Your own chart", line: "Your circle starts with you.", credits: 1 });
     left -= 1;
   }
   const n = Math.floor(left / 2);
@@ -203,11 +241,12 @@ export function pathView(added: number, balance: number, have: PathHave): PathVi
   const spare = Math.max(0, total - planned);
   const before = total - bundle;
   const people = steps.find((s) => s.kind === "people");
+  // Credit-loop titled the plan for several people after its bundle's old name; the catalogue's name replaces it
+  // (pricing-and-launch), and a plan for one person keeps the plain title.
+  const named = people && people.credits > 1 ? BUNDLES.find((row) => row.credits === bundle)?.name : undefined;
   return {
     eyebrow: before > 0 ? `${bundle} more added · a top-up` : `${creditCount(bundle)} added`,
-    title: before > 0
-      ? `${creditCount(total)} to use`
-      : people && people.credits > 1 ? "Your people, then how you fit" : "Here is one way to use them",
+    title: before > 0 ? `${creditCount(total)} to use` : named ?? "Here is one way to use them",
     line: before > 0 ? `${before} left from before, ${bundle} just added: one balance.` : null,
     steps,
     spare: spare === 0

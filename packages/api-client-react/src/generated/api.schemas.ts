@@ -502,7 +502,8 @@ export interface PairTwoCharts {
   work: string[];
   paradox: string;
   strengths: string[];
-  pointer: string;
+  /** Stored by p2 reports; p3 writes none and the page prints none (ADR-176). */
+  pointer?: string;
   claims: Claim[];
 }
 
@@ -609,7 +610,7 @@ export interface PairLinks {
 export type PairChapterScenesTexts = {[key: string]: string};
 
 /**
- * A lens chapter's three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).
+ * A lens chapter's scene. Since p3 titles holds the one fixed scene and written is 0; a p2 report stored three titles and wrote one, and any text written on tap stays stored, unread (ADR-65, ADR-176).
  */
 export interface PairChapterScenes {
   titles: string[];
@@ -1029,14 +1030,190 @@ export interface ChartData {
 }
 
 /**
- * The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick.
+ * The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under "pin." and its item key, valued by the ISO date it was pinned (ADR-174).
  */
 export interface Workbook {[key: string]: string}
 
 /**
- * A shallow merge onto the report's workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0".
+ * A shallow merge onto the report's workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter's id does in "partners02.nextTime.items.0" (ADR-24). A pin key is "pin." and an item key, "pin.focus.practice.bullets.0", valued by the ISO date of the pin and cleared by null; at most three pins stand on a report, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, MB-110 provisional).
  */
 export interface WorkbookPatch {[key: string]: string | null}
+
+export type HomePersonStatus = typeof HomePersonStatus[keyof typeof HomePersonStatus];
+
+
+export const HomePersonStatus = {
+  pending: 'pending',
+  computing: 'computing',
+  interpreting: 'interpreting',
+  revising: 'revising',
+  complete: 'complete',
+  failed: 'failed',
+} as const;
+
+/**
+ * The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139).
+ */
+export type HomePersonAccess = typeof HomePersonAccess[keyof typeof HomePersonAccess];
+
+
+export const HomePersonAccess = {
+  owner: 'owner',
+  claimed: 'claimed',
+} as const;
+
+/**
+ * Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).
+ */
+export interface Spot {
+  sign: string;
+  /** Degrees within the sign, rounded to two decimals (ADR-174). */
+  degree: number;
+  /**
+     * The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).
+     * @minimum 1
+     * @maximum 12
+     */
+  house: number | null;
+}
+
+/**
+ * Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).
+ */
+export type HomePersonTriad = {
+  sun: Spot;
+  moon: Spot;
+  /** Null when the horizon is unknown (ADR-174). */
+  rising: Spot | null;
+} | null;
+
+/**
+ * Chapter 08's superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).
+ */
+export type HomePersonLines = {
+  superpower: string;
+  growingEdge: string;
+} | null;
+
+/**
+ * One person in the reader's circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).
+ */
+export interface HomePerson {
+  profileId: string;
+  /** Their latest Personal report the reader can read (ADR-182). */
+  reportId: string;
+  name: string;
+  /** YYYY-MM-DD, as entered (ADR-174). */
+  birthDate: string;
+  status: HomePersonStatus;
+  /** The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139). */
+  access: HomePersonAccess;
+  /** The reader's own chart from their side, as ProfileSummary marks it (ADR-120). */
+  isSelf: boolean;
+  /** Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174). */
+  triad: HomePersonTriad;
+  /** Chapter 08's superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174). */
+  lines: HomePersonLines;
+}
+
+export type HomePairStatus = typeof HomePairStatus[keyof typeof HomePairStatus];
+
+
+export const HomePairStatus = {
+  pending: 'pending',
+  computing: 'computing',
+  interpreting: 'interpreting',
+  revising: 'revising',
+  complete: 'complete',
+  failed: 'failed',
+} as const;
+
+/**
+ * The report's person A (ADR-174).
+ */
+export type HomePairA = {
+  profileId: string;
+  name: string;
+};
+
+/**
+ * The report's person B (ADR-174).
+ */
+export type HomePairB = {
+  profileId: string;
+  name: string;
+};
+
+/**
+ * The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).
+ */
+export type HomePairStory = {
+  headline: string;
+  strengths: string[];
+} | null;
+
+/**
+ * One Compatibility report on the reader's list, with what its pair block and story show (ADR-174, ADR-175).
+ */
+export interface HomePair {
+  reportId: string;
+  lens: RelationshipType;
+  /** The relationship's label; under the people lens, family, friends or colleagues (ADR-40, ADR-68). */
+  label: string | null;
+  /** The report's person A (ADR-174). */
+  a: HomePairA;
+  /** The report's person B (ADR-174). */
+  b: HomePairB;
+  status: HomePairStatus;
+  /** On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional). */
+  stoppedBy: string | null;
+  /** What comes naturally to the pair, chapter 01's strong lines; empty until chapter 01 is written (ADR-174). */
+  strong: string[];
+  /** The one challenge to work on; null until the report has it (ADR-174). */
+  challenge: string | null;
+  /** The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175). */
+  story: HomePairStory;
+}
+
+export type HomePracticeKind = typeof HomePracticeKind[keyof typeof HomePracticeKind];
+
+
+export const HomePracticeKind = {
+  natal: 'natal',
+  compatibility: 'compatibility',
+} as const;
+
+/**
+ * One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing's first Practice item with none pinned; pins and ticks sit in the report's one workbook, shared by everyone who reads it (ADR-174, MB-110 provisional).
+ */
+export interface HomePractice {
+  reportId: string;
+  kind: HomePracticeKind;
+  /** The item key the report ticks it under, "focus.practice.bullets.0" or "partners02.nextTime.items.0" (ADR-24). */
+  key: string;
+  action: string;
+  why: string | null;
+  /** False on the Closing's first Practice item, offered with none pinned (ADR-174). */
+  pinned: boolean;
+  /** Ticked in the same workbook; a tick is silent and a box unticks (ADR-24, ADR-48). */
+  ticked: boolean;
+}
+
+/**
+ * The dashboard's one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).
+ */
+export interface Home {
+  /** The reader's own Personal report at the circle's centre, with chapter 08's lines; null with none marked as theirs, or several (ADR-174). */
+  you: HomePerson | null;
+  /** More than one chart is marked as the reader's own, so `you` stays null until they settle which (ADR-120, ADR-174). */
+  several: boolean;
+  /** The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, each with its latest readable report (ADR-182). */
+  people: HomePerson[];
+  /** The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional). */
+  pairs: HomePair[];
+  /** What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing's first Practice item (ADR-174). */
+  practising: HomePractice[];
+}
 
 /**
  * One of the two people of a compatibility report, with their chart and their birth record for the hero's corners (ADR-70).
@@ -1258,19 +1435,6 @@ export interface CreateCompatibilityBody {
   label?: string | null;
   /** Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role. */
   parent?: CreateCompatibilityBodyParent;
-}
-
-export interface WriteSceneBody {
-  /** The lens chapter's section id, e.g. partners02. */
-  chapter: string;
-  /** Which of the chapter's three scenes, 0 to 2; never the one the report wrote. */
-  index: number;
-}
-
-export interface SceneResponse {
-  chapter: string;
-  index: number;
-  text: string;
 }
 
 export type CompatibilityCreateResponseStatus = typeof CompatibilityCreateResponseStatus[keyof typeof CompatibilityCreateResponseStatus];

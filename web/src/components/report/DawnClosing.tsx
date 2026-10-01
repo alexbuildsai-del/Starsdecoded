@@ -18,19 +18,22 @@ import { itemKey } from "@/lib/workbook";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { FocusGroup, FocusSection } from "@/types/chart";
 
-const GROUPS: { key: "leanInto" | "notice" | "practice"; title: string }[] = [
+// Practice is what a reader keeps working on, so its items are the ones that pin to the dashboard (ADR-174).
+const GROUPS: { key: "leanInto" | "notice" | "practice"; title: string; pinnable?: boolean }[] = [
   { key: "leanInto", title: "Lean into" },
   { key: "notice", title: "Notice" },
-  { key: "practice", title: "Practice" },
+  { key: "practice", title: "Practice", pinnable: true },
 ];
 
-function GroupCard({ title, group, path }: { title: string; group: FocusGroup; path: string }) {
+function GroupCard({ title, group, path, pinnable }: { title: string; group: FocusGroup; path: string; pinnable?: boolean }) {
   return (
     <div className="rp-box" style={{ marginTop: 0 }}>
       <span className="rp-lab">{title}</span>
       <p className="tn">{group.intro}</p>
+      {/* The dashboard ticks and pins these under the same keys, so a tick there is a tick here; renaming a key loses both. */}
       <Checklist
         heading="What to do"
+        pinnable={pinnable}
         items={group.bullets.map((b, i) => ({
           key: itemKey("focus", `${path}.bullets`, i),
           action: b.point,
@@ -96,9 +99,10 @@ export function DawnClosing({ s, counter }: { s: FocusSection; counter?: Citatio
         <p className="rp-pull max-w-[44ch]">
           {CitedText({ text: s.closing, claims: s.claims, counter: k })}
         </p>
-        <div className="rp-cols mt-10">
+        {/* One column at every width, as on a phone: three columns left a pinned Practice item about fifteen letters a line on a desktop, and the third card ran over the Sun. */}
+        <div className="mt-10 grid gap-[22px]">
           {GROUPS.map((g) => (
-            <GroupCard key={g.key} title={g.title} group={s[g.key]} path={g.key} />
+            <GroupCard key={g.key} title={g.title} group={s[g.key]} path={g.key} pinnable={g.pinnable} />
           ))}
         </div>
       </div>

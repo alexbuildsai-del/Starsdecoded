@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { BUNDLES, bundleById } from "@workspace/commerce";
 import type { OrbitProfile, OrbitReport } from "./orbit";
 import {
-  BUNDLES, PATH_SEEN_KEY, creditCount, creditDots, creditsEnforced, historyLine, markPathSeen, pathDue, pathHave,
-  pathSteps, pathView, readPathSeen, type PathHave, type PathSeenStore,
+  PATH_SEEN_KEY, TEST_CHECKOUT, bundleRow, bundleRows, creditCount, creditDots, creditsEnforced, historyLine, markPathSeen,
+  pathDue, pathHave, pathSteps, pathView, readPathSeen, type PathHave, type PathSeenStore,
 } from "./credits-view";
+import * as view from "./credits-view";
 
 const NOTHING: PathHave = { ownChart: false, people: [], pairs: 0 };
 
@@ -58,13 +60,98 @@ describe("creditCount", () => {
   });
 });
 
-describe("BUNDLES", () => {
-  it("are the three counts with their names, and no price (MB-5)", () => {
-    expect(BUNDLES).toEqual([
-      { count: 1, name: "One report" },
-      { count: 3, name: "Someone and the two of you" },
-      { count: 5, name: "Your people and how you fit" },
+describe("bundleRows", () => {
+  it("prints the catalogue's three bundles: names, prices, the launch price against the Singles total, the mixes", () => {
+    expect(bundleRows()).toEqual([
+      {
+        id: "solo",
+        name: "Single",
+        credits: 1,
+        count: "1 credit",
+        either: true,
+        mixes: [
+          { text: "1 Personal report", kind: "personal" },
+          { text: "1 Compatibility report", kind: "compatibility" },
+        ],
+        price: "€24",
+        launch: false,
+        singles: null,
+        save: null,
+      },
+      {
+        id: "couple",
+        name: "Couple",
+        credits: 3,
+        count: "3 credits, for example:",
+        either: false,
+        mixes: [
+          { text: "2 Personal reports", kind: "personal" },
+          { text: "1 Compatibility report", kind: "compatibility" },
+        ],
+        price: "€54",
+        launch: true,
+        singles: "3 Singles €72",
+        save: "you save €18",
+      },
+      {
+        id: "family",
+        name: "Family & friends",
+        credits: 5,
+        count: "5 credits, for example:",
+        either: false,
+        mixes: [
+          { text: "3 Personal reports", kind: "personal" },
+          { text: "2 Compatibility reports", kind: "compatibility" },
+        ],
+        price: "€72",
+        launch: true,
+        singles: "5 Singles €120",
+        save: "you save €48",
+      },
     ]);
+  });
+
+  it("follows the catalogue, so a moved price moves every list", () => {
+    const couple = bundleById("couple");
+    expect(bundleRow({ ...couple, cents: couple.cents + 100 })).toMatchObject({
+      price: "€55",
+      singles: "3 Singles €72",
+      save: "you save €17",
+    });
+  });
+
+  it("shows no comparison where a launch price would save nothing, and never one on Single (ADR-146, 169)", () => {
+    const couple = bundleById("couple");
+    expect(bundleRow({ ...couple, cents: couple.fullCents })).toMatchObject({ launch: false, singles: null, save: null });
+    expect(bundleRow({ ...bundleById("solo"), launch: true })).toMatchObject({ launch: false, singles: null, save: null });
+  });
+
+  it("prints no end date and no earlier price (ADR-169)", () => {
+    for (const row of bundleRows()) {
+      const words = [row.name, row.count, row.price, row.singles, row.save, ...row.mixes.map((mix) => mix.text)].join(" ");
+      expect(words).not.toMatch(/\bwas\b|\buntil\b|\bends?\b|\boffer\b|\d{4}/i);
+    }
+  });
+});
+
+describe("TEST_CHECKOUT", () => {
+  it("still buys 1, 3 or 5 credits, one button per bundle (ADR-138)", () => {
+    expect(TEST_CHECKOUT).toEqual([1, 3, 5]);
+    expect(TEST_CHECKOUT).toEqual(BUNDLES.map((bundle) => bundle.credits));
+  });
+});
+
+describe("credit-loop's names", () => {
+  it("are gone from what the credit surfaces print (pricing-and-launch, ADR-170)", () => {
+    expect(Object.keys(view)).not.toContain("BUNDLES");
+    const printed = [
+      ...bundleRows().map((row) => row.name),
+      ...[1, 3, 5].flatMap((added) => [pathView(added, added, NOTHING).title, pathView(added, added + 3, NOTHING).title]),
+      ...pathSteps(5, NOTHING).flatMap((step) => [step.title, step.line]),
+    ].join(" | ");
+    for (const old of ["One report", "Someone and the two of you", "Your people and how you fit", "Your people, then how you fit", "orbit"]) {
+      expect(printed).not.toContain(old);
+    }
   });
 });
 
@@ -107,7 +194,7 @@ describe("pathSteps", () => {
 
   it("5 on nothing: your chart, two people, two Compatibility reports", () => {
     expect(pathSteps(5, NOTHING).map((s) => [s.title, s.line, s.credits])).toEqual([
-      ["Your own chart", "It sits at the centre, and everyone you add orbits it.", 1],
+      ["Your own chart", "Your circle starts with you.", 1],
       ["Two people close to you", "Add them yourself, one credit each.", 2],
       ["Two Compatibility reports", "You and each of them.", 2],
     ]);
@@ -160,9 +247,10 @@ describe("pathSteps", () => {
 });
 
 describe("pathView", () => {
-  it("heads a first bundle by what it holds", () => {
+  it("heads a first bundle by what it holds, a plan for several people by the catalogue's name for it", () => {
     expect(pathView(3, 3, NOTHING)).toMatchObject({ eyebrow: "3 credits added", title: "Here is one way to use them", line: null, spare: null });
-    expect(pathView(5, 5, NOTHING)).toMatchObject({ eyebrow: "5 credits added", title: "Your people, then how you fit", line: null });
+    expect(pathView(5, 5, NOTHING)).toMatchObject({ eyebrow: "5 credits added", title: "Family & friends", line: null });
+    expect(pathView(5, 5, { ownChart: true, people: [], pairs: 0 }).title).toBe(bundleById("family").name);
   });
 
   it("heads a top-up by the one balance", () => {

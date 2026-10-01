@@ -57,7 +57,7 @@ export const BAND_DOCTRINE: Record<Band, BandEntry> = {
       "revision is theirs to own; a parent asks how it is going and does not check it",
       "chores are real: cooking a meal, their own laundry, their own room, and being counted on",
       "screens: devices out of the bedroom at night; the rule is agreed with them and kept by both",
-      "the closed door is a need for room, not a rejection; a big reaction is best met later, not in the doorway",
+      "the closed door is a need for privacy, not a rejection; a big reaction is best met later, not in the doorway",
     ],
     never: [
       ["tantrums, bedtime stories and toddler care belong to a little child", /\b(tantrum|toddler|nappy|nappies|potty|bedtime story)\b/i],

@@ -394,7 +394,7 @@ export const labApi = {
   runs: (label?: string) => call<RunsResponse>(`/runs${label ? `?label=${encodeURIComponent(label)}` : ""}`),
   compare: (a: string, b: string) => call<CompareResponse>(`/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`),
   spend: () => call<SpendResponse>("/spend"),
-  catalogue: () => call<{ models: CatalogueEntry[]; baseline: string }>("/catalogue"),
+  catalogue: () => call<{ models: CatalogueEntry[]; baseline: string; production: { foundation: string; sections: string } }>("/catalogue"),
   estimate: (body: EstimateRequest) => call<EstimateResponse>("/sessions/estimate", { method: "POST", body: JSON.stringify(body) }),
   spawn: (body: EstimateRequest & { label: string; serviceTier: ServiceTier }) =>
     call<{ sessionId: string; cards: number; replays: number }>("/sessions", { method: "POST", body: JSON.stringify(body) }),

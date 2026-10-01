@@ -15,7 +15,7 @@ import { calculateNatalChart, type NatalChartData } from "./chartCalculation.js"
 import { generateInterpretation, type ReportInterpretation } from "./aiInterpretation.js";
 import { generatePairInterpretation } from "./pairInterpretation.js";
 import { MATRIX_CHARTS, faultsOf, measureSection, type RunNumbers } from "./labRules.js";
-import { MODELS } from "./models.js";
+import { MODELS, modelFor } from "./models.js";
 import { costUsd, type ReportUsage } from "./usage.js";
 import { SECTION_IDS } from "../prompts/index.js";
 import { pairSectionIds } from "../prompts/pair/index.js";
@@ -85,7 +85,8 @@ export function natalRows(fixture: string, label: string, chart: NatalChartData,
   const blind = interpretation.meta?.horizon === "unknown";
   const row = (section: string, output: unknown, extra: Partial<InsertLabRun> = {}): InsertLabRun => {
     const u = usageOf(`natal:${section}`);
-    const model = u?.model ?? usage?.model ?? MODELS.sections;
+    // A report's own model reads "mixed" once Sol plans and Luna writes (ADR-184), so a row with no usage names its writer.
+    const model = u?.model ?? (section === "foundation" ? MODELS.foundation : modelFor(section));
     const measure = section === "foundation" ? null : measureSection(section, output, chart, blind);
     return {
       id: randomUUID(), runKey, fixture, label, source: "release", section, model, serviceTier: "standard", status: "done",
@@ -111,7 +112,7 @@ export function pairRows(fixture: string, label: string, interpretation: Record<
   const sections = ["foundation", ...pairSectionIds((meta?.lens ?? "partners") as never)];
   return sections.filter((s) => interpretation[s] !== undefined).map((section) => {
     const u = usageOf(`pair:${section}`);
-    const model = u?.model ?? usage?.model ?? MODELS.sections;
+    const model = u?.model ?? (section === "foundation" ? MODELS.foundation : MODELS.sections);
     return {
       id: randomUUID(), runKey, fixture, label, source: "release", section, model, serviceTier: "standard", status: "done",
       output: interpretation[section] as object, usage: u as object | null, faults: [], words: words(interpretation[section]),

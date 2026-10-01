@@ -1,18 +1,18 @@
 /**
  * The compatibility report's lens and practice blocks (ADR-63, ADR-64,
- * ADR-103); chapter 01 is TwoChartsLedger. A lens chapter reads in story
- * order: the side-by-side card headed Going in, the scene introduced with
- * its chip row, what just happened opening on the pair line with the two
- * because-kickers, the pattern, and next time through the one checklist;
- * chapter 07 is three checklists that write to the workbook, then a closing
- * paragraph. Nothing here draws a number, a rating or a bar.
+ * ADR-176); chapter 01 is TwoChartsLedger. A lens chapter reads in story
+ * order: the side-by-side card headed Going in, its one scene under its
+ * title, what just happened opening on the pair line with the two
+ * because-kickers, the pattern, and next time through the one checklist,
+ * whose items pin; chapter 07 is three checklists that write to the
+ * workbook, then a closing paragraph. Nothing here draws a number, a rating
+ * or a bar.
  */
 import { CitedText, newCitationCounter } from "@/components/report/Citation";
 import { Checklist, type ChecklistHeading, type ChecklistItem } from "@/components/report/Checklist";
-import { SceneChips, SceneIntro } from "@/components/report/SceneChips";
 import { fromPersonalReport } from "@/lib/product";
 import { itemKey } from "@/lib/workbook";
-import type { PairChapterScenes, PairChecklist, PairLensChapter, PairPractise } from "@/types/chart";
+import type { PairChecklist, PairLensChapter, PairPractise } from "@/types/chart";
 
 export interface PairNames { a: string; b: string }
 
@@ -23,12 +23,11 @@ export function personKicker(name: string): string {
   return fromPersonalReport(first(name));
 }
 
-/** Chapter 02's introduction, under its title (ADR-103): what follows, and that two more scenes wait; print drops the second sentence. */
+/** Chapter 02's introduction, under its title (ADR-103): what each chapter from here holds, one scene each (ADR-176). */
 export function ScenesIntro() {
   return (
     <p className="rp-lede" data-scenes-intro>
       From here, each chapter plays out one scene between you: how it tends to go, what was going on under it, and one thing to try next time.
-      <span className="print:hidden"> Two more scenes wait under each one.</span>
     </p>
   );
 }
@@ -57,17 +56,18 @@ function nextTimeItems(chapter: string, items: PairLensChapter["nextTime"]["item
   return items.map((it, i) => ({ key: itemKey(chapter, "nextTime.items", i), action: `${who(it.for)}: ${it.action}`, why: it.why }));
 }
 
-/** A lens chapter, chapters 02 to 06 (ADR-63, ADR-64, ADR-65). */
-export function LensChapterBlock({ s, names, chapter, scenes, reportId }: {
-  s: PairLensChapter; names: PairNames; chapter: string; scenes?: PairChapterScenes; reportId: string;
+/** A lens chapter, chapters 02 to 06 (ADR-63, ADR-64, ADR-176). */
+export function LensChapterBlock({ s, names, chapter, sceneTitle }: {
+  s: PairLensChapter; names: PairNames; chapter: string; sceneTitle: string | null;
 }) {
   const k = newCitationCounter();
   return (
     <div className="rp-prose">
       <SideBySide card={s.card} names={names} />
-      {scenes
-        ? <SceneChips reportId={reportId} chapter={chapter} scenes={scenes} written={s.scene} />
-        : <div className="rp-lblk"><span className="rp-lab">The scene</span><SceneIntro /><p className="whitespace-pre-line">{s.scene}</p></div>}
+      <div className="rp-lblk" data-scene>
+        <span className="rp-lab">{sceneTitle ? `The scene · ${sceneTitle}` : "The scene"}</span>
+        <p className="whitespace-pre-line">{s.scene}</p>
+      </div>
       <div className="rp-lblk">
         <span className="rp-lab">What just happened</span>
         <p className="font-display text-[17px] leading-[1.4] text-[var(--paper)]" data-pair-line>{s.card.pair}</p>
@@ -86,7 +86,7 @@ export function LensChapterBlock({ s, names, chapter, scenes, reportId }: {
         <span className="rp-lab">The pattern under it</span>
         <p>{CitedText({ text: s.pattern, claims: s.claims, counter: k })}</p>
       </div>
-      <Checklist heading="Next time" items={nextTimeItems(chapter, s.nextTime.items, names)} />
+      <Checklist heading="Next time" items={nextTimeItems(chapter, s.nextTime.items, names)} pinnable />
     </div>
   );
 }

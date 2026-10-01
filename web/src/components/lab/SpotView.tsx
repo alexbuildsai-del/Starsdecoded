@@ -21,6 +21,7 @@ export function SpotView({ readOnly }: { readOnly: boolean }) {
   const [sections, setSections] = useState<Set<string>>(new Set(["career"]));
   const [charts, setCharts] = useState<Set<string>>(new Set(["marie-curie", "day-angular"]));
   const [model, setModel] = useState("gpt-5.2");
+  const [production, setProduction] = useState<{ foundation: string; sections: string } | null>(null);
   const [tier, setTier] = useState<"flex" | "standard">("flex");
   const [estimate, setEstimate] = useState<SpotEstimateResponse | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -33,10 +34,17 @@ export function SpotView({ readOnly }: { readOnly: boolean }) {
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
-    labApi.catalogue().then((c) => { setModels(c.models); setModel(c.baseline); }).catch((e: Error) => setError(e.message));
+    labApi.catalogue().then((c) => { setModels(c.models); setProduction(c.production); setModel(c.production.sections); }).catch((e: Error) => setError(e.message));
     labApi.runs().then((r) => setLabels(r.labels)).catch(() => undefined);
     return () => { if (timer.current) window.clearInterval(timer.current); };
   }, []);
+
+  // A foundation-only spot defaults to the writer that ships the foundation (ADR-184); a writer picked by hand is kept.
+  useEffect(() => {
+    if (!production) return;
+    const shipped = sections.size === 1 && sections.has("foundation") ? production.foundation : production.sections;
+    setModel((m) => (m === production.foundation || m === production.sections ? shipped : m));
+  }, [sections, production]);
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, value: string) => {
     const next = new Set(set);
