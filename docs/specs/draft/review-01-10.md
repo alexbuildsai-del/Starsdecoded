@@ -1,7 +1,7 @@
 # Review 01/10
 
 Ideation 2026-10-01 with the Owner from the Notion page "Review 01/10" (fifteen notes on the
-R11 build on staging). Artifact, revision 2: https://claude.ai/artifact/7sRXjmJcybAmnQHrbxJ5Rc.
+R11 build on staging). Artifact, revision 3: https://claude.ai/artifact/7sRXjmJcybAmnQHrbxJ5Rc.
 Status: **draft**. Supersedes in part ADR-142 (Couple's price), ADR-146 (offers), ADR-72 (on-tap
 scenes), ADR-103 (the scene intro), ADR-101 (the ledger's words); touches `pricing-and-launch`
 (R12), `dashboard-sky`, `landing-and-ai-search`, `compatibility-report-p2`. Brain: the pair
@@ -10,7 +10,8 @@ prompts change (dry lab). **Phone first**: every screen is designed at 390 px be
 Only what the Owner asked is in scope. The artifact's "Noted, not changed" list stays out unless
 the Owner says yes. Answered in revision 1: launch price against the Singles total with no end
 date for now; Personal report and Compatibility report; the sample at four chapters with the
-app's chapter 02 matching it; one sun.
+app's chapter 02 matching it; one sun. Revision 3: share images are 9:16 stories only (their
+look in a later session); the circle opens a quick look, the lists open the report.
 
 ## Scope
 
@@ -37,30 +38,34 @@ Copy through `/ux-copy`; the pair quotes a sample pair, never a customer (MB-93)
 
 ### 3. The dashboard, phone first (notes 10, 11)
 - Order on a phone: title **"Dashboard"** with a one-line summary; **Your circle** with the
-  switch **Circle · People · Compatibility**; the panel for the selected person; **What you're
-  practising**; **Your pairs**; **Share** last. Desktop: circle and panel side by side, then the
-  three rows full width.
-- **Everyone's signs**: Sun, Moon and Rising signs under each name on the circle and in each
-  row (from `ReportSummary.signs`); degrees in the panel.
-- **The panel** is selected from the circle or from any row. You: name, triad, "Open your
-  report". A person with a pair: their triad, the pair headline, "Open Compatibility report",
-  "{name}'s report", "Send to {name}". Without a pair: "Compatibility with you · 1 credit". No
+  switch **Circle · People · Compatibility**; **What you're practising**; **Your pairs**;
+  **Share** last. Desktop: the circle with its quick-look panel beside it, then the rows. The
+  switch behaves the same on every screen size.
+- **Circle → quick look.** Tapping a person opens a sheet from the bottom on a phone, the panel
+  beside the circle on desktop: name as the title, birth date under it, Sun, Moon and Rising
+  with degrees, then something from a report instead of a line out of context: for a person
+  you share a pair with, "With you · {lens}" and the pair block (three "Comes naturally", one
+  "Challenge to work on", the same component as Your pairs); for you, your superpower and
+  your growing edge from chapter 08. Then the buttons: "Open Compatibility report" (or "Open
+  your report"), "{name}'s report", "Share with {name}", "Share story". A close control; no
   elements bars or house grid.
-- **Rows keep their actions**: People shows "This is me ✓" or "Send to {name}" as a button and
-  Not me / Delete report behind "⋯"; Compatibility shows "Share image" and "Send to {name}",
-  Delete behind "⋯". No hearts anywhere.
+- **People and Compatibility → the report.** A tap on a row opens that report directly; no
+  quick look. Each row shows the name (or "You & {name}" and the lens), birth date and the
+  three signs, and keeps its actions: "This is me ✓" or "Share with {name}", "Share story" on
+  a pair, Not me and Delete report behind "⋯". No hearts anywhere.
 - **What you're practising**: up to 3 pinned items per report, from the Closing or a pair's
   "Next time"; with none pinned, the Closing's first Practice item. Same tick-box component.
-- **Your pairs**: a sideways row, per pair the three "Comes naturally" lines and one
-  "Challenge to work on".
-- **Share**: ready images per pair in two sizes (Q3): a 9:16 story (WhatsApp status, Instagram
-  story) and the 4:5 post (today's 1080 × 1350 card), each with Share (Web Share with the file)
-  and Save. Same drawing as `ShareCard`, re-laid for 9:16.
+- **Your pairs**: a sideways row of pair blocks.
+- **Share**: one ready 9:16 story image per pair (WhatsApp status, Instagram story) with "Share
+  story" (Web Share with the file) and "Save". Its look is settled in a later session.
+- **Share with** replaces "Send to" for giving someone their report (Q3); emails follow ("Alexandra
+  shared your report with you"); a credit given stays a Gift.
 - **Four states**: empty (ghost seats, the three bundles under "Your circle starts with you",
   one sample practice item), one Personal report, two reports and a pair, family.
 - **Underneath**: pins stored with the workbook ticks (ADR-24), `PATCH /reports/{id}/workbook`
-  carries `pinned`; a new `GET /home` (in `openapi.yaml`) returns pins or defaults, each pair's
-  strong lines, one challenge and the share text, so no full report loads.
+  carries `pinned`; a new `GET /home` (in `openapi.yaml`) returns pins or defaults, birth dates,
+  triads, each pair's strong lines and one challenge, the chapter 08 lines and the story text,
+  so no full report loads.
 
 ### 4. The Compatibility report (notes 12 to 17)
 - **"Where your charts meet"** replaces the link cards' unnamed list (Q2). Each card is tagged
@@ -130,9 +135,10 @@ dive" spelling, the share image (MB-13), the regions-only search, a Personal sha
    People" in user-facing strings (a grep test); the credits sheet shows names and prices.
 3. Home shows the two pillars after the hero and /sample ends with them; every thing to try
    on the site, in reports and on the dashboard uses one tick-box component.
-4. The dashboard at 390 px first, then 1440 px, renders the four states in the order above;
-   the panel follows the circle and the rows; rows keep their actions; every person shows
-   three signs; pins persist; one `GET /home` call; Share sits last with both sizes.
+4. The dashboard at 390 px first, then 1440 px, renders the four states in the order above; a
+   circle tap opens the quick look (name, birth date, triad, pair block or chapter 08 lines,
+   buttons); a row tap opens the report; rows keep their actions; pins persist; one `GET /home`
+   call; Share sits last with one 9:16 story per pair; no "Send to" left in the app or emails.
 5. A Compatibility report shows "Where your charts meet" with Comes naturally / Challenge tags,
    people-word titles, three of each first; the ledger uses the same two words; no hearts, no
    scene chips, no scene intro, no pointer.
@@ -156,7 +162,8 @@ animation, the three compatibility steps, the suns, the place field in a phone f
 1. **Q1, deep dive on a phone.** A ★ swipe deck; B twelve rows. Default A.
 2. **Q2, the pair's words.** A ★ "Where your charts meet", Comes naturally / Challenge, the
    ledger matching; B Strength / Challenge; C What works / Challenge. Default A.
-3. **Q3, share images.** A ★ 9:16 story and 4:5 post; B add a 1:1 square. Default A.
+3. **Q3, send or share.** A ★ "Share with {name}" for giving a report, "Share story" for the
+   image; B keep "Send to" (ADR-120). Default A.
 
 ## Decisions to record
 1. Couple is €54; Single €24 and Family & friends €72 stay (supersedes ADR-142 for Couple).
@@ -168,11 +175,11 @@ animation, the three compatibility steps, the suns, the place field in a phone f
 5. One kind of thing, one look, everywhere: a thing to try always carries its tick box.
 6. Home and /sample state the two differences: a personality report with things to try, and
    your circle with everyday scenes.
-7. The dashboard is a home: titled, the circle first with People and Compatibility as lists that
-   keep their actions, a short panel driven by both, everyone's three signs, pinned practice,
-   pair strengths and one challenge, ready share images last, from one endpoint.
+7. The dashboard is a home: titled; the circle opens a quick look (name, birth date, triad,
+   something from a report, buttons); People and Compatibility rows open the report and keep
+   their actions; pinned practice, pair strengths and one challenge, stories last; one endpoint.
 8. A reader pins up to 3 items per report, stored with the ticks.
-9. Share images come ready in 9:16 and 4:5.
+9. Share images are ready 9:16 stories only; their look is settled in a later session.
 10. A Compatibility report has one fixed scene per chapter, no chips, no intro line; a child
     under 3 is written as 3 (supersedes ADR-72, ADR-103 in part).
 11. "Where your charts meet", tagged Comes naturally or Challenge, titled in people words with
@@ -184,3 +191,4 @@ animation, the three compatibility steps, the suns, the place field in a phone f
 14. The how-it-works pages draw evidence exactly as the report does; /compatibility explains
     itself in three visual steps with no table, its questions on /faq.
 15. One Sun render everywhere.
+16. "Share with {name}" replaces "Send to {name}" for giving a report (amends ADR-120's word).
