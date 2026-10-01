@@ -28,7 +28,7 @@ const AngleEnum = z.enum(["ascendant", "midheaven"]);
 
 export const EvidenceRefSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("placement"), body: BodyEnum, sign: SignEnum, house: z.int().nullable() })
-    .describe("a body in a sign and whole-sign house, exactly as the brief lists it; house is null when the brief reads HORIZON: unknown"),
+    .describe("a body in a sign and whole-sign house, exactly as the brief lists it. House is null when the brief reads HORIZON: unknown"),
   z.object({ kind: z.literal("aspect"), body1: BodyEnum, body2: BodyEnum, type: z.enum(ASPECTS), orb: z.number() })
     .describe("an aspect from the brief's list, with its orb in degrees"),
   z.object({ kind: z.literal("ruler"), house: z.int(), ruler: TraditionalEnum, rulerSign: SignEnum, rulerHouse: z.int(), dignity: DignityEnum })
@@ -55,7 +55,7 @@ export interface StoredEvidence { ref: EvidenceRef; label: string }
 export interface StoredClaim { quote: string; evidence: StoredEvidence[] }
 
 /** Contract appended by code to every reader-facing prompt. Not overridable. */
-export const CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the chart brief: a placement (body, sign, house), an aspect (both bodies, type, orb as listed), a house ruler (house, ruler, ruler's sign and house, dignity as listed), a Lot (fortune or spirit, sign, house), a sect role (role, body), or an angle (the ascendant or the midheaven, and its sign). Copy values exactly from the brief. When the brief reads HORIZON: unknown, only placements with house null and aspects exist; any other kind is rejected. Every reference is checked against the chart by code and the section is rejected if any does not match. Choose the claims that matter most: the sentences a reader would want to verify.`;
+export const CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the chart brief: a placement (body, sign, house), an aspect (both bodies, type, orb as listed), a house ruler (house, ruler, ruler's sign and house, dignity as listed), a Lot (fortune or spirit, sign, house), a sect role (role, body), or an angle (the ascendant or the midheaven, and its sign). Copy values exactly from the brief. When the brief reads HORIZON: unknown, only placements with house null and aspects exist. Any other kind is rejected. Every reference is checked against the chart by code and the section is rejected if any does not match. Choose the claims that matter most: the sentences a reader would want to verify.`;
 
 /**
  * Typographic variants the model swaps freely and a reader never notices:

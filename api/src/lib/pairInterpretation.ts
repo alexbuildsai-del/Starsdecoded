@@ -159,7 +159,7 @@ function practiseTail(brief: PairBrief, chapters: Record<string, unknown>): stri
     }
   }
   return [
-    "NEXT-TIME ITEMS from the five chapters (collect these; add nothing new):",
+    "NEXT-TIME ITEMS from the five chapters (collect these, add nothing new):",
     ...(items.length ? items : ["  - none written"]),
     "",
     "SOURCES YOU MAY CITE (report, section, claim number), and any link in the LINKS list:",

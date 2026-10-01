@@ -4,22 +4,59 @@
  * and in the pair writer alike, so every system prompt carries the numbers.
  * Rule 13 is the voice (ADR-185): two friends over coffee, too fancy and too
  * trendy named, in every natal and pair prompt, both foundations included.
- * Rule 8 and the self-check that closes every user turn keep the semicolon
- * out of every field (MB-129).
+ * Rule 8, the self-check that closes every user turn and prompts that never
+ * show one keep the semicolon out of every field (MB-129).
  */
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SHARED_SYSTEM, STYLE_CONTRACT, WRITER } from "./system.js";
-import { ALL_SECTIONS, FOUNDATION } from "./index.js";
-import { PAIR_FOUNDATION, PAIR_SYSTEM, PAIR_WRITER, pairSpecsFor } from "./pair/index.js";
+import { ALL_SECTIONS, FOUNDATION, sectionsFor, toStrictJsonSchema } from "./index.js";
+import { PAIR_CLAIMS_CONTRACT, PAIR_FOUNDATION, PAIR_SYSTEM, PAIR_WRITER, pairSpecsFor, sceneOf } from "./pair/index.js";
 import { REGISTER } from "./checks.js";
 import { PROMPT_DEFAULTS } from "../lib/promptDefaults.js";
-import { LENSES, type Lens } from "../lib/pairBrief.js";
+import { BANDS, LENSES, buildPairBrief, type Lens } from "../lib/pairBrief.js";
+import { calculateNatalChart } from "../lib/chartCalculation.js";
 import { chartFromFixture } from "../lib/testFixtures.js";
 import { cannedNatalReplies, installFakeModel } from "../lib/testModel.js";
 
 const { SELF_CHECK, generateInterpretation, previewSectionPrompt } = await import("../lib/aiInterpretation.js");
 const { previewPairSectionPrompt } = await import("../lib/pairInterpretation.js");
+
+const fake = installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "scorpio", sunHouse: 11 }));
+const curie = await generateInterpretation(chartFromFixture("marie-curie"), "Marie Curie");
+fake.replies = cannedNatalReplies({ drawn: true, sunSign: "aquarius", sunHouse: 3, sect: "night" });
+const winfrey = await generateInterpretation(chartFromFixture("oprah-winfrey"), "Oprah Winfrey");
+fake.restore();
+
+type Prompt = { system: string; user: string; schema: unknown };
+
+/** Every natal prompt as sent for Marie Curie, drawn and then blind, against her canned foundation. */
+async function natalPrompts(): Promise<Array<{ where: string; prompt: Prompt }>> {
+  // chartFromFixture drops the time window, and the window is what makes this chart blind.
+  const u = JSON.parse(readFileSync(new URL("../../../fixtures/charts/marie-curie-unknown.json", import.meta.url), "utf8"));
+  const blind = calculateNatalChart(u.birthDate, u.birthTime, u.latitude, u.longitude, u.timezoneOffset, u.birthTimeWindowMinutes);
+  const foundationJson = JSON.stringify(curie.foundation, null, 2);
+  const runs = [
+    { tag: "", chart: chartFromFixture("marie-curie"), specs: ALL_SECTIONS },
+    { tag: "blind ", chart: blind, specs: [FOUNDATION, ...sectionsFor("unknown")] },
+  ];
+  const out: Array<{ where: string; prompt: Prompt }> = [];
+  for (const run of runs) {
+    for (const spec of run.specs) {
+      out.push({ where: run.tag + spec.key, prompt: await previewSectionPrompt(spec.key, run.chart, "Marie Curie", spec === FOUNDATION ? undefined : foundationJson) });
+    }
+  }
+  return out;
+}
+
+const pairInput = (lens: Lens) => ({
+  lens,
+  parent: lens === "parent_child" ? ("B" as const) : null,
+  label: lens === "people" ? "colleagues" : null,
+  a: { name: "Marie Curie", birthDate: "1867-11-07", chart: chartFromFixture("marie-curie"), interpretation: curie },
+  b: { name: "Oprah Winfrey", birthDate: "1954-01-29", chart: chartFromFixture("oprah-winfrey"), interpretation: winfrey },
+});
 
 test("rules 7 and 8 carry the sentence numbers and the Owner's line", () => {
   const rule7 = STYLE_CONTRACT.split("\n").find((l) => l.startsWith("7."))!;
@@ -68,29 +105,31 @@ test("rule 8 bans the semicolon in every field, lifted or not, and says what to 
 
 test("the self-check closes every natal and pair user turn, both foundations included, and stays out of the cached system prompt", async () => {
   assert.equal(SELF_CHECK, "Before you answer, check every field: no semicolons, no em dashes.");
-  const fake = installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "scorpio", sunHouse: 11 }));
-  const curie = await generateInterpretation(chartFromFixture("marie-curie"), "Marie Curie");
-  fake.replies = cannedNatalReplies({ drawn: true, sunSign: "aquarius", sunHouse: 3, sect: "night" });
-  const winfrey = await generateInterpretation(chartFromFixture("oprah-winfrey"), "Oprah Winfrey");
-  fake.restore();
   const closes = (prompt: { system: string; user: string }, where: string) => {
     assert.ok(prompt.user.endsWith(`\n\n${SELF_CHECK}`), where);
     assert.equal(prompt.user.split(SELF_CHECK).length, 2, `${where}: once`);
     assert.ok(!prompt.system.includes(SELF_CHECK), where);
   };
-  for (const spec of ALL_SECTIONS) {
-    const foundationJson = spec.key === FOUNDATION.key ? undefined : JSON.stringify(curie.foundation, null, 2);
-    closes(await previewSectionPrompt(spec.key, chartFromFixture("marie-curie"), "Marie Curie", foundationJson), spec.key);
-  }
-  const input = (lens: Lens) => ({
-    lens,
-    parent: lens === "parent_child" ? ("B" as const) : null,
-    label: lens === "people" ? "colleagues" : null,
-    a: { name: "Marie Curie", birthDate: "1867-11-07", chart: chartFromFixture("marie-curie"), interpretation: curie },
-    b: { name: "Oprah Winfrey", birthDate: "1954-01-29", chart: chartFromFixture("oprah-winfrey"), interpretation: winfrey },
-  });
+  for (const { where, prompt } of await natalPrompts()) closes(prompt, where);
   for (const lens of LENSES) {
-    for (const spec of [PAIR_FOUNDATION, ...pairSpecsFor(lens)]) closes(await previewPairSectionPrompt(spec.key, input(lens)), `${lens} ${spec.key}`);
+    for (const spec of [PAIR_FOUNDATION, ...pairSpecsFor(lens)]) closes(await previewPairSectionPrompt(spec.key, pairInput(lens)), `${lens} ${spec.key}`);
+  }
+});
+
+// A writer copies the punctuation its prompt shows it (MB-129).
+test("no semicolon in any natal prompt as sent, nor in any pair system prompt, instruction, contract, schema, lens context or scene", async () => {
+  const semicolons = (text: string) => (text.match(/;/g) ?? []).length;
+  for (const { where, prompt } of await natalPrompts()) {
+    assert.equal(semicolons(prompt.system) + semicolons(prompt.user) + semicolons(JSON.stringify(prompt.schema)), 0, where);
+  }
+  for (const lens of LENSES) {
+    const brief = buildPairBrief(pairInput(lens));
+    for (const spec of [PAIR_FOUNDATION, ...pairSpecsFor(lens)]) {
+      const scenes = [null, ...BANDS].map((band) => sceneOf(spec, band) ?? "");
+      for (const text of [PAIR_SYSTEM, PAIR_CLAIMS_CONTRACT, spec.instructions, JSON.stringify(toStrictJsonSchema(spec.schema)), spec.extraContext?.(brief) ?? "", ...scenes]) {
+        assert.equal(semicolons(text), 0, `${lens} ${spec.key}: ${text.slice(0, 80)}`);
+      }
+    }
   }
 });
 

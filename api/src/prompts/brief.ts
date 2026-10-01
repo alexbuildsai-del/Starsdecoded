@@ -170,7 +170,7 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
     lines = [
       `NAME: ${name}`,
       ``,
-      `SECT (computed once; use these values, never re-derive):`,
+      `SECT (computed once, use these values, never re-derive):`,
       `  sect: ${sp.sect}`,
       `  sect_light: ${sp.sect_light}`,
       `  benefic_of_sect: ${sp.benefic_of_sect}`,
@@ -194,7 +194,7 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
       ...aspectLines,
       ``,
       distribution,
-      stelliums.length ? `STELLIUMS: ${stelliums.join("; ")}.` : `STELLIUMS: none.`,
+      stelliums.length ? `STELLIUMS: ${stelliums.join(". ")}.` : `STELLIUMS: none.`,
       `EMPTY HOUSES: ${emptyHouses.length ? emptyHouses.map(ordinal).join(", ") : "none"}. Read each through its ruler above.`,
     ];
   } else {
@@ -214,7 +214,7 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
       ...aspectLines,
       ``,
       distribution,
-      stelliums.length ? `STELLIUMS: ${stelliums.join("; ")}.` : `STELLIUMS: none.`,
+      stelliums.length ? `STELLIUMS: ${stelliums.join(". ")}.` : `STELLIUMS: none.`,
     ];
   }
 

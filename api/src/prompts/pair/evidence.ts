@@ -43,7 +43,7 @@ export const PairClaimSchema = z.object({
 export type PairClaim = z.infer<typeof PairClaimSchema>;
 export const PairClaimsSchema = z.array(PairClaimSchema).min(3).max(8);
 
-export const PAIR_CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the brief: a cross aspect (A's body, B's body, type, orb as listed), an overlay (whose body, in whose house, the house as listed), or a source (the letter, section and claim number of a personal-report claim as listed). Copy values exactly from the brief. A cross aspect or an overlay may be cited only from THIS CHAPTER'S LINKS; a claim citing another chapter's link is rejected. A because-line cites a source. Every reference is checked by code and the section is rejected if any does not match.`;
+export const PAIR_CLAIMS_CONTRACT = `CLAIMS. Alongside the prose, return 3 to 8 claims. Each claim is a verbatim quote copied exactly from the prose you wrote in this section, plus 1 to 3 evidence references drawn ONLY from the brief: a cross aspect (A's body, B's body, type, orb as listed), an overlay (whose body, in whose house, the house as listed), or a source (the letter, section and claim number of a personal-report claim as listed). Copy values exactly from the brief. A cross aspect or an overlay may be cited only from THIS CHAPTER'S LINKS. A claim citing another chapter's link is rejected. A because-line cites a source. Every reference is checked by code and the section is rejected if any does not match.`;
 
 const norm = softenQuote;
 

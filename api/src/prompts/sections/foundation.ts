@@ -46,7 +46,7 @@ export const foundation: SectionSpec<typeof FoundationSchema> = {
   },
   instructions: `Build the internal foundation for this natal report. This is an editorial handoff, not reader-facing prose. Identify the few patterns that should organise the whole report so that every section can be specific and none repeat.
 
-State the sect and sect light exactly as the SECT block gives them; every downstream section reads your value. Read the chart in this order: sect, chart ruler, the Sun, Moon and Ascendant, then the rulers of the 10th, 2nd, 7th, and 4th and where they sit, then the Lots, then the tightest aspects. Weigh rulers over occupants and dignified over peregrine.
+State the sect and sect light exactly as the SECT block gives them. Every downstream section reads your value. Read the chart in this order: sect, chart ruler, the Sun, Moon and Ascendant, then the rulers of the 10th, 2nd, 7th, and 4th and where they sit, then the Lots, then the tightest aspects. Weigh rulers over occupants and dignified over peregrine.
 
 Supporting evidence cites chart facts as the brief's own lines give them. Section guidance must give each of the ten sections one distinct thing to establish, so they do not overlap. Each guidance sentence is behaviour, with no planet, sign, house, ruler or dignity in it. The style contract does not apply to this internal output, except rule 13: every section picks up your words, so write the handoff in the same plain words as the report. Keep it evidence-based and free of generic personality labels.`,
 };
