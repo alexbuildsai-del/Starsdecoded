@@ -224,7 +224,7 @@ The Owner's only operational duty is to test the website and say whether it look
 
 - **R-12.1** Ask with a recommendation. Never an open question. Format: context (one or two lines) → recommendation with reasoning → what happens if unanswered. At most three questions per session with the Owner, highest stakes first.
 - **R-12.2** Instinct triggers, raise a check when: a task contradicts a locked decision; a choice affects what a buyer pays, sees or has stored about them; two specs conflict; you are about to add a dependency, change the schema, change report content, or ship anything user-visible not covered by a spec.
-- **R-12.3** Mailbox. Uncertainties that do not block work go to the Notion Mailbox so nothing is forgotten. Each row: Type, Priority, Raised by, Recommendation, Default if silent. The planner increments `Rounds open` each round; a row above 2 goes to the top of the round report.
+- **R-12.3** Mailbox. Uncertainties that do not block work go to the Notion Mailbox so nothing is forgotten. Each row: Type, Priority, Raised by, Recommendation, Default if silent. A row's age is its Created time; the planner lists open rows older than 14 days at the top of the plan, oldest first (ADR-186).
 - **R-12.5** Operations belong to Claude. Merging, watching CI and deploys, and fixing a red branch, pull request or pipeline are the orchestrator's job, raised to the Owner only when a fix needs a decision or a credential. The Owner is never asked to run a command, merge, or read a log.
 - **R-12.4** Provisional building. If work must proceed on an open topic, build the recommended option behind the smallest seam and tag it `// MB-NN provisional` so it is findable when decided.
 
