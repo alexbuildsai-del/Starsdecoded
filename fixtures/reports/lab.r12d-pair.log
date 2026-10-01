@@ -1,0 +1,59 @@
+
+> starsdecoded@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded
+> pnpm --filter @workspace/scripts run report:lab "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "curie-winfrey" "--lens" "partners" "--label" "r12d-pair"
+
+
+> @workspace/scripts@0.0.0 report:lab /home/runner/work/Starsdecoded/Starsdecoded/scripts
+> tsx ./src/report-lab.ts "--remote" "https://starsdecoded-staging.vercel.app" "--pair" "curie-winfrey" "--lens" "partners" "--label" "r12d-pair"
+
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), partners via https://starsdecoded-staging.vercel.app: two natal reports first ===
+
+=== Marie Curie & Oprah Winfrey (curie-winfrey), partners ===
+chapter                                  words  target   ok  flags
+---------------------------------------  -----  -------  --  ----------------------------------------------------------------------
+twoCharts (Your two charts)              177    300-360  NO  -
+partners02 (How you love)                214    230-300  NO  CARD: 1 line(s) over twelve words
+partners03 (How you fight and repair)    222    230-300  NO  -
+partners04 (Home, chores and money)      226    230-300  NO  -
+partners05 (Fun, weekends and holidays)  220    230-300  NO  CARD: 2 line(s) over twelve words
+partners06 (What you are building)       217    230-300  NO  -
+whatToPractise (What to practise)        406    450-560  NO  RATING: the word "score" describes something; ordinary English, logged
+card 1 rubs moon jupiter: 57 words
+card 2 flows venus mars: 55 words
+card 3 flows mercury moon: 56 words
+card 4 rubs venus pluto: 62 words
+card 5 flows moon uranus: 60 words
+card 6 rubs saturn pluto: 66 words
+card 7 flows mercury sun: 67 words
+card 8 flows mercury venus: 55 words
+card 9 flows jupiter neptune: 62 words
+card 10 flows uranus saturn: 59 words
+card 11 flows neptune sun: 61 words
+card 12 rubs pluto mercury: 64 words
+card 13 overlay sun in the 2th: 54 words
+card 14 overlay moon in the 12th: 58 words
+card 15 overlay moon in the 4th: 59 words
+card 16 overlay sun in the 12th: 61 words
+link cards: 16, 1028 words, all 40 to 70 with a behaviour check
+
+prose: 1682 words (target 1900-2500: OUT OF RANGE), cards and items outside it; written in 40.0s
+repetition: 1.5% of five-word runs appear in more than one chapter (bar 3%: under)
+prompt p3 on mixed; lens partners
+SHAPE FLAG: CARD: 1 line(s) over twelve words; CARD: 2 line(s) over twelve words; RATING: the word "score" describes something; ordinary English, logged
+
+call                 model       tries  in      cached  out     reason  $        s
+-------------------  ----------  -----  ------  ------  ------  ------  -------  -----
+pair:foundation      gpt-6-sol   1      2,000   7,090   565     0       $0.0111  9.6
+pair:twoCharts       gpt-6-luna  1      5,159   7,376   1,158   0       $0.0012  7.9
+pair:partners02      gpt-6-luna  1      5,477   7,569   1,147   0       $0.0012  8.7
+pair:partners05      gpt-6-luna  1      5,457   7,569   1,200   0       $0.0012  9.4
+pair:partners06      gpt-6-luna  2      12,189  15,138  2,102   0       $0.0024  15.7
+pair:links           gpt-6-luna  1      2,983   7,139   1,749   0       $0.0012  15.9
+pair:partners03      gpt-6-luna  2      11,897  15,138  2,519   0       $0.0026  16.5
+pair:partners04      gpt-6-luna  2      12,250  15,138  2,487   0       $0.0026  17.2
+pair:whatToPractise  gpt-6-luna  1      3,842   7,545   854     0       $0.0009  5.9
+TOTAL                            12     61,254  89,702  13,781  0       $0.0244  106.7
+
+cost $0.0244 in 34.8s wall clock (106.7s of call time across 12 calls); bar $0.2500: under
+wrote /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/curie-winfrey.partners.r12d-pair.md and /home/runner/work/Starsdecoded/Starsdecoded/fixtures/reports/curie-winfrey.partners.r12d-pair.json
