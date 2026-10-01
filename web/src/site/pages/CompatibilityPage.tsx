@@ -1,15 +1,20 @@
 /**
- * The Compatibility report on its own page (annex /compatibility): the sample
- * people under each lens on one horizon (ADR-113), how to get the report, and
- * how it differs from the Personal natal report. It quotes no pair text until a
- * pair run is stored (MB-93), and it never scores the two people.
+ * The Compatibility report on its own page (annex /compatibility): the sample people under each lens on one horizon
+ * (ADR-113), then how to get the report in three steps drawn with the site's own pieces (ADR-180). Its questions are on
+ * /faq. It quotes no pair text until a pair run is stored (MB-93), and it never scores the two people.
  */
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
-import { CHAPTERS } from "@/lib/chapters";
-import { LENSES, PAIR_CHAPTER_TITLES, lensInfo } from "@/lib/lenses";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { chapterAccent } from "@/lib/chapter-accent";
+import { LENSES, PAIR_CHAPTER_TITLES, PARENT_QUESTION, lensInfo } from "@/lib/lenses";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
+import { first } from "@/lib/share-card";
+import type { Lens } from "@/types/chart";
 import { SiteLayout } from "../SiteLayout";
+import { TwoPlates } from "../components/TwoPlates";
 import { ReportCta } from "../cta";
+import { SAMPLE_PAIRS, samplePerson } from "../data/people";
 import { PairLenses } from "../sections/TwoCharts";
 import { SAMPLE_LIVE, pageFor } from "../site";
 
@@ -20,52 +25,68 @@ const countWord = (n: number): string => COUNT_WORDS[n] ?? String(n);
 const capital = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const two = (n: number): string => String(n).padStart(2, "0");
 
-// Each lens writes its own five chapters between the same first and last (ADR-63), so any lens gives the count.
-const PAIR_CHAPTERS = capital(countWord(PAIR_CHAPTER_TITLES(LENSES[0].lens).length));
-const NATAL_CHAPTERS = capital(countWord(CHAPTERS.length));
+// Each lens writes its own five chapters between the same first and last (ADR-63), so any lens gives both counts.
+const PAIR_CHAPTERS = countWord(PAIR_CHAPTER_TITLES(LENSES[0].lens).length);
+const SCENE_CHAPTERS = capital(countWord(LENSES[0].chapters.length));
 
-const STEPS: readonly { title: string; text: string }[] = [
-  {
-    title: `Each of you has a ${PERSONAL_REPORT}`,
-    text: "If they don't have one yet, add theirs from your dashboard with their birth details. You can send it to them once it's written.",
-  },
-  {
-    title: "You say who they are to you",
-    text: "Your partner, your child, or a friend, relative or colleague. For a parent and a child, you say who the parent is.",
-  },
-  {
-    title: `You get your ${COMPATIBILITY_REPORT}`,
-    text: `${PAIR_CHAPTERS} chapters about everyday life together, with things to try for each of you and for both.`,
-  },
+// Under parent and child the parent comes first (people.ts), so step 01's mother and daughter are also the parent pick's.
+const [PARENT, CHILD] = SAMPLE_PAIRS.parent_child.map((id) => samplePerson(id));
+// Step 01 shows a mother and her daughter, so step 02 opens on the lens they would pick.
+const STEP_LENS: Lens = "parent_child";
+
+const ARRIVE: Keyframe[] = [
+  { opacity: 0, transform: "translateY(6px)" },
+  { opacity: 1, transform: "none" },
 ];
+const ARRIVE_MS = 500;
+const EASE = "cubic-bezier(.16, 1, .3, 1)";
 
-const ROWS: readonly { label: string; natal: string; pair: string }[] = [
-  { label: "About", natal: "One person", pair: "Two people, and how they get along" },
-  { label: "You need", natal: "A birth date and place, and the time if you know it", pair: `A ${PERSONAL_REPORT} for each of you` },
-  { label: "Chapters", natal: NATAL_CHAPTERS, pair: `${PAIR_CHAPTERS}, set by who they are to you` },
-  // One credit is one report, whatever the report (R-6.4).
-  { label: "Credits", natal: "One", pair: "One" },
-  { label: "Scores", natal: "None", pair: "None" },
-];
+interface Beat {
+  from: number;
+  every: number;
+}
 
-const QUESTIONS: readonly { q: string; a: string }[] = [
-  {
-    q: `Do we both need a ${PERSONAL_REPORT}?`,
-    a: `Yes. The ${COMPATIBILITY_REPORT} is written from both of your charts, so each of you needs a ${PERSONAL_REPORT} first.`,
-  },
-  {
-    q: `Can I get a ${COMPATIBILITY_REPORT} about me and my child?`,
-    a: `Yes. Pick “${lensInfo("parent_child").door}” and say who the parent is. The report looks at what your child needs from you at their age and how you can give it.`,
-  },
-  {
-    q: "What happens to the other person's birth details?",
-    a: "The same as for any report. Our writing service only gets names and where the planets are, never anyone's birth date, time or place.",
-  },
-];
+// The artifact's timing: the plates' rows, then the titles; a new lens replays the titles alone, quicker.
+const ROWS_BEAT: Beat = { from: 150, every: 160 };
+const TITLES_BEAT: Beat = { from: 1300, every: 120 };
+const LENS_BEAT: Beat = { from: 60, every: 90 };
+/** Both Suns, then both Moons, then both Risings, so the two readouts fill side by side. */
+const ROW_ORDER = [0, 3, 1, 4, 2, 5];
+const ON_VIEW = 0.35;
 
-// On a phone the labels tighten and the cells pad less, so the three columns fit a 320 px screen without scrolling sideways.
-const LABEL = "text-left font-label text-[10.5px] leading-[1.3] font-medium tracking-[.1em] uppercase min-[560px]:tracking-[.16em]";
-const PAD = "px-2.5 min-[560px]:px-4";
+const moving = (): boolean =>
+  typeof Element.prototype.animate === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// TwoPlates keeps its readouts to itself, so its rows are found by their markup: one <dl> per person, a row per body.
+function plateRows(box: HTMLElement | null): HTMLElement[] {
+  const rows = box ? [...box.querySelectorAll<HTMLElement>("dl > div")] : [];
+  return ROW_ORDER.flatMap((i) => (rows[i] ? [rows[i]] : []));
+}
+
+function chapterRows(box: HTMLElement | null, lens?: Lens): HTMLElement[] {
+  return box ? [...box.querySelectorAll<HTMLElement>(lens ? `ol[data-lens="${lens}"] > li` : "ol > li")] : [];
+}
+
+function hide(els: readonly HTMLElement[]) {
+  for (const el of els) el.style.opacity = "0";
+}
+
+function unhide(els: readonly HTMLElement[]) {
+  for (const el of els) el.style.removeProperty("opacity");
+}
+
+function arrive(els: readonly HTMLElement[], beat: Beat): Animation[] {
+  unhide(els);
+  return els.map((el, k) =>
+    el.animate(ARRIVE, { duration: ARRIVE_MS, delay: beat.from + k * beat.every, easing: EASE, fill: "backwards" }),
+  );
+}
+
+const CHOICE =
+  "relative inline-flex items-center has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--indigo-lt)]";
+// The lens tabs' look above, where a choice is a radio rather than a tab.
+const LENS_CHIP = `sd-lensbtn ${CHOICE} has-checked:border-[rgba(149,117,205,.75)] has-checked:bg-[rgba(149,117,205,.15)] has-checked:text-[var(--paper)]`;
+const PARENT_CHIP = `${CHOICE} h-8 cursor-pointer rounded-full border border-[var(--line)] px-3 font-label text-[12.5px] text-[var(--paper-dim)] transition-colors has-checked:border-[var(--indigo)] has-checked:bg-[rgba(92,107,192,.15)] has-checked:text-[var(--paper)]`;
 
 function Lenses() {
   return (
@@ -83,85 +104,225 @@ function Lenses() {
   );
 }
 
-function TwoReports() {
+/** Words first, so on a phone each piece comes after the step that explains it. */
+function Step({ n, title, titleId, text, children }: { n: number; title: string; titleId?: string; text: string; children: ReactNode }) {
   return (
-    <div className="mt-7 overflow-x-auto rounded-[14px] border border-[var(--line)] bg-[rgba(17,22,31,.45)]">
-      <table className="w-full border-collapse text-[14.5px]">
-        <caption className="sr-only">The two reports side by side</caption>
-        <thead>
-          <tr>
-            <td className={`border-b border-[var(--line)] ${PAD}`} />
-            {[PERSONAL_REPORT, COMPATIBILITY_REPORT].map((name) => (
-              <th key={name} scope="col" className={`border-b border-[var(--line)] py-3.5 align-bottom text-[var(--paper-dim)] ${LABEL} ${PAD}`}>
-                {name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {ROWS.map((row, i) => {
-            const rule = i < ROWS.length - 1 ? "border-b border-[var(--line-soft)]" : "";
-            return (
-              <tr key={row.label}>
-                <th scope="row" className={`py-3 text-[var(--sd-muted)] min-[560px]:w-[24%] ${LABEL} ${PAD} ${rule}`}>
-                  {row.label}
-                </th>
-                <td className={`py-3 leading-[1.5] text-[var(--paper-dim)] ${PAD} ${rule}`}>{row.natal}</td>
-                <td className={`py-3 leading-[1.5] text-[var(--paper-dim)] ${PAD} ${rule}`}>{row.pair}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <li className="sd-step gap-5 p-5 min-[760px]:grid-cols-[minmax(0,.8fr)_minmax(0,1.2fr)] min-[760px]:items-center min-[760px]:gap-x-10 min-[760px]:p-7">
+      <div className="grid content-start gap-2.5">
+        <span className="sn" aria-hidden="true">
+          {two(n)}
+        </span>
+        <h3 id={titleId} className="min-[760px]:text-[28px]">
+          {title}
+        </h3>
+        <p className="max-w-[44ch]">{text}</p>
+      </div>
+      <div className="min-w-0">{children}</div>
+    </li>
   );
 }
 
 function HowToGetIt() {
+  const uid = useId();
+  const reduced = useReducedMotion();
+  const [lens, setLens] = useState<Lens>(STEP_LENS);
+  const [parent, setParent] = useState(PARENT?.id ?? "");
+  const plates = useRef<HTMLDivElement>(null);
+  const titles = useRef<HTMLDivElement>(null);
+  const runs = useRef<{ rows: Animation[]; titles: Animation[] }>({ rows: [], titles: [] });
+  const waiting = useRef({ rows: false, titles: false });
+  const rowsAt = useRef<number | null>(null);
+  const shownLens = useRef(lens);
+  const whoId = `${uid}-who`;
+  const parentId = `${uid}-parent`;
+
+  const stop = (part: "rows" | "titles") => {
+    for (const run of runs.current[part]) run.cancel();
+    runs.current[part] = [];
+  };
+
+  const settle = () => {
+    stop("rows");
+    stop("titles");
+    waiting.current.rows = false;
+    waiting.current.titles = false;
+    unhide(plateRows(plates.current));
+    unhide(chapterRows(titles.current));
+  };
+
+  // Once, on view. Only what starts below the fold waits hidden, so nothing a reader already sees blinks out to play.
+  useEffect(() => {
+    const platesEl = plates.current;
+    const titlesEl = titles.current;
+    if (!platesEl || !titlesEl || !moving() || !("IntersectionObserver" in window)) return;
+    const below = (el: Element) => el.getBoundingClientRect().top >= window.innerHeight;
+    if (below(platesEl)) {
+      waiting.current.rows = true;
+      hide(plateRows(platesEl));
+    }
+    if (below(titlesEl)) {
+      waiting.current.titles = true;
+      hide(chapterRows(titlesEl, shownLens.current));
+    }
+    // Each piece starts on its own view: on a phone step 03 is a screen below the plates, and would finish unseen.
+    const onView = (el: Element, play: () => void) => {
+      const io = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry?.isIntersecting) return;
+          io.disconnect();
+          play();
+        },
+        { threshold: ON_VIEW },
+      );
+      io.observe(el);
+      return io;
+    };
+    const watching = [
+      onView(platesEl, () => {
+        if (!waiting.current.rows) return;
+        waiting.current.rows = false;
+        rowsAt.current = performance.now();
+        runs.current.rows = arrive(plateRows(platesEl), ROWS_BEAT);
+      }),
+      onView(titlesEl, () => {
+        if (!waiting.current.titles) return;
+        waiting.current.titles = false;
+        // In view with the plates, the titles keep the artifact's place after the rows; reached later, they start at once.
+        const since = rowsAt.current === null ? Infinity : performance.now() - rowsAt.current;
+        const from = Math.max(LENS_BEAT.from, TITLES_BEAT.from - since);
+        runs.current.titles = arrive(chapterRows(titlesEl, shownLens.current), { from, every: TITLES_BEAT.every });
+      }),
+    ];
+    return () => {
+      for (const io of watching) io.disconnect();
+      settle();
+    };
+  }, []);
+
+  // Before paint, so the new list never shows whole first.
+  useLayoutEffect(() => {
+    if (shownLens.current === lens) return;
+    shownLens.current = lens;
+    const box = titles.current;
+    stop("titles");
+    unhide(chapterRows(box));
+    if (waiting.current.titles) hide(chapterRows(box, lens));
+    else if (moving()) runs.current.titles = arrive(chapterRows(box, lens), LENS_BEAT);
+  }, [lens]);
+
+  useEffect(() => {
+    if (reduced) settle();
+  }, [reduced]);
+
+  const replay = () => {
+    if (!moving()) return;
+    settle();
+    rowsAt.current = performance.now();
+    runs.current.rows = arrive(plateRows(plates.current), ROWS_BEAT);
+    runs.current.titles = arrive(chapterRows(titles.current, lens), TITLES_BEAT);
+  };
+
   return (
     <section className="sd-pg-sec sd-sec-c sd-line" aria-labelledby="how-h">
       <div className="sd-wrap">
-        <div className="sd-shead">
-          <p className="sd-eyebrow">How it works</p>
-          <h2 className="sd-h2" id="how-h">
-            How to get a {COMPATIBILITY_REPORT}
-          </h2>
+        <div className="mb-11 grid gap-5 min-[760px]:grid-cols-[minmax(0,1fr)_auto] min-[760px]:items-end">
+          <div className="sd-shead mb-0">
+            <p className="sd-eyebrow">How it works</p>
+            <h2 className="sd-h2" id="how-h">
+              How to get a {COMPATIBILITY_REPORT}
+            </h2>
+          </div>
+          {/* Nothing plays under reduced motion, so the button goes too: by CSS, not state, so the HTML and hydration agree. */}
+          <button type="button" className="sd-btn sd-btn-g sd-btn-sm justify-self-end motion-reduce:hidden" onClick={replay}>
+            Play it again
+          </button>
         </div>
 
-        <ol className="m-0 grid list-none gap-[18px] p-0 min-[760px]:grid-cols-3">
-          {STEPS.map((step, i) => (
-            <li key={step.title} className="grid content-start gap-2 border-t border-[var(--line)] pt-4">
-              <span aria-hidden="true" className="sd-mono text-[12px] tracking-[.1em] text-[var(--violet)]">
-                {two(i + 1)}
-              </span>
-              <h3 className="text-[21px] leading-[1.25] text-[var(--paper)]">{step.title}</h3>
-              <p className="text-[15px] text-[var(--paper-dim)]">{step.text}</p>
-            </li>
-          ))}
-        </ol>
+        <ol className="m-0 grid list-none gap-[18px] p-0">
+          <Step
+            n={1}
+            title={`You each have a ${PERSONAL_REPORT}`}
+            text="Add theirs from your dashboard with their birth details. You can share it with them once it's written."
+          >
+            <div ref={plates}>{PARENT && CHILD && <TwoPlates a={PARENT} b={CHILD} caption="Sample people" />}</div>
+          </Step>
 
-        <div className="sd-facts mt-14">
-          <p className="sd-fact">
-            <b>No scores</b> It doesn't rate the two of you or say whether you should be together.
-          </p>
-          <p className="sd-fact">
-            <b>Everyday life</b> It's about the moments you share, from chores and money to plans and arguments.
-          </p>
-          <p className="sd-fact">
-            <b>One credit</b> Like any report, a {COMPATIBILITY_REPORT} uses one credit.
-          </p>
-        </div>
-
-        <TwoReports />
-
-        <div className="sd-faq mt-14">
-          {QUESTIONS.map((item) => (
-            <div key={item.q}>
-              <h3>{item.q}</h3>
-              <p>{item.a}</p>
+          <Step
+            n={2}
+            title="Say who they are to you"
+            titleId={whoId}
+            text="Your partner, your child, or a friend, relative or colleague. For a parent and a child, you say who the parent is."
+          >
+            <div className="grid gap-3.5">
+              <div role="radiogroup" aria-labelledby={whoId} className="flex flex-wrap gap-2">
+                {LENSES.map((l) => (
+                  <label key={l.lens} className={LENS_CHIP}>
+                    <input
+                      type="radio"
+                      className="sr-only"
+                      name={`${uid}-lens`}
+                      value={l.lens}
+                      checked={l.lens === lens}
+                      onChange={() => setLens(l.lens)}
+                    />
+                    {l.door}
+                  </label>
+                ))}
+              </div>
+              <div
+                role="radiogroup"
+                aria-labelledby={parentId}
+                hidden={!lensInfo(lens).asksParent}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <span id={parentId} className="mr-1 text-[13px] text-[var(--sd-muted)]">
+                  {PARENT_QUESTION}
+                </span>
+                {[PARENT, CHILD].map(
+                  (person) =>
+                    person && (
+                      <label key={person.id} className={PARENT_CHIP}>
+                        <input
+                          type="radio"
+                          className="sr-only"
+                          name={parentId}
+                          value={person.id}
+                          checked={person.id === parent}
+                          onChange={() => setParent(person.id)}
+                        />
+                        {first(person.name)}
+                      </label>
+                    ),
+                )}
+              </div>
             </div>
-          ))}
-        </div>
+          </Step>
+
+          <Step
+            n={3}
+            title={`Read ${PAIR_CHAPTERS} chapters about everyday life`}
+            text={`${SCENE_CHAPTERS} of them play out one scene between you and end with something to try together. Pick a relationship in step 2 to see its chapters.`}
+          >
+            {/* Every lens's titles are in the HTML, so a crawler reads all three, not the one picked first. */}
+            <div ref={titles}>
+              {LENSES.map(({ lens: shown }) => (
+                <ol key={shown} data-lens={shown} hidden={shown !== lens} className="m-0 grid list-none gap-1.5 p-0">
+                  {PAIR_CHAPTER_TITLES(shown).map((title, i) => (
+                    <li
+                      key={title}
+                      className="grid grid-cols-[30px_minmax(0,1fr)] items-baseline gap-2 rounded-[10px] border border-[var(--line-soft)] bg-[rgba(6,8,12,.55)] px-3.5 py-2.5"
+                    >
+                      <span aria-hidden="true" className="font-numeric text-[11.5px] font-medium" style={{ color: chapterAccent(i + 1) }}>
+                        {two(i + 1)}
+                      </span>
+                      <span className="font-display text-[17px] leading-[1.3] text-[var(--paper)]">{title}</span>
+                    </li>
+                  ))}
+                </ol>
+              ))}
+            </div>
+          </Step>
+        </ol>
       </div>
     </section>
   );

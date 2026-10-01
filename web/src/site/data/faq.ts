@@ -1,10 +1,12 @@
 /**
- * Every question the site answers, written once: the home page shows the ten marked `home`, /faq all fifteen by topic,
+ * Every question the site answers, written once: the home page shows the ten marked `home`, /faq every one by topic,
  * and /faq's FAQPage markup repeats them word for word (landing-and-ai-search scope 12, annex /faq; ADR-116, 117).
  * Answers stay plain text whose first sentence answers alone, so an answer engine can quote it without the page around it.
+ * /compatibility asks none of its own: its three moved here (ADR-180).
  */
-import { BUNDLES, formatEuro } from "@workspace/commerce";
+import { BUNDLES, CREDIT_LINE, formatEuro } from "@workspace/commerce";
 import { CHAPTERS } from "@/lib/chapters";
+import { lensInfo } from "@/lib/lenses";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { SAMPLE_LIVE } from "../site";
 
@@ -97,10 +99,31 @@ const twoOfYou: FaqItem = {
   link: "/compatibility",
 };
 
+const bothNeed: FaqItem = {
+  q: `Do we both need a ${PERSONAL_REPORT}?`,
+  a: `Yes. The ${COMPATIBILITY_REPORT} is written from both of your charts, so each of you needs a ${PERSONAL_REPORT} first.`,
+  home: false,
+};
+
+const withChild: FaqItem = {
+  q: `Can I get a ${COMPATIBILITY_REPORT} about me and my child?`,
+  a: `Yes. Pick “${lensInfo("parent_child").door}” and say who the parent is. The report looks at what your child needs from you at their age and how you can give it.`,
+  home: false,
+};
+
 const score: FaqItem = {
   q: `Does the ${COMPATIBILITY_REPORT} give us a score?`,
   a: "No. It looks at everyday life together, where you clash and what you can try, and it never rates the two of you.",
   home: false,
+};
+
+// Not "only names": for a pair the writer also gets passages from both reports and, for a parent and child, the
+// child's age (/privacy).
+const theirDetails: FaqItem = {
+  q: "What happens to the other person's birth details?",
+  a: "They stay private, the same as yours. Our writing service gets names and where the planets are, never anyone's birth date, time or place.",
+  home: false,
+  link: "/privacy",
 };
 
 const birthData: FaqItem = {
@@ -118,7 +141,7 @@ const deleting: FaqItem = {
 
 const payOnce: FaqItem = {
   q: "Do I pay once or every month?",
-  a: `Once. There's no subscription, and each report uses one credit. Credits cost ${creditPrices()}, VAT included.`,
+  a: `Once. There's no subscription. ${CREDIT_LINE} Credits cost ${creditPrices()}, VAT included.`,
   home: false,
 };
 
@@ -134,7 +157,7 @@ const goesWrong: FaqItem = {
 export const FAQ_GROUPS: readonly FaqGroup[] = [
   { topic: "The report", items: [whatIs, howWritten, scientific, predicts, howLong] },
   { topic: "Birth details", items: [needToStart, noBirthTime, birthPlace, wholeSign] },
-  { topic: "Compatibility", items: [twoOfYou, score] },
+  { topic: "Compatibility", items: [twoOfYou, bothNeed, withChild, score, theirDetails] },
   { topic: "Privacy", items: [birthData, deleting] },
   { topic: "Paying", items: [payOnce, goesWrong] },
 ];
