@@ -1,9 +1,8 @@
 # Timeline
 
-Ideation 2026-10-01 with the Owner. Status: draft v2, the Owner's three answers in
-(below); ready to lock. Built behind a switch that stays off at launch.
-Artifact: https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE
-Picks up MB-26 (parked) and "Later: the subscription" in `pricing-and-launch.md`.
+Ideation 2026-10-01. Draft v2 with the Owner's answers, ready to lock; behind a switch, off
+at launch. https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE · picks up MB-26 and
+"Later: the subscription" in `pricing-and-launch.md`.
 
 Timeline is the one subscription, sold only to an owner of a Personal natal report.
 It shows the sky moving across that chart: a life's long cycles, what touches the
