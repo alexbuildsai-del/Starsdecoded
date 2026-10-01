@@ -1,26 +1,30 @@
 /**
- * Who is on the dashboard's orbit and where they sit, pure so the dashboard and
- * the landing's sample orbit (R11) share one rule set a test can pin. The orbit
- * is not a chart (ADR-89): nothing here reads a placement.
+ * Who is on the dashboard's circle and where they sit, pure so the dashboard
+ * and the landing's sample orbit (R11) share one rule set a test can pin. The
+ * circle is not a chart (ADR-89): nothing here reads a placement.
  *
- * Membership follows ADR-121 as ADR-139 narrows it: the people whose natal
- * reports the reader made and still reads, the reader's gifts still waiting,
- * and one Add someone point. Nobody else is drawn until they share their own
- * chart with the reader, which MB-104 has not designed: not a giver, not a
- * gift's recipient, not a pair's other person.
+ * Membership is the People list (ADR-182, reading 6): everyone whose Personal
+ * report the reader can read, written until its subject stops sharing or sent
+ * to them, as `GET /home` lists them, so a stop takes the person off at the
+ * next read. The reader's own report is the centre, never a point. Then the
+ * reader's gifts still waiting, one Add someone point, and while the circle
+ * is nearly empty, ghost seats that show who could join it.
  */
-import type { CreditCounts, Gift, ProfileSummary, ReportSummary } from "@workspace/api-client-react";
+import type { CreditCounts, Gift, HomePerson, ProfileSummary, ReportSummary } from "@workspace/api-client-react";
 
-export type OrbitPointKind = "person" | "gift" | "add";
+/** What a tap on the centre selects: the reader's own quick look, or the report they still have to get. */
+export const CENTRE_ID = "self";
+
+export type OrbitPointKind = "person" | "gift" | "add" | "ghost";
 
 export interface OrbitPoint {
-  /** A person's profile id, so a pair's participant ids and the centre's profile id need no mapping; `gift:{id}` and `add` otherwise. */
+  /** A person's profile id, so a pair's participant ids and the centre's profile id need no mapping; `gift:{id}`, `add` and `ghost:{n}` otherwise. */
   id: string;
   kind: OrbitPointKind;
-  /** The whole name for the accessible label; the add point's action. */
+  /** The whole name for the accessible label; the add point's action; a ghost's seat. */
   name: string;
   initials: string;
-  /** Printed under the disc, in capitals: BEATRICE · WRITING, PIERRE · GIFT WAITING, ADD SOMEONE. */
+  /** Printed under the disc, in capitals: BEATRICE · WRITING, PIERRE · GIFT WAITING, ADD SOMEONE, PARTNER. */
   label: string;
   writing: boolean;
   /** The violet ring: a compatibility report with the reader that the reader can open (reading 3). */
@@ -30,7 +34,7 @@ export interface OrbitPoint {
   giftId?: string;
 }
 
-/** Only the fields the rules read, so the dashboard passes its lists as they come and R11's sample people need no more. */
+/** Only the fields the rules read, so the sample's people need no more. */
 export type OrbitProfile = Pick<ProfileSummary, "id" | "name" | "isSelf">;
 
 export type OrbitReport = Pick<ReportSummary, "id" | "kind" | "status" | "profileId" | "participants" | "createdAt" | "access" | "stoppedBy">;
@@ -39,10 +43,35 @@ export type OrbitPair = Pick<OrbitReport, "kind" | "status" | "participants" | "
 
 export type OrbitGift = Pick<Gift, "id" | "recipientName" | "state">;
 
+/** The sample orbit's input: a profile list and its reports, as `GET /profiles` and `GET /reports` give them. */
 export interface OrbitInput {
   profiles: readonly OrbitProfile[];
   /** Natal and compatibility reports as listed; the pairs light the violet rings. */
   reports: readonly OrbitReport[];
+  gifts: readonly OrbitGift[];
+  credits: number | Pick<CreditCounts, "available">;
+  /** `creditsEnforced()`: true on every host but production (ADR-138). */
+  enforced: boolean;
+}
+
+/** One person as `GET /home` lists them; only what the circle reads. */
+export type CirclePerson = Pick<HomePerson, "profileId" | "reportId" | "name" | "status" | "isSelf">;
+
+/** One pair as `GET /home` lists it; only what the violet rings read. */
+export interface CirclePair {
+  a: { profileId: string };
+  b: { profileId: string };
+  status: string;
+  stoppedBy?: string | null;
+}
+
+/** The dashboard's input: `GET /home`'s `you`, `people` and `pairs`, so a page may spread its home into it. */
+export interface CircleInput {
+  /** The reader's own Personal report, at the centre; null with none marked as theirs, or several. */
+  you: Pick<HomePerson, "profileId"> | null;
+  /** In `GET /home`'s order; with several marked as the reader's, each of them stays here until they settle which. */
+  people: readonly CirclePerson[];
+  pairs: readonly CirclePair[];
   gifts: readonly OrbitGift[];
   credits: number | Pick<CreditCounts, "available">;
   /** `creditsEnforced()`: true on every host but production (ADR-138). */
@@ -55,12 +84,24 @@ export interface RingGap {
   end: number;
 }
 
+/** Who could join, in the approved mock's words and order; an empty circle shows all four. */
+export const GHOST_SEATS = ["Partner", "Mum", "Best friend", "Your child"] as const;
+
+/** The fewest seats a circle with anyone on it shows, so one person and the add point never sit alone on the ring. */
+export const CIRCLE_SEATS = 3;
+
 const ADD_ID = "add";
 const GIFT_ID_PREFIX = "gift:";
+const GHOST_ID_PREFIX = "ghost:";
 
-/** A report under a revision pass keeps its text and is read as it stands (progress.ts), so only the first writing is "writing". */
+/** A report under a revision pass keeps its text and is read as it stands (progress.ts). */
 function finished(status: string): boolean {
   return status === "complete" || status === "revising";
+}
+
+/** Only the first writing is "writing": a revision pass reads as finished, and a failed report keeps its seat with nothing under way while its quick look says why. */
+function beingWritten(status: string): boolean {
+  return status === "pending" || status === "computing" || status === "interpreting";
 }
 
 function words(name: string): string[] {
@@ -71,69 +112,66 @@ function label(...parts: string[]): string {
   return parts.filter(Boolean).join(" · ").toUpperCase();
 }
 
-function readablePair(r: OrbitPair): boolean {
-  if (r.kind !== "compatibility" || !finished(r.status)) return false;
-  // MB-103 provisional: a pair closes when one of its people stops sharing, and a closed pair lights no one.
-  return !r.stoppedBy;
+interface PairIds {
+  ids: string[];
+  status: string;
+  stoppedBy?: string | null;
 }
 
-function participantIds(r: OrbitPair): string[] {
-  return (r.participants ?? []).map((p) => p.id);
+/** Either list's pair as its two profile ids; a natal row of `GET /reports` is no pair. */
+function pairIds(r: OrbitPair | CirclePair): PairIds | null {
+  if ("kind" in r) return r.kind === "compatibility" ? { ids: (r.participants ?? []).map((p) => p.id), status: r.status, stoppedBy: r.stoppedBy } : null;
+  return { ids: [r.a.profileId, r.b.profileId], status: r.status, stoppedBy: r.stoppedBy };
+}
+
+function readablePair(r: OrbitPair | CirclePair): PairIds | null {
+  const pair = pairIds(r);
+  // MB-103 provisional: a pair closes when one of its people stops sharing, and a closed pair lights no one.
+  return pair && finished(pair.status) && !pair.stoppedBy ? pair : null;
 }
 
 /**
- * The orbit's points in ring order: people as the profile list orders them,
- * then waiting gifts, then the one Add someone point, never one per credit.
+ * The circle's points in ring order, clockwise from the top: the Add someone
+ * point first, as the approved mock draws it, then the people in the order
+ * `GET /home` gives them, then waiting gifts, then ghost seats up to
+ * `CIRCLE_SEATS`. An empty circle is four ghost seats and no add point: it
+ * starts with the reader's own report, which the centre asks for.
  */
-export function orbitPoints({ profiles, reports, gifts, credits, enforced }: OrbitInput): OrbitPoint[] {
-  // The reader's own chart is the centre, never a point; with several marked,
-  // the centre goes dashed and the list below settles which is theirs.
-  const selfIds = new Set(profiles.filter((p) => p.isSelf === true).map((p) => p.id));
-
-  // Per profile, the latest report the reader made that did not fail: a failed
-  // retry must not hide a report that can still be opened. An older server
-  // sends no `access` and listed only the viewer's own reports.
-  const made = new Map<string, OrbitReport>();
-  for (const r of reports) {
-    if (r.kind !== "natal" || !r.profileId || r.status === "failed") continue;
-    if ((r.access ?? "owner") !== "owner") continue;
-    const kept = made.get(r.profileId);
-    if (!kept || r.createdAt > kept.createdAt) made.set(r.profileId, r);
-  }
+export function circlePoints({ you, people, pairs, gifts, credits, enforced }: CircleInput): OrbitPoint[] {
+  const own = new Set<string>(people.filter((p) => p.isSelf).map((p) => p.profileId));
+  if (you) own.add(you.profileId);
 
   const withReader = new Set<string>();
-  for (const r of reports) {
-    if (!readablePair(r)) continue;
-    const ids = participantIds(r);
-    if (!ids.some((id) => selfIds.has(id))) continue;
-    for (const id of ids) if (!selfIds.has(id)) withReader.add(id);
+  for (const r of pairs) {
+    const pair = readablePair(r);
+    if (!pair || !pair.ids.some((id) => own.has(id))) continue;
+    for (const id of pair.ids) if (!own.has(id)) withReader.add(id);
   }
 
-  const points: OrbitPoint[] = [];
+  const seated: OrbitPoint[] = [];
   const placed = new Set<string>();
-  for (const p of profiles) {
-    const report = made.get(p.id);
-    if (!report || selfIds.has(p.id) || placed.has(p.id)) continue;
-    placed.add(p.id);
+  for (const p of people) {
+    if (p.profileId === you?.profileId || placed.has(p.profileId)) continue;
+    placed.add(p.profileId);
     const name = p.name.trim();
-    const writing = !finished(report.status);
-    points.push({
-      id: p.id,
+    const writing = beingWritten(p.status);
+    seated.push({
+      id: p.profileId,
       kind: "person",
       name,
       initials: initials(name),
       label: label(words(name)[0] ?? "", writing ? "writing" : ""),
       writing,
-      sharedPair: withReader.has(p.id),
-      profileId: p.id,
-      reportId: report.id,
+      sharedPair: withReader.has(p.profileId),
+      profileId: p.profileId,
+      reportId: p.reportId,
     });
   }
 
   for (const g of gifts) {
     if (g.state !== "waiting") continue;
     const name = g.recipientName.trim();
-    points.push({
+    seated.push({
       id: `${GIFT_ID_PREFIX}${g.id}`,
       kind: "gift",
       name,
@@ -145,20 +183,71 @@ export function orbitPoints({ profiles, reports, gifts, credits, enforced }: Orb
     });
   }
 
-  const balance = typeof credits === "number" ? credits : credits.available;
-  // MB-6 provisional: zero reads Get credits only where credits are enforced
-  // (ADR-138); production keeps the soft pass until checkout exists.
-  const out = enforced && balance <= 0;
-  points.push({
-    id: ADD_ID,
-    kind: "add",
-    name: out ? "Get credits" : "Add someone",
-    initials: "+",
-    label: out ? "GET CREDITS" : "ADD SOMEONE",
-    writing: false,
-    sharedPair: false,
+  const empty = !you && seated.length === 0;
+  const points: OrbitPoint[] = [];
+  if (!empty) {
+    const balance = typeof credits === "number" ? credits : credits.available;
+    // MB-6 provisional: zero reads Get credits only where credits are enforced
+    // (ADR-138); production keeps the soft pass until checkout exists.
+    const out = enforced && balance <= 0;
+    points.push({
+      id: ADD_ID,
+      kind: "add",
+      name: out ? "Get credits" : "Add someone",
+      initials: "+",
+      label: out ? "GET CREDITS" : "ADD SOMEONE",
+      writing: false,
+      sharedPair: false,
+    });
+  }
+  points.push(...seated);
+
+  const ghosts = empty ? GHOST_SEATS.length : Math.max(0, CIRCLE_SEATS - points.length);
+  GHOST_SEATS.slice(0, ghosts).forEach((seat, i) => {
+    points.push({
+      id: `${GHOST_ID_PREFIX}${i}`,
+      kind: "ghost",
+      name: seat,
+      initials: "",
+      label: seat.toUpperCase(),
+      writing: false,
+      sharedPair: false,
+    });
   });
   return points;
+}
+
+/**
+ * The same circle from a profile list and its reports, for the landing's
+ * sample account: per profile, the latest Personal report the reader can read
+ * that did not fail, since a failed retry must not hide one that still opens.
+ * An older server sends no `access` and listed only the viewer's own reports.
+ */
+export function orbitPoints({ profiles, reports, gifts, credits, enforced }: OrbitInput): OrbitPoint[] {
+  const readable = new Map<string, OrbitReport>();
+  for (const r of reports) {
+    if (r.kind !== "natal" || !r.profileId || r.status === "failed") continue;
+    const access = r.access ?? "owner";
+    if (access !== "owner" && access !== "claimed") continue;
+    const kept = readable.get(r.profileId);
+    if (!kept || r.createdAt > kept.createdAt) readable.set(r.profileId, r);
+  }
+
+  // The centre is the one profile marked as the reader's, report or not, so its pairs ring the people it shares them with.
+  const selves = profiles.filter((p) => p.isSelf === true);
+  const you = selves.length === 1 ? { profileId: selves[0].id } : null;
+
+  const people = profiles.flatMap((p): CirclePerson[] => {
+    const report = readable.get(p.id);
+    return report ? [{ profileId: p.id, reportId: report.id, name: p.name, status: report.status, isSelf: p.isSelf === true }] : [];
+  });
+
+  const pairs = reports.flatMap((r): CirclePair[] => {
+    const ids = r.kind === "compatibility" ? (r.participants ?? []).map((p) => p.id) : [];
+    return ids.length === 2 ? [{ a: { profileId: ids[0] }, b: { profileId: ids[1] }, status: r.status, stoppedBy: r.stoppedBy }] : [];
+  });
+
+  return circlePoints({ you, people, pairs, gifts, credits, enforced });
 }
 
 /**
@@ -210,16 +299,15 @@ export function ringGaps(angles: readonly number[], radius: number, halfWidths: 
 
 /**
  * Who keeps full light when a point is tapped: the other people of each pair
- * it is in that the reader can open. Ids the orbit does not draw, the reader's
- * own among them, are left for the orbit to ignore.
+ * it is in that the reader can open, from either list's pairs. Ids the circle
+ * does not draw, the reader's own among them, are left for it to ignore.
  */
-export function partnersOf(pointId: string, pairs: readonly OrbitPair[]): string[] {
+export function partnersOf(pointId: string, pairs: readonly (OrbitPair | CirclePair)[]): string[] {
   const out: string[] = [];
   for (const r of pairs) {
-    if (!readablePair(r)) continue;
-    const ids = participantIds(r);
-    if (!ids.includes(pointId)) continue;
-    for (const id of ids) if (id !== pointId && !out.includes(id)) out.push(id);
+    const pair = readablePair(r);
+    if (!pair || !pair.ids.includes(pointId)) continue;
+    for (const id of pair.ids) if (id !== pointId && !out.includes(id)) out.push(id);
   }
   return out;
 }

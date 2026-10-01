@@ -1,34 +1,38 @@
 /**
- * One house, front and back. The front is drawn from the chart: who stands
- * there, at what degree. The back is the report's own words, the triad passage
- * this house carries and the generated reading (ADR-21). The card writes no
- * astrological prose of its own.
+ * One house as chapter 02's deck shows it (ADR-179): the house and its sign,
+ * who stands there, the house's full title (ADR-98), then the report's own
+ * reading, closed by its Behaviour check. On a phone the card leads with the
+ * first sentence and keeps the rest behind Read the rest; on a desktop and on
+ * paper it shows the whole text. The card writes no astrological prose of its
+ * own. A blind chart has no house to show, so the deck gives it the blind card.
  */
-import { PLANET_GLYPHS, type Claim } from "@/types/chart";
+import { useId, useState } from "react";
+import { PLANET_GLYPHS } from "@/types/chart";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
-import { TRADITIONAL_RULER } from "@/lib/house-rulers";
-import { CitedText, newCitationCounter } from "@/components/report/Citation";
+import { hintFor } from "@/lib/birth-record-hints";
+import { HOUSE_NAMES, ORDINALS } from "@/lib/evidence-glossary";
+import { splitReading } from "@/lib/house-deck";
 import { AngleGlyph, type AngleKey } from "@/components/report/AngleGlyph";
 import type { Occupant } from "@/lib/house-occupants";
-import {
-  HOUSE_NAMES, HOUSE_QUESTIONS, HOUSE_THEMES, ORDINALS, QUADRANTS,
-} from "@/lib/evidence-glossary";
-import { PLANET_LABELS } from "@/types/chart";
 
-/** Which chapter picks a house's affairs up. Houses not listed here send nowhere (ADR-46: no Your Path). */
-export const HOUSE_CHAPTER: Record<number, { number: number; title: string }> = {
-  1: { number: 3, title: "Mind" },
-  2: { number: 5, title: "Money" },
-  3: { number: 3, title: "Mind" },
-  4: { number: 7, title: "Family" },
-  7: { number: 6, title: "Relationships" },
-  10: { number: 4, title: "Career" },
-};
+const EASE = "ease-[cubic-bezier(.16,1,.3,1)]";
 
-export interface TriadPassage {
-  key: string;
-  label: string;
-  text: string;
+function OccupantMark({ o }: { o: Occupant }) {
+  const src = o.kind === "planet" ? PLANET_RENDERS[o.key] : undefined;
+  if (src) return <img src={src} alt={o.label} title={o.label} width={16} height={16} className="h-4 w-4" loading="lazy" />;
+  // The R03 marker (ADR-49): an angle is a point on the horizon, never a body.
+  if (o.kind === "angle") {
+    return (
+      <span role="img" aria-label={o.label} title={o.label} className="inline-flex">
+        <AngleGlyph angle={o.key as AngleKey} size={16} />
+      </span>
+    );
+  }
+  return (
+    <span role="img" aria-label={o.label} title={o.label} className="font-mono text-[11px] font-medium leading-none text-[color:var(--paper-dim)]">
+      {PLANET_GLYPHS[o.key] ?? "·"}
+    </span>
+  );
 }
 
 export interface HouseCardProps {
@@ -36,140 +40,121 @@ export interface HouseCardProps {
   /** The whole-sign sign on this house. */
   sign: string;
   occupants: Occupant[];
-  /** The generated reading for this house, absent while the section is still writing. */
+  /** The house's reading as the report stored it; absent while the section is still being written. */
   reading?: string;
-  /** The triad passages this house carries, in the order they should be read. */
-  triad?: TriadPassage[];
-  triadClaims?: Claim[];
-  flipped: boolean;
-  onFlip: () => void;
+  /** The whole text at once, for the desktop card: no Read the rest. */
+  whole?: boolean;
+  /** The card the deck is on. The others stand back, except with reduced motion and on paper. */
+  lit?: boolean;
   className?: string;
 }
 
-function OccupantMark({ o }: { o: Occupant }) {
-  if (o.kind === "planet") {
-    const src = PLANET_RENDERS[o.key];
-    return src
-      ? <img src={src} alt="" width={36} height={36} className="h-9 w-9" loading="lazy" />
-      : <span aria-hidden className="grid h-9 w-9 place-items-center text-lg text-brass/80">·</span>;
-  }
-  if (o.kind === "point") {
-    return (
-      <span aria-hidden className="grid h-9 w-9 place-items-center rounded-full border border-brass/35 text-base text-brass/90">
-        {PLANET_GLYPHS[o.key] ?? "·"}
-      </span>
-    );
-  }
-  // The R03 marker (ADR-49): the tick points east for the Ascendant, up for the Midheaven.
-  return <AngleGlyph angle={o.key as AngleKey} size={36} className="h-9 w-9" />;
-}
-
-export function HouseCard({
-  house, sign, occupants, reading, triad, triadClaims, flipped, onFlip, className = "",
-}: HouseCardProps) {
+export function HouseCard({ house, sign, occupants, reading, whole = false, lit = true, className = "" }: HouseCardProps) {
+  const [open, setOpen] = useState(false);
+  const restId = useId();
+  const parts = reading ? splitReading(reading) : null;
   const i = house - 1;
-  const rulerKey = TRADITIONAL_RULER[sign];
-  const quiet = occupants.length === 0;
-  const chapter = HOUSE_CHAPTER[house];
-  const counter = newCitationCounter();
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={`${ORDINALS[i]} house card`}
-      aria-pressed={flipped}
-      onClick={onFlip}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onFlip();
-        }
-      }}
-      className={`relative flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border bg-card/40 p-5 text-left transition-colors ${
-        quiet ? "border-border/50" : "border-primary/40"
+    <article
+      aria-label={`${ORDINALS[i]} house, ${sign}`}
+      className={`grid content-start gap-2.5 rounded-2xl border bg-[color:var(--surface)] p-4 transition-[opacity,transform,border-color] duration-[400ms] ${EASE} motion-reduce:transition-none print:break-inside-avoid print:border-neutral-300 print:bg-transparent ${
+        lit ? "border-brass/35" : "scale-[.97] border-[color:var(--line)] opacity-55 motion-reduce:scale-100 motion-reduce:opacity-100 print:scale-100 print:opacity-100"
       } ${className}`}
     >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -top-4 right-2 select-none font-display text-[7rem] leading-none text-foreground/[0.045]"
-      >
-        {house < 10 ? `0${house}` : house}
-      </span>
-
-      <p className="rp-kicker">{ORDINALS[i]} house · {sign}</p>
-
-      {flipped ? (
+      <div className="flex min-h-4 items-center justify-between gap-1.5">
+        <p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-brass">
+          {ORDINALS[i]} house · {sign}
+        </p>
+        {occupants.length > 0 && (
+          <span className="flex shrink-0 items-center gap-1">
+            {occupants.map((o) => <OccupantMark key={o.key} o={o} />)}
+          </span>
+        )}
+      </div>
+      <h3 className={`font-display font-normal leading-[1.15] text-[color:var(--paper)] print:text-black ${whole ? "text-[28px]" : "text-[22px]"}`}>
+        {HOUSE_NAMES[i]}
+      </h3>
+      {parts ? (
         <>
-          <h4 className="mb-3 mt-1 font-display text-lg leading-snug text-foreground">
-            {HOUSE_QUESTIONS[i]}
-          </h4>
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-sm leading-[1.6] text-foreground/85">
-            {triad?.map((t) => (
-              <p key={t.key}>
-                <span className="mr-1.5 font-label text-[10px] uppercase tracking-[0.16em] text-primary/80">
-                  {t.label}
-                </span>
-                {CitedText({ text: t.text, claims: triadClaims, counter })}
-              </p>
-            ))}
-            {reading
-              ? <p>{reading}</p>
-              : (
-                <p className="font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                  Still writing this card
-                </p>
-              )}
-          </div>
-          {chapter && (
-            <a
-              href={`#chapter-${chapter.number}`}
-              onClick={(e) => e.stopPropagation()}
-              className="mt-4 border-t border-border/40 pt-3 font-label text-[9px] uppercase tracking-[0.2em] text-brass/80 hover:text-brass"
+          <p className={`font-display leading-[1.45] text-[color:var(--paper)] print:text-black ${whole ? "text-[20px]" : "text-[17px]"}`}>
+            {parts.lead}
+          </p>
+          {parts.rest && (
+            <p
+              id={restId}
+              className={`text-foreground/85 print:block print:text-black ${whole ? "text-[15px] leading-[1.65]" : "text-[13.5px] leading-[1.55]"} ${
+                whole || open ? "" : "hidden"
+              }`}
             >
-              Read chapter · {chapter.title} →
-            </a>
+              {parts.rest}
+            </p>
+          )}
+          {parts.rest && !whole && (
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls={restId}
+              onClick={() => setOpen((o) => !o)}
+              className="-my-2 justify-self-start py-2 font-label text-[12.5px] font-medium text-[color:var(--indigo-lt)] hover:text-[color:var(--paper)] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--indigo-lt)] print:hidden"
+            >
+              {open ? "Show less" : "Read the rest"}
+            </button>
+          )}
+          {parts.check && (
+            <div className="grid gap-1 border-t border-[color:var(--line-soft)] pt-2.5 print:border-neutral-300">
+              <p className="font-label text-[9.5px] font-medium uppercase tracking-[.16em] text-[color:var(--accent)]">Behaviour check</p>
+              <p className={`text-[color:var(--paper)] print:text-black ${whole ? "text-[14px] leading-[1.55]" : "text-[13.5px] leading-[1.5]"}`}>
+                {parts.check}
+              </p>
+            </div>
           )}
         </>
       ) : (
-        <>
-          <h4 className="mt-1 font-display text-2xl leading-tight text-foreground">
-            {HOUSE_NAMES[i]}
-          </h4>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground/85">
-            {HOUSE_THEMES[i]}
-          </p>
-          <div className="mt-5 min-h-0 flex-1 content-start overflow-y-auto">
-            {quiet ? (
-              <p className="font-label text-[10px] uppercase tracking-[0.14em] text-muted-foreground/80">
-                Quiet house · Influenced by {PLANET_LABELS[rulerKey] ?? rulerKey}, ruler of {sign}
-              </p>
-            ) : (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
-                {occupants.map((o) => (
-                  <span key={o.key} className="inline-flex items-center gap-1.5">
-                    <OccupantMark o={o} />
-                    <span className="font-label text-[10px] uppercase tracking-[0.12em] text-foreground/70">
-                      {o.label}
-                      {o.kind === "angle" && (
-                        <span className="ml-1 font-numeric text-brass/90">{o.degree.toFixed(1)}°</span>
-                      )}
-                    </span>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
-            <span className="font-label text-[9px] uppercase tracking-[0.2em] text-brass/70">
-              {QUADRANTS[Math.floor(i / 3)]}
-            </span>
-            <span className="font-label text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-              Read →
-            </span>
-          </div>
-        </>
+        <p className="font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">Still writing this card</p>
       )}
+    </article>
+  );
+}
+
+const HOUR_ADDS = [
+  "Your rising sign, and the chapter it opens",
+  "Twelve houses: where each planet does its work",
+  "Day or night, and which planets carry weight",
+  "The Lots, drawn from the horizon",
+];
+
+/** The country is the last part of the place the geocoder returned, when it gave one. */
+function countryOf(birthPlace?: string): string | null {
+  if (!birthPlace) return null;
+  const parts = birthPlace.split(",").map((p) => p.trim()).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1] : null;
+}
+
+export function AddBirthTimeCard({ birthPlace, onAddBirthTime }: { birthPlace?: string; onAddBirthTime?: () => void }) {
+  const hint = hintFor(countryOf(birthPlace));
+  return (
+    <div className="relative flex h-full flex-col rounded-xl border border-brass/40 bg-card/40 p-5 text-left" data-testid="add-birth-time-card">
+      <p className="rp-kicker">Horizon · not drawn</p>
+      <h4 className="mt-1 font-display text-2xl leading-tight text-foreground">What the hour adds</h4>
+      <ul className="mt-4 space-y-2 text-sm leading-relaxed text-foreground/85">
+        {HOUR_ADDS.map((line) => <li key={line} className="flex gap-2"><span aria-hidden className="text-brass">·</span>{line}</li>)}
+      </ul>
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={onAddBirthTime}
+          disabled={!onAddBirthTime}
+          className="rounded-full border border-brass/60 bg-brass/10 px-4 py-2 font-label text-[11px] uppercase tracking-[0.2em] text-brass hover:bg-brass/20 disabled:opacity-50"
+        >
+          Add my birth time
+        </button>
+        <p className="mt-2 font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Free. Every change is marked.</p>
+      </div>
+      <p className="mt-auto border-t border-border/40 pt-3 text-xs leading-relaxed text-muted-foreground">
+        <span className="font-label text-[10px] tracking-[0.16em] uppercase text-brass/80">Where to find it · </span>
+        {hint.text}
+      </p>
     </div>
   );
 }

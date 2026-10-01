@@ -16,6 +16,7 @@ import { db, labRunsTable, profilesTable, reportsTable, type InsertLabRun, type 
 import { OutOfCreditError, writeSection, type SectionResult } from "./aiInterpretation.js";
 import type { NatalChartData } from "./chartCalculation.js";
 import { FALLBACK_SHAPE, faultsOf, measureSection, priceSection, type TokenShape } from "./labRules.js";
+import { BASELINE } from "./labSession.js";
 import { CATALOGUE, MODELS, effortFor, priceOf, tierFor, type ModelId, type ServiceTier } from "./models.js";
 export { FALLBACK_SHAPE, priceSection, type TokenShape };
 import { costUsd, type SectionUsage } from "./usage.js";
@@ -281,10 +282,11 @@ export async function rowsById(ids: string[]): Promise<LabRun[]> {
   return ids.length ? db.select().from(labRunsTable).where(inArray(labRunsTable.id, ids)) : [];
 }
 
-/** The catalogue as the panel lists it, with the baseline every writer is judged against. */
+/** The catalogue as the panel lists it, with the baseline every writer is judged against and the writers production ships (ADR-184). */
 export function catalogueForPanel() {
   return {
-    baseline: MODELS.sections,
+    baseline: BASELINE,
+    production: { foundation: MODELS.foundation, sections: MODELS.sections },
     models: (Object.keys(CATALOGUE) as ModelId[]).map((id) => {
       const p = priceOf(id)!;
       return { id, input: p.input, cachedInput: p.cachedInput, output: p.output, reasoningEffort: p.reasoningEffort, flex: p.flex, checked: p.checked ?? "" };

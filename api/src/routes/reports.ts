@@ -16,7 +16,7 @@ import {
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
 import { generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
 import { SECTION_IDS } from "../prompts/index.js";
-import { PAIR_PROMPT_VERSION, pairSectionIds } from "../prompts/pair/index.js";
+import { pairSectionIds } from "../prompts/pair/index.js";
 import type { Lens } from "../lib/pairBrief.js";
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
 import {
@@ -37,6 +37,7 @@ import {
   type Viewer,
 } from "../lib/access.js";
 import { firstNameOf } from "../lib/names.js";
+import { PIN_LIMIT, isWorkbookKey, pairListed, patchWorkbook, workbookOf, type WorkbookPatch } from "../lib/home.js";
 import { consumeCredit, refundCredit } from "../lib/credits.js";
 import { failureCodeOf, failureReasonOf } from "../lib/failureReasons.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
@@ -333,8 +334,8 @@ router.get("/reports", async (req, res) => {
 
       const partsByRel = await partsOf(Array.from(new Set(synRows.map((r) => r.relationshipId).filter((id): id is string => !!id))));
 
-      // MB-65 provisional: a report written before p2 cannot render on the seven-chapter page, so it is listed nowhere.
-      const current = synRows.filter((r) => r.status !== "complete" || (r.interpretation as { meta?: { promptVersion?: string } } | null)?.meta?.promptVersion === PAIR_PROMPT_VERSION);
+      // MB-65 provisional: GET /home lists pairs by the same rule, so the two lists never disagree.
+      const current = synRows.filter(pairListed);
       // MB-103 provisional: a pair the viewer made stays listed once closed, naming who stopped sharing; one sent to them goes when its sender stops.
       const pairs = current.flatMap((r) => {
         const rel = { userId: r.relUserId, sessionId: r.relSessionId };
@@ -572,12 +573,19 @@ router.get("/reports/:id/status", async (req, res) => {
 });
 
 
+/** What a patch gets wrong on its own, answered before any report is read. */
+export function workbookPatchFault(patch: WorkbookPatch): string | null {
+  const keys = Object.keys(patch);
+  if (keys.length === 0 || keys.length > 200) return "A workbook patch carries 1 to 200 items";
+  const badKey = keys.find((k) => !isWorkbookKey(k));
+  return badKey ? `Not a workbook item key: ${badKey}` : null;
+}
+
 /**
  * The reader's workbook. A tick is one shallow merge, so a slow connection
  * cannot lose the rest of the page's ticks by overwriting them.
  */
-const WORKBOOK_KEY = /^[a-z][a-zA-Z]*(\.[a-zA-Z]+)+\.\d+$/;
-
+// MB-110 provisional: pins ride the workbook beside the ticks, so everyone who reads the report shares them.
 router.patch("/reports/:id/workbook", async (req, res) => {
   const params = UpdateReportWorkbookParams.safeParse(req.params);
   if (!params.success) {
@@ -587,14 +595,10 @@ router.patch("/reports/:id/workbook", async (req, res) => {
   if (!body.success) {
     return res.status(400).json({ error: "validation_error", message: body.error.message });
   }
-  const patch = body.data as Record<string, string | null>;
-  const keys = Object.keys(patch);
-  if (keys.length === 0 || keys.length > 200) {
-    return res.status(400).json({ error: "validation_error", message: "A workbook patch carries 1 to 200 items" });
-  }
-  const badKey = keys.find((k) => !WORKBOOK_KEY.test(k));
-  if (badKey) {
-    return res.status(400).json({ error: "validation_error", message: `Not a workbook item key: ${badKey}` });
+  const patch = body.data as WorkbookPatch;
+  const fault = workbookPatchFault(patch);
+  if (fault) {
+    return res.status(400).json({ error: "validation_error", message: fault });
   }
 
   try {
@@ -602,18 +606,25 @@ router.patch("/reports/:id/workbook", async (req, res) => {
     if (!found?.access) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
-    const { report: r } = found;
+    const id = found.report.id;
 
-    const merged = { ...((r.workbook ?? {}) as Record<string, string>) };
-    for (const [key, value] of Object.entries(patch)) {
-      if (value === null) delete merged[key];
-      else merged[key] = value;
+    // The row is locked for the merge, so two patches at once can neither drop
+    // each other's ticks nor pass the pin limit together.
+    const outcome = await db.transaction(async (tx) => {
+      const [row] = await tx.select({ workbook: reportsTable.workbook }).from(reportsTable).where(eq(reportsTable.id, id)).for("update");
+      if (!row) return null;
+      const next = patchWorkbook(workbookOf(row.workbook), patch);
+      if ("error" in next) return next;
+      await tx.update(reportsTable).set({ workbook: next.workbook, updatedAt: new Date() }).where(eq(reportsTable.id, id));
+      return next;
+    });
+    if (!outcome) {
+      return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
-    await db
-      .update(reportsTable)
-      .set({ workbook: merged, updatedAt: new Date() })
-      .where(eq(reportsTable.id, r.id));
-    return res.json(merged);
+    if ("error" in outcome) {
+      return res.status(400).json({ error: "pin_limit", message: `A report holds at most ${PIN_LIMIT} pins` });
+    }
+    return res.json(outcome.workbook);
   } catch (err) {
     req.log.error({ err }, "Failed to update report workbook");
     return res.status(500).json({ error: "internal_error", message: "Failed to update report workbook" });

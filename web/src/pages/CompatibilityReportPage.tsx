@@ -1,13 +1,13 @@
 /**
- * The compatibility report (ADR-63, ADR-97 to ADR-103): a seven-chapter
- * document that opens on the two charts. The hero is one centred group, each
- * name once over its rows; chapter 01 draws each person's chart alone, side
- * by side, then the ledger of what is naturally strong and what will take
- * work beside the links they rest on, the share card and the link cards;
- * chapters 02 to 06 are the lens's workbook chapters, 02 introducing the
- * scenes; 07 is the practice. Streams behind the same door as the natal page,
- * n = 8. No number, rating, percentage or bar anywhere, on screen or in the
- * PDF. No dawn, no gather.
+ * The compatibility report (ADR-63, ADR-97 to ADR-103, ADR-176, ADR-177): a
+ * seven-chapter document that opens on the two charts. The hero is one
+ * centred group, each name once over its rows; chapter 01 draws each person's
+ * chart alone, side by side, then the ledger of what comes naturally and what
+ * is a challenge beside the links they rest on, the share card and Where your
+ * charts meet; chapters 02 to 06 are the lens's workbook chapters, one scene
+ * each, 02 introducing them; 07 is the practice. Streams behind the same door
+ * as the natal page, n = 8. No number, rating, percentage or bar anywhere, on
+ * screen or in the PDF. No dawn, no gather.
  */
 import { useMemo, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
@@ -22,7 +22,7 @@ import { NatalWheel } from "@/components/chart/NatalWheel";
 import { Chapter } from "@/components/report/Chapter";
 import { ChapterRail } from "@/components/report/ChapterRail";
 import { ChapterSkeleton } from "@/components/report/ChapterSkeleton";
-import { LinkCards } from "@/components/report/LinkCard";
+import { ChartsMeet } from "@/components/report/LinkCard";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
 import { OpeningOverlay } from "@/components/report/OpeningOverlay";
 import { PairHero, type PairPerson } from "@/components/report/PairHero";
@@ -31,13 +31,14 @@ import { LensChapterBlock, PractiseBlock, ScenesIntro, first } from "@/component
 import { ShareCard } from "@/components/report/ShareCard";
 import { TwoChartsLedger } from "@/components/report/TwoChartsLedger";
 import { WorkbookProvider } from "@/lib/workbook";
+import { ledgerLinksOf } from "@/lib/charts-meet";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { usePageTitle } from "@/lib/page-title";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { PAIR_CHAPTER_TITLES, pairTabTitle } from "@/lib/lenses";
 import { pairSectionIds } from "@/lib/progress";
 import { recipientOf } from "@/lib/share-card";
-import { isCurrentPairInterpretation, lensChapterOf, type ChartData, type Lens, type PairInterpretation } from "@/types/chart";
+import { isCurrentPairInterpretation, lensChapterOf, sceneTitleOf, type ChartData, type Lens, type PairInterpretation } from "@/types/chart";
 
 const OPENING_ACCENT = "#5C6BC0";
 
@@ -136,7 +137,7 @@ export default function CompatibilityReportPage() {
     return (
       <Chapter key={key} {...ch(n)} intro={n === 2 ? <ScenesIntro /> : undefined} lede={s?.headline}>
         {done(key) && s
-          ? <LensChapterBlock s={s} names={names} chapter={key} scenes={interpretation?.scenes?.[key]} reportId={id!} />
+          ? <LensChapterBlock s={s} names={names} chapter={key} sceneTitle={sceneTitleOf(interpretation, key)} />
           : <ChapterSkeleton />}
       </Chapter>
     );
@@ -176,7 +177,7 @@ export default function CompatibilityReportPage() {
       <ChapterRail chapters={rail} active={active} onActive={setActive} />
 
       <main className="rp-body pb-20">
-        {/* Chapter 01 opens on the two charts (ADR-97): each alone, then the ledger, the share card and the link cards (ADR-101, ADR-102). */}
+        {/* Chapter 01 opens on the two charts (ADR-97): each alone, then the ledger, the share card and Where your charts meet (ADR-101, ADR-102, ADR-177). */}
         <Chapter {...ch(1)} lede={interpretation?.twoCharts?.headline}>
           <div className="grid gap-6 sm:grid-cols-2 sm:gap-8" data-two-charts>
             <div className="min-w-0"><NatalWheel chartData={chartA} centreName={first(names.a)} /></div>
@@ -200,7 +201,7 @@ export default function CompatibilityReportPage() {
             )
             : <div className="mt-8"><ChapterSkeleton /></div>}
           {done("links") && interpretation?.links
-            ? <LinkCards links={interpretation.links.links} nameA={names.a} nameB={names.b} />
+            ? <ChartsMeet links={interpretation.links.links} ledgerLinks={ledgerLinksOf(interpretation.twoCharts)} names={names} />
             : <div className="mt-6"><ChapterSkeleton lines={4} /></div>}
         </Chapter>
 

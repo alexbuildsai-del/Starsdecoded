@@ -1,6 +1,6 @@
 /**
  * The one door to the horizon pass (ADR-35): the three-way control with its
- * live readout, opened from the hero, the explorer, the method strip, the
+ * live readout, opened from the hero, the house deck, the method strip, the
  * dashboard tile and the claim. Saving calls PATCH /profiles/:id/birth-time,
  * which recomputes the chart and starts a pass on every complete natal
  * report of the profile. The first pass is free; the copy says so.

@@ -238,7 +238,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
         </p>
         {gift.emailDelivered ? (
           <p className="text-[13px] leading-[1.45] text-muted-foreground">
-            Open the gift on your orbit to send a reminder or take it back.
+            Open the gift in your circle to send a reminder or take it back.
           </p>
         ) : (
           <>

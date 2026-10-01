@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: reports
     description: Natal chart report operations
+  - name: home
+    description: The dashboard's one read, the reader's circle, pairs and practice (ADR-174)
   - name: profiles
     description: Person/profile management ("My People")
   - name: synastry
@@ -118,6 +120,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /home:
+    get:
+      operationId: getHome
+      tags: [home]
+      summary: The dashboard's one read (ADR-174)
+      description: >
+        Everything the dashboard shows in one call, so no card loads a report
+        to open: the reader's circle with each person's birth date and Sun,
+        Moon and Rising, their quick looks, their pairs and stories, and what
+        they are practising (ADR-174). The circle is the reader plus everyone
+        whose Personal report they can read, the people GET /reports lists
+        (ADR-182).
+      responses:
+        "200":
+          description: The reader's home (ADR-174)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Home"
 
   /reports:
     get:
@@ -246,7 +268,9 @@ paths:
         Shallow-merges the patch into the report's workbook, the reader's own
         record of which actions they have taken. A string value is the ISO date
         of the tick, null removes the item. Returns the merged workbook. The
-        viewer must own the report.
+        viewer must own the report. A pin key pins its item to What you're
+        practising the same way, three pins a report at most (ADR-174, MB-110
+        provisional).
       parameters:
         - name: id
           in: path
@@ -267,7 +291,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Workbook"
         "400":
-          description: Unusable item key or value
+          description: >
+            Unusable item key or value, or a patch that would leave a fourth
+            pin on the report, which answers { "error": "pin_limit" } (ADR-174)
           content:
             application/json:
               schema:
@@ -548,48 +574,6 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: A report was not found or not visible to the viewer
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /compatibility/{id}/scenes:
-    post:
-      operationId: writeScene
-      tags: [compatibility]
-      summary: Write one of a chapter's two unread scenes on tap
-      description: >
-        A lens chapter carries three curated scenes; the report wrote one. This
-        writes another on the same chapter brief, once per report, chapter and
-        index, stores it on the interpretation and serves the stored text on
-        every later call (ADR-65, ADR-72). Access is the report's.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WriteSceneBody"
-      responses:
-        "200":
-          description: The scene, written now or served from storage
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SceneResponse"
-        "400":
-          description: The chapter is not a lens chapter of this report, or the index is not one of its two unread scenes
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Not found
           content:
             application/json:
               schema:
@@ -1901,7 +1885,7 @@ components:
       required: [house, reading]
 
     Workbook:
-      description: The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick.
+      description: The reader's ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under "pin." and its item key, valued by the ISO date it was pinned (ADR-174).
       type: object
       additionalProperties:
         type: string
@@ -1910,13 +1894,215 @@ components:
       description: >
         A shallow merge onto the report's workbook. A string value is the ISO
         date the reader ticked the item, null unticks it. A key is a section id,
-        a dot path and an index, for example "career.actions.0".
+        a dot path and an index, for example "career.actions.0". Each segment
+        before the index starts with a letter and may carry digits after it,
+        as a pair chapter's id does in "partners02.nextTime.items.0" (ADR-24).
+        A pin key is "pin." and an item key, "pin.focus.practice.bullets.0",
+        valued by the ISO date of the pin and cleared by null; at most three
+        pins stand on a report, and a patch that would leave a fourth answers
+        400 pin_limit (ADR-174, MB-110 provisional).
       type: object
       minProperties: 1
       maxProperties: 200
+      propertyNames:
+        description: An item key, or "pin." and an item key (ADR-24, ADR-174).
+        pattern: '^(pin\.)?[a-z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+\.\d+$'
       additionalProperties:
         type: string
         nullable: true
+
+    Home:
+      description: The dashboard's one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).
+      type: object
+      properties:
+        you:
+          description: The reader's own Personal report at the circle's centre, with chapter 08's lines; null with none marked as theirs, or several (ADR-174).
+          anyOf:
+            - $ref: "#/components/schemas/HomePerson"
+            - type: "null"
+        several:
+          type: boolean
+          description: More than one chart is marked as the reader's own, so `you` stays null until they settle which (ADR-120, ADR-174).
+        people:
+          type: array
+          description: >
+            The circle and the People list, the same people: every profile with a Personal report
+            the reader can read, written until its subject stops sharing or sent to them, each with
+            its latest readable report (ADR-182).
+          items:
+            $ref: "#/components/schemas/HomePerson"
+        pairs:
+          type: array
+          description: The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional).
+          items:
+            $ref: "#/components/schemas/HomePair"
+        practising:
+          type: array
+          description: >
+            What the reader is practising: up to three pins a report from their own Personal report
+            and the pairs they are one of; none pinned, the Closing's first Practice item (ADR-174).
+          items:
+            $ref: "#/components/schemas/HomePractice"
+      required: [you, several, people, pairs, practising]
+
+    HomePerson:
+      description: One person in the reader's circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).
+      type: object
+      properties:
+        profileId:
+          type: string
+        reportId:
+          type: string
+          description: Their latest Personal report the reader can read (ADR-182).
+        name:
+          type: string
+        birthDate:
+          type: string
+          description: YYYY-MM-DD, as entered (ADR-174).
+        status:
+          type: string
+          enum: [pending, computing, interpreting, revising, complete, failed]
+        access:
+          type: string
+          enum: [owner, claimed]
+          description: "The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139)."
+        isSelf:
+          type: boolean
+          description: The reader's own chart from their side, as ProfileSummary marks it (ADR-120).
+        triad:
+          type: object
+          nullable: true
+          description: Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).
+          properties:
+            sun:
+              $ref: "#/components/schemas/Spot"
+            moon:
+              $ref: "#/components/schemas/Spot"
+            rising:
+              description: Null when the horizon is unknown (ADR-174).
+              anyOf:
+                - $ref: "#/components/schemas/Spot"
+                - type: "null"
+          required: [sun, moon, rising]
+        lines:
+          type: object
+          nullable: true
+          description: >
+            Chapter 08's superpower and growing edge, each its title and first sentence, on `you`
+            only; null elsewhere and until chapter 08 is written (ADR-174).
+          properties:
+            superpower:
+              type: string
+            growingEdge:
+              type: string
+          required: [superpower, growingEdge]
+      required: [profileId, reportId, name, birthDate, status, access, isSelf, triad, lines]
+
+    Spot:
+      description: Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).
+      type: object
+      properties:
+        sign:
+          type: string
+        degree:
+          type: number
+          description: Degrees within the sign, rounded to two decimals (ADR-174).
+        house:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 12
+          description: The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).
+      required: [sign, degree, house]
+
+    HomePair:
+      description: One Compatibility report on the reader's list, with what its pair block and story show (ADR-174, ADR-175).
+      type: object
+      properties:
+        reportId:
+          type: string
+        lens:
+          $ref: "#/components/schemas/RelationshipType"
+        label:
+          type: string
+          nullable: true
+          description: The relationship's label; under the people lens, family, friends or colleagues (ADR-40, ADR-68).
+        a:
+          type: object
+          description: The report's person A (ADR-174).
+          properties:
+            profileId:
+              type: string
+            name:
+              type: string
+          required: [profileId, name]
+        b:
+          type: object
+          description: The report's person B (ADR-174).
+          properties:
+            profileId:
+              type: string
+            name:
+              type: string
+          required: [profileId, name]
+        status:
+          type: string
+          enum: [pending, computing, interpreting, revising, complete, failed]
+        stoppedBy:
+          type: string
+          nullable: true
+          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+        strong:
+          type: array
+          description: What comes naturally to the pair, chapter 01's strong lines; empty until chapter 01 is written (ADR-174).
+          items:
+            type: string
+        challenge:
+          type: string
+          nullable: true
+          description: The one challenge to work on; null until the report has it (ADR-174).
+        story:
+          type: object
+          nullable: true
+          description: The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).
+          properties:
+            headline:
+              type: string
+            strengths:
+              type: array
+              items:
+                type: string
+          required: [headline, strengths]
+      required: [reportId, lens, label, a, b, status, stoppedBy, strong, challenge, story]
+
+    HomePractice:
+      description: >
+        One thing the reader is practising, an item pinned on their own Personal report or on a
+        pair they are one of, or their Closing's first Practice item with none pinned; pins and
+        ticks sit in the report's one workbook, shared by everyone who reads it (ADR-174, MB-110
+        provisional).
+      type: object
+      properties:
+        reportId:
+          type: string
+        kind:
+          type: string
+          enum: [natal, compatibility]
+        key:
+          type: string
+          description: The item key the report ticks it under, "focus.practice.bullets.0" or "partners02.nextTime.items.0" (ADR-24).
+        action:
+          type: string
+        why:
+          type: string
+          nullable: true
+        pinned:
+          type: boolean
+          description: False on the Closing's first Practice item, offered with none pinned (ADR-174).
+        ticked:
+          type: boolean
+          description: Ticked in the same workbook; a tick is silent and a box unticks (ADR-24, ADR-48).
+      required: [reportId, kind, key, action, why, pinned, ticked]
 
     ReportTriadPart:
       type: object
@@ -2060,14 +2246,15 @@ components:
             type: string
         pointer:
           type: string
+          description: Stored by p2 reports; p3 writes none and the page prints none (ADR-176).
         claims:
           type: array
           items:
             $ref: "#/components/schemas/Claim"
-      required: [headline, strong, work, paradox, strengths, pointer, claims]
+      required: [headline, strong, work, paradox, strengths, claims]
 
     PairChapterScenes:
-      description: "A lens chapter's three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72)."
+      description: "A lens chapter's scene. Since p3 titles holds the one fixed scene and written is 0; a p2 report stored three titles and wrote one, and any text written on tap stays stored, unread (ADR-65, ADR-176)."
       type: object
       properties:
         titles:
@@ -2859,25 +3046,6 @@ components:
           enum: [A, B]
           description: Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role.
       required: [reportAId, reportBId, lens]
-
-    WriteSceneBody:
-      type: object
-      properties:
-        chapter:
-          type: string
-          description: The lens chapter's section id, e.g. partners02.
-        index:
-          type: integer
-          description: Which of the chapter's three scenes, 0 to 2; never the one the report wrote.
-      required: [chapter, index]
-
-    SceneResponse:
-      type: object
-      properties:
-        chapter: { type: string }
-        index: { type: integer }
-        text: { type: string }
-      required: [chapter, index, text]
 
     CompatibilityCreateResponse:
       type: object

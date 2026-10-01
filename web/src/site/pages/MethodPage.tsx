@@ -8,10 +8,9 @@ import type { ReactNode } from "react";
 import { Link } from "wouter";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { CHAPTERS } from "@/lib/chapters";
-import { withHouseWords } from "@/lib/evidence-glossary";
 import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { SiteLayout } from "../SiteLayout";
-import { homeClaims } from "../data/claims";
+import { ReferenceCheck } from "../components/ReferenceCheck";
 import { SAMPLE, sampleChart } from "../data/sample";
 import { chartNotes, chartReadout, type NoteKind } from "../lib/readouts";
 import { SAMPLE_LIVE, formatUpdated, pageFor } from "../site";
@@ -23,7 +22,7 @@ const countWord = (n: number): string => COUNT_WORDS[n] ?? String(n);
 const capital = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const two = (n: number): string => String(n).padStart(2, "0");
 
-// The home section's notes, chips and ticks are private to it, so the page draws the same ones with the same values.
+// The home section's notes and chips are private to it, so the page draws the same ones with the same values.
 const HUE: Record<NoteKind, string> = {
   sect: "var(--violet)",
   strongest: "var(--indigo-lt)",
@@ -32,26 +31,7 @@ const HUE: Record<NoteKind, string> = {
 };
 const CHIP =
   "sd-mono inline-flex min-h-[26px] items-center gap-[6px] rounded-[4px] border border-[var(--line)] bg-[rgba(6,8,12,.4)] px-[9px] py-[5px] text-[10.5px] leading-[1.3] font-medium tracking-[.06em] uppercase text-[var(--paper-dim)]";
-const CHECK =
-  "sd-mono flex items-center gap-[10px] rounded-[10px] border border-[rgba(127,176,139,.35)] bg-[rgba(127,176,139,.07)] px-3 py-[9px] text-[12px] leading-[1.4] tracking-[.04em] uppercase text-[var(--paper-dim)]";
 const PROSE = "max-w-[54ch] text-[16.5px] leading-[1.7] text-[var(--paper-dim)]";
-
-function Tick() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.4}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="size-[14px] shrink-0 text-[#7FB08B]"
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
 
 /** Text left and the sample's data right; they stack before the data would be squeezed. */
 function Step({ n, title, figure, children }: { n: number; title: string; figure: ReactNode; children: ReactNode }) {
@@ -80,9 +60,6 @@ function Shown({ caption, children }: { caption: string; children: ReactNode }) 
 
 function Steps() {
   const chart = sampleChart();
-  // The home page checks the same claim, so both pages show one proof.
-  const cited = homeClaims()[0].claim;
-  const refs = cited.evidence.length;
   const chapters = countWord(CHAPTERS.length);
 
   return (
@@ -172,33 +149,8 @@ function Steps() {
             </p>
           </Step>
 
-          <Step
-            n={4}
-            title="We check every reference"
-            figure={
-              <Shown caption="One line from her report">
-                <blockquote className="font-display text-[17px] leading-[1.45] text-[var(--paper)] italic">{`“${cited.quote}”`}</blockquote>
-                <ul className="m-0 grid list-none p-0">
-                  {cited.evidence.map((e, i) => (
-                    <li
-                      key={i}
-                      className="sd-mono grid grid-cols-[14px_minmax(0,1fr)] items-center gap-2.5 border-t border-[var(--line-soft)] py-2 text-[12px] leading-[1.4] text-[var(--paper-dim)]"
-                    >
-                      <Tick />
-                      <span className="min-w-0">
-                        <span className="uppercase">{e.ref.kind}</span>
-                        {` · ${withHouseWords(e.label)}`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <p className={CHECK}>
-                  <Tick />
-                  {`${refs} ${refs === 1 ? "reference" : "references"} · all checked against her chart`}
-                </p>
-              </Shown>
-            }
-          >
+          {/* Unboxed, as the artifact draws it: the evidence card is the report's own raised card, never a card in a card. */}
+          <Step n={4} title="We check every reference" figure={<ReferenceCheck />}>
             <p className={PROSE}>
               Every reference in your report is checked against your chart by code. If one doesn't match, that sentence is
               rewritten or taken out before you see it.
@@ -257,8 +209,8 @@ function Related() {
       {SAMPLE_LIVE && (
         <Link className="sd-relcard" href="/sample">
           <span className="sd-eyebrow">{pageFor("/sample").eyebrow}</span>
-          <b>Read a full report</b>
-          <span>{`${SAMPLE.name}'s, word for word`}</span>
+          <b>Read a sample report</b>
+          <span>{`Chapters from ${SAMPLE.name}'s ${PERSONAL_REPORT}, word for word`}</span>
         </Link>
       )}
       <Link className="sd-relcard" href={houses.path}>

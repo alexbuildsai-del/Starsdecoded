@@ -14,6 +14,7 @@ import adminLabRouter from "./adminLab";
 import adminLabSessionsRouter from "./adminLabSessions";
 import adminReleaseRouter from "./adminRelease";
 import adminWaitlistRouter from "./adminWaitlist";
+import homeRouter from "./home";
 
 // health is mounted directly in app.ts, ahead of auth
 const router: IRouter = Router();
@@ -23,7 +24,8 @@ router.use(geocodeRouter);
 router.use(profilesRouter);
 router.use(synastryRouter);
 router.use(invitesRouter);
-// No router lists orbit members: a gift puts no one on anyone's orbit (ADR-139).
+// A gift seats no one in anyone's circle: /home seats only a Personal report the reader can read (ADR-139, ADR-182).
+router.use(homeRouter);
 router.use(giftsRouter);
 router.use(adminPromptsRouter);
 router.use(creditsRouter);

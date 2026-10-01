@@ -9,7 +9,7 @@ export const RelationshipsSchema = z.object({
   actions: z.array(z.object({ action: z.string(), why: z.string() })).min(3).max(3),
   connectBestWith: z.array(z.object({
     item: z.string().describe("a placement or sign emphasis in the partner's chart, 3-8 words, e.g. 'A Moon or Venus in an earth sign'"),
-    reason: z.string().describe("why, from this chart, in one clause; may name the reader's own placement it answers"),
+    reason: z.string().describe("why, from this chart, in one clause. May name the reader's own placement it answers"),
   })).min(3).max(4),
   claims: ClaimsSchema,
 });

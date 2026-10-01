@@ -1,23 +1,24 @@
 /**
- * The shapes every pair section is built from: the spec type, the p2 chapter
+ * The shapes every pair section is built from: the spec type, the chapter
  * schemas, the lens chapter factory and the validators (ADR-63, ADR-69).
  * Sections import from here and the registry imports the sections, so
  * nothing is circular.
  */
 import { z } from "zod/v4";
 import type { Band, PairBrief } from "../../lib/pairBrief.js";
-import { LENS_REGISTER, type Lens } from "../../lib/pairBrief.js";
+import { LENS_REGISTER, writtenAge, type Lens } from "../../lib/pairBrief.js";
 import { PairClaimsSchema, reconcilePairClaims, type PairClaim } from "./evidence.js";
-import { ASPECTS, BODIES, BODY_LABELS } from "../vocabulary.js";
-import type { ReportSectionId } from "../index.js";
+import { ASPECTS, BODIES, BODY_LABELS, cap } from "../vocabulary.js";
+import { SECTION_IDS, type ReportSectionId } from "../index.js";
+import { proseOf, softenQuote } from "../evidence.js";
 import { block, buffered, fixed, warned, type Check, type Validated } from "../checks.js";
 
-export type SceneTitles = readonly [string, string, string];
-export type SceneSet = SceneTitles | ((band: Band | null) => SceneTitles);
+/** A chapter's one scene, or one per band under the parent lens, so the scene always fits the child (ADR-176). */
+export type ChapterScene = string | ((band: Band | null) => string);
 
-/** A chapter's three scene titles for the band in force. */
-export function scenesOf(spec: { scenes?: SceneSet }, band: Band | null): SceneTitles | undefined {
-  return typeof spec.scenes === "function" ? spec.scenes(band) : spec.scenes;
+/** The chapter's scene for the band in force. */
+export function sceneOf(spec: { scene?: ChapterScene }, band: Band | null): string | undefined {
+  return typeof spec.scene === "function" ? spec.scene(band) : spec.scene;
 }
 
 export interface PairSectionSpec<T extends z.ZodType = z.ZodType> {
@@ -33,14 +34,14 @@ export interface PairSectionSpec<T extends z.ZodType = z.ZodType> {
   maxTokens: number;
   schema: T;
   instructions: string;
-  /** The three curated scenes, in the spec's order, or per band under the parent lens; the foundation picks the written one (ADR-65). */
-  scenes?: SceneSet;
+  /** The one scene every report of the lens writes in this chapter; nothing picks it (ADR-176). */
+  scene?: ChapterScene;
   /** The personal-report sections whose claims this chapter's brief carries (ADR-66). */
   draws?: readonly ReportSectionId[];
   extraContext?: (brief: PairBrief) => string;
   /** Runs on the raw reply before the parse: cuts, drops, spellings (ADR-81). */
   normalise?: (raw: unknown, brief: PairBrief) => { raw: unknown; checks: Check[] };
-  /** Post-parse: snaps, drops, fills, blocks; the output as it should be stored (ADR-81, ADR-82). */
+  /** Post-parse, on prose `validatePairSection` has already repaired: snaps, drops, fills, blocks; the output as it should be stored (ADR-81, ADR-82). */
   validate?: (output: z.infer<T>, brief: PairBrief) => Validated<z.infer<T>>;
 }
 
@@ -55,7 +56,6 @@ export const PairTwoChartsSchema = z.object({
   work: z.array(z.string().describe("one sentence, what will take work, framed as what it trains")).min(3).max(3),
   paradox: z.string().describe("the paradox, one line"),
   strengths: z.array(z.string().describe("a card line, at most twelve words, naming only the two people")).min(3).max(3),
-  pointer: z.string().describe("one pointer sentence: where the report goes from here"),
   claims: PairClaimsSchema,
 });
 export type PairTwoChartsOutput = z.infer<typeof PairTwoChartsSchema>;
@@ -76,12 +76,12 @@ export const PairLensChapterSchema = z.object({
     b: CardSide,
     pair: z.string().describe("one line for the pair, at most twelve words"),
   }),
-  scene: z.string().describe("four to six present-tense sentences with both names; may hold a short quoted exchange; no fact outside the brief"),
+  scene: z.string().describe("four to six present-tense sentences with both names, may hold a short quoted exchange, no fact outside the brief"),
   whatJustHappened: z.object({
     becauseA: z.string().describe("25 to 40 words: the need, fear or habit under A's side, in A's report's words"),
     becauseB: z.string().describe("25 to 40 words: the same for B"),
   }),
-  pattern: z.string().describe("40 to 60 words: the pattern under it, whether this is where it flows or rubs"),
+  pattern: z.string().describe("40 to 60 words: the pattern under it, whether this comes naturally or is the challenge"),
   nextTime: z.object({ items: z.array(NextTimeItem).min(2).max(3) }),
   claims: PairClaimsSchema,
 });
@@ -103,13 +103,13 @@ export const PairLinkSchema = z.object({
   kind: z.enum(["flows", "rubs", "overlay"]),
   // Enums, not strings: given the list's "A Moon square B Jupiter", a free
   // string came back as "A Moon" and no card could ever match its aspect.
-  planetA: z.enum([...BODIES, ""]).describe("the aspect's A body as a key, e.g. moon; empty for an overlay"),
-  planetB: z.enum([...BODIES, ""]).describe("the aspect's B body as a key; empty for an overlay"),
-  aspect: z.enum([...ASPECTS, ""]).describe("the aspect type; empty for an overlay"),
-  orb: z.number().describe("the orb as listed; 0 for an overlay"),
-  planet: z.enum([...BODIES, ""]).describe("an overlay's lead body as a key, e.g. sun; empty for an aspect"),
-  of: z.enum(["A", "B", "none"]).describe("an overlay's owner; none for an aspect"),
-  house: z.int().describe("an overlay's house; 0 for an aspect"),
+  planetA: z.enum([...BODIES, ""]).describe("the aspect's A body as a key, e.g. moon, or empty for an overlay"),
+  planetB: z.enum([...BODIES, ""]).describe("the aspect's B body as a key, or empty for an overlay"),
+  aspect: z.enum([...ASPECTS, ""]).describe("the aspect type, or empty for an overlay"),
+  orb: z.number().describe("the orb as listed, or 0 for an overlay"),
+  planet: z.enum([...BODIES, ""]).describe("an overlay's lead body as a key, e.g. sun, or empty for an aspect"),
+  of: z.enum(["A", "B", "none"]).describe("an overlay's owner, or none for an aspect"),
+  house: z.int().describe("an overlay's house, or 0 for an aspect"),
   reading: z.string().describe("40 to 70 words, ending on a sentence that begins 'Behaviour check:'"),
 });
 
@@ -143,7 +143,7 @@ export function ratingChecks(text: string): Check[] {
   return checks;
 }
 
-/** Kept for the lab's fault rules and the scene call: the messages of every rating check. */
+/** Kept for the lab's fault rules: the messages of every rating check. */
 export function ratingProblems(text: string): string[] {
   return ratingChecks(text).map((c) => c.message);
 }
@@ -177,6 +177,158 @@ export function stripBracketsDeep<T>(value: T): { value: T; stripped: number } {
   return { value: walk(value) as T, stripped };
 }
 
+// The pair brief lists each person's claims as "A/mind claim 1" and each link
+// as "L12" (`pairBrief.ts`); the model echoes them with "source", or a name
+// for the letter. Only a known section before "claim N" counts, so "claim"
+// in a sentence is never touched.
+const SECTION_ALT = SECTION_IDS.map((s) => `[${s[0]}${s[0].toUpperCase()}]${s.slice(1)}`).join("|");
+// A surname has two letters at least, so "As A/mind claim 1" is not read as a name.
+const WHO = String.raw`(?:[AB]|\p{Lu}[\p{L}\p{M}'’-]*(?: \p{Lu}[\p{L}\p{M}'’-]+)?)\s*[/:]\s*`;
+const SOURCE = String.raw`[Ss]ources?\s*:?\s*`;
+const CLAIM_NO = String.raw`(?:${SECTION_ALT})\s+[Cc]laims?\s+\d+`;
+const LINK_LABEL = String.raw`(?:[Ll]inks?\s*:?\s*)?L\d{1,2}`;
+// Inside a bracket of nothing but labels the prefix may go; in a sentence it
+// has to be there, so a stray "money claim" is not taken for one.
+const LOOSE_LABEL = String.raw`(?:(?:${SOURCE})?(?:${WHO})?${CLAIM_NO}|${LINK_LABEL})`;
+const STRICT_LABEL = String.raw`(?:(?:${SOURCE})?${WHO}${CLAIM_NO}|${SOURCE}${CLAIM_NO}|${LINK_LABEL})`;
+// The bare word is what "[claim]" left where a label should have gone.
+const LABEL_ITEM = String.raw`(?:${LOOSE_LABEL}|[Cc]laims?|[Ss]ources?)`;
+const BRACKETED_LABELS_RE = new RegExp(String.raw`\s*[(\[]\s*${LABEL_ITEM}(?:\s*(?:[;,.&]|\band\b)\s*${LABEL_ITEM})*\s*[.;,]?\s*[)\]]`, "gu");
+const BARE_LABEL_RE = new RegExp(String.raw`(?<![\p{L}\p{N}/])${STRICT_LABEL}(?![\p{L}\p{N}])`, "gu");
+
+/**
+ * A bracket of nothing but brief labels goes, with its brackets and the space
+ * before it (annex row 40). A label left in a sentence is returned, not cut:
+ * the sentence was written around it, so only a rewrite can mend it. A label
+ * in a bracket that names a body is not returned, since row 20 strips that
+ * bracket whole.
+ */
+export function stripBriefLabels(text: string): { text: string; stripped: number; bare: string[] } {
+  const { text: out, stripped } = stripBrackets(text, BRACKETED_LABELS_RE);
+  const bare = [...out.replace(BRACKETED_BODY_RE, "").matchAll(BARE_LABEL_RE)].map((m) => m[0]);
+  return { text: out, stripped, bare };
+}
+
+/** A bracket opening the field leaves no space in front of the text. */
+function stripBrackets(text: string, re: RegExp): { text: string; stripped: number } {
+  let stripped = 0;
+  const out = text.replace(re, () => { stripped += 1; return ""; });
+  return { text: stripped && !/^\s/.test(text) ? out.trimStart() : out, stripped };
+}
+
+// The model's own count of a field, which rule 10 says never to mention: "56 words", "about 40 words", "40-60 words".
+const COUNT = String.raw`(?:(?:about|around|roughly|approximately|approx\.?|~)\s*)?\d+(?:\s*(?:[-–]|to)\s*\d+)?\s*words?`;
+const COUNT_LABEL = String.raw`word[- ]count\s*:?\s*\d+`;
+const BRACKETED_COUNT_RE = new RegExp(String.raw`\s*[(\[]\s*(?:[\p{L} ]{1,24}:\s*)?(?:${COUNT}|${COUNT_LABEL})\s*[.;,]?\s*[)\]]`, "giu");
+// Outside a bracket a count is a note only as a sentence of its own, so "send the plan in 10 words" stays.
+const BARE_COUNT_RE = new RegExp(String.raw`(?:^|(?<=[.!?]["”’)\]]*\s))\s*${COUNT}(?=\s*(?:[.!?]|$))|${COUNT_LABEL}`, "giu");
+
+/**
+ * A bracket holding nothing but a word count goes like a label bracket (annex
+ * row 42, style rule 10). A count standing as its own sentence, or "word
+ * count: 56" anywhere, is returned to block.
+ */
+export function stripWordCounts(text: string): { text: string; stripped: number; bare: string[] } {
+  const { text: out, stripped } = stripBrackets(text, BRACKETED_COUNT_RE);
+  const bare = [...out.matchAll(BARE_COUNT_RE)].map((m) => m[0].trim());
+  return { text: out, stripped, bare };
+}
+
+const SEMICOLON_RE = /\s*;+(\s*)(["'“‘([]*)(?:(\p{Ll})(?![\p{L}\p{M}'’-]*\p{Lu}))?/gu;
+
+/**
+ * A semicolon becomes a full stop and the word after it opens the sentence
+ * (annex row 41). Only a lowercase word is raised, and not one cased inside
+ * like "iPhone", so a name stays as written.
+ */
+export function semicolonsToFullStops(text: string): { text: string; replaced: number } {
+  let replaced = 0;
+  const out = text.replace(SEMICOLON_RE, (m: string, space: string, open: string, first: string | undefined, at: number, whole: string) => {
+    replaced += 1;
+    const stop = /[.!?]["'”’)\]]*$/.test(whole.slice(0, at)) ? "" : ".";
+    const rest = whole.slice(at + m.length);
+    // Hard against the semicolon, a quote mark or bracket closes what it ended: no space before it.
+    const closing = !space && (/^["']/.test(open) || (!open && !first && /^[”’)\]]/.test(rest)));
+    if (closing || (!open && !first && !rest)) return `${stop}${open}${first ?? ""}`;
+    return `${stop} ${open}${first ? first.toUpperCase() : ""}`;
+  });
+  return { text: out, replaced };
+}
+
+/** Every repair in order: a label or count bracket can hold a semicolon, and it goes whole. */
+function repairProse(text: string): string {
+  return semicolonsToFullStops(stripWordCounts(stripBriefLabels(text).text).text).text;
+}
+
+const quoted = (found: string[]): string => found.map((f) => `"${f}"`).join(", ");
+
+/**
+ * Every prose string of a section, never the claims list: the brief's labels,
+ * the word counts and the semicolons repaired in code, a label or a count
+ * left in a sentence a block, since a reader would see it (annex rows 40 to
+ * 42; ADR-81).
+ */
+export function pairProseChecks<T>(value: T): { value: T; checks: Check[] } {
+  const checks: Check[] = [];
+  let labelled = 0;
+  let counted = 0;
+  let replaced = 0;
+  const walk = (v: unknown, path: string, key?: string): unknown => {
+    if (key === "claims") return v;
+    if (typeof v === "string") {
+      const labels = stripBriefLabels(v);
+      const counts = stripWordCounts(labels.text);
+      labelled += labels.stripped;
+      counted += counts.stripped;
+      if (labels.bare.length) checks.push(block("chk-40", `${path}: the brief's label ${quoted(labels.bare)} sits in a sentence. A citation lives in the claims field only, never in the prose.`));
+      if (counts.bare.length) checks.push(block("chk-42", `${path}: the word count ${quoted(counts.bare)} sits in the prose. Never mention a word count.`));
+      const stops = semicolonsToFullStops(counts.text);
+      replaced += stops.replaced;
+      return stops.text;
+    }
+    if (Array.isArray(v)) return v.map((x, i) => walk(x, `${path} ${i + 1}`));
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x, path ? `${path}.${k}` : k, k)]));
+    return v;
+  };
+  const out = walk(value, "") as T;
+  if (counted) checks.unshift(fixed("chk-42", `${counted} word count(s) stripped from the prose`));
+  if (labelled) checks.unshift(fixed("chk-40", `${labelled} bracket(s) of brief labels stripped from the prose`));
+  if (replaced) checks.push(fixed("chk-41", `${replaced} semicolon(s) in the prose became full stops`));
+  return { value: out, checks };
+}
+
+/**
+ * A claim quoting a sentence the repairs changed now quotes it as it prints:
+ * the snap scores one sentence at a time, so a quote across a semicolon that
+ * became a full stop would score under its threshold against either half
+ * and the claim would be lost. A quote that opened after the semicolon is
+ * tried with its first word raised (annex rows 4, 41).
+ */
+export function followRepairs<T>(value: T): { value: T; checks: Check[] } {
+  const section = value as T & { claims?: unknown };
+  if (!Array.isArray(section.claims)) return { value, checks: [] };
+  const prose = softenQuote(proseOf(section));
+  const verbatim = (q: string) => prose.includes(softenQuote(q));
+  const checks: Check[] = [];
+  const claims = (section.claims as Array<{ quote?: unknown }>).map((c, i) => {
+    if (typeof c?.quote !== "string" || verbatim(c.quote)) return c;
+    const repaired = repairProse(c.quote);
+    const quote = [repaired, cap(repaired)].find((q) => q !== c.quote && verbatim(q));
+    if (quote === undefined) return c;
+    checks.push(fixed("chk-04", `claim ${i + 1}: the quote follows the repaired prose`));
+    return { ...c, quote };
+  });
+  return checks.length ? { value: { ...section, claims } as T, checks } : { value, checks };
+}
+
+/** What every pair section's write runs: the prose repaired, the claims following it, then the section's own checks on what will print. */
+export function validatePairSection(spec: PairSectionSpec, out: unknown, brief: PairBrief): Validated<unknown> {
+  const prose = pairProseChecks(out);
+  const quotes = followRepairs(prose.value);
+  const own = (spec.validate as ((o: unknown, b: PairBrief) => Validated<unknown>) | undefined)?.(quotes.value, brief) ?? { output: quotes.value, checks: [] };
+  return { output: own.output, checks: [...prose.checks, ...quotes.checks, ...own.checks] };
+}
+
 /** Evidence lives in claims only (ADR-60): trine and sextile are jargon and block; square, opposition and conjunction block beside a body name and are logged alone; orb blocks (annex rows 21, 22). */
 export function evidenceChecks(text: string): Check[] {
   const checks: Check[] = [];
@@ -194,7 +346,7 @@ export function evidenceChecks(text: string): Check[] {
   return checks;
 }
 
-/** Kept for the lab's fault rules and the scene call: the messages of every evidence check. */
+/** Kept for the lab's fault rules: the messages of every evidence check. */
 export function evidenceProblems(text: string): string[] {
   return evidenceChecks(text).map((c) => c.message);
 }
@@ -301,7 +453,7 @@ export function sceneChecks(scene: string, names: { a: string; b: string }): Che
   return checks;
 }
 
-/** Kept for the lab's fault rules and the scene call: the messages of every scene check. */
+/** Kept for the lab's fault rules: the messages of every scene check. */
 export function sceneProblems(scene: string, names: { a: string; b: string }): string[] {
   return sceneChecks(scene, names).map((c) => c.message);
 }
@@ -398,11 +550,11 @@ export function lensContext(brief: PairBrief): string {
     const parent = brief.parent === "B" ? brief.b.name : brief.a.name;
     const child = brief.parent === "B" ? brief.a.name : brief.b.name;
     lines.push(`${parent} is the parent and ${child} is the child. Read ${child}'s chart as potential, never a verdict, and address ${parent} as the one who adapts.`);
-    if (brief.band) lines.push(`${child} is in the ${brief.band} band${brief.childAge !== null ? `, ${brief.childAge} years old on the day this is written` : ""}. Every scene, card line and "fair at this age" line is written for that age.`);
+    if (brief.band) lines.push(`${child} is in the ${brief.band} band${brief.childAge !== null ? `, ${writtenAge(brief.childAge)} years old on the day this is written` : ""}. Every scene, card line and "fair at this age" line is written for that age.`);
     lines.push(NOW_AND_LATER_RULE);
     if (brief.band === "grown") lines.push(GROWN_RULE);
   }
-  if (brief.lens === "people" && brief.label) lines.push(`How they know each other, in their words: ${brief.label}. That answer picks which scene fits and a few words of register, nothing else.`);
+  if (brief.lens === "people" && brief.label) lines.push(`How they know each other, in their words: ${brief.label}. That answer sets a few words of register in the scene, never the scene itself.`);
   return lines.join("\n");
 }
 
@@ -413,7 +565,7 @@ export interface LensChapterInput {
   title: string;
   /** What the chapter is grounded in, appended to the lens doctrine and never written for the reader. */
   grounding: string;
-  scenes: SceneSet;
+  scene: ChapterScene;
   draws: readonly ReportSectionId[];
   instructions: string;
   /** Parent and child only: the band doctrine the validator checks lines against. */
@@ -427,7 +579,7 @@ export function lensChapterId(lens: Lens, n: number): string {
 }
 
 /** The instruction every lens chapter carries after its own: evidence in claims only, the shape, the register. */
-export const LENS_CHAPTER_CONTRACT = `Citations live in the claims field only. A passage never writes a body, a sign, an aspect or an orb; the reader sees the evidence on the card, not in the sentence. The headline is one sentence in B's voice: plain, a little dry, a verdict. The side-by-side card takes three lines a side in that person's own words from their personal report and one line for the pair, twelve words a line, naming only the two people, no body, no number. The scene is the one the brief marks as chosen, written in four to six present-tense sentences with both names, and may hold a short quoted exchange; it invents no fact outside the brief. What just happened gives because A and because B, 25 to 40 words each, the need, fear or habit under that side in that report's words, each cited as a source claim. The pattern is 40 to 60 words, cited to one of this chapter's own links, and says whether this is where it flows or where it rubs. Next time gives two or three items, each for A, for B or for both, an action of 8 to 18 words and a why with a verb that says what it trains. 230 to 300 words across the headline, scene, what just happened and pattern; the card and the items sit outside that count. No score, no number, no research named on the page.`;
+export const LENS_CHAPTER_CONTRACT = `Citations live in the claims field only. A passage never writes a body, a sign, an aspect or an orb. The reader sees the evidence on the card, not in the sentence. The headline is one sentence in B's voice: plain, a little dry, a verdict. The side-by-side card takes three lines a side in that person's own words from their personal report and one line for the pair, twelve words a line, naming only the two people, no body, no number. The scene is the one the brief names for this chapter and no other, written in four to six present-tense sentences with both names, and may hold a short quoted exchange. It invents no fact outside the brief. What just happened gives because A and because B, 25 to 40 words each, the need, fear or habit under that side in that report's words, each cited as a source claim. The pattern is 40 to 60 words, cited to one of this chapter's own links, and says whether this comes naturally to the two of them or is the challenge. A challenge is written as "This is the challenge:" followed by what it is and what it trains. Next time gives two or three items, each for A, for B or for both, an action of 8 to 18 words and a why with a verb that says what it trains. 230 to 300 words across the headline, scene, what just happened and pattern. The card and the items sit outside that count. No score, no number, no research named on the page.`;
 
 export function lensChapter(input: LensChapterInput): PairSectionSpec<typeof PairLensChapterSchema> {
   const id = lensChapterId(input.lens, input.n);
@@ -440,7 +592,7 @@ export function lensChapter(input: LensChapterInput): PairSectionSpec<typeof Pai
     wordTarget: [230, 300],
     maxTokens: 4_000,
     schema: PairLensChapterSchema,
-    scenes: input.scenes,
+    scene: input.scene,
     draws: input.draws,
     instructions: `${input.instructions.trim()}\n\n${LENS_CHAPTER_CONTRACT}`,
     extraContext: (brief) => [lensContext(brief), "", `GROUNDING (doctrine, never written for the reader): ${input.grounding}`].join("\n"),

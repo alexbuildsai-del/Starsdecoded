@@ -209,7 +209,7 @@ router.patch("/profiles/:id", async (req, res) => {
       return res.status(403).json({ error: "forbidden", message: "Not the owner of this profile" });
     }
     if (claimedAsSelf !== undefined && access !== "claimed") {
-      return res.status(403).json({ error: "forbidden", message: "Not the person this chart was sent to" });
+      return res.status(403).json({ error: "forbidden", message: "Not the person this chart was shared with" });
     }
 
     const marks: Partial<Pick<Profile, "isSelf" | "claimedAsSelf">> = {};

@@ -523,9 +523,6 @@
   .rp-actions .why { color: var(--paper-dim); }
   .rp-cols { display: grid; gap: 22px; }
   @media (min-width: 720px) { .rp-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  .rp-wheelbox { position: relative; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; padding: 10px;
-    background: radial-gradient(70% 70% at 50% 44%, #121826 0%, var(--void) 80%); }
-
 
   /* --- beside prose, inside a card: the two-column chapter --- */
   .rp-two { display: grid; gap: 26px; align-items: start; }
@@ -536,13 +533,6 @@
     .rp-two > .side { position: sticky; top: 5rem; }
   }
 
-  /* --- the chart explorer: wheel and card, one height, normal flow --- */
-  .rp-explorer { --explorer-h: 520px; display: grid; gap: 18px; align-items: start; }
-  .rp-explorer > .wheel { min-width: 0; }
-  .rp-explorer > .card { min-width: 0; height: var(--explorer-h); }
-  @media (min-width: 900px) {
-    .rp-explorer { grid-template-columns: minmax(0, 1fr) minmax(300px, 22rem); gap: 22px; }
-  }
   /* Kept in sentence case: it reads "4th house · Virgo", not a label shouting. */
   .rp-kicker { font-family: var(--label); font-size: 10.5px; letter-spacing: .12em; color: var(--sky); }
 
@@ -617,13 +607,7 @@
   .rp-root.marks-off .rp-added { border-left: 0; padding-left: 0; } .rp-root.marks-off .rp-added .kick { display: none; }
 
   /* --- the link cards under the two charts (ADR-43, ADR-97) --- */
-  .rp-links { display: grid; gap: 14px; margin-top: 22px; }
-  @media (min-width: 720px) { .rp-links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .rp-link { border: 1px solid var(--line); border-radius: 14px; background: rgba(17,22,31,.72); padding: 15px 17px; }
-  .rp-link .t { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .rp-link .t .k { font-family: var(--label); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; }
-  .rp-link .t .k.flows { color: #3FA796; } .rp-link .t .k.rubs { color: #D9668A; } .rp-link .t .k.overlay { color: var(--indigo-lt); }
-  .rp-link .t .o { font-family: var(--mono); font-size: 11px; color: var(--sky); font-variant-numeric: tabular-nums; }
   .rp-link h4 { font-family: var(--serif); font-weight: 400; font-size: 17px; letter-spacing: -.02em; margin-top: 6px; }
   .rp-link p { font-size: 14px; line-height: 1.6; color: rgba(232,235,242,.84); margin-top: 7px; }
 
@@ -679,9 +663,8 @@
   .rp-root, .rp-body { background: white; color: black; }
   .rp-prose, .rp-box .tn, .rp-lede, .rp-head h2, .rp-actions li, .rp-legend .v { color: black; }
   /* Paper has one column and no sticky anything. */
-  .rp-two, .rp-explorer { display: block; }
+  .rp-two { display: block; }
   .rp-two > .side { position: static; margin-top: 18px; }
-  .rp-explorer > .card { height: auto; }
 }
 
 /* Print styles for PDF export */

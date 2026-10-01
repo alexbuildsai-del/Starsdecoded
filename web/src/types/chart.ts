@@ -301,10 +301,15 @@ export interface PairTwoCharts extends WithClaims {
   work: string[];
   paradox: string;
   strengths: string[];
-  pointer: string;
+  /** A p2 report's line into chapter 02; p3 writes none, and the page prints none either way (ADR-177). */
+  pointer?: string;
 }
 
-/** A lens chapter's three scenes: the titles, the index the report wrote, the texts written on tap since (ADR-65, ADR-72). */
+/**
+ * A lens chapter's scene. Since p3 the titles hold the one fixed scene and
+ * written is 0; a p2 report stored three titles and wrote one, and any text
+ * written on tap stays stored, unread (ADR-65, ADR-176).
+ */
 export interface PairChapterScenes {
   titles: string[];
   written: number;
@@ -393,9 +398,9 @@ export interface Interpretation {
 }
 
 /**
- * The compatibility report: seven chapters and the link cards, streamed like
- * a natal report. The lens chapters sit at their own ids (partners02 ...
- * people06); read them with `lensChapterOf`.
+ * The compatibility report: seven chapters and the cards of Where your charts
+ * meet, streamed like a natal report. The lens chapters sit at their own ids
+ * (partners02 ... people06); read them with `lensChapterOf`.
  */
 export interface PairInterpretation {
   meta: InterpretationMeta;
@@ -411,13 +416,21 @@ export function lensChapterOf(interpretation: PairInterpretation | null, id: str
   return v && typeof v === "object" && "card" in (v as object) ? (v as PairLensChapter) : undefined;
 }
 
+/** The title of the scene a lens chapter wrote: p3's one, or the one of p2's three the report wrote (ADR-176). */
+export function sceneTitleOf(interpretation: PairInterpretation | null, id: string): string | null {
+  const scenes = interpretation?.scenes?.[id];
+  return scenes?.titles?.[scenes.written]?.trim() || null;
+}
+
 /**
- * The prompt versions this page renders: v7 changed the words, not the shape
- * (ADR-104), so a stored v6 report reads as it was written. Older stored
- * reports get the regenerate call to action.
+ * The prompt versions this page renders: v7 and v8 changed the words, not the
+ * shape (ADR-104, ADR-185), so a stored v6 report reads as it was written.
+ * Older stored reports get the regenerate call to action.
  */
-export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7"] as const;
-export const CURRENT_PAIR_PROMPT_VERSION = "p2";
+export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7", "v8"] as const;
+
+/** p3 dropped the pointer and wrote one scene a chapter; the page reads a p2 report's written scene the same way (ADR-176). */
+export const RENDERABLE_PAIR_PROMPT_VERSIONS = ["p2", "p3"] as const;
 
 /**
  * A stored report this page can render. Anything older keeps its words but not
@@ -431,7 +444,7 @@ export function isCurrentInterpretation(v: unknown): v is Interpretation {
 
 export function isCurrentPairInterpretation(v: unknown): v is PairInterpretation {
   return typeof v === "object" && v !== null
-    && (v as PairInterpretation).meta?.promptVersion === CURRENT_PAIR_PROMPT_VERSION;
+    && (RENDERABLE_PAIR_PROMPT_VERSIONS as readonly string[]).includes((v as PairInterpretation).meta?.promptVersion as string);
 }
 
 export const PLANET_LABELS: Record<string, string> = {

@@ -6,7 +6,7 @@ description: Walk the open Stars Decoded Notion Mailbox with the Owner, highest 
 Any text after the command narrows the review (a row id, a type, a topic).
 
 Query the Notion Mailbox (URL in CLAUDE.md) for Status = open, sorted by
-Priority then Rounds open. Present the rows highest stakes first, each as:
+Priority, then oldest Created first. Present the rows highest stakes first, each as:
 context in one line, the recommendation, the default if silent.
 
 For each row the Owner decides: add a Decisions row (locked, dated today,

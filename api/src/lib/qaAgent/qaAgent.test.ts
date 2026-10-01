@@ -70,6 +70,14 @@ test("Get my report ends at a sign-in: the birth form shown to a signed-out visi
   assert.deepEqual(at("Loading…").map((f) => f.sev), [2]);
 });
 
+test("the sample step looks for the report's name as the page prints it, Personal report, and a page with the old name misses it", () => {
+  const step = PERSONAS[0].steps.find((s) => s.path === "/sample");
+  assert.ok(step);
+  const at = (text: string) => walkFindings([visit({ persona: "Buyer", path: "/sample", step, text })]);
+  assert.deepEqual(at("A sample: 4 of 10 chapters from Audrey Hepburn's Personal report. Chapter 01"), []);
+  assert.match(at("A sample from Audrey Hepburn's natal report. Chapter 01")[0]?.title ?? "", /misses what the persona looks for/);
+});
+
 test("a stubbed reader's sev-1 fails the verdict, the cost lands in one qa row, and no report was created", async () => {
   const recorded: InsertLabRun[] = [];
   const store = { sections: async (runKey: string) => (runKey === "marie-curie.release-abc" ? [{ section: "career", output: { vocationalPull: "You investigate first." } }] : []), record: async (row: InsertLabRun) => { recorded.push(row); } };

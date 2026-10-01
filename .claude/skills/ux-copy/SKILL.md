@@ -82,7 +82,7 @@ and how they feel:
 
 ## House rules
 
-- **Name the report.** Personal natal report and Compatibility report wherever either
+- **Name the report.** Personal report and Compatibility report wherever either
   could be meant; never "one" for the second report, never "the pair of you".
 - **Keep the method simple.** We work out your chart, note what stands out, write your
   report and check it. No model or vendor names; AI never leads. Asked directly, say

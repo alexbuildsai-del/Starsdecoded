@@ -1,6 +1,6 @@
 /**
  * Every check a section can fail, classified (ADR-81; the annex
- * `docs/annex/pair-reliability-checks.md`, rows 1 to 38). A check blocks
+ * `docs/annex/pair-reliability-checks.md`, rows 1 to 42). A check blocks
  * only when the text would be wrong or harmful for the reader or would cost
  * money; everything else is fixed in code, logged, or buffered by 20% around
  * the target the prompt states. Rule ids are stable so the failure log and
@@ -59,6 +59,10 @@ export const RULES: Record<string, { row: number; cls: CheckClass }> = {
   "chk-36": { row: 36, cls: "block" },
   "chk-37": { row: 37, cls: "warn" },
   "chk-38": { row: 38, cls: "fix" },
+  "chk-39": { row: 39, cls: "warn" },
+  "chk-40": { row: 40, cls: "fix" },
+  "chk-41": { row: 41, cls: "fix" },
+  "chk-42": { row: 42, cls: "fix" },
 };
 
 export const block = (rule: string, message: string): Check => ({ rule, cls: "block", message });
@@ -86,4 +90,89 @@ export function needsRepair(checks: Check[]): boolean {
 /** The messages a retry carries, one line each, the rule first so the model sees what class of thing it broke. */
 export function describeChecks(checks: Check[]): string[] {
   return checks.map((c) => c.message);
+}
+
+/** "energy" counts only where it stands for a mood: stamina ("the energy to finish", "nervous energy") is plain English. */
+const ENERGY_AS_MOOD = new RegExp([
+  "\\b(?:good|bad|positive|negative|calm|chaotic|chill|heavy|light|soft|big|intense|warm|cold|gentle|fiery|grounded|grounding|nurturing|playful|magnetic|electric|tense|weird|awkward|masculine|feminine|fire|earth|air|water|cardinal|fixed|mutable|sister|brother|mom|mum|dad|boss) energy\\b",
+  "\\benergy (?:in|of) (?:the|a|this|that|any) room\\b",
+  "\\benergy between\\b",
+  "\\b(?:give|gives|giving|gave|given) off\\b[^.!?]{0,30}?\\benergy\\b",
+  "\\b(?:protect|protects|protecting|match|matches|matching|matched|read|reads|reading) (?:the|your|their|his|her|each other['’]s|someone['’]s) energy\\b",
+  "\\bthe energy (?:shifts?|shifted|changes?|changed)\\b",
+].join("|"), "gi");
+
+export type RegisterList = "high" | "low";
+
+/**
+ * Rule 13's two lists (ADR-185): each word as the style contract names it,
+ * beside the pattern that finds it in prose, so one test holds the prompt
+ * and chk-39 to the same words.
+ */
+export const REGISTER: Record<RegisterList, ReadonlyArray<readonly [word: string, pattern: RegExp]>> = {
+  high: [
+    ["oriented to", /\borient(?:at)?ed (?:to|towards?)\b/gi],
+    ["predisposed", /\bpredispos(?:ed|itions?)\b/gi],
+    ["proclivity", /\bproclivit(?:y|ies)\b/gi],
+    ["dichotomy", /\bdichotom(?:y|ies)\b/gi],
+    ["paradigm", /\bparadigms?\b/gi],
+  ],
+  low: [
+    ["vibe", /\bvib(?:e|es|ey|ing)\b/gi],
+    ["toxic", /\btoxic(?:ity)?\b/gi],
+    ["red flag", /\bred[- ]flags?\b/gi],
+    ["lowkey", /\blow ?key\b/gi],
+    ["main character", /\bmain[- ]character\b/gi],
+    ["energy", ENERGY_AS_MOOD],
+  ],
+};
+
+export interface RegisterHit {
+  list: RegisterList;
+  word: string;
+  /** For a person reading a run; the failure log never carries it (R-3.5). */
+  sentence: string;
+}
+
+/** Claims only quote the prose, so reading them would count a word twice. */
+function proseLeaves(value: unknown, out: string[] = []): string[] {
+  if (typeof value === "string") out.push(value);
+  else if (Array.isArray(value)) for (const v of value) proseLeaves(v, out);
+  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) if (k !== "claims") proseLeaves(v, out);
+  return out;
+}
+
+function sentenceAt(text: string, at: number): string {
+  const start = Math.max(0, ...[". ", "! ", "? ", "\n"].map((p) => { const i = text.lastIndexOf(p, at); return i < 0 ? 0 : i + p.length; }));
+  const ends = [".", "!", "?", "\n"].map((p) => text.indexOf(p, at)).filter((i) => i >= 0);
+  return text.slice(start, ends.length ? Math.min(...ends) + 1 : text.length).trim();
+}
+
+/** Each hit keeps its sentence, so a person reading a fixture run can judge the word where it fell before a Promote. */
+export function registerHits(value: unknown): RegisterHit[] {
+  const hits: RegisterHit[] = [];
+  for (const text of proseLeaves(value)) {
+    for (const list of ["high", "low"] as const) {
+      for (const [word, pattern] of REGISTER[list]) {
+        for (const m of text.matchAll(pattern)) hits.push({ list, word, sentence: sentenceAt(text, m.index ?? 0) });
+      }
+    }
+  }
+  return hits;
+}
+
+/**
+ * chk-39 (annex row 39), one WARN per list that fired. A word too fancy or
+ * too trendy reads badly but is not wrong for the reader (ADR-81), so the
+ * count is logged for the Failures tab and is never a block, a retry or a
+ * lab fault. The message names the list's words, never the reader's text.
+ */
+export function registerChecks(value: unknown): Check[] {
+  const hits = registerHits(value);
+  return (["high", "low"] as const).flatMap((list) => {
+    const counts = new Map<string, number>();
+    for (const h of hits) if (h.list === list) counts.set(h.word, (counts.get(h.word) ?? 0) + 1);
+    if (!counts.size) return [];
+    return [warned("chk-39", `register too ${list}: ${[...counts].map(([w, n]) => (n > 1 ? `${w} ×${n}` : w)).join(", ")}`)];
+  });
 }

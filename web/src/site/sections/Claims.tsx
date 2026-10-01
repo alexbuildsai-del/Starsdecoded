@@ -730,7 +730,7 @@ export default function Claims() {
             </p>
             {SAMPLE_LIVE && (
               <Link className="sd-more mt-0 justify-self-start max-[900px]:order-7" href="/sample">
-                Read her whole report
+                Read her sample report
               </Link>
             )}
           </div>

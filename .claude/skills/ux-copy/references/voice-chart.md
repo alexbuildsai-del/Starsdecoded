@@ -67,7 +67,7 @@ Don't:
 
 | Moment | Where | Tone | Example |
 | --- | --- | --- | --- |
-| Curious | Home, /sample, Learn | Confident, concrete | "This is a real Personal natal report from Stars Decoded, copied word for word." |
+| Curious | Home, /sample, Learn | Confident, concrete | "A sample from a real Personal report, copied word for word." |
 | Doing | /sky, the birth form | Efficient | "Show my chart" |
 | Unsure | Birth time, lenses | Patient | "Tell us what you have: the exact time, a part of the day, or nothing." |
 | Waiting | Report being written | Calm, specific | "You can start reading the first chapters while the rest are still being written." |

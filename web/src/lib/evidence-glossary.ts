@@ -11,10 +11,6 @@ export const ORDINALS = [
   "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th",
 ] as const;
 
-export const QUADRANTS = [
-  "Self · Development", "Self · Expression", "Self · Expansion", "Self · Transcendence",
-] as const;
-
 export const HOUSE_NAMES = [
   "Self & body", "Money & worth", "Mind & exchange", "Home & roots", "Play & creation",
   "Work & health", "Partnership", "Depth & shared money", "Belief & distance",
@@ -63,21 +59,6 @@ export const HOUSE_THEMES = [
   "Career, public role, reputation",
   "Friends, groups, collective aims",
   "Solitude, the unseen, what runs underneath",
-] as const;
-
-export const HOUSE_QUESTIONS = [
-  "Why do I come across the way I do?",
-  "Why does security feel like this?",
-  "Why do I think and talk this way?",
-  "Why do home and roots matter so much to me?",
-  "Why do I play and create like this?",
-  "Why does daily work feel like this?",
-  "Why do partnerships go this way?",
-  "Why is depth and shared money charged for me?",
-  "Why do I believe and travel like this?",
-  "Why does my public life take this shape?",
-  "Why do groups and friendships work like this?",
-  "Why does the hidden part of me run this way?",
 ] as const;
 
 const BODY_MEANINGS: Record<string, string> = {
@@ -216,7 +197,7 @@ export function glossFor(ref: EvidenceRef): string {
 
 /** The natal chapters by section id, as the sheet names where a source claim came from. */
 export const NATAL_CHAPTER_OF: Record<string, string> = {
-  overview: "Chart Overview", triad: "Core Triad", houses: "Natal Chart Deepdive", mind: "Mind & Communication",
+  overview: "Chart Overview", triad: "Core Triad", houses: "House by House", mind: "Mind & Communication",
   career: "Career & Calling", money: "Money & Resources", relationships: "Relationships & Intimacy", family: "Family & Roots",
   superpowers: "Superpowers, Chronic Patterns & Growing Edges", discoveries: "Key Paradoxes & Discoveries", focus: "Closing",
 };

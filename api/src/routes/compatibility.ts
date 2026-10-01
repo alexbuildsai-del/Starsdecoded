@@ -9,11 +9,10 @@ import {
   relationshipParticipantsTable,
   RELATIONSHIP_TYPES,
 } from "@workspace/db";
-import { CreateCompatibilityReportBody, GetCompatibilitySummaryParams, WriteSceneBody, WriteSceneParams } from "@workspace/api-zod";
+import { CreateCompatibilityReportBody, GetCompatibilitySummaryParams } from "@workspace/api-zod";
 import type { NatalChartData } from "../lib/chartCalculation.js";
 import type { ReportInterpretation } from "../lib/aiInterpretation.js";
 import { generatePairInterpretation } from "../lib/pairInterpretation.js";
-import { SceneRequestError, writeScene } from "../lib/pairScene.js";
 import { consumeCredit } from "../lib/credits.js";
 import { canReadProfile, pairReadable, type PairPerson } from "../lib/access.js";
 import { failReport, streamInto } from "./reports.js";
@@ -91,7 +90,7 @@ function pairPerson({ rp, profile }: PartRow): PairPerson {
 /**
  * The relationship and its two people, only when the viewer may still read
  * the pair: a closed pair follows the same rule as every other read of one
- * (ADR-139), so summary and scenes answer 404 alike rather than confirming a
+ * (ADR-139), so the summary answers 404 as they do rather than confirming a
  * closed id with a different status.
  */
 // MB-103 provisional
@@ -212,32 +211,6 @@ router.get("/compatibility/:id/summary", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to get compatibility summary");
     return res.status(500).json({ error: "internal_error", message: "Failed to get compatibility summary" });
-  }
-});
-
-// One of a chapter's two unread scenes, written on tap and served from storage after (ADR-72). Access is the report's.
-router.post("/compatibility/:id/scenes", async (req, res) => {
-  const params = WriteSceneParams.safeParse(req.params);
-  const body = WriteSceneBody.safeParse(req.body);
-  if (!params.success || !body.success) {
-    return res.status(400).json({ error: "validation_error", message: "chapter and index are required" });
-  }
-  try {
-    const [r] = await db.select().from(reportsTable)
-      .where(and(eq(reportsTable.id, params.data.id), eq(reportsTable.type, "compatibility"))).limit(1);
-    if (!r || !r.relationshipId) return res.status(404).json({ error: "not_found", message: "Report not found" });
-    const viewer = { userId: req.userId, sessionId: req.sessionId };
-    // A closed pair follows the same rule as every other read of a pair (ADR-139, MB-103).
-    if (!(await readablePair(viewer, r.relationshipId))) {
-      return res.status(404).json({ error: "not_found", message: "Report not found" });
-    }
-    if (r.status !== "complete") return res.status(400).json({ error: "not_ready", message: "The report is still being written" });
-    const scene = await writeScene(params.data.id, body.data.chapter, body.data.index);
-    return res.json(scene);
-  } catch (err) {
-    if (err instanceof SceneRequestError) return res.status(err.status).json({ error: err.status === 404 ? "not_found" : "validation_error", message: err.message });
-    req.log.error({ err }, "Failed to write scene");
-    return res.status(500).json({ error: "internal_error", message: "Failed to write the scene" });
   }
 });
 

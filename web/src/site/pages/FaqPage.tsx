@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Link } from "wouter";
+import { PERSONAL_REPORT } from "@/lib/product";
 import { FAQ_GROUPS, FAQ_LINK_LABELS } from "../data/faq";
 import { PageHead, SiteLayout } from "../SiteLayout";
 import { isPublicPath, pageFor } from "../site";
@@ -78,8 +79,8 @@ export default function FaqPage() {
           {isPublicPath("/sample") && (
             <Link className="sd-relcard" href="/sample">
               <span className="sd-eyebrow">Sample report</span>
-              <b>Read a full report</b>
-              <span>A real report, word for word</span>
+              <b>Read a sample report</b>
+              <span>Chapters from a real {PERSONAL_REPORT}, word for word</span>
             </Link>
           )}
           <Link className="sd-relcard" href="/method">
@@ -95,7 +96,7 @@ export default function FaqPage() {
         </div>
       }
     >
-      {/* Every answer is in the prerendered HTML: the query starts empty, so the server and the first client render show all fifteen. */}
+      {/* Every answer is in the prerendered HTML: the query starts empty, so the server and the first client render show every question. */}
       <section className="sd-pg-sec sd-sec-a sd-line">
         <div className="sd-wrap grid gap-7 min-[1000px]:grid-cols-[200px_minmax(0,1fr)] min-[1000px]:items-start min-[1000px]:gap-14">
           {groups.length > 0 && (

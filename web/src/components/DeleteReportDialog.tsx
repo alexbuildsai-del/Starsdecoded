@@ -3,6 +3,7 @@ import { Loader2, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useDeleteReport,
+  getGetHomeQueryKey,
   getListReportsQueryKey,
   getListProfilesQueryKey,
 } from "@workspace/api-client-react";
@@ -44,6 +45,8 @@ export function DeleteReportDialog({
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListReportsQueryKey() });
         qc.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+        // GET /home seats each person at one of their reports and lists the pairs, so a delete can move a seat, empty it or take a pair away.
+        qc.invalidateQueries({ queryKey: getGetHomeQueryKey() });
         setOpen(false);
         toast(
           handsOver

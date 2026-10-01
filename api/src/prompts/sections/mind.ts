@@ -27,5 +27,5 @@ How they decide reads the modality. The dominant modality on the DISTRIBUTION li
 
 Every paragraph contains a checkable behaviour. No planet, sign, or house names in the prose. 250 to 320 words.
 
-Sect. Mercury has no sect. Read it by placement, dignity and its aspects; do not import day or night framing here.`,
+Sect. Mercury has no sect. Read it by placement, dignity and its aspects. Do not import day or night framing here.`,
 };

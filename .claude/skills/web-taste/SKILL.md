@@ -26,6 +26,10 @@ and `docs/specs/locked/natal-report-ui.md`, the Observatory direction every page
 - **Motion is budgeted.** One easing, `cubic-bezier(.16,1,.3,1)`. One big moment per
   page; after that, motion only explains (a rewind shows time passing) or confirms.
   Reduced motion is a real state: complete and still at first paint.
+- **One kind of thing, one look, everywhere** (the Owner, 2026-10-01). A thing to try
+  always carries its tick box, whether it's a Practice item, a pair's "Try together" or a
+  pinned item on the dashboard; evidence always looks like the report's evidence. A mock
+  never invents a second look for something the product already draws.
 - **One register, two tempos.** Marketing uses the product's look, not a campaign
   look. Reading pages are slow and airy; dashboards and admin are dense.
 

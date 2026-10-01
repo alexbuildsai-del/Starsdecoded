@@ -148,7 +148,7 @@ export default function Inside() {
         </div>
         {SAMPLE_LIVE && (
           <Link className="sd-more" href="/sample">
-            Read a full sample report
+            Read a sample report
           </Link>
         )}
       </div>

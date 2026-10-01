@@ -36,7 +36,7 @@ import {
   buildBrief, hasClaims, instructionsFor, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
   type ChartBrief, type Claim, type EvidenceRef, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
-import { block, blocking, clean, fixed, needsRepair, repair, warned, type Check, type Validated } from "../prompts/checks.js";
+import { block, blocking, clean, fixed, needsRepair, registerChecks, repair, warned, type Check, type Validated } from "../prompts/checks.js";
 import { recordChecks } from "./failureLog.js";
 import { ReportFailure, failureCodeOf } from "./failureReasons.js";
 import type { AngleMeanings, AspectMeaningPayload } from "../prompts/brief.js";
@@ -63,9 +63,9 @@ function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
   return shape?.claims ?? null;
 }
 
-const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted; do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
-/** Bump when the section set, schemas, or vocabulary change shape. v7: prose is plain text, said in the prompt (ADR-104); v6 reports still render. */
-export const PROMPT_VERSION = "v7";
+const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted. Do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
+/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185); v6 and v7 reports still render. */
+export const PROMPT_VERSION = "v8";
 
 /** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
 type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
@@ -158,6 +158,13 @@ export interface ReportInterpretation {
 // Assembly. Static first, variable last, so the cached prefix is shared.
 // ---------------------------------------------------------------------------
 
+/**
+ * Closes every user turn the natal and pair assemblers build, the foundations'
+ * too, since every chapter picks up their words. A model weighs the end of a
+ * prompt most, and on mix B rule 8 alone did not keep the semicolon out (MB-129).
+ */
+export const SELF_CHECK = "Before you answer, check every field: no semicolons, no em dashes.";
+
 function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec, foundationJson?: string): string {
   const blind = brief.horizon === "unknown";
   const parts = [instructionsFor(spec, instructions, blind).trim()];
@@ -166,6 +173,7 @@ function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec
   if (foundationJson) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", foundationJson);
   const extra = spec.extraContext?.(brief);
   if (extra) parts.push("", extra);
+  parts.push("", SELF_CHECK);
   return parts.join("\n");
 }
 
@@ -438,6 +446,8 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     const validated = call.validate ? call.validate(parsed.data) : clean(parsed.data);
     let data = validated.output;
     checks.push(...validated.checks);
+    // Every call, natal or pair, foundation or section, so a list that keeps firing reaches the Failures tab (ADR-85, ADR-185).
+    checks.push(...registerChecks(data));
     const repairWanted = needsRepair(checks) && !checks.some((c) => c.rule === "chk-09" && c.cls === "block");
 
     // Fewer than three valid claims after reconciliation is the one problem
@@ -753,7 +763,7 @@ const RisingSchema = z.object({
 });
 export type RisingPart = Stored<z.infer<typeof RisingSchema>>;
 
-const RISING_INSTRUCTIONS = `The Sun and Moon parts of the Core Triad already exist and are not to be rewritten. Write only the rising part: 80 to 100 words on how they come across in the first minute. Read the rising sign first, then what the chart ruler's condition adds to it. Exactly one behavioural example the reader can check against themselves. The label field names the placement; the text field never does. Do not repeat the Sun and Moon parts given below.`;
+const RISING_INSTRUCTIONS = `The Sun and Moon parts of the Core Triad already exist and are not to be rewritten. Write only the rising part: 80 to 100 words on how they come across in the first minute. Read the rising sign first, then what the chart ruler's condition adds to it. Exactly one behavioural example the reader can check against themselves. The label field names the placement. The text field never does. Do not repeat the Sun and Moon parts given below.`;
 
 export interface HorizonBlocks {
   rising: RisingPart;
@@ -781,7 +791,7 @@ export async function generateHorizonBlocks(
   const houses = sectionById("houses")!;
   const [triadPrompt, housesPrompt] = await Promise.all([resolveSection(triad.key), resolveSection(houses.key)]);
 
-  const existingTriad = `EXISTING SUN AND MOON PARTS (keep them; write only rising):\n${JSON.stringify({ sun: stored.triad.sun, moon: stored.triad.moon }, null, 2)}`;
+  const existingTriad = `EXISTING SUN AND MOON PARTS (keep them, write only rising):\n${JSON.stringify({ sun: stored.triad.sun, moon: stored.triad.moon }, null, 2)}`;
   const risingUser = [RISING_INSTRUCTIONS, "", CLAIMS_CONTRACT, "", "CHART BRIEF", brief.text, "", "FOUNDATION (internal editorial handoff, never quote it)", foundationJson, "", existingTriad].join("\n");
 
   const [risingCall, housesCall] = await Promise.all([
@@ -808,7 +818,7 @@ export async function generateHorizonBlocks(
 const AmendmentSchema = z.object({
   amendments: z.array(z.object({
     quote: z.string().describe("one sentence or clause copied exactly from the section text below"),
-    replacement: z.string().describe("the sentence as it should now read; the rest of the paragraph stays word for word"),
+    replacement: z.string().describe("the sentence as it should now read. The rest of the paragraph stays word for word"),
     evidence: z.array(EvidenceRefSchema).min(1).max(3).describe("the horizon fact that changes it: an angle, a house ruler, a sect role, a lot, or a placement with its house"),
   })).max(3),
   additions: z.array(z.object({
@@ -819,7 +829,7 @@ const AmendmentSchema = z.object({
 });
 type Amendment = z.infer<typeof AmendmentSchema>;
 
-const AMENDMENT_INSTRUCTIONS = `A birth time has been added to a report that was written without one. The section below was written with no rising sign, no houses, no sect and no lots. Those facts are now in the brief. Return ONLY what the horizon changes: at most three amendments, each a sentence or clause copied exactly from the section text with the sentence it should now read and the horizon evidence that changes it, and at most one addition, a paragraph of 40 to 90 words the horizon makes possible, placed after a sentence you copy exactly, or at the end. Everything else in the section stays word for word and must not be returned. Return no amendment at all when nothing the horizon settles would change a sentence. Every quote must be verbatim; a quote that does not match is discarded. Amended and added sentences obey the style contract: second person, behaviour the reader can check, no house, sign or planet names in prose.`;
+const AMENDMENT_INSTRUCTIONS = `A birth time has been added to a report that was written without one. The section below was written with no rising sign, no houses, no sect and no lots. Those facts are now in the brief. Return ONLY what the horizon changes: at most three amendments, each a sentence or clause copied exactly from the section text with the sentence it should now read and the horizon evidence that changes it, and at most one addition, a paragraph of 40 to 90 words the horizon makes possible, placed after a sentence you copy exactly, or at the end. Everything else in the section stays word for word and must not be returned. Return no amendment at all when nothing the horizon settles would change a sentence. Every quote must be verbatim. A quote that does not match is discarded. Amended and added sentences obey the style contract: second person, behaviour the reader can check, no house, sign or planet names in prose.`;
 
 /** Typographic variants the model swaps freely and a reader never notices, as CitedText softens them. */
 function soften(s: string): string {

@@ -20,7 +20,7 @@ type LensLines = readonly [string, string, string, string, string];
  * each of the lens's five chapters in `lenses.ts` order. The titles themselves
  * are read from the code.
  */
-const LENS_COPY: Record<Lens, { strap: string; lines: LensLines }> = {
+export const LENS_COPY: Record<Lens, { strap: string; lines: LensLines }> = {
   partners: {
     strap: "How you love, argue, live together and plan ahead",
     lines: [
@@ -54,8 +54,8 @@ const LENS_COPY: Record<Lens, { strap: string; lines: LensLines }> = {
 };
 
 /** Chapters 01 and 07 are the same under every lens (ADR-63): the headline over both charts, and three checklists. */
-const OPENING_LINE = "Both charts side by side, and the two of you summed up in one sentence";
-const CLOSING_LINE = "Three short lists, one for each of you and one for both";
+export const OPENING_LINE = "Both charts side by side, and the two of you summed up in one sentence";
+export const CLOSING_LINE = "Three short lists, one for each of you and one for both";
 
 /** A change of lens is confirmed, never staged: nothing fades in on first paint (landing scope 15). */
 const SWAP = "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-[6px] animation-duration-400 ease-[var(--ease)]";

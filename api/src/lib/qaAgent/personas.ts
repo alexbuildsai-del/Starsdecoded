@@ -37,7 +37,7 @@ export const PERSONAS: Persona[] = [
     steps: checkedForRetiredName([
       { path: "/", expect: [/natal|chart|report/i], sev: 1 },
       { path: "/sky", expect: [/birth|date|time|place/i], sev: 1 },
-      { path: "/sample", expect: [/natal report/i, /chapter/i], sev: 2 },
+      { path: "/sample", expect: [/Personal report/i, /chapter/i], sev: 2 },
       // Clerk draws the sign-in from its own script under this walk's GET-only rule, so a miss is sev 2; the birth form showing instead breaks the account rule (ADR-140), which the `never` makes sev 1.
       { path: "/chart", expect: [/sign in|welcome back/i], never: [/Enter your birth details/i], sev: 2 },
     ]),

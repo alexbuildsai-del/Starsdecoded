@@ -1,10 +1,11 @@
 /**
  * The sky form (landing scope 2, 4; ADR-108, 109): a birth date, the time if
  * known, and the birth form's own place field, which starts on the visitor's
- * city. The fields sit three, two or one to a row by the form's own width, the
- * time is wide enough for its AM or PM at every width, and on a phone every
- * input is 16 px so the browser does not zoom into it. Nothing typed here is
- * stored or sent; the place search is the field's own.
+ * city. The date and the time sit two to a row or, when the form is narrow, one;
+ * the place has a row of its own, so a long name and the list of matches get the
+ * form's whole width. The time is wide enough for its AM or PM at every width,
+ * and on a phone every input is 16 px so the browser does not zoom into it.
+ * Nothing typed here is stored or sent; the place search is the field's own.
  */
 import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
 import { PlaceField } from "@/components/PlaceField";
@@ -15,7 +16,7 @@ import type { GeocodeResult } from "@/lib/places";
 import { visitorZone } from "@/lib/sky-now";
 import { EARLIEST_BIRTH, PLACE_PROBLEM, birthDateProblem, todayOf, visitorPlace, type SkyBirth } from "@/site/lib/sky";
 
-// The place field's own label and input, so the three fields read as one form and their labels share a line.
+// The place field's own label and input, so the three fields read as one form.
 const LABEL = "font-label text-xs tracking-wide uppercase text-muted-foreground";
 const FIELD = "h-12 border-border/60 bg-card font-numeric text-base text-foreground [color-scheme:dark] md:text-sm";
 
@@ -83,7 +84,7 @@ export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFo
           <span className="sd-tag">Free · nothing is saved</span>
         </div>
       ) : null}
-      <div className="grid grid-cols-1 items-start gap-2.5 @min-[380px]:grid-cols-2 @min-[480px]:grid-cols-[minmax(156px,1fr)_minmax(132px,.85fr)_minmax(0,1.5fr)]">
+      <div className="grid grid-cols-1 items-start gap-2.5 @min-[380px]:grid-cols-2">
         <div className="min-w-0 space-y-2">
           <Label htmlFor={`${id}date`} className={LABEL}>
             Birth date
@@ -119,7 +120,7 @@ export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFo
         </div>
         {/* Room for the chosen place's card, which arrives with the visitor's city after hydration: the hero, which
             centres on its horizon, would otherwise move down under the reader. */}
-        <div className="min-h-[144px] min-w-0 @min-[380px]:col-span-2 @min-[480px]:col-span-1">
+        <div className="col-span-full min-h-[144px] min-w-0">
           <PlaceField
             id={`${id}place`}
             label="Birth place"

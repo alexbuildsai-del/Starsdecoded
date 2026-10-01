@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Building2, Check, Landmark, Loader2, MapPin, Search, Trees, X } from "lucide-react";
+import { Check, Loader2, MapPin, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  SETTLEMENT_TYPES,
   fallbackZone,
-  matchesLabel,
   nominatimUrl,
+  placeLine,
   placeTitle,
-  placeTypeLabel,
   placeWhere,
   rankResults,
-  toPlace,
+  toMatch,
   utcLabel,
+  withZone,
   zoneFrom,
   zoneUrl,
   type GeocodeResult,
+  type Match,
   type NominatimResult,
   type TimeApiZone,
   type Zone,
@@ -39,13 +39,6 @@ async function lookupZone(lat: number, lon: number): Promise<Zone> {
   }
 }
 
-function placeIcon(placeType: string) {
-  if (placeType === "city" || placeType === "town" || placeType === "borough") return Building2;
-  if (placeType === "village" || placeType === "hamlet" || placeType === "municipality") return Trees;
-  if (SETTLEMENT_TYPES.has(placeType)) return MapPin;
-  return Landmark;
-}
-
 /**
  * The one place field (ADR-109): the birth form's search, which the landing
  * and /sky render as it is. The chosen place is the caller's, so a place it
@@ -55,14 +48,22 @@ function placeIcon(placeType: string) {
 export function PlaceField({ id, value, onChange, label = "Birth Place" }: PlaceFieldProps) {
   const [query, setQuery] = useState(value?.name ?? "");
   const [shown, setShown] = useState(value);
-  const [candidates, setCandidates] = useState<GeocodeResult[]>([]);
+  const [candidates, setCandidates] = useState<Match[]>([]);
   const [placeError, setPlaceError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isPendingSearch, setIsPendingSearch] = useState(false);
+  const [isChoosing, setIsChoosing] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestSearch = useRef(0);
+  const latestChoice = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  // The zone comes after the tap, and the form may have changed meanwhile (an error up that the place should clear), so a
+  // choice reaches the caller's handler as it is when the zone arrives, not as the tap saw it.
+  const latestOnChange = useRef(onChange);
+  useEffect(() => {
+    latestOnChange.current = onChange;
+  });
 
   // The chosen place is the caller's: its prefill must show in the box, and its reset must not leave a name standing
   // with nothing chosen behind it. Text the reader has typed since is theirs and stays.
@@ -90,17 +91,11 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
         setShowDropdown(false);
         return;
       }
-      const results = await Promise.all(
-        rankResults(raw as NominatimResult[]).map(async (hit) =>
-          toPlace(hit, await lookupZone(parseFloat(hit.lat), parseFloat(hit.lon))),
-        ),
-      );
-      if (stale()) return;
-      setCandidates(results);
+      setCandidates(rankResults(raw as NominatimResult[]).map(toMatch));
       setShowDropdown(true);
     } catch {
       if (stale()) return;
-      setPlaceError("Search failed — please try again.");
+      setPlaceError("Search failed. Please try again.");
       setCandidates([]);
       setShowDropdown(false);
     } finally {
@@ -108,12 +103,15 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
     }
   }, []);
 
-  // A reply to an older query, or a search still waiting to go, must not reopen the list over newer text or a chosen place.
+  // A reply to an older query, or a search still waiting to go, must not reopen the list over newer text or a chosen place;
+  // and a zone still on its way must not choose a place the reader has since typed over.
   const dropSearches = () => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     latestSearch.current++;
+    latestChoice.current++;
     setIsPendingSearch(false);
     setIsSearching(false);
+    setIsChoosing(false);
   };
 
   // Leaving the page must not send a search the reader will never see: Nominatim's policy counts every call.
@@ -121,6 +119,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
     () => () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
       latestSearch.current++;
+      latestChoice.current++;
     },
     [],
   );
@@ -140,16 +139,24 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
   };
 
   const handleSearchButton = () => {
+    if (isChoosing) return;
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (query.length >= 2) doSearch(query);
   };
 
-  const selectCandidate = (place: GeocodeResult) => {
+  // MB-130 provisional: the list shows hits with no zone, since one timeapi.io call per match would multiply the calls;
+  // the zone is read once, for the place chosen, and the place is the form's only when it arrives (or falls back).
+  const selectCandidate = async (match: Match) => {
     dropSearches();
-    onChange(place);
-    setQuery(place.name);
+    const choice = ++latestChoice.current;
+    setQuery(match.name);
     setShowDropdown(false);
     setCandidates([]);
+    setIsChoosing(true);
+    const zone = await lookupZone(match.latitude, match.longitude);
+    if (choice !== latestChoice.current) return;
+    setIsChoosing(false);
+    latestOnChange.current(withZone(match, zone));
   };
 
   const clearPlace = () => {
@@ -178,7 +185,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
       </Label>
       <div className="relative">
         <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-          {isSearching || isPendingSearch ? (
+          {isSearching || isPendingSearch || isChoosing ? (
             <Loader2 className="h-4 w-4 text-primary animate-spin" />
           ) : value ? (
             <MapPin className="h-4 w-4 text-primary" />
@@ -214,7 +221,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
               <X className="h-3.5 w-3.5" />
             </button>
           )}
-          {query.length >= 2 && !value && (
+          {query.length >= 2 && !value && !isChoosing && (
             <button
               type="button"
               onClick={handleSearchButton}
@@ -234,12 +241,10 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
               data-testid="city-dropdown"
-              className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-xl border border-border/60 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/40 overflow-hidden max-h-80 overflow-y-auto"
+              className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-xl border border-border/60 bg-card shadow-2xl shadow-black/40 overflow-hidden max-h-80 overflow-y-auto"
             >
-              <div className="px-3 py-2 border-b border-border/40 flex items-center justify-between">
-                <span className="text-[11px] font-label tracking-wider uppercase text-muted-foreground">
-                  {matchesLabel(candidates.length)}
-                </span>
+              <div className="flex items-center justify-between gap-3 border-b border-border/60 px-3.5 py-2.5">
+                <span className="font-label text-[10.5px] tracking-[.12em] uppercase text-muted-foreground">Pick the exact place</span>
                 <button
                   type="button"
                   onClick={() => setShowDropdown(false)}
@@ -249,40 +254,22 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
+              {/* A match is one column, so a long name wraps in the list's full width instead of sharing its row with a zone. */}
               <ul>
-                {candidates.map((c, idx) => {
-                  const Icon = placeIcon(c.placeType);
-                  const isSettlement = SETTLEMENT_TYPES.has(c.placeType);
-                  return (
-                    <li key={`${c.latitude}-${c.longitude}-${idx}`}>
-                      <button
-                        type="button"
-                        onClick={() => selectCandidate(c)}
-                        className="w-full text-left px-3 py-2.5 hover:bg-primary/10 transition-colors flex items-start gap-3 group"
-                      >
-                        <div className={`mt-0.5 flex-shrink-0 rounded-md p-1.5 ${isSettlement ? "bg-primary/15 text-primary" : "bg-muted/40 text-muted-foreground"}`}>
-                          <Icon className="h-3.5 w-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-foreground font-medium truncate">
-                              {placeTitle(c)}
-                            </span>
-                            <span className={`text-[10px] font-label uppercase tracking-wider px-1.5 py-0.5 rounded ${isSettlement ? "bg-primary/15 text-primary" : "bg-muted/40 text-muted-foreground"}`}>
-                              {placeTypeLabel(c.placeType)}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate mt-0.5">
-                            {placeWhere(c)}
-                          </div>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground/70 font-label flex-shrink-0 mt-1">
-                          {utcLabel(c.timezoneOffset)}
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
+                {candidates.map((m, idx) => (
+                  <li key={`${m.latitude}-${m.longitude}-${idx}`} className="border-b border-border/60 last:border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => selectCandidate(m)}
+                      className="block w-full px-3.5 py-[11px] text-left transition-colors hover:bg-primary/10 focus-visible:bg-primary/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <span className="block text-[15.5px] leading-snug text-foreground break-words">{placeTitle(m)}</span>
+                      <span className="mt-0.5 block font-numeric text-[11.5px] leading-snug tracking-[.04em] uppercase text-muted-foreground break-words">
+                        {placeLine(m)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
               </ul>
               {/* Nominatim's policy asks for the credit wherever its places show (ADR-109); held at the foot so a scrolled list keeps it. */}
               <p className="sticky bottom-0 border-t border-border/40 bg-card px-3 py-2 text-[11px] font-numeric tracking-wide text-muted-foreground">
@@ -310,17 +297,17 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="mt-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2 text-sm">
-              <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-foreground font-medium truncate">{placeTitle(value)}</div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {placeWhere(value)} · <span className="font-numeric">{value.latitude.toFixed(2)}°, {value.longitude.toFixed(2)}°</span>
+            <div className="mt-2 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-sm">
+              <Check className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-foreground break-words">{placeTitle(value)}</div>
+                <div className="text-xs text-muted-foreground break-words">
+                  {placeWhere(value) ? `${placeWhere(value)} · ` : ""}
+                  <span className="font-numeric">
+                    {value.latitude.toFixed(2)}°, {value.longitude.toFixed(2)}° · {utcLabel(value.timezoneOffset)}
+                  </span>
                 </div>
               </div>
-              <span className="text-muted-foreground text-xs font-label">
-                {utcLabel(value.timezoneOffset)}
-              </span>
             </div>
           </motion.div>
         )}
@@ -337,7 +324,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
         )}
       </AnimatePresence>
 
-      {!value && !placeError && query.length >= 2 && !isSearching && !isPendingSearch && candidates.length === 0 && (
+      {!value && !placeError && query.length >= 2 && !isSearching && !isPendingSearch && !isChoosing && candidates.length === 0 && (
         <p className="text-xs text-muted-foreground mt-1">
           Press Enter or tap Search to find matching cities.
         </p>

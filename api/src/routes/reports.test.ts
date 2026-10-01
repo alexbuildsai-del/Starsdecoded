@@ -34,6 +34,20 @@ test("status: the section keys come from the registry the report's type uses", (
   assert.equal(sectionIdsFor("natal", "known").length, 11);
 });
 
+test("workbook PATCH: a pair's Next time tick and a pin pass the grammar; a malformed key or size is named (ADR-24, ADR-174)", async () => {
+  const { workbookPatchFault } = await import("./reports.js");
+  const day = "2026-10-01T09:00:00.000Z";
+  assert.equal(workbookPatchFault({ "partners02.nextTime.items.0": day }), null);
+  assert.equal(workbookPatchFault({ "parentChild03.nextTime.items.2": null, "career.actions.0": day }), null);
+  assert.equal(workbookPatchFault({ "pin.partners02.nextTime.items.0": day, "pin.focus.practice.bullets.0": null }), null);
+  for (const bad of ["pin.pin.focus.practice.bullets.0", "pin.focus", "02partners.nextTime.items.0", "career.actions"]) {
+    assert.equal(workbookPatchFault({ "career.actions.0": day, [bad]: day }), `Not a workbook item key: ${bad}`);
+  }
+  assert.equal(workbookPatchFault({}), "A workbook patch carries 1 to 200 items");
+  const many = Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`career.actions.${i}`, day]));
+  assert.equal(workbookPatchFault(many), "A workbook patch carries 1 to 200 items");
+});
+
 test("a failed report answers with the coded line and never the internal message (ADR-84)", async () => {
   const { failureReasonOf, FAILURE_LINES } = await import("../lib/failureReasons.js");
   assert.deepEqual(failureReasonOf("provider_unreachable"), { code: "provider_unreachable", line: FAILURE_LINES.provider_unreachable });
