@@ -221,3 +221,92 @@ test("each kind has its own line: what happened with the number its limit counts
     assert.doesNotMatch(line, /[—;!]/, kind);
   }
 });
+
+test("sending and checkout: an answer that cost nothing gives its count back, so only what went out is counted", async () => {
+  for (const [name, handlers, kind] of [
+    ["send", buildLimits().sendLimit, "send"],
+    ["checkout", buildLimits().checkoutLimit, "checkout"],
+  ] as const) {
+    const app = await serve(handlers);
+    try {
+      for (const answer of [400, 401, 403, 404, 409, 500, 503]) {
+        assert.equal((await app.hit({ user: "u1", session: "s1", answer })).status, answer, `${name} ${answer}`);
+      }
+      await passes(10, () => app.hit({ user: "u1", session: "s1" }));
+      await refused(app.hit({ user: "u1", session: "s1" }), kind);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("a refused request does not extend the wait: hammering a limit leaves its Retry-After no longer", async () => {
+  const app = await serve(buildLimits().checkoutLimit);
+  try {
+    await passes(10, () => app.hit({ session: "s1" }));
+    const first = await refused(app.hit({ session: "s1" }), "checkout");
+    for (let i = 0; i < 5; i++) await refused(app.hit({ session: "s1" }), "checkout");
+    const last = await refused(app.hit({ session: "s1" }), "checkout");
+    assert.ok(last <= first, `Retry-After grew from ${first} to ${last}`);
+  } finally {
+    await app.close();
+  }
+});
+
+test("an account's count and a session's count never meet, even when their ids are the same string", async () => {
+  const app = await serve(buildLimits().generationLimits);
+  try {
+    await passes(6, () => app.hit({ user: "same-id", session: "x" }));
+    await refused(app.hit({ user: "same-id", session: "x" }), "write");
+    assert.equal((await app.hit({ session: "same-id" })).status, 201, "a signed-out session named like the account is another count");
+  } finally {
+    await app.close();
+  }
+});
+
+test("each limit keeps its own count: writing, sending and the geocoder do not draw on one another", async () => {
+  const limits = buildLimits();
+  const writing = await serve(limits.generationLimits);
+  const sending = await serve(limits.sendLimit);
+  const geocoding = await serve(limits.geocodeLimit);
+  try {
+    await passes(6, () => writing.hit({ user: "u1", address: "203.0.113.20" }));
+    await refused(writing.hit({ user: "u1", address: "203.0.113.20" }), "write");
+    assert.equal((await sending.hit({ user: "u1", address: "203.0.113.20" })).status, 201);
+    assert.equal((await geocoding.hit({ user: "u1", address: "203.0.113.20" })).status, 201);
+  } finally {
+    await Promise.all([writing.close(), sending.close(), geocoding.close()]);
+  }
+});
+
+test("a fresh set of limits starts from nothing: a test's counts never leak into the server's", async () => {
+  const one = await serve(buildLimits().checkoutLimit);
+  const two = await serve(buildLimits().checkoutLimit);
+  try {
+    await passes(10, () => one.hit({ session: "s1" }));
+    await refused(one.hit({ session: "s1" }), "checkout");
+    assert.equal((await two.hit({ session: "s1" })).status, 201);
+  } finally {
+    await Promise.all([one.close(), two.close()]);
+  }
+});
+
+test("the window: the last second inside it still refuses, the first one after it lets the reader write again", async (t) => {
+  const start = Date.parse("2026-10-01T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().generationLimits);
+  try {
+    await passes(6, () => app.hit({ user: "u1" }));
+    t.mock.timers.setTime(start + 30 * 60_000);
+    const half = await refused(app.hit({ user: "u1" }), "write");
+    assert.ok(half >= 1799 && half <= 1801, `half an hour left, Retry-After ${half}`);
+    t.mock.timers.setTime(start + LIMITS.write.windowMs - 1_000);
+    await refused(app.hit({ user: "u1" }), "write");
+    t.mock.timers.setTime(start + LIMITS.write.windowMs + 1);
+    assert.equal((await app.hit({ user: "u1" })).status, 201);
+    await passes(5, () => app.hit({ user: "u1" }));
+    await refused(app.hit({ user: "u1" }), "write");
+  } finally {
+    await app.close();
+  }
+});
