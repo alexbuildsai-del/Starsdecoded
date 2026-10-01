@@ -369,7 +369,7 @@ async function runOneRemote(name: string, label: string, base: string): Promise<
       const status = await call(`/reports/${id}/status`);
       last = String(status.status);
       if (status.status === "complete") break;
-      if (status.status === "failed") throw new Error(`report ${id} failed: ${status.errorMessage}`);
+      if (status.status === "failed") throw new Error(`report ${id} failed: ${JSON.stringify(status.failureReason ?? status.errorMessage ?? null)}`);
     } catch (err) {
       if (err instanceof Error && err.message.startsWith(`report ${id} failed`)) throw err;
       console.log(`poll error, retrying: ${err instanceof Error ? err.message : err}`);
@@ -729,7 +729,8 @@ async function pollUntil(call: (path: string) => Promise<Record<string, unknown>
       last = String(status.status);
       if (mustSee && last === mustSee) seen = true;
       if (seen && done.includes(last)) break;
-      if (last === "failed") throw new Error(`report ${id} failed: ${status.errorMessage}`);
+      // The status route keeps the internal message private (ADR-84); the coded reason is what it shares.
+      if (last === "failed") throw new Error(`report ${id} failed: ${JSON.stringify(status.failureReason ?? status.errorMessage ?? null)}`);
     } catch (err) {
       if (err instanceof Error && err.message.startsWith(`report ${id} failed`)) throw err;
       console.log(`poll error, retrying: ${err instanceof Error ? err.message : err}`);
