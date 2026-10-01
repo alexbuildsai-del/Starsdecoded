@@ -35,6 +35,8 @@ export function SpawnView({ onSpawned }: { onSpawned: (sessionId: string) => voi
   const [spawning, setSpawning] = useState(false);
   const poll = useRef<number | null>(null);
 
+  const [production, setProduction] = useState<{ foundation: string; sections: string } | null>(null);
+
   useEffect(() => {
     Promise.all([labApi.runs(), labApi.catalogue(), myReports()]).then(([r, c, mine]) => {
       setLabels(r.labels);
@@ -43,6 +45,7 @@ export function SpawnView({ onSpawned }: { onSpawned: (sessionId: string) => voi
       setFixturesByLabel(by);
       setModels(c.models);
       setBaseline(c.baseline);
+      setProduction(c.production);
       setWriters(new Set(["stored", ...c.models.filter((m) => m.id !== c.baseline && /^gpt-6/.test(m.id)).map((m) => m.id)]));
       setReports(mine);
       const first = r.labels[0] ?? "";
@@ -188,6 +191,7 @@ export function SpawnView({ onSpawned }: { onSpawned: (sessionId: string) => voi
           </>
         )}
         {!estimate && !estimating && <p className="text-xs text-muted-foreground">Tick at least one base, one section and one writer.</p>}
+        {production && <p className="text-xs text-muted-foreground mt-2">Production writes with {production.foundation} (foundation) and {production.sections} (sections).</p>}
       </div>
 
       <div>

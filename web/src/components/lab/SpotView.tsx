@@ -33,10 +33,18 @@ export function SpotView({ readOnly }: { readOnly: boolean }) {
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
-    labApi.catalogue().then((c) => { setModels(c.models); setModel(c.baseline); }).catch((e: Error) => setError(e.message));
+    labApi.catalogue().then((c) => { setModels(c.models); setModel(c.production.sections); }).catch((e: Error) => setError(e.message));
     labApi.runs().then((r) => setLabels(r.labels)).catch(() => undefined);
     return () => { if (timer.current) window.clearInterval(timer.current); };
   }, []);
+
+  useEffect(() => {
+    if (sections.size === 1 && sections.has("foundation")) {
+      labApi.catalogue().then((c) => setModel(c.production.foundation)).catch(() => undefined);
+    } else if (sections.size > 0) {
+      labApi.catalogue().then((c) => setModel(c.production.sections)).catch(() => undefined);
+    }
+  }, [sections]);
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, value: string) => {
     const next = new Set(set);
