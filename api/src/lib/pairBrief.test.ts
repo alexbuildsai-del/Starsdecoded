@@ -35,7 +35,8 @@ test("the pair brief reads both stored reports and both cached charts, numbers e
   assert.deepEqual(b.links.map((l) => l.n), b.links.map((_, i) => i + 1));
   assert.match(b.text, /^PAIR: A is Marie Curie\. B is Oprah Winfrey\. LENS: partners\./m);
   assert.match(b.text, /EXAMPLE REGISTER .*the end of a long day, a bill, an argument at 11 pm/);
-  assert.match(b.text, /LINKS, numbered/);
+  assert.match(b.text, /LINKS, numbered \(the cross aspects within \d+ degrees, strongest first, A's body then B's, then the notable overlays\):/);
+  assert.match(b.text, /connects best with: Field research \(you test before you trust\), Laboratory work \(you keep going when others stop\), Teaching/);
   assert.match(b.text, /- L1: A \w+ \w+ B \w+ \(orb/);
   assert.match(b.text, /A Sun falls in B's 12th house/);
   assert.match(b.text, /B Sun falls in A's 2nd house/);
@@ -100,12 +101,12 @@ test("the parent brief prints the child's age on the day and the now-and-later r
   assert.equal(brief.childAge, 10);
   assert.equal(brief.band, "school");
   assert.match(brief.text, /10 years old on the day this is written/);
-  assert.match(brief.text, /a later stage may be discussed, framed as later/);
+  assert.match(brief.text, /Write for this age now\. A later stage may be discussed, framed as later\./);
   assert.match(lensContext(brief), /NOW AND LATER/);
   assert.ok(!/past tense only/.test(lensContext(brief)));
   const grown = build({ lens: "parent_child", parent: "A", at, a: { name: "Marie Curie", birthDate: "1867-11-07", chart: fixture("marie-curie"), interpretation: curie }, b: { name: "Zoë Curie", birthDate: "2004-03-10", chart: fixture("marie-curie"), interpretation: curie } });
   assert.equal(grown.childAge, 22);
-  assert.match(grown.text, /childhood is past tense only/);
+  assert.match(grown.text, /framed as later\. Childhood is past tense only\./);
   assert.match(lensContext(grown), /remembered, in the past tense only/);
 });
 
@@ -127,9 +128,9 @@ test("a child under 3 is written as 3 wherever a prompt states the age; the band
   assert.equal(brief.band, "little");
   assert.equal(brief.childAge, 0, "the brief keeps the real age; only the words say 3");
   const texts = [brief.text, lensContext(brief), chapterBrief(brief, { owned: [], scene: "Bedtime, the third call" })];
-  assert.match(texts[0], /Athena Mapelli Mozzi is the child, 3 years old on the day this is written, in the little \(0 to 5\) band\./);
+  assert.match(texts[0], /Beatrice York is the parent\. Athena Mapelli Mozzi is the child, 3 years old on the day this is written, in the little \(0 to 5\) band\./);
   assert.match(texts[1], /Athena Mapelli Mozzi is in the little band, 3 years old on the day this is written\./);
-  assert.match(texts[2], /BAND: the child is in the little \(0 to 5\) band, 3 years old today\./);
+  assert.match(texts[2], /BAND: the child is in the little \(0 to 5\) band, 3 years old today\. Write for this age now\. Later stages only as later\./);
   for (const t of texts) assert.doesNotMatch(t, /\b[0-2] years? old\b|\bmonths? old\b/);
   assert.deepEqual([0, 1, 2, 3, 4, 17].map(writtenAge), [3, 3, 3, 3, 4, 17]);
 });

@@ -11,11 +11,11 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SHARED_SYSTEM, STYLE_CONTRACT, WRITER } from "./system.js";
-import { ALL_SECTIONS, FOUNDATION, sectionsFor, toStrictJsonSchema } from "./index.js";
-import { PAIR_CLAIMS_CONTRACT, PAIR_FOUNDATION, PAIR_SYSTEM, PAIR_WRITER, pairSpecsFor, sceneOf } from "./pair/index.js";
+import { ALL_SECTIONS, FOUNDATION, sectionsFor } from "./index.js";
+import { PAIR_FOUNDATION, PAIR_SYSTEM, PAIR_WRITER, pairSpecsFor, sceneOf } from "./pair/index.js";
 import { REGISTER } from "./checks.js";
 import { PROMPT_DEFAULTS } from "../lib/promptDefaults.js";
-import { BANDS, LENSES, buildPairBrief, type Lens } from "../lib/pairBrief.js";
+import { BANDS, LENSES, buildPairBrief, chapterBrief, type Lens } from "../lib/pairBrief.js";
 import { calculateNatalChart } from "../lib/chartCalculation.js";
 import { chartFromFixture } from "../lib/testFixtures.js";
 import { cannedNatalReplies, installFakeModel } from "../lib/testModel.js";
@@ -27,6 +27,10 @@ const fake = installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "scorpi
 const curie = await generateInterpretation(chartFromFixture("marie-curie"), "Marie Curie");
 fake.replies = cannedNatalReplies({ drawn: true, sunSign: "aquarius", sunHouse: 3, sect: "night" });
 const winfrey = await generateInterpretation(chartFromFixture("oprah-winfrey"), "Oprah Winfrey");
+fake.replies = cannedNatalReplies({ drawn: true, sunSign: "leo", sunHouse: 7 });
+const beatrice = await generateInterpretation(chartFromFixture("beatrice"), "Beatrice York");
+fake.replies = cannedNatalReplies({ drawn: true, sunSign: "aquarius", sunHouse: 9 });
+const athena = await generateInterpretation(chartFromFixture("athena"), "Athena Mapelli Mozzi");
 fake.restore();
 
 type Prompt = { system: string; user: string; schema: unknown };
@@ -117,17 +121,28 @@ test("the self-check closes every natal and pair user turn, both foundations inc
 });
 
 // A writer copies the punctuation its prompt shows it (MB-129).
-test("no semicolon in any natal prompt as sent, nor in any pair system prompt, instruction, contract, schema, lens context or scene", async () => {
+test("no semicolon in any natal or pair prompt as sent, the pair brief and its chapter tails included, under every lens and the little band", async () => {
   const semicolons = (text: string) => (text.match(/;/g) ?? []).length;
   for (const { where, prompt } of await natalPrompts()) {
     assert.equal(semicolons(prompt.system) + semicolons(prompt.user) + semicolons(JSON.stringify(prompt.schema)), 0, where);
   }
-  for (const lens of LENSES) {
-    const brief = buildPairBrief(pairInput(lens));
-    for (const spec of [PAIR_FOUNDATION, ...pairSpecsFor(lens)]) {
+  // Athena Mapelli Mozzi, born 2025-01-22, is ten months old on this day.
+  const little = {
+    lens: "parent_child" as const, parent: "A" as const, at: new Date("2025-11-25T00:00:00Z"),
+    a: { name: "Beatrice York", birthDate: "1988-08-08", chart: chartFromFixture("beatrice"), interpretation: beatrice },
+    b: { name: "Athena Mapelli Mozzi", birthDate: "2025-01-22", chart: chartFromFixture("athena"), interpretation: athena },
+  };
+  for (const input of [...LENSES.map(pairInput), little]) {
+    const brief = buildPairBrief(input);
+    const where = `${input.lens}${brief.band ? ` (${brief.band})` : ""}`;
+    // The canned claims cite one reference each, and the tail joins a claim's labels only when it has two.
+    const a = { ...brief.a, claims: Object.fromEntries(Object.entries(brief.a.claims).map(([k, list]) => [k, list.map((c) => ({ ...c, evidence: [...c.evidence, ...c.evidence] }))])) };
+    assert.equal(semicolons(brief.text) + semicolons(chapterBrief({ ...brief, a }, { owned: brief.links.map((l) => l.key) })), 0, `${where} brief`);
+    for (const spec of [PAIR_FOUNDATION, ...pairSpecsFor(input.lens)]) {
+      const prompt = await previewPairSectionPrompt(spec.key, input);
       const scenes = [null, ...BANDS].map((band) => sceneOf(spec, band) ?? "");
-      for (const text of [PAIR_SYSTEM, PAIR_CLAIMS_CONTRACT, spec.instructions, JSON.stringify(toStrictJsonSchema(spec.schema)), spec.extraContext?.(brief) ?? "", ...scenes]) {
-        assert.equal(semicolons(text), 0, `${lens} ${spec.key}: ${text.slice(0, 80)}`);
+      for (const text of [prompt.system, prompt.user, JSON.stringify(prompt.schema), ...scenes]) {
+        assert.equal(semicolons(text), 0, `${where} ${spec.key}: ${text.slice(0, 80)}`);
       }
     }
   }

@@ -220,7 +220,7 @@ export function buildPairBrief(input: PairInput): PairBrief {
 
   const lines = [
     `PAIR: A is ${a.name}. B is ${b.name}. LENS: ${register.label}.`,
-    ...(parent ? [`${who(parent)} is the parent; ${who(parent === "A" ? "B" : "A")} is the child, ${writtenAge(childAge!)} years old on the day this is written, in the ${BAND_LABELS[band!]} band. Read the child's chart as potential, never a verdict. Write for this age now; a later stage may be discussed, framed as later${band === "grown" ? "; childhood is past tense only" : ""}.`] : []),
+    ...(parent ? [`${who(parent)} is the parent. ${who(parent === "A" ? "B" : "A")} is the child, ${writtenAge(childAge!)} years old on the day this is written, in the ${BAND_LABELS[band!]} band. Read the child's chart as potential, never a verdict. Write for this age now. A later stage may be discussed, framed as later${band === "grown" ? ". Childhood is past tense only" : ""}.`] : []),
     ...(input.lens === "people" && input.label ? [`How they know each other: ${input.label}.`] : []),
     `EXAMPLE REGISTER (every example in every section comes from here): ${register.examples.join(", ")}.`,
     ...(blind ? [`HORIZON: one chart has no recorded birth time, so there are no houses across the pair. Never name a house or an overlay.`] : []),
@@ -230,7 +230,7 @@ export function buildPairBrief(input: PairInput): PairBrief {
     `  pattern: ${a.foundation.dominantPattern}`,
     `  tension: ${a.foundation.centralTension}`,
     `  the challenge in intimacy: ${a.theChallenge}`,
-    `  connects best with: ${a.connectBestWith.map((c) => `${c.item} (${c.reason})`).join("; ") || "not stated"}`,
+    `  connects best with: ${a.connectBestWith.map((c) => `${c.item} (${c.reason})`).join(", ") || "not stated"}`,
     ...placements(a),
     ``,
     `B, ${b.name}:`,
@@ -238,10 +238,10 @@ export function buildPairBrief(input: PairInput): PairBrief {
     `  pattern: ${b.foundation.dominantPattern}`,
     `  tension: ${b.foundation.centralTension}`,
     `  the challenge in intimacy: ${b.theChallenge}`,
-    `  connects best with: ${b.connectBestWith.map((c) => `${c.item} (${c.reason})`).join("; ") || "not stated"}`,
+    `  connects best with: ${b.connectBestWith.map((c) => `${c.item} (${c.reason})`).join(", ") || "not stated"}`,
     ...placements(b),
     ``,
-    `LINKS, numbered (the cross aspects within ${CROSS_ORB} degrees, strongest first, A's body then B's; then the notable overlays):`,
+    `LINKS, numbered (the cross aspects within ${CROSS_ORB} degrees, strongest first, A's body then B's, then the notable overlays):`,
     ...(links.length ? links.map((l) => `  - L${l.n}: ${l.label}`) : ["  - none within orb"]),
   ];
   if (!blind) {
@@ -261,7 +261,7 @@ export function claimLines(brief: PairBrief, s: PairSide, tag: Side, sections?: 
   // Across a blind pair the labels stay out: a drawn report's own evidence names houses, and no house is spoken of here.
   return Object.entries(s.claims)
     .filter(([section]) => !sections || sections.includes(section))
-    .flatMap(([section, list]) => list.map((c, i) => `  - ${tag}/${section} claim ${i + 1}: "${c.quote}"${brief.blind ? "" : ` (${c.evidence.map((e) => e.label).join("; ")})`}`));
+    .flatMap(([section, list]) => list.map((c, i) => `  - ${tag}/${section} claim ${i + 1}: "${c.quote}"${brief.blind ? "" : ` (${c.evidence.map((e) => e.label).join(". ")})`}`));
 }
 
 export interface ChapterTail {
@@ -288,6 +288,6 @@ export function chapterBrief(brief: PairBrief, tail: ChapterTail): string {
     ...claimLines(brief, brief.b, "B", tail.draws),
   ];
   if (tail.scene) lines.push(``, `SCENE for this chapter (write this one and no other): ${tail.scene}`);
-  if (brief.band) lines.push(``, `BAND: the child is in the ${BAND_LABELS[brief.band]} band${brief.childAge !== null ? `, ${writtenAge(brief.childAge)} years old today` : ""}. Write for this age now; later stages only as later.`);
+  if (brief.band) lines.push(``, `BAND: the child is in the ${BAND_LABELS[brief.band]} band${brief.childAge !== null ? `, ${writtenAge(brief.childAge)} years old today` : ""}. Write for this age now. Later stages only as later.`);
   return lines.join("\n");
 }
