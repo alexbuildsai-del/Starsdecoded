@@ -25,7 +25,7 @@ import { toStrictJsonSchema, type StoredClaim } from "../prompts/index.js";
 import {
   PAIR_CLAIMS_CONTRACT, PAIR_FOUNDATION, PAIR_PROMPT_VERSION,
   PairFoundationSchema, PairLensChapterSchema, PairLinksSchema, PairPractiseSchema, PairTwoChartsSchema,
-  allocationOf, pairChapterId, pairChapterIds, pairHasClaims, pairSectionById, pairSpecsFor, sceneOf, storePairClaims,
+  allocationOf, pairChapterId, pairChapterIds, pairHasClaims, pairSectionById, pairSpecsFor, sceneOf, storePairClaims, validatePairSection,
   type PairClaim, type PairSectionSpec,
 } from "../prompts/pair/index.js";
 
@@ -242,7 +242,8 @@ export async function generatePairInterpretation(
       schema: spec.schema,
       maxTokens: spec.maxTokens,
       normalise: spec.normalise ? (raw) => spec.normalise!(raw, brief) : undefined,
-      validate: (out) => (spec.validate as ((o: unknown, b: PairBrief) => Validated<unknown>) | undefined)?.(out, brief) ?? { output: out, checks: [] },
+      // Every reader-facing section, the link cards and chapter 07 included; the foundation is internal and keeps its own call.
+      validate: (out) => validatePairSection(spec, out, brief),
       signal: controller.signal,
       carry,
       onChecks: logged(spec, randomUUID()),

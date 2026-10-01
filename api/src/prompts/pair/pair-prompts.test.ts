@@ -534,3 +534,172 @@ test("chk-30: a numeral house on a blind pair blocks, a word ordinal is logged",
   assert.deepEqual(kinds(houseChecks(blind, "It lands in the fourth house.")), ["chk-30:warn"]);
   assert.deepEqual(houseChecks({ blind: false } as never, "It lands in the 4th house."), []);
 });
+
+// Real lines from staging's fixture runs on mix B (report-lab/r12-pair, report-lab/r12b-pair): the fixture people's own words, no chart data.
+const { followRepairs, pairProseChecks, proseText, semicolonsToFullStops, stripBriefLabels, validatePairSection } = await import("./index.js");
+const { proseOf, softenQuote } = await import("../evidence.js");
+const { blocking } = await import("../checks.js");
+
+test("chk-40: a bracket of nothing but brief labels goes with the space before it, in every form the runs wrote", () => {
+  const cases: Array<[string, string]> = [
+    // r12-pair, curie-winfrey, people02.
+    ["In a lively group, you may need a little time to follow the question and decide what you actually think. (source: A/mind claim 1; A/mind claim 3)", "In a lively group, you may need a little time to follow the question and decide what you actually think."],
+    // r12-pair, william-george, parentChild06.
+    ["You may wait until you have a balanced case, but a clear limit protects the people who depend on you. (source A/focus claim 1; source A/relationships claim 4)", "You may wait until you have a balanced case, but a clear limit protects the people who depend on you."],
+    // r12b-pair, charles-william, parentChild04.
+    ["That trains you to make care an agreement, not an expectation. (L15; A/overview claim 1)", "That trains you to make care an agreement, not an expectation."],
+    ["A defined guest’s share can respect both needs. (B/money claim 1; B/family claim 5; B/family claim 3)", "A defined guest’s share can respect both needs."],
+    // r12-pair, curie-winfrey, people05.
+    ["This is the challenge: agree on the amount and each person’s limit before either commits, so you can help without turning a favour into a test. (L1, L13)", "This is the challenge: agree on the amount and each person’s limit before either commits, so you can help without turning a favour into a test."],
+    ["You may keep contributing after the arrangement feels unfair, then notice the cost late. (Marie: relationships claim 2; Marie: money claim 1)", "You may keep contributing after the arrangement feels unfair, then notice the cost late."],
+    // r12b-pair, curie-winfrey, people, chapter 01.
+    ["Say what has changed before silence turns into distance. [claim]", "Say what has changed before silence turns into distance."],
+    // Not in the runs yet, the same rule: mid-sentence, joined by a full stop, capitals, at the start.
+    ["You decide late (A/mind claim 1) and then all at once.", "You decide late and then all at once."],
+    ["You decide late (A/mind claim 1. B/Mind Claim 3).", "You decide late."],
+    ["(L3) You decide late.", "You decide late."],
+  ];
+  for (const [line, expected] of cases) assert.deepEqual(stripBriefLabels(line), { text: expected, stripped: 1, bare: [] }, line);
+});
+
+test("chk-40: a label left in a sentence is returned to block; claim and source as words are never touched", () => {
+  // r12-pair, charles-william, chapter 01: all seven lines ended on their link's number.
+  const line = "This is the challenge: Charles, ask what help William wants before offering a solution, so William can answer without feeling managed. L1";
+  assert.deepEqual(stripBriefLabels(line), { text: line, stripped: 0, bare: ["L1"] });
+  assert.deepEqual(stripBriefLabels("As A/mind claim 1 says, you investigate first.").bare, ["A/mind claim 1"]);
+  assert.deepEqual(stripBriefLabels("Oprah decides first (see L3) and Marie follows.").bare, ["L3"], "a bracket with other words in it stays, so its label blocks");
+  assert.deepEqual(stripBriefLabels("You decide late (L3: Moon square Jupiter) and then all at once.").bare, [], "row 20 strips that bracket whole");
+  for (const plain of [
+    // r12b-pair, charles-william, parentChild05.
+    "You trace motives and check claims against the past.",
+    // r12b-pair, william-george, parentChild05.
+    "You notice the feeling beneath a claim and remember where it came from.",
+    "George explains the point he now trusts, then William asks one question about the source.",
+    // Without the letter, a name or "source" before it, a section word and a number are a sentence.
+    "Your relationships claim 2 evenings a week.",
+  ]) assert.deepEqual(stripBriefLabels(plain), { text: plain, stripped: 0, bare: [] }, plain);
+});
+
+test("chk-41: a semicolon becomes a full stop and the next word opens the sentence; a name stays as written", () => {
+  const cases: Array<[string, string]> = [
+    // r12b-pair, curie-winfrey, parentChild03, the pair line.
+    ["Marie asks; Oprah decides what she wants to share.", "Marie asks. Oprah decides what she wants to share."],
+    // r12-pair, curie-winfrey, parentChild, chapter 01.
+    ["Marie, ask whether Oprah wants listening or practical help before offering either; this trains you to let her choose.", "Marie, ask whether Oprah wants listening or practical help before offering either. This trains you to let her choose."],
+    // r12b-pair, william-george, parentChild04, the headline.
+    ["A clean kitchen is useful; a capable thirteen-year-old still needs a say.", "A clean kitchen is useful. A capable thirteen-year-old still needs a say."],
+    // r12-pair, charles-william, parentChild06, the scene.
+    ["William says, “That rule no longer applies; let’s agree what works now.”", "William says, “That rule no longer applies. Let’s agree what works now.”"],
+    // r12-pair, william-charlotte, parentChild03, a next-time item.
+    ["Stay beside Charlotte and say, “You’re upset you lost; I’m here when you want to talk.”", "Stay beside Charlotte and say, “You’re upset you lost. I’m here when you want to talk.”"],
+    // Not in the runs yet: no space after it, a closing quote, the end of a field, a word cased inside, after a question.
+    ["Marie waits;Oprah talks.", "Marie waits. Oprah talks."],
+    ["She says “not now;” and leaves.", "She says “not now.” and leaves."],
+    ["Keep the plan;", "Keep the plan."],
+    ["Put it away; iPhone last.", "Put it away. iPhone last."],
+    ["“Ready?”; she nods.", "“Ready?” She nods."],
+  ];
+  for (const [line, expected] of cases) assert.equal(semicolonsToFullStops(line).text, expected, line);
+  assert.equal(semicolonsToFullStops("Marie asks; Oprah decides; both wait.").replaced, 2);
+  assert.deepEqual(semicolonsToFullStops("No semicolon here."), { text: "No semicolon here.", replaced: 0 });
+});
+
+const cross = (planetA: string, aspect: string, planetB: string, orb: number) => ({ kind: "cross", planetA, planetB, aspect, orb });
+const source = (report: "A" | "B", section: string, claim: number) => ({ kind: "source", report, section, claim });
+/** r12-pair, curie-winfrey under the people lens, chapter 02 as staging stored it: two label brackets, two semicolons, a claim across one of them. */
+const PEOPLE02 = {
+  headline: "Oprah, a pause is not a poor answer.",
+  card: {
+    a: ["You investigate a question before you share a conclusion.", "You notice emotional undercurrents and patterns between people.", "Small, repeated gestures help you feel close."],
+    b: ["You register a feeling quickly.", "You connect details quickly and can follow an idea across several conversations.", "You notice the gap between what someone says and what their story leaves out."],
+    pair: "Marie and Oprah make space for a careful answer.",
+  },
+  scene: "At the big dinner, Oprah starts talking early, drawing others into the conversation. Marie listens, notices who has gone quiet, and waits before offering her thought. Within ten minutes, Oprah asks Marie what she thinks; Marie answers carefully, and Oprah follows with another question. Marie reads the pause as a need for time, while Oprah may hear it as uncertainty. Neither has withdrawn from the conversation.",
+  whatJustHappened: {
+    becauseA: "Marie, you investigate before sharing a conclusion, and you notice emotional undercurrents between people. In a lively group, you may need a little time to follow the question and decide what you actually think. (source: A/mind claim 1; A/mind claim 3)",
+    becauseB: "Oprah, you register feelings quickly and work out what they mean through conversation. You connect details across exchanges, so a pause or incomplete answer can prompt another question. You want the conversation to make the meaning clear. (source: B/triad claim 3; B/mind claim 2)",
+  },
+  pattern: "Your conversation comes naturally: Marie finds words for what Oprah has already felt, and Oprah keeps the exchange moving. When Oprah asks again, Marie may need time to finish thinking; when Marie pauses, Oprah may look for more. This is the challenge: treat different speaking speeds as pace, not as doubt or criticism, so you can stay curious without pressing or retreating.",
+  nextTime: { items: [
+    { for: "A", action: "Oprah, let Marie finish her thought before asking the next question.", why: "so you give her time to reach a clear answer" },
+    { for: "B", action: "Marie, tell Oprah when you are still thinking, rather than leaving a pause unexplained.", why: "so she knows your silence is not a rejection" },
+    { for: "both", action: "At the big dinner, each of you leave space for one answer before changing the subject.", why: "so you can hear what the other actually means" },
+  ] },
+  claims: [
+    { quote: "At the big dinner, Oprah starts talking early, drawing others into the conversation.", evidence: [source("B", "triad", 3)] },
+    { quote: "Marie listens, notices who has gone quiet, and waits before offering her thought.", evidence: [source("A", "mind", 3)] },
+    { quote: "Marie, you investigate before sharing a conclusion, and you notice emotional undercurrents between people.", evidence: [source("A", "mind", 1), source("A", "mind", 3)] },
+    { quote: "Oprah, you register feelings quickly and work out what they mean through conversation.", evidence: [source("B", "triad", 3), cross("mercury", "conjunction", "moon", 2.1)] },
+    { quote: "Your conversation comes naturally: Marie finds words for what Oprah has already felt, and Oprah keeps the exchange moving.", evidence: [cross("mercury", "conjunction", "moon", 2.1), cross("mercury", "sextile", "sun", 2.4)] },
+    { quote: "When Oprah asks again, Marie may need time to finish thinking; when Marie pauses, Oprah may look for more.", evidence: [cross("mercury", "conjunction", "moon", 2.1), cross("mercury", "sextile", "venus", 2.2)] },
+  ],
+};
+
+test("chk-40, chk-41 on a chapter as written: every prose field repaired, the claims list never walked", () => {
+  const reply = structuredClone(PEOPLE02);
+  const r = pairProseChecks(reply);
+  const out = r.value as typeof PEOPLE02;
+  assert.equal(out.whatJustHappened.becauseA, "Marie, you investigate before sharing a conclusion, and you notice emotional undercurrents between people. In a lively group, you may need a little time to follow the question and decide what you actually think.");
+  assert.equal(out.whatJustHappened.becauseB, "Oprah, you register feelings quickly and work out what they mean through conversation. You connect details across exchanges, so a pause or incomplete answer can prompt another question. You want the conversation to make the meaning clear.");
+  assert.match(out.scene, /Oprah asks Marie what she thinks\. Marie answers carefully/);
+  assert.match(out.pattern, /Marie may need time to finish thinking\. When Marie pauses/);
+  assert.doesNotMatch(proseText(out), /;|claim \d|\bL\d/);
+  assert.equal(out.claims, reply.claims, "the same list, never walked");
+  assert.deepEqual(out.claims, PEOPLE02.claims, "its quotes still carry the semicolon as written");
+  assert.deepEqual(reply, PEOPLE02, "the reply as parsed is not mutated");
+  assert.deepEqual(kinds(r.checks), ["chk-40:fix", "chk-41:fix"]);
+  assert.deepEqual(r.checks.map((c) => c.message), ["2 bracket(s) of brief labels stripped from the prose", "2 semicolon(s) in the prose became full stops"]);
+  const bare = pairProseChecks({ ...reply, pattern: `${reply.pattern} L1` });
+  assert.deepEqual(kinds(bare.checks), ["chk-40:fix", "chk-40:block", "chk-41:fix"]);
+  assert.match(bare.checks[1].message, /^pattern: the brief's label "L1" sits in a sentence\. A citation lives in the claims field only/);
+  assert.deepEqual(pairProseChecks({ headline: "Oprah, a pause is not a poor answer.", claims: [] }).checks, []);
+});
+
+test("the claims stay valid: a quote across a semicolon follows the repaired sentences, so no claim is lost (annex rows 4, 41)", () => {
+  const brief = pair("people", { label: "friends" });
+  const result = validatePairSection(pairSectionById("people02")!, structuredClone(PEOPLE02), brief);
+  const out = result.output as typeof PEOPLE02;
+  assert.deepEqual(blocking(result.checks), []);
+  assert.equal(out.claims.length, PEOPLE02.claims.length, "no claim lost to the repair");
+  assert.equal(out.claims[5].quote, "When Oprah asks again, Marie may need time to finish thinking. When Marie pauses, Oprah may look for more.");
+  assert.deepEqual(out.claims.slice(0, 5).map((c) => c.quote), PEOPLE02.claims.slice(0, 5).map((c) => c.quote), "the others were verbatim and stay as written");
+  assert.deepEqual(validatePairClaims(out, out.claims as never, brief), [], "every quote is found in what prints");
+  assert.deepEqual(result.checks.filter((c) => c.rule === "chk-04").map((c) => `${c.cls}:${c.message}`), ["fix:claim 6: the quote follows the repaired prose"]);
+
+  // r12b-pair, curie-winfrey under the partners lens, chapter 01: all three work lines and the claims that quote them across the semicolon.
+  const two = pair("partners");
+  const c = two.cross[0];
+  const ref = [cross(c.planetA, c.type, c.planetB, c.orb)];
+  const work = [
+    "This is the challenge: Marie needs care when tired, while Oprah may offer another plan; naming the need trains you to pause before either pushes on.",
+    "This is the challenge: Marie may hold back her need for space, while Oprah needs time to sort her thoughts; agreeing when to return trains you to trust a pause.",
+    "This is the challenge: your shared conversation can open quickly, but the hard parts may stay private; asking plainly what each can offer trains you to keep care mutual.",
+  ];
+  const chapter = {
+    headline: "Marie and Oprah can make a hard conversation useful, if they leave room for rest and thought.",
+    strong: ["During an argument at 11 pm, Marie can find the question Oprah has been carrying and help you both name it.", "At the end of a long day, Oprah's directness can draw Marie close, while Marie's loyalty helps you stay connected.", "You both can turn careful conversation into a shared plan, then take practical steps together."],
+    work,
+    paradox: "Your easy return to conversation helps you stay close, but can keep Marie giving and Oprah thinking past the moment either needs a break.",
+    strengths: ["Marie and Oprah make hard conversations easier to start", "Marie and Oprah can stay close without filling every silence", "Marie and Oprah turn shared plans into practical steps"],
+    // The second half as its own quote, lowercase as written: raised to the sentence it now opens.
+    claims: [...work.map((quote) => ({ quote, evidence: ref })), { quote: "naming the need trains you", evidence: ref }],
+  };
+  const repaired = validatePairSection(pairSectionById("twoCharts")!, chapter, two);
+  const stored = repaired.output as typeof chapter;
+  assert.deepEqual(stored.work, [
+    "This is the challenge: Marie needs care when tired, while Oprah may offer another plan. Naming the need trains you to pause before either pushes on.",
+    "This is the challenge: Marie may hold back her need for space, while Oprah needs time to sort her thoughts. Agreeing when to return trains you to trust a pause.",
+    "This is the challenge: your shared conversation can open quickly, but the hard parts may stay private. Asking plainly what each can offer trains you to keep care mutual.",
+  ]);
+  assert.deepEqual(stored.claims.map((x) => x.quote), [...stored.work, "Naming the need trains you"]);
+  const prose = softenQuote(proseOf(stored));
+  for (const x of stored.claims) assert.ok(prose.includes(softenQuote(x.quote)), x.quote);
+  assert.deepEqual(kinds(repaired.checks.filter((x) => x.rule === "chk-04" || x.rule === "chk-41")), ["chk-41:fix", "chk-04:fix", "chk-04:fix", "chk-04:fix", "chk-04:fix"]);
+});
+
+test("followRepairs leaves a verbatim quote and a paraphrase alone: the snap still judges the paraphrase", () => {
+  const section = { pattern: "Marie asks. Oprah decides what she wants to share.", claims: [{ quote: "Oprah decides what she wants to share.", evidence: [] }, { quote: "Oprah decides what to share.", evidence: [] }] };
+  const r = followRepairs(section);
+  assert.equal(r.value, section);
+  assert.deepEqual(r.checks, []);
+});

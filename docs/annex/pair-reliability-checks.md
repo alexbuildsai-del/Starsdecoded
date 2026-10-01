@@ -58,8 +58,11 @@ drops bad refs and empty claims: the model for FIX (drop).
 | 37 | PF:50, 54 | foundation rating words, strength lines | WARN (internal; chapter 01 re-checks what prints) |
 | 38 | PF:53-81 | link and chapter numbers, duplicates, owners | FIX: drop, merge, give the nearest link. No scene pick since p3: one fixed scene a chapter (ADR-176) |
 | 39 | AI:442 (`registerChecks`, R12) | style-contract rule 13's words in prose, too high or too low (ADR-185); "energy" only as a mood | WARN on every structured call, natal and pair, foundations included: one row per list, the words named, never the sentence; never a block, a retry or a lab fault |
+| 40 | SH:206 (`stripBriefLabels`, R12-28) | a pair brief label in prose: "A/mind claim 1", "L15", with "source" or a name for the letter, or the "[claim]" left in its place | FIX: a bracket of nothing but labels (joined by `;` `,` `.` or "and") goes with the space before it, on every reader-facing pair section before its claims are checked (`validatePairSection`), never in the claims; **BLOCK** a label left in a sentence or in a bracket with other words: the text would be wrong for the reader |
+| 41 | SH:221 (`semicolonsToFullStops`, R12-28) | a semicolon in pair prose (rule 8) | FIX: a full stop, the next word capitalised unless already cased, so a name stays as written; a claim quoting across it follows the repaired sentences (`followRepairs`, logged as row 4), since the snap scores one sentence at a time and would drop it |
 
 Still blocking after R08: rows 15, 18, 21 (trine, sextile, aspect beside a body), 22, 24
-(capitalised), 25 (person names), 30 (numerals), 36; plus rows 9 and 14 in their fallback.
+(capitalised), 25 (person names), 30 (numerals), 36; plus rows 9 and 14 in their fallback,
+and since R12-28 row 40 for a label left in a sentence.
 Everything else is fixed in code, logged, or buffered. Every FIX and WARN writes a row to
 `generation_failures`, so a rule that keeps firing still reaches the next round's plan.
