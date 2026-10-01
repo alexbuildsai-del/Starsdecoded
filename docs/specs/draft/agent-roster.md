@@ -55,10 +55,19 @@ has read the spec and judges difficulty better than a keyword list.
      group changed in `api/src/lib/`, `packages/*` and `web/src/lib/`. It never
      edits a non-test file; a bug it finds goes to the orchestrator as a failing
      test.
-   - **sentinel** reviews the diff against the checklist in
-     `docs/specs/draft/security-hardening.md` (scope 9) and runs the built-in
-     `/security-review`. A blocking finding stops the PR until a builder card
-     fixes it; a non-blocking one becomes a Mailbox row.
+   - **sentinel** reviews code, not a running site, so it needs no deploy. It
+     reads the checklist in `docs/specs/draft/security-hardening.md` (scope 9)
+     and runs the built-in `/security-review`. A blocking finding stops the
+     round until a builder card fixes it, and the sentinel re-reads the fix. A
+     non-blocking finding becomes a Mailbox row. It cannot run in GitHub CI,
+     which holds no key, so the orchestrator runs it in the session. It runs at
+     two points:
+     - **Round gate.** It reads the round's diff (`main...round/RNN`) after the
+       builders, the tester and the green gate commands, before the PR opens.
+       A finding never reaches `main` or staging.
+     - **Before a Release.** When the Owner says "promote", it audits all of
+       `main`, not a diff, before the Release view runs. Its first run is such
+       an audit, which covers R12's payment code, built before it existed.
 7. **Hooks** in `.claude/settings.json`. A `PreToolUse` script exits 2, which
    blocks the call, on:
    - an Edit or Write to `.env*` or to the generated client and zod files
@@ -87,6 +96,19 @@ has read the spec and judges difficulty better than a keyword list.
 
    The `qa` agent adds a keyboard pass to the Skeptic persona.
 
+10. **The running site is checked by code, not an agent.** These checks run in
+    CI on the PR's Vercel preview, with no key:
+    - `site-checks.yml` (scope 9) runs Lighthouse and axe;
+    - a security probe in `smoke.yml` asserts the headers, and asserts that no
+      CORS header is sent and a foreign-Origin POST gets 403.
+
+    The same probe runs again on staging after the merge.
+11. **QA after every round.** Once a round's merge reaches staging, the
+    orchestrator runs `/qa` on the staging URL. The qa agent plays the
+    personas and writes `docs/qa/QA-NN.md`. The Owner gets the URL and that
+    report together, and the next plan takes every sev-1 as a goal.
+    This fills today's gap: `docs/qa/` has no report yet.
+
 ## Out of scope
 
 - Installing Ruflo or any agent framework, MCP server or background daemon.
@@ -113,6 +135,10 @@ has read the spec and judges difficulty better than a keyword list.
    each claim it relays.
 8. MASTERFILE R-0.7, §11.2 and R-13.3 and CLAUDE.md's agent line describe the
    roster; INDEX.md lists the four new agents.
+9. The round that builds this spec closes with the sentinel's first full
+   audit of `main` in its report, and with a `docs/qa/QA-NN.md` from staging.
+10. A PR whose preview sends `Access-Control-Allow-Origin`, or lacks HSTS,
+    fails the probe in CI.
 
 ## Screens
 
@@ -122,10 +148,8 @@ line. Artifact: https://claude.ai/artifact/6gBLyAD4yNBzhLJ82Ut8xp
 
 ## Open questions
 
-1. **Playwright in CI for the axe check.** CLAUDE.md says CI has no Playwright.
-   This adds it on public pages only, with no key and no sign-in.
-   *Recommendation:* yes; accessibility is a launch risk and axe catches the
-   structural half of it for free. *Default if silent:* yes, public pages only.
+None. Playwright in CI for axe on public pages was approved by the Owner on
+2026-10-01, with no key and no sign-in.
 
 ## Decisions to record
 
@@ -138,4 +162,9 @@ line. Artifact: https://claude.ai/artifact/6gBLyAD4yNBzhLJ82Ut8xp
 - A PreToolUse hook guards secrets, generated files and protected branches.
 - CI adds the shipped-code check, and a keyless site-checks workflow runs
   Lighthouse and axe on the preview (amends CLAUDE.md's "no Playwright").
+- The sentinel runs in the session at two points: on the round diff before
+  the PR opens, and as a full audit of `main` before every Release.
+  Runtime security is checked by a keyless probe on the preview and staging.
+- Every round closes with `/qa` on staging, and the Owner gets the QA report
+  with the URL (amends §11.2 step 6).
 - No agent framework is installed. Ruflo is read for ideas only.

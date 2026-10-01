@@ -2,11 +2,17 @@
 
 Ideation 2026-10-01 with the Owner. Status: draft. Artifact: https://claude.ai/artifact/9XS8C1BgKVtLSP3cdNFQ7d
 
-Before money moves (R12), close the gaps a read of the API, `vercel.json`, CI
-and the OWASP Top 10:2025 and LLM Top 10:2025 found. The Stripe webhook is
-already planned correctly in `docs/rounds/R12-plan.md` (raw body before any
-parser, event ids recorded, signed test headers), so it is not repeated here;
-the sentinel checks it when R12 builds it.
+Before launch, close the gaps found by a read of the API, `vercel.json` and
+CI against the OWASP Top 10:2025 and LLM Top 10:2025. The fixes are built in
+R13, after R12's pricing round, and nothing ships as a hotfix (Owner,
+2026-10-01). That is safe because production serves non-admins only healthz,
+the waitlist and the admin (ADR-167). The full app and its session data live
+on staging only, which has no real visitors.
+
+The Stripe webhook is already planned correctly in `docs/rounds/R12-plan.md`:
+raw body before any parser, event ids recorded, signed test headers. So it is
+not repeated here. The sentinel's first full audit of `main`, in R13, covers
+it.
 
 ## Findings that drive it
 
@@ -156,14 +162,9 @@ Artifact: https://claude.ai/artifact/9XS8C1BgKVtLSP3cdNFQ7d
 
 ## Open questions
 
-1. **When F1 ships.** *Recommendation:* now, as a hotfix PR outside a round:
-   about 15 lines plus a cookie flag. Every day it stays open, any site can
-   read a visitor's session data. *Default if silent:* the first card of the
-   next round.
-2. **Where the rest goes.** *Recommendation:* this spec and agent-roster form
-   one short round before pricing, so R12's money code is the first code the
-   sentinel reviews. Pricing moves to R13. *Default if silent:* it is folded
-   into R12 as its first group.
+None. The Owner decided on 2026-10-01 that there is no hotfix and that this
+spec and agent-roster are R13, after R12's pricing. F1 is R13's first card,
+and launch waits for R13.
 
 ## Decisions to record
 
