@@ -7,11 +7,11 @@
  */
 import { Router, type IRouter } from "express";
 import { randomUUID } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, gte } from "drizzle-orm";
 import { z } from "zod/v4";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { db, generationFailuresTable, labRunsTable, type InsertLabRun, type LabRun } from "@workspace/db";
+import { cspViolationsTable, db, generationFailuresTable, labRunsTable, type InsertLabRun, type LabRun } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { labGuard, labReadOnlyGuard } from "../lib/labGuard.js";
 import {
@@ -20,6 +20,7 @@ import {
 import { dryNatal, dryPair } from "../lib/labDry.js";
 import { importLabel } from "../lib/labImport.js";
 import { failureCounts } from "../lib/failureLog.js";
+import { cspWindowStart } from "../lib/csp.js";
 import type { FailureCode } from "../lib/failureReasons.js";
 import { CATALOGUE, MODELS, tierFor, type ModelId } from "../lib/models.js";
 import { logger } from "../lib/logger.js";
@@ -334,7 +335,11 @@ router.post("/admin/lab/runs/import", async (req, res) => {
   }
 });
 
-/** GET /failures : counts per rule and section from the failure log, the flag at more than 1 in 10 of a section's last 20 writes; no text (ADR-85). */
+/**
+ * GET /failures : counts per rule and section from the failure log, the flag at more than 1 in 10 of a section's last 20 writes;
+ * no text (ADR-85). `csp` is the week's CSP violations per day, directive and blocked host or keyword, by which the admin
+ * decides when the policy is enforced (ADR-198, MB-147).
+ */
 router.get("/admin/lab/failures", async (req, res) => {
   try {
     const rows = await db.select({
@@ -342,7 +347,12 @@ router.get("/admin/lab/failures", async (req, res) => {
       writeId: generationFailuresTable.writeId, createdAt: generationFailuresTable.createdAt, kind: generationFailuresTable.kind,
     }).from(generationFailuresTable).orderBy(desc(generationFailuresTable.createdAt)).limit(20_000);
     const writes = new Set(rows.map((r) => r.writeId)).size;
-    return res.json({ counts: failureCounts(rows), writes, rows: rows.length, kinds: [...new Set(rows.map((r) => r.kind))] });
+    // A forged report can add a row for a host of its choosing, so the week is capped at its busiest rows.
+    const csp = await db.select({
+      day: cspViolationsTable.day, directive: cspViolationsTable.directive, blocked: cspViolationsTable.blocked, count: cspViolationsTable.count,
+    }).from(cspViolationsTable).where(gte(cspViolationsTable.day, cspWindowStart()))
+      .orderBy(desc(cspViolationsTable.count), desc(cspViolationsTable.day)).limit(2_000);
+    return res.json({ counts: failureCounts(rows), writes, rows: rows.length, kinds: [...new Set(rows.map((r) => r.kind))], csp });
   } catch (err) {
     req.log.error({ err }, "lab failures failed");
     return res.status(500).json({ error: "internal_error", message: "Failed to count the failures" });

@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import router from "./routes";
 import healthRouter from "./routes/health";
+import cspReportRouter from "./routes/cspReport";
 import waitlistRouter from "./routes/waitlist";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
@@ -56,11 +57,17 @@ app.use(
 // for the process itself and nothing else.
 app.use("/api", healthRouter);
 
+// Ahead of the origin guard and the session (ADR-198): a browser posts its CSP report with no Origin, or `null`, and no
+// cookie. The route reads its own body, at most 8 kB, and counts only reports from a page of ours.
+app.use("/api", cspReportRouter);
+
 // Ahead of the parsers, so a foreign page's write is refused before its body is read or a session is touched.
 app.use(originGuard());
 app.use(cookieParser());
-// ADR-202's cap sits close to the largest body the web sends, a pair system prompt from the admin's prompt editor (31 kB on
-// 2026-10-01): a prompt edited past 32 kB answers 413 and cannot be saved.
+// ADR-202's 32 kB holds for every body but the admin's prompt editor, which saves whole prompts: a pair system prompt was
+// 31 kB on 2026-10-01, before the data rule lengthened every prompt. Only that path, which adminPrompts.ts puts behind the
+// admin's guard, reads up to 256 kB; the parser below then finds the body read and leaves it.
+app.use("/api/admin/prompts", express.json({ limit: "256kb" }));
 app.use(express.json({ limit: "32kb" }));
 app.use(express.urlencoded({ extended: true, limit: "32kb" }));
 // Ahead of the session: the waitlist's two calls, joining and confirming, set no cookie (ADR-141, 145).
