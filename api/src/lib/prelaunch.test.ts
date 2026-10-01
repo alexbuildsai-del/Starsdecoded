@@ -29,3 +29,10 @@ test("the product's routes open to the admin alone", () => {
 test("without ADMIN_USER_ID nobody passes the gate", () => {
   assert.equal(prelaunchAllows("/reports", "user_admin", {}), false);
 });
+
+test("the CSP's reports pass for an anonymous browser even with no admin set, and only at their own path", () => {
+  for (const userId of [null, "user_other"]) assert.equal(prelaunchAllows("/csp-report", userId, {}), true, String(userId));
+  for (const path of ["//csp-report", "/api/csp-report", "/CSP-REPORT", "/csp-report/../reports", "/x/csp-report"]) {
+    assert.equal(prelaunchAllows(path, null, { ADMIN_USER_ID: "user_admin" }), false, path);
+  }
+});
