@@ -297,3 +297,102 @@ test("the day's sum: a stored row with no generatedAt is dated by its creation",
   assert.equal(spentOn(DAY, [report("seeded-old", { generatedAt: null, createdAt: at("2026-09-30T23:00:00Z"), costUsd: 0.02 })], []), 0);
   assert.equal(spentOn(DAY, [report("odd", { generatedAt: "yesterday", costUsd: 0.02 })], []), 0.02);
 });
+
+test("the gate: the walk's case, a cap of one cent and 2 cents spent, pauses; a hair under the cap does not", async () => {
+  for (const [spent, status] of [[0.02, 503], [0.01, 503], [0.0099, 201]] as const) {
+    const { deps } = gateDeps(0.01, spent);
+    const app = await gated(deps);
+    try {
+      assert.equal((await app.post()).status, status, `spent ${spent}`);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("the gate: the notice carries the UTC day of the refusal, however late or early in it", async () => {
+  for (const [now, day] of [["2026-10-01T23:59:59.999Z", "2026-10-01"], ["2026-10-02T00:00:00.000Z", "2026-10-02"]] as const) {
+    const { deps, notices } = gateDeps(20, 21);
+    const app = await gated({ ...deps, now: () => new Date(now) });
+    try {
+      assert.equal((await app.post()).status, 503);
+      assert.equal(notices[0].day, day);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("the gate: a notice that fails never changes the answer, and the body holds no figure or customer data", async () => {
+  const { deps } = gateDeps(20, 31.5);
+  const app = await gated({ ...deps, notify: () => Promise.reject(new Error("mail down")) });
+  try {
+    const res = await app.post();
+    assert.equal(res.status, 503);
+    assert.deepEqual(res.body, PAUSED_BODY);
+    assert.doesNotMatch(JSON.stringify(res.body), /31|20|\$|USD/);
+  } finally {
+    await app.close();
+  }
+});
+
+test("the notice: the email carries the figures and nothing else, so no customer data can ride in it", async () => {
+  const n = notifier("user_admin");
+  await n.notify({ day: "2026-10-01", spentUsd: 20.43, capUsd: 20 });
+  assert.deepEqual(Object.keys(n.sent[0]).sort(), ["capUsd", "day", "spentUsd", "to"]);
+});
+
+test("a failed read with nothing held is not kept: the next caller reads again", async () => {
+  const clock = Date.parse("2026-10-01T10:00:00Z");
+  let calls = 0;
+  const spent = cachedSpend(async () => {
+    calls += 1;
+    if (calls === 1) throw new Error("database down");
+    return 3;
+  }, () => clock);
+  await assert.rejects(spent(), /database down/);
+  assert.equal(await spent(), 3);
+  assert.equal(calls, 2);
+});
+
+test("a read begun on yesterday is not served to today, and callers that arrive together share it", async () => {
+  let clock = Date.parse("2026-10-01T23:59:59Z");
+  const reads: Array<{ day: string; release: (usd: number) => void }> = [];
+  const spent = cachedSpend((day) => new Promise<number>((resolve) => reads.push({ day, release: resolve })), () => clock);
+  const first = spent();
+  const second = spent();
+  clock = Date.parse("2026-10-02T00:00:01Z");
+  const today = spent();
+  assert.deepEqual(reads.map((r) => r.day), ["2026-10-01", "2026-10-02"], "the new day starts its own read");
+  reads[0].release(9);
+  reads[1].release(4);
+  assert.equal(await today, 4);
+  assert.deepEqual([await first, await second], [9, 9]);
+});
+
+test("the day's sum: a pass that cost less than its baseline adds nothing, never a negative", () => {
+  const older = { createdAt: at("2026-09-28T08:00:00Z"), generatedAt: "2026-09-28T08:00:01.000Z" };
+  const revisions: RevisionCost[] = [{ reportId: "p", createdAt: at(`${DAY}T09:00:00Z`), costUsd: 0.9 }];
+  assert.equal(spentOn(DAY, [report("p", { ...older, costUsd: 0.4, passAt: `${DAY}T09:05:00.000Z` })], revisions), 0);
+});
+
+test("the day's sum: every report adds to the total, a text begun today and passes on older ones together", () => {
+  const older = { createdAt: at("2026-09-28T08:00:00Z"), generatedAt: "2026-09-28T08:00:01.000Z" };
+  const revisions: RevisionCost[] = [
+    { reportId: "p1", createdAt: at(`${DAY}T09:00:00Z`), costUsd: 0.5 },
+    { reportId: "p2", createdAt: at(`${DAY}T10:00:00Z`), costUsd: 0.25 },
+  ];
+  const total = spentOn(DAY, [
+    report("new", { costUsd: 0.4 }),
+    report("p1", { ...older, costUsd: 0.6, passAt: `${DAY}T09:05:00.000Z` }),
+    report("p2", { ...older, costUsd: 0.5, passAt: `${DAY}T10:05:00.000Z` }),
+    report("quiet", { ...older, costUsd: 5 }),
+  ], revisions);
+  assert.ok(Math.abs(total - 0.75) < 1e-9, `0.4 + 0.1 + 0.25, got ${total}`);
+  assert.equal(spentOn(DAY, [], []), 0);
+});
+
+test("the day's sum: a text begun the next UTC day is not today's spend", () => {
+  assert.equal(spentOn(DAY, [report("tomorrow", { createdAt: at("2026-10-02T00:00:00Z"), generatedAt: "2026-10-02T00:00:00.000Z" })], []), 0);
+  assert.equal(spentOn(DAY, [report("last", { createdAt: at("2026-10-01T23:59:59Z"), generatedAt: "2026-10-01T23:59:59.999Z" })], []), 0.5);
+});
