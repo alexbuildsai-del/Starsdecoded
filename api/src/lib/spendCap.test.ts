@@ -1,0 +1,299 @@
+/**
+ * The breaker without a database (MB-49): the cap's parsing, the gate below,
+ * at and past the cap with an injected sum, the admin's notice and its
+ * once-a-day rule, the minute's cache, and what the day's sum counts. The
+ * live query is proved on a scratch Postgres in the round's walk (R13-08).
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import type { AddressInfo } from "node:net";
+import express from "express";
+// The pool connects lazily and nothing here queries it; the failure paths log on purpose.
+process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
+process.env.LOG_LEVEL ??= "silent";
+const { PAUSED_LINE, cachedSpend, dailyCapUsd, pausedNotifier, spendGate, spentOn, utcDay } = await import("./spendCap.js");
+type GateDeps = import("./spendCap.js").GateDeps;
+type PausedNotice = import("./spendCap.js").PausedNotice;
+type ReportCost = import("./spendCap.js").ReportCost;
+type RevisionCost = import("./spendCap.js").RevisionCost;
+type SendSpendPausedOptions = import("./mailer.js").SendSpendPausedOptions;
+
+test("the cap: unset, blank or unreadable is 20; 0 and any plain amount are read as written", () => {
+  for (const unset of [undefined, "", "   "]) {
+    assert.equal(dailyCapUsd({ DAILY_SPEND_CAP_USD: unset }), 20, JSON.stringify(unset));
+  }
+  assert.equal(dailyCapUsd({}), 20);
+  for (const [raw, cap] of [["0", 0], ["0.01", 0.01], ["35", 35], [" 12.5 ", 12.5], [".5", 0.5], ["7.", 7], ["0.00", 0]] as const) {
+    assert.equal(dailyCapUsd({ DAILY_SPEND_CAP_USD: raw }), cap, raw);
+  }
+  for (const unreadable of ["abc", "$50", "50 USD", "1,000", "-5", "1e3", "Infinity", "NaN", "0x10", "5.5.5"]) {
+    assert.equal(dailyCapUsd({ DAILY_SPEND_CAP_USD: unreadable }), 20, unreadable);
+  }
+});
+
+test("utcDay is the calendar day in UTC, whatever the hour", () => {
+  assert.equal(utcDay(new Date("2026-10-01T23:59:59.999Z")), "2026-10-01");
+  assert.equal(utcDay(new Date("2026-10-02T00:00:00.000Z")), "2026-10-02");
+  assert.equal(utcDay(new Date("2026-10-01T23:30:00-02:00")), "2026-10-02");
+});
+
+async function gated(deps: GateDeps) {
+  let handled = 0;
+  const app = express();
+  // The stub stands in for a writing route: reaching it is where a credit would move.
+  app.post("/reports", spendGate(deps), (_req, res) => {
+    handled += 1;
+    res.status(201).json({ id: "r1" });
+  });
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  return {
+    post: async () => {
+      const res = await fetch(`${base}/reports`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      return { status: res.status, body: await res.json() };
+    },
+    handled: () => handled,
+    close: () => {
+      server.closeAllConnections();
+      return new Promise<void>((resolve) => server.close(() => resolve()));
+    },
+  };
+}
+
+function gateDeps(capUsd: number, spent: number | Error) {
+  const notices: PausedNotice[] = [];
+  const deps: GateDeps = {
+    capUsd: () => capUsd,
+    spentUsd: () => (spent instanceof Error ? Promise.reject(spent) : Promise.resolve(spent)),
+    notify: async (n) => {
+      notices.push(n);
+    },
+    now: () => new Date("2026-10-01T15:20:00Z"),
+  };
+  return { deps, notices };
+}
+
+const PAUSED_BODY = { error: "paused", reason: "paused", message: PAUSED_LINE };
+
+test("the gate: below the cap the route runs; at and past it, 503 paused and the route never runs", async () => {
+  const cases = [
+    { spent: 19.99, status: 201, handled: 1 },
+    { spent: 20, status: 503, handled: 0 },
+    { spent: 20.01, status: 503, handled: 0 },
+    { spent: 64, status: 503, handled: 0 },
+  ];
+  for (const c of cases) {
+    const { deps, notices } = gateDeps(20, c.spent);
+    const app = await gated(deps);
+    try {
+      const res = await app.post();
+      assert.equal(res.status, c.status, `spent ${c.spent}`);
+      assert.equal(app.handled(), c.handled, `spent ${c.spent}: the route ran ${app.handled()} times`);
+      if (c.status === 503) {
+        assert.deepEqual(res.body, PAUSED_BODY);
+        assert.deepEqual(notices, [{ day: "2026-10-01", spentUsd: c.spent, capUsd: 20 }]);
+      } else {
+        assert.deepEqual(res.body, { id: "r1" });
+        assert.equal(notices.length, 0);
+      }
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("the gate: a cap of 0 pauses every generation, even with nothing spent and no sum to read", async () => {
+  for (const spent of [0, 3.2, new Error("database down")]) {
+    const { deps, notices } = gateDeps(0, spent);
+    const app = await gated(deps);
+    try {
+      const res = await app.post();
+      assert.equal(res.status, 503);
+      assert.deepEqual(res.body, PAUSED_BODY);
+      assert.equal(app.handled(), 0);
+      assert.equal(notices[0].capUsd, 0);
+      assert.equal(notices[0].spentUsd, spent instanceof Error ? 0 : spent);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("the gate: a sum that cannot be read lets the request through, since the route meets the same database next", async () => {
+  const { deps, notices } = gateDeps(20, new Error("database down"));
+  const app = await gated(deps);
+  try {
+    assert.equal((await app.post()).status, 201);
+    assert.equal(app.handled(), 1);
+    assert.equal(notices.length, 0);
+  } finally {
+    await app.close();
+  }
+});
+
+test("the line: three short sentences, the credit named, no hour or day it could get wrong, no house-rule punctuation", () => {
+  assert.equal(PAUSED_LINE, "New reports are paused for now. Your credit hasn't been used. Please try again later.");
+  assert.doesNotMatch(PAUSED_LINE, /[—–;!]/);
+  assert.doesNotMatch(PAUSED_LINE, /\btoday\b|\btomorrow\b|\bhours?\b|\d/i);
+  const words = PAUSED_LINE.split(/\s+/).length;
+  assert.ok(words >= 12 && words <= 18, `${words} words`);
+});
+
+function notifier(admin: string | null, address: string | null | Error = "owner@example.com", sends = true) {
+  const sent: SendSpendPausedOptions[] = [];
+  const warnings: Array<{ fields: Record<string, unknown>; message: string }> = [];
+  const lookedUp: string[] = [];
+  const notify = pausedNotifier({
+    adminUserId: () => admin,
+    addressOf: async (userId) => {
+      lookedUp.push(userId);
+      if (address instanceof Error) throw address;
+      return address;
+    },
+    send: async (opts) => {
+      sent.push(opts);
+      return sends;
+    },
+    warn: (fields, message) => warnings.push({ fields, message }),
+  });
+  return { notify, sent, warnings, lookedUp };
+}
+
+test("the notice: the admin's address gets the day, the spend and the cap, once per UTC day", async () => {
+  const n = notifier("user_admin");
+  await Promise.all([
+    n.notify({ day: "2026-10-01", spentUsd: 20.43, capUsd: 20 }),
+    n.notify({ day: "2026-10-01", spentUsd: 20.43, capUsd: 20 }),
+  ]);
+  await n.notify({ day: "2026-10-01", spentUsd: 22.1, capUsd: 20 });
+  assert.deepEqual(n.lookedUp, ["user_admin"]);
+  assert.deepEqual(n.sent, [{ to: "owner@example.com", day: "2026-10-01", spentUsd: 20.43, capUsd: 20 }]);
+  assert.equal(n.warnings.length, 1, "one line a day, with its outcome");
+  assert.match(n.warnings[0].message, /the admin was emailed/);
+
+  await n.notify({ day: "2026-10-02", spentUsd: 20.05, capUsd: 20 });
+  assert.equal(n.sent.length, 2, "a new UTC day mails again");
+  assert.deepEqual(n.sent[1], { to: "owner@example.com", day: "2026-10-02", spentUsd: 20.05, capUsd: 20 });
+});
+
+test("the notice: with no admin set, one warning a day and no email", async () => {
+  const n = notifier(null);
+  await n.notify({ day: "2026-10-01", spentUsd: 20.43, capUsd: 20 });
+  await n.notify({ day: "2026-10-01", spentUsd: 25, capUsd: 20 });
+  assert.equal(n.sent.length, 0);
+  assert.equal(n.lookedUp.length, 0);
+  assert.equal(n.warnings.length, 1);
+  assert.match(n.warnings[0].message, /ADMIN_USER_ID is not set/);
+  assert.deepEqual(n.warnings[0].fields, { day: "2026-10-01", spentUsd: 20.43, capUsd: 20 });
+});
+
+test("the notice: no address, a failed lookup or a failed send each say so once, and the day is not retried", async () => {
+  const none = notifier("user_admin", null);
+  await none.notify({ day: "2026-10-01", spentUsd: 21, capUsd: 20 });
+  await none.notify({ day: "2026-10-01", spentUsd: 21, capUsd: 20 });
+  assert.equal(none.sent.length, 0);
+  assert.equal(none.warnings.length, 1);
+  assert.match(none.warnings[0].message, /no email address on record/);
+
+  const broken = notifier("user_admin", new Error("clerk down"));
+  await broken.notify({ day: "2026-10-01", spentUsd: 21, capUsd: 20 });
+  assert.equal(broken.sent.length, 0);
+  assert.equal(broken.warnings.length, 1);
+  assert.match(broken.warnings[0].message, /could not be read/);
+
+  const unsent = notifier("user_admin", "owner@example.com", false);
+  await unsent.notify({ day: "2026-10-01", spentUsd: 21, capUsd: 20 });
+  await unsent.notify({ day: "2026-10-01", spentUsd: 21, capUsd: 20 });
+  assert.equal(unsent.sent.length, 1);
+  assert.equal(unsent.warnings.length, 1);
+  assert.match(unsent.warnings[0].message, /did not go out/);
+});
+
+test("the sum is read at most once a minute, again when the UTC day turns, and once for callers that arrive together", async () => {
+  let clock = Date.parse("2026-10-01T10:00:00Z");
+  const reads: string[] = [];
+  let next = 1;
+  const spent = cachedSpend(async (day) => {
+    reads.push(day);
+    return next;
+  }, () => clock);
+
+  assert.deepEqual(await Promise.all([spent(), spent(), spent()]), [1, 1, 1]);
+  assert.equal(reads.length, 1);
+  next = 2;
+  clock += 59_000;
+  assert.equal(await spent(), 1, "within the minute, the held figure");
+  clock += 1_000;
+  assert.equal(await spent(), 2, "a minute on, read again");
+  assert.equal(reads.length, 2);
+
+  next = 0;
+  clock = Date.parse("2026-10-02T00:00:05Z");
+  assert.equal(await spent(), 0, "a new day never serves yesterday's figure");
+  assert.deepEqual(reads, ["2026-10-01", "2026-10-01", "2026-10-02"]);
+});
+
+test("a failed read keeps the day's last figure, and with none it rejects", async () => {
+  let clock = Date.parse("2026-10-01T10:00:00Z");
+  let fail = false;
+  const spent = cachedSpend(async () => {
+    if (fail) throw new Error("database down");
+    return 7.5;
+  }, () => clock);
+  assert.equal(await spent(), 7.5);
+  fail = true;
+  clock += 61_000;
+  assert.equal(await spent(), 7.5);
+
+  clock = Date.parse("2026-10-02T09:00:00Z");
+  await assert.rejects(spent(), /database down/);
+});
+
+const DAY = "2026-10-01";
+const at = (iso: string) => new Date(iso);
+
+function report(id: string, o: Partial<ReportCost> = {}): ReportCost {
+  return { id, createdAt: at(`${DAY}T08:00:00Z`), generatedAt: `${DAY}T08:00:01.000Z`, passAt: null, costUsd: 0.5, ...o };
+}
+
+test("the day's sum: a text begun that day counts whole, its passes included; a report still writing counts nothing yet", () => {
+  assert.equal(spentOn(DAY, [report("a"), report("b", { costUsd: 0.25 })], []), 0.75);
+  assert.equal(spentOn(DAY, [report("a", { costUsd: 0.8, passAt: `${DAY}T09:00:00.000Z` })], []), 0.8);
+  assert.equal(spentOn(DAY, [report("writing", { costUsd: null })], []), 0);
+  assert.equal(spentOn(DAY, [report("regenerated", { createdAt: at("2026-09-20T08:00:00Z"), generatedAt: `${DAY}T11:00:00.000Z` })], []), 0.5);
+});
+
+test("the day's sum: an older text counts nothing, unless a pass landed that day, and then only what the passes added", () => {
+  const older = { createdAt: at("2026-09-28T08:00:00Z"), generatedAt: "2026-09-28T08:00:01.000Z" };
+  assert.equal(spentOn(DAY, [report("ticked", { ...older, costUsd: 0.5 })], []), 0, "a workbook tick today is not spend");
+  assert.equal(spentOn(DAY, [report("old-pass", { ...older, costUsd: 0.7, passAt: "2026-09-29T10:00:00.000Z" })], []), 0);
+
+  const passed = report("p", { ...older, costUsd: 0.9, passAt: `${DAY}T14:00:00.000Z` });
+  const revisions: RevisionCost[] = [
+    { reportId: "p", createdAt: at("2026-09-29T09:58:00Z"), costUsd: 0.5 },
+    { reportId: "p", createdAt: at(`${DAY}T13:58:00Z`), costUsd: 0.7 },
+    { reportId: "p", createdAt: at(`${DAY}T10:00:00Z`), costUsd: 0.6 },
+    { reportId: "other", createdAt: at(`${DAY}T10:00:00Z`), costUsd: 0.1 },
+  ];
+  assert.ok(Math.abs(spentOn(DAY, [passed], revisions) - 0.3) < 1e-9, "0.9 now, 0.6 before the first pass that day");
+});
+
+test("the day's sum: a pass begun before midnight subtracts its own revision; none at all subtracts nothing", () => {
+  const older = { createdAt: at("2026-09-28T08:00:00Z"), generatedAt: "2026-09-28T08:00:01.000Z" };
+  const straddled = report("s", { ...older, costUsd: 0.65, passAt: `${DAY}T00:01:30.000Z` });
+  const revisions: RevisionCost[] = [
+    { reportId: "s", createdAt: at("2026-09-28T12:00:00Z"), costUsd: 0.5 },
+    { reportId: "s", createdAt: at("2026-09-30T23:59:00Z"), costUsd: 0.55 },
+  ];
+  assert.ok(Math.abs(spentOn(DAY, [straddled], revisions) - 0.1) < 1e-9);
+  assert.equal(spentOn(DAY, [report("lost", { ...older, costUsd: 0.65, passAt: `${DAY}T10:00:00.000Z` })], []), 0.65);
+  const unpriced: RevisionCost[] = [{ reportId: "u", createdAt: at(`${DAY}T09:00:00Z`), costUsd: null }];
+  assert.equal(spentOn(DAY, [report("u", { ...older, costUsd: 0.2, passAt: `${DAY}T09:02:00.000Z` })], unpriced), 0.2);
+});
+
+test("the day's sum: a stored row with no generatedAt is dated by its creation", () => {
+  assert.equal(spentOn(DAY, [report("seeded", { generatedAt: null, costUsd: 0.02 })], []), 0.02);
+  assert.equal(spentOn(DAY, [report("seeded-old", { generatedAt: null, createdAt: at("2026-09-30T23:00:00Z"), costUsd: 0.02 })], []), 0);
+  assert.equal(spentOn(DAY, [report("odd", { generatedAt: "yesterday", costUsd: 0.02 })], []), 0.02);
+});
