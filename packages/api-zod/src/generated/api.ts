@@ -73,6 +73,99 @@ export const ConfirmWaitlistResponse = zod.object({
 
 
 /**
+ * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs and stories, and what they are practising (ADR-174). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182).
+ * @summary The dashboard's one read (ADR-174)
+ */
+export const GetHomeResponse = zod.object({
+  "you": zod.union([zod.object({
+  "profileId": zod.string(),
+  "reportId": zod.string().describe('Their latest Personal report the reader can read (ADR-182).'),
+  "name": zod.string(),
+  "birthDate": zod.string().describe('YYYY-MM-DD, as entered (ADR-174).'),
+  "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
+  "access": zod.enum(['owner', 'claimed']).describe('The reader\'s standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139).'),
+  "isSelf": zod.boolean().describe('The reader\'s own chart from their side, as ProfileSummary marks it (ADR-120).'),
+  "triad": zod.object({
+  "sun": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+}).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
+  "moon": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+}).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
+  "rising": zod.union([zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+}).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),zod.null()]).describe('Null when the horizon is unknown (ADR-174).')
+}).nullable().describe('Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).'),
+  "lines": zod.object({
+  "superpower": zod.string(),
+  "growingEdge": zod.string()
+}).nullable().describe('Chapter 08\'s superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).\n')
+}).describe('One person in the reader\'s circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).'),zod.null()]).describe('The reader\'s own Personal report at the circle\'s centre, with chapter 08\'s lines; null with none marked as theirs, or several (ADR-174).'),
+  "several": zod.boolean().describe('More than one chart is marked as the reader\'s own, so `you` stays null until they settle which (ADR-120, ADR-174).'),
+  "people": zod.array(zod.object({
+  "profileId": zod.string(),
+  "reportId": zod.string().describe('Their latest Personal report the reader can read (ADR-182).'),
+  "name": zod.string(),
+  "birthDate": zod.string().describe('YYYY-MM-DD, as entered (ADR-174).'),
+  "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
+  "access": zod.enum(['owner', 'claimed']).describe('The reader\'s standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139).'),
+  "isSelf": zod.boolean().describe('The reader\'s own chart from their side, as ProfileSummary marks it (ADR-120).'),
+  "triad": zod.object({
+  "sun": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+}).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
+  "moon": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+}).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
+  "rising": zod.union([zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+}).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),zod.null()]).describe('Null when the horizon is unknown (ADR-174).')
+}).nullable().describe('Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).'),
+  "lines": zod.object({
+  "superpower": zod.string(),
+  "growingEdge": zod.string()
+}).nullable().describe('Chapter 08\'s superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).\n')
+}).describe('One person in the reader\'s circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).')).describe('The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, each with its latest readable report (ADR-182).\n'),
+  "pairs": zod.array(zod.object({
+  "reportId": zod.string(),
+  "lens": zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
+  "label": zod.string().nullable().describe('The relationship\'s label; under the people lens, family, friends or colleagues (ADR-40, ADR-68).'),
+  "a": zod.object({
+  "profileId": zod.string(),
+  "name": zod.string()
+}).describe('The report\'s person A (ADR-174).'),
+  "b": zod.object({
+  "profileId": zod.string(),
+  "name": zod.string()
+}).describe('The report\'s person B (ADR-174).'),
+  "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
+  "stoppedBy": zod.string().nullable().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).'),
+  "strong": zod.array(zod.string()).describe('What comes naturally to the pair, chapter 01\'s strong lines; empty until chapter 01 is written (ADR-174).'),
+  "challenge": zod.string().nullable().describe('The one challenge to work on; null until the report has it (ADR-174).'),
+  "story": zod.object({
+  "headline": zod.string(),
+  "strengths": zod.array(zod.string())
+}).nullable().describe('The 9:16 story\'s text, chapter 01\'s headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).')
+}).describe('One Compatibility report on the reader\'s list, with what its pair block and story show (ADR-174, ADR-175).')).describe('The Compatibility reports GET \/reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional).'),
+  "practising": zod.array(zod.object({
+  "reportId": zod.string(),
+  "kind": zod.enum(['natal', 'compatibility']),
+  "key": zod.string().describe('The item key the report ticks it under, \"focus.practice.bullets.0\" or \"partners02.nextTime.items.0\" (ADR-24).'),
+  "action": zod.string(),
+  "why": zod.string().nullable(),
+  "pinned": zod.boolean().describe('False on the Closing\'s first Practice item, offered with none pinned (ADR-174).'),
+  "ticked": zod.boolean().describe('Ticked in the same workbook; a tick is silent and a box unticks (ADR-24, ADR-48).')
+}).describe('One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing\'s first Practice item with none pinned; pins and ticks sit in the report\'s one workbook, shared by everyone who reads it (ADR-174, MB-110 provisional).\n')).describe('What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing\'s first Practice item (ADR-174).\n')
+}).describe('The dashboard\'s one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).')
+
+
+/**
  * Returns the natal and compatibility reports visible to the viewer. Old synastry rows are never listed. Use the `kind` discriminator to distinguish.
  * @summary List all reports
  */
@@ -1300,7 +1393,7 @@ export const GetReportResponse = zod.object({
   "texts": zod.record(zod.string(), zod.string())
 }).describe('A lens chapter\'s three scenes: the titles, the index the report wrote, and the texts written on tap since (ADR-65, ADR-72).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
 }).describe('A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.\n'),zod.null()]).optional(),
-  "workbook": zod.record(zod.string(), zod.string()).optional().describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick.'),
+  "workbook": zod.record(zod.string(), zod.string()).optional().describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under \"pin.\" and its item key, valued by the ISO date it was pinned (ADR-174).'),
   "errorMessage": zod.string().nullish().describe('Always null; internal text never reaches a customer response. Kept so older clients build.'),
   "failureReason": zod.union([zod.object({
   "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
@@ -2198,16 +2291,16 @@ export const GetReportStatusResponse = zod.object({
 
 
 /**
- * Shallow-merges the patch into the report's workbook, the reader's own record of which actions they have taken. A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. The viewer must own the report.
+ * Shallow-merges the patch into the report's workbook, the reader's own record of which actions they have taken. A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. The viewer must own the report. A pin key pins its item to What you're practising the same way, three pins a report at most (ADR-174, MB-110 provisional).
  * @summary Tick or untick workbook items on a report
  */
 export const UpdateReportWorkbookParams = zod.object({
   "id": zod.coerce.string()
 })
 
-export const UpdateReportWorkbookBody = zod.record(zod.string(), zod.string().nullable()).describe('A shallow merge onto the report\'s workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example \"career.actions.0\".\n')
+export const UpdateReportWorkbookBody = zod.record(zod.string(), zod.string().nullable()).describe('A shallow merge onto the report\'s workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example \"career.actions.0\". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter\'s id does in \"partners02.nextTime.items.0\" (ADR-24). A pin key is \"pin.\" and an item key, \"pin.focus.practice.bullets.0\", valued by the ISO date of the pin and cleared by null; at most three pins stand on a report, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, MB-110 provisional).\n')
 
-export const UpdateReportWorkbookResponse = zod.record(zod.string(), zod.string()).describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick.')
+export const UpdateReportWorkbookResponse = zod.record(zod.string(), zod.string()).describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under \"pin.\" and its item key, valued by the ISO date it was pinned (ADR-174).')
 
 
 /**
