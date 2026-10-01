@@ -1,6 +1,6 @@
 # Timeline
 
-Ideation 2026-10-01, draft v10, ready to lock; behind a switch, off at launch; picks up MB-26.
+Locked 2026-10-01 from ideation v10; behind a switch, off at launch; closes MB-26.
 https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE
 
 Timeline is the one subscription, sold only to an owner of a Personal natal report. It
@@ -157,14 +157,14 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
 1. Every date and degree on a Timeline surface comes from the engine; a test fails others.
 2. Exact dates match JPL Horizons to the hour for pinned fixtures (unit tests).
 3. No horizon: no angle, house or natal Moon contact. A quiet week writes and sends nothing.
-5. No reading predicts a life event, promises an outcome or answers the asked plan with
+4. No reading predicts a life event, promises an outcome or answers the asked plan with
    do or don't; the checks log every attempt that did (`generation_failures`).
-6. The end-of-report offer shows only on an owned Personal natal report, computed, once.
-7. The free layer works without a subscription; a lapsed one keeps readings, stops new ones.
-8. Cancelling takes two clicks, the letter stops in one; prices only in `catalogue.ts`.
-9. Dry lab clean, a spot run before the Release; the finder matches the engine per fixture.
-10. With `TIMELINE` off, no Timeline surface, route or email reaches a non-admin.
-11. Ask never shows a chart or report its reader can't read; a test covers each access.
+5. The end-of-report offer shows only on an owned Personal natal report, computed, once.
+6. The free layer works without a subscription; a lapsed one keeps readings, stops new ones.
+7. Cancelling takes two clicks, the letter stops in one; prices only in `catalogue.ts`.
+8. Dry lab clean, a spot run before the Release; the finder matches the engine per fixture.
+9. With `TIMELINE` off, no Timeline surface, route or email reaches a non-admin.
+10. Ask never shows a chart or report its reader can't read; a test covers each access.
 
 ## The Owner's answers (2026-10-01)
 1. Timing: **B**, the reading with reasons, never yes, no or a score. Only the reader.
@@ -177,7 +177,7 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
 Claude's calls (the Owner may overturn any): the switch, the name Ask, €69.99 a year, one
 free question, rose #C46B78, easy/mixed/intense, the why card, the invitation last.
 
-## Decisions to record (at /lock)
+## Decisions (locked 2026-10-01)
 1. Timeline is the one subscription, only for an owner of a Personal natal report.
    Supersedes ADR-4 in part; amends §1 and §2 (daily horoscopes stay excluded).
 2. R-5.2 amended: sky dates may be named, life dates never, no do or don't.
