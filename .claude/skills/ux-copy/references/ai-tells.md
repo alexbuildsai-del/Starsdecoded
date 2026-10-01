@@ -55,7 +55,7 @@ Wikipedia's "Signs of AI writing".
 ## D. Formatting by rule
 
 16. **Title Case.** "Get Your Report". Sentence case everywhere: "Get my report".
-    Product names keep their capitals: Personal natal report, Compatibility report.
+    Product names keep their capitals: Personal report, Compatibility report.
 17. **Bold labels on every item** and **decorative icons or emoji** before headings. A
     label earns its bold only when readers scan for it.
 18. **Heading repeated in the first line.** "Privacy. Your privacy matters to us." Start
