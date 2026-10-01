@@ -127,19 +127,29 @@ function newer(x: { createdAt: Date; id: string }, y: { createdAt: Date; id: str
   return by > 0 || (by === 0 && x.id > y.id);
 }
 
+/** A failed report holds only what was written before it stopped, if anything, so nothing is read from it. */
+function written(row: { status: string }): boolean {
+  return row.status !== "failed";
+}
+
+/** A report that did not fail outranks one that did, whatever their dates, so a failed retry never hides one that still opens. */
+function outranks(x: NatalRow, y: NatalRow): boolean {
+  return written(x) === written(y) ? newer(x, y) : written(x);
+}
+
 /**
  * One seat per person: their latest Personal report the reader can read that
- * did not fail, since a failed retry must not hide one that still opens. A
- * report still being written holds its seat already.
+ * did not fail. A report still being written holds its seat already, and a
+ * person whose every report failed keeps theirs at the latest of them, so
+ * their row and quick look say so rather than the person vanishing (ADR-84).
  */
 function seatsOf(viewer: Viewer, natal: readonly NatalRow[]): Seat[] {
   const latest = new Map<string, Seat>();
   for (const row of natal) {
-    if (row.status === "failed") continue;
     const access = natalReportAccess(viewer, row.profile, row);
     if (access !== "owner" && access !== "claimed") continue;
     const kept = latest.get(row.profile.id);
-    if (kept && !newer(row, kept.row)) continue;
+    if (kept && !outranks(row, kept.row)) continue;
     latest.set(row.profile.id, { row, access, isSelf: isSelfFor(viewer, row.profile) });
   }
   return [...latest.values()].sort((x, y) =>
@@ -341,7 +351,9 @@ function practisingOf(selves: readonly Seat[], pairs: readonly Listed[]): HomePr
 /**
  * The circle is the reader and everyone whose Personal report they can read
  * (ADR-182); their own sits at the centre, unless several are marked as theirs,
- * when every marked one stays among the people until they settle which.
+ * when every marked one stays among the people until they settle which. A
+ * failed report keeps its person's seat and lends nothing more: no lines and
+ * nothing to practise.
  */
 export function buildHome(viewer: Viewer, natal: readonly NatalRow[], pairs: readonly PairRow[]): Home {
   const seats = seatsOf(viewer, natal);
@@ -349,11 +361,11 @@ export function buildHome(viewer: Viewer, natal: readonly NatalRow[], pairs: rea
   const you = selves.length === 1 ? selves[0] : null;
   const listed = listedPairs(viewer, pairs);
   return {
-    you: you ? personOf(you, linesOf(you.row.interpretation)) : null,
+    you: you ? personOf(you, written(you.row) ? linesOf(you.row.interpretation) : null) : null,
     several: selves.length > 1,
     people: seats.filter((s) => s !== you).map((s) => personOf(s, null)),
     pairs: listed.map((l) => l.pair),
-    practising: practisingOf(selves, listed),
+    practising: practisingOf(selves.filter((s) => written(s.row)), listed),
   };
 }
 

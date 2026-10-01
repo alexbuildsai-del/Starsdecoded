@@ -3,9 +3,12 @@
  * read, the same people as the circle, one row each that opens the report on
  * a tap and keeps its actions (review-01-10, scope 3): This is me ✓ or Share
  * with {name} in view; Not me, Stop sharing and Delete report behind "⋯".
- * Who is listed and what a row shows come from GET /home; the share, the giver
- * and the profile each action needs come from the lists its route refreshes
- * (reading 4). The page mounts it bare, so it holds its own dialogs.
+ * A report that could not be written keeps its row, which says why in its
+ * coded line (ADR-84) and opens nothing, as the list did before R12.
+ * Who is listed and what a row shows come from GET /home; the share, the giver,
+ * why a report failed and the profile each action needs come from the lists
+ * its route refreshes (reading 4). The page mounts it bare, so it holds its own
+ * dialogs.
  */
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,7 +31,7 @@ import { StatusDots } from "@/components/StatusDots";
 import { ListRow, MENU_DANGER, MenuItem, ROW_ACTION, ROW_DONE, ROW_STATUS } from "@/components/dashboard/RowMenu";
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
 import { useToast } from "@/hooks/use-toast";
-import { birthDateText, ownIds } from "@/lib/home-view";
+import { birthDateText, failureLine, isFailed, ownIds } from "@/lib/home-view";
 import { initials } from "@/lib/orbit";
 import { pairedWithReader, personRowView, sharedWaiting, signsLine, signsSpoken } from "@/lib/pair-row";
 import { shareWith } from "@/lib/share-card";
@@ -47,11 +50,12 @@ interface PersonRowProps {
 
 function PersonRow({ person, report, profile, unmarked, violet, onShare, onMark, onBirthTime, onStop }: PersonRowProps) {
   const send = report?.send ?? profile?.send ?? null;
+  // The page polls the list while a report is under way; GET /home keeps the status it was read with.
+  const status = report?.status ?? person.status;
   const view = personRowView({
     isSelf: person.isSelf,
     access: person.access,
-    // The page polls the list while a report is under way; GET /home keeps the status it was read with.
-    status: report?.status ?? person.status,
+    status,
     ownership: profile?.ownership,
     horizon: report?.horizon ?? profile?.horizon,
     send,
@@ -68,6 +72,7 @@ function PersonRow({ person, report, profile, unmarked, violet, onShare, onMark,
         <StatusDots label={view.busy} />
       </span>
     ),
+    isFailed(status) && <span key="failed" className={ROW_STATUS}>{failureLine(report)}</span>,
     view.self && <span key="self" className={ROW_DONE}>This is me ✓</span>,
     view.mark && (
       <button key="mark" type="button" onClick={() => onMark(person, true)} className={ROW_ACTION}>
@@ -145,7 +150,7 @@ export function PeopleRows() {
   if (!home) return null;
   const listed = Array.isArray(reports) ? new Map(reports.map((r) => [r.id, r])) : null;
   const byProfile = new Map((Array.isArray(profiles) ? profiles : []).map((p) => [p.id, p]));
-  // A delete refreshes the lists, not GET /home, so a report gone from them leaves the rows before home catches up.
+  // A delete refetches the lists and GET /home together, and a list may land first, so a report gone from it leaves the rows at once.
   const people = [...(home.you ? [home.you] : []), ...home.people]
     .filter((person) => !listed || listed.has(person.reportId))
     .sort((x, y) => Number(y.isSelf) - Number(x.isSelf));

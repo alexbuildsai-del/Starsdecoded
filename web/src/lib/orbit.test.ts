@@ -116,6 +116,14 @@ describe("who is on the circle", () => {
     ]);
   });
 
+  it("keeps a person whose only report failed in their seat, with nothing under way, since their quick look says why (ADR-84)", () => {
+    const points = circle({ you: YOU, people: [person("p1", "Gus Olsen", { status: "failed" }), person("p2", "Hana Sato")] });
+    expect(ids(points)).toEqual(["add", "p1", "p2"]);
+    expect(points[1]).toEqual({
+      id: "p1", kind: "person", name: "Gus Olsen", initials: "GO", label: "GUS", writing: false, sharedPair: false, profileId: "p1", reportId: "r-p1",
+    });
+  });
+
   it("puts a waiting gift after the people and before the ghost seats, and drops it once claimed", () => {
     const people = [person("p1", "Beatrice Lund")];
     expect(circle({ you: YOU, people, gifts: [gift("g1", "Pierre"), gift("g2", "Zoé Durand", "returned")] })).toEqual([

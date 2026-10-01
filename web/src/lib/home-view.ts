@@ -4,9 +4,11 @@
  * (reading 4). The quick look holds what scope 3 lists and no more (reading 2):
  * name, birth date, Sun, Moon and Rising with degrees, then the pair block for
  * a pair with the reader or chapter 08's two lines for the reader, then the
- * buttons. Every word it prints is here, so a node test pins the copy.
+ * buttons. A report that could not be written opens nothing, so the line that
+ * says why stands where all of that would be. Every word it prints is here,
+ * so a node test pins the copy.
  */
-import type { Home, HomePair, HomePerson, SendState, Spot } from "@workspace/api-client-react";
+import type { Home, HomePair, HomePerson, ReportSummary, SendState, Spot } from "@workspace/api-client-react";
 import { MEET_TAGS } from "@/lib/charts-meet";
 import { houseWithWord } from "@/lib/evidence-glossary";
 import { lensInfo } from "@/lib/lenses";
@@ -52,6 +54,19 @@ export function isFinished(status: string): boolean {
 
 export function isWriting(status: string): boolean {
   return status === "pending" || status === "computing" || status === "interpreting";
+}
+
+/** Nothing offers to open a failed report, which holds only what was written before it stopped; its row and quick look say why instead (ADR-84). */
+export function isFailed(status: string): boolean {
+  return status === "failed";
+}
+
+/** What a list said before R12 for a failed report it holds no coded line for. */
+export const NOT_WRITTEN = "Could not be written.";
+
+/** Why a report failed, in the coded line the copy of `GET /reports` the page holds gives it (ADR-84). */
+export function failureLine(summary: Pick<ReportSummary, "failureReason"> | null | undefined): string {
+  return summary?.failureReason?.line ?? NOT_WRITTEN;
 }
 
 /** "0.29° Virgo · 4th (home)"; with no birth time a body names no house. */

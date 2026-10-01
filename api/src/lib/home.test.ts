@@ -181,13 +181,48 @@ test("circle: the reader at the centre, everyone whose Personal report they can 
   assert.equal(home.you?.access, "owner");
   assert.equal(home.you?.isSelf, true);
   assert.equal(home.you?.birthDate, MARIE.birthDate);
-  assert.deepEqual(home.people.map((p) => [p.profileId, p.reportId, p.status, p.access, p.isSelf]), [["PA", "RA2", "interpreting", "owner", false]]);
+  // Oprah's only report failed. She used to vanish from the circle and People without a word; she keeps her seat now,
+  // so her row and quick look can say it failed, as the dashboard did before R12.
+  assert.deepEqual(home.people.map((p) => [p.profileId, p.reportId, p.status, p.access, p.isSelf]), [
+    ["PA", "RA2", "interpreting", "owner", false],
+    ["PO", "RO", "failed", "owner", false],
+  ]);
   assert.equal(home.people[0].lines, null);
   assert.deepEqual(home.pairs, []);
 
   const empty = { you: null, several: false, people: [], pairs: [], practising: [] };
   assert.deepEqual(buildHome(STRANGER, family().natal, []), empty);
   assert.deepEqual(buildHome(SESSION, family().natal, []), empty);
+});
+
+test("circle: a person whose every Personal report failed keeps one seat at the latest, which lends no lines and nothing to practise (ADR-84)", () => {
+  const { marie, audrey, oprah } = family();
+  const opens = natal("RA", audrey);
+  const retry = natal("RA2", audrey, { status: "failed" });
+  const firstTry = natal("RO", oprah, { status: "failed" });
+  const secondTry = natal("RO2", oprah, { status: "failed" });
+  // Newest first, so the failed retry is read before the older report that opens and must still give way to it.
+  const home = valid(buildHome(GIVER, [secondTry, firstTry, retry, opens], []));
+  assert.deepEqual(home.people.map((p) => [p.profileId, p.reportId, p.status]), [["PA", "RA", "complete"], ["PO", "RO2", "failed"]]);
+  assert.deepEqual(home.people[1].triad, triadOf(oprah.chartData));
+  assert.equal(home.people[1].lines, null);
+
+  const writing = natal("RA3", audrey, { status: "interpreting", interpretation: {} });
+  const failedAfter = natal("RA4", audrey, { status: "failed" });
+  assert.deepEqual(buildHome(GIVER, [failedAfter, writing], []).people.map((p) => p.reportId), ["RA3"]);
+
+  // A failed report keeps whatever text was stored before it stopped, so the reader's own lends no lines and no
+  // practice, even pinned; their pair with Audrey is untouched by it.
+  const own = valid(buildHome(
+    GIVER,
+    [natal("RM", marie, { status: "failed", workbook: { "pin.focus.practice.bullets.1": D1 } })],
+    [pair("RP", marie, audrey, { workbook: { "pin.partners02.nextTime.items.0": D1 } })],
+  ));
+  assert.deepEqual([own.you?.reportId, own.you?.status, own.you?.lines, own.several], ["RM", "failed", null, false]);
+  assert.deepEqual(own.practising.map((p) => [p.reportId, p.key]), [["RP", "partners02.nextTime.items.0"]]);
+  assert.deepEqual(own.pairs.map((p) => [p.reportId, p.status]), [["RP", "complete"]]);
+
+  assert.deepEqual(buildHome(STRANGER, [firstTry, secondTry], []).people, []);
 });
 
 test("circle: a report sent to the reader is a person until they say This is me; Stop sharing takes it from its giver's circle (ADR-139, ADR-182)", () => {

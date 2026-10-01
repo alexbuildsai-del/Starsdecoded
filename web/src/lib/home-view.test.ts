@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest";
 import { calculateNatalChart } from "@workspace/engine";
 import type { Home, HomePair, HomePerson, SendState, Spot } from "@workspace/api-client-react";
 import {
-  OWN_LINES, PAIR_BLOCK, birthDateText, blindRisingText, doorText, firstName, isFinished, isWriting, lensWords, ownIds, pairWithYou,
-  quickLookDoors, quickLookFor, shareTargetFor, spotText, triadLines, withYouText, writingText,
+  NOT_WRITTEN, OWN_LINES, PAIR_BLOCK, birthDateText, blindRisingText, doorText, failureLine, firstName, isFailed, isFinished, isWriting,
+  lensWords, ownIds, pairWithYou, quickLookDoors, quickLookFor, shareTargetFor, spotText, triadLines, withYouText, writingText,
 } from "./home-view";
 import { CENTRE_ID } from "./orbit";
 
@@ -177,6 +177,29 @@ describe("what a tap opens", () => {
     for (const id of ["gift:g1", "add", "ghost:0", "gone"]) expect(quickLookFor(home(), id)).toBeNull();
     expect(quickLookFor(home(), null)).toBeNull();
     expect(quickLookFor(undefined, "audrey")).toBeNull();
+  });
+
+  it("still opens the quick look of someone whose only report failed, the reader's own at the centre too (ADR-84)", () => {
+    const failed = { ...AUDREY, status: "failed" as const };
+    const failedMe = { ...ME, status: "failed" as const, lines: null };
+    expect(quickLookFor(home({ people: [failed, MARIE] }), "audrey")).toEqual({ person: failed, self: false });
+    expect(quickLookFor(home({ you: failedMe }), CENTRE_ID)).toEqual({ person: failedMe, self: true });
+  });
+});
+
+describe("a report that could not be written", () => {
+  it("is neither being written nor finished, so nothing offers to open it", () => {
+    expect(isFailed("failed")).toBe(true);
+    for (const status of ["pending", "computing", "interpreting", "revising", "complete"]) expect(isFailed(status)).toBe(false);
+    expect([isWriting("failed"), isFinished("failed")]).toEqual([false, false]);
+  });
+
+  it("says why in the coded line GET /reports gives, else in the words the list used before R12 (ADR-84)", () => {
+    const line = "Our writing service didn't answer. Try again in a few minutes.";
+    expect(failureLine({ failureReason: { code: "provider_unreachable", line } })).toBe(line);
+    expect(failureLine({ failureReason: null })).toBe("Could not be written.");
+    expect(failureLine({})).toBe(NOT_WRITTEN);
+    expect(failureLine(undefined)).toBe(NOT_WRITTEN);
   });
 });
 

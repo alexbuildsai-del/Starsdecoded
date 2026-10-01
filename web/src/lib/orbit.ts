@@ -94,9 +94,14 @@ const ADD_ID = "add";
 const GIFT_ID_PREFIX = "gift:";
 const GHOST_ID_PREFIX = "ghost:";
 
-/** A report under a revision pass keeps its text and is read as it stands (progress.ts), so only the first writing is "writing". */
+/** A report under a revision pass keeps its text and is read as it stands (progress.ts). */
 function finished(status: string): boolean {
   return status === "complete" || status === "revising";
+}
+
+/** Only the first writing is "writing": a revision pass reads as finished, and a failed report keeps its seat with nothing under way while its quick look says why. */
+function beingWritten(status: string): boolean {
+  return status === "pending" || status === "computing" || status === "interpreting";
 }
 
 function words(name: string): string[] {
@@ -149,7 +154,7 @@ export function circlePoints({ you, people, pairs, gifts, credits, enforced }: C
     if (p.profileId === you?.profileId || placed.has(p.profileId)) continue;
     placed.add(p.profileId);
     const name = p.name.trim();
-    const writing = !finished(p.status);
+    const writing = beingWritten(p.status);
     seated.push({
       id: p.profileId,
       kind: "person",

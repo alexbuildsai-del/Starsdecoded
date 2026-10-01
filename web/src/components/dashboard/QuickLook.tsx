@@ -4,8 +4,10 @@
  * with the reader "With you" and its block, or for the reader chapter 08's
  * superpower and growing edge, then the buttons and a close control. Nothing
  * from the old card comes with it: no elements, houses or Generate (reading 2).
- * Its content is `GET /home`'s, so nothing loads on open (reading 4); whether
- * "Share with" is offered is `GET /reports`' send state, the copy the page
+ * A report that could not be written opens nothing, so under the triad its
+ * coded line (ADR-84) stands in place of the rest. Its content is
+ * `GET /home`'s, so nothing loads on open (reading 4); whether "Share with" is
+ * offered, and why a report failed, are `GET /reports`', the copy the page
  * already holds for its picker.
  *
  * It is content only: the page frames it as the panel beside the circle on
@@ -25,7 +27,7 @@ import { StoryPreview } from "@/components/report/ShareCard";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import {
-  OWN_LINES, birthDateText, blindRisingText, firstName, quickLookDoors, shareTargetFor, triadLines, withYouText,
+  OWN_LINES, birthDateText, blindRisingText, failureLine, firstName, isFailed, quickLookDoors, shareTargetFor, triadLines, withYouText,
   type Door, type ShareTarget, type TriadLine,
 } from "@/lib/home-view";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
@@ -105,8 +107,10 @@ export function QuickLook({ person, pair, self, onClose }: QuickLookProps) {
   // The page polls this list for its picker; a quick look reads that copy rather than asking again as it opens.
   const reports = useListReports({ query: { queryKey: getListReportsQueryKey(), refetchOnMount: false } });
   const listed = Array.isArray(reports.data) ? reports.data : [];
-  const sendOf = (reportId: string | undefined) => (reportId ? (listed.find((r) => r.id === reportId)?.send ?? null) : null);
+  const summaryOf = (reportId: string | undefined) => (reportId ? listed.find((r) => r.id === reportId) : undefined);
+  const sendOf = (reportId: string | undefined) => summaryOf(reportId)?.send ?? null;
 
+  const failed = isFailed(person.status);
   const look = { person, pair: self ? undefined : pair, self };
   const doors = quickLookDoors(look);
   const triad = triadLines(person.triad);
@@ -142,51 +146,57 @@ export function QuickLook({ person, pair, self, onClose }: QuickLookProps) {
 
       {triad.length > 0 && <TriadRows lines={triad} name={person.name} self={self} />}
 
-      {self && person.lines && (
-        <BlockFrame>
-          <BlockHeading tone="comes">{OWN_LINES.superpower}</BlockHeading>
-          <BlockLine>{person.lines.superpower}</BlockLine>
-          <BlockHeading tone="challenge">{OWN_LINES.growingEdge}</BlockHeading>
-          <BlockLine>{person.lines.growingEdge}</BlockLine>
-        </BlockFrame>
-      )}
-
-      {look.pair && (
-        <div className="grid gap-2">
-          <p className={`${EYEBROW} text-[var(--violet)]`}>{withYouText(look.pair)}</p>
-          <PairBlock pair={look.pair} />
-        </div>
-      )}
-
-      <DoorView door={doors.primary} primary />
-
-      {(doors.report || share || story) && (
-        <div className="flex flex-wrap gap-2">
-          {doors.report && <DoorView door={doors.report} />}
-          {share && (
-            <Button variant="outline" size="sm" onClick={() => setSending(share)} className="font-label text-xs">
-              {shareWith(name)}
-            </Button>
+      {failed ? (
+        <p className="text-sm leading-[1.5] text-[var(--paper-dim)]">{failureLine(summaryOf(person.reportId))}</p>
+      ) : (
+        <>
+          {self && person.lines && (
+            <BlockFrame>
+              <BlockHeading tone="comes">{OWN_LINES.superpower}</BlockHeading>
+              <BlockLine>{person.lines.superpower}</BlockLine>
+              <BlockHeading tone="challenge">{OWN_LINES.growingEdge}</BlockHeading>
+              <BlockLine>{person.lines.growingEdge}</BlockLine>
+            </BlockFrame>
           )}
+
+          {look.pair && (
+            <div className="grid gap-2">
+              <p className={`${EYEBROW} text-[var(--violet)]`}>{withYouText(look.pair)}</p>
+              <PairBlock pair={look.pair} />
+            </div>
+          )}
+
+          <DoorView door={doors.primary} primary />
+
+          {(doors.report || share || story) && (
+            <div className="flex flex-wrap gap-2">
+              {doors.report && <DoorView door={doors.report} />}
+              {share && (
+                <Button variant="outline" size="sm" onClick={() => setSending(share)} className="font-label text-xs">
+                  {shareWith(name)}
+                </Button>
+              )}
+              {story && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-expanded={storyOpen}
+                  aria-controls={storyId}
+                  onClick={() => setStoryOpen((open) => !open)}
+                  className="font-label text-xs"
+                >
+                  {SHARE_LABELS.share}
+                </Button>
+              )}
+            </div>
+          )}
+
           {story && (
-            <Button
-              variant="outline"
-              size="sm"
-              aria-expanded={storyOpen}
-              aria-controls={storyId}
-              onClick={() => setStoryOpen((open) => !open)}
-              className="font-label text-xs"
-            >
-              {SHARE_LABELS.share}
-            </Button>
+            <div id={storyId} ref={storyRef} hidden={!storyOpen} className="scroll-mb-4">
+              {storyOpen && <StoryPreview text={story} />}
+            </div>
           )}
-        </div>
-      )}
-
-      {story && (
-        <div id={storyId} ref={storyRef} hidden={!storyOpen} className="scroll-mb-4">
-          {storyOpen && <StoryPreview text={story} />}
-        </div>
+        </>
       )}
 
       <SendDialog open={sending !== null} onClose={() => setSending(null)} target={sending} />
