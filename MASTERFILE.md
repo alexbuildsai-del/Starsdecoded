@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.20 (2026-10-01) |
+| Version | 0.21 (2026-10-01) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -45,12 +45,12 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 
 ## 2 · Product scope
 
-**V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of ten chapters with a chart explorer and a workbook of ticked actions, keep it on a dashboard, delete it on request.
+**V1, the complete loop for one buyer:** land, understand the method, enter birth data, pay once, receive a natal report of ten chapters with House by House and a workbook of ticked actions, keep it on a dashboard, delete it on request.
 
 1. **Landing page and seven public pages** (/sky, /sample, /method, /compatibility, two Learn pages, /faq), prerendered as real HTML for search and AI search, every claim matching the code and every chart computed (`docs/specs/locked/landing-and-ai-search.md`, ADR-107 to 119).
 2. **Birth form** with geocoding, the timezone in force at the birth instant, and a three-way birth time (known, roughly, unknown) with a live readout of what the answer settles (`docs/specs/locked/unknown-birth-time.md`).
 3. **Report generation** per §4, polled until complete.
-4. **Report page**: ten chapters, the last one Closing, the chart explorer with generated house cards, the aside rail with the workbook, methodology strip, PDF via print. While it writes, the page shows true progress over an orrery of the chart; the reader opens it through a door at 67% or it opens itself at 100%, and chapters stream in behind it (`docs/specs/locked/natal-report-pass-two.md`, `natal-report-pass-three.md`).
+4. **Report page**: ten chapters, the last one Closing, chapter 02 House by House (the wheel pinned over a deck of the generated house cards, ADR-179), the aside rail with the workbook, methodology strip, PDF via print. While it writes, the page shows true progress over an orrery of the chart; the reader opens it through a door at 67% or it opens itself at 100%, and chapters stream in behind it (`docs/specs/locked/natal-report-pass-two.md`, `natal-report-pass-three.md`).
 5. **Purchase**: one-time payment granting a credit; the credit is consumed when the report is created (§6).
 6. **Account**: anonymous session first, Clerk sign-in claims it, the dashboard opens on the reader's circle with the credit count (`docs/specs/locked/dashboard-sky.md`); the circle opens a quick look per person, the People and Compatibility rows open the report, then what the reader is practising, their pairs and their stories, from one `GET /home` (`docs/specs/locked/review-01-10.md`, ADR-174).
 7. **Legal**: privacy, terms, refunds, who runs Stars Decoded, working deletion. One constant in `@workspace/commerce` names the seller: the Owner as a private individual until the company exists (ADR-144). The legal pages are public before launch.
@@ -104,12 +104,12 @@ birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-
 
 ## 5 · Interpretation rules
 
-- **R-5.1** Tone, every section: second person; short sentences, simpler words over rarer ones always, sentences averaging 15 words or fewer and none over 25 until the prose study sets the numbers (ADR-87); no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words. The compatibility report adds: a verdict headline, a scene that may hold a short quoted exchange, the pattern with a because-line per person from their own report, a next-time checklist; research is doctrine and never named on the page; repetition is measured in the lab, not edited (ADR-63 to 69).
+- **R-5.1** Tone, every section: second person; two friends talking over coffee, plain spoken words, never too fancy and never too trendy, counted both ways by a check that only logs (ADR-185); short sentences, simpler words over rarer ones always, sentences averaging 15 words or fewer and none over 25 until the prose study sets the numbers (ADR-87); no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words. The compatibility report adds: a verdict headline, a scene that may hold a short quoted exchange, the pattern with a because-line per person from their own report, a next-time checklist; one fixed scene a chapter, "This is the challenge:" for what rubs, "room" only for a real room (ADR-176, 177); research is doctrine and never named on the page; repetition is measured in the lab, not edited (ADR-63 to 69).
 - **R-5.2** The model may describe behavioural patterns, tendencies and growth edges. It may never predict events, name dates, promise outcomes, give medical or psychological diagnoses, or invoke fate or karma.
 - **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings. House-card readings are a section like any other (ADR-21); the Ascendant and Midheaven are citable evidence (ADR-22).
 - **R-5.4** Source of truth for prompts is the section registry and `promptDefaults.ts`; overrides live in `prompt_templates` via `/admin/prompts`. Never edit a generated copy (the bible, docs). Re-sync instead.
 - **R-5.5** A change to report content is USER-FACING even when no UI moved: someone who bought yesterday would get different words today.
-- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and pinned reasoning effort, and one outside it does not compile (ADR-58, 74). Every model is OpenAI's (ADR-73). A section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
+- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and pinned reasoning effort, and one outside it does not compile (ADR-58, 74). Every model is OpenAI's (ADR-73). Production runs mix B: gpt-6-sol writes both foundations and the vocabulary and reads for the QA agent, gpt-6-luna writes every other prose call, and gpt-5.2 stays in the catalogue as the lab's control (ADR-184, which made this move on the Owner's word). After it, a section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
 
 ## 6 · Payments and business model
 
