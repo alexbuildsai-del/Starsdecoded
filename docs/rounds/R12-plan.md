@@ -5,9 +5,9 @@ Planned 2026-10-01 on `claude/confident-archimedes-lfnc4w` (`main` at acf281f, f
 https://claude.ai/artifact/7sRXjmJcybAmnQHrbxJ5Rc, revision 4; its scene table, the rest of its section 04 and its "Noted, not
 changed" list were extracted to the session scratchpad, and the noted list stays out). **The Owner, 2026-10-01:** "lets plan this
 claude/determined-hawking-egfvkp and Sol plans only: sol on the foundation, luna on everything else for the brain/prose". So the
-slug is `review-01-10` alone, and production's writers move to the lab's mix B (ADR-184). The same day, through the coordinator,
-the Owner moved the QA agent and the vocabulary job off gpt-5.2 too, kept 5.2 in the catalogue as the lab's control, and set the
-voice, verbatim in ADR-185: "two friends talking over coffee", neither too high nor too low. Pricing-and-launch's remainder
+slug is `review-01-10` alone, and production's writers move to the lab's mix B (ADR-184). The same day the Owner moved the QA
+agent off gpt-5.2 too (the vocabulary job follows on the coordinator's recommendation; 5.2 stays in the catalogue as the lab's
+control) and set the voice, verbatim in ADR-185: "two friends talking over coffee", neither too high nor too low. Pricing-and-launch's remainder
 (Stripe, checkout, credits hard, the loop study, `LAUNCHED`) is not here.
 **Numbering: this is R12**, the next number; the deferred pricing-and-launch plan moved to `docs/rounds/R13-plan.md` (banner
 only), since no Mailbox or Decisions row binds the number to it (MB-91's default says "R12" and gets a note).
@@ -17,17 +17,21 @@ runs on staging before Promote, and the Release view's full lab and QA agent gat
 (pins live in the workbook JSON, reading 3). **No new dependency.** **The contract changes twice** (R12-03, R12-13). No
 credential is needed to build, nothing goes on GitHub, nothing reaches production in the round.
 
-## Mailbox rows above 2 rounds open after this plan's increment
-At **11**: MB-12, 19, 20, 21, 22, 23, 30 · at **8**: MB-49 · at **5**: MB-73 · at **4**: MB-80, 87, 89 · at **3**: MB-91, 92, 93,
-94. All 33 carried-over open rows were incremented on 2026-10-01; MB-122 was marked done (the R11 follow-up, 0199121, says launch,
-not open). None blocks a card. Touched here: MB-93 (provisional, ask 3), MB-103 and MB-110 (provisional seams), MB-113 (this is
-the dashboard copy pass its default waits for), MB-70 (decided; production now depends on its two ids). Raised: MB-128, 129, 130.
-No Owner comment was found on the Mailbox or Decisions rows this round touches.
+## Open Mailbox rows created more than 14 days ago (oldest first, ADR-186)
+**2026-09-09:** MB-12 no error reporting or alerting · MB-19 no prompt version history · MB-20 the one e2e spec cannot pass, no
+lint step · MB-21 variables missing from `.env.example` · MB-22 dead code left by the port · MB-23 no rate limiting on POST
+/reports and geocode · MB-30 the browser calls Nominatim and timeapi.io. None blocks a card; MB-30 sits beside R12-06, and MB-23
+beside R12-04's new read. The next oldest, MB-49 (2026-09-18), is 13 days old. Rows no longer count rounds open: the
+Owner dropped the count on 2026-10-01 (ADR-186), and a topic's age is its Created time. MB-122 was marked done (the R11
+follow-up, 0199121, says launch, not open). Touched here: MB-93 (provisional, ask 3), MB-103 and MB-110 (provisional seams),
+MB-113 (this is the dashboard copy pass its default waits for), MB-70 (decided; production now depends on its two ids). Raised:
+MB-128, 129, 130. No Owner comment was found on the Mailbox or Decisions rows this round touches.
 
 ## Round start (the orchestrator)
 1. The round runs on this branch, as R10 and R11 did. `git diff --stat main...HEAD` lists docs only (MASTERFILE 0.20, INDEX, the
    lock, the /web-taste rule, this plan, the R13 move), so typecheck is unaffected; the round's pull request brings them to `main`.
-2. **ADR-184** (mix B) and **ADR-185** (the voice) were recorded with this plan; the round adds no Decisions row.
+2. **ADR-184** (mix B), **ADR-185** (the voice) and **ADR-186** (no rounds-open count) were recorded with this plan; the round
+   adds no Decisions row.
 3. CLAUDE.md's current focus (item 3) and INDEX's pricing-and-launch line still point at `R12-plan.md` for pricing: the plan's
    commit points both at `R13-plan.md`.
 4. Builders cannot open claude.ai: the orchestrator extracts the artifact's screens each UI card names, phone first, then desktop,
@@ -572,7 +576,8 @@ launch, which is R13's. After the promote: MB-13's link preview, the bible's rel
     lab's budget: about 80 ¢ of fixture runs, and the release on B.
 
 ## Questions raised (Notion, 2026-10-01)
-- **Decisions:** ADR-184 (mix B, with the QA and vocabulary models and 5.2 as the control) and ADR-185 (the voice), both locked.
+- **Decisions:** ADR-184 (mix B, with the QA and vocabulary models and 5.2 as the control), ADR-185 (the voice) and ADR-186
+  (rows no longer count rounds open; age is the Created time), all locked.
 - **Raised:** **MB-128** which Sol writes the foundation (ask 2) · **MB-129** if the release lab refuses mix B (ask 1) ·
   **MB-130** the match list's offset (reading 12).
 - **Updated:** MB-93 (the second difference's pair slot; ask 3) · MB-70 (production depends on its ids; how staging proves them)
@@ -597,7 +602,7 @@ Nothing blocks the round: approving this plan starts it (§11.2).
    silent: the band shows the two sample plates and their scenes, with no quoted pair text.
 
 ## Close (the orchestrator)
-- **Decisions:** none at close; ADR-184 and 185 are recorded.
+- **Decisions:** none at close; ADR-184, 185 and 186 are recorded.
 - **Mailbox:** MB-13 done after the link preview; notes on MB-93, 103, 110, 113, 130; rows the builders raise; one row for R12's
   new words, for the Owner's look.
 - **MASTERFILE 0.21:** R-5.6 says production runs mix B (ADR-184), gpt-5.2 stays as the lab's control, and later moves follow the
@@ -606,5 +611,5 @@ Nothing blocks the round: approving this plan starts it (§11.2).
 - **CLAUDE.md:** the current focus (R12 shipped; production waits for a Release; R13 is pricing and launch).
 - **INDEX:** review-01-10 built; R13 for pricing; the code map gains `home.ts` and its route, `HouseDeck`, `QuickLook`,
   `PairBlock`, `BundleList`, `ReferenceCheck`, `Differences`, `charts-meet.ts`, the names gate, and loses `pairScene.ts`,
-  `SceneChips.tsx`, `ChartExplorer.tsx`; Decisions count 185.
+  `SceneChips.tsx`, `ChartExplorer.tsx`; Decisions count 186.
 - The Owner gets the staging URL with the three lines of step 6.
