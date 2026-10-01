@@ -1,0 +1,1553 @@
+{
+  "fixture": {
+    "name": "William Windsor & Charlotte Windsor",
+    "a": "william",
+    "b": "charlotte",
+    "lens": "parent_child",
+    "parent": "A",
+    "band": "school",
+    "note": "The school band: a parent and a child of 11 in September 2026; teen from May 2028."
+  },
+  "lens": "parent_child",
+  "interpretation": {
+    "meta": {
+      "band": "school",
+      "lens": "parent_child",
+      "orbs": {
+        "trine": 6,
+        "square": 6,
+        "sextile": 4,
+        "opposition": 8,
+        "conjunction": 8
+      },
+      "blind": false,
+      "label": null,
+      "model": "mixed",
+      "names": {
+        "a": "William Windsor",
+        "b": "Charlotte Windsor"
+      },
+      "usage": {
+        "model": "mixed",
+        "totals": {
+          "ms": 80853,
+          "attempts": 11,
+          "inputTokens": 57107,
+          "outputTokens": 11683,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 82133
+        },
+        "costUsd": 0.02252713,
+        "sections": [
+          {
+            "ms": 7950,
+            "model": "gpt-6-sol",
+            "section": "pair:foundation",
+            "attempts": 1,
+            "inputTokens": 2085,
+            "outputTokens": 510,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7090
+          },
+          {
+            "ms": 7279,
+            "model": "gpt-6-luna",
+            "section": "pair:twoCharts",
+            "attempts": 1,
+            "inputTokens": 5109,
+            "outputTokens": 1107,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7376
+          },
+          {
+            "ms": 7252,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild02",
+            "attempts": 1,
+            "inputTokens": 5913,
+            "outputTokens": 1146,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 7519,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild05",
+            "attempts": 1,
+            "inputTokens": 5806,
+            "outputTokens": 951,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 8692,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild06",
+            "attempts": 1,
+            "inputTokens": 6158,
+            "outputTokens": 1250,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 9760,
+            "model": "gpt-6-luna",
+            "section": "pair:links",
+            "attempts": 1,
+            "inputTokens": 2829,
+            "outputTokens": 1462,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7139
+          },
+          {
+            "ms": 11737,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild03",
+            "attempts": 2,
+            "inputTokens": 12500,
+            "outputTokens": 1840,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15138
+          },
+          {
+            "ms": 12797,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild04",
+            "attempts": 2,
+            "inputTokens": 13096,
+            "outputTokens": 2170,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15138
+          },
+          {
+            "ms": 7867,
+            "model": "gpt-6-luna",
+            "section": "pair:whatToPractise",
+            "attempts": 1,
+            "inputTokens": 3611,
+            "outputTokens": 1247,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7545
+          }
+        ],
+        "wallClockMs": 30957
+      },
+      "zodiac": "tropical",
+      "crossOrb": 4,
+      "ephemeris": "astronomy-engine (Don Cross), tropical zodiac, mean lunar node",
+      "wordCount": 2781,
+      "reportType": "compatibility",
+      "generatedAt": "2026-10-01T16:20:22.546Z",
+      "houseSystem": "whole-sign",
+      "promptVersion": "p3"
+    },
+    "links": {
+      "links": [
+        {
+          "of": "none",
+          "orb": 0.4,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "pluto",
+          "planetB": "venus",
+          "reading": "William, your steady attention can help Charlotte feel safe enough to share what she likes. Charlotte, you may welcome his care while still wanting to choose for yourself. This contact can make small acts of affection feel dependable, not demanding. Behaviour check: This week, notice whether William’s help leaves Charlotte room to choose."
+        },
+        {
+          "of": "none",
+          "orb": 2.6,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "venus",
+          "planetB": "mars",
+          "reading": "William, your practical help can meet Charlotte’s wish to do part of the morning routine herself. Charlotte, you may enjoy his support and still want to manage your own task. This easy cooperation can cost you time if William steps in before asking. Behaviour check: In the morning rush, let Charlotte choose one task before William helps."
+        },
+        {
+          "of": "none",
+          "orb": 0,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "saturn",
+          "planetB": "pluto",
+          "reading": "William, you may hold a firm bedtime limit when the evening is already busy. Charlotte, you may resist if the decision feels settled before you can explain your concern. Your strong wills can turn a small limit into a longer standoff. Behaviour check: At bedtime, William asks what is bothering Charlotte before repeating the limit."
+        },
+        {
+          "of": "none",
+          "orb": 0.4,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "mercury",
+          "planetB": "neptune",
+          "reading": "William, you may hear Charlotte’s homework answer as clearer than she meant it. Charlotte, you may find your thoughts hard to explain while someone is correcting you. A quick guess can leave you both talking past each other. Behaviour check: At the kitchen table, William asks Charlotte to explain her thinking before correcting an answer."
+        },
+        {
+          "of": "none",
+          "orb": 1.8,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "opposition",
+          "planet": "",
+          "planetA": "neptune",
+          "planetB": "venus",
+          "reading": "William, you may expect Charlotte to enjoy a plan because you meant it kindly. Charlotte, you may want something different but hesitate to say so. Then a kind offer can feel like pressure, even when neither of you meant it that way. Behaviour check: This week, William asks Charlotte whether she wants the offer before making plans."
+        },
+        {
+          "of": "none",
+          "orb": 0.2,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "opposition",
+          "planet": "",
+          "planetA": "uranus",
+          "planetB": "mercury",
+          "reading": "William, your sudden change of plan may interrupt Charlotte while she is explaining herself. Charlotte, you may answer sharply when you feel rushed or unheard. The quick exchange can leave the original question unanswered. Behaviour check: This week, pause once during a disagreement and let Charlotte finish her sentence."
+        },
+        {
+          "of": "none",
+          "orb": 2.1,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "saturn",
+          "planetB": "jupiter",
+          "reading": "William, you can set a clear tablet limit without ending the conversation. Charlotte, you can suggest a fair plan when you know what the limit is. This works best when the rule comes early and your choice is real. Behaviour check: With the tablet, William states the limit early and lets Charlotte choose when to stop within it."
+        },
+        {
+          "of": "none",
+          "orb": 2.4,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "opposition",
+          "planet": "",
+          "planetA": "saturn",
+          "planetB": "uranus",
+          "reading": "William, you may want the evening to follow a settled routine. Charlotte, you may want to change the order or do one part your way. A firm plan can help, but too little choice can make Charlotte push back. Behaviour check: At bedtime, agree together which part of the routine Charlotte can choose."
+        },
+        {
+          "of": "none",
+          "orb": 3.4,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "pluto",
+          "planetB": "moon",
+          "reading": "William, your strong concern can make Charlotte feel that you notice when something is wrong. Charlotte, you may feel deeply about family matters but need time before explaining them. Your attention can comfort her, though pressing for an answer may make her withdraw. Behaviour check: At bedtime, William asks whether Charlotte wants comfort or a little time alone."
+        },
+        {
+          "of": "none",
+          "orb": 1.6,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "uranus",
+          "planetB": "saturn",
+          "reading": "William, you may change a routine quickly when a new idea seems useful. Charlotte, you may prefer to know what is expected before adjusting. Your plans can work well when change has a clear reason, but sudden shifts may unsettle her. Behaviour check: Before changing a routine this week, William tells Charlotte what is changing and asks what she thinks."
+        }
+      ]
+    },
+    "scenes": {
+      "parentChild02": {
+        "texts": {},
+        "titles": [
+          "The morning rush"
+        ],
+        "written": 0
+      },
+      "parentChild03": {
+        "texts": {},
+        "titles": [
+          "Losing the game"
+        ],
+        "written": 0
+      },
+      "parentChild04": {
+        "texts": {},
+        "titles": [
+          "The room, the deal, the pocket money"
+        ],
+        "written": 0
+      },
+      "parentChild05": {
+        "texts": {},
+        "titles": [
+          "Homework at the kitchen table"
+        ],
+        "written": 0
+      },
+      "parentChild06": {
+        "texts": {},
+        "titles": [
+          "One more episode"
+        ],
+        "written": 0
+      }
+    },
+    "twoCharts": {
+      "work": [
+        "This is the challenge: at bedtime, ask what worries Charlotte before setting a firm limit, so she can explain what matters to her.",
+        "At homework at the kitchen table, let Charlotte explain her thinking before correcting an answer, so she can learn to trust her own reasoning.",
+        "When you disagree, ask first and offer Charlotte a fair choice, so she can practise speaking up while you keep the boundary clear."
+      ],
+      "claims": [
+        {
+          "quote": "In the morning rush, your practical help can meet Charlotte’s wish to handle part of the routine herself.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.6,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Venus conjunction Charlotte Windsor's Mars, 2.6° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "William Windsor's report: Sun 0.1° Cancer, 8th house; Mars 9.2° Libra, 11th house; Saturn 15.5° Libra, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Charlotte can tell you what she thinks in private, and you can give her time to finish.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.4,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "pluto",
+                "planetB": "venus"
+              },
+              "label": "William Windsor's Pluto trine Charlotte Windsor's Venus, 0.4° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Venus 23.7° Gemini, 12th house; Chiron 18.2° Gemini, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "With the tablet, you can hold a clear limit while helping Charlotte suggest a workable plan.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.1,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "saturn",
+                "planetB": "jupiter"
+              },
+              "label": "William Windsor's Saturn sextile Charlotte Windsor's Jupiter, 2.1° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Charlotte Windsor's report: Sun 11.6° Taurus, 11th house; Mars 23.0° Taurus, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: at bedtime, ask what worries Charlotte before setting a firm limit, so she can explain what matters to her.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "William Windsor's Saturn square Charlotte Windsor's Pluto, 0.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Charlotte Windsor's report: Moon 20.7° Libra, 4th house; Moon rules the 1st and sits in Libra, 4th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "At homework at the kitchen table, let Charlotte explain her thinking before correcting an answer, so she can learn to trust her own reasoning.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "William Windsor's Saturn square Charlotte Windsor's Pluto, 0.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Mercury trine Mars, 0.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "When you disagree, ask first and offer Charlotte a fair choice, so she can practise speaking up while you keep the boundary clear.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "William Windsor's Saturn square Charlotte Windsor's Pluto, 0.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Charlotte Windsor's report: Saturn rules the 7th and sits in Sagittarius, 6th house, peregrine; Mercury 1.7° Gemini, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "Your steady help can make Charlotte feel cared for, but stepping in too soon can leave her feeling unheard.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.6,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Venus conjunction Charlotte Windsor's Mars, 2.6° orb"
+            },
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "William Windsor's Saturn square Charlotte Windsor's Pluto, 0.0° orb"
+            }
+          ]
+        }
+      ],
+      "strong": [
+        "In the morning rush, your practical help can meet Charlotte’s wish to handle part of the routine herself.",
+        "Charlotte can tell you what she thinks in private, and you can give her time to finish.",
+        "With the tablet, you can hold a clear limit while helping Charlotte suggest a workable plan."
+      ],
+      "paradox": "Your steady help can make Charlotte feel cared for, but stepping in too soon can leave her feeling unheard.",
+      "headline": "William, you can keep Charlotte’s day steady, but she needs a say in how you do it.",
+      "strengths": [
+        "William notices when Charlotte needs practical help.",
+        "Charlotte can tell William what she thinks in private.",
+        "William and Charlotte can make a plan and keep it."
+      ]
+    },
+    "foundation": {
+      "owners": [
+        {
+          "link": 1,
+          "chapters": [
+            1,
+            3
+          ]
+        },
+        {
+          "link": 2,
+          "chapters": [
+            1,
+            2
+          ]
+        },
+        {
+          "link": 3,
+          "chapters": [
+            1,
+            4
+          ]
+        },
+        {
+          "link": 4,
+          "chapters": [
+            5
+          ]
+        },
+        {
+          "link": 5,
+          "chapters": [
+            3
+          ]
+        },
+        {
+          "link": 6,
+          "chapters": [
+            5
+          ]
+        },
+        {
+          "link": 7,
+          "chapters": [
+            1,
+            6
+          ]
+        },
+        {
+          "link": 8,
+          "chapters": [
+            6
+          ]
+        },
+        {
+          "link": 9,
+          "chapters": [
+            3
+          ]
+        },
+        {
+          "link": 10,
+          "chapters": [
+            2,
+            6
+          ]
+        },
+        {
+          "link": 11,
+          "chapters": [
+            2,
+            4
+          ]
+        },
+        {
+          "link": 12,
+          "chapters": [
+            1
+          ]
+        },
+        {
+          "link": 13,
+          "chapters": [
+            1,
+            3
+          ]
+        },
+        {
+          "link": 14,
+          "chapters": [
+            4
+          ]
+        }
+      ],
+      "guidance": [
+        "Show William’s steady care alongside Charlotte’s possible wish to do things her own way.",
+        "In the morning rush, William offers Charlotte one task to handle before stepping in.",
+        "At bedtime, William checks whether Charlotte wants comfort or a little time alone.",
+        "At bedtime, William and Charlotte agree who will put away the tablet, then follow through.",
+        "At homework at the kitchen table, William asks Charlotte to explain her thinking before correcting an answer.",
+        "With the tablet, William gives the limit early and lets Charlotte choose when to stop within it.",
+        "Give William a question to ask and Charlotte a fair choice to make the next time they disagree."
+      ],
+      "strengths": [
+        "William notices when Charlotte needs practical help.",
+        "Charlotte can tell William what she thinks in private.",
+        "William and Charlotte can make a plan and keep it."
+      ],
+      "pairThesis": "William, you notice Charlotte’s practical efforts and often help before she asks. Charlotte may need you to ask what she wants before you settle the plan. A private talk can keep a small disagreement from becoming silence.",
+      "strongestLinks": [
+        {
+          "why": "In the morning rush, William’s practical help can meet Charlotte’s wish to handle part of the routine herself.",
+          "link": 2
+        },
+        {
+          "why": "At bedtime, a firm limit can bring out Charlotte’s resistance if William does not first hear her concern.",
+          "link": 3
+        },
+        {
+          "why": "With the tablet, William can hold a clear limit while encouraging Charlotte to suggest a workable plan.",
+          "link": 7
+        }
+      ],
+      "frictionThatMatters": "William may set a limit to keep the day on track, while Charlotte may hold firm because she wants a say. This is the challenge: William asks before deciding, so Charlotte can explain what matters to her."
+    },
+    "parentChild02": {
+      "card": {
+        "a": [
+          "You notice when Charlotte needs practical help.",
+          "You need trust, privacy, and steady affection.",
+          "You can make a plan and keep it."
+        ],
+        "b": [
+          "You build your sense of self through steady work with people who share your aims.",
+          "You settle when home feels fair, calm, and easy to share.",
+          "You give through thoughtful attention, private conversation, and small acts that make life easier."
+        ],
+        "pair": "William offers help; Charlotte needs a fair share to do herself."
+      },
+      "scene": "In the morning rush, William sees what needs doing and offers Charlotte help. Charlotte wants to handle part of the routine herself. William starts arranging the next step, while Charlotte holds to her own pace. “Which part do you want to do?” William asks. Charlotte chooses, and they get ready together.",
+      "claims": [
+        {
+          "quote": "In the morning rush, William sees what needs doing and offers Charlotte help.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Moon square Mars, 4.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charlotte wants to handle part of the routine herself.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.6,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Venus conjunction Charlotte Windsor's Mars, 2.6° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "uranus",
+                "planetB": "saturn"
+              },
+              "label": "William Windsor's Uranus conjunction Charlotte Windsor's Saturn, 1.6° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Practical help can come naturally between you, especially when William notices what Charlotte needs.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.6,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "mars"
+              },
+              "label": "William Windsor's Venus conjunction Charlotte Windsor's Mars, 2.6° orb"
+            },
+            {
+              "ref": {
+                "of": "B",
+                "kind": "cross",
+                "house": 6,
+                "planet": "sun",
+                "inHouseOf": "A"
+              },
+              "label": "Charlotte Windsor's Sun in William Windsor's 6th house"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: William, ask before taking over, so Charlotte can do her share and learn to state what matters.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "uranus",
+                "planetB": "saturn"
+              },
+              "label": "William Windsor's Uranus conjunction Charlotte Windsor's Saturn, 1.6° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William, you feel responsible for keeping people safe and want to know what is being shared before you commit.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Sun 0.1° Cancer, 8th house; Sun conjunction Moon, 4.9° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Moon square Mars, 4.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charlotte wants home to feel fair and calm, and she looks for a private conversation when stressed.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "triad"
+              },
+              "label": "Charlotte Windsor's report: Moon 20.7° Libra, 4th house; Moon rules the 1st and sits in Libra, 4th house, peregrine"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "triad"
+              },
+              "label": "Charlotte Windsor's report: Moon 20.7° Libra, 4th house; Moon trine Venus, 3.0° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "Practical help can come naturally between you, especially when William notices what Charlotte needs. This is the challenge: William, ask before taking over, so Charlotte can do her share and learn to state what matters. At 11, a simple daily task is fair, but managing the whole morning alone is not.",
+      "headline": "Charlotte needs a say before William sets the pace.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so she can practise taking responsibility with your support",
+            "action": "Offer Charlotte one morning task, then wait for her to choose whether to take it."
+          },
+          {
+            "for": "A",
+            "why": "so you keep the routine clear without deciding everything for her",
+            "action": "Name the morning limit early, then ask Charlotte what part she wants to handle."
+          },
+          {
+            "for": "both",
+            "why": "so you build trust by sharing a clear responsibility",
+            "action": "Agree on one task Charlotte owns this week and check together how it went."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William, you feel responsible for keeping people safe and want to know what is being shared before you commit. You come across ready to engage, but may step back privately before giving a firm answer.",
+        "becauseB": "Charlotte wants home to feel fair and calm, and she looks for a private conversation when stressed. At 11, she can explain what she wants, but still needs you nearby for routines and decisions."
+      }
+    },
+    "parentChild03": {
+      "card": {
+        "a": [
+          "You notice quickly when someone needs protection.",
+          "You learn by asking questions and testing ideas.",
+          "You can keep a group moving without dominating it."
+        ],
+        "b": [
+          "You notice small shifts in wording and remember details.",
+          "You need time alone to know what you think.",
+          "You notice what is left unsaid and find words for hard subjects."
+        ],
+        "pair": "William can help, and Charlotte needs a say."
+      },
+      "scene": "Charlotte loses the game and her face tightens; she says it was unfair. William moves in quickly, ready to explain what happened and settle the next step. Charlotte turns quiet, still holding onto the part that felt unfair. William pauses, asks what felt worst, and listens before answering.",
+      "claims": [
+        {
+          "quote": "William notices quickly when someone needs protection, then looks for a calm answer after making sense of the problem.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Sun 0.1° Cancer, 8th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "William Windsor's report: Jupiter 0.5° Scorpio, 12th house; Sun trine Jupiter, 0.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charlotte remembers details others miss and can take time alone to know what she thinks.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "discoveries"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Venus 23.7° Gemini, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "William, your help can come naturally, but asking before you explain is the challenge.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.4,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "pluto",
+                "planetB": "venus"
+              },
+              "label": "William Windsor's Pluto trine Charlotte Windsor's Venus, 0.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: listen to her account before settling the facts, so you learn what upset her and she can return to the next thing.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.4,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "pluto",
+                "planetB": "venus"
+              },
+              "label": "William Windsor's Pluto trine Charlotte Windsor's Venus, 0.4° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "William, your help can come naturally, but asking before you explain is the challenge. Charlotte may hold onto the detail that made the game feel unfair. This is the challenge: listen to her account before settling the facts, so you learn what upset her and she can return to the next thing.",
+      "headline": "Charlotte, losing hurts more when your effort mattered.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so she can feel heard before you discuss the game.",
+            "action": "William, name the hurt first, then ask Charlotte what felt unfair."
+          },
+          {
+            "for": "both",
+            "why": "so you both settle before choosing what happens next.",
+            "action": "Take a quiet minute together before deciding whether to replay the game."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William notices quickly when someone needs protection, then looks for a calm answer after making sense of the problem. When Charlotte is upset, he may move straight to explaining or fixing, before checking what she feels.",
+        "becauseB": "Charlotte remembers details others miss and can take time alone to know what she thinks. Losing may feel unfair, and she may need William to hear that feeling before she can explain what happened."
+      }
+    },
+    "parentChild04": {
+      "card": {
+        "a": [
+          "You give much attention to shared responsibilities and groups.",
+          "You keep important judgments private until you know what you can stand behind.",
+          "You investigate the terms before you agree."
+        ],
+        "b": [
+          "You put steady effort into friendships, teams, and lasting plans.",
+          "You keep your strongest thoughts private until you know who can be trusted.",
+          "Home matters because you need a calm place to speak freely and choose your pace."
+        ],
+        "pair": "William notices the work. Charlotte needs a fair share she can own."
+      },
+      "scene": "At the kitchen table, William sets out the deal: a home job and pocket money. Charlotte asks what the job is and whether she can do it her way. William wants the agreement clear and the routine dependable. Charlotte is learning that her contribution matters, while pocket money is not a wage. William pauses and asks which suitable job she would choose.",
+      "claims": [
+        {
+          "quote": "A clear job can help you feel the household is being cared for, but you may expect Charlotte to follow your pace without asking what she can manage.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "William Windsor's report: Sun 0.1° Cancer, 8th house; Mars 9.2° Libra, 11th house; Saturn 15.5° Libra, 11th house"
+            },
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "William Windsor's Saturn square Charlotte Windsor's Pluto, 0.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You may want a say in how the job gets done, then keep your strongest thoughts private if the deal feels already settled.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Venus 23.7° Gemini, 12th house; Chiron 18.2° Gemini, 12th house"
+            },
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "William Windsor's Saturn square Charlotte Windsor's Pluto, 0.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: your standard for a settled routine may meet her wish to choose her pace.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "William Windsor's Saturn square Charlotte Windsor's Pluto, 0.0° orb"
+            },
+            {
+              "ref": {
+                "of": "B",
+                "kind": "cross",
+                "house": 6,
+                "planet": "sun",
+                "inHouseOf": "A"
+              },
+              "label": "Charlotte Windsor's Sun in William Windsor's 6th house"
+            },
+            {
+              "ref": {
+                "of": "A",
+                "kind": "cross",
+                "house": 4,
+                "planet": "mars",
+                "inHouseOf": "B"
+              },
+              "label": "William Windsor's Mars in Charlotte Windsor's 4th house"
+            }
+          ]
+        },
+        {
+          "quote": "William, you can make a dependable agreement, and Charlotte can grow into having a job of her own.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "William Windsor's report: Sun 0.1° Cancer, 8th house; Mars 9.2° Libra, 11th house; Saturn 15.5° Libra, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Charlotte Windsor's report: Sun 11.6° Taurus, 11th house; Mars 23.0° Taurus, 11th house"
+            }
+          ]
+        }
+      ],
+      "pattern": "William, you can make a dependable agreement, and Charlotte can grow into having a job of her own. This is the challenge: your standard for a settled routine may meet her wish to choose her pace. Ask before setting the terms, so you practise adapting the job rather than turning it into a test of obedience. At 11, it is fair to ask Charlotte to make her bed, pack her bag, handle laundry, or prepare simple food. Pocket money stays separate from chores.",
+      "headline": "William, the job should fit Charlotte’s age, not your ideal of order.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you practise matching the task to her ability",
+            "action": "William, offer Charlotte one age-suitable home job and ask which she wants to own."
+          },
+          {
+            "for": "both",
+            "why": "so you learn that contribution is not a wage",
+            "action": "Agree on what finished looks like, then keep pocket money separate from the job."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William, you take shared responsibilities seriously and often investigate the terms before agreeing. A clear job can help you feel the household is being cared for, but you may expect Charlotte to follow your pace without asking what she can manage.",
+        "becauseB": "Charlotte, you put steady effort into plans that can last, and home matters when you can speak freely. You may want a say in how the job gets done, then keep your strongest thoughts private if the deal feels already settled."
+      }
+    },
+    "parentChild05": {
+      "card": {
+        "a": [
+          "You learn by asking questions and testing ideas in conversation.",
+          "You notice shifts in wording quickly and spot how one person’s point connects to another’s.",
+          "You do your best work when you have time to think privately."
+        ],
+        "b": [
+          "You reason well by comparing versions and quietly testing an idea.",
+          "You explain yourself carefully and often choose your words after thinking alone.",
+          "You notice what is left unsaid, then find words that make a difficult subject easier."
+        ],
+        "pair": "William asks first. Charlotte explains her thinking."
+      },
+      "scene": "At the kitchen table, Charlotte works through homework while William sits nearby. She compares the question with her answer, then pauses to think. William spots a possible correction and starts to explain. He asks, “What were you thinking here?” Charlotte shows him how she worked it out. William listens before offering help.",
+      "claims": [
+        {
+          "quote": "She compares the question with her answer, then pauses to think.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Mercury rules the 3rd and sits in Gemini, 12th house, in domicile"
+            }
+          ]
+        },
+        {
+          "quote": "William spots a possible correction and starts to explain.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Saturn rules the 3rd and sits in Libra, 11th house, exalted"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: William may move quickly from noticing an error to explaining the fix, while Charlotte needs time to show her thinking.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.2,
+                "kind": "cross",
+                "aspect": "opposition",
+                "planetA": "uranus",
+                "planetB": "mercury"
+              },
+              "label": "William Windsor's Uranus opposition Charlotte Windsor's Mercury, 0.2° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Mercury opposition Saturn, 1.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Their different ways of handling words can help them find another angle, but only if William asks before correcting.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.4,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mercury",
+                "planetB": "neptune"
+              },
+              "label": "William Windsor's Mercury square Charlotte Windsor's Neptune, 0.4° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "William Windsor's report: Mercury 9.0° Gemini, 7th house; Sun rules the 9th and sits in Cancer, 8th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "She explains herself carefully after thinking alone, so a pause at the kitchen table can mean she is working through the answer.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Mercury opposition Saturn, 1.4° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: William may move quickly from noticing an error to explaining the fix, while Charlotte needs time to show her thinking. Their different ways of handling words can help them find another angle, but only if William asks before correcting. That trains him to support her effort without steering it. At 11, a nearby parent and about 110 minutes of homework each night is fair, not a parent doing the work.",
+      "headline": "Charlotte learns more when William helps without taking over.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so she can practise showing her reasoning",
+            "action": "Ask Charlotte to explain her approach before suggesting a correction."
+          },
+          {
+            "for": "both",
+            "why": "so she can practise starting her own work",
+            "action": "Agree on a short homework period, then let Charlotte choose the first question."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William learns through questions and conversation, and he notices quickly when wording shifts. He wants to make the answer clearer, but can start debating a point before checking what Charlotte needs from him.",
+        "becauseB": "Charlotte compares versions and tests an idea quietly before sharing it. She explains herself carefully after thinking alone, so a pause at the kitchen table can mean she is working through the answer."
+      }
+    },
+    "parentChild06": {
+      "card": {
+        "a": [
+          "You need trust, privacy, and steady affection.",
+          "Build steady routines around practical care.",
+          "Ask for the facts and the limits."
+        ],
+        "b": [
+          "You do your best work when steady effort serves people.",
+          "Set aside time for learning, writing, or thinking alone.",
+          "You do not have to choose between showing up and keeping part of yourself private."
+        ],
+        "pair": "William asks first. Charlotte gets a fair choice."
+      },
+      "scene": "At the tablet, Charlotte asks for one more episode, and William says it is time to stop. William wants the evening limit kept, while Charlotte wants to finish watching. “Tell me what matters about this episode,” William says. Charlotte explains, and William offers her a choice about when to stop within the limit. They agree where the tablet goes when the episode ends.",
+      "claims": [
+        {
+          "quote": "At the tablet, Charlotte asks for one more episode, and William says it is time to stop.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.1,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "saturn",
+                "planetB": "jupiter"
+              },
+              "label": "William Windsor's Saturn sextile Charlotte Windsor's Jupiter, 2.1° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William wants the evening limit kept, while Charlotte wants to finish watching.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "cross",
+                "aspect": "opposition",
+                "planetA": "saturn",
+                "planetB": "uranus"
+              },
+              "label": "William Windsor's Saturn opposition Charlotte Windsor's Uranus, 2.4° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "uranus",
+                "planetB": "saturn"
+              },
+              "label": "William Windsor's Uranus conjunction Charlotte Windsor's Saturn, 1.6° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Asking first lets Charlotte take part before he decides.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.1,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "saturn",
+                "planetB": "jupiter"
+              },
+              "label": "William Windsor's Saturn sextile Charlotte Windsor's Jupiter, 2.1° orb"
+            }
+          ]
+        },
+        {
+          "quote": "William notices quickly when Charlotte needs protection and works to keep responsibilities steady.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Sun 0.1° Cancer, 8th house"
+            }
+          ]
+        },
+        {
+          "quote": "He may hold a limit until he has privately weighed the risks, then give a calm answer.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "William Windsor's report: Jupiter 0.5° Scorpio, 12th house; Sun trine Jupiter, 0.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Charlotte may want familiar routines and a say in how she spends her time.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "discoveries"
+              },
+              "label": "Charlotte Windsor's report: Sun 11.6° Taurus, 11th house; Moon 20.7° Libra, 4th house"
+            }
+          ]
+        },
+        {
+          "quote": "She can need time alone to know what she thinks, while steady effort matters to her.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "discoveries"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Venus 23.7° Gemini, 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "focus"
+              },
+              "label": "Charlotte Windsor's report: Sun 11.6° Taurus, 11th house; Mars 23.0° Taurus, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: William may hold the limit firm while Charlotte holds to her own pace.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "cross",
+                "aspect": "opposition",
+                "planetA": "saturn",
+                "planetB": "uranus"
+              },
+              "label": "William Windsor's Saturn opposition Charlotte Windsor's Uranus, 2.4° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.6,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "uranus",
+                "planetB": "saturn"
+              },
+              "label": "William Windsor's Uranus conjunction Charlotte Windsor's Saturn, 1.6° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: William may hold the limit firm while Charlotte holds to her own pace. That can come naturally when he offers a clear choice inside the rule. It trains William to ask what matters before deciding, so Charlotte can explain her view and still know the stopping point.",
+      "headline": "William, one more episode still needs a clear stopping point.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you both know the limit before the choice begins",
+            "action": "State the stopping time before Charlotte starts using the tablet."
+          },
+          {
+            "for": "A",
+            "why": "so she practises making a choice while keeping the rule",
+            "action": "Let Charlotte choose when to stop within the agreed limit."
+          },
+          {
+            "for": "both",
+            "why": "so the boundary stays predictable",
+            "action": "Keep the tablet out of Charlotte’s bedroom and follow the same screen rule daily."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "William notices quickly when Charlotte needs protection and works to keep responsibilities steady. He may hold a limit until he has privately weighed the risks, then give a calm answer. Asking first lets Charlotte take part before he decides.",
+        "becauseB": "Charlotte may want familiar routines and a say in how she spends her time. She can need time alone to know what she thinks, while steady effort matters to her. A fair choice can help her explain what she wants."
+      }
+    },
+    "whatToPractise": {
+      "forA": {
+        "intro": "William, these three actions help you guide Charlotte without taking over.",
+        "items": [
+          {
+            "why": "so she can practise taking responsibility with your support",
+            "action": "Offer Charlotte one morning task, then wait for her to choose whether to take it."
+          },
+          {
+            "why": "so she can practise showing her reasoning",
+            "action": "Ask Charlotte to explain her approach before suggesting a correction."
+          },
+          {
+            "why": "so you both know the limit before the choice begins",
+            "action": "State the stopping time before Charlotte starts using the tablet."
+          }
+        ]
+      },
+      "forB": {
+        "intro": "Charlotte, these are chances to practise making choices and explaining your thinking.",
+        "items": [
+          {
+            "why": "so you can practise taking responsibility with his support",
+            "action": "Choose whether to take the morning task William offers."
+          },
+          {
+            "why": "so you can practise showing your reasoning",
+            "action": "Explain your approach at the kitchen table before William suggests a correction."
+          },
+          {
+            "why": "so you practise making a choice while keeping the rule",
+            "action": "Choose when to stop using the tablet within the agreed limit."
+          }
+        ]
+      },
+      "claims": [
+        {
+          "quote": "William, Charlotte needs you to keep limits clear while giving her a real say in how she meets them.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Moon square Mars, 4.2° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "triad"
+              },
+              "label": "Charlotte Windsor's report: Moon 20.7° Libra, 4th house; Moon rules the 1st and sits in Libra, 4th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "Charlotte, you can practise choosing a task and telling William what matters to you.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "discoveries"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Venus 23.7° Gemini, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "At 11, small choices and steady routines give Charlotte room to build confidence.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "focus"
+              },
+              "label": "Charlotte Windsor's report: Sun 11.6° Taurus, 11th house; Mars 23.0° Taurus, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Offer Charlotte one morning task, then wait for her to choose whether to take it.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "William Windsor's report: Moon 5.0° Cancer, 8th house; Sun 0.1° Cancer, 8th house"
+            }
+          ]
+        },
+        {
+          "quote": "Agree on one task Charlotte owns this week and check together how it went.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "William Windsor's report: Sun 0.1° Cancer, 8th house; Mars 9.2° Libra, 11th house; Saturn 15.5° Libra, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Charlotte Windsor's report: Mercury 1.7° Gemini, 12th house; Venus 23.7° Gemini, 12th house; Chiron 18.2° Gemini, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "A clear limit does not need to end the conversation.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "triad"
+              },
+              "label": "William Windsor's report: Sun 0.1° Cancer, 8th house; Sun conjunction Moon, 4.9° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "triad"
+              },
+              "label": "Charlotte Windsor's report: Moon 20.7° Libra, 4th house; Moon trine Venus, 3.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "These ordinary choices let care and growing independence sit side by side.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "William Windsor's report: Jupiter 0.5° Scorpio, 12th house; Sun trine Jupiter, 0.4° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "discoveries"
+              },
+              "label": "Charlotte Windsor's report: Sun 11.6° Taurus, 11th house; Moon 20.7° Libra, 4th house"
+            }
+          ]
+        }
+      ],
+      "closing": "William, your steady help can make Charlotte feel supported, while asking first lets her practise doing more herself. Charlotte, you can show William what matters to you before a small disagreement grows. A clear limit does not need to end the conversation. You can agree on the task, the stopping time, or the first homework question together. Then you can check how it went without turning one difficult morning into a lasting judgment. These ordinary choices let care and growing independence sit side by side.",
+      "forBoth": {
+        "intro": "William and Charlotte, these actions help you make expectations clear and share responsibility.",
+        "items": [
+          {
+            "why": "so you build trust by sharing a clear responsibility",
+            "action": "Agree on one task Charlotte owns this week and check together how it went."
+          },
+          {
+            "why": "so she can practise starting her own work",
+            "action": "Agree on a short homework period, then let Charlotte choose the first question."
+          },
+          {
+            "why": "so the boundary stays predictable",
+            "action": "Keep the tablet out of Charlotte’s bedroom and follow the same screen rule daily."
+          }
+        ]
+      },
+      "opening": "William, Charlotte needs you to keep limits clear while giving her a real say in how she meets them. Charlotte, you can practise choosing a task and telling William what matters to you. You both do better when the next step is agreed before either of you gets frustrated. At 11, small choices and steady routines give Charlotte room to build confidence."
+    }
+  }
+}

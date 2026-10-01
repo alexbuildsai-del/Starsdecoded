@@ -1,0 +1,1465 @@
+{
+  "fixture": {
+    "name": "Beatrice York & Athena Mapelli Mozzi",
+    "a": "beatrice",
+    "b": "athena",
+    "lens": "parent_child",
+    "parent": "A",
+    "band": "little",
+    "note": "The little band: a parent and a child of 1 in September 2026; school from January 2031."
+  },
+  "lens": "parent_child",
+  "interpretation": {
+    "meta": {
+      "band": "little",
+      "lens": "parent_child",
+      "orbs": {
+        "trine": 6,
+        "square": 6,
+        "sextile": 4,
+        "opposition": 8,
+        "conjunction": 8
+      },
+      "blind": false,
+      "label": null,
+      "model": "mixed",
+      "names": {
+        "a": "Beatrice York",
+        "b": "Athena Mapelli Mozzi"
+      },
+      "usage": {
+        "model": "mixed",
+        "totals": {
+          "ms": 83681,
+          "attempts": 10,
+          "inputTokens": 50153,
+          "outputTokens": 10431,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 74564
+        },
+        "costUsd": 0.021166140000000003,
+        "sections": [
+          {
+            "ms": 7992,
+            "model": "gpt-6-sol",
+            "section": "pair:foundation",
+            "attempts": 1,
+            "inputTokens": 2069,
+            "outputTokens": 517,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7090
+          },
+          {
+            "ms": 6447,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild04",
+            "attempts": 1,
+            "inputTokens": 5966,
+            "outputTokens": 980,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 6699,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild02",
+            "attempts": 1,
+            "inputTokens": 5830,
+            "outputTokens": 1015,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 7715,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild06",
+            "attempts": 1,
+            "inputTokens": 6190,
+            "outputTokens": 1006,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 7971,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild05",
+            "attempts": 1,
+            "inputTokens": 5889,
+            "outputTokens": 1025,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 12728,
+            "model": "gpt-6-luna",
+            "section": "pair:links",
+            "attempts": 1,
+            "inputTokens": 2810,
+            "outputTokens": 1588,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7139
+          },
+          {
+            "ms": 13814,
+            "model": "gpt-6-luna",
+            "section": "pair:twoCharts",
+            "attempts": 1,
+            "inputTokens": 4927,
+            "outputTokens": 1088,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7376
+          },
+          {
+            "ms": 13553,
+            "model": "gpt-6-luna",
+            "section": "pair:parentChild03",
+            "attempts": 2,
+            "inputTokens": 12813,
+            "outputTokens": 2169,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 15138
+          },
+          {
+            "ms": 6762,
+            "model": "gpt-6-luna",
+            "section": "pair:whatToPractise",
+            "attempts": 1,
+            "inputTokens": 3659,
+            "outputTokens": 1043,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7545
+          }
+        ],
+        "wallClockMs": 30146
+      },
+      "zodiac": "tropical",
+      "crossOrb": 4,
+      "ephemeris": "astronomy-engine (Don Cross), tropical zodiac, mean lunar node",
+      "wordCount": 3072,
+      "reportType": "compatibility",
+      "generatedAt": "2026-10-01T16:19:12.811Z",
+      "houseSystem": "whole-sign",
+      "promptVersion": "p3"
+    },
+    "links": {
+      "links": [
+        {
+          "of": "none",
+          "orb": 0,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "jupiter",
+          "planetB": "sun",
+          "reading": "At bedtime, Beatrice, your easy encouragement can help Athena keep asking questions without turning the routine into a debate. Athena, your curiosity can draw out Beatrice’s playful, generous side. Keep the bedtime steps clear, even when the conversation is lively, so Athena learns that questions and limits can sit together. Behaviour check: Tonight, notice whether one warm answer helps Athena settle."
+        },
+        {
+          "of": "none",
+          "orb": 1,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "jupiter",
+          "planetB": "pluto",
+          "reading": "Beatrice, you can help Athena stay with a difficult feeling instead of rushing her past it. Athena, your strong reactions can bring Beatrice’s attention close and focused. This can help when a drawing goes wrong or a game feels unfair, as long as comfort does not become pressure to explain. Behaviour check: This week, see whether staying beside Athena helps her try again."
+        },
+        {
+          "of": "none",
+          "orb": 0.8,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "mercury",
+          "planetB": "uranus",
+          "reading": "When Athena pushes back on the tablet, Beatrice, you may answer before you have heard what she wants. Athena may surprise you with a new objection just as you expect the discussion to end. This is the challenge: pause, name the limit, and let her have one short turn to speak, so she learns to disagree without the limit disappearing. Behaviour check: Try this at the next tablet turn-off."
+        },
+        {
+          "of": "none",
+          "orb": 1.4,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "saturn",
+          "planetB": "neptune",
+          "reading": "Beatrice, you may try to keep every promise when Athena wants one more visit at bedtime. Athena may hear comfort as a promise that the routine will change. This is the challenge: say what you can do before you are worn out, so she can trust your words and practise settling with the care you can offer. Behaviour check: At bedtime, give one clear promise and keep it."
+        },
+        {
+          "of": "none",
+          "orb": 2.2,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "mars",
+          "planetB": "jupiter",
+          "reading": "Beatrice, your quick action can help Athena turn a hard morning into the next manageable step. Athena, your eagerness can bring Beatrice into the moment with you. Use that shared readiness for one small task, not a string of instructions, so Athena can feel capable without the morning rush becoming louder. Behaviour check: This week, let Athena help with one simple morning job."
+        },
+        {
+          "of": "none",
+          "orb": 2.3,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "neptune",
+          "planetB": "moon",
+          "reading": "Beatrice, you often sense when Athena needs comfort before she can explain herself. Athena, your feelings can reach Beatrice even when you are quiet or upset. On the supermarket floor, stay near and wait before asking questions, so Athena can settle enough to show what she needs. Behaviour check: Next time she is upset, offer your hand and give her a moment."
+        },
+        {
+          "of": "none",
+          "orb": 3.8,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "venus",
+          "planetB": "neptune",
+          "reading": "Beatrice, you may want to make things pleasant for Athena and soften a limit until it becomes unclear. Athena may take a warm offer as permission to keep asking. This is the challenge: keep kindness and the answer together, so Athena can enjoy your care without having to guess what will happen next. Behaviour check: This week, practise one kind, firm sentence during the morning rush."
+        },
+        {
+          "of": "none",
+          "orb": 0.4,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "uranus",
+          "planetB": "neptune",
+          "reading": "Beatrice, sudden changes in Athena’s plans may make it hard to know whether to adapt or hold steady. Athena, you may move from one idea to another before Beatrice has caught up. Give a simple choice when plans shift, so Athena can choose within a boundary and you do not have to invent a new plan each time. Behaviour check: At the next change, offer two clear options."
+        },
+        {
+          "of": "none",
+          "orb": 0.3,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "pluto",
+          "planetB": "moon",
+          "reading": "Athena’s strong feelings can land deeply for you, Beatrice, especially during the morning rush. You may feel pulled to fix the feeling at once. Athena, you may look to Beatrice’s face and voice to learn whether your feelings are safe to show. Slow your reply, so she can feel held without needing to calm you. Behaviour check: Next morning, take one breath before you respond to tears."
+        },
+        {
+          "of": "B",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 1,
+          "aspect": "",
+          "planet": "sun",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Athena, you arrive in Beatrice’s life with a presence she notices straight away. Your confidence and changing interests can draw her attention, even during an ordinary morning. Beatrice, you may find yourself responding to Athena’s way of entering a room before you have planned what to say. Behaviour check: This week, notice how your greeting changes when Athena comes to you."
+        },
+        {
+          "of": "B",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 2,
+          "aspect": "",
+          "planet": "venus",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Athena, your affection reaches Beatrice through small, familiar comforts. A cuddle, a shared snack, or a favourite bedtime object can matter more than a grand treat. Beatrice, you may spend time and care making those comforts available, then need to notice what is manageable. Behaviour check: At bedtime, choose one comfort you can offer consistently."
+        },
+        {
+          "of": "B",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 10,
+          "aspect": "",
+          "planet": "moon",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Athena, your needs can shape how Beatrice handles the visible demands of her day. She may notice your mood while preparing to leave or speaking with other people. Beatrice, you may feel responsible for keeping things steady in front of others, even when Athena needs you to pause. Behaviour check: This week, give Athena one calm moment before the next obligation."
+        },
+        {
+          "of": "A",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 2,
+          "aspect": "",
+          "planet": "moon",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Beatrice, your care can help Athena feel secure through familiar food, comfort, and repeated routines. Athena may settle when she knows what comes next and can reach for something familiar. Beatrice, offering steadiness does not require you to meet every request. Behaviour check: This week, keep one small daily routine the same and watch how Athena responds."
+        },
+        {
+          "of": "A",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 3,
+          "aspect": "",
+          "planet": "sun",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Beatrice, your voice and everyday conversations help shape how Athena explores the world around her. She may bring questions into the morning rush or repeat a phrase from your Sunday call. Give her a simple answer and let her try the words herself, so she can learn through talking with you. Behaviour check: On your next Sunday call, invite Athena to ask one question."
+        }
+      ]
+    },
+    "scenes": {
+      "parentChild02": {
+        "texts": {},
+        "titles": [
+          "Bedtime, the third call"
+        ],
+        "written": 0
+      },
+      "parentChild03": {
+        "texts": {},
+        "titles": [
+          "The supermarket floor"
+        ],
+        "written": 0
+      },
+      "parentChild04": {
+        "texts": {},
+        "titles": [
+          "Tidying before dinner"
+        ],
+        "written": 0
+      },
+      "parentChild05": {
+        "texts": {},
+        "titles": [
+          "The drawing that isn't \"right\""
+        ],
+        "written": 0
+      },
+      "parentChild06": {
+        "texts": {},
+        "titles": [
+          "Turning off the tablet"
+        ],
+        "written": 0
+      }
+    },
+    "twoCharts": {
+      "work": [
+        "This is the challenge: tell Athena the limit before you are tired, so she can hear it without carrying your frustration.",
+        "When Athena challenges the tablet limit, pause before answering, so you can hear what she is asking for.",
+        "When Athena is upset, stay nearby and wait before asking her to explain, so she has time to settle."
+      ],
+      "claims": [
+        {
+          "quote": "At bedtime, your warmth can welcome Athena’s questions without giving up the routine.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "jupiter",
+                "planetB": "sun"
+              },
+              "label": "Beatrice York's Jupiter trine Athena Mapelli Mozzi's Sun, 0.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Athena Mapelli Mozzi's report: Sun is the sect light; Sun 2.8° Aquarius, 9th house"
+            }
+          ]
+        },
+        {
+          "quote": "When Athena’s feelings rise in the morning rush, you can notice them and stay close.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "pluto",
+                "planetB": "moon"
+              },
+              "label": "Beatrice York's Pluto conjunction Athena Mapelli Mozzi's Moon, 0.3° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Athena Mapelli Mozzi's report: Moon 10.2° Scorpio, 6th house; Venus 19.3° Pisces, 10th house; Mars 23.7° Cancer, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "You can help Athena try again, and her curiosity may draw out your playful side.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.2,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "mars",
+                "planetB": "jupiter"
+              },
+              "label": "Beatrice York's Mars sextile Athena Mapelli Mozzi's Jupiter, 2.2° orb"
+            },
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "jupiter",
+                "planetB": "sun"
+              },
+              "label": "Beatrice York's Jupiter trine Athena Mapelli Mozzi's Sun, 0.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: tell Athena the limit before you are tired, so she can hear it without carrying your frustration.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Beatrice York's report: Moon square Mars, 4.4° orb; Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Beatrice York's report: Mercury rules the 8th and sits in Leo, 7th house, peregrine; North Node 15.5° Pisces, 2nd house; South Node 15.5° Virgo, 8th house"
+            }
+          ]
+        },
+        {
+          "quote": "When Athena challenges the tablet limit, pause before answering, so you can hear what she is asking for.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "Beatrice York's report: Mars 9.3° Aries, 3rd house; Moon square Mars, 4.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "When Athena is upset, stay nearby and wait before asking her to explain, so she has time to settle.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "pluto",
+                "planetB": "moon"
+              },
+              "label": "Beatrice York's Pluto conjunction Athena Mapelli Mozzi's Moon, 0.3° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Athena Mapelli Mozzi's report: Moon 10.2° Scorpio, 6th house; Venus 19.3° Pisces, 10th house; Mars 23.7° Cancer, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "Your quick, practical care helps Athena feel held, but when needs change, you may keep helping until irritation speaks for you.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Moon square Mars, 4.4° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Beatrice York's report: Moon square Mars, 4.4° orb; Mars is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "pluto",
+                "planetB": "moon"
+              },
+              "label": "Beatrice York's Pluto conjunction Athena Mapelli Mozzi's Moon, 0.3° orb"
+            }
+          ]
+        }
+      ],
+      "strong": [
+        "At bedtime, your warmth can welcome Athena’s questions without giving up the routine.",
+        "When Athena’s feelings rise in the morning rush, you can notice them and stay close.",
+        "You can help Athena try again, and her curiosity may draw out your playful side."
+      ],
+      "paradox": "Your quick, practical care helps Athena feel held, but when needs change, you may keep helping until irritation speaks for you.",
+      "headline": "Beatrice, you can make Athena feel welcomed and safe, while keeping the daily limit clear.",
+      "strengths": [
+        "Beatrice welcomes Athena’s questions.",
+        "Beatrice notices when Athena needs comfort.",
+        "Beatrice helps Athena try again."
+      ]
+    },
+    "foundation": {
+      "owners": [
+        {
+          "link": 1,
+          "chapters": [
+            1,
+            5
+          ]
+        },
+        {
+          "link": 2,
+          "chapters": [
+            1,
+            3
+          ]
+        },
+        {
+          "link": 3,
+          "chapters": [
+            5,
+            6
+          ]
+        },
+        {
+          "link": 4,
+          "chapters": [
+            2,
+            4
+          ]
+        },
+        {
+          "link": 5,
+          "chapters": [
+            1,
+            6
+          ]
+        },
+        {
+          "link": 6,
+          "chapters": [
+            2,
+            3
+          ]
+        },
+        {
+          "link": 7,
+          "chapters": [
+            2,
+            4
+          ]
+        },
+        {
+          "link": 8,
+          "chapters": [
+            4,
+            6
+          ]
+        },
+        {
+          "link": 9,
+          "chapters": [
+            1,
+            3
+          ]
+        },
+        {
+          "link": 10,
+          "chapters": [
+            1
+          ]
+        },
+        {
+          "link": 11,
+          "chapters": [
+            4
+          ]
+        },
+        {
+          "link": 12,
+          "chapters": [
+            3
+          ]
+        },
+        {
+          "link": 13,
+          "chapters": [
+            2,
+            4
+          ]
+        },
+        {
+          "link": 14,
+          "chapters": [
+            5
+          ]
+        }
+      ],
+      "guidance": [
+        "Show how Beatrice’s warmth and quick action meet Athena’s strong feelings and growing curiosity.",
+        "At bedtime’s third call, help Beatrice offer comfort without promising another visit she cannot manage.",
+        "On the supermarket floor, help Beatrice stay nearby and wait before asking Athena to explain.",
+        "While tidying before dinner, give Athena one small job and let Beatrice leave the rest unfinished.",
+        "With a drawing that is not “right,” let Athena try her way before Beatrice offers help.",
+        "When turning off the tablet, have Beatrice give one clear warning and follow through calmly.",
+        "Give Beatrice short phrases to practise, so she can set limits before she gets tired."
+      ],
+      "strengths": [
+        "Beatrice welcomes Athena’s questions.",
+        "Beatrice notices when Athena needs comfort.",
+        "Beatrice helps Athena try again."
+      ],
+      "pairThesis": "Beatrice, you bring steady care to Athena’s daily needs, but you can take on too much before saying so. Athena may ask for more time or another answer. You can stay close while keeping a clear limit.",
+      "strongestLinks": [
+        {
+          "why": "At bedtime, Beatrice can make Athena’s questions feel welcome, even while keeping the routine.",
+          "link": 1
+        },
+        {
+          "why": "When Athena’s feelings rise during the morning rush, Beatrice may feel them strongly and need to slow her response.",
+          "link": 9
+        },
+        {
+          "why": "When Athena challenges a tablet limit, Beatrice may answer quickly before hearing what Athena wants.",
+          "link": 3
+        }
+      ],
+      "frictionThatMatters": "Beatrice may keep helping through Athena’s changing needs, then sound sharp when she is tired. This is the challenge: say the limit early, so Athena hears it without carrying Beatrice’s built-up frustration."
+    },
+    "parentChild02": {
+      "card": {
+        "a": [
+          "You show love through practical care, noticing what needs doing.",
+          "You settle when daily life feels cared for and dependable.",
+          "You are learning to make your own needs and choices clear."
+        ],
+        "b": [
+          "You settle best when daily demands are clear.",
+          "You need time to recover after a day of constant demands.",
+          "You give warmth, attention, and a real willingness to help."
+        ],
+        "pair": "Beatrice offers steady care; Athena is still learning the bedtime rhythm."
+      },
+      "scene": "At bedtime, Athena calls for Beatrice for the third time. Beatrice comes in, wanting to comfort her and keep the bedtime order. Athena wants closeness and another moment with Beatrice before sleep. Beatrice feels Athena’s need strongly, but her own tiredness can make a quick answer tempting. She can say, “I’m here, and it’s time to sleep,” then leave the room the same way.",
+      "claims": [
+        {
+          "quote": "Comfort and routine can work naturally together: Beatrice’s steady care gives Athena something familiar to expect.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Venus 1.5° Cancer, 6th house; Moon conjunction Venus, 3.4° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "triad"
+              },
+              "label": "Athena Mapelli Mozzi's report: Moon 10.2° Scorpio, 6th house"
+            }
+          ]
+        },
+        {
+          "quote": "The fit asks Beatrice to keep the same bedtime order while naming the limit kindly.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.3,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "neptune",
+                "planetB": "moon"
+              },
+              "label": "Beatrice York's Neptune sextile Athena Mapelli Mozzi's Moon, 2.3° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Moon square Mars, 4.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: offer comfort without promising another visit you cannot manage, so Athena learns what to expect.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.4,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "neptune"
+              },
+              "label": "Beatrice York's Saturn square Athena Mapelli Mozzi's Neptune, 1.4° orb"
+            },
+            {
+              "ref": {
+                "orb": 3.8,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "venus",
+                "planetB": "neptune"
+              },
+              "label": "Beatrice York's Venus square Athena Mapelli Mozzi's Neptune, 3.8° orb"
+            }
+          ]
+        },
+        {
+          "quote": "At three, repeated calls and big feelings are fair; Athena cannot keep the routine alone.",
+          "evidence": [
+            {
+              "ref": {
+                "of": "A",
+                "kind": "cross",
+                "house": 2,
+                "planet": "moon",
+                "inHouseOf": "B"
+              },
+              "label": "Beatrice York's Moon in Athena Mapelli Mozzi's 2nd house"
+            }
+          ]
+        }
+      ],
+      "pattern": "Comfort and routine can work naturally together: Beatrice’s steady care gives Athena something familiar to expect. The fit asks Beatrice to keep the same bedtime order while naming the limit kindly. This is the challenge: offer comfort without promising another visit you cannot manage, so Athena learns what to expect. At three, repeated calls and big feelings are fair; Athena cannot keep the routine alone.",
+      "headline": "Athena needs comfort; Beatrice needs the bedtime order to hold.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you say what you can offer before tiredness makes you sharp",
+            "action": "Before bedtime, tell Athena how many visits you can manage, then keep that limit."
+          },
+          {
+            "for": "A",
+            "why": "so Athena can learn what happens next",
+            "action": "Use the same brief comfort and goodbye at each bedtime visit this week."
+          },
+          {
+            "for": "both",
+            "why": "so you build a bedtime Athena can begin to recognise",
+            "action": "Keep the bedtime order the same, including how Beatrice leaves the room."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Beatrice shows love by noticing what needs doing and making daily life easier. Familiar routines help her settle, so another call can feel like one more task when she is tired. She may leave her own limit unspoken.",
+        "becauseB": "Athena needs daily demands to feel clear and may need time to recover after constant activity. At three, calling again can be a way to seek comfort and predictability, not a plan to keep Beatrice awake."
+      }
+    },
+    "parentChild03": {
+      "card": {
+        "a": [
+          "You notice what needs doing and often start before anyone asks.",
+          "Your care is most dependable when you include your own limits.",
+          "You reason best by asking direct questions."
+        ],
+        "b": [
+          "You spot workable alternatives quickly when a plan stalls.",
+          "You can make a hard question easier to hear.",
+          "You look for the terms beneath a promise."
+        ],
+        "pair": "Beatrice stays close while Athena finds her words."
+      },
+      "scene": "On the supermarket floor, Athena cries when Beatrice says it is time to leave the tablet. Beatrice crouches nearby and asks, “What happened?” Athena turns away and keeps crying. Beatrice starts to explain the limit, then pauses and stays beside her. When Athena settles, Beatrice repeats the limit in a few plain words.",
+      "claims": [
+        {
+          "quote": "Beatrice crouches nearby and asks, “What happened?”",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.3,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "neptune",
+                "planetB": "moon"
+              },
+              "label": "Beatrice York's Neptune sextile Athena Mapelli Mozzi's Moon, 2.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Beatrice starts to explain the limit, then pauses and stays beside her.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "pluto",
+                "planetB": "moon"
+              },
+              "label": "Beatrice York's Pluto conjunction Athena Mapelli Mozzi's Moon, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Beatrice notices what needs doing and often starts before anyone asks.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "superpowers"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Venus 1.5° Cancer, 6th house"
+            }
+          ]
+        },
+        {
+          "quote": "She reasons by asking direct questions, then can speak quickly when something seems wrong.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Beatrice York's report: Mercury 22.5° Leo, 7th house; Sun conjunction Mercury, 6.0° orb; Mercury trine Saturn, 3.8° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "Beatrice York's report: Mars 9.3° Aries, 3rd house; Moon square Mars, 4.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Beatrice’s warmth can help Athena feel that her questions and feelings are welcome.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "jupiter",
+                "planetB": "pluto"
+              },
+              "label": "Beatrice York's Jupiter trine Athena Mapelli Mozzi's Pluto, 1.0° orb"
+            },
+            {
+              "ref": {
+                "orb": 0.3,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "pluto",
+                "planetB": "moon"
+              },
+              "label": "Beatrice York's Pluto conjunction Athena Mapelli Mozzi's Moon, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Beatrice, stay nearby and name Athena’s feeling before asking what happened.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.3,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "neptune",
+                "planetB": "moon"
+              },
+              "label": "Beatrice York's Neptune sextile Athena Mapelli Mozzi's Moon, 2.3° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "Beatrice’s warmth can help Athena feel that her questions and feelings are welcome. When Athena’s distress rises, Beatrice may feel it strongly and move straight to fixing the problem. This is the challenge: Beatrice pauses, stays close, and listens before setting the limit, so Athena can settle enough to hear it.",
+      "headline": "Beatrice, hear the feeling before you explain the limit.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so Athena can feel heard before she tries to explain",
+            "action": "Beatrice, stay nearby and name Athena’s feeling before asking what happened."
+          },
+          {
+            "for": "A",
+            "why": "so Athena can trust what happens next",
+            "action": "Beatrice, give one clear tablet warning, then keep the limit calmly."
+          },
+          {
+            "for": "both",
+            "why": "so you can meet the feeling before solving the problem",
+            "action": "Pause together for a moment before talking about the tablet."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Beatrice notices what needs doing and often starts before anyone asks. She reasons by asking direct questions, then can speak quickly when something seems wrong. Under pressure, she may try to solve the problem before Athena is ready to explain.",
+        "becauseB": "Athena may ask for more time or another answer as her feelings rise. At three, crying and turning away can show that she has run out of ways to manage the change. She needs Beatrice nearby before she can take in an explanation."
+      }
+    },
+    "parentChild04": {
+      "card": {
+        "a": [
+          "Small acts matter to you.",
+          "Home feels settling when ordinary care is shared.",
+          "You may move straight into fixing a need."
+        ],
+        "b": [
+          "You notice changes in mood.",
+          "You can make work welcoming.",
+          "You ask who will handle the work."
+        ],
+        "pair": "Beatrice and Athena can make tidying a shared task."
+      },
+      "scene": "Before dinner, Beatrice asks Athena to put a few toys away. Athena pauses to look at one, then reaches for another. Beatrice wants the space settled and the small jobs done. She stays nearby and lets Athena finish at her own pace.",
+      "claims": [
+        {
+          "quote": "Small acts and dependable follow-through help home feel settled, so she may start fixing things before saying what she can manage.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Beatrice York's report: Venus rules the 4th and sits in Cancer, 6th house, peregrine; Moon conjunction Venus, 3.4° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Moon square Mars, 4.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Athena may notice the mood around tidying before she follows the words.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Athena Mapelli Mozzi's report: Moon 10.2° Scorpio, 6th house; Venus 19.3° Pisces, 10th house; Mars 23.7° Cancer, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "She can make work welcoming, while also needing time to look closely.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Athena Mapelli Mozzi's report: Venus 19.3° Pisces, 10th house; Saturn 16.4° Pisces, 10th house; Neptune 27.7° Pisces, 10th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Athena Mapelli Mozzi's report: Mercury 21.1° Capricorn, 8th house; Mercury rules the 1st and sits in Capricorn, 8th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "Their care for home can meet when Beatrice gives one small job and accepts a child's pace.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.8,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "venus",
+                "planetB": "neptune"
+              },
+              "label": "Beatrice York's Venus square Athena Mapelli Mozzi's Neptune, 3.8° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.4,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "neptune"
+              },
+              "label": "Beatrice York's Saturn square Athena Mapelli Mozzi's Neptune, 1.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "That trains Beatrice to set a fair standard without doing every part herself.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.8,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "venus",
+                "planetB": "neptune"
+              },
+              "label": "Beatrice York's Venus square Athena Mapelli Mozzi's Neptune, 3.8° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: Beatrice may expect the task to be finished neatly, while Athena is still learning how to help. Their care for home can meet when Beatrice gives one small job and accepts a child's pace. That trains Beatrice to set a fair standard without doing every part herself.",
+      "headline": "Beatrice, a small job works better than a whole-room standard.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you show her that her help matters",
+            "action": "Ask Athena to put three toys in the basket before dinner."
+          },
+          {
+            "for": "A",
+            "why": "so you make the job clear and doable",
+            "action": "Say, “Please carry this napkin to the table,” and thank her."
+          },
+          {
+            "for": "both",
+            "why": "so you practise sharing care without demanding a grown-up routine",
+            "action": "Tidy together for a few minutes, then leave the rest for later."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Beatrice learned to show care by noticing what needs doing. Small acts and dependable follow-through help home feel settled, so she may start fixing things before saying what she can manage. She can practise naming her limit early.",
+        "becauseB": "Athena may notice the mood around tidying before she follows the words. She can make work welcoming, while also needing time to look closely. At three, a short, shared task fits better than a routine she must keep alone."
+      }
+    },
+    "parentChild05": {
+      "card": {
+        "a": [
+          "You reason best by asking direct questions.",
+          "You notice what needs doing and often start before anyone asks.",
+          "Your care is most dependable when you include your own limits."
+        ],
+        "b": [
+          "You spot workable alternatives quickly when a plan stalls.",
+          "You can make a hard question easier to hear.",
+          "You are good at tracing a problem back to its cause."
+        ],
+        "pair": "Beatrice helps Athena learn by letting her try first."
+      },
+      "scene": "At the kitchen table, Athena draws, then says the picture is not right. Beatrice asks what she wants to change, and waits while Athena tries her way. Beatrice offers help only after Athena asks. At three, drawing, play and being read to are learning, not homework. Athena can show what she knows without making the picture look Beatrice’s way.",
+      "claims": [
+        {
+          "quote": "At the kitchen table, Athena draws, then says the picture is not right.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.8,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mercury",
+                "planetB": "uranus"
+              },
+              "label": "Beatrice York's Mercury square Athena Mapelli Mozzi's Uranus, 0.8° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Beatrice asks what she wants to change, and waits while Athena tries her way.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Beatrice York's report: Mercury 22.5° Leo, 7th house; Sun conjunction Mercury, 6.0° orb; Mercury trine Saturn, 3.8° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "superpowers"
+              },
+              "label": "Athena Mapelli Mozzi's report: Mars sextile Uranus, 0.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Beatrice, your questions and Athena’s curiosity can work naturally together.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "jupiter",
+                "planetB": "sun"
+              },
+              "label": "Beatrice York's Jupiter trine Athena Mapelli Mozzi's Sun, 0.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Beatrice York's report: Mercury 22.5° Leo, 7th house; Sun conjunction Mercury, 6.0° orb; Mercury trine Saturn, 3.8° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Waiting trains you to support her learning without steering it.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.8,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mercury",
+                "planetB": "uranus"
+              },
+              "label": "Beatrice York's Mercury square Athena Mapelli Mozzi's Uranus, 0.8° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "Beatrice, your questions and Athena’s curiosity can work naturally together. You can help by asking what she wants to try, then letting her answer with the drawing. This is the challenge: when you correct it before she has finished, your help takes over. Waiting trains you to support her learning without steering it.",
+      "headline": "Beatrice, let Athena show you what she knows before you correct the drawing.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you learn to follow her lead before solving the problem",
+            "action": "Ask Athena what she wants to change, then let her finish before offering help."
+          },
+          {
+            "for": "both",
+            "why": "so you practise learning through play without turning it into homework",
+            "action": "Keep the drawing at the kitchen table and let Athena choose her next mark."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Beatrice, you notice what needs doing and often start before anyone asks. A quick question can help you find the useful next step, but checking first keeps your first impression from taking over.",
+        "becauseB": "Athena, you can spot another way forward when a plan stalls. Careful questions and trying details help you make sense of things, and at three you can show that through play and drawing."
+      }
+    },
+    "parentChild06": {
+      "card": {
+        "a": [
+          "You show love through practical care, noticing what needs doing.",
+          "When plans change, irritation may build while you keep helping.",
+          "You are learning to make your own needs clear."
+        ],
+        "b": [
+          "You need honesty and room to think before you feel secure.",
+          "You give warmth, attention, and a real willingness to help.",
+          "You need time to examine details before acting."
+        ],
+        "pair": "Beatrice stays warm and firm; Athena gets a small choice."
+      },
+      "scene": "Beatrice turns off the tablet, and Athena wants more time. Beatrice says, “The tablet is finished now. You can choose the book or the drawing.” Athena protests, and Beatrice stays beside her without turning the limit into a debate. Beatrice keeps her voice calm and helps Athena move to the next activity.",
+      "claims": [
+        {
+          "quote": "Beatrice turns off the tablet, and Athena wants more time.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.8,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mercury",
+                "planetB": "uranus"
+              },
+              "label": "Beatrice York's Mercury square Athena Mapelli Mozzi's Uranus, 0.8° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Beatrice, you show love by noticing what needs doing and making daily life easier.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Venus 1.5° Cancer, 6th house; Moon conjunction Venus, 3.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You may keep helping as plans change, then feel irritation build.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Beatrice York's report: Moon square Mars, 4.4° orb; Mars is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Beatrice, your quick voice can meet Athena’s wish to test what happens next.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.8,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mercury",
+                "planetB": "uranus"
+              },
+              "label": "Beatrice York's Mercury square Athena Mapelli Mozzi's Uranus, 0.8° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You can make the limit clear without making her question a problem.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.2,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "mars",
+                "planetB": "jupiter"
+              },
+              "label": "Beatrice York's Mars sextile Athena Mapelli Mozzi's Jupiter, 2.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Athena, at three, asking for more time can be a way to keep exploring and choose what comes next.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.8,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "mercury",
+                "planetB": "uranus"
+              },
+              "label": "Beatrice York's Mercury square Athena Mapelli Mozzi's Uranus, 0.8° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: Beatrice, your quick voice can meet Athena’s wish to test what happens next. You can make the limit clear without making her question a problem. Offer one simple choice after the tablet ends, so Athena practises moving on while you practise setting the boundary before irritation builds.",
+      "headline": "Beatrice, one clear tablet limit will serve you both better than a long debate.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you hold the limit before irritation builds",
+            "action": "Give one warning, then turn off the tablet at the agreed stopping point."
+          },
+          {
+            "for": "A",
+            "why": "so she practises choice inside a firm boundary",
+            "action": "Let Athena choose between two screen-free activities after the tablet ends."
+          },
+          {
+            "for": "both",
+            "why": "so you make the screen limit steady and predictable",
+            "action": "Keep the tablet out of bedtime and watch together within about an hour daily."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Beatrice, you show love by noticing what needs doing and making daily life easier. You may keep helping as plans change, then feel irritation build. A clear limit protects your routine before tiredness sharpens your answer.",
+        "becauseB": "Athena, at three, asking for more time can be a way to keep exploring and choose what comes next. Your questions and changing wishes are part of learning. Beatrice can hold the screen limit while making the next step clear."
+      }
+    },
+    "whatToPractise": {
+      "forA": {
+        "intro": "Beatrice, these are yours to practise with Athena.",
+        "items": [
+          {
+            "why": "so you say what you can offer before tiredness makes you sharp",
+            "action": "Before bedtime, tell Athena how many visits you can manage, then keep that limit."
+          },
+          {
+            "why": "so Athena can feel heard before she tries to explain",
+            "action": "Stay nearby and name Athena’s feeling before asking what happened."
+          },
+          {
+            "why": "so you hold the limit before irritation builds",
+            "action": "Give one warning, then turn off the tablet at the agreed stopping point."
+          }
+        ]
+      },
+      "forB": {
+        "intro": "Athena, at three, your part is to practise small choices with Beatrice’s help.",
+        "items": [
+          {
+            "why": "so you learn that your help matters",
+            "action": "Put three toys in the basket before dinner."
+          },
+          {
+            "why": "so you practise choosing inside a firm boundary",
+            "action": "Choose between two screen-free activities after the tablet ends."
+          },
+          {
+            "why": "so you learn what a small, clear job feels like",
+            "action": "Carry a napkin to the table when Beatrice asks, then hear her thanks."
+          }
+        ]
+      },
+      "claims": [
+        {
+          "quote": "Beatrice, Athena needs your care in a form she can recognise: brief comfort, clear limits, and a familiar order.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Venus 1.5° Cancer, 6th house; Moon conjunction Venus, 3.4° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Moon square Mars, 4.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You may notice her feelings quickly and want to fix what is wrong.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "superpowers"
+              },
+              "label": "Beatrice York's report: Moon 4.9° Cancer, 6th house; Venus 1.5° Cancer, 6th house"
+            }
+          ]
+        },
+        {
+          "quote": "At three, Athena may show what she needs through tears, questions, or another request, before she can explain it clearly.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "triad"
+              },
+              "label": "Athena Mapelli Mozzi's report: Moon 10.2° Scorpio, 6th house"
+            }
+          ]
+        },
+        {
+          "quote": "Beatrice, your steady care can help Athena feel safe enough to ask questions, try again, and show strong feelings.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Beatrice York's report: Mercury 22.5° Leo, 7th house; Sun conjunction Mercury, 6.0° orb; Mercury trine Saturn, 3.8° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "discoveries"
+              },
+              "label": "Beatrice York's report: Mars 9.3° Aries, 3rd house; Moon square Mars, 4.4° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "superpowers"
+              },
+              "label": "Athena Mapelli Mozzi's report: Mars sextile Uranus, 0.4° orb"
+            }
+          ]
+        }
+      ],
+      "closing": "Beatrice, your steady care can help Athena feel safe enough to ask questions, try again, and show strong feelings. Athena, your curiosity gives Beatrice chances to listen before she steps in. At three, those chances may be brief: a choice between two activities, a mark on a drawing, or a final bedtime visit. Keep the limit clear and the comfort warm. You do not need to make every moment smooth. You can return to each other after a hard moment and try the next small step together.",
+      "forBoth": {
+        "intro": "Beatrice and Athena, keep these shared practices small and steady.",
+        "items": [
+          {
+            "why": "so you build a bedtime Athena can begin to recognise",
+            "action": "Keep the bedtime order the same, including how Beatrice leaves the room."
+          },
+          {
+            "why": "so you can meet the feeling before solving the problem",
+            "action": "Pause together for a moment before talking about the tablet."
+          },
+          {
+            "why": "so you practise learning through play without turning it into homework",
+            "action": "Keep the drawing at the kitchen table and let Athena choose her next mark."
+          }
+        ]
+      },
+      "opening": "Beatrice, Athena needs your care in a form she can recognise: brief comfort, clear limits, and a familiar order. You may notice her feelings quickly and want to fix what is wrong. At three, Athena may show what she needs through tears, questions, or another request, before she can explain it clearly. Your task is to stay close while saying plainly what you can offer."
+    }
+  }
+}

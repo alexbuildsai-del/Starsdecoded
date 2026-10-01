@@ -1,0 +1,1717 @@
+{
+  "fixture": {
+    "name": "Marie Curie & Oprah Winfrey",
+    "a": "marie-curie",
+    "b": "oprah-winfrey",
+    "note": "The compatibility lab pair: two existing chart fixtures by name and no birth data of its own. The --pair campaign runs it under all three lenses (people with the label friends); the four band pairs run the parent-and-child lens once per band."
+  },
+  "lens": "partners",
+  "interpretation": {
+    "meta": {
+      "band": null,
+      "lens": "partners",
+      "orbs": {
+        "trine": 6,
+        "square": 6,
+        "sextile": 4,
+        "opposition": 8,
+        "conjunction": 8
+      },
+      "blind": false,
+      "label": null,
+      "model": "mixed",
+      "names": {
+        "a": "Marie Curie",
+        "b": "Oprah Winfrey"
+      },
+      "usage": {
+        "model": "mixed",
+        "totals": {
+          "ms": 103656,
+          "attempts": 13,
+          "inputTokens": 135153,
+          "outputTokens": 13160,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 30276
+        },
+        "costUsd": 0.043078359999999996,
+        "sections": [
+          {
+            "ms": 8276,
+            "model": "gpt-6-sol",
+            "section": "pair:foundation",
+            "attempts": 1,
+            "inputTokens": 9027,
+            "outputTokens": 582,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 0
+          },
+          {
+            "ms": 8101,
+            "model": "gpt-6-luna",
+            "section": "pair:twoCharts",
+            "attempts": 1,
+            "inputTokens": 12883,
+            "outputTokens": 1223,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 0
+          },
+          {
+            "ms": 10214,
+            "model": "gpt-6-luna",
+            "section": "pair:partners05",
+            "attempts": 1,
+            "inputTokens": 13141,
+            "outputTokens": 1112,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 0
+          },
+          {
+            "ms": 13447,
+            "model": "gpt-6-luna",
+            "section": "pair:links",
+            "attempts": 1,
+            "inputTokens": 10084,
+            "outputTokens": 1766,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 0
+          },
+          {
+            "ms": 13533,
+            "model": "gpt-6-luna",
+            "section": "pair:partners04",
+            "attempts": 2,
+            "inputTokens": 19364,
+            "outputTokens": 1819,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 14033,
+            "model": "gpt-6-luna",
+            "section": "pair:partners06",
+            "attempts": 2,
+            "inputTokens": 19305,
+            "outputTokens": 1787,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 13998,
+            "model": "gpt-6-luna",
+            "section": "pair:partners02",
+            "attempts": 2,
+            "inputTokens": 20023,
+            "outputTokens": 1686,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 16436,
+            "model": "gpt-6-luna",
+            "section": "pair:partners03",
+            "attempts": 2,
+            "inputTokens": 20025,
+            "outputTokens": 2390,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7569
+          },
+          {
+            "ms": 5618,
+            "model": "gpt-6-luna",
+            "section": "pair:whatToPractise",
+            "attempts": 1,
+            "inputTokens": 11301,
+            "outputTokens": 795,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 0
+          }
+        ],
+        "wallClockMs": 32341
+      },
+      "zodiac": "tropical",
+      "crossOrb": 4,
+      "ephemeris": "astronomy-engine (Don Cross), tropical zodiac, mean lunar node",
+      "wordCount": 3425,
+      "reportType": "compatibility",
+      "generatedAt": "2026-10-01T16:15:43.590Z",
+      "houseSystem": "whole-sign",
+      "promptVersion": "p3"
+    },
+    "links": {
+      "links": [
+        {
+          "of": "none",
+          "orb": 0.2,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "moon",
+          "planetB": "jupiter",
+          "reading": "Marie, your need for quiet can meet Oprah's wish to make one more plan, especially after a long day. Oprah, your offer may be meant as care, while Marie may hear another demand. Pause before adding tasks, and ask what kind of help would feel good. Behaviour check: This week, ask whether the other wants help, company, or rest."
+        },
+        {
+          "of": "none",
+          "orb": 2,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "venus",
+          "planetB": "mars",
+          "reading": "Marie, your affection can meet Oprah's direct way of pursuing closeness. You may feel drawn together quickly, even when tired. That immediacy can be warm, but it can also make a request feel like an expectation. Check that both of you still want the same thing before moving ahead. Behaviour check: This week, name one small way you would enjoy being close."
+        },
+        {
+          "of": "none",
+          "orb": 2.1,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "conjunction",
+          "planet": "",
+          "planetA": "mercury",
+          "planetB": "moon",
+          "reading": "Marie, you can find words for the question Oprah has been carrying. Oprah, her words may help you hear what you feel, though you may need time before answering. This makes difficult talks easier to begin, not always easier to finish. Let the first answer be a starting point. Behaviour check: This week, ask what question has been hardest to say aloud."
+        },
+        {
+          "of": "none",
+          "orb": 1.4,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "venus",
+          "planetB": "pluto",
+          "reading": "Marie, you may want a bond that feels loyal and complete. Oprah, you may press to know what is being held back, especially when trust feels uncertain. A question can then sound like a test, and a pause can seem like rejection. Keep the talk specific and leave room for an honest no. Behaviour check: This week, ask one clear question without demanding an immediate answer."
+        },
+        {
+          "of": "none",
+          "orb": 3.8,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "moon",
+          "planetB": "uranus",
+          "reading": "Marie, you may welcome Oprah's willingness to change the usual plan. Oprah, a fresh idea can help Marie feel less trapped by routine. This gives you a way to reconnect without forcing a long talk. Still, sudden changes may catch one of you tired or unprepared. Behaviour check: This week, offer one change of plan and check that it suits you both."
+        },
+        {
+          "of": "none",
+          "orb": 1.1,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "saturn",
+          "planetB": "pluto",
+          "reading": "Marie, you can keep carrying a commitment after it has become too heavy. Oprah, you may keep examining what is unsaid until the conversation feels intense. Each of you may then hold firm for a different reason. Name the practical limit before debating what it means. Behaviour check: This week, agree on one task either of you can put down."
+        },
+        {
+          "of": "none",
+          "orb": 2.4,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "mercury",
+          "planetB": "sun",
+          "reading": "Marie, your questions can help Oprah explain what she is trying to do. Oprah, you can make Marie's careful thinking part of a shared decision. This works best when you use the conversation to choose a next step, rather than keeping it open indefinitely. Behaviour check: This week, end one discussion by naming who will do what."
+        },
+        {
+          "of": "none",
+          "orb": 2.2,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "mercury",
+          "planetB": "venus",
+          "reading": "Marie, you can speak plainly while still showing care. Oprah, you can help a serious conversation feel easier to stay in. A kind tone may bring you back together, but it cannot replace saying what you need. Be warm and direct at the same time. Behaviour check: This week, make one request with a clear answer you can accept."
+        },
+        {
+          "of": "none",
+          "orb": 1.9,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "jupiter",
+          "planetB": "neptune",
+          "reading": "Marie, you can trust a shared hope enough to take a first step. Oprah, you may help that hope feel generous and possible. Together, you can picture a better future, though details may wait too long. Bring the idea back to money, time, and effort before promising. Behaviour check: This week, choose one hopeful plan and check its practical cost together."
+        },
+        {
+          "of": "none",
+          "orb": 3.7,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "trine",
+          "planet": "",
+          "planetA": "uranus",
+          "planetB": "saturn",
+          "reading": "Marie, you can suggest changing a routine while Oprah helps make the new plan hold. Oprah, you can set limits without dismissing Marie's wish to do things differently. This makes change easier to manage, though a plan still needs both of your agreement. Behaviour check: This week, choose one routine to adjust and decide when you will review it."
+        },
+        {
+          "of": "none",
+          "orb": 3.9,
+          "kind": "flows",
+          "house": 0,
+          "aspect": "sextile",
+          "planet": "",
+          "planetA": "neptune",
+          "planetB": "sun",
+          "reading": "Marie, you can respond to Oprah's plans with imagination and kindness. Oprah, you may help Marie see a hopeful direction when the work feels narrow. Keep the hope connected to a choice you can make, rather than assuming you both want the same outcome. Behaviour check: This week, ask what each of you hopes a shared plan will change."
+        },
+        {
+          "of": "none",
+          "orb": 4,
+          "kind": "rubs",
+          "house": 0,
+          "aspect": "square",
+          "planet": "",
+          "planetA": "pluto",
+          "planetB": "mercury",
+          "reading": "Marie, you may want to get beneath a disagreement and find what is really driving it. Oprah, you may keep turning the words over until you feel sure what they mean. Questions can become intense, and an answer can feel incomplete. Stick to one issue and let each person finish. Behaviour check: This week, pause a difficult talk and agree when you will return to it."
+        },
+        {
+          "of": "B",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 2,
+          "aspect": "",
+          "planet": "sun",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Oprah, your presence touches Marie's sense of what is worth keeping, earning, and spending. Your choices may shape how she thinks about a bill or a purchase. Marie, make room for your own view before treating Oprah's preferences as shared ones. Behaviour check: This week, discuss one expense and say what each of you values about it."
+        },
+        {
+          "of": "B",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 12,
+          "aspect": "",
+          "planet": "moon",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Marie, your feelings may reach the part of Oprah she keeps private. Oprah may feel close to you without knowing how to explain what has stirred. Marie, do not assume quiet means a problem is solved. Oprah, give a simple sign when you need time alone. Behaviour check: This week, agree on how to ask for privacy and when to reconnect."
+        },
+        {
+          "of": "A",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 4,
+          "aspect": "",
+          "planet": "moon",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Marie, Oprah's feelings can touch your sense of home and belonging. A familiar evening together may feel comforting, while a change in plans may matter more than Oprah expects. Oprah, ask what helps Marie settle before assuming she is ready to talk. Behaviour check: This week, choose one quiet way to make an evening feel settled for both of you."
+        },
+        {
+          "of": "A",
+          "orb": 0,
+          "kind": "overlay",
+          "house": 12,
+          "aspect": "",
+          "planet": "sun",
+          "planetA": "",
+          "planetB": "",
+          "reading": "Oprah, Marie can reach parts of your life you usually keep to yourself. You may feel her presence strongly while still needing private time to sort through your response. Marie, do not mistake that pause for a lack of care. Oprah, say when you will be ready to talk. Behaviour check: This week, name a time to return to one unfinished conversation."
+        }
+      ]
+    },
+    "scenes": {
+      "partners02": {
+        "texts": {},
+        "titles": [
+          "The end of a long day"
+        ],
+        "written": 0
+      },
+      "partners03": {
+        "texts": {},
+        "titles": [
+          "The argument at 11 pm"
+        ],
+        "written": 0
+      },
+      "partners04": {
+        "texts": {},
+        "titles": [
+          "The bill nobody expected"
+        ],
+        "written": 0
+      },
+      "partners05": {
+        "texts": {},
+        "titles": [
+          "The weekend away"
+        ],
+        "written": 0
+      },
+      "partners06": {
+        "texts": {},
+        "titles": [
+          "The job offer in another city"
+        ],
+        "written": 0
+      }
+    },
+    "twoCharts": {
+      "work": [
+        "This is the challenge: Marie needs care when tired, while Oprah may offer another plan; naming the need trains you to pause before either pushes on.",
+        "This is the challenge: Marie may hold back her need for space, while Oprah needs time to sort her thoughts; agreeing when to return trains you to trust a pause.",
+        "This is the challenge: your shared conversation can open quickly, but the hard parts may stay private; asking plainly what each can offer trains you to keep care mutual."
+      ],
+      "claims": [
+        {
+          "quote": "During an argument at 11 pm, Marie can find the question Oprah has been carrying and help you both name it.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.1,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Marie Curie's Mercury conjunction Oprah Winfrey's Moon, 2.1° orb"
+            }
+          ]
+        },
+        {
+          "quote": "At the end of a long day, Oprah's directness can draw Marie close, while Marie's loyalty helps you stay connected.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "mars"
+              },
+              "label": "Marie Curie's Venus conjunction Oprah Winfrey's Mars, 2.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You both can turn careful conversation into a shared plan, then take practical steps together.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "mercury",
+                "planetB": "sun"
+              },
+              "label": "Marie Curie's Mercury sextile Oprah Winfrey's Sun, 2.4° orb"
+            },
+            {
+              "ref": {
+                "orb": 2.2,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "mercury",
+                "planetB": "venus"
+              },
+              "label": "Marie Curie's Mercury sextile Oprah Winfrey's Venus, 2.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Marie needs care when tired, while Oprah may offer another plan; naming the need trains you to pause before either pushes on.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.2,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "moon",
+                "planetB": "jupiter"
+              },
+              "label": "Marie Curie's Moon square Oprah Winfrey's Jupiter, 0.2° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Marie Curie's report: Moon 16.5° Pisces, 3rd house; Moon rules the 7th and sits in Pisces, 3rd house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Marie may hold back her need for space, while Oprah needs time to sort her thoughts; agreeing when to return trains you to trust a pause.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.2,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "moon",
+                "planetB": "jupiter"
+              },
+              "label": "Marie Curie's Moon square Oprah Winfrey's Jupiter, 0.2° orb"
+            },
+            {
+              "ref": {
+                "of": "B",
+                "kind": "cross",
+                "house": 12,
+                "planet": "moon",
+                "inHouseOf": "A"
+              },
+              "label": "Oprah Winfrey's Moon in Marie Curie's 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Oprah Winfrey's report: Mars 23.6° Scorpio, 12th house; Saturn 9.1° Scorpio, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: your shared conversation can open quickly, but the hard parts may stay private; asking plainly what each can offer trains you to keep care mutual.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.1,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Marie Curie's Mercury conjunction Oprah Winfrey's Moon, 2.1° orb"
+            },
+            {
+              "ref": {
+                "of": "B",
+                "kind": "cross",
+                "house": 12,
+                "planet": "moon",
+                "inHouseOf": "A"
+              },
+              "label": "Oprah Winfrey's Moon in Marie Curie's 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Marie Curie's report: Venus 25.6° Scorpio, 11th house; Venus conjunction Saturn, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Your easy return to conversation helps you stay close, but can keep Marie giving and Oprah thinking past the moment either needs a break.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.1,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Marie Curie's Mercury conjunction Oprah Winfrey's Moon, 2.1° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Marie Curie's report: Venus 25.6° Scorpio, 11th house; Venus is the benefic out of sect; Venus conjunction Saturn, 0.3° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Oprah Winfrey's report: Mars 23.6° Scorpio, 12th house; Saturn 9.1° Scorpio, 12th house"
+            }
+          ]
+        }
+      ],
+      "strong": [
+        "During an argument at 11 pm, Marie can find the question Oprah has been carrying and help you both name it.",
+        "At the end of a long day, Oprah's directness can draw Marie close, while Marie's loyalty helps you stay connected.",
+        "You both can turn careful conversation into a shared plan, then take practical steps together."
+      ],
+      "paradox": "Your easy return to conversation helps you stay close, but can keep Marie giving and Oprah thinking past the moment either needs a break.",
+      "headline": "Marie and Oprah can make a hard conversation useful, if they leave room for rest and thought.",
+      "strengths": [
+        "Marie and Oprah make hard conversations easier to start",
+        "Marie and Oprah can stay close without filling every silence",
+        "Marie and Oprah turn shared plans into practical steps"
+      ]
+    },
+    "foundation": {
+      "owners": [
+        {
+          "link": 1,
+          "chapters": [
+            1,
+            2
+          ]
+        },
+        {
+          "link": 2,
+          "chapters": [
+            1,
+            2
+          ]
+        },
+        {
+          "link": 3,
+          "chapters": [
+            1,
+            3
+          ]
+        },
+        {
+          "link": 4,
+          "chapters": [
+            2,
+            3
+          ]
+        },
+        {
+          "link": 5,
+          "chapters": [
+            2,
+            5
+          ]
+        },
+        {
+          "link": 6,
+          "chapters": [
+            3,
+            6
+          ]
+        },
+        {
+          "link": 7,
+          "chapters": [
+            1,
+            6
+          ]
+        },
+        {
+          "link": 8,
+          "chapters": [
+            1,
+            5
+          ]
+        },
+        {
+          "link": 9,
+          "chapters": [
+            5,
+            6
+          ]
+        },
+        {
+          "link": 10,
+          "chapters": [
+            5,
+            6
+          ]
+        },
+        {
+          "link": 11,
+          "chapters": [
+            1,
+            6
+          ]
+        },
+        {
+          "link": 12,
+          "chapters": [
+            3,
+            4
+          ]
+        },
+        {
+          "link": 13,
+          "chapters": [
+            4,
+            6
+          ]
+        },
+        {
+          "link": 14,
+          "chapters": [
+            1,
+            2
+          ]
+        },
+        {
+          "link": 15,
+          "chapters": [
+            2,
+            4
+          ]
+        },
+        {
+          "link": 16,
+          "chapters": [
+            3,
+            6
+          ]
+        }
+      ],
+      "guidance": [
+        "Show how easily Marie and Oprah begin talking, then show why each sometimes needs silence.",
+        "At the end of a long day, show how they can offer closeness without asking either to push past exhaustion.",
+        "During an argument at 11 pm, have them pause without treating the pause as the end of the conversation.",
+        "When an unexpected bill arrives, show them check the amount together before questioning each other's choices.",
+        "With Friday unplanned, show how they can choose a break without making Marie earn it or Oprah explain every feeling.",
+        "When a move comes up, show them weigh the work, the money, and the time they need together.",
+        "Give Marie a way to say she is tired sooner, and Oprah a clear time to return to an unfinished talk."
+      ],
+      "strengths": [
+        "Marie and Oprah make hard conversations easier to start",
+        "Marie and Oprah can stay close without filling every silence",
+        "Marie and Oprah turn shared plans into practical steps"
+      ],
+      "pairThesis": "Marie and Oprah can turn a hard conversation into a shared plan. Marie often stays with the work after she is tired, while Oprah needs time alone before she can say what hurts.",
+      "strongestLinks": [
+        {
+          "why": "At the end of a long day, Oprah offers one more plan while Marie needs quiet and care.",
+          "link": 1
+        },
+        {
+          "why": "At the end of a long day, Oprah's direct approach can draw Marie close, even when Marie is tired.",
+          "link": 2
+        },
+        {
+          "why": "During an argument at 11 pm, Marie can put words to a question Oprah has been carrying.",
+          "link": 3
+        }
+      ],
+      "frictionThatMatters": "Marie may keep giving after she is tired, while Oprah may keep thinking after she goes quiet. During an argument at 11 pm, each can mistake the other's silence for distance. Naming when they will talk again helps Marie ask for rest and Oprah return with an answer."
+    },
+    "partners02": {
+      "card": {
+        "a": [
+          "You give loyalty through attention, honest talk, and sticking around.",
+          "You feel secure when someone stays curious about your thoughts.",
+          "You can mistake being needed for being loved."
+        ],
+        "b": [
+          "You give attention through thoughtful questions and honest conversation.",
+          "You need a partner who gives you room to speak plainly.",
+          "Keep your own needs in view while staying curious about another person. "
+        ],
+        "pair": "Marie and Oprah make care clearer through honest words and useful help."
+      },
+      "scene": "At the end of a long day, Marie comes home tired and Oprah offers another plan. Marie hears the offer as a request for more work, though she wants quiet and care. Oprah hears Marie’s silence and gives her space, though she wants an honest exchange. “I’m tired, but I want to talk tomorrow,” Marie says. Oprah names a time to return to the conversation.",
+      "claims": [
+        {
+          "quote": "At the end of a long day, Marie comes home tired and Oprah offers another plan.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.2,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "moon",
+                "planetB": "jupiter"
+              },
+              "label": "Marie Curie's Moon square Oprah Winfrey's Jupiter, 0.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Marie hears the offer as a request for more work, though she wants quiet and care.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Marie Curie's report: Moon rules the 7th and sits in Pisces, 3rd house, peregrine"
+            },
+            {
+              "ref": {
+                "orb": 0.2,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "moon",
+                "planetB": "jupiter"
+              },
+              "label": "Marie Curie's Moon square Oprah Winfrey's Jupiter, 0.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah hears Marie’s silence and gives her space, though she wants an honest exchange.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Oprah Winfrey's report: Mercury rules the 7th and sits in Aquarius, 3rd house, peregrine; Mercury 19.2° Aquarius, 3rd house"
+            },
+            {
+              "ref": {
+                "orb": 3.8,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "moon",
+                "planetB": "uranus"
+              },
+              "label": "Marie Curie's Moon trine Oprah Winfrey's Uranus, 3.8° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Marie, you show love through attention, honest talk, and staying when life gets hard.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Marie Curie's report: Venus 25.6° Scorpio, 11th house; Saturn 25.3° Scorpio, 11th house; Venus conjunction Saturn, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah, you show love through thoughtful questions and honest conversation.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Oprah Winfrey's report: Venus 8.9° Aquarius, 3rd house; Venus is the benefic of sect; Sun conjunction Venus, 0.1° orb"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Marie’s steady help can feel like another demand when she needs rest, while Oprah’s pause can leave the conversation unfinished.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 0.2,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "moon",
+                "planetB": "jupiter"
+              },
+              "label": "Marie Curie's Moon square Oprah Winfrey's Jupiter, 0.2° orb"
+            },
+            {
+              "ref": {
+                "orb": 2,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "venus",
+                "planetB": "mars"
+              },
+              "label": "Marie Curie's Venus conjunction Oprah Winfrey's Mars, 2.0° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: Marie’s steady help can feel like another demand when she needs rest, while Oprah’s pause can leave the conversation unfinished. Their care does not always arrive in the form the other notices. Naming what each needs trains them to offer help without pressure and time without uncertainty.",
+      "headline": "Oprah, care lands better when you say what you need before offering another plan.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you ask for care before you take on more",
+            "action": "Marie, say you are tired and name one small way Oprah can help."
+          },
+          {
+            "for": "B",
+            "why": "so you offer care without leaving the conversation uncertain",
+            "action": "Oprah, ask whether Marie wants help or quiet, then agree when to talk."
+          },
+          {
+            "for": "both",
+            "why": "so you can pause without treating silence as the end",
+            "action": "Together, choose a time to return to an unfinished conversation before resting."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Marie, you show love through attention, honest talk, and staying when life gets hard. You feel secure when someone keeps the small exchanges going. When tired, you may keep helping instead of saying plainly that you need rest.",
+        "becauseB": "Oprah, you show love through thoughtful questions and honest conversation. You need room to speak plainly and time to sort out what you think. When Marie goes quiet, you may give space while still working through the exchange alone."
+      }
+    },
+    "partners03": {
+      "card": {
+        "a": [
+          "You explain yourself best after thinking privately.",
+          "You can mistake being needed for being loved.",
+          "You feel secure when someone stays curious about your thoughts."
+        ],
+        "b": [
+          "You notice gaps and find the question that clarifies them.",
+          "Pressed for an answer, you may become sharp or go quiet.",
+          "You can hold tension, then speak with more force than the moment calls for."
+        ],
+        "pair": "Marie and Oprah can disagree, pause, and return to the conversation."
+      },
+      "scene": "At 11 pm, Oprah asks Marie what is wrong, and Marie explains the larger point before the small details. Oprah asks again, trying to find the missing part, and Marie says, “I’m tired. I need to stop.” Oprah goes quiet, still turning the words over, while Marie worries that asking for rest will sound like leaving. They agree to return to the talk in the morning, and Oprah names what she wants to understand first.",
+      "claims": [
+        {
+          "quote": "At 11 pm, Oprah asks Marie what is wrong, and Marie explains the larger point before the small details.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "A",
+                "section": "mind"
+              },
+              "label": "Marie Curie's report: Mercury 6.6° Sagittarius, 12th house; Mercury conjunction Mars, 7.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "Oprah Winfrey's report: Mercury 19.2° Aquarius, 3rd house; Saturn rules the 3rd and sits in Scorpio, 12th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah asks again, trying to find the missing part, and Marie says, “I’m tired. I need to stop.”",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.1,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Marie Curie's Mercury conjunction Oprah Winfrey's Moon, 2.1° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "mind"
+              },
+              "label": "Oprah Winfrey's report: Mercury 19.2° Aquarius, 3rd house; Saturn rules the 3rd and sits in Scorpio, 12th house, peregrine"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah goes quiet, still turning the words over, while Marie worries that asking for rest will sound like leaving.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 4,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "pluto",
+                "planetB": "mercury"
+              },
+              "label": "Marie Curie's Pluto square Oprah Winfrey's Mercury, 4.0° orb"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Oprah Winfrey's report: Mercury square Mars, 4.4° orb; Mars 23.6° Scorpio, 12th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Marie Curie's report: Venus 25.6° Scorpio, 11th house; Venus is the benefic out of sect; Venus conjunction Saturn, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Marie, you stay loyal through honest talk and sticking around when life gets hard.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Marie Curie's report: Venus 25.6° Scorpio, 11th house; Saturn 25.3° Scorpio, 11th house; Venus conjunction Saturn, 0.3° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You need time to decide what feels safe to share.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Oprah Winfrey's report: Mercury square Mars, 4.4° orb; Mars 23.6° Scorpio, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Marie may keep explaining while Oprah keeps asking, then Oprah goes quiet and Marie reads the silence as distance.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.1,
+                "kind": "cross",
+                "aspect": "conjunction",
+                "planetA": "mercury",
+                "planetB": "moon"
+              },
+              "label": "Marie Curie's Mercury conjunction Oprah Winfrey's Moon, 2.1° orb"
+            },
+            {
+              "ref": {
+                "orb": 4,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "pluto",
+                "planetB": "mercury"
+              },
+              "label": "Marie Curie's Pluto square Oprah Winfrey's Mercury, 4.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Their hard conversations can start naturally, but this friction trains them to name tiredness plainly and set a return time, so a pause does not leave either guessing.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.1,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "Marie Curie's Saturn square Oprah Winfrey's Pluto, 1.1° orb"
+            },
+            {
+              "ref": {
+                "orb": 1.4,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "venus",
+                "planetB": "pluto"
+              },
+              "label": "Marie Curie's Venus square Oprah Winfrey's Pluto, 1.4° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: Marie may keep explaining while Oprah keeps asking, then Oprah goes quiet and Marie reads the silence as distance. Their hard conversations can start naturally, but this friction trains them to name tiredness plainly and set a return time, so a pause does not leave either guessing.",
+      "headline": "Oprah, a pause works only when you say when you’ll return.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so Oprah knows you need rest, not distance",
+            "action": "Say, “I’m tired. I want to continue tomorrow,” before you pull away."
+          },
+          {
+            "for": "B",
+            "why": "so Marie can rest without wondering if you have left the conversation",
+            "action": "Say what you need to understand, then agree on a time to return."
+          },
+          {
+            "for": "both",
+            "why": "so you both know the talk is unfinished, not abandoned",
+            "action": "Pause the argument, name when you’ll resume, and begin with one clear question."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Marie, you stay loyal through honest talk and sticking around when life gets hard. You may keep giving after the exchange stops feeling fair, then hold back your needs until you are tired. You need curiosity and small daily exchanges.",
+        "becauseB": "Oprah, you notice gaps and test a thought in conversation, but you can miss how much your view is shifting. Pressed before you have sorted out what you think, you may become sharp or go quiet. You need time to decide what feels safe to share."
+      }
+    },
+    "partners04": {
+      "card": {
+        "a": [
+          "You build a public life with allies through demanding work.",
+          "You keep showing up when a project becomes difficult.",
+          "Resources come through persistence and work with trusted allies."
+        ],
+        "b": [
+          "You return to a conversation until you find the missed question.",
+          "A stable home base and trusted people help keep resources steady.",
+          "You feel at home when you speak plainly and move at your own pace."
+        ],
+        "pair": "Marie and Oprah can make a bill a shared problem."
+      },
+      "scene": "The unexpected bill lands, and Marie checks what needs paying while Oprah asks what it covers. Marie starts naming the work and costs already on the list. Oprah asks what each of them understood the money was for. Marie wants the home to run on steady effort and shared responsibility. Oprah wants clear words and time to consider what feels fair. They look at the bill together before deciding what comes next.",
+      "claims": [
+        {
+          "quote": "The unexpected bill lands, and Marie checks what needs paying while Oprah asks what it covers.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "money"
+              },
+              "label": "Marie Curie's report: Saturn rules the 2nd and sits in Scorpio, 11th house, peregrine; Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Oprah Winfrey's report: Mercury 19.2° Aquarius, 3rd house; Sun 9.0° Aquarius, 3rd house; Venus 8.9° Aquarius, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "Marie wants the home to run on steady effort and shared responsibility.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Marie Curie's report: Saturn 25.3° Scorpio, 11th house; Saturn is the malefic of sect"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Marie Curie's report: Moon 16.5° Pisces, 3rd house; Sun is the sect light"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah wants clear words and time to consider what feels fair.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "Oprah Winfrey's report: Jupiter rules the 4th and sits in Gemini, 7th house, in detriment"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "money"
+              },
+              "label": "Oprah Winfrey's report: Saturn rules the 2nd and sits in Scorpio, 12th house, peregrine; Saturn is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Marie, you build income through trusted allies and shared purpose, and you may take on extra costs to keep the effort moving.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "money"
+              },
+              "label": "Marie Curie's report: Saturn rules the 2nd and sits in Scorpio, 11th house, peregrine; Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "A",
+                "section": "money"
+              },
+              "label": "Marie Curie's report: Mars square Jupiter, 1.6° orb; Mars is the malefic out of sect; Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah, a stable home base and trusted people help you keep resources steady.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "money"
+              },
+              "label": "Oprah Winfrey's report: Lot of Fortune in Pisces, 4th house; Saturn rules the 2nd and sits in Scorpio, 12th house, peregrine; Venus is the benefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "This is the challenge: Marie may treat taking responsibility as care, while Oprah needs the bill and its meaning discussed plainly.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Marie Curie's report: Saturn 25.3° Scorpio, 11th house; Saturn is the malefic of sect"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Oprah Winfrey's report: Mercury 19.2° Aquarius, 3rd house; Sun 9.0° Aquarius, 3rd house; Venus 8.9° Aquarius, 3rd house"
+            },
+            {
+              "ref": {
+                "orb": 4,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "pluto",
+                "planetB": "mercury"
+              },
+              "label": "Marie Curie's Pluto square Oprah Winfrey's Mercury, 4.0° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Marie can carry the list before Oprah sees its weight.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 6,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Marie Curie's report: Mars rules the 4th and sits in Scorpio, 11th house, in domicile; Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "family"
+              },
+              "label": "Oprah Winfrey's report: Saturn 9.1° Scorpio, 12th house; Saturn is the malefic out of sect"
+            }
+          ]
+        }
+      ],
+      "pattern": "This is the challenge: Marie may treat taking responsibility as care, while Oprah needs the bill and its meaning discussed plainly. Marie can carry the list before Oprah sees its weight. Oprah's questions can help them check shared costs together, but they need to name who tracks the next task. That trains them to share both the work and the decision.",
+      "headline": "I need the bill and the list on the table before we discuss either.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so she can see the work before it becomes resentment",
+            "action": "Tell Oprah which household task you have been tracking before taking it on again."
+          },
+          {
+            "for": "B",
+            "why": "so you hear her concern before trying to solve it",
+            "action": "Ask Marie what the bill changes before suggesting a new plan."
+          },
+          {
+            "for": "both",
+            "why": "so neither of you has to carry the whole list alone",
+            "action": "Write down who will check the bill and when you will decide what to pay."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Marie, you build income through trusted allies and shared purpose, and you may take on extra costs to keep the effort moving. At home, you need quiet thought and familiar comforts, but urgent work can push ordinary care aside.",
+        "becauseB": "Oprah, a stable home base and trusted people help you keep resources steady. You may delay asking for help when worry rises, while carrying private concerns without showing their weight. Plain speech and your own pace help you feel at home."
+      }
+    },
+    "partners05": {
+      "card": {
+        "a": [
+          "You keep showing up when a project becomes difficult.",
+          "You can pick up on a feeling or possibility before you can explain it.",
+          "Asking directly for comfort can feel less natural than proving you deserve it."
+        ],
+        "b": [
+          "You return to a conversation until you find the question people have missed.",
+          "You also need stretches of privacy that others may not see.",
+          "You know how to make an exchange feel welcoming."
+        ],
+        "pair": "Marie and Oprah can talk, then give each other quiet."
+      },
+      "scene": "On Friday with no plan, Marie wants the two days to include quiet and time without demands. Oprah wants a shared plan, with enough open time to follow what interests them. Marie says, “Let’s choose one thing, then leave the rest open.” Oprah agrees, and they settle on a loose outline together. They can enjoy the weekend without asking Marie to earn her rest or Oprah to explain every feeling.",
+      "claims": [
+        {
+          "quote": "On Friday with no plan, Marie wants the two days to include quiet and time without demands.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "Marie Curie's report: Saturn 25.3° Scorpio, 11th house; Saturn is the malefic of sect; Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah wants a shared plan, with enough open time to follow what interests them.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.2,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "mercury",
+                "planetB": "venus"
+              },
+              "label": "Marie Curie's Mercury sextile Oprah Winfrey's Venus, 2.2° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Marie, you keep showing up when a project becomes difficult, and you can push harder when pressure rises.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "Marie Curie's report: Sun 14.6° Scorpio, 11th house; Saturn 25.3° Scorpio, 11th house; Mars 29.6° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 4,
+                "report": "A",
+                "section": "superpowers"
+              },
+              "label": "Marie Curie's report: Mars is the malefic out of sect; Mars square Jupiter, 1.6° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You also need privacy to sort out what you think, even during time together.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 3,
+                "report": "B",
+                "section": "overview"
+              },
+              "label": "Oprah Winfrey's report: Mars 23.6° Scorpio, 12th house; Saturn 9.1° Scorpio, 12th house"
+            }
+          ]
+        },
+        {
+          "quote": "This comes naturally: you can keep talking while leaving each other room to change the plan.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.2,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "mercury",
+                "planetB": "venus"
+              },
+              "label": "Marie Curie's Mercury sextile Oprah Winfrey's Venus, 2.2° orb"
+            },
+            {
+              "ref": {
+                "orb": 3.8,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "moon",
+                "planetB": "uranus"
+              },
+              "label": "Marie Curie's Moon trine Oprah Winfrey's Uranus, 3.8° orb"
+            }
+          ]
+        },
+        {
+          "quote": "The challenge is choosing a shared outline without filling every hour, so you practise making plans that leave time for rest.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 3.7,
+                "kind": "cross",
+                "aspect": "trine",
+                "planetA": "uranus",
+                "planetB": "saturn"
+              },
+              "label": "Marie Curie's Uranus trine Oprah Winfrey's Saturn, 3.7° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "This comes naturally: you can keep talking while leaving each other room to change the plan. Marie’s observations can help Oprah find the words she wants, while Oprah’s warmth makes it easier to enjoy the exchange. The challenge is choosing a shared outline without filling every hour, so you practise making plans that leave time for rest.",
+      "headline": "You can leave the weekend open, provided you agree on one plan.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you ask for rest before you are worn out",
+            "action": "Tell Oprah before the weekend that you want one quiet stretch with no plans."
+          },
+          {
+            "for": "B",
+            "why": "so you can enjoy time together without pressing for an answer",
+            "action": "Offer one shared plan, then let Marie choose when to leave the rest open."
+          },
+          {
+            "for": "both",
+            "why": "so you practise planning together without giving up quiet time",
+            "action": "Choose one shared activity and keep the rest of the weekend unscheduled."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Marie, you keep showing up when a project becomes difficult, and you can push harder when pressure rises. You may treat warmth as something earned through effort, so time off needs to feel freely given.",
+        "becauseB": "Oprah, you know how to make an exchange feel welcoming, and you return to a conversation until you find its missed question. You also need privacy to sort out what you think, even during time together."
+      }
+    },
+    "partners06": {
+      "card": {
+        "a": [
+          "You take responsibility for difficult work.",
+          "You grow through close study and clear explanations.",
+          "You build closeness by disagreeing and returning."
+        ],
+        "b": [
+          "Work with a trusted group can help your voice reach further.",
+          "Partnership asks you to keep your own needs in view.",
+          "Take help while keeping your own terms and final decision."
+        ],
+        "pair": "Marie and Oprah make a hard choice easier to discuss."
+      },
+      "scene": "The job offer in another city sits between Marie and Oprah as they talk through the move. Marie asks what the work will serve and how many years it may ask of her. Oprah asks what the offer changes for each of them, and what they would need to decide together. “I want this, but I need to know what it asks of us,” Marie says. Oprah answers, “Let’s name what we each need before we decide.”",
+      "claims": [
+        {
+          "quote": "The job offer in another city sits between Marie and Oprah as they talk through the move.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "cross",
+                "aspect": "sextile",
+                "planetA": "mercury",
+                "planetB": "sun"
+              },
+              "label": "Marie Curie's Mercury sextile Oprah Winfrey's Sun, 2.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Marie asks what the work will serve and how many years it may ask of her.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "career"
+              },
+              "label": "Marie Curie's report: Venus rules the 10th and sits in Scorpio, 11th house, in detriment; Lot of Spirit in Virgo, 9th house"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah asks what the offer changes for each of them, and what they would need to decide together.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Oprah Winfrey's report: Moon 4.5° Sagittarius, 1st house; Mercury rules the 7th and sits in Aquarius, 3rd house, peregrine; Jupiter 16.7° Gemini, 7th house"
+            }
+          ]
+        },
+        {
+          "quote": "Marie, you stay with demanding work because you want it to serve a serious shared purpose.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "career"
+              },
+              "label": "Marie Curie's report: Venus rules the 10th and sits in Scorpio, 11th house, in detriment; Lot of Spirit in Virgo, 9th house"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah, you want trusted people involved, but you need a real say in what gets made.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 5,
+                "report": "B",
+                "section": "career"
+              },
+              "label": "Oprah Winfrey's report: Lot of Spirit in Libra, 11th house; North Node 23.2° Capricorn, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "The challenge is making sure neither person's future quietly assumes the other's sacrifice.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.1,
+                "kind": "cross",
+                "aspect": "square",
+                "planetA": "saturn",
+                "planetB": "pluto"
+              },
+              "label": "Marie Curie's Saturn square Oprah Winfrey's Pluto, 1.1° orb"
+            }
+          ]
+        }
+      ],
+      "pattern": "Marie and Oprah can talk through this naturally: Marie explains what the work means, and Oprah asks clear questions about the shared plan. The challenge is making sure neither person's future quietly assumes the other's sacrifice. Saying what each is choosing, and what time apart would mean, trains them to keep the decision mutual.",
+      "headline": "Oprah, a good plan still needs Marie's honest yes.",
+      "nextTime": {
+        "items": [
+          {
+            "for": "A",
+            "why": "so you ask for rest before you are depleted",
+            "action": "Say what the work means to you and how much time you can give it."
+          },
+          {
+            "for": "B",
+            "why": "so you keep your needs in the decision",
+            "action": "Say what you want from the move, including what you need to keep your own say."
+          },
+          {
+            "for": "both",
+            "why": "so you make the choice together",
+            "action": "List the work, money, and time apart each of you is agreeing to."
+          }
+        ]
+      },
+      "whatJustHappened": {
+        "becauseA": "Marie, you stay with demanding work because you want it to serve a serious shared purpose. You can take responsibility long after others lose patience, then notice your own needs only after the work is done.",
+        "becauseB": "Oprah, you want trusted people involved, but you need a real say in what gets made. Partnership also asks you to keep your own needs in view, so a move cannot be only Marie’s calling."
+      }
+    },
+    "whatToPractise": {
+      "forA": {
+        "intro": "Marie, these three actions help you ask for care before taking on more.",
+        "items": [
+          {
+            "why": "so she can see the work before it becomes resentment",
+            "action": "Tell Oprah which household task you have been tracking before taking it on again."
+          },
+          {
+            "why": "so Oprah knows you need rest, not distance",
+            "action": "Say, “I’m tired. I want to continue tomorrow,” before you pull away."
+          },
+          {
+            "why": "so you ask for rest before you are depleted",
+            "action": "Say what the work means to you and how much time you can give it."
+          }
+        ]
+      },
+      "forB": {
+        "intro": "Oprah, these actions help you offer care and keep practical decisions shared.",
+        "items": [
+          {
+            "why": "so you offer care without leaving the conversation uncertain",
+            "action": "Ask whether Marie wants help or quiet, then agree when to talk."
+          },
+          {
+            "why": "so you hear her concern before trying to solve it",
+            "action": "Ask Marie what the bill changes before suggesting a new plan."
+          },
+          {
+            "why": "so you keep your needs in the decision",
+            "action": "Say what you want from the move, including what you need to keep your own say."
+          }
+        ]
+      },
+      "claims": [
+        {
+          "quote": "Marie, you often keep working after you are tired.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "Marie Curie's report: Saturn 25.3° Scorpio, 11th house; Saturn is the malefic of sect; Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        },
+        {
+          "quote": "Oprah, you may need time alone before saying what hurts.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Oprah Winfrey's report: Mercury rules the 7th and sits in Aquarius, 3rd house, peregrine; Mercury 19.2° Aquarius, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "Tell Oprah which household task you have been tracking before taking it on again.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "family"
+              },
+              "label": "Marie Curie's report: Saturn 25.3° Scorpio, 11th house; Saturn is the malefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Ask whether Marie wants help or quiet, then agree when to talk.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Oprah Winfrey's report: Mercury rules the 7th and sits in Aquarius, 3rd house, peregrine; Mercury 19.2° Aquarius, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "Choose a time to return to an unfinished conversation before resting.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "relationships"
+              },
+              "label": "Marie Curie's report: Moon rules the 7th and sits in Pisces, 3rd house, peregrine"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "B",
+                "section": "relationships"
+              },
+              "label": "Oprah Winfrey's report: Venus 8.9° Aquarius, 3rd house; Venus is the benefic of sect; Sun conjunction Venus, 0.1° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Together, you can talk through a bill, a move, or an argument without deciding that one person must carry everything.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "A",
+                "section": "money"
+              },
+              "label": "Marie Curie's report: Saturn rules the 2nd and sits in Scorpio, 11th house, peregrine; Saturn 25.3° Scorpio, 11th house"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 1,
+                "report": "B",
+                "section": "money"
+              },
+              "label": "Oprah Winfrey's report: Saturn rules the 2nd and sits in Scorpio, 12th house, peregrine; Saturn is the malefic out of sect"
+            },
+            {
+              "ref": {
+                "kind": "source",
+                "claim": 2,
+                "report": "A",
+                "section": "overview"
+              },
+              "label": "Marie Curie's report: Sun 14.6° Scorpio, 11th house; Saturn 25.3° Scorpio, 11th house; Mars 29.6° Scorpio, 11th house"
+            }
+          ]
+        }
+      ],
+      "closing": "Marie, you can help Oprah find words for a question she has carried quietly. Oprah, you can help Marie turn a demanding plan into clear steps. Together, you can talk through a bill, a move, or an argument without deciding that one person must carry everything. Marie can name tiredness before withdrawing. Oprah can take time to think and say when she will return. Then neither of you has to guess what silence means. Your care works best when each of you can ask, answer, and still keep your own say.",
+      "forBoth": {
+        "intro": "Together, use these steps to share decisions and make pauses easier to trust.",
+        "items": [
+          {
+            "why": "so you can pause without treating silence as the end",
+            "action": "Choose a time to return to an unfinished conversation before resting."
+          },
+          {
+            "why": "so neither of you has to carry the whole list alone",
+            "action": "Write down who will check the bill and when you will decide what to pay."
+          },
+          {
+            "why": "so you make the choice together",
+            "action": "List the work, money, and time apart each of you is agreeing to."
+          }
+        ]
+      },
+      "opening": "Marie, you often keep working after you are tired. Oprah, you may need time alone before saying what hurts. Together, you need to make pauses clear and return to unfinished talks. You can care for each other without asking either of you to push past your limits."
+    }
+  }
+}
