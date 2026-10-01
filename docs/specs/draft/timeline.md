@@ -1,13 +1,14 @@
 # Timeline
 
-Ideation 2026-10-01, draft v6, ready to lock; behind a switch, off at launch. Picks up MB-26
+Ideation 2026-10-01, draft v7, ready to lock; behind a switch, off at launch. Picks up MB-26
 and "Later: the subscription" (`pricing-and-launch.md`).
 https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE
 
 Timeline is the one subscription, sold only to an owner of a Personal natal report. It
 shows the sky moving across the reader's own chart, no one else's: a life's long cycles,
 what touches it now and ahead, and Ask, a chat about the chart, reports and timeline. No
-horoscope for the day. The dates are free; what they mean is the subscription.
+horoscope for the day. **Its job is to sell more reports**: the reports make the money and
+the loop; Timeline brings the reader back to their orbit every week, past their people.
 
 ## Scope
 
@@ -30,15 +31,12 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   Timeline says so once and shows the planet contacts it can.
 
 ### Life (screen 3)
-- **It opens on why it matters**: four ages people know, each a card with the reader's date
-  and a ring (brass at birth, an arc to today). 29, the late-twenties reset (Saturn); every
-  12, a fresh start (Jupiter); 19 and 37, a change of direction (nodes); early forties, the
-  midlife shake-up (Uranus opposition). A card opens its cycle.
+- **It opens on why it matters**: four known ages as cards with the reader's dates and a
+  ring: 29 (Saturn), every 12 (Jupiter), 19 and 37 (nodes), early forties (Uranus).
 - Waves, ages on top: per planet, its distance from its birth place, monthly from the
   engine; a return at the bottom, opposite at the top, cycles as markers; the past shaded.
-- A cycle's card leads with its name, plain word, ring, one astronomy fact and the reading;
-  the numbers (in-orb dates, passes, point and house, ADR-98, last and next) sit quieter on
-  the left. Repeating cycles carry a look-back prompt ("Think back to summer 2014").
+- A cycle's card: name, plain word, ring, one fact, the reading; numbers quieter on the
+  left (ADR-98); repeating cycles carry a look-back prompt ("Think back to summer 2014").
 
 ### Now and ahead (screen 4)
 - **The dial**, no Gantt: the natal chart inside, each planet from Mercury to Pluto on its
@@ -49,7 +47,6 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   its tone (easy teal, mixed grey, intense rose, by a fixed planet-and-aspect table), a
   plain headline, one everyday line, how long it lasts; the planet, house, orb and dates
   small underneath; tap to read. Then what starts, peaks or eases next (tap to jump).
-  The dashboard's "Your chart today" is the same dial standing on today.
 
 ### Ask (screen 5)
 - A chat about the reader's chart, reports and timeline in their own words. When it needs
@@ -58,12 +55,9 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   days, a cycle) through tools, quoting reports word for word. The Moon appears only here.
 - It reads only what the reader can read (`access.ts`, R-3.6). Someone in a Compatibility
   report the reader can read is computed for the day asked about only, never stored.
-- It explains and reflects: no diagnosis, no medical, legal or money advice, no do or don't.
-  Harm gets a fixed reply with where to get help.
-- **Always there**: a launcher, bottom right, on the dashboard, every Timeline screen and
-  the reader's own reports; a full-height sheet on a phone, a side panel on a desktop. Its
-  own mark: our house ring and horizon with the brass Ascendant, opened into a speech
-  bubble; the name Ask in Newsreader italic.
+- It reflects: no diagnosis, medical, legal or money advice, no do or don't; a fixed harm reply.
+- **Always there**: a launcher, bottom right, on the dashboard, Timeline and the reader's
+  reports. Its mark: our ring and horizon opened into a speech bubble; Newsreader italic.
 - **The cap** (Owner: model cost under half the subscription, no new tier): 50 messages a
   month. Yearly €69.99/12 less 23% VAT and Stripe is €4.63; half €2.32. Readings €0.12 and
   Ask at the cap €1.50 (about €0.03 a message, two `gpt-5.2` calls) make €1.62, 35%; it
@@ -85,15 +79,33 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   chart, the first answered free by Ask (about €0.03), Life, Now and ahead and Ask in a
   line each, the price, Start Timeline, Not now. No countdown. With nothing slow on the
   chart, it names the next life cycle.
-- **Home** (screen 2) replaces the dashboard for a subscriber: a weekly headline, then three
-  tiles, each one picture and one sentence and each opening its screen: on you now (the
-  dial, the top contact), this week (seven days, tone dots), your life (a ring with the age
-  of the next big cycle). Reports and people below; tabs Home, Now and ahead, Life, Reports.
+- **The orbit stays the dashboard** (screen 2, `dashboard-sky` unchanged for everyone). A
+  subscriber gets a ring around You, the week in seven arcs (Monday at the top, each the
+  tone of its day, bright when something starts or peaks), and one panel block: the week's
+  headline, seven days, what's on you, one people line, the next big cycle with Share, Open
+  Timeline. Tabs: Your orbit, Timeline (Now and ahead, Life). Ask in the corner.
+
+### Timeline sells reports
+- The arithmetic: one Single keeps €18.63 (€24 less VAT, Stripe, €0.27 writing), a Couple
+  €37.24, a year of Timeline about €36 at Ask's cap. One more Couple a year equals the plan.
+- **People lines**: a contact on Venus, the Moon or the 7th house carries one line to a
+  person in the orbit: with a pair, the part of it that fits; without, "Read the two of you
+  · 1 credit". Never another person's sky. At most one a week on the dashboard.
+- **Ask** answers about someone from the reader's side and offers the report holding both:
+  the pair, or Gift a report when they have none.
+- **Share cards** for every life cycle (1080×1350, ADR-102), from Life and the dashboard:
+  ring, age, name, sky date, "When is yours?", leading to `/timeline`'s finder. MB-104's
+  answer governs what a card may show.
+- **The yearly plan includes one Personal natal report to give** (Gift a report, €0.27).
+- **The letter ends at the orbit**: one line under the dashboard nudges' rules.
+- **Measured** in the loop study: credits, sends and gifts per subscriber against owners
+  without Timeline, share cards ending in a report. Target: one more report a year each.
 
 ### Free and paid
-- No half-empty free layer: without Timeline the dashboard stays as today. Free: the offer
-  (their dial today, one Ask question) and the public finder.
-- Timeline: every reading, all three ranges, Ask, the weekly letter, for the reader.
+- Free for a report owner: the offer (their dial today, one Ask question), one dashboard
+  line, "Your next big cycle is at 37, in 2 years", with Share; and the public finder.
+- Timeline: the week ring, every reading, Now and ahead, Life, Ask, the letter, for the
+  reader; the yearly plan adds a report to give.
 - **€9.99 a month or €69.99 a year** (58% of twelve months), VAT included, EUR only, like
   the report: EU consumer prices must show the final price. Home-rate VAT under €10,000 of
   cross-border sales a year, then each buyer's rate through OSS; the price stays the same.
@@ -103,8 +115,7 @@ horoscope for the day. The dates are free; what they mean is the subscription.
 
 ### The switch and the order of building
 - `TIMELINE` in `packages/launch`, beside `LAUNCHED`, off everywhere. The admin sees
-  Timeline on staging regardless, to work in it. Every Timeline surface (the offer, the
-  Home, the app routes, the letter, billing) sits behind it. On is a Release.
+  Timeline on staging. Every Timeline surface sits behind it. On is a Release.
 - Built after R12; R12 stays as planned. Production launches with the two reports.
 
 ### Coming soon on the site (screen 7, no switch)
@@ -112,13 +123,11 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   that names Stars Decoded (ADR-116): "When is your Saturn return?" A free finder takes
   a birth date and computes, in the browser with the engine, the Saturn returns, the
   next Jupiter return, the nodal returns and the Uranus opposition. Dates only.
-- Cards: a ring with the age at the Saturn return; four cycle cards (ring, age, dates, "next
-  in N years" while a pass is ahead, else "behind you", a why line); three previews; Get my
-  report (the waitlist before launch, ADR-167); a folded FAQ. May ship with the launch.
+- Cards: the Saturn-return age ring; four cycle cards ("next in N years" or "behind you");
+  three previews; Get my report (the waitlist before launch, ADR-167); a folded FAQ.
 
 ### The weekly letter (screen 6)
-- Opt-in when Timeline starts: every week with something, only the big ones (outer
-  planets, Saturn, an eclipse on a point), or off. Monday, from Railway on a schedule.
+- Opt-in: every week with something, only the big ones, or off. Monday, from Railway.
 - Only when something begins, peaks or ends that week: the biggest in the subject, seven
   day cells, facts and dates, "Read what this means for you", one-click stop. Dark tables.
 - No push notifications, no daily anything, no streaks or badges (ADR-127).
@@ -133,14 +142,12 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   gains: "It may name the dates of computed sky events and say how astrology reads that
   time. It never names a date for something in the reader's life, and never tells the
   reader to do or not do the thing they asked about."
-- With the coming-soon page, since it names sky dates: FAQ "Does it predict the future?"
-  ("no dates for your life"), "Do I pay once or every month?", the home Pricing lede
-  ("Timeline will be optional"), Method, Terms, ux-copy's date rule. The rest at switch-on.
+- With the coming-soon page: FAQ "Does it predict the future?" ("no dates for your life"),
+  "Do I pay once or every month?", the Pricing lede, Method, Terms, ux-copy's date rule.
 
 ## Out of scope
 - Timeline for anyone but the reader until readers ask; pairs (MB-103); sharing (MB-104).
-- Daily horoscopes, Moon-of-the-day content, push notifications; progressions, solar
-  returns, Chiron, Lilith, asteroids, Placidus.
+- Daily horoscopes, push notifications, progressions, solar returns, Lilith, Placidus.
 - Ask as therapy or coaching: it reflects, it doesn't counsel. Voice or images in Ask.
 
 ## Acceptance criteria
@@ -160,41 +167,34 @@ horoscope for the day. The dates are free; what they mean is the subscription.
 11. Ask never shows a chart or report its reader can't read; a test covers each access.
 
 ## The Owner's answers (2026-10-01)
-1. Timing answers: **B**, astrology's reading with the reasons, never yes, no or a score.
-2. Price: €9.99 a month, VAT included, no free trial; promotions only (v4).
-3. When: **behind a switch**, off at production launch, built after R12; Ask becomes a
-   chat; Life explains why it matters first; a coming-soon page for search.
-4. Notes on v2: only you; quieter numbers on the cycle card; one consistent Now view;
-   cap Ask by cost, no new tier; design the dashboard and the letter; explain the finder.
-5. Notes on v3/v4: the dial, not a Gantt; Ask always visible with its own mark; sell Ask
-   at the end of the report; coming soon as cards; why it matters first, tone colours; Life
-   as a clearer chart with ages on top. On v5: Home in a blink, no without view; tone words;
-   the same markers for every planet.
-Claude's calls (the Owner may overturn any): the switch's form, coming soon first, the
-name Ask, a partner for one day, €69.99 a year, one free question, the launcher inside
-reports, rose #C46B78 for intense, easy/mixed/intense, every planet's halfway point.
+1. Timing: **B**, the reading with reasons, never yes, no or a score. Only the reader.
+2. €9.99 a month, VAT included, no free trial, promotions only. Behind a switch, after R12.
+3. On v2 to v5: Ask a chat capped by cost, no tier; the dial, not a Gantt; Ask everywhere
+   with its own mark; Life's why first, ages on top; coming soon as cards; tone colours.
+4. On v6: the reports and their sharing are the core and the money. No Home: Timeline
+   sits inside the orbit and is designed to sell reports.
+Claude's calls (the Owner may overturn any): the switch's form, the name Ask, €69.99 a
+year, one free question, rose #C46B78, easy/mixed/intense, the week ring, people lines,
+the free next-cycle line, share cards, a report to give with the year.
 
 ## Decisions to record (at /lock)
 1. Timeline is the one subscription, only for an owner of a Personal natal report.
    Supersedes ADR-4 in part; amends §1 and §2 (daily horoscopes stay excluded).
 2. R-5.2 amended: sky dates may be named, life dates never, no do or don't.
-3. No horoscope for the day; Now and ahead is the moving dial, plain words before terms,
-   tone by a fixed table (easy, mixed, intense; one new token, rose); content only on contacts.
+3. Now and ahead is the moving dial, plain words first, tone by a fixed table (easy, mixed,
+   intense, rose the one new token), reasons, never a score; content only on contacts.
 4. The doctrine: bodies, aspects, orbs, mean node, Chiron out, whole sign, no-time rules.
-5. The reader's own chart only (others wait for demand, pairs for MB-103). Life: waves,
-   birth to 90, opens on four recognisable ages, look-back prompts.
+5. The reader's own chart only. Life: waves, birth to 90, four known ages first.
 6. Readings: a new prompt family, once per event per person, stored, tied to the report;
    any date or degree not computed blocks.
-7. Sold after Closing on an owned report (dial, three questions, one free), once. Home
-   replaces the dashboard for subscribers; without Timeline the dashboard is unchanged.
-8. Free: the offer's dial and one question. Paid: Home, readings, ranges, Ask, the letter.
-9. €9.99 / €69.99, VAT included; no free trial; offers and trials only as dated
-   promotions, the first 30 days after launch.
-10. Ask: a chat in Timeline, asks back with cards, computed cards in answers, reads only
-    what the reader can, no diagnosis or advice, a fixed harm reply, 50 a month; its own
-    mark and a launcher on every screen.
-11. Timing answers in style B: easy, mixed or intense with reasons, never a score.
-12. The weekly letter: opt-in, Monday, only in weeks that touch the chart.
-13. `TIMELINE` off everywhere, admin sees it on staging; built after R12.
-14. `/timeline` coming soon with the free finder, no switch, may ship with the launch;
-    the date and subscription lines in FAQ, Pricing, Method and Terms change with it.
+7. Sold after Closing on an owned report (dial, three questions, one free), once. The orbit
+   stays the dashboard; a subscriber gets the week ring, one panel block, one tab.
+8. Free: the offer, one question, the next-cycle line with Share. €9.99 / €69.99, VAT
+   included, no free trial; dated promotions only, the first 30 days after launch.
+9. Ask: a chat that asks back with cards, computed answers, reads only what the reader
+   can, no diagnosis or advice, a fixed harm reply, 50 a month, its mark everywhere.
+10. The weekly letter: opt-in, Monday, only in weeks that touch the chart.
+11. `TIMELINE` off everywhere, admin sees it on staging; built after R12. `/timeline`
+    coming soon with the finder, no switch, may ship with the launch.
+12. Timeline sells reports: people lines, Ask's pair offer, share cards, a report to give
+    with the yearly plan, the letter's orbit line; success is one more report a year.
