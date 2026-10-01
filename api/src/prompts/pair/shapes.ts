@@ -75,7 +75,7 @@ export const PairLensChapterSchema = z.object({
     b: CardSide,
     pair: z.string().describe("one line for the pair, at most twelve words"),
   }),
-  scene: z.string().describe("four to six present-tense sentences with both names; may hold a short quoted exchange; no fact outside the brief"),
+  scene: z.string().describe("four to six present-tense sentences with both names, may hold a short quoted exchange, no fact outside the brief"),
   whatJustHappened: z.object({
     becauseA: z.string().describe("25 to 40 words: the need, fear or habit under A's side, in A's report's words"),
     becauseB: z.string().describe("25 to 40 words: the same for B"),
@@ -102,13 +102,13 @@ export const PairLinkSchema = z.object({
   kind: z.enum(["flows", "rubs", "overlay"]),
   // Enums, not strings: given the list's "A Moon square B Jupiter", a free
   // string came back as "A Moon" and no card could ever match its aspect.
-  planetA: z.enum([...BODIES, ""]).describe("the aspect's A body as a key, e.g. moon; empty for an overlay"),
-  planetB: z.enum([...BODIES, ""]).describe("the aspect's B body as a key; empty for an overlay"),
-  aspect: z.enum([...ASPECTS, ""]).describe("the aspect type; empty for an overlay"),
-  orb: z.number().describe("the orb as listed; 0 for an overlay"),
-  planet: z.enum([...BODIES, ""]).describe("an overlay's lead body as a key, e.g. sun; empty for an aspect"),
-  of: z.enum(["A", "B", "none"]).describe("an overlay's owner; none for an aspect"),
-  house: z.int().describe("an overlay's house; 0 for an aspect"),
+  planetA: z.enum([...BODIES, ""]).describe("the aspect's A body as a key, e.g. moon, or empty for an overlay"),
+  planetB: z.enum([...BODIES, ""]).describe("the aspect's B body as a key, or empty for an overlay"),
+  aspect: z.enum([...ASPECTS, ""]).describe("the aspect type, or empty for an overlay"),
+  orb: z.number().describe("the orb as listed, or 0 for an overlay"),
+  planet: z.enum([...BODIES, ""]).describe("an overlay's lead body as a key, e.g. sun, or empty for an aspect"),
+  of: z.enum(["A", "B", "none"]).describe("an overlay's owner, or none for an aspect"),
+  house: z.int().describe("an overlay's house, or 0 for an aspect"),
   reading: z.string().describe("40 to 70 words, ending on a sentence that begins 'Behaviour check:'"),
 });
 
@@ -426,7 +426,7 @@ export function lensChapterId(lens: Lens, n: number): string {
 }
 
 /** The instruction every lens chapter carries after its own: evidence in claims only, the shape, the register. */
-export const LENS_CHAPTER_CONTRACT = `Citations live in the claims field only. A passage never writes a body, a sign, an aspect or an orb; the reader sees the evidence on the card, not in the sentence. The headline is one sentence in B's voice: plain, a little dry, a verdict. The side-by-side card takes three lines a side in that person's own words from their personal report and one line for the pair, twelve words a line, naming only the two people, no body, no number. The scene is the one the brief names for this chapter and no other, written in four to six present-tense sentences with both names, and may hold a short quoted exchange; it invents no fact outside the brief. What just happened gives because A and because B, 25 to 40 words each, the need, fear or habit under that side in that report's words, each cited as a source claim. The pattern is 40 to 60 words, cited to one of this chapter's own links, and says whether this comes naturally to the two of them or is the challenge. A challenge is written as "This is the challenge:" followed by what it is and what it trains. Next time gives two or three items, each for A, for B or for both, an action of 8 to 18 words and a why with a verb that says what it trains. 230 to 300 words across the headline, scene, what just happened and pattern; the card and the items sit outside that count. No score, no number, no research named on the page.`;
+export const LENS_CHAPTER_CONTRACT = `Citations live in the claims field only. A passage never writes a body, a sign, an aspect or an orb. The reader sees the evidence on the card, not in the sentence. The headline is one sentence in B's voice: plain, a little dry, a verdict. The side-by-side card takes three lines a side in that person's own words from their personal report and one line for the pair, twelve words a line, naming only the two people, no body, no number. The scene is the one the brief names for this chapter and no other, written in four to six present-tense sentences with both names, and may hold a short quoted exchange. It invents no fact outside the brief. What just happened gives because A and because B, 25 to 40 words each, the need, fear or habit under that side in that report's words, each cited as a source claim. The pattern is 40 to 60 words, cited to one of this chapter's own links, and says whether this comes naturally to the two of them or is the challenge. A challenge is written as "This is the challenge:" followed by what it is and what it trains. Next time gives two or three items, each for A, for B or for both, an action of 8 to 18 words and a why with a verb that says what it trains. 230 to 300 words across the headline, scene, what just happened and pattern. The card and the items sit outside that count. No score, no number, no research named on the page.`;
 
 export function lensChapter(input: LensChapterInput): PairSectionSpec<typeof PairLensChapterSchema> {
   const id = lensChapterId(input.lens, input.n);

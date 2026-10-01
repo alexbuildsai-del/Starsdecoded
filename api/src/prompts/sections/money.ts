@@ -25,5 +25,5 @@ One paragraph on their relationship to earning, keeping, and valuing. One paragr
 
 If the chart is genuinely quiet here, say what that quiet looks like in practice rather than inventing drama. No planet, sign, or house names in the prose. 250 to 320 words.
 
-Sect. Read the rulers of the 2nd and 8th by sect where they are Venus, Mars, Jupiter or Saturn. The benefic of sect gives resources reliably; the benefic out of sect gives them unreliably or with a cost. The malefic out of sect is where money is lost.`,
+Sect. Read the rulers of the 2nd and 8th by sect where they are Venus, Mars, Jupiter or Saturn. The benefic of sect gives resources reliably. The benefic out of sect gives them unreliably or with a cost. The malefic out of sect is where money is lost.`,
 };

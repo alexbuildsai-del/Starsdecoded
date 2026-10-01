@@ -19,11 +19,11 @@ export interface BandEntry {
 export const BAND_DOCTRINE: Record<Band, BandEntry> = {
   little: {
     fair: [
-      "tantrums are normal, most between two and four, most over inside five minutes, and they are regulation running out, not defiance",
-      "chores are putting toys away, helping carry and wiping a table; nothing that needs a routine kept alone",
-      "there is no homework; play, drawing and being read to are the learning",
-      "screens: none before eighteen months except a video call, then about an hour a day of good content watched together",
-      "bedtime needs the same order every night and a parent who leaves the room the same way",
+      "Tantrums are normal, most between two and four, most over inside five minutes, and they are regulation running out, not defiance",
+      "Chores are putting toys away, helping carry and wiping a table, nothing that needs a routine kept alone",
+      "There is no homework. Play, drawing and being read to are the learning",
+      "Screens: none before eighteen months except a video call, then about an hour a day of good content watched together",
+      "Bedtime needs the same order every night and a parent who leaves the room the same way",
     ],
     never: [
       ["homework is not fair before school age", /\bhomework\b/i],
@@ -37,11 +37,11 @@ export const BAND_DOCTRINE: Record<Band, BandEntry> = {
   },
   school: {
     fair: [
-      "big reactions come from losing, unfairness and tiredness; naming the feeling first still works",
-      "chores by age: a set table, a fed pet, a made bed and simple food at six to eight; laundry, a packed bag and a simple meal at nine to twelve, with pocket money as its own thing, not a wage",
-      "homework is fair at about ten minutes a night per school year, at the kitchen table, with a parent nearby and not doing it",
-      "screens: consistent limits, no screen in the bedroom, the same rule every day",
-      "a job of their own at home tells the child they are needed",
+      "Big reactions come from losing, unfairness and tiredness. Naming the feeling first still works",
+      "Chores by age: a set table, a fed pet, a made bed and simple food at six to eight. Laundry, a packed bag and a simple meal at nine to twelve, with pocket money as its own thing, not a wage",
+      "Homework is fair at about ten minutes a night per school year, at the kitchen table, with a parent nearby and not doing it",
+      "Screens: consistent limits, no screen in the bedroom, the same rule every day",
+      "A job of their own at home tells the child they are needed",
     ],
     never: [
       ["nappies, potty training and toddler words belong to a little child", /\b(nappy|nappies|diaper|potty|toddler)\b/i],
@@ -53,11 +53,11 @@ export const BAND_DOCTRINE: Record<Band, BandEntry> = {
   },
   teen: {
     fair: [
-      "autonomy support over control: explain why, give a choice inside the limit, let their way of studying lead",
-      "revision is theirs to own; a parent asks how it is going and does not check it",
-      "chores are real: cooking a meal, their own laundry, their own room, and being counted on",
-      "screens: devices out of the bedroom at night; the rule is agreed with them and kept by both",
-      "the closed door is a need for privacy, not a rejection; a big reaction is best met later, not in the doorway",
+      "Autonomy support over control: explain why, give a choice inside the limit, let their way of studying lead",
+      "Revision is theirs to own. A parent asks how it is going and does not check it",
+      "Chores are real: cooking a meal, their own laundry, their own room, and being counted on",
+      "Screens: devices out of the bedroom at night. The rule is agreed with them and kept by both",
+      "The closed door is a need for privacy, not a rejection. A big reaction is best met later, not in the doorway",
     ],
     never: [
       ["tantrums, bedtime stories and toddler care belong to a little child", /\b(tantrum|toddler|nappy|nappies|potty|bedtime story)\b/i],
@@ -67,11 +67,11 @@ export const BAND_DOCTRINE: Record<Band, BandEntry> = {
   },
   grown: {
     fair: [
-      "there is no rule now; what holds is an agreement both made, and the old rule that no longer applies is named as such",
-      "the frictions between a parent and a grown child are lifestyle and choices, money, how often they talk, and how any grandchildren are raised",
-      "advice is given when asked; a choice the parent does not understand is asked about, not corrected",
-      "a week back home is a guest's share of the house, offered and not assigned",
-      "the Sunday call is kept by both or by neither; the parent who calls three times gets one answer",
+      "There is no rule now. What holds is an agreement both made, and the old rule that no longer applies is named as such",
+      "The frictions between a parent and a grown child are lifestyle and choices, money, how often they talk, and how any grandchildren are raised",
+      "Advice is given when asked. A choice the parent does not understand is asked about, not corrected",
+      "A week back home is a guest's share of the house, offered and not assigned",
+      "The Sunday call is kept by both or by neither. The parent who calls three times gets one answer",
     ],
     never: [
       ["tantrums, bedtime and homework belong to a child", /\b(tantrum|bedtime|homework)\b/i],
@@ -86,6 +86,6 @@ export const BAND_DOCTRINE: Record<Band, BandEntry> = {
 /** The doctrine as one block for the prompt, every band, so a scene for one age never borrows another's lines. */
 export function bandLines(): string {
   return (Object.keys(BAND_DOCTRINE) as Band[])
-    .map((b) => `Fair at ${BAND_LABELS[b]}: ${BAND_DOCTRINE[b].fair.join("; ")}.`)
+    .map((b) => `Fair at ${BAND_LABELS[b]}: ${BAND_DOCTRINE[b].fair.join(". ")}.`)
     .join(" ");
 }

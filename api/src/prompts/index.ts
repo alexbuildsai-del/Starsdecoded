@@ -64,7 +64,7 @@ export function instructionsFor(spec: SectionSpec, instructions: string, blind: 
   if (!blind) return instructions;
   const rules = [
     ...(spec.blindRules ?? []),
-    ...(spec.blindWordTarget ? [`Length: ${spec.blindWordTarget[0]} to ${spec.blindWordTarget[1]} words in total, replacing any count above. Write the section whole at that length; the birth time, when it is added, brings its own paragraph.`] : []),
+    ...(spec.blindWordTarget ? [`Length: ${spec.blindWordTarget[0]} to ${spec.blindWordTarget[1]} words in total, replacing any count above. Write the section whole at that length. The birth time, when it is added, brings its own paragraph.`] : []),
   ];
   if (!rules.length) return instructions;
   return [instructions.trim(), "", "HORIZON UNKNOWN. These rules replace any rule above they contradict:", ...rules.map((r) => `- ${r}`)].join("\n");

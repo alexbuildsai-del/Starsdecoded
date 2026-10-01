@@ -38,7 +38,7 @@ export const houses: SectionSpec<typeof HousesSchema> = {
     return [
       `HOUSES ALREADY COVERED: houses ${triadHouses(brief.chart).join(", ")} already carry a passage above your reading, on the rising sign, the Sun or the Moon. Do not repeat it there. Write what the rest of the house adds.`,
       "",
-      "BODIES YOU MAY NAME, PER HOUSE (the only names each reading may contain; any other name is rejected):",
+      "BODIES YOU MAY NAME, PER HOUSE (the only names each reading may contain, and any other name is rejected):",
       ...allowed,
     ].join("\n");
   },
@@ -70,7 +70,7 @@ export const houses: SectionSpec<typeof HousesSchema> = {
     }
     return { output: { houses }, checks };
   },
-  instructions: `Write the twelve house readings that sit on the back of the house cards in the chart explorer. One entry per house, 1 through 12, in order, 45 to 65 words each; 70 is a hard ceiling.
+  instructions: `Write the twelve house readings that sit on the back of the house cards in the chart explorer. One entry per house, 1 through 12, in order, 45 to 65 words each. 70 is a hard ceiling.
 
 This section is the one place rule 8 of the style contract is lifted: you may name the planets that sit in a house, because the reader is looking at them on the same card. Name a sign only when the house is quiet. Never name a body that is neither placed in that house nor the house's ruler, and that includes the other end of an aspect: a planet in another house is "a planet elsewhere in the chart", never its name. The list under BODIES YOU MAY NAME is the whole permitted vocabulary of names for each reading.
 

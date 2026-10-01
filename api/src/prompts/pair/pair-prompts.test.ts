@@ -152,12 +152,12 @@ test("no score, rating or percentage is asked for anywhere; every lens chapter k
 // Two charts side by side, the ledger, the link cards (ADR-97, ADR-101, ADR-104, ADR-106): no prompt draws a bi-wheel or a legend.
 test("chapter 01 carries the ledger premise, the links sit under the two charts, the doctrine keeps evidence in claims, and no prompt names a bi-wheel", () => {
   const two = pairSectionById("twoCharts")!;
-  assert.match(two.instructions, /The reader sees the two charts side by side, each alone\. Under them this chapter's lines are set out as a ledger, each beside the link it rests on and the chapter that shows it; the link cards follow\./);
-  assert.match(two.instructions, /300 to 360 words across the headline, the six lines and the paradox;/);
+  assert.match(two.instructions, /The reader sees the two charts side by side, each alone\. Under them this chapter's lines are set out as a ledger, each beside the link it rests on and the chapter that shows it\. The link cards follow\./);
+  assert.match(two.instructions, /300 to 360 words across the headline, the six lines and the paradox\. The strengths card sits outside that count\./);
   assert.match(two.instructions, /three lines, one sentence each, each cited to one of this chapter's links\. Then what will take work/);
   assert.doesNotMatch(two.instructions, /pointing at the chapter that shows it/);
   assert.doesNotMatch(two.instructions, /by its title/);
-  assert.match(two.instructions, /Do not list every link; the link cards do that\./);
+  assert.match(two.instructions, /Do not list every link\. The link cards do that\./);
   const strong = (two.schema as unknown as { shape: { strong: { element: { description: string } } } }).shape.strong.element.description;
   assert.equal(strong, "one sentence, what is naturally strong between you");
   const links = pairSectionById("links")!;

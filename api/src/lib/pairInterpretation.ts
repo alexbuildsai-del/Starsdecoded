@@ -12,7 +12,7 @@
 import { randomUUID } from "node:crypto";
 import type { z } from "zod/v4";
 import { ASPECT_ORBS, EPHEMERIS } from "./chartCalculation.js";
-import { SectionError, callStructured, type Carry, type SectionResult } from "./aiInterpretation.js";
+import { SELF_CHECK, SectionError, callStructured, type Carry, type SectionResult } from "./aiInterpretation.js";
 import { recordChecks } from "./failureLog.js";
 import { ReportFailure, failureCodeOf } from "./failureReasons.js";
 import type { Validated } from "../prompts/checks.js";
@@ -126,6 +126,7 @@ export function assemblePairUser(instructions: string, brief: PairBrief, spec: P
   if (spec.key !== PAIR_FOUNDATION.key && pairHasClaims(spec)) parts.push("", PAIR_CLAIMS_CONTRACT);
   const extra = spec.extraContext?.(brief);
   if (extra) parts.push("", extra);
+  parts.push("", SELF_CHECK);
   return parts.join("\n");
 }
 
@@ -158,7 +159,7 @@ function practiseTail(brief: PairBrief, chapters: Record<string, unknown>): stri
     }
   }
   return [
-    "NEXT-TIME ITEMS from the five chapters (collect these; add nothing new):",
+    "NEXT-TIME ITEMS from the five chapters (collect these, add nothing new):",
     ...(items.length ? items : ["  - none written"]),
     "",
     "SOURCES YOU MAY CITE (report, section, claim number), and any link in the LINKS list:",

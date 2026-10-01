@@ -18,7 +18,7 @@ export const PairFoundationSchema = z.object({
     .describe("the pair's three strengths, as chapter 01's card will carry them"),
   owners: z.array(z.object({
     link: z.int().describe("the link's number in the LINKS list"),
-    chapters: z.array(z.int()).min(1).max(2).describe("the chapter numbers, 1 to 6, that may cite this link; at most two"),
+    chapters: z.array(z.int()).min(1).max(2).describe("the chapter numbers, 1 to 6, that may cite this link, at most two"),
   })).describe("every link in the LINKS list, once, with the chapters it belongs to"),
   guidance: z.array(z.string()).min(7).max(7).describe("one sentence per chapter, 1 to 7 in order: the single thing it must establish"),
 });
@@ -125,5 +125,5 @@ export const pairFoundation: PairSectionSpec<typeof PairFoundationSchema> = {
 
 Name the three strongest links by their number in the LINKS list, with one sentence each on what they do between these two people on an ordinary day from the lens register. Name the one friction that matters and what it trains. Write the pair's three strengths as card lines: twelve words at most, naming only the two people, no body, no number.
 
-Give every link to one or two of chapters 1 to 6 (owners): chapter 1 is Your two charts and needs at least three links for its strong lines; chapters 2 to 6 are the lens chapters listed under CHAPTERS, each with the one scene it plays out, and each needs at least one link for its pattern. Chapter 7 collects the others' items and owns no link. A link given to two chapters is read from two angles; a link given to none is wasted. Give each of the seven chapters one distinct thing to establish, in order. No score, rating or number describes the pair. The style contract does not apply to this internal output, except rule 13: chapter 1's card carries your three strengths and every chapter picks up your words, so write the whole handoff in the same plain words as the report. Keep it evidence-based and free of generic labels.`,
+Give every link to one or two of chapters 1 to 6 (owners): chapter 1 is Your two charts and needs at least three links for its strong lines. Chapters 2 to 6 are the lens chapters listed under CHAPTERS, each with the one scene it plays out, and each needs at least one link for its pattern. Chapter 7 collects the others' items and owns no link. A link given to two chapters is read from two angles. A link given to none is wasted. Give each of the seven chapters one distinct thing to establish, in order. No score, rating or number describes the pair. The style contract does not apply to this internal output, except rule 13: chapter 1's card carries your three strengths and every chapter picks up your words, so write the whole handoff in the same plain words as the report. Keep it evidence-based and free of generic labels.`,
 };
