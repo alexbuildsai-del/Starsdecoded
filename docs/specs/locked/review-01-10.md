@@ -2,7 +2,7 @@
 
 Ideation 2026-10-01 with the Owner from the Notion page "Review 01/10" (fifteen notes on the
 R11 build on staging). Artifact, revision 4: https://claude.ai/artifact/7sRXjmJcybAmnQHrbxJ5Rc.
-Status: **draft**. Supersedes in part ADR-142 (Couple's price), ADR-146 (offers), ADR-72 (on-tap
+Status: **locked** 2026-10-01 (ADR-168 to 183). Supersedes in part ADR-142 (Couple's price), ADR-146 (offers), ADR-72 (on-tap
 scenes), ADR-103 (the scene intro), ADR-101 (the ledger's words); touches `pricing-and-launch`
 (R12), `dashboard-sky`, `landing-and-ai-search`, `compatibility-report-p2`. Brain: the pair
 prompts change (dry lab). **Phone first**: every screen is designed at 390 px before desktop.
@@ -163,13 +163,10 @@ stays written. Stripe, checkout and `LAUNCHED` stay R12's.
 ## Screens
 All in the artifact, revision 4, phone first; the deep dive also at desktop.
 
-## Open questions
-1. **Q3, send or share.** A ★ "Share with {name}" for giving a report, "Share story" for the
-   image; B keep "Send to" (ADR-120). Default A.
-2. **Q4, chapter 02's name.** A ★ "House by House"; B "Your Twelve Houses"; C "Natal Chart Deep
-   Dive". One string in `chapters.ts`, no lab. Default A.
+## Answered at lock
+Q3 "Share with {name}" and Q4 "House by House" took their defaults when the Owner said lock it.
 
-## Decisions to record
+## Decisions (ADR-168 to 183, in this order)
 1. Couple is €54; Single €24 and Family & friends €72 stay (supersedes ADR-142 for Couple).
 2. Couple and Family & friends show a launch price against the struck Singles total, never a
    "was" price, with no end date until the Owner sets one (supersedes ADR-146 for the launch).
