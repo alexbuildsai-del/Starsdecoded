@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BirthTimeControl } from "@/components/BirthTimeControl";
 import { fromValue, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
+import { refusalLine } from "@/lib/refusals";
 
 export interface BirthTimeProfile {
   id: string;
@@ -99,10 +100,11 @@ export function BirthTimeDialog({ open, onClose, profile, onDone, title, descrip
           </div>
         </div>
         {update.isError && (
-          <p className="text-xs text-destructive">
-            {update.error instanceof Error && /widened|already running|in_progress/i.test(update.error.message)
-              ? update.error.message
-              : "Could not save the time. Try again in a minute."}
+          <p role="alert" className="text-xs text-destructive">
+            {refusalLine(update.error) ??
+              (update.error instanceof Error && /widened|already running|in_progress/i.test(update.error.message)
+                ? update.error.message
+                : "Could not save the time. Try again in a minute.")}
           </p>
         )}
       </DialogContent>

@@ -14,6 +14,8 @@ import { PlaceField } from "@/components/PlaceField";
 import { DEFAULT_ANSWER, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
 import { takeFormDraft } from "@/lib/form-draft";
 import type { GeocodeResult } from "@/lib/places";
+import { nameRuleLine, isPersonName } from "@/lib/person-name";
+import { refusalLine } from "@/lib/refusals";
 
 export default function BirthFormPage() {
   usePageTitle("Your birth data");
@@ -44,6 +46,7 @@ export default function BirthFormPage() {
   }, [profiles, selfInitialized]);
 
   const [name, setName] = useState("");
+  const [nameLeft, setNameLeft] = useState(false);
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState<BirthTimeAnswer>(DEFAULT_ANSWER);
   const [selectedPlace, setSelectedPlace] = useState<GeocodeResult | null>(null);
@@ -70,7 +73,9 @@ export default function BirthFormPage() {
   });
 
   const time = toValue(birthTime);
-  const canSubmit = name.trim() && birthDate && time !== null && selectedPlace;
+  const canSubmit = isPersonName(name.trim()) && birthDate && time !== null && selectedPlace;
+  // Said once the reader leaves the field, so a name is not scolded mid-word; it clears the moment the name is fine.
+  const nameRule = nameLeft ? nameRuleLine(name) : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +97,7 @@ export default function BirthFormPage() {
     });
   };
 
+  const refusal = createReport.isError ? refusalLine(createReport.error) : null;
   const today = new Date().toISOString().split("T")[0];
 
   return (
@@ -138,10 +144,18 @@ export default function BirthFormPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onBlur={() => setNameLeft(true)}
+                aria-invalid={nameRule ? true : undefined}
+                aria-describedby={nameRule ? "name-rule" : undefined}
                 placeholder="First name or full name"
                 className="bg-card border-border/60 text-foreground placeholder:text-muted-foreground/50 h-12 text-base"
                 required
               />
+              {nameRule && (
+                <p id="name-rule" role="alert" className="text-xs text-destructive">
+                  {nameRule}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-4">
@@ -216,13 +230,19 @@ export default function BirthFormPage() {
             </Button>
 
             {createReport.isError && (
-              <div className="text-sm text-destructive text-center space-y-1">
-                <p>Something went wrong. Please try again.</p>
-                <p className="text-xs opacity-80 font-numeric break-all">
-                  {createReport.error instanceof Error
-                    ? createReport.error.message
-                    : String(createReport.error)}
-                </p>
+              <div role="alert" className="text-sm text-destructive text-center space-y-1">
+                {refusal ? (
+                  <p>{refusal}</p>
+                ) : (
+                  <>
+                    <p>Something went wrong. Please try again.</p>
+                    <p className="text-xs opacity-80 font-numeric break-all">
+                      {createReport.error instanceof Error
+                        ? createReport.error.message
+                        : String(createReport.error)}
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </form>

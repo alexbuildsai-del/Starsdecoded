@@ -21,6 +21,7 @@ import { StatusDots } from "@/components/StatusDots";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { HOW_OPTIONS, HOW_QUESTION, LENSES, PARENT_QUESTION, lensInfo } from "@/lib/lenses";
+import { refusalLine } from "@/lib/refusals";
 import {
   enterPreselect, forgetSelection, readSelection, reconcileSelection, rememberSelection, unpickable, type PairSelection,
 } from "@/lib/pair-selection";
@@ -232,7 +233,11 @@ export function CompatibilityPicker({
           // MB-6 provisional: the no-credit state names itself and still runs on the soft pass until checkout exists.
           <span className="text-xs text-muted-foreground">No credit on your account yet; the report is written on the house until pricing lands.</span>
         )}
-        {create.isError && <span className="text-xs text-destructive">Could not start the report. Try again in a minute.</span>}
+        {create.isError && (
+          <span role="alert" className="text-xs text-destructive">
+            {refusalLine(create.error) ?? "Could not start the report. Try again in a minute."}
+          </span>
+        )}
       </div>
     </section>
   );

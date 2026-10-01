@@ -23,6 +23,7 @@ import { StatusDots } from "@/components/StatusDots";
 import { CreditDots } from "@/components/dashboard/CreditPill";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TEST_CHECKOUT, creditCount, creditsEnforced, historyLine } from "@/lib/credits-view";
+import { refusalLine } from "@/lib/refusals";
 import { cn } from "@/lib/utils";
 
 const EYEBROW = "font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]";
@@ -135,11 +136,12 @@ export function CreditsSheet({ open, onClose, onAddSomeone, onGift, enforced }: 
       },
       onError: (err) => {
         setNotice(
-          err.status === 401
-            ? "Sign in to get credits."
-            : err.status === 403
-              ? "Test credits aren't available here."
-              : "The credits weren't added. Try again in a moment.",
+          refusalLine(err) ??
+            (err.status === 401
+              ? "Sign in to get credits."
+              : err.status === 403
+                ? "Test credits aren't available here."
+                : "The credits weren't added. Try again in a moment."),
         );
       },
     },

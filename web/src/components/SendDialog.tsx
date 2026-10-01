@@ -29,6 +29,7 @@ import { StatusDots } from "@/components/StatusDots";
 import { useOpenerFocus } from "@/components/dashboard/RowMenu";
 import { sharedWaiting } from "@/lib/pair-row";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
+import { refusalLine } from "@/lib/refusals";
 import { shareWith } from "@/lib/share-card";
 
 /**
@@ -116,7 +117,7 @@ function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void
   const failure = invite.error ?? pairSend.error;
   const address = email.trim();
   const ready = !askEmail || EMAIL.test(address);
-  const error = failure ? failureLine(failure.data?.error, name, askEmail) : null;
+  const error = failure ? (refusalLine(failure) ?? failureLine(failure.data?.error, name, askEmail)) : null;
   const addressRefused = askEmail && failure?.data?.error === "validation_error";
 
   function edit(value: string) {
