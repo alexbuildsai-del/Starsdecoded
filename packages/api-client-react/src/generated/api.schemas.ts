@@ -1068,6 +1068,12 @@ export interface Spot {
   sign: string;
   /** Degrees within the sign, rounded to two decimals (ADR-174). */
   degree: number;
+  /**
+     * The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).
+     * @minimum 1
+     * @maximum 12
+     */
+  house: number | null;
 }
 
 /**

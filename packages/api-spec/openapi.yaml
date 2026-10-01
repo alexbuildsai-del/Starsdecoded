@@ -2049,7 +2049,13 @@ components:
         degree:
           type: number
           description: Degrees within the sign, rounded to two decimals (ADR-174).
-      required: [sign, degree]
+        house:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 12
+          description: The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).
+      required: [sign, degree, house]
 
     HomePair:
       description: One Compatibility report on the reader's list, with what its pair block and story show (ADR-174, ADR-175).

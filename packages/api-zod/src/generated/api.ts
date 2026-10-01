@@ -76,6 +76,20 @@ export const ConfirmWaitlistResponse = zod.object({
  * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs and stories, and what they are practising (ADR-174). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182).
  * @summary The dashboard's one read (ADR-174)
  */
+export const getHomeResponseYouOneTriadSunHouseMax = 12;
+
+export const getHomeResponseYouOneTriadMoonHouseMax = 12;
+
+export const getHomeResponseYouOneTriadRisingOneHouseMax = 12;
+
+export const getHomeResponsePeopleItemTriadSunHouseMax = 12;
+
+export const getHomeResponsePeopleItemTriadMoonHouseMax = 12;
+
+export const getHomeResponsePeopleItemTriadRisingOneHouseMax = 12;
+
+
+
 export const GetHomeResponse = zod.object({
   "you": zod.union([zod.object({
   "profileId": zod.string(),
@@ -88,15 +102,18 @@ export const GetHomeResponse = zod.object({
   "triad": zod.object({
   "sun": zod.object({
   "sign": zod.string(),
-  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "moon": zod.object({
   "sign": zod.string(),
-  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "rising": zod.union([zod.object({
   "sign": zod.string(),
-  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),zod.null()]).describe('Null when the horizon is unknown (ADR-174).')
 }).nullable().describe('Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).'),
   "lines": zod.object({
@@ -116,15 +133,18 @@ export const GetHomeResponse = zod.object({
   "triad": zod.object({
   "sun": zod.object({
   "sign": zod.string(),
-  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "moon": zod.object({
   "sign": zod.string(),
-  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "rising": zod.union([zod.object({
   "sign": zod.string(),
-  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).')
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),zod.null()]).describe('Null when the horizon is unknown (ADR-174).')
 }).nullable().describe('Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).'),
   "lines": zod.object({
