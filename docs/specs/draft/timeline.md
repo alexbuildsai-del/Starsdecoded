@@ -63,9 +63,8 @@ horoscope for the day. The dates are free; what they mean is the subscription.
   for word. The fast sky, the Moon included, appears only here.
 - It reads only what the reader can read (`access.ts`): their reports, reports shared
   with them, charts they made (R-3.6). Another person's report is quoted only if shared.
-- It explains and reflects. It never diagnoses, never gives medical, legal or money
-  advice, never says what someone will do, never says do or don't about the plan.
-  A message about harm gets a fixed reply with where to get help, no astrology.
+- It explains and reflects: no diagnosis, no medical, legal or money advice, no do or
+  don't, nothing on what someone will do. Harm gets a fixed reply with where to get help.
 - Fair use: 200 messages a month, measured on staging, no counter on screen.
   Conversations are the reader's to delete; the privacy page names them.
 
