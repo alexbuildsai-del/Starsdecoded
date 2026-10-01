@@ -18,7 +18,8 @@ plan marks which cards run together so the orchestrator dispatches them at
 once (R-0.6).
 
 When it returns, show the Owner the goals, the task-card list, the parallel
-groups and any Mailbox rows it raised, then stop. The round does not start
-until the Owner approves. On approval ("go", "approved", "build it"), run the
-`round` skill for RNN at once in this session; never wait for a second
-instruction.
+groups with each card's tier beside it (opus, sonnet or haiku, from its
+`Tier:` line, ADR-187; the Owner may name another for any card, R-0.7) and any
+Mailbox rows it raised, then stop. The round does not start until the Owner
+approves. On approval ("go", "approved", "build it"), run the `round` skill
+for RNN at once in this session; never wait for a second instruction.
