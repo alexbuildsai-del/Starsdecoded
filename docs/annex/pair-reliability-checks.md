@@ -57,6 +57,7 @@ drops bad refs and empty claims: the model for FIX (drop).
 | 36 | LK:64 | a card names another card's body | **BLOCK**: wrong factor |
 | 37 | PF:50, 54 | foundation rating words, strength lines | WARN (internal; chapter 01 re-checks what prints) |
 | 38 | PF:53-81 | link and chapter numbers, duplicates, owners, scene picks | FIX: drop, merge, give the nearest link, default the scene to 0 |
+| 39 | AI:442 (`registerChecks`, R12) | style-contract rule 13's words in prose, too high or too low (ADR-185); "energy" only as a mood | WARN on every structured call, natal and pair, foundations included: one row per list, the words named, never the sentence; never a block, a retry or a lab fault |
 
 Still blocking after R08: rows 15, 18, 21 (trine, sextile, aspect beside a body), 22, 24
 (capitalised), 25 (person names), 30 (numerals), 36; plus rows 9 and 14 in their fallback.

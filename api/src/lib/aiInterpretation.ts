@@ -36,7 +36,7 @@ import {
   buildBrief, hasClaims, instructionsFor, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
   type ChartBrief, type Claim, type EvidenceRef, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
-import { block, blocking, clean, fixed, needsRepair, repair, warned, type Check, type Validated } from "../prompts/checks.js";
+import { block, blocking, clean, fixed, needsRepair, registerChecks, repair, warned, type Check, type Validated } from "../prompts/checks.js";
 import { recordChecks } from "./failureLog.js";
 import { ReportFailure, failureCodeOf } from "./failureReasons.js";
 import type { AngleMeanings, AspectMeaningPayload } from "../prompts/brief.js";
@@ -64,8 +64,8 @@ function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
 }
 
 const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted; do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
-/** Bump when the section set, schemas, or vocabulary change shape. v7: prose is plain text, said in the prompt (ADR-104); v6 reports still render. */
-export const PROMPT_VERSION = "v7";
+/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185); v6 and v7 reports still render. */
+export const PROMPT_VERSION = "v8";
 
 /** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
 type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
@@ -438,6 +438,8 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     const validated = call.validate ? call.validate(parsed.data) : clean(parsed.data);
     let data = validated.output;
     checks.push(...validated.checks);
+    // Every call, natal or pair, foundation or section, so a list that keeps firing reaches the Failures tab (ADR-85, ADR-185).
+    checks.push(...registerChecks(data));
     const repairWanted = needsRepair(checks) && !checks.some((c) => c.rule === "chk-09" && c.cls === "block");
 
     // Fewer than three valid claims after reconciliation is the one problem
