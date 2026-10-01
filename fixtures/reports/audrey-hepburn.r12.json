@@ -1,0 +1,2242 @@
+{
+  "fixture": {
+    "name": "Audrey Hepburn",
+    "birthDate": "1929-05-04",
+    "birthTime": "03:00",
+    "latitude": 50.8333,
+    "longitude": 4.3667,
+    "timezone": "Europe/Brussels",
+    "timezoneOffset": 1,
+    "note": "Ixelles, Brussels. 03:00 from the birth certificate (Astro-Databank, Rodden AA); Belgian summer time in force, offset derived from the zone. Night chart. Stands in the model matrix in place of oprah-winfrey and is the candidate sample report for the landing page."
+  },
+  "chart": {
+    "angles": {
+      "ic": {
+        "sign": "Gemini",
+        "degree": 16.97,
+        "absoluteDegree": 76.97
+      },
+      "ascendant": {
+        "sign": "Aquarius",
+        "degree": 28.62,
+        "absoluteDegree": 328.62
+      },
+      "midheaven": {
+        "sign": "Sagittarius",
+        "degree": 16.97,
+        "absoluteDegree": 256.97
+      },
+      "descendant": {
+        "sign": "Leo",
+        "degree": 28.62,
+        "absoluteDegree": 148.62
+      }
+    },
+    "houses": {
+      "1": {
+        "sign": "Aquarius",
+        "degree": 0
+      },
+      "2": {
+        "sign": "Pisces",
+        "degree": 0
+      },
+      "3": {
+        "sign": "Aries",
+        "degree": 0
+      },
+      "4": {
+        "sign": "Taurus",
+        "degree": 0
+      },
+      "5": {
+        "sign": "Gemini",
+        "degree": 0
+      },
+      "6": {
+        "sign": "Cancer",
+        "degree": 0
+      },
+      "7": {
+        "sign": "Leo",
+        "degree": 0
+      },
+      "8": {
+        "sign": "Virgo",
+        "degree": 0
+      },
+      "9": {
+        "sign": "Libra",
+        "degree": 0
+      },
+      "10": {
+        "sign": "Scorpio",
+        "degree": 0
+      },
+      "11": {
+        "sign": "Sagittarius",
+        "degree": 0
+      },
+      "12": {
+        "sign": "Capricorn",
+        "degree": 0
+      }
+    },
+    "aspects": [
+      {
+        "orb": 7.6,
+        "type": "conjunction",
+        "planet1": "sun",
+        "planet2": "jupiter",
+        "applying": true
+      },
+      {
+        "orb": 3.3,
+        "type": "sextile",
+        "planet1": "sun",
+        "planet2": "pluto",
+        "applying": true
+      },
+      {
+        "orb": 7.8,
+        "type": "opposition",
+        "planet1": "moon",
+        "planet2": "neptune",
+        "applying": false
+      },
+      {
+        "orb": 1.7,
+        "type": "square",
+        "planet1": "mercury",
+        "planet2": "neptune",
+        "applying": true
+      },
+      {
+        "orb": 2.4,
+        "type": "square",
+        "planet1": "venus",
+        "planet2": "mars",
+        "applying": true
+      },
+      {
+        "orb": 5.8,
+        "type": "trine",
+        "planet1": "venus",
+        "planet2": "neptune",
+        "applying": true
+      },
+      {
+        "orb": 1.4,
+        "type": "trine",
+        "planet1": "saturn",
+        "planet2": "neptune",
+        "applying": false
+      }
+    ],
+    "horizon": {
+      "sect": {
+        "holds": true,
+        "value": "night",
+        "values": [
+          "night"
+        ],
+        "flipsAt": [],
+        "holdsTo": "05:18",
+        "holdsFrom": "00:00"
+      },
+      "status": "known",
+      "sunSign": {
+        "holds": true,
+        "value": "Taurus",
+        "values": [
+          "Taurus"
+        ],
+        "flipsAt": [],
+        "holdsTo": "24:00",
+        "holdsFrom": "00:00"
+      },
+      "moonSign": {
+        "holds": true,
+        "value": "Pisces",
+        "values": [
+          "Pisces"
+        ],
+        "flipsAt": [],
+        "holdsTo": "24:00",
+        "holdsFrom": "00:00"
+      },
+      "ascendant": {
+        "holds": true,
+        "value": "Aquarius",
+        "values": [
+          "Aquarius"
+        ],
+        "flipsAt": [],
+        "holdsTo": "03:04",
+        "holdsFrom": "01:54"
+      },
+      "midheaven": {
+        "holds": true,
+        "value": "Sagittarius",
+        "values": [
+          "Sagittarius"
+        ],
+        "flipsAt": [],
+        "holdsTo": "03:58",
+        "holdsFrom": "01:50"
+      }
+    },
+    "planets": {
+      "sun": {
+        "sign": "Taurus",
+        "house": 4,
+        "speed": 0.969,
+        "degree": 13.12,
+        "retrograde": false,
+        "absoluteDegree": 43.12
+      },
+      "mars": {
+        "sign": "Cancer",
+        "house": 6,
+        "speed": 0.53,
+        "degree": 25.16,
+        "retrograde": false,
+        "absoluteDegree": 115.16
+      },
+      "moon": {
+        "sign": "Pisces",
+        "house": 2,
+        "speed": 12.839,
+        "degree": 6.45,
+        "retrograde": false,
+        "absoluteDegree": 336.45
+      },
+      "pluto": {
+        "sign": "Cancer",
+        "house": 6,
+        "speed": 0.013,
+        "degree": 16.44,
+        "retrograde": false,
+        "absoluteDegree": 106.44
+      },
+      "venus": {
+        "sign": "Aries",
+        "house": 3,
+        "speed": -0.302,
+        "degree": 22.78,
+        "retrograde": true,
+        "absoluteDegree": 22.78
+      },
+      "chiron": {
+        "sign": "Capricorn",
+        "house": 12,
+        "speed": 0.038,
+        "degree": 6.98,
+        "retrograde": false,
+        "absoluteDegree": 276.98
+      },
+      "saturn": {
+        "sign": "Capricorn",
+        "house": 12,
+        "speed": -0.038,
+        "degree": 0.04,
+        "retrograde": true,
+        "absoluteDegree": 270.04
+      },
+      "uranus": {
+        "sign": "Aries",
+        "house": 3,
+        "speed": 0.05,
+        "degree": 9.34,
+        "retrograde": false,
+        "absoluteDegree": 9.34
+      },
+      "jupiter": {
+        "sign": "Taurus",
+        "house": 4,
+        "speed": 0.236,
+        "degree": 20.75,
+        "retrograde": false,
+        "absoluteDegree": 50.75
+      },
+      "mercury": {
+        "sign": "Gemini",
+        "house": 5,
+        "speed": 1.729,
+        "degree": 0.32,
+        "retrograde": false,
+        "absoluteDegree": 60.32
+      },
+      "neptune": {
+        "sign": "Leo",
+        "house": 7,
+        "speed": -0.003,
+        "degree": 28.6,
+        "retrograde": true,
+        "absoluteDegree": 148.6
+      },
+      "north_node": {
+        "sign": "Taurus",
+        "house": 4,
+        "speed": -0.053,
+        "degree": 21.75,
+        "retrograde": true,
+        "absoluteDegree": 51.75
+      },
+      "south_node": {
+        "sign": "Scorpio",
+        "house": 10,
+        "speed": -0.053,
+        "degree": 21.75,
+        "retrograde": true,
+        "absoluteDegree": 231.75
+      }
+    },
+    "elements": {
+      "air": 1,
+      "fire": 3,
+      "earth": 3,
+      "water": 3
+    },
+    "latitude": 50.8333,
+    "timezone": "Europe/Brussels",
+    "dominance": {
+      "dominantElement": "fire",
+      "dominantPlanets": [
+        "sun",
+        "jupiter",
+        "neptune"
+      ],
+      "dominantModality": "cardinal"
+    },
+    "julianDay": 2425735.5836,
+    "longitude": 4.3667,
+    "chartShape": "bundle",
+    "modalities": {
+      "fixed": 3,
+      "mutable": 2,
+      "cardinal": 5
+    },
+    "datetimeUtc": "1929-05-04T02:00:00.000Z",
+    "sunAltitude": -16.61,
+    "chartVersion": 3,
+    "windowMinutes": 0,
+    "timezoneOffset": 1,
+    "hemisphereEmphasis": {
+      "eastern": 8,
+      "western": 2,
+      "northern": 8,
+      "southern": 2
+    }
+  },
+  "interpretation": {
+    "meta": {
+      "orbs": {
+        "trine": 6,
+        "square": 6,
+        "sextile": 4,
+        "opposition": 8,
+        "conjunction": 8
+      },
+      "sect": "night",
+      "model": "mixed",
+      "usage": {
+        "model": "mixed",
+        "totals": {
+          "ms": 126129,
+          "attempts": 12,
+          "inputTokens": 28130,
+          "outputTokens": 11098,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 83595
+        },
+        "costUsd": 0.021771959999999996,
+        "sections": [
+          {
+            "ms": 15454,
+            "model": "gpt-6-sol",
+            "section": "natal:foundation",
+            "attempts": 1,
+            "inputTokens": 1145,
+            "outputTokens": 967,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 6379
+          },
+          {
+            "ms": 11649,
+            "model": "gpt-6-luna",
+            "section": "natal:overview",
+            "attempts": 1,
+            "inputTokens": 2498,
+            "outputTokens": 1208,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7056
+          },
+          {
+            "ms": 6613,
+            "model": "gpt-6-luna",
+            "section": "natal:triad",
+            "attempts": 1,
+            "inputTokens": 2368,
+            "outputTokens": 683,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7048
+          },
+          {
+            "ms": 10118,
+            "model": "gpt-6-luna",
+            "section": "natal:houses",
+            "attempts": 1,
+            "inputTokens": 2536,
+            "outputTokens": 905,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 6149
+          },
+          {
+            "ms": 8203,
+            "model": "gpt-6-luna",
+            "section": "natal:mind",
+            "attempts": 1,
+            "inputTokens": 2436,
+            "outputTokens": 785,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7036
+          },
+          {
+            "ms": 11011,
+            "model": "gpt-6-luna",
+            "section": "natal:career",
+            "attempts": 1,
+            "inputTokens": 2506,
+            "outputTokens": 1215,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7146
+          },
+          {
+            "ms": 7441,
+            "model": "gpt-6-luna",
+            "section": "natal:money",
+            "attempts": 1,
+            "inputTokens": 2444,
+            "outputTokens": 734,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7061
+          },
+          {
+            "ms": 10937,
+            "model": "gpt-6-luna",
+            "section": "natal:relationships",
+            "attempts": 1,
+            "inputTokens": 2532,
+            "outputTokens": 857,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7154
+          },
+          {
+            "ms": 8963,
+            "model": "gpt-6-luna",
+            "section": "natal:family",
+            "attempts": 1,
+            "inputTokens": 2377,
+            "outputTokens": 748,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7051
+          },
+          {
+            "ms": 18501,
+            "model": "gpt-6-luna",
+            "section": "natal:superpowers",
+            "attempts": 1,
+            "inputTokens": 2450,
+            "outputTokens": 1183,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7269
+          },
+          {
+            "ms": 8921,
+            "model": "gpt-6-luna",
+            "section": "natal:discoveries",
+            "attempts": 1,
+            "inputTokens": 2398,
+            "outputTokens": 878,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7059
+          },
+          {
+            "ms": 8318,
+            "model": "gpt-6-luna",
+            "section": "natal:focus",
+            "attempts": 1,
+            "inputTokens": 2440,
+            "outputTokens": 935,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 7187
+          }
+        ],
+        "wallClockMs": 35274
+      },
+      "zodiac": "tropical",
+      "horizon": "known",
+      "ephemeris": "astronomy-engine (Don Cross), tropical zodiac, mean lunar node",
+      "sectLight": "moon",
+      "wordCount": 4182,
+      "reportType": "natal",
+      "generatedAt": "2026-10-01T15:28:20.892Z",
+      "houseSystem": "whole-sign",
+      "sunAltitude": -16.61,
+      "sectMarginal": false,
+      "promptVersion": "v8"
+    },
+    "mind": {
+      "claims": [
+        {
+          "quote": "You catch turns of phrase, odd details, and several possible meanings at once.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            }
+          ]
+        },
+        {
+          "quote": "Your mind moves easily between ideas, but a strong first impression can blur what was actually said.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            },
+            {
+              "ref": {
+                "orb": 1.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mercury",
+                "body2": "neptune"
+              },
+              "label": "Mercury square Neptune, 1.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You are more likely to start a decision than leave it sitting.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 3,
+                "ruler": "mars",
+                "dignity": "fall",
+                "rulerSign": "cancer",
+                "rulerHouse": 6
+              },
+              "label": "Mars rules the 3rd and sits in Cancer, 6th house, in fall"
+            }
+          ]
+        },
+        {
+          "quote": "Your cardinal approach shows up in real choices: you make the call, take the first step, and adjust once you see what happens.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 3,
+                "ruler": "mars",
+                "dignity": "fall",
+                "rulerSign": "cancer",
+                "rulerHouse": 6
+              },
+              "label": "Mars rules the 3rd and sits in Cancer, 6th house, in fall"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 9,
+                "ruler": "venus",
+                "dignity": "detriment",
+                "rulerSign": "aries",
+                "rulerHouse": 3
+              },
+              "label": "Venus rules the 9th and sits in Aries, 3rd house, in detriment"
+            }
+          ]
+        },
+        {
+          "quote": "You may think you have agreed on a plan, then discover the other person understood a different promise.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mercury",
+                "body2": "neptune"
+              },
+              "label": "Mercury square Neptune, 1.7° orb"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 9,
+                "ruler": "venus",
+                "dignity": "detriment",
+                "rulerSign": "aries",
+                "rulerHouse": 3
+              },
+              "label": "Venus rules the 9th and sits in Aries, 3rd house, in detriment"
+            }
+          ]
+        },
+        {
+          "quote": "Ask them to repeat the next step in their own words.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mercury",
+                "body2": "neptune"
+              },
+              "label": "Mercury square Neptune, 1.7° orb"
+            }
+          ]
+        }
+      ],
+      "practice": "Before you commit, write down the decision, the facts you checked, and one assumption you still need to test. Read it back to the other person before you act.",
+      "howYouThink": "You catch turns of phrase, odd details, and several possible meanings at once. You learn quickly by talking, comparing examples, and making something playful out of what you notice. Your mind moves easily between ideas, but a strong first impression can blur what was actually said. You may miss a practical detail when a story sounds convincing or kind. You do best when you separate what you know from what you are guessing.",
+      "howYouDecide": "You are more likely to start a decision than leave it sitting. Your cardinal approach shows up in real choices: you make the call, take the first step, and adjust once you see what happens. For example, when choosing a project, you may agree quickly because the idea excites you, then change the plan after checking the time and effort involved. Your quick mind gives you options, while your wish to get moving can make the first version feel final. Pause long enough to ask what you have not checked.",
+      "howYouAreUnderstood": "You explain yourself with speed and wit, and people often follow you when the topic is clear. But you can leave room for someone to hear the meaning they hoped for, especially when you are trying to be tactful. You may think you have agreed on a plan, then discover the other person understood a different promise. Ask them to repeat the next step in their own words. That gives you a chance to catch the mismatch before it becomes awkward."
+    },
+    "focus": {
+      "claims": [
+        {
+          "quote": "You can carry a great deal without making a show of it.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Protect time for writing, play, and clever experiments; your mind works best when it can follow its own curiosity.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            }
+          ]
+        },
+        {
+          "quote": "Use your private discipline to give imaginative work a clear shape, rather than waiting for perfect conditions.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "orb": 1.4,
+                "kind": "aspect",
+                "type": "trine",
+                "body1": "saturn",
+                "body2": "neptune"
+              },
+              "label": "Saturn trine Neptune, 1.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Watch for taking on one more duty when you are already tired, especially when work feels urgent or personal.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "cancer",
+                "house": 6
+              },
+              "label": "Mars 25.2° Cancer, 6th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Mars is the malefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Check what you heard and what the other person understood, particularly when a quick message carries emotional weight.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 1.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mercury",
+                "body2": "neptune"
+              },
+              "label": "Mercury square Neptune, 1.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "Make home routines that protect rest, even when public commitments offer praise or seem difficult to refuse.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "north_node",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "North Node 21.8° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "south_node",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 10
+              },
+              "label": "South Node 21.8° Scorpio, 10th house"
+            }
+          ]
+        },
+        {
+          "quote": "A settled home, honest talks, and work with room for your own ideas help you stay generous without giving everything away.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Sun 13.1° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            },
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "aries",
+                "house": 3
+              },
+              "label": "Venus 22.8° Aries, 3rd house"
+            }
+          ]
+        }
+      ],
+      "notice": {
+        "intro": "Your hardest effort can stay hidden until your body and closest relationships show what it has cost.",
+        "bullets": [
+          {
+            "why": "so you notice strain before it takes over",
+            "point": "Watch for taking on one more duty when you are already tired, especially when work feels urgent or personal."
+          },
+          {
+            "why": "so people can help before you are depleted",
+            "point": "Say plainly when a task is too much instead of relying on others to guess from your silence."
+          },
+          {
+            "why": "so a mistaken assumption does not grow",
+            "point": "Check what you heard and what the other person understood, particularly when a quick message carries emotional weight."
+          }
+        ]
+      },
+      "closing": "You can carry a great deal without making a show of it. People may see the finished work and miss the effort that went into keeping your life steady around it. You do not have to wait until you are worn down to make your needs clear. A settled home, honest talks, and work with room for your own ideas help you stay generous without giving everything away. Let others share the practical load. Your life can hold both meaningful work and the ordinary comforts that help you feel well.",
+      "leanInto": {
+        "intro": "Build around the parts of life where you can make something steady, useful, and unmistakably your own.",
+        "bullets": [
+          {
+            "why": "so you keep making work that feels like yours",
+            "point": "Protect time for writing, play, and clever experiments; your mind works best when it can follow its own curiosity."
+          },
+          {
+            "why": "so support feels dependable",
+            "point": "Choose collaborators who respect your need for a settled home base and share practical care without keeping score."
+          },
+          {
+            "why": "so an idea becomes something others can use",
+            "point": "Use your private discipline to give imaginative work a clear shape, rather than waiting for perfect conditions."
+          }
+        ]
+      },
+      "practice": {
+        "intro": "Growth comes from giving private needs the same weight as work, and choosing people who help you do that.",
+        "bullets": [
+          {
+            "why": "so you learn that your private life counts",
+            "point": "Make home routines that protect rest, even when public commitments offer praise or seem difficult to refuse."
+          },
+          {
+            "why": "so you practice receiving support",
+            "point": "Ask trusted people for specific help with money, chores, or plans before you reach your limit."
+          },
+          {
+            "why": "so you act from interest, not pressure",
+            "point": "Choose group work where you can contribute by choice, while keeping space for creative projects that belong to you."
+          }
+        ]
+      }
+    },
+    "money": {
+      "claims": [
+        {
+          "quote": "You judge whether you have enough by what you can provide at home.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 2,
+                "ruler": "jupiter",
+                "dignity": "peregrine",
+                "rulerSign": "taurus",
+                "rulerHouse": 4
+              },
+              "label": "Jupiter rules the 2nd and sits in Taurus, 4th house, peregrine"
+            },
+            {
+              "ref": {
+                "lot": "fortune",
+                "kind": "lot",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Lot of Fortune in Taurus, 4th house"
+            }
+          ]
+        },
+        {
+          "quote": "Resources come most steadily through patient work that strengthens your home life, practical support, or a lasting base.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 2,
+                "ruler": "jupiter",
+                "dignity": "peregrine",
+                "rulerSign": "taurus",
+                "rulerHouse": 4
+              },
+              "label": "Jupiter rules the 2nd and sits in Taurus, 4th house, peregrine"
+            },
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "sect",
+                "role": "benefic_out_of_sect"
+              },
+              "label": "Jupiter is the benefic out of sect"
+            },
+            {
+              "ref": {
+                "lot": "fortune",
+                "kind": "lot",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Lot of Fortune in Taurus, 4th house"
+            }
+          ]
+        },
+        {
+          "quote": "You lose ground when pressure to keep working overrides your limits.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "You can handle shared money best when every part is clear: who pays, what is owed, and what each person expects.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 8,
+                "ruler": "mercury",
+                "dignity": "domicile",
+                "rulerSign": "gemini",
+                "rulerHouse": 5
+              },
+              "label": "Mercury rules the 8th and sits in Gemini, 5th house, in domicile"
+            }
+          ]
+        },
+        {
+          "quote": "Debt or backing becomes more exposing when you rely on an unspoken promise or let work demands decide for everyone.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 8,
+                "ruler": "mercury",
+                "dignity": "domicile",
+                "rulerSign": "gemini",
+                "rulerHouse": 5
+              },
+              "label": "Mercury rules the 8th and sits in Gemini, 5th house, in domicile"
+            },
+            {
+              "ref": {
+                "orb": 1.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mercury",
+                "body2": "neptune"
+              },
+              "label": "Mercury square Neptune, 1.7° orb"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "why": "So you can see what is enough before worry makes the decision.",
+          "action": "Set a monthly amount for home costs, savings, and your own spending."
+        },
+        {
+          "why": "So you know who owes what and when.",
+          "action": "Write down shared costs and repayment dates before agreeing to them."
+        },
+        {
+          "why": "So extra income does not quietly take more than it gives.",
+          "action": "Review new work against the time and rest it will take."
+        }
+      ],
+      "whatWorks": "Resources come most steadily through patient work that strengthens your home life, practical support, or a lasting base. You can also benefit from close ties and shared plans, but vague promises are less dependable than clear terms. You lose ground when pressure to keep working overrides your limits. For example, you might accept extra duties to protect income, then pay for it with rest or needed time at home.",
+      "sharedAndExposed": "You can handle shared money best when every part is clear: who pays, what is owed, and what each person expects. You may be capable with agreements, creative projects, or arrangements involving children, but a friendly understanding can leave room for crossed wires. Debt or backing becomes more exposing when you rely on an unspoken promise or let work demands decide for everyone. Ask direct questions before you commit, even with someone you trust.",
+      "relationshipToResources": "You judge whether you have enough by what you can provide at home. Money feels safer when it supports a steady base and care for people close to you. You may work hard to keep that security, but your own needs can be harder to name until a change in income affects your daily comfort."
+    },
+    "triad": {
+      "sun": {
+        "text": "You build your sense of self around having a steady place to return to. Familiar surroundings, dependable routines, and people you trust help you feel settled enough to make choices. You are not quick to abandon what has proved worthwhile, and you want your efforts to leave something solid behind. A secure home life matters more than outside praise when the two compete. For example, you may turn down a tempting opportunity if it would keep you away from home too often.",
+        "label": "Sun in Taurus, 4th house"
+      },
+      "moon": {
+        "text": "You settle when your basic needs feel covered, but security is emotional as well as practical. Uncertainty about money or belongings can affect your mood before you have worked out what is troubling you. You are sensitive to the tone around you, and a calm daily rhythm helps you feel more grounded. Give yourself simple ways to check what you need instead of absorbing everyone else’s worries. For example, you may feel calmer after checking your budget and setting aside money for essentials.",
+        "label": "Moon in Pisces, 2nd house"
+      },
+      "claims": [
+        {
+          "quote": "You build your sense of self around having a steady place to return to.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Sun 13.1° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Moon is the sect light"
+            }
+          ]
+        },
+        {
+          "quote": "A secure home life matters more than outside praise when the two compete.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Sun 13.1° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Moon is the sect light"
+            }
+          ]
+        },
+        {
+          "quote": "You settle when your basic needs feel covered, but security is emotional as well as practical.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 2
+              },
+              "label": "Moon 6.5° Pisces, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "Uncertainty about money or belongings can affect your mood before you have worked out what is troubling you.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 2
+              },
+              "label": "Moon 6.5° Pisces, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "You can come across as composed, observant, and a little hard to read at first.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "angle",
+                "sign": "aquarius",
+                "angle": "ascendant"
+              },
+              "label": "Ascendant · 28.6° Aquarius"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 1,
+                "ruler": "saturn",
+                "dignity": "domicile",
+                "rulerSign": "capricorn",
+                "rulerHouse": 12
+              },
+              "label": "Saturn rules the 1st and sits in Capricorn, 12th house, in domicile"
+            }
+          ]
+        },
+        {
+          "quote": "You may keep private struggles to yourself, even when you are handling them well.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 1,
+                "ruler": "saturn",
+                "dignity": "domicile",
+                "rulerSign": "capricorn",
+                "rulerHouse": 12
+              },
+              "label": "Saturn rules the 1st and sits in Capricorn, 12th house, in domicile"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        }
+      ],
+      "rising": {
+        "text": "You can come across as composed, observant, and a little hard to read at first. You tend to watch how a group works before deciding where you fit, and you value being treated as your own person. You may keep private struggles to yourself, even when you are handling them well. Your steady sense of duty can make you seem more self-sufficient than you feel. For example, you may solve a difficult problem alone before telling a friend you could use support.",
+        "label": "Aquarius rising"
+      }
+    },
+    "career": {
+      "claims": [
+        {
+          "quote": "The route is not the easy one: you may take on more daily strain than the work gives back, then keep going because others depend on you.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 10,
+                "ruler": "mars",
+                "dignity": "fall",
+                "rulerSign": "cancer",
+                "rulerHouse": 6
+              },
+              "label": "Mars rules the 10th and sits in Cancer, 6th house, in fall"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Mars is the malefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "You can build a public name through repeated effort, but lasting success depends on protecting your health and keeping work from consuming your private life.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 10,
+                "ruler": "mars",
+                "dignity": "fall",
+                "rulerSign": "cancer",
+                "rulerHouse": 6
+              },
+              "label": "Mars rules the 10th and sits in Cancer, 6th house, in fall"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "People notice that you keep showing up, even when the workload is heavy.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "cancer",
+                "house": 6
+              },
+              "label": "Mars 25.2° Cancer, 6th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Mars is the malefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Your ideas can be quick and playful, and people respond well when you have room to make something in your own way.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            }
+          ]
+        },
+        {
+          "quote": "Your best work grows through chosen allies and shared aims, not through carrying every obligation alone.",
+          "evidence": [
+            {
+              "ref": {
+                "lot": "spirit",
+                "kind": "lot",
+                "sign": "sagittarius",
+                "house": 11
+              },
+              "label": "Lot of Spirit in Sagittarius, 11th house"
+            },
+            {
+              "ref": {
+                "body": "north_node",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "North Node 21.8° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "south_node",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 10
+              },
+              "label": "South Node 21.8° Scorpio, 10th house"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "why": "so you have energy left for home and rest",
+          "action": "Set a firm end time for work on at least three days each week."
+        },
+        {
+          "why": "so you spot overload before it wears you down",
+          "action": "Ask one trusted colleague to review your workload each month."
+        },
+        {
+          "why": "so you can contribute without carrying the whole effort alone",
+          "action": "Choose one project with a team whose aims you believe in."
+        }
+      ],
+      "careerPaths": [
+        {
+          "item": "Care-focused public work",
+          "reason": "You stay attentive to people’s needs through repetitive, demanding tasks."
+        },
+        {
+          "item": "Performance and creative work",
+          "reason": "You bring quick ideas and a distinct personal touch when given room to create."
+        },
+        {
+          "item": "Team-based service roles",
+          "reason": "You keep contributing when the work is practical and shared."
+        },
+        {
+          "item": "Community advocacy",
+          "reason": "You work well with allies around aims that matter to you."
+        }
+      ],
+      "howYouShowUp": "You are dependable in a crisis and willing to handle the unglamorous parts. People notice that you keep showing up, even when the workload is heavy. You can work with warmth and patience, but frustration may come out sharply when practical demands pile up. You often keep the strain private, so colleagues may not realise you need help until you are already worn down. Your ideas can be quick and playful, and people respond well when you have room to make something in your own way.",
+      "vocationalPull": "You are drawn to work that asks for stamina, care, and steady attention to other people’s needs. The route is not the easy one: you may take on more daily strain than the work gives back, then keep going because others depend on you. You can build a public name through repeated effort, but lasting success depends on protecting your health and keeping work from consuming your private life. Work with a clear purpose and a reliable team suits you better than chasing status alone. You do your best when the work supports a secure home life, not when work becomes the whole measure of success.",
+      "growthThroughWork": "Your growth comes from choosing what deserves your effort, rather than letting public demands choose for you. You may be used to proving yourself through difficult work and accepting the cost without complaint. That can win respect, but it can also leave too little time for rest, home, and the people closest to you. Your best work grows through chosen allies and shared aims, not through carrying every obligation alone. Say what you can take on before you agree, and make room for a life that feels steady outside work too."
+    },
+    "family": {
+      "claims": [
+        {
+          "quote": "You carry a strong pull toward familiar comforts and a settled base.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Sun 13.1° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Jupiter 20.8° Taurus, 4th house"
+            }
+          ]
+        },
+        {
+          "quote": "At the same time, closeness may have come with sharp words or quick decisions.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 4,
+                "ruler": "venus",
+                "dignity": "detriment",
+                "rulerSign": "aries",
+                "rulerHouse": 3
+              },
+              "label": "Venus rules the 4th and sits in Aries, 3rd house, in detriment"
+            },
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "aries",
+                "house": 3
+              },
+              "label": "Venus 22.8° Aries, 3rd house"
+            }
+          ]
+        },
+        {
+          "quote": "You can take responsibility for keeping things secure, then keep your worries private.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Reliable routines and enough money for ordinary needs help your body relax.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 2
+              },
+              "label": "Moon 6.5° Pisces, 2nd house"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Moon is the sect light"
+            }
+          ]
+        },
+        {
+          "quote": "You need room to speak plainly about small choices, rather than letting them build into resentment.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 4,
+                "ruler": "venus",
+                "dignity": "detriment",
+                "rulerSign": "aries",
+                "rulerHouse": 3
+              },
+              "label": "Venus rules the 4th and sits in Aries, 3rd house, in detriment"
+            },
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "venus",
+                "body2": "mars"
+              },
+              "label": "Venus square Mars, 2.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You can change the habit of proving your care through effort while leaving your needs unspoken.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 2
+              },
+              "label": "Moon 6.5° Pisces, 2nd house"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "why": "So you stop treating care as a job you must handle alone.",
+          "action": "Name one practical need at home and ask someone to share it."
+        },
+        {
+          "why": "So your body gets time to settle before you reach exhaustion.",
+          "action": "Set aside a regular quiet hour at home with no plans or requests."
+        },
+        {
+          "why": "So you can say what you want without turning irritation into distance.",
+          "action": "Bring up small disagreements while you can still speak calmly."
+        }
+      ],
+      "whatRootsYou": "You settle best when your home feels calm, comfortable, and truly yours. Reliable routines and enough money for ordinary needs help your body relax. You need room to speak plainly about small choices, rather than letting them build into resentment. Familiar food, a quiet space, and contact with people you trust can bring you back to yourself. You feel more at home when care is shared, not silently carried by you.",
+      "whatYouCarry": "You may have learned that home depends on practical care, steady provision, and people showing up. You carry a strong pull toward familiar comforts and a settled base. At the same time, closeness may have come with sharp words or quick decisions. You can take responsibility for keeping things secure, then keep your worries private. When others need you, you may put your own need for reassurance aside.",
+      "theInheritedEdge": "You can change the habit of proving your care through effort while leaving your needs unspoken. A secure home matters to you, but keeping everyone comfortable is not yours alone to manage. Say what you want before you feel cornered. Let other people take part in the practical work. When you need help, ask directly instead of waiting until you are worn down. This lets closeness include honesty, not just dependability."
+    },
+    "houses": {
+      "houses": [
+        {
+          "house": 1,
+          "reading": "You can seem self-contained because you handle strain privately and prefer to solve problems before asking for help. That steadiness is real, but it can hide how much effort you are carrying. Let someone know when a task is getting heavy, before you have already dealt with it alone. Behaviour check: Notice this week when you keep a problem to yourself."
+        },
+        {
+          "house": 2,
+          "reading": "You feel changes in security quickly, and practical worries can affect your mood before you have named them. Money matters most when it gives you a comfortable base and lets you care for those close to you. Try to check the figures before imagining the worst. Behaviour check: See whether a small money worry changes how settled you feel."
+        },
+        {
+          "house": 3,
+          "reading": "Venus and Uranus make your everyday conversations lively, candid, and sometimes sudden. You may reach out warmly, then become impatient when a reply feels slow or restrictive. Mars ties this quick exchange to daily effort, so irritation can spill into messages. Pause before sending the sharp version. Behaviour check: Review one message before you send it this week."
+        },
+        {
+          "house": 4,
+          "reading": "The Sun, Jupiter, and the North Node put steady attention on building a private life that feels secure. You may invest in home through practical choices, while Venus in the 3rd makes family ties depend on regular calls and honest conversation. Behaviour check: Notice one small home choice that helps you feel more at ease."
+        },
+        {
+          "house": 5,
+          "reading": "Mercury gives you a quick, playful mind and a strong urge to make things in your own way. You learn by trying, talking, and changing the plan as you go. Creative work can also help you think through what you feel. Behaviour check: Make time this week for something you enjoy without needing it to be useful."
+        },
+        {
+          "house": 6,
+          "reading": "Mars and Pluto bring intensity to work and routines: once committed, you can push hard and take control when things go wrong. The Moon links this effort to your sense of security, so fatigue may show up as worry about having enough. Build pauses into the day before your body demands them. Behaviour check: Notice when you keep working after your focus has gone."
+        },
+        {
+          "house": 7,
+          "reading": "Neptune can make you hopeful about partnership and sensitive to what the other person might need. You may fill in gaps instead of asking directly, while the Sun’s path draws shared life toward home and familiar comforts. Keep affection warm, but check that you both mean the same thing. Behaviour check: Ask one clear question instead of guessing what someone wants."
+        },
+        {
+          "house": 8,
+          "reading": "Shared money and obligations need clear words, not assumptions. Mercury connects these matters with pleasure, creativity, and the choices you make for yourself, so an informal promise can become awkward later. Write down who is paying, what is owed, and when it is due. Behaviour check: Clarify one shared expense before it becomes a source of tension."
+        },
+        {
+          "house": 9,
+          "reading": "You form beliefs through direct conversation and may prefer a lively disagreement to a vague agreement. Venus can make you want others to like your ideas, while her difficult condition asks you to say what you mean even when it may not please everyone. Behaviour check: State one opinion plainly this week without softening it for approval."
+        },
+        {
+          "house": 10,
+          "reading": "The South Node can make public responsibility feel familiar: you know how to be useful, keep going, and meet expectations. Mars connects career with demanding daily work, but strain can build when you treat every request as yours to carry. Choose what deserves your effort. Behaviour check: Turn down or renegotiate one task that is not yours to own."
+        },
+        {
+          "house": 11,
+          "reading": "You value friends who share your sense of what makes life worthwhile, and your hopes often grow from a secure private base. Jupiter links allies with home, so welcoming people in or staying close to trusted friends can matter more than a wide circle. Behaviour check: Make time this week for one friendship that feels dependable."
+        },
+        {
+          "house": 12,
+          "reading": "Saturn and Chiron point to a private habit of taking responsibility even when no one sees the work. You can be capable in a crisis, yet slow to admit you need care yourself. Solitude helps, but it works best when you choose it before exhaustion. Behaviour check: Tell someone what would make this week easier for you."
+        }
+      ]
+    },
+    "overview": {
+      "bridge": "Everything here points toward making room for your own needs before your strength is spent.",
+      "claims": [
+        {
+          "quote": "Your leading luminary is the one that tracks what you need to feel safe.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Moon is the sect light"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 2
+              },
+              "label": "Moon 6.5° Pisces, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "You put much of your effort into making home life steady and meeting the demands of daily work.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "sun",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Sun 13.1° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "cancer",
+                "house": 6
+              },
+              "label": "Mars 25.2° Cancer, 6th house"
+            },
+            {
+              "ref": {
+                "body": "north_node",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "North Node 21.8° Taurus, 4th house"
+            }
+          ]
+        },
+        {
+          "quote": "You can carry a lot without showing others how tiring it is.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Cardinal is your strongest mode: you start things readily, then need to choose which ones deserve your time.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "aries",
+                "house": 3
+              },
+              "label": "Venus 22.8° Aries, 3rd house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "cancer",
+                "house": 6
+              },
+              "label": "Mars 25.2° Cancer, 6th house"
+            }
+          ]
+        },
+        {
+          "quote": "Your mind moves quickly, but you do best when you check that the other person heard what you meant.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            },
+            {
+              "ref": {
+                "orb": 1.7,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "mercury",
+                "body2": "neptune"
+              },
+              "label": "Mercury square Neptune, 1.7° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You are capable of handling difficult tasks alone, but you may not tell anyone when the effort is wearing you down.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        }
+      ],
+      "headline": "You build your life around a secure home, useful work, and the people you care for.",
+      "distinctive": "You can look self-contained while carrying serious private pressure. You are capable of handling difficult tasks alone, but you may not tell anyone when the effort is wearing you down. Your drive to meet obligations can become the very thing that keeps you from resting. At the same time, you have a strong instinct for making a home feel dependable, and you return to familiar comforts when the outside world asks too much. You may be admired for what you accomplish while the work behind it stays largely unseen. What makes this combination unusual is how much your public effort depends on a private base you protect carefully. You do not need to give up ambition to care for yourself. You do need to notice when being capable has turned into doing everything alone.",
+      "temperament": "Your leading luminary is the one that tracks what you need to feel safe. Changes in money or routine can affect your mood before you have words for why. Fire is your strongest element, so you tend to act with conviction and bring warmth to what you care about. Cardinal is your strongest mode: you start things readily, then need to choose which ones deserve your time. You notice a problem and move to fix it before asking whether it is yours to solve. You can make a quick decision, then privately review what it will cost you. Your mind moves quickly, but you do best when you check that the other person heard what you meant. You investigate a practical concern and take action once you see a clear next step.",
+      "concentration": "You put much of your effort into making home life steady and meeting the demands of daily work. You can carry a lot without showing others how tiring it is. When work takes over, you still need a private place where you can stop being useful to everyone. Money matters most when it means you can feel settled and care for those close to you. You may keep your worries to yourself until they begin to affect your rest."
+    },
+    "foundation": {
+      "sect": "night",
+      "sectLight": "moon",
+      "chartThesis": "You work hard to make home and daily life secure, even when you keep the effort out of sight. You can become known for work that demands stamina, but you need a private place where nothing is asked of you. Earning enough matters because it lets you care for yourself and the people close to you.",
+      "centralTension": "You know how to meet public demands, but you are learning to give your private needs the same weight. Keeping up the work protects your livelihood and commitments. Stepping back protects your rest and your ties to the people closest to you.",
+      "dominantPattern": "Private life carries much of the weight: your work, income, partnerships, and friendships repeatedly lead back to home. You may take on demanding public work while keeping the strain, and sometimes the help you need, to yourself.",
+      "sectionGuidance": {
+        "mind": "Show how you find words quickly but need to check when another person hears something different.",
+        "focus": "Show how you can meet a public obligation and still keep time for the home life you want.",
+        "money": "Show how you judge whether you have enough by what you can provide at home.",
+        "triad": "Show how you seek enough money and a settled home before you can relax.",
+        "career": "Show how you build a public name through repeated effort, and what happens when you work past exhaustion.",
+        "family": "Show how everyday calls, visits, and small decisions shape your sense of belonging.",
+        "overview": "Show how you keep your hardest work out of view, then need real time alone to recover.",
+        "discoveries": "Show how choosing allies lets you contribute without waiting for others to assign you a part.",
+        "superpowers": "Show how you make original work when you have room to try things your own way.",
+        "relationships": "Show how you want a shared private life, yet need to speak up before work strains closeness."
+      },
+      "supportingEvidence": [
+        {
+          "placement": "SECT: night; sect_light: moon. Moon 6.5 Pisces, 2nd house, peregrine",
+          "implication": "Changes in income or material security may reach you as a physical or emotional need before you put them into words.",
+          "observation": "The leading light sits in the house of earnings, possessions, and having enough."
+        },
+        {
+          "placement": "CHART RULER: Saturn in Capricorn, 12th house, domicile, contrary to sect; retrograde",
+          "implication": "You can manage difficult things alone, yet may wait too long to tell someone what the effort costs.",
+          "observation": "The ruler of the self has strong resources but works privately, under heavier pressure."
+        },
+        {
+          "placement": "Sun 13.1 Taurus, 4th house, peregrine; Ascendant 28.6 Aquarius; Fortune 5.3 Taurus, 4th house; North Node 21.8 Taurus, 4th house; South Node 21.8 Scorpio, 10th house",
+          "implication": "You return to private ground to rebuild, even when public work comes readily and asks for more.",
+          "observation": "The Sun, Fortune, and growth end of the nodal axis gather at home, while the familiar end falls in public life."
+        },
+        {
+          "placement": "10th (Scorpio) ruled by Mars, which sits in Cancer in the 6th, fall; 2nd (Pisces) ruled by Jupiter, which sits in Taurus in the 4th, peregrine; 7th (Leo) ruled by Sun, which sits in Taurus in the 4th, peregrine; 4th (Taurus) ruled by Venus, which sits in Aries in the 3rd, detriment",
+          "implication": "Keep career, money, relationships, and family distinct: effort at work, a secure base, shared private life, and the conversations that make belonging possible.",
+          "observation": "Career runs through daily labour; income and partnership lead home; home affairs run through everyday contact and communication."
+        },
+        {
+          "placement": "Spirit 21.9 Sagittarius, 11th house; Mercury 0.3 Gemini, 5th house, domicile, in its own house",
+          "implication": "You can choose collaborators and make something distinctly yours, rather than letting demanding work set every priority.",
+          "observation": "Chosen effort points toward allies and groups, while creative expression has a strong, self-directed ruler."
+        },
+        {
+          "placement": "Mercury square Neptune (orb 1.7, applying); Venus square Mars (orb 2.4, applying); Saturn trine Neptune (orb 1.4, separating)",
+          "implication": "Check what others understood, address small irritations early, and give creative work time away from demands.",
+          "observation": "Expression meets blurred signals; affection meets workday friction; private discipline supports imagination."
+        }
+      ]
+    },
+    "discoveries": {
+      "claims": [
+        {
+          "quote": "You often handle the hardest parts without asking for help.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Rest can feel like something you have to earn, even when your body is already asking for it.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "cancer",
+                "house": 6
+              },
+              "label": "Mars 25.2° Cancer, 6th house"
+            }
+          ]
+        },
+        {
+          "quote": "You want warmth and shared time, yet your reflex is often to finish the task first.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "aries",
+                "house": 3
+              },
+              "label": "Venus 22.8° Aries, 3rd house"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "cancer",
+                "house": 6
+              },
+              "label": "Mars 25.2° Cancer, 6th house"
+            },
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "venus",
+                "body2": "mars"
+              },
+              "label": "Venus square Mars, 2.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "You can feel encouraged by people who offer comfort, resources, or a place to belong.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Jupiter 20.8° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "sect",
+                "role": "benefic_out_of_sect"
+              },
+              "label": "Jupiter is the benefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Still, help does not always arrive in a form you can count on, and you may hesitate to rely on it until the terms are clear.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "Jupiter 20.8° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "jupiter",
+                "kind": "sect",
+                "role": "benefic_out_of_sect"
+              },
+              "label": "Jupiter is the benefic out of sect"
+            }
+          ]
+        }
+      ],
+      "opening": "You can carry a hard burden without showing it, yet your sense of safety depends on having a settled private life. You also give a great deal to work, even when it pulls against the people and routines that restore you.",
+      "paradoxes": [
+        {
+          "title": "Strong, but alone",
+          "tension": "You often handle the hardest parts without asking for help. You stay composed, make a plan, and keep going while other people assume you are fine. Yet the effort can leave you isolated, especially when you wait until everything is done before saying what it cost. You may trust your ability to endure more than you trust someone else to share the load. Rest can feel like something you have to earn, even when your body is already asking for it.",
+          "invitation": "Try telling one trusted person what you are carrying while it is still in progress. You do not have to hand over control or explain every detail. A small, clear request gives someone a real chance to show up. Over time, you can keep your independence and let support become part of how you get through difficult days."
+        },
+        {
+          "title": "Work versus closeness",
+          "tension": "You can take pride in being dependable, especially when a job needs patience and steady effort. But the same commitment can spill into the hours meant for rest or closeness. You may keep working through irritation, then find that a small disagreement has become harder to resolve. You want warmth and shared time, yet your reflex is often to finish the task first. People close to you may see your effort, but still miss your need to pause.",
+          "invitation": "Notice when a routine demand is beginning to crowd out time with someone you care about. Say what is frustrating you before it turns into distance, and name a time when you can return to the task. This lets you stay reliable without making closeness wait for a perfect, finished day."
+        },
+        {
+          "title": "Help with strings",
+          "tension": "You can feel encouraged by people who offer comfort, resources, or a place to belong. Still, help does not always arrive in a form you can count on, and you may hesitate to rely on it until the terms are clear. You want to believe in generosity, but you also notice when a promise is vague or changes shape. That can leave you doing more alone than you intended, while privately wishing someone would make support simple.",
+          "invitation": "Let yourself welcome help while asking plainly what it includes and when it will happen. Clear agreements do not make generosity less genuine. They help you choose what you can safely rely on, and leave room for trust to grow through actions you can see."
+        }
+      ]
+    },
+    "superpowers": {
+      "claims": [
+        {
+          "quote": "You find words quickly and make ideas engaging without sanding off their odd edges.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            }
+          ]
+        },
+        {
+          "quote": "You can keep going through strain and make the effort look smaller than it feels.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "placement",
+                "sign": "capricorn",
+                "house": 12
+              },
+              "label": "Saturn 0.0° Capricorn, 12th house"
+            },
+            {
+              "ref": {
+                "body": "saturn",
+                "kind": "sect",
+                "role": "malefic_out_of_sect"
+              },
+              "label": "Saturn is the malefic out of sect"
+            }
+          ]
+        },
+        {
+          "quote": "When work gets demanding, irritation can build before you say what is wrong.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "cancer",
+                "house": 6
+              },
+              "label": "Mars 25.2° Cancer, 6th house"
+            },
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "venus",
+                "body2": "mars"
+              },
+              "label": "Venus square Mars, 2.4° orb"
+            }
+          ]
+        },
+        {
+          "quote": "A change in money, comfort, or routine can affect you before you have found words for it.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 2
+              },
+              "label": "Moon 6.5° Pisces, 2nd house"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "sect",
+                "role": "sect_light"
+              },
+              "label": "Moon is the sect light"
+            }
+          ]
+        },
+        {
+          "quote": "Building a steady home life is not a retreat from responsibility.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "north_node",
+                "kind": "placement",
+                "sign": "taurus",
+                "house": 4
+              },
+              "label": "North Node 21.8° Taurus, 4th house"
+            },
+            {
+              "ref": {
+                "body": "south_node",
+                "kind": "placement",
+                "sign": "scorpio",
+                "house": 10
+              },
+              "label": "South Node 21.8° Scorpio, 10th house"
+            }
+          ]
+        }
+      ],
+      "superpower": {
+        "text": "You find words quickly and make ideas engaging without sanding off their odd edges. You may turn a small observation into a scene, a joke, or a clear explanation. That ability works best when you have room to play and revise, rather than a fixed script. You can also bring a lively, direct style to everyday conversations. People often remember how you said something, not just what you said. Your creative voice has staying power because you can keep returning to it and sharpen it. You do not need a grand subject to make something distinctive. A detail from ordinary life can be enough.",
+        "title": "Original Expression",
+        "actions": [
+          {
+            "why": "so you keep your own voice in use",
+            "action": "Write a short scene or note from something you noticed today."
+          },
+          {
+            "why": "so you learn which parts already land",
+            "action": "Share one unfinished idea with someone you trust."
+          }
+        ]
+      },
+      "growingEdge": {
+        "text": "You are learning to let private needs count as much as public promises. A change in money, comfort, or routine can affect you before you have found words for it. You may push through because others are waiting, then discover that you have little left for the people closest to you. Building a steady home life is not a retreat from responsibility. It gives you somewhere to recover and choose your next step. Start with small, clear requests rather than hoping someone will notice. You do not have to prove that a need is serious before you speak. Saying what would help is a skill you can practise.",
+        "title": "Make Room for Need",
+        "actions": [
+          {
+            "why": "so you get used to stating what you need",
+            "action": "Name one practical thing that would make home easier this week, and ask for it."
+          },
+          {
+            "why": "so your body has time to settle",
+            "action": "Set aside one quiet hour at home without work or errands."
+          }
+        ]
+      },
+      "chronicPattern": {
+        "text": "You can keep going through strain and make the effort look smaller than it feels. You may treat rest as something to earn after every task is finished, then notice the cost only when your body slows you down. When work gets demanding, irritation can build before you say what is wrong. You may also assume that handling things alone is simpler than asking for help. This pattern does not disappear just because you understand it. It is easier to manage when you name the limit early and let another person see what needs doing. Your discipline helps you endure, but it can also hide your need to stop.",
+        "title": "Private Overwork",
+        "actions": [
+          {
+            "why": "so you practise ending work before you are depleted",
+            "action": "Choose a stopping time for one task this week and keep it."
+          },
+          {
+            "why": "so you get help before frustration builds",
+            "action": "Ask someone to take one specific chore off your hands."
+          },
+          {
+            "why": "so you address it before it spills into the rest of your day",
+            "action": "Tell a coworker or loved one when a small irritation first appears."
+          }
+        ]
+      }
+    },
+    "angleMeanings": {
+      "ascendant": {
+        "atYourBest": "Whatever is placed here is detached, principled, and oriented to the collective: it thinks in patterns and systems, values independence, and is loyal to ideas and to friends. It is original and fair.",
+        "underStress": "Under strain this becomes aloof, contrarian, dogmatic, or unable to be personally present.",
+        "firstImpression": "Aquarius rising. Aquarius stands apart, thinks in systems, and cares about the group.",
+        "orientationStyle": "The chart ruler is Saturn, in Capricorn in the 12th, domicile. Saturn is structure, limit, duration, and the discipline that makes things last."
+      },
+      "midheaven": {
+        "atYourBest": "Mars is drive, assertion, and the capacity to cut through and go after something.",
+        "underPressure": "A planet in fall is undervalued and tends to be doubted, including by its owner.",
+        "whereYouThrive": "The 10th is ruled by Mars, in Cancer in the 6th, fall. The 6th is work, routine, health, and what must be maintained.",
+        "publicDirection": "Midheaven in Sagittarius. Sagittarius aims far, believes big, and says what it thinks."
+      }
+    },
+    "relationships": {
+      "claims": [
+        {
+          "quote": "You feel secure when home life is steady and affection shows up in ordinary ways.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 7,
+                "ruler": "sun",
+                "dignity": "peregrine",
+                "rulerSign": "taurus",
+                "rulerHouse": 4
+              },
+              "label": "Sun rules the 7th and sits in Taurus, 4th house, peregrine"
+            },
+            {
+              "ref": {
+                "body": "moon",
+                "kind": "placement",
+                "sign": "pisces",
+                "house": 2
+              },
+              "label": "Moon 6.5° Pisces, 2nd house"
+            }
+          ]
+        },
+        {
+          "quote": "You may say you want calm, reliable love, but you are also drawn to quick wit, directness, and someone who keeps conversation lively.",
+          "evidence": [
+            {
+              "ref": {
+                "body": "venus",
+                "kind": "placement",
+                "sign": "aries",
+                "house": 3
+              },
+              "label": "Venus 22.8° Aries, 3rd house"
+            },
+            {
+              "ref": {
+                "body": "mercury",
+                "kind": "placement",
+                "sign": "gemini",
+                "house": 5
+              },
+              "label": "Mercury 0.3° Gemini, 5th house"
+            }
+          ]
+        },
+        {
+          "quote": "You can move fast toward someone, then find that daily demands leave less room for closeness than you meant to give.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "venus",
+                "body2": "mars"
+              },
+              "label": "Venus square Mars, 2.4° orb"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "placement",
+                "sign": "cancer",
+                "house": 6
+              },
+              "label": "Mars 25.2° Cancer, 6th house"
+            }
+          ]
+        },
+        {
+          "quote": "Small frustrations may stay unspoken while you keep working and caring for everyone else.",
+          "evidence": [
+            {
+              "ref": {
+                "orb": 2.4,
+                "kind": "aspect",
+                "type": "square",
+                "body1": "venus",
+                "body2": "mars"
+              },
+              "label": "Venus square Mars, 2.4° orb"
+            },
+            {
+              "ref": {
+                "body": "mars",
+                "kind": "sect",
+                "role": "malefic_of_sect"
+              },
+              "label": "Mars is the malefic of sect"
+            }
+          ]
+        },
+        {
+          "quote": "Partnership asks you to build trust through steady, ordinary care, while speaking plainly about what you need.",
+          "evidence": [
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 7,
+                "ruler": "sun",
+                "dignity": "peregrine",
+                "rulerSign": "taurus",
+                "rulerHouse": 4
+              },
+              "label": "Sun rules the 7th and sits in Taurus, 4th house, peregrine"
+            },
+            {
+              "ref": {
+                "kind": "ruler",
+                "house": 8,
+                "ruler": "mercury",
+                "dignity": "domicile",
+                "rulerSign": "gemini",
+                "rulerHouse": 5
+              },
+              "label": "Mercury rules the 8th and sits in Gemini, 5th house, in domicile"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "why": "So you give them a real chance to help before you feel alone with it.",
+          "action": "Tell your partner what would make this week feel easier before the week gets full."
+        },
+        {
+          "why": "So you protect time together before daily demands take over.",
+          "action": "Set aside one regular evening for home life, without work or social obligations."
+        },
+        {
+          "why": "So you catch misunderstandings while they are still small.",
+          "action": "Ask what your partner heard after a tense or important conversation."
+        }
+      ],
+      "howYouLove": "You feel secure when home life is steady and affection shows up in ordinary ways. You give through practical care, loyalty, and making time for someone in the middle of a busy day. You may say you want calm, reliable love, but you are also drawn to quick wit, directness, and someone who keeps conversation lively. A shared private life matters more to you than a polished public image.",
+      "theChallenge": "You can move fast toward someone, then find that daily demands leave less room for closeness than you meant to give. Small frustrations may stay unspoken while you keep working and caring for everyone else. Later, you may feel unseen or wish your partner had noticed how much you were carrying. You are not asking too much by needing help. The hard part is saying so before tiredness turns into distance.",
+      "connectBestWith": [
+        {
+          "item": "A Moon or Venus in an earth sign",
+          "reason": "They may value the steady home life that helps you feel secure."
+        },
+        {
+          "item": "A prominent Mercury",
+          "reason": "Quick, lively conversation draws you in and helps you feel close."
+        },
+        {
+          "item": "A gentle Mars or water emphasis",
+          "reason": "They may meet your sensitivity around effort and irritation with care."
+        },
+        {
+          "item": "A strong Taurus or 4th-house emphasis",
+          "reason": "They may share your wish to build a settled private life."
+        }
+      ],
+      "whatPartnershipAsks": "Partnership asks you to build trust through steady, ordinary care, while speaking plainly about what you need. You may be used to proving your worth through effort or keeping private needs to yourself. Let someone share the work of making a secure home, rather than waiting until everything is settled before you lean on them. You grow when closeness feels like a place to rest, not another responsibility to manage."
+    },
+    "aspectMeanings": {
+      "sun_sextile_pluto": {
+        "growth": "Deliberately using the connection rather than waiting for it to act on its own.",
+        "dynamic": "Sun and Pluto. The Sun is the centre of identity and the sense of what one is for. Pluto is intensity, power, and transformation through what cannot be avoided. Two functions in compatible signs support each other when asked. The connection is friendly and productive but not automatic: it is an opportunity rather than a given.",
+        "tension": "Underused. The help is available but not taken, so the opportunity goes quiet.",
+        "behavior": "The two cooperate readily and produce practical results with modest effort."
+      },
+      "venus_square_mars": {
+        "growth": "Accepting that the tension is permanent and building something out of it rather than trying to resolve it.",
+        "dynamic": "Venus and Mars. Venus is attraction, pleasure, taste, and the capacity to draw people in. Mars is drive, assertion, and the capacity to cut through and go after something. Two functions in signs that share a mode but not an element push against each other. Neither yields easily, so the pressure is constant and productive: this is where effort is forced and skill is built.",
+        "tension": "Recurring conflict, frustration, and the sense of being pulled two ways at once.",
+        "behavior": "Hard-won competence. The friction has been turned into a driving engine."
+      },
+      "venus_trine_neptune": {
+        "growth": "Treating the ease as a resource to be invested rather than a comfort to rest in.",
+        "dynamic": "Venus and Neptune. Venus is attraction, pleasure, taste, and the capacity to draw people in. Neptune is dissolution, longing, imagination, and the blurring of hard edges. Two functions in signs of the same element flow into each other without resistance. What they do together comes easily, often so easily that it goes unnoticed and undervalued.",
+        "tension": "Complacency. The gift is taken for granted, left undeveloped, or used as an excuse to avoid harder things.",
+        "behavior": "Effortless talent. The two functions combine naturally and reliably."
+      },
+      "saturn_trine_neptune": {
+        "growth": "Treating the ease as a resource to be invested rather than a comfort to rest in.",
+        "dynamic": "Saturn and Neptune. Saturn is structure, limit, duration, and the discipline that makes things last. Neptune is dissolution, longing, imagination, and the blurring of hard edges. Two functions in signs of the same element flow into each other without resistance. What they do together comes easily, often so easily that it goes unnoticed and undervalued.",
+        "tension": "Complacency. The gift is taken for granted, left undeveloped, or used as an excuse to avoid harder things.",
+        "behavior": "Effortless talent. The two functions combine naturally and reliably."
+      },
+      "mercury_square_neptune": {
+        "growth": "Accepting that the tension is permanent and building something out of it rather than trying to resolve it.",
+        "dynamic": "Mercury and Neptune. Mercury is how a person thinks, learns, decides and makes themselves understood. Neptune is dissolution, longing, imagination, and the blurring of hard edges. Two functions in signs that share a mode but not an element push against each other. Neither yields easily, so the pressure is constant and productive: this is where effort is forced and skill is built.",
+        "tension": "Recurring conflict, frustration, and the sense of being pulled two ways at once.",
+        "behavior": "Hard-won competence. The friction has been turned into a driving engine."
+      },
+      "moon_opposition_neptune": {
+        "growth": "Owning both ends instead of projecting one, and finding the position between them.",
+        "dynamic": "Moon and Neptune. The Moon is the body, the habits, and what makes someone feel safe. Neptune is dissolution, longing, imagination, and the blurring of hard edges. Two functions in opposite signs pull in opposite directions and can see each other clearly. The tension is external and relational: it tends to play out between the person and someone else, or as a swing between two extremes.",
+        "tension": "Polarisation. The person identifies with one side and meets the other in someone else, usually as conflict.",
+        "behavior": "Balance and perspective. Each side tempers the other and the person can hold both."
+      },
+      "sun_conjunction_jupiter": {
+        "growth": "Learning to feel which of the two is speaking, and to give each its turn.",
+        "dynamic": "Sun and Jupiter. The Sun is the centre of identity and the sense of what one is for. Jupiter is expansion, confidence, generosity, and the sense that more is possible. Two functions occupy the same place and act as one. Neither can be used without engaging the other, so their natures blend, for better or worse depending on how compatible they are.",
+        "tension": "The two cannot be separated, so the difficulty of one contaminates the other and there is no clean way to use either alone.",
+        "behavior": "The two work as a single combined strength, each amplifying the other."
+      }
+    },
+    "personalPlanets": {
+      "sun": "The Sun is the centre of identity and the sense of what one is for. Taurus is steady, sensual, slow to start and slower to stop. The 4th is home, family, roots, and what a person carries from their origins.",
+      "mars": "Mars is drive, assertion, and the capacity to cut through and go after something. Cancer protects, remembers, and holds close what it cares about. The 6th is work, routine, health, and what must be maintained.",
+      "moon": "The Moon is the body, the habits, and what makes someone feel safe. Pisces feels everything, blurs boundaries, and gives more than it keeps. The 2nd is resources: money, possessions, and what one values and keeps.",
+      "pluto": "Pluto is intensity, power, and transformation through what cannot be avoided. Cancer protects, remembers, and holds close what it cares about. The 6th is work, routine, health, and what must be maintained.",
+      "venus": "Venus is attraction, pleasure, taste, and the capacity to draw people in. Aries acts first, directly and fast, and sorts things out afterward. The 3rd is the near world: siblings, neighbours, daily talk, and learning.",
+      "chiron": "Chiron marks a wound that becomes a source of skill and understanding for others. Capricorn is disciplined, ambitious, and plays the long game. The 12th is what is hidden: solitude, sorrow, secrets, and self-undoing.",
+      "saturn": "Saturn is structure, limit, duration, and the discipline that makes things last. Capricorn is disciplined, ambitious, and plays the long game. The 12th is what is hidden: solitude, sorrow, secrets, and self-undoing.",
+      "uranus": "Uranus is disruption, independence, and the sudden break from what was expected. Aries acts first, directly and fast, and sorts things out afterward. The 3rd is the near world: siblings, neighbours, daily talk, and learning.",
+      "jupiter": "Jupiter is expansion, confidence, generosity, and the sense that more is possible. Taurus is steady, sensual, slow to start and slower to stop. The 4th is home, family, roots, and what a person carries from their origins.",
+      "mercury": "Mercury is how a person thinks, learns, decides and makes themselves understood. Gemini is quick, curious, verbal, and interested in everything at once. The 5th is pleasure, creativity, children, and what one does for its own sake.",
+      "neptune": "Neptune is dissolution, longing, imagination, and the blurring of hard edges. Leo is warm, proud, generous, and needs to be seen doing it. The 7th is the other: partners, spouses, open rivals, and one-to-one bonds.",
+      "north_node": "The North Node is the direction of growth: unfamiliar, uncomfortable, and worth it. Taurus is steady, sensual, slow to start and slower to stop. The 4th is home, family, roots, and what a person carries from their origins.",
+      "south_node": "The South Node is the default: what comes easily and what gets overused. Scorpio goes deep, holds on, and does not do anything by halves. The 10th is vocation, reputation, and what one is known for doing."
+    }
+  }
+}
