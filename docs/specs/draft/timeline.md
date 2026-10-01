@@ -151,8 +151,7 @@ the loop; Timeline brings the reader back to their dashboard every week, past th
 
 ## Out of scope
 - Timeline for anyone but the reader until readers ask; pairs (MB-103); sharing (MB-104).
-- Daily horoscopes, push notifications, progressions, solar returns, Lilith, Placidus.
-- Ask as therapy or coaching, voice or images in Ask.
+- Daily horoscopes, push, progressions, solar returns, Lilith, Placidus; Ask as therapy.
 
 ## Acceptance criteria
 1. Every date and degree on a Timeline surface comes from the engine; a test fails others.
