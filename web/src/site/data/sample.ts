@@ -1,8 +1,8 @@
 /**
- * The public sample, whole (ADR-119): the stored run's text, her chart
- * computed from her birth record, and the order a reader meets the run's
- * claims. Every page that shows the sample reads it here, so another run can
- * take the slot in one edit.
+ * The public sample (ADR-119, ADR-178): the stored run's text, her chart
+ * computed from her birth record, the four chapters /sample prints whole, and
+ * the order a reader meets the claims it prints. Every page that shows the
+ * sample reads it here, so another run can take the slot in one edit.
  */
 import type { ChartData, Claim, Interpretation } from "@/types/chart";
 import { CHAPTERS, type ChapterSection } from "@/lib/chapters";
@@ -47,14 +47,39 @@ export function sampleChart(): ChartData {
   return chart;
 }
 
-export type ClaimSection =
-  | "overview" | "triad" | "mind" | "career" | "money"
-  | "relationships" | "family" | "superpowers" | "discoveries" | "focus";
+export const CLAIM_SECTIONS = [
+  "overview", "triad", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus",
+] as const;
 
-/** Chapter 2 prints the triad on its cards, and its house readings carry no claims of their own, so its marks are the triad's. */
-const CLAIMS_OF: Record<ChapterSection, ClaimSection> = {
+export type ClaimSection = (typeof CLAIM_SECTIONS)[number];
+
+/** The chapters /sample prints whole (ADR-178); each of the other six shows one line and opens to its first paragraph. */
+export const OPEN_CHAPTERS = ["overview", "houses", "superpowers", "discoveries"] as const satisfies readonly ChapterSection[];
+
+export type OpenChapter = (typeof OPEN_CHAPTERS)[number];
+export type DimmedChapter = Exclude<ChapterSection, OpenChapter>;
+
+export function isOpenChapter(section: ChapterSection): section is OpenChapter {
+  return (OPEN_CHAPTERS as readonly ChapterSection[]).includes(section);
+}
+
+/** Where a dimmed chapter is read whole, in the approved artifact's words. */
+export const DIMMED_STATUS = "In your report";
+
+/** What a dimmed chapter holds, in the approved artifact's words. */
+export const DIMMED_LINES: Record<DimmedChapter, string> = {
+  mind: "How you think, learn and talk things through",
+  career: "The work that fits you and what it asks of you",
+  money: "What makes you feel secure, and how you spend",
+  relationships: "What you need from a partner and what you give",
+  family: "Home, your parents and where you come from",
+  focus: "Lean into, Notice, Practice: the things to try",
+};
+
+/** The run's section whose claims a chapter marks. Chapter 2 prints its house readings alone, which carry none (reading 9). */
+export const CLAIMS_OF: Record<ChapterSection, ClaimSection | null> = {
   overview: "overview",
-  houses: "triad",
+  houses: null,
   mind: "mind",
   career: "career",
   money: "money",
@@ -65,27 +90,30 @@ const CLAIMS_OF: Record<ChapterSection, ClaimSection> = {
   focus: "focus",
 };
 
+/** A claim of her reading, at its address in the stored run. */
 export interface ReadingClaim {
-  /** The mark's number, counted from 1 in each chapter, as the report numbers its marks. */
-  n: number;
-  section: ClaimSection;
-  /** 1 to 10, the chapter's place in `CHAPTERS`. */
-  chapter: number;
   /** "section.index" in the stored run: the claim's own address, which `HOME_CLAIMS` uses. */
   id: string;
+  section: ClaimSection;
   claim: Claim;
+}
+
+/** A claim /sample prints, with the number its mark shows. */
+export interface MarkedClaim extends ReadingClaim {
+  /** Counted from 1 in each chapter, as the report numbers its marks. */
+  n: number;
+  /** 1 to 10, the chapter's place in `CHAPTERS`. */
+  chapter: number;
 }
 
 const actionTexts = (items: readonly { action: string; why: string }[]) => items.flatMap((a) => [a.action, a.why]);
 const listTexts = (items: readonly { item: string; reason: string }[]) => items.flatMap((l) => [l.item, l.reason]);
 
 /**
- * A chapter's prose in the order /sample prints it, the locked artifact's
- * chapter bodies: /sample marks claims in every field, where the report page
- * leaves its rails and checklists unmarked, so all of the run's claims find
- * their sentence. Headings and titles carry no claims and are left out. The
- * page renders its blocks in this order, or the numbers stop running in
- * reading order.
+ * A chapter's prose in the order its blocks print, every field of it, lists
+ * included, so a claim is found wherever the run put it. Chapter 2 is its
+ * house readings alone, since the triad is still written but no page prints
+ * it (reading 9). Headings and titles carry no claims and are left out.
  */
 export function chapterTexts(chapter: ChapterSection, source: Interpretation = SAMPLE.run): string[] {
   switch (chapter) {
@@ -93,11 +121,8 @@ export function chapterTexts(chapter: ChapterSection, source: Interpretation = S
       const s = source.overview;
       return s ? [s.headline, s.concentration, s.temperament, s.distinctive, s.bridge] : [];
     }
-    case "houses": {
-      const s = source.triad;
-      const triad = s ? [s.sun.text, s.moon.text, ...(s.rising ? [s.rising.text] : [])] : [];
-      return [...triad, ...(source.houses?.houses.map((h) => h.reading) ?? [])];
-    }
+    case "houses":
+      return source.houses?.houses.map((h) => h.reading) ?? [];
     case "mind": {
       const s = source.mind;
       return s ? [s.howYouThink, s.howYouDecide, s.howYouAreUnderstood, s.practice] : [];
@@ -149,19 +174,32 @@ export function quoteNeedle(claim: Claim): string {
 }
 
 /**
- * Each claim at its first sentence in reading order, as Citation marks it:
- * hits in a paragraph taken left to right, one inside another skipped, and a
- * claim marked once in its chapter.
+ * What /sample prints of a chapter (ADR-178): an open chapter whole, a dimmed
+ * one the first paragraph of its first block, whitespace collapsed as the page
+ * shows it.
  */
-function readingOrder(source: Interpretation): ReadingClaim[] {
-  const out: ReadingClaim[] = [];
+export function sampleTexts(chapter: ChapterSection, source: Interpretation = SAMPLE.run): string[] {
+  const texts = chapterTexts(chapter, source);
+  if (isOpenChapter(chapter)) return texts;
+  const first = texts.length ? plainProse(texts[0]).split(/\n{2,}/).map(collapse).find(Boolean) : undefined;
+  return first ? [first] : [];
+}
+
+/**
+ * Each claim at its first sentence in /sample's reading order, as Citation
+ * marks it: hits in a paragraph taken left to right, one inside another
+ * skipped, and a claim marked once in its chapter.
+ */
+function readingOrder(source: Interpretation): MarkedClaim[] {
+  const out: MarkedClaim[] = [];
   CHAPTERS.forEach((c, i) => {
     const section = CLAIMS_OF[c.section];
+    if (!section) return;
     const claims = source[section]?.claims ?? [];
     const needles = claims.map(quoteNeedle);
     const marked = new Set<number>();
     let n = 0;
-    for (const text of chapterTexts(c.section, source)) {
+    for (const text of sampleTexts(c.section, source)) {
       for (const hay of printedParagraphs(text)) {
         const hits: { start: number; end: number; k: number }[] = [];
         needles.forEach((needle, k) => {
@@ -183,14 +221,18 @@ function readingOrder(source: Interpretation): ReadingClaim[] {
   return out;
 }
 
-let order: ReadingClaim[] | undefined;
+let order: MarkedClaim[] | undefined;
 
-/** A fresh array on every call, so a caller that sorts or filters it cannot reorder the next caller's. */
-export function claimsInReadingOrder(): ReadingClaim[] {
+/** The claims /sample prints, in reading order: a fresh array on every call, so a caller that sorts it cannot reorder the next one's. */
+export function markedClaims(): MarkedClaim[] {
   order ??= readingOrder(SAMPLE.run);
   return [...order];
 }
 
+/** By its address in the stored run, printed on /sample or not: home cites a triad claim, which no page prints now (reading 9). */
 export function claimById(id: string): ReadingClaim | undefined {
-  return claimsInReadingOrder().find((c) => c.id === id);
+  const [section, index, ...rest] = id.split(".");
+  if (rest.length || !/^\d+$/.test(index ?? "") || !(CLAIM_SECTIONS as readonly string[]).includes(section)) return undefined;
+  const claim = SAMPLE.run[section as ClaimSection]?.claims[Number(index)];
+  return claim ? { id, section: section as ClaimSection, claim } : undefined;
 }

@@ -1,5 +1,6 @@
 /**
- * /sample's first screen (annex /sample): the registry's eyebrow, H1 and lede
+ * /sample's first screen (annex /sample): "A sample: 4 of 10 chapters from"
+ * over the registry's H1, so the two read as one line (ADR-178), then its lede
  * beside the report's opening ring, drawn from her computed chart. The ring is
  * framed on the Ascendant itself, as the site's wheels are, so its dotted line
  * is her horizon and east is on the left; the Sun and the Moon sit at their
@@ -8,14 +9,16 @@
 import { norm360, pointAt } from "@/components/chart/wheel-geometry";
 import { AngleGlyph, AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { CONJUNCTION_DEGREES, separation } from "@/components/report/hero-layout";
+import { CHAPTERS } from "@/lib/chapters";
 import { houseWithWord } from "@/lib/evidence-glossary";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { PERSONAL_REPORT } from "@/lib/product";
 import { degreeLine } from "@/lib/sky-now";
 import type { ChartData, ChartPlanet } from "@/types/chart";
-import { SAMPLE, sampleChart } from "@/site/data/sample";
+import { OPEN_CHAPTERS, SAMPLE, sampleChart } from "@/site/data/sample";
 import { formatUpdated, type PageEntry } from "@/site/site";
 
+export const SAMPLE_KICKER_ID = "sd-sample-kicker";
 export const SAMPLE_TITLE_ID = "sd-sample-title";
 
 const C = 150;
@@ -114,7 +117,8 @@ export function SampleHead({ page }: { page: PageEntry }) {
     <header className="sd-head">
       <div className="sd-wrap grid-cols-[minmax(0,1fr)_minmax(0,300px)] items-center gap-x-14 max-[1000px]:grid-cols-1">
         <div className="grid min-w-0 gap-[18px]">
-          <p className="sd-eyebrow">{page.eyebrow}</p>
+          {/* The prerender holds the H1 to the registry's words, so the count leads into it from the eyebrow's line. */}
+          <p id={SAMPLE_KICKER_ID} className="sd-eyebrow">{`A sample: ${OPEN_CHAPTERS.length} of ${CHAPTERS.length} chapters from`}</p>
           <h1 id={SAMPLE_TITLE_ID} className="sd-page-h1">
             {page.h1}
           </h1>
