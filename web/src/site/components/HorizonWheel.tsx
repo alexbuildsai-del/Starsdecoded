@@ -612,7 +612,7 @@ function Band({ uid, geo, ref }: { uid: string; geo: Geometry; ref: RefObject<SV
           </g>
         );
       })}
-      <circle cx={C} cy={C} r={R.signInner} fill="none" stroke="hsl(var(--brass) / 0.28)" />
+      <circle cx={C} cy={C} r={R.signInner} fill="none" stroke="hsl(var(--brass) / 0.28)" strokeWidth={0.5} />
       <circle cx={C} cy={C} r={R.aspect} fill="none" stroke="hsl(var(--brass) / 0.2)" />
       {Array.from({ length: 72 }, (_, i) => i * 5).map((d) => {
         const a = geo.theta(d);
