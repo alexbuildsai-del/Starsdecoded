@@ -38,8 +38,8 @@ has read the spec and judges difficulty better than a keyword list.
 
    | Agent | Model | Tools | Runs at |
    |---|---|---|---|
-   | `researcher` | Sonnet, high | Read, Grep, Glob, WebSearch, WebFetch | `/ideate` when the topic needs outside evidence; prompt research |
-   | `verifier` | Sonnet, medium | Read, WebFetch | after every researcher; re-opens each cited URL |
+   | `researcher` | Opus, high | Read, Grep, Glob, WebSearch, WebFetch | `/ideate` when the topic needs outside evidence; prompt research |
+   | `verifier` | Sonnet, medium | Read, WebFetch | after a researcher whose findings feed a spec or a decision |
    | `tester` | Sonnet, high | Read, Grep, Glob, Bash, Edit, Write (test files only) | `/round`, once per parallel group with logic changes |
    | `sentinel` | Opus, max | Read, Grep, Glob, Bash | `/round` gate on the round's diff; full audit before a Release |
 
@@ -48,9 +48,13 @@ has read the spec and judges difficulty better than a keyword list.
      primary sources (vendor docs, standards, advisories, source code) and
      returns a claims table: claim, URL, source type, date, and whether it was
      read in full.
-   - **verifier** splits the draft into single claims, re-fetches each URL and
-     marks every claim supported, unsupported or misattributed. Only supported
-     claims reach the Owner or a spec, and an unsupported one is named as such.
+   - **verifier** checks research, not the report: the report's citations are
+     the brain's job (`evidence.ts`). Research agents invent or misquote
+     sources. One false fact in an ideation, such as a price, a library's
+     limit or what a competitor does, becomes a locked decision. The verifier
+     splits the findings into single claims, re-fetches each URL and marks
+     each claim supported, unsupported or misattributed. Only supported
+     claims reach the Owner or a spec. It is skipped for a quick lookup.
    - **tester** writes the tests the builders' cards did not, for the files a
      group changed in `api/src/lib/`, `packages/*` and `web/src/lib/`. It never
      edits a non-test file; a bug it finds goes to the orchestrator as a failing
@@ -109,6 +113,24 @@ has read the spec and judges difficulty better than a keyword list.
     report together, and the next plan takes every sev-1 as a goal.
     This fills today's gap: `docs/qa/` has no report yet.
 
+12. **The learning loop.** Two files, each at most 60 lines of rules, not a
+    diary. Both are kept in `docs/annex/`.
+    - **`owner-playbook.md`** is how the Owner decides. `/ideate` reads it
+      first and, at its close, adds what this session taught. That covers
+      which recommendations the Owner took as they were, what they changed
+      and why, the questions they found unnecessary, and the formats they liked.
+      The next ideation uses it to propose closer to their answer and to ask
+      fewer questions. Each ideation's report line counts the Owner's turns
+      and the recommendations taken as they were, so the trend shows.
+    - **`lessons.md`** is what the workers got wrong. At each round's close
+      the orchestrator reviews every card: each gate failure, escalation,
+      sentinel finding and QA sev-1 traced back to its card. It writes one
+      line per cause. A cause seen in two rounds becomes a rule in the agent
+      file or skill it belongs to, for example a builder line ("run codegen
+      after `openapi.yaml`") or a planner tier rule. The round report lists
+      the rules promoted. A rule that has not recurred for 5 rounds after
+      promotion is retired, to keep the agent files within budget.
+
 ## Out of scope
 
 - Installing Ruflo or any agent framework, MCP server or background daemon.
@@ -139,6 +161,9 @@ has read the spec and judges difficulty better than a keyword list.
    audit of `main` in its report, and with a `docs/qa/QA-NN.md` from staging.
 10. A PR whose preview sends `Access-Control-Allow-Origin`, or lacks HSTS,
     fails the probe in CI.
+11. The first ideation after the lock reads `owner-playbook.md` and adds to
+    it. The round after the lock writes `lessons.md`, and its report lists
+    any rule promoted.
 
 ## Screens
 
@@ -165,6 +190,10 @@ None. Playwright in CI for axe on public pages was approved by the Owner on
 - The sentinel runs in the session at two points: on the round diff before
   the PR opens, and as a full audit of `main` before every Release.
   Runtime security is checked by a keyless probe on the preview and staging.
+- Ideation research runs on Opus; the verifier checks research that feeds a
+  decision, never the report.
+- A learning loop: an Owner playbook updated by every ideation, and a lessons
+  file updated by every round, whose repeats become agent rules.
 - Every round closes with `/qa` on staging, and the Owner gets the QA report
   with the URL (amends §11.2 step 6).
 - No agent framework is installed. Ruflo is read for ideas only.
