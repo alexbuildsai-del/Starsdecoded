@@ -7,7 +7,10 @@ packages:
   - scripts
   - e2e
 
-autoInstallPeers: false
+# On, as every lockfile so far was resolved (pnpm 10.0 never read this key); off drops the react peer from two packages.
+autoInstallPeers: true
+# ADR-200: a hijacked release is usually pulled within days, so nothing younger than 7 days (in minutes) resolves.
+minimumReleaseAge: 10080
 
 catalog:
   '@tailwindcss/vite': ^4.1.14
