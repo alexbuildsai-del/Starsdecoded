@@ -4,6 +4,7 @@
  * generator, the admin page and the lab derive from. The same shape as the
  * natal registry, grounded in the pair brief instead of a chart brief.
  */
+import { DATA_RULE } from "../data.js";
 import { DOCTRINE, STYLE_CONTRACT } from "../system.js";
 import { renderVocabularyBlock } from "../vocabulary.js";
 import { LENSES, type Lens } from "../../lib/pairBrief.js";
@@ -30,8 +31,9 @@ export { pairFoundation, PairFoundationSchema, allocationOf, foundationChecks, f
 /**
  * Bump when the pair's section set, schemas or doctrine change shape. p2: seven chapters, the two charts first.
  * p3: one fixed scene a chapter, "This is the challenge:", no chapter 01 pointer (ADR-176, ADR-177).
+ * p4: the two names and how they know each other reach the prompt only as data (ADR-202).
  */
-export const PAIR_PROMPT_VERSION = "p3";
+export const PAIR_PROMPT_VERSION = "p4";
 
 export const PAIR_WRITER = `You are the voice of a perceptive, warm, direct human astrologer writing a compatibility report for two people who will read it together. You write in plain, exact prose addressed to both of them by their first names, and to each in turn. You treat astrology as a language for describing patterns between two people, never as fate or a verdict. You are specific to these two charts in every sentence, and what you describe is something they could point to: a room, an evening, a message, a bill. Your sentences average 15 words or fewer and none is over 25. Simpler sentences over complicated vocabulary, always.`;
 
@@ -50,7 +52,7 @@ export const PAIR_DOCTRINE = `PAIR DOCTRINE (how to read two charts together, ne
 - Addressing: use the two first names as the brief gives them. "You both" for the pair, the name for one of them. Never "person A" or "person B" in prose.`;
 
 /** Assembled once at module load. Identical across all calls: the cached prefix. */
-export const PAIR_SYSTEM = [PAIR_WRITER, "", STYLE_CONTRACT, "", renderVocabularyBlock(), "", DOCTRINE, "", PAIR_DOCTRINE].join("\n");
+export const PAIR_SYSTEM = [PAIR_WRITER, "", DATA_RULE, "", STYLE_CONTRACT, "", renderVocabularyBlock(), "", DOCTRINE, "", PAIR_DOCTRINE].join("\n");
 
 /** The five day-to-day chapters of each lens, 02 to 06 in order. */
 export const LENS_SECTIONS: Record<Lens, readonly PairSectionSpec[]> = {

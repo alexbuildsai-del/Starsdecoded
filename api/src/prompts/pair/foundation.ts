@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 import type { PairBrief } from "../../lib/pairBrief.js";
 import type { PairSectionSpec } from "./shapes.js";
-import { cardLineChecks, lensContext, ratingChecks, proseText } from "./shapes.js";
+import { cardLineChecks, lensContext, promptNames, ratingChecks, proseText } from "./shapes.js";
 import { fixed, warned, type Check, type Validated } from "../checks.js";
 
 /** At most this many chapters own one link (ADR-66). */
@@ -57,7 +57,7 @@ export function foundationChecks(out: PairFoundationOutput, brief: PairBrief): V
     return false;
   });
   const strengths = out.strengths.map((l, i) => {
-    const r = cardLineChecks(l, { a: brief.a.name, b: brief.b.name }, `strength ${i + 1}`);
+    const r = cardLineChecks(l, promptNames(brief), `strength ${i + 1}`);
     // Chapter 01 writes the card that prints; here the line is only handed over, so a block is a warning.
     checks.push(...r.checks.map((c) => (c.cls === "block" ? warned("chk-37", c.message) : c)));
     return r.line;

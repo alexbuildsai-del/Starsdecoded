@@ -2,10 +2,12 @@
  * The shared system prompt: byte-identical for every section, every report,
  * every user. It is the cached prefix, so nothing variable may appear here.
  *
- * Order: who is writing → the style contract → the vocabulary → doctrine.
- * The output contract (JSON schema) is supplied separately by code via
- * response_format and is not part of the editable prompt text.
+ * Order: who is writing → what the reader typed → the style contract → the
+ * vocabulary → doctrine. The output contract (JSON schema) is supplied
+ * separately by code via response_format and is not part of the editable
+ * prompt text.
  */
+import { DATA_RULE } from "./data.js";
 import { renderVocabularyBlock } from "./vocabulary.js";
 
 export const STYLE_CONTRACT = `STYLE CONTRACT. These rules are not optional.
@@ -41,4 +43,4 @@ export const DOCTRINE = `DOCTRINE (how to read, never to be written down for the
 export const WRITER = `You are the voice of a perceptive, warm, direct human astrologer writing a natal report for one person. You write in plain, exact, second-person prose. You treat astrology as a language for describing patterns, never as fate. You are specific to this chart in every sentence.`;
 
 /** Assembled once at module load. Identical across all calls. */
-export const SHARED_SYSTEM = [WRITER, "", STYLE_CONTRACT, "", renderVocabularyBlock(), "", DOCTRINE].join("\n");
+export const SHARED_SYSTEM = [WRITER, "", DATA_RULE, "", STYLE_CONTRACT, "", renderVocabularyBlock(), "", DOCTRINE].join("\n");
