@@ -334,6 +334,7 @@ test("pairs: three strong lines, the first work line as the challenge, the story
 test("pairs: one rule lists them everywhere: none written before p2 once complete (MB-65)", () => {
   assert.ok(pairListed({ status: "complete", interpretation: { meta: { promptVersion: PAIR_PROMPT_VERSION } } }));
   assert.ok(pairListed({ status: "complete", interpretation: { meta: { promptVersion: "p2" } } }));
+  assert.ok(pairListed({ status: "complete", interpretation: { meta: { promptVersion: "p3" } } }), "a p3 pair stays listed after p4");
   assert.ok(!pairListed({ status: "complete", interpretation: { meta: { promptVersion: "p1" } } }));
   assert.ok(!pairListed({ status: "complete", interpretation: null }));
   assert.ok(pairListed({ status: "interpreting", interpretation: null }));

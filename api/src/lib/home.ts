@@ -219,8 +219,8 @@ function personOf(seat: Seat, lines: HomePerson["lines"]): HomePerson {
 }
 
 // MB-65 provisional: a pair written before p2 cannot render on the seven-chapter
-// page, so no list shows it; p2 keeps rendering beside the current version (reading 15).
-const LISTED_PAIR_VERSIONS: ReadonlySet<string> = new Set(["p2", PAIR_PROMPT_VERSION]);
+// page, so no list shows it; p2 and p3 keep rendering beside the current version (reading 15).
+const LISTED_PAIR_VERSIONS: ReadonlySet<string> = new Set(["p2", "p3", PAIR_PROMPT_VERSION]);
 
 export function pairListed(report: { status: string; interpretation: unknown }): boolean {
   if (report.status !== "complete") return true;

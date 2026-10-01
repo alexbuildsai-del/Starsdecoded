@@ -146,13 +146,13 @@ function withStoredClaims(data: unknown, brief: PairBrief): unknown {
 
 /** The next-time items of the five lens chapters, as chapter 07 collects them, and the sources they cited. */
 function practiseTail(brief: PairBrief, chapters: Record<string, unknown>): string {
-  const names = { A: brief.a.name, B: brief.b.name, both: "both" };
   const items: string[] = [];
   const sources = new Set<string>();
   for (const id of pairChapterIds(brief.lens)) {
     const ch = chapters[id] as PairLensChapterSection | undefined;
     if (!ch || !("nextTime" in ch)) continue;
-    for (const it of ch.nextTime.items) items.push(`  - for ${names[it.for]}, from ${pairSectionById(id)?.label}: ${it.action} (why: ${it.why})`);
+    // The names are typed, so they stay in the brief's data blocks and an item says A, B or both (ADR-202).
+    for (const it of ch.nextTime.items) items.push(`  - for ${it.for}, from ${pairSectionById(id)?.label}: ${it.action} (why: ${it.why})`);
     for (const c of ch.claims) for (const e of c.evidence) {
       const ref = e.ref as unknown as { kind: string; report?: string; section?: string; claim?: number };
       if (ref.kind === "source") sources.add(`  - ${ref.report}/${ref.section} claim ${ref.claim}`);
