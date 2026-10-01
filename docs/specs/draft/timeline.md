@@ -1,6 +1,6 @@
 # Timeline
 
-Ideation 2026-10-01, draft v7, ready to lock; behind a switch, off at launch. Picks up MB-26
+Ideation 2026-10-01, draft v8, ready to lock; behind a switch, off at launch. Picks up MB-26
 and "Later: the subscription" (`pricing-and-launch.md`).
 https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE
 
@@ -79,33 +79,33 @@ the loop; Timeline brings the reader back to their orbit every week, past their 
   chart, the first answered free by Ask (about €0.03), Life, Now and ahead and Ask in a
   line each, the price, Start Timeline, Not now. No countdown. With nothing slow on the
   chart, it names the next life cycle.
-- **The orbit stays the dashboard** (screen 2, `dashboard-sky` unchanged for everyone). A
-  subscriber gets a ring around You, the week in seven arcs (Monday at the top, each the
-  tone of its day, bright when something starts or peaks), and one panel block: the week's
-  headline, seven days, what's on you, one people line, the next big cycle with Share, Open
-  Timeline. Tabs: Your orbit, Timeline (Now and ahead, Life). Ask in the corner.
+- **The dashboard stays as R12 leaves it** (`dashboard-sky`, the orbit, the Your sky panel,
+  Your People, Compatibility, the pill, Add someone; no ring, no tabs). A subscriber gets one
+  block between the orbit and Your People, **Your week**: the headline, seven days with tone
+  dots, what's on you, Open Timeline, one why card (below), and the next big cycle with
+  Share. Timeline is one page, from Open Timeline and the account menu. Ask in the corner.
 
 ### Timeline sells reports
 - The arithmetic: one Single keeps €18.63 (€24 less VAT, Stripe, €0.27 writing), a Couple
   €37.24, a year of Timeline about €36 at Ask's cap. One more Couple a year equals the plan.
-- **People lines**: a contact on Venus, the Moon or the 7th house carries one line to a
-  person in the orbit: with a pair, the part of it that fits; without, "Read the two of you
-  · 1 credit". Never another person's sky. At most one a week on the dashboard.
-- **Ask** answers about someone from the reader's side and offers the report holding both:
-  the pair, or Gift a report when they have none.
-- **Share cards** for every life cycle (1080×1350, ADR-102), from Life and the dashboard:
-  ring, age, name, sky date, "When is yours?", leading to `/timeline`'s finder. MB-104's
-  answer governs what a card may show.
-- **The yearly plan includes one Personal natal report to give** (Gift a report, €0.27).
+- **The why card**: a contact on Venus, the Moon or the 7th house gets one card about a
+  person in the orbit: the sky event, what it touches in the reader's chart, how astrology
+  reads it, and the pair chapter it lands in (Venus turning back through the 8th and 7th:
+  chapter 07, Love and closeness), opening it; with no pair, "Read the two of you · 1
+  credit" through R12's asking steps. Never another person's sky. One a week at most.
+- **Ask** answers about someone from the reader's side and offers the pair, or Gift a report.
+- **Share cards** per life cycle (1080×1350, ADR-102): ring, age, name, sky date, "When is
+  yours?", to `/timeline`'s finder. MB-104's answer governs what a card may show.
+- **The yearly plan: "€69.99 a year (1 credit to give, included)"**, granted through R12's
+  ledger on each yearly payment (History "+1 · with Timeline"), taken back if refunded unspent.
 - **The letter ends at the orbit**: one line under the dashboard nudges' rules.
-- **Measured** in the loop study: credits, sends and gifts per subscriber against owners
-  without Timeline, share cards ending in a report. Target: one more report a year each.
+- **Measured** in the loop study against owners without Timeline: one more report a year.
 
 ### Free and paid
 - Free for a report owner: the offer (their dial today, one Ask question), one dashboard
   line, "Your next big cycle is at 37, in 2 years", with Share; and the public finder.
-- Timeline: the week ring, every reading, Now and ahead, Life, Ask, the letter, for the
-  reader; the yearly plan adds a report to give.
+- Timeline: Your week, every reading, Now and ahead, Life, Ask, the letter, for the
+  reader; the yearly plan adds 1 credit to give.
 - **€9.99 a month or €69.99 a year** (58% of twelve months), VAT included, EUR only, like
   the report: EU consumer prices must show the final price. Home-rate VAT under €10,000 of
   cross-border sales a year, then each buyer's rate through OSS; the price stays the same.
@@ -171,10 +171,10 @@ the loop; Timeline brings the reader back to their orbit every week, past their 
 2. €9.99 a month, VAT included, no free trial, promotions only. Behind a switch, after R12.
 3. On v2 to v5: Ask a chat capped by cost, no tier; the dial, not a Gantt; Ask everywhere
    with its own mark; Life's why first, ages on top; coming soon as cards; tone colours.
-4. On v6: the reports and their sharing are the core and the money. No Home: Timeline
-   sits inside the orbit and is designed to sell reports.
+4. On v6 and v7: the reports and their sharing are the core and the money; keep the R12
+   dashboard; Your week under it; explain why to read the chapter; 1 credit to give.
 Claude's calls (the Owner may overturn any): the switch's form, the name Ask, €69.99 a
-year, one free question, rose #C46B78, easy/mixed/intense, the week ring, people lines,
+year, one free question, rose #C46B78, easy/mixed/intense, the why card,
 the free next-cycle line, share cards, a report to give with the year.
 
 ## Decisions to record (at /lock)
@@ -188,7 +188,7 @@ the free next-cycle line, share cards, a report to give with the year.
 6. Readings: a new prompt family, once per event per person, stored, tied to the report;
    any date or degree not computed blocks.
 7. Sold after Closing on an owned report (dial, three questions, one free), once. The orbit
-   stays the dashboard; a subscriber gets the week ring, one panel block, one tab.
+   dashboard is unchanged; a subscriber gets Your week under the orbit.
 8. Free: the offer, one question, the next-cycle line with Share. €9.99 / €69.99, VAT
    included, no free trial; dated promotions only, the first 30 days after launch.
 9. Ask: a chat that asks back with cards, computed answers, reads only what the reader
@@ -196,5 +196,5 @@ the free next-cycle line, share cards, a report to give with the year.
 10. The weekly letter: opt-in, Monday, only in weeks that touch the chart.
 11. `TIMELINE` off everywhere, admin sees it on staging; built after R12. `/timeline`
     coming soon with the finder, no switch, may ship with the launch.
-12. Timeline sells reports: people lines, Ask's pair offer, share cards, a report to give
+12. Timeline sells reports: the why card, Ask's pair offer, share cards, 1 credit to give
     with the yearly plan, the letter's orbit line; success is one more report a year.
