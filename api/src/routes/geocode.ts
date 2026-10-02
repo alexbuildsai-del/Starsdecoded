@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { GeocodePlaceQueryParams } from "@workspace/api-zod";
+import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
@@ -68,18 +69,16 @@ router.get("/geocode", async (req, res) => {
   // no body, customFetch gets null back, frontend shows "No matching places").
   res.set("Cache-Control", "no-store");
 
-  // zod.coerce.string() converts undefined → "undefined", so validate the raw
-  // query param directly before running the Zod schema.
-  const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
-  if (!rawQ) {
-    return res.status(400).json({ error: "validation_error", message: "Missing required parameter: q" });
-  }
-  const parsed = GeocodePlaceQueryParams.safeParse(req.query);
+  // The schema reads the trimmed text: zod.coerce.string() would pass a missing q as "undefined", and the contract's two
+  // characters must hold for what is searched, not for its padding.
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  // MB-165 provisional: a one-letter search is refused here, before Nominatim is asked.
+  const parsed = GeocodePlaceQueryParams.safeParse({ q });
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: "Missing required parameter: q" });
+    return res.status(400).json(validationFailure(parsed.error));
   }
 
-  const query = rawQ;
+  const query = parsed.data.q;
 
   try {
     const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=10&addressdetails=1`;

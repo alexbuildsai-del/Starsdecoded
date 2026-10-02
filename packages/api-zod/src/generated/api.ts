@@ -15,7 +15,8 @@ import * as zod from 'zod';
 export const HealthCheckResponse = zod.object({
   "status": zod.string(),
   "env": zod.enum(['development', 'staging', 'production']).optional().describe('Which deployment answered. The smoke check asserts it so a web origin cannot silently route to the wrong API.'),
-  "commit": zod.string().optional().describe('Git sha of the running build, when the platform injects one.')
+  "commit": zod.string().optional().describe('Git sha of the running build, when the platform injects one.'),
+  "edge": zod.boolean().optional().describe('Whether this call carried the edge secret that only Vercel\'s edge adds, the one condition on which the API trusts the visitor\'s forwarded address (ADR-224). Yes or no only: the secret itself is never sent back.')
 })
 
 
@@ -103,17 +104,17 @@ export const GetHomeResponse = zod.object({
   "sun": zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "moon": zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "rising": zod.union([zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),zod.null()]).describe('Null when the horizon is unknown (ADR-174).')
 }).nullable().describe('Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).'),
   "lines": zod.object({
@@ -134,17 +135,17 @@ export const GetHomeResponse = zod.object({
   "sun": zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "moon": zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "rising": zod.union([zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it (\"4th (home)\"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),zod.null()]).describe('Null when the horizon is unknown (ADR-174).')
 }).nullable().describe('Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).'),
   "lines": zod.object({
@@ -172,11 +173,11 @@ export const GetHomeResponse = zod.object({
   "headline": zod.string(),
   "strengths": zod.array(zod.string())
 }).nullable().describe('The 9:16 story\'s text, chapter 01\'s headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).')
-}).describe('One Compatibility report on the reader\'s list, with what its pair block and story show (ADR-174, ADR-175).')).describe('The Compatibility reports GET \/reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional).'),
+}).describe('One Compatibility report on the reader\'s list, with what its pair block and story show (ADR-174, ADR-175).')).describe('The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional).'),
   "practising": zod.array(zod.object({
   "reportId": zod.string(),
   "kind": zod.enum(['natal', 'compatibility']),
-  "key": zod.string().describe('The item key the report ticks it under, \"focus.practice.bullets.0\" or \"partners02.nextTime.items.0\" (ADR-24).'),
+  "key": zod.string().describe('The item key the report ticks it under, "focus.practice.bullets.0" or "partners02.nextTime.items.0" (ADR-24).'),
   "action": zod.string(),
   "why": zod.string().nullable(),
   "pinned": zod.boolean().describe('False on the Closing\'s first Practice item, offered with none pinned (ADR-174).'),
@@ -192,12 +193,12 @@ export const GetHomeResponse = zod.object({
 export const ListReportsResponseItem = zod.object({
   "id": zod.string(),
   "kind": zod.enum(['natal', 'compatibility']).describe('Natal rows describe a single profile; compatibility rows describe a relationship between two profiles.'),
-  "name": zod.string().describe('Display name. For natal, the profile\'s name. For compatibility, \"{A} & {B}\".'),
+  "name": zod.string().describe('Display name. For natal, the profile\'s name. For compatibility, "{A} & {B}".'),
   "birthDate": zod.string().optional().describe('Only set for natal reports.'),
   "birthTime": zod.string().optional().describe('Only set for natal reports.'),
   "birthPlace": zod.string().optional().describe('Only set for natal reports.'),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
-  "horizon": zod.enum(['known', 'approximate', 'unknown']).nullish().describe('The natal chart\'s horizon status, so a blind report\'s tile can carry the call to action.'),
+  "horizon": zod.union([zod.literal('known'),zod.literal('approximate'),zod.literal('unknown'),zod.literal(null)]).nullish().describe('The natal chart\'s horizon status, so a blind report\'s tile can carry the call to action.'),
   "archetypeName": zod.string().nullish().describe('The report\'s overview headline (kept under its historical name for client compatibility). Null until the report completes.'),
   "sunSign": zod.string().nullish(),
   "moonSign": zod.string().nullish(),
@@ -220,10 +221,10 @@ export const ListReportsResponseItem = zod.object({
 }).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
   "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
-  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+  "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this row; null where it is not offered (ADR-120, ADR-133).'),
   "sharedBy": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).'),
   "stoppedBy": zod.string().nullish().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).')
@@ -235,31 +236,31 @@ export const ListReportsResponse = zod.array(ListReportsResponseItem)
  * Accepts birth data, computes the natal chart, and starts AI interpretation
  * @summary Create a new natal chart report
  */
-export const createReportBodyNameRegExp = new RegExp('^(?=.*\\p{L})(?! )(?!.* $)[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
+export const createReportBodyNameRegExp = new RegExp('^(?=.*\\p{L})(?![ \\u3000])(?!.*[ \\u3000]$)[\\p{L}\\p{M} \\u3000\'’.·・\\u200C-]{1,60}$', 'u');
 
 
 export const CreateReportBody = zod.object({
-  "name": zod.string().regex(createReportBodyNameRegExp).describe('The person\'s name, 1 to 60 letters, marks, spaces, apostrophes (\' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).'),
+  "name": zod.string().regex(createReportBodyNameRegExp).describe('The person\'s name, 1 to 60 characters: letters, marks, spaces (the ideographic space too), apostrophes (\' ’), hyphens, dots (. · ・) and the zero-width non-joiner some scripts spell names with; at least one letter, and no space at either end. So what reaches the prompt is a name and never markup or an instruction (ADR-202).'),
   "birthDate": zod.string().describe('Birth date in YYYY-MM-DD format'),
   "birthTime": zod.string().describe('Birth time in HH:MM format (24h)'),
-  "birthPlace": zod.string().describe('Birth place name (e.g. \"Milan, Italy\")'),
+  "birthPlace": zod.string().describe('Birth place name (e.g. "Milan, Italy")'),
   "latitude": zod.number().describe('Latitude of birth place'),
   "longitude": zod.number().describe('Longitude of birth place'),
   "timezoneOffset": zod.number().describe('UTC offset in hours (e.g. 1 for CET). Used only when no `timezone` is given.'),
   "timezone": zod.string().optional().describe('IANA zone name of the birth place. The offset in force at the birth instant derives from it (MB-48).'),
   "birthTimeWindowMinutes": zod.number().int().optional().describe('Half-width of the birth-time band around `birthTime`. 0 exact, 180 a part of the day, 720 unknown (ADR-33). Default 0.'),
-  "isForSelf": zod.boolean().optional().describe('When true, the profile created (or resolved) for this report is explicitly flagged as the submitter\'s own self-profile. The server sets `isSelf=true` on the profile row. Only one self-profile per user is intended; this should only be sent from the \"Generate My Chart\" flow, not the \"Add a Person\" flow.\n')
+  "isForSelf": zod.boolean().optional().describe('When true, the profile created (or resolved) for this report is explicitly flagged as the submitter\'s own self-profile. The server sets `isSelf=true` on the profile row. Only one self-profile per user is intended; this should only be sent from the "Generate My Chart" flow, not the "Add a Person" flow.\n')
 })
 
 export const CreateReportResponse = zod.object({
   "id": zod.string(),
   "kind": zod.enum(['natal', 'compatibility']).describe('Natal rows describe a single profile; compatibility rows describe a relationship between two profiles.'),
-  "name": zod.string().describe('Display name. For natal, the profile\'s name. For compatibility, \"{A} & {B}\".'),
+  "name": zod.string().describe('Display name. For natal, the profile\'s name. For compatibility, "{A} & {B}".'),
   "birthDate": zod.string().optional().describe('Only set for natal reports.'),
   "birthTime": zod.string().optional().describe('Only set for natal reports.'),
   "birthPlace": zod.string().optional().describe('Only set for natal reports.'),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
-  "horizon": zod.enum(['known', 'approximate', 'unknown']).nullish().describe('The natal chart\'s horizon status, so a blind report\'s tile can carry the call to action.'),
+  "horizon": zod.union([zod.literal('known'),zod.literal('approximate'),zod.literal('unknown'),zod.literal(null)]).nullish().describe('The natal chart\'s horizon status, so a blind report\'s tile can carry the call to action.'),
   "archetypeName": zod.string().nullish().describe('The report\'s overview headline (kept under its historical name for client compatibility). Null until the report completes.'),
   "sunSign": zod.string().nullish(),
   "moonSign": zod.string().nullish(),
@@ -282,10 +283,10 @@ export const CreateReportResponse = zod.object({
 }).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
   "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
-  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+  "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this row; null where it is not offered (ADR-120, ADR-133).'),
   "sharedBy": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).'),
   "stoppedBy": zod.string().nullish().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).')
@@ -582,7 +583,7 @@ export const GetReportResponse = zod.object({
   "reportType": zod.enum(['natal', 'compatibility']).optional(),
   "lens": zod.enum(['partners', 'parent_child', 'people']).optional().describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
   "label": zod.string().nullish().describe('How two people know each other, in their words; null under the other lenses.'),
-  "band": zod.enum(['little', 'school', 'teen', 'grown']).nullish().describe('The child\'s age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.'),
+  "band": zod.union([zod.literal('little'),zod.literal('school'),zod.literal('teen'),zod.literal('grown'),zod.literal(null)]).nullish().describe('The child\'s age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.'),
   "horizon": zod.enum(['known', 'approximate', 'unknown']).optional().describe('Mirrors the chart\'s horizon status (ADR-34).'),
   "horizonPass": zod.object({
   "at": zod.string(),
@@ -614,7 +615,7 @@ export const GetReportResponse = zod.object({
 }))
 }))
 }).optional().describe('What the last horizon pass changed. Counts are the report\'s own; the page never recounts them (ADR-35).'),
-  "model": zod.string().describe('The model every call used, or \"mixed\" when the foundation and the sections differ. See usage.sections[].model for each one.\n'),
+  "model": zod.string().describe('The model every call used, or "mixed" when the foundation and the sections differ. See usage.sections[].model for each one.\n'),
   "houseSystem": zod.enum(['whole-sign']),
   "generatedAt": zod.string(),
   "wordCount": zod.number(),
@@ -626,7 +627,7 @@ export const GetReportResponse = zod.object({
   "sunAltitude": zod.number().optional(),
   "sectMarginal": zod.boolean().optional(),
   "usage": zod.object({
-  "model": zod.string().describe('The model every call used, or \"mixed\" when they differ.'),
+  "model": zod.string().describe('The model every call used, or "mixed" when they differ.'),
   "costUsd": zod.number().nullable().describe('Priced per section on its own model and summed, when generated. Null if any model has no price on record.\n'),
   "wallClockMs": zod.number().describe('End to end. Below `totals.ms`, because ten sections run at once.'),
   "totals": zod.object({
@@ -645,7 +646,7 @@ export const GetReportResponse = zod.object({
   "reasoningTokens": zod.number(),
   "ms": zod.number()
 }).describe('Token counts and time, summed over one section\'s attempts or a whole report.').and(zod.object({
-  "section": zod.string().describe('Prompt key, e.g. \"natal:overview\".'),
+  "section": zod.string().describe('Prompt key, e.g. "natal:overview".'),
   "model": zod.string().describe('The model this section\'s calls ran on.')
 })))
 }).optional().describe('Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it.\n')
@@ -1416,7 +1417,7 @@ export const GetReportResponse = zod.object({
   "texts": zod.record(zod.string(), zod.string())
 }).describe('A lens chapter\'s scene. Since p3 titles holds the one fixed scene and written is 0; a p2 report stored three titles and wrote one, and any text written on tap stays stored, unread (ADR-65, ADR-176).')).optional().describe('A compatibility report\'s scenes by lens chapter id (ADR-65).')
 }).describe('A report. Every section is schema-enforced at generation time, so a section that is present is complete. Only `meta` is required, because the report is readable while it writes and sections arrive one at a time. A natal report carries the natal sections; a compatibility report the pair sections (`meta.reportType`). A natal report whose horizon is unknown has no `houses`, no `triad.rising` and no `angleMeanings`.\n'),zod.null()]).optional(),
-  "workbook": zod.record(zod.string(), zod.string()).optional().describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under \"pin.\" and its item key, valued by the ISO date it was pinned (ADR-174).'),
+  "workbook": zod.record(zod.string(), zod.string()).optional().describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under "pin." and its item key, valued by the ISO date it was pinned (ADR-174).'),
   "errorMessage": zod.string().nullish().describe('Always null; internal text never reaches a customer response. Kept so older clients build.'),
   "failureReason": zod.union([zod.object({
   "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
@@ -1426,10 +1427,10 @@ export const GetReportResponse = zod.object({
   "updatedAt": zod.string(),
   "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
-  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+  "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this report; null where it is not offered (ADR-120, ADR-133).'),
   "giverName": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).')
 })
@@ -1469,14 +1470,14 @@ export const GetReportStatusResponse = zod.object({
   "retrograde": zod.boolean()
 }))
 }).nullish().describe('While the chart is not yet stored: every body\'s position on the entered date and time at offset zero, from one local call, so the orrery can run from the birth day (ADR-47). Null once the chart exists, or when the profile is gone.\n'),
-  "sections": zod.record(zod.string(), zod.enum(['pending', 'done'])).describe('One entry per section of the report\'s type, \"done\" once that section is stored.'),
+  "sections": zod.record(zod.string(), zod.enum(['pending', 'done'])).describe('One entry per section of the report\'s type, "done" once that section is stored.'),
   "interpretation": zod.union([zod.object({
   "meta": zod.object({
   "promptVersion": zod.string(),
   "reportType": zod.enum(['natal', 'compatibility']).optional(),
   "lens": zod.enum(['partners', 'parent_child', 'people']).optional().describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
   "label": zod.string().nullish().describe('How two people know each other, in their words; null under the other lenses.'),
-  "band": zod.enum(['little', 'school', 'teen', 'grown']).nullish().describe('The child\'s age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.'),
+  "band": zod.union([zod.literal('little'),zod.literal('school'),zod.literal('teen'),zod.literal('grown'),zod.literal(null)]).nullish().describe('The child\'s age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.'),
   "horizon": zod.enum(['known', 'approximate', 'unknown']).optional().describe('Mirrors the chart\'s horizon status (ADR-34).'),
   "horizonPass": zod.object({
   "at": zod.string(),
@@ -1508,7 +1509,7 @@ export const GetReportStatusResponse = zod.object({
 }))
 }))
 }).optional().describe('What the last horizon pass changed. Counts are the report\'s own; the page never recounts them (ADR-35).'),
-  "model": zod.string().describe('The model every call used, or \"mixed\" when the foundation and the sections differ. See usage.sections[].model for each one.\n'),
+  "model": zod.string().describe('The model every call used, or "mixed" when the foundation and the sections differ. See usage.sections[].model for each one.\n'),
   "houseSystem": zod.enum(['whole-sign']),
   "generatedAt": zod.string(),
   "wordCount": zod.number(),
@@ -1520,7 +1521,7 @@ export const GetReportStatusResponse = zod.object({
   "sunAltitude": zod.number().optional(),
   "sectMarginal": zod.boolean().optional(),
   "usage": zod.object({
-  "model": zod.string().describe('The model every call used, or \"mixed\" when they differ.'),
+  "model": zod.string().describe('The model every call used, or "mixed" when they differ.'),
   "costUsd": zod.number().nullable().describe('Priced per section on its own model and summed, when generated. Null if any model has no price on record.\n'),
   "wallClockMs": zod.number().describe('End to end. Below `totals.ms`, because ten sections run at once.'),
   "totals": zod.object({
@@ -1539,7 +1540,7 @@ export const GetReportStatusResponse = zod.object({
   "reasoningTokens": zod.number(),
   "ms": zod.number()
 }).describe('Token counts and time, summed over one section\'s attempts or a whole report.').and(zod.object({
-  "section": zod.string().describe('Prompt key, e.g. \"natal:overview\".'),
+  "section": zod.string().describe('Prompt key, e.g. "natal:overview".'),
   "model": zod.string().describe('The model this section\'s calls ran on.')
 })))
 }).optional().describe('Tokens, cost and time for the eleven generation calls. Optional: reports generated before R02 have no usage block. `inputTokens` excludes `cachedInputTokens`, and `reasoningTokens` is a subset of `outputTokens`, never added on top of it.\n')
@@ -2321,9 +2322,9 @@ export const UpdateReportWorkbookParams = zod.object({
   "id": zod.coerce.string()
 })
 
-export const UpdateReportWorkbookBody = zod.record(zod.string(), zod.string().nullable()).describe('A shallow merge onto the report\'s workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example \"career.actions.0\". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter\'s id does in \"partners02.nextTime.items.0\" (ADR-24). A pin key is \"pin.\" and an item key, \"pin.focus.practice.bullets.0\", valued by the ISO date of the pin and cleared by null; at most three pins stand on a report, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, MB-110 provisional).\n')
+export const UpdateReportWorkbookBody = zod.record(zod.string(), zod.string().nullable()).describe('A shallow merge onto the report\'s workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter\'s id does in "partners02.nextTime.items.0" (ADR-24). A pin key is "pin." and an item key, "pin.focus.practice.bullets.0", valued by the ISO date of the pin and cleared by null; at most three pins stand on a report, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, MB-110 provisional).\n')
 
-export const UpdateReportWorkbookResponse = zod.record(zod.string(), zod.string()).describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under \"pin.\" and its item key, valued by the ISO date it was pinned (ADR-174).')
+export const UpdateReportWorkbookResponse = zod.record(zod.string(), zod.string()).describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under "pin." and its item key, valued by the ISO date it was pinned (ADR-174).')
 
 
 /**
@@ -2354,7 +2355,7 @@ export const ListProfilesResponseItem = zod.object({
   "timezoneOffset": zod.number().optional(),
   "timezone": zod.string().nullish(),
   "birthTimeWindowMinutes": zod.number().int().optional(),
-  "horizon": zod.enum(['known', 'approximate', 'unknown']).nullish(),
+  "horizon": zod.union([zod.literal('known'),zod.literal('approximate'),zod.literal('unknown'),zod.literal(null)]).nullish(),
   "sunSign": zod.string().nullish(),
   "moonSign": zod.string().nullish(),
   "risingSign": zod.string().nullish(),
@@ -2362,14 +2363,14 @@ export const ListProfilesResponseItem = zod.object({
   "ownership": zod.enum(['owner', 'claimed', 'invited', 'unclaimed']).optional().describe('Viewer-relative ownership status of the profile.'),
   "claimedByName": zod.string().nullish(),
   "inviteEmail": zod.string().nullish(),
-  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the \"Generate My Chart\" flow (isForSelf=true in POST \/reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
+  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the "Generate My Chart" flow (isForSelf=true in POST /reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
   "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
   "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
-  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+  "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} for this person; null where it is not offered (ADR-120, ADR-139).')
 })
 export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
@@ -2378,11 +2379,11 @@ export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
 /**
  * @summary Create or de-dupe-resolve a profile
  */
-export const createProfileBodyNameRegExp = new RegExp('^(?=.*\\p{L})(?! )(?!.* $)[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
+export const createProfileBodyNameRegExp = new RegExp('^(?=.*\\p{L})(?![ \\u3000])(?!.*[ \\u3000]$)[\\p{L}\\p{M} \\u3000\'’.·・\\u200C-]{1,60}$', 'u');
 
 
 export const CreateProfileBody = zod.object({
-  "name": zod.string().regex(createProfileBodyNameRegExp).describe('The person\'s name, 1 to 60 letters, marks, spaces, apostrophes (\' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).'),
+  "name": zod.string().regex(createProfileBodyNameRegExp).describe('The person\'s name, 1 to 60 characters: letters, marks, spaces (the ideographic space too), apostrophes (\' ’), hyphens, dots (. · ・) and the zero-width non-joiner some scripts spell names with; at least one letter, and no space at either end. So what reaches the prompt is a name and never markup or an instruction (ADR-202).'),
   "birthDate": zod.string(),
   "birthTime": zod.string(),
   "birthPlace": zod.string(),
@@ -2404,7 +2405,7 @@ export const CreateProfileResponse = zod.object({
   "timezoneOffset": zod.number().optional(),
   "timezone": zod.string().nullish(),
   "birthTimeWindowMinutes": zod.number().int().optional(),
-  "horizon": zod.enum(['known', 'approximate', 'unknown']).nullish(),
+  "horizon": zod.union([zod.literal('known'),zod.literal('approximate'),zod.literal('unknown'),zod.literal(null)]).nullish(),
   "sunSign": zod.string().nullish(),
   "moonSign": zod.string().nullish(),
   "risingSign": zod.string().nullish(),
@@ -2412,14 +2413,14 @@ export const CreateProfileResponse = zod.object({
   "ownership": zod.enum(['owner', 'claimed', 'invited', 'unclaimed']).optional().describe('Viewer-relative ownership status of the profile.'),
   "claimedByName": zod.string().nullish(),
   "inviteEmail": zod.string().nullish(),
-  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the \"Generate My Chart\" flow (isForSelf=true in POST \/reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
+  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the "Generate My Chart" flow (isForSelf=true in POST /reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
   "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
   "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
-  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+  "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} for this person; null where it is not offered (ADR-120, ADR-139).')
 })
 
@@ -2448,7 +2449,7 @@ export const UpdateProfileResponse = zod.object({
   "timezoneOffset": zod.number().optional(),
   "timezone": zod.string().nullish(),
   "birthTimeWindowMinutes": zod.number().int().optional(),
-  "horizon": zod.enum(['known', 'approximate', 'unknown']).nullish(),
+  "horizon": zod.union([zod.literal('known'),zod.literal('approximate'),zod.literal('unknown'),zod.literal(null)]).nullish(),
   "sunSign": zod.string().nullish(),
   "moonSign": zod.string().nullish(),
   "risingSign": zod.string().nullish(),
@@ -2456,14 +2457,14 @@ export const UpdateProfileResponse = zod.object({
   "ownership": zod.enum(['owner', 'claimed', 'invited', 'unclaimed']).optional().describe('Viewer-relative ownership status of the profile.'),
   "claimedByName": zod.string().nullish(),
   "inviteEmail": zod.string().nullish(),
-  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the \"Generate My Chart\" flow (isForSelf=true in POST \/reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
+  "isSelf": zod.boolean().optional().describe('True if this is the viewer\'s own chart from the viewer\'s side: the owner\'s is_self, set by the "Generate My Chart" flow (isForSelf=true in POST /reports), or the claimer\'s claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers.\n'),
   "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
   "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, \"Joined ✓\".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
-  "firstName": zod.string().describe('The name the control prints, \"Send to {firstName}\".')
+  "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} for this person; null where it is not offered (ADR-120, ADR-139).')
 })
 
@@ -2566,7 +2567,7 @@ export const CreateCompatibilityReportBody = zod.object({
   "reportAId": zod.string(),
   "reportBId": zod.string(),
   "lens": zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
-  "label": zod.enum(['family', 'friends', 'colleagues']).nullish().describe('How two people under the `people` lens know each other, one of the picker\'s three words, so no typed text reaches the prompt (ADR-202).'),
+  "label": zod.union([zod.literal('family'),zod.literal('friends'),zod.literal('colleagues'),zod.literal(null)]).nullish().describe('How two people under the `people` lens know each other, one of the picker\'s three words, so no typed text reaches the prompt (ADR-202).'),
   "parent": zod.enum(['A', 'B']).optional().describe('Under the parent_child lens, which of the two is the parent. Carried as the participants\' positional role.')
 })
 
@@ -2646,7 +2647,7 @@ export const CreateRelationshipBody = zod.object({
   "profileAId": zod.string(),
   "profileBId": zod.string(),
   "type": zod.enum(['partners', 'parent_child', 'people']).optional().describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
-  "label": zod.enum(['family', 'friends', 'colleagues']).nullish().describe('How two people under the `people` lens know each other, one of the picker\'s three words, so no typed text reaches the prompt (ADR-202).')
+  "label": zod.union([zod.literal('family'),zod.literal('friends'),zod.literal('colleagues'),zod.literal(null)]).nullish().describe('How two people under the `people` lens know each other, one of the picker\'s three words, so no typed text reaches the prompt (ADR-202).')
 })
 
 export const CreateRelationshipResponse = zod.object({
@@ -2857,7 +2858,7 @@ export const GetCreditHistoryResponseItem = zod.object({
   "kind": zod.enum(['bought', 'gift', 'spent']),
   "count": zod.number().int().describe('Credits the line moves, a positive number; bought and gift add them, spent takes them away.'),
   "date": zod.string().describe('ISO-8601 timestamp of the line'),
-  "label": zod.string().describe('What the line reads, \"A gift from {giver}\" on a gift, the report\'s name when spent, \"Gift to {name}\" on the giver\'s side once claimed.'),
+  "label": zod.string().describe('What the line reads, "A gift from {giver}" on a gift, the report\'s name when spent, "Gift to {name}" on the giver\'s side once claimed.'),
   "test": zod.boolean().describe('A test bundle\'s line, which says so (ADR-138).')
 }).describe('One line of History, bought, a gift received or spent (ADR-129).')
 export const GetCreditHistoryResponse = zod.array(GetCreditHistoryResponseItem)
@@ -2970,9 +2971,9 @@ export const ClaimInviteResponse = zod.object({
   "profileId": zod.string().nullable().describe('The chart a send hands over; null on a gift, which has no profile (ADR-139).'),
   "relationshipId": zod.string().nullish(),
   "relationshipReportId": zod.string().nullish(),
-  "redirectTo": zod.string().describe('Where the claim lands; a gift answers \/dashboard (ADR-139).'),
+  "redirectTo": zod.string().describe('Where the claim lands; a gift answers /dashboard (ADR-139).'),
   "kind": zod.enum(['send', 'gift']).optional().describe('A sent report or a gifted credit (ADR-120, ADR-139).'),
-  "askSelf": zod.boolean().optional().describe('Ask \"Is this you?\", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120).')
+  "askSelf": zod.boolean().optional().describe('Ask "Is this you?", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120).')
 })
 
 
@@ -2998,13 +2999,13 @@ export const ListGiftsResponse = zod.array(ListGiftsResponseItem)
  * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
  * @summary Gift a report
  */
-export const createGiftBodyRecipientNameRegExp = new RegExp('^(?=.*\\p{L})(?! )(?!.* $)[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
+export const createGiftBodyRecipientNameRegExp = new RegExp('^(?=.*\\p{L})(?![ \\u3000])(?!.*[ \\u3000]$)[\\p{L}\\p{M} \\u3000\'’.·・\\u200C-]{1,60}$', 'u');
 export const createGiftBodyNoteMax = 280;
 
 
 
 export const CreateGiftBody = zod.object({
-  "recipientName": zod.string().regex(createGiftBodyRecipientNameRegExp).describe('The recipient\'s name, 1 to 60 letters, marks, spaces, apostrophes (\' ’), hyphens and dots (. ·), the same rule as every typed name (ADR-202).'),
+  "recipientName": zod.string().regex(createGiftBodyRecipientNameRegExp).describe('The recipient\'s name, 1 to 60 characters: letters, marks, spaces (the ideographic space too), apostrophes (\' ’), hyphens, dots (. · ・) and the zero-width non-joiner; at least one letter, and no space at either end. The same rule as every typed name (ADR-202).'),
   "email": zod.string().email(),
   "note": zod.string().max(createGiftBodyNoteMax).optional()
 }).describe('Gift a report to someone by name and email, with a note for the cover (ADR-128, ADR-139).')
@@ -3022,7 +3023,7 @@ export const CreateGiftResponse = zod.object({
 }).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).').and(zod.object({
   "claimUrl": zod.string().describe('The link to copy and send by hand when the email did not go.'),
   "emailDelivered": zod.boolean()
-})).describe('What POST \/gifts answers: the gift, plus the claim link exactly as its email carried it and whether that email reached the recipient, the same two fields POST \/invites answers (ADR-123). The raw token lives only in this one response; GET \/gifts stores just its hash and can never rebuild the link.')
+})).describe('What POST /gifts answers: the gift, plus the claim link exactly as its email carried it and whether that email reached the recipient, the same two fields POST /invites answers (ADR-123). The raw token lives only in this one response; GET /gifts stores just its hash and can never rebuild the link.')
 
 
 /**
@@ -3051,14 +3052,18 @@ export const TakeBackGiftResponse = zod.void()
  * Converts a city/place name to latitude, longitude, and timezone
  * @summary Geocode a place name to coordinates
  */
+export const geocodePlaceQueryQMin = 2;
+
+
+
 export const GeocodePlaceQueryParams = zod.object({
-  "q": zod.coerce.string().describe('Place name to geocode')
+  "q": zod.coerce.string().min(geocodePlaceQueryQMin).describe('Place name to geocode, at least two characters once trimmed, as the place field asks before it searches.')
 })
 
 export const GeocodePlaceResponse = zod.object({
   "results": zod.array(zod.object({
   "name": zod.string().describe('Full display name (City, Region, Country)'),
-  "city": zod.string().optional().describe('City\/town\/village name'),
+  "city": zod.string().optional().describe('City/town/village name'),
   "region": zod.string().optional().describe('State or region name'),
   "country": zod.string().optional().describe('Country name'),
   "latitude": zod.number(),

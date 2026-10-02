@@ -23,6 +23,8 @@ export interface HealthStatus {
   env?: HealthStatusEnv;
   /** Git sha of the running build, when the platform injects one. */
   commit?: string;
+  /** Whether this call carried the edge secret that only Vercel's edge adds, the one condition on which the API trusts the visitor's forwarded address (ADR-224). Yes or no only: the secret itself is never sent back. */
+  edge?: boolean;
 }
 
 export interface ErrorResponse {
@@ -167,8 +169,8 @@ export interface WaitlistConfirmed {
 
 export interface CreateReportBody {
   /**
-     * The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).
-     * @pattern ^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} '’.·-]{1,60}$
+     * The person's name, 1 to 60 characters: letters, marks, spaces (the ideographic space too), apostrophes (' ’), hyphens, dots (. · ・) and the zero-width non-joiner some scripts spell names with; at least one letter, and no space at either end. So what reaches the prompt is a name and never markup or an instruction (ADR-202).
+     * @pattern ^(?=.*\p{L})(?![ \u3000])(?!.*[ \u3000]$)[\p{L}\p{M} \u3000'’.·・\u200C-]{1,60}$
      */
   name: string;
   /** Birth date in YYYY-MM-DD format */
@@ -224,7 +226,10 @@ export interface SendState {
   state: SendStateState;
   /** The person it goes to, the report's subject or the pair's other person. */
   profileId: string;
-  /** The pair's relationship; null on a natal report. */
+  /**
+     * The pair's relationship; null on a natal report.
+     * @nullable
+     */
   relationshipId: string | null;
   /** The name the control prints, "Send to {firstName}". */
   firstName: string;
@@ -255,6 +260,7 @@ export const ReportSummaryStatus = {
 
 /**
  * The natal chart's horizon status, so a blind report's tile can carry the call to action.
+ * @nullable
  */
 export type ReportSummaryHorizon = typeof ReportSummaryHorizon[keyof typeof ReportSummaryHorizon] | null;
 
@@ -268,8 +274,11 @@ export const ReportSummaryHorizon = {
 export type ReportSummaryParticipantsItem = {
   id: string;
   name: string;
+  /** @nullable */
   sunSign?: string | null;
+  /** @nullable */
   moonSign?: string | null;
+  /** @nullable */
   risingSign?: string | null;
 };
 
@@ -317,18 +326,36 @@ export interface ReportSummary {
   /** Only set for natal reports. */
   birthPlace?: string;
   status: ReportSummaryStatus;
-  /** The natal chart's horizon status, so a blind report's tile can carry the call to action. */
+  /**
+     * The natal chart's horizon status, so a blind report's tile can carry the call to action.
+     * @nullable
+     */
   horizon?: ReportSummaryHorizon;
-  /** The report's overview headline (kept under its historical name for client compatibility). Null until the report completes. */
+  /**
+     * The report's overview headline (kept under its historical name for client compatibility). Null until the report completes.
+     * @nullable
+     */
   archetypeName?: string | null;
+  /** @nullable */
   sunSign?: string | null;
+  /** @nullable */
   moonSign?: string | null;
+  /** @nullable */
   risingSign?: string | null;
-  /** Profile ID for natal reports. Null for compatibility reports. */
+  /**
+     * Profile ID for natal reports. Null for compatibility reports.
+     * @nullable
+     */
   profileId?: string | null;
-  /** Set for compatibility reports. */
+  /**
+     * Set for compatibility reports.
+     * @nullable
+     */
   relationshipId?: string | null;
-  /** The lens (partners, parent_child, people). Set for compatibility reports. */
+  /**
+     * The lens (partners, parent_child, people). Set for compatibility reports.
+     * @nullable
+     */
   relationshipType?: string | null;
   lens?: RelationshipType | null;
   /** Participant summaries. Set for compatibility reports. */
@@ -339,9 +366,15 @@ export interface ReportSummary {
   access?: Access;
   /** Send to {name} on this row; null where it is not offered (ADR-120, ADR-133). */
   send?: SendState | null;
-  /** First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139). */
+  /**
+     * First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).
+     * @nullable
+     */
   sharedBy?: string | null;
-  /** On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional). */
+  /**
+     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+     * @nullable
+     */
   stoppedBy?: string | null;
 }
 
@@ -364,6 +397,7 @@ export type ReportStatusProvisionalBodies = {[key: string]: {
 
 /**
  * While the chart is not yet stored: every body's position on the entered date and time at offset zero, from one local call, so the orrery can run from the birth day (ADR-47). Null once the chart exists, or when the profile is gone.
+ * @nullable
  */
 export type ReportStatusProvisional = {
   bodies: ReportStatusProvisionalBodies;
@@ -384,6 +418,7 @@ export const ReportInterpretationMetaReportType = {
 
 /**
  * The child's age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.
+ * @nullable
  */
 export type ReportInterpretationMetaBand = typeof ReportInterpretationMetaBand[keyof typeof ReportInterpretationMetaBand] | null;
 
@@ -694,7 +729,10 @@ export type ReportInterpretationMetaUsageSectionsItem = UsageTotals & {
 export type ReportInterpretationMetaUsage = {
   /** The model every call used, or "mixed" when they differ. */
   model: string;
-  /** Priced per section on its own model and summed, when generated. Null if any model has no price on record. */
+  /**
+     * Priced per section on its own model and summed, when generated. Null if any model has no price on record.
+     * @nullable
+     */
   costUsd: number | null;
   /** End to end. Below `totals.ms`, because ten sections run at once. */
   wallClockMs: number;
@@ -706,9 +744,15 @@ export type ReportInterpretationMeta = {
   promptVersion: string;
   reportType?: ReportInterpretationMetaReportType;
   lens?: RelationshipType;
-  /** How two people know each other, in their words; null under the other lenses. */
+  /**
+     * How two people know each other, in their words; null under the other lenses.
+     * @nullable
+     */
   label?: string | null;
-  /** The child's age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise. */
+  /**
+     * The child's age band under the parent lens, derived from the birth date at generation (ADR-67); null otherwise.
+     * @nullable
+     */
   band?: ReportInterpretationMetaBand;
   /** Mirrors the chart's horizon status (ADR-34). */
   horizon?: ReportInterpretationMetaHorizon;
@@ -900,12 +944,18 @@ export interface ReportInterpretation {
 export interface ReportStatus {
   id: string;
   status: ReportStatusStatus;
-  /** Always null; internal text never reaches a customer response. Kept so older clients build. */
+  /**
+     * Always null; internal text never reaches a customer response. Kept so older clients build.
+     * @nullable
+     */
   errorMessage?: string | null;
   failureReason?: FailureReason | null;
   /** The chart is stored, so the report page can open on the hero and the explorer. */
   chartReady: boolean;
-  /** While the chart is not yet stored: every body's position on the entered date and time at offset zero, from one local call, so the orrery can run from the birth day (ADR-47). Null once the chart exists, or when the profile is gone. */
+  /**
+     * While the chart is not yet stored: every body's position on the entered date and time at offset zero, from one local call, so the orrery can run from the birth day (ADR-47). Null once the chart exists, or when the profile is gone.
+     * @nullable
+     */
   provisional?: ReportStatusProvisional;
   /** One entry per section of the report's type, "done" once that section is stored. */
   sections: ReportStatusSections;
@@ -1086,6 +1136,7 @@ export interface ChartData {
   elements: ChartDataElements;
   modalities: ChartDataModalities;
   dominance: ChartDataDominance;
+  /** @nullable */
   chartShape?: string | null;
   hemisphereEmphasis?: ChartDataHemisphereEmphasis;
 }
@@ -1134,12 +1185,14 @@ export interface Spot {
      * The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).
      * @minimum 1
      * @maximum 12
+     * @nullable
      */
   house: number | null;
 }
 
 /**
  * Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).
+ * @nullable
  */
 export type HomePersonTriad = {
   sun: Spot;
@@ -1150,6 +1203,7 @@ export type HomePersonTriad = {
 
 /**
  * Chapter 08's superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).
+ * @nullable
  */
 export type HomePersonLines = {
   superpower: string;
@@ -1171,9 +1225,15 @@ export interface HomePerson {
   access: HomePersonAccess;
   /** The reader's own chart from their side, as ProfileSummary marks it (ADR-120). */
   isSelf: boolean;
-  /** Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174). */
+  /**
+     * Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).
+     * @nullable
+     */
   triad: HomePersonTriad;
-  /** Chapter 08's superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174). */
+  /**
+     * Chapter 08's superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).
+     * @nullable
+     */
   lines: HomePersonLines;
 }
 
@@ -1207,6 +1267,7 @@ export type HomePairB = {
 
 /**
  * The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).
+ * @nullable
  */
 export type HomePairStory = {
   headline: string;
@@ -1219,20 +1280,32 @@ export type HomePairStory = {
 export interface HomePair {
   reportId: string;
   lens: RelationshipType;
-  /** The relationship's label; under the people lens, family, friends or colleagues (ADR-40, ADR-68). */
+  /**
+     * The relationship's label; under the people lens, family, friends or colleagues (ADR-40, ADR-68).
+     * @nullable
+     */
   label: string | null;
   /** The report's person A (ADR-174). */
   a: HomePairA;
   /** The report's person B (ADR-174). */
   b: HomePairB;
   status: HomePairStatus;
-  /** On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional). */
+  /**
+     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+     * @nullable
+     */
   stoppedBy: string | null;
   /** What comes naturally to the pair, chapter 01's strong lines; empty until chapter 01 is written (ADR-174). */
   strong: string[];
-  /** The one challenge to work on; null until the report has it (ADR-174). */
+  /**
+     * The one challenge to work on; null until the report has it (ADR-174).
+     * @nullable
+     */
   challenge: string | null;
-  /** The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175). */
+  /**
+     * The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).
+     * @nullable
+     */
   story: HomePairStory;
 }
 
@@ -1253,6 +1326,7 @@ export interface HomePractice {
   /** The item key the report ticks it under, "focus.practice.bullets.0" or "partners02.nextTime.items.0" (ADR-24). */
   key: string;
   action: string;
+  /** @nullable */
   why: string | null;
   /** False on the Closing's first Practice item, offered with none pinned (ADR-174). */
   pinned: boolean;
@@ -1331,13 +1405,20 @@ export interface Report {
   latitude: number;
   longitude: number;
   timezoneOffset: number;
+  /** @nullable */
   timezone?: string | null;
   birthTimeWindowMinutes: number;
-  /** The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report. */
+  /**
+     * The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.
+     * @nullable
+     */
   profileId?: string | null;
   type: ReportType;
   lens?: RelationshipType | null;
-  /** The two people of a compatibility report. Null on a natal report. */
+  /**
+     * The two people of a compatibility report. Null on a natal report.
+     * @nullable
+     */
   participants?: ReportParticipant[] | null;
   horizonPasses: number;
   /** The passes run on this report, newest last. The previous text is kept. */
@@ -1346,7 +1427,10 @@ export interface Report {
   chartData?: ChartData | null;
   interpretation?: ReportInterpretation | null;
   workbook?: Workbook;
-  /** Always null; internal text never reaches a customer response. Kept so older clients build. */
+  /**
+     * Always null; internal text never reaches a customer response. Kept so older clients build.
+     * @nullable
+     */
   errorMessage?: string | null;
   failureReason?: FailureReason | null;
   createdAt: string;
@@ -1355,10 +1439,16 @@ export interface Report {
   access?: Access;
   /** Send to {name} on this report; null where it is not offered (ADR-120, ADR-133). */
   send?: SendState | null;
-  /** First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139). */
+  /**
+     * First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).
+     * @nullable
+     */
   giverName?: string | null;
 }
 
+/**
+ * @nullable
+ */
 export type ProfileSummaryHorizon = typeof ProfileSummaryHorizon[keyof typeof ProfileSummaryHorizon] | null;
 
 
@@ -1390,22 +1480,32 @@ export interface ProfileSummary {
   latitude?: number;
   longitude?: number;
   timezoneOffset?: number;
+  /** @nullable */
   timezone?: string | null;
   birthTimeWindowMinutes?: number;
+  /** @nullable */
   horizon?: ProfileSummaryHorizon;
+  /** @nullable */
   sunSign?: string | null;
+  /** @nullable */
   moonSign?: string | null;
+  /** @nullable */
   risingSign?: string | null;
   createdAt: string;
   /** Viewer-relative ownership status of the profile. */
   ownership?: ProfileSummaryOwnership;
+  /** @nullable */
   claimedByName?: string | null;
+  /** @nullable */
   inviteEmail?: string | null;
   /** True if this is the viewer's own chart from the viewer's side: the owner's is_self, set by the "Generate My Chart" flow (isForSelf=true in POST /reports), or the claimer's claimed_as_self (ADR-120). Never derived by heuristic. Always false for anonymous viewers. */
   isSelf?: boolean;
   /** The claimer marked this sent chart as their own, This is me; false after Not me and on the owner's charts (ADR-120). */
   claimedAsSelf?: boolean;
-  /** First name of whoever sent this chart to the viewer; null on the viewer's own (ADR-139). */
+  /**
+     * First name of whoever sent this chart to the viewer; null on the viewer's own (ADR-139).
+     * @nullable
+     */
   giverName?: string | null;
   /** Send to {name} for this person; null where it is not offered (ADR-120, ADR-139). */
   send?: SendState | null;
@@ -1413,8 +1513,8 @@ export interface ProfileSummary {
 
 export interface CreateProfileBody {
   /**
-     * The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).
-     * @pattern ^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} '’.·-]{1,60}$
+     * The person's name, 1 to 60 characters: letters, marks, spaces (the ideographic space too), apostrophes (' ’), hyphens, dots (. · ・) and the zero-width non-joiner some scripts spell names with; at least one letter, and no space at either end. So what reaches the prompt is a name and never markup or an instruction (ADR-202).
+     * @pattern ^(?=.*\p{L})(?![ \u3000])(?!.*[ \u3000]$)[\p{L}\p{M} \u3000'’.·・\u200C-]{1,60}$
      */
   name: string;
   birthDate: string;
@@ -1443,8 +1543,11 @@ export interface RelationshipParticipant {
   id: string;
   name: string;
   role: string;
+  /** @nullable */
   sunSign?: string | null;
+  /** @nullable */
   moonSign?: string | null;
+  /** @nullable */
   risingSign?: string | null;
   /** True iff this profile is the authenticated viewer's own claimed self. */
   selfProfile?: boolean;
@@ -1468,9 +1571,12 @@ export const RelationshipSummaryOwnership = {
 export interface RelationshipSummary {
   id: string;
   type: string;
+  /** @nullable */
   label?: string | null;
   participants: RelationshipParticipant[];
+  /** @nullable */
   latestReportId?: string | null;
+  /** @nullable */
   latestReportStatus?: string | null;
   createdAt: string;
   /**
@@ -1484,6 +1590,7 @@ export interface RelationshipSummary {
 
 /**
  * How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202).
+ * @nullable
  */
 export type CreateCompatibilityBodyLabel = typeof CreateCompatibilityBodyLabel[keyof typeof CreateCompatibilityBodyLabel] | null;
 
@@ -1509,7 +1616,10 @@ export interface CreateCompatibilityBody {
   reportAId: string;
   reportBId: string;
   lens: RelationshipType;
-  /** How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202). */
+  /**
+     * How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202).
+     * @nullable
+     */
   label?: CreateCompatibilityBodyLabel;
   /** Under the parent_child lens, which of the two is the parent. Carried as the participants' positional role. */
   parent?: CreateCompatibilityBodyParent;
@@ -1555,6 +1665,7 @@ export interface CompatibilitySummary {
   id: string;
   relationshipId: string;
   lens: RelationshipType;
+  /** @nullable */
   label?: string | null;
   status: CompatibilitySummaryStatus;
   participants: CompatibilitySummaryParticipantsItem[];
@@ -1581,6 +1692,7 @@ export interface InviteSummary {
   token: string;
   email: string;
   profileId: string;
+  /** @nullable */
   relationshipId?: string | null;
   expiresAt: string;
   claimUrl: string;
@@ -1598,6 +1710,7 @@ export interface PairSendResult {
 
 /**
  * How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202).
+ * @nullable
  */
 export type CreateRelationshipBodyLabel = typeof CreateRelationshipBodyLabel[keyof typeof CreateRelationshipBodyLabel] | null;
 
@@ -1612,7 +1725,10 @@ export interface CreateRelationshipBody {
   profileAId: string;
   profileBId: string;
   type?: RelationshipType;
-  /** How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202). */
+  /**
+     * How two people under the `people` lens know each other, one of the picker's three words, so no typed text reaches the prompt (ADR-202).
+     * @nullable
+     */
   label?: CreateRelationshipBodyLabel;
 }
 
@@ -1625,6 +1741,7 @@ export interface CreateSynastryBody {
   profileAId: string;
   profileBId: string;
   relationshipType?: RelationshipType;
+  /** @nullable */
   label?: string | null;
 }
 
@@ -1660,6 +1777,7 @@ export interface SynastryStatus {
   id: string;
   status: SynastryStatusStatus;
   progress: number;
+  /** @nullable */
   errorMessage?: string | null;
 }
 
@@ -1728,11 +1846,16 @@ export interface SynastryReportParticipant {
   role: string;
   birthDate: string;
   birthPlace: string;
+  /** @nullable */
   sunSign?: string | null;
+  /** @nullable */
   moonSign?: string | null;
+  /** @nullable */
   risingSign?: string | null;
   ownership?: SynastryReportParticipantOwnership;
+  /** @nullable */
   claimedByName?: string | null;
+  /** @nullable */
   inviteEmail?: string | null;
   /** True iff this profile is the authenticated viewer's own claimed self. */
   selfProfile?: boolean;
@@ -1768,11 +1891,13 @@ export interface SynastryReport {
   id: string;
   relationshipId: string;
   type: string;
+  /** @nullable */
   label?: string | null;
   status: SynastryReportStatus;
   participants: SynastryReportParticipant[];
   compute?: SynastryCompute | null;
   interpretation?: SynastryInterpretation | null;
+  /** @nullable */
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -1792,17 +1917,23 @@ export interface InviteRecord {
   id: string;
   email: string;
   profileId: string;
+  /** @nullable */
   relationshipId?: string | null;
   /** ISO-8601 timestamp when the invite was created */
   sentAt: string;
   expiresAt: string;
-  /** null means unknown (pre-migration) */
+  /**
+     * null means unknown (pre-migration)
+     * @nullable
+     */
   emailDelivered?: boolean | null;
+  /** @nullable */
   claimedAt?: string | null;
 }
 
 export interface CreateInviteBody {
   profileId: string;
+  /** @nullable */
   relationshipId?: string | null;
   email: string;
 }
@@ -1821,19 +1952,33 @@ export const InvitePreviewKind = {
 export interface InvitePreview {
   token: string;
   email: string;
-  /** The giver's first name, never an email (ADR-135, MB-85). */
+  /**
+     * The giver's first name, never an email (ADR-135, MB-85).
+     * @nullable
+     */
   inviterName?: string | null;
-  /** The person a sent report is about; null on a gift, which has no profile (ADR-139). */
+  /**
+     * The person a sent report is about; null on a gift, which has no profile (ADR-139).
+     * @nullable
+     */
   profileName: string | null;
+  /** @nullable */
   relationshipId?: string | null;
+  /** @nullable */
   relationshipReportId?: string | null;
   expiresAt: string;
   alreadyClaimed: boolean;
   /** A sent report or a gifted credit (ADR-120, ADR-139). */
   kind?: InvitePreviewKind;
-  /** The name the giver gave a gift's recipient, for the cover; null on a send (ADR-128). */
+  /**
+     * The name the giver gave a gift's recipient, for the cover; null on a send (ADR-128).
+     * @nullable
+     */
   recipientName?: string | null;
-  /** The giver's note on a gift's cover, at most 280 characters; null without one (ADR-128). */
+  /**
+     * The giver's note on a gift's cover, at most 280 characters; null without one (ADR-128).
+     * @nullable
+     */
   note?: string | null;
 }
 
@@ -1849,9 +1994,14 @@ export const InviteClaimResponseKind = {
 } as const;
 
 export interface InviteClaimResponse {
-  /** The chart a send hands over; null on a gift, which has no profile (ADR-139). */
+  /**
+     * The chart a send hands over; null on a gift, which has no profile (ADR-139).
+     * @nullable
+     */
   profileId: string | null;
+  /** @nullable */
   relationshipId?: string | null;
+  /** @nullable */
   relationshipReportId?: string | null;
   /** Where the claim lands; a gift answers /dashboard (ADR-139). */
   redirectTo: string;
@@ -1880,12 +2030,16 @@ export interface Gift {
   id: string;
   recipientName: string;
   email: string;
+  /** @nullable */
   note: string | null;
   /** ISO-8601 timestamp when the gift went out */
   sentAt: string;
   /** When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123). */
   returnsAt: string;
-  /** The last reminder; null before any */
+  /**
+     * The last reminder; null before any
+     * @nullable
+     */
   remindedAt: string | null;
   /** Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123). */
   state: GiftState;
@@ -1907,8 +2061,8 @@ export type GiftCreated = Gift & {
  */
 export interface CreateGiftBody {
   /**
-     * The recipient's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), the same rule as every typed name (ADR-202).
-     * @pattern ^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} '’.·-]{1,60}$
+     * The recipient's name, 1 to 60 characters: letters, marks, spaces (the ideographic space too), apostrophes (' ’), hyphens, dots (. · ・) and the zero-width non-joiner; at least one letter, and no space at either end. The same rule as every typed name (ADR-202).
+     * @pattern ^(?=.*\p{L})(?![ \u3000])(?!.*[ \u3000]$)[\p{L}\p{M} \u3000'’.·・\u200C-]{1,60}$
      */
   recipientName: string;
   email: string;
@@ -1948,6 +2102,7 @@ export interface CreditBalance {
 
 /**
  * The newest bundle, which the path after buying plans from; null before any (ADR-125).
+ * @nullable
  */
 export type CreditCountsLastBundle = {
   id: string;
@@ -1963,7 +2118,10 @@ export interface CreditCounts {
   used: number;
   /** Credits held for waiting gifts, outside available until claimed or returned (ADR-123). */
   held?: number;
-  /** The newest bundle, which the path after buying plans from; null before any (ADR-125). */
+  /**
+     * The newest bundle, which the path after buying plans from; null before any (ADR-125).
+     * @nullable
+     */
   lastBundle?: CreditCountsLastBundle;
 }
 
@@ -2055,7 +2213,8 @@ profileId: string;
 
 export type GeocodePlaceParams = {
 /**
- * Place name to geocode
+ * Place name to geocode, at least two characters once trimmed, as the place field asks before it searches.
+ * @minLength 2
  */
 q: string;
 };
