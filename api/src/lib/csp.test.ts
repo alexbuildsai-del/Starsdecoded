@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import express from "express";
-import { CSP_ROWS_PER_DAY, blockedOf, cspCounts, cspKey, cspWindowStart, foldCounts, ourPage, parseCspReport, parseCspReports, utcDay } from "./csp.js";
+import { CSP_OTHER, CSP_ROWS_PER_DAY, blockedOf, cspCounts, cspKey, cspWindowStart, foldCounts, ourPage, parseCspReport, parseCspReports, utcDay } from "./csp.js";
 import { webOrigins } from "../middlewares/origin.js";
 
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
@@ -391,4 +391,32 @@ test("through the route, a day at 200 rows stores new hosts under other and a kn
       { directive: "script-src-elem", blocked: "other", count: 2 },
     ],
   ]);
+});
+
+test("racing requests read the day's rows and add to them one at a time, so together they cannot pass its 200 rows", async (t) => {
+  const rows = new Map(Array.from({ length: CSP_ROWS_PER_DAY - 1 }, (_, i) => [cspKey("script-src-elem", `h${i}.example`), 1]));
+  // A database answers later than the request that asked, which is where two requests could each read 199 rows.
+  const later = () => new Promise((resolve) => setTimeout(resolve, 5));
+  const { base, close } = await serve({
+    keys: async () => {
+      const keys = [...rows.keys()];
+      await later();
+      return keys;
+    },
+    add: async (_day, counts) => {
+      await later();
+      for (const { directive, blocked, count } of counts) {
+        const key = cspKey(directive, blocked);
+        rows.set(key, (rows.get(key) ?? 0) + count);
+      }
+    },
+  });
+  t.after(close);
+  const answers = await Promise.all(
+    Array.from({ length: 10 }, (_, i) => post(base, REPORTING_API, flood(5, 1_000 + 5 * i), `198.51.100.${10 + i}`)),
+  );
+  assert.deepEqual(answers.map((res) => res.status), Array(10).fill(204));
+  const other = cspKey("script-src-elem", CSP_OTHER);
+  assert.equal([...rows.keys()].filter((key) => key !== other).length, CSP_ROWS_PER_DAY);
+  assert.equal(rows.get(other), 49, "one new host took the last row; the other 49 count under other");
 });

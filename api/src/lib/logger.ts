@@ -37,13 +37,16 @@ function censor(value: unknown, path: string[]): unknown {
 
 // Free text no key can censor. drizzle-orm's DrizzleQueryError ends its message, and so its stack, with the query's
 // parameters: a profile's birth data, an address, a whole report; the SQL before them stays, so the line still says
-// which statement failed. An address turns up in a provider's or a database's own words.
+// which statement failed. A refusal is the model's own words, which can repeat the brief: everything after its prefix
+// goes, as it does from the failure log's rows (S7), and the section named before it stays. An address turns up in a
+// provider's or a database's own words.
 const PARAMS = "\nparams: ";
+const REFUSAL = /(model refused:)[\s\S]*/;
 const EMAIL = /[\w.%+-]+@[a-z\d-]+(?:\.[a-z\d-]+)*\.[a-z]{2,}/gi;
 
 function scrub(text: string): string {
   const at = text.indexOf(PARAMS);
-  const kept = at < 0 ? text : text.slice(0, at);
+  const kept = (at < 0 ? text : text.slice(0, at)).replace(REFUSAL, "$1 …");
   return kept.includes("@") ? kept.replace(EMAIL, "[email]") : kept;
 }
 
@@ -66,8 +69,9 @@ function paramTails(err: unknown): string[] {
 }
 
 /**
- * pino's own serializer, less a failed query's parameters and any address in the text. pino-http hands its error
- * serializer pino's output rather than the error, and that output keeps the error as `raw`.
+ * pino's own serializer, less a failed query's parameters, a refusal's words, a section's last reply and any address in
+ * the text. pino-http hands its error serializer pino's output rather than the error, and that output keeps the error as
+ * `raw`.
  */
 function errSerializer(input: unknown): unknown {
   const serialized = input !== null && typeof input === "object" && !(input instanceof Error) && (input as { raw?: unknown }).raw instanceof Error;
@@ -78,10 +82,17 @@ function errSerializer(input: unknown): unknown {
   const tails = paramTails(raw);
   const clean: Record<string, unknown> = { ...(out as Record<string, unknown>) };
   delete clean.params;
+  // A SectionError carries the model's last reply whole, for the round alone to start from; no line needs it.
+  delete clean.lastReply;
   // The exact tails keep a cause's message and the stack's frames; a tail that no longer matches is cut to the end.
   for (const key of ["message", "stack"]) {
     const text = clean[key];
     if (typeof text === "string") clean[key] = scrub(tails.reduce((s, tail) => s.split(tail).join(""), text));
+  }
+  // A SectionError's errors are its attempts' check messages, the refusal among them, and pino copies them twice.
+  for (const key of ["errors", "aggregateErrors"]) {
+    const list = clean[key];
+    if (Array.isArray(list)) clean[key] = list.map((item: unknown) => (typeof item === "string" ? scrub(item) : item));
   }
   return clean;
 }

@@ -42,6 +42,16 @@ export function cspReportRouter(store: CspStore = dbCspStore, origins: Array<str
   const perClient = new RateLimiter(60, 60_000);
   const parse = express.json({ type: CSP_REPORT_TYPES, limit: "8kb" });
 
+  // Reading the day's rows and adding to them is one step, taken by one request at a time: two racing requests could each
+  // see room under the fold and pass it together (S3). The API runs as one process, so this one queue holds every request.
+  let queue: Promise<void> = Promise.resolve();
+  const count = (counts: CspCount[], at: Date): Promise<void> => {
+    const day = utcDay(at);
+    const turn = queue.then(async () => store.add(day, foldCounts(counts, new Set(await store.keys(day))), at));
+    queue = turn.catch(() => undefined);
+    return turn;
+  };
+
   router.post(
     "/csp-report",
     (req, res, next) => {
@@ -58,10 +68,8 @@ export function cspReportRouter(store: CspStore = dbCspStore, origins: Array<str
     async (req, res) => {
       const counts = cspCounts(parseCspReports(req.headers["content-type"], req.body), origins);
       if (counts.length > 0) {
-        const at = new Date();
-        const day = utcDay(at);
         try {
-          await store.add(day, foldCounts(counts, new Set(await store.keys(day))), at);
+          await count(counts, new Date());
         } catch (err) {
           logger.warn({ err }, "csp report not counted");
         }

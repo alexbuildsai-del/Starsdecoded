@@ -1,14 +1,18 @@
 /**
- * Each limit driven through an in-process app and a stub route, with no database (MB-49). The wiring in routes/index.ts and
- * the breaker behind it are proved end to end in the walk.
+ * Each limit driven through an in-process app and a stub route, with no database (MB-49). The writing chain from
+ * routes/index.ts stands once ahead of a stub route, behind the real session; the breaker in it is proved end to end in the
+ * walk.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import express, { type RequestHandler } from "express";
 
-// The pool connects lazily and nothing here queries it; clientKey shares a module with the waitlist's queries.
+// The pool connects lazily; clientKey shares a module with the waitlist's queries. The router's modules read the key at
+// import, and the breaker's read of the day's spend is refused, which lets a write through to the stub.
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
+process.env.OPENAI_API_KEY ??= "test-key-never-sent";
+process.env.LOG_LEVEL = "silent";
 const { LIMITS, LIMIT_LINES, buildLimits } = await import("./limits.js");
 type LimitKind = import("./limits.js").LimitKind;
 
@@ -91,6 +95,14 @@ async function refused(answer: Promise<Answer>, kind: LimitKind): Promise<number
   assert.deepEqual(body, { error: "rate_limited", message: LIMIT_LINES[kind], retryAfterSeconds: seconds });
   return seconds;
 }
+
+/** A signed-out write as a script sends it: no cookie, so a session of its own, and an address of its own choosing. */
+function forged(n: number): Hit {
+  return { session: `forged-${n}`, address: `203.0.113.${n}` };
+}
+
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
 
 test("writing: the 7th in an hour from one account answers 429 with Retry-After and its line; another account still writes", async () => {
   const app = await serve(buildLimits().generationLimits);
@@ -309,4 +321,128 @@ test("the window: the last second inside it still refuses, the first one after i
   } finally {
     await app.close();
   }
+});
+
+test("signed out: every session and address shares 24 writes an hour, the 25th hears its line, and accounts never draw on it", async () => {
+  const limits = buildLimits();
+  const app = await serve([...limits.anonWriteLimit, ...limits.generationLimits]);
+  try {
+    for (let i = 1; i <= 6; i++) assert.equal((await app.hit({ user: `u${i}`, ...forged(100 + i) })).status, 201, `account ${i}`);
+    for (let i = 1; i <= 24; i++) assert.equal((await app.hit(forged(i))).status, 201, `signed-out write ${i}`);
+    await refused(app.hit(forged(25)), "anonWrites");
+    assert.equal((await app.hit({ user: "u7", ...forged(26) })).status, 201, "an account still writes");
+    assert.match(LIMIT_LINES.anonWrites, /\bSign in\b/);
+  } finally {
+    await app.close();
+  }
+});
+
+test("signed out: an answer that cost nothing gives the shared count back, a caller's own refusal included; a reader who hangs up keeps it", async () => {
+  const limits = buildLimits();
+  const app = await serve([...limits.anonWriteLimit, ...limits.generationLimits]);
+  let n = 0;
+  try {
+    for (const answer of [400, 401, 403, 404, 409, 500, 503]) {
+      assert.equal((await app.hit({ ...forged(++n), answer })).status, answer);
+    }
+    await passes(6, () => app.hit({ session: "one", address: "198.51.100.1" }));
+    await refused(app.hit({ session: "one", address: "198.51.100.1" }), "write");
+    await app.hangUp(forged(++n));
+    await passes(17, () => app.hit(forged(++n)));
+    await refused(app.hit(forged(++n)), "anonWrites");
+  } finally {
+    await app.close();
+  }
+});
+
+test("signed out: the hour rolls, so no burst fits on both sides of a window's edge", async (t) => {
+  const start = Date.parse("2026-10-02T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().anonWriteLimit);
+  let n = 0;
+  const next = () => app.hit(forged(++n));
+  try {
+    await passes(12, next);
+    t.mock.timers.setTime(start + 30 * MINUTE_MS);
+    await passes(12, next);
+    t.mock.timers.setTime(start + HOUR_MS - 1_000);
+    assert.equal(await refused(next(), "anonWrites"), 1, "the first twelve leave in a second");
+    t.mock.timers.setTime(start + HOUR_MS + 1);
+    await passes(12, next);
+    assert.equal(await refused(next(), "anonWrites"), 30 * 60, "a fixed hour would have opened all 24 again; the next opens as the second twelve leave");
+  } finally {
+    await app.close();
+  }
+});
+
+test("signed out: a refused write is not kept, so hammering the shared count holds it shut no longer", async (t) => {
+  const start = Date.parse("2026-10-02T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().anonWriteLimit);
+  let n = 0;
+  const next = () => app.hit(forged(++n));
+  try {
+    await passes(24, next);
+    t.mock.timers.setTime(start + 10 * MINUTE_MS);
+    for (let i = 0; i < 50; i++) await refused(next(), "anonWrites");
+    t.mock.timers.setTime(start + HOUR_MS + 1);
+    await passes(24, next);
+    await refused(next(), "anonWrites");
+  } finally {
+    await app.close();
+  }
+});
+
+test("the writing chain: on staging 24 signed-out writes with no cookie and 24 forged addresses pass and the 25th answers 429; an account still writes; production asks for one before the shared count", async (t) => {
+  const saved = process.env.APP_ENV;
+  t.after(() => {
+    if (saved === undefined) delete process.env.APP_ENV;
+    else process.env.APP_ENV = saved;
+  });
+  const { writing } = await import("../routes/index.js");
+  const { sessionMiddleware } = await import("../middlewares/session.js");
+  const app = express();
+  app.use(sessionMiddleware);
+  // Where Clerk stands in app.ts.
+  app.use((req, _res, next) => {
+    req.userId = req.header("x-user") || null;
+    next();
+  });
+  const started: RequestHandler = (_req, res) => void res.status(202).json({ started: true });
+  app.post("/api/reports", writing, started);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    return new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/reports`;
+  const write = async (address: string, user?: string) => {
+    const headers: Record<string, string> = { "content-type": "application/json", "x-vercel-forwarded-for": address };
+    if (user) headers["x-user"] = user;
+    const res = await fetch(url, { method: "POST", headers, body: "{}" });
+    const session = res.headers.get("set-cookie")?.split(";")[0] ?? null;
+    return { status: res.status, retryAfter: res.headers.get("retry-after"), session, body: (await res.json()) as { error?: string } };
+  };
+
+  process.env.APP_ENV = "production";
+  for (let i = 1; i <= 30; i++) assert.equal((await write(`198.51.100.${i}`)).status, 401, `production, signed out ${i}`);
+
+  process.env.APP_ENV = "staging";
+  const sessions = new Set<string | null>();
+  for (let i = 1; i <= 24; i++) {
+    const answer = await write(`203.0.113.${i}`);
+    assert.equal(answer.status, 202, `staging, signed out ${i}`);
+    sessions.add(answer.session);
+  }
+  assert.equal(sessions.size, 24, "no cookie went back, so each write came from a session of its own");
+  assert.ok(!sessions.has(null));
+  await refused(write("203.0.113.25"), "anonWrites");
+  assert.equal((await write("203.0.113.26", "user_writer")).status, 202, "an account never meets the shared count");
+
+  process.env.APP_ENV = "production";
+  const production = await write("203.0.113.27");
+  assert.equal(production.status, 401, "production asks for an account first, though the shared count is full");
+  assert.equal(production.body.error, "sign_in_required");
+  assert.equal((await write("203.0.113.28", "user_writer")).status, 202);
 });

@@ -234,3 +234,59 @@ test("only a token's shape or an invite route changes a path: each piece must be
   assert.equal(logPath(""), "");
   assert.equal(logPath("/?token=x"), "/");
 });
+
+test("a refusal's words and a section's last reply reach no line: the pair's failed write and the horizon pass keep the section and the prefix", async (t) => {
+  // The generator's modules read these at import; nothing here calls the model or the database.
+  process.env.OPENAI_API_KEY ??= "test-key-never-sent";
+  process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
+  const { SectionError } = await import("./aiInterpretation.js");
+  const { ReportFailure } = await import("./failureReasons.js");
+  const words = `I can't help with ${PERSON.name}, born ${PERSON.birthDate} at ${PERSON.birthTime} in ${PERSON.birthPlace}.\nAsk me something else.`;
+  // Refused on the second attempt, as callStructured throws it, after a first reply a check blocked.
+  const refused = new SectionError("pair:twoCharts", `model refused: ${words}`, {
+    errors: ["strengths.0: 31 words, a card line takes 20 at most", `model refused: ${words}`],
+    lastReply: JSON.stringify({ strengths: ["Marie finishes what Pierre starts."] }),
+  });
+  // As the pair generator hands it to compatibility.ts.
+  const failed = new ReportFailure("quality", refused.message, refused);
+
+  const out = buffer();
+  const app = express();
+  app.use(pinoHttp({ logger: createLogger({ LOG_LEVEL: "info" }, out.dest), serializers: httpSerializers }));
+  app.post("/api/compatibility", (req, res) => {
+    req.log.error({ err: failed, reportId: "rep-1" }, "Compatibility generation failed");
+    res.status(201).json({ id: "rep-1" });
+  });
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => new Promise<void>((resolve) => server.close(() => resolve())));
+  const res = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/compatibility`, { method: "POST" });
+  assert.equal(res.status, 201);
+  await res.text();
+  for (let i = 0; i < 100 && !out.text().includes("request completed"); i++) await new Promise((resolve) => setTimeout(resolve, 10));
+
+  const log = createLogger({}, out.dest);
+  log.error({ err: refused, reportId: "rep-2" }, "horizon pass failed; previous text and profile restored");
+  log.error(refused);
+  log.warn({ err: refused.message, section: refused.key }, "failure log: rows not written; muted for a minute");
+
+  const text = out.text();
+  for (const secret of [...SECRETS, "can't help", "Ask me", "finishes"]) assert.ok(!text.includes(secret), `the log holds ${secret}`);
+  const lines = out.lines.map((l) => JSON.parse(l));
+  const line = (msg: string) => lines.find((l) => l.msg === msg);
+  const cut = "pair:twoCharts: model refused: …";
+
+  const pair = line("Compatibility generation failed");
+  assert.deepEqual([pair.err.type, pair.err.code, pair.err.message, pair.err.stack, pair.reportId], ["ReportFailure", "quality", cut, `ReportFailure: ${cut}`, "rep-1"]);
+
+  const horizon = line("horizon pass failed; previous text and profile restored");
+  assert.deepEqual([horizon.err.type, horizon.err.key, horizon.err.message, horizon.reportId], ["SectionError", "pair:twoCharts", cut, "rep-2"]);
+  assert.equal(horizon.err.stack, `SectionError: ${cut}`);
+  for (const key of ["errors", "aggregateErrors"]) {
+    assert.deepEqual(horizon.err[key], ["strengths.0: 31 words, a card line takes 20 at most", "model refused: …"], key);
+  }
+  assert.equal("lastReply" in horizon.err, false);
+
+  assert.equal(line(cut).err.message, cut, "an error logged alone gives its message as the line's");
+  assert.equal(line("failure log: rows not written; muted for a minute").err, cut);
+});

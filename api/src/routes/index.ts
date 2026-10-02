@@ -15,7 +15,7 @@ import adminLabSessionsRouter from "./adminLabSessions";
 import adminReleaseRouter from "./adminRelease";
 import adminWaitlistRouter from "./adminWaitlist";
 import homeRouter from "./home";
-import { checkoutLimit, generationLimits, geocodeLimit, previewLimit, sendLimit } from "../lib/limits";
+import { anonWriteLimit, checkoutLimit, generationLimits, geocodeLimit, previewLimit, sendLimit } from "../lib/limits";
 import { spendGate } from "../lib/spendCap";
 import { requireAccount } from "../middlewares/requireAccount";
 
@@ -24,8 +24,10 @@ const router: IRouter = Router();
 
 // Every route that spends or sends meets its limit here, ahead of the router that answers it, so the routes a limit guards
 // read as one list (ADR-199). Writing first needs an account on production (ADR-140), so a signed-out request takes no
-// count; then the limits, which cost no query; then the day's spend breaker.
-const writing = [requireAccount(), ...generationLimits, spendGate()];
+// count there. Elsewhere a signed-out write takes one from the count they all share (S1), then each caller's own limits;
+// none of these costs a query. Then the day's spend breaker. Exported so the limits' test can stand this very chain ahead
+// of a stub route.
+export const writing = [requireAccount(), ...anonWriteLimit, ...generationLimits, spendGate()];
 router.post("/reports", writing);
 router.post("/reports/:id/regenerate", writing);
 router.post("/compatibility", writing);

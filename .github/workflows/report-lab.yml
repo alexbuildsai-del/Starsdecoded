@@ -52,12 +52,14 @@ jobs:
       INPUT_LABEL: ${{ inputs.label }}
     steps:
       # Inputs are typed by whoever dispatches the run, so they stay data: they reach every script through env and are
-      # checked here first. Every later step that runs after a failure is gated on this one (S6).
+      # checked here first. Every later step that runs after a failure is gated on this one (S6). The whole value must
+      # match, where grep would pass a value holding one good line among others; the C locale keeps [a-z] to 26 letters.
       - name: Check the inputs
         id: inputs
         run: |
+          export LC_ALL=C
           check() {
-            printf '%s' "$2" | grep -Eq "$3" || { echo "::error::The $1 input may hold only lowercase letters, digits and hyphens${4:-}."; exit 1; }
+            [[ $2 =~ $3 ]] || { echo "::error::The $1 input may hold only lowercase letters, digits and hyphens${4:-}."; exit 1; }
           }
           check campaign "$INPUT_CAMPAIGN" '^[a-z0-9-]+$'
           check label "$INPUT_LABEL" '^[a-z0-9-]+$'
