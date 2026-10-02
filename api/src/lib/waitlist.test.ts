@@ -40,9 +40,10 @@ test("campaign tags keep their words and lose the rest", () => {
   assert.equal(tag("hero-form", 4), "hero");
 });
 
-// Made up here; the edge's own value lives only in the Vercel and Railway dashboards.
-const EDGE = "test-edge";
-const NOT_EDGE = "test-edgf";
+// Made up here, and past the 32 characters the variable needs to count; the edge's own lives only in the Vercel and
+// Railway dashboards.
+const EDGE = "edge-value-not-real-padded-to-length-x";
+const NOT_EDGE = "edge-value-not-real-padded-to-length-y";
 const VERCEL = "76.76.21.1";
 const RAILWAY_SAW = "198.51.100.2";
 
@@ -63,7 +64,7 @@ test("a call came through the edge only when it carries the edge's value exactly
   const carrying = (value: string | string[]) => ({ "x-edge-proxy-secret": value });
   assert.equal(cameThroughEdge(carrying(EDGE), EDGE), true, "match");
   assert.equal(cameThroughEdge(carrying(NOT_EDGE), EDGE), false, "mismatch of the same length");
-  for (const near of ["", "test-edg", `${EDGE}x`, ` ${EDGE}`, EDGE.toUpperCase(), `${EDGE}, ${EDGE}`]) {
+  for (const near of ["", EDGE.slice(0, -1), `${EDGE}x`, ` ${EDGE}`, EDGE.toUpperCase(), `${EDGE}, ${EDGE}`]) {
     assert.equal(cameThroughEdge(carrying(near), EDGE), false, `mismatch ${JSON.stringify(near)}`);
   }
   assert.equal(cameThroughEdge({}, EDGE), false, "missing");
@@ -139,6 +140,24 @@ test("the variable is read trimmed, as the middleware sends it, and a blank one 
   }
   assert.equal(withEdge(EDGE, () => cameThroughEdge(carrying(`${EDGE} `))), false, "the header is compared as it arrives: HTTP has trimmed it already");
   assert.equal(withEdge(" ", () => cameThroughEdge(carrying(" "), " ")), true, "a secret handed in is not the variable");
+});
+
+test("a variable under 32 characters once trimmed is unset, since healthz would let it be guessed, and 32 is enough", () => {
+  const short = EDGE.slice(0, 31);
+  const enough = EDGE.slice(0, 32);
+  assert.deepEqual([short.length, enough.length], [31, 32]);
+  const forwarded = { "x-vercel-forwarded-for": "203.0.113.7" };
+  for (const configured of [short, ` ${short} `, `\u00a0${short}\t`]) {
+    const label = JSON.stringify(configured);
+    assert.equal(withEdge(configured, () => cameThroughEdge({ "x-edge-proxy-secret": short })), false, label);
+    assert.equal(withEdge(configured, () => clientKey({ ...forwarded, "x-edge-proxy-secret": short }, RAILWAY_SAW)), RAILWAY_SAW, label);
+  }
+  for (const configured of [enough, ` ${enough}\n`]) {
+    const label = JSON.stringify(configured);
+    assert.equal(withEdge(configured, () => cameThroughEdge({ "x-edge-proxy-secret": enough })), true, label);
+    assert.equal(withEdge(configured, () => clientKey({ ...forwarded, "x-edge-proxy-secret": enough }, RAILWAY_SAW)), "203.0.113.7", label);
+  }
+  assert.equal(cameThroughEdge({ "x-edge-proxy-secret": short }, short), true, "a secret handed in has no floor");
 });
 
 test("a forwarded address is trusted whole as the edge wrote it: IPv6, a list, an array, spacing and an empty first entry", () => {

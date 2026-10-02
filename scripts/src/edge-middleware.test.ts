@@ -15,8 +15,9 @@ const FILE = `${ROOT}middleware.ts`;
 // The root package is CommonJS: an ESM import would see module.exports as `default`, and require sees what Vercel does.
 const edge = createRequire(import.meta.url)(FILE) as typeof import("../../middleware.js");
 
-// Made up here; the edge's own value lives only in the Vercel and Railway dashboards.
-const EDGE = "edge-value-not-real";
+// Made up here, and past the 32 characters a value needs to count; the edge's own lives only in the Vercel and Railway
+// dashboards.
+const EDGE = "edge-value-not-real-padded-to-length-x";
 
 /** Runs with EDGE_PROXY_SECRET set to `value`, or unset for undefined, and puts back what was there. */
 function withEdge<T>(value: string | undefined, run: () => T): T {
@@ -136,7 +137,7 @@ test("a name in any case, a repeated header and a comma list reach upstream as t
 });
 
 test("a secret with spaces or accents inside, or none of the visitor's headers at all, goes upstream as it is", () => {
-  for (const value of ["two words in it", "café-edge", "a=b; c,d"]) {
+  for (const value of [`two words in ${EDGE}`, `café-${EDGE}`, `a=b; c,d; ${EDGE}`]) {
     const request = visit();
     const answer = withEdge(value, () => edge.default(request));
     assert.equal(upstream(request, answer).get("x-edge-proxy-secret"), value, value);
@@ -157,13 +158,14 @@ test("the secret rides only in a request header whatever the method or path, and
   }
   const request = visit();
   const first = withEdge(EDGE, () => edge.default(request));
-  const second = withEdge("another-made-up-value", () => edge.default(request));
+  const second = withEdge("another-made-up-value-padded-to-length", () => edge.default(request));
   assert.equal(first.headers.get("x-middleware-request-x-edge-proxy-secret"), EDGE);
-  assert.equal(second.headers.get("x-middleware-request-x-edge-proxy-secret"), "another-made-up-value");
+  assert.equal(second.headers.get("x-middleware-request-x-edge-proxy-secret"), "another-made-up-value-padded-to-length");
 });
 
 test("a secret no header can carry leaves every call as it came, never a failed one, and nothing in the answer quotes it", () => {
-  for (const value of ["edge-value\u2603-not-real", "edge-value-\u{1F512}", "edge-value\nnot-real", "edge-value\rnot-real"]) {
+  for (const value of [`${EDGE}\u2603`, `${EDGE}-\u{1F512}`, `${EDGE}\nnot-real`, `${EDGE}\rnot-real`]) {
+    assert.ok(value.trim().length >= 32, "long enough to count, so the header's own rules are what turn it away");
     const request = visit();
     const answer = withEdge(value, () => edge.default(request));
     assert.deepEqual([...answer.headers], [["x-middleware-next", "1"]], JSON.stringify(value));
@@ -183,5 +185,22 @@ test("the secret's ends are trimmed before it is set, the same trim the API read
     const answer = withEdge(value, () => edge.default(request));
     assert.deepEqual([...answer.headers], [["x-middleware-next", "1"]], JSON.stringify(value));
     assert.deepEqual([...upstream(request, answer)], [...request.headers]);
+  }
+});
+
+test("a secret under 32 characters once trimmed is unset, since healthz would let it be guessed, and 32 is enough", () => {
+  const short = EDGE.slice(0, 31);
+  const enough = EDGE.slice(0, 32);
+  assert.deepEqual([short.length, enough.length], [31, 32]);
+  for (const value of [short, ` ${short} `, `\u00a0${short}\t`]) {
+    const request = visit();
+    const answer = withEdge(value, () => edge.default(request));
+    assert.deepEqual([...answer.headers], [["x-middleware-next", "1"]], JSON.stringify(value));
+    assert.deepEqual([...upstream(request, answer)], [...request.headers], "the call goes upstream as it came");
+  }
+  for (const value of [enough, ` ${enough}\n`]) {
+    const request = visit();
+    const answer = withEdge(value, () => edge.default(request));
+    assert.equal(upstream(request, answer).get("x-edge-proxy-secret"), enough, JSON.stringify(value));
   }
 });

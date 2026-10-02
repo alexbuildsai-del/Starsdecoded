@@ -88,6 +88,12 @@ test("tests, test helpers, the walk, fixtures, generated files and tooling are n
   assert.deepEqual(findings({ "api/src/lib/testament.ts": "console.log(1);\n" }), ["api/src/lib/testament.ts:1:console-log"]);
 });
 
+test("the root middleware.ts is shipped code, since Vercel runs it ahead of every /api call; the root's other files are tooling", () => {
+  const edge = 'export default function middleware() {\n  console.log("http://localhost:8080");\n}\n';
+  assert.deepEqual(findings({ "middleware.ts": edge }), ["middleware.ts:2:console-log", "middleware.ts:2:localhost"]);
+  assert.deepEqual(findings({ "vite.config.ts": "console.log(1);\n", "middleware.test.ts": "console.log(1);\n" }), []);
+});
+
 test("the exceptions are a table, honoured per file and rule and counted by line", () => {
   const ex = EXCEPTIONS.find((e) => e.rule === "localhost")!;
   assert.ok(EXCEPTIONS.every((e) => e.file && e.rule && e.reason && e.lines >= 1));

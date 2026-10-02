@@ -8,8 +8,9 @@ process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 const { HealthCheckResponse } = await import("@workspace/api-zod");
 const { default: health } = await import("./health.js");
 
-// Made up here; the edge's own value lives only in the Vercel and Railway dashboards.
-const EDGE = "edge-value-not-real";
+// Made up here, and past the 32 characters the variable needs to count; the edge's own lives only in the Vercel and
+// Railway dashboards.
+const EDGE = "edge-value-not-real-padded-to-length-x";
 
 test("healthz says whether this one call carried the edge's value, and never sends the value back (ADR-224)", async (t) => {
   const app = express();
@@ -39,6 +40,12 @@ test("healthz says whether this one call carried the edge's value, and never sen
 
   delete process.env.EDGE_PROXY_SECRET;
   assert.equal((await call({ "x-edge-proxy-secret": EDGE })).edge, false, "unset, no call is the edge's");
+
+  // edge answers whether a guess matched, so a value short enough to guess counts as unset.
+  process.env.EDGE_PROXY_SECRET = EDGE.slice(0, 31);
+  assert.equal((await call({ "x-edge-proxy-secret": EDGE.slice(0, 31) })).edge, false, "31 characters is unset");
+  process.env.EDGE_PROXY_SECRET = EDGE.slice(0, 32);
+  assert.equal((await call({ "x-edge-proxy-secret": EDGE.slice(0, 32) })).edge, true, "32 is enough");
 });
 
 test("healthz's edge is false for a header sent twice, a near miss or an empty value, and the value is never echoed (ADR-224)", async (t) => {

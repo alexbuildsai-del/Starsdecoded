@@ -7,8 +7,9 @@ import { webOrigins } from "../middlewares/origin.js";
 
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.LOG_LEVEL = "silent";
-// A forwarded address counts only on a call through our edge (ADR-224), so every post that names one carries the edge's value.
-const EDGE = "test-edge";
+// A forwarded address counts only on a call through our edge (ADR-224), so every post that names one carries the edge's value,
+// made up here and past the 32 characters the variable needs to count.
+const EDGE = "edge-value-not-real-padded-to-length-x";
 process.env.EDGE_PROXY_SECRET = EDGE;
 const { cspReportRouter } = await import("../routes/cspReport.js");
 type CspStore = import("../routes/cspReport.js").CspStore;

@@ -16,14 +16,27 @@ export function tag(raw: string | undefined, max = 100): string | null {
   return clean || null;
 }
 
+// /api/healthz answers whether a call carried the secret, so a guess is checked for free and nothing but the secret's
+// own strength stands against guessing. The root middleware.ts holds the same floor, so a short value is unset on both
+// sides rather than sent there and refused here.
+const SHORTEST_EDGE_SECRET = 32;
+
+/**
+ * EDGE_PROXY_SECRET as the middleware sends it: trimmed, since `Headers.set` trims a value's ends and an untrimmed one
+ * would never match, and unset when blank or shorter than SHORTEST_EDGE_SECRET.
+ */
+function edgeSecret(): string | undefined {
+  const secret = process.env.EDGE_PROXY_SECRET?.trim();
+  return secret && secret.length >= SHORTEST_EDGE_SECRET ? secret : undefined;
+}
+
 /**
  * True when the call carries EDGE_PROXY_SECRET, which only the root middleware.ts adds, on its way through Vercel to
  * here (ADR-224). Both sides are hashed first, so the comparison takes the same time whatever was sent and gives away
- * nothing of the secret, not even its length. Unset or empty, nothing came through the edge; a header sent twice is not
- * the edge's, which sets one. The variable is read trimmed, as the middleware sends it, since `Headers.set` trims a
- * value's ends and an untrimmed one would never match; blank is unset. A secret handed in is compared as written.
+ * nothing of the secret, not even its length. Unset, nothing came through the edge; a header sent twice is not the
+ * edge's, which sets one. A secret handed in is compared as written, with no floor.
  */
-export function cameThroughEdge(headers: IncomingHttpHeaders, secret = process.env.EDGE_PROXY_SECRET?.trim()): boolean {
+export function cameThroughEdge(headers: IncomingHttpHeaders, secret = edgeSecret()): boolean {
   const sent = headers["x-edge-proxy-secret"];
   if (!secret || typeof sent !== "string") return false;
   const digest = (value: string) => createHash("sha256").update(value).digest();

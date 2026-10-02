@@ -14,8 +14,9 @@ import express, { type RequestHandler } from "express";
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.OPENAI_API_KEY ??= "test-key-never-sent";
 process.env.LOG_LEVEL = "silent";
-// A forwarded address counts only on a call through our edge (ADR-224), so every hit that names one carries the edge's value.
-const EDGE = "test-edge";
+// A forwarded address counts only on a call through our edge (ADR-224), so every hit that names one carries the edge's value,
+// made up here and past the 32 characters the variable needs to count.
+const EDGE = "edge-value-not-real-padded-to-length-x";
 process.env.EDGE_PROXY_SECRET = EDGE;
 const { LIMITS, LIMIT_LINES, buildLimits, holdWrites } = await import("./limits.js");
 type LimitKind = import("./limits.js").LimitKind;
