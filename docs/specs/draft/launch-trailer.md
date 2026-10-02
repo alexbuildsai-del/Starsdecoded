@@ -1,7 +1,11 @@
 # Launch trailer
 
-Draft, 2026-10-02, from `/ideate`. Artifact (animatic, directions, storyboard, sound, asks):
+Draft 2, 2026-10-02, from `/ideate`. Artifact (the first cut, directions, storyboard, sound, asks):
 https://claude.ai/artifact/BoKPjCCWbLRT7ZUfQ1army
+
+Draft 1's animatic used screenshots and was turned down: the Owner wants motion built from the
+coded components, at the level of a product trailer. Draft 2 is a rendered cut from the motion
+harness (`.claude/skills/marketing/motion`, Remotion), 30 s, 120 BPM, with a synthesized temp score.
 
 A 30 second motion trailer for the TikTok and Instagram launch, with a 15 second cutdown. It
 opens on the one thing everyone knows, their star sign ("Your star sign is only your Sun."),
@@ -35,7 +39,7 @@ secret or a paid tool without his word (no paid music tool, 30 Sep).
 | 6 | 8–9 | Your chart, free. Nothing you type is saved. | Home's live wheel, then the sky form, recorded |
 | 7 | 10–11 | Then a report on how you think, work and love. | Report hero, a citation lighting its card, House by House |
 | 8 | 12 | And how the two of you get along. | /compatibility's two plates on one horizon, sample people |
-| 9 | 13–14½ | Coming soon · The big cycles of your life. · BORN TODAY · FIRST RETURN 25 MAR 2056 · Ask about your chart | /timeline's Saturn-return ring; only under ask 3 |
+| 9 | 13–14½ | COMING SOON · TIMELINE AND ASK · The big cycles of your life. · year and age count · FIRST SATURN RETURN · 24 MAR 2056 | Saturn walks its engine path round the chart to its exact return; only under ask 3 |
 | 10 | 14½–15 | Stars Decoded · Find out what your birth chart says about you. · GET YOUR FREE CHART · MYSTARSDECODED.COM | The mark draws out of the horizon, brass point last |
 
 - Words are the site's own where they exist (home H1, /sky's "nothing you type is saved",
@@ -43,8 +47,8 @@ secret or a paid tool without his word (no paid music tool, 30 Sep).
 - Scene 10 says launch, never open (rule 21): before launch "Join the waitlist and we'll
   email you when we launch." over "Link in bio · mystarsdecoded.com"; after launch the free
   chart line above.
-- The Saturn return date comes from astronomy-engine for the trailer's birth (one exact hit,
-  2056-03-25, natal Saturn 11.47° Aries); the finder computes the same at build.
+- The Saturn return date comes from the engine for the trailer's birth (`saturnReturn` in the
+  harness: monthly scan, then daily; 24 Mar 2056 for 2 Oct 2026, natal Saturn 11.47° Aries).
 
 ### Art direction
 - **A · Observatory:** G15 as written, 72 BPM or no beat, crossfades, about 40 s.
@@ -68,13 +72,21 @@ secret or a paid tool without his word (no paid music tool, 30 Sep).
   track added in-app, the Commercial Music Library on TikTok and the Sound Collection on
   Instagram (G14, rule 22).
 
-### Production (after the Owner's yes, rule 24)
-- HyperFrames switched on as `marketing/SKILL.md` says (no telemetry, no cloud render, our
-  track or `music: none`); frames are HTML on the product's tokens and fonts.
-- Wheels and degrees through `kit/wheel.mjs`; screens recorded at 390 px: public pages on
-  production, the report and the pair page on staging with the staging badge out of frame;
-  the report is one made for the trailer's chart on the admin account.
-- The cut comes back to the Owner as a rendered file before it posts.
+### The motion harness (path B of the Owner's harness, 2026-10-02)
+- Brief (text and refs) → Claude writes code → **Remotion** renders React frame by frame in headless
+  Chrome → MP4. The web app's own components through the `@` alias, the engine on every frame,
+  Tailwind v4, the product's fonts; Canvas or SVG (path A) only for what no component draws
+  (the star field, grain, the reticle). No image or video models (path C) without the Owner's yes
+  on the exact output (rule 17); no screenshots or cropped pages, ever.
+- `node render.mjs video out/<name>.mp4 --date <posting day>`; `stills 4.6 9.7 …` for checks.
+  Deterministic: every value is a function of the frame, so any frame renders the same.
+- Components used: NatalWheel (recomputed per frame, tilted to the Ascendant), the orrery's
+  maths (`lib/orrery.ts`), HorizonWheel (still), TriadPlate, Placements, Chapter, EvidenceCard,
+  TwoPlates (sample people), Mark. The report line is Marie Curie's blind mind claim
+  (`fixtures/passes/marie-curie.r05.json`), with no houses, as rule 8 allows; the ad cut swaps it.
+- `score/temp-score.mjs` synthesizes the timing track (no licence involved); the real track
+  replaces it (ask 2).
+- The cut goes to the Owner as a file before it posts.
 
 ## Out of scope
 - Voiceover, faces, people on camera, AI-generated images (rule 17).
@@ -93,13 +105,12 @@ secret or a paid tool without his word (no paid music tool, 30 Sep).
 5. The last frame flows into the first; the 15 s cut keeps scenes 1, 2, 3, 5 and 10.
 6. The sound is cleared for business use or ours with a full buyout (rule 22).
 7. Scene 9 appears only if ask 3 is yes and `/timeline` is live on posting day.
-8. The Owner says yes to this page before anything is made, and to the rendered cut before it
-   posts (rules 23, 24).
+8. Every frame is rendered from the product's components by the harness; no screenshot is used.
+9. The Owner says yes to the rendered cut before it posts (rule 23).
 
 ## Screens
-All in the artifact: the animatic (A, B, C on one storyboard, with sound sketches and the safe
-area), the three directions side by side, the ten-scene storyboard with thumbnails from real
-renders and staging screens, the 15-bar sound map and brief, and the rule book check.
+All in the artifact: the rendered first cut (direction B), the three directions side by side,
+the ten-scene storyboard, the 15-bar sound map and brief, and the rule book check.
 
 ## Open questions (for the Owner)
 1. **Direction.** Recommended B · Signal. If silent: B, and nothing is made before the yes on
@@ -116,7 +127,8 @@ Research note: a researcher looked for the libraries' and single-track licences'
 2026-10-02; the verifier could fetch none of the 13 sources (egress blocked), so 0 of 28 claims
 were supported and none is used here. The licence check runs again before any money is spent.
 
-Found along the way: `kit/wheel.mjs` fails under the current Vite 7 SSR with "module is not
+Found along the way: Remotion needs the headless shell (`/opt/pw-browsers/chromium_headless_shell-*`),
+not full Chromium, and `extensionAlias` for the engine's `.js` imports. `kit/wheel.mjs` fails under the current Vite 7 SSR with "module is not
 defined" in React's JSX runtime; adding `ssr: { external: ["react", "react-dom"] }` to its
 `createServer` call fixed it in a scratch copy. For the next marketing session.
 
@@ -130,3 +142,6 @@ defined" in React's JSX runtime; adding `ssr: { external: ["react", "react-dom"]
 4. G2's hold on video lifts for the launch trailer only, at the Owner's request (2026-10-02).
 5. The music route (ask 2).
 6. Rule 4 and the coming-soon beat (ask 3).
+7. Videos are made with the motion harness (Owner, 2026-10-02): Remotion over the product's own
+   components and engine, Canvas or SVG for the rest, no screenshots; rule 24's words-first step
+   gives way to a rendered cut when the Owner asks for one.

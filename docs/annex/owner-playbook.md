@@ -18,6 +18,11 @@ merged into the rule it repeats.
 - **He orders the rounds.** Pricing and launch went behind the website (R11 plan, 2026-09-30), Review 01/10 (R12 plan,
   2026-10-01) and security with the roster (ADR-204): deferred three times (R14-plan header). Offer an order as a recommendation.
 
+- **Motion from the coded components, never screenshots.** He turned down a storyboard of cropped staging pages
+  with little transition (launch-trailer draft 1, 2026-10-02): "take the coded components and use them for the
+  animations", at product-trailer quality. A video is a rendered cut from the motion harness (brief → code →
+  Remotion → MP4, `marketing/motion/`), and he may ask for the cut before the words (rule 24).
+
 ## Asked for
 - **Opus for orchestrating, planning and research.** The orchestrator (the Owner, ADR-137), planning (R-0.7) and, from
   2026-10-01, research, with the verifier on any claim that feeds a decision (agent-roster scope 6; MASTERFILE §11.1).
@@ -33,7 +38,7 @@ merged into the rule it repeats.
 
 ## Formats he likes
 - **An HTML artifact before any question or lock.** He decides visually (MASTERFILE §11.1). Phone first, 390 px before
-  desktop (§9, ADR-171).
+  desktop (§9, ADR-171). For a video, the rendered MP4 itself, not stills or an animatic (2026-10-02).
 
 ## His own lines, verbatim
 - "Continue without this for now." The Owner, 2026-09-27, `docs/rounds/R14-plan.md` (pricing and launch, first written as

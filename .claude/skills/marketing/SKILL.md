@@ -59,10 +59,18 @@ After a week of posting, read the numbers on the Posted rows and propose two mor
 (G18).
 
 ## Video and motion
-A video starts as words (rule 24): the approach, the storyline scene by scene, the on-screen text,
-any voiceover script, the sound and the length (G16), published as an artifact for the Owner's
-yes. Nothing is coded or rendered before it. Product screens are recorded from real screens only,
-never the old landing page (it shows a made-up chart). Video waits for the report rework (G2).
+Videos are made with the motion harness in `motion/` (Owner, 2 Oct 2026): a brief, then code,
+then Remotion renders React frame by frame in headless Chrome to MP4. Every frame uses the web
+app's own components (NatalWheel, the orrery's maths, TwoPlates, TriadPlate, HorizonWheel,
+Chapter, EvidenceCard, Mark) fed by the engine for the posting day. Canvas or SVG is only for what
+no component draws. Never screenshots or cropped pages. No image or video models without the
+Owner's yes on the exact output (rule 17). The words still come first unless the Owner asks for a
+cut (rule 24), and the rendered file goes to the Owner before it posts. Start from
+`motion/src/Trailer.tsx` (spec `docs/specs/draft/launch-trailer.md`):
+`npm ci --prefix .claude/skills/marketing/motion`, `node motion/score/temp-score.mjs
+motion/public/temp-score.wav`, then `node motion/render.mjs video out/x.mp4 --date YYYY-MM-DD`,
+or `stills 4.6 9.7` to check frames. It finds the headless shell under `/opt/pw-browsers`; set
+`CHROME_PATH` elsewhere.
 
 ## The kit (`kit/`)
 - `wheel.mjs`: the product's NatalWheel, rendered through the web app's Vite config from
@@ -85,7 +93,8 @@ never the old landing page (it shows a made-up chart). Video waits for the repor
 customer 50, ADR-147), pinned and reviewed on 30 Sep 2026. They stay off so their 46 skill
 descriptions don't load into every session or take over "marketing" and "animate" requests.
 Switch one on only when its work starts, after the Owner's yes on the words (rule 24):
-- **HyperFrames:** copy `vendor/hyperframes/skills/*` into `.claude/skills/` and its `plugin.json`
+- **HyperFrames:** superseded for product video by the Remotion harness in `motion/`, which renders
+  the real React components; keep it for plain HTML motion only. To use it, copy `vendor/hyperframes/skills/*` into `.claude/skills/` and its `plugin.json`
   to `.claude/plugin.json` (it pins the CLI at 0.8.96); set `HYPERFRAMES_NO_TELEMETRY=1` in the
   `env` of `.claude/settings.json`; never run its `feedback`, `publish` or cloud render; give
   `media-use` our own track or `music: none` (its fallback installs a music model). It needs FFmpeg

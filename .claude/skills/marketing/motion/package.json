@@ -1,0 +1,16 @@
+{
+  "name": "stars-decoded-motion",
+  "private": true,
+  "description": "Motion videos from the product's own React components, rendered by Remotion. Outside the pnpm workspace on purpose, like the kit.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.532",
+    "@remotion/tailwind-v4": "4.0.532",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.532"
+  }
+}
