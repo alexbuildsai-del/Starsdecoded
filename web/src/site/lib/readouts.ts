@@ -7,9 +7,10 @@
 import { cityName, offsetAtBirth } from "@workspace/engine";
 import { SIGN_ORDER } from "@/components/chart/wheel-geometry";
 import {
-  DEFAULT_ANSWER, PART_LABELS, readout, toValue,
+  DEFAULT_ANSWER, partLabels, readout, toValue,
   type BirthTimeAnswer, type BirthTimeMode, type BirthTimeValue,
 } from "@/lib/birth-time";
+import type { Clock } from "@/lib/date-entry";
 import { houseWithWord } from "@/lib/evidence-glossary";
 import { elementLead, modalityLine } from "@/lib/sky-card";
 import { degreeLine, utcLine } from "@/lib/sky-now";
@@ -194,9 +195,9 @@ export function plateLine(plate: TimePlate): string {
   return `Your rising sign could be one of ${COUNTS[signs] ?? signs}, so the report leaves it out. ${moon}`;
 }
 
-/** The form's parts of the day with the part and its hours apart, as the chips print them. */
-export function partsOfDay(): { part: string; hours: string }[] {
-  return Object.values(PART_LABELS).map((label) => {
+/** The form's parts of the day with the part and its hours apart, as the chips print them on the reader's clock. */
+export function partsOfDay(clock: Clock = 24): { part: string; hours: string }[] {
+  return Object.values(partLabels(clock)).map((label) => {
     const cut = label.indexOf(", ");
     return { part: label.slice(0, cut), hours: label.slice(cut + 2) };
   });

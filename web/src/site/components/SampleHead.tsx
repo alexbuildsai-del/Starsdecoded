@@ -13,6 +13,8 @@ import { CHAPTERS } from "@/lib/chapters";
 import { houseWithWord } from "@/lib/evidence-glossary";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { PERSONAL_REPORT } from "@/lib/product";
+import { clockWords } from "@/lib/date-entry";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { degreeLine } from "@/lib/sky-now";
 import type { ChartData, ChartPlanet } from "@/types/chart";
 import { OPEN_CHAPTERS, SAMPLE, sampleChart } from "@/site/data/sample";
@@ -29,12 +31,6 @@ const SIZE = { sun: 48, moon: 34 } as const;
 
 const at2 = (n: number) => n.toFixed(2);
 const angleOf = (degree: number, frame: number) => 180 + norm360(degree - frame);
-
-// A no-break space, so "3 am" never splits across two lines of the lede.
-function clockWords(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""}\u00a0${h < 12 ? "am" : "pm"}`;
-}
 
 const placed = (p: ChartPlanet) => `${degreeLine(p)}${p.house ? ` · ${houseWithWord(p.house)}` : ""}`;
 
@@ -110,6 +106,7 @@ function Opening({ chart }: { chart: ChartData }) {
 
 export function SampleHead({ page }: { page: PageEntry }) {
   const { name, birth, place, run } = SAMPLE;
+  const { clock } = useEntryFormat();
   const written = run.meta.generatedAt.slice(0, 10);
   const sect = run.meta.sect ? [`${run.meta.sect.charAt(0).toUpperCase()}${run.meta.sect.slice(1)} chart`] : [];
 
@@ -123,7 +120,7 @@ export function SampleHead({ page }: { page: PageEntry }) {
             {page.h1}
           </h1>
           <p className="sd-lede">
-            {page.lede} It was written from {name}'s birth chart: {formatUpdated(birth.birthDate)} at {clockWords(birth.birthTime)} in {place}.
+            {page.lede} It was written from {name}'s birth chart: {formatUpdated(birth.birthDate)} at {clockWords(birth.birthTime, clock)} in {place}.
           </p>
           <p className="sd-meta">
             Written <time dateTime={written}>{formatUpdated(written)}</time> · {[...sect, "Whole sign", "Tropical"].join(" · ")}

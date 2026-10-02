@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { calculateNatalChart, offsetAtBirth } from "@workspace/engine";
 import {
   PART_CENTRES, PART_LABELS, WINDOW_ABOUT, WINDOW_EXACT, WINDOW_UNKNOWN,
-  readout, risingReadout, toValue, type PartOfDay,
+  partLabels, readout, risingReadout, toValue, type PartOfDay,
 } from "@/lib/birth-time";
 import { houseWithWord } from "@/lib/evidence-glossary";
 import { elementLead, modalityLine } from "@/lib/sky-card";
@@ -94,6 +94,14 @@ describe("the birth-time plates", () => {
       expect(hours.length).toBeGreaterThan(0);
       expect(`${part}, ${hours}`).toBe(PART_LABELS[keys[i]]);
     });
+  });
+
+  it("print the same parts on a 12-hour clock as the form's chips do, and the 24-hour clock without one", () => {
+    const labels = partLabels(12);
+    const keys = Object.keys(PART_CENTRES) as PartOfDay[];
+    expect(partsOfDay(24)).toEqual(partsOfDay());
+    partsOfDay(12).forEach(({ part, hours }, i) => expect(`${part}, ${hours}`).toBe(labels[keys[i]]));
+    expect(partsOfDay(12)[0].hours).toBe("6\u00a0am to noon");
   });
 });
 
