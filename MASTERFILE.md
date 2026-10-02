@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.24 (2026-10-02) |
+| Version | 0.25 (2026-10-02) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -144,7 +144,7 @@ Shared: packages/api-spec → Orval → api-client-react + api-zod
 - **R-7.2** `packages/api-spec/openapi.yaml` is the contract. Generated files are never hand-edited; `pnpm --filter @workspace/api-spec run codegen` rewrites them. A route that is not in the spec does not exist for the client.
 - **R-7.3** Schema changes: edit `packages/db/src/schema`, add an idempotent script under `packages/db/scripts` when data must move, wire it into `scripts/bootstrap-db.sh`. Railway runs the bootstrap as its pre-deploy command, so a migration that cannot run twice breaks deploys.
 - **R-7.4** Secrets live only in the Vercel, Railway and Supabase dashboards. `.env.example` lists every variable the code reads, with no values. The repository is public. A hook blocks edits to `.env*`; pnpm installs no version younger than 7 days; Dependabot, `pnpm audit` and gitleaks run keyless, and Actions are pinned by SHA (ADR-191, 200).
-- **R-7.5** The web calls `/api` on its own origin through the Vercel rewrites. The API sends no CORS headers, answers 403 to a write from an Origin outside `WEB_ORIGINS`, and its cookie is `SameSite=Lax; Secure`. Every response carries the security headers; the CSP ships report-only and is enforced after 7 clean days. Every route that spends or sends is rate-limited, and `DAILY_SPEND_CAP_USD` pauses generation past a day's cap (ADR-197 to 199).
+- **R-7.5** The web calls `/api` on its own origin through the Vercel rewrites. The API sends no CORS headers, answers 403 to a write from an Origin outside `WEB_ORIGINS`, and its cookie is `SameSite=Lax; Secure`. Every response carries the security headers; the CSP ships report-only and is enforced after 7 clean days. Every route that spends or sends is rate-limited, and `DAILY_SPEND_CAP_USD` pauses generation past a day's cap (ADR-197 to 199). A per-address limit trusts Vercel's forwarded address only on a call that carries `EDGE_PROXY_SECRET`, which the Vercel edge sets and the logs never print (ADR-224).
 - **R-7.6** Public pages are real HTML: the home page, the seven public pages and the legal pages prerender at build into `#root` and hydrate, so every word reaches a crawler; app routes carry noindex and unknown public paths answer 404 (ADR-114).
 
 ## 8 · Prompt operations and the bible
