@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
+import { createLogger, logger } from "./logger.js";
+
+// Every email's images come from the configured web origin. The module that holds it imports the database package,
+// which wants DATABASE_URL set; the pool connects lazily, so nothing here reaches it.
+process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
+process.env.PUBLIC_APP_URL = "https://mystarsdecoded.com";
+const {
   buildReportEmail,
   buildPairEmail,
   buildGiftEmail,
@@ -13,8 +19,7 @@ import {
   sendGiftReminder,
   sendSpendPausedEmail,
   sendWaitlistConfirmEmail,
-} from "./mailer.js";
-import { createLogger, logger } from "./logger.js";
+} = await import("./mailer.js");
 
 // The report engine writes reports; nothing else does. Every email says so
 // (credit-loop.md "Two verbs": Emails never say "made").
@@ -234,6 +239,32 @@ test("names are escaped defensively", () => {
   assert.ok(!content.html.includes("<D>"));
   assert.match(content.html, /A &amp; B/);
   assert.match(content.html, /C &lt;D&gt;/);
+});
+
+test("every image comes from the configured web origin, never from the origin a link names", (t) => {
+  t.after(() => {
+    process.env.PUBLIC_APP_URL = "https://mystarsdecoded.com";
+  });
+  const elsewhere = "https://evil.example";
+  const build = () => [
+    buildReportEmail({ to: "x@example.com", giverFirstName: "Alex", personFirstName: "Beatrice", claimUrl: `${elsewhere}/claim?token=a` }),
+    buildPairEmail({ to: "x@example.com", giverFirstName: "Alex", otherFirstName: "Beatrice", url: `${elsewhere}/claim?token=a`, granted: false }),
+    buildPairEmail({ to: "x@example.com", giverFirstName: "Alex", otherFirstName: "Beatrice", url: `${elsewhere}/compatibility/r-1`, granted: true }),
+    buildGiftEmail({ to: "x@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", note: null, claimUrl: `${elsewhere}/claim?token=a` }),
+    buildGiftReminderEmail({ to: "x@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", claimUrl: `${elsewhere}/claim?token=a` }),
+    buildWaitlistConfirmEmail({ ...confirmOpts, confirmUrl: `${elsewhere}/waitlist?confirm=a` }),
+  ];
+  const images = (html: string) => [...html.matchAll(/<img\b[^>]*\bsrc="([^"]*)"/g)].map((m) => m[1]);
+
+  for (const web of ["https://mystarsdecoded.com", "https://starsdecoded-staging.vercel.app"]) {
+    process.env.PUBLIC_APP_URL = `${web}/`;
+    for (const content of build()) {
+      const srcs = images(content.html);
+      assert.ok(srcs.length > 0, content.subject);
+      for (const src of srcs) assert.ok(src.startsWith(`${web}/`), `${content.subject}: ${src}`);
+    }
+  }
+  assert.deepEqual(images(build()[3].html).map((src) => new URL(src).pathname), ["/mark-email.png", "/gift-cover.png"]);
 });
 
 // Without RESEND_API_KEY every send logs its failure, which is the line a recipient would ride on.

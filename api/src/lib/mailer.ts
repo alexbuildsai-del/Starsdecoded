@@ -10,6 +10,7 @@
 import { Resend } from "resend";
 import { readAppEnv, type AppEnv } from "./appEnv.js";
 import { logger } from "./logger.js";
+import { publicWebBase } from "./waitlist.js";
 
 function getResendCredentials(): { apiKey: string; fromEmail: string } {
   const apiKey = process.env.RESEND_API_KEY?.trim();
@@ -33,12 +34,9 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function originOf(url: string): string {
-  return new URL(url).origin;
-}
-
 // Mail clients do not render SVG, so every header repeats the same PNG
-// export of the mark, served by the web app on the link's own origin.
+// export of the mark, served by the web app. Its origin is the configured
+// one, never the link's, so no caller's link can move an image elsewhere.
 function markImg(origin: string): string {
   return `<img src="${origin}/mark-email.png" width="28" height="28" alt="" style="vertical-align:middle;margin-right:10px;border:0;">`;
 }
@@ -152,7 +150,7 @@ export function buildReportEmail(opts: SendReportEmailOptions): EmailContent {
   const giverFirstName = opts.giverFirstName ?? "Someone";
   const giver = escapeHtml(giverFirstName);
   const person = escapeHtml(personFirstName);
-  const origin = originOf(claimUrl);
+  const origin = publicWebBase();
 
   // The giver is in the subject so the inbox says who shared it; the verb is ADR-181's,
   // which replaces credit-loop.md's "had it written for you" and still never says "made".
@@ -200,7 +198,7 @@ export function buildPairEmail(opts: SendPairEmailOptions): EmailContent {
   const otherFirstName = opts.otherFirstName ?? "Someone";
   const giver = escapeHtml(giverFirstName);
   const other = escapeHtml(otherFirstName);
-  const origin = originOf(url);
+  const origin = publicWebBase();
 
   // Named by both real people, as the report itself is (dashboard-sky "{A} & {B}");
   // never a "you and {name}" line, which is the MB-85 bug this fixes. The subject and
@@ -253,7 +251,7 @@ export function buildGiftEmail(opts: SendGiftEmailOptions): EmailContent {
   const giverFirstName = opts.giverFirstName ?? "Someone";
   const giver = escapeHtml(giverFirstName);
   const recipient = escapeHtml(recipientFirstName);
-  const origin = originOf(claimUrl);
+  const origin = publicWebBase();
   const trimmedNote = note?.trim() ?? "";
 
   // The locked copy (credit-loop.md "Two verbs" and Settled at lock 9), in ADR-170's name.
@@ -300,7 +298,7 @@ export function buildGiftReminderEmail(opts: SendGiftReminderOptions): EmailCont
   const giverFirstName = opts.giverFirstName ?? "Someone";
   const giver = escapeHtml(giverFirstName);
   const recipient = escapeHtml(recipientFirstName);
-  const origin = originOf(claimUrl);
+  const origin = publicWebBase();
 
   const subject = `Your gift from ${giverFirstName} is still waiting`;
   const html = shell(
@@ -351,7 +349,7 @@ export function buildWaitlistConfirmEmail(opts: SendWaitlistConfirmOptions): Ema
 
   const subject = "Confirm your email to join the waitlist";
   const html = shell(
-    originOf(confirmUrl),
+    publicWebBase(),
     paddedSection(
       `<p style="margin:0 0 32px;font-size:16px;line-height:1.6;color:#C9D1D9;">${lede}</p>` +
         `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Confirm my email", confirmUrl)}</div>` +

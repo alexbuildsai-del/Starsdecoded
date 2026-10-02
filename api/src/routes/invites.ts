@@ -33,6 +33,7 @@ import { firstNameOf, firstWord } from "../lib/names.js";
 import { sendPairEmail, sendReportEmail } from "../lib/mailer.js";
 import { moveHeldCredit } from "../lib/credits.js";
 import { validationFailure } from "../lib/validation.js";
+import { publicWebBase } from "../lib/waitlist.js";
 
 const router = Router();
 
@@ -76,20 +77,6 @@ function viewerOf(req: Request): Viewer {
 function expiryOf(inv: Pick<InviteToken, "kind" | "createdAt" | "expiresAt">): Date {
   const lifetime = inv.kind === "gift" ? LIFETIME_MS.gift : LIFETIME_MS.send;
   return new Date(Math.min(inv.expiresAt.getTime(), inv.createdAt.getTime() + lifetime));
-}
-
-function publicBaseUrl(req: Request): string {
-  const fwdHost = (req.headers["x-forwarded-host"] as string | undefined)?.split(",")[0]?.trim();
-  const host = fwdHost ?? req.headers.host;
-  const proto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim()
-    ?? "https";
-  if (host) return `${proto}://${host}`;
-  // Invite links must point at the web app (Vercel), which is a different
-  // origin from this API (Railway), so the configured public URL wins
-  // whenever the request carries no host headers.
-  const configured = process.env.PUBLIC_APP_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
-  return "http://localhost:5173";
 }
 
 async function inviteByToken(raw: string): Promise<InviteToken | null> {
@@ -228,7 +215,7 @@ async function createSendInvite(
     profileId: target.profileId,
     relationshipId: target.relationshipId,
     expiresAt: expiresAt.toISOString(),
-    claimUrl: `${publicBaseUrl(req)}/claim?token=${encodeURIComponent(token)}`,
+    claimUrl: `${publicWebBase()}/claim?token=${encodeURIComponent(token)}`,
   };
 }
 
@@ -458,7 +445,7 @@ router.post("/compatibility/:id/send", async (req, res) => {
           to,
           giverFirstName: giver,
           otherFirstName,
-          url: `${publicBaseUrl(req)}/compatibility/${pair.report.id}`,
+          url: `${publicWebBase()}/compatibility/${pair.report.id}`,
           granted: true,
         })
         : false;

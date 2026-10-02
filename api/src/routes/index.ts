@@ -2,7 +2,6 @@ import { Router, type IRouter } from "express";
 import reportsRouter from "./reports";
 import geocodeRouter from "./geocode";
 import profilesRouter from "./profiles";
-import synastryRouter from "./synastry";
 import invitesRouter from "./invites";
 import giftsRouter from "./gifts";
 import adminPromptsRouter from "./adminPrompts";
@@ -31,7 +30,6 @@ export const writing = [requireAccount(), ...anonWriteLimit, ...generationLimits
 router.post("/reports", writing);
 router.post("/reports/:id/regenerate", writing);
 router.post("/compatibility", writing);
-router.post("/synastry", writing);
 router.patch("/profiles/:id/birth-time", writing);
 router.get("/geocode", geocodeLimit);
 // MB-146 provisional
@@ -41,10 +39,16 @@ router.post("/compatibility/:id/send", sendLimit);
 router.post("/gifts", sendLimit);
 router.post("/checkout/test", checkoutLimit);
 
+// The legacy pair report gave way to Compatibility (MB-58). Its routes read a pair past `pairReadable`, so after Stop
+// sharing they still named the other person and showed their placements. They answer 410, so an old client learns the
+// route is gone rather than that a pair is missing.
+router.all(["/synastry{/*rest}", "/relationships{/*rest}"], (_req, res) => {
+  res.status(410).json({ error: "gone" });
+});
+
 router.use(reportsRouter);
 router.use(geocodeRouter);
 router.use(profilesRouter);
-router.use(synastryRouter);
 router.use(invitesRouter);
 // A gift seats no one in anyone's circle: /home seats only a Personal report the reader can read (ADR-139, ADR-182).
 router.use(homeRouter);

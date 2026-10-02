@@ -15,7 +15,6 @@ const WRITES: Array<[string, string]> = [
   ["POST", "/api/reports"],
   ["POST", "/api/reports/r-1/regenerate"],
   ["POST", "/api/compatibility"],
-  ["POST", "/api/synastry"],
   ["PATCH", "/api/profiles/p-1/birth-time"],
 ];
 

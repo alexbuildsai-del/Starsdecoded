@@ -4,7 +4,9 @@
 // since nothing in this file may call OpenAI (dashboard-sky acceptance 11;
 // credit-loop acceptance 2, 4; review-01-10 acceptance 4, 11; ADR-138, 139,
 // 174, 182; MB-84, 103, 110). R13-08 adds the limits, the spend breaker and
-// the origin guard (security acceptance 2, 6, 7; ADR-197, 199).
+// the origin guard (security acceptance 2, 6, 7; ADR-197, 199). R13-F2 adds
+// that no email link or image follows a host the request names, and that the
+// legacy pair routes are gone (MB-58).
 // MB-49 provisional: the ledger this proves is the soft-pass one `consumeCredit`
 // still runs, so this file's checks retire with that pass, not before it.
 //
@@ -29,7 +31,7 @@ import type { AddressInfo } from "node:net";
 import express, { type NextFunction, type Request, type Response } from "express";
 
 type Viewer = { user: string | null; session: string };
-type Mail = { to: string; subject: string; text: string };
+type Mail = { to: string; subject: string; text: string; html: string };
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "charts");
 const fixture = (name: string) => JSON.parse(readFileSync(join(FIXTURES, `${name}.json`), "utf8"));
@@ -48,7 +50,7 @@ const mailStub = http.createServer((req, res) => {
       return;
     }
     const m = JSON.parse(body);
-    mails.push({ to: Array.isArray(m.to) ? m.to[0] : m.to, subject: m.subject, text: m.text });
+    mails.push({ to: Array.isArray(m.to) ? m.to[0] : m.to, subject: m.subject, text: m.text, html: m.html ?? "" });
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ id: `stub-${mails.length}` }));
   });
@@ -96,13 +98,7 @@ const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
 const corsAllowed: string[] = [];
 
 async function call(who: Viewer, method: string, path: string, body?: unknown, extra: Record<string, string> = {}) {
-  const headers: Record<string, string> = {
-    "x-session": who.session,
-    "content-type": "application/json",
-    // Send/gift links resolve a public origin from this; harmless elsewhere.
-    "x-forwarded-host": "starsdecoded-staging.vercel.app",
-    ...extra,
-  };
+  const headers: Record<string, string> = { "x-session": who.session, "content-type": "application/json", ...extra };
   if (who.user) headers["x-user"] = who.user;
   const res = await fetch(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   if (res.headers.has("access-control-allow-origin")) corsAllowed.push(`${method} ${path}`);
@@ -234,6 +230,17 @@ const BREAKER = { user: "user_breaker", session: "s-breaker" };
 const WALK_ADMIN = { id: "user_walk_admin", email: "walk-admin@example.com" };
 const FOREIGN_PAGE = "https://evil.example";
 const OUR_PAGE = "https://starsdecoded-staging.vercel.app";
+
+// The API answers on its own host too, where a caller can name any host; every link and image in an email starts at
+// the configured web app all the same, so each call that sends one names a foreign host.
+process.env.PUBLIC_APP_URL = OUR_PAGE;
+const FORGED_HOST = { "x-forwarded-host": "evil.example", "x-forwarded-proto": "http" };
+function onOurWeb(m: Mail) {
+  const urls = [...`${m.html}\n${m.text}`.matchAll(/https?:\/\/[^\s"'<>]+/g)].map((u) => u[0]);
+  assert.ok(urls.length > 0, m.subject);
+  for (const url of urls) assert.ok(url.startsWith(`${OUR_PAGE}/`), `${m.subject}: ${url}`);
+  assert.doesNotMatch(`${m.html}\n${m.text}`, /evil\.example/, m.subject);
+}
 
 let setupError: unknown = null;
 try {
@@ -387,9 +394,11 @@ try {
     assert.equal((await call(GIVER, "POST", "/compatibility/RP/scenes", { chapter: "partners02", index: 0 })).status, 404);
   });
 
-  await step("send a natal report; the claimer reads, lists and works it (MB-84)", async () => {
-    const sent = await call(GIVER, "POST", "/invites", { profileId: "PA", email: "subject@example.com" });
+  await step("send a natal report, its email and copy link on our web app whatever host the request names; the claimer reads, lists and works it (MB-84)", async () => {
+    const sent = await call(GIVER, "POST", "/invites", { profileId: "PA", email: "subject@example.com" }, FORGED_HOST);
     assert.equal(sent.status, 201);
+    assert.ok(sent.body.claimUrl.startsWith(`${OUR_PAGE}/claim?token=`), sent.body.claimUrl);
+    onOurWeb(mails.at(-1)!);
     const token = tokenOf(mails.at(-1)!);
     assert.equal((await listReports(GIVER)).get("RA").send.state, "sent");
 
@@ -431,13 +440,17 @@ try {
     assert.deepEqual(g.people.find((p) => p.profileId === "PA")?.access, "owner");
   });
 
-  await step("a pair to a joined person is granted at once, and stops at once when its sender stops sharing", async () => {
+  await step("a pair to a joined person is granted at once, its email on our web app whatever host the request names, and stops at once when its sender stops sharing", async () => {
     // PA is already claimed by SUBJECT, so this second pair's Send grants
     // it at once rather than minting an invite (reading 11, MB-82).
     await pair("REL2", "RP2", GIVER, "people", { profileId: "PM", reportId: "RM" }, { profileId: "PA", reportId: "RA" });
-    const sent = await call(GIVER, "POST", "/compatibility/RP2/send", {});
+    const mailsBefore = mails.length;
+    const sent = await call(GIVER, "POST", "/compatibility/RP2/send", {}, FORGED_HOST);
     assert.equal(sent.status, 201);
     assert.deepEqual(sent.body, { state: "granted", invite: null });
+    assert.deepEqual(mails.slice(mailsBefore).map((m) => m.to), ["subject@example.com"]);
+    onOurWeb(mails.at(-1)!);
+    assert.ok(mails.at(-1)!.text.includes(`${OUR_PAGE}/compatibility/RP2`));
 
     const summary = await call(SUBJECT, "GET", "/compatibility/RP2/summary");
     assert.equal(summary.status, 200);
@@ -496,9 +509,13 @@ try {
     assert.deepEqual(s.pairs, []);
   });
 
-  await step("R10-23, R12-13: the closed pair 404s on compatibility summary, and the scene route that stood beside it is gone", async () => {
+  await step("R10-23, R12-13: the closed pair 404s on compatibility summary, the scene route that stood beside it is gone, and the legacy pair routes answer 410 (MB-58)", async () => {
     assert.equal((await call(GIVER, "GET", "/compatibility/RP/summary")).status, 404);
     assert.equal((await call(GIVER, "POST", "/compatibility/RP/scenes", { chapter: "partners02", index: 0 })).status, 404);
+    for (const [m, p] of [["GET", "/relationships"], ["GET", "/relationships/REL"], ["GET", "/synastry/RP"], ["GET", "/synastry/RP/status"], ["POST", "/synastry"]] as const) {
+      const gone = await call(GIVER, m, p, m === "POST" ? { profileAId: "PM", profileBId: "PA" } : undefined);
+      assert.deepEqual([gone.status, gone.body], [410, { error: "gone" }], `${m} ${p}`);
+    }
   });
 
   await step("Delete by the claimer", async () => {
@@ -519,6 +536,7 @@ try {
   await step("gifts: validation on the name, the email and the 280-character note", async () => {
     for (const bad of [
       { recipientName: "   ", email: "pierre@example.com" },
+      { recipientName: " Pierre ", email: "pierre@example.com" },
       { recipientName: "Pierre", email: "nope" },
       { recipientName: "Pierre", email: "pierre@example.com", note: "x".repeat(281) },
     ]) {
@@ -528,9 +546,11 @@ try {
     }
   });
 
-  await step("gifts: the soft pass sends a gift with no credit to hold", async () => {
-    const g1 = await call(GIFT_GIVER, "POST", "/gifts", { recipientName: "  Pierre ", email: "Pierre@Example.com", note: "  For your birthday  " });
+  await step("gifts: the soft pass sends a gift with no credit to hold, its email and copy link on our web app whatever host the request names", async () => {
+    const g1 = await call(GIFT_GIVER, "POST", "/gifts", { recipientName: "Pierre", email: "Pierre@Example.com", note: "  For your birthday  " }, FORGED_HOST);
     assert.equal(g1.status, 201);
+    assert.ok(g1.body.claimUrl.startsWith(`${OUR_PAGE}/claim?token=`), g1.body.claimUrl);
+    onOurWeb(mails.at(-1)!);
     assert.equal(g1.body.state, "waiting");
     assert.equal(g1.body.creditHeld, false);
     assert.equal(g1.body.recipientName, "Pierre");
@@ -577,14 +597,15 @@ try {
     assert.equal((await call(GIFT_GIVER, "POST", "/gifts/nope/remind")).status, 404);
   });
 
-  await step("gifts: a reminder rotates the link, kills the old one, and is capped at one a day", async () => {
+  await step("gifts: a reminder rotates the link, on our web app whatever host the request names, kills the old one, and is capped at one a day", async () => {
     const firstToken = tokenOf(mails.at(-1)!);
     assert.equal((await call(ANON, "GET", `/invites/${encodeURIComponent(firstToken)}`)).status, 200);
 
-    const rem = await call(GIFT_GIVER, "POST", `/gifts/${giftWithCredit}/remind`);
+    const rem = await call(GIFT_GIVER, "POST", `/gifts/${giftWithCredit}/remind`, undefined, FORGED_HOST);
     assert.equal(rem.status, 204);
     const reminderMail = mails.at(-1)!;
     assert.match(reminderMail.subject, /still waiting/);
+    onOurWeb(reminderMail);
     giftSecondToken = tokenOf(reminderMail);
     assert.notEqual(giftSecondToken, firstToken);
     assert.equal((await call(ANON, "GET", `/invites/${encodeURIComponent(firstToken)}`)).status, 404);
