@@ -879,11 +879,11 @@ export interface AmendedSection {
   section: Record<string, unknown>;
   amended: RevisionMark[];
   added: SectionAddition[];
-  /** Quotes the model returned that matched nothing, dropped and logged. */
+  /** Quotes the model returned that matched nothing, dropped; the log carries their count only. */
   dropped: string[];
   /** Every sentence the pass changed or wrote: the amendments' sentences plus the additions'. The ledger's count. */
   sentencesChanged: number;
-  /** Claims that no longer verified against the drawn chart, dropped and logged with the quote each took with it. */
+  /** Claims that no longer verified against the drawn chart, dropped; the log carries their count only. */
   droppedClaims: string[];
 }
 
@@ -966,12 +966,12 @@ export function applyAmendment(
     newClaims.push(...add.claims);
   }
 
-  if (dropped.length) logger.warn({ section: id, dropped }, "horizon pass: amendment quotes matched nothing and were dropped");
+  if (dropped.length) logger.warn({ section: id, dropped: dropped.length }, "horizon pass: amendment quotes matched nothing and were dropped");
 
   // Claims are re-validated against the new text and the drawn chart. An
   // existing claim whose sentence was amended now quotes the replacement; a
   // blind placement claim gains its house; one that still does not verify is
-  // dropped rather than kept as a false citation, and logged with its quote.
+  // dropped rather than kept as a false citation, and counted in the log; the quote itself can hold a name.
   const existing = (section.claims as StoredClaim[] | undefined) ?? [];
   const followed: Claim[] = existing.map((c) => {
     const mark = amended.find((m) => soften(c.quote) === soften(m.before) || soften(m.before).includes(soften(c.quote)));
@@ -997,7 +997,7 @@ export function applyAmendment(
     if (!evidence.length) { droppedClaims.push(`"${c.quote.slice(0, 60)}": ${validateClaims(section, [c], chart).join("; ")}`); continue; }
     kept.push({ quote: c.quote, evidence });
   }
-  if (droppedClaims.length) logger.warn({ section: id, droppedClaims }, "horizon pass: claims that no longer verify were dropped, each with the quote it took with it");
+  if (droppedClaims.length) logger.warn({ section: id, droppedClaims: droppedClaims.length }, "horizon pass: claims that no longer verify were dropped");
   if ("claims" in section) section.claims = storeClaims(kept, chart);
 
   return { section, amended, added, dropped, sentencesChanged, droppedClaims };

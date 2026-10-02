@@ -71,3 +71,74 @@ test("a CSP report is taken ahead of the origin guard and the session", async (t
   const write = await send(base, "POST", "/api/waitlist", "{}", { origin: "https://evil.example" });
   assert.equal(write.status, 403, "any other write from that Origin is still refused");
 });
+
+test("a malformed or over-limit body gets a JSON refusal and nothing of it reaches the log", async (t) => {
+  const { base, close } = await serve();
+  t.after(close);
+
+  // Express's default handler would print the error, with a few characters of the body, to stderr.
+  const written: string[] = [];
+  const { write: stderrWrite } = process.stderr;
+  const { write: stdoutWrite } = process.stdout;
+  const capture = ((chunk: string | Uint8Array) => {
+    written.push(String(chunk));
+    return true;
+  }) as typeof process.stderr.write;
+  process.stderr.write = capture;
+  process.stdout.write = capture;
+  t.after(() => {
+    process.stderr.write = stderrWrite;
+    process.stdout.write = stdoutWrite;
+  });
+
+  const secret = "Marguerite-Oyelaran-1987";
+  const malformed = await send(base, "POST", "/api/waitlist", `{"name":"${secret}",`);
+  assert.equal(malformed.status, 400);
+  assert.match(malformed.headers.get("content-type") ?? "", /application\/json/);
+  assert.deepEqual(await malformed.json(), { error: "bad_request" });
+
+  const big = await send(base, "POST", "/api/waitlist", JSON.stringify({ name: secret, pad: "x".repeat(40 * 1024) }));
+  assert.equal(big.status, 413);
+  assert.deepEqual(await big.json(), { error: "too_large" });
+
+  assert.equal(written.join("").includes(secret), false);
+});
+
+test("the handler logs the error's type and status, never its body or message", async (t) => {
+  const { default: pinoHttp } = await import("pino-http");
+  const { createLogger, httpSerializers } = await import("./lib/logger.js");
+  const { requestErrorHandler } = await import("./app.js");
+  const lines: string[] = [];
+  const log = createLogger({ NODE_ENV: "production", LOG_LEVEL: "info" }, { write: (line: string) => void lines.push(line) });
+  const { default: express } = await import("express");
+
+  const mini = express();
+  mini.use(pinoHttp({ logger: log, serializers: httpSerializers }));
+  mini.use(express.json({ limit: "1kb" }));
+  mini.post("/ok", (_req, res) => void res.json({}));
+  mini.post("/boom", () => {
+    throw Object.assign(new Error("failed for Marguerite Oyelaran"), { body: "Marguerite" });
+  });
+  mini.use(requestErrorHandler);
+  const server = mini.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  const at = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+  const parse = await send(at, "POST", "/ok", '{"name":"Marguerite Oyelaran",');
+  assert.equal(parse.status, 400);
+  const large = await send(at, "POST", "/ok", JSON.stringify({ name: "Marguerite Oyelaran", pad: "x".repeat(4096) }));
+  assert.equal(large.status, 413);
+  const other = await send(at, "POST", "/boom", "{}");
+  assert.equal(other.status, 500);
+  assert.deepEqual(await other.json(), { error: "internal_error" });
+
+  const text = lines.join("");
+  assert.equal(text.includes("Marguerite"), false);
+  assert.equal(text.includes("Unexpected"), false, "a parse error's own message is not logged");
+  assert.match(text, /"type":"entity\.parse\.failed","status":400/);
+  assert.match(text, /"type":"entity\.too\.large","status":413/);
+});

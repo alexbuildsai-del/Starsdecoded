@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type ErrorRequestHandler, type Express } from "express";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
@@ -11,6 +11,26 @@ import { sessionMiddleware } from "./middlewares/session";
 import { authMiddleware } from "./middlewares/auth";
 import { apiHeaders, originGuard } from "./middlewares/origin";
 import { prelaunchGate } from "./lib/prelaunch";
+
+/**
+ * Last in the stack, so no body-parser error reaches Express's default handler, which prints the error to stderr with
+ * a few characters of the body in its message (ADR-201). The line keeps the error's type and status and nothing else:
+ * `err.body` and the raw message of a parse error are the person's own words.
+ */
+export const requestErrorHandler: ErrorRequestHandler = (err: unknown, req, res, _next) => {
+  const { type, status } = (err ?? {}) as { type?: unknown; status?: unknown };
+  const kind = typeof type === "string" ? type : "unknown";
+  const [code, error] =
+    kind === "entity.parse.failed" ? [400, "bad_request"]
+    : kind === "entity.too.large" ? [413, "too_large"]
+    : [500, "internal_error"];
+  req.log.warn({ type: kind, status: typeof status === "number" ? status : code }, "request refused");
+  if (res.headersSent) {
+    res.destroy();
+    return;
+  }
+  res.status(code).json({ error });
+};
 
 const app: Express = express();
 
@@ -73,5 +93,6 @@ app.use("/api", (_req, res, next) => {
 // Before launch, production serves the rest of the API to the admin only (ADR-141).
 app.use("/api", prelaunchGate);
 app.use("/api", router);
+app.use(requestErrorHandler);
 
 export default app;
