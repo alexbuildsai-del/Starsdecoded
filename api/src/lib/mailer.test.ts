@@ -14,6 +14,7 @@ import {
   sendSpendPausedEmail,
   sendWaitlistConfirmEmail,
 } from "./mailer.js";
+import { createLogger, logger } from "./logger.js";
 
 // The report engine writes reports; nothing else does. Every email says so
 // (credit-loop.md "Two verbs": Emails never say "made").
@@ -233,6 +234,42 @@ test("names are escaped defensively", () => {
   assert.ok(!content.html.includes("<D>"));
   assert.match(content.html, /A &amp; B/);
   assert.match(content.html, /C &lt;D&gt;/);
+});
+
+// Without RESEND_API_KEY every send logs its failure, which is the line a recipient would ride on.
+test("production never hands the logger a recipient; elsewhere the address reaches it and it censors it (ADR-201)", async (t) => {
+  const saved = { key: process.env.RESEND_API_KEY, env: process.env.NODE_ENV };
+  delete process.env.RESEND_API_KEY;
+  t.after(() => {
+    if (saved.key !== undefined) process.env.RESEND_API_KEY = saved.key;
+    if (saved.env === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = saved.env;
+  });
+  const warn = t.mock.method(logger, "warn", () => {});
+  const sendAll = async () => {
+    await sendReportEmail({ to: "beatrice@example.com", giverFirstName: "Alex", personFirstName: "Beatrice", claimUrl: "https://mystarsdecoded.com/claim?token=abc" });
+    await sendPairEmail({ to: "beatrice@example.com", giverFirstName: "Alex", otherFirstName: "Beatrice", url: "https://mystarsdecoded.com/claim?token=abc", granted: false });
+    await sendGiftEmail({ to: "pierre@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", note: null, claimUrl: "https://mystarsdecoded.com/claim?token=xyz" });
+    await sendGiftReminder({ to: "pierre@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", claimUrl: "https://mystarsdecoded.com/claim?token=xyz" });
+    await sendWaitlistConfirmEmail(confirmOpts);
+    await sendSpendPausedEmail(pausedOpts);
+  };
+  const fields = () => warn.mock.calls.map((c) => c.arguments[0] as Record<string, unknown>);
+
+  process.env.NODE_ENV = "production";
+  await sendAll();
+  assert.equal(warn.mock.calls.length, 6);
+  for (const f of fields()) assert.ok(!("to" in f), JSON.stringify(f));
+
+  warn.mock.resetCalls();
+  process.env.NODE_ENV = "development";
+  await sendAll();
+  assert.deepEqual(fields().map((f) => f.to), ["beatrice@example.com", "beatrice@example.com", "pierre@example.com", "pierre@example.com", undefined, undefined]);
+  const lines: string[] = [];
+  const written = createLogger({ LOG_LEVEL: "info" }, { write: (s: string) => void lines.push(s) });
+  for (const c of warn.mock.calls) written.warn(...(c.arguments as [Record<string, unknown>, string]));
+  assert.equal(lines.length, 6);
+  assert.doesNotMatch(lines.join(""), /@example\.com/);
 });
 
 // Emails are stubbed in tests; nothing sends. Without RESEND_API_KEY the

@@ -20,6 +20,40 @@ test("redact strips quoted spans and caps the length; never report text", () => 
   assert.equal(redact("plain  message   with   spaces"), "plain message with spaces");
 });
 
+test("no stored message names a person or carries their words, whatever the builder put in it (R-3.5, ADR-201)", async () => {
+  const { cardLineChecks, sceneChecks, whyChecks } = await import("../prompts/pair/index.js");
+  const names = { a: "Marie Curie", b: "Audrey Hepburn" };
+  // V8 quotes an excerpt of the reply, quote marks and all, which pairs ours off around a name.
+  let parseError = "";
+  try {
+    JSON.parse('{"a": "Audrey", "b": Pierre}');
+  } catch (err) {
+    parseError = (err as Error).message;
+  }
+  const checks = [
+    ...sceneChecks("They wake before the alarm and say nothing.", names),
+    ...cardLineChecks("Marie and Pierre plan the weekend twice.", names, "strengths line 1").checks,
+    ...whyChecks([{ why: 'the "Pierre" way, at night' }], "for A item"),
+    block("chk-00-json", `invalid JSON (${parseError})`),
+    block("chk-00-refused", "model refused: I can't write about Marie Curie, born 1867-11-07 at 12:00 in Warsaw."),
+  ];
+  const rows = rowsFor({ kind: "pair", section: "pair:partners02", model: "gpt-5.2", writeId: "w", attempt: 1, final: false, checks });
+  assert.deepEqual(rows.map((r) => r.ruleId), ["chk-27", "chk-27", "chk-25", "chk-28", "chk-00-json", "chk-00-refused"]);
+  for (const row of rows) {
+    for (const word of ["Marie", "Curie", "Audrey", "Hepburn", "Pierre", "1867", "12:00", "Warsaw"]) {
+      assert.ok(!row.message?.includes(word), `${row.ruleId} keeps ${word}: ${row.message}`);
+    }
+  }
+  assert.deepEqual(rows.map((r) => r.message), [
+    "the scene never names …",
+    "the scene never names …",
+    'strengths line 1: names "…", and a card line names nothing but the two people',
+    'for A item 1: the why "…" has no verb',
+    `invalid JSON (Unexpected token 'P', ..."…" is not valid JSON)`,
+    "model refused: …",
+  ]);
+});
+
 test("rowsFor: one row a check, a pass row on a clean accepted write, no pass row on a blocked or an intermediate attempt", () => {
   const base = { kind: "pair" as const, section: "pair:partners02", model: "gpt-5.2", writeId: "w1" };
   const clean = rowsFor({ ...base, attempt: 1, final: true, checks: [] });

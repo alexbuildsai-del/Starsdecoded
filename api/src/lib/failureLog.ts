@@ -38,12 +38,19 @@ export function setFailureSink(next: FailureSink | null): () => void {
 
 const MAX_MESSAGE = 160;
 
-/** Quoted spans out, then a hard cap: a message names the rule and the place, never the words. */
+/**
+ * A message names the rule and the place, never the words or the people (R-3.5, ADR-201). A refusal is the model's
+ * own words, which can repeat the brief. Quoted spans go from the first mark to the last, since what sits inside ours
+ * can hold marks of its own (a JSON parser's excerpt, a why that quotes) and would pair them off around a name. chk-27
+ * names, unquoted, the person a scene left out. Then a hard cap.
+ */
 export function redact(message: string): string {
   const stripped = message
-    .replace(/"[^"]*"/g, '"…"')
-    .replace(/“[^”]*”/g, "“…”")
+    .replace(/(model refused:)[\s\S]*/, "$1 …")
+    .replace(/"[\s\S]*"/g, '"…"')
+    .replace(/“[\s\S]*”/g, "“…”")
     .replace(/'[^']{8,}'/g, "'…'")
+    .replace(/(\bnever names )(?!"…"|“…”)\S+/g, "$1…")
     .replace(/\s+/g, " ")
     .trim();
   return stripped.length > MAX_MESSAGE ? `${stripped.slice(0, MAX_MESSAGE - 1)}…` : stripped;

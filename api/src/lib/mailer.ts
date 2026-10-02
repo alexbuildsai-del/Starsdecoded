@@ -109,7 +109,9 @@ async function deliver(
   logLabel: string,
   { logRecipient = true }: { logRecipient?: boolean } = {},
 ): Promise<boolean> {
-  const who = logRecipient ? { to } : {};
+  // Production never hands the logger an address (ADR-201); elsewhere the line still says a recipient was set, though
+  // the logger censors the address itself.
+  const who = logRecipient && process.env.NODE_ENV !== "production" ? { to } : {};
   try {
     const { apiKey, fromEmail } = getResendCredentials();
     const resend = new Resend(apiKey);

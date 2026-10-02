@@ -6,7 +6,7 @@ import router from "./routes";
 import healthRouter from "./routes/health";
 import cspReportRouter from "./routes/cspReport";
 import waitlistRouter from "./routes/waitlist";
-import { logger } from "./lib/logger";
+import { httpSerializers, logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
 import { authMiddleware } from "./middlewares/auth";
 import { apiHeaders, originGuard } from "./middlewares/origin";
@@ -28,25 +28,9 @@ app.set("etag", false);
 // First, so health and every refusal below carry them too.
 app.use(apiHeaders());
 
-app.use(
-  pinoHttp({
-    logger,
-    serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
-      },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
-    },
-  }),
-);
+// The request line holds the route and the request id, never a token in the path (ADR-201); the error serializer is
+// passed again because pino-http would otherwise put pino's own back in front of every req.log.
+app.use(pinoHttp({ logger, serializers: httpSerializers }));
 
 // Health sits ahead of every other middleware deliberately. Both Clerk's
 // middleware and authMiddleware can throw — on a malformed key, or on an
