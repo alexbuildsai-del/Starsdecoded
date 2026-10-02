@@ -2,7 +2,7 @@
 
 Built 2026-10-01 to 02 on `round/R13` from `docs/rounds/R13-plan.md` (`security-hardening`, ADR-197 to 203; `agent-roster`, ADR-187 to 196;
 ADR-204 sets the order). The plan sat on `claude/eager-albattani-i8ekei`; the round branched from it and merged `main` (b250899). The
-pricing plan once called R13 is R14; its re-plan is kept for its /plan. Twenty-four planned cards in three groups plus eleven added
+pricing plan once called R13 is R14; its re-plan is kept for its /plan. Twenty-four planned cards in three groups plus twelve added
 (below); every group ended green. Three container restarts: the planner twice and R13-01 once, resumed from its work on disk.
 
 ## Open Mailbox rows created more than 14 days ago (ADR-186)
@@ -25,17 +25,18 @@ pricing plan once called R13 is R14; its re-plan is kept for its /plan. Twenty-f
 - **R13-22, 26** three hostile-name fixtures in the dry lab and on the Lab page's Dry — INTERNAL.
 - **R13-23** the page shows a limit with the reader's clock time, the pause, and the name rule before sending — USER-FACING.
 - **R13-24** the Failures tab's CSP counts — INTERNAL. **R13-C1** zoom back on every page, footer, legend and /sample contrast, the wheel's role — USER-FACING.
-- **R13-C4** on production the five writing routes need an account (ADR-140); the admin's 256 kB parser after its guard — USER-FACING.
+- **R13-C4, C6** on production the five writing routes need an account (ADR-140); on staging signed-out writes share 24 an hour; the admin's 256 kB parser after its guard — USER-FACING.
 
 ## Gate
 install, typecheck, both builds (CSP check included), unit tests (api 510, web 596, scripts 73, commerce 24, db 19, engine 8),
 `check:shipped` clean, audit clean, codegen twice with no diff, `db:bootstrap` twice on a fresh Postgres 16, the walk 32/32 twice.
 **Dry lab** against r06, free: 60 natal prompts and 69 pair prompts under each lens, every schema ok; every system prompt +91 tokens
 for the data rule; **injection clean: 63 prompts, every hostile name inside its data block only.**
-**Tester:** 32 tests after group A, 11 and 19 after group B; no bug found. **Sentinel:** first read BLOCKED on S1 to S3 (fixed by C2 to C5); SENTINEL_REREAD.
+**Tester:** 32 tests after group A, 30 after group B; no bug found. **Sentinel:** BLOCKED 3 (S1 to S3) → C2 to C5 → BLOCKED 1 (S1 on
+staging) → C6 → **CLEAR**; S5, S8, S9 and two found by the last read went to the Mailbox. Final gate: api 517, web 596, the rest as above.
 
 ## Deviations
-- Added by the orchestrator: 12b, 25, 26, 27 from builders' out-of-card reports; C1 from the site checks; C2 to C5 from the sentinel.
+- Added by the orchestrator: 12b, 25, 26, 27 from builders' out-of-card reports; C1 from the site checks; C2 to C6 from the sentinel.
 - **R13-05's /round edit was refused** by the harness as self-modification; the template half shipped, the skill draft waits for the Owner.
 - Staging keeps anonymous writes for the GitHub lab campaigns; production needs an account. A forged X-Vercel-Forwarded-For still
   dodges per-address limits on the public Railway host until a Vercel-side secret exists (Mailbox).
@@ -48,8 +49,11 @@ The six limit lines and the pause line (`limits.ts`, `spendCap.ts`); "Use letter
 characters."; "Sign in to write a report."; the 403 "This request has to come from the Stars Decoded website."; the Failures tab's CSP card.
 
 ## Spend
-Spend: 3.96M Opus, 1.18M Sonnet, 0.04M Haiku (subagent tokens, two lost planner runs not counted) · cards 17/17/1 by planned tier,
+Spend: about 4.4M Opus, 1.2M Sonnet, 0.04M Haiku (subagent tokens, two lost planner runs not counted) · cards 17/17/1 by planned tier,
 plus two by the orchestrator · escalations none.
 
 ## Mailbox
-Done: MB-23. Raised: see MAILBOX_ROWS.
+Done: MB-23. Raised (ten): the forged forwarding header (R14, two dashboard values from the Owner); staging's signed-out writes against
+ADR-140; names in retries and repairs (a spot run before the Release); gift reminders unlimited; the preview origin pattern; the /round
+draft (`docs/annex/round-skill-r13-05-draft.md`); R13's words; small leftovers; the shared count held by dropped requests; one birth-time
+change re-running every report's horizon pass. The sentinel's full audit of `main` follows the merge, before any Release.
