@@ -63,7 +63,7 @@
     "react": "catalog:",
     "react-day-picker": "^9.11.1",
     "react-dom": "catalog:",
-    "react-hook-form": "^7.55.0",
+    "react-hook-form": "^7.88.0",
     "react-icons": "^5.4.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
@@ -74,11 +74,11 @@
     "vaul": "^1.1.2",
     "vite": "catalog:",
     "vitest": "^5",
-    "wouter": "^3.3.5",
+    "wouter": "^3.11.1",
     "zod": "catalog:"
   },
   "dependencies": {
-    "@clerk/react": "^6.5.0",
+    "@clerk/react": "^6.17.2",
     "@clerk/themes": "^2.4.57"
   }
 }
