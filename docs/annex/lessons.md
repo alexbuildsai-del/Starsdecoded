@@ -21,7 +21,13 @@ ADR-195). Lines, not a diary: at most 60 lines.
 3. Over 60 lines, the oldest lines under Seen once go first.
 
 ## Seen once
-None yet.
+- R13 · R13-08 · a limit keyed on a client-sent header and a fresh anonymous session was accepted on controls that did not hold (sentinel S1) · - · -
+- R13 · R13-09 · the spend breaker summed a stored, derived cost instead of recording each paid call when it happened (S2) · - · -
+- R13 · R13-10 · an unauthenticated counting route wrote a row per distinct value with no ceiling (S3) · - · -
+- R13 · R13-12 · a version bump left the old version pinned in a test and a list outside the card's files · - · -
+- R13 · R13-05 · a card editing the running /round skill was refused as self-modification; such a card needs the Owner's own edit · - · -
+- R13 · orchestrator · the tester's diff range began at its own last commit and skipped files that landed earlier in the group · - · -
+- R13 · R13-01 · a container restart killed a builder before its commit (also the planner, twice); work on disk survived · - · -
 
 ## Promoted
 None yet. The planner reads this section before it plans, and its rules bind the plan (ADR-195).

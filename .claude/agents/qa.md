@@ -14,7 +14,7 @@ after every round, once its merge has deployed (ADR-194), and whenever asked.
 
 Target: the URL you are given (staging after a round, a Vercel preview, or
 `pnpm run dev:web` with `pnpm run dev:api`). Use real, computed chart data
-only; the fixtures under `fixtures/charts/` are the reference people. Never
+only; the fixtures under `fixtures/charts/` are the reference people, less the three `inject-*` ones. Never
 invent placements.
 
 Play each persona end to end:

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.22 (2026-10-01) |
+| Version | 0.23 (2026-10-02) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -184,8 +184,10 @@ Starsdecoded/
     specs/draft/            in-progress ideation
     rounds/                 RNN-plan.md and RNN-report.md
     qa/                     QA-NN.md, findings only
-    annex/                  deep dives, long references, overflow from budgeted files
-  .claude/agents/           planner, builder, qa; the orchestrator is the main session in /round
+    annex/                  deep dives, long references, overflow from budgeted files; owner-playbook.md and
+                            lessons.md, the learning loop (ADR-195)
+  .claude/agents/           planner, builder (+ builder-sonnet, builder-haiku), tester, sentinel, qa, researcher, verifier;
+                            the orchestrator is the main session in /round
   .claude/skills/           /ideate /lock /plan /round /qa /mailbox /report-lab /ux-copy /web-taste /marketing, a SKILL.md each
   web/ api/ packages/ scripts/ e2e/ fixtures/
 Notion / STARS DECODED
