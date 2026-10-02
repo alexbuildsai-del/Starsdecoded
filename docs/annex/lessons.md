@@ -24,13 +24,16 @@ ADR-195). Lines, not a diary: at most 60 lines.
 - R13 · R13-08 · a limit keyed on a client-sent header and a fresh anonymous session was accepted on controls that did not hold (sentinel S1) · - · -
 - R13 · R13-09 · the spend breaker summed a stored, derived cost instead of recording each paid call when it happened (S2) · - · -
 - R13 · R13-10 · an unauthenticated counting route wrote a row per distinct value with no ceiling (S3) · - · -
-- R13 · R13-12 · a version bump left the old version pinned in a test and a list outside the card's files · - · -
 - R13 · R13-05 · a card editing the running /round skill was refused as self-modification; such a card needs the Owner's own edit · - · -
 - R13 · orchestrator · the tester's diff range began at its own last commit and skipped files that landed earlier in the group · - · -
+- R14 · R14-14 · log redaction by key path missed deeper shapes (an error's headers, raw header lists); a secret is now censored by name and by value (tester B) · - · -
+- R14 · R14-01 · a card said "nothing else enters" while the new dependency brought 17 transitive packages no plan line named (sentinel S1) · - · -
+- R14 · R14-12 · focus after a whole time went to the dialog's Not now, so a stray Enter closed it; "the next control" read as DOM order, not the next step · - · -
 - R13 · R13-01 · a container restart killed a builder before its commit (also the planner, twice); work on disk survived · - · -
 
 ## Promoted
-None yet. The planner reads this section before it plans, and its rules bind the plan (ADR-195).
+The planner reads this section before it plans, and its rules bind the plan (ADR-195).
+- R13 · R13-12; R14 · R14-02, R14-13 · a change to a shared value or shape (a version pin, a body made optional, a new argument) left a caller outside the card's files on the old one (a test pin; the orrery's made-up Chiron; home's part-of-day chips) · "Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller outside your files is named in your report, never left on the old shape." · `.claude/agents/builder.md`
 
 ## Retired
 None yet.
