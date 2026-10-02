@@ -24,9 +24,11 @@ export interface BirthDateFieldProps {
   /** The first and last dates the form takes, "YYYY-MM-DD". */
   min?: string;
   max?: string;
+  /** A hint the form already shows, read after the field's own readout. */
+  describedBy?: string;
 }
 
-export function BirthDateField({ id, value, onChange, onComplete, min, max }: BirthDateFieldProps) {
+export function BirthDateField({ id, value, onChange, onComplete, min, max, describedBy }: BirthDateFieldProps) {
   const { order } = useEntryFormat();
   const [digits, setDigits] = useState(() => dateDigits(value, order));
   const [left, setLeft] = useState(false);
@@ -101,7 +103,7 @@ export function BirthDateField({ id, value, onChange, onComplete, min, max }: Bi
         onChange={change}
         onBlur={() => setLeft(true)}
         aria-invalid={note?.kind === "problem" || undefined}
-        aria-describedby={noteId}
+        aria-describedby={describedBy ? `${noteId} ${describedBy}` : noteId}
         className={ENTRY_FIELD}
       />
       {/* The line is kept when empty, so the readout arriving never moves the fields below it. */}

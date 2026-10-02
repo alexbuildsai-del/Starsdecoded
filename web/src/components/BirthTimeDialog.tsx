@@ -5,7 +5,7 @@
  * which recomputes the chart and starts a pass on every complete natal
  * report of the profile. The first pass is free; the copy says so.
  */
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getListProfilesQueryKey, getListReportsQueryKey, useUpdateProfileBirthTime, type BirthTimeUpdateResponse,
@@ -50,6 +50,7 @@ function countryOf(place?: string): string | null {
 
 export function BirthTimeDialog({ open, onClose, profile, onDone, title, description }: BirthTimeDialogProps) {
   const client = useQueryClient();
+  const notNow = useId();
   const [answer, setAnswer] = useState<BirthTimeAnswer>(() => fromValue({ birthTime: profile.birthTime, birthTimeWindowMinutes: profile.birthTimeWindowMinutes }));
   const update = useUpdateProfileBirthTime();
   const value = toValue(answer);
@@ -87,13 +88,15 @@ export function BirthTimeDialog({ open, onClose, profile, onDone, title, descrip
           timezoneOffset={profile.timezoneOffset}
           country={countryOf(profile.birthPlace)}
           compact
+          // No place field follows in the dialog, so a whole time sends focus to the next control (reading 8).
+          onTimeComplete={() => document.getElementById(notNow)?.focus()}
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <p className="font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
             {free ? "Free. Every change is marked." : "Every change is marked."}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="font-label">Not now</Button>
+            <Button id={notNow} variant="outline" onClick={onClose} className="font-label">Not now</Button>
             <Button onClick={save} disabled={!value || unchanged || update.isPending} className="font-label">
               {update.isPending ? "Saving…" : "Save and redraw"}
             </Button>

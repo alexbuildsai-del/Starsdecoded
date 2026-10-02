@@ -9,13 +9,24 @@ import { Label } from "@/components/ui/label";
 import { useCreateReport, useListProfiles, getListProfilesQueryKey } from "@workspace/api-client-react";
 import { Wordmark } from "@/components/Wordmark";
 import { usePageTitle } from "@/lib/page-title";
+import { BirthDateField } from "@/components/BirthDateField";
 import { BirthTimeControl } from "@/components/BirthTimeControl";
 import { PlaceField } from "@/components/PlaceField";
 import { DEFAULT_ANSWER, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
+import { localDay } from "@/lib/date-entry";
 import { takeFormDraft } from "@/lib/form-draft";
 import type { GeocodeResult } from "@/lib/places";
 import { nameRuleLine, isPersonName } from "@/lib/person-name";
 import { refusalLine } from "@/lib/refusals";
+
+const TIME_ID = "birthTime";
+
+/** Whether the element was there to take focus, so a caller can fall through to the next. */
+function focusById(id: string): true | undefined {
+  const el = document.getElementById(id);
+  el?.focus();
+  return el ? true : undefined;
+}
 
 export default function BirthFormPage() {
   usePageTitle("Your birth data");
@@ -98,7 +109,8 @@ export default function BirthFormPage() {
   };
 
   const refusal = createReport.isError ? refusalLine(createReport.error) : null;
-  const today = new Date().toISOString().split("T")[0];
+  // The reader's own day, so a birth today is allowed before UTC midnight and after it alike.
+  const today = localDay(new Date());
 
   return (
     <div className="min-h-screen bg-background bg-stars flex flex-col">
@@ -163,14 +175,13 @@ export default function BirthFormPage() {
                 <Label htmlFor="birthDate" className="font-label text-xs tracking-wide uppercase text-muted-foreground">
                   Birth Date
                 </Label>
-                <Input
+                <BirthDateField
                   id="birthDate"
-                  type="date"
                   value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
+                  onChange={setBirthDate}
                   max={today}
-                  className="bg-card border-border/60 text-foreground h-12 text-base [color-scheme:dark]"
-                  required
+                  // Where the time is not typed (a part of the day, or unknown), the place is next.
+                  onComplete={() => focusById(TIME_ID) ?? focusById("birthPlace")}
                 />
               </div>
             </div>
@@ -185,6 +196,8 @@ export default function BirthFormPage() {
               timezone={selectedPlace?.timezone}
               timezoneOffset={selectedPlace?.timezoneOffset}
               country={selectedPlace?.country}
+              timeId={TIME_ID}
+              onTimeComplete={() => focusById("birthPlace")}
             />
 
             <PlaceField id="birthPlace" value={selectedPlace} onChange={setSelectedPlace} />
@@ -192,6 +205,8 @@ export default function BirthFormPage() {
             {/* "This chart is for me" toggle */}
             <button
               type="button"
+              // MB-163 provisional
+              aria-pressed={isSelf}
               onClick={() => setIsSelf((v) => !v)}
               className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors text-left ${
                 isSelf

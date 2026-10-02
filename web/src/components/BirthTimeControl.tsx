@@ -4,10 +4,12 @@
  * paid. Every mapping and every string lives in lib/birth-time; this only
  * renders them and asks /horizon/preview, debounced, for the readout.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { usePreviewHorizon } from "@workspace/api-client-react";
+import { BirthTimeField } from "@/components/BirthTimeField";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import {
-  MODE_LABELS, PART_LABELS, isTime, readout, toValue,
+  MODE_LABELS, partLabels, readout, toValue,
   type BirthTimeAnswer, type BirthTimeMode, type PartOfDay,
 } from "@/lib/birth-time";
 import { hintFor } from "@/lib/birth-record-hints";
@@ -26,6 +28,10 @@ export interface BirthTimeControlProps {
   country?: string | null;
   /** The control is also the pass's entry, where the copy says so. */
   compact?: boolean;
+  /** The typed time field's `id`, so a form can send focus to it; the form's own when left out. */
+  timeId?: string;
+  /** The time typed was whole: the form moves focus on, to the place field or the next control. */
+  onTimeComplete?: () => void;
 }
 
 const MODES: BirthTimeMode[] = ["known", "roughly", "unknown"];
@@ -33,8 +39,12 @@ const PARTS: PartOfDay[] = ["morning", "afternoon", "evening", "night"];
 const DEBOUNCE_MS = 350;
 
 export function BirthTimeControl({
-  value, onChange, birthDate, latitude, longitude, timezone, timezoneOffset, country, compact,
+  value, onChange, birthDate, latitude, longitude, timezone, timezoneOffset, country, compact, timeId, onTimeComplete,
 }: BirthTimeControlProps) {
+  const own = useId();
+  const fieldId = timeId ?? `${own}time`;
+  const { clock } = useEntryFormat();
+  const parts = partLabels(clock);
   const preview = usePreviewHorizon();
   const [horizon, setHorizon] = useState<Horizon | null>(null);
   const timer = useRef<number | null>(null);
@@ -77,17 +87,10 @@ export function BirthTimeControl({
       </div>
 
       {value.mode === "known" && (
-        <label className="grid gap-1">
-          <span className="text-xs text-muted-foreground">Time, as written on the record</span>
-          <input
-            type="time"
-            value={value.time}
-            onChange={(e) => set({ time: e.target.value })}
-            required
-            aria-invalid={value.time !== "" && !isTime(value.time)}
-            className="w-40 rounded-md border border-input bg-background px-3 py-2 font-numeric text-sm"
-          />
-        </label>
+        <div className="grid max-w-xs gap-1">
+          <label htmlFor={fieldId} className="text-xs text-muted-foreground">Time, as written on the record</label>
+          <BirthTimeField id={fieldId} value={value.time} onChange={(time) => set({ time })} onComplete={onTimeComplete} />
+        </div>
       )}
 
       {value.mode === "roughly" && (
@@ -107,16 +110,13 @@ export function BirthTimeControl({
               aria-label="Part of the day"
               className="w-64 rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
-              {PARTS.map((p) => <option key={p} value={p}>{PART_LABELS[p]}</option>)}
+              {PARTS.map((p) => <option key={p} value={p}>{parts[p]}</option>)}
             </select>
           ) : (
-            <input
-              type="time"
-              value={value.time}
-              onChange={(e) => set({ time: e.target.value })}
-              aria-label="About what time"
-              className="w-40 rounded-md border border-input bg-background px-3 py-2 font-numeric text-sm"
-            />
+            <div className="grid max-w-xs gap-1">
+              <label htmlFor={fieldId} className="sr-only">About what time</label>
+              <BirthTimeField id={fieldId} value={value.time} onChange={(time) => set({ time })} onComplete={onTimeComplete} />
+            </div>
           )}
         </div>
       )}

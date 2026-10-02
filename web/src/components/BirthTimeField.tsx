@@ -20,11 +20,13 @@ export interface BirthTimeFieldProps {
   onChange: (value: string) => void;
   /** Typing or pasting finished a valid time: the form moves focus on to the place. */
   onComplete?: () => void;
+  /** A hint the form already shows, read after the field's own note. */
+  describedBy?: string;
 }
 
 const HALVES: readonly Half[] = ["am", "pm"];
 
-export function BirthTimeField({ id, value, onChange, onComplete }: BirthTimeFieldProps) {
+export function BirthTimeField({ id, value, onChange, onComplete, describedBy }: BirthTimeFieldProps) {
   const { clock } = useEntryFormat();
   const [state, setState] = useState<TimeState>(() => timeState(value, clock));
   const [left, setLeft] = useState(false);
@@ -108,7 +110,7 @@ export function BirthTimeField({ id, value, onChange, onComplete }: BirthTimeFie
           onChange={change}
           onBlur={() => setLeft(true)}
           aria-invalid={problem ? true : undefined}
-          aria-describedby={noteId}
+          aria-describedby={describedBy ? `${noteId} ${describedBy}` : noteId}
           className={cn(ENTRY_FIELD, "min-w-0 flex-[1_1_150px]")}
         />
         {clock === 12 ? (
