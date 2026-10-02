@@ -1,10 +1,10 @@
 /**
  * What you're practising (ADR-174): what the reader pinned on their own
  * Personal report and on the pairs they are one of, or with nothing pinned
- * their Closing's first Practice item, in the report's one checklist (ADR-172).
+ * the home page's sample action, in the report's one checklist (ADR-172).
  * A tick or a pin writes the workbook of the report the item came from, so the
  * report shows the same box (ADR-24), and GET /home is read again once the
- * last change lands: an unpinned item leaves, and the Closing's item comes
+ * last change lands: an unpinned item leaves, and the sample action comes
  * back when the last pin goes.
  */
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -144,7 +144,7 @@ function usePracticeStore(items: readonly HomePractice[]): TickStore {
   }, [items, client, mutateAsync, isPending]);
 }
 
-// The sample's money item, as the home page quotes it. Her run and her chart weigh more than the dashboard, so only an
+// The sample's action, the one the home page quotes. Her run and her chart weigh more than the dashboard, so only an
 // empty one loads them.
 function useSample(wanted: boolean): ChecklistItem | null {
   const [sample, setSample] = useState<ChecklistItem | null>(null);
@@ -153,8 +153,7 @@ function useSample(wanted: boolean): ChecklistItem | null {
     let live = true;
     Promise.all([import("@/site/data/differences"), import("@/site/data/sample")])
       .then(([{ DIFFERENCES }, { SAMPLE }]) => {
-        const item = DIFFERENCES.practice[0];
-        if (live && item) setSample({ ...item, label: `Sample · ${SAMPLE.name}` });
+        if (live) setSample({ ...DIFFERENCES.action, label: `Sample · ${SAMPLE.name}` });
       })
       // Without her item the section stays out, rather than a heading over nothing.
       .catch(() => undefined);
