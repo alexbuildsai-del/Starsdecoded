@@ -188,7 +188,8 @@ Done when:
   tools stay dev; the report lists each move.
 - `minimumReleaseAgeExclude: []` sits under `minimumReleaseAge` with one comment: a package an advisory names may be listed for its fix,
   with the date, and leaves after 7 days.
-- The root gains `@vercel/functions` 3.9.9 (published 2026-09-22, its `@vercel/oidc` 3.8.9 the same day); nothing else enters.
+- The root gains `@vercel/functions` 3.9.9 (published 2026-09-22) and, through `@vercel/oidc` 3.8.9 (same day), the 17 packages Risk 4
+  names (sentinel S1, R14); the middleware imports only `@vercel/functions/middleware`, which requires none of them.
 - `pnpm audit --prod --audit-level high` clean by in-range updates or a named override (a new major stops the card); `pnpm check:copies`
   green; `pnpm install --frozen-lockfile` clean twice; typecheck and both builds green.
 
@@ -445,8 +446,13 @@ line for hours, not days. MB-147's seven days start at the first Release; the bi
 3. **The table's weight:** every page that computes a chart carries it (home's sky, /sky, /sample, /method, the learn pages, the app).
    Compact integers, its gzip size in R14-02's report; the preview's Lighthouse budgets decide, and a miss goes to Group C (load it
    lazily), never a loosened budget.
-4. **New dependency:** `@vercel/functions` 3.9.9 and `@vercel/oidc` 3.8.9 at the root, for the middleware. Web's browser libraries move
-   to dependencies at the same versions, so `pnpm audit --prod` reads them for the first time and may ask R14-01 for in-range updates.
+4. **New dependencies:** `@vercel/functions` 3.9.9 and `@vercel/oidc` 3.8.9 at the root, for the middleware, and through `@vercel/oidc`
+   17 more (sentinel S1, R14, named here as the review): `@vercel/cli-config` 0.3.0 (2026-09-22), `@vercel/cli-exec` 1.0.1 (2026-08-03),
+   `jose` 5.10.0 (2025-02-17), `zod` 4.1.11 (2025-09-20), `execa` 5.1.1 (2021-06-04) with `get-stream` 6.0.1, `human-signals` 2.1.0,
+   `is-stream` 2.0.1, `merge-stream` 2.0.0, `npm-run-path` 4.0.1, `onetime` 5.1.2, `mimic-fn` 2.1.0, `signal-exit` 3.0.7 and
+   `strip-final-newline` 2.0.0 (2018 to 2022), `xdg-app-paths` 5.5.1, `xdg-portable` 7.3.0 and `os-paths` 4.4.0 (2020-12-16). No shipped
+   bundle imports them, none may run an install script (`onlyBuiltDependencies`), and the production audit reads them clean. Web's
+   browser libraries move to dependencies at the same versions, so `pnpm audit --prod` reads them for the first time.
 5. **The edge (MB-167):** Vercel's routing middleware is new here and Vercel's docs are unreachable from cloud sessions; the API half is
    unit-tested, the Vercel half proven only on staging after the merge. Until `edge: true`, staging's per-address limits key on Vercel's
    own addresses, so every visitor shares one count; the first Release waits for it, since production's waitlist limit uses the same key.
