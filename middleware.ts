@@ -1,3 +1,7 @@
+/// <reference lib="webworker" />
+/// <reference lib="webworker.iterable" />
+// Vercel type-checks this file against the root tsconfig, not tsconfig.middleware.json, so the fetch types it needs
+// are named here.
 import { next } from "@vercel/functions/middleware";
 
 // Vercel's edge runtime hands middleware the project's variables on process.env. Node's types are not loaded for this
