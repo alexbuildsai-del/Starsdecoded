@@ -65,7 +65,8 @@ export default defineConfig(({ isSsrBuild }) => ({
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
     },
-    dedupe: ["react", "react-dom"],
+    // One copy of each, or a generated hook asks a react-query copy that never saw the app's QueryClientProvider.
+    dedupe: ["react", "react-dom", "@tanstack/react-query"],
   },
   root: path.resolve(import.meta.dirname),
   build: {

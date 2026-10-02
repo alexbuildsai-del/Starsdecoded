@@ -169,10 +169,11 @@ importers:
     dependencies:
       '@tanstack/react-query':
         specifier: 'catalog:'
-        version: 5.103.2(react@19.2.8)
+        version: 5.103.2(react@19.3.0)
+    devDependencies:
       react:
-        specifier: '>=18'
-        version: 19.2.8
+        specifier: 'catalog:'
+        version: 19.3.0
 
   packages/api-spec:
     devDependencies:
@@ -237,10 +238,10 @@ importers:
         version: 4.23.15
 
   packages/integrations-openai-ai-react:
-    dependencies:
+    devDependencies:
       react:
-        specifier: '>=18'
-        version: 19.2.8
+        specifier: 'catalog:'
+        version: 19.3.0
 
   packages/integrations-openai-ai-server:
     dependencies:
@@ -3631,10 +3632,6 @@ packages:
       react: '>=16.6.0'
       react-dom: '>=16.6.0'
 
-  react@19.2.8:
-    resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
-    engines: {node: '>=0.10.0'}
-
   react@19.3.0:
     resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
     engines: {node: '>=0.10.0'}
@@ -5618,11 +5615,6 @@ snapshots:
 
   '@tanstack/query-core@5.103.2': {}
 
-  '@tanstack/react-query@5.103.2(react@19.2.8)':
-    dependencies:
-      '@tanstack/query-core': 5.103.2
-      react: 19.2.8
-
   '@tanstack/react-query@5.103.2(react@19.3.0)':
     dependencies:
       '@tanstack/query-core': 5.103.2
@@ -6986,8 +6978,6 @@ snapshots:
       prop-types: 15.8.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-
-  react@19.2.8: {}
 
   react@19.3.0: {}
 

@@ -31,6 +31,9 @@ jobs:
       # it. Always pnpm, everywhere.
       - run: pnpm install --frozen-lockfile
 
+      # One copy of React and react-query, or the app's hooks lose their provider (Review 02/10).
+      - run: pnpm check:copies
+
       # `build` deliberately does not typecheck (Vercel runs it), so this is
       # the gate that keeps types honest across all projects.
       - run: pnpm run typecheck
