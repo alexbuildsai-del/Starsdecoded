@@ -24,6 +24,7 @@ import {
   type Viewer,
 } from "../lib/access.js";
 import { firstNameOf } from "../lib/names.js";
+import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
@@ -184,10 +185,9 @@ router.patch("/profiles/:id", async (req, res) => {
   const params = UpdateProfileParams.safeParse(req.params);
   const body = UpdateProfileBody.safeParse(req.body);
   if (!params.success || !body.success) {
-    return res.status(400).json({
-      error: "validation_error",
-      message: body.success ? "Invalid ID" : body.error.message,
-    });
+    return res.status(400).json(
+      body.success ? { error: "validation_error", message: "Invalid ID" } : validationFailure(body.error),
+    );
   }
   const { id } = params.data;
   const { isSelf, claimedAsSelf } = body.data;
@@ -300,7 +300,7 @@ router.patch("/profiles/:id/birth-time", async (req, res) => {
   const { id } = req.params;
   const body = UpdateProfileBirthTimeBody.safeParse(req.body);
   if (!body.success) {
-    return res.status(400).json({ error: "validation_error", message: body.error.message });
+    return res.status(400).json(validationFailure(body.error));
   }
   const { birthTime, birthTimeWindowMinutes } = body.data;
   if (!TIME.test(birthTime)) {
@@ -370,7 +370,7 @@ router.patch("/profiles/:id/birth-time", async (req, res) => {
 router.post("/profiles", async (req, res) => {
   const parsed = CreateProfileBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return res.status(400).json(validationFailure(parsed.error));
   }
   try {
     const profile = await resolveOrCreateProfile(req.sessionId, req.userId ?? null, parsed.data);

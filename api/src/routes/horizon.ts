@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { PreviewHorizonBody } from "@workspace/api-zod";
 import { previewHorizon, validatePreviewInput } from "../lib/horizonPreview.js";
+import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
@@ -10,7 +11,7 @@ const router = Router();
 router.post("/horizon/preview", (req, res) => {
   const parsed = PreviewHorizonBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return res.status(400).json(validationFailure(parsed.error));
   }
   const problem = validatePreviewInput(parsed.data);
   if (problem) {

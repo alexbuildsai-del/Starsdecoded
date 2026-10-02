@@ -36,6 +36,12 @@ const NOT_NAMES: Array<[string, string]> = [
   ["a line break", "Anna\nMarie"],
   ["61 letters", "a".repeat(61)],
   ["nothing", ""],
+  ["only a space", " "],
+  ["only dots", "..."],
+  ["only hyphens and apostrophes", "-'’-"],
+  ["no letter, only a middle dot", "·"],
+  ["a leading space", " Anna"],
+  ["a trailing space", "Anna "],
 ];
 
 test("names: the three fields carry one pattern, with the u flag its \\p{…} needs (ADR-202)", () => {
@@ -53,7 +59,7 @@ test("names: every field takes a name in any script, with its marks, apostrophes
   }
 });
 
-test("names: every field refuses a digit, markup, a brace, a line break and more than 60 characters", () => {
+test("names: every field refuses a digit, markup, a brace, a line break, a name with no letter, a space at either end and more than 60 characters", () => {
   for (const [field, accepts] of FIELDS) {
     for (const [why, name] of NOT_NAMES) assert.ok(!accepts(name), `${field} took ${why}`);
   }

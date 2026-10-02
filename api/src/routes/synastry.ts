@@ -29,6 +29,7 @@ import {
 } from "../lib/synastryInterpretation.js";
 import type { NatalChartData } from "../lib/chartCalculation.js";
 import { calculateNatalChart } from "../lib/chartCalculation.js";
+import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
@@ -166,7 +167,7 @@ router.get("/relationships", async (req, res) => {
 router.post("/relationships", async (req, res) => {
   const parsed = CreateRelationshipBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return res.status(400).json(validationFailure(parsed.error));
   }
   const { profileAId, profileBId, type, label } = parsed.data;
   if (profileAId === profileBId) {
@@ -422,7 +423,7 @@ export async function ensureSynastryReportForRelationship(
 router.post("/synastry", async (req, res) => {
   const parsed = CreateSynastryReportBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return res.status(400).json(validationFailure(parsed.error));
   }
   const { profileAId, profileBId, relationshipType, label } = parsed.data;
   if (profileAId === profileBId) {

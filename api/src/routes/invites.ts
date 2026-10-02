@@ -32,6 +32,7 @@ import {
 import { firstNameOf, firstWord } from "../lib/names.js";
 import { sendPairEmail, sendReportEmail } from "../lib/mailer.js";
 import { moveHeldCredit } from "../lib/credits.js";
+import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
@@ -314,7 +315,7 @@ router.get("/invites", async (req, res) => {
 router.post("/invites", async (req, res) => {
   const parsed = CreateInviteBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return res.status(400).json(validationFailure(parsed.error));
   }
   const { profileId, relationshipId, email } = parsed.data;
   if (!req.userId) return signInToSend(res);

@@ -16,6 +16,7 @@ import { generatePairInterpretation } from "../lib/pairInterpretation.js";
 import { consumeCredit } from "../lib/credits.js";
 import { canReadProfile, pairReadable, type PairPerson } from "../lib/access.js";
 import { failReport, streamInto } from "./reports.js";
+import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
@@ -115,7 +116,7 @@ async function readablePair(
 router.post("/compatibility", async (req, res) => {
   const parsed = CreateCompatibilityReportBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return res.status(400).json(validationFailure(parsed.error));
   }
   const { reportAId, reportBId, lens, label, parent } = parsed.data;
   if (reportAId === reportBId) {

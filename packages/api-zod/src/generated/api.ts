@@ -235,7 +235,7 @@ export const ListReportsResponse = zod.array(ListReportsResponseItem)
  * Accepts birth data, computes the natal chart, and starts AI interpretation
  * @summary Create a new natal chart report
  */
-export const createReportBodyNameRegExp = new RegExp('^[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
+export const createReportBodyNameRegExp = new RegExp('^(?=.*\\p{L})(?! )(?!.* $)[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
 
 
 export const CreateReportBody = zod.object({
@@ -2378,7 +2378,7 @@ export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
 /**
  * @summary Create or de-dupe-resolve a profile
  */
-export const createProfileBodyNameRegExp = new RegExp('^[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
+export const createProfileBodyNameRegExp = new RegExp('^(?=.*\\p{L})(?! )(?!.* $)[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
 
 
 export const CreateProfileBody = zod.object({
@@ -2998,7 +2998,7 @@ export const ListGiftsResponse = zod.array(ListGiftsResponseItem)
  * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
  * @summary Gift a report
  */
-export const createGiftBodyRecipientNameRegExp = new RegExp('^[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
+export const createGiftBodyRecipientNameRegExp = new RegExp('^(?=.*\\p{L})(?! )(?!.* $)[\\p{L}\\p{M} \'’.·-]{1,60}$', 'u');
 export const createGiftBodyNoteMax = 280;
 
 

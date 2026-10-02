@@ -32,6 +32,14 @@ export const requestErrorHandler: ErrorRequestHandler = (err: unknown, req, res,
   res.status(code).json({ error });
 };
 
+/**
+ * Express's own 404 is an HTML page; every other refusal here is JSON, so a mistyped or probed path under /api gets the same
+ * shape and a client never has to parse markup.
+ */
+export const apiNotFound: RequestHandler = (_req, res) => {
+  res.status(404).json({ error: "not_found" });
+};
+
 const PROMPT_SAVE = /^\/api\/admin\/prompts\/[^/]+\/?$/;
 const PROMPT_PREVIEW = /^\/api\/admin\/prompts\/preview\/?$/;
 const json = express.json({ limit: "32kb" });
@@ -58,6 +66,9 @@ app.set("trust proxy", 1);
 // The api-client treats 304 as "no content" and resolves with null, which
 // crashed the birth form (profiles.some on null) and blanked the dashboard.
 app.set("etag", false);
+
+// The header names the framework to anyone probing for a version with a known hole.
+app.disable("x-powered-by");
 
 // First, so health and every refusal below carry them too.
 app.use(apiHeaders());
@@ -103,6 +114,7 @@ app.use("/api", (_req, res, next) => {
 // Before launch, production serves the rest of the API to the admin only (ADR-141).
 app.use("/api", prelaunchGate);
 app.use("/api", router);
+app.use("/api", apiNotFound);
 app.use(requestErrorHandler);
 
 export default app;

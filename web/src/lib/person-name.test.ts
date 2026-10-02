@@ -10,7 +10,7 @@ function patternsInContract(): Array<{ field: string; pattern: string }> {
   const lines = readFileSync(SPEC, "utf8").split("\n");
   const found: Array<{ field: string; pattern: string }> = [];
   lines.forEach((line, i) => {
-    const match = /^\s+pattern: '(\^\[\\p\{L\}.*)'\s*$/.exec(line);
+    const match = /^\s+pattern: '(\^.*\\p\{L\}.*)'\s*$/.exec(line);
     if (!match) return;
     const field = lines
       .slice(0, i)
@@ -41,11 +41,19 @@ describe("the name rule", () => {
     expect(isPersonName("a".repeat(60))).toBe(true);
   });
 
+  it("refuses a name with no letter in it, and a space at either end", () => {
+    for (const name of [" ", "...", "-", "'’", "·", "- -", " Mira", "Mira "]) {
+      expect(isPersonName(name), JSON.stringify(name)).toBe(false);
+    }
+    for (const name of ["A.", "-a-", "'a", "Mira K"]) expect(isPersonName(name), name).toBe(true);
+  });
+
   it("says the rule only for a typed name that breaks it", () => {
     expect(nameRuleLine("")).toBeNull();
     expect(nameRuleLine("   ")).toBeNull();
     expect(nameRuleLine(" Mira ")).toBeNull();
     expect(nameRuleLine("Mira2")).toBe(NAME_RULE_LINE);
+    expect(nameRuleLine(" ... ")).toBe(NAME_RULE_LINE);
   });
 
   it("takes the longest allowed name whatever its marks, and refuses one more character", () => {

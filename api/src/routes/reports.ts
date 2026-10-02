@@ -42,6 +42,7 @@ import { consumeCredit, refundCredit } from "../lib/credits.js";
 import { failureCodeOf, failureReasonOf } from "../lib/failureReasons.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
 import { logger } from "../lib/logger.js";
+import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
@@ -410,7 +411,7 @@ router.get("/reports", async (req, res) => {
 router.post("/reports", async (req, res) => {
   const parsed = CreateReportBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return res.status(400).json(validationFailure(parsed.error));
   }
 
   const { name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset, timezone, birthTimeWindowMinutes, isForSelf } = parsed.data;
@@ -593,7 +594,7 @@ router.patch("/reports/:id/workbook", async (req, res) => {
   }
   const body = UpdateReportWorkbookBody.safeParse(req.body);
   if (!body.success) {
-    return res.status(400).json({ error: "validation_error", message: body.error.message });
+    return res.status(400).json(validationFailure(body.error));
   }
   const patch = body.data as WorkbookPatch;
   const fault = workbookPatchFault(patch);
