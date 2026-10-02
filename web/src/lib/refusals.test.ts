@@ -42,6 +42,12 @@ describe("refusalLine", () => {
     expect(refusalLine({ status: 503, data: { error: "paused", reason: "paused", message: PAUSED } }, NOW)).toBe(PAUSED);
   });
 
+  it("shows the sign-in refusal as given", () => {
+    const line = "Sign in to write a report.";
+    expect(refusalLine({ status: 401, data: { error: "sign_in_required", message: line } }, NOW)).toBe(line);
+    expect(refusalLine({ status: 401, data: { error: "sign_in_required" } }, NOW)).toBeNull();
+  });
+
   it("gives null for every other error", () => {
     expect(refusalLine(refusal({ error: "validation_error", message: "Bad name" }), NOW)).toBeNull();
     expect(refusalLine(new Error("boom"), NOW)).toBeNull();

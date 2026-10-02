@@ -183,6 +183,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/SignInRequired"
         "429":
           $ref: "#/components/responses/RateLimited"
         "503":
@@ -353,6 +355,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/SignInRequired"
         "429":
           $ref: "#/components/responses/RateLimited"
         "503":
@@ -519,6 +523,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/SignInRequired"
         "429":
           $ref: "#/components/responses/RateLimited"
         "503":
@@ -591,6 +597,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/SignInRequired"
         "429":
           $ref: "#/components/responses/RateLimited"
         "503":
@@ -785,6 +793,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/SignInRequired"
         "429":
           $ref: "#/components/responses/RateLimited"
         "503":
@@ -1222,6 +1232,15 @@ components:
   # write from an Origin outside WEB_ORIGINS, and the client calls /api from the
   # site's own origin, so it never meets one (ADR-197).
   responses:
+    SignInRequired:
+      description: >
+        Writing needs an account (ADR-140), so on production a request with no
+        signed-in user is refused before any limit counts it. Staging keeps
+        anonymous writes. `message` is the line the page shows.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SignInRequired"
     RateLimited:
       description: >
         Too many requests of this kind in the window its limit counts (ADR-199).
@@ -1285,6 +1304,18 @@ components:
           type: integer
           description: The wait Retry-After carries.
       required: [error, message, retryAfterSeconds]
+
+    SignInRequired:
+      type: object
+      description: The 401 body of a writing route on production when no one is signed in (ADR-140).
+      properties:
+        error:
+          type: string
+          enum: [sign_in_required]
+        message:
+          type: string
+          description: The one line the page shows, so its words live in the API.
+      required: [error, message]
 
     Paused:
       type: object

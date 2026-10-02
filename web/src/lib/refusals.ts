@@ -1,6 +1,6 @@
 /**
- * The API's two refusals as one plain line (ADR-199, 202; security-hardening Screens): a limit reached (429) and a pause
- * (503), shown where each form already shows its errors. The words live in the API's `message`; the page adds only the
+ * The API's refusals as one plain line (ADR-140, 199, 202; security-hardening Screens): a limit reached (429), a pause
+ * (503) and a sign-in required (401, production only), shown where each form already shows its errors. The words live in the API's `message`; the page adds only the
  * reader's own clock, which the server cannot know.
  */
 
@@ -35,7 +35,7 @@ export function openingTime(seconds: number, now: Date = new Date()): string {
 export function refusalLine(error: unknown, now: Date = new Date()): string | null {
   const body = bodyOf(error);
   if (!body || typeof body.message !== "string" || !body.message) return null;
-  if (body.error === "paused") return body.message;
+  if (body.error === "paused" || body.error === "sign_in_required") return body.message;
   if (body.error !== "rate_limited") return null;
   const seconds = secondsOf(error, body);
   const split = WINDOWS.exec(body.message);

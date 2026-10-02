@@ -33,15 +33,18 @@ export const requestErrorHandler: ErrorRequestHandler = (err: unknown, req, res,
 };
 
 const PROMPT_SAVE = /^\/api\/admin\/prompts\/[^/]+\/?$/;
+const PROMPT_PREVIEW = /^\/api\/admin\/prompts\/preview\/?$/;
 const json = express.json({ limit: "32kb" });
 
 /**
- * ADR-202's 32 kB for every JSON body but the prompt editor's save, which holds a whole prompt: a pair system prompt was
- * 31 kB on 2026-10-01. adminPrompts.ts reads that one request itself, up to 256 kB, once the admin's guard has let it
- * through, so no one else can have more than 32 kB parsed.
+ * ADR-202's 32 kB for every JSON body but the prompt editor's save and Preview, which hold a whole prompt: a pair system
+ * prompt was 31 kB on 2026-10-01. adminPrompts.ts reads those two requests itself, up to 256 kB, once the admin's guard
+ * has let them through, so no one else can have more than 32 kB parsed.
  */
 export const jsonBody: RequestHandler = (req, res, next) =>
-  req.method === "PUT" && PROMPT_SAVE.test(req.path) ? next() : json(req, res, next);
+  (req.method === "PUT" && PROMPT_SAVE.test(req.path)) || (req.method === "POST" && PROMPT_PREVIEW.test(req.path))
+    ? next()
+    : json(req, res, next);
 
 const app: Express = express();
 

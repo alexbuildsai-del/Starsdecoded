@@ -48,6 +48,22 @@ export interface RateLimited {
   retryAfterSeconds: number;
 }
 
+export type SignInRequiredError = typeof SignInRequiredError[keyof typeof SignInRequiredError];
+
+
+export const SignInRequiredError = {
+  sign_in_required: 'sign_in_required',
+} as const;
+
+/**
+ * The 401 body of a writing route on production when no one is signed in (ADR-140).
+ */
+export interface SignInRequired {
+  error: SignInRequiredError;
+  /** The one line the page shows, so its words live in the API. */
+  message: string;
+}
+
 export type PausedError = typeof PausedError[keyof typeof PausedError];
 
 
@@ -1990,6 +2006,11 @@ export const TestCheckoutBodyCount = {
 export interface TestCheckoutBody {
   count: TestCheckoutBodyCount;
 }
+
+/**
+ * Writing needs an account (ADR-140), so on production a request with no signed-in user is refused before any limit counts it. Staging keeps anonymous writes. `message` is the line the page shows.
+ */
+export type SignInRequiredResponse = SignInRequired;
 
 /**
  * Too many requests of this kind in the window its limit counts (ADR-199). `message` is the line the page shows; Retry-After and `retryAfterSeconds` carry the same wait.

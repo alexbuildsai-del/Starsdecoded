@@ -34,7 +34,7 @@ function bodyOf(kilobytes: number): string {
   return JSON.stringify({ template: "x".repeat(kilobytes * 1024) });
 }
 
-test("a 40 kB body is refused everywhere but the prompt editor's save, which the admin's guard answers before any parse", async (t) => {
+test("a 40 kB body is refused everywhere but the prompt editor's save and Preview, which the admin's guard answers before any parse", async (t) => {
   const { base, close } = await serve();
   t.after(close);
 
@@ -43,20 +43,25 @@ test("a 40 kB body is refused everywhere but the prompt editor's save, which the
     ["POST", "/api/reports"],
     ["PUT", "/api/admin/promptsx/natal:system"],
     ["POST", "/api/admin/lab/runs"],
-    ["POST", "/api/admin/prompts/preview"],
+    ["POST", "/api/admin/prompts/previewx"],
   ]) {
     const res = await send(base, method!, path!, bodyOf(40));
     assert.equal(res.status, 413, `${method} ${path}`);
   }
   // Parsed ahead of the guard, 257 kB would answer 413.
-  for (const kilobytes of [40, 257]) {
-    const res = await send(base, "PUT", "/api/admin/prompts/pair:system", bodyOf(kilobytes));
-    assert.equal(res.status, 503, `${kilobytes} kB`);
-    assert.equal(((await res.json()) as { error: string }).error, "admin_disabled");
+  for (const [method, path] of [
+    ["PUT", "/api/admin/prompts/pair:system"],
+    ["POST", "/api/admin/prompts/preview"],
+  ]) {
+    for (const kilobytes of [40, 257]) {
+      const res = await send(base, method!, path!, bodyOf(kilobytes));
+      assert.equal(res.status, 503, `${method} ${path} ${kilobytes} kB`);
+      assert.equal(((await res.json()) as { error: string }).error, "admin_disabled");
+    }
   }
 });
 
-test("the admin's prompt save is parsed after the guard, up to 256 kB", async (t) => {
+test("the admin's prompt save and Preview are parsed after the guard, up to 256 kB", async (t) => {
   const { default: express } = await import("express");
   const { jsonBody, requestErrorHandler } = await import("./app.js");
   const { logger } = await import("./lib/logger.js");
@@ -92,10 +97,16 @@ test("the admin's prompt save is parsed after the guard, up to 256 kB", async (t
   assert.equal(saved.status, 404);
   assert.equal(((await saved.json()) as { error: string }).error, "not_found");
   assert.equal((await send(at, "PUT", "/api/admin/prompts/no-such-key", bodyOf(257), admin)).status, 413);
-  assert.equal((await send(at, "POST", "/api/admin/prompts/preview", bodyOf(40), admin)).status, 413, "the preview keeps 32 kB");
+  // The body names no prompt, so Preview answers 400 past the parser and no model is called.
+  const preview = await send(at, "POST", "/api/admin/prompts/preview", bodyOf(40), admin);
+  assert.equal(preview.status, 400);
+  assert.equal(((await preview.json()) as { error: string }).error, "bad_request");
+  assert.equal((await send(at, "POST", "/api/admin/prompts/preview", bodyOf(257), admin)).status, 413);
 
   const other = await send(at, "PUT", "/api/admin/prompts/no-such-key", bodyOf(257), { "x-user": "user_reader" });
   assert.equal(other.status, 403, "a signed-in reader who is not the admin meets the guard first");
+  const otherPreview = await send(at, "POST", "/api/admin/prompts/preview", bodyOf(257), { "x-user": "user_reader" });
+  assert.equal(otherPreview.status, 403, "and so does Preview");
 });
 
 test("a CSP report is taken ahead of the origin guard and the session", async (t) => {
