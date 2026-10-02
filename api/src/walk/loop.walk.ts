@@ -240,7 +240,7 @@ try {
   // Idempotent: running this walk twice on the same database starts here
   // both times, so nothing from the first run can trip up the second.
   await q(
-    "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions cascade",
+    "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger cascade",
   );
 
   for (const [id, email] of [
@@ -264,12 +264,13 @@ try {
   await natal("RA", "PA", GIVER.session);
   await natal("RO", "PO", GIVER.session);
   await pair("REL", "RP", GIVER, "partners", { profileId: "PM", reportId: "RM" }, { profileId: "PA", reportId: "RA" });
-  // Today's one priced report, there before any step can read the day's spend, which the breaker then holds for a minute.
+  // Today's one priced call on the ledger, there before any step can read the day's spend, which the breaker then holds for a minute.
   await person("PBK", "Athena Mapelli Mozzi", "athena", BREAKER, true);
   await q(
     "insert into reports (id, profile_id, session_id, type, status, interpretation) values ('RBK', 'PBK', $1, 'natal', 'complete', $2)",
     [BREAKER.session, JSON.stringify({ meta: { usage: { costUsd: 0.02 } } })],
   );
+  await q("insert into spend_ledger (day, kind, cost_usd, calls) values ((now() at time zone 'utc')::date, 'natal', 0.02, 1)");
 
   await step("reports: the writer lists everything, a stranger 404s everywhere, Send waits out a revision", async () => {
     const g = await listReports(GIVER);
