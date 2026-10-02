@@ -3,4 +3,5 @@
  * draws is the chart a report reads (ADR-107, R-3.1).
  */
 export * from "./chartCalculation.js";
+export * from "./chiron.js";
 export * from "./sky.js";

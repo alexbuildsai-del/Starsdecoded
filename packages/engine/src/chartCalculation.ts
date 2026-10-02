@@ -1,7 +1,9 @@
 // Natal chart calculation using astronomy-engine (Don Cross)
 // Pure JS, no native deps. Truncated VSOP87 series plus USNO NOVAS C 3.1 methods,
-// verified against NASA JPL Horizons; accurate to within ~1 arcminute.
+// verified against NASA JPL Horizons; accurate to within ~1 arcminute. It has no
+// Chiron, which comes from a committed Horizons table instead (chiron.ts).
 import * as AstronomyModule from "astronomy-engine";
+import { chironAt } from "./chiron.js";
 
 // astronomy-engine ships a CJS build with named exports (what esbuild bundles
 // for production) and an ESM build that exposes only a default object (what
@@ -154,7 +156,7 @@ interface AspectData {
 
 /** Orb allowances in degrees, stated in every report's methodology box. */
 export const ASPECT_ORBS = { conjunction: 8, opposition: 8, square: 6, trine: 6, sextile: 4 } as const;
-export const EPHEMERIS = "astronomy-engine (Don Cross), tropical zodiac, mean lunar node";
+export const EPHEMERIS = "astronomy-engine (Don Cross), Chiron from NASA JPL Horizons, tropical zodiac, mean lunar node";
 
 /** Separation of two longitudes, 0 to 180. */
 function separation(a: number, b: number): number {
@@ -215,11 +217,12 @@ function calcAspects(positions: Record<string, number>, bands: Record<string, De
 }
 
 /**
- * Bump when a field is added to NatalChartData so cached charts on profiles
- * are recomputed on next use (see profiles.ts). 3: the horizon status and the
- * birth-time band (ADR-33, ADR-34).
+ * Bump when the engine computes differently or NatalChartData gains a field,
+ * so cached charts on profiles are recomputed on next use (see profiles.ts,
+ * R-3.2). 3: the horizon status and the birth-time band (ADR-33, ADR-34).
+ * 4: Chiron from the JPL Horizons table, absent outside 1800 to 2150 (ADR-221).
  */
-export const CHART_VERSION = 3;
+export const CHART_VERSION = 4;
 
 export type HorizonStatus = "known" | "approximate" | "unknown";
 
@@ -286,6 +289,7 @@ export interface NatalChartData {
   /** Half-width of the birth-time band in minutes: 0 exact, 180 part of day, 720 unknown. */
   windowMinutes: number;
   horizon: Horizon;
+  /** `chiron` only inside CHIRON_SPAN: outside it the key is absent, never guessed (ADR-221). */
   planets: Record<string, PlanetPlacement>;
   angles?: {
     ascendant: AngleData;
@@ -575,51 +579,9 @@ export function calculateNatalChart(
     };
   }
 
-  // Chiron — astronomy-engine doesn't include it; fall back to a calibrated mean approximation
-  // Period ~50.42y, mean longitude formula derived from JPL elements at J2000
-  {
-    const T = Astronomy.MakeTime(date).tt / 36525;
-    // Heliocentric mean longitude of Chiron at J2000 ~ 226.7°, mean motion ~7.142°/year (geocentric approx)
-    // Use simplified geocentric approximation by sampling difference between heliocentric and Earth's position
-    const earthHelio = Astronomy.HelioVector(Astronomy.Body.Earth, date);
-    // Simplified Chiron position (mean elements): a=13.71 AU, e=0.383, i=6.93°, Ω=209.4°, ω=339.4°, M0=187.4° at J2000
-    // For the natal-chart use case (sign + house) a low-precision Keplerian solve is sufficient
-    const a = 13.7081;
-    const e = 0.38255;
-    const inc = 6.9359 * DEG;
-    const Omega = 209.4144 * DEG;
-    const argPeri = 339.4143 * DEG;
-    const M0 = 187.4119 * DEG;
-    const n = (2 * Math.PI) / (50.42 * 365.25); // rad/day mean motion
-    const daysSinceJ2000 = (date.getTime() - Date.UTC(2000, 0, 1, 12)) / 86400_000;
-    let M = M0 + n * daysSinceJ2000;
-    M = ((M % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-    // Solve Kepler's equation
-    let E = M;
-    for (let k = 0; k < 8; k++) {
-      E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
-    }
-    const x = a * (Math.cos(E) - e);
-    const y = a * Math.sqrt(1 - e * e) * Math.sin(E);
-    // Rotate to ecliptic
-    const cosO = Math.cos(Omega), sinO = Math.sin(Omega);
-    const cosI = Math.cos(inc), sinI = Math.sin(inc);
-    const cosW = Math.cos(argPeri), sinW = Math.sin(argPeri);
-    const xEcl = (cosW * cosO - sinW * sinO * cosI) * x + (-sinW * cosO - cosW * sinO * cosI) * y;
-    const yEcl = (cosW * sinO + sinW * cosO * cosI) * x + (-sinW * sinO + cosW * cosO * cosI) * y;
-    const zEcl = (sinW * sinI) * x + (cosW * sinI) * y;
-    // Geocentric: subtract Earth's heliocentric position
-    const dx = xEcl - earthHelio.x;
-    const dy = yEcl - earthHelio.y;
-    const dz = zEcl - earthHelio.z;
-    let lonChiron = Math.atan2(dy, dx) * RAD;
-    lonChiron = normalizeAngle(lonChiron);
-    rawPlanets.chiron = {
-      lon: lonChiron,
-      speed: 0.038, // approximate mean motion deg/day
-      retrograde: false,
-    };
-  }
+  // Outside the Horizons table's span the chart has no Chiron rather than a guessed one (ADR-221).
+  const chiron = chironAt(date);
+  if (chiron) rawPlanets.chiron = { lon: chiron.lon, speed: chiron.speed, retrograde: chiron.speed < 0 };
 
   // Mean lunar nodes
   const northNodeLon = calcMeanNorthNode(date);
