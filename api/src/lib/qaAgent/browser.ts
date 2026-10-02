@@ -61,11 +61,15 @@ export function chromiumWalker(executablePath: string): Walker {
             const consoleErrors: string[] = [];
             page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text().slice(0, 200)); });
             page.on("pageerror", (e) => consoleErrors.push(String(e.message).slice(0, 200)));
+            let crashed = false;
+            page.on("crash", () => { crashed = true; });
             try {
               const res = await page.goto(`${webOrigin.replace(/\/+$/, "")}${step.path}`, { waitUntil: "networkidle", timeout: 45_000 });
               await page.waitForTimeout(800);
               const text = (await page.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 6_000);
               const screenshot = (await page.screenshot({ type: "jpeg", quality: 55 }).catch(() => null))?.toString("base64") ?? null;
+              // A renderer that died after the load reads as an empty page; it is the browser that failed, not the page.
+              if (crashed) throw new Error("the renderer crashed");
               visits.push({ persona: persona.name, path: step.path, status: res?.status() ?? null, title: await page.title(), text, consoleErrors, screenshot, error: null, step });
             } catch (err) {
               visits.push({ persona: persona.name, path: step.path, status: null, title: "", text: "", consoleErrors, screenshot: null, error: err instanceof Error ? err.message : String(err), step });

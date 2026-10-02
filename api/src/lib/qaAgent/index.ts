@@ -12,7 +12,7 @@ import { db, labRunsTable, type InsertLabRun } from "@workspace/db";
 import { qaAgentModel, type ModelId } from "../models.js";
 import { costUsd, type SectionUsage } from "../usage.js";
 import { logger } from "../logger.js";
-import { chromiumWalker, findChromium, type Walker } from "./browser.js";
+import { chromiumWalker, findChromium, type PageVisit, type Walker } from "./browser.js";
 import { PERSONAS } from "./personas.js";
 import { liveReader, reportText, walkFindings, type Finding, type ReaderEngine } from "./reader.js";
 
@@ -51,6 +51,11 @@ export interface QaAgentInput {
   label?: string;
 }
 
+/** Every visit failed or read nothing at all: no site renders like that through a working browser. */
+export function browserBroken(visits: PageVisit[]): boolean {
+  return visits.length > 0 && visits.every((v) => v.error !== null || !v.text.trim());
+}
+
 export async function runQaAgent(input: QaAgentInput): Promise<QaVerdict> {
   const model = input.model ?? qaAgentModel();
   const store = input.store ?? dbQaStore;
@@ -61,10 +66,15 @@ export async function runQaAgent(input: QaAgentInput): Promise<QaVerdict> {
   const usage: SectionUsage[] = [];
   try {
     const visits = await walker.walk(input.webOrigin, PERSONAS, input.signal);
-    findings.push(...walkFindings(visits));
-    const seen = await reader.see(model, visits, input.signal);
-    findings.push(...seen.findings);
-    usage.push(seen.usage);
+    if (browserBroken(visits)) {
+      // One cause, one finding: every page failing or blank is the image's browser, not dozens of faults in the site.
+      findings.push({ sev: 1, where: "the QA browser", title: "the browser on this image loaded no page", detail: visits.map((v) => `${v.path}: ${v.error ?? "blank"}`).slice(0, 4).join(" | ") });
+    } else {
+      findings.push(...walkFindings(visits));
+      const seen = await reader.see(model, visits, input.signal);
+      findings.push(...seen.findings);
+      usage.push(seen.usage);
+    }
     for (const [label, runKey] of [["natal", input.natalRunKey], ["pair", input.pairRunKey]] as const) {
       if (!runKey) continue;
       const sections = await store.sections(runKey);

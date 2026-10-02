@@ -3,6 +3,10 @@
 # (ADR-86, MB-77); production carries it too and never launches it.
 [phases.setup]
 nixPkgs = ["...", "chromium"]
+# Without a font Chromium crashes on the home page and draws every other page blank (the first Release's QA, 2026-10-02).
+aptPkgs = ["fontconfig", "fonts-liberation", "fonts-dejavu-core"]
 
 [variables]
 QA_BROWSER_PATH = "chromium"
+# Nix's Chromium reads its own fontconfig, which knows nothing of Debian's fonts until pointed at this file.
+FONTCONFIG_FILE = "/etc/fonts/fonts.conf"

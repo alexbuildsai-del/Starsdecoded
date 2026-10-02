@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 
 process.env.OPENAI_API_KEY ??= "test-key-never-sent";
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
-const { runQaAgent } = await import("./index.js");
+const { browserBroken, runQaAgent } = await import("./index.js");
 const { findChromium } = await import("./browser.js");
 const { PERSONAS, FORBIDDEN_ACTIONS, RETIRED_NAME } = await import("./personas.js");
 const { reportText, walkFindings } = await import("./reader.js");
@@ -112,4 +112,11 @@ test("the reader gets the prose, never a label leaf it would take for a line of 
   assert.match(text, /they stay/);
   assert.match(text, /You warm each other up\./);
   for (const label of ["A Moon or Venus in an earth sign", "venus", "mars", "trine"]) assert.ok(!text.includes(label), `${label} is a label`);
+});
+
+test("a walk where every page failed or read blank is the browser's fault, said once", () => {
+  const visit = (over: Partial<PageVisit>): PageVisit => ({ persona: "Buyer", path: "/", status: 200, title: "", text: "", consoleErrors: [], screenshot: null, error: null, step: PERSONAS[0].steps[0], ...over });
+  assert.equal(browserBroken([visit({ error: "page.goto: Page crashed" }), visit({ path: "/sample" })]), true);
+  assert.equal(browserBroken([visit({ error: "page.goto: Page crashed" }), visit({ path: "/sample", text: "Audrey Hepburn's Personal report" })]), false);
+  assert.equal(browserBroken([]), false);
 });
