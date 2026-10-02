@@ -469,14 +469,6 @@ router.post("/reports", async (req, res) => {
   }
 });
 
-// Returns true if the current viewer owns the given report+profile pair.
-// Signed-in: they own profiles where profile.userId === their userId.
-// Anonymous: they own reports tied to their session cookie.
-function viewerOwns(req: { userId: string | null; sessionId: string }, report: { sessionId: string }, profile: { userId: string | null }): boolean {
-  if (req.userId) return profile.userId === req.userId;
-  return report.sessionId === req.sessionId;
-}
-
 // Get a report by ID (joined with its profile for birth data + chart)
 router.get("/reports/:id", async (req, res) => {
   const parsed = GetReportParams.safeParse(req.params);
@@ -743,7 +735,9 @@ router.post("/reports/:id/regenerate", async (req, res) => {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     const { report: r, profile: p } = rows[0];
-    if (!viewerOwns(req, r, p) || r.type !== "natal") {
+    // MB-166 provisional: only its writer rewrites a report, and a session that wrote one stops at its subject's claim,
+    // as its reads do (ADR-139).
+    if (r.type !== "natal" || natalReportAccess(req, p, r) !== "owner") {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     if (r.status === "interpreting" || r.status === "computing" || r.status === "pending" || r.status === "revising") {

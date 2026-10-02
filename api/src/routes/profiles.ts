@@ -12,6 +12,7 @@ import {
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
 import { hasHorizon, type NatalChartData } from "../lib/chartCalculation.js";
 import { runHorizonPass } from "../lib/horizonPass.js";
+import { holdWrites } from "../lib/limits.js";
 import {
   accessFor,
   claimerNamesByProfile,
@@ -336,10 +337,6 @@ router.patch("/profiles/:id/birth-time", async (req, res) => {
       return res.status(400).json({ error: "validation_error", message: "A birth time already recorded cannot be widened past the horizon" });
     }
 
-    await db.update(profilesTable)
-      .set({ birthTime, birthTimeWindowMinutes, chartData: chart as unknown as object, updatedAt: new Date() })
-      .where(eq(profilesTable.id, profile.id));
-
     // Only a report the new chart can say more about is passed: a complete
     // one whose text was written under a different horizon than the chart now holds.
     const unchanged = profile.birthTime === birthTime && profile.birthTimeWindowMinutes === birthTimeWindowMinutes;
@@ -347,6 +344,14 @@ router.patch("/profiles/:id/birth-time", async (req, res) => {
       ? reports.filter((r) => r.status === "complete" && r.interpretation
         && ((r.interpretation as { meta?: { horizon?: string } }).meta?.horizon !== chart.horizon.status || !unchanged))
       : [];
+    // MB-159 provisional: one write per pass, held before the time is saved. A change refused here saves nothing, since a
+    // saved time with a report left unpassed would leave that report contradicting its chart.
+    if (!(await holdWrites(req, res, toPass.length))) return;
+
+    await db.update(profilesTable)
+      .set({ birthTime, birthTimeWindowMinutes, chartData: chart as unknown as object, updatedAt: new Date() })
+      .where(eq(profilesTable.id, profile.id));
+
     for (const r of toPass) {
       runHorizonPass({
         reportId: r.id,
