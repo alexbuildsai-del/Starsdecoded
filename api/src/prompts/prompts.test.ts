@@ -137,6 +137,31 @@ test("brief: Marie Curie brief carries sect, chart ruler, rulers, lots and stell
   assert.ok(b.angleMeanings?.ascendant.firstImpression.startsWith("Capricorn rising"));
 });
 
+const distributionOf = (fixture: string) => {
+  const chart = chartFromFixture(fixture);
+  const line = buildBrief(chart, "Reader").text.split("\n").find((l) => l.startsWith("DISTRIBUTION:"));
+  assert.ok(line, `${fixture}: the brief carries a DISTRIBUTION line`);
+  return { chart, line };
+};
+
+// QA-01 #4: on this three-way tie the engine's key order made fire the dominant element, and the
+// report called fire Audrey Hepburn's strongest.
+test("brief: an element tie names the tied ones and says none leads, never a dominant element", () => {
+  const { chart, line } = distributionOf("audrey-hepburn");
+  assert.deepEqual(chart.elements, { fire: 3, earth: 3, air: 1, water: 3 });
+  assert.match(line, /Fire 3, Earth 3, Air 1, Water 3\. Cardinal 5, Fixed 3, Mutable 2\. No dominant element: fire, earth and water tie at 3, so none leads\. Dominant modality cardinal\. Chart shape /);
+  assert.doesNotMatch(line, /dominant element (fire|earth|air|water)/i);
+});
+
+test("brief: a modality tie reads the same way, and a lone leader is named as before", () => {
+  const charles = distributionOf("charles");
+  assert.deepEqual(charles.chart.modalities, { cardinal: 2, fixed: 4, mutable: 4 });
+  assert.match(charles.line, /No dominant element: fire and air tie at 3, so none leads\. No dominant modality: fixed and mutable tie at 4, so none leads\. Chart shape /);
+  const curie = distributionOf("marie-curie");
+  assert.match(curie.line, /Cardinal 2, Fixed 6, Mutable 2\. Dominant element water\. Dominant modality fixed\. Chart shape /);
+  assert.doesNotMatch(curie.line, /none leads|tie at/);
+});
+
 test("brief: the variable tail differs per chart but the static system block does not", () => {
   const a = buildBrief(chartFromFixture("marie-curie"), "A").text;
   const b = buildBrief(chartFromFixture("oprah-winfrey"), "B").text;
