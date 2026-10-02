@@ -150,3 +150,23 @@ test("the gate weighs the run against what production runs: its release's lab, e
     assert.match(gate.detail ?? "", new RegExp(`^against ${reference}:`));
   }
 });
+
+test("a retry with the brain unchanged reuses the newest passed lab and writes no report; a brain change writes new ones", async () => {
+  const PAIR = "curie-hepburn";
+  const earlierRuns = [...numbers("release-1111111"), ...["foundation", "partners01"].map((section) => ({ fixture: PAIR, label: "release-1111111", section, words: 0, costUsd: 0.01, faults: [], status: "done" }))];
+  for (const [changed, reuses] of [[["web/src/App.tsx", "api/src/lib/release.ts"], true], [["api/src/prompts/system.ts"], false]] as const) {
+    let wrote = 0;
+    const d = deps({
+      token: "tok",
+      github: { branchHead: async (b) => (b === "main" ? "abcdef1234567890" : "0000000000000000"), changedFiles: async (base) => (base === "1111111aaaaaaaaa" ? [...changed] : ["api/src/prompts/system.ts", "api/src/prompts/pair/shapes.ts"]), fastForward: async () => undefined },
+      labStore: { insert: async () => undefined, numbers: async (label) => (label === "release-1111111" ? earlierRuns : numbers(label)) },
+      lab: async ({ label, withPair }) => { wrote += 1; return { label, natalRunKeys: MATRIX_CHARTS.map((c) => `${c}.${label}`), pairRunKey: withPair ? `${PAIR}.${label}` : null, costUsd: 1.4, failed: [] }; },
+    });
+    await d.store.insert({ id: "earlier", sha: "1111111aaaaaaaaa", productionSha: "0000000000000000", brainChanged: true, pairChanged: true, status: "failed", steps: [{ name: "lab", status: "passed", detail: null, startedAt: null, endedAt: null }], qa: null, error: "gate" });
+    const done = await startRelease(d, { wait: true });
+    const lab = (done.steps as Array<{ name: string; status: string; detail: string | null }>).find((x) => x.name === "lab")!;
+    assert.equal(lab.status, "passed");
+    assert.equal(wrote, reuses ? 0 : 1);
+    if (reuses) assert.match(lab.detail ?? "", /^reused release-1111111/);
+  }
+});

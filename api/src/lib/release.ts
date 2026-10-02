@@ -15,7 +15,7 @@ import { readAppEnv, readCommitSha } from "./appEnv.js";
 import { brainDiff, githubApi, type GithubApi } from "./github.js";
 import { MATRIX_CHARTS, gateProblems } from "./labRules.js";
 import { budgetUsd, checkBudget, dbStore, monthStart } from "./labReplay.js";
-import { NATAL_ESTIMATE_USD, PAIR_ESTIMATE_USD, dbReleaseStore, runReleaseLab, type ReleaseLabOutcome, type ReleaseLabStore } from "./releaseLab.js";
+import { NATAL_ESTIMATE_USD, PAIR_ESTIMATE_USD, RELEASE_PAIR, dbReleaseStore, runReleaseLab, type ReleaseLabOutcome, type ReleaseLabStore } from "./releaseLab.js";
 import { findChromium } from "./qaAgent/browser.js";
 import { runQaAgent, type QaVerdict } from "./qaAgent/index.js";
 import { logger } from "./logger.js";
@@ -174,6 +174,30 @@ async function stepStart(deps: ReleaseDeps, id: string, steps: ReleaseStep[], na
  * release as `failed`; a clean run fast-forwards when the token is there
  * and otherwise stops `passed`, naming MB-75.
  */
+/**
+ * The newest earlier release whose lab passed, when no brain file differs between its commit and this one: its reports
+ * are the ones this commit would write, so a retry after a fix outside the brain pays for no new reports (the Owner,
+ * 2026-10-02). Only the newest is asked about, so a retry costs GitHub one compare at most.
+ */
+export async function reusableLab(deps: ReleaseDeps, row: LabRelease): Promise<{ label: string; sha: string; withPair: boolean } | null> {
+  const earlier = (await deps.store.list())
+    .filter((r) => r.id !== row.id && (r.steps as ReleaseStep[] | null)?.some((s) => s.name === "lab" && s.status === "passed"))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+  if (!earlier) return null;
+  const label = `release-${earlier.sha.slice(0, 7)}`;
+  const fixtures = new Set((await deps.labStore.numbers(label)).map((r) => r.fixture));
+  if (!MATRIX_CHARTS.every((c) => fixtures.has(c))) return null;
+  const withPair = fixtures.has(RELEASE_PAIR.name);
+  if (row.pairChanged && !withPair) return null;
+  if (earlier.sha !== row.sha) {
+    const files = await deps.github.changedFiles(earlier.sha, row.sha);
+    if (files === null) return null;
+    const diff = brainDiff(files);
+    if (diff.brainChanged || diff.pairChanged) return null;
+  }
+  return { label, sha: earlier.sha, withPair };
+}
+
 export async function runRelease(id: string, deps: ReleaseDeps, options: { seedFault?: boolean } = {}): Promise<LabRelease> {
   const row = await deps.store.get(id);
   if (!row) throw new Error(`no release ${id}`);
@@ -186,10 +210,16 @@ export async function runRelease(id: string, deps: ReleaseDeps, options: { seedF
     return (await deps.store.get(id))!;
   };
 
-  let natalRunKey: string | null = null, pairRunKey: string | null = null;
+  let natalRunKey: string | null = null, pairRunKey: string | null = null, labLabel = label;
   if (row.brainChanged) {
     await stepStart(deps, id, steps, "lab");
-    try {
+    const reused = await reusableLab(deps, row).catch(() => null);
+    if (reused) {
+      labLabel = reused.label;
+      natalRunKey = `${MATRIX_CHARTS[0]}.${reused.label}`;
+      pairRunKey = reused.withPair ? `${RELEASE_PAIR.name}.${reused.label}` : null;
+      await stepDone(deps, id, steps, "lab", "passed", `reused ${reused.label}: the brain is unchanged since ${reused.sha.slice(0, 7)}, so no report was written`);
+    } else try {
       checkBudget(await deps.spentUsd(), estimateUsd(true, row.pairChanged), budgetUsd(deps.env));
       const outcome = await deps.lab({ label, withPair: row.pairChanged });
       natalRunKey = outcome.natalRunKeys[0] ?? null;
@@ -207,7 +237,7 @@ export async function runRelease(id: string, deps: ReleaseDeps, options: { seedF
       // release's run never is, or the gate would weigh one noisy run against another.
       const shipped = row.productionSha ? `release-${row.productionSha.slice(0, 7)}` : null;
       const reference = shipped && (await deps.labStore.numbers(shipped)).length ? shipped : "r06";
-      const [ref, cand] = await Promise.all([deps.labStore.numbers(reference), deps.labStore.numbers(label)]);
+      const [ref, cand] = await Promise.all([deps.labStore.numbers(reference), deps.labStore.numbers(labLabel)]);
       // The rehearsal's seeded fault: one contract fault the reference lacks, so the gate must refuse (acceptance 8).
       if (options.seedFault) cand.filter((r) => r.section === "career").forEach((r) => r.faults.push("char:em-dash"));
       const problems = gateProblems(ref, cand);
