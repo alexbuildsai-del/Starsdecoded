@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 const {
   CONFIRM_LINK_MS,
+  JOINS_PER_HOUR,
   RELINK_AFTER_MS,
   RateLimiter,
   clientKey,
@@ -12,6 +13,7 @@ const {
   confirmWaitlist,
   hashConfirmToken,
   joinAction,
+  joinCeiling,
   joinWaitlist,
   linkLive,
   newConfirmToken,
@@ -43,6 +45,13 @@ test("the client is the address Vercel forwards, else the socket's", () => {
   assert.equal(clientKey({ "x-vercel-forwarded-for": "203.0.113.7, 76.76.21.1" }, "76.76.21.1"), "203.0.113.7");
   assert.equal(clientKey({}, "198.51.100.2"), "198.51.100.2");
   assert.equal(clientKey({}, undefined), "unknown");
+});
+
+test("the join ceiling is one count for every caller, so a forged address cannot reopen it", () => {
+  const ceiling = joinCeiling();
+  for (let i = 0; i < JOINS_PER_HOUR; i++) assert.equal(ceiling.take("all", i), true);
+  assert.equal(ceiling.take("all", JOINS_PER_HOUR), false);
+  assert.equal(ceiling.take("all", 60 * 60_000 + 1), true, "an hour on, the first join's count is free again");
 });
 
 test("the limiter admits the limit in a window, then frees as it slides", () => {

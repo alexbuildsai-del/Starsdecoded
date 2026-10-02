@@ -36,22 +36,25 @@ jobs:
       - id: read
         env:
           WEB_URL: https://starsdecoded-staging.vercel.app
+          RELEASE_ID: ${{ inputs.release_id }}
         run: |
-          body=$(curl -sSf --max-time 20 "$WEB_URL/api/release/${{ inputs.release_id }}/verdict")
+          # The id reaches the shell as data, never as script, and only in a release id's shape.
+          [[ $RELEASE_ID =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::release_id must be a release's UUID"; exit 1; }
+          body=$(curl -sSf --max-time 20 "$WEB_URL/api/release/$RELEASE_ID/verdict")
           echo "$body"
           sha=$(printf '%s' "$body" | jq -r '.sha')
           status=$(printf '%s' "$body" | jq -r '.status')
           head=$(git rev-parse origin/main)
           if [ "$status" != "passed" ]; then
-            echo "::error::release ${{ inputs.release_id }} is '$status', not 'passed'; run the Release view on staging first"
+            echo "::error::release $RELEASE_ID is '$status', not 'passed'; run the Release view on staging first"
             exit 1
           fi
           if [ "$sha" != "$head" ]; then
-            echo "::error::release ${{ inputs.release_id }} passed $sha, but main's head is $head; run the Release view on the current staging"
+            echo "::error::release $RELEASE_ID passed $sha, but main's head is $head; run the Release view on the current staging"
             exit 1
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          printf -- '- release %s passed for %s\n' "${{ inputs.release_id }}" "$sha" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- release %s passed for %s\n' "$RELEASE_ID" "$sha" >> "$GITHUB_STEP_SUMMARY"
 
   staging-smoke:
     needs: verdict

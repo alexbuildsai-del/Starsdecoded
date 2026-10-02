@@ -7,6 +7,7 @@ import {
   confirmUrl,
   confirmWaitlist,
   dbWaitlistStore,
+  joinCeiling,
   joinWaitlist,
   waitlistClosed,
   type ConfirmMail,
@@ -19,6 +20,7 @@ const router: IRouter = Router();
 // Twenty in ten minutes lets a household or an office behind one address sign
 // up together, and holds a script to two a minute.
 const perClient = new RateLimiter(20, 10 * 60_000);
+const everyone = joinCeiling();
 
 router.post("/waitlist", async (req, res) => {
   res.set("Cache-Control", "no-store");
@@ -40,6 +42,9 @@ router.post("/waitlist", async (req, res) => {
   }
   const body = parsed.data;
   if (body.website) return res.json({ status: "check_email" });
+  if (!everyone.take("all")) {
+    return res.status(429).json({ error: "rate_limited", message: "Lots of people are signing up right now. Try again in an hour." });
+  }
   let mail: ConfirmMail | null;
   try {
     mail = await joinWaitlist(dbWaitlistStore, body);

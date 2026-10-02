@@ -30,7 +30,7 @@ export function brainDiff(changed: string[]): BrainDiff {
 
 export interface GithubApi {
   branchHead(branch: string): Promise<string | null>;
-  /** null when the diff is too large for GitHub to list in full. */
+  /** null when GitHub does not list the diff in full. */
   changedFiles(base: string, head: string): Promise<string[] | null>;
   fastForward(branch: string, sha: string, token: string): Promise<void>;
 }
@@ -52,7 +52,8 @@ export function githubApi(fetcher: Fetcher = fetch): GithubApi {
       const res = await fetcher(`${API}/repos/${REPO}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}?per_page=250`, { headers });
       if (!res.ok) throw new Error(`GitHub ${res.status} comparing ${base}...${head}`);
       const body = (await res.json()) as { files?: Array<{ filename: string }> };
-      const files = (body.files ?? []).map((f) => f.filename);
+      if (!body.files) return null;
+      const files = body.files.map((f) => f.filename);
       return files.length >= COMPARE_FILE_CAP ? null : files;
     },
     async fastForward(branch, sha, token) {

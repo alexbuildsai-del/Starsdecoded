@@ -292,3 +292,10 @@ export function waitlistListing(rows: readonly WaitlistSignup[]): {
     })),
   };
 }
+
+/**
+ * clientKey's address can be forged by calling Railway directly, so the confirmations we send have a ceiling no request
+ * can move: a script then fills the list with rows to delete, not Resend's quota and the domain's name with mail.
+ */
+export const JOINS_PER_HOUR = 100;
+export const joinCeiling = (): RateLimiter => new RateLimiter(JOINS_PER_HOUR, 60 * 60_000);
