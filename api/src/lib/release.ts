@@ -203,7 +203,10 @@ export async function runRelease(id: string, deps: ReleaseDeps, options: { seedF
 
     await stepStart(deps, id, steps, "gate");
     try {
-      const reference = (await deps.labStore.lastReleaseLabel(label)) ?? "r06";
+      // What production runs is the baseline: the lab of the release that shipped it, or r06 before any has. A failed
+      // release's run never is, or the gate would weigh one noisy run against another.
+      const shipped = row.productionSha ? `release-${row.productionSha.slice(0, 7)}` : null;
+      const reference = shipped && (await deps.labStore.numbers(shipped)).length ? shipped : "r06";
       const [ref, cand] = await Promise.all([deps.labStore.numbers(reference), deps.labStore.numbers(label)]);
       // The rehearsal's seeded fault: one contract fault the reference lacks, so the gate must refuse (acceptance 8).
       if (options.seedFault) cand.filter((r) => r.section === "career").forEach((r) => r.faults.push("char:em-dash"));

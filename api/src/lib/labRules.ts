@@ -18,6 +18,8 @@ export const REPORT_TOTAL: [number, number] = [3500, 5500];
 
 /** A release may cost this much more than the last one and still ship (ADR-76). */
 export const COST_TOLERANCE = 1.1;
+/** ...and must also cost this much more a report before it is refused: a fraction of a cent is one run's noise, not a dearer brain. */
+export const COST_FLOOR_USD = 0.01;
 
 /**
  * Style-contract rule 1: the report must never explain its own method. These
@@ -259,7 +261,7 @@ export interface RunNumbers {
 export function gateProblems(reference: RunNumbers[], candidate: RunNumbers[], charts: readonly string[] = MATRIX_CHARTS): string[] {
   const problems: string[] = [];
   const sectionsOf = (rows: RunNumbers[], fixture: string) => rows.filter((r) => r.fixture === fixture && r.section !== "foundation");
-  let refCost = 0, candCost = 0, priced = true;
+  let refCost = 0, candCost = 0, priced = true, compared = 0;
   for (const fixture of charts) {
     const cand = sectionsOf(candidate, fixture);
     const ref = sectionsOf(reference, fixture);
@@ -273,12 +275,13 @@ export function gateProblems(reference: RunNumbers[], candidate: RunNumbers[], c
     const total = cand.reduce((n, r) => n + r.words, 0);
     if (total < REPORT_TOTAL[0] || total > REPORT_TOTAL[1]) problems.push(`${fixture}: ${total} words, outside ${REPORT_TOTAL[0]}-${REPORT_TOTAL[1]}`);
     if (ref.length) {
+      compared += 1;
       for (const r of [...cand, ...ref]) if (r.costUsd === null) priced = false;
       candCost += cand.reduce((n, r) => n + (r.costUsd ?? 0), 0);
       refCost += ref.reduce((n, r) => n + (r.costUsd ?? 0), 0);
     }
   }
-  if (refCost > 0 && priced && candCost > refCost * COST_TOLERANCE) {
+  if (refCost > 0 && priced && candCost > refCost * COST_TOLERANCE && candCost - refCost > COST_FLOOR_USD * compared) {
     problems.push(`cost $${candCost.toFixed(4)} is ${Math.round((candCost / refCost - 1) * 100)}% over the reference $${refCost.toFixed(4)} (tolerance ${Math.round((COST_TOLERANCE - 1) * 100)}%)`);
   }
   if (refCost === 0) problems.push("no reference run to compare cost against");

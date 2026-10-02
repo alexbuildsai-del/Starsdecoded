@@ -9,7 +9,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { and, eq, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, labRunsTable, type InsertLabRun } from "@workspace/db";
 import { calculateNatalChart, type NatalChartData } from "./chartCalculation.js";
 import { generateInterpretation, type ReportInterpretation } from "./aiInterpretation.js";
@@ -60,7 +60,6 @@ export const liveReleaseEngine: ReleaseLabEngine = {
 export interface ReleaseLabStore {
   insert(rows: InsertLabRun[]): Promise<void>;
   numbers(label: string): Promise<RunNumbers[]>;
-  lastReleaseLabel(before: string): Promise<string | null>;
 }
 
 export const dbReleaseStore: ReleaseLabStore = {
@@ -68,12 +67,6 @@ export const dbReleaseStore: ReleaseLabStore = {
   async numbers(label) {
     const rows = await db.select().from(labRunsTable).where(eq(labRunsTable.label, label));
     return rows.map((r) => ({ fixture: r.fixture, label: r.label, section: r.section, words: r.words, costUsd: r.costUsd, faults: (r.faults as string[]) ?? [], status: r.status }));
-  },
-  async lastReleaseLabel(before) {
-    const rows = await db.select({ label: labRunsTable.label }).from(labRunsTable)
-      .where(and(eq(labRunsTable.source, "release"), ne(labRunsTable.label, before)));
-    const labels = [...new Set(rows.map((r) => r.label))].sort();
-    return labels.at(-1) ?? null;
   },
 };
 

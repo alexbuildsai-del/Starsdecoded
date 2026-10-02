@@ -44,7 +44,7 @@ function deps(over: Partial<ReleaseDeps> & { token?: string; forwarded?: string[
       fastForward: async (_branch, sha, token) => { forwarded.push(`${sha}:${token}`); },
     },
     lab: async ({ label, withPair }) => { labels[label] = numbers(label); return { label, natalRunKeys: MATRIX_CHARTS.map((c) => `${c}.${label}`), pairRunKey: withPair ? `curie-hepburn.${label}` : null, costUsd: 1.4, failed: [] }; },
-    labStore: { insert: async () => undefined, numbers: async (label) => (labels[label] ?? []).map((r) => ({ ...r, faults: [...r.faults] })), lastReleaseLabel: async () => null },
+    labStore: { insert: async () => undefined, numbers: async (label) => (labels[label] ?? []).map((r) => ({ ...r, faults: [...r.faults] })) },
     qa: async () => (over.qaStatus === "fail"
       ? { status: "fail", findings: [{ sev: 1, where: "Buyer at /", title: "the landing page names Astra", detail: "found Astra" }], costUsd: 0.02 }
       : over.qaStatus === "unconfigured" ? { status: "unconfigured", findings: [], costUsd: 0, reason: "no browser" }
@@ -131,4 +131,22 @@ test("an unchanged brain skips the lab and the gate and still runs QA; a second 
   void runRelease;
   const steps = done.steps as Array<{ name: string; status: string }>;
   assert.deepEqual(steps.map((s) => s.status), ["skipped", "skipped", "passed", "passed"]);
+});
+
+test("the gate weighs the run against what production runs: its release's lab, else r06, never a failed release", async () => {
+  const shippedRuns = numbers("release-0000000");
+  const failedRuns = numbers("release-fffffff").map((r) => ({ ...r, costUsd: 0.0001 }));
+  const store = (withShipped: boolean): ReleaseDeps["labStore"] => {
+    const labels: Record<string, RunNumbers[]> = { r06: numbers("r06"), "release-fffffff": failedRuns, ...(withShipped ? { "release-0000000": shippedRuns } : {}) };
+    return { insert: async () => undefined, numbers: async (label) => (labels[label] ?? []).map((r) => ({ ...r, faults: [...r.faults] })) };
+  };
+  const lab: ReleaseDeps["lab"] = async ({ label }) => ({ label, natalRunKeys: MATRIX_CHARTS.map((c) => `${c}.${label}`), pairRunKey: null, costUsd: 1.4, failed: [] });
+  for (const [withShipped, reference] of [[true, "release-0000000"], [false, "r06"]] as const) {
+    const s = store(withShipped);
+    const d = deps({ token: "tok", labStore: { ...s, numbers: async (label) => (label.startsWith("release-abcdef1") ? numbers(label) : s.numbers(label)) }, lab });
+    const done = await startRelease(d, { wait: true });
+    const gate = (done.steps as Array<{ name: string; status: string; detail: string | null }>).find((x) => x.name === "gate")!;
+    assert.equal(gate.status, "passed");
+    assert.match(gate.detail ?? "", new RegExp(`^against ${reference}:`));
+  }
 });
