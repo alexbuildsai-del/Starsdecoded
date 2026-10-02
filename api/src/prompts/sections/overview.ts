@@ -28,5 +28,5 @@ Temperament names the pair. The DISTRIBUTION line gives the dominant element and
 
 Ground the whole thing in sect, the chart ruler, and any stellium. Do not name planets, signs, or houses in the prose. Do not list. 400 to 500 words total.
 
-Sect. The SECT block names the sect light: frame it as the leading luminary, the one this chart is organised around. Name the malefic out of sect as the chart's central friction, in behaviour, not by name.`,
+Sect. The SECT block names the sect light: write it as the side of this person the chart is organised around, in behaviour only. Never write luminary, sect, day chart or night chart. Name the malefic out of sect as the chart's central friction, in behaviour, not by name.`,
 };
