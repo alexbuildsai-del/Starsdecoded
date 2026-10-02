@@ -2,7 +2,7 @@
 
 Built 2026-10-01 to 02 on `round/R13` from `docs/rounds/R13-plan.md` (`security-hardening`, ADR-197 to 203; `agent-roster`, ADR-187 to 196;
 ADR-204 sets the order). The plan sat on `claude/eager-albattani-i8ekei`; the round branched from it and merged `main` (b250899). The
-pricing plan once called R13 is R14; its re-plan is kept for its /plan. Twenty-four planned cards in three groups plus twelve added
+pricing plan once called R13 is R14; its re-plan is kept for its /plan. Twenty-four planned cards in three groups plus thirteen added
 (below); every group ended green. Three container restarts: the planner twice and R13-01 once, resumed from its work on disk.
 
 ## Open Mailbox rows created more than 14 days ago (ADR-186)
@@ -25,6 +25,7 @@ pricing plan once called R13 is R14; its re-plan is kept for its /plan. Twenty-f
 - **R13-22, 26** three hostile-name fixtures in the dry lab and on the Lab page's Dry — INTERNAL.
 - **R13-23** the page shows a limit with the reader's clock time, the pause, and the name rule before sending — USER-FACING.
 - **R13-24** the Failures tab's CSP counts — INTERNAL. **R13-C1** zoom back on every page, footer, legend and /sample contrast, the wheel's role — USER-FACING.
+- **R13-C7** after the PR's first Lighthouse run: public pages paint before their scripts and webfonts start; mobile LCP / 8.2 → 1.5 s, /sample 6.8 → 2.0 s, /faq 4.5 → 1.2 s (local); text shows in the fallback face until the fonts swap in — USER-FACING.
 - **R13-C4, C6** on production the five writing routes need an account (ADR-140); on staging signed-out writes share 24 an hour; the admin's 256 kB parser after its guard — USER-FACING.
 
 ## Gate
@@ -36,13 +37,13 @@ for the data rule; **injection clean: 63 prompts, every hostile name inside its 
 staging) → C6 → **CLEAR**; S5, S8, S9 and two found by the last read went to the Mailbox. Final gate: api 517, web 596, the rest as above.
 
 ## Deviations
-- Added by the orchestrator: 12b, 25, 26, 27 from builders' out-of-card reports; C1 from the site checks; C2 to C6 from the sentinel.
+- Added by the orchestrator: 12b, 25, 26, 27 from builders' out-of-card reports; C1 and C7 from the site checks; C2 to C6 from the sentinel.
+  On the PR: a 22px Clear button (axe) and three fake test values (gitleaks, `.gitleaksignore` by fingerprint) fixed in 99901ce.
 - **R13-05's /round edit was refused** by the harness as self-modification; the template half shipped, the skill draft waits for the Owner.
 - Staging keeps anonymous writes for the GitHub lab campaigns; production needs an account. A forged X-Vercel-Forwarded-For still
   dodges per-address limits on the public Railway host until a Vercel-side secret exists (Mailbox).
 - The 429 line ends "within the hour"; the page turns Retry-After into a clock time. The pause line says "for now", not "later today".
-- pnpm 10.34.5, not the 3-day-old 10.34.6 (the release age does not cover `packageManager`). CSP hosts for Clerk and Vercel are from
-  the installed SDK and docs as known, unverified live. Not verified here: Lighthouse scores and the probe's full half (first preview, staging).
+- pnpm 10.34.5, not the 3-day-old 10.34.6. CSP hosts for Clerk and Vercel come from the SDK and docs, unverified live; the probe's full half runs on staging.
 
 ## New words for the Owner's look
 The six limit lines and the pause line (`limits.ts`, `spendCap.ts`); "Use letters, spaces, apostrophes, hyphens and dots, up to 60
