@@ -36,6 +36,7 @@ Marie Curie "Chiron 22.3 Pisces, 3rd house, retrograde" (was Cancer). **Round st
 
 ## Deviations
 - The branch is the session's assigned one, not `round/R14`. Group C took one card; the R14-14 fix came from the tester.
+- The PR's first preview failed: Vercel type-checks `middleware.ts` with the root tsconfig; reproduced with `vercel build`, fixed (7945eea).
 - R14-13 also took /sky's and home's "every line" (found by R14-06). R14-12 added an optional `describedBy` to both fields.
 - Accessible only after the merge: `edge: true` through Vercel (MB-167), and a real-device pass on the birth form and dialog (QA-02).
 
@@ -54,6 +55,6 @@ redaction by key depth, unnamed transitive packages, "next control" read as DOM 
 
 ## Mailbox
 Built at their defaults (done, seams tagged): MB-124, 126, 150, 157 to 160, 163, 165, 166; MB-161 waits for the staging run; MB-91's two
-seams and MB-93's band seam gone. Raised: MB-167's check, the secret's length in the three dashboards, regenerate after Stop sharing,
-more reports than an hour's writes, the triad plate's Sun near the Moon, unused `ui/` files and 34 dev-only libraries, "0300p" on a
-12-hour clock, the middleware without `@vercel/functions`, R14's words.
+seams and MB-93's band seam gone. Raised MB-168 to 176: the secret's length in the three dashboards, regenerate after Stop sharing,
+more reports than an hour's writes, the triad plate's Sun near the Moon, unused `ui/` files, "0300p", the middleware without
+`@vercel/functions`, R14's words, undici in the dev tree.
