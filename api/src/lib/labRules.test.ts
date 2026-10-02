@@ -53,6 +53,12 @@ test("the gate refuses a new fault, a total outside the band, a failed section a
   assert.deepEqual(gateProblems([], run("r07")), ["no reference run to compare cost against"]);
 });
 
+test("the gate lets one run's noise through: over 110% but under a cent a report is not a dearer brain", () => {
+  const cheap = (label: string, each: number) => run(label).map((r) => ({ ...r, costUsd: each }));
+  assert.deepEqual(gateProblems(cheap("r06", 0.0007), cheap("r07", 0.00081)), [], "16% over, a fraction of a cent a report");
+  assert.equal(gateProblems(cheap("r06", 0.002), cheap("r07", 0.004)).length, 1, "double, and over a cent a report");
+});
+
 test("the out-of-credit refusal is recognised from a status message", () => {
   assert.equal(isOutOfCreditMessage("natal:career: out of credit: 429 You have no credits remaining"), true);
   assert.equal(isOutOfCreditMessage("insufficient_quota"), true);

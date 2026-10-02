@@ -21,7 +21,7 @@ const curie = await generateInterpretation(chartFromFixture("marie-curie"), "Mar
 
 function store() {
   const rows: InsertLabRun[] = [];
-  return { rows, insert: async (r: InsertLabRun[]) => { rows.push(...r); }, numbers: async () => [], lastReleaseLabel: async () => null };
+  return { rows, insert: async (r: InsertLabRun[]) => { rows.push(...r); }, numbers: async () => [] };
 }
 
 test("natalRows: the foundation row carries the chart, every section its words and faults, all under source release", () => {
