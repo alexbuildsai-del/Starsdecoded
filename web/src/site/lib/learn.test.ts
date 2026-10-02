@@ -72,7 +72,22 @@ describe("the sample's houses", () => {
 });
 
 describe("the sample's day", () => {
-  it("puts her rising sign's window over her birthplace where a minute-by-minute engine sweep does", () => {
+  it("gives her rising sign's window as the engine's own holdsFrom and holdsTo for her birth, the pair the horizon preview returns", () => {
+    const b = SAMPLE.birth;
+    const held = calculateNatalChart(b.birthDate, b.birthTime, b.latitude, b.longitude, b.timezone ?? b.timezoneOffset, 0).horizon.ascendant;
+    const birth = minuteOf(b.birthTime);
+    const w = riseWindow(b);
+    expect(w).toEqual({
+      sign: held.value,
+      next: expect.any(String),
+      from: held.holdsFrom,
+      to: held.holdsTo,
+      since: birth - minuteOf(held.holdsFrom),
+      left: minuteOf(held.holdsTo) - birth,
+    });
+  });
+
+  it("stays within the engine's two-minute step of a minute-by-minute sweep, and names the sign that follows", () => {
     const b = SAMPLE.birth;
     const birth = minuteOf(b.birthTime);
     const sign = risingAt(b, birth);
@@ -82,15 +97,19 @@ describe("the sample's day", () => {
     while (after < MINUTES_IN_DAY && risingAt(b, after) === sign) after++;
 
     const w = riseWindow(b);
-    expect(w).toEqual({
-      sign,
-      next: risingAt(b, after),
-      from: clockOf(first),
-      to: clockOf(after),
-      since: birth - first,
-      left: after - birth,
-    });
+    if (!w?.from || !w.to) throw new Error("Her window lies inside her birth day");
+    expect(w.sign).toBe(sign);
+    expect(w.next).toBe(risingAt(b, after));
+    expect(Math.abs(minuteOf(w.from) - first)).toBeLessThanOrEqual(2);
+    expect(Math.abs(minuteOf(w.to) - after)).toBeLessThanOrEqual(2);
   }, 60_000);
+
+  it("reads a window that runs to the day's end as open, not as a time", () => {
+    const b = { ...SAMPLE.birth, birthTime: clockOf(MINUTES_IN_DAY - 2) };
+    const w = riseWindow(b);
+    expect(w?.to).toBeNull();
+    expect(w?.left).toBeNull();
+  });
 
   it("is said in words from that window, with her recorded time", () => {
     const w = riseWindow(SAMPLE.birth);
