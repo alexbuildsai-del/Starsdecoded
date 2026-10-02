@@ -40,3 +40,33 @@ test("healthz says whether this one call carried the edge's value, and never sen
   delete process.env.EDGE_PROXY_SECRET;
   assert.equal((await call({ "x-edge-proxy-secret": EDGE })).edge, false, "unset, no call is the edge's");
 });
+
+test("healthz's edge is false for a header sent twice, a near miss or an empty value, and the value is never echoed (ADR-224)", async (t) => {
+  const app = express();
+  app.use("/api", health);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    delete process.env.EDGE_PROXY_SECRET;
+    server.closeAllConnections();
+    return new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+  process.env.EDGE_PROXY_SECRET = EDGE;
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/healthz`;
+  const edgeOf = async (headers: Headers) => {
+    const res = await fetch(url, { headers });
+    const text = await res.text();
+    assert.equal(res.status, 200);
+    assert.ok(!text.includes(EDGE) && ![...res.headers].flat().join("\n").includes(EDGE), "the value is not echoed");
+    return (JSON.parse(text) as { edge: boolean }).edge;
+  };
+  const twice = new Headers();
+  twice.append("x-edge-proxy-secret", EDGE);
+  twice.append("x-edge-proxy-secret", EDGE);
+  assert.equal(await edgeOf(twice), false, "Node joins a repeated header, so it is no longer the edge's one value");
+  assert.equal(await edgeOf(new Headers({ "X-Edge-Proxy-Secret": EDGE })), true, "a header name's case is nothing: HTTP lowercases it");
+  assert.equal(await edgeOf(new Headers({ "x-edge-proxy-secret": `${EDGE} ` })), true, "HTTP strips the spaces round a value, as it does the edge's own");
+  assert.equal(await edgeOf(new Headers({ "x-edge-proxy-secret": EDGE.toUpperCase() })), false, "another case of the value");
+  assert.equal(await edgeOf(new Headers({ "x-edge-proxy-secret": "" })), false, "an empty value");
+  assert.equal(await edgeOf(new Headers({ "x-vercel-forwarded-for": "203.0.113.7" })), false, "a forwarded address alone");
+});

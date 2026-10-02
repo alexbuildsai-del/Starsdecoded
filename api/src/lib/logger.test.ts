@@ -307,3 +307,46 @@ test("a refusal's words and a section's last reply reach no line: the pair's fai
   assert.equal(line(cut).err.message, cut, "an error logged alone gives its message as the line's");
   assert.equal(line("failure log: rows not written; muted for a minute").err, cut);
 });
+
+test("the edge's header is censored under every key a header block is logged under, at the top of a line and one level down (ADR-224)", () => {
+  const out = buffer();
+  const log = createLogger({}, out.dest);
+  const block = { "x-edge-proxy-secret": EDGE, "x-vercel-forwarded-for": IP, "content-type": "application/json" };
+  log.info({ "x-edge-proxy-secret": EDGE }, "at the top");
+  log.info({ headers: block, meta: block, rawBlock: block }, "one level down, under three names");
+  log.info({ req: { headers: { "x-edge-proxy-secret": EDGE, accept: "text/html" } } }, "a request's own headers");
+  log.child({ headers: block }).info("bound to a child");
+  log.child({ "x-edge-proxy-secret": EDGE }).warn({ headers: block }, "a child and a line");
+  assert.equal(out.lines.length, 5);
+  assert.ok(!out.text().includes(EDGE), "the value is in no line");
+  assert.ok(!out.text().includes(IP), "nor is the address beside it");
+  const [top, level, req, child, both] = out.lines.map((l) => JSON.parse(l));
+  assert.equal(top["x-edge-proxy-secret"], "[Redacted]");
+  for (const key of ["headers", "meta", "rawBlock"]) {
+    assert.equal(level[key]["x-edge-proxy-secret"], "[Redacted]", key);
+    assert.equal(level[key]["content-type"], "application/json", `${key} keeps the rest`);
+  }
+  assert.equal(req.req.headers["x-edge-proxy-secret"], "[Redacted]");
+  assert.equal(child.headers["x-edge-proxy-secret"], "[Redacted]");
+  assert.deepEqual([both["x-edge-proxy-secret"], both.headers["x-edge-proxy-secret"]], ["[Redacted]", "[Redacted]"]);
+});
+
+test("a header block in an error's own fields, in a list or two levels down never prints the edge's value (R14-14: the secret is never in a log line)", () => {
+  const block = { "x-edge-proxy-secret": EDGE, "content-type": "application/json" };
+  const withHeaders = Object.assign(new Error("upstream said no"), { headers: block });
+  const shapes: Record<string, unknown> = {
+    "an error carrying a header block": { err: withHeaders },
+    "an error under `error`": { error: withHeaders },
+    "an error carrying a request": { err: Object.assign(new Error("failed"), { request: { headers: block } }) },
+    "a list of header blocks": { headers: [block] },
+    "a header block two levels down": { ctx: { req: { headers: block } } },
+    "a response's headers": { res: { statusCode: 500, headers: block } },
+    "the raw header list of a request": { rawHeaders: ["x-edge-proxy-secret", EDGE, "content-type", "application/json"] },
+  };
+  const leaked = Object.entries(shapes).filter(([, fields]) => {
+    const out = buffer();
+    createLogger({}, out.dest).error(fields as object, "a failure");
+    return out.text().includes(EDGE);
+  }).map(([shape]) => shape);
+  assert.deepEqual(leaked, [], "these shapes print the value");
+});
