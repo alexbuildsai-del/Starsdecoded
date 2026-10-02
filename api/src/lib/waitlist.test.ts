@@ -16,6 +16,7 @@ const {
   linkLive,
   newConfirmToken,
   normaliseEmail,
+  publicWebBase,
   sweepBefore,
   tag,
   waitlistClosed,
@@ -142,6 +143,13 @@ test("the link opens the web app's /waitlist page, from configuration and never 
   assert.equal(confirmUrl("t", { APP_ENV: "production" }), "https://mystarsdecoded.com/waitlist?confirm=t");
   assert.equal(confirmUrl("t", { APP_ENV: "staging" }), "https://starsdecoded-staging.vercel.app/waitlist?confirm=t");
   assert.equal(confirmUrl("t", {}), "http://localhost:5173/waitlist?confirm=t");
+});
+
+test("every emailed link and image starts at the configured web origin, else the web app of the environment", () => {
+  assert.equal(publicWebBase({ PUBLIC_APP_URL: " https://mystarsdecoded.com// " }), "https://mystarsdecoded.com");
+  assert.equal(publicWebBase({ PUBLIC_APP_URL: " ", APP_ENV: "staging" }), "https://starsdecoded-staging.vercel.app");
+  assert.equal(publicWebBase({ RAILWAY_ENVIRONMENT_NAME: "production" }), "https://mystarsdecoded.com");
+  assert.equal(publicWebBase({}), "http://localhost:5173");
 });
 
 test("confirming: a live link confirms, a repeat answers the same, a wrong or malformed one does not", async () => {

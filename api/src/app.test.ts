@@ -200,3 +200,38 @@ test("the handler logs the error's type and status, never its body or message", 
   assert.match(text, /"type":"entity\.parse\.failed","status":400/);
   assert.match(text, /"type":"entity\.too\.large","status":413/);
 });
+
+test("the API does not name its framework, on health or on a refusal", async (t) => {
+  const { base, close } = await serve();
+  t.after(close);
+
+  assert.equal((await fetch(`${base}/api/healthz`)).headers.get("x-powered-by"), null);
+  const refused = await send(base, "POST", "/api/waitlist", "{}", { origin: "https://evil.example" });
+  assert.equal(refused.status, 403);
+  assert.equal(refused.headers.get("x-powered-by"), null);
+});
+
+test("an unknown path under /api answers a JSON 404, after the routers and ahead of the error handler", async (t) => {
+  const { default: express } = await import("express");
+  const { apiNotFound, requestErrorHandler } = await import("./app.js");
+  const mini = express();
+  mini.disable("x-powered-by");
+  mini.use("/api", (req, res, next) => (req.path === "/known" ? void res.json({ ok: true }) : next()));
+  mini.use("/api", apiNotFound);
+  mini.use(requestErrorHandler);
+  const server = mini.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  const at = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+  assert.equal((await fetch(`${at}/api/known`)).status, 200);
+  for (const path of ["/api/nothing-here", "/api/reports/x/y/z"]) {
+    const res = await fetch(`${at}${path}`);
+    assert.equal(res.status, 404, path);
+    assert.match(res.headers.get("content-type") ?? "", /application\/json/);
+    assert.deepEqual(await res.json(), { error: "not_found" });
+  }
+});

@@ -2,7 +2,7 @@
  * The one rule for a typed name (ADR-202): the same pattern string as the three name fields in `openapi.yaml`, whose test
  * reads the contract so the two cannot drift. A stored name that breaks it still shows; it cannot be typed again.
  */
-export const PERSON_NAME_PATTERN = "^[\\p{L}\\p{M} '’.·-]{1,60}$";
+export const PERSON_NAME_PATTERN = "^(?=.*\\p{L})(?! )(?!.* $)[\\p{L}\\p{M} '’.·-]{1,60}$";
 
 const PERSON_NAME = new RegExp(PERSON_NAME_PATTERN, "u");
 

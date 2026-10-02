@@ -168,7 +168,7 @@ export interface WaitlistConfirmed {
 export interface CreateReportBody {
   /**
      * The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).
-     * @pattern ^[\p{L}\p{M} '’.·-]{1,60}$
+     * @pattern ^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} '’.·-]{1,60}$
      */
   name: string;
   /** Birth date in YYYY-MM-DD format */
@@ -1414,7 +1414,7 @@ export interface ProfileSummary {
 export interface CreateProfileBody {
   /**
      * The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), so what reaches the prompt is a name and never markup or an instruction (ADR-202).
-     * @pattern ^[\p{L}\p{M} '’.·-]{1,60}$
+     * @pattern ^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} '’.·-]{1,60}$
      */
   name: string;
   birthDate: string;
@@ -1908,7 +1908,7 @@ export type GiftCreated = Gift & {
 export interface CreateGiftBody {
   /**
      * The recipient's name, 1 to 60 letters, marks, spaces, apostrophes (' ’), hyphens and dots (. ·), the same rule as every typed name (ADR-202).
-     * @pattern ^[\p{L}\p{M} '’.·-]{1,60}$
+     * @pattern ^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} '’.·-]{1,60}$
      */
   recipientName: string;
   email: string;

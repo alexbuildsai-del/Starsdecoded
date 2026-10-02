@@ -3,6 +3,7 @@ import { TestCheckoutBody } from "@workspace/api-zod";
 import type { BundleKind } from "@workspace/db";
 import { BUNDLE_DEFINITIONS, grantBundle, getCredits } from "../lib/credits.js";
 import { readAppEnv } from "../lib/appEnv.js";
+import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
@@ -33,7 +34,7 @@ router.post("/checkout/test", async (req, res) => {
 
   const parsed = TestCheckoutBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return res.status(400).json(validationFailure(parsed.error));
   }
 
   const bundleKind = bundleKindForCount(parsed.data.count);

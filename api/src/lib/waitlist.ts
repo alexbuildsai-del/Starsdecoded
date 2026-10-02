@@ -89,13 +89,17 @@ const WEB_ORIGIN: Record<AppEnv, string> = {
 };
 
 /**
- * The emailed link opens the web app's /waitlist page, which posts the token
- * itself. The origin comes from configuration and never from the request, so a
- * forged Host header cannot point one of our emails somewhere else.
+ * The web app's origin, for every link and image an email carries. Configuration alone sets it: the API also answers
+ * on its own Railway host, where a caller can send any Host or X-Forwarded-Host, and a mail signed for our domain must
+ * never send its reader to a host they named.
  */
+export function publicWebBase(env: NodeJS.ProcessEnv = process.env): string {
+  return env.PUBLIC_APP_URL?.trim().replace(/\/+$/, "") || WEB_ORIGIN[readAppEnv(env)];
+}
+
+/** The emailed link opens the web app's /waitlist page, which posts the token itself. */
 export function confirmUrl(token: string, env: NodeJS.ProcessEnv = process.env): string {
-  const base = env.PUBLIC_APP_URL?.trim().replace(/\/+$/, "") || WEB_ORIGIN[readAppEnv(env)];
-  return `${base}/waitlist?confirm=${encodeURIComponent(token)}`;
+  return `${publicWebBase(env)}/waitlist?confirm=${encodeURIComponent(token)}`;
 }
 
 export type StoredSignup = Pick<WaitlistSignup, "id" | "confirmedAt" | "confirmSentAt" | "createdAt">;

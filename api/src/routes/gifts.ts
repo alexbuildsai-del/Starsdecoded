@@ -8,6 +8,7 @@ import { mintInviteToken } from "../lib/inviteToken.js";
 import { holdCredit, returnExpiredHolds, returnHeldCredit } from "../lib/credits.js";
 import { sendGiftEmail, sendGiftReminder } from "../lib/mailer.js";
 import { firstNameOf } from "../lib/names.js";
+import { publicWebBase } from "../lib/waitlist.js";
 
 type Gift = z.infer<typeof ListGiftsResponseItem>;
 
@@ -44,16 +45,9 @@ function toGift(row: InviteToken, creditStatus: string | null, now: Date): Gift 
   };
 }
 
-// The same link a send carries, so ClaimPage reads both alike. It must open the web app
-// (Vercel), a different origin from this API (Railway), so the configured URL is the fallback
-// when a request carries no host headers.
-function claimUrlFor(req: Request, token: string): string {
-  const host = req.get("x-forwarded-host")?.split(",")[0]?.trim() ?? req.get("host");
-  const proto = req.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "https";
-  const base = host
-    ? `${proto}://${host}`
-    : process.env.PUBLIC_APP_URL?.trim().replace(/\/$/, "") || "http://localhost:5173";
-  return `${base}/claim?token=${encodeURIComponent(token)}`;
+// The same link a send carries, so ClaimPage reads both alike.
+function claimUrlFor(token: string): string {
+  return `${publicWebBase()}/claim?token=${encodeURIComponent(token)}`;
 }
 
 // A throw from the mailer is a send that did not happen, so the gift's own fallbacks still run.
@@ -158,7 +152,7 @@ router.post("/gifts", async (req, res) => {
 
     const { token, tokenHash } = mintInviteToken();
     const sentAt = new Date();
-    const claimUrl = claimUrlFor(req, token);
+    const claimUrl = claimUrlFor(token);
     const [row] = await db
       .insert(inviteTokensTable)
       .values({
@@ -246,7 +240,7 @@ router.post("/gifts/:id/remind", async (req, res) => {
         to: gift.email,
         giverFirstName,
         recipientFirstName: gift.recipientName ?? "",
-        claimUrl: claimUrlFor(req, token),
+        claimUrl: claimUrlFor(token),
       }),
       req,
       gift.id,
