@@ -29,8 +29,6 @@ interface Exception {
 // The one table of exceptions; the sentinel reads it, so a new row needs a reason a reader can judge.
 export const EXCEPTIONS: readonly Exception[] = [
   { file: "api/src/lib/waitlist.ts", rule: "localhost", lines: 1, reason: "Dev fallback to the local web origin when no public URL is set." },
-  { file: "api/src/routes/invites.ts", rule: "localhost", lines: 1, reason: "Dev fallback to the local web origin when no public URL is set." },
-  { file: "api/src/routes/gifts.ts", rule: "localhost", lines: 1, reason: "Dev fallback to the local web origin when no public URL is set." },
   { file: "api/src/lib/qaAgent/personas.ts", rule: "astra", lines: 1, reason: "The QA agent looks for the retired name on staging pages." },
   { file: "api/src/lib/qaAgent/reader.ts", rule: "astra", lines: 1, reason: "The QA agent's prompt names the retired name it looks for." },
 ];
