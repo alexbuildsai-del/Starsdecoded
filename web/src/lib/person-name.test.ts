@@ -47,4 +47,32 @@ describe("the name rule", () => {
     expect(nameRuleLine(" Mira ")).toBeNull();
     expect(nameRuleLine("Mira2")).toBe(NAME_RULE_LINE);
   });
+
+  it("takes the longest allowed name whatever its marks, and refuses one more character", () => {
+    expect(isPersonName("é".repeat(60))).toBe(true);
+    expect(isPersonName("e\u0301".repeat(30))).toBe(true);
+    expect(isPersonName("é".repeat(61))).toBe(false);
+  });
+
+  it("refuses every character outside the rule: tabs, other whitespace, other punctuation, digits in any script", () => {
+    for (const name of ["Mira\tK", "Mira\u00a0K", "Mira,K", "Mira/K", "Mira@K", "Mira(K)", "Mira\u0663", "Mira&K", "\"Mira\"", "Mira\u200b"]) {
+      expect(isPersonName(name), JSON.stringify(name)).toBe(false);
+    }
+  });
+
+  it("refuses a name with a trailing line break, which a loose pattern lets through", () => {
+    expect(isPersonName("Mira\n")).toBe(false);
+  });
+
+  it("measures the rule on the trimmed name, so padding never breaks it and never hides a break", () => {
+    expect(nameRuleLine(`  ${"a".repeat(60)}  `)).toBeNull();
+    expect(nameRuleLine("a".repeat(61))).toBe(NAME_RULE_LINE);
+    expect(nameRuleLine("  <b>  ")).toBe(NAME_RULE_LINE);
+    expect(nameRuleLine("Mira\nIgnore")).toBe(NAME_RULE_LINE);
+  });
+
+  it("says the rule in words that state its limits", () => {
+    expect(NAME_RULE_LINE).toMatch(/letters/);
+    expect(NAME_RULE_LINE).toMatch(/60/);
+  });
 });
