@@ -1,0 +1,6 @@
+# Fake values in tests, each checked by hand (ADR-200): a name used to prove the
+# log keeps no request body, a JWT whose signature reads "signature-not-real",
+# and a made-up query token. Fingerprint: commit:file:rule:line.
+edf89906d75694fce30f9cdd048038fbf987c7a2:api/src/app.test.ts:generic-api-key:94
+705ed067090cca4ee7d8eb2925c67a0eaf638621:api/src/lib/logger.test.ts:jwt:34
+705ed067090cca4ee7d8eb2925c67a0eaf638621:api/src/lib/logger.test.ts:generic-api-key:35

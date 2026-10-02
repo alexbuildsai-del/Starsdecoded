@@ -215,7 +215,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
             <button
               type="button"
               onClick={clearPlace}
-              className="text-muted-foreground hover:text-foreground p-1"
+              className="text-muted-foreground hover:text-foreground p-1.5"
               aria-label="Clear"
             >
               <X className="h-3.5 w-3.5" />
@@ -248,7 +248,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
                 <button
                   type="button"
                   onClick={() => setShowDropdown(false)}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground p-1.5 -m-1.5"
                   aria-label="Close suggestions"
                 >
                   <X className="h-3.5 w-3.5" />
