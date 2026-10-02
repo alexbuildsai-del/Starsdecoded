@@ -139,9 +139,10 @@ function Steps() {
               </Shown>
             }
           >
+            {/* MB-160 provisional: a sentence can hold no claim, so the promise is made per claim. */}
             <p className={PROSE}>
               Each of the {chapters} chapters is written from those notes, following our own rules for reading a chart. Every
-              sentence has to be about you, in plain words, and has to point to the part of your chart it comes from.
+              sentence has to be about you, in plain words, and every claim has to point to the part of your chart it comes from.
             </p>
             <p className={PROSE}>
               It won't name dates, predict events or diagnose anything. It describes how you tend to think, work and love, and
@@ -181,10 +182,6 @@ function FactsAndAi() {
           {/* The home page's wording would repeat step 3 a screen above it, so this page keeps the locked design's own. */}
           <p className="sd-fact">
             <b>No predictions</b> It won't name dates, talk about fate or diagnose anything. It's about how you tend to work.
-          </p>
-          {/* MB-91 provisional: the home page's words, kept until credits go hard (R12) and every failed report holds one to give back. */}
-          <p className="sd-fact">
-            <b>You get your credit back if something goes wrong</b> We tell you what happened, and you can try again.
           </p>
         </div>
 

@@ -122,10 +122,6 @@ export default function Method() {
             It won't forecast events, name dates or diagnose anything. It describes how you tend to work and gives you things to
             try.
           </p>
-          <p className="sd-fact">
-            <b>You get your credit back if something goes wrong</b>{" "}
-            We tell you what happened, and you can try again.
-          </p>
         </div>
 
         <Link className="sd-more" href="/method">
