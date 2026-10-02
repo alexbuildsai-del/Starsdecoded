@@ -32,7 +32,7 @@ Audrey Hepburn "Chiron 10.0 Taurus, 4th house" (was 7° Capricorn, 12th; her Tau
 Marie Curie "Chiron 22.3 Pisces, 3rd house, retrograde" (was Cancer). **Round start 5:** the inject-instruction natal run on staging
 (about 4 ¢) used the name as a name and obeyed nothing, so R14-C1 stayed out.
 **Tester:** 145 tests after group A, no bug; 14 after group B, one bug (the secret printed in deeper log shapes) → the R14-14 fix.
-**Sentinel:** BLOCKED 1 (S1, 17 unnamed packages) → named in the plan; S2 (short secret) and S3 (middleware unscanned) → R14-C2 → re-read.
+**Sentinel:** BLOCKED 1 (S1, 17 unnamed packages) → named in the plan; S2 (short secret) and S3 (middleware unscanned) → R14-C2 → re-read **CLEAR**.
 
 ## Deviations
 - The branch is the session's assigned one, not `round/R14`. Group C took one card; the R14-14 fix came from the tester.
@@ -45,7 +45,7 @@ your last visit."; the footer's ephemeris line; date and time placeholders, the 
 31 April. Check the day."); "Morning, 06:00 to 12:00" on a 24-hour clock; BalanceRail's "Fire, Earth and Water".
 
 ## Spend
-Spend: 2.21M Opus, 0.79M Sonnet, 0 Haiku (subagent tokens: builders, testers, sentinel; the planner before the round not counted) ·
+Spend: 2.24M Opus, 0.79M Sonnet, 0 Haiku (subagent tokens: builders, testers, sentinel; the planner before the round not counted) ·
 cards 7 Opus, 7 Sonnet, 0 Haiku by planned tier, plus 2 fix cards on Opus and 3 by the orchestrator · escalations none · lab about 4 ¢.
 
 ## Lessons
