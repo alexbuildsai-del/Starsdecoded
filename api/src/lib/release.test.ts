@@ -114,6 +114,14 @@ test("without GITHUB_RELEASE_TOKEN a clean run stops passed and names MB-75; an 
   assert.deepEqual(d.forwarded, []);
 });
 
+test("preflight: a diff too large for GitHub to list runs the full lab, natal and pair", async () => {
+  const pre = await preflight(deps({ github: { branchHead: async (b) => (b === "main" ? "abcdef1234567890" : "0000000000000000"), changedFiles: async () => null, fastForward: async () => undefined } }));
+  assert.equal(pre.brainChanged, true);
+  assert.equal(pre.pairChanged, true);
+  assert.deepEqual(pre.files, []);
+  assert.equal(pre.estimateUsd, estimateUsd(true, true));
+});
+
 test("an unchanged brain skips the lab and the gate and still runs QA; a second release while one runs is refused", async () => {
   const d = deps({ token: "tok", github: { branchHead: async (b) => (b === "main" ? "abcdef1234567890" : "0000000000000000"), changedFiles: async () => ["web/src/App.tsx"], fastForward: async () => undefined } });
   await d.store.insert({ id: "running-one", sha: "abcdef1234567890", productionSha: null, brainChanged: false, pairChanged: false, status: "running", steps: [], qa: null, error: null });

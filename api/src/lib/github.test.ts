@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { brainDiff, githubApi } from "./github.js";
+import { COMPARE_FILE_CAP, brainDiff, githubApi } from "./github.js";
 
 test("brainDiff: the brain paths and the pair brain within them", () => {
   assert.deepEqual(brainDiff(["web/src/App.tsx", "docs/INDEX.md"]), { brainChanged: false, pairChanged: false, files: [] });
@@ -33,4 +33,12 @@ test("the fast-forward is a PATCH on the ref with the token and never forced; a 
   assert.deepEqual(JSON.parse(String(patch.init?.body)), { sha: "def", force: false });
   assert.equal((patch.init?.headers as Record<string, string>).authorization, "Bearer tok");
   await assert.rejects(() => api.fastForward("other", "def", "tok"), /GitHub 422/);
+});
+
+test("changedFiles: a list at GitHub's cap, or none at all, is unknown, not brain-free", async () => {
+  const listing = (n: number) => (async () => new Response(JSON.stringify({ files: Array.from({ length: n }, (_, i) => ({ filename: `.claude/f${i}.md` })) }), { status: 200 })) as unknown as typeof fetch;
+  assert.equal(await githubApi(listing(COMPARE_FILE_CAP)).changedFiles("abc", "def"), null);
+  assert.equal((await githubApi(listing(COMPARE_FILE_CAP - 1)).changedFiles("abc", "def"))?.length, COMPARE_FILE_CAP - 1);
+  const unlisted = (async () => new Response(JSON.stringify({ status: "ahead" }), { status: 200 })) as unknown as typeof fetch;
+  assert.equal(await githubApi(unlisted).changedFiles("abc", "def"), null);
 });

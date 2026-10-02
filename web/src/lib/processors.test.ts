@@ -47,9 +47,10 @@ describe("who handles a visitor's data", () => {
     }
   });
 
-  it("confirms Railway's EU West region and no other yet (ADR-164, MB-33)", () => {
+  it("confirms Railway's and Resend's EU West regions and no other yet (ADR-164, MB-33)", () => {
     expect(PROCESSORS.filter((p) => p.region).map((p) => [p.name, whereLine(p)])).toEqual([
       ["Railway", "Stores data in Railway's EU West region"],
+      ["Resend", "Stores data in Resend's EU West region, in Ireland"],
     ]);
   });
 

@@ -106,7 +106,7 @@ export async function preflight(deps: ReleaseDeps): Promise<Preflight> {
   const sha = readCommitSha(env);
   const appEnv = readAppEnv(env);
   const problems: string[] = [];
-  let mainHead: string | null = null, productionSha: string | null = null, files: string[] = [];
+  let mainHead: string | null = null, productionSha: string | null = null, files: string[] | null = [];
   try {
     [mainHead, productionSha] = await Promise.all([deps.github.branchHead("main"), deps.github.branchHead("production")]);
     // With no production branch yet, everything is new: the full lab runs.
@@ -114,9 +114,10 @@ export async function preflight(deps: ReleaseDeps): Promise<Preflight> {
   } catch (err) {
     problems.push(`GitHub did not answer: ${err instanceof Error ? err.message : String(err)}`);
   }
-  const diff = brainDiff(files);
-  const brainChanged = !productionSha || diff.brainChanged;
-  const pairChanged = !productionSha || diff.pairChanged;
+  const diff = brainDiff(files ?? []);
+  // A diff GitHub cannot list in full may hide brain files, so it runs the full lab like a first release.
+  const brainChanged = !productionSha || files === null || diff.brainChanged;
+  const pairChanged = !productionSha || files === null || diff.pairChanged;
   const estimate = estimateUsd(brainChanged, pairChanged);
   const spentUsd = await deps.spentUsd();
   const budget = budgetUsd(env);

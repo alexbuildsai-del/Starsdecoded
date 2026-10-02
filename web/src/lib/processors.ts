@@ -22,8 +22,8 @@ export interface Processor {
   country: string | null;
 }
 
-// MB-33 provisional: only Railway's region is confirmed (ADR-164), so each other company shows its country (reading 10),
-// and who runs timeapi.io, and where, is not confirmed at all.
+// MB-33 provisional: only Railway's region (ADR-164) and Resend's (the Owner, 2026-10-02) are confirmed, so each other
+// company shows its country (reading 10), and who runs timeapi.io, and where, is not confirmed at all.
 export const PROCESSORS: readonly Processor[] = [
   {
     name: "Supabase",
@@ -64,7 +64,7 @@ export const PROCESSORS: readonly Processor[] = [
     name: "Resend",
     does: "sends our emails, such as the link that confirms your place on the waitlist, or a report you share or a gift you give someone. It gets the address each email goes to.",
     from: "server",
-    region: null,
+    region: "Resend's EU West region, in Ireland",
     country: "the United States",
   },
   {

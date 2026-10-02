@@ -12,6 +12,9 @@ export const BRAIN_PATHS = ["api/src/prompts/", "api/src/lib/models.ts", "api/sr
 /** The pair brain: a change here adds one pair to the release lab. */
 export const PAIR_BRAIN_PATHS = ["api/src/prompts/pair/", "api/src/lib/pairInterpretation.ts", "api/src/lib/pairBrief.ts"];
 
+/** GitHub's compare API lists at most this many files, with no further page; a full list may be missing the brain. */
+export const COMPARE_FILE_CAP = 300;
+
 export interface BrainDiff {
   brainChanged: boolean;
   pairChanged: boolean;
@@ -27,7 +30,8 @@ export function brainDiff(changed: string[]): BrainDiff {
 
 export interface GithubApi {
   branchHead(branch: string): Promise<string | null>;
-  changedFiles(base: string, head: string): Promise<string[]>;
+  /** null when GitHub does not list the diff in full. */
+  changedFiles(base: string, head: string): Promise<string[] | null>;
   fastForward(branch: string, sha: string, token: string): Promise<void>;
 }
 
@@ -48,7 +52,9 @@ export function githubApi(fetcher: Fetcher = fetch): GithubApi {
       const res = await fetcher(`${API}/repos/${REPO}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}?per_page=250`, { headers });
       if (!res.ok) throw new Error(`GitHub ${res.status} comparing ${base}...${head}`);
       const body = (await res.json()) as { files?: Array<{ filename: string }> };
-      return (body.files ?? []).map((f) => f.filename);
+      if (!body.files) return null;
+      const files = body.files.map((f) => f.filename);
+      return files.length >= COMPARE_FILE_CAP ? null : files;
     },
     async fastForward(branch, sha, token) {
       const res = await fetcher(`${API}/repos/${REPO}/git/refs/heads/${encodeURIComponent(branch)}`, {

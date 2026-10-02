@@ -38,6 +38,7 @@ import {
   type ChartBrief, type Claim, type EvidenceRef, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
 import { block, blocking, clean, fixed, needsRepair, registerChecks, repair, warned, type Check, type Validated } from "../prompts/checks.js";
+import { followRepairs, semicolonsToFullStops } from "../prompts/pair/index.js";
 import { recordChecks } from "./failureLog.js";
 import { ReportFailure, failureCodeOf } from "./failureReasons.js";
 import type { AngleMeanings, AspectMeaningPayload } from "../prompts/brief.js";
@@ -531,6 +532,29 @@ interface CallOptions<T> {
   spend?: SpendKind;
 }
 
+/**
+ * Rule 8's semicolon, made a full stop in code before the section's own checks, as the pair's prose is (annex row 41):
+ * the prompt and its self-check alone still let one through on mix B (MB-129). A claim quoting across it follows.
+ */
+export function natalProseRepairs<T>(value: T): Validated<T> {
+  let replaced = 0;
+  const walk = (v: unknown, key?: string): unknown => {
+    if (key === "claims") return v;
+    if (typeof v === "string") {
+      const stops = semicolonsToFullStops(v);
+      replaced += stops.replaced;
+      return stops.text;
+    }
+    if (Array.isArray(v)) return v.map((x) => walk(x));
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x, k)]));
+    return v;
+  };
+  const prose = walk(value) as T;
+  if (!replaced) return clean(value);
+  const quotes = followRepairs(prose);
+  return { output: quotes.value, checks: [fixed("chk-41", `${replaced} semicolon(s) in the prose became full stops`), ...quotes.checks] };
+}
+
 async function callSection<T>(
   spec: SectionSpec,
   model: string,
@@ -549,7 +573,11 @@ async function callSection<T>(
     model, system, user, schema,
     maxTokens: spec.maxTokens,
     normalise: spec.normalise ? (raw) => spec.normalise!(raw, brief) : undefined,
-    validate: validate ? (out) => validate(out, brief) : undefined,
+    validate: (out) => {
+      const prose = natalProseRepairs(out);
+      const own = validate ? validate(prose.output, brief) : clean(prose.output);
+      return { output: own.output, checks: [...prose.checks, ...own.checks] };
+    },
     serviceTier: options.serviceTier,
     signal: options.signal,
     carry: options.carry,

@@ -106,6 +106,21 @@ test("a blind run writes no houses key and no triad.rising, and says so in meta"
   assert.ok(out.meta.wordCount > 100);
 });
 
+// The first release lab (2026-10-02): one natal section on mix B kept a semicolon, which the pair already repaired in code.
+test("a semicolon in natal prose becomes a full stop before storage, and a claim quoting across it follows", async () => {
+  const saved = REPLIES.natal_relationships;
+  const joined = "You investigate first; commit second.";
+  REPLIES.natal_relationships = { ...(saved as object), howYouLove: joined, claims: claims(joined) };
+  try {
+    const out = await generateInterpretation(blindCurie(), "Marie Curie");
+    assert.equal(out.relationships.howYouLove, "You investigate first. Commit second.");
+    assert.equal(out.relationships.claims[0].quote, "You investigate first. Commit second.");
+    assert.ok(!JSON.stringify(out).includes(";"), "no semicolon reaches the stored report");
+  } finally {
+    REPLIES.natal_relationships = saved;
+  }
+});
+
 // R05's triad failure (MB-62): the prose was fine and one claim quote was a
 // paraphrase, so the section retried the prose three times and the report
 // failed. Now the claims are rewritten against the prose first.
