@@ -1,7 +1,7 @@
 # Review 02/10
 
 Ideation 2026-10-02 with the Owner from the Notion page "Review 02/10" (three notes for Claude and seven
-findings on staging after R13). Artifact: ARTIFACT_URL. Status: **draft**.
+findings on staging after R13). Artifact: https://claude.ai/artifact/8iHkhBkbfVApsDMvuqaRk8. Status: **draft**.
 Touches `landing-and-ai-search` (the home sections, /sample's run, the free chart's fields),
 `review-01-10` (the two differences, ADR-173), `natal-report-ui` (the wheel's points) and the engine.
 **Brain:** Chiron's position changes in `packages/engine` (dry lab; the first Release's lab writes with it).
@@ -51,14 +51,25 @@ shipped as its own pull request outside any round (see "Done outside the round")
   draws their glyphs in a bundled symbol face so ☊ and ☋ render the same on every device, draws the South
   Node at the line colour with a faint dashed line joining the pair through the centre, and the tap or
   hover chip reads the full name and degree ("North Node · 21.8° Taurus · 4th"), not "NOR".
-- **Chiron.** `packages/engine/src/chartCalculation.ts` replaces the hand-made Kepler orbit (its mean
-  anomaly at J2000 is about 160° wrong) with a committed table of Chiron's geocentric ecliptic longitude
-  from JPL Horizons, 1900 to 2100, interpolated; retrograde and speed come from the table. Values and the
-  table's step follow the verified research (CHIRON_VERDICT). A test pins Audrey Hepburn's and Marie
-  Curie's Chiron to Horizons within 0.1°, and the generator script and its Horizons query are committed
-  so the table can be rebuilt.
-- Brain change: the dry lab runs in the round; stored reports keep their text (MB-NN: what to say about
-  reports already written with the old Chiron).
+- **Chiron.** `packages/engine/src/chartCalculation.ts` replaces the hand-made Kepler orbit with a
+  committed table of Chiron's geocentric apparent ecliptic longitude of date from JPL Horizons (COMMAND
+  2060, CENTER 500@399, QUANTITIES 31), every 10 days from 1900-01-01 to 2101, interpolated (cubic);
+  retrograde and speed come from the table. The generator script and its query are committed. Outside
+  the table's range the chart omits Chiron rather than guess.
+- Verified 2026-10-02 (claims re-fetched): the engine's J2000 mean anomaly is 187.41° where JPL's
+  elements give 27.72° (Celestia's JPL-derived elements), and it subtracts astronomy-engine's equatorial
+  Earth vector from an ecliptic one (astronomy-engine docs). A published Horizons table (Galaxia, 10-day,
+  1900 to 2101) read byte for byte agrees with an independent JPL DE fixture (falcon-ephemeris) to 0.003°
+  at 1990-01-01 12:00 (103.813°) and 2025-06-15 (26.276°), and gives 85.261° at 1987-12-30 04:30 (that
+  project's own test: 85.26°). It puts Audrey Hepburn's Chiron at **40.04°, 10.0° Taurus, 4th house**;
+  the engine says 7° Capricorn, 12th.
+- Tests pin those four instants to within 0.05°. The builder generates our own table from Horizons
+  (this container's network policy blocks `ssd.jpl.nasa.gov`; the Owner adds it to the environment's
+  allowed domains). Without it: JPL's J2000 osculating elements with the frame fixed and precession to
+  date, held to the same four tests, and the table follows when the host is allowed.
+- Brain change: the dry lab runs in the round. Charts are stored per profile and revision
+  (`chart_data`), so reports already written keep the old Chiron; before launch they are staging test
+  reports only, so nothing is migrated.
 
 ### 5. Our own date and time fields (findings 4 and 5, Q2)
 - One shared `BirthDateField` and one shared `BirthTimeField` replace the native `type="date"` and
@@ -115,8 +126,9 @@ shipped as its own pull request outside any round (see "Done outside the round")
    two columns on desktop with no empty column.
 7. On the wheel, neither node carries an R; their chips name them in full; ☊ and ☋ render from the bundled
    face (checked in a test of the font's coverage).
-8. Audrey Hepburn's Chiron and Marie Curie's are within 0.1° of Horizons; the old Kepler code is gone;
-   the dry lab is pasted into the round report.
+8. Chiron is within 0.05° of the four verified instants (Audrey Hepburn 40.04°, 1987-12-30 85.26°,
+   1990-01-01 103.81°, 2025-06-15 26.28°); the old Kepler code is gone; the dry lab is pasted into the
+   round report.
 9. After the first Release, /sample's head shows the Release's date and run; every home claim anchors on
    /sample.
 10. The gate, the sentinel and site checks pass as usual.
@@ -149,8 +161,8 @@ the circle section's three rows, the facts with the line struck, and the three q
 3. The home page and /method no longer promise the credit back; the refund rules stand (ADR-142).
 4. The wheel draws the nodes without an R, in a bundled symbol face, the South Node quieter and joined to
    the North Node; their chips name them in full.
-5. Chiron comes from a committed JPL Horizons table, 1900 to 2100, interpolated; the Kepler
-   approximation is retired.
+5. Chiron comes from a committed JPL Horizons table, 1900 to 2101, interpolated; the hand-made Kepler
+   orbit is retired. Audrey Hepburn's Chiron is 10.0° Taurus, 4th house.
 6. Birth date and time are our own fields; their order and clock follow the browser's language, never
    the location; the API's format is unchanged.
 7. /sample shows Audrey Hepburn's run from the latest Release that passed; each passing Release
