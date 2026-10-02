@@ -9,7 +9,7 @@ import { Router, type IRouter } from "express";
 import { randomUUID } from "node:crypto";
 import { desc, eq, gte } from "drizzle-orm";
 import { z } from "zod/v4";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { cspViolationsTable, db, generationFailuresTable, labRunsTable, type InsertLabRun, type LabRun } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
@@ -17,7 +17,8 @@ import { labGuard, labReadOnlyGuard } from "../lib/labGuard.js";
 import {
   BudgetError, REPLAY_SECTIONS, baseFromRows, budgetUsd, catalogueForPanel, dbStore, estimateReplayUsd, monthKey, monthStart, rowsOfRun, runReplayJob, startReplay,
 } from "../lib/labReplay.js";
-import { dryNatal, dryPair } from "../lib/labDry.js";
+import { dryInjection, dryNatal, dryPair, type InjectionFixture, type InjectionRow } from "../lib/labDry.js";
+import { MATRIX_CHARTS } from "../lib/labRules.js";
 import { importLabel } from "../lib/labImport.js";
 import { failureCounts } from "../lib/failureLog.js";
 import { cspWindowStart } from "../lib/csp.js";
@@ -25,7 +26,7 @@ import type { FailureCode } from "../lib/failureReasons.js";
 import { CATALOGUE, MODELS, tierFor, type ModelId } from "../lib/models.js";
 import { logger } from "../lib/logger.js";
 import { WORD_TARGETS, type ReportSectionId } from "../prompts/index.js";
-import type { PairInput } from "../lib/pairBrief.js";
+import { LENSES, type PairInput } from "../lib/pairBrief.js";
 
 const router: IRouter = Router();
 router.use("/admin/lab", labGuard, labReadOnlyGuard);
@@ -209,12 +210,72 @@ async function pairInputOf(pairName: string, base: string, lens: string | undefi
   };
 }
 
+/** The pair the injection pass renders its hostile names over: its runs stay, its names are swapped (as report-lab --dry). */
+const INJECTION_PAIR = "curie-winfrey";
+
+export interface InjectionLine {
+  fixture: string;
+  set: string;
+  section: string;
+  clean: boolean;
+  leak: string | null;
+  error?: string;
+}
+
+/** The injection pass as the Lab page reads it: unavailable with a plain reason, or every prompt and its verdict. */
+export type InjectionReport =
+  | { available: false; reason: string }
+  | { available: true; prompts: number; leaked: number; notRendered: number; rows: InjectionLine[] };
+
+/** A prompt is clean only when it rendered and nothing escaped its block; one that could not render proves nothing. */
+export function injectionReport(rows: InjectionRow[]): InjectionReport {
+  const lines = rows.map((r): InjectionLine => ({
+    fixture: r.fixture, set: r.set, section: r.section, clean: r.leak === null && r.error === undefined, leak: r.leak, ...(r.error !== undefined ? { error: r.error } : {}),
+  }));
+  return {
+    available: true,
+    prompts: lines.length,
+    leaked: lines.filter((l) => l.leak !== null).length,
+    notRendered: lines.filter((l) => l.leak === null && l.error !== undefined).length,
+    rows: lines,
+  };
+}
+
+/** The injection fixtures on disk, sorted as the script sorts them. */
+function injectionFixtures(dir: string): InjectionFixture[] {
+  const chartsDir = join(dir, "charts");
+  return readdirSync(chartsDir)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => ({ fixture: f.replace(/\.json$/, ""), ...(JSON.parse(readFileSync(join(chartsDir, f), "utf8")) as Omit<InjectionFixture, "fixture"> & { injection?: boolean }) }))
+    .filter((f) => f.injection)
+    .sort((x, y) => x.fixture.localeCompare(y.fixture));
+}
+
+/** The same inputs `report-lab --dry` feeds the pass; a missing one is a line, never a failure of the dry run. */
+async function injectionOf(base: string, rows: LabRun[]): Promise<InjectionReport> {
+  try {
+    const dir = fixturesDir();
+    if (!dir) return { available: false, reason: "no fixtures directory beside the process" };
+    const fixtures = injectionFixtures(dir);
+    if (!fixtures.length) return { available: false, reason: "no fixture carries \"injection\": true" };
+    const standInKey = MATRIX_CHARTS.map((name) => `${name}.${base}`).find((key) => rows.some((r) => r.runKey === key && r.section === "foundation"));
+    if (!standInKey) return { available: false, reason: `no ${base} run of a matrix chart to stand in for the foundation; import the label first` };
+    const stand = baseFromRows(standInKey, rows.filter((r) => r.runKey === standInKey));
+    const pairs: PairInput[] = [];
+    for (const lens of LENSES) pairs.push(await pairInputOf(INJECTION_PAIR, base, lens));
+    return injectionReport(await dryInjection(fixtures, { natal: { subjectName: stand.subjectName, foundation: stand.foundation }, pairs }));
+  } catch (err) {
+    return { available: false, reason: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 /**
  * GET /dry?base=<label>[&pair=<fixture>[&lens=]] : level 0. Every natal
  * section's prompt rendered for the base's charts and, with a pair named,
  * every pair prompt for that pair, tokens against the baseline, a
  * strict-schema check, and whether each catalogue id is served
- * (`models.list`, no tokens). Zero usage is recorded (ADR-76, ADR-86).
+ * (`models.list`, no tokens), then the injection pass over the same stored
+ * runs (ADR-202). Zero usage is recorded (ADR-76, ADR-86).
  */
 router.get("/admin/lab/dry", async (req, res) => {
   const base = String(req.query.base ?? "r06");
@@ -249,7 +310,7 @@ router.get("/admin/lab/dry", async (req, res) => {
     } catch (err) {
       servedError = err instanceof Error ? err.message : String(err);
     }
-    return res.json({ base, pair: pairName, rows: out, served, servedError, usageRecorded: 0 });
+    return res.json({ base, pair: pairName, rows: out, served, servedError, usageRecorded: 0, injection: await injectionOf(base, rows) });
   } catch (err) {
     req.log.error({ err }, "lab dry failed");
     return res.status(500).json({ error: "internal_error", message: err instanceof Error ? err.message : "Failed to render" });

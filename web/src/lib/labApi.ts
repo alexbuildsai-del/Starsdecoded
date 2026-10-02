@@ -239,6 +239,19 @@ export interface DryRow {
   error?: string;
 }
 
+export interface InjectionLine {
+  fixture: string;
+  set: string;
+  section: string;
+  clean: boolean;
+  leak: string | null;
+  error?: string;
+}
+
+export type InjectionReport =
+  | { available: false; reason: string }
+  | { available: true; prompts: number; leaked: number; notRendered: number; rows: InjectionLine[] };
+
 export interface DryResponse {
   base: string;
   pair: string | null;
@@ -246,6 +259,7 @@ export interface DryResponse {
   served: Record<string, boolean>;
   servedError: string | null;
   usageRecorded: number;
+  injection: InjectionReport;
 }
 
 export interface ReplayStatus {
