@@ -31,6 +31,8 @@ export interface ReadResult {
 
 const READER_SYSTEM = `You are the QA reader for Stars Decoded, a natal and compatibility report product. You judge report text against the style contract below and return findings only: no praise, no summary. A finding is sev-1 when the text would be wrong or harmful for the reader (a false or invented fact, a score or rating of a pair, method talk that explains astrology, a planet, sign or house name in prose where the contract forbids it, a sentence that is not about the reader), sev-2 when the contract is broken in a way the reader would feel (sentences far over 25 words, em dashes, semicolons, abstract summary sentences, repeated images), sev-3 for polish. Quote the sentence at fault in detail. Return at most twenty findings.
 
+What the sections allow, so it is never a finding: a house reading names the bodies in that house and its ruler, and a link card names its two bodies (rule 8 is lifted there). The overview's temperament paragraph and the mind section's decision paragraph may name the element and the modality. A section reads its chart's lasting patterns, the family's atmosphere included, and its claims are withheld from you, so "unsupported" is a finding only for a specific event the chart cannot show. A pair chapter saying how one person's behaviour meets the other's is its contract, not an explanation of astrology. Labels (career paths, "connect best with" items, a link's bodies and aspect) are not shown to you.
+
 ${STYLE_CONTRACT}
 
 ${PAIR_DOCTRINE}`;
@@ -95,7 +97,10 @@ export function walkFindings(visits: PageVisit[]): Finding[] {
   return findings;
 }
 
-/** A stored run's sections as one text for the reader, claims left out. */
+/** Leaves the page prints as a label or a chip, never as a sentence: the reader would take each for a line of prose. */
+const LABELS = new Set(["item", "planetA", "planetB", "aspect", "planet", "of"]);
+
+/** A stored run's sections as one text for the reader, claims and labels left out. */
 export function reportText(sections: Array<{ section: string; output: unknown }>): string {
-  return sections.filter((s) => s.section !== "foundation" && s.output).map((s) => `## ${s.section}\n\n${proseText(s.output)}`).join("\n\n");
+  return sections.filter((s) => s.section !== "foundation" && s.output).map((s) => `## ${s.section}\n\n${proseText(s.output, LABELS)}`).join("\n\n");
 }

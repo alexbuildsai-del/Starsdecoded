@@ -37,13 +37,13 @@ const HEADINGS = new Set(["title", "label"]);
  * are objects (a raw string is a parse fallback), and every variant of a card
  * shares its section's schema, so the same leaves are measured on each side.
  */
-export function proseText(value: unknown): string {
+export function proseText(value: unknown, alsoSkip: ReadonlySet<string> = new Set()): string {
   const leaves: string[] = [];
   const walk = (v: unknown): void => {
     if (typeof v === "string") { if (v.trim()) leaves.push(v.trim()); return; }
     if (Array.isArray(v)) { v.forEach(walk); return; }
     if (v && typeof v === "object") {
-      for (const [k, x] of Object.entries(v as Record<string, unknown>)) if (!NOT_PROSE.has(k) && !HEADINGS.has(k)) walk(x);
+      for (const [k, x] of Object.entries(v as Record<string, unknown>)) if (!NOT_PROSE.has(k) && !HEADINGS.has(k) && !alsoSkip.has(k)) walk(x);
     }
   };
   walk(value);

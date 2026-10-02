@@ -13,7 +13,7 @@ process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 const { runQaAgent } = await import("./index.js");
 const { findChromium } = await import("./browser.js");
 const { PERSONAS, FORBIDDEN_ACTIONS, RETIRED_NAME } = await import("./personas.js");
-const { walkFindings } = await import("./reader.js");
+const { reportText, walkFindings } = await import("./reader.js");
 const { emptySection } = await import("../usage.js");
 type InsertLabRun = import("@workspace/db").InsertLabRun;
 type PageVisit = import("./browser.js").PageVisit;
@@ -101,4 +101,15 @@ test("a clean walk and a clean read pass", async () => {
   const usage = { ...emptySection("qa:natal", "gpt-5.2"), attempts: 1 };
   const out = await runQaAgent({ webOrigin: "https://staging.test", natalRunKey: null, pairRunKey: null, walker: { walk: async () => [visit({})] }, reader: { read: async () => ({ findings: [], usage }), see: async () => ({ findings: [], usage }) }, store: { sections: async () => [], record: async () => undefined }, model: "gpt-5.2" });
   assert.equal(out.status, "pass");
+});
+
+test("the reader gets the prose, never a label leaf it would take for a line of prose", () => {
+  const text = reportText([
+    { section: "relationships", output: { howYouLove: "You love slowly.", connectBestWith: [{ item: "A Moon or Venus in an earth sign", reason: "they stay" }], claims: [{ quote: "You love slowly." }] } },
+    { section: "pair:links", output: { links: [{ planetA: "venus", planetB: "mars", aspect: "trine", reading: "You warm each other up." }] } },
+  ]);
+  assert.match(text, /You love slowly\./);
+  assert.match(text, /they stay/);
+  assert.match(text, /You warm each other up\./);
+  for (const label of ["A Moon or Venus in an earth sign", "venus", "mars", "trine"]) assert.ok(!text.includes(label), `${label} is a label`);
 });
