@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_ANSWER, PART_CENTRES, WINDOW_ABOUT, WINDOW_EXACT, WINDOW_PART, WINDOW_UNKNOWN,
-  fromValue, readout, risingReadout, timeOfBirthLabel, toValue,
+  DEFAULT_ANSWER, PART_CENTRES, PART_LABELS, WINDOW_ABOUT, WINDOW_EXACT, WINDOW_PART, WINDOW_UNKNOWN,
+  fromValue, partLabels, readout, risingReadout, timeOfBirthLabel, toValue,
+  type PartOfDay,
 } from "./birth-time";
 import { hintFor, ELSEWHERE } from "./birth-record-hints";
 import type { Horizon, HorizonFact } from "@/types/chart";
@@ -37,6 +38,28 @@ describe("the three modes map to one representation", () => {
       const v = toValue(a)!;
       expect(toValue(fromValue(v))).toEqual(v);
     }
+  });
+});
+
+describe("the parts of the day in the reader's clock", () => {
+  it("are PART_LABELS on the 24-hour clock, each its centre three hours either way, 24:00 ending the day", () => {
+    expect(partLabels(24)).toBe(PART_LABELS);
+    const hhmm = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    for (const part of Object.keys(PART_CENTRES) as PartOfDay[]) {
+      const [h, m] = PART_CENTRES[part].split(":").map(Number);
+      const from = (h * 60 + m - WINDOW_PART + 1440) % 1440;
+      expect(PART_LABELS[part]).toBe(`${part[0].toUpperCase()}${part.slice(1)}, ${hhmm(from)} to ${hhmm(from + 2 * WINDOW_PART)}`);
+    }
+    expect(PART_LABELS.evening).toBe("Evening, 18:00 to 24:00");
+  });
+
+  it("keep the site's 12-hour words, each hour and its half of the day held together by a no-break space", () => {
+    expect(partLabels(12)).toEqual({
+      morning: "Morning, 6\u00a0am to noon",
+      afternoon: "Afternoon, noon to 6\u00a0pm",
+      evening: "Evening, 6\u00a0pm to midnight",
+      night: "Night, midnight to 6\u00a0am",
+    });
   });
 });
 

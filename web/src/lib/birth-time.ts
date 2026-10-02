@@ -4,6 +4,7 @@
  * and every readout string lives here as a pure function; the control and
  * the form only render them.
  */
+import { clockWords, type Clock } from "@/lib/date-entry";
 import type { Horizon, HorizonFact, HorizonStatus } from "@/types/chart";
 
 export type BirthTimeMode = "known" | "roughly" | "unknown";
@@ -31,12 +32,25 @@ export const PART_CENTRES: Record<PartOfDay, string> = {
   night: "03:00",
 };
 
+/** On the 24-hour clock, which the prerender and the first render use (reading 5). 24:00 ends a day where 00:00 starts one. */
 export const PART_LABELS: Record<PartOfDay, string> = {
-  morning: "Morning, 6 am to noon",
-  afternoon: "Afternoon, noon to 6 pm",
-  evening: "Evening, 6 pm to midnight",
-  night: "Night, midnight to 6 am",
+  morning: "Morning, 06:00 to 12:00",
+  afternoon: "Afternoon, 12:00 to 18:00",
+  evening: "Evening, 18:00 to 24:00",
+  night: "Night, 00:00 to 06:00",
 };
+
+const PART_LABELS_12: Record<PartOfDay, string> = {
+  morning: `Morning, ${clockWords("06:00", 12)} to noon`,
+  afternoon: `Afternoon, noon to ${clockWords("18:00", 12)}`,
+  evening: `Evening, ${clockWords("18:00", 12)} to midnight`,
+  night: `Night, midnight to ${clockWords("06:00", 12)}`,
+};
+
+/** The parts of the day in the reader's clock (reading 7): "Morning, 6 am to noon" or "Morning, 06:00 to 12:00". */
+export function partLabels(clock: Clock): Record<PartOfDay, string> {
+  return clock === 12 ? PART_LABELS_12 : PART_LABELS;
+}
 
 export const MODE_LABELS: Record<BirthTimeMode, { title: string; hint: string }> = {
   known: { title: "I know it", hint: "As written on the record." },
