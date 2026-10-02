@@ -3,22 +3,25 @@
  * known, and the birth form's own place field, which starts on the visitor's
  * city. The date and the time sit two to a row or, when the form is narrow, one;
  * the place has a row of its own, so a long name and the list of matches get the
- * form's whole width. The time is wide enough for its AM or PM at every width,
- * and on a phone every input is 16 px so the browser does not zoom into it.
+ * form's whole width. The date and the time are typed straight through, in the
+ * reader's order and clock, and focus follows them to the place (ADR-222); on a
+ * phone every input is 16 px so the browser does not zoom into it.
  * Nothing typed here is stored or sent; the place search is the field's own.
  */
 import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
+import { BirthDateField } from "@/components/BirthDateField";
+import { BirthTimeField } from "@/components/BirthTimeField";
 import { PlaceField } from "@/components/PlaceField";
 import { StatusDots } from "@/components/StatusDots";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { GeocodeResult } from "@/lib/places";
 import { visitorZone } from "@/lib/sky-now";
 import { EARLIEST_BIRTH, PLACE_PROBLEM, birthDateProblem, todayOf, visitorPlace, type SkyBirth } from "@/site/lib/sky";
 
-// The place field's own label and input, so the three fields read as one form.
+// The place field's own label, so the three fields read as one form.
 const LABEL = "font-label text-xs tracking-wide uppercase text-muted-foreground";
-const FIELD = "h-12 border-border/60 bg-card font-numeric text-base text-foreground [color-scheme:dark] md:text-sm";
+
+const focusById = (id: string) => document.getElementById(id)?.focus();
 
 export interface SkyFormProps {
   onShow: (birth: SkyBirth) => void;
@@ -43,7 +46,6 @@ export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFo
   const [today, setToday] = useState<string | undefined>(undefined);
   const [problem, setProblem] = useState<{ field: "date" | "place"; text: string } | null>(null);
   const picked = useRef(false);
-  const ownDate = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const now = new Date();
@@ -51,10 +53,10 @@ export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFo
     if (!picked.current) setPlace(visitorPlace(now, visitorZone()));
   }, []);
 
-  const setDateEl = (el: HTMLInputElement | null) => {
-    ownDate.current = el;
-    if (dateRef) dateRef.current = el;
-  };
+  // The date field is a component that takes an id, not a ref, so the page's handle is found by that id.
+  useEffect(() => {
+    if (dateRef) dateRef.current = document.getElementById(`${id}date`) as HTMLInputElement | null;
+  }, [dateRef, id]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -62,12 +64,12 @@ export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFo
     const wrongDate = birthDateProblem(date, today ?? todayOf(new Date()));
     if (wrongDate) {
       setProblem({ field: "date", text: wrongDate });
-      ownDate.current?.focus();
+      focusById(`${id}date`);
       return;
     }
     if (!place) {
       setProblem({ field: "place", text: PLACE_PROBLEM });
-      document.getElementById(`${id}place`)?.focus();
+      focusById(`${id}place`);
       return;
     }
     setProblem(null);
@@ -89,33 +91,28 @@ export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFo
           <Label htmlFor={`${id}date`} className={LABEL}>
             Birth date
           </Label>
-          <Input
-            ref={setDateEl}
+          <BirthDateField
             id={`${id}date`}
-            type="date"
+            value={date}
             min={EARLIEST_BIRTH}
             max={today}
-            value={date}
-            onChange={(event) => {
-              setDate(event.target.value);
+            onChange={(next) => {
+              setDate(next);
               if (problem?.field === "date") setProblem(null);
             }}
-            aria-invalid={problem?.field === "date" || undefined}
-            aria-describedby={problem?.field === "date" ? `${id}problem` : undefined}
-            className={FIELD}
+            onComplete={() => focusById(`${id}time`)}
           />
         </div>
         <div className="min-w-0 space-y-2">
           <Label htmlFor={`${id}time`} className={LABEL}>
             Birth time
           </Label>
-          <Input
+          <BirthTimeField
             id={`${id}time`}
-            type="time"
             value={time}
-            onChange={(event) => setTime(event.target.value)}
-            aria-describedby={`${id}hint`}
-            className={FIELD}
+            onChange={setTime}
+            onComplete={() => focusById(`${id}place`)}
+            describedBy={`${id}hint`}
           />
         </div>
         {/* Room for the chosen place's card, which arrives with the visitor's city after hydration: the hero, which

@@ -142,8 +142,9 @@ export default function SkyPage() {
         <div>
           <p className="sd-eyebrow">{PERSONAL_REPORT}</p>
           <h2>Your {PERSONAL_REPORT} explains what your chart says about you</h2>
+          {/* MB-160 provisional: every claim, not every line, shows its part of the chart. */}
           <p>
-            It has {countWord(CHAPTERS.length)} chapters about how you think, work, love and handle money, and every line shows which part of
+            It has {countWord(CHAPTERS.length)} chapters about how you think, work, love and handle money, and every claim shows which part of
             your chart it comes from.
           </p>
         </div>

@@ -68,6 +68,15 @@ function isBody(n: string): n is Body {
   return (BODIES as readonly string[]).includes(n);
 }
 
+// MB-161 provisional: the engine's dominance breaks a tie by key order, and a writer told "Dominant
+// element fire" on a three-way tie called fire the strongest (QA-01 #4), so a shared top reads as a tie.
+function leaderLine(kind: "element" | "modality", counts: Record<string, number>): string {
+  const top = Math.max(...Object.values(counts));
+  const tied = Object.keys(counts).filter((k) => counts[k] === top);
+  if (tied.length === 1) return `Dominant ${kind} ${tied[0]}.`;
+  return `No dominant ${kind}: ${tied.slice(0, -1).join(", ")} and ${tied[tied.length - 1]} tie at ${top}, so none leads.`;
+}
+
 export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
   const t = deriveTraditional(chart);
   const drawn = hasHorizon(chart);
@@ -158,7 +167,7 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
   const el = chart.elements, mo = chart.modalities;
   const shapeKey = chart.chartShape ? SHAPE_KEY[chart.chartShape] : undefined;
   const sp = t.sect ? sectPayload(t.sect) : null;
-  const distribution = `DISTRIBUTION: Fire ${el.fire}, Earth ${el.earth}, Air ${el.air}, Water ${el.water}. Cardinal ${mo.cardinal}, Fixed ${mo.fixed}, Mutable ${mo.mutable}. Dominant element ${chart.dominance.dominantElement}. Dominant modality ${chart.dominance.dominantModality}. Chart shape ${chart.chartShape ?? "unclassified"}${shapeKey ? ` (see ${shapeKey})` : ""}.`;
+  const distribution = `DISTRIBUTION: Fire ${el.fire}, Earth ${el.earth}, Air ${el.air}, Water ${el.water}. Cardinal ${mo.cardinal}, Fixed ${mo.fixed}, Mutable ${mo.mutable}. ${leaderLine("element", el)} ${leaderLine("modality", mo)} Chart shape ${chart.chartShape ?? "unclassified"}${shapeKey ? ` (see ${shapeKey})` : ""}.`;
   const lumBand = (b: "sun" | "moon") => {
     const p = chart.planets[b];
     return p.band ? `${BODY_LABELS[b]} travels ${p.band.fromDegree.toFixed(1)} to ${p.band.toDegree.toFixed(1)} across the band, read as ${p.sign}.` : null;

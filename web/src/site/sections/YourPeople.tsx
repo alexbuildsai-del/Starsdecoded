@@ -74,6 +74,30 @@ const PEEK = 0.45;
 const SHEET_HEIGHT = 0.96;
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+/** The dashboard's two verbs, each with its own mark: the waiting gift's teal dashed ring and the share's indigo ring. */
+const WAYS: readonly { title: string; line: string; mark: ReactNode }[] = [
+  {
+    title: "Gift them a report",
+    line: `They get a credit and write their own ${PERSONAL_REPORT}, with their own birth details.`,
+    mark: (
+      <svg aria-hidden viewBox="0 0 34 34" fill="none" className="size-[34px]">
+        <circle cx="17" cy="17" r="15.5" stroke="#3FA796" strokeDasharray="3 3" />
+        <path d="M11 15h12v8H11zM10 12h14v3H10zM17 12v11M17 12c-2-4-6-3-4 0M17 12c2-4 6-3 4 0" stroke="#3FA796" strokeWidth="1.3" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    title: "Share reports with each other",
+    line: "Share yours, read theirs, and you each learn how the other works.",
+    mark: (
+      <svg aria-hidden viewBox="0 0 34 34" fill="none" className="size-[34px]">
+        <circle cx="17" cy="17" r="15.5" stroke="#9FA8DA" />
+        <path d="M12 19l10-6M12 19a2.5 2.5 0 1 1 0-.1M22 13a2.5 2.5 0 1 1 0-.1M22 23a2.5 2.5 0 1 1 0-.1M12 19l10 4" stroke="#9FA8DA" strokeWidth="1.3" />
+      </svg>
+    ),
+  },
+];
+
 const firstOf = (id: string) => first(samplePerson(id)?.name ?? id);
 
 /** The account's reports as the dashboard's rows name them, without the row's door: a sample has no report to open. */
@@ -333,9 +357,19 @@ export default function YourPeople() {
             Add the people you care about
           </h2>
           <p className="sd-sub">
-            You can add your partner, parents, kids or friends, and each of them gets their own {PERSONAL_REPORT}. They show up around you
-            on your dashboard, so you can tap anyone to see their chart.
+            Add your partner, parents, kids or friends. They show up around you on your dashboard, so you can tap anyone to see their chart.
           </p>
+          <ul className="m-0 grid max-w-[640px] list-none gap-2 p-0">
+            {WAYS.map((way) => (
+              <li key={way.title} className="grid grid-cols-[34px_minmax(0,1fr)] items-start gap-3 rounded-xl border border-[var(--line-soft)] bg-[rgba(6,8,12,.55)] p-3">
+                {way.mark}
+                <div>
+                  <p className="m-0 font-display text-[17px] leading-[1.3] text-[var(--paper)]">{way.title}</p>
+                  <p className="m-0 text-[13px] leading-[1.5] text-[var(--paper-dim)]">{way.line}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
         <div className="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-9">
           <figure className="m-0 min-w-0 md:sticky md:top-[calc(var(--nav)+24px)]">

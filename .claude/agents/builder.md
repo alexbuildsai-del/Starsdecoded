@@ -19,6 +19,9 @@ Do the work. Then, on the packages you touched:
 `api/src/lib/` or prompt changes, also run the report lab if the card says so.
 If the gate fails, fix what your change broke and run it once more.
 
+Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller
+outside your files is named in your report, never left on the old shape (lessons, promoted R14).
+
 Commit on the round branch with a message that says what changed and why,
 one commit per card unless the card says otherwise.
 

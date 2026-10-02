@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { calculateNatalChart, offsetAtBirth } from "@workspace/engine";
 import {
   PART_CENTRES, PART_LABELS, WINDOW_ABOUT, WINDOW_EXACT, WINDOW_UNKNOWN,
-  readout, risingReadout, toValue, type PartOfDay,
+  partLabels, readout, risingReadout, toValue, type PartOfDay,
 } from "@/lib/birth-time";
 import { houseWithWord } from "@/lib/evidence-glossary";
 import { elementLead, modalityLine } from "@/lib/sky-card";
@@ -94,6 +94,39 @@ describe("the birth-time plates", () => {
       expect(hours.length).toBeGreaterThan(0);
       expect(`${part}, ${hours}`).toBe(PART_LABELS[keys[i]]);
     });
+  });
+
+  it("print the same parts on a 12-hour clock as the form's chips do, and the 24-hour clock without one", () => {
+    const labels = partLabels(12);
+    const keys = Object.keys(PART_CENTRES) as PartOfDay[];
+    expect(partsOfDay(24)).toEqual(partsOfDay());
+    partsOfDay(12).forEach(({ part, hours }, i) => expect(`${part}, ${hours}`).toBe(labels[keys[i]]));
+    expect(partsOfDay(12)[0].hours).toBe("6\u00a0am to noon");
+  });
+
+  it("print each part and its hours exactly as written, in the day's order, on either clock", () => {
+    expect(partsOfDay(24)).toEqual([
+      { part: "Morning", hours: "06:00 to 12:00" },
+      { part: "Afternoon", hours: "12:00 to 18:00" },
+      { part: "Evening", hours: "18:00 to 24:00" },
+      { part: "Night", hours: "00:00 to 06:00" },
+    ]);
+    expect(partsOfDay(12)).toEqual([
+      { part: "Morning", hours: "6\u00a0am to noon" },
+      { part: "Afternoon", hours: "noon to 6\u00a0pm" },
+      { part: "Evening", hours: "6\u00a0pm to midnight" },
+      { part: "Night", hours: "midnight to 6\u00a0am" },
+    ]);
+  });
+
+  it("keep the separator out of a part, and a plain space out of the hours' am and pm", () => {
+    for (const clock of [12, 24] as const) {
+      for (const { part, hours } of partsOfDay(clock)) {
+        expect(part).not.toContain(",");
+        expect(hours.startsWith(" ") || hours.endsWith(" ")).toBe(false);
+        expect(hours).not.toMatch(/\d [ap]m/);
+      }
+    }
   });
 });
 

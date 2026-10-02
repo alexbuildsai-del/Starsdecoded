@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "outDir": "out-tsc/middleware",
+    "rootDir": ".",
+    "lib": ["es2022", "webworker"]
+  },
+  "files": ["middleware.ts"]
+}

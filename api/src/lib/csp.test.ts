@@ -7,6 +7,10 @@ import { webOrigins } from "../middlewares/origin.js";
 
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.LOG_LEVEL = "silent";
+// A forwarded address counts only on a call through our edge (ADR-224), so every post that names one carries the edge's value,
+// made up here and past the 32 characters the variable needs to count.
+const EDGE = "edge-value-not-real-padded-to-length-x";
+process.env.EDGE_PROXY_SECRET = EDGE;
 const { cspReportRouter } = await import("../routes/cspReport.js");
 type CspStore = import("../routes/cspReport.js").CspStore;
 type CspCount = import("./csp.js").CspCount;
@@ -181,7 +185,7 @@ async function serve(store: CspStore) {
 function post(url: string, type: string, body: unknown, client = "203.0.113.9") {
   return fetch(url, {
     method: "POST",
-    headers: { "content-type": type, "x-vercel-forwarded-for": client },
+    headers: { "content-type": type, "x-vercel-forwarded-for": client, "x-edge-proxy-secret": EDGE },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }

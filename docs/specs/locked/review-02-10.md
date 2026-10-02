@@ -1,7 +1,7 @@
 # Review 02/10
 
 Ideation 2026-10-02 with the Owner from the Notion page "Review 02/10" (three notes for Claude and seven
-findings on staging after R13). Artifact: https://claude.ai/artifact/8iHkhBkbfVApsDMvuqaRk8. Status: **draft**.
+findings on staging after R13). Artifact: https://claude.ai/artifact/8iHkhBkbfVApsDMvuqaRk8. Status: **locked 2026-10-02** (ADR-218 to 226).
 Touches `landing-and-ai-search` (the home sections, /sample's run, the free chart's fields),
 `review-01-10` (the two differences, ADR-173) and the engine (Chiron).
 **Brain:** Chiron's position changes in `packages/engine` (dry lab; the first Release's lab writes with it).
@@ -54,8 +54,8 @@ shipped as its own pull request outside any round (see "Done outside the round")
   North and South Nodes, not Chiron.
 - `packages/engine/src/chartCalculation.ts` replaces the hand-made Kepler orbit with a committed table of
   Chiron's geocentric apparent ecliptic longitude of date from JPL Horizons (COMMAND 2060, CENTER 500@399,
-  QUANTITIES 31), every 10 days from 1900-01-01 to 2101, interpolated (cubic); retrograde and speed come
-  from the table. The generator script and its query are committed. Outside the range the chart omits
+  QUANTITIES 31), every 10 days from 1800-01-01 to 2150-01-01, interpolated (cubic); retrograde and speed
+  come from the table. 1800 covers the fixtures' oldest chart (Marie Curie, 1867). The generator script and its query are committed. Outside the range the chart omits
   Chiron rather than guess. No fallback formula: a two-body orbit drifts with Saturn's pull, so it is not
   a fix.
 - Verified 2026-10-02 (claims re-fetched): the engine's J2000 mean anomaly is 187.41° where JPL's
@@ -65,9 +65,10 @@ shipped as its own pull request outside any round (see "Done outside the round")
   at 1990-01-01 12:00 (103.813°) and 2025-06-15 (26.276°), and gives 85.261° at 1987-12-30 04:30 (that
   project's own test: 85.26°). It puts Audrey Hepburn's Chiron at **40.04°, 10.0° Taurus, 4th house**;
   the engine says 7° Capricorn, 12th.
-- Tests pin those four instants to within 0.05°. The table is made in the round from Horizons, which
-  needs `ssd.jpl.nasa.gov` in the cloud environment's allowed domains (blocked today; the Owner adds it).
-  If it is still blocked when the card starts, the Chiron card waits and the rest of the round goes on.
+- Confirmed against Horizons itself, 2026-10-02 (the Owner allowed `ssd.jpl.nasa.gov`): 1929-05-04 02:00 UT
+  40.0382°, 1990-01-01 12:00 103.8132°, 2025-06-15 00:00 26.2791°, 1987-12-30 04:30 85.2601°, and Marie
+  Curie, 1867-11-07 10:36 UT, 352.3275° (22.3° Pisces; the engine says 119.36°, Cancer). Tests pin these
+  five within 0.05°.
 - Brain change: the dry lab runs in the round. Charts are stored per profile and revision
   (`chart_data`), so reports already written keep the old Chiron; before launch they are staging test
   reports only, so nothing is migrated.
@@ -131,8 +132,8 @@ shipped as its own pull request outside any round (see "Done outside the round")
    before (a screenshot diff of the circle at 390 and 1440 px against main).
 7. "You get your credit back if something goes wrong" appears nowhere on home or /method; the facts sit in
    two columns on desktop with no empty column.
-8. Chiron is within 0.05° of the four verified instants (Audrey Hepburn 40.04°, 1987-12-30 85.26°,
-   1990-01-01 103.81°, 2025-06-15 26.28°); the old Kepler code is gone; the dry lab is pasted into the
+8. Chiron is within 0.05° of the five Horizons instants (Audrey Hepburn 40.04°, Marie Curie 352.33°,
+   1987-12-30 85.26°, 1990-01-01 103.81°, 2025-06-15 26.28°); the old Kepler code is gone; the dry lab is pasted into the
    round report.
 9. After the first Release, /sample's head shows the Release's date and run; every home claim anchors on
    /sample.
@@ -159,19 +160,19 @@ English (US) browser, Chiron's real place, the facts with the line struck, the d
 - The nodes stay; the secret is set; the /round skill is replaced.
 
 ## Decisions to record
-1. The section after the hero is one heading and one line from the sample run, annotated as a moment you'd
+1. ADR-218 · The section after the hero is one heading and one line from the sample run, annotated as a moment you'd
    recognise, checked against your chart and something to try; the circle pillar leaves home and /sample
    (amends ADR-173).
-2. "Add the people you care about" adds Gift them a report and Share reports with each other, in the
+2. ADR-219 · "Add the people you care about" adds Gift them a report and Share reports with each other, in the
    dashboard's verbs, and keeps its look.
-3. The home page and /method no longer promise the credit back; the refund rules stand (ADR-142).
-4. Chiron comes from a committed JPL Horizons table, 1900 to 2101, interpolated; the hand-made Kepler
+3. ADR-220 · The home page and /method no longer promise the credit back; the refund rules stand (ADR-142).
+4. ADR-221 · Chiron comes from a committed JPL Horizons table, 1800 to 2150, interpolated; the hand-made Kepler
    orbit is retired with no fallback formula. Audrey Hepburn's Chiron is 10.0° Taurus, 4th house.
-5. Birth date and time are each one typed field with auto separators and auto-advance; their order and
+5. ADR-222 · Birth date and time are each one typed field with auto separators and auto-advance; their order and
    clock follow the browser's language, never the location; the API's format is unchanged.
-6. /sample shows Audrey Hepburn's run from the latest Release that passed; each passing Release
-   refreshes it (closes MB-101).
-7. The edge secret is `EDGE_PROXY_SECRET` in Vercel and in Railway's staging and production.
-8. A lockfile with two peer variants of react or react-query fails CI.
-9. The round order: R14 is this review with Chiron and the edge secret's card, then QA, then the first
-   Release; pricing and launch become R15.
+6. ADR-223 · /sample shows Audrey Hepburn's run from the latest Release that passed; each passing Release
+   refreshes it (closes MB-101 and MB-134).
+7. ADR-224 · The edge secret is `EDGE_PROXY_SECRET` in Vercel and in Railway's staging and production.
+8. ADR-225 · A lockfile with two peer variants of react or react-query fails CI.
+9. ADR-226 · The round order: R14 is this review with Chiron and the edge secret's card, then QA, then the first
+   Release; pricing and launch become R15 (amends ADR-204; ADR-217's Timeline still follows pricing).

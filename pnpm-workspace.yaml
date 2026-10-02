@@ -11,6 +11,8 @@ packages:
 autoInstallPeers: true
 # ADR-200: a hijacked release is usually pulled within days, so nothing younger than 7 days (in minutes) resolves.
 minimumReleaseAge: 10080
+# MB-157 provisional: a package an advisory names may be listed for its fix (name@version), with the date, and leaves after 7 days.
+minimumReleaseAgeExclude: []
 
 catalog:
   '@tailwindcss/vite': ^4.1.14

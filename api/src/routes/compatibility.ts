@@ -14,7 +14,7 @@ import type { NatalChartData } from "../lib/chartCalculation.js";
 import type { ReportInterpretation } from "../lib/aiInterpretation.js";
 import { generatePairInterpretation } from "../lib/pairInterpretation.js";
 import { consumeCredit } from "../lib/credits.js";
-import { canReadProfile, pairReadable, type PairPerson } from "../lib/access.js";
+import { natalReportAccess, pairReadable, type PairPerson } from "../lib/access.js";
 import { failReport, streamInto } from "./reports.js";
 import { validationFailure } from "../lib/validation.js";
 
@@ -25,7 +25,10 @@ type ProfileRow = typeof profilesTable.$inferSelect;
 type RelationshipRow = typeof relationshipsTable.$inferSelect;
 type PartRow = { rp: typeof relationshipParticipantsTable.$inferSelect; profile: ProfileRow };
 
-/** A complete natal report the viewer can see: their own, their session's, or one they claimed as theirs. */
+/**
+ * A natal report the viewer can read, whatever their standing on it. MB-166 provisional: the picker asks the same question
+ * every read does, so a session that wrote a report loses it to its subject's claim here too (ADR-139).
+ */
 async function readableNatal(viewer: { userId: string | null; sessionId: string }, id: string): Promise<{ report: ReportRow; profile: ProfileRow } | null> {
   const rows = await db
     .select({ report: reportsTable, profile: profilesTable })
@@ -35,8 +38,7 @@ async function readableNatal(viewer: { userId: string | null; sessionId: string 
     .limit(1);
   if (!rows.length) return null;
   const { report, profile } = rows[0];
-  const readable = viewer.userId ? canReadProfile(viewer, profile) : report.sessionId === viewer.sessionId;
-  return readable ? { report, profile } : null;
+  return natalReportAccess(viewer, profile, report) ? { report, profile } : null;
 }
 
 /** The viewer's relationship for this ordered pair of profiles, or a new one under the lens. */

@@ -190,18 +190,30 @@ export interface RiseWindow {
   left: number | null;
 }
 
-/** When the rising sign at a birth rose, to the minute, and how near the birth came to either end. */
+/**
+ * When the rising sign at a birth rose, and how near the birth came to either
+ * end. The two ends are the engine's own `holdsFrom` and `holdsTo` for that
+ * birth, the pair `POST /api/horizon/preview` returns, so the page and the
+ * birth form never name two windows; the day's sweep only says which sign came
+ * next. An end at the day's own edge is null.
+ */
 export function riseWindow(birth: Birth, day: SweptDay = sweepDay(birth)): RiseWindow | null {
   const span = spanAt(day, birth.birthTime);
   if (!span) return null;
-  const minute = sweptMinute(day, birth.birthTime);
+  // MB-165 provisional: the engine's pair, until the topic settles whether the page asks the route itself.
+  const held = calculateNatalChart(
+    birth.birthDate, birth.birthTime, birth.latitude, birth.longitude, birth.timezone ?? birth.timezoneOffset, 0,
+  ).horizon.ascendant;
+  const minute = minuteOf(birth.birthTime);
+  const from = held.holdsFrom === clockOf(0) ? null : held.holdsFrom;
+  const to = held.holdsTo === clockOf(MINUTES_IN_DAY) ? null : held.holdsTo;
   return {
-    sign: span.sign,
+    sign: held.value,
     next: day.spans[day.spans.indexOf(span) + 1]?.sign ?? null,
-    from: span.from === null ? null : clockAt(day, span.from),
-    to: span.to === null ? null : clockAt(day, span.to),
-    since: span.from === null ? null : minute - span.from,
-    left: span.to === null ? null : span.to - minute,
+    from,
+    to,
+    since: from === null ? null : minute - minuteOf(from),
+    left: to === null ? null : minuteOf(to) - minute,
   };
 }
 

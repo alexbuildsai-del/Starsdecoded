@@ -77,6 +77,80 @@ function refuse(res: Response, kind: LimitKind, retryAfterSeconds: number): void
   res.status(429).json({ error: "rate_limited", message: LIMIT_LINES[kind], retryAfterSeconds });
 }
 
+/**
+ * The writes one request holds on one count. A limit takes one as the request passes it; a route whose work runs more than
+ * once raises that to one per run before any starts, and a give-back returns all of them.
+ */
+interface Held {
+  readonly kind: LimitKind;
+  readonly writes: number;
+  /** Holds `writes` in all. A rise past the limit takes nothing and answers the seconds until it would fit. */
+  hold(writes: number): Promise<number | null>;
+}
+
+/** Each count a request took on its way to its route, in the order it took them. */
+const heldBy = new WeakMap<Request, Held[]>();
+
+function register(req: Request, held: Held): void {
+  heldBy.set(req, [...(heldBy.get(req) ?? []), held]);
+}
+
+/** `all` less one occurrence of each of `some`. */
+function less(all: number[], some: number[]): number[] {
+  const rest = [...all];
+  for (const value of some) {
+    const at = rest.indexOf(value);
+    if (at >= 0) rest.splice(at, 1);
+  }
+  return rest;
+}
+
+/**
+ * Calls back with the status the route answers, at the moment it answers. A reader who hangs up never receives the answer,
+ * so the response never finishes, but the route has still said whether it spent (MB-158).
+ */
+function whenAnswered(res: Response, then: (status: number) => void): void {
+  const end = res.end;
+  res.end = function (this: Response, ...args: unknown[]) {
+    res.end = end;
+    then(res.statusCode);
+    return Reflect.apply(end, this, args);
+  } as Response["end"];
+}
+
+/** A count in the library's store, whose window is fixed from its first write, so every write held leaves at its end. */
+function heldInStore(kind: CallerKind, store: MemoryStore, first: RateLimitInfo): Held {
+  const { limit, windowMs } = LIMITS[kind];
+  // Each write remembers its window's end: given back after it, it would come off a later window's count.
+  const ends = [first.resetTime?.getTime() ?? Date.now() + windowMs];
+  const giveBack = (writes: number[]) => {
+    for (const end of writes) if (Date.now() < end) void store.decrement(first.key);
+  };
+  return {
+    kind,
+    get writes() {
+      return ends.length;
+    },
+    async hold(writes) {
+      if (writes <= ends.length) {
+        giveBack(ends.splice(writes));
+        return null;
+      }
+      const taken: number[] = [];
+      while (ends.length + taken.length < writes) {
+        const { totalHits, resetTime } = await store.increment(first.key);
+        taken.push(resetTime?.getTime() ?? Date.now() + windowMs);
+        if (totalHits > limit) {
+          giveBack(taken);
+          return secondsUntil(resetTime, windowMs);
+        }
+      }
+      ends.push(...taken);
+      return null;
+    },
+  };
+}
+
 function limitFor(kind: CallerKind): RequestHandler[] {
   const { limit, windowMs, by, counts } = LIMITS[kind];
   const store = new MemoryStore();
@@ -93,15 +167,16 @@ function limitFor(kind: CallerKind): RequestHandler[] {
     logger,
     handler: (req, res) => refuse(res, kind, secondsUntil(countOf(req, property)?.resetTime, windowMs)),
   });
-  // An answer that cost nothing, a refusal further on included, gives its count back. A request whose reader hangs up keeps
-  // it: the route may already be writing, and giving it back would let a script that never waits for an answer write without
-  // limit, which the library's own skipFailedRequests allows.
+  // An answer that cost nothing, a refusal further on included, gives back every write the request holds. A request whose
+  // reader hangs up keeps them: the route may already be writing, and giving them back would let a script that never waits
+  // for an answer write without limit, which the library's own skipFailedRequests allows.
   const giveBackUnspent: RequestHandler = (req, res, next) => {
-    const count = countOf(req, property);
-    if (count) {
-      const windowEnds = count.resetTime?.getTime() ?? Date.now() + windowMs;
+    const first = countOf(req, property);
+    if (first) {
+      const held = heldInStore(kind, store, first);
+      register(req, held);
       res.once("finish", () => {
-        if (!SPENT[counts](res.statusCode) && Date.now() < windowEnds) void store.decrement(count.key);
+        if (!SPENT[counts](res.statusCode)) void held.hold(0);
       });
     }
     next();
@@ -112,26 +187,74 @@ function limitFor(kind: CallerKind): RequestHandler[] {
 /**
  * The one count every signed-out write shares (S1). It rests on nothing a request carries, and an account never touches it.
  * Its hour rolls: a write counts for exactly an hour after it lands, so no burst fits on both sides of a window's edge. A
- * refused write is never kept, or a flood of refusals could hold writing shut for everyone signed out; an answer that cost
- * nothing gives back its own count, and a reader who hangs up keeps it, as with the other limits.
+ * refused write is never kept, or a flood of refusals could hold writing shut for everyone signed out. Whether a write is
+ * kept is the route's own answer, heard or not (MB-158): a request dropped before it spent gives its writes back, or a
+ * script that hangs up at once could hold writing shut the same way, and one whose route went on to spend keeps them.
  */
 function signedOutLimit(kind: "anonWrites"): RequestHandler[] {
   const { limit, windowMs, counts } = LIMITS[kind];
   let landed: number[] = [];
+  const recent = (now: number) => (landed = landed.filter((at) => at > now - windowMs));
+  // `writes` more fit once enough of the earliest in `others` have left the hour; more than the limit never fit.
+  const wait = (others: number[], writes: number) => {
+    const leaving = [...others].sort((a, b) => a - b);
+    const last = leaving[Math.min(leaving.length, leaving.length + writes - limit) - 1];
+    return secondsUntil(last === undefined ? undefined : new Date(last + windowMs), windowMs);
+  };
   const counted: RequestHandler = (req, res, next) => {
     if (req.userId) return next();
     const now = Date.now();
-    landed = landed.filter((at) => at > now - windowMs);
-    if (landed.length >= limit) return refuse(res, kind, secondsUntil(new Date(Math.min(...landed) + windowMs), windowMs));
+    if (recent(now).length >= limit) return refuse(res, kind, wait(landed, 1));
+    const mine = [now];
     landed.push(now);
-    res.once("finish", () => {
-      if (SPENT[counts](res.statusCode)) return;
-      const own = landed.indexOf(now);
-      if (own >= 0) landed.splice(own, 1);
+    const giveBack = (keep: number) => {
+      landed = less(landed, mine.splice(keep));
+    };
+    register(req, {
+      kind,
+      get writes() {
+        return mine.length;
+      },
+      async hold(writes) {
+        if (writes <= mine.length) {
+          giveBack(writes);
+          return null;
+        }
+        const others = less(recent(Date.now()), mine);
+        if (others.length + writes > limit) return wait(others, writes);
+        const at = Date.now();
+        while (mine.length < writes) {
+          mine.push(at);
+          landed.push(at);
+        }
+        return null;
+      },
+    });
+    whenAnswered(res, (status) => {
+      if (!SPENT[counts](status)) giveBack(0);
     });
     next();
   };
   return [counted];
+}
+
+/**
+ * MB-159 provisional: a birth-time change passes each report it updates, and every pass calls the model, so before any pass
+ * starts the route makes the request hold one write per pass on each count it took one from on its way in, and none when it
+ * passes nothing. When they do not all fit, it holds only what it came with and hears the usual 429 from the first count that
+ * is full, in the order the chain took them. True when the route may go on.
+ */
+export async function holdWrites(req: Request, res: Response, writes: number): Promise<boolean> {
+  const held = heldBy.get(req) ?? [];
+  const before = held.map((count) => count.writes);
+  for (let i = 0; i < held.length; i++) {
+    const wait = await held[i].hold(writes);
+    if (wait === null) continue;
+    for (let j = 0; j < i; j++) await held[j].hold(before[j]);
+    refuse(res, held[i].kind, wait);
+    return false;
+  }
+  return true;
 }
 
 export interface Limits {

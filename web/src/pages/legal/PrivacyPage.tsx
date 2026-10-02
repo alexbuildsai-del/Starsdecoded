@@ -177,7 +177,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           Our own cookie, <code className="sd-mono text-[14px] text-[var(--paper)]">sd_session_id</code>, remembers which
-          charts and reports are yours before you sign in. It lasts a year. Clerk, our sign-in provider, sets its own cookies
+          charts and reports are yours before you sign in. It lasts a year from your last visit. Clerk, our sign-in provider, sets its own cookies
           to know whether you're signed in.
         </p>
         <p>

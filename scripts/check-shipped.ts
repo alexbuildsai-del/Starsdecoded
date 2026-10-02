@@ -4,10 +4,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
 
 // ADR-192, R-0.4, R-13.1 (agent-roster scope 8): what should never ship fails CI with file and line. Shipped
-// code is api/src, web/src and packages/*/src, less tests, the test*.ts helpers, api/src/walk/, fixtures and
-// generated files; tooling (scripts/, web/scripts/) prints by design. console.log and localhost are read in
-// code, not comments, so a doc example or a note that names them passes; TODO and "Astra" are read anywhere,
-// because a comment is where they hide.
+// code is api/src, web/src, packages/*/src and the root middleware.ts, less tests, the test*.ts helpers,
+// api/src/walk/, fixtures and generated files; tooling (scripts/, web/scripts/) prints by design. console.log
+// and localhost are read in code, not comments, so a doc example or a note that names them passes; TODO and
+// "Astra" are read anywhere, because a comment is where they hide.
 
 export type Rule = "console-log" | "localhost" | "todo" | "astra" | "web-imports-api";
 
@@ -50,13 +50,18 @@ function* walk(dir: string, skipDirs: ReadonlySet<string>): Generator<string> {
   }
 }
 
+// Vercel runs the edge middleware from the repo's root ahead of every /api call, so it ships though no src/ holds it;
+// the root's other files are tooling.
+const SHIPPED_AT_ROOT = ["middleware.ts"];
+
 function shippedFiles(root: string): string[] {
   const roots = [join(root, "api", "src"), join(root, "web", "src")];
   const packages = join(root, "packages");
   if (existsSync(packages)) {
     for (const p of readdirSync(packages)) roots.push(join(packages, p, "src"));
   }
-  return roots.flatMap((r) => [...walk(r, SKIPPED_DIRS)]);
+  const atRoot = SHIPPED_AT_ROOT.map((name) => join(root, name)).filter((file) => existsSync(file));
+  return [...atRoot, ...roots.flatMap((r) => [...walk(r, SKIPPED_DIRS)])];
 }
 
 /** The text with every comment blanked to spaces, so lines and columns stay where they were. */

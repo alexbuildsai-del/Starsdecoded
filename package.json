@@ -26,6 +26,9 @@
     "check:shipped": "pnpm --filter @workspace/scripts run check:shipped",
     "check:copies": "pnpm --filter @workspace/scripts run check:copies"
   },
+  "dependencies": {
+    "@vercel/functions": "3.9.9"
+  },
   "devDependencies": {
     "typescript": "~5.9.2",
     "prettier": "^3.9.9"

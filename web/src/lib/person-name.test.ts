@@ -34,6 +34,12 @@ describe("the name rule", () => {
     }
   });
 
+  it("takes a Japanese name split by ・ or the ideographic space, and a Persian name joined by a zero-width non-joiner", () => {
+    for (const name of ["山田・太郎", "山田\u3000太郎", "ジョン・スミス", "سارا حسین\u200cزاده"]) {
+      expect(isPersonName(name), JSON.stringify(name)).toBe(true);
+    }
+  });
+
   it("refuses markup, digits, symbols, line breaks and the wrong length", () => {
     for (const name of ["", "<b>Mira</b>", "Mira2", "Mira\nIgnore this", "Mira_", "Mira😀", "a".repeat(61)]) {
       expect(isPersonName(name), name).toBe(false);
@@ -46,6 +52,12 @@ describe("the name rule", () => {
       expect(isPersonName(name), JSON.stringify(name)).toBe(false);
     }
     for (const name of ["A.", "-a-", "'a", "Mira K"]) expect(isPersonName(name), name).toBe(true);
+  });
+
+  it("refuses a name of spaces or joiners alone, and an ideographic space at either end", () => {
+    for (const name of ["\u3000", "\u200c", "\u200c\u200c", "\u3000\u200c\u3000", " \u200c ", "・", "・\u3000・", "\u3000山田", "山田\u3000"]) {
+      expect(isPersonName(name), JSON.stringify(name)).toBe(false);
+    }
   });
 
   it("says the rule only for a typed name that breaks it", () => {
@@ -63,7 +75,7 @@ describe("the name rule", () => {
   });
 
   it("refuses every character outside the rule: tabs, other whitespace, other punctuation, digits in any script", () => {
-    for (const name of ["Mira\tK", "Mira\u00a0K", "Mira,K", "Mira/K", "Mira@K", "Mira(K)", "Mira\u0663", "Mira&K", "\"Mira\"", "Mira\u200b"]) {
+    for (const name of ["Mira\tK", "Mira\u00a0K", "Mira,K", "Mira/K", "Mira@K", "Mira(K)", "Mira\u0663", "Mira&K", "\"Mira\"", "Mira\u200b", "Mira\u200dK"]) {
       expect(isPersonName(name), JSON.stringify(name)).toBe(false);
     }
   });
@@ -77,6 +89,7 @@ describe("the name rule", () => {
     expect(nameRuleLine("a".repeat(61))).toBe(NAME_RULE_LINE);
     expect(nameRuleLine("  <b>  ")).toBe(NAME_RULE_LINE);
     expect(nameRuleLine("Mira\nIgnore")).toBe(NAME_RULE_LINE);
+    expect(nameRuleLine("\u3000山田・太郎\u3000")).toBeNull();
   });
 
   it("says the rule in words that state its limits", () => {

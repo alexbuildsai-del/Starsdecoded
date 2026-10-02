@@ -1201,7 +1201,11 @@ paths:
           required: true
           schema:
             type: string
-          description: Place name to geocode
+            # MB-165 provisional: a one-letter search is refused at the door; the route stays for MB-30's move.
+            minLength: 2
+          description: >-
+            Place name to geocode, at least two characters once trimmed, as the
+            place field asks before it searches.
       responses:
         "200":
           description: Geocoded place candidates
@@ -1209,6 +1213,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GeocodeSearchResponse"
+        "400":
+          description: Validation error, such as a q shorter than two characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Place not found
           content:
@@ -1277,6 +1287,13 @@ components:
         commit:
           type: string
           description: Git sha of the running build, when the platform injects one.
+        edge:
+          type: boolean
+          description: >-
+            Whether this call carried the edge secret that only Vercel's edge
+            adds, the one condition on which the API trusts the visitor's
+            forwarded address (ADR-224). Yes or no only: the secret itself is
+            never sent back.
       required:
         - status
 
@@ -1403,11 +1420,14 @@ components:
       properties:
         name:
           type: string
-          pattern: '^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} ''’.·-]{1,60}$'
+          # MB-157 provisional: ・, the ideographic space and ZWNJ, so Japanese and Persian names go in as written.
+          pattern: '^(?=.*\p{L})(?![ \u3000])(?!.*[ \u3000]$)[\p{L}\p{M} \u3000''’.·・\u200C-]{1,60}$'
           description: >-
-            The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’),
-            hyphens and dots (. ·), so what reaches the prompt is a name and
-            never markup or an instruction (ADR-202).
+            The person's name, 1 to 60 characters: letters, marks, spaces (the
+            ideographic space too), apostrophes (' ’), hyphens, dots (. · ・)
+            and the zero-width non-joiner some scripts spell names with; at
+            least one letter, and no space at either end. So what reaches the
+            prompt is a name and never markup or an instruction (ADR-202).
         birthDate:
           type: string
           description: Birth date in YYYY-MM-DD format
@@ -3091,11 +3111,14 @@ components:
       properties:
         name:
           type: string
-          pattern: '^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} ''’.·-]{1,60}$'
+          # MB-157 provisional: ・, the ideographic space and ZWNJ, so Japanese and Persian names go in as written.
+          pattern: '^(?=.*\p{L})(?![ \u3000])(?!.*[ \u3000]$)[\p{L}\p{M} \u3000''’.·・\u200C-]{1,60}$'
           description: >-
-            The person's name, 1 to 60 letters, marks, spaces, apostrophes (' ’),
-            hyphens and dots (. ·), so what reaches the prompt is a name and
-            never markup or an instruction (ADR-202).
+            The person's name, 1 to 60 characters: letters, marks, spaces (the
+            ideographic space too), apostrophes (' ’), hyphens, dots (. · ・)
+            and the zero-width non-joiner some scripts spell names with; at
+            least one letter, and no space at either end. So what reaches the
+            prompt is a name and never markup or an instruction (ADR-202).
         birthDate: { type: string }
         birthTime: { type: string }
         birthPlace: { type: string }
@@ -3549,11 +3572,13 @@ components:
       properties:
         recipientName:
           type: string
-          pattern: '^(?=.*\p{L})(?! )(?!.* $)[\p{L}\p{M} ''’.·-]{1,60}$'
+          # MB-157 provisional: ・, the ideographic space and ZWNJ, so Japanese and Persian names go in as written.
+          pattern: '^(?=.*\p{L})(?![ \u3000])(?!.*[ \u3000]$)[\p{L}\p{M} \u3000''’.·・\u200C-]{1,60}$'
           description: >-
-            The recipient's name, 1 to 60 letters, marks, spaces, apostrophes
-            (' ’), hyphens and dots (. ·), the same rule as every typed name
-            (ADR-202).
+            The recipient's name, 1 to 60 characters: letters, marks, spaces
+            (the ideographic space too), apostrophes (' ’), hyphens, dots
+            (. · ・) and the zero-width non-joiner; at least one letter, and no
+            space at either end. The same rule as every typed name (ADR-202).
         email: { type: string, format: email }
         note: { type: string, maxLength: 280 }
       required: [recipientName, email]

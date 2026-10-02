@@ -12,7 +12,9 @@ import { Link } from "wouter";
 import { localParts, offsetAtBirth } from "@workspace/engine";
 import { NatalWheel } from "@/components/chart/NatalWheel";
 import { houseOf, pointAt, theta, wheelRadii } from "@/components/chart/wheel-geometry";
+import { clockWords } from "@/lib/date-entry";
 import { ORDINALS, withHouseWords } from "@/lib/evidence-glossary";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { latLngLine, skySentence, sunLine, tiltToAscendant } from "@/lib/sky-now";
 import { cn } from "@/lib/utils";
@@ -58,14 +60,6 @@ const BORN_ON = formatUpdated(SAMPLE.birth.birthDate);
 
 const two = (n: number) => String(n).padStart(2, "0");
 const f = (n: number) => n.toFixed(2);
-
-/** "3 am", "3:30 pm": a birth time as a sentence says it. */
-function clockWords(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  return `${h % 12 || 12}${m ? `:${two(m)}` : ""} ${h < 12 ? "am" : "pm"}`;
-}
-
-const BORN = `${SAMPLE.name} was born at ${clockWords(SAMPLE.birth.birthTime)} on ${BORN_ON} in ${SAMPLE.place}.`;
 
 function listed(names: string[]): string {
   return names.length < 3 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
@@ -359,6 +353,9 @@ const BAR = "block h-full origin-left bg-[color:var(--indigo-lt)]";
 const BAR_EASE = "transition-transform duration-[450ms] ease-[var(--ease)]";
 
 export default function Claims() {
+  const { clock } = useEntryFormat();
+  // Built at render, since the clock is the reader's and only known once the page hydrates.
+  const born = `${SAMPLE.name} was born at ${clockWords(SAMPLE.birth.birthTime, clock)} on ${BORN_ON} in ${SAMPLE.place}.`;
   const claims = useMemo(() => homeClaims(), []);
   const chart = useMemo(() => sampleChart(), []);
   const told = useMemo(() => claims.map((c) => tell(c, chart)), [claims, chart]);
@@ -616,11 +613,12 @@ export default function Claims() {
         <div className="sd-wrap grid grid-cols-[minmax(0,1fr)_minmax(0,540px)] items-center gap-x-14 max-[900px]:grid-cols-[minmax(0,1fr)] max-[900px]:items-start max-[900px]:gap-y-2">
           <div className="grid min-w-0 content-center gap-4 max-[900px]:contents">
             <p className="sd-eyebrow max-[900px]:order-1">A real example</p>
+            {/* MB-160 provisional: the small number marks a claim, and a sentence can hold none. */}
             <h2 id="sd-claims-h" className="sd-h2 text-[clamp(32px,3.8vw,48px)] max-[900px]:order-2 max-[900px]:text-[clamp(26px,7vw,34px)]">
-              You can see where every line comes from
+              You can see where every claim comes from
             </h2>
             <p className="sd-sub max-w-[30em] text-[17.5px] max-[900px]:hidden">
-              Each line in your report has a small number that shows which part of your chart it's based on. We check every one
+              Each claim in your report has a small number that shows which part of your chart it's based on. We check every one
               before you see it.
             </p>
             <div className="grid pt-2 max-[900px]:order-4" onClick={() => setCycling(false)}>
@@ -629,7 +627,7 @@ export default function Claims() {
                 <p className={K_LINE}>
                   <span className={K_NUM}>{two(0)}</span> A real report
                 </p>
-                <p className={QUOTE}>{BORN}</p>
+                <p className={QUOTE}>{born}</p>
               </div>
               {claims.map((c, i) => {
                 const on = i === cur;

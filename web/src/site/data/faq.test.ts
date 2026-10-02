@@ -178,6 +178,13 @@ describe("the questions", () => {
   });
 });
 
+describe("what the answers promise (MB-160)", () => {
+  it("say every claim shows its part of the chart, never every line or sentence", () => {
+    expect(answerTo(`What is a ${PERSONAL_REPORT}?`)).toContain("Every claim in it shows which part of your chart it comes from.");
+    for (const item of items) expect(item.a, item.q).not.toMatch(/every (line|sentence)/i);
+  });
+});
+
 describe("a production build", () => {
   afterEach(() => {
     vi.unstubAllEnvs();

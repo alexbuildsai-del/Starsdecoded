@@ -7,6 +7,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CHART_VERSION, calculateNatalChart, hasHorizon, offsetAtBirth } from "./chartCalculation.js";
 import { chartFromFixture } from "./testFixtures.js";
+import { buildBrief } from "../prompts/brief.js";
+import { deriveTraditional } from "./traditional.js";
+import { computeOverlays, notableOverlays } from "./overlays.js";
 
 const near = (actual: number, expected: number, tol: number, what: string) =>
   assert.ok(Math.abs(actual - expected) <= tol, `${what}: expected ${expected} ± ${tol}, got ${actual}`);
@@ -59,8 +62,32 @@ test("Sun altitude: Marie Curie at noon in November in Warsaw is about 20 degree
   const c = chartFromFixture("marie-curie");
   assert.ok(hasHorizon(c));
   assert.ok(c.sunAltitude > 15 && c.sunAltitude < 25, `altitude ${c.sunAltitude}`);
-  assert.equal(c.chartVersion, 3);
-  assert.equal(CHART_VERSION, 3);
+  assert.equal(c.chartVersion, 4);
+  assert.equal(CHART_VERSION, 4);
+});
+
+// ADR-221: outside the Horizons table's 1800 to 2150 the chart has no Chiron, and nothing downstream may need one.
+test("a 1799 and a 2151 chart carry no Chiron, and the brief, the traditional factors and the overlays read them", () => {
+  const before = calculateNatalChart("1799-12-31", "12:00", 51.4779, 0, 0);
+  const after = calculateNatalChart("2151-01-01", "12:00", 51.4779, 0, 0);
+  const within = chartFromFixture("marie-curie");
+  assert.ok("chiron" in within.planets);
+  assert.match(buildBrief(within, "Ada").text, /Chiron/);
+  for (const c of [before, after]) {
+    assert.ok(!("chiron" in c.planets));
+    const brief = buildBrief(c, "Ada");
+    assert.doesNotMatch(brief.text, /Chiron/);
+    assert.ok(!("chiron" in brief.personalPlanets));
+    assert.match(brief.text, /PLACEMENTS:/);
+    const t = deriveTraditional(c);
+    assert.equal(t.planets.length, 7);
+    assert.equal(t.houseRulers?.length, 12);
+  }
+  for (const pair of [[before, after], [before, within], [within, after]] as const) {
+    const overlays = computeOverlays(pair[0], pair[1]);
+    assert.equal(overlays.length, 20, "the ten planets each way");
+    assert.ok(notableOverlays(overlays).length > 0);
+  }
 });
 
 test("Whole-sign houses are latitude-independent: Reykjavik has twelve 30° houses", () => {

@@ -90,7 +90,9 @@ export function Orrery({ provisional, chart, progress, size = 440 }: OrreryProps
     if (!s.seeded) {
       for (const b of BODIES) {
         const p = source[b];
-        s.bodies[b] = { degree: p ? p.absoluteDegree : Math.random() * 360, retrograde: p?.retrograde ?? false, settleFrom: null };
+        // A chart outside Chiron's table has no Chiron (ADR-221); a body the chart lacks is never drawn.
+        if (!p) continue;
+        s.bodies[b] = { degree: p.absoluteDegree, retrograde: p.retrograde ?? false, settleFrom: null };
       }
       s.seeded = true;
       if (chart) {

@@ -114,7 +114,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-10-02)
 
-1. R13 shipped to staging: security hardening (no CORS, Lax cookie, headers and a report-only CSP, limits and a spend ledger breaker,
-   names as data at v9 and p4, logs without personal data, supply chain) and the agent roster (tiers, tester, sentinel, hook, lessons).
-2. Next: /qa on staging (QA-01), the sentinel's full audit of `main`, then the first Release (R11, R12, R13 together; the brain changed).
-3. Then R14, pricing and launch (`R14-plan.md`; checkout, the postal address, `LAUNCHED`). Open for the Owner: MB-103, MB-104, R13's words.
+1. R14 shipped to staging: Review 02/10 (one line after the hero, Gift and Share, no credit-back line, Chiron from JPL Horizons at
+   chart version 4, typed date and time fields by language) and the edge secret behind per-address limits; R13 before it.
+2. Next: QA-02 on staging, `edge: true` in the smoke (MB-167), the sentinel's audit of `main`, the first Release (R11 to R14), /sample refreshed.
+3. Then R15, pricing and launch (`R15-plan.md`, to re-plan at its /plan; checkout, the postal address, `LAUNCHED`). Open: MB-103, MB-104.

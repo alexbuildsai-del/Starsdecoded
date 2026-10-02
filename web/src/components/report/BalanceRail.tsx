@@ -4,6 +4,7 @@
  * those hues mean anything; modality bars take the chapter accent (§9, ADR-23).
  */
 import { ELEMENT_HEX } from "@/lib/chapter-accent";
+import { leaders } from "@/lib/leaders";
 import type { ChartData } from "@/types/chart";
 
 function Bar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
@@ -20,8 +21,26 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
   );
 }
 
+/** "Fire, Earth and Water": each name capitalised, the joining word not. */
+function Names({ list }: { list: string[] }) {
+  return (
+    <>
+      {list.map((name, i) => (
+        <span key={name}>
+          {i === 0 ? "" : i === list.length - 1 ? " and " : ", "}
+          <span className="capitalize">{name}</span>
+        </span>
+      ))}
+    </>
+  );
+}
+
 export function BalanceRail({ chartData }: { chartData: ChartData }) {
   const total = Object.values(chartData.elements).reduce((a, b) => a + b, 0);
+  // The engine's dominance names the first of a tie; the counts on the bars say who shares the top (MB-124 provisional).
+  const element = leaders(chartData.elements);
+  const modality = leaders(chartData.modalities);
+  const alone = (list: string[], named: string) => (list.length ? list : [named]);
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="rp-box" style={{ marginTop: 0, maxWidth: "none" }}>
@@ -40,10 +59,10 @@ export function BalanceRail({ chartData }: { chartData: ChartData }) {
           ))}
         </div>
         <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--line-soft)" }}>
-          <div className="flex justify-between font-numeric text-xs">
+          <div className="flex justify-between gap-4 font-numeric text-xs">
             <span style={{ color: "var(--muted)" }}>Dominant</span>
-            <span className="capitalize" style={{ color: "var(--paper-dim)" }}>
-              {chartData.dominance.dominantElement} · {chartData.dominance.dominantModality}
+            <span className="min-w-0 text-right" style={{ color: "var(--paper-dim)" }}>
+              <Names list={alone(element, chartData.dominance.dominantElement)} /> · <Names list={alone(modality, chartData.dominance.dominantModality)} />
             </span>
           </div>
           {chartData.chartShape && (

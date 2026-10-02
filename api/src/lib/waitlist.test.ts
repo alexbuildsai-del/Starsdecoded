@@ -8,6 +8,7 @@ const {
   JOINS_PER_HOUR,
   RELINK_AFTER_MS,
   RateLimiter,
+  cameThroughEdge,
   clientKey,
   confirmUrl,
   confirmWaitlist,
@@ -41,10 +42,189 @@ test("campaign tags keep their words and lose the rest", () => {
   assert.equal(tag("hero-form", 4), "hero");
 });
 
-test("the client is the address Vercel forwards, else the socket's", () => {
-  assert.equal(clientKey({ "x-vercel-forwarded-for": "203.0.113.7, 76.76.21.1" }, "76.76.21.1"), "203.0.113.7");
-  assert.equal(clientKey({}, "198.51.100.2"), "198.51.100.2");
-  assert.equal(clientKey({}, undefined), "unknown");
+// Made up here, and past the 32 characters the variable needs to count; the edge's own lives only in the Vercel and
+// Railway dashboards.
+const EDGE = "edge-value-not-real-padded-to-length-x";
+const NOT_EDGE = "edge-value-not-real-padded-to-length-y";
+const VERCEL = "76.76.21.1";
+const RAILWAY_SAW = "198.51.100.2";
+
+/** Runs with EDGE_PROXY_SECRET set to `value`, or unset for undefined, and puts back what was there. */
+function withEdge<T>(value: string | undefined, run: () => T): T {
+  const before = process.env.EDGE_PROXY_SECRET;
+  if (value === undefined) delete process.env.EDGE_PROXY_SECRET;
+  else process.env.EDGE_PROXY_SECRET = value;
+  try {
+    return run();
+  } finally {
+    if (before === undefined) delete process.env.EDGE_PROXY_SECRET;
+    else process.env.EDGE_PROXY_SECRET = before;
+  }
+}
+
+test("a call came through the edge only when it carries the edge's value exactly", () => {
+  const carrying = (value: string | string[]) => ({ "x-edge-proxy-secret": value });
+  assert.equal(cameThroughEdge(carrying(EDGE), EDGE), true, "match");
+  assert.equal(cameThroughEdge(carrying(NOT_EDGE), EDGE), false, "mismatch of the same length");
+  for (const near of ["", EDGE.slice(0, -1), `${EDGE}x`, ` ${EDGE}`, EDGE.toUpperCase(), `${EDGE}, ${EDGE}`]) {
+    assert.equal(cameThroughEdge(carrying(near), EDGE), false, `mismatch ${JSON.stringify(near)}`);
+  }
+  assert.equal(cameThroughEdge({}, EDGE), false, "missing");
+  assert.equal(cameThroughEdge(carrying([EDGE, EDGE]), EDGE), false, "sent twice, so not the edge's");
+  assert.equal(cameThroughEdge(carrying(""), ""), false, "an empty value matches nothing, not even an empty header");
+  assert.equal(withEdge(EDGE, () => cameThroughEdge(carrying(EDGE))), true, "EDGE_PROXY_SECRET is read at each call");
+  assert.equal(withEdge(undefined, () => cameThroughEdge(carrying(EDGE))), false, "unset");
+});
+
+test("the client is the address Vercel forwards only on a call through the edge, else the one Railway saw", () => {
+  const forwarded = { "x-vercel-forwarded-for": "203.0.113.7, 76.76.21.1" };
+  withEdge(EDGE, () => {
+    assert.equal(clientKey({ ...forwarded, "x-edge-proxy-secret": EDGE }, VERCEL), "203.0.113.7", "through the edge");
+    assert.equal(clientKey(forwarded, RAILWAY_SAW), RAILWAY_SAW, "a forged forwarded header, no edge value");
+    assert.equal(clientKey({ ...forwarded, "x-edge-proxy-secret": NOT_EDGE }, RAILWAY_SAW), RAILWAY_SAW, "a wrong edge value");
+    assert.equal(clientKey({ "x-edge-proxy-secret": EDGE }, VERCEL), VERCEL, "the edge, with no address forwarded");
+    assert.equal(clientKey({ "x-edge-proxy-secret": EDGE, "x-vercel-forwarded-for": " , 203.0.113.7" }, VERCEL), VERCEL);
+    assert.equal(clientKey({}, undefined), "unknown");
+  });
+  withEdge(undefined, () => {
+    assert.equal(clientKey({ ...forwarded, "x-edge-proxy-secret": EDGE }, RAILWAY_SAW), RAILWAY_SAW, "unset: no call is the edge's");
+  });
+});
+
+test("a new forged address on every direct call no longer dodges a limit, and through the edge each visitor keeps their own (MB-150)", () => {
+  withEdge(EDGE, () => {
+    const limiter = new RateLimiter(2, 60_000);
+    const forged = ["192.0.2.1", "192.0.2.2", "192.0.2.3"];
+    const direct = (address: string) => limiter.take(clientKey({ "x-vercel-forwarded-for": address }, RAILWAY_SAW), 0);
+    assert.deepEqual(forged.map(direct), [true, true, false]);
+    const edge = (address: string) => limiter.take(clientKey({ "x-vercel-forwarded-for": address, "x-edge-proxy-secret": EDGE }, VERCEL), 0);
+    assert.deepEqual(forged.map(edge), [true, true, true]);
+  });
+});
+
+test("the edge's value is compared as written: whitespace, case, unicode and its normal forms all count", () => {
+  const carrying = (value: string) => ({ "x-edge-proxy-secret": value });
+  const spaced = " two words\t";
+  assert.equal(cameThroughEdge(carrying(spaced), spaced), true, "a value with spaces at its ends matches itself");
+  assert.equal(cameThroughEdge(carrying(spaced.trim()), spaced), false, "and nothing trimmed from it");
+  assert.equal(cameThroughEdge(carrying("two words"), "two  words"), false, "inner spacing counts");
+  assert.equal(cameThroughEdge(carrying(" "), " "), true, "a single space is a value");
+  assert.equal(cameThroughEdge(carrying(""), " "), false);
+  const composed = "café-edge";
+  const decomposed = "café-edge";
+  assert.equal(cameThroughEdge(carrying(composed), composed), true, "unicode matches itself");
+  assert.equal(cameThroughEdge(carrying(decomposed), composed), false, "a different spelling of the same letters is another value");
+  assert.equal(cameThroughEdge(carrying("\u{1F512}edge"), "\u{1F512}edge"), true, "outside the BMP");
+  assert.equal(cameThroughEdge(carrying("\u{1F512}edge"), "\u{1F513}edge"), false);
+  const long = "e".repeat(10_000);
+  assert.equal(cameThroughEdge(carrying(long), long), true, "a long value");
+  assert.equal(cameThroughEdge(carrying(long.slice(1)), long), false, "a long value, one short");
+  assert.equal(cameThroughEdge({ "x-edge-proxy-secret": undefined }, EDGE), false, "a header that is present but undefined");
+  assert.equal(cameThroughEdge({ "x-edge-proxy-secret": [] }, EDGE), false, "an empty list");
+  assert.equal(cameThroughEdge({ "x-edge-proxy-secret": [EDGE] }, EDGE), false, "even a list of one is not the edge's");
+  assert.equal(cameThroughEdge({ "x-vercel-forwarded-for": EDGE, "x-forwarded-for": EDGE }, EDGE), false, "the value under other names");
+});
+
+test("the variable is read trimmed, as the middleware sends it, and a blank one is unset, while a secret handed in stays as written", () => {
+  const carrying = (value: string) => ({ "x-edge-proxy-secret": value });
+  const forwarded = { "x-vercel-forwarded-for": "203.0.113.7" };
+  // What arrives from a variable with whitespace round it: the middleware trims it, as Headers.set would.
+  for (const configured of [` ${EDGE}`, `${EDGE}\t`, `\r\n${EDGE} \n`, `\u00a0${EDGE}\u00a0`, `\ufeff${EDGE}`]) {
+    const label = JSON.stringify(configured);
+    assert.equal(withEdge(configured, () => cameThroughEdge(carrying(EDGE))), true, label);
+    assert.equal(withEdge(configured, () => cameThroughEdge(carrying(configured))), false, `${label} is not what the edge sends`);
+    assert.equal(withEdge(configured, () => clientKey({ ...forwarded, ...carrying(EDGE) }, RAILWAY_SAW)), "203.0.113.7", label);
+  }
+  for (const blank of [" ", "\t", " \r\n ", "\u00a0"]) {
+    const label = JSON.stringify(blank);
+    for (const sent of ["", blank, " "]) assert.equal(withEdge(blank, () => cameThroughEdge(carrying(sent))), false, `${label}, sent ${JSON.stringify(sent)}`);
+    assert.equal(withEdge(blank, () => clientKey({ ...forwarded, ...carrying("") }, RAILWAY_SAW)), RAILWAY_SAW, label);
+  }
+  assert.equal(withEdge(EDGE, () => cameThroughEdge(carrying(`${EDGE} `))), false, "the header is compared as it arrives: HTTP has trimmed it already");
+  assert.equal(withEdge(" ", () => cameThroughEdge(carrying(" "), " ")), true, "a secret handed in is not the variable");
+});
+
+test("a variable under 32 characters once trimmed is unset, since healthz would let it be guessed, and 32 is enough", () => {
+  const short = EDGE.slice(0, 31);
+  const enough = EDGE.slice(0, 32);
+  assert.deepEqual([short.length, enough.length], [31, 32]);
+  const forwarded = { "x-vercel-forwarded-for": "203.0.113.7" };
+  for (const configured of [short, ` ${short} `, `\u00a0${short}\t`]) {
+    const label = JSON.stringify(configured);
+    assert.equal(withEdge(configured, () => cameThroughEdge({ "x-edge-proxy-secret": short })), false, label);
+    assert.equal(withEdge(configured, () => clientKey({ ...forwarded, "x-edge-proxy-secret": short }, RAILWAY_SAW)), RAILWAY_SAW, label);
+  }
+  for (const configured of [enough, ` ${enough}\n`]) {
+    const label = JSON.stringify(configured);
+    assert.equal(withEdge(configured, () => cameThroughEdge({ "x-edge-proxy-secret": enough })), true, label);
+    assert.equal(withEdge(configured, () => clientKey({ ...forwarded, "x-edge-proxy-secret": enough }, RAILWAY_SAW)), "203.0.113.7", label);
+  }
+  assert.equal(cameThroughEdge({ "x-edge-proxy-secret": short }, short), true, "a secret handed in has no floor");
+});
+
+test("a forwarded address is trusted whole as the edge wrote it: IPv6, a list, an array, spacing and an empty first entry", () => {
+  const through = (forwarded: string | string[] | undefined, ip: string | undefined = RAILWAY_SAW) =>
+    clientKey({ "x-edge-proxy-secret": EDGE, "x-vercel-forwarded-for": forwarded }, ip);
+  withEdge(EDGE, () => {
+    assert.equal(through("2001:db8::1"), "2001:db8::1", "IPv6");
+    assert.equal(through("2001:db8::1, 203.0.113.7"), "2001:db8::1", "the first of a list, IPv6 or not");
+    assert.equal(through("::ffff:203.0.113.7"), "::ffff:203.0.113.7", "an IPv4-mapped address is kept as sent");
+    assert.equal(through("  203.0.113.7  "), "203.0.113.7", "spacing trimmed");
+    assert.equal(through("203.0.113.7,"), "203.0.113.7");
+    assert.equal(through(["203.0.113.7", "203.0.113.8"]), "203.0.113.7", "a header sent twice reads its first");
+    assert.equal(through(["203.0.113.7, 76.76.21.1", "203.0.113.8"]), "203.0.113.7", "an array of lists reads the first list's first");
+    assert.equal(through([]), RAILWAY_SAW, "an empty array names nobody");
+    assert.equal(through(["", "203.0.113.7"]), RAILWAY_SAW, "an empty first entry names nobody");
+    for (const empty of ["", " ", ",", " , ", "\t"]) assert.equal(through(empty), RAILWAY_SAW, JSON.stringify(empty));
+    assert.equal(through(undefined), RAILWAY_SAW, "none forwarded");
+  });
+});
+
+test("a forwarded value the edge set is one key whatever it holds, so garbage cannot split into many limits", () => {
+  withEdge(EDGE, () => {
+    const through = (forwarded: string) => clientKey({ "x-edge-proxy-secret": EDGE, "x-vercel-forwarded-for": forwarded }, RAILWAY_SAW);
+    assert.equal(through("not-an-address"), "not-an-address");
+    assert.equal(through("not-an-address, 203.0.113.7"), "not-an-address");
+    assert.equal(through("unknown"), "unknown", "it can only name itself");
+    assert.equal(typeof through("\u0000‮"), "string");
+    // The same visitor always lands on the same key, whichever way the edge wrote the list after them.
+    assert.equal(through("203.0.113.7, 10.0.0.1"), through("203.0.113.7, 10.0.0.2"));
+  });
+});
+
+test("with no address anywhere the key is 'unknown', through the edge or not, and a socket address wins over nothing", () => {
+  withEdge(EDGE, () => {
+    const edge = { "x-edge-proxy-secret": EDGE };
+    assert.equal(clientKey(edge, undefined), "unknown", "the edge, nothing forwarded, no req.ip");
+    assert.equal(clientKey(edge, ""), "unknown", "an empty req.ip");
+    assert.equal(clientKey({ "x-vercel-forwarded-for": "203.0.113.7" }, undefined), "unknown", "a forged forwarded header never fills in for a missing req.ip");
+    assert.equal(clientKey({ "x-vercel-forwarded-for": "203.0.113.7" }, ""), "unknown");
+    assert.equal(clientKey({}, "2001:db8::2"), "2001:db8::2", "an IPv6 req.ip");
+    assert.equal(clientKey({ "x-forwarded-for": "203.0.113.7" }, RAILWAY_SAW), RAILWAY_SAW, "x-forwarded-for is never read, edge or not");
+    assert.equal(clientKey({ ...edge, "x-forwarded-for": "203.0.113.7" }, RAILWAY_SAW), RAILWAY_SAW);
+  });
+  withEdge(undefined, () => {
+    assert.equal(clientKey({ "x-edge-proxy-secret": "", "x-vercel-forwarded-for": "203.0.113.7" }, RAILWAY_SAW), RAILWAY_SAW, "unset, an empty header is not the edge");
+    assert.equal(clientKey({ "x-vercel-forwarded-for": "203.0.113.7" }, undefined), "unknown");
+  });
+  withEdge("", () => {
+    assert.equal(clientKey({ "x-edge-proxy-secret": "", "x-vercel-forwarded-for": "203.0.113.7" }, RAILWAY_SAW), RAILWAY_SAW, "set empty, the same as unset");
+  });
+});
+
+test("the limit's last allowed request and its first refused one hold per key, through the edge and past it", () => {
+  withEdge(EDGE, () => {
+    const limiter = new RateLimiter(3, 60_000);
+    const viaEdge = (address: string) => clientKey({ "x-edge-proxy-secret": EDGE, "x-vercel-forwarded-for": address }, VERCEL);
+    const a = viaEdge("203.0.113.7");
+    const b = viaEdge("2001:db8::1");
+    assert.notEqual(a, b);
+    assert.deepEqual([0, 1, 2, 3].map((i) => limiter.take(a, i)), [true, true, true, false], "the third passes, the fourth is refused");
+    assert.equal(limiter.take(b, 4), true, "another visitor through the same edge address is untouched");
+    // Direct calls all share the one address Railway saw, whatever they forge: one bucket.
+    const direct = (forged: string) => clientKey({ "x-vercel-forwarded-for": forged }, RAILWAY_SAW);
+    assert.deepEqual(["192.0.2.1", "192.0.2.2", "192.0.2.3", "192.0.2.4"].map((f, i) => limiter.take(direct(f), 10 + i)), [true, true, true, false]);
+  });
 });
 
 test("the join ceiling is one count for every caller, so a forged address cannot reopen it", () => {

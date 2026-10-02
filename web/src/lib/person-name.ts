@@ -1,8 +1,10 @@
 /**
  * The one rule for a typed name (ADR-202): the same pattern string as the three name fields in `openapi.yaml`, whose test
  * reads the contract so the two cannot drift. A stored name that breaks it still shows; it cannot be typed again.
+ * The ideographic space and the zero-width non-joiner are written as escapes because both are invisible in source.
  */
-export const PERSON_NAME_PATTERN = "^(?=.*\\p{L})(?! )(?!.* $)[\\p{L}\\p{M} '’.·-]{1,60}$";
+// MB-157 provisional: ・, the ideographic space and the zero-width non-joiner, so Japanese and Persian names go in as written.
+export const PERSON_NAME_PATTERN = "^(?=.*\\p{L})(?![ \\u3000])(?!.*[ \\u3000]$)[\\p{L}\\p{M} \\u3000'’.·・\\u200C-]{1,60}$";
 
 const PERSON_NAME = new RegExp(PERSON_NAME_PATTERN, "u");
 

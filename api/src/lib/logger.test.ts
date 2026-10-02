@@ -36,10 +36,26 @@ const QUERY_TOKEN = "q7Rk2LmN9pXc4VbZ";
 const IP = "203.0.113.7";
 const INSERT = 'insert into "profiles" ("name", "birth_date", "birth_time", "birth_place", "latitude", "longitude") values ($1, $2, $3, $4, $5, $6)';
 
+// Made up here; the edge's own value lives only in the Vercel and Railway dashboards.
+const EDGE = "edge-value-not-real";
+const POSTCODE = "00-950";
+
 const SECRETS = [
   "Marie", "Curie", "sklodowska", "1867-11-07", "11:44", "Warsaw", "52.2297", "21.0122", "Pierre", "@example.com",
-  CLERK_ID, SESSION, BEARER, QUERY_TOKEN, IP,
+  CLERK_ID, SESSION, BEARER, QUERY_TOKEN, IP, EDGE, POSTCODE,
 ];
+
+/** What a call through our edge also carries: the edge's value, the visitor's address and where Vercel places them. */
+const THROUGH_EDGE = {
+  "x-edge-proxy-secret": EDGE,
+  "x-vercel-forwarded-for": IP,
+  "x-vercel-ip-city": "Warsaw",
+  "x-vercel-ip-country": "PL",
+  "x-vercel-ip-country-region": "14",
+  "x-vercel-ip-postal-code": POSTCODE,
+  "x-vercel-ip-latitude": String(PERSON.latitude),
+  "x-vercel-ip-longitude": String(PERSON.longitude),
+};
 
 test("a full request, logged whole by a careless route, holds none of the person, their tokens or their cookie", async (t) => {
   const { token } = mintInviteToken();
@@ -63,7 +79,7 @@ test("a full request, logged whole by a careless route, holds none of the person
   const { port } = server.address() as AddressInfo;
   const res = await fetch(`http://127.0.0.1:${port}/api/invites/${token}/claim?token=${QUERY_TOKEN}`, {
     method: "POST",
-    headers: { "content-type": "application/json", cookie: `sd_session_id=${SESSION}`, authorization: `Bearer ${BEARER}`, "x-forwarded-for": IP },
+    headers: { "content-type": "application/json", cookie: `sd_session_id=${SESSION}`, authorization: `Bearer ${BEARER}`, "x-forwarded-for": IP, ...THROUGH_EDGE },
     body: JSON.stringify(PERSON),
   });
   assert.equal(res.status, 201);
@@ -79,6 +95,7 @@ test("a full request, logged whole by a careless route, holds none of the person
   const [careless, flat, failed, reportFailed, completed] = lines;
   assert.equal(careless.body.birthDate, "[Redacted]");
   assert.equal(careless.headers.cookie, "[Redacted]");
+  for (const header of Object.keys(THROUGH_EDGE)) assert.equal(careless.headers[header], "[Redacted]", header);
   assert.equal(careless.headers["content-type"], "application/json", "a header that names nobody stays");
   assert.equal(careless.user, "[Redacted]");
   assert.deepEqual([flat.reportId, flat.profileId], ["rep-1", "prof-1"]);
@@ -175,15 +192,15 @@ test("the request line keeps the route and the id and nothing else, whatever the
 test("a request, a response and a header block logged under their own keys lose the credential headers and keep the rest", () => {
   const out = buffer();
   createLogger({}, out.dest).info({
-    req: { method: "GET", headers: { authorization: `Bearer ${BEARER}`, cookie: `sd_session_id=${SESSION}`, accept: "text/html" } },
+    req: { method: "GET", headers: { authorization: `Bearer ${BEARER}`, cookie: `sd_session_id=${SESSION}`, "x-edge-proxy-secret": EDGE, accept: "text/html" } },
     res: { statusCode: 200, headers: { "set-cookie": [`sd_session_id=${SESSION}`], "content-type": "text/html" } },
   }, "whole objects");
   const line = JSON.parse(out.lines[0]);
-  assert.deepEqual([line.req.headers.authorization, line.req.headers.cookie], ["[Redacted]", "[Redacted]"]);
+  assert.deepEqual([line.req.headers.authorization, line.req.headers.cookie, line.req.headers["x-edge-proxy-secret"]], ["[Redacted]", "[Redacted]", "[Redacted]"]);
   assert.equal(line.req.headers.accept, "text/html");
   assert.equal(line.res.headers["set-cookie"], "[Redacted]");
   assert.equal(line.res.headers["content-type"], "text/html");
-  assert.ok(!out.text().includes(SESSION) && !out.text().includes(BEARER));
+  assert.ok(!out.text().includes(SESSION) && !out.text().includes(BEARER) && !out.text().includes(EDGE));
 });
 
 test("every address in a string goes, whatever its case, and a bare @ handle is not one", () => {
@@ -289,4 +306,128 @@ test("a refusal's words and a section's last reply reach no line: the pair's fai
 
   assert.equal(line(cut).err.message, cut, "an error logged alone gives its message as the line's");
   assert.equal(line("failure log: rows not written; muted for a minute").err, cut);
+});
+
+test("the edge's header is censored under every key a header block is logged under, at the top of a line and one level down (ADR-224)", () => {
+  const out = buffer();
+  const log = createLogger({}, out.dest);
+  const block = { "x-edge-proxy-secret": EDGE, "x-vercel-forwarded-for": IP, "content-type": "application/json" };
+  log.info({ "x-edge-proxy-secret": EDGE }, "at the top");
+  log.info({ headers: block, meta: block, rawBlock: block }, "one level down, under three names");
+  log.info({ req: { headers: { "x-edge-proxy-secret": EDGE, accept: "text/html" } } }, "a request's own headers");
+  log.child({ headers: block }).info("bound to a child");
+  log.child({ "x-edge-proxy-secret": EDGE }).warn({ headers: block }, "a child and a line");
+  assert.equal(out.lines.length, 5);
+  assert.ok(!out.text().includes(EDGE), "the value is in no line");
+  assert.ok(!out.text().includes(IP), "nor is the address beside it");
+  const [top, level, req, child, both] = out.lines.map((l) => JSON.parse(l));
+  assert.equal(top["x-edge-proxy-secret"], "[Redacted]");
+  for (const key of ["headers", "meta", "rawBlock"]) {
+    assert.equal(level[key]["x-edge-proxy-secret"], "[Redacted]", key);
+    assert.equal(level[key]["content-type"], "application/json", `${key} keeps the rest`);
+  }
+  assert.equal(req.req.headers["x-edge-proxy-secret"], "[Redacted]");
+  assert.equal(child.headers["x-edge-proxy-secret"], "[Redacted]");
+  assert.deepEqual([both["x-edge-proxy-secret"], both.headers["x-edge-proxy-secret"]], ["[Redacted]", "[Redacted]"]);
+});
+
+test("a header block in an error's own fields, in a list or two levels down never prints the edge's value (R14-14: the secret is never in a log line)", () => {
+  const block = { "x-edge-proxy-secret": EDGE, "content-type": "application/json" };
+  const withHeaders = Object.assign(new Error("upstream said no"), { headers: block });
+  const shapes: Record<string, unknown> = {
+    "an error carrying a header block": { err: withHeaders },
+    "an error under `error`": { error: withHeaders },
+    "an error carrying a request": { err: Object.assign(new Error("failed"), { request: { headers: block } }) },
+    "a list of header blocks": { headers: [block] },
+    "a header block two levels down": { ctx: { req: { headers: block } } },
+    "a response's headers": { res: { statusCode: 500, headers: block } },
+    "the raw header list of a request": { rawHeaders: ["x-edge-proxy-secret", EDGE, "content-type", "application/json"] },
+  };
+  const leaked = Object.entries(shapes).filter(([, fields]) => {
+    const out = buffer();
+    createLogger({}, out.dest).error(fields as object, "a failure");
+    return out.text().includes(EDGE);
+  }).map(([shape]) => shape);
+  assert.deepEqual(leaked, [], "these shapes print the value");
+});
+
+test("set, the edge's value goes wherever pino would print it, under any name, in free text, a key, a child or an error, and the rest of the line stays", () => {
+  const out = buffer();
+  const log = createLogger({ EDGE_PROXY_SECRET: EDGE }, out.dest);
+  const failed = Object.assign(new Error(`upstream refused ${EDGE}`), { sent: { "x-custom": EDGE } });
+  log.child({ bound: `edge=${EDGE}` }).warn(
+    { detail: `Bearer ${EDGE} sent`, deep: { a: { b: { c: [`one ${EDGE} two`, EDGE] } } }, [`k-${EDGE}`]: "a key", err: failed, reportId: "rep-1" },
+    `calling with ${EDGE}`,
+  );
+  log.info("%s was the header", EDGE);
+  assert.equal(out.lines.length, 2);
+  assert.ok(!out.text().includes(EDGE), out.text());
+  for (const text of out.lines) assert.ok(text.endsWith("}\n"), "one line each, as pino ends it");
+  const [line, formatted] = out.lines.map((l) => JSON.parse(l));
+  assert.equal(line.bound, "edge=[Redacted]");
+  assert.equal(line.detail, "Bearer [Redacted] sent");
+  assert.deepEqual(line.deep, { a: { b: { c: ["one [Redacted] two", "[Redacted]"] } } });
+  assert.equal(line["k-[Redacted]"], "a key");
+  assert.deepEqual([line.err.type, line.err.message, line.err.sent], ["Error", "upstream refused [Redacted]", { "x-custom": "[Redacted]" }]);
+  assert.match(line.err.stack, /^Error: upstream refused \[Redacted\]\n {4}at /);
+  assert.deepEqual([line.level, line.reportId, line.msg], [40, "rep-1", "calling with [Redacted]"]);
+  assert.equal(formatted.msg, "[Redacted] was the header");
+});
+
+test("set, pino-http's own lines lose the value too, under a key nobody named and in the raw header list", async (t) => {
+  const out = buffer();
+  const app = express();
+  app.use(pinoHttp({ logger: createLogger({ EDGE_PROXY_SECRET: EDGE }, out.dest), serializers: httpSerializers }));
+  app.get("/api/healthz", (req, res) => {
+    req.log.info({ seen: req.headers["x-edge-proxy-secret"], raw: req.rawHeaders }, "a careless line");
+    res.json({ ok: true });
+  });
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => new Promise<void>((resolve) => server.close(() => resolve())));
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/healthz`;
+  const res = await fetch(url, { headers: { "x-edge-proxy-secret": EDGE, accept: "application/json" } });
+  assert.equal(res.status, 200);
+  await res.text();
+  for (let i = 0; i < 100 && !out.text().includes("request completed"); i++) await new Promise((resolve) => setTimeout(resolve, 10));
+
+  assert.equal(out.lines.length, 2);
+  assert.ok(!out.text().includes(EDGE), out.text());
+  const careless = JSON.parse(out.lines[0]);
+  assert.equal(careless.seen, "[Redacted]");
+  assert.equal(careless.raw[careless.raw.indexOf("x-edge-proxy-secret") + 1], "[Redacted]");
+  assert.equal(careless.raw[careless.raw.indexOf("accept") + 1], "application/json", "the rest of the list stays");
+  assert.deepEqual(careless.req, { id: careless.req.id, method: "GET", url: "/api/healthz" });
+});
+
+test("unset, the header's name in any case still censors what it names: a block, a raw list and a list of pairs", () => {
+  const out = buffer();
+  createLogger({}, out.dest).warn({
+    upstream: { request: { headers: { "X-Edge-Proxy-Secret": EDGE, accept: "text/html" } } },
+    raw: ["X-EDGE-PROXY-SECRET", EDGE, "Accept", "text/html"],
+    pairs: [["x-edge-proxy-secret", EDGE], ["accept", "text/html"]],
+  }, "by name");
+  assert.ok(!out.text().includes(EDGE), out.text());
+  const line = JSON.parse(out.lines[0]);
+  assert.deepEqual(line.upstream.request.headers, { "X-Edge-Proxy-Secret": "[Redacted]", accept: "text/html" });
+  assert.deepEqual(line.raw, ["X-EDGE-PROXY-SECRET", "[Redacted]", "Accept", "text/html"]);
+  assert.deepEqual(line.pairs, [["x-edge-proxy-secret", "[Redacted]"], ["accept", "text/html"]]);
+  assert.equal(line.msg, "by name");
+});
+
+test("the value is read trimmed when the logger is made and found as JSON writes it; a blank one is none, and a line with neither the value nor the name goes out as pino wrote it", () => {
+  const out = buffer();
+  createLogger({ EDGE_PROXY_SECRET: ` ${EDGE}\n` }, out.dest).info({ seen: EDGE }, "trimmed");
+  const quoted = 'edge"value\\not-real';
+  createLogger({ EDGE_PROXY_SECRET: quoted }, out.dest).info({ seen: quoted, around: `[${quoted}]` }, "quoted");
+  // A child's field and the line's own under one name: a line parsed and written again would keep only the second.
+  createLogger({ EDGE_PROXY_SECRET: EDGE }, out.dest).child({ section: "natal:mind" }).info({ section: "natal:body", detail: "edge-value-not-ours" }, "clean");
+  createLogger({ EDGE_PROXY_SECRET: " \t" }, out.dest).child({ section: "natal:mind" }).info({ section: "natal:body", detail: "two words\tand a tab" }, "blank");
+  assert.equal(out.lines.length, 4);
+  const [trimmed, escaped, , blank] = out.lines.map((l) => JSON.parse(l));
+  assert.equal(trimmed.seen, "[Redacted]");
+  assert.deepEqual([escaped.seen, escaped.around], ["[Redacted]", "[[Redacted]]"]);
+  assert.ok(!out.text().includes(EDGE) && !out.text().includes(JSON.stringify(quoted).slice(1, -1)), out.text());
+  for (const text of out.lines.slice(2)) assert.ok(text.includes('"section":"natal:mind","section":"natal:body"'), text);
+  assert.deepEqual([blank.detail, blank.msg], ["two words\tand a tab", "blank"], "a blank value censors no whitespace");
 });

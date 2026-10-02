@@ -58,6 +58,8 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
   const latestSearch = useRef(0);
   const latestChoice = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const reopenOnFocus = useRef(true);
   // The zone comes after the tap, and the form may have changed meanwhile (an error up that the place should clear), so a
   // choice reaches the caller's handler as it is when the zone arrives, not as the tap saw it.
   const latestOnChange = useRef(onChange);
@@ -138,6 +140,14 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
     }
   };
 
+  // MB-163 provisional: focus put back on the input must not reopen the list the reader just picked from or dismissed: onFocus reopens it for a
+  // tab or a tap, and would do so here with the list's old closure.
+  const focusInput = () => {
+    reopenOnFocus.current = false;
+    inputRef.current?.focus();
+    reopenOnFocus.current = true;
+  };
+
   const handleSearchButton = () => {
     if (isChoosing) return;
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -153,6 +163,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
     setShowDropdown(false);
     setCandidates([]);
     setIsChoosing(true);
+    focusInput();
     const zone = await lookupZone(match.latitude, match.longitude);
     if (choice !== latestChoice.current) return;
     setIsChoosing(false);
@@ -179,7 +190,16 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
   }, []);
 
   return (
-    <div className="space-y-2" ref={containerRef}>
+    <div
+      className="space-y-2"
+      ref={containerRef}
+      onKeyDown={(e) => {
+        if (e.key !== "Escape" || !showDropdown) return;
+        e.stopPropagation();
+        setShowDropdown(false);
+        focusInput();
+      }}
+    >
       <Label htmlFor={id} className="font-label text-xs tracking-wide uppercase text-muted-foreground">
         {label}
       </Label>
@@ -196,10 +216,11 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
         {/* 16 px below md, whatever the page around it: iOS zooms into a smaller input on focus (landing, Fields fit). */}
         <Input
           id={id}
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => handlePlaceInput(e.target.value)}
-          onFocus={() => candidates.length > 0 && setShowDropdown(true)}
+          onFocus={() => reopenOnFocus.current && candidates.length > 0 && setShowDropdown(true)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -224,9 +245,11 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
           {query.length >= 2 && !value && !isChoosing && (
             <button
               type="button"
-              onClick={handleSearchButton}
-              disabled={isSearching || isPendingSearch}
-              className="text-xs font-label font-semibold px-2 py-1 rounded-md bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-40 transition-colors"
+              onClick={() => {
+                if (!isSearching && !isPendingSearch) handleSearchButton();
+              }}
+              aria-disabled={isSearching || isPendingSearch}
+              className="text-xs font-label font-semibold px-2 py-1 rounded-md bg-primary/15 text-primary hover:bg-primary/25 aria-disabled:opacity-40 aria-disabled:cursor-default transition-colors"
             >
               Search
             </button>
@@ -314,6 +337,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
         {placeError && (
           <motion.p
             key="error"
+            role="alert"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

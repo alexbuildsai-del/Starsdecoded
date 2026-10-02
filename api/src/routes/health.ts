@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
 import { readAppEnv, readCommitSha } from "../lib/appEnv.js";
+import { cameThroughEdge } from "../lib/waitlist.js";
 
 const router: IRouter = Router();
 
@@ -9,12 +10,15 @@ const router: IRouter = Router();
 // running container means the start command never ran the bootstrap.
 const BOOTSTRAP_MARKER = "/tmp/bootstrap-db.done";
 
-router.get("/healthz", (_req, res) => {
+// `edge` says whether this one call carried the edge's secret, never the secret: the smoke reads it through the web
+// host to prove the middleware's header reaches Railway, which nothing short of a deploy can show (MB-167).
+router.get("/healthz", (req, res) => {
   const commit = readCommitSha();
   const data = HealthCheckResponse.parse({
     status: "ok",
     env: readAppEnv(),
     ...(commit ? { commit } : {}),
+    edge: cameThroughEdge(req.headers),
   });
   res.json(data);
 });

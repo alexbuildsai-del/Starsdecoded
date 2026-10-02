@@ -1,6 +1,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { Link } from "wouter";
 import { TriadPlate } from "@/components/report/TriadPlate";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { MODE_LABELS } from "@/lib/birth-time";
 import { SAMPLE_PEOPLE } from "@/site/data/people";
 import { partsOfDay, plateAnswer, plateLine, plateReadout, timePlates } from "@/site/lib/readouts";
@@ -23,6 +24,7 @@ const PLATE =
  */
 export default function BirthTime() {
   const person = SAMPLE_PEOPLE[0];
+  const { clock } = useEntryFormat();
   // Two of the plates are sweeps across the day, a phone's tenth of a second each, so a re-render must not redo them.
   const plates = useMemo(() => timePlates(person.birth, person.chart), [person]);
 
@@ -39,7 +41,7 @@ export default function BirthTime() {
               can't. If you find your time later, add it for free and we'll mark every change.
             </p>
             <ul className="sd-parts" aria-label="Parts of the day">
-              {partsOfDay().map(({ part, hours }) => (
+              {partsOfDay(clock).map(({ part, hours }) => (
                 <li key={part}>
                   <span>
                     {part} <i>{hours}</i>

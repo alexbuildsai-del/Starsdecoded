@@ -3,8 +3,9 @@ import pino, { type DestinationStream, type Logger, type LoggerOptions } from "p
 /**
  * Logs keep the ids of reports, profiles and requests, and lose whatever names a person or opens what is theirs
  * (R-3.5, ADR-201; security scope 6): birth data under the API's names and the database's, an address, a name or note
- * someone typed, a Clerk id, a session or invite token, a cookie, an IP. Each key is censored at the top of a line and
- * one level down, so a body, a row or headers logged whole keep their keys and lose these values.
+ * someone typed, a Clerk id, a session or invite token, a cookie, an IP, and the edge's secret, which would let anyone
+ * name their own address to the limits (ADR-224). Each key is censored at the top of a line and one level down, so a
+ * body, a row or headers logged whole keep their keys and lose these values.
  */
 const PERSONAL_KEYS = [
   "birthDate", "birth_date", "birthTime", "birth_time", "birthPlace", "birth_place",
@@ -14,6 +15,10 @@ const PERSONAL_KEYS = [
   "giverName", "inviterName", "claimedByName", "profileName", "note",
   "userId", "user_id", "claimedByUserId", "claimed_by_user_id", "createdByUserId", "created_by_user_id", "user",
   "sessionId", "session_id", "token", "cookie", "authorization", "set-cookie", "x-forwarded-for", "x-real-ip",
+  "x-vercel-forwarded-for", "x-edge-proxy-secret",
+  // Vercel's guess at where the visitor is; the edge's middleware passes on every header it saw, these among them.
+  "x-vercel-ip-city", "x-vercel-ip-country", "x-vercel-ip-country-region", "x-vercel-ip-postal-code",
+  "x-vercel-ip-latitude", "x-vercel-ip-longitude",
 ];
 
 // pino tells a censor which top-level key it is under only for keys a path names outright, never for "*", so these
@@ -28,6 +33,7 @@ const REDACT_PATHS = [
   ...ERROR_KEYS.map((key) => `${key}.name`),
   "req.headers.authorization",
   "req.headers.cookie",
+  "req.headers['x-edge-proxy-secret']",
   "res.headers['set-cookie']",
 ];
 
@@ -56,6 +62,48 @@ function scrubLeaves(value: unknown): unknown {
   if (typeof value === "string") return scrub(value);
   if (value === null || typeof value !== "object" || Object.getPrototypeOf(value) !== Object.prototype) return value;
   return Object.fromEntries(Object.entries(value).map(([key, leaf]) => [key, typeof leaf === "string" ? scrub(leaf) : leaf]));
+}
+
+// The edge's header in any case: Node lowercases a request's headers, but rawHeaders and a block built by hand keep the
+// case they were sent in.
+const EDGE_HEADER = "x-edge-proxy-secret";
+const NAMES_EDGE = /x-edge-proxy-secret/i;
+
+function isEdgeName(value: unknown): boolean {
+  return typeof value === "string" && value.toLowerCase() === EDGE_HEADER;
+}
+
+/**
+ * The edge's secret is in no line (reading 14), and the key paths reach only the depths they name: a header block in an
+ * error's own fields, in a list or deeper, a raw header list (a name, then its value) and the value itself in free text
+ * all get past them. So the finished line is read last, on its way to the stream, the one place that sees all pino
+ * prints: a child's bindings, the message, every serializer's output, pino-http's lines. A line that names the header or
+ * holds the value as JSON writes it is parsed and written again with every value under that name, every entry after it
+ * in a list and the value itself in any string or key censored; the rest of the line stays. Any other line goes out as
+ * pino wrote it, after a substring scan or two. The value is EDGE_PROXY_SECRET as the middleware sends it, trimmed, and
+ * blank is unset: then only the name is looked for.
+ */
+function edgeCensor(configured: string | undefined): (line: string) => string {
+  const secret = configured?.trim() || undefined;
+  const written = secret === undefined ? undefined : JSON.stringify(secret).slice(1, -1);
+  const text = (value: string) => (secret === undefined ? value : value.split(secret).join(CENSOR));
+  const clean = (node: unknown): unknown => {
+    if (typeof node === "string") return text(node);
+    if (Array.isArray(node)) return node.map((item, i) => (i > 0 && isEdgeName(node[i - 1]) ? CENSOR : clean(item)));
+    if (node === null || typeof node !== "object") return node;
+    const entries = Object.entries(node).map(([key, value]) => [text(key), isEdgeName(key) ? CENSOR : clean(value)]);
+    return Object.fromEntries(entries);
+  };
+  return (line) => {
+    if (!NAMES_EDGE.test(line) && (written === undefined || !line.includes(written))) return line;
+    // This runs inside every log call, so it must not throw into a route; a line that will not parse or walk still
+    // loses the value, if not its shape.
+    try {
+      return JSON.stringify(clean(JSON.parse(line))) + line.slice(line.trimEnd().length);
+    } catch {
+      return written === undefined ? line : line.split(written).join(CENSOR);
+    }
+  };
 }
 
 /** Every `params: …` tail a failed query wrote into an error or one of its causes, as drizzle-orm wrote it. */
@@ -128,6 +176,9 @@ function loggerOptions(env: NodeJS.ProcessEnv): LoggerOptions {
     formatters: {
       log: (fields) => Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, scrubLeaves(value)])),
     },
+    // Read once, here, as LOG_LEVEL is: the variable is set before the process starts, and every child, pino-http's
+    // among them, inherits the hook.
+    hooks: { streamWrite: edgeCensor(env.EDGE_PROXY_SECRET) },
   };
 }
 

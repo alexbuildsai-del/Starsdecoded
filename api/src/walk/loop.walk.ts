@@ -6,7 +6,9 @@
 // 174, 182; MB-84, 103, 110). R13-08 adds the limits, the spend breaker and
 // the origin guard (security acceptance 2, 6, 7; ADR-197, 199). R13-F2 adds
 // that no email link or image follows a host the request names, and that the
-// legacy pair routes are gone (MB-58).
+// legacy pair routes are gone (MB-58). R14-10 adds that a birth-time change
+// holds a write per report it passes, and that a browser's session loses a
+// report to its subject's claim when it regenerates or pairs (MB-159, 166).
 // MB-49 provisional: the ledger this proves is the soft-pass one `consumeCredit`
 // still runs, so this file's checks retire with that pass, not before it.
 //
@@ -59,9 +61,21 @@ await new Promise<void>((resolve) => mailStub.listen(0, "127.0.0.1", () => resol
 process.env.RESEND_API_KEY = "re_stub_walk";
 process.env.RESEND_BASE_URL = `http://127.0.0.1:${(mailStub.address() as AddressInfo).port}`;
 
+// A birth-time change starts real horizon passes. Each fails on the walk's
+// stored text and puts its report and profile back (horizonPass.ts); should
+// one ever reach a model call, the client is pointed here whatever key the
+// shell holds, a stand-in that refuses at once, so nothing leaves the machine.
+const modelStub = http.createServer((_req, res) => {
+  res.writeHead(400, { "content-type": "application/json" });
+  res.end(JSON.stringify({ error: { message: "the walk calls no model", type: "invalid_request_error" } }));
+});
+await new Promise<void>((resolve) => modelStub.listen(0, "127.0.0.1", () => resolve()));
+process.env.OPENAI_BASE_URL = `http://127.0.0.1:${(modelStub.address() as AddressInfo).port}/v1`;
+
 // Deferred past the env writes above: @workspace/db throws at import unless
-// DATABASE_URL is already set, and the mailer only reaches the stub once
-// RESEND_API_KEY and RESEND_BASE_URL are.
+// DATABASE_URL is already set, the mailer only reaches the stub once
+// RESEND_API_KEY and RESEND_BASE_URL are, and the model client reads its
+// base URL when it is made.
 const { pool } = await import("@workspace/db");
 const { chartForProfile } = await import("../lib/profiles.js");
 const { PAIR_PROMPT_VERSION } = await import("../prompts/pair/index.js");
@@ -227,6 +241,11 @@ const GIFT_RECIPIENT = { user: "user_gift_recipient", session: "s-gift-recipient
 const ANON = { user: null, session: "s-anon" };
 const LIMITED = { user: "user_limited", session: "s-limited" };
 const BREAKER = { user: "user_breaker", session: "s-breaker" };
+const WRITER = { user: "user_writer", session: "s-writer" };
+// The writer's browser after signing out: the cookie that wrote the report, no account.
+const WRITER_SIGNED_OUT = { user: null, session: WRITER.session };
+const CLAIMER = { user: "user_claimer", session: "s-claimer" };
+const HORIZON = { user: "user_horizon", session: "s-horizon" };
 const WALK_ADMIN = { id: "user_walk_admin", email: "walk-admin@example.com" };
 const FOREIGN_PAGE = "https://evil.example";
 const OUR_PAGE = "https://starsdecoded-staging.vercel.app";
@@ -259,6 +278,9 @@ try {
     [GIFT_RECIPIENT.user, "gift-recipient@example.com"],
     [LIMITED.user, "limited@example.com"],
     [BREAKER.user, "breaker@example.com"],
+    [WRITER.user, "writer@example.com"],
+    [CLAIMER.user, "claimer@example.com"],
+    [HORIZON.user, "horizon@example.com"],
     [WALK_ADMIN.id, WALK_ADMIN.email],
   ]) {
     await q("insert into users (id, email) values ($1, $2)", [id, email]);
@@ -523,6 +545,33 @@ try {
     assert.equal((await q("select 1 from reports where id='RA'")).rowCount, 0);
   });
 
+  await step("MB-166: a browser signed out after writing a report can neither regenerate it nor pair it once its subject's account has claimed it; the writer's account still regenerates and the claimer still picks it (ADR-139)", async () => {
+    await person("PW", "Charles Windsor", "charles", WRITER);
+    await person("PW2", "William Windsor", "william", WRITER);
+    await person("PC", "George Windsor", "george", CLAIMER, true);
+    // Still being written, so whatever access lets through stops at the report's status and nothing spends.
+    await natal("RW", "PW", WRITER.session, "pending");
+    await natal("RW2", "PW2", WRITER.session);
+    await natal("RC", "PC", CLAIMER.session);
+    const regenerate = (who: Viewer) => call(who, "POST", "/reports/RW/regenerate");
+    const pairOf = async (who: Viewer, a: string, b: string) => {
+      const r = await call(who, "POST", "/compatibility", { reportAId: a, reportBId: b, lens: "people" });
+      return r.status === 400 ? `400 ${r.body.error}` : String(r.status);
+    };
+
+    assert.equal((await regenerate(WRITER_SIGNED_OUT)).status, 409, "unclaimed, the session that wrote it still may");
+    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW", "RW2"), "400 not_ready");
+
+    // Where a claim leaves the row: the subject's account on it, the writer's account and session untouched.
+    await q("update profiles set claimed_by_user_id = $1 where id = 'PW'", [CLAIMER.user]);
+    assert.equal((await regenerate(WRITER_SIGNED_OUT)).status, 404);
+    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW", "RW2"), "404");
+    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW2", "RW"), "404");
+    assert.equal((await regenerate(WRITER)).status, 409, "the writer's account is still its owner");
+    assert.equal((await regenerate(CLAIMER)).status, 404, "the claimer reads it but does not rewrite it");
+    assert.equal(await pairOf(CLAIMER, "RC", "RW"), "400 not_ready", "any reader picks it");
+  });
+
   let giftNoCredit = "";
   let giftWithCredit = "";
   let giftWithCreditCreditId = "";
@@ -759,6 +808,54 @@ try {
     assert.equal((await call(LIMITED, "GET", "/credits")).body.available, 10);
   });
 
+  await step("MB-159: a birth-time change over two reports holds two writes, so one over more than the hour has left hears 429 before any pass and saves no time (ADR-199)", async () => {
+    await person("PH", "Charlotte Windsor", "charlotte", HORIZON, true);
+    for (const id of ["RH1", "RH2"]) await natal(id, "PH", HORIZON.session);
+    const change = (birthTime: string) => call(HORIZON, "PATCH", "/profiles/PH/birth-time", { birthTime, birthTimeWindowMinutes: 0 });
+    const revisions = async () =>
+      (await q("select count(*)::int as n from report_revisions v join reports r on r.id = v.report_id where r.profile_id = 'PH'")).rows[0].n as number;
+    // A pass here fails and puts its report back with the failure noted, a mark only a finished pass leaves, so the next
+    // change waits until every report the last one passed carries it.
+    const passed = async (ids: string[]) => {
+      const end = Date.now() + 10_000;
+      const marked = async () =>
+        (await q("select count(*)::int as n from reports where id = any($1) and status = 'complete' and error_message like 'horizon pass failed%'", [ids])).rows[0].n;
+      while ((await marked()) < ids.length) {
+        if (Date.now() > end) throw new Error(`the passes on ${ids.join(", ")} did not finish`);
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+    };
+    const refusedBeforeAnyPass = async (birthTime: string) => {
+      const before = await revisions();
+      const r = await change(birthTime);
+      assert.equal(r.status, 429, birthTime);
+      const wait = Number(r.headers.get("retry-after"));
+      assert.ok(Number.isInteger(wait) && wait > 0 && wait <= 3600, `Retry-After: ${wait}`);
+      assert.deepEqual(r.body, { error: "rate_limited", message: LIMIT_LINES.write, retryAfterSeconds: wait });
+      assert.notEqual((await q("select birth_time from profiles where id = 'PH'")).rows[0].birth_time, birthTime, "no time saved");
+      assert.equal(await revisions(), before, "no pass started");
+    };
+
+    const first = await change("06:30");
+    assert.equal(first.status, 202);
+    assert.deepEqual([...first.body.reportIds].sort(), ["RH1", "RH2"]);
+    await passed(["RH1", "RH2"]);
+
+    // Five to pass where four writes are left; had the first change held one, five would be left.
+    for (const id of ["RH3", "RH4", "RH5"]) await natal(id, "PH", HORIZON.session);
+    await refusedBeforeAnyPass("07:45");
+
+    // Four, exactly what is left, so the first change held two and no more. The first passes' marks go, so only these
+    // passes can leave them.
+    await q("update reports set status = 'failed' where id = 'RH5'");
+    await q("update reports set error_message = null where profile_id = 'PH'");
+    const second = await change("08:15");
+    assert.equal(second.status, 202);
+    assert.deepEqual([...second.body.reportIds].sort(), ["RH1", "RH2", "RH3", "RH4"]);
+    await passed(["RH1", "RH2", "RH3", "RH4"]);
+    await refusedBeforeAnyPass("09:00");
+  });
+
   await step("the breaker: past DAILY_SPEND_CAP_USD, POST /reports answers 503 paused before its route, and the admin hears once (ADR-199)", async () => {
     const before = { mails: mails.length, cap: process.env.DAILY_SPEND_CAP_USD, admin: process.env.ADMIN_USER_ID };
     process.env.DAILY_SPEND_CAP_USD = "0.01";
@@ -808,6 +905,7 @@ try {
 } finally {
   server.close();
   mailStub.close();
+  modelStub.close();
   await pool.end();
 }
 

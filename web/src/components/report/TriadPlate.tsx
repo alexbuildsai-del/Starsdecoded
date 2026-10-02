@@ -2,8 +2,8 @@
  * The ringed triad plate: a small ring with the Sun, the Moon and the rising
  * marker at their true degrees, the Moon's band as an arc, no rows. The
  * compatibility hero drew it until R09 and no longer does (ADR-99); it lives
- * here because the dashboard sky card keeps its ring (ADR-92, MB-86). Nothing
- * on main renders it yet.
+ * here because the dashboard sky card keeps its ring (ADR-92, MB-86), and
+ * home's and Learn's birth-time plates draw it too.
  */
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { pointAt, theta } from "@/components/chart/wheel-geometry";
@@ -13,6 +13,19 @@ import type { ChartData } from "@/types/chart";
 
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
+
+export const MOON_SIZE = 28;
+/** Clear air between the Moon's picture and its day arc. */
+const ARC_GAP = 5;
+
+/**
+ * The Moon's day arc, drawn just outside the picture. On the ring itself a
+ * band of a few degrees is shorter than the picture is wide, so the Moon
+ * covers all of it and the plate shows nothing (MB-126 provisional).
+ */
+export function moonDayArc(cx: number, cy: number, ringRadius: number, frameDegree: number, band: { fromDegree: number; toDegree: number }) {
+  return moonArc(cx, cy, ringRadius + MOON_SIZE / 2 + ARC_GAP, frameDegree, band);
+}
 
 export interface TriadPlateProps {
   chart: ChartData;
@@ -32,12 +45,12 @@ export function TriadPlate({ chart, name, className }: TriadPlateProps) {
   const frame = asc ? asc.absoluteDegree : 0;
   const ascTheta = theta(frame, frame);
   const ascAt = pointAt(cx, cy, R, ascTheta);
-  const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band) : null;
+  const arc = moon?.band ? moonDayArc(cx, cy, R, frame, moon.band) : null;
   const layout = layoutHero({
     cx, cy, ringRadius: R, frameDegree: frame,
     bodies: [
       sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: 44 },
-      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: 28 },
+      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: MOON_SIZE },
     ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
     labelWidth: 0, labelHeight: 0, obstacles: [],
   });
