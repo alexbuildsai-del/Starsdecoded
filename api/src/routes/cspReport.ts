@@ -1,16 +1,25 @@
 import express, { Router, type IRouter } from "express";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, cspViolationsTable } from "@workspace/db";
 import { webOrigins } from "../middlewares/origin.js";
 import { RateLimiter, clientKey } from "../lib/waitlist.js";
 import { logger } from "../lib/logger.js";
-import { CSP_REPORT_TYPES, cspCounts, parseCspReports, utcDay, type CspCount } from "../lib/csp.js";
+import { CSP_REPORT_TYPES, cspCounts, cspKey, foldCounts, parseCspReports, utcDay, type CspCount } from "../lib/csp.js";
 
 export interface CspStore {
+  /** The day's rows, as `cspKey` names them, so a new host can be told from one that already counts. */
+  keys(day: string): Promise<string[]>;
   add(day: string, counts: CspCount[], at: Date): Promise<void>;
 }
 
 export const dbCspStore: CspStore = {
+  async keys(day) {
+    const rows = await db
+      .select({ directive: cspViolationsTable.directive, blocked: cspViolationsTable.blocked })
+      .from(cspViolationsTable)
+      .where(eq(cspViolationsTable.day, day));
+    return rows.map((row) => cspKey(row.directive, row.blocked));
+  },
   async add(day, counts, at) {
     await db
       .insert(cspViolationsTable)
@@ -50,8 +59,9 @@ export function cspReportRouter(store: CspStore = dbCspStore, origins: Array<str
       const counts = cspCounts(parseCspReports(req.headers["content-type"], req.body), origins);
       if (counts.length > 0) {
         const at = new Date();
+        const day = utcDay(at);
         try {
-          await store.add(utcDay(at), counts, at);
+          await store.add(day, foldCounts(counts, new Set(await store.keys(day))), at);
         } catch (err) {
           logger.warn({ err }, "csp report not counted");
         }

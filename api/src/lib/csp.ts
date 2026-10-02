@@ -124,17 +124,50 @@ export function ourPage(documentHost: string, origins: Array<string | RegExp> = 
   return originAllowed(`https://${documentHost}`, origins) || originAllowed(`http://${documentHost}`, origins);
 }
 
+// The route is open to anyone, and one 8 kB batch holds some seventy entries; every entry past these few is dropped (S3).
+export const CSP_REPORTS_PER_REQUEST = 5;
+
+// A day's distinct (directive, blocked) rows. Past it a new blocked host is counted under `other`, so a flood of invented
+// hosts ends at this many rows plus one `other` per directive.
+export const CSP_ROWS_PER_DAY = 200;
+
+export const CSP_OTHER = "other";
+
+export const cspKey = (directive: string, blocked: string): string => `${directive} ${blocked}`;
+
 /** What one request adds to the table: our pages' violations, one count per directive and blocked host or keyword. */
 export function cspCounts(reports: CspReport[], origins: Array<string | RegExp> = webOrigins()): CspCount[] {
   const counts = new Map<string, CspCount>();
-  for (const { directive, blocked, documentHost } of reports) {
-    if (!ourPage(documentHost, origins)) continue;
-    const key = `${directive} ${blocked}`;
+  const ours = reports.filter((report) => ourPage(report.documentHost, origins)).slice(0, CSP_REPORTS_PER_REQUEST);
+  for (const { directive, blocked } of ours) {
+    const key = cspKey(directive, blocked);
     const seen = counts.get(key);
     if (seen) seen.count += 1;
     else counts.set(key, { directive, blocked, count: 1 });
   }
   return [...counts.values()];
+}
+
+/**
+ * Once the day holds `limit` distinct rows, a row that is not already there is counted under `other` for its directive;
+ * rows already there keep counting under their own name. `known` is the day's keys, from `cspKey`.
+ */
+export function foldCounts(counts: CspCount[], known: ReadonlySet<string>, limit = CSP_ROWS_PER_DAY): CspCount[] {
+  const rows = new Set(known);
+  const folded = new Map<string, CspCount>();
+  for (const { directive, blocked, count } of counts) {
+    let name = blocked;
+    const key = cspKey(directive, blocked);
+    if (!rows.has(key)) {
+      if (rows.size < limit) rows.add(key);
+      else name = CSP_OTHER;
+    }
+    const target = cspKey(directive, name);
+    const seen = folded.get(target);
+    if (seen) seen.count += count;
+    else folded.set(target, { directive, blocked: name, count });
+  }
+  return [...folded.values()];
 }
 
 /** Counts are kept per UTC day, so a day reads the same wherever the admin is. */

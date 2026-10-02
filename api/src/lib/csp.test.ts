@@ -2,13 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import express from "express";
-import { blockedOf, cspCounts, cspWindowStart, ourPage, parseCspReport, parseCspReports, utcDay } from "./csp.js";
+import { CSP_ROWS_PER_DAY, blockedOf, cspCounts, cspKey, cspWindowStart, foldCounts, ourPage, parseCspReport, parseCspReports, utcDay } from "./csp.js";
 import { webOrigins } from "../middlewares/origin.js";
 
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.LOG_LEVEL = "silent";
 const { cspReportRouter } = await import("../routes/cspReport.js");
 type CspStore = import("../routes/cspReport.js").CspStore;
+type CspCount = import("./csp.js").CspCount;
 
 const OURS = webOrigins({});
 const REPORT_URI = "application/csp-report";
@@ -187,7 +188,7 @@ function post(url: string, type: string, body: unknown, client = "203.0.113.9") 
 
 test("the route counts our pages' reports in either format and answers 204 to everything it reads", async (t) => {
   const added: Array<{ day: string; counts: unknown }> = [];
-  const { base, close } = await serve({ add: async (day, counts) => void added.push({ day, counts }) });
+  const { base, close } = await serve({ keys: async () => [], add: async (day, counts) => void added.push({ day, counts }) });
   t.after(close);
 
   assert.equal((await post(base, REPORT_URI, reportUri({}))).status, 204);
@@ -212,6 +213,7 @@ test("the route counts our pages' reports in either format and answers 204 to ev
 test("the route holds one client to 60 reports a minute, and a store that fails still answers 204", async (t) => {
   let tries = 0;
   const { base, close } = await serve({
+    keys: async () => [],
     add: async () => {
       tries += 1;
       throw new Error("database unreachable");
@@ -284,7 +286,7 @@ function ofSize(bytes: number): string {
 
 test("the route's 8 kB limit: a body of exactly 8192 bytes is read, one byte more is refused with 413", async (t) => {
   const added: unknown[] = [];
-  const { base, close } = await serve({ add: async (_day, counts) => void added.push(counts) });
+  const { base, close } = await serve({ keys: async () => [], add: async (_day, counts) => void added.push(counts) });
   t.after(close);
   const exact = ofSize(8192);
   assert.equal(Buffer.byteLength(exact), 8192);
@@ -299,7 +301,7 @@ test("the route's 8 kB limit: a body of exactly 8192 bytes is read, one byte mor
 
 test("the route answers a report with no Origin and no cookie, and an empty batch with 204", async (t) => {
   const added: unknown[] = [];
-  const { base, close } = await serve({ add: async (_day, counts) => void added.push(counts) });
+  const { base, close } = await serve({ keys: async () => [], add: async (_day, counts) => void added.push(counts) });
   t.after(close);
   const res = await fetch(base, { method: "POST", headers: { "content-type": `${REPORTING_API}; charset=utf-8`, origin: "null" }, body: JSON.stringify([reportingApi({})]) });
   assert.equal(res.status, 204);
@@ -309,8 +311,84 @@ test("the route answers a report with no Origin and no cookie, and an empty batc
 });
 
 test("a report that fails the rate limit is refused before its body is read, so a flood of junk costs no parsing", async (t) => {
-  const { base, close } = await serve({ add: async () => {} });
+  const { base, close } = await serve({ keys: async () => [], add: async () => {} });
   t.after(close);
   for (let i = 0; i < 60; i += 1) await post(base, REPORT_URI, reportUri({}), "203.0.113.50");
   assert.equal((await post(base, REPORT_URI, "{not json", "203.0.113.50")).status, 429, "junk past the limit is a 429, not a 400");
+});
+
+function flood(count: number, offset = 0) {
+  return Array.from({ length: count }, (_, i) => ({
+    type: "csp-violation",
+    url: "https://mystarsdecoded.com/",
+    body: { blockedURL: `https://h${offset + i}.example/x.js`, effectiveDirective: "script-src-elem" },
+  }));
+}
+
+test("one request counts at most five reports and drops the rest, so a flooded batch adds five rows", async (t) => {
+  const counts = cspCounts(parseCspReports(REPORTING_API, flood(70)), OURS);
+  assert.equal(counts.length, 5);
+  assert.deepEqual(counts.map((c) => c.blocked), ["h0.example", "h1.example", "h2.example", "h3.example", "h4.example"]);
+
+  const foreignFirst = [...flood(10).map((entry) => ({ ...entry, url: "https://evil.example/" })), ...flood(7, 100)];
+  assert.equal(cspCounts(parseCspReports(REPORTING_API, foreignFirst), OURS).length, 5, "foreign pages' reports do not use up the five");
+
+  const added: CspCount[][] = [];
+  const { base, close } = await serve({ keys: async () => [], add: async (_day, rows) => void added.push(rows) });
+  t.after(close);
+  const batch = JSON.stringify(flood(50));
+  assert.ok(Buffer.byteLength(batch) < 8192, "the batch fits the route's body limit");
+  assert.equal((await post(base, REPORTING_API, batch)).status, 204);
+  assert.equal(added.length, 1);
+  assert.equal(added[0]!.length, 5);
+});
+
+test("a day that holds 200 distinct rows folds a new host into one other row per directive and lets known rows keep counting", () => {
+  const known = new Set(Array.from({ length: CSP_ROWS_PER_DAY }, (_, i) => cspKey("script-src-elem", `h${i}.example`)));
+  const folded = foldCounts(
+    [
+      { directive: "script-src-elem", blocked: "h7.example", count: 2 },
+      { directive: "script-src-elem", blocked: "new-a.example", count: 1 },
+      { directive: "script-src-elem", blocked: "new-b.example", count: 3 },
+      { directive: "img-src", blocked: "new-c.example", count: 1 },
+    ],
+    known,
+  );
+  assert.deepEqual(folded, [
+    { directive: "script-src-elem", blocked: "h7.example", count: 2 },
+    { directive: "script-src-elem", blocked: "other", count: 4 },
+    { directive: "img-src", blocked: "other", count: 1 },
+  ]);
+  assert.deepEqual(foldCounts([{ directive: "script-src-elem", blocked: "other", count: 1 }], new Set([...known, cspKey("script-src-elem", "other")])), [
+    { directive: "script-src-elem", blocked: "other", count: 1 },
+  ]);
+});
+
+test("below the threshold a new host keeps its own row, and the row that reaches 200 is the last one", () => {
+  const known = new Set(Array.from({ length: CSP_ROWS_PER_DAY - 1 }, (_, i) => cspKey("img-src", `h${i}.example`)));
+  const folded = foldCounts(
+    [
+      { directive: "img-src", blocked: "last.example", count: 1 },
+      { directive: "img-src", blocked: "late.example", count: 1 },
+    ],
+    known,
+  );
+  assert.deepEqual(folded, [
+    { directive: "img-src", blocked: "last.example", count: 1 },
+    { directive: "img-src", blocked: "other", count: 1 },
+  ]);
+});
+
+test("through the route, a day at 200 rows stores new hosts under other and a known host under its own name", async (t) => {
+  const day = new Set(Array.from({ length: CSP_ROWS_PER_DAY }, (_, i) => cspKey("script-src-elem", `h${i}.example`)));
+  const added: CspCount[][] = [];
+  const { base, close } = await serve({ keys: async () => [...day], add: async (_day, rows) => void added.push(rows) });
+  t.after(close);
+  assert.equal((await post(base, REPORTING_API, [...flood(1, 3), ...flood(2, 900)])).status, 204);
+  assert.deepEqual(added, [
+    [
+      { directive: "script-src-elem", blocked: "h3.example", count: 1 },
+      { directive: "script-src-elem", blocked: "other", count: 2 },
+    ],
+  ]);
 });

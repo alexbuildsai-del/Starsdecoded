@@ -45,7 +45,26 @@ jobs:
     timeout-minutes: 90
     env:
       WEB_URL: https://starsdecoded-staging.vercel.app
+      INPUT_CAMPAIGN: ${{ inputs.campaign }}
+      INPUT_CHART: ${{ inputs.chart }}
+      INPUT_PAIR: ${{ inputs.pair }}
+      INPUT_LENS: ${{ inputs.lens }}
+      INPUT_LABEL: ${{ inputs.label }}
     steps:
+      # Inputs are typed by whoever dispatches the run, so they stay data: they reach every script through env and are
+      # checked here first. Every later step that runs after a failure is gated on this one (S6).
+      - name: Check the inputs
+        id: inputs
+        run: |
+          check() {
+            printf '%s' "$2" | grep -Eq "$3" || { echo "::error::The $1 input may hold only lowercase letters, digits and hyphens${4:-}."; exit 1; }
+          }
+          check campaign "$INPUT_CAMPAIGN" '^[a-z0-9-]+$'
+          check label "$INPUT_LABEL" '^[a-z0-9-]+$'
+          check chart "$INPUT_CHART" '^[a-z0-9-]*$'
+          check pair "$INPUT_PAIR" '^[a-z0-9-]*$'
+          check lens "$INPUT_LENS" '^[a-z0-9_-]*$' " and underscores"
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
@@ -69,28 +88,30 @@ jobs:
       - name: Run the campaign
         run: |
           set -o pipefail
-          label="${{ inputs.label }}"
-          case "${{ inputs.campaign }}" in
-            pass) sel="--remote $WEB_URL --pass --label $label --html" ;;
-            pair) if [ "${{ inputs.pair }}" = "all" ]; then sel="--remote $WEB_URL --pair --label $label"; else sel="--remote $WEB_URL --pair ${{ inputs.pair }} --lens ${{ inputs.lens }} --label $label"; fi ;;
-            *) if [ "${{ inputs.chart }}" = "all" ]; then sel="--remote $WEB_URL --all --label $label --html"; else sel="--remote $WEB_URL --chart ${{ inputs.chart }} --label $label --html"; fi ;;
+          label="$INPUT_LABEL"
+          case "$INPUT_CAMPAIGN" in
+            pass) sel=(--pass --label "$label" --html) ;;
+            pair) if [ "$INPUT_PAIR" = "all" ]; then sel=(--pair --label "$label"); else sel=(--pair "$INPUT_PAIR" --lens "$INPUT_LENS" --label "$label"); fi ;;
+            *) if [ "$INPUT_CHART" = "all" ]; then sel=(--all --label "$label" --html); else sel=(--chart "$INPUT_CHART" --label "$label" --html); fi ;;
           esac
           status=0
-          pnpm report:lab $sel 2>&1 | tee lab.log || status=$?
-          { echo '## Report lab: ${{ inputs.campaign }}'; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          pnpm report:lab --remote "$WEB_URL" "${sel[@]}" 2>&1 | tee lab.log || status=$?
+          { echo "## Report lab: $INPUT_CAMPAIGN"; echo '```'; grep -vE '^(wrote |$)' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
       # The log rides with the run: a failed run publishes its error where the
       # orchestrator can read it, since the log storage host is not reachable
       # from every session.
       - name: Keep the lab's log with the run
-        if: always()
-        run: mkdir -p fixtures/reports && cp lab.log "fixtures/reports/lab.${{ inputs.label }}.log" 2>/dev/null || true
+        if: always() && steps.inputs.outcome == 'success'
+        run: |
+          mkdir -p fixtures/reports
+          cp lab.log "fixtures/reports/lab.$INPUT_LABEL.log" 2>/dev/null || true
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
+        if: always() && steps.inputs.outcome == 'success'
         with:
-          name: report-lab-${{ inputs.label }}
+          name: report-lab-${{ env.INPUT_LABEL }}
           path: fixtures/reports/
           if-no-files-found: ignore
 
@@ -99,15 +120,15 @@ jobs:
       # branch, where GitHub renders the .md files. Partial runs publish too.
       # One label per campaign, or the next run's force-push drops the last one.
       - name: Publish the run on the report-lab branch
-        if: always()
+        if: always() && steps.inputs.outcome == 'success'
         run: |
-          compgen -G "fixtures/reports/*.${{ inputs.label }}.md" >/dev/null || [ -f "fixtures/reports/lab.${{ inputs.label }}.log" ] || { echo "nothing to publish"; exit 0; }
-          branch="report-lab/${{ inputs.label }}"
+          compgen -G "fixtures/reports/*.$INPUT_LABEL.md" >/dev/null || [ -f "fixtures/reports/lab.$INPUT_LABEL.log" ] || { echo "nothing to publish"; exit 0; }
+          branch="report-lab/$INPUT_LABEL"
           git config user.name "report-lab"
           git config user.email "report-lab@users.noreply.github.com"
           git checkout -B "$branch"
           git add -f fixtures/reports
           git diff --cached --quiet && { echo "nothing new to publish"; exit 0; }
-          git commit -q -m "Report lab: ${{ inputs.campaign }} against staging, run ${{ github.run_id }}"
+          git commit -q -m "Report lab: $INPUT_CAMPAIGN against staging, run ${{ github.run_id }}"
           git push -f origin "$branch"
           printf -- '- reports: https://github.com/%s/tree/%s/fixtures/reports\n' "$GITHUB_REPOSITORY" "$branch" >> "$GITHUB_STEP_SUMMARY"
