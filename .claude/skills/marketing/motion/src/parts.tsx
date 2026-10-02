@@ -146,16 +146,16 @@ export function Layer({ children, style }: { children: ReactNode; style?: CSSPro
   return <div style={{ position: "absolute", inset: 0, ...style }}>{children}</div>;
 }
 
-/** A shockwave on the drop: one ring out from the centre, and a breath of light. */
-export function Shock({ t, at, x, y }: { t: number; at: number; x: number; y: number }) {
-  const u = p(t, at, at + 0.9, brand);
+/** A breath of first light as the wheel lands, with one faint ring going out: G15 has no drops. */
+export function Bloom({ t, at, x, y }: { t: number; at: number; x: number; y: number }) {
+  const u = p(t, at, at + 1.6, brand);
   if (t < at || u >= 1) return null;
+  const light = Math.sin(Math.PI * p(t, at - 0.2, at + 1.4, (v) => v));
   return (
     <>
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(40% 25% at ${x / 10.8}% ${y / 19.2}%, rgba(159,168,218,${0.55 * (1 - p(t, at, at + 0.35))}), transparent 70%)` }} />
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(40% 25% at ${x / 10.8}% ${y / 19.2}%, rgba(159,168,218,${0.22 * light}), transparent 70%)` }} />
       <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
-        <circle cx={x} cy={y} r={120 + u * 760} fill="none" stroke={C.brass} strokeWidth={3 * (1 - u) + 0.5} opacity={0.75 * (1 - u)} />
-        <circle cx={x} cy={y} r={60 + u * 520} fill="none" stroke={C.indigoLt} strokeWidth={1.5} opacity={0.5 * (1 - u)} />
+        <circle cx={x} cy={y} r={300 + u * 420} fill="none" stroke={C.brass} strokeWidth={1.2} opacity={0.35 * (1 - u)} />
       </svg>
     </>
   );

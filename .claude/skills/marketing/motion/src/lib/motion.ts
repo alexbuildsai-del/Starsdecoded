@@ -1,5 +1,8 @@
-// Timing on one clock: seconds, a 120 BPM grid, and the product's one easing for anything that settles.
+// Timing on one clock: story seconds on a 120 BPM grid, and the product's one easing for anything that settles.
 export const FPS = 30;
+// The film plays the storyboard at 72 BPM (direction A, G15): one story second lasts SLOW real seconds.
+export const TEMPO = 72;
+export const SLOW = 120 / TEMPO;
 export const BPM = 120;
 export const BEAT = 60 / BPM;
 export const BAR = BEAT * 4;

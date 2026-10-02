@@ -25,6 +25,9 @@ merged into the rule it repeats.
 - **Launch marketing sells the two reports.** On draft 2 (2026-10-02) he cut birth time ("we don't need to mention
   birth time at all") and Timeline ("we will do the timeline subscription later"), and asked to hint at credits and
   the gifting loop. Propose the Personal and Compatibility reports, credits and gifts; Timeline waits for its round.
+- **Calm over punchy.** On draft 3 (2026-10-02) the 120 BPM electronic cut I recommended was "too fast" and he
+  preferred direction A, G15 as written ("I prefer slower A"). Pace video to the 72 BPM ambient sound, with glides
+  and crossfades and time to read; offer a faster style only as an option, never the default.
 
 ## Asked for
 - **Opus for orchestrating, planning and research.** The orchestrator (the Owner, ADR-137), planning (R-0.7) and, from

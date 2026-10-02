@@ -1,4 +1,5 @@
-// The launch trailer, 30 s at 120 BPM: the Personal report, the Compatibility report, credits and the circle.
+// The launch trailer: the Personal report, the Compatibility report, credits and the circle. Scenes are timed in
+// story seconds on a 120 BPM grid and played at 72 BPM (SLOW), so the film runs 50 s, calm, with crossfades.
 // Every product surface is the web app's own component; the live ones (first light, the circle) run on the
 // frame-locked clock (clock.ts), so render with concurrency 1. Storyboard: docs/specs/draft/launch-trailer.md.
 import { AbsoluteFill, Audio, staticFile } from "remotion";
@@ -17,11 +18,11 @@ import { orbitPoints, pointAngles, type OrbitGift, type OrbitProfile, type Orbit
 import { sampleSky, type Sky } from "@/site/lib/sky";
 import { SAMPLE_PEOPLE, samplePerson } from "@/site/data/people";
 import type { Claim } from "@/types/chart";
-import { arc, BAR, BEAT, clamp, DROP, inOut, kick, lerp, p, quadIn, win } from "./lib/motion";
+import { arc, BAR, BEAT, clamp, DROP, inOut, kick, lerp, p, quadIn, SLOW, win } from "./lib/motion";
 import { chartAt, PLACE, polar } from "./lib/sky";
 import { useClock } from "./lib/useClock";
 import { useAssets } from "./lib/useAssets";
-import { C, Caption, F, Field, Finish, HorizonRise, Layer, Sheen, Shock } from "./parts";
+import { Bloom, C, Caption, F, Field, Finish, HorizonRise, Layer, Sheen } from "./parts";
 
 export interface TrailerProps { date: string; music: string | null }
 
@@ -40,8 +41,9 @@ const CURIE: Claim = {
 
 export const Trailer = ({ date, music }: TrailerProps) => {
   useAssets();
-  const t = useClock();
-  const k = kick(t, [GAP]);
+  const real = useClock();
+  const t = real / SLOW;
+  const k = 0.5 * kick(t, [GAP]);
   return (
     <AbsoluteFill className="dark" style={{ background: C.void, overflow: "hidden", fontFamily: F.sans }}>
       {music ? <Audio src={staticFile(music)} /> : null}
@@ -49,7 +51,7 @@ export const Trailer = ({ date, music }: TrailerProps) => {
       <Horizon t={t} />
       <Hook t={t} />
       <OrreryScene t={t} date={date} />
-      <Shock t={t} at={DROP} x={CX} y={CY} />
+      <Bloom t={t} at={DROP} x={CX} y={CY} />
       <FirstLight t={t} date={date} />
       <Chapters t={t} />
       <Pair t={t} k={k} />
@@ -58,7 +60,7 @@ export const Trailer = ({ date, music }: TrailerProps) => {
       <Gift t={t} />
       <Network t={t} />
       <End t={t} />
-      <Finish frame={Math.round(t * 30)} />
+      <Finish frame={Math.round(real * 30)} />
     </AbsoluteFill>
   );
 };
@@ -110,7 +112,7 @@ function Hook({ t }: { t: number }) {
 const RING_R: Record<string, number> = Object.fromEntries(RINGS.map((b, i) => [b, 112 + i * 34]));
 const SIZE: Record<string, number> = { moon: 56, mercury: 42, venus: 50, sun: 60, mars: 48, jupiter: 74, saturn: 84, chiron: 14, uranus: 54, neptune: 54, pluto: 38 };
 
-/** 0:02 Here's the rest of you. The sky sweeps faster and faster and every body lands on its degree on the drop. */
+/** 0:03 Here's the rest of you. The sky sweeps faster and faster and every body lands on its degree as the pulse comes in. */
 function OrreryScene({ t, date }: { t: number; date: string }) {
   if (t < 1.9 || t > 4.8) return null;
   const chart = chartAt(date, "09:00");
@@ -130,7 +132,7 @@ function OrreryScene({ t, date }: { t: number; date: string }) {
   const screen = (body: string, tt: number) => deg(body, tt) + off(tt);
   const tiltX = Math.sin(Math.PI * p(t, 2.05, 3.95, inOut)) * 52;
   const appear = p(t, 1.95, 2.5);
-  const leave = p(t, 4.0, 4.7);
+  const leave = p(t, 3.9, 4.75);
   const scale = lerp(0.92, 1, appear) * lerp(1, 1.35, leave);
   return (
     <>
@@ -169,7 +171,7 @@ function OrreryScene({ t, date }: { t: number; date: string }) {
 
 let SKY: Sky | undefined;
 /**
- * 0:04 The drop: the home page's own wheel arrives by first light (HorizonWheel, live). Then it sets below
+ * 0:07 The landing: the home page's own wheel arrives by first light (HorizonWheel, live). Then it sets below
  * the horizon like the Sun while the report's name rises out of the same line.
  */
 function FirstLight({ t, date }: { t: number; date: string }) {
@@ -195,7 +197,7 @@ function FirstLight({ t, date }: { t: number; date: string }) {
   );
 }
 
-/** 0:08 The chapters fly past, then one lands: a real line, its citation, and the evidence under it. */
+/** 0:13 The chapters fly past, then one lands: a real line, its citation, and the evidence under it. */
 function Chapters({ t }: { t: number }) {
   if (t < 7.6 || t > 12.3) return null;
   const leave = p(t, 11.6, 12.15, quadIn);
@@ -255,17 +257,17 @@ function ChapterCard({ ci }: { ci: number }) {
 }
 
 const LENSES = ["Couples", "A parent and a child", "Friends, family, colleagues"];
-/** 0:12 After a beat of silence the two plates slam together on one horizon; the three kinds of pair, on the beat. */
+/** 0:20 In a beat of silence the two plates glide together onto one horizon; the three kinds of pair, on the beat. */
 function Pair({ t, k }: { t: number; k: number }) {
-  if (t < 11.7 || t > 14.5) return null;
+  if (t < 11.45 || t > 14.5) return null;
   const a = samplePerson("mira"), b = samplePerson("tomas");
   if (!a || !b) return null;
-  const u = p(t, 11.75, 12.0, (x) => x * x);
-  const settle = p(t, 12.0, 12.6);
+  const u = p(t, 11.5, 12.3);
+  const settle = p(t, 11.9, 12.6);
   const leave = p(t, 13.9, 14.4, quadIn);
   const lens = t < 12.5 ? 0 : t < 13.0 ? 1 : t < 13.5 ? 2 : 0;
   const half = (side: "l" | "r") => (
-    <div style={{ position: "absolute", inset: 0, clipPath: side === "l" ? "inset(0 50% 0 0)" : "inset(0 0 0 50%)", transform: `translateX(${(side === "l" ? -1 : 1) * ((1 - u) * 420 - Math.sin(settle * Math.PI) * 14 * (1 - settle))}px)` }}>
+    <div style={{ position: "absolute", inset: 0, clipPath: side === "l" ? "inset(0 50% 0 0)" : "inset(0 0 0 50%)", transform: `translateX(${(side === "l" ? -1 : 1) * (1 - u) * 420}px)` }}>
       <div className="sd" style={{ position: "absolute", left: 10, width: 1060, top: CY - 220, background: "transparent" }}>
         <TwoPlates a={{ name: a.name.split(" ")[0], chart: a.chart }} b={{ name: b.name.split(" ")[0], chart: b.chart }} />
       </div>
@@ -294,7 +296,7 @@ const SLOTS = [
   { kind: "Personal report", who: "Tomás" },
   { kind: "Compatibility report", who: "The two of you" },
 ];
-/** 0:14 One credit, one report of either kind: three credits find a report each and how you get along. */
+/** 0:23 One credit, one report of either kind: three credits find a report each and how you get along. */
 function Credits({ t }: { t: number }) {
   if (t < 13.9 || t > 16.6) return null;
   const leave = p(t, 15.95, 16.45, inOut);
@@ -355,7 +357,7 @@ function OrbitAt({ x, y, scale, children, style }: { x: number; y: number; scale
   return <div style={{ position: "absolute", left: x - 220, top: y - 220, width: 440, height: 440, transform: `scale(${scale})`, ...style }}>{children}</div>;
 }
 
-/** 0:16 Add the people you care about: the dashboard's circle fills on the beat; Share with makes a report theirs. */
+/** 0:27 Add the people you care about: the dashboard's circle fills on the beat; Share with makes a report theirs. */
 function Circle({ t }: { t: number }) {
   if (t < 15.9 || t > 23.6) return null;
   const n = t < 16.5 ? 0 : Math.min(5, 1 + Math.floor((t - 16.5) / 0.5));
@@ -365,9 +367,9 @@ function Circle({ t }: { t: number }) {
   const appear = p(t, 15.95, 16.6);
   // From 22.6 the camera dives into Pierre's waiting gift.
   const dive = p(t, 22.6, 23.4, (u) => u * u * u);
-  // Where the gift sits: the ring's own angles plus the circle's 3°/s drift since it mounted (Orbit.tsx DRIFT_DEG_PER_S).
+  // Where the gift sits: the ring's own angles plus the circle's 3°/s drift, in real seconds, since it mounted (Orbit.tsx DRIFT_DEG_PER_S).
   const gi = points.findIndex((q) => q.kind === "gift");
-  const ga = gi < 0 ? 0 : ((pointAngles(points.length)[gi] + 3 * (t - 15.9)) * Math.PI) / 180;
+  const ga = gi < 0 ? 0 : ((pointAngles(points.length)[gi] + 3 * (t - 15.9) * SLOW) * Math.PI) / 180;
   const gx = gi < 0 ? 0 : 174 * Math.cos(ga) * 2.3, gy = gi < 0 ? 0 : 174 * Math.sin(ga) * 2.3;
   const s = lerp(lerp(0.6, 2.3, appear), 9, dive);
   const share = p(t, 18.7, 19.1), joined = t >= 19.5;
@@ -393,7 +395,7 @@ function Circle({ t }: { t: number }) {
   );
 }
 
-/** 0:20 Or gift a report: the real cover flies in, then folds into the circle as a gift waiting. */
+/** 0:33 Or gift a report: the real cover flies in, then folds into the circle as a gift waiting. */
 function Gift({ t }: { t: number }) {
   if (t < 19.9 || t > 22.4) return null;
   const inn = p(t, 20.0, 20.9);
@@ -415,7 +417,7 @@ function Gift({ t }: { t: number }) {
   );
 }
 
-/** 0:23 The gift becomes Pierre's own credit and his own circle; pull back and the circles keep going. */
+/** 0:38 The gift becomes Pierre's own credit and his own circle; pull back and the circles keep going. */
 function Network({ t }: { t: number }) {
   if (t < 23.0 || t > 27.8) return null;
   const empty = (name: string) => orbitPoints({ profiles: [{ id: name, name, isSelf: true }], reports: [], gifts: [], credits: 1, enforced: true });
@@ -456,7 +458,7 @@ function Network({ t }: { t: number }) {
 }
 const NET: { pierre?: ReturnType<typeof orbitPoints>; lea?: ReturnType<typeof orbitPoints> } = {};
 
-/** 0:27 Everything folds into the mark; the name; the line; then only the brass point on the horizon, where it began. */
+/** 0:45 Everything folds into the mark; the name; the line; then only the brass point on the horizon, where it began. */
 function End({ t }: { t: number }) {
   if (t < 26.9) return null;
   const ring = p(t, 27.05, 27.75);
