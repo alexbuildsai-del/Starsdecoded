@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.23 (2026-10-02) |
+| Version | 0.24 (2026-10-02) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -31,7 +31,7 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 **Who it is for.** The self-knowledge audience, the people who already take Myers-Briggs and the Enneagram seriously. "You're not selling astrology. You're selling a structured self-knowledge report that happens to use planetary data." A second segment, parents wanting to understand a child, is the biggest differentiator and is not built yet.
 
 **The bet.**
-- **Compute, don't guess.** Positions come from `astronomy-engine`, not from a model. This is the credibility position; every claim about method must be literally true.
+- **Compute, don't guess.** Positions come from `astronomy-engine`, and Chiron from a committed NASA JPL Horizons table (ADR-221), never from a model. This is the credibility position; every claim about method must be literally true.
 - **Grounded writing.** The model synthesises from computed facts and a fixed doctrine, so the output cannot drift into generic horoscope prose.
 - **The compatibility report is the growth engine.** Two people's birth data means every compatibility report is an invite; willingness to pay peaks at the specific-relationship moment; relationships evolve, so the report gets revisited. It is built from two finished natal reports (`docs/specs/locked/compatibility-report.md`); "synastry" is the trade word and never a buyer-facing one.
 - **Quality over cost.** Inference is under 1% of a sale. Token ceilings are never tightened to save money.

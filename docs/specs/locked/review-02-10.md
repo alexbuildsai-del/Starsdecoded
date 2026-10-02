@@ -1,7 +1,7 @@
 # Review 02/10
 
 Ideation 2026-10-02 with the Owner from the Notion page "Review 02/10" (three notes for Claude and seven
-findings on staging after R13). Artifact: https://claude.ai/artifact/8iHkhBkbfVApsDMvuqaRk8. Status: **draft**.
+findings on staging after R13). Artifact: https://claude.ai/artifact/8iHkhBkbfVApsDMvuqaRk8. Status: **locked 2026-10-02** (ADR-218 to 226).
 Touches `landing-and-ai-search` (the home sections, /sample's run, the free chart's fields),
 `review-01-10` (the two differences, ADR-173) and the engine (Chiron).
 **Brain:** Chiron's position changes in `packages/engine` (dry lab; the first Release's lab writes with it).
@@ -160,19 +160,19 @@ English (US) browser, Chiron's real place, the facts with the line struck, the d
 - The nodes stay; the secret is set; the /round skill is replaced.
 
 ## Decisions to record
-1. The section after the hero is one heading and one line from the sample run, annotated as a moment you'd
+1. ADR-218 · The section after the hero is one heading and one line from the sample run, annotated as a moment you'd
    recognise, checked against your chart and something to try; the circle pillar leaves home and /sample
    (amends ADR-173).
-2. "Add the people you care about" adds Gift them a report and Share reports with each other, in the
+2. ADR-219 · "Add the people you care about" adds Gift them a report and Share reports with each other, in the
    dashboard's verbs, and keeps its look.
-3. The home page and /method no longer promise the credit back; the refund rules stand (ADR-142).
-4. Chiron comes from a committed JPL Horizons table, 1800 to 2150, interpolated; the hand-made Kepler
+3. ADR-220 · The home page and /method no longer promise the credit back; the refund rules stand (ADR-142).
+4. ADR-221 · Chiron comes from a committed JPL Horizons table, 1800 to 2150, interpolated; the hand-made Kepler
    orbit is retired with no fallback formula. Audrey Hepburn's Chiron is 10.0° Taurus, 4th house.
-5. Birth date and time are each one typed field with auto separators and auto-advance; their order and
+5. ADR-222 · Birth date and time are each one typed field with auto separators and auto-advance; their order and
    clock follow the browser's language, never the location; the API's format is unchanged.
-6. /sample shows Audrey Hepburn's run from the latest Release that passed; each passing Release
-   refreshes it (closes MB-101).
-7. The edge secret is `EDGE_PROXY_SECRET` in Vercel and in Railway's staging and production.
-8. A lockfile with two peer variants of react or react-query fails CI.
-9. The round order: R14 is this review with Chiron and the edge secret's card, then QA, then the first
-   Release; pricing and launch become R15.
+6. ADR-223 · /sample shows Audrey Hepburn's run from the latest Release that passed; each passing Release
+   refreshes it (closes MB-101 and MB-134).
+7. ADR-224 · The edge secret is `EDGE_PROXY_SECRET` in Vercel and in Railway's staging and production.
+8. ADR-225 · A lockfile with two peer variants of react or react-query fails CI.
+9. ADR-226 · The round order: R14 is this review with Chiron and the edge secret's card, then QA, then the first
+   Release; pricing and launch become R15 (amends ADR-204; ADR-217's Timeline still follows pricing).
