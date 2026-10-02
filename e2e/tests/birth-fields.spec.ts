@@ -85,7 +85,12 @@ for (const { locale, datePlaceholder, date, twelveHour } of LANGUAGES) {
         await expect(timeInput, "a whole date moves focus to the time").toBeFocused();
         await page.keyboard.type("0300");
         await expect(timeInput).toHaveValue("03 : 00");
-        await expect(page.getByRole("textbox", { name: "Birth place" }), "a whole time moves focus to the place").toBeFocused();
+        const place = page.getByRole("textbox", { name: "Birth place" });
+        await expect(place, "a whole time moves focus to the place").toBeFocused();
+        // The visitor's city is already there, so it arrives selected and typing on replaces it (QA-02 #2).
+        const selection = await place.evaluate((el: HTMLInputElement) => [el.selectionStart, el.selectionEnd, el.value.length]);
+        expect(selection[2], "a city is pre-filled").toBeGreaterThan(0);
+        expect(selection, "the pre-filled city is selected whole").toEqual([0, selection[2], selection[2]]);
         if (twelveHour) {
           await expect(halves.getByRole("radio", { name: "AM" })).toBeChecked();
           await halves.getByText("PM", { exact: true }).click();

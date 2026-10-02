@@ -21,7 +21,13 @@ import { EARLIEST_BIRTH, PLACE_PROBLEM, birthDateProblem, todayOf, visitorPlace,
 // The place field's own label, so the three fields read as one form.
 const LABEL = "font-label text-xs tracking-wide uppercase text-muted-foreground";
 
-const focusById = (id: string) => document.getElementById(id)?.focus();
+// Focus arrives here mid-typing, so a value already in the field (the visitor's own city) is selected and the next keys
+// replace it rather than run on from it (QA-02 #2).
+const focusById = (id: string) => {
+  const el = document.getElementById(id);
+  el?.focus();
+  if (el instanceof HTMLInputElement) el.select();
+};
 
 export interface SkyFormProps {
   onShow: (birth: SkyBirth) => void;
