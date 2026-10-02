@@ -1,6 +1,6 @@
 /**
  * Real HTML (R-7.6, ADR-114), the build's last step: every page the server entry renders goes into the built
- * index.html with its own head, stylesheets and chunks, so the words reach a crawler and the page is styled before its
+ * index.html with its own head and stylesheets, so the words reach a crawler and the page is styled before its
  * script runs. Beside them: app.html, the empty shell vercel.json gives the app routes; 404.html; the crawl files. A
  * page whose HTML lacks its H1 or its lede fails the build.
  */
@@ -23,7 +23,7 @@ if (!HEAD.test(template) || template.split(ROOT).length !== 2) {
 const manifestFile = path.join(dist, ".vite", "manifest.json");
 const manifest = JSON.parse(await readFile(manifestFile, "utf8"));
 
-/** Every chunk the entry loads before any page does: their stylesheets and preloads are in the template already. */
+/** Every chunk the entry loads before any page does: their stylesheets are in the template already. */
 const entryKey = Object.keys(manifest).find((key) => manifest[key].isEntry);
 const loadedFirst = new Set();
 (function reach(key) {
@@ -32,34 +32,39 @@ const loadedFirst = new Set();
   for (const next of manifest[key].imports ?? []) reach(next);
 })(entryKey);
 
-/** Without its stylesheets a page would show unstyled until its chunk loaded, and hydration waits on the chunk. */
+const tag = (html) => `  ${html}\n  `;
+
+/**
+ * Without its stylesheets a page would show unstyled until its chunk loaded. Its chunks get no modulepreload: main.tsx
+ * fetches them once the page has painted, and preloaded they would share the first paint's bandwidth again.
+ */
 function assetTags(source) {
   const css = new Set();
-  const js = new Set();
   const seen = new Set();
   (function visit(key) {
     if (seen.has(key) || loadedFirst.has(key)) return;
     const chunk = manifest[key];
     if (!chunk) throw new Error(`The client manifest has no ${key}.`);
     seen.add(key);
-    js.add(chunk.file);
     for (const file of chunk.css ?? []) css.add(file);
     for (const next of chunk.imports ?? []) visit(next);
   })(source);
-  return [
-    ...[...css].map((file) => `<link rel="stylesheet" crossorigin href="${server.base}${file}">`),
-    ...[...js].map((file) => `<link rel="modulepreload" crossorigin href="${server.base}${file}">`),
-  ]
-    .map((tag) => `  ${tag}\n  `)
-    .join("");
+  return [...css].map((file) => tag(`<link rel="stylesheet" crossorigin href="${server.base}${file}">`)).join("");
 }
+
+/** main.tsx adds the faces after the first paint; a visit without scripts gets them from here. */
+const fontSheet = manifest["src/fonts.css"]?.file;
+if (!fontSheet) throw new Error("The client manifest has no src/fonts.css, the faces main.tsx adds after first paint.");
+const fontsWithoutScript = tag(
+  `<noscript><link rel="stylesheet" crossorigin href="${server.base}${fontSheet}"></noscript>`,
+);
 
 /** Functions, not strings, as replacements: a `$` in a page's words must stay a dollar sign. */
 function documentOf({ head, html = "", assets = "" }) {
   return template
     .replace(HEAD, () => head.replace(/\n/g, "\n    "))
     .replace(ROOT, () => `<div id="root">${html}</div>`)
-    .replace("</head>", () => `${assets}</head>`);
+    .replace("</head>", () => `${assets}${fontsWithoutScript}</head>`);
 }
 
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
