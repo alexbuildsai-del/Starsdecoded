@@ -122,6 +122,25 @@ test("the edge's value is compared as written: whitespace, case, unicode and its
   assert.equal(cameThroughEdge({ "x-vercel-forwarded-for": EDGE, "x-forwarded-for": EDGE }, EDGE), false, "the value under other names");
 });
 
+test("the variable is read trimmed, as the middleware sends it, and a blank one is unset, while a secret handed in stays as written", () => {
+  const carrying = (value: string) => ({ "x-edge-proxy-secret": value });
+  const forwarded = { "x-vercel-forwarded-for": "203.0.113.7" };
+  // What arrives from a variable with whitespace round it: the middleware trims it, as Headers.set would.
+  for (const configured of [` ${EDGE}`, `${EDGE}\t`, `\r\n${EDGE} \n`, `\u00a0${EDGE}\u00a0`, `\ufeff${EDGE}`]) {
+    const label = JSON.stringify(configured);
+    assert.equal(withEdge(configured, () => cameThroughEdge(carrying(EDGE))), true, label);
+    assert.equal(withEdge(configured, () => cameThroughEdge(carrying(configured))), false, `${label} is not what the edge sends`);
+    assert.equal(withEdge(configured, () => clientKey({ ...forwarded, ...carrying(EDGE) }, RAILWAY_SAW)), "203.0.113.7", label);
+  }
+  for (const blank of [" ", "\t", " \r\n ", "\u00a0"]) {
+    const label = JSON.stringify(blank);
+    for (const sent of ["", blank, " "]) assert.equal(withEdge(blank, () => cameThroughEdge(carrying(sent))), false, `${label}, sent ${JSON.stringify(sent)}`);
+    assert.equal(withEdge(blank, () => clientKey({ ...forwarded, ...carrying("") }, RAILWAY_SAW)), RAILWAY_SAW, label);
+  }
+  assert.equal(withEdge(EDGE, () => cameThroughEdge(carrying(`${EDGE} `))), false, "the header is compared as it arrives: HTTP has trimmed it already");
+  assert.equal(withEdge(" ", () => cameThroughEdge(carrying(" "), " ")), true, "a secret handed in is not the variable");
+});
+
 test("a forwarded address is trusted whole as the edge wrote it: IPv6, a list, an array, spacing and an empty first entry", () => {
   const through = (forwarded: string | string[] | undefined, ip: string | undefined = RAILWAY_SAW) =>
     clientKey({ "x-edge-proxy-secret": EDGE, "x-vercel-forwarded-for": forwarded }, ip);

@@ -12,12 +12,20 @@ declare const process: { env: Record<string, string | undefined> };
  * Railway saw.
  */
 export default function middleware(request: Request): Response {
-  const secret = process.env.EDGE_PROXY_SECRET;
+  // Trimmed as `Headers.set` would trim it and as the API reads it, so both sides hold the same value; blank is unset.
+  const secret = process.env.EDGE_PROXY_SECRET?.trim();
   if (!secret) return next();
   // The list replaces the upstream call's headers whole, so it starts from the visitor's; `set` also drops a value a
   // visitor sent under the same name.
   const headers = new Headers(request.headers);
-  headers.set("x-edge-proxy-secret", secret);
+  try {
+    headers.set("x-edge-proxy-secret", secret);
+  } catch {
+    // A value no header can carry (a line break inside it, a character past U+00FF) would fail every /api call.
+    // Without it the API keys on req.ip and healthz says edge: false, which the probe reports. The error quotes the
+    // value, so it is not logged.
+    return next();
+  }
   // MB-167 provisional: that Vercel carries these through vercel.json's rewrite to Railway shows only on a deploy; if
   // staging's healthz never says edge, this becomes a rewrite to Railway made here.
   return next({ request: { headers } });

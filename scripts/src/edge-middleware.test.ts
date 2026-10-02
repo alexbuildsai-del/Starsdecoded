@@ -161,3 +161,27 @@ test("the secret rides only in a request header whatever the method or path, and
   assert.equal(first.headers.get("x-middleware-request-x-edge-proxy-secret"), EDGE);
   assert.equal(second.headers.get("x-middleware-request-x-edge-proxy-secret"), "another-made-up-value");
 });
+
+test("a secret no header can carry leaves every call as it came, never a failed one, and nothing in the answer quotes it", () => {
+  for (const value of ["edge-value\u2603-not-real", "edge-value-\u{1F512}", "edge-value\nnot-real", "edge-value\rnot-real"]) {
+    const request = visit();
+    const answer = withEdge(value, () => edge.default(request));
+    assert.deepEqual([...answer.headers], [["x-middleware-next", "1"]], JSON.stringify(value));
+    assert.deepEqual([...upstream(request, answer)], [...request.headers], "the call goes upstream as it came");
+  }
+});
+
+test("the secret's ends are trimmed before it is set, the same trim the API reads it with, and a blank one is unset", () => {
+  for (const value of [` ${EDGE}`, `${EDGE}\t`, `\r\n${EDGE} \n`, `\u00a0${EDGE}\u00a0`, `\ufeff${EDGE}`]) {
+    const request = visit();
+    const answer = withEdge(value, () => edge.default(request));
+    assert.equal(upstream(request, answer).get("x-edge-proxy-secret"), EDGE, JSON.stringify(value));
+    assert.equal(answer.headers.get("x-middleware-request-x-edge-proxy-secret"), EDGE, JSON.stringify(value));
+  }
+  for (const value of [" ", "\t\n", " \r\n ", "\u00a0"]) {
+    const request = visit();
+    const answer = withEdge(value, () => edge.default(request));
+    assert.deepEqual([...answer.headers], [["x-middleware-next", "1"]], JSON.stringify(value));
+    assert.deepEqual([...upstream(request, answer)], [...request.headers]);
+  }
+});

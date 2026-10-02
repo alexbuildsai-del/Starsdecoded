@@ -64,6 +64,48 @@ function scrubLeaves(value: unknown): unknown {
   return Object.fromEntries(Object.entries(value).map(([key, leaf]) => [key, typeof leaf === "string" ? scrub(leaf) : leaf]));
 }
 
+// The edge's header in any case: Node lowercases a request's headers, but rawHeaders and a block built by hand keep the
+// case they were sent in.
+const EDGE_HEADER = "x-edge-proxy-secret";
+const NAMES_EDGE = /x-edge-proxy-secret/i;
+
+function isEdgeName(value: unknown): boolean {
+  return typeof value === "string" && value.toLowerCase() === EDGE_HEADER;
+}
+
+/**
+ * The edge's secret is in no line (reading 14), and the key paths reach only the depths they name: a header block in an
+ * error's own fields, in a list or deeper, a raw header list (a name, then its value) and the value itself in free text
+ * all get past them. So the finished line is read last, on its way to the stream, the one place that sees all pino
+ * prints: a child's bindings, the message, every serializer's output, pino-http's lines. A line that names the header or
+ * holds the value as JSON writes it is parsed and written again with every value under that name, every entry after it
+ * in a list and the value itself in any string or key censored; the rest of the line stays. Any other line goes out as
+ * pino wrote it, after a substring scan or two. The value is EDGE_PROXY_SECRET as the middleware sends it, trimmed, and
+ * blank is unset: then only the name is looked for.
+ */
+function edgeCensor(configured: string | undefined): (line: string) => string {
+  const secret = configured?.trim() || undefined;
+  const written = secret === undefined ? undefined : JSON.stringify(secret).slice(1, -1);
+  const text = (value: string) => (secret === undefined ? value : value.split(secret).join(CENSOR));
+  const clean = (node: unknown): unknown => {
+    if (typeof node === "string") return text(node);
+    if (Array.isArray(node)) return node.map((item, i) => (i > 0 && isEdgeName(node[i - 1]) ? CENSOR : clean(item)));
+    if (node === null || typeof node !== "object") return node;
+    const entries = Object.entries(node).map(([key, value]) => [text(key), isEdgeName(key) ? CENSOR : clean(value)]);
+    return Object.fromEntries(entries);
+  };
+  return (line) => {
+    if (!NAMES_EDGE.test(line) && (written === undefined || !line.includes(written))) return line;
+    // This runs inside every log call, so it must not throw into a route; a line that will not parse or walk still
+    // loses the value, if not its shape.
+    try {
+      return JSON.stringify(clean(JSON.parse(line))) + line.slice(line.trimEnd().length);
+    } catch {
+      return written === undefined ? line : line.split(written).join(CENSOR);
+    }
+  };
+}
+
 /** Every `params: …` tail a failed query wrote into an error or one of its causes, as drizzle-orm wrote it. */
 function paramTails(err: unknown): string[] {
   const tails: string[] = [];
@@ -134,6 +176,9 @@ function loggerOptions(env: NodeJS.ProcessEnv): LoggerOptions {
     formatters: {
       log: (fields) => Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, scrubLeaves(value)])),
     },
+    // Read once, here, as LOG_LEVEL is: the variable is set before the process starts, and every child, pino-http's
+    // among them, inherits the hook.
+    hooks: { streamWrite: edgeCensor(env.EDGE_PROXY_SECRET) },
   };
 }
 

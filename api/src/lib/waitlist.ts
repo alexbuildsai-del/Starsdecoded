@@ -20,9 +20,10 @@ export function tag(raw: string | undefined, max = 100): string | null {
  * True when the call carries EDGE_PROXY_SECRET, which only the root middleware.ts adds, on its way through Vercel to
  * here (ADR-224). Both sides are hashed first, so the comparison takes the same time whatever was sent and gives away
  * nothing of the secret, not even its length. Unset or empty, nothing came through the edge; a header sent twice is not
- * the edge's, which sets one.
+ * the edge's, which sets one. The variable is read trimmed, as the middleware sends it, since `Headers.set` trims a
+ * value's ends and an untrimmed one would never match; blank is unset. A secret handed in is compared as written.
  */
-export function cameThroughEdge(headers: IncomingHttpHeaders, secret = process.env.EDGE_PROXY_SECRET): boolean {
+export function cameThroughEdge(headers: IncomingHttpHeaders, secret = process.env.EDGE_PROXY_SECRET?.trim()): boolean {
   const sent = headers["x-edge-proxy-secret"];
   if (!secret || typeof sent !== "string") return false;
   const digest = (value: string) => createHash("sha256").update(value).digest();
