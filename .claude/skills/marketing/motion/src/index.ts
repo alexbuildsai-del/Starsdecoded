@@ -1,3 +1,4 @@
+import "./clock";
 import { registerRoot } from "remotion";
 import { Root } from "./Root";
 

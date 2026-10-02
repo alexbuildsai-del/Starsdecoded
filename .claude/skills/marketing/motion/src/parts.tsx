@@ -162,3 +162,45 @@ export function Shock({ t, at, x, y }: { t: number; at: number; x: number; y: nu
 }
 
 export const beatIn = (t: number, beat: number) => t >= beat * BEAT;
+
+/**
+ * The signature move: words rise out of a brass horizon like the Sun, clipped at the line, which draws
+ * itself first. `line` is the horizon's y; the words sit just above it. They sink back below it to leave.
+ */
+export function HorizonRise({ t, at, out, line, words, size = 150, align = "left", italicFrom = 99, color = C.paper, rule = true }: {
+  t: number; at: number; out: number; line: number; words: string[]; size?: number; align?: "left" | "center"; italicFrom?: number; color?: string; rule?: boolean;
+}) {
+  if (t < at - 0.05 || t > out + 0.05) return null;
+  const draw = p(t, at, at + 0.5);
+  const sink = p(t, out - 0.45, out, quadIn);
+  const h = size * 1.25;
+  return (
+    <>
+      {rule ? (
+        <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+          <line x1={align === "center" ? 540 - 470 * draw : 92} x2={align === "center" ? 540 + 470 * draw : 92 + 896 * draw} y1={line} y2={line} stroke={C.brass} strokeWidth={2} opacity={0.9 * (1 - sink)} />
+        </svg>
+      ) : null}
+      <div style={{ position: "absolute", left: 92, right: 92, top: line - h, height: h, overflow: "hidden", display: "flex", justifyContent: align === "center" ? "center" : "flex-start", alignItems: "flex-end", columnGap: size * 0.24 }}>
+        {words.map((w, i) => {
+          const u = p(t, at + 0.12 + i * 0.07, at + 0.9 + i * 0.07);
+          return (
+            <span key={i} style={{
+              display: "inline-block", fontFamily: F.serif, fontSize: size, lineHeight: 1.0, letterSpacing: "-0.02em", color,
+              fontStyle: i >= italicFrom ? "italic" : "normal", paddingBottom: size * 0.08,
+              transform: `translateY(${(1 - u) * 110 + sink * 110}%)`,
+            }}>{w}</span>
+          );
+        })}
+      </div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: line - 160, height: 320, background: `radial-gradient(50% 30% at 50% 50%, rgba(212,176,106,${0.09 * draw * (1 - sink)}), transparent 70%)`, pointerEvents: "none" }} />
+    </>
+  );
+}
+
+/** A sheen that crosses a card once as it lands: light on glass would be banned; this is light on paper. */
+export function Sheen({ t, at, dur = 0.9 }: { t: number; at: number; dur?: number }) {
+  const u = p(t, at, at + dur, (x) => x);
+  if (u <= 0 || u >= 1) return null;
+  return <div style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none", background: `linear-gradient(105deg, transparent ${u * 140 - 30}%, rgba(232,235,242,.07) ${u * 140 - 15}%, transparent ${u * 140}%)` }} />;
+}

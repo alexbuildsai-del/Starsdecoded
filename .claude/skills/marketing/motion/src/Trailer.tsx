@@ -1,31 +1,35 @@
-// The launch trailer, 30 s at 120 BPM, from the product's own components fed by the engine on every frame.
-// Storyboard and rules: docs/specs/draft/launch-trailer.md. One clock (seconds); scenes overlap where they hand over.
-import { useEffect, useState } from "react";
-import { AbsoluteFill, Audio, continueRender, delayRender, staticFile, useCurrentFrame } from "remotion";
-import { NatalWheel } from "@/components/chart/NatalWheel";
-import { TwoPlates } from "@/site/components/TwoPlates";
-import { TriadPlate } from "@/components/report/TriadPlate";
-import { Placements } from "@/site/components/Placements";
+// The launch trailer, 30 s at 120 BPM: the Personal report, the Compatibility report, credits and the circle.
+// Every product surface is the web app's own component; the live ones (first light, the circle) run on the
+// frame-locked clock (clock.ts), so render with concurrency 1. Storyboard: docs/specs/draft/launch-trailer.md.
+import { AbsoluteFill, Audio, staticFile } from "remotion";
 import { HorizonWheel } from "@/site/components/HorizonWheel";
+import { TwoPlates } from "@/site/components/TwoPlates";
 import { Chapter } from "@/components/report/Chapter";
 import { EvidenceCard } from "@/components/report/EvidenceCard";
+import { Orbit } from "@/components/dashboard/Orbit";
+import { GiftCover } from "@/components/dashboard/GiftCover";
+import { CreditDots } from "@/components/dashboard/CreditPill";
 import { Mark } from "@/components/Mark";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { RINGS, MEAN_MOTION, DAYS_PER_SECOND } from "@/lib/orrery";
-import { sampleSky } from "@/site/lib/sky";
-import { samplePerson } from "@/site/data/people";
+import { CHAPTERS } from "@/lib/chapters";
+import { orbitPoints, pointAngles, type OrbitGift, type OrbitProfile, type OrbitReport } from "@/lib/orbit";
+import { sampleSky, type Sky } from "@/site/lib/sky";
+import { SAMPLE_PEOPLE, samplePerson } from "@/site/data/people";
 import type { Claim } from "@/types/chart";
-import { arc, BAR, BEAT, clamp, DROP, FPS, inOut, kick, lerp, p, quadIn, win } from "./lib/motion";
-import { ascOnWheel, bodyOnWheel, chartAt, clock, dayLine, ordinal, PLACE, polar, reading, rising, saturnOn, saturnReturn, tilt } from "./lib/sky";
-import { C, Caption, F, Field, Finish, Layer, Readout, Reticle, Shock, Typed } from "./parts";
+import { arc, BAR, BEAT, clamp, DROP, inOut, kick, lerp, p, quadIn, win } from "./lib/motion";
+import { chartAt, PLACE, polar } from "./lib/sky";
+import { useClock } from "./lib/useClock";
+import { useAssets } from "./lib/useAssets";
+import { C, Caption, F, Field, Finish, HorizonRise, Layer, Sheen, Shock } from "./parts";
 
 export interface TrailerProps { date: string; music: string | null }
 
 const CX = 540, CY = 1010;
 const GAP: [number, number] = [6 * BAR - BEAT, 6 * BAR];
 
-// A line from Marie Curie's report, written blind (no birth time, so no houses: rule 8 allows her date alone).
-// fixtures/passes/marie-curie.r05.json, sections.mind.claims[0], quoted whole.
+// Marie Curie's report, a line quoted whole (fixtures/passes/marie-curie.r05.json, mind.claims[0]).
+// Organic posts only (rule 8): the ad cut swaps this scene.
 const CURIE: Claim = {
   quote: "You notice the principle, the direction, and the implication fast, then you fill in the missing steps later.",
   evidence: [
@@ -34,32 +38,10 @@ const CURIE: Claim = {
   ],
 } as unknown as Claim;
 
-function useReady() {
-  const [handle] = useState(() => delayRender("fonts and renders"));
-  useEffect(() => {
-    const imgs = [...Object.values(PLANET_RENDERS), SUN_HERO].map((src) => { const i = new Image(); i.src = src; return i.decode().catch(() => undefined); });
-    const fonts = ["400 100px Newsreader", "italic 400 100px Newsreader", "400 40px Inter", "500 40px 'Space Grotesk'", "400 40px 'IBM Plex Mono'", "500 40px 'IBM Plex Mono'"].map((f) => document.fonts.load(f));
-    Promise.all([...imgs, ...fonts]).then(() => document.fonts.ready).then(() => continueRender(handle));
-  }, [handle]);
-}
-
-function Wheel({ chart, size, centreName, style }: { chart: ReturnType<typeof chartAt>; size: number; centreName?: string; style?: React.CSSProperties }) {
-  return (
-    <div style={{ position: "absolute", left: -size / 2, top: -size / 2, width: size, height: size, transform: `rotate(${tilt(chart)}deg)`, ...style }}>
-      <NatalWheel chartData={chart} selectedHouse={0} centreName={centreName} />
-    </div>
-  );
-}
-
 export const Trailer = ({ date, music }: TrailerProps) => {
-  useReady();
-  const frame = useCurrentFrame();
-  const t = frame / FPS;
+  useAssets();
+  const t = useClock();
   const k = kick(t, [GAP]);
-  const natal = chartAt(date, "09:00");
-  const twinMin = lerp(9 * 60, 21 * 60, p(t, 6 * BAR, 6 * BAR + 1.25, inOut));
-  const twin = chartAt(date, clock(twinMin));
-
   return (
     <AbsoluteFill className="dark" style={{ background: C.void, overflow: "hidden", fontFamily: F.sans }}>
       {music ? <Audio src={staticFile(music)} /> : null}
@@ -68,24 +50,25 @@ export const Trailer = ({ date, music }: TrailerProps) => {
       <Hook t={t} />
       <OrreryScene t={t} date={date} />
       <Shock t={t} at={DROP} x={CX} y={CY} />
-      <Natal t={t} chart={natal} k={k} date={date} />
-      <Twins t={t} natal={natal} twin={twin} twinMin={twinMin} />
-      <FreeChart t={t} chart={natal} date={date} />
-      <Report t={t} />
+      <FirstLight t={t} date={date} />
+      <Chapters t={t} />
       <Pair t={t} k={k} />
-      <Cycles t={t} date={date} natal={natal} />
+      <Credits t={t} />
+      <Circle t={t} />
+      <Gift t={t} />
+      <Network t={t} />
       <End t={t} />
-      <Finish frame={frame} />
+      <Finish frame={Math.round(t * 30)} />
     </AbsoluteFill>
   );
 };
 
-/** The brass horizon: drawn in the first second, quiet under the charts, bright again for the mark, and gone into its point. */
+/** The brass horizon: drawn in the first second, the line the report's name rises from, the mark's, then gone into its point. */
 function Horizon({ t }: { t: number }) {
   const x0 = 92;
   const draw = p(t, 0.12, 0.95);
   const retract = p(t, 29.0, 29.85, inOut);
-  const alpha = t < 2 ? 1 : t < 4 ? lerp(1, 0.28, p(t, 2, 2.6)) : t < 14 ? 0.32 : t < 24 ? lerp(0.32, 0.12, p(t, 14, 14.5)) : t < 27 ? lerp(0.12, 0.3, p(t, 24, 24.5)) : lerp(0.3, 1, p(t, 27, 27.6));
+  const alpha = t < 2 ? 1 : t < 4 ? lerp(1, 0.25, p(t, 2, 2.6)) : t < 6 ? lerp(0.3, 1, p(t, 5.6, 6.1)) : t < 8 ? 1 : t < 27 ? lerp(1, 0.1, p(t, 8, 8.5)) : lerp(0.1, 1, p(t, 27, 27.6));
   const x1 = x0 + (1080 - x0) * draw * (1 - retract);
   const pointA = t < 2 ? 1 : t > 27.5 ? p(t, 27.5, 28.2) : Math.max(0, 1 - p(t, 2, 2.4));
   const glow = 0.5 + 0.5 * Math.sin(t * 5);
@@ -104,17 +87,18 @@ function Horizon({ t }: { t: number }) {
   );
 }
 
-/** 0:00 Your star sign is only your Sun. The Sun rises onto the horizon, then shrinks onto its ring. */
+/** 0:00 Your star sign is only your Sun. The Sun rises over the horizon, then shrinks onto its ring. */
 function Hook({ t }: { t: number }) {
   if (t > 2.3) return null;
   const rise = p(t, 0.2, 1.7);
   const shrink = p(t, 1.65, 2.15, inOut);
   const size = lerp(430, 60, shrink);
   const x = CX, y = lerp(lerp(CY + 240, CY - 170, rise), CY - RING_R.sun, shrink);
+  const gone = 1 - p(t, 2.05, 2.2);
   return (
     <>
-      <div style={{ position: "absolute", left: x - size * 1.3, top: y - size * 1.3, width: size * 2.6, height: size * 2.6, background: `radial-gradient(closest-side, rgba(255,190,110,${0.26 * rise * (1 - shrink)}), rgba(255,190,110,${0.08 * rise * (1 - shrink)}) 45%, transparent)`, opacity: 1 - p(t, 2.05, 2.2) }} />
-      <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: shrink > 0 ? 1920 : CY, overflow: "hidden", opacity: 1 - p(t, 2.05, 2.2) }}>
+      <div style={{ position: "absolute", left: x - size * 1.3, top: y - size * 1.3, width: size * 2.6, height: size * 2.6, background: `radial-gradient(closest-side, rgba(255,190,110,${0.26 * rise * (1 - shrink)}), rgba(255,190,110,${0.08 * rise * (1 - shrink)}) 45%, transparent)`, opacity: gone }} />
+      <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: shrink > 0 ? 1920 : CY, overflow: "hidden", opacity: gone }}>
         <img src={SUN_HERO} style={{ position: "absolute", left: x - size / 2, top: y - size / 2, width: size, height: size }} />
       </div>
       <Caption t={t} at={0.15} out={2.25} lines={[["Your", "star", "sign"], ["is", "only", "your", { i: "Sun." }]]} />
@@ -122,13 +106,13 @@ function Hook({ t }: { t: number }) {
   );
 }
 
-// The orrery's rings, the generation screen's order (lib/orrery.ts), Moon innermost.
+// The generation screen's rings (lib/orrery.ts), Moon innermost, with the real renders on them.
 const RING_R: Record<string, number> = Object.fromEntries(RINGS.map((b, i) => [b, 112 + i * 34]));
 const SIZE: Record<string, number> = { moon: 56, mercury: 42, venus: 50, sun: 60, mars: 48, jupiter: 74, saturn: 84, chiron: 14, uranus: 54, neptune: 54, pluto: 38 };
 
-/** 0:02 Here's the rest of you. The orrery sweeps faster and faster and lands every body on its true degree on the drop. */
+/** 0:02 Here's the rest of you. The sky sweeps faster and faster and every body lands on its degree on the drop. */
 function OrreryScene({ t, date }: { t: number; date: string }) {
-  if (t < 1.9 || t > 4.9) return null;
+  if (t < 1.9 || t > 4.8) return null;
   const chart = chartAt(date, "09:00");
   const asc = chart.angles!.ascendant.absoluteDegree;
   const V = 12;
@@ -146,11 +130,11 @@ function OrreryScene({ t, date }: { t: number; date: string }) {
   const screen = (body: string, tt: number) => deg(body, tt) + off(tt);
   const tiltX = Math.sin(Math.PI * p(t, 2.05, 3.95, inOut)) * 52;
   const appear = p(t, 1.95, 2.5);
-  const leave = p(t, 4.05, 4.6);
-  const scale = lerp(0.92, 1, appear) * lerp(1, 1.25, leave);
+  const leave = p(t, 4.0, 4.7);
+  const scale = lerp(0.92, 1, appear) * lerp(1, 1.35, leave);
   return (
     <>
-      <div style={{ position: "absolute", inset: 0, perspective: 1600, opacity: 1 - leave, filter: `blur(${leave * 6}px)` }}>
+      <div style={{ position: "absolute", inset: 0, perspective: 1600, opacity: 1 - leave, filter: `blur(${leave * 8}px)` }}>
         <svg width={1080} height={1920} style={{ position: "absolute", inset: 0, transform: `rotateX(${tiltX}deg) scale(${scale})`, transformOrigin: `${CX}px ${CY}px` }}>
           {RINGS.map((b, i) => {
             const r = RING_R[b], c = 2 * Math.PI * r, u = p(t, 1.95 + i * 0.04, 2.6 + i * 0.04);
@@ -163,18 +147,16 @@ function OrreryScene({ t, date }: { t: number; date: string }) {
             const now = screen(b, t), then = screen(b, t - 0.16);
             const sweep = clamp(Math.abs(now - then), 0, 300) * Math.sign(now - then);
             const segs = 8;
+            const at = polar(r, now);
             return (
               <g key={b} opacity={b === "sun" ? p(t, 2.0, 2.12) : appear}>
                 {Array.from({ length: segs }, (_, s) => {
-                  const a0 = now - (sweep * s) / segs, a1 = now - (sweep * (s + 1)) / segs;
-                  const P0 = polar(r, a0), P1 = polar(r, a1);
+                  const P0 = polar(r, now - (sweep * s) / segs), P1 = polar(r, now - (sweep * (s + 1)) / segs);
                   return <line key={s} x1={CX + P0.x} y1={CY + P0.y} x2={CX + P1.x} y2={CY + P1.y} stroke={C.indigoLt} strokeWidth={SIZE[b] * 0.35 * (1 - s / segs)} strokeLinecap="round" opacity={0.45 * (1 - s / segs) * clamp(Math.abs(sweep) / 6)} />;
                 })}
-                {PLANET_RENDERS[b] ? (
-                  <image href={PLANET_RENDERS[b]} x={CX + polar(r, now).x - SIZE[b] / 2} y={CY + polar(r, now).y - SIZE[b] / 2} width={SIZE[b]} height={SIZE[b]} />
-                ) : (
-                  <circle cx={CX + polar(r, now).x} cy={CY + polar(r, now).y} r={6} fill={C.brass} />
-                )}
+                {PLANET_RENDERS[b]
+                  ? <image href={PLANET_RENDERS[b]} x={CX + at.x - SIZE[b] / 2} y={CY + at.y - SIZE[b] / 2} width={SIZE[b]} height={SIZE[b]} />
+                  : <circle cx={CX + at.x} cy={CY + at.y} r={6} fill={C.brass} />}
               </g>
             );
           })}
@@ -185,210 +167,105 @@ function OrreryScene({ t, date }: { t: number; date: string }) {
   );
 }
 
-const W_MAIN = 940;
-/** 0:04 to 0:10. The wheel lands on the drop, then the camera finds the Sun, the Moon and the Ascendant. */
-function Natal({ t, chart, k, date }: { t: number; chart: ReturnType<typeof chartAt>; k: number; date: string }) {
-  if (t < DROP - 0.05 || t > 10.95) return null;
-  const sun = bodyOnWheel(chart, "sun", W_MAIN), moon = bodyOnWheel(chart, "moon", W_MAIN), asc = ascOnWheel(W_MAIN);
-  // The camera: keys of (time, scale, focus), eased between.
-  const keys: [number, number, { x: number; y: number }][] = [
-    [6.0, 1, { x: 0, y: 0 }], [6.55, 1.75, sun], [7.45, 1.75, sun], [8.0, 1.75, moon], [8.9, 1.75, moon],
-    [9.45, 1.45, asc], [9.9, 1.45, asc], [10.4, 1, { x: 0, y: 0 }],
-  ];
-  const cam = (tt: number) => {
-    if (tt <= keys[0][0]) return { s: 1, x: 0, y: 0 };
-    for (let i = 1; i < keys.length; i++) {
-      const [ta, sa, fa] = keys[i - 1], [tb, sb, fb] = keys[i];
-      if (tt <= tb) { const u = p(tt, ta, tb, inOut); return { s: lerp(sa, sb, u), x: lerp(fa.x, fb.x, u), y: lerp(fa.y, fb.y, u) }; }
-    }
-    return { s: 1, x: 0, y: 0 };
-  };
-  const a = cam(t), b = cam(t - 1 / FPS);
-  const speed = Math.hypot((a.x - b.x) * a.s, (a.y - b.y) * a.s) + Math.abs(a.s - b.s) * 400;
-  const reveal = p(t, DROP, DROP + 0.85, (u) => u);
-  const spin = lerp(-26, 0, p(t, DROP, DROP + 1.3));
-  const land = lerp(1.1, 1, p(t, DROP, DROP + 1.3));
-  const fade = 1 - p(t, 10.25, 10.6);
-  const pulse = 1 + 0.008 * k;
-  const ch = chart;
-  const s = reading(ch, "sun"), m = reading(ch, "moon"), r = rising(ch);
+let SKY: Sky | undefined;
+/**
+ * 0:04 The drop: the home page's own wheel arrives by first light (HorizonWheel, live). Then it sets below
+ * the horizon like the Sun while the report's name rises out of the same line.
+ */
+function FirstLight({ t, date }: { t: number; date: string }) {
+  if (t < 3.8 || t > 8.2) return null;
+  const chart = chartAt(date, "09:00");
+  SKY ??= sampleSky("Today", "Paris, France", { birthDate: date, birthTime: "09:00", latitude: PLACE.lat, longitude: PLACE.lon, timezone: PLACE.zone, timezoneOffset: 2 }, chart);
+  const set = p(t, 6.0, 7.1, (u) => u * u * (3 - 2 * u));
+  const W = 1000;
   return (
     <>
-      <Layer style={{ opacity: fade }}>
-        <div style={{
-          position: "absolute", left: CX, top: CY,
-          transform: `scale(${a.s * pulse}) translate(${-a.x}px, ${-a.y}px)`,
-          filter: `blur(${Math.min(7, speed * 0.12)}px)`,
-        }}>
-          <div style={{
-            position: "absolute", left: 0, top: 0, transform: `rotate(${spin}deg) scale(${land})`,
-          }}>
-            <Wheel chart={ch} size={W_MAIN} style={{ WebkitMaskImage: reveal < 1 ? `conic-gradient(from 270deg at 50% 50%, #000 ${reveal * 360}deg, transparent ${reveal * 360 + 0.5}deg)` : undefined }} />
-          </div>
+      {/* Above the line the wheel stays whole; below it, it fades as it sinks, so it sets. */}
+      <div style={{
+        position: "absolute", left: 0, right: 0, top: 0, height: 1920,
+        WebkitMaskImage: `linear-gradient(#000 ${CY - 1}px, rgba(0,0,0,${1 - p(t, 5.8, 6.2)}) ${CY}px)`,
+      }}>
+        <div className="sd" style={{ position: "absolute", left: CX - W / 2, top: CY - W / 2, width: W, background: "transparent", transform: `translateY(${set * 1060}px)` }}>
+          <HorizonWheel sky={t >= DROP ? SKY : null} arrival="intro" />
         </div>
-        {/* A scrim keeps the captions off the wheel while the camera is in close (G5). */}
-        <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 760, background: "linear-gradient(#06080C 40%, rgba(6,8,12,.0))", opacity: p(t, 5.9, 6.3) * (1 - p(t, 9.8, 10.2)) }} />
-      </Layer>
-      <Layer style={{ opacity: 1 - p(t, 5.75, 6.05) }}>
-        <Typed t={t} at={4.45} text={`BORN ${dayLine(date)} · 09:00 · ${PLACE.city.toUpperCase()}`} style={{ position: "absolute", left: 92, top: 300, fontSize: 40, color: C.brass }} />
-        <Typed t={t} at={4.95} text="WHOLE SIGN · TROPICAL · 48.86°N 2.35°E" style={{ position: "absolute", left: 92, top: 362, fontSize: 26, color: C.muted }} />
-      </Layer>
-      <Caption t={t} at={6.05} out={9.85} lines={[["Every", "planet,"], ["to", "the", { i: "degree." }]]} />
-      {[
-        { a: 6.5, b: 7.5, el: <Readout t={t} at={6.62} label="SUN" value={s.degree} unit={s.sign} sub={s.house} /> },
-        { a: 7.95, b: 8.95, el: <Readout t={t} at={8.07} label="MOON" value={m.degree} unit={m.sign} sub={m.house} /> },
-        { a: 9.4, b: 10.0, el: <Readout t={t} at={9.5} label="RISING" value={r.degree} unit={r.sign} sub="DUE EAST, ON THE HORIZON" brass /> },
-      ].map(({ a: ta, b: tb, el }, i) => {
-        const on = win(t, ta, tb, 0.2, 0.22);
-        if (on <= 0) return null;
-        return (
-          <Layer key={i} style={{ opacity: on }}>
-            <Reticle t={t} at={ta} x={CX} y={CY} r={i === 2 ? 34 : 64} color={i === 2 ? C.brass : C.paper} />
-            <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
-              <line x1={CX} y1={CY + 96} x2={CX} y2={CY + 96 + 90 * p(t, ta + 0.1, ta + 0.4)} stroke={i === 2 ? C.brass : C.dim} strokeWidth={1.5} />
-            </svg>
-            <div style={{ position: "absolute", left: 150, right: 150, top: CY + 190, padding: "30px 0 34px", background: "rgba(6,8,12,.86)", border: `1px solid ${C.line}`, borderRadius: 30, boxShadow: "0 30px 80px rgba(0,0,0,.6)" }}>{el}</div>
-          </Layer>
-        );
-      })}
-    </>
-  );
-}
-
-const W_TWIN = 500;
-/** 0:10 Same birthday, twelve hours apart. A silent beat, then the second sky turns half a day. */
-function Twins({ t, natal, twin, twinMin }: { t: number; natal: ReturnType<typeof chartAt>; twin: ReturnType<typeof chartAt>; twinMin: number }) {
-  if (t < 10.15 || t > 14.6) return null;
-  const go = p(t, 10.2, 10.95);
-  const split = p(t, 10.4, 11.15);
-  const scaleA = lerp(W_MAIN / W_TWIN, 1, go);
-  const ax = lerp(CX, CX - 262, split), bx = lerp(CX, CX + 262, split);
-  const through = p(t, 13.85, 14.45, quadIn);
-  const zoom = lerp(1, 2.6, through);
-  const out = 1 - through;
-  const blur = through * 22;
-  const hold = t >= GAP[0] && t < GAP[1] ? 1 + 0.015 * p(t, GAP[0], GAP[1]) : 1;
-  const landed = p(t, 6 * BAR + 1.25, 6 * BAR + 1.6);
-  const label = (x: number, c: ReturnType<typeof chartAt>, min: number, hot: number) => (
-    <div style={{ position: "absolute", left: x - 260, width: 520, top: CY + 290, display: "grid", justifyItems: "center", gap: 12, opacity: p(t, 11.0, 11.4) * (1 - p(t, 13.7, 14.0)) }}>
-      <div style={{ fontFamily: F.mono, fontSize: 64, color: C.paper, fontVariantNumeric: "tabular-nums" }}>{clock(min)}</div>
-      <div style={{ fontFamily: F.mono, fontSize: 27, letterSpacing: "0.08em", color: hot ? C.brass : C.dim, borderBottom: `2px solid rgba(212,176,106,${hot})`, paddingBottom: 6 }}>
-        RISING {rising(c).degree.toFixed(2)}° {rising(c).sign}
       </div>
-      <div style={{ fontFamily: F.mono, fontSize: 27, letterSpacing: "0.08em", color: hot ? C.paper : C.dim }}>SUN IN THE {ordinal(c.planets.sun.house ?? 1)} HOUSE</div>
-    </div>
-  );
-  return (
-    <>
-      <Layer style={{ opacity: out, filter: `blur(${blur}px)`, transform: `scale(${zoom * hold})`, transformOrigin: `${CX}px ${CY}px` }}>
-        <div style={{ position: "absolute", left: ax, top: CY, transform: `scale(${scaleA})` }}>
-          <Wheel chart={natal} size={W_TWIN} centreName="09:00" />
-        </div>
-        <div style={{ position: "absolute", left: bx, top: CY, opacity: split }}>
-          <Wheel chart={twin} size={W_TWIN} centreName={clock(twinMin)} />
-        </div>
-      </Layer>
-      {label(CX - 262, natal, 9 * 60, 0)}
-      {label(CX + 262, twin, twinMin, landed)}
-      <Caption t={t} at={10.3} out={13.8} lines={[["Same", "birthday."], ["Twelve", "hours", { i: "apart." }]]} />
+      <HorizonRise t={t} at={6.15} out={8.05} line={CY - 150} words={["Your"]} size={110} rule={false} />
+      <HorizonRise t={t} at={6.3} out={8.05} line={CY} words={["Personal", "report."]} size={130} italicFrom={1} rule={false} />
     </>
   );
 }
 
-/** 0:14 Your chart, free. The free chart's own parts float in from depth on the beat. */
-function FreeChart({ t, chart, date }: { t: number; chart: ReturnType<typeof chartAt>; date: string }) {
-  if (t < 13.9 || t > 18.5) return null;
-  const birth = { birthDate: date, birthTime: "09:00", latitude: PLACE.lat, longitude: PLACE.lon, timezone: PLACE.zone, timezoneOffset: 2 };
-  const sky = sampleSky("Born today", "Paris, France", birth, chart);
-  const leave = p(t, 17.75, 18.3, quadIn);
-  // A carousel on the beat: the live wheel, then the triad, then every placement, each taking the front in turn.
-  const focus = p(t, 15.0, 15.55, inOut) + p(t, 16.0, 16.55, inOut);
-  const cards: [number, React.ReactNode][] = [
-    [700, <HorizonWheel sky={sky} arrival="still" hud />],
-    [560, <div className="rp-root" style={{ background: "transparent", display: "grid", justifyItems: "center", gap: 18, padding: "10px 0" }}>
-      <TriadPlate chart={chart} name="Born today" className="block w-[400px] h-auto" />
-      <div style={{ display: "grid", gap: 8, justifyItems: "center", fontFamily: F.mono, fontSize: 24, letterSpacing: "0.08em", color: C.dim }}>
-        <span>SUN {chart.planets.sun.degree.toFixed(2)}° {chart.planets.sun.sign.toUpperCase()}</span>
-        <span>MOON {chart.planets.moon.degree.toFixed(2)}° {chart.planets.moon.sign.toUpperCase()}</span>
-        <span style={{ color: C.brass }}>RISING {chart.angles!.ascendant.degree.toFixed(2)}° {chart.angles!.ascendant.sign.toUpperCase()}</span>
+/** 0:08 The chapters fly past, then one lands: a real line, its citation, and the evidence under it. */
+function Chapters({ t }: { t: number }) {
+  if (t < 7.6 || t > 12.3) return null;
+  const leave = p(t, 11.6, 12.15, quadIn);
+  const order = [0, 1, 3, 4, 5, 6, 7, 8, 9];
+  const fly = order.map((ci, i) => {
+    const at = 7.7 + i * 0.13;
+    const u = clamp((t - at) / 0.5);
+    if (u <= 0 || u >= 1) return null;
+    const z = lerp(-900, 700, u);
+    const x = (i % 2 ? 1 : -1) * 90 * (1 - u);
+    return (
+      <div key={ci} style={{ position: "absolute", left: CX - 450, top: CY - 180, width: 900, transform: `translate3d(${x}px, 0, ${z}px)`, opacity: clamp(u * 3) * (1 - p(u, 0.6, 0.95)), filter: `blur(${z > 0 ? z / 40 : 0}px)`, zIndex: Math.round(z) + 1000 }}>
+        <ChapterCard ci={ci} />
       </div>
-    </div>],
-    [640, <Placements chart={chart} caption="Born today, 09:00, Paris" />],
-  ];
-  const enter = p(t, 14.0, 14.85);
+    );
+  });
+  const land = p(t, 8.95, 9.75);
+  const under = p(t, 9.9, 10.6, inOut);
+  const sup = t > 10.6 ? Math.exp(-(t - 10.6) * 4) : 0;
+  const card = p(t, 10.75, 11.4);
   return (
     <>
-      <Layer style={{ perspective: 2000, opacity: 1 - leave, transform: `translateY(${-leave * 260}px)`, filter: `blur(${leave * 12}px)` }}>
-        <div className="sd" style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", background: "transparent" }}>
-          {cards.map(([w, body], i) => {
-            const d = i - focus;
-            const ad = Math.abs(d);
-            const z = lerp(-1600, 0, enter) - ad * 520;
-            return (
-              <div key={i} style={{
-                position: "absolute", left: CX - w / 2, top: CY + 60, width: w,
-                transform: `translate3d(${d * 470}px, -50%, ${z}px) rotateY(${-d * 32}deg) translateY(${Math.sin((t - 14) * Math.PI) * 5}px)`,
-                opacity: clamp(enter * 1.4) * clamp(1 - ad * 0.55), filter: `blur(${ad * 3 + (1 - enter) * 10}px)`, zIndex: 10 - Math.round(ad * 3),
-                background: C.ground, border: `1px solid ${C.line}`, borderRadius: 34, padding: 26, boxShadow: "0 40px 120px rgba(0,0,0,.65)",
-              }}>{body}</div>
-            );
-          })}
-        </div>
-      </Layer>
-      <Caption t={t} at={14.1} out={17.85} lines={[["Your", "chart,", "free."], [{ i: "Nothing" }, { i: "you" }, { i: "type" }], [{ i: "is" }, { i: "saved." }]]} size={92} />
-    </>
-  );
-}
-
-/** 0:18 Then a report. A real line lights its citation and its evidence card rises: claims, not vibes. */
-function Report({ t }: { t: number }) {
-  if (t < 17.8 || t > 22.4) return null;
-  const rise = p(t, 18.0, 18.9);
-  const leave = p(t, 21.7, 22.2, quadIn);
-  const under = p(t, 19.0, 19.7, inOut);
-  const card = p(t, 19.75, 20.45);
-  const sup = Math.exp(-Math.max(0, t - 19.65) * 4) * (t > 19.65 ? 1 : 0);
-  return (
-    <>
-      <Layer style={{ perspective: 1800, opacity: (1 - leave) * clamp(rise * 1.4), filter: `blur(${(1 - rise) * 10 + leave * 14}px)` }}>
+      <Layer style={{ perspective: 1400 }}>{fly}</Layer>
+      <Layer style={{ perspective: 1800, opacity: 1 - leave, filter: `blur(${leave * 14}px)` }}>
         <div style={{
-          position: "absolute", left: 90, width: 900, top: 640,
-          transform: `translateY(${(1 - rise) * 240 - leave * 120}px) rotateX(${lerp(26, 7, rise) - 4 * p(t, 19, 22)}deg) scale(${1 - leave * 0.1})`, transformOrigin: "50% 0%",
+          position: "absolute", left: 90, width: 900, top: 600, opacity: clamp(land * 1.5),
+          transform: `translate3d(0, ${-leave * 140}px, ${lerp(-1400, 0, land)}px) rotateX(${lerp(18, 4, land)}deg) scale(${1 - leave * 0.08})`, transformOrigin: "50% 0%",
         }}>
-          <div style={{ fontFamily: F.mono, fontSize: 24, letterSpacing: "0.16em", color: C.muted, marginBottom: 26 }}>FROM MARIE CURIE'S REPORT · BORN 7 NOV 1867 · TIME UNKNOWN</div>
-          <div className="rp-root" style={{ background: C.ground, border: `1px solid ${C.line}`, borderRadius: 34, padding: "40px 46px 46px", fontSize: 30, boxShadow: "0 50px 140px rgba(0,0,0,.6)" }}>
-            <Chapter number={3} total={10} eyebrow="Mind" title="Mind & Communication">
+          <div style={{ fontFamily: F.mono, fontSize: 24, letterSpacing: "0.16em", color: C.muted, marginBottom: 24 }}>FROM MARIE CURIE'S REPORT</div>
+          <div className="rp-root" style={{ position: "relative", background: C.ground, border: `1px solid ${C.line}`, borderRadius: 34, padding: "40px 46px 46px", boxShadow: "0 50px 140px rgba(0,0,0,.6)", overflow: "hidden" }}>
+            <Chapter number={3} total={10} eyebrow={CHAPTERS[2].eyebrow} title={CHAPTERS[2].title}>
               <div style={{ fontFamily: F.label, fontSize: 22, letterSpacing: "0.18em", color: C.indigoLt, margin: "18px 0 14px" }}>HOW YOU THINK</div>
-              <p style={{ fontFamily: F.serif, fontSize: 44, lineHeight: 1.32, color: C.paper, margin: 0, position: "relative" }}>
-                <span style={{ backgroundImage: `linear-gradient(${C.brass}, ${C.brass})`, backgroundSize: `${under * 100}% 2px`, backgroundRepeat: "no-repeat", backgroundPosition: "0 100%" }}>
-                  {CURIE.quote}
-                </span>
+              <p style={{ fontFamily: F.serif, fontSize: 44, lineHeight: 1.32, color: C.paper, margin: 0 }}>
+                <span style={{ backgroundImage: `linear-gradient(${C.brass}, ${C.brass})`, backgroundSize: `${under * 100}% 2px`, backgroundRepeat: "no-repeat", backgroundPosition: "0 100%" }}>{CURIE.quote}</span>
                 <sup style={{ fontFamily: F.mono, fontSize: 24, color: C.brass, marginLeft: 6, padding: "2px 8px", borderRadius: 99, boxShadow: `0 0 0 ${2 + sup * 14}px rgba(212,176,106,${0.15 + sup * 0.35})` }}>1</sup>
               </p>
             </Chapter>
+            <Sheen t={t} at={9.3} />
           </div>
-          <div className="rp-card" style={{
-            position: "relative", inset: "auto", marginTop: 16, transform: `translateY(${(1 - card) * 120}px)`, opacity: card, filter: `blur(${(1 - card) * 8}px)`,
-            padding: 22, borderRadius: 28, boxShadow: "0 40px 120px rgba(0,0,0,.7)", zoom: 1.75, width: 440, marginLeft: 70,
-          }}>
+          <div className="rp-card" style={{ position: "relative", inset: "auto", marginTop: 16, transform: `translateY(${(1 - card) * 120}px)`, opacity: card, filter: `blur(${(1 - card) * 8}px)`, padding: 22, borderRadius: 28, boxShadow: "0 40px 120px rgba(0,0,0,.7)", zoom: 1.75, width: 440, marginLeft: 70 }}>
             <EvidenceCard claim={CURIE} />
           </div>
         </div>
       </Layer>
-      <Caption t={t} at={18.1} out={21.8} lines={[["Then", "a", "report", "on"], ["how", "you", { i: "think," }, { i: "work" }, { i: "and" }, { i: "love." }]]} size={88} />
+      <Caption t={t} at={7.9} out={9.9} lines={[["How", "you", { i: "think," }], [{ i: "work" }, { i: "and" }, { i: "love." }]]} />
+      <Caption t={t} at={9.95} out={11.85} lines={[["Every", "line", "shows"], ["where", "it", { i: "comes" }, { i: "from." }]]} size={96} />
     </>
   );
 }
+function ChapterCard({ ci }: { ci: number }) {
+  const ch = CHAPTERS[ci];
+  return (
+    <div className="rp-root" style={{ background: C.ground, border: `1px solid ${C.line}`, borderRadius: 16, padding: "18px 22px 22px", boxShadow: "0 40px 120px rgba(0,0,0,.6)", zoom: 1.9, width: 474 }}>
+      <Chapter number={ci + 1} total={10} eyebrow={ch.eyebrow} title={ch.title}>{null}</Chapter>
+    </div>
+  );
+}
 
-/** 0:22 Two people: the two plates on one horizon, sliding together on the downbeat. No score. */
+const LENSES = ["Couples", "A parent and a child", "Friends, family, colleagues"];
+/** 0:12 After a beat of silence the two plates slam together on one horizon; the three kinds of pair, on the beat. */
 function Pair({ t, k }: { t: number; k: number }) {
-  if (t < 21.9 || t > 24.5) return null;
+  if (t < 11.7 || t > 14.5) return null;
   const a = samplePerson("mira"), b = samplePerson("tomas");
   if (!a || !b) return null;
-  const u = p(t, 22.0, 22.75);
-  const leave = p(t, 23.8, 24.3, quadIn);
+  const u = p(t, 11.75, 12.0, (x) => x * x);
+  const settle = p(t, 12.0, 12.6);
+  const leave = p(t, 13.9, 14.4, quadIn);
+  const lens = t < 12.5 ? 0 : t < 13.0 ? 1 : t < 13.5 ? 2 : 0;
   const half = (side: "l" | "r") => (
-    <div style={{ position: "absolute", inset: 0, clipPath: side === "l" ? "inset(0 50% 0 0)" : "inset(0 0 0 50%)", transform: `translateX(${(side === "l" ? -1 : 1) * (1 - u) * 180}px)` }}>
+    <div style={{ position: "absolute", inset: 0, clipPath: side === "l" ? "inset(0 50% 0 0)" : "inset(0 0 0 50%)", transform: `translateX(${(side === "l" ? -1 : 1) * ((1 - u) * 420 - Math.sin(settle * Math.PI) * 14 * (1 - settle))}px)` }}>
       <div className="sd" style={{ position: "absolute", left: 10, width: 1060, top: CY - 220, background: "transparent" }}>
         <TwoPlates a={{ name: a.name.split(" ")[0], chart: a.chart }} b={{ name: b.name.split(" ")[0], chart: b.chart }} />
       </div>
@@ -396,72 +273,188 @@ function Pair({ t, k }: { t: number; k: number }) {
   );
   return (
     <>
-      <Layer style={{ opacity: clamp(u * 1.4) * (1 - leave), filter: `blur(${(1 - u) * 8 + leave * 16}px)`, transform: `scale(${lerp(1.08, 1, u) * (1 + leave * 0.4)})`, transformOrigin: `${CX}px ${CY}px` }}>
-        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(22% 14% at 50% ${CY / 19.2}%, rgba(149,117,205,${0.28 + 0.12 * k}), transparent 70%)` }} />
+      <Layer style={{ opacity: clamp(u * 2) * (1 - leave), filter: `blur(${leave * 16}px)`, transform: `scale(${1 + leave * 0.4})`, transformOrigin: `${CX}px ${CY}px` }}>
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(24% 15% at 50% ${CY / 19.2}%, rgba(149,117,205,${(0.22 + 0.14 * k) * settle}), transparent 70%)` }} />
         {half("l")}
         {half("r")}
-        <div style={{ position: "absolute", left: 0, right: 0, top: CY + 300, textAlign: "center", fontFamily: F.mono, fontSize: 24, letterSpacing: "0.2em", color: C.muted }}>SAMPLE PEOPLE</div>
+        <div style={{ position: "absolute", left: 60, right: 60, top: CY + 320, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 14, opacity: settle }}>
+          {LENSES.map((l, i) => (
+            <span key={l} style={{ fontFamily: F.sans, fontSize: 30, padding: "14px 26px", borderRadius: 99, color: i === lens ? C.paper : C.dim, border: `1.5px solid ${i === lens ? C.violet : C.line}`, background: i === lens ? "rgba(149,117,205,.16)" : "transparent" }}>{l}</span>
+          ))}
+        </div>
       </Layer>
-      <Caption t={t} at={22.05} out={23.85} lines={[["And", "how", "the", "two"], ["of", "you", { i: "get" }, { i: "along." }]]} size={96} />
+      <div style={{ position: "absolute", left: 92, top: 250, fontFamily: F.label, fontSize: 26, letterSpacing: "0.22em", color: C.violet, opacity: win(t, 12.0, 14.0, 0.3, 0.3) }}>COMPATIBILITY REPORT</div>
+      <Caption t={t} at={12.05} out={14.0} top={310} lines={[["Then", "read", "the"], ["two", "of", { i: "you." }]]} />
     </>
   );
 }
 
-/** 0:24 Coming soon: the big cycles. Saturn walks its real path round the chart until it comes home, at 29. */
-function Cycles({ t, date, natal }: { t: number; date: string; natal: ReturnType<typeof chartAt> }) {
-  if (t < 23.9 || t > 27.8) return null;
-  const asc = natal.angles!.ascendant.absoluteDegree;
-  const natalSat = natal.planets.saturn.absoluteDegree;
-  const hit = saturnReturnMemo(date, natalSat);
-  const birth = new Date(`${date}T12:00:00Z`).getTime(), end = new Date(`${hit}T12:00:00Z`).getTime();
-  const run = p(t, 24.45, 26.15, inOut);
-  const at = (u: number) => new Date(lerp(birth, end, u)).toISOString().slice(0, 10);
-  const R = 345;
-  const ang = (d: number) => 180 + d - asc;
-  const steps = 90;
-  const trail = Array.from({ length: Math.max(2, Math.round(steps * run)) }, (_, i) => {
-    const P = polar(R, ang(saturnOn(at((i / steps)))));
-    return `${CX + P.x},${CY + 40 + P.y}`;
-  }).join(" ");
-  const now = polar(R, ang(saturnOn(at(run))));
-  const home = polar(R, ang(natalSat));
-  const appear = p(t, 24.0, 24.7);
-  const collapse = p(t, 27.0, 27.6, inOut);
-  const landed = p(t, 26.15, 26.5);
-  const year = Math.floor(lerp(new Date(birth).getUTCFullYear() + new Date(birth).getUTCMonth() / 12, new Date(end).getUTCFullYear() + new Date(end).getUTCMonth() / 12, run));
-  const age = Math.floor((lerp(birth, end, run) - birth) / (365.25 * 864e5));
+const SLOTS = [
+  { kind: "Personal report", who: "You" },
+  { kind: "Personal report", who: "Tomás" },
+  { kind: "Compatibility report", who: "The two of you" },
+];
+/** 0:14 One credit, one report of either kind: three credits find a report each and how you get along. */
+function Credits({ t }: { t: number }) {
+  if (t < 13.9 || t > 16.6) return null;
+  const leave = p(t, 15.95, 16.45, inOut);
   return (
     <>
-      <Layer style={{ opacity: appear * (1 - collapse), transform: `scale(${lerp(0.9, 1, appear) * lerp(1, 0.25, collapse)})`, transformOrigin: `${CX}px ${CY + 40}px`, filter: `blur(${collapse * 6}px)` }}>
-        <div style={{ position: "absolute", left: CX, top: CY + 40 }}>
-          <Wheel chart={natal} size={560} centreName="Born today" />
+      <Layer style={{ opacity: 1 - leave }}>
+        {SLOTS.map((s, i) => {
+          const pop = p(t, 14.05 + i * 0.25, 14.5 + i * 0.25);
+          const go = p(t, 14.9 + i * 0.12, 15.5 + i * 0.12, inOut);
+          const sx = CX + (i - 1) * 120, sy = CY - 60;
+          const ty = CY + 30 + i * 150;
+          const x = lerp(sx, 230, go), y = lerp(sy, ty, go);
+          const r = lerp(34, 16, go);
+          return (
+            <div key={i}>
+              <div style={{
+                position: "absolute", left: 210, right: 92, top: ty - 58, height: 116, borderRadius: 26, border: `1px solid ${C.line}`, background: C.ground,
+                opacity: p(t, 15.1 + i * 0.12, 15.5 + i * 0.12), transform: `translateX(${(1 - p(t, 15.1 + i * 0.12, 15.6 + i * 0.12)) * 60}px)`,
+                display: "grid", alignContent: "center", paddingLeft: 70, gap: 6,
+              }}>
+                <span style={{ fontFamily: F.label, fontSize: 22, letterSpacing: "0.2em", color: i === 2 ? C.violet : C.indigoLt }}>{s.kind.toUpperCase()}</span>
+                <span style={{ fontFamily: F.serif, fontSize: 40, color: C.paper }}>{s.who}</span>
+              </div>
+              <div style={{ position: "absolute", left: x - r, top: y - r, width: r * 2, height: r * 2, borderRadius: "50%", background: C.brass, opacity: pop, transform: `scale(${lerp(0.2, 1, pop)})`, boxShadow: `0 0 ${30 * (1 - go)}px rgba(212,176,106,.6)` }} />
+            </div>
+          );
+        })}
+        <div style={{ position: "absolute", left: 0, right: 0, top: CY - 230, display: "flex", justifyContent: "center", opacity: win(t, 14.0, 15.1, 0.3, 0.3) }}>
+          <CreditDots count={3} className="scale-[3]" />
         </div>
-        <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
-          <circle cx={CX} cy={CY + 40} r={R} fill="none" stroke="#1A202C" strokeWidth={1.5} />
-          {Array.from({ length: 12 }, (_, i) => { const A = polar(R - 10, i * 30 + 180 - (asc % 30)), B = polar(R + 10, i * 30 + 180 - (asc % 30)); return <line key={i} x1={CX + A.x} y1={CY + 40 + A.y} x2={CX + B.x} y2={CY + 40 + B.y} stroke={C.line} strokeWidth={2} />; })}
-          <polyline points={trail} fill="none" stroke={C.indigoLt} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
-          <circle cx={CX + home.x} cy={CY + 40 + home.y} r={10} fill={C.brass} />
-          <circle cx={CX + home.x} cy={CY + 40 + home.y} r={10 + landed * 60} fill="none" stroke={C.brass} strokeWidth={2} opacity={landed > 0 ? 1 - landed : 0} />
-          <image href={PLANET_RENDERS.saturn} x={CX + now.x - 34} y={CY + 40 + now.y - 34} width={68} height={68} />
-        </svg>
-        <div style={{ position: "absolute", left: 0, right: 0, top: CY + 40 + R + 50, display: "grid", justifyItems: "center", gap: 10 }}>
-          <div style={{ fontFamily: F.mono, fontSize: 44, color: landed ? C.brass : C.paper, fontVariantNumeric: "tabular-nums" }}>{year} · AGE {age}</div>
-          <div style={{ fontFamily: F.mono, fontSize: 26, letterSpacing: "0.12em", color: C.brass, opacity: landed }}>FIRST SATURN RETURN · {dayLine(hit)}</div>
+        <div style={{ position: "absolute", left: 92, right: 92, top: CY + 480, fontFamily: F.mono, fontSize: 26, letterSpacing: "0.08em", color: C.dim, opacity: p(t, 15.5, 15.9) }}>
+          3 CREDITS · A REPORT EACH AND HOW YOU GET ALONG
         </div>
       </Layer>
-      <div style={{ position: "absolute", left: 92, top: 250, opacity: win(t, 24.0, 26.9, 0.3, 0.3) }}>
-        <span style={{ fontFamily: F.label, fontSize: 26, letterSpacing: "0.2em", color: C.paper, border: `1.5px solid ${C.indigo}`, borderRadius: 99, padding: "10px 22px" }}>COMING SOON · TIMELINE AND ASK</span>
-      </div>
-      <Caption t={t} at={24.15} out={26.95} top={330} lines={[["The", "big", "cycles"], ["of", "your", { i: "life." }]]} />
+      <Caption t={t} at={14.05} out={16.0} lines={[["1", "credit,"], ["1", { i: "report." }]]} size={120} />
     </>
   );
 }
-const memo = new Map<string, string>();
-function saturnReturnMemo(date: string, natalSat: number) {
-  const key = `${date}`;
-  if (!memo.has(key)) memo.set(key, saturnReturn(date, natalSat));
-  return memo.get(key)!;
+
+// The circle as the dashboard builds it (orbitPoints), on the site's sample account, one person at a time.
+const SELF = SAMPLE_PEOPLE.find((s) => s.relation === "self")!;
+const ADD_ORDER = ["tomas", "june", "idris", "hanna", "noor"];
+const pointsMemo = new Map<string, ReturnType<typeof orbitPoints>>();
+function circleOf(n: number, pairs: string[], gifts: OrbitGift[]) {
+  const key = `${n}|${pairs.join(",")}|${gifts.map((g) => g.id).join(",")}`;
+  if (!pointsMemo.has(key)) {
+    const people = ADD_ORDER.slice(0, n);
+    const profiles: OrbitProfile[] = [{ id: SELF.id, name: SELF.name, isSelf: true }, ...people.map((id) => ({ id, name: samplePerson(id)!.name }))];
+    const reports: OrbitReport[] = [
+      ...people.map((id): OrbitReport => ({ id: `natal:${id}`, kind: "natal", status: "complete", profileId: id, createdAt: "", access: "owner" })),
+      ...pairs.map((id): OrbitReport => ({ id: `pair:${id}`, kind: "compatibility", status: "complete", profileId: null, participants: [{ id: SELF.id, name: SELF.name }, { id, name: samplePerson(id)!.name }], createdAt: "", access: "owner" })),
+    ];
+    pointsMemo.set(key, orbitPoints({ profiles, reports, gifts, credits: 3, enforced: true }));
+  }
+  return pointsMemo.get(key)!;
 }
+function OrbitAt({ x, y, scale, children, style }: { x: number; y: number; scale: number; children: React.ReactNode; style?: React.CSSProperties }) {
+  return <div style={{ position: "absolute", left: x - 220, top: y - 220, width: 440, height: 440, transform: `scale(${scale})`, ...style }}>{children}</div>;
+}
+
+/** 0:16 Add the people you care about: the dashboard's circle fills on the beat; Share with makes a report theirs. */
+function Circle({ t }: { t: number }) {
+  if (t < 15.9 || t > 23.6) return null;
+  const n = t < 16.5 ? 0 : Math.min(5, 1 + Math.floor((t - 16.5) / 0.5));
+  const pairs = t < 17.25 ? [] : t < 18.25 ? ["tomas"] : ["tomas", "june"];
+  const gifts: OrbitGift[] = t >= 22.0 ? [{ id: "g-pierre", recipientName: "Pierre", state: "waiting" } as OrbitGift] : [];
+  const points = circleOf(n, pairs, gifts);
+  const appear = p(t, 15.95, 16.6);
+  // From 22.6 the camera dives into Pierre's waiting gift.
+  const dive = p(t, 22.6, 23.4, (u) => u * u * u);
+  // Where the gift sits: the ring's own angles plus the circle's 3°/s drift since it mounted (Orbit.tsx DRIFT_DEG_PER_S).
+  const gi = points.findIndex((q) => q.kind === "gift");
+  const ga = gi < 0 ? 0 : ((pointAngles(points.length)[gi] + 3 * (t - 15.9)) * Math.PI) / 180;
+  const gx = gi < 0 ? 0 : 174 * Math.cos(ga) * 2.3, gy = gi < 0 ? 0 : 174 * Math.sin(ga) * 2.3;
+  const s = lerp(lerp(0.6, 2.3, appear), 9, dive);
+  const share = p(t, 18.7, 19.1), joined = t >= 19.5;
+  return (
+    <>
+      <Layer style={{ opacity: appear * (1 - p(t, 23.1, 23.4)) * (1 - 0.7 * win(t, 20.0, 21.9, 0.4, 0.4)), filter: `blur(${dive * 10 + 6 * win(t, 20.0, 21.9, 0.4, 0.4)}px)` }}>
+        <div style={{ position: "absolute", inset: 0, transform: `translate(${-gx * dive * 3.2}px, ${-gy * dive * 3.2}px)` }}>
+          <OrbitAt x={CX} y={CY} scale={s}>
+            <Orbit centre={{ firstName: "Mira", hasReport: true, writing: false }} points={points} selectedId={null} partners={[]} onSelect={() => {}} />
+          </OrbitAt>
+        </div>
+        <div style={{ position: "absolute", left: 0, right: 0, top: CY + 560, textAlign: "center", fontFamily: F.mono, fontSize: 22, letterSpacing: "0.2em", color: C.muted, opacity: 1 - p(t, 19.8, 20.2) }}>A SAMPLE ACCOUNT</div>
+        <div style={{ position: "absolute", left: CX - 230, width: 460, top: CY + 440, opacity: share * (1 - p(t, 19.9, 20.3)), transform: `translateY(${(1 - share) * 30}px)` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 26px", borderRadius: 22, background: C.ground, border: `1px solid ${joined ? C.violet : C.line}` }}>
+            <span style={{ fontFamily: F.sans, fontSize: 30, color: C.paper }}>Share with Tomás</span>
+            <span style={{ fontFamily: F.sans, fontSize: 28, color: joined ? C.violet : C.indigoLt }}>{joined ? "Joined ✓" : "Share"}</span>
+          </div>
+        </div>
+      </Layer>
+      <Caption t={t} at={16.1} out={18.6} lines={[["Add", "the", "people"], ["you", { i: "care" }, { i: "about." }]]} />
+      <Caption t={t} at={18.65} out={20.1} lines={[["Share", "a", "report."], ["It", "becomes", { i: "theirs." }]]} />
+    </>
+  );
+}
+
+/** 0:20 Or gift a report: the real cover flies in, then folds into the circle as a gift waiting. */
+function Gift({ t }: { t: number }) {
+  if (t < 19.9 || t > 22.4) return null;
+  const inn = p(t, 20.0, 20.9);
+  const fold = p(t, 21.55, 22.25, inOut);
+  return (
+    <>
+      <Layer style={{ perspective: 1800 }}>
+        <div style={{
+          position: "absolute", left: 90, width: 900, top: CY - 280,
+          transform: `translate3d(${fold * 240}px, ${fold * -60}px, ${lerp(-1200, 0, inn) - fold * 900}px) rotateY(${lerp(-62, -8, inn) + 8 * p(t, 20.9, 21.6)}deg) rotateX(${lerp(14, 4, inn)}deg) scale(${lerp(1, 0.2, fold)})`,
+          opacity: clamp(inn * 1.6) * (1 - p(t, 22.0, 22.3)), filter: `blur(${(1 - inn) * 8}px)`, borderRadius: 20, boxShadow: "0 50px 160px rgba(0,0,0,.7)",
+        }}>
+          <GiftCover giverName="Mira" recipientName="Pierre" note="Happy birthday. Read the Moon part first." />
+          <Sheen t={t} at={20.6} dur={1.1} />
+        </div>
+      </Layer>
+      <Caption t={t} at={20.1} out={22.2} lines={[["Or", "gift", "a"], [{ i: "report." }]]} size={120} />
+    </>
+  );
+}
+
+/** 0:23 The gift becomes Pierre's own credit and his own circle; pull back and the circles keep going. */
+function Network({ t }: { t: number }) {
+  if (t < 23.0 || t > 27.8) return null;
+  const empty = (name: string) => orbitPoints({ profiles: [{ id: name, name, isSelf: true }], reports: [], gifts: [], credits: 1, enforced: true });
+  const appear = p(t, 23.1, 23.6);
+  const pull = p(t, 24.6, 26.4, inOut);
+  const collapse = p(t, 26.9, 27.6, inOut);
+  const scale = lerp(2.3, 0.95, pull);
+  const others = [
+    { x: CX - 260, y: CY - 340, name: "Mira", at: 24.8 },
+    { x: CX + 250, y: CY + 400, name: "Léa", at: 25.4 },
+  ];
+  return (
+    <>
+      <Layer style={{ opacity: appear * (1 - collapse), transform: `scale(${lerp(1, 0.4, collapse)})`, transformOrigin: `${CX}px ${CY}px`, filter: `blur(${collapse * 6}px)` }}>
+        <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+          {others.map((o, i) => {
+            const u = p(t, o.at, o.at + 0.7);
+            return <line key={i} x1={CX} y1={CY} x2={lerp(CX, o.x, u)} y2={lerp(CY, o.y, u)} stroke="#3FA796" strokeWidth={2.5} strokeDasharray="6 10" opacity={0.8 * u} />;
+          })}
+        </svg>
+        <OrbitAt x={CX} y={CY} scale={scale}>
+          <Orbit centre={{ firstName: "Pierre", hasReport: true, writing: false }} points={(NET.pierre ??= empty("pierre"))} selectedId={null} partners={[]} onSelect={() => {}} />
+        </OrbitAt>
+        {others.map((o) => {
+          const u = p(t, o.at + 0.3, o.at + 1.0);
+          if (u <= 0) return null;
+          return (
+            <OrbitAt key={o.name} x={o.x} y={o.y} scale={1.05 * lerp(0.6, 1, u)} style={{ opacity: u }}>
+              <Orbit centre={{ firstName: o.name, hasReport: true, writing: false }} points={o.name === "Mira" ? circleOf(5, ["tomas", "june"], []) : (NET.lea ??= empty("lea"))} selectedId={null} partners={[]} onSelect={() => {}} />
+            </OrbitAt>
+          );
+        })}
+      </Layer>
+      <Caption t={t} at={23.25} out={24.75} lines={[["Their", "circle", "starts"], ["with", { i: "them." }]]} />
+      <Caption t={t} at={24.85} out={26.9} size={92} lines={[["Everyone", "you", "love"], ["has", "a", { i: "chart." }]]} />
+    </>
+  );
+}
+const NET: { pierre?: ReturnType<typeof orbitPoints>; lea?: ReturnType<typeof orbitPoints> } = {};
 
 /** 0:27 Everything folds into the mark; the name; the line; then only the brass point on the horizon, where it began. */
 function End({ t }: { t: number }) {
@@ -487,7 +480,9 @@ function End({ t }: { t: number }) {
       <div style={{ position: "absolute", left: 60, right: 60, top: CY + 380, textAlign: "center", fontFamily: F.serif, fontSize: 42, lineHeight: 1.25, color: C.dim, opacity: p(t, 27.95, 28.5), transform: `translateY(${(1 - p(t, 27.95, 28.5)) * 20}px)` }}>
         Find out what your birth chart says about you.
       </div>
-      <Typed t={t} at={28.35} text="GET YOUR FREE CHART · MYSTARSDECODED.COM" rate={60} style={{ position: "absolute", left: 0, right: 0, top: CY + 470, textAlign: "center", fontSize: 28, color: C.brass }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: CY + 470, textAlign: "center", fontFamily: F.mono, fontSize: 28, letterSpacing: "0.08em", color: C.brass, opacity: p(t, 28.35, 28.8) }}>
+        GET YOUR FREE CHART · MYSTARSDECODED.COM
+      </div>
     </Layer>
   );
 }

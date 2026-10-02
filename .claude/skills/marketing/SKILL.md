@@ -64,7 +64,9 @@ then Remotion renders React frame by frame in headless Chrome to MP4. Every fram
 app's own components (NatalWheel, the orrery's maths, TwoPlates, TriadPlate, HorizonWheel,
 Chapter, EvidenceCard, Mark) fed by the engine for the posting day. Canvas or SVG is only for what
 no component draws. Never screenshots or cropped pages. No image or video models without the
-Owner's yes on the exact output (rule 17). The words still come first unless the Owner asks for a
+Owner's yes on the exact output (rule 17). Live components (HorizonWheel's first light, the
+dashboard's Orbit) run on the frame-locked clock in `motion/src/clock.ts`; render with
+concurrency 1, as `render.mjs` does. The words still come first unless the Owner asks for a
 cut (rule 24), and the rendered file goes to the Owner before it posts. Start from
 `motion/src/Trailer.tsx` (spec `docs/specs/draft/launch-trailer.md`):
 `npm ci --prefix .claude/skills/marketing/motion`, `node motion/score/temp-score.mjs

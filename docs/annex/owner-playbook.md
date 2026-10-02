@@ -22,6 +22,9 @@ merged into the rule it repeats.
   with little transition (launch-trailer draft 1, 2026-10-02): "take the coded components and use them for the
   animations", at product-trailer quality. A video is a rendered cut from the motion harness (brief → code →
   Remotion → MP4, `marketing/motion/`), and he may ask for the cut before the words (rule 24).
+- **Launch marketing sells the two reports.** On draft 2 (2026-10-02) he cut birth time ("we don't need to mention
+  birth time at all") and Timeline ("we will do the timeline subscription later"), and asked to hint at credits and
+  the gifting loop. Propose the Personal and Compatibility reports, credits and gifts; Timeline waits for its round.
 
 ## Asked for
 - **Opus for orchestrating, planning and research.** The orchestrator (the Owner, ADR-137), planning (R-0.7) and, from

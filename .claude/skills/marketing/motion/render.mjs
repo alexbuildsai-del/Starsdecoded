@@ -3,7 +3,8 @@
 import path from "node:path";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, renderStill, selectComposition } from "@remotion/renderer";
-import { enableTailwind } from "@remotion/tailwind-v4";
+import fs from "node:fs";
+import { override } from "./override.mjs";
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const repo = path.resolve(here, "../../../..");
@@ -12,24 +13,15 @@ const [mode, ...rest] = process.argv.slice(2);
 const dateAt = rest.indexOf("--date");
 const date = dateAt >= 0 ? rest.splice(dateAt, 2)[1] : "2026-10-02";
 
+// The gift cover's art is the web app's own public file.
+fs.copyFileSync(path.join(repo, "web/public/gift-cover.png"), path.join(here, "public/gift-cover.png"));
 const serveUrl = await bundle({
   entryPoint: path.join(here, "src/index.ts"),
   publicDir: path.join(here, "public"),
-  webpackOverride: (config) => {
-    const c = enableTailwind(config);
-    return {
-      ...c,
-      resolve: {
-        ...c.resolve,
-        extensionAlias: { ".js": [".ts", ".tsx", ".js"] },
-        alias: { ...(c.resolve?.alias ?? {}), "@": path.join(repo, "web/src"), react: path.join(here, "node_modules/react"), "react-dom": path.join(here, "node_modules/react-dom") },
-        modules: [...(c.resolve?.modules ?? ["node_modules"]), path.join(repo, "web/node_modules"), path.join(repo, "node_modules")],
-      },
-    };
-  },
+  webpackOverride: override,
 });
 const inputProps = { date, music: "temp-score.wav" };
-const composition = await selectComposition({ serveUrl, id: "launch-trailer", inputProps, browserExecutable });
+const composition = await selectComposition({ serveUrl, id: process.env.COMP ?? "launch-trailer", inputProps, browserExecutable });
 
 if (mode === "stills") {
   for (const s of rest) {
@@ -41,7 +33,7 @@ if (mode === "stills") {
 } else {
   const output = path.resolve(rest[0] ?? path.join(here, "out/launch-trailer.mp4"));
   await renderMedia({
-    composition, serveUrl, codec: "h264", outputLocation: output, inputProps, browserExecutable, concurrency: 4, crf: 18,
+    composition, serveUrl, codec: "h264", outputLocation: output, inputProps, browserExecutable, concurrency: Number(process.env.CONC ?? 1), crf: 18,
     imageFormat: "jpeg", jpegQuality: 92, audioBitrate: "320k",
     frameRange: process.env.FRAMES ? process.env.FRAMES.split("-").map(Number) : undefined, logLevel: process.env.LOG ?? "info",
     onProgress: ({ progress }) => { if (Math.round(progress * 100) % 10 === 0) process.stdout.write(`\r${Math.round(progress * 100)}%`); },
