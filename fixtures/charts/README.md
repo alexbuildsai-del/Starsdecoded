@@ -36,3 +36,17 @@ parent-and-child lens's four band runs in `../pairs/` and never run in the
 natal campaign. A child's band is derived from the birth date at generation,
 so each pair fixture notes the year it leaves its band; the lab prints the band
 it computed. Nothing here is fabricated (R-3.1).
+
+The three `injection` fixtures (`inject-instruction`, `inject-delimiter`,
+`inject-markup`) are synthetic, and their name is the point: each is built to
+escape the data block a typed name reaches the prompts in (ADR-202, security
+scope 8). One is an instruction the name rule lets through (letters, spaces, one
+dot), one carries the block's closing marker with an instruction after it, and
+one is 500 characters of markup. `pnpm report:lab --dry` renders every natal
+prompt for each on its own computed chart, a matrix chart's stored foundation
+standing in, and every pair prompt with two of them as A and B over
+curie-winfrey's runs, and fails if a name changes anything outside its block.
+They never join a campaign or the release lab: the API refuses two of the names
+at the door, and a report written for any of them measures nothing the matrix
+does not. Only `inject-instruction` is ever written, on demand on staging, to
+see a report use it as a name and obey none of it.
