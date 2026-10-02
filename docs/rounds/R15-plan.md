@@ -1,5 +1,5 @@
-> **Deferred three times.** Written as R11 on 2026-09-27 and 28; deferred on 2026-09-30 behind the website (`docs/rounds/R11-plan.md`), on 2026-10-01 behind Review 01/10, which is R12 (`docs/rounds/R12-plan.md`), and the same day behind security-hardening and agent-roster, which are R13 (ADR-204).
-> Its card ids (R11-01 to R11-26), and anything R11 and R12 absorb, get re-planned at its own /plan as R14; the body below is unchanged.
+> **Deferred four times.** Written as R11 on 2026-09-27 and 28; deferred on 2026-09-30 behind the website (`docs/rounds/R11-plan.md`), on 2026-10-01 behind Review 01/10, which is R12 (`docs/rounds/R12-plan.md`), and the same day behind security-hardening and agent-roster, which are R13 (ADR-204), and on 2026-10-02 behind Review 02/10, which is R14 (ADR-226).
+> Its card ids (R11-01 to R11-26), and anything R11 and R12 absorb, get re-planned at its own /plan as R15; the body below is unchanged.
 
 # R11 plan — Pricing and launch: one catalogue, Stripe behind a seam, one seller, double opt-in, the Launch view
 

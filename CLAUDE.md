@@ -117,4 +117,4 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 1. R13 shipped to staging: security hardening (no CORS, Lax cookie, headers and a report-only CSP, limits and a spend ledger breaker,
    names as data at v9 and p4, logs without personal data, supply chain) and the agent roster (tiers, tester, sentinel, hook, lessons).
 2. Next: R14 (`review-02-10.md`), then /qa on staging, the sentinel's audit of `main`, the first Release, R11 to R14 (ADR-226).
-3. Then R15, pricing and launch (`R14-plan.md`, re-planned as R15; checkout, the postal address, `LAUNCHED`). Open: MB-103, MB-104.
+3. Then R15, pricing and launch (`R15-plan.md`, to re-plan at its /plan; checkout, the postal address, `LAUNCHED`). Open: MB-103, MB-104.
