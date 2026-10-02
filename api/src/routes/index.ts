@@ -37,6 +37,8 @@ router.post("/horizon/preview", previewLimit);
 router.post("/invites", sendLimit);
 router.post("/compatibility/:id/send", sendLimit);
 router.post("/gifts", sendLimit);
+// A reminder sends our mail too, so it counts with the sends; its own once-a-day refusal keeps ADR-127's wording.
+router.post("/gifts/:id/remind", sendLimit);
 router.post("/checkout/test", checkoutLimit);
 
 // The legacy pair report gave way to Compatibility (MB-58). Its routes read a pair past `pairReadable`, so after Stop
