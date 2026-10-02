@@ -14,7 +14,7 @@ import {
   UpdateReportWorkbookBody, UpdateReportWorkbookParams,
 } from "@workspace/api-zod";
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
-import { generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
+import { SectionError, generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
 import { SECTION_IDS } from "../prompts/index.js";
 import { pairSectionIds } from "../prompts/pair/index.js";
 import type { Lens } from "../lib/pairBrief.js";
@@ -880,7 +880,16 @@ export async function failReport(id: string, err: unknown): Promise<void> {
     .set({ status: "failed", errorMessage: message, failureCode: code, updatedAt: new Date() })
     .where(eq(reportsTable.id, id));
   await refundCredit(id).catch((refundErr) => logger.error({ err: refundErr, id }, "refund after a failed report did not land"));
-  logger.warn({ id, code, message }, "report failed");
+  // The message stays in the row: a refusal's is the model's own words, which can repeat the brief (ADR-201).
+  logger.warn({ id, code, section: failedSection(err) }, "report failed");
+}
+
+/** A generator wraps the section's error in a ReportFailure, so the section is on the error or one cause down. */
+function failedSection(err: unknown): string | null {
+  for (let at = err, depth = 0; at && depth < 3; at = (at as { cause?: unknown }).cause, depth++) {
+    if (at instanceof SectionError) return at.key;
+  }
+  return null;
 }
 
 export default router;

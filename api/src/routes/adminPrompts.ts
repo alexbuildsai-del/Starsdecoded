@@ -1,4 +1,4 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
+import express, { Router, type Request, type Response, type NextFunction } from "express";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db, promptTemplatesTable } from "@workspace/db";
@@ -178,8 +178,12 @@ router.get("/admin/prompts/:key", async (req, res) => {
   }
 });
 
+// app.ts leaves this one body unread (its jsonBody), so a whole prompt, which can pass ADR-202's 32 kB, is parsed here,
+// behind the guards above, and only the admin can have up to 256 kB parsed.
+const promptBody = express.json({ limit: "256kb" });
+
 /** PUT /api/admin/prompts/:key — upsert a prompt override. */
-router.put("/admin/prompts/:key", async (req, res) => {
+router.put("/admin/prompts/:key", promptBody, async (req, res) => {
   const key = decodeURIComponent(req.params.key);
   const def = PROMPT_DEFAULTS_BY_KEY.get(key);
   if (!def) {

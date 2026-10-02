@@ -34,21 +34,68 @@ function bodyOf(kilobytes: number): string {
   return JSON.stringify({ template: "x".repeat(kilobytes * 1024) });
 }
 
-test("a 40 kB body is refused everywhere but the admin's prompt editor, which takes up to 256 kB", async (t) => {
+test("a 40 kB body is refused everywhere but the prompt editor's save, which the admin's guard answers before any parse", async (t) => {
   const { base, close } = await serve();
   t.after(close);
 
-  for (const [method, path] of [["POST", "/api/waitlist"], ["POST", "/api/reports"], ["PUT", "/api/admin/promptsx/natal:system"], ["POST", "/api/admin/lab/runs"]]) {
+  for (const [method, path] of [
+    ["POST", "/api/waitlist"],
+    ["POST", "/api/reports"],
+    ["PUT", "/api/admin/promptsx/natal:system"],
+    ["POST", "/api/admin/lab/runs"],
+    ["POST", "/api/admin/prompts/preview"],
+  ]) {
     const res = await send(base, method!, path!, bodyOf(40));
     assert.equal(res.status, 413, `${method} ${path}`);
   }
-  for (const [method, path] of [["PUT", "/api/admin/prompts/pair:system"], ["POST", "/api/admin/prompts/preview"]]) {
-    const res = await send(base, method!, path!, bodyOf(40));
-    assert.notEqual(res.status, 413, `${method} ${path}`);
-    assert.equal(((await res.json()) as { error: string }).error, "admin_disabled", "past the parser, the admin's guard answers");
+  // Parsed ahead of the guard, 257 kB would answer 413.
+  for (const kilobytes of [40, 257]) {
+    const res = await send(base, "PUT", "/api/admin/prompts/pair:system", bodyOf(kilobytes));
+    assert.equal(res.status, 503, `${kilobytes} kB`);
+    assert.equal(((await res.json()) as { error: string }).error, "admin_disabled");
   }
-  const tooLarge = await send(base, "PUT", "/api/admin/prompts/pair:system", bodyOf(257));
-  assert.equal(tooLarge.status, 413);
+});
+
+test("the admin's prompt save is parsed after the guard, up to 256 kB", async (t) => {
+  const { default: express } = await import("express");
+  const { jsonBody, requestErrorHandler } = await import("./app.js");
+  const { logger } = await import("./lib/logger.js");
+  const { default: adminPrompts } = await import("./routes/adminPrompts.js");
+  const before = process.env.ADMIN_USER_ID;
+  process.env.ADMIN_USER_ID = "user_admin";
+  t.after(() => {
+    if (before === undefined) delete process.env.ADMIN_USER_ID;
+    else process.env.ADMIN_USER_ID = before;
+  });
+
+  // app.ts's order, with a stub where Clerk and the session stand.
+  const mini = express();
+  mini.use((req, _res, next) => {
+    req.userId = req.header("x-user") || null;
+    req.log = logger;
+    next();
+  });
+  mini.use(jsonBody);
+  mini.use("/api", adminPrompts);
+  mini.use(requestErrorHandler);
+  const server = mini.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  const at = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const admin = { "x-user": "user_admin" };
+
+  // An unknown key is answered past the parser, so nothing is written and no database is needed.
+  const saved = await send(at, "PUT", "/api/admin/prompts/no-such-key", bodyOf(40), admin);
+  assert.equal(saved.status, 404);
+  assert.equal(((await saved.json()) as { error: string }).error, "not_found");
+  assert.equal((await send(at, "PUT", "/api/admin/prompts/no-such-key", bodyOf(257), admin)).status, 413);
+  assert.equal((await send(at, "POST", "/api/admin/prompts/preview", bodyOf(40), admin)).status, 413, "the preview keeps 32 kB");
+
+  const other = await send(at, "PUT", "/api/admin/prompts/no-such-key", bodyOf(257), { "x-user": "user_reader" });
+  assert.equal(other.status, 403, "a signed-in reader who is not the admin meets the guard first");
 });
 
 test("a CSP report is taken ahead of the origin guard and the session", async (t) => {

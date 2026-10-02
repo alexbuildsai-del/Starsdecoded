@@ -1,4 +1,4 @@
-import express, { type ErrorRequestHandler, type Express } from "express";
+import express, { type ErrorRequestHandler, type Express, type RequestHandler } from "express";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
@@ -31,6 +31,17 @@ export const requestErrorHandler: ErrorRequestHandler = (err: unknown, req, res,
   }
   res.status(code).json({ error });
 };
+
+const PROMPT_SAVE = /^\/api\/admin\/prompts\/[^/]+\/?$/;
+const json = express.json({ limit: "32kb" });
+
+/**
+ * ADR-202's 32 kB for every JSON body but the prompt editor's save, which holds a whole prompt: a pair system prompt was
+ * 31 kB on 2026-10-01. adminPrompts.ts reads that one request itself, up to 256 kB, once the admin's guard has let it
+ * through, so no one else can have more than 32 kB parsed.
+ */
+export const jsonBody: RequestHandler = (req, res, next) =>
+  req.method === "PUT" && PROMPT_SAVE.test(req.path) ? next() : json(req, res, next);
 
 const app: Express = express();
 
@@ -68,11 +79,7 @@ app.use("/api", cspReportRouter);
 // Ahead of the parsers, so a foreign page's write is refused before its body is read or a session is touched.
 app.use(originGuard());
 app.use(cookieParser());
-// ADR-202's 32 kB holds for every body but the admin's prompt editor, which saves whole prompts: a pair system prompt was
-// 31 kB on 2026-10-01, before the data rule lengthened every prompt. Only that path, which adminPrompts.ts puts behind the
-// admin's guard, reads up to 256 kB; the parser below then finds the body read and leaves it.
-app.use("/api/admin/prompts", express.json({ limit: "256kb" }));
-app.use(express.json({ limit: "32kb" }));
+app.use(jsonBody);
 app.use(express.urlencoded({ extended: true, limit: "32kb" }));
 // Ahead of the session: the waitlist's two calls, joining and confirming, set no cookie (ADR-141, 145).
 app.use("/api", waitlistRouter);
