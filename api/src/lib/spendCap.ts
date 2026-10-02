@@ -1,17 +1,21 @@
 /**
  * The daily spend breaker (ADR-199, MB-23). Once today's (UTC) writing cost
  * reaches DAILY_SPEND_CAP_USD, every route that writes answers 503 `paused`
- * before a credit moves, and the admin hears once a day. The cost is the one
- * usage.ts stored on each natal and pair report and each horizon pass, so a
- * report still writing counts once it lands; the hourly writing limit bounds
- * that lag. Lab runs, the release lab and the QA agent write to lab_runs
- * under LAB_BUDGET_USD (ADR-77) and never reach the tables summed here.
+ * before a credit moves, and the admin hears once a day. The cost is the spend
+ * ledger's: every model call made for a visitor adds to it as its reply
+ * returns, so a report still writing counts section by section, and a failed
+ * attempt, a regenerate and the legacy pair report count too. Lab runs, the
+ * release lab, sessions and the QA agent stay under LAB_BUDGET_USD (ADR-77)
+ * and never reach the ledger.
  */
 import type { RequestHandler } from "express";
-import { eq, gte, inArray, sql } from "drizzle-orm";
-import { db, reportRevisionsTable, reportsTable, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { db, usersTable } from "@workspace/db";
 import { logger } from "./logger.js";
 import { sendSpendPausedEmail, type SendSpendPausedOptions } from "./mailer.js";
+import { readSpentUsd, utcDay } from "./spendLedger.js";
+
+export { utcDay };
 
 // MB-145 provisional: 20 USD a day until the Owner settles the cap.
 const DEFAULT_CAP_USD = 20;
@@ -40,105 +44,6 @@ export function dailyCapUsd(env: NodeJS.ProcessEnv = process.env): number {
     logger.warn({ value: raw, capUsd: DEFAULT_CAP_USD }, "DAILY_SPEND_CAP_USD is not a plain amount; the breaker uses the default");
   }
   return DEFAULT_CAP_USD;
-}
-
-/** YYYY-MM-DD in UTC: the day the breaker sums, resets on, and names in its email. */
-export function utcDay(at: Date = new Date()): string {
-  return at.toISOString().slice(0, 10);
-}
-
-/** A report as the breaker reads it: the figures its interpretation's meta holds. */
-export interface ReportCost {
-  id: string;
-  createdAt: Date;
-  /** meta.generatedAt. Regenerating writes a new one; a horizon pass keeps it. */
-  generatedAt: string | null;
-  /** meta.horizonPass.at, when the last pass landed. */
-  passAt: string | null;
-  /** meta.usage.costUsd. A pass adds its calls to the report's usage, so this is the text plus every pass since. */
-  costUsd: number | null;
-}
-
-/** What a report had cost when a pass began, from the copy report_revisions keeps of the text before it. */
-export interface RevisionCost {
-  reportId: string;
-  createdAt: Date;
-  costUsd: number | null;
-}
-
-function isoDay(stamp: string | null): string | null {
-  return stamp && /^\d{4}-\d{2}-\d{2}T/.test(stamp) ? stamp.slice(0, 10) : null;
-}
-
-// A row with no generatedAt began with its row: only a stored row seeded by hand lacks it.
-function textDay(r: ReportCost): string {
-  return isoDay(r.generatedAt) ?? utcDay(r.createdAt);
-}
-
-/** Written before `day`, with a pass that landed on it: only what that day's passes added counts. */
-function passedOn(day: string, r: ReportCost): boolean {
-  return textDay(r) < day && isoDay(r.passAt) === day;
-}
-
-/**
- * The first revision saved that day is the text before that day's first pass.
- * With none, the pass that landed began before midnight, so the last revision
- * is its own. With no revision at all, nothing is subtracted: an unknown
- * baseline counts the whole cost rather than none of it.
- */
-function costBefore(day: string, revisions: readonly RevisionCost[]): number {
-  const ordered = [...revisions].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  const baseline = ordered.find((v) => utcDay(v.createdAt) >= day) ?? ordered.at(-1);
-  return baseline?.costUsd ?? 0;
-}
-
-/** The day's spend from what is stored: a text begun that day whole, passes on older ones by what they added. */
-export function spentOn(day: string, reports: readonly ReportCost[], revisions: readonly RevisionCost[]): number {
-  let total = 0;
-  for (const r of reports) {
-    const cost = r.costUsd ?? 0;
-    if (textDay(r) === day) {
-      total += cost;
-    } else if (passedOn(day, r)) {
-      total += Math.max(0, cost - costBefore(day, revisions.filter((v) => v.reportId === r.id)));
-    }
-  }
-  return total;
-}
-
-// The figure is read as text and parsed here, so one odd row can never make the whole sum throw.
-function usdOf(text: string | null): number | null {
-  const n = text === null ? Number.NaN : Number(text);
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
-
-async function readSpentUsd(day: string): Promise<number> {
-  const start = new Date(`${day}T00:00:00.000Z`);
-  // Every landing sets updated_at, so filtering on it leaves the older reports' text unread.
-  const rows = await db
-    .select({
-      id: reportsTable.id,
-      createdAt: reportsTable.createdAt,
-      generatedAt: sql<string | null>`${reportsTable.interpretation} #>> '{meta,generatedAt}'`,
-      passAt: sql<string | null>`${reportsTable.interpretation} #>> '{meta,horizonPass,at}'`,
-      costUsd: sql<string | null>`${reportsTable.interpretation} #>> '{meta,usage,costUsd}'`,
-    })
-    .from(reportsTable)
-    .where(gte(reportsTable.updatedAt, start));
-  const reports: ReportCost[] = rows.map((r) => ({ ...r, costUsd: usdOf(r.costUsd) }));
-  const passed = reports.filter((r) => passedOn(day, r)).map((r) => r.id);
-  const revisions: RevisionCost[] = passed.length === 0
-    ? []
-    : (await db
-      .select({
-        reportId: reportRevisionsTable.reportId,
-        createdAt: reportRevisionsTable.createdAt,
-        costUsd: sql<string | null>`${reportRevisionsTable.interpretation} #>> '{meta,usage,costUsd}'`,
-      })
-      .from(reportRevisionsTable)
-      .where(inArray(reportRevisionsTable.reportId, passed)))
-      .map((v) => ({ ...v, costUsd: usdOf(v.costUsd) }));
-  return spentOn(day, reports, revisions);
 }
 
 /**
@@ -175,7 +80,7 @@ export function cachedSpend(read: (day: string) => Promise<number>, now: () => n
 
 const liveSpend = cachedSpend(readSpentUsd);
 
-/** Today's (UTC) writing cost in USD, from the database at most once a minute. */
+/** Today's (UTC) writing cost in USD, from the spend ledger at most once a minute. */
 export function spentTodayUsd(): Promise<number> {
   return liveSpend();
 }

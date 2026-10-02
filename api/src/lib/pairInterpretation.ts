@@ -90,7 +90,11 @@ export interface PairFrame {
 
 export interface PairGenerateOptions {
   onSection?: (frame: PairFrame) => void | Promise<void>;
-  /** The report the checks are logged against (ADR-85). */
+  /**
+   * The report the checks are logged against (ADR-85). Only a visitor's pair
+   * has one, since the release lab and the report lab store none, so it is also
+   * what puts every call on the day's spend ledger (ADR-199, reading 7).
+   */
   reportId?: string | null;
 }
 
@@ -201,6 +205,7 @@ export async function generatePairInterpretation(
   await options.onSection?.({ section: "meta", patch: { meta: openingMeta } });
 
   const controller = new AbortController();
+  const spend = options.reportId ? ("pair" as const) : undefined;
   const coded = (err: unknown) => new ReportFailure(failureCodeOf(err), err instanceof Error ? err.message : String(err), err);
   const logged = (spec: PairSectionSpec, writeId: string) => (checks: Validated<unknown>["checks"], event: { attempt: number; final: boolean }) =>
     recordChecks({ kind: "pair", section: spec.key, model: MODELS.sections, writeId, reportId: options.reportId, attempt: event.attempt, final: event.final, checks });
@@ -218,6 +223,7 @@ export async function generatePairInterpretation(
     normalise: PAIR_FOUNDATION.normalise ? (raw) => PAIR_FOUNDATION.normalise!(raw, brief) : undefined,
     validate: (out) => (PAIR_FOUNDATION.validate as (o: PairFoundationData, b: PairBrief) => Validated<PairFoundationData>)(out, brief),
     signal: controller.signal,
+    spend,
     onChecks: (checks, event) => recordChecks({ kind: "pair", section: PAIR_FOUNDATION.key, model: MODELS.foundation, writeId: randomUUID(), reportId: options.reportId, attempt: event.attempt, final: event.final, checks }),
   }).catch((err) => { throw coded(err); });
   const foundation = foundationCall.data;
@@ -246,6 +252,7 @@ export async function generatePairInterpretation(
       validate: (out) => validatePairSection(spec, out, brief),
       signal: controller.signal,
       carry,
+      spend,
       onChecks: logged(spec, randomUUID()),
     });
     let call: SectionResult<unknown>;

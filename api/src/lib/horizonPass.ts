@@ -34,6 +34,12 @@ export interface PassInput {
 }
 
 export interface PassStore {
+  /**
+   * True on the route's store: the report is a visitor's, so the pass's model
+   * calls count toward the day's spend (ADR-199). A memory store, in a test or
+   * the report lab, leaves it unset and never counts (reading 7).
+   */
+  readonly countsSpend?: boolean;
   load(reportId: string): Promise<{ interpretation: ReportInterpretation | null; horizonPasses: number } | null>;
   saveRevision(reportId: string, interpretation: ReportInterpretation, chart: NatalChartData | null): Promise<void>;
   setRevising(reportId: string): Promise<void>;
@@ -43,6 +49,7 @@ export interface PassStore {
 }
 
 export const dbStore: PassStore = {
+  countsSpend: true,
   async load(reportId) {
     const [row] = await db.select().from(reportsTable).where(eq(reportsTable.id, reportId)).limit(1);
     return row ? { interpretation: (row.interpretation as ReportInterpretation | null) ?? null, horizonPasses: row.horizonPasses ?? 0 } : null;
@@ -116,13 +123,14 @@ export async function runHorizonPass(input: PassInput, store: PassStore = dbStor
   await store.setRevising(reportId);
 
   const w = writer(store, reportId, previous);
+  const options = { onSection: w.push, spend: store.countsSpend ? ("horizon" as const) : undefined };
   try {
     const brief = buildBrief(chart, input.name);
     // The horizon blocks land first, then every stored section is amended.
-    const blocks = await generateHorizonBlocks(chart, input.name, previous, { onSection: w.push });
+    const blocks = await generateHorizonBlocks(chart, input.name, previous, options);
     await w.push({ section: "meta", patch: { angleMeanings: blocks.angleMeanings, personalPlanets: brief.personalPlanets, aspectMeanings: brief.aspectMeanings } });
     const withBlocks = w.current();
-    const amended = await amendSections(chart, withBlocks, brief, { onSection: w.push });
+    const amended = await amendSections(chart, withBlocks, brief, options);
 
     const passUsage: SectionUsage[] = [...blocks.usage, ...amended.usage];
     const sentencesRevised = Object.values(amended.counts).reduce((n, c) => n + c.amended, 0);

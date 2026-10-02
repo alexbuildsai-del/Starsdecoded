@@ -1,8 +1,9 @@
 /**
  * The breaker without a database (MB-49): the cap's parsing, the gate below,
  * at and past the cap with an injected sum, the admin's notice and its
- * once-a-day rule, the minute's cache, and what the day's sum counts. The
- * live query is proved on a scratch Postgres in the round's walk (R13-08).
+ * once-a-day rule, and the minute's cache. What the day's sum counts is
+ * spendLedger.test.ts's; the live query is proved on a scratch Postgres in
+ * the round's walk (R13-08).
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -11,11 +12,9 @@ import express from "express";
 // The pool connects lazily and nothing here queries it; the failure paths log on purpose.
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.LOG_LEVEL ??= "silent";
-const { PAUSED_LINE, cachedSpend, dailyCapUsd, pausedNotifier, spendGate, spentOn, utcDay } = await import("./spendCap.js");
+const { PAUSED_LINE, cachedSpend, dailyCapUsd, pausedNotifier, spendGate, utcDay } = await import("./spendCap.js");
 type GateDeps = import("./spendCap.js").GateDeps;
 type PausedNotice = import("./spendCap.js").PausedNotice;
-type ReportCost = import("./spendCap.js").ReportCost;
-type RevisionCost = import("./spendCap.js").RevisionCost;
 type SendSpendPausedOptions = import("./mailer.js").SendSpendPausedOptions;
 
 test("the cap: unset, blank or unreadable is 20; 0 and any plain amount are read as written", () => {
@@ -250,54 +249,6 @@ test("a failed read keeps the day's last figure, and with none it rejects", asyn
   await assert.rejects(spent(), /database down/);
 });
 
-const DAY = "2026-10-01";
-const at = (iso: string) => new Date(iso);
-
-function report(id: string, o: Partial<ReportCost> = {}): ReportCost {
-  return { id, createdAt: at(`${DAY}T08:00:00Z`), generatedAt: `${DAY}T08:00:01.000Z`, passAt: null, costUsd: 0.5, ...o };
-}
-
-test("the day's sum: a text begun that day counts whole, its passes included; a report still writing counts nothing yet", () => {
-  assert.equal(spentOn(DAY, [report("a"), report("b", { costUsd: 0.25 })], []), 0.75);
-  assert.equal(spentOn(DAY, [report("a", { costUsd: 0.8, passAt: `${DAY}T09:00:00.000Z` })], []), 0.8);
-  assert.equal(spentOn(DAY, [report("writing", { costUsd: null })], []), 0);
-  assert.equal(spentOn(DAY, [report("regenerated", { createdAt: at("2026-09-20T08:00:00Z"), generatedAt: `${DAY}T11:00:00.000Z` })], []), 0.5);
-});
-
-test("the day's sum: an older text counts nothing, unless a pass landed that day, and then only what the passes added", () => {
-  const older = { createdAt: at("2026-09-28T08:00:00Z"), generatedAt: "2026-09-28T08:00:01.000Z" };
-  assert.equal(spentOn(DAY, [report("ticked", { ...older, costUsd: 0.5 })], []), 0, "a workbook tick today is not spend");
-  assert.equal(spentOn(DAY, [report("old-pass", { ...older, costUsd: 0.7, passAt: "2026-09-29T10:00:00.000Z" })], []), 0);
-
-  const passed = report("p", { ...older, costUsd: 0.9, passAt: `${DAY}T14:00:00.000Z` });
-  const revisions: RevisionCost[] = [
-    { reportId: "p", createdAt: at("2026-09-29T09:58:00Z"), costUsd: 0.5 },
-    { reportId: "p", createdAt: at(`${DAY}T13:58:00Z`), costUsd: 0.7 },
-    { reportId: "p", createdAt: at(`${DAY}T10:00:00Z`), costUsd: 0.6 },
-    { reportId: "other", createdAt: at(`${DAY}T10:00:00Z`), costUsd: 0.1 },
-  ];
-  assert.ok(Math.abs(spentOn(DAY, [passed], revisions) - 0.3) < 1e-9, "0.9 now, 0.6 before the first pass that day");
-});
-
-test("the day's sum: a pass begun before midnight subtracts its own revision; none at all subtracts nothing", () => {
-  const older = { createdAt: at("2026-09-28T08:00:00Z"), generatedAt: "2026-09-28T08:00:01.000Z" };
-  const straddled = report("s", { ...older, costUsd: 0.65, passAt: `${DAY}T00:01:30.000Z` });
-  const revisions: RevisionCost[] = [
-    { reportId: "s", createdAt: at("2026-09-28T12:00:00Z"), costUsd: 0.5 },
-    { reportId: "s", createdAt: at("2026-09-30T23:59:00Z"), costUsd: 0.55 },
-  ];
-  assert.ok(Math.abs(spentOn(DAY, [straddled], revisions) - 0.1) < 1e-9);
-  assert.equal(spentOn(DAY, [report("lost", { ...older, costUsd: 0.65, passAt: `${DAY}T10:00:00.000Z` })], []), 0.65);
-  const unpriced: RevisionCost[] = [{ reportId: "u", createdAt: at(`${DAY}T09:00:00Z`), costUsd: null }];
-  assert.equal(spentOn(DAY, [report("u", { ...older, costUsd: 0.2, passAt: `${DAY}T09:02:00.000Z` })], unpriced), 0.2);
-});
-
-test("the day's sum: a stored row with no generatedAt is dated by its creation", () => {
-  assert.equal(spentOn(DAY, [report("seeded", { generatedAt: null, costUsd: 0.02 })], []), 0.02);
-  assert.equal(spentOn(DAY, [report("seeded-old", { generatedAt: null, createdAt: at("2026-09-30T23:00:00Z"), costUsd: 0.02 })], []), 0);
-  assert.equal(spentOn(DAY, [report("odd", { generatedAt: "yesterday", costUsd: 0.02 })], []), 0.02);
-});
-
 test("the gate: the walk's case, a cap of one cent and 2 cents spent, pauses; a hair under the cap does not", async () => {
   for (const [spent, status] of [[0.02, 503], [0.01, 503], [0.0099, 201]] as const) {
     const { deps } = gateDeps(0.01, spent);
@@ -368,31 +319,4 @@ test("a read begun on yesterday is not served to today, and callers that arrive 
   reads[1].release(4);
   assert.equal(await today, 4);
   assert.deepEqual([await first, await second], [9, 9]);
-});
-
-test("the day's sum: a pass that cost less than its baseline adds nothing, never a negative", () => {
-  const older = { createdAt: at("2026-09-28T08:00:00Z"), generatedAt: "2026-09-28T08:00:01.000Z" };
-  const revisions: RevisionCost[] = [{ reportId: "p", createdAt: at(`${DAY}T09:00:00Z`), costUsd: 0.9 }];
-  assert.equal(spentOn(DAY, [report("p", { ...older, costUsd: 0.4, passAt: `${DAY}T09:05:00.000Z` })], revisions), 0);
-});
-
-test("the day's sum: every report adds to the total, a text begun today and passes on older ones together", () => {
-  const older = { createdAt: at("2026-09-28T08:00:00Z"), generatedAt: "2026-09-28T08:00:01.000Z" };
-  const revisions: RevisionCost[] = [
-    { reportId: "p1", createdAt: at(`${DAY}T09:00:00Z`), costUsd: 0.5 },
-    { reportId: "p2", createdAt: at(`${DAY}T10:00:00Z`), costUsd: 0.25 },
-  ];
-  const total = spentOn(DAY, [
-    report("new", { costUsd: 0.4 }),
-    report("p1", { ...older, costUsd: 0.6, passAt: `${DAY}T09:05:00.000Z` }),
-    report("p2", { ...older, costUsd: 0.5, passAt: `${DAY}T10:05:00.000Z` }),
-    report("quiet", { ...older, costUsd: 5 }),
-  ], revisions);
-  assert.ok(Math.abs(total - 0.75) < 1e-9, `0.4 + 0.1 + 0.25, got ${total}`);
-  assert.equal(spentOn(DAY, [], []), 0);
-});
-
-test("the day's sum: a text begun the next UTC day is not today's spend", () => {
-  assert.equal(spentOn(DAY, [report("tomorrow", { createdAt: at("2026-10-02T00:00:00Z"), generatedAt: "2026-10-02T00:00:00.000Z" })], []), 0);
-  assert.equal(spentOn(DAY, [report("last", { createdAt: at("2026-10-01T23:59:59Z"), generatedAt: "2026-10-01T23:59:59.999Z" })], []), 0.5);
 });

@@ -31,6 +31,7 @@ import { sectOf } from "./traditional.js";
 import { logger } from "./logger.js";
 import { addAttempt, buildReportUsage, emptySection, type ReportUsage, type SectionUsage } from "./usage.js";
 import { MODELS, completionCap, effortFor, flexOffered, isModelId, modelFor, type ModelId, type ServiceTier } from "./models.js";
+import { recordSpend, type SpendKind } from "./spendLedger.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, ClaimSchema, EvidenceRefSchema, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
   buildBrief, hasClaims, instructionsFor, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
@@ -258,6 +259,13 @@ export interface StructuredCall<T> {
   onChecks?: (checks: Check[], event: ChecksEvent) => void | Promise<void>;
   /** The round alone: the first attempt already knows every earlier error and the reply they came from. */
   carry?: Carry;
+  /**
+   * Set on a call made for a visitor: every reply, rejected ones and the
+   * claims-only repair included, adds its cost to the day's spend ledger
+   * (ADR-199). The lab, the release lab, sessions and the QA agent leave it
+   * unset and never count (reading 7).
+   */
+  spend?: SpendKind;
 }
 
 /** The rule a count problem at this path belongs to, so the log names the annex row. */
@@ -401,6 +409,8 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
       response_format: { type: "json_schema", json_schema: { name, strict: true, schema: jsonSchema } },
     }, requestOptions));
     usage = addAttempt(usage, response.usage, Date.now() - startedAt);
+    // Before any check: a reply that is refused, cut short or rejected was billed all the same.
+    await recordSpend(call.spend, call.model, response.usage, call.serviceTier);
 
     const choice = response.choices[0];
     const message = choice?.message;
@@ -473,6 +483,7 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
           response_format: { type: "json_schema", json_schema: { name: `${name}_claims`, strict: true, schema: toStrictJsonSchema(repairSchema) } },
         }, requestOptions));
         usage = addAttempt(usage, repairResponse.usage, Date.now() - repairStartedAt);
+        await recordSpend(call.spend, call.model, repairResponse.usage, call.serviceTier);
         const repairedRaw = (() => { try { return JSON.parse(repairResponse.choices[0]?.message?.content ?? ""); } catch { return null; } })();
         const parsedRepair = parseLenient(repairSchema, repairedRaw);
         if (!("issues" in parsedRepair)) {
@@ -516,6 +527,8 @@ interface CallOptions<T> {
   carry?: Carry;
   /** Where the checks are logged: the customer's report or the lab (ADR-85). */
   log?: { kind: GenerationFailureKind; reportId?: string | null };
+  /** The ledger kind a visitor's call counts under; unset, the call never counts (ADR-199, reading 7). */
+  spend?: SpendKind;
 }
 
 async function callSection<T>(
@@ -540,6 +553,7 @@ async function callSection<T>(
     serviceTier: options.serviceTier,
     signal: options.signal,
     carry: options.carry,
+    spend: options.spend,
     onChecks: (checks, event) => recordChecks({ kind: log.kind, section: usageKey, model, writeId, reportId: log.reportId, attempt: event.attempt, final: event.final, checks }),
   });
 }
@@ -594,8 +608,19 @@ export interface SectionFrame {
 
 export interface GenerateOptions {
   onSection?: (frame: SectionFrame) => void | Promise<void>;
-  /** The report the checks are logged against (ADR-85). */
+  /**
+   * The report the checks are logged against (ADR-85). Only a visitor's report
+   * has one, since the release lab and the report lab store none, so it is also
+   * what puts every call on the day's spend ledger (ADR-199, reading 7).
+   */
   reportId?: string | null;
+}
+
+/** The horizon pass's options: it amends a stored report, and its caller says whether that report is a visitor's. */
+export interface PassOptions {
+  onSection?: (frame: SectionFrame) => void | Promise<void>;
+  /** Set on a visitor's report: every call of the pass counts toward the day's spend (ADR-199). */
+  spend?: SpendKind;
 }
 
 export async function generateInterpretation(
@@ -606,6 +631,7 @@ export async function generateInterpretation(
   const brief = buildBrief(chart, name);
   const blind = brief.horizon === "unknown";
   const startedAt = Date.now();
+  const spend = options.reportId ? ("natal" as const) : undefined;
 
   // wordCount and usage are only knowable at the end, so the opening frame
   // carries the meta block without them and the final write completes it.
@@ -629,7 +655,7 @@ export async function generateInterpretation(
     foundationPrompt.system,
     assembleUser(foundationPrompt.user, brief, FOUNDATION),
     brief,
-    { schema: schemaFor(FOUNDATION, blind) as z.ZodType<FoundationData>, log: { kind: "natal", reportId: options.reportId } },
+    { schema: schemaFor(FOUNDATION, blind) as z.ZodType<FoundationData>, log: { kind: "natal", reportId: options.reportId }, spend },
   ).catch((err) => { throw new ReportFailure(failureCodeOf(err), err instanceof Error ? err.message : String(err), err); });
   const foundation = foundationCall.data;
   const foundationJson = JSON.stringify(foundation, null, 2);
@@ -649,7 +675,7 @@ export async function generateInterpretation(
       const user = assembleUser(prompts[i].user, brief, spec, foundationJson);
       const run = (carry?: Carry) => callSection<unknown>(
         spec, modelFor(spec.key), prompts[i].system, user, brief,
-        { schema: schemaFor(spec, blind), signal: controller.signal, carry, log },
+        { schema: schemaFor(spec, blind), signal: controller.signal, carry, log, spend },
       );
       let call: SectionResult<unknown>;
       try {
@@ -781,7 +807,7 @@ export async function generateHorizonBlocks(
   chart: NatalChartData,
   name: string,
   stored: ReportInterpretation,
-  options: GenerateOptions = {},
+  options: PassOptions = {},
 ): Promise<HorizonBlocks> {
   if (!hasHorizon(chart)) throw new Error("generateHorizonBlocks needs a chart whose horizon holds");
   const brief = buildBrief(chart, name);
@@ -803,8 +829,9 @@ export async function generateHorizonBlocks(
         return { output: { ...out, claims }, checks };
       },
       usageKey: "natal:triad:rising",
+      spend: options.spend,
     }),
-    callSection<HousesSection>(houses, modelFor(houses.key), housesPrompt.system, assembleUser(housesPrompt.user, brief, houses, foundationJson), brief),
+    callSection<HousesSection>(houses, modelFor(houses.key), housesPrompt.system, assembleUser(housesPrompt.user, brief, houses, foundationJson), brief, { spend: options.spend }),
   ]);
   const rising = withStoredClaims(risingCall.data, chart) as RisingPart;
   await options.onSection?.({ section: "houses", patch: { houses: housesCall.data } });
@@ -1021,7 +1048,7 @@ export async function amendSections(
   chart: NatalChartData,
   stored: ReportInterpretation,
   brief: ChartBrief,
-  options: GenerateOptions = {},
+  options: PassOptions = {},
 ): Promise<AmendResult> {
   if (brief.horizon === "unknown") throw new Error("amendSections needs a brief whose horizon holds");
   const foundationJson = JSON.stringify(stored.foundation, null, 2);
@@ -1062,6 +1089,7 @@ export async function amendSections(
         });
         return { output: { amendments, additions }, checks };
       },
+      spend: options.spend,
     });
     const applied = applyAmendment(id, current, call.data, chart);
     await options.onSection?.({ section: id, patch: { [id]: applied.section } as Partial<ReportInterpretation> });

@@ -1,6 +1,7 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { MODELS } from "./models.js";
 import { resolveSection } from "./promptLoader.js";
+import { recordSpend } from "./spendLedger.js";
 import type { NatalChartData } from "./chartCalculation.js";
 import { DATA_RULE, dataBlock } from "../prompts/data.js";
 import { ASPECT, BODY, BODY_LABELS, type AspectName, type Body } from "../prompts/vocabulary.js";
@@ -86,6 +87,8 @@ async function callAI(systemPrompt: string, userPrompt: string, maxTokens = 600)
       { role: "user", content: userPrompt },
     ],
   });
+  // Only a visitor reaches the legacy pair report, by POST /synastry or an invite's claim, so every reply counts (ADR-199).
+  await recordSpend("synastry", MODELS.synastry, response.usage);
   return response.choices[0]?.message?.content?.trim() ?? "";
 }
 
