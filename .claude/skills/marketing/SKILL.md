@@ -1,6 +1,6 @@
 ---
 name: marketing
-description: Stars Decoded's Instagram and TikTok posts. Plans next week's posts from the Notion Content board, writes them in the house voice, computes every sky fact with the product's engine, renders the carousels in the product's look with the kit in this folder, shows the Owner every slide on one proposal page for a yes, then finishes the approved posts for scheduling. Use when the Owner says "next week's marketing", "marketing posts", "make the posts", "the Friday session", "the weekly session", "marketing for the next two weeks", "a carousel", "content for the week", or types /marketing; also to review a post, hook, caption or reply. Not for the report's prose, the landing page or paid ads.
+description: Stars Decoded's Instagram and TikTok posts. Plans next week's posts from the Notion Content board, writes them in the house voice, computes every sky fact with the product's engine, renders the carousels in the product's look with the kit in this folder, shows the Owner every slide on one proposal page for a yes, copies the approved posts to the Figma file, then finishes them for scheduling. Use when the Owner says "next week's marketing", "marketing posts", "make the posts", "the Friday session", "the weekly session", "marketing for the next two weeks", "a carousel", "content for the week", or types /marketing; also to review a post, hook, caption or reply. Not for the report's prose, the landing page or paid ads.
 ---
 
 The weekly session: the Owner spends one morning a week on social, usually a Friday but any day
@@ -49,10 +49,19 @@ Made) and nothing is scheduled; from then, one a day (ADR-147, Owner 30 Sep).
 8. **Read the answers** with `ArtifactData` (`list` on `verdicts`); an answer counts only when its
    `rev` matches the post's. Changes asked: fix, raise `rev`, re-render, republish the same page and
    wait again. Approved: set the row to Approved and go on.
-9. **Finish the approved posts:** zip each size, put caption, hashtags, alt text (from `alt.txt`),
+9. **Copy the approved posts to Figma** ("Stars Decoded — Social" in My Projects,
+   https://www.figma.com/design/IId0QeY6d94BPdw2DJiPBz): `node .claude/skills/marketing/kit/figma.mjs
+   <scratchpad>/out/<id>`, then pass each `figma/NN.js` to `use_figma` in order (figma-use loaded first)
+   and upload the files in `figma/planets.json` into their placeholders with `upload_assets`. Each post is
+   a section on the Posts page, one frame per slide and size, named `<id> · NN type · size · rev N`: live
+   text in the product's fonts, the starfield as vectors, every wheel locked. The Owner may change the words
+   or try backgrounds there. Before step 10, read the post back with `kit/figma-read.js`; any changed words
+   go into the post JSON, through rule 26 again (a degree, time or sign still comes from the engine), `rev`
+   goes up and the post is re-rendered. The PNGs from `render.mjs` stay the posted files.
+10. **Finish the approved posts:** zip each size, put caption, hashtags, alt text (from `alt.txt`),
    Tag (`pNN-slug`) and Sound on the row, the slides on the row (in the chat while the environment
    blocks api.notion.com, noted on the row), and set Status Made.
-10. **Report** in five lines: what's approved and made, what's waiting, the week's sound, and
+11. **Report** in five lines: what's approved and made, what's waiting, the week's sound, and
     anything a rule stopped.
 
 After a week of posting, read the numbers on the Posted rows and propose two more of the top two
@@ -70,6 +79,9 @@ never the old landing page (it shows a made-up chart). Video waits for the repor
 - `render.mjs`: slide types `cover`, `sign`, `text`, `strip`, `end`; visuals `wheel` (one product
   wheel for a moment and place) and `pair` (two standalone wheels side by side, each alone), and
   the day `strip` with a window and its zoom, fed by the product's horizon sweep.
+- `figma.mjs`: the Figma copy of a rendered post, measured from the browser's layout, as `use_figma` calls of up
+  to 50,000 characters; `figma-read.js` reads the words back. Pictures go up as files with `upload_assets`
+  (it needs `mcp.figma.com` allowed in the environment's network settings), never as bytes typed into a call.
 - `proposal.mjs`: the proposal page, every slide in both sizes with its words, and Approve
   or Ask for changes on each post, kept in the page's db.
 - `sky.mjs`: astronomy-engine 2.1.19, the product's pin and method, for sky events. CLI and importable.

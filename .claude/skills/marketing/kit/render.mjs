@@ -16,7 +16,7 @@ const SIZES = { "3x4": [1080, 1440], "4x5": [1080, 1350], "9x16": [1080, 1920] }
 const HUE = { fire: "#E0845C", earth: "#7FB08B", air: "#8FC5E0", water: "#6B7FD7" };
 const esc = (s = "") => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function chrome() {
+export function chrome() {
   const found = [process.env.CHROME_PATH,
     ...(fs.existsSync("/opt/pw-browsers") ? fs.readdirSync("/opt/pw-browsers").filter((d) => d.startsWith("chromium-")).map((d) => `/opt/pw-browsers/${d}/chrome-linux/chrome`) : []),
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser"]

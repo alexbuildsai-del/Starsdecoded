@@ -27,6 +27,8 @@ export async function openWheels() {
     configFile: path.join(WEB, "vite.config.ts"), root: WEB, logLevel: "error", appType: "custom",
     server: { middlewareMode: true, hmr: false, fs: { allow: [REPO] } },
     optimizeDeps: { noDiscovery: true, include: [] },
+    // Vite 7 inlines React's CommonJS files into its ESM runner unless they stay external ("module is not defined").
+    ssr: { external: ["react", "react-dom"] },
   });
   // React comes from web/node_modules through Node, the same copy the component's own import resolves to.
   const React = requireWeb("react");
