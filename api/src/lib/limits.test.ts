@@ -555,3 +555,242 @@ test("the writing chain: on staging 24 signed-out writes with no cookie and 24 f
   assert.equal(production.body.error, "sign_in_required");
   assert.equal((await write("203.0.113.28", "user_writer")).status, 202);
 });
+
+test("a birth-time change's last allowed hold fits exactly and its first refused one takes nothing: 6 reports pass, 7 hear 429, and the count is whole after (MB-159)", async () => {
+  const app = await serve(buildLimits().generationLimits);
+  try {
+    await passes(1, () => app.hit({ user: "exact", address: "203.0.113.41", reports: 6 }));
+    await refused(app.hit({ user: "exact", address: "203.0.113.41", reports: 1 }), "write");
+
+    await refused(app.hit({ user: "over", address: "203.0.113.42", reports: 7 }), "write");
+    // The address's day, 20, is asked first and is the first count a million cannot fit.
+    await refused(app.hit({ user: "over", address: "203.0.113.42", reports: 1_000_000 }), "writeDaily");
+    assert.equal(app.started(), 6, "a refused change started no pass");
+    await passes(6, () => app.hit({ user: "over", address: "203.0.113.42", reports: 1 }));
+    await refused(app.hit({ user: "over", address: "203.0.113.42", reports: 1 }), "write");
+  } finally {
+    await app.close();
+  }
+});
+
+test("a birth-time change whose route then refuses or fails gives every write it held back, on the hour's count and the shared one (MB-158, MB-159)", async () => {
+  const limits = buildLimits();
+  const app = await serve([...limits.anonWriteLimit, ...limits.generationLimits]);
+  let n = 0;
+  try {
+    for (const answer of [400, 404, 409, 500, 503]) {
+      assert.equal((await app.hit({ user: "u1", reports: 4, answer })).status, answer, `account ${answer}`);
+      assert.equal((await app.hit({ ...forged(++n), reports: 4, answer })).status, answer, `signed out ${answer}`);
+    }
+    await passes(6, () => app.hit({ user: "u1" }));
+    await refused(app.hit({ user: "u1" }), "write");
+    await passes(24, () => app.hit(forged(++n)));
+    await refused(app.hit(forged(++n)), "anonWrites");
+  } finally {
+    await app.close();
+  }
+});
+
+test("a birth-time change whose route answers 2xx keeps every write it held, however many it held", async () => {
+  const app = await serve(buildLimits().generationLimits);
+  try {
+    for (const [i, answer] of [200, 201, 202, 302, 399].entries()) {
+      const hit = { user: `kept-${answer}`, address: `203.0.113.${60 + i}` };
+      assert.equal((await app.hit({ ...hit, reports: 5, answer })).status, answer, `${answer}`);
+      await passes(1, () => app.hit({ ...hit, answer: 201 }));
+      await refused(app.hit(hit), "write");
+    }
+  } finally {
+    await app.close();
+  }
+});
+
+test("writing, sending and checkout: the last status that spends is 399 and the first that does not is 400", async () => {
+  for (const [name, handlers, kind] of [
+    ["write", buildLimits().generationLimits, "write"],
+    ["send", buildLimits().sendLimit, "send"],
+    ["checkout", buildLimits().checkoutLimit, "checkout"],
+  ] as const) {
+    const app = await serve(handlers);
+    try {
+      for (let i = 0; i < 20; i++) assert.equal((await app.hit({ user: "u1", session: "s1", answer: 400 })).status, 400, `${name} 400 ${i}`);
+      await passes(LIMITS[kind].limit - 1, () => app.hit({ user: "u1", session: "s1", answer: 399 }), 399);
+      assert.equal((await app.hit({ user: "u1", session: "s1", answer: 399 })).status, 399);
+      await refused(app.hit({ user: "u1", session: "s1" }), kind);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("the geocoder and the preview: only a malformed request, 400, is given back; a failure, a missing place and a refusal upstream all cost the work", async () => {
+  for (const kind of ["geocode", "preview"] as const) {
+    for (const answer of [401, 404, 429, 500, 502, 503]) {
+      const limits = buildLimits();
+      const app = await serve(kind === "geocode" ? limits.geocodeLimit : limits.previewLimit);
+      try {
+        await passes(100, () => app.hit({ address: "203.0.113.50", answer: 400 }), 400);
+        await passes(LIMITS[kind].limit, () => app.hit({ address: "203.0.113.50", answer }), answer);
+        await refused(app.hit({ address: "203.0.113.50" }), kind);
+      } finally {
+        await app.close();
+      }
+    }
+  }
+});
+
+test("a route that holds no write through any limit may ask for holds all the same: it goes on, and nothing is counted", async () => {
+  const app = await serve([]);
+  try {
+    await passes(3, () => app.hit({ reports: 5 }));
+    assert.equal(app.started(), 15);
+    await passes(1, () => app.hit({ reports: 0 }));
+  } finally {
+    await app.close();
+  }
+});
+
+test("twelve writes at once from one account: six pass and six hear 429, the last allowed one and the first refused, whichever lands first", async () => {
+  const app = await serve(buildLimits().generationLimits);
+  try {
+    const answers = await Promise.all(Array.from({ length: 12 }, () => app.hit({ user: "racer" })));
+    assert.equal(answers.filter((a) => a.status === 201).length, 6);
+    assert.equal(answers.filter((a) => a.status === 429).length, 6);
+    await refused(app.hit({ user: "racer" }), "write");
+  } finally {
+    await app.close();
+  }
+});
+
+test("thirty signed-out writes at once from thirty addresses: twenty-four pass and six hear the shared count's line", async () => {
+  const limits = buildLimits();
+  const app = await serve([...limits.anonWriteLimit, ...limits.generationLimits]);
+  try {
+    const answers = await Promise.all(Array.from({ length: 30 }, (_, i) => app.hit(forged(i + 1))));
+    assert.equal(answers.filter((a) => a.status === 201).length, 24);
+    const refusals = answers.filter((a) => a.status === 429);
+    assert.equal(refusals.length, 6);
+    for (const { body } of refusals) assert.deepEqual((body as { error: string }).error, "rate_limited");
+  } finally {
+    await app.close();
+  }
+});
+
+test("birth-time changes at once on one account never start more passes than the hour allows, and give back every write they did not use (MB-159)", async () => {
+  for (const [reports, requests] of [[3, 5], [2, 8], [6, 4], [1, 9], [4, 4]] as const) {
+    const app = await serve(buildLimits().generationLimits);
+    try {
+      const answers = await Promise.all(Array.from({ length: requests }, () => app.hit({ user: "racer", reports })));
+      for (const { status } of answers) assert.ok(status === 201 || status === 429, `${status}`);
+      const started = app.started();
+      assert.ok(started <= LIMITS.write.limit, `${reports} x ${requests}: ${started} passes started, over the limit`);
+      assert.equal(started, answers.filter((a) => a.status === 201).length * reports, "every pass that started was in an answered request");
+      assert.ok(started > 0, `${reports} x ${requests}: at least one change fits when the account has written nothing`);
+      await passes(LIMITS.write.limit - started, () => app.hit({ user: "racer" }));
+      await refused(app.hit({ user: "racer" }), "write");
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("signed-out birth-time changes at once never start more passes than the shared hour allows, and keep none they did not use (MB-159)", async () => {
+  const limits = buildLimits();
+  const app = await serve([...limits.anonWriteLimit, ...limits.generationLimits]);
+  let n = 0;
+  try {
+    const answers = await Promise.all(Array.from({ length: 8 }, () => app.hit({ ...forged(++n), reports: 5 })));
+    for (const { status } of answers) assert.ok(status === 201 || status === 429, `${status}`);
+    const started = app.started();
+    assert.ok(started <= LIMITS.anonWrites.limit, `${started} passes started`);
+    assert.equal(started, answers.filter((a) => a.status === 201).length * 5);
+    await passes(LIMITS.anonWrites.limit - started, () => app.hit(forged(++n)));
+    await refused(app.hit(forged(++n)), "anonWrites");
+  } finally {
+    await app.close();
+  }
+});
+
+test("an account's birth-time change holds nothing on the shared signed-out count, so signed-out writers keep all 24 (MB-159)", async () => {
+  const limits = buildLimits();
+  const app = await serve([...limits.anonWriteLimit, ...limits.generationLimits]);
+  let n = 0;
+  try {
+    for (const user of ["a1", "a2", "a3"]) await passes(1, () => app.hit({ user, ...forged(++n), reports: 6 }));
+    await passes(24, () => app.hit(forged(++n)));
+    await refused(app.hit(forged(++n)), "anonWrites");
+  } finally {
+    await app.close();
+  }
+});
+
+test("a signed-out change is refused by the first count that is full in the chain's order, and the one it did fit keeps nothing (MB-159)", async () => {
+  const limits = buildLimits();
+  const app = await serve([...limits.anonWriteLimit, ...limits.generationLimits]);
+  let n = 0;
+  try {
+    // The shared count has 20 of 24 left to spend on one session's 5 writes.
+    for (let i = 0; i < 5; i++) await passes(1, () => app.hit({ session: "S", address: `203.0.113.${100 + i}` }));
+    await passes(15, () => app.hit(forged(++n)));
+    // 20 on the shared count. A change of 6 needs 5 more than it holds: 25 > 24 refuses it there, before the hour's count is asked.
+    await refused(app.hit({ session: "T", address: "203.0.113.200", reports: 6 }), "anonWrites");
+    // Session S has 5 of 6; a change of 2 fits the shared count (21 + 1 of 24) and not S's own hour.
+    await refused(app.hit({ session: "S", address: "203.0.113.201", reports: 2 }), "write");
+    // The refused change gave back what it took: 20 are spent, so exactly 4 more fit.
+    await passes(4, () => app.hit(forged(++n)));
+    await refused(app.hit(forged(++n)), "anonWrites");
+  } finally {
+    await app.close();
+  }
+});
+
+test("signed out, the shared count rolls on each write's own hour: held writes leave together at their hour's edge, not a millisecond before (MB-159)", async (t) => {
+  const start = Date.parse("2026-10-02T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().anonWriteLimit);
+  let n = 0;
+  try {
+    await passes(6, () => app.hit({ ...forged(++n), reports: 4 }));
+    await refused(app.hit({ ...forged(++n), reports: 1 }), "anonWrites");
+    t.mock.timers.setTime(start + HOUR_MS - 1);
+    await refused(app.hit({ ...forged(++n), reports: 1 }), "anonWrites");
+    t.mock.timers.setTime(start + HOUR_MS);
+    await passes(6, () => app.hit({ ...forged(++n), reports: 4 }));
+    await refused(app.hit({ ...forged(++n), reports: 1 }), "anonWrites");
+    assert.equal(app.started(), 48);
+  } finally {
+    await app.close();
+  }
+});
+
+test("a birth-time change holds its writes for the same hour a single write does: they leave the account's count at the hour's edge (MB-159)", async (t) => {
+  const start = Date.parse("2026-10-02T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().generationLimits);
+  try {
+    await passes(1, () => app.hit({ user: "u1", reports: 6 }));
+    t.mock.timers.setTime(start + HOUR_MS - 1_000);
+    await refused(app.hit({ user: "u1", reports: 1 }), "write");
+    t.mock.timers.setTime(start + HOUR_MS + 1);
+    await passes(1, () => app.hit({ user: "u1", reports: 6 }));
+    await refused(app.hit({ user: "u1", reports: 1 }), "write");
+  } finally {
+    await app.close();
+  }
+});
+
+test("a change refused a hold after the hour has turned does not take off a later hour's count (MB-159)", async (t) => {
+  const start = Date.parse("2026-10-02T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().generationLimits);
+  try {
+    await passes(3, () => app.hit({ user: "u1" }));
+    t.mock.timers.setTime(start + HOUR_MS + 1);
+    await passes(2, () => app.hit({ user: "u1", reports: 2 }));
+    await refused(app.hit({ user: "u1", reports: 3 }), "write");
+    await passes(2, () => app.hit({ user: "u1" }));
+    await refused(app.hit({ user: "u1" }), "write");
+  } finally {
+    await app.close();
+  }
+});
