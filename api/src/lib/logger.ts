@@ -3,8 +3,9 @@ import pino, { type DestinationStream, type Logger, type LoggerOptions } from "p
 /**
  * Logs keep the ids of reports, profiles and requests, and lose whatever names a person or opens what is theirs
  * (R-3.5, ADR-201; security scope 6): birth data under the API's names and the database's, an address, a name or note
- * someone typed, a Clerk id, a session or invite token, a cookie, an IP. Each key is censored at the top of a line and
- * one level down, so a body, a row or headers logged whole keep their keys and lose these values.
+ * someone typed, a Clerk id, a session or invite token, a cookie, an IP, and the edge's secret, which would let anyone
+ * name their own address to the limits (ADR-224). Each key is censored at the top of a line and one level down, so a
+ * body, a row or headers logged whole keep their keys and lose these values.
  */
 const PERSONAL_KEYS = [
   "birthDate", "birth_date", "birthTime", "birth_time", "birthPlace", "birth_place",
@@ -14,6 +15,10 @@ const PERSONAL_KEYS = [
   "giverName", "inviterName", "claimedByName", "profileName", "note",
   "userId", "user_id", "claimedByUserId", "claimed_by_user_id", "createdByUserId", "created_by_user_id", "user",
   "sessionId", "session_id", "token", "cookie", "authorization", "set-cookie", "x-forwarded-for", "x-real-ip",
+  "x-vercel-forwarded-for", "x-edge-proxy-secret",
+  // Vercel's guess at where the visitor is; the edge's middleware passes on every header it saw, these among them.
+  "x-vercel-ip-city", "x-vercel-ip-country", "x-vercel-ip-country-region", "x-vercel-ip-postal-code",
+  "x-vercel-ip-latitude", "x-vercel-ip-longitude",
 ];
 
 // pino tells a censor which top-level key it is under only for keys a path names outright, never for "*", so these
@@ -28,6 +33,7 @@ const REDACT_PATHS = [
   ...ERROR_KEYS.map((key) => `${key}.name`),
   "req.headers.authorization",
   "req.headers.cookie",
+  "req.headers['x-edge-proxy-secret']",
   "res.headers['set-cookie']",
 ];
 

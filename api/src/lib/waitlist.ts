@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import type { IncomingHttpHeaders } from "node:http";
 import { and, eq, isNull, lte, or } from "drizzle-orm";
 import { LEGAL_IDENTITY, waitlistReady, type SellerIdentity } from "@workspace/commerce";
@@ -17,15 +17,31 @@ export function tag(raw: string | undefined, max = 100): string | null {
 }
 
 /**
- * Who is sending, for throttling only; never stored. Through Vercel's rewrite
- * every request reaches Railway from Vercel's own addresses, so the client is
- * the address Vercel forwards. A direct call to Railway can set that header
- * itself and so dodge the limit, which costs no more than rows to delete.
+ * True when the call carries EDGE_PROXY_SECRET, which only the root middleware.ts adds, on its way through Vercel to
+ * here (ADR-224). Both sides are hashed first, so the comparison takes the same time whatever was sent and gives away
+ * nothing of the secret, not even its length. Unset or empty, nothing came through the edge; a header sent twice is not
+ * the edge's, which sets one.
+ */
+export function cameThroughEdge(headers: IncomingHttpHeaders, secret = process.env.EDGE_PROXY_SECRET): boolean {
+  const sent = headers["x-edge-proxy-secret"];
+  if (!secret || typeof sent !== "string") return false;
+  const digest = (value: string) => createHash("sha256").update(value).digest();
+  return timingSafeEqual(digest(sent), digest(secret));
+}
+
+/**
+ * Who is sending, for throttling only; never stored. Through Vercel's rewrite every request reaches Railway from
+ * Vercel's own addresses, so the client is the address Vercel forwards, but only on a call through our edge: anyone
+ * calling Railway directly can write that header, and a new address per call would dodge every limit (MB-150). Any
+ * other call is the address Railway's proxy saw, `req.ip` behind the one trusted hop.
  */
 export function clientKey(headers: IncomingHttpHeaders, ip: string | undefined): string {
-  const forwarded = headers["x-vercel-forwarded-for"];
-  const first = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(",")[0]?.trim();
-  return first || ip || "unknown";
+  if (cameThroughEdge(headers)) {
+    const forwarded = headers["x-vercel-forwarded-for"];
+    const first = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return ip || "unknown";
 }
 
 /** A sliding window per key, in memory: the API runs as one process. */

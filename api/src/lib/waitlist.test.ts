@@ -7,6 +7,7 @@ const {
   CONFIRM_LINK_MS,
   RELINK_AFTER_MS,
   RateLimiter,
+  cameThroughEdge,
   clientKey,
   confirmUrl,
   confirmWaitlist,
@@ -39,10 +40,63 @@ test("campaign tags keep their words and lose the rest", () => {
   assert.equal(tag("hero-form", 4), "hero");
 });
 
-test("the client is the address Vercel forwards, else the socket's", () => {
-  assert.equal(clientKey({ "x-vercel-forwarded-for": "203.0.113.7, 76.76.21.1" }, "76.76.21.1"), "203.0.113.7");
-  assert.equal(clientKey({}, "198.51.100.2"), "198.51.100.2");
-  assert.equal(clientKey({}, undefined), "unknown");
+// Made up here; the edge's own value lives only in the Vercel and Railway dashboards.
+const EDGE = "test-edge";
+const NOT_EDGE = "test-edgf";
+const VERCEL = "76.76.21.1";
+const RAILWAY_SAW = "198.51.100.2";
+
+/** Runs with EDGE_PROXY_SECRET set to `value`, or unset for undefined, and puts back what was there. */
+function withEdge<T>(value: string | undefined, run: () => T): T {
+  const before = process.env.EDGE_PROXY_SECRET;
+  if (value === undefined) delete process.env.EDGE_PROXY_SECRET;
+  else process.env.EDGE_PROXY_SECRET = value;
+  try {
+    return run();
+  } finally {
+    if (before === undefined) delete process.env.EDGE_PROXY_SECRET;
+    else process.env.EDGE_PROXY_SECRET = before;
+  }
+}
+
+test("a call came through the edge only when it carries the edge's value exactly", () => {
+  const carrying = (value: string | string[]) => ({ "x-edge-proxy-secret": value });
+  assert.equal(cameThroughEdge(carrying(EDGE), EDGE), true, "match");
+  assert.equal(cameThroughEdge(carrying(NOT_EDGE), EDGE), false, "mismatch of the same length");
+  for (const near of ["", "test-edg", `${EDGE}x`, ` ${EDGE}`, EDGE.toUpperCase(), `${EDGE}, ${EDGE}`]) {
+    assert.equal(cameThroughEdge(carrying(near), EDGE), false, `mismatch ${JSON.stringify(near)}`);
+  }
+  assert.equal(cameThroughEdge({}, EDGE), false, "missing");
+  assert.equal(cameThroughEdge(carrying([EDGE, EDGE]), EDGE), false, "sent twice, so not the edge's");
+  assert.equal(cameThroughEdge(carrying(""), ""), false, "an empty value matches nothing, not even an empty header");
+  assert.equal(withEdge(EDGE, () => cameThroughEdge(carrying(EDGE))), true, "EDGE_PROXY_SECRET is read at each call");
+  assert.equal(withEdge(undefined, () => cameThroughEdge(carrying(EDGE))), false, "unset");
+});
+
+test("the client is the address Vercel forwards only on a call through the edge, else the one Railway saw", () => {
+  const forwarded = { "x-vercel-forwarded-for": "203.0.113.7, 76.76.21.1" };
+  withEdge(EDGE, () => {
+    assert.equal(clientKey({ ...forwarded, "x-edge-proxy-secret": EDGE }, VERCEL), "203.0.113.7", "through the edge");
+    assert.equal(clientKey(forwarded, RAILWAY_SAW), RAILWAY_SAW, "a forged forwarded header, no edge value");
+    assert.equal(clientKey({ ...forwarded, "x-edge-proxy-secret": NOT_EDGE }, RAILWAY_SAW), RAILWAY_SAW, "a wrong edge value");
+    assert.equal(clientKey({ "x-edge-proxy-secret": EDGE }, VERCEL), VERCEL, "the edge, with no address forwarded");
+    assert.equal(clientKey({ "x-edge-proxy-secret": EDGE, "x-vercel-forwarded-for": " , 203.0.113.7" }, VERCEL), VERCEL);
+    assert.equal(clientKey({}, undefined), "unknown");
+  });
+  withEdge(undefined, () => {
+    assert.equal(clientKey({ ...forwarded, "x-edge-proxy-secret": EDGE }, RAILWAY_SAW), RAILWAY_SAW, "unset: no call is the edge's");
+  });
+});
+
+test("a new forged address on every direct call no longer dodges a limit, and through the edge each visitor keeps their own (MB-150)", () => {
+  withEdge(EDGE, () => {
+    const limiter = new RateLimiter(2, 60_000);
+    const forged = ["192.0.2.1", "192.0.2.2", "192.0.2.3"];
+    const direct = (address: string) => limiter.take(clientKey({ "x-vercel-forwarded-for": address }, RAILWAY_SAW), 0);
+    assert.deepEqual(forged.map(direct), [true, true, false]);
+    const edge = (address: string) => limiter.take(clientKey({ "x-vercel-forwarded-for": address, "x-edge-proxy-secret": EDGE }, VERCEL), 0);
+    assert.deepEqual(forged.map(edge), [true, true, true]);
+  });
 });
 
 test("the limiter admits the limit in a window, then frees as it slides", () => {

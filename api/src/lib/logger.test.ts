@@ -36,10 +36,26 @@ const QUERY_TOKEN = "q7Rk2LmN9pXc4VbZ";
 const IP = "203.0.113.7";
 const INSERT = 'insert into "profiles" ("name", "birth_date", "birth_time", "birth_place", "latitude", "longitude") values ($1, $2, $3, $4, $5, $6)';
 
+// Made up here; the edge's own value lives only in the Vercel and Railway dashboards.
+const EDGE = "edge-value-not-real";
+const POSTCODE = "00-950";
+
 const SECRETS = [
   "Marie", "Curie", "sklodowska", "1867-11-07", "11:44", "Warsaw", "52.2297", "21.0122", "Pierre", "@example.com",
-  CLERK_ID, SESSION, BEARER, QUERY_TOKEN, IP,
+  CLERK_ID, SESSION, BEARER, QUERY_TOKEN, IP, EDGE, POSTCODE,
 ];
+
+/** What a call through our edge also carries: the edge's value, the visitor's address and where Vercel places them. */
+const THROUGH_EDGE = {
+  "x-edge-proxy-secret": EDGE,
+  "x-vercel-forwarded-for": IP,
+  "x-vercel-ip-city": "Warsaw",
+  "x-vercel-ip-country": "PL",
+  "x-vercel-ip-country-region": "14",
+  "x-vercel-ip-postal-code": POSTCODE,
+  "x-vercel-ip-latitude": String(PERSON.latitude),
+  "x-vercel-ip-longitude": String(PERSON.longitude),
+};
 
 test("a full request, logged whole by a careless route, holds none of the person, their tokens or their cookie", async (t) => {
   const { token } = mintInviteToken();
@@ -63,7 +79,7 @@ test("a full request, logged whole by a careless route, holds none of the person
   const { port } = server.address() as AddressInfo;
   const res = await fetch(`http://127.0.0.1:${port}/api/invites/${token}/claim?token=${QUERY_TOKEN}`, {
     method: "POST",
-    headers: { "content-type": "application/json", cookie: `sd_session_id=${SESSION}`, authorization: `Bearer ${BEARER}`, "x-forwarded-for": IP },
+    headers: { "content-type": "application/json", cookie: `sd_session_id=${SESSION}`, authorization: `Bearer ${BEARER}`, "x-forwarded-for": IP, ...THROUGH_EDGE },
     body: JSON.stringify(PERSON),
   });
   assert.equal(res.status, 201);
@@ -79,6 +95,7 @@ test("a full request, logged whole by a careless route, holds none of the person
   const [careless, flat, failed, reportFailed, completed] = lines;
   assert.equal(careless.body.birthDate, "[Redacted]");
   assert.equal(careless.headers.cookie, "[Redacted]");
+  for (const header of Object.keys(THROUGH_EDGE)) assert.equal(careless.headers[header], "[Redacted]", header);
   assert.equal(careless.headers["content-type"], "application/json", "a header that names nobody stays");
   assert.equal(careless.user, "[Redacted]");
   assert.deepEqual([flat.reportId, flat.profileId], ["rep-1", "prof-1"]);
@@ -175,15 +192,15 @@ test("the request line keeps the route and the id and nothing else, whatever the
 test("a request, a response and a header block logged under their own keys lose the credential headers and keep the rest", () => {
   const out = buffer();
   createLogger({}, out.dest).info({
-    req: { method: "GET", headers: { authorization: `Bearer ${BEARER}`, cookie: `sd_session_id=${SESSION}`, accept: "text/html" } },
+    req: { method: "GET", headers: { authorization: `Bearer ${BEARER}`, cookie: `sd_session_id=${SESSION}`, "x-edge-proxy-secret": EDGE, accept: "text/html" } },
     res: { statusCode: 200, headers: { "set-cookie": [`sd_session_id=${SESSION}`], "content-type": "text/html" } },
   }, "whole objects");
   const line = JSON.parse(out.lines[0]);
-  assert.deepEqual([line.req.headers.authorization, line.req.headers.cookie], ["[Redacted]", "[Redacted]"]);
+  assert.deepEqual([line.req.headers.authorization, line.req.headers.cookie, line.req.headers["x-edge-proxy-secret"]], ["[Redacted]", "[Redacted]", "[Redacted]"]);
   assert.equal(line.req.headers.accept, "text/html");
   assert.equal(line.res.headers["set-cookie"], "[Redacted]");
   assert.equal(line.res.headers["content-type"], "text/html");
-  assert.ok(!out.text().includes(SESSION) && !out.text().includes(BEARER));
+  assert.ok(!out.text().includes(SESSION) && !out.text().includes(BEARER) && !out.text().includes(EDGE));
 });
 
 test("every address in a string goes, whatever its case, and a bare @ handle is not one", () => {

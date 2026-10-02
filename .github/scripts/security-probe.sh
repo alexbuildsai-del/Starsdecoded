@@ -19,7 +19,7 @@ case "$base" in https://?*) ;; *) usage ;; esac
 deadline=${DEADLINE_SECONDS:-0}
 case "$deadline" in '' | *[!0-9]*) usage ;; esac
 if [ "$mode" = full ] && ! command -v jq >/dev/null; then
-  echo "$0: full mode reads the API's refusal with jq, which is not installed" >&2
+  echo "$0: full mode reads the API's answers with jq, which is not installed" >&2
   exit 2
 fi
 
@@ -125,9 +125,23 @@ no_cors() {
 }
 
 check_api() {
-  local code error cookie attrs lacks want
+  local code error cookie attrs lacks want edge name
   code=$(fetch health -H "Origin: $foreign" "$base/api/healthz")
   no_cors health "GET /api/healthz" "$code"
+
+  # Through the web host the call passes the root middleware, which adds the edge's secret (ADR-224); without it every
+  # per-address limit keys on Vercel's own addresses and all visitors share one count (MB-167).
+  if [ "$code" != 000 ]; then
+    edge=$(jq -r '.edge' "$work/health.body" 2>/dev/null)
+    if [ "$code" != 200 ] || [ "$edge" != true ]; then
+      miss "GET /api/healthz answered $code with edge: ${edge:-unreadable}, expected 200 with edge: true"
+    fi
+  fi
+  # The secret rides only on the call upstream; a visitor who read it could name any address again. Only the names are
+  # judged, so its value never reaches this public log.
+  for name in x-edge-proxy-secret x-middleware-request-x-edge-proxy-secret; do
+    if [ -n "$(first health "$name")" ]; then miss "GET /api/healthz sends $name back to the visitor"; fi
+  done
 
   # Health is mounted ahead of every middleware, so a CORS layer that came back would show on a session route first.
   code=$(fetch read -H "Origin: $foreign" "$base/api/admin/me")
@@ -174,7 +188,7 @@ while :; do
   if [ -z "$misses" ]; then
     summary="/ sends HSTS, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy and its CSP"
     if [ "$mode" = full ]; then
-      summary="$summary; to Origin $foreign the API sends no CORS header and refuses a write with 403; a fresh visit's $session_cookie is SameSite=Lax, Secure and HttpOnly"
+      summary="$summary; /api/healthz came through the edge, whose secret is not sent back; to Origin $foreign the API sends no CORS header and refuses a write with 403; a fresh visit's $session_cookie is SameSite=Lax, Secure and HttpOnly"
     fi
     echo "security probe ok at $base ($mode): $summary"
     exit 0
