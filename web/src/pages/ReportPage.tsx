@@ -50,6 +50,7 @@ import { WorkbookProvider } from "@/lib/workbook";
 import { useLiveReport } from "@/hooks/useLiveReport";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { CHAPTERS } from "@/lib/chapters";
+import { refusalLine } from "@/lib/refusals";
 
 const TOTAL = CHAPTERS.length;
 const OPENING_ACCENT = "#5C6BC0";
@@ -142,7 +143,9 @@ export default function ReportPage() {
           {regenerate.isPending ? "Starting…" : "Regenerate"}
         </Button>
         {regenerate.isError && (
-          <p className="text-sm text-destructive mt-3">Could not start regeneration. Please try again in a minute.</p>
+          <p role="alert" className="text-sm text-destructive mt-3">
+            {refusalLine(regenerate.error) ?? "Could not start regeneration. Please try again in a minute."}
+          </p>
         )}
       </Centred>
     );

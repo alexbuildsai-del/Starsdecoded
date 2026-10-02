@@ -6,7 +6,8 @@
  * This is the VARIABLE tail of every prompt. The vocabulary itself lives in
  * the static system block and is referenced here by name, never repeated, so
  * the brief stays small and the cached prefix stays byte-identical across
- * charts.
+ * charts. The name is the one thing a reader typed, so it reaches the model
+ * only inside its data block (ADR-202).
  *
  * It also produces the wheel-facing composed text (per-planet cards, per-
  * aspect payloads, angle meanings) that the report page renders without any
@@ -18,6 +19,7 @@ import {
   ASPECT, BODY, BODY_LABELS, HOUSE, SIGN, STRUCTURE, BODIES,
   cap, ordinal, type AspectName, type Body, type SignName,
 } from "./vocabulary.js";
+import { dataBlock } from "./data.js";
 
 export interface AspectMeaningPayload {
   dynamic: string;
@@ -168,7 +170,8 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
     const mc = chart.angles.midheaven;
     const cr = t.chartRuler;
     lines = [
-      `NAME: ${name}`,
+      `NAME:`,
+      dataBlock("name", name),
       ``,
       `SECT (computed once, use these values, never re-derive):`,
       `  sect: ${sp.sect}`,
@@ -202,7 +205,8 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
     // rulers, no lots, and no house on any placement. The model is never
     // handed a fact the hour did not settle (ADR-34).
     lines = [
-      `NAME: ${name}`,
+      `NAME:`,
+      dataBlock("name", name),
       ``,
       `HORIZON: unknown. The birth time did not settle the horizon: there is no rising sign, no house, no sect and no lot in this chart. Never name one. Read the signs, the dignities and the aspects.`,
       ``,

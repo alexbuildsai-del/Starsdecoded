@@ -5,9 +5,30 @@ description: Stars Decoded ideation session with the Owner on a feature or topic
 
 The topic is the text after the command. With none, ask the Owner for one.
 
-Read `CLAUDE.md`, `docs/INDEX.md`, `MASTERFILE.md` sections the topic touches,
-and any `docs/specs/draft/` file for the same topic. Check the Notion Mailbox
-for open rows on it.
+Read `docs/annex/owner-playbook.md` first: it is how the Owner decides. Propose
+what it says they would pick, and skip any question it already answers,
+saying which rule you followed.
+
+Then read `CLAUDE.md`, `docs/INDEX.md`, `MASTERFILE.md` sections the topic
+touches, and any `docs/specs/draft/` file for the same topic. Check the Notion
+Mailbox for open rows on it.
+
+Outside evidence (a price, a vendor's limit, a standard, what a competitor
+does) goes to the `researcher` agent, on Opus, not into your own searching
+(ADR-190). Give it the question, not the topic: one agent for a lookup, two to
+four in parallel for a comparison, never more.
+
+Research that feeds a decision or the spec goes on to the `verifier`, with the
+researcher's claims table whole. It re-fetches each URL and marks each claim
+supported, unsupported or misattributed. Only supported claims reach the Owner,
+in the artifact or a message, or the spec, each with its source and its
+verdict; the rest are dropped. A quick lookup that feeds no decision skips the
+verifier; say its claims are unverified.
+
+Spawn both with the Agent tool, `subagent_type` `researcher` and `verifier`.
+If a type is not registered in this session, spawn `general-purpose` with the
+full text of its `.claude/agents/` file as the brief, the researcher on Opus
+and the verifier on Sonnet.
 
 The Owner decides visually. Every ideation publishes one HTML artifact that
 renders the proposal: mock screens for anything that touches the UI, a flow
@@ -23,6 +44,17 @@ Output exactly one file, `docs/specs/draft/<slug>.md`, at most 200 lines, with:
 scope, out of scope, acceptance criteria, screens (linked to the artifact),
 open questions, and every new decision the session produced listed under
 "Decisions to record".
+
+At the close, once the Owner has answered and the draft is final, add what the
+session taught to `docs/annex/owner-playbook.md` (ADR-195), the one file you
+edit besides the draft: the recommendations they took as they were, what they
+changed and why, the questions they found unnecessary, the formats they liked.
+Write rules, not a diary: each dated, drawn from what the Owner said or did and
+never guessed, a repeat merged into the rule it repeats, the file at most 60
+lines. Then end with one report line, `Owner turns N · recommendations taken as
+they were X of Y`, where N counts the Owner's messages in the session, Y the
+recommendations you put to them and X those they took unchanged, so the trend
+shows from one ideation to the next.
 
 Do not build anything. When the Owner says "lock it", run the `lock` skill
 for that slug.

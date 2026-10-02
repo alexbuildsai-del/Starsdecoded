@@ -145,7 +145,8 @@ export function NatalWheel({
       <svg
         viewBox={`${-pad} ${-pad} ${PLATE + 2 * pad} ${PLATE + 2 * pad}`}
         className="w-full h-auto"
-        role="img"
+        // A group, not an img: the planets and houses inside take focus, which an img role may not hold.
+        role="group"
         aria-label={`${standalone ? `${centreName}'s natal chart wheel` : "Natal chart wheel"}${drawn ? "" : ", horizon not drawn"}`}
         data-horizon={drawn ? "drawn" : "none"}
       >

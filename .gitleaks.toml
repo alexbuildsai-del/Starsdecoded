@@ -1,0 +1,13 @@
+# CI's secret scan reads this (ADR-200): gitleaks' default rules and one
+# allowlist. The report item keys ("focus.practice.bullets.0") sit beside
+# `key:`, so generic-api-key reads each one as a credential and would fail a
+# clean PR. No credential is a dotted path ending in an index, and every other
+# rule still sees these strings.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Report item keys: dotted paths ending in an index"
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = ['''^[a-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)+\.[0-9]+$''']

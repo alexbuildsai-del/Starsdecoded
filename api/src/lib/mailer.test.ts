@@ -5,13 +5,16 @@ import {
   buildPairEmail,
   buildGiftEmail,
   buildGiftReminderEmail,
+  buildSpendPausedEmail,
   buildWaitlistConfirmEmail,
   sendReportEmail,
   sendPairEmail,
   sendGiftEmail,
   sendGiftReminder,
+  sendSpendPausedEmail,
   sendWaitlistConfirmEmail,
 } from "./mailer.js";
+import { createLogger, logger } from "./logger.js";
 
 // The report engine writes reports; nothing else does. Every email says so
 // (credit-loop.md "Two verbs": Emails never say "made").
@@ -188,6 +191,39 @@ test("buildWaitlistConfirmEmail: the last day is the calendar day, in UTC, on wh
   assert.match(day("2027-01-01T00:10:00Z"), /stops working on 1 January\./);
 });
 
+const pausedOpts = { to: "owner@example.com", day: "2026-10-01", spentUsd: 20.4321, capUsd: 20, appEnv: "production" as const };
+
+test("buildSpendPausedEmail: the environment, the UTC day, the spend and the cap, and nothing about anyone", () => {
+  const content = buildSpendPausedEmail(pausedOpts);
+  assert.equal(content.subject, "New reports paused on production");
+  for (const line of [
+    "New reports are paused on production. The writing cost on 1 October (UTC) reached the daily cap.",
+    "Spent on 1 October (UTC): $20.43",
+    "Daily cap: $20.00",
+    "Writing starts again at midnight UTC, or once DAILY_SPEND_CAP_USD is raised in Railway.",
+    "Lab runs don't count toward the cap.",
+  ]) {
+    assert.ok(content.html.includes(line), `html: ${line}`);
+    assert.ok(content.text.includes(line), `text: ${line}`);
+  }
+  for (const body of allBodies(content)) {
+    assert.doesNotMatch(body, /@/, "no address, the admin's or anyone's");
+    assert.doesNotMatch(body, /\bname\b|\bbirth\b|\breport id\b/i, "no customer data");
+    assert.doesNotMatch(body, FORBIDDEN_VERBS);
+  }
+  const ownWords = [content.subject, ...content.text.split("\n").slice(0, -1)].join("\n");
+  assert.doesNotMatch(ownWords, /[—–;!]/);
+});
+
+test("buildSpendPausedEmail: a cap of 0 is the off switch, which midnight does not lift", () => {
+  const content = buildSpendPausedEmail({ ...pausedOpts, spentUsd: 0, capUsd: 0, appEnv: "staging" });
+  assert.equal(content.subject, "New reports paused on staging");
+  assert.match(content.text, /^New reports are paused on staging, because DAILY_SPEND_CAP_USD is 0\.\n/);
+  assert.match(content.text, /\nDaily cap: \$0\.00\n/);
+  assert.match(content.text, /Writing starts again once DAILY_SPEND_CAP_USD is set above 0 in Railway\./);
+  assert.doesNotMatch(content.text, /midnight/);
+});
+
 test("names are escaped defensively", () => {
   const content = buildReportEmail({
     to: "x@example.com",
@@ -198,6 +234,42 @@ test("names are escaped defensively", () => {
   assert.ok(!content.html.includes("<D>"));
   assert.match(content.html, /A &amp; B/);
   assert.match(content.html, /C &lt;D&gt;/);
+});
+
+// Without RESEND_API_KEY every send logs its failure, which is the line a recipient would ride on.
+test("production never hands the logger a recipient; elsewhere the address reaches it and it censors it (ADR-201)", async (t) => {
+  const saved = { key: process.env.RESEND_API_KEY, env: process.env.NODE_ENV };
+  delete process.env.RESEND_API_KEY;
+  t.after(() => {
+    if (saved.key !== undefined) process.env.RESEND_API_KEY = saved.key;
+    if (saved.env === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = saved.env;
+  });
+  const warn = t.mock.method(logger, "warn", () => {});
+  const sendAll = async () => {
+    await sendReportEmail({ to: "beatrice@example.com", giverFirstName: "Alex", personFirstName: "Beatrice", claimUrl: "https://mystarsdecoded.com/claim?token=abc" });
+    await sendPairEmail({ to: "beatrice@example.com", giverFirstName: "Alex", otherFirstName: "Beatrice", url: "https://mystarsdecoded.com/claim?token=abc", granted: false });
+    await sendGiftEmail({ to: "pierre@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", note: null, claimUrl: "https://mystarsdecoded.com/claim?token=xyz" });
+    await sendGiftReminder({ to: "pierre@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", claimUrl: "https://mystarsdecoded.com/claim?token=xyz" });
+    await sendWaitlistConfirmEmail(confirmOpts);
+    await sendSpendPausedEmail(pausedOpts);
+  };
+  const fields = () => warn.mock.calls.map((c) => c.arguments[0] as Record<string, unknown>);
+
+  process.env.NODE_ENV = "production";
+  await sendAll();
+  assert.equal(warn.mock.calls.length, 6);
+  for (const f of fields()) assert.ok(!("to" in f), JSON.stringify(f));
+
+  warn.mock.resetCalls();
+  process.env.NODE_ENV = "development";
+  await sendAll();
+  assert.deepEqual(fields().map((f) => f.to), ["beatrice@example.com", "beatrice@example.com", "pierre@example.com", "pierre@example.com", undefined, undefined]);
+  const lines: string[] = [];
+  const written = createLogger({ LOG_LEVEL: "info" }, { write: (s: string) => void lines.push(s) });
+  for (const c of warn.mock.calls) written.warn(...(c.arguments as [Record<string, unknown>, string]));
+  assert.equal(lines.length, 6);
+  assert.doesNotMatch(lines.join(""), /@example\.com/);
 });
 
 // Emails are stubbed in tests; nothing sends. Without RESEND_API_KEY the
@@ -245,6 +317,7 @@ test("send* functions resolve false without RESEND_API_KEY, never throw", async 
       false,
     );
     assert.equal(await sendWaitlistConfirmEmail(confirmOpts), false);
+    assert.equal(await sendSpendPausedEmail(pausedOpts), false);
   } finally {
     if (saved !== undefined) process.env.RESEND_API_KEY = saved;
   }

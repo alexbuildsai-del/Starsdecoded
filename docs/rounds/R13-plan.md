@@ -1,743 +1,651 @@
-> **Deferred twice.** Written as R11 on 2026-09-27 and 28; deferred on 2026-09-30 behind the website (`docs/rounds/R11-plan.md`), then on 2026-10-01 behind Review 01/10, which is R12 (`docs/rounds/R12-plan.md`).
-> Its card ids (R11-01 to R11-26), and anything R11 and R12 absorb, get re-planned at its own /plan as R13; the body below is unchanged.
+# R13 plan — Security hardening and the agent roster: no CORS, a watching CSP, limits and a breaker, names as data, a team that checks itself
 
-# R11 plan — Pricing and launch: one catalogue, Stripe behind a seam, one seller, double opt-in, the Launch view
+Planned 2026-10-01 on `claude/eager-albattani-i8ekei` (R12 merged at bcc2ca7, plus the lock f14f536; `main` has since gained
+b250899, Round start 1) for the locked specs `security-hardening` (ADR-197 to 203; artifact
+https://claude.ai/artifact/9XS8C1BgKVtLSP3cdNFQ7d) and `agent-roster` (ADR-187 to 196; artifact
+https://claude.ai/artifact/6gBLyAD4yNBzhLJ82Ut8xp). **ADR-204** sets the order: R13 builds both, then /qa on staging and the first
+Release; pricing-and-launch is R14 (`docs/rounds/R14-plan.md`, not touched here). **The Owner, 2026-10-01** (the security spec's
+open questions): no hotfix, since production serves non-admins only healthz, the waitlist and the admin (ADR-167); F1 is R13's
+first card, and the first Release waits for R13 and the QA after it. No QA report exists (`docs/qa/` is empty). No Owner comment
+sits on the Mailbox or Decisions rows this plan touches.
+**This is the first plan with `Tier:` lines** (agent-roster scope 1): 15 Opus, 8 Sonnet, 1 Haiku.
+**Tags:** USER-FACING are R13-08 and 09 (the refusal and pause lines), R13-12 (report content), R13-14 (a name that is not a name is
+refused) and R13-23; every other card is INTERNAL. **The brain changes once** (R13-12, names as data, v9 and p4): every report's
+prompts change (R-5.5), so the dry lab runs in the round, fixture runs are read on staging, and the Release view's full lab and QA
+agent gate production (R-4.4). **The schema changes once**: one new table, `csp_violations` (R13-10). **The contract changes once**
+(R13-14). **Dependencies:** `express-rate-limit` joins `api`; `@axe-core/playwright` joins `e2e` and `@playwright/test` is pinned
+there; `cors` and `@types/cors` leave; pnpm moves from 10.0.0 to the newest 10.x; two third-party Actions, Lighthouse CI and
+gitleaks, are pinned by SHA (R13-02, 16, 18). No credential is needed to build, no workflow holds a secret, and nothing reaches
+production in the round.
 
-Planned 2026-09-28 on `claude/compassionate-clarke-l16qww` (`main` at 8a48534, R10's merge, plus the lock at 106b6f0) for the
-locked spec `pricing-and-launch` (ADR-142 to 149, locked 2026-09-27; artifact https://claude.ai/artifact/LsBoAa2WbJJURqWgvpgb31).
-No QA report exists; no Owner comment sits on the Mailbox or Decisions rows the spec touches. **The Owner, 2026-09-27:
-"Continue without this for now."** His legal name, postal address, country, contact address and the Stripe and Revolut
-accounts are not supplied, so this round builds everything that needs none of them: the seller as one constant with marked
-placeholders (MB-115), Stripe behind a seam tested with fake keys, and the rest of the spec. **Tags:** every card is
-USER-FACING except R11-01 to 04, 06, 07, 11, 12, 25 and 26 (INTERNAL). **The brain is untouched**: no file under
-`api/src/prompts/`, `models.ts`, `aiInterpretation.ts`, `traditional.ts` or `chartCalculation.ts` changes, so no dry lab runs
-and no report's words change (R-5.5 not triggered). **The schema changes** (R11-01). **One new dependency**: `stripe` 22.6.2
-in `api` (R11-07). **No credential is needed to build**, nothing goes on GitHub, and **nothing reaches production in the round**.
-
-## Mailbox rows above 2 rounds open after this plan's increment
-At **10**: MB-12, 13, 15, 17, 19, 20, 21, 22, 23, 24, 30 · at **9**: MB-33, 35 · at **7**: MB-43, 47, 49, 50 · at **6**: MB-55, 58,
-59 · at **5**: MB-64, 65, 66, 67 · at **4**: MB-70, 73, 74, 75 · at **3**: MB-77, 78, 79, 80, 87, 89. All 54 carried-over open rows
-were incremented; MB-25 ("No launch plan") was marked decided instead, since ADR-147 is that plan. None blocks a card.
-**MB-115** (blocking, raised for this round) gates the production waitlist and checkout, not the build. **MB-75**
-(`GITHUB_RELEASE_TOKEN` on Railway staging) stays the todo for the first release. MB-115 to 118 were raised on 2026-09-27 by an
-earlier session planning this round, whose plan file was never committed; this plan re-read them, keeps them, and points
-their card references here. Raised today: **MB-119** and **MB-120** (Questions raised, below).
-
-## Sequencing: pricing-and-launch is R11, the landing becomes R12
-`landing-and-ai-search` is outlined as R11 at the end of `docs/rounds/R10-plan.md`, and CLAUDE.md names it as next. This plan
-puts pricing-and-launch first, alone, as **R11**, and the landing becomes **R12** with its scope unchanged.
-1. **Launch order.** Phase 0 is about four weeks of warm-up on a production waitlist (ADR-147). It cannot start until the
-   waitlist has double opt-in and a privacy page naming its controller (ADR-145), and both are in this spec, not the landing.
-   Launch itself needs checkout on production (ADR-138, 141), also here. The landing reaches nobody on production before
-   `LAUNCHED` (ADR-141), so it can be built during the warm-up and delays nothing; built first, it would push the warm-up's
-   start back a round.
-2. **File overlap.** The landing's pricing slot and JSON-LD Offer need the catalogue (landing scope 11, 20). Built first, the
-   landing ships a parked slot and a Product without Offer (R10's reading 14) and R12 would reopen those files; after this
-   round it reads a finished catalogue. The overlap the other way is two strings in `LandingPage.tsx`, which R12 rewrites
-   anyway. Both specs touch `BirthFormPage.tsx` (here the zero state, the return from checkout and Not now; there the place
-   field it extracts): in separate rounds they never collide.
-3. **Size.** Twenty-six cards here and about eighteen for the landing: together more than R05's thirty-two, which took two
-   context compactions, and past the forty at which R10's planner split for that reason.
-4. **The Owner's inputs.** This round's (the seller's details, the Stripe account, Resend's domain) gate production; the
-   landing's (MB-90, 101, 102) gate only /sample and search registration. Building the seams now lets the Owner supply the
-   details while R12 is built.
+## Open Mailbox rows created more than 14 days ago (oldest first, ADR-186)
+**2026-09-09:** MB-12 no error reporting or alerting · MB-19 no prompt version history · MB-20 the one e2e spec cannot pass, no
+lint step · MB-21 variables missing from `.env.example` · MB-22 dead code left by the port · MB-30 the browser calls Nominatim
+and timeapi.io. None blocks a card. Touched here: MB-12 (R13-09's email is the product's first alert; Sentry stays open), MB-20
+(`e2e/` becomes the axe checks, R13-18; the lint half stays), MB-21 (`LOG_LEVEL` documented, R13-01; the legacy
+`AI_INTEGRATIONS_OPENAI_*` pair stays), MB-30 (the CSP lists both hosts until they move, R13-11). MB-23, the same age, is decided
+by ADR-199 and built here (R13-08, 09). The next oldest open row, MB-49 (2026-09-18), is 13 days old; R13 keeps new logic in pure
+modules beside thin routes, its way.
 
 ## Round start (the orchestrator)
-1. The round runs on this branch, as R10 ran on its session branch. `git diff --stat main...HEAD` lists only `MASTERFILE.md`,
-   `docs/INDEX.md`, the locked spec and this plan, so nothing needs merging and typecheck is unaffected; the round's pull
-   request brings the lock and the plan to `main`.
-2. Nothing else precedes group A.
+1. Branch `round/R13` from this checkout, then merge `origin/main` (b250899, PR #80: five lines in `scripts/src/report-lab.ts`, a
+   failed report's coded reason), so R13-20 and R13-22 build on it. `git diff --stat main...HEAD` is then docs only.
+2. The Decisions rows are recorded (ADR-187 to 204, at the lock); the round adds none. MASTERFILE 0.22 already states R-0.7's tiers
+   and roster, §11.2's gate, R-13.3's Spend line, R-7.4, R-7.5 and R-3.5's redaction; the code does not yet.
+3. Builders cannot open claude.ai: from the security artifact, extract the two lines on the birth form (the 429 and the pause) into
+   the session scratchpad for R13-08, 09 and 23; where a builder's draft differs, the artifact wins and the report says so.
+4. The dry lab's base: `git fetch origin report-lab/r06 && git checkout FETCH_HEAD -- fixtures/reports/` (never committed).
+5. Agent types written in this round (tester, sentinel, `builder-sonnet`, `builder-haiku`) register only in the next session:
+   until then spawn general-purpose on the file's model with the file's text (reading 10). The builders' tiers are on the cards.
 
-## What already shipped (checked on this branch at 106b6f0)
-- **Met, and reused:** one credit per report and bundles as counts 1, 3, 5 (`BUNDLE_DEFINITIONS`, ADR-42); `grantBundle` with
-  `is_test`, History, holds (R10-10); the free test checkout, 403 on production (R10-20); the zero states and Get credits in
-  the picker, the gift flow, Add someone, the pill and the orbit (R10); `refundCredit` on every failure (`failReport`, ADR-84);
-  the waitlist with source, medium and campaign tags, one row per address, the admin list and its CSV (#70, ADR-141);
-  `LAUNCHED` in `packages/launch` and the prelaunch gate; the birth form's typed price, gone in R10-18; `users.email` from
-  Clerk; the four legal pages as drafts under a banner (R01, R10-05).
-- **Not met:** no Stripe code or dependency; `consumeCredit` and `holdCredit` pass with no credit, and POST /reports writes for
-  an anonymous session; `BUNDLES` and the path title in `credits-view.ts` carry credit-loop's names; two "€24" in
-  `LandingPage.tsx`; no catalogue and no offers; bracketed placeholders typed into four legal pages, "Company details", a
-  Refunds page promising a regeneration; single opt-in (MB-106's seam in `web/src/lib/waitlist.ts`) and no `utm_content`; a
-  gift claim opens the dashboard (ADR-139); no Launch view, no question, no attribution; Inter and Space Grotesk from Google's
-  CDN; POST /reports/:id/regenerate rewrites any report for free.
+## What already shipped (checked at f14f536)
+- **Met, and reused:** `clientKey` and `RateLimiter` (`api/src/lib/waitlist.ts`), the waitlist's own limit, the gift reminder's
+  one-a-day 429 without Retry-After (ADR-127), the regenerate route's per-report cooldown; health ahead of every middleware;
+  pino-http's request line without a query; `failureLog.redact`; `onlyBuiltDependencies`; Deployment Protection off (runbook G),
+  so CI can read a preview; Chromium in `/opt/pw-browsers` for local Playwright; the walk on a scratch Postgres with a mail stub;
+  `/admin/lab/failures`; the prelaunch gate's `OPEN_PATHS`; usage cost stored on each report (`interpretation.meta.usage.costUsd`);
+  `planner.md` already follows ADR-186.
+- **Not met:** `cors({ origin: true, credentials: true })` (`api/src/app.ts:57`) with `CROSS_SITE_COOKIES=true`, so the cookie is
+  `SameSite=None`; `vercel.json` sends only X-Robots-Tag; no limit on writing, geocode, sends or checkout and no spend cap; pnpm
+  10.0.0, no Dependabot, no audit, Actions by tag; pino redacts only auth and cookie headers, and the mailer logs recipients by
+  default; plain `express.json()`; `NAME: ${name}` raw in `api/src/prompts/brief.ts:171, 205`, and both names and the label raw in
+  `api/src/lib/pairBrief.ts:222 to 236`; no hooks; `qa.md` pins no model; no researcher, verifier, tester or sentinel; no
+  owner-playbook or lessons file; `e2e/` keeps a dev-server config and no test.
+- **Found while planning:** (1) `api/src/routes/horizon.ts` says the session middleware rate-limits the preview; nothing does
+  (MB-146). (2) The request line logs `/api/invites/<token>`, a live bearer token, while the database keeps only its hash (R13-21).
+  (3) `label` is any string at the API and reaches the pair prompt (`pairBrief.ts:224`), though the picker offers three words
+  (R13-12, 14). (4) The pair campaign writes 21 times from one runner, past the new 20 a day per IP (R13-20). (5) CLAUDE.md is at
+  its 120-line budget and INDEX at 60, so the close rewrites lines in place.
 
 ## Where the specs disagree, and how this plan settles it
-1. **ADR-142 puts the catalogue in `api/src/` holding a Stripe price id**, while the web cannot import `api/` (MB-108), and a
-   price id belongs to one Stripe mode and is a second home for the amount (R-6.3). → Readings 2 and 3: the file stays in
-   `api/src/lib/`, the web reads prices through the contract, Stripe gets `price_data` (MB-119, provisional).
-2. **credit-loop's bundle names and the path title** → ADR-142's names, read from the catalogue; the path is titled by the
-   bundle bought (R11-14).
-3. **ADR-139's gift landing (the dashboard)** → ADR-149's birth form, read as only for a claimer with no chart of their own
-   (reading 13).
-4. **The waitlist as shipped (#70)**: single opt-in, "We keep it until we have sent that email" → ADR-145's double opt-in, a
-   new consent key, and unconfirmed addresses deleted after seven days (reading 11).
-5. **ADR-146's "the waitlist's first seven days"** with the opening email sent over two weeks (ADR-147, phase 2): a window
-   counted from launch gives the last batch nothing → seven days from each email, carried by its link (reading 10).
-6. **R-6.1: a second birth-time update consumes a credit**, which nothing has ever charged → left free this round (MB-120).
-7. **MASTERFILE §3: "the typed columns go with the payments round"** → `credits.credit_type` drops in step 1, before `push`
-   (R11-01).
-8. **ADR-140 (writing needs an account)** is enforced only in the web; POST /reports still writes for an anonymous session →
-   the API refuses it (reading 7).
-9. **The Refunds draft's "we will regenerate it or refund it"** and the Terms' "A purchase grants one report" → ADR-143's
-   three rules and bundles of credits (R11-17).
-10. **The landing's parked pricing slot** ("The price will come from one constant", scope 11) and R10's "Product without
-    Offer" → the catalogue exists after this round; R12 reads it (MB-119 says how).
-11. **CLAUDE.md names the landing as R11** → this plan takes R11 (Sequencing); the orchestrator rewrites the focus at close.
-12. **"Nothing else in the dashboard shows money"** (ADR-142) against the line that greets a buyer back → that line names
-    credits, never an amount (R11-15).
+1. **Security scope 7's "`.env*`"** against ADR-191 ("`.env`") and R-7.4's committed `.env.example` → reading 1.
+2. **Agent-roster acceptance 10** (a PR whose preview sends `Access-Control-Allow-Origin` fails) against vercel.json, which sends a
+   preview's `/api` to staging's API → reading 4.
+3. **ADR-127** (the reminder's refusal carries no Retry-After) against scope 4 (a 429 carries one) → the reminder keeps ADR-127's
+   rule and is left out of the new limits; every new limit sends Retry-After.
+4. **Scope 4's "per session"** against ADR-140 (writing needs an account) → reading 5.
+5. **CLAUDE.md's "no Playwright" and MB-20's "not in CI"** against ADR-192 → ADR-192, public pages only; CLAUDE.md at the close.
+6. **MB-23's default** ("built with the payments card") against ADR-199 and 204 → built here; MB-23 done at the close.
+7. **/round's "token-spend note if the round felt heavy" and "rows open more than two rounds"** against ADR-189 and 186 → R13-05.
+8. **MASTERFILE §10's "planner, builder, qa"** against ADR-190 → the close (0.23).
+9. **Scope 3's JSON-LD hashes** against CSP, which never runs a data block → kept, and kept honest (reading 12).
 
 ## Goals
-1. **Every price from one catalogue** (ADR-142, 146; R-6.3, 6.7): Single, Couple and Family & friends with their lines and
-   prices on the credits sheet, dated offers on the two larger bundles only with the end date printed once, the path titled
-   by the bundle, and no literal price left in `web/` or `api/`.
-2. **Get credits pays through Stripe, behind a seam** (ADR-143; R-6.1, 6.2, 6.6): Checkout with the one tick and back to the
-   step that asked; the webhook grants once and only with the tick, the receipt repeats it, a refund takes back what is
-   unspent; credits hard on every host; off production the free test checkout stays; production without live keys or a
-   complete seller refuses clearly and grants nothing.
-3. **One seller, one privacy story** (ADR-144, 145): `LEGAL_IDENTITY` read by Terms, Privacy, Refunds and Who runs Stars
-   Decoded, its placeholders marked and the draft banner kept until MB-115; the privacy page as ADR-145 states it; no font
-   from Google's CDN.
-4. **The waitlist ready for phases 0 and 2** (ADR-141, 145 to 147): double opt-in with `utm_content`, the tags carried into
-   the account made in the same browser (MB-117), the opening email in batches of 100 carrying the waitlist's offer, each
-   address deleted once sent.
-5. **The loop measured, its leak closed** (ADR-148, 149): the admin Launch view reads the five measures and the gate from our
-   own tables, "Where did you hear about us?" asks once after a first purchase, and a gift claim opens the birth form.
+1. **No website but ours can read or write a visitor's data** (F1, ADR-197): no CORS, a foreign write gets 403, the cookie is Lax
+   and Secure. R13's first card.
+2. **Every response hardened and watched** (F2, ADR-198): the headers on every path, a report-only CSP whose violations are counted
+   for the admin, and a probe that fails any deploy that drops them.
+3. **Spend and sending bounded** (F3, ADR-199, MB-23): a limit on every route that spends or sends, a daily spend breaker, and one
+   plain line for each refusal.
+4. **The supply chain, the logs and the prompts closed** (F4 to F6, ADR-200 to 202): a 7-day release age, Dependabot, audit,
+   gitleaks and SHA pins; logs with no personal data; names bounded and handed to the writer only as data, proven by three
+   injection fixtures in the dry lab.
+5. **The roster at work** (ADR-187 to 196, 203): a tier on every card, one Opus retry, the Spend line, researcher, verifier, tester
+   and sentinel, the hook, the shipped-code and site checks, /qa after every round, the learning loop. The round closes with the
+   sentinel's first full audit of `main` and `docs/qa/QA-01.md` from staging.
 
 ## Preconditions
-1. The round runs on this branch (Round start); no builder starts before this plan's commit is pushed.
-2. Builders read MASTERFILE §0, their card, and the spec sections and pinned shapes it names. They cannot open claude.ai
-   (403): the orchestrator hands R11-14 the artifact's priced credits sheet and path, and R11-25 its launch and loop-study
-   screens, as local copies. Without them builders follow the spec text and the shapes, and the round report lists what
-   differs.
-3. **Single owners.** Group A: `packages/db/**` and `scripts/bootstrap-db.sh` → R11-01; `packages/api-spec/**` and the
-   generated client and zod → R11-02; `catalogue.ts`, `offerLink.ts` → R11-03; `packages/commerce/**`, `packages/launch/**`,
-   the three `tsconfig.json` references, `web/package.json`, `api/package.json`, `pnpm-lock.yaml` → R11-04; `LandingPage.tsx`
-   → R11-05; `index.css`, `index.html` and the font files → R11-06. Groups B and C: each card's files as listed, no file in two
-   cards of one group. `api/package.json` and the lockfile are R11-07's in B and R11-26's in D; `credits-view.ts` is R11-14's
-   in B and R11-24's in C; `api/src/routes/index.ts` → R11-12; `api/src/app.ts` → R11-21; `web/src/App.tsx` → R11-25.
-4. Inside a group a card may land before one it imports from (pinned signatures): the orchestrator accepts a red intermediate
-   until the group ends, and every group ends green. A builder who needs a pinned shape changed stops (R-0.1).
-5. **No card spends or reaches a network.** Nothing generates; Stripe is faked (keys like `sk_test_fake`, a fake `whsec_`
-   secret, the SDK's offline signature helpers); mail goes to a stub; the walks run on a scratch Postgres.
-6. **No secret in the repo.** Stripe keys go only into Railway, by runbook K (R11-07); `.env.example` names without values.
-7. Code cites ADR-142 to 149 where it follows them. Provisional seams: `// MB-112 provisional` (Couple's name), `MB-115` (the
-   seller), `MB-116` (analytics), `MB-117` (the tags in the browser), `MB-118` (the two computed windows), `MB-119`
-   (`price_data`), `MB-33` (unconfirmed regions). No `MB-6` or `MB-106` tag remains anywhere; the walk's `MB-49` note retires
-   with the soft pass.
+1. No builder starts before this plan's commit is pushed and `main` is merged in (Round start 1).
+2. Builders read MASTERFILE §0, their card, and the spec sections, readings and pinned shapes it names.
+3. **Single owners.** Group 0: `app.ts`, `session.ts`, `origin.ts`, `.env.example` → R13-01; every `package.json`,
+   `pnpm-workspace.yaml`, `pnpm-lock.yaml` → R13-02; the agent files → R13-03, 04; `round` and the PR template → R13-05; `plan`,
+   `ideate`, `qa` skills → R13-06; the two annex files → R13-07. Group A: `routes/index.ts`, `limits.ts`, the walk → R13-08;
+   `spendCap.ts`, `mailer.ts` → R13-09; `app.ts`, `prelaunch.ts`, `adminLab.ts`, the db schema index, `bootstrap-db.sh` → R13-10;
+   `vercel.json`, `web/package.json` → R13-11; `api/src/prompts/**`, `pairBrief.ts`, `aiInterpretation.ts` → R13-12;
+   `web/src/types/chart.ts` → R13-13; `openapi.yaml` and the generated files → R13-14; root and `scripts/package.json` → R13-15;
+   `ci.yml`, `report-lab.yml`, `promote.yml` → R13-16; `smoke-run.yml` → R13-17; `e2e/**`, `site-checks.yml` → R13-18;
+   `.claude/settings.json` → R13-19; `scripts/src/report-lab.ts` → R13-20. Group B: `app.ts`, `logger.ts`, `mailer.ts`,
+   `failureLog.ts` → R13-21; `labDry.ts`, `report-lab.ts`, `fixtures/charts/` → R13-22; the seven web files → R13-23;
+   `FailuresView.tsx`, `labApi.ts` → R13-24. Every other file belongs to the one card that names it.
+4. **R13-02 is the round's only change to the dependency tree.** A builder who needs a package stops and reports (the sentinel's
+   "a new dependency is named in the plan"); script lines in a `package.json` need no install.
+5. Inside a group a card may land before one it imports (pinned shapes): a red intermediate is accepted until the group ends, and
+   every group ends green. A builder who needs a pinned shape changed stops and reports (R-0.1).
+6. **No card spends.** Nothing generates in the round; every paid run is in the staging confirmation, after the merge.
+7. No secret in the repo or on GitHub. Seams: `// MB-145 provisional` (R13-09), `// MB-146 provisional` (R13-08), `MB-30` beside
+   the CSP's two hosts (R13-11). Code cites ADR-187 to 203.
 
 ## Readings pinned where the spec is silent
-1. **Order**: R11 is pricing-and-launch, R12 the landing (Sequencing).
-2. **The catalogue stays where ADR-142 puts it**, `api/src/lib/catalogue.ts`, read directly by checkout, the webhook and the
-   receipt. The web reads prices only through `GET /checkout/options` (R-7.1), which prices at the server's clock and applies
-   a verified offer link, so what the sheet shows is what Stripe charges. Bundle ids stay `solo`, `couple`, `family`
-   (`bundles.bundle_kind`; no data moves); names and lines are ADR-142's. How R12's prerender reads it: MB-119.
-3. **Stripe gets the amount as `price_data`** built from the row: EUR, the row's cents, the name "{Bundle} · {N} credits". The
-   Owner creates no product or price in Stripe (MB-119, provisional).
-4. **Which checkout a host offers.** Production: Stripe only with a live secret key (`sk_live_` or `rk_live_`),
-   `STRIPE_WEBHOOK_SECRET` and `sellerComplete()`; otherwise `closed`: POST /checkout answers 503 with one reason line, the
-   sheet shows the prices and that line, and nothing is granted. Staging and development: Stripe test mode when a test key and
-   the webhook secret are set, else the free test checkout, which stays available there either way and is refused on
-   production (ADR-138).
-5. **Grants.** Only the webhook grants a paid bundle (ADR-143). Each Stripe event is recorded by id, so a replay does nothing;
-   a bundle is unique per checkout session; a grant needs `payment_status: paid`, `consent.terms_of_service: accepted`, a
-   livemode matching the host (production live, elsewhere test) and metadata naming a catalogue row. A Stripe test-mode bundle
-   is `is_test`, like the free test checkout's.
-6. **A refund takes back what is unspent.** On `charge.refunded`, from the charge's cumulative refunded amount: credits due =
-   floor(refunded × credits ÷ paid + 0.01), capped at the bundle's credits; the difference from those already taken comes from
-   the bundle's available credits, marked `refunded`. Used and held credits stay (a waiting gift keeps its credit); a
-   shortfall is logged and counted in the Launch view. So refunding a credit's price removes a credit, and a goodwill refund
-   under one credit's price removes nothing (ADR-143's third rule).
-7. **Credits are hard on every host** (ADR-143 deletes the soft pass; ADR-138 already enforces credits off production).
-   Writing needs sign-in (ADR-140) and a credit taken in the same transaction as the report row; otherwise 401 or 402
-   `no_credit`. Regenerate: an earlier-version report (MB-45) is free, its credit already spent; a failed report takes a
-   credit, since its own came back (ADR-84); anything else answers 409 (R-6.1: no other regeneration). The retired POST
-   /synastry answers 410. A gift with no credit to hold is refused. A second birth-time update stays free (MB-120).
-8. **The receipt is ours**, sent through Resend by the webhook after a new grant, to the email the buyer gave Stripe: bundle,
-   credits, amount with "VAT included", date, the tick verbatim ("When you paid, you agreed: …"), the three refund rules, the
-   seller from `LEGAL_IDENTITY`, the statement descriptor. Stripe's own receipts are switched off in its dashboard (runbook K)
-   so a buyer gets one. A failed send is logged and leaves the bundle's `receipt_sent_at` empty.
-9. **Leaving and coming back.** `returnTo` is a path under `/chart` or `/dashboard`; success URL = `PUBLIC_APP_URL` +
-   `returnTo` + `checkout={CHECKOUT_SESSION_ID}`, cancel URL the same with `checkout=cancelled`. What the step held rides the
-   tab: `sessionStorage` `sd.form.draft` (the birth form) and `sd.gift.draft` (the gift), each deleted once used; the picker's
-   pair is already remembered (ADR-105). The return polls our own tables, never Stripe.
-10. **Offers.** Windows are whole UTC days, from the start of the first to the end of the last; the sheet prints the last day
-    once ("until 14 February") and never counts down. The waitlist's offer lives in its link, `wl1.{expiry}.{HMAC-SHA256}` keyed
-    from `INVITE_TOKEN_SECRET`, seven days from each opening email (ADR-146's "first seven days", per recipient, so a later
-    batch loses nothing); the web keeps it in `localStorage` `sd.offer` until it expires or a purchase uses it (no personal
-    data, MB-43's rule). At most one offer per purchase: the lowest that applies, a tie to the dated window. Mother's and
-    Father's Day follow MB-118's default.
-11. **Double opt-in.** A 32-byte token, only its SHA-256 stored; the link lives seven days and an unconfirmed address is
-    deleted after seven; a join always answers the same, so nobody learns who is listed; a new link at most once per ten
-    minutes per address; rows joined under `launch-email-v1` count as confirmed (staging only; production has none).
-12. **The opening email** goes to confirmed addresses only, 100 per press, each address deleted once Resend accepts its email
-    (ADR-141, 145); the batch is logged as a count and a time, no address; it is refused on production before launch.
-13. **A gift claim's form** (ADR-149) opens only for a claimer with no chart of their own (no self profile with a natal report
-    that has not failed); otherwise the claim lands on the dashboard with the credit, as before. The form opens for them
-    (`self=1`) with Not now.
-14. **Who runs Stars Decoded** keeps the `/company` route (the waitlist and the legal nav link to it); its title and nav label
-    change, words through `/ux-copy`.
-15. **The loop study** (ADR-148). A customer has a non-test bundle with a Stripe session; their first purchase is the earliest.
-    M1: of customers whose first purchase is 14 or more days old, those who made a send or a gift within 14 days of it. M2: of
-    sends and gifts made by customers 7 or more days ago, those claimed within 7 days. M3: of people who claimed a send or gift
-    30 or more days ago and were not customers before it, those who bought within 30 days of the claim. M4: of the first 100
-    customers, those who had claimed a send or gift before their first purchase. M5: of paid bundles, those of 3 or 5 credits.
-    Revenue: paid minus refunded cents. Refund rate: paid bundles with any refund over paid bundles. The gate (ADR-147): the
-    100th customer within 84 days of `LAUNCH_DATE`, cash over customers at €10 or less, refund rate at 5% or less, and at least
-    15% of all customers counted as M4 counts them.
-16. **The question** asks once, after the buyer's first bundle with a Stripe session (test mode included, so staging can show
-    it): Instagram, TikTok, A friend or a gift, Search, An AI assistant, Somewhere else, and Skip. No free text.
-17. **The draft banner** shows while `sellerPlaceholders()` is not empty or a processor's region is unconfirmed; "Draft dated"
-    becomes "Updated" once neither holds. Production refuses checkout by code while the seller is incomplete (reading 4).
-18. **Browser storage this round adds**, each functional (MB-43's rule) and named on the privacy page: `localStorage`
-    `sd.waitlist.tags` (MB-117) and `sd.offer`; `sessionStorage` `sd.form.draft` and `sd.gift.draft`, the tab's own fields,
-    gone when used or when the tab closes.
-19. **Analytics ship dark** (MB-116's default): `track` and `pageview` do nothing, and the privacy page names no analytics.
-20. **Copy** no spec gives passes `/ux-copy` and layouts pass `/web-taste` (§9, ADR-117); each builder lists its new strings
-    in its report, for the Owner's look (as MB-111 did for R10).
+1. **`.env.example` is not a secret file.** The hook and the deny cover `.env`, `.env.local`, `.env.*.local`, `.env.production`,
+   `.env.staging` and any other `.env.*`; `.env.example`, the committed list with no values (R-7.4), stays editable and readable.
+2. **`WEB_ORIGINS`.** Unset means the spec's three: `https://mystarsdecoded.com` (and `www`), the staging alias
+   `https://starsdecoded-staging.vercel.app`, and `https://starsdecoded-*.vercel.app`. They are public, so the code holds them and no
+   deploy waits on a dashboard edit; set, the variable replaces them. Under `NODE_ENV=development` with none set, every Origin
+   passes: the dev server is local, and no `localhost` enters shipped code. `Origin: null` is foreign.
+3. **The cookie** is Secure except under `NODE_ENV=development` (plain http on a laptop), and is re-issued with the new attributes on
+   each request that carries it, so a `SameSite=None` cookie set before R13 turns Lax at its next visit.
+4. **The probe on a preview.** vercel.json sends a preview's `/api` to staging's API, which runs `main`, not the PR. A preview
+   asserts the web half (the headers and CSP from the PR's own vercel.json); the API half (no CORS, the 403, the cookie) runs on
+   staging after every merge and on production after every promote. Before a merge, R13-01's tests and the absent `cors` package
+   guard the API: putting `cors` back is a new dependency, which the sentinel refuses.
+5. **"Per session" for writing and sending:** writing needs an account (ADR-140), so the key is the account when signed in, else
+   the session.
+6. **What spends.** The horizon pass (PATCH /profiles/{id}/birth-time) and the legacy POST /synastry call the model too, so they
+   share the writing limit and the breaker. The waitlist keeps its limiter and the regenerate route its cooldown. A limit counts
+   only requests that succeeded, since only those spend or send.
+7. **The lab and the limits.** The anonymous campaigns on staging obey the limits like any visitor (R13-20). The release lab, spots,
+   sessions and the QA agent run on the server, never meet a limit, never count toward the breaker, and keep `LAB_BUDGET_USD`.
+8. **The breaker** sums the cost stored on today's (UTC) reports and horizon passes, so a report still writing counts once it lands;
+   the hourly limit bounds that lag. Unset means 20 USD (MB-145); 0 pauses all writing; one email per UTC day per process.
+9. **Dependencies.** pnpm stays on 10.x, as the spec says. Lighthouse runs from an Action pinned by SHA, so no Lighthouse package
+   enters the lockfile or the Vercel and Railway installs. gitleaks is a pinned binary or Action with no licence key.
+10. **Tiers are agent types.** The Agent tool takes a model at spawn and the effort comes from the agent file, so Sonnet at high and
+    Haiku at medium are `builder-sonnet` and `builder-haiku`, thin files that defer to `builder.md`.
+11. **CSP reports reach their route ahead of the origin guard and the session**: a browser may post a report with no Origin, or
+    `null`, and no cookie. A forged report can only add a count; the route counts only reports whose page is on our hosts, and is
+    rate-limited.
+12. **Counts in a table; hashes kept honest.** Staging redeploys at every merge and the 7-day rule needs a week, so the counts are
+    rows, not memory. A JSON-LD block is data that CSP never runs, but the spec lists its hashes, so `csp.mjs --check` keeps them
+    current and an enforced policy cannot drift from the pages.
+13. **Typed values in prompts** are today the person's name (natal and pair briefs) and the pair's label; a gift's name and note
+    reach only emails. The label becomes the picker's three words in the contract; a stored label of other text still renders,
+    inside its block.
+14. **The name rule:** 1 to 60 characters; apostrophes are ' and ’, dots the full stop and the middle dot (·). A stored name that
+    breaks it still shows and still reaches the prompt, inside its block; it cannot be typed again.
+15. **Shipped code** is `api/src`, `web/src` and `packages/*/src`, less tests, the `test*.ts` helpers, `api/src/walk/`, fixtures and
+    generated files; tooling (`scripts/`, `web/scripts/`) prints by design. `console.log` is read in code, not comments; "Astra" by
+    word, so `Europe/Astrakhan` passes. Exceptions sit in one table in the script, each with its reason, and the sentinel reads it.
+16. **Lighthouse** runs the mobile preset (phone first, §9), the median of three runs. A budget or an axe rule that today's pages
+    miss is fixed in the round (Group C), never loosened.
+17. **Logs** keep the ids of reports, profiles and requests, and lose a person's birth data, coordinates, email, name and Clerk id,
+    and any token in a path.
+18. **No new screen** (spec Screens): the refusal and pause lines appear where each form shows its errors today.
 
 ## Pinned shapes
-- **Schema** (R11-01), every new column nullable unless given a default. `waitlist_signups` + `utm_content`, `confirmed_at`,
-  `confirm_token_hash` (unique index), `confirm_sent_at`. New `waitlist_sends { id text PK; count integer NOT NULL; sent_at
-  timestamp NOT NULL DEFAULT now() }`. `bundles` + `stripe_session_id` (unique index), `stripe_payment_intent` (index),
-  `amount_cents integer`, `currency text`, `offer_id text`, `receipt_sent_at timestamp`, `refunded_credits integer NOT NULL
-  DEFAULT 0`, `refunded_cents integer NOT NULL DEFAULT 0`. New `stripe_events { id text PK (evt_…); type text NOT NULL;
-  livemode boolean NOT NULL; session_id text; user_id text; outcome text NOT NULL; received_at timestamp NOT NULL DEFAULT
-  now() }`. `users` + `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `attributed_at`, `heard_from`,
-  `heard_from_at`. New `launch_entries { id text PK; kind text NOT NULL (cash | hours); amount integer NOT NULL (cents |
-  minutes); note text; entered_on date NOT NULL; created_at timestamp NOT NULL DEFAULT now() }`. `CREDIT_STATUSES` gains
-  `refunded` (no DDL). `credits.credit_type` is dropped.
-- **Contract** (R11-02; operationIds in brackets). `BundleId` = solo | couple | family. `CatalogueBundle { id; name; line;
-  credits; cents; priceLabel; fullPriceLabel: string | null; offerEndsOn: date | null }`. `CheckoutOptions { mode: stripe |
-  test | closed; testAvailable: boolean; reason: string | null; bundles: CatalogueBundle[] }`, `GET /checkout/options`
-  `?offer` [getCheckoutOptions]. `StartCheckoutBody { bundle: BundleId; returnTo (≤ 200); offer? (≤ 200) }` → 201
-  `CheckoutStarted { url }`, 400, 401, 429, 503 [startCheckout]. `CheckoutSessionState { status: pending | granted | refused;
-  credits: CreditCounts | null; firstPaid: boolean }`, `GET /checkout/sessions/{id}` → 200 or 404 [getCheckoutSession].
-  `CreditHistoryItem.kind` + `refunded`. 402 `no_credit` added to createReport, createCompatibilityReport, createGift and
-  regenerateReport; 409 `not_regenerable` to regenerateReport; 410 to createSynastryReport. `JoinWaitlistBody` + `utmContent?`
-  (≤ 100), `consent` + `launch-email-v2`; `WaitlistJoined.status` + `check_email`. `POST /waitlist/confirm`
-  `ConfirmWaitlistBody { token (≤ 100) }` → 200 `{ status: confirmed }` or 404 [confirmWaitlist]. `POST /me/attribution`
-  `{ utmSource?, utmMedium?, utmCampaign?, utmContent? }` (each ≤ 100) → 204 or 401 [recordAttribution]. `POST /me/heard-from`
-  `{ answer: instagram | tiktok | friend | search | ai | other | skip }` → 204 or 401 [answerHeardFrom]. `/admin/*` and the
-  Stripe webhook stay out of the spec.
-- **Catalogue** (R11-03, `api/src/lib/catalogue.ts`). `CatalogueRow { id: BundleId; name; line; credits: 1 | 3 | 5; cents }`;
-  `OfferRow { id: waitlist | december | valentines | mothers-day | fathers-day; bundle: couple | family; cents; window: { kind:
-  "dates"; from: "MM-DD"; to: "MM-DD" } | { kind: "sunday"; month: 5 | 6; nth: 2 | 3; days: 14 } | { kind: "link"; days: 7 } }`.
-  Rows: `solo` Single "1 credit · one report" 2400; `couple` Couple "3 credits · a report each and how you get along" 4800;
-  `family` Family & friends "5 credits · for the people close to you" 7200. Offers: waitlist couple 4000 (link, 7 days);
-  december family 6000 (12-01 to 12-24); valentines couple 4000 (02-01 to 02-14); mothers-day family 6000 (the 14 days ending
-  on May's second Sunday); fathers-day family 6000 (the 14 days ending on June's third Sunday). `BUNDLES`, `OFFERS`,
-  `bundleById`, `bundleByCredits`, `priceFor(id, at, link: { offerId; expiresAt } | null): { cents; fullCents; offerId: string
-  | null; endsOn: string | null }`, `offerWindow(offer, year): { start; end } | null`, `formatEuro(cents)` ("€24", "€14.40").
-  `api/src/lib/offerLink.ts`: `signOfferLink(offerId, expiresAt, secret)`, `verifyOfferLink(token, secret, now): { offerId;
-  expiresAt } | null`, `offerSecret(env)` (derived from `INVITE_TOKEN_SECRET` with the label `offer-link:v1`).
-- **The commerce package** (R11-04, `@workspace/commerce`). `SellerIdentity { name; tradingName; postalAddress; country;
-  contactEmail; statementDescriptor }`; `LEGAL_IDENTITY` = "[Owner's legal name]", "Stars Decoded", "[Postal or forwarding
-  address]", "[Country]", "[Contact address]", "MYSTARSDECODED"; `sellerPlaceholders(identity?): (keyof SellerIdentity)[]`
-  (a value in square brackets is a placeholder); `sellerComplete(identity?): boolean`; `CHECKOUT_TICK` = "Write each report as
-  soon as I use a credit on it. I understand I can't cancel or get a refund for a credit once it's used."; `REFUND_RULES`, the
-  three rules as the Refunds page says them. `@workspace/launch` gains `LAUNCH_DATE: string | null = null`, set in the same
-  edit that turns `LAUNCHED` on.
-- **The Stripe seam** (R11-07, `api/src/lib/stripe.ts`). `checkoutMode(env?, seller?): { mode: "stripe" | "test" | "closed";
-  testAvailable: boolean; reason: string | null }`; `sessionParams({ bundle: CatalogueRow; price: { cents; offerId }; userId;
-  email: string | null; returnTo; origin }): Stripe.Checkout.SessionCreateParams`; `interface Payments { createSession(params,
-  idempotencyKey): Promise<{ id: string; url: string }> }`; `stripePayments(env?): Payments | null`; `verifyEvent(rawBody:
-  Buffer, signature: string, secret: string): Stripe.Event`.
-- **Ledger** (R11-08, `api/src/lib/credits.ts`). `grantPaidBundle({ userId; bundle: BundleKind; sessionId; paymentIntent:
-  string | null; amountCents; currency; offerId: string | null; test: boolean }, tx?): Promise<{ granted: boolean; bundleId:
-  string | null }>`; `creditsDue(refundedCents, amountCents, credits): number` (reading 6, pure); `removeRefundedCredits({
-  paymentIntent; refundedCents }): Promise<{ bundleId: string | null; removed: number; short: number }>`; `consumeCredit(userId,
-  reportId, tx = db): Promise<boolean>`; `hasUsedCredit(reportId)`; `firstPaidBundleAt(userId): Promise<Date | null>`;
-  `markReceiptSent(bundleId)`. `grantBundle(…, { test: true })` stays for the free test checkout.
-- **Mailer** (R11-09). `sendReceiptEmail({ to, bundleName, credits, amountLabel, paidAt, dashboardUrl })` (it reads
-  `LEGAL_IDENTITY`, `CHECKOUT_TICK` and `REFUND_RULES` itself), `sendWaitlistConfirmEmail({ to, confirmUrl, expiresOn })`,
-  `sendOpeningEmail({ to, offerUrl, offerLabel, endsOn })`, each `Promise<boolean>`.
-- **Fulfilment** (R11-21, `api/src/lib/fulfilment.ts`). `handleStripeEvent(event, deps: { recordEvent; grant; removeRefunded;
-  sendReceipt; appEnv }): Promise<{ outcome: string }>`; outcomes granted | duplicate | refused_consent | refused_unpaid |
-  refused_mode | refused_metadata | refund | ignored.
-- **The Launch view** (R11-11, `GET /admin/launch`, `?includeTest=1` off production). `{ launchDate; daysSinceLaunch;
-  includeTest; customers; revenueCents; cashCents; hoursMinutes; costPerCustomerCents; refunds: { bundles; rate; cents; short };
-  measures: { id: m1…m5; label; n; N; share; hypothesis }[]; gate: { reached; criteria: { id; label; value; threshold; met:
-  boolean | null }[] }; sources: { source; customers }[]; heardFrom: { answer; count }[]; waitlist: { confirmed; pending;
-  openingSent }; receiptsUnsent; entries: { id; kind; amount; note; enteredOn }[] }`; `POST /admin/launch/entries { kind;
-  amount; note?; enteredOn }` → 201, `DELETE /admin/launch/entries/:id` → 204.
-- **Web.** `CreditsSheet({ open, onClose, returnTo, onAdded?(count), onAddSomeone?, onGift? })` (the `enforced` prop goes);
-  `credits-view.ts`: `keepOfferFromUrl(search, store?)`, `storedOffer(store?, now?)`, `dropOffer(store?)`;
-  `useCheckoutReturn(): { state: idle | adding | added | late | refused | cancelled; balance: number | null; firstPaid: boolean
-  }`; `CheckoutReturn({ onAdded?(balance) })`; `HeardFromSheet({ open, onClose })`; `attribution.ts`: `saveWaitlistTags(tags,
-  now?, store?)`, `takeWaitlistTags(now?, store?)`, `useAttributionHandoff()`; `analytics.ts`: `track(name: "waitlist_joined" |
-  "checkout_started" | "checkout_returned", props?)`, `pageview(path)`; `AdminNav({ current })`.
+- **Origin** (R13-01, 08, 17): `webOrigins(env = process.env): Array<string | RegExp>`; `originGuard(): RequestHandler`, refusing
+  with 403 `{ error: "forbidden_origin", message }`.
+- **Refusals** (R13-08, 09, 14, 23): 429 `{ error: "rate_limited", message: string, retryAfterSeconds: number }` with
+  `Retry-After`; 503 `{ error: "paused", reason: "paused", message: string }`. The words live in the API's `message`.
+- **Limits** (R13-08): `generationLimits`, `geocodeLimit`, `sendLimit`, `checkoutLimit`, `previewLimit`, each `RequestHandler[]`;
+  `LIMIT_LINES` keyed by kind.
+- **Spend** (R13-09): `dailyCapUsd(env?): number`; `spentTodayUsd(): Promise<number>`; `spendGate(): RequestHandler`;
+  `sendSpendPausedEmail({ to, day, spentUsd, capUsd }): Promise<boolean>`.
+- **CSP** (R13-10, 11, 24): `api/src/routes/cspReport.ts` default-exports the router; `parseCspReport(contentType, body):
+  { directive; blocked; documentHost } | null`; `GET /admin/lab/failures` adds `csp: Array<{ day: string; directive: string;
+  blocked: string; count: number }>`, the last 7 days.
+- **Data block** (R13-12, 22): `api/src/prompts/data.ts` exports `DATA_OPEN(label)`, `DATA_CLOSE`, `dataBlock(label: "name" |
+  "label", value: string): string` and `outsideDataBlocks(text: string): string`.
+- **Names** (R13-14, 23): one pattern string, on the three fields in `openapi.yaml` and in `web/src/lib/person-name.ts`.
+- **Commands** (R13-15 to 18): `pnpm check:shipped` at the root; `.github/scripts/security-probe.sh <web_url> web|full`.
+- **Fixtures** (R13-22): `fixtures/charts/inject-instruction.json`, `inject-delimiter.json`, `inject-markup.json`, each
+  `"injection": true`.
+- **Hook** (R13-19): `.claude/hooks/guard.mjs` exports `verdict(input): { block: boolean; reason?: string }`.
 
 ## Parallel groups
-**Group A**, one message: R11-01 to R11-06, no dependencies. **Group B**, one message once A is green (it reads the new
-columns, the generated client, the catalogue and the package): R11-07 to R11-18; inside it R11-10 calls R11-09's mailer and
-R11-12 mounts R11-11's router, on pinned signatures. **Group C**, one message once B is green (it composes B's pieces): R11-19
-to R11-25. **Group D**: R11-26. Then the gate. **If R11 must shrink**, R11-11, R11-22 and R11-25's Launch page move to R12
-(the Launch view and the opening email are needed from launch week, which follows R12), R11-12 mounts `me` alone, and R11-25
-keeps only its `App.tsx` wiring; checkout, the ledger, the legal pages and the waitlist's opt-in stay, since production waits
-for them.
+**Group 0**, one message: R13-01 to R13-07. R13-01 drops `cors` from `app.ts` while R13-02 drops the package (red until both land);
+R13-02 is the round's one install. R13-03 to 07 touch only `.claude/`, the PR template and `docs/annex/`, and build nothing.
+**Group A**, one message once 0 is green: R13-08 to R13-20. R13-08 wires R13-09's `spendGate`; R13-10 mounts its router in
+`app.ts`; R13-16 calls R13-15's command; R13-18 calls R13-17's script; R13-13 follows R13-12's versions: all pinned.
+**Group B**, one message once A is green: R13-21 to R13-24. R13-21 edits `app.ts` and `mailer.ts` after R13-10 and 09; R13-22 reads
+R13-12's markers; R13-23 reads R13-14's contract and R13-08's codes; R13-24 reads R13-10's field.
+**Group C, contingent:** one card per page family under `web/src/site/` for what the first site checks find on the round's preview
+(Sonnet, /web-taste), and one per blocking sentinel finding (Opus), each before the merge.
+**Tiers:** Opus R13-01, 02, 03, 08 to 12, 14, 16 to 19, 21, 22; Sonnet R13-04 to 07, 15, 20, 23, 24; Haiku R13-13.
+**If R13 must shrink:** R13-24 moves first (the counts stay in the API and the table), then R13-20 (dispatch the pair lenses alone
+meanwhile), then R13-18's Lighthouse half (axe stays). F1 to F6, the brain and the roster stay.
 
 ---
 
-## Group A — the columns, the contract, the catalogue, the package, no typed price, the fonts
+## Group 0 — F1, the round's one install, the roster on paper
 
-### R11-01 — The columns for payments, the waitlist and the Launch view (INTERNAL) · Opus
-Objective: every column and table this round reads, added before `push` so no deploy ever meets a prompt.
-Files: `packages/db/src/schema/credits.ts`, `waitlist.ts`, `users.ts`, `index.ts`, new `stripeEvents.ts`, new `launch.ts`; new
-`packages/db/scripts/migrate-add-payments-and-launch.ts`; `packages/db/package.json` (`migrate` runs it last);
-`scripts/bootstrap-db.sh` (step 1's comment says why it runs there).
-Refs: pinned schema; MASTERFILE R-7.3, §3; ADR-143, 145, 148; MB-57 (decided); readings 5, 11, 15.
+### R13-01 — No CORS, a foreign write gets 403, the cookie Lax and Secure (INTERNAL)
+Tier: opus — security, cookies and the origin rule (rubric: anything security).
+Objective: F1 closed: no website but ours can read or write a visitor's session data through `/api`.
+Files: `api/src/app.ts`; `api/src/middlewares/session.ts` (+ new test); new `api/src/middlewares/origin.ts` (+ test); `.env.example`.
+Refs: ADR-197, 198, 202; R-7.4, R-7.5; security scope 1, 2, 7, acceptance 1 to 3; MB-21; readings 2, 3, 4; pinned origin.
 Done when:
-- The pinned columns, tables and indexes exist in drizzle and in the script. The script runs in step 1, before `push` would
-  prompt on the dropped column or a unique index; it skips a table that does not exist yet (an empty database gets
-  everything from `push`), drops `credits.credit_type` with `IF EXISTS`, marks `launch-email-v1` rows confirmed at their
-  `created_at`, and is idempotent; `CREDIT_STATUSES` gains `refunded`.
-- On a scratch Postgres 16 with a dummy `OPENAI_API_KEY` (MB-80): `db:bootstrap` from `main`'s tree (a worktree), then this
-  branch's twice (the upgrade staging and production take), then an empty database three times; every run clean, step 2
-  applying nothing after step 1; `packages/db` tests green.
+- `cors` leaves `app.ts` (its package leaves in R13-02); no response carries an `Access-Control-*` header.
+- `originGuard` answers 403 to a POST, PUT, PATCH or DELETE whose Origin, `null` included, is outside `webOrigins()`; no Origin
+  passes; mounted after health and ahead of the parsers and the waitlist; tests cover each case and the preview pattern.
+- The cookie is `SameSite=Lax`, Secure except under `NODE_ENV=development`, re-issued on each request that carries it;
+  `CROSS_SITE_COOKIES` is gone from code and `.env.example`; tests.
+- `express.json` and `urlencoded` take at most 32 kB; every API response, health included, sends `X-Content-Type-Options:
+  nosniff` and `Content-Security-Policy: frame-ancestors 'none'`.
+- `.env.example` lists `WEB_ORIGINS` and `DAILY_SPEND_CAP_USD` with no value and one comment each, and `LOG_LEVEL` (MB-21).
 
-### R11-02 — The contract and codegen (INTERNAL) · Opus
-Objective: every shape checkout, the waitlist's confirmation, attribution and the question need, in `openapi.yaml`, with the
-client and zod regenerated.
-Files: `packages/api-spec/openapi.yaml`; `packages/api-client-react/src/generated/**`, `packages/api-zod/src/generated/**`
-(codegen only).
-Refs: pinned contract; MASTERFILE R-7.2; ADR-142, 143, 145, 148; MB-117, 119; readings 4, 7, 9, 16.
+### R13-02 — pnpm with a 7-day release age, and the round's one install (INTERNAL)
+Tier: opus — supply chain is security, and the lockfile spans four packages.
+Objective: no package younger than 7 days installs, and every dependency the round adds or drops lands before anyone else builds.
+Files: `package.json` (`packageManager`); `pnpm-workspace.yaml`; `api/package.json`; `e2e/package.json`; `pnpm-lock.yaml`.
+Refs: ADR-200, 192, 199; R-7.4; security scope 4, 5, acceptance 8; agent-roster scope 9; reading 9.
 Done when:
-- Every pinned schema, path, response and operationId is in the spec with a one-line description naming its ADR (and its MB
-  where provisional); every change is additive (an enum gains a value, a field or response is optional or new), so no other
-  file breaks; `/admin/*` and the Stripe webhook stay out.
-- `pnpm --filter @workspace/api-spec run codegen`, then typecheck green with no other file changed; a second codegen leaves
-  no diff.
+- `packageManager` is the newest pnpm 10.x, never 11; `minimumReleaseAge: 10080`; `onlyBuiltDependencies` unchanged.
+- `api` gains `express-rate-limit` at an exact version at least 7 days old, and loses `cors` and `@types/cors`.
+- `e2e` pins `@playwright/test` to 1.63.0, `api`'s `playwright-core`, and gains `@axe-core/playwright` at an exact version.
+- `pnpm audit --prod --audit-level high` is clean, by in-range updates or a named `overrides` entry; a fix that needs a new major
+  version stops the card.
+- `pnpm install --frozen-lockfile` clean twice; in a scratch copy, never committed, `pnpm add` of a version published under 7 days
+  ago is refused. The round report lists every version added or removed.
 
-### R11-03 — The price catalogue and the offer link (INTERNAL) · Opus — provisional MB-112, MB-118, MB-119
-Objective: one file holds every bundle, price and dated offer (ADR-142), and a signed link carries the waitlist's offer.
-Files: new `api/src/lib/catalogue.ts` (+ `catalogue.test.ts`), new `api/src/lib/offerLink.ts` (+ `offerLink.test.ts`).
-Refs: spec Bundles and prices, Offers, acceptance 1, 7; ADR-142, 146; R-6.3, 6.7; MB-112, 118, 119; readings 2, 3, 10; pinned
-catalogue.
+### R13-03 — Four new agents and two builder tiers (INTERNAL)
+Tier: opus — the sentinel is the round's security gate, and these files steer every later round.
+Objective: researcher, verifier, tester and sentinel exist as agent-roster's table says, and each tier is an agent type.
+Files: new `.claude/agents/researcher.md`, `verifier.md`, `tester.md`, `sentinel.md`, `builder-sonnet.md`, `builder-haiku.md`.
+Refs: ADR-187, 188, 190, 193, 203; agent-roster scope 2, 6; security scope 9; R-0.7; reading 10.
 Done when:
-- The three rows and five offers as pinned (Couple's name tagged `// MB-112 provisional`); `priceFor` gives one price and at
-  most one offer, the lowest that applies, a tie to the dated window; `formatEuro` prints "€24" and "€14.40".
-- Tests: Single is never discounted; every offer is at least 75% of its bundle's price; no two dated windows overlap in any
-  year from 2026 to 2032, Mother's and Father's Day computed (`// MB-118 provisional`); a window opens and closes on UTC
-  midnights; the waitlist price needs a valid link before its expiry, and a tampered or expired link prices in full.
+- Each pins `model`, `effort` and `tools` as the table says (researcher opus/high, verifier sonnet/medium, tester sonnet/high,
+  sentinel opus/max) and is at most 50 lines.
+- researcher: from the question, one agent per lookup, two to four for a comparison, primary sources first, a claims table (claim,
+  URL, source type, date, read in full). verifier: one claim at a time, each URL re-fetched, supported, unsupported or
+  misattributed; never a report's citations.
+- tester: tests only, for the group's changed files under `api/src/lib/`, `packages/*` and `web/src/lib/`; a bug comes back as a
+  failing test. sentinel: read-only; the ten-point checklist by number; `/security-review` when its tools offer it, else its method;
+  each finding blocking or not, with file and line; on `main...round/RNN` or the whole of `main`.
+- `builder-sonnet` (sonnet, high) and `builder-haiku` (haiku, medium): a few lines each, follow `builder.md` exactly.
 
-### R11-04 — The commerce package: one seller, the tick, the refund rules (INTERNAL) · Sonnet — provisional MB-115
-Objective: the seller's identity, the tick's words and the three refund rules in one package the web and the API both
-import, and the launch date beside the launch switch.
-Files: new `packages/commerce/` (`package.json`, `tsconfig.json`, `src/index.ts`, `src/seller.ts`, `src/terms.ts`,
-`src/seller.test.ts`); `packages/launch/src/index.ts`; `tsconfig.json`, `web/tsconfig.json`, `api/tsconfig.json`
-(references); `web/package.json`, `api/package.json`, `pnpm-lock.yaml`.
-Refs: spec Sold by Alex, Checkout (the tick, refunds), acceptance 4; ADR-141, 143, 144; MB-115; pinned package.
+### R13-04 — planner, builder and qa learn the roster (INTERNAL)
+Tier: sonnet — edits to three existing agent files, no code.
+Objective: every existing agent pins its model and effort and plays its part in tiers, escalation and QA.
+Files: `.claude/agents/planner.md`, `builder.md`, `qa.md`.
+Refs: ADR-187 to 190, 194, 195; agent-roster scope 1, 3, 5, 9, 11, 12; R-0.7, §11.3.
 Done when:
-- `LEGAL_IDENTITY` holds the pinned values, its four unknown fields as bracketed placeholders under `// MB-115 provisional`;
-  `sellerPlaceholders()` names each field still bracketed and `sellerComplete()` is false while any is; `CHECKOUT_TICK` is
-  the locked sentence byte for byte; `REFUND_RULES` holds the three rules; `LAUNCH_DATE` is `null` with a why-comment.
-- Web and API typecheck against `@workspace/commerce` (as they do `@workspace/launch`); `pnpm install --frozen-lockfile` passes
-  on the new lockfile; the package's tests run under the root test command.
+- planner: a `Tier:` line on every card from the rubric (by pointer to agent-roster scope 1; unsure is Opus); reads the promoted
+  rules in `docs/annex/lessons.md`; names a card escalated two rounds running.
+- builder: its tier is its model; after a second failed gate, or on a question, it stops and reports with the failure, for the one
+  Opus retry.
+- qa: `model: sonnet`, `effort: high`; the Skeptic adds a keyboard pass (Tab through every public page and the app's main flows:
+  focus visible, order sane, nothing trapped); it runs on staging after every round and writes `docs/qa/QA-NN.md`.
+- Each file at most 50 lines; nothing else changes.
 
-### R11-05 — No typed price anywhere (USER-FACING) · Sonnet
-Objective: the landing's two "€24" go, and a test keeps every price in the catalogue (R-6.3).
-Files: `web/src/pages/LandingPage.tsx`; new `api/src/lib/priceGate.test.ts`.
-Refs: spec acceptance 1; ADR-142; R-6.3; landing-and-ai-search scope 11 (the pricing slot arrives in R12).
-Done when: "One-time report · €24" and "Generate Your Report · €24" read without a price, their words passing `/ux-copy`, and
-nothing else on the page changes (R12 rebuilds it); the gate reads every `.ts` and `.tsx` under `api/src` and `web/src` except
-tests, generated code and `api/src/lib/catalogue.ts`, fails on a euro amount (`€24`, `24 €`, `EUR 24`) naming the file and
-line, and is green on this branch.
+### R13-05 — /round runs the roster, and the PR's gate says so (INTERNAL)
+Tier: sonnet — process text in two files, from the spec's own lists.
+Objective: the orchestrator spawns by tier, gates with the tester and the sentinel, and closes with the Spend line, lessons and /qa.
+Files: `.claude/skills/round/SKILL.md`; `.github/pull_request_template.md`.
+Refs: ADR-137, 186 to 195, 203; agent-roster scope 2 to 4, 6, 11, 12; R-0.7, §11.2, R-12.5; reading 10.
+Done when:
+- It keeps the orchestrator in the main loop on Opus at max, and adds: spawn by tier (`builder`, `builder-sonnet`, `builder-haiku`,
+  else general-purpose on that model with the file's text); one Opus retry after two failed gates or a question; the tester per
+  group with logic changes; `pnpm check:shipped` in the gate; the sentinel on `main...round/RNN` before the PR, a blocking finding
+  stopping the round until a card fixes it and the sentinel re-reads it, the rest becoming Mailbox rows.
+- The close: the Spend line; `docs/annex/lessons.md`, a cause seen twice promoted and listed, a rule quiet for five rounds retired;
+  /qa on staging after the deploy, the Owner getting URL, QA report and three lines; green Dependabot PRs merged; open rows older
+  than 14 days named (ADR-186). Before "promote", the sentinel audits all of `main`.
+- The template's gate adds the shipped-code check, audit and gitleaks, the site checks and probe, and the sentinel.
 
-### R11-06 — The last two fonts from our own origin (INTERNAL) · Sonnet
-Objective: no page calls Google's font CDN, so the privacy page lists no font host and the no-banner rule holds (ADR-145).
-Files: new Inter and Space Grotesk woff2 files in `web/src/assets/fonts/`; `web/src/index.css` (its first three lines);
-`web/index.html` (its three font links).
-Refs: ADR-145; MB-33, MB-42; §9 (the four families); the Newsreader and IBM Plex Mono `@font-face` rules as the pattern.
-Done when: Inter (400 to 700) and Space Grotesk (400 to 600) load from `./assets/fonts/` as variable woff2 (SIL OFL, copied once
-from the npm registry's `@fontsource-variable` packages without adding a dependency, the licence named in one comment); no
-`fonts.googleapis.com` or `fonts.gstatic.com` remains in `web/`; `build:web` emits the files; the comment over the block no
-longer says two fonts still come from the CDN.
+### R13-06 — /plan, /ideate and /qa feed the roster (INTERNAL)
+Tier: sonnet — process text in three skill files.
+Objective: ideation learns how the Owner decides and checks its research; planning and QA show the new steps.
+Files: `.claude/skills/plan/SKILL.md`, `ideate/SKILL.md`, `qa/SKILL.md`.
+Refs: ADR-187, 190, 194, 195; agent-roster scope 6, 11, 12, acceptance 7, 11; §11.1, §11.3.
+Done when:
+- /ideate reads `docs/annex/owner-playbook.md` first; outside evidence goes to the researcher (one for a lookup, two to four for a
+  comparison), and research that feeds a decision to the verifier, so only supported claims reach the Owner, each with its verdict.
+- At its close, /ideate adds to the playbook what the session taught, and its report line counts the Owner's turns and the
+  recommendations taken as they were.
+- /plan shows the Owner each card's tier beside the groups.
+- /qa targets staging after a round by default and spawns the qa agent on Sonnet at high.
+
+### R13-07 — The learning loop's two files (INTERNAL)
+Tier: sonnet — two new documents from the facts listed here.
+Objective: the playbook starts with what this session taught about the Owner; the lessons file is ready for R13's close.
+Files: new `docs/annex/owner-playbook.md`, new `docs/annex/lessons.md`.
+Refs: ADR-195; agent-roster scope 12; R-10.3, §13.
+Done when:
+- `owner-playbook.md`, rules and not a diary, at most 60 lines: took the default on Playwright for axe on public pages; turned down
+  a hotfix because production serves only the waitlist (ADR-167); asked for Opus in research; asked for a learning loop; prefers
+  fewer questions, each with a default; and the Owner's own lines quoted in the R11 and R12 plans and reports, each with its
+  source ("Continue without this for now", "go" with the asks left at their defaults, the two writers, the coffee voice).
+- Nothing in it is guessed; each rule names its date or its document.
+- `lessons.md`, at most 60 lines: the line format (round · card · cause · rule it became · where), Promoted and Retired sections,
+  empty; the rule: seen twice, promoted into the agent file or skill; quiet for five rounds after that, retired.
 
 ---
 
-## Group B — the seam, the ledger, the emails, the waitlist, the study, and the web's pieces
+## Group A — limits and the breaker, CSP, headers, names as data, the contract, CI and the hook
 
-### R11-07 — The Stripe seam (INTERNAL) · Opus — provisional MB-119
-Objective: everything Stripe in one module, testable with no keys: the host's checkout, a session's parameters, the signature.
-Files: new `api/src/lib/stripe.ts` (+ test); `api/package.json`, `pnpm-lock.yaml` (`stripe` 22.6.2, exact); `.env.example`;
-`docs/annex/staging-runbook.md` (part K only).
-Refs: spec Checkout, acceptance 2, 3; ADR-138, 143; R-6.2, 6.6, 7.4; MB-119; readings 3, 4, 5, 8, 9; pinned seam.
+### R13-08 — A limit on every route that spends or sends (USER-FACING) — provisional MB-146
+Tier: opus — security and money: these limits guard OpenAI spend and the sender's reputation.
+Objective: MB-23 closes: nobody writes, sends or checks out faster than the spec's table, and each refusal says so in one line.
+Files: new `api/src/lib/limits.ts` (+ test); `api/src/routes/index.ts`; `api/src/walk/loop.walk.ts`.
+Refs: ADR-199, 140, 127; security scope 4, acceptance 6; MB-23, 146; readings 5 to 7; pinned limits and refusals.
 Done when:
-- `checkoutMode` answers reading 4; `sessionParams` builds a payment-mode EUR session from the row as `price_data`, with
-  `consent_collection.terms_of_service: "required"`, `custom_text.terms_of_service_acceptance.message` = `CHECKOUT_TICK` and a
-  Terms link, the user as `client_reference_id`, metadata (user, bundle, offer, cents) and reading 9's URLs; `verifyEvent`
-  wraps the SDK's `webhooks.constructEvent`.
-- Tests on fake keys: the mode matrix, the params for each bundle and for an offer, a header from the SDK's
-  `generateTestHeaderString` passing and a tampered body failing; no test reaches the network.
-- Part K gives the Owner's Stripe steps (Individual account, the descriptor, the Terms URL, Stripe's receipts off, a webhook on
-  the Railway host with its three events, test keys on staging, live keys only at launch); `.env.example` names
-  `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` without values.
+- `express-rate-limit`, memory store, IP keys from `clientKey`. Writing (POST /reports, /compatibility, /reports/{id}/regenerate,
+  /synastry; PATCH /profiles/{id}/birth-time): 6 an hour per account, else session, and 20 a day per IP. GET /geocode and POST
+  /horizon/preview (`// MB-146 provisional`, its comment corrected): 60 a minute per IP. POST /invites, /compatibility/{id}/send,
+  /gifts: 10 an hour per account, else session. POST /checkout/test: 10 an hour per session (`checkoutLimit`, exported for R14).
+- Wired by method and path in `routes/index.ts` ahead of the routers, every writing route behind R13-09's `spendGate()` too.
+- A refusal is 429 with `Retry-After` and the pinned body; one line per kind, no countdown (ADR-127's way), passes `/ux-copy`.
+- Tests drive each limit through an in-process app and a stub handler, no database (MB-49). The walk: the 11th checkout in an hour
+  429s; a foreign-Origin POST 403s and no response sends `Access-Control-Allow-Origin`; at `DAILY_SPEND_CAP_USD=0.01` with a
+  seeded report costing 2 ¢ today, POST /reports answers 503 `paused` and the mail stub gets one email.
 
-### R11-08 — The ledger: paid bundles, refunds, no soft pass (USER-FACING) · Opus
-Objective: a paid bundle lands once per checkout, a refund takes back what is unspent, and no credit is spent that was not there.
-Files: `api/src/lib/credits.ts` (+ `credits.test.ts`).
-Refs: spec Checkout (refunds), acceptance 2; ADR-42, 84, 123, 143; R-6.1, 6.2, 6.5; MB-6, 57 (decided); readings 5, 6, 7;
-pinned ledger.
+### R13-09 — The daily spend breaker (USER-FACING) — provisional MB-145
+Tier: opus — money: it decides when the product stops writing.
+Objective: past a day's cap, new generations pause with one line, and the admin hears once.
+Files: new `api/src/lib/spendCap.ts` (+ test); `api/src/lib/mailer.ts` (+ test).
+Refs: ADR-199, 77, 84; R-4.4, R-5.6; security scope 4, acceptance 7; MB-145; readings 7, 8; pinned spend and refusals.
 Done when:
-- `grantPaidBundle` writes the bundle and its credits in one transaction, once per Stripe session (the unique index; a repeat
-  answers `granted: false`); `removeRefundedCredits` follows reading 6 (cumulative, available credits only, marked
-  `refunded`, the shortfall returned); `consumeCredit` takes a transaction and answers false with no credit, `holdCredit`
-  null, with no soft-pass branch or `MB-6` tag left.
-- `getCredits` never counts a refunded credit; History gains "−N refunded" lines; `hasUsedCredit`, `firstPaidBundleAt` and
-  `markReceiptSent` exist.
-- Tests: `historyLines` with refunded rows; `creditsDue` for a full refund, a partial one, a second partial, an offer's price,
-  a goodwill amount under one credit, and more refunded than is unspent.
+- `dailyCapUsd()` reads `DAILY_SPEND_CAP_USD`: unset or unreadable means 20 (`// MB-145 provisional`); 0 pauses every generation.
+- `spentTodayUsd()` sums the cost `usage.ts` stored on today's (UTC) natal and pair reports and horizon passes, cached for a minute;
+  lab runs, the release lab and the QA agent never count.
+- `spendGate()` at or past the cap answers 503 with the pinned body before any credit moves; the line passes `/ux-copy` and is
+  listed for the Owner.
+- `sendSpendPausedEmail` reaches the admin's Clerk address (`ADMIN_USER_ID`) once per UTC day per process, with the day's spend
+  and the cap and no customer data; with no admin set, one warning and no email.
+- Tests: the cap's parsing; the gate below, at and past the cap with an injected sum; the email's content and its once-a-day rule.
 
-### R11-09 — The emails: the receipt, the confirmation, the opening (USER-FACING) · Sonnet
-Objective: the receipt repeats the tick and names the seller (Art. 8(7)); the waitlist confirms an address; the opening
-email carries the waitlist's offer.
-Files: `api/src/lib/mailer.ts` (+ `mailer.test.ts`).
-Refs: spec Checkout (the receipt), Privacy (double opt-in), The launch (phase 2); ADR-141, 143 to 147; readings 8, 10 to 12;
-pinned mailer and package.
+### R13-10 — CSP reports: the route, the counts, the prelaunch door, the admin's numbers (INTERNAL)
+Tier: opus — a schema change and a public write endpoint.
+Objective: a browser's CSP report becomes a count by directive and blocked host, on staging and production alike.
+Files: new `api/src/routes/cspReport.ts`, new `api/src/lib/csp.ts` (+ test); `api/src/app.ts` (the mount); new
+`packages/db/src/schema/cspViolations.ts`, `schema/index.ts`; new `packages/db/scripts/migrate-add-csp-violations.ts`,
+`scripts/bootstrap-db.sh`; `api/src/lib/prelaunch.ts` (+ test); `api/src/routes/adminLab.ts` (the failures route).
+Refs: ADR-198, 167; R-3.5, R-7.3; security scope 3; MB-123, 147; readings 11, 12; pinned CSP.
 Done when:
-- The three pinned senders exist in the shell the other emails use, each `Promise<boolean>`.
-- Tests: the receipt holds `CHECKOUT_TICK` verbatim, the bundle's name and credits, the amount with "VAT included", the date,
-  the three `REFUND_RULES`, the statement descriptor and every `LEGAL_IDENTITY` field; the confirmation says only what
-  confirming does and how long the link lasts; the opening email prints the offer's end date once and no countdown; user
-  text is escaped once; every line passes `/ux-copy`.
+- `csp_violations` (day, directive, blocked, count, last_seen; one row per day, directive and blocked) comes from an idempotent
+  script at a new bootstrap step 3x; `db:bootstrap` twice on a scratch Postgres 16, both clean.
+- `POST /api/csp-report` takes `application/csp-report` and `application/reports+json` up to 8 kB, mounted ahead of the origin guard
+  and the session, 60 a minute per client (`RateLimiter`); it counts a report only when its page is on our hosts, stores the
+  directive and the blocked host or keyword (`inline`, `eval`, `data`, `blob`, `extension`), never a path or query; 204.
+- `prelaunch.ts` opens `/csp-report` on production; `parseCspReport` is tested on both formats and a foreign page.
+- `GET /admin/lab/failures` adds `csp`, the last 7 days, as pinned.
 
-### R11-10 — The waitlist asks twice (USER-FACING) · Opus
-Objective: an address joins only when its owner confirms it, and the list learns which post sent them (ADR-145, 147).
-Files: `api/src/routes/waitlist.ts`, `api/src/lib/waitlist.ts` (+ test), `api/src/lib/prelaunch.ts` (+ test).
-Refs: spec Privacy (double opt-in), The launch (phase 0 tags), acceptance 5; ADR-141, 145; MB-106 (decided); reading 11;
-pinned contract and mailer.
+### R13-11 — Security headers and a report-only CSP on every web path (INTERNAL) — MB-30
+Tier: opus — security headers, and a policy every page must pass before it is enforced.
+Objective: F2 closed on the web: every page sends the headers, and the CSP reports what it would block.
+Files: `vercel.json`; new `web/scripts/csp.mjs`; `web/package.json` (the build's last step, and `csp:write`).
+Refs: ADR-198, 167; R-7.5, R-7.6; security scope 2, 3, acceptance 4, 5; MB-30, 147; readings 11, 12.
 Done when:
-- POST /waitlist stores the address unconfirmed with a fresh token's hash and `utm_content`, sends
-  `sendWaitlistConfirmEmail` with `{PUBLIC_APP_URL}/waitlist?confirm={token}`, and answers `{ status: "check_email" }` whatever
-  the address's state; an unconfirmed address joining again gets a new link at most once in ten minutes; a confirmed one
-  gets nothing.
-- POST /waitlist/confirm confirms a live token (a repeat answers the same) and 404s an unknown or expired one; unconfirmed
-  rows older than seven days are deleted on each call (expiry on read, as gifts do).
-- `OPEN_PATHS` admits `/waitlist/confirm` and the gate's comment no longer mentions the soft pass; tests cover the token, the
-  throttle, the sweep and the gate.
+- Every path sends HSTS `max-age=31536000; includeSubDomains`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
+  `Permissions-Policy: camera=(), microphone=(), geolocation=()`, `X-Frame-Options: DENY`; the X-Robots-Tag rules stay.
+- `Content-Security-Policy-Report-Only` reports to `/api/csp-report` (`report-uri`, and `report-to` with `Reporting-Endpoints`):
+  `script-src 'self'`, each prerendered page's JSON-LD hash, Clerk and Cloudflare's challenge; `connect-src` adds Clerk, Nominatim
+  and timeapi.io (`// MB-30`); `style-src 'self' 'unsafe-inline'`; `img-src 'self' data: blob:` and Clerk's images; `worker-src
+  'self' blob:`; `frame-ancestors 'none'`; `base-uri`, `form-action`, `object-src` closed. Preview hosts also allow Vercel's toolbar.
+- `csp.mjs` keeps the host list in one place; `--check` ends `build:web` and fails, naming the command, when vercel.json lacks a
+  page's hash; `csp:write` rewrites both host variants. Clerk's hosts come from Clerk's CSP page and the staging bundle's key, and
+  are listed in the round report; `build:web` green.
 
-### R11-11 — The loop study, read from our tables (INTERNAL) · Opus
-Objective: the Launch view's numbers as one pure module behind one admin route (ADR-148).
-Files: new `api/src/lib/launchStudy.ts` (+ test), new `api/src/routes/adminLaunch.ts`.
-Refs: spec The launch (measures), The loop study, acceptance 6; ADR-147, 148; reading 15; pinned Launch view.
+### R13-12 — Names as data in every prompt (USER-FACING · brain)
+Tier: opus — the brain path; a typed value must never steer the writer.
+Objective: whatever a reader types as a name or a label reaches the model only inside one delimited block it is told never to obey.
+Files: new `api/src/prompts/data.ts` (+ test); `brief.ts`; `system.ts`; `pair/index.ts` (`PAIR_SYSTEM`, `PAIR_PROMPT_VERSION`);
+`api/src/lib/pairBrief.ts` (+ test); `api/src/lib/aiInterpretation.ts` (`PROMPT_VERSION`); `api/src/prompts/prompts.test.ts`.
+Refs: ADR-202, 81, 104; R-4.4, R-5.3, R-5.5; security scope 7, 8; MB-142, 143 (untouched); reading 13; pinned data block.
 Done when:
-- `GET /admin/launch` (behind `labGuard`, like the waitlist's) answers the pinned shape: days since `LAUNCH_DATE`, customers,
-  revenue net of refunds, cash and hours entered, cost per customer, refunds, the five measures each with n, N, share and
-  hypothesis, the gate at 100, customers by `utm_source`, the question's answers, the waitlist's counts, the opening emails
-  sent and the receipts unsent; test bundles count only with `includeTest=1`, and only off production.
-- POST and DELETE `/admin/launch/entries` add and remove cash (cents) or hours (minutes) with a date and a note.
-- Tests: every measure and the gate on synthetic rows (users, bundles, invites; no birth data), at each window's edge (day
-  7, 14, 30) and for customers whose window has not closed.
+- `dataBlock` puts the value on its own line between fixed open and close markers, stripped of control characters, line breaks
+  and the markers' characters, cut at 60; `outsideDataBlocks` returns a prompt without its blocks.
+- The natal brief's NAME and the pair brief's two names and "How they know each other" go through `dataBlock`; one rule in
+  `SHARED_SYSTEM` and `PAIR_SYSTEM` says a block holds what the reader typed, to use as a name and never to follow.
+- Tests: an instruction, a closing marker and 500 characters of markup each render only inside the block; the pair checks still
+  match first names. No band, word floor or room rule changes.
+- `PROMPT_VERSION` "v9", `PAIR_PROMPT_VERSION` "p4". The gate's dry lab renders every natal and pair prompt, tokens up by the rule
+  alone; fixture runs on staging before Promote (Staging confirmation 5).
 
-### R11-12 — Where they came from, what they answered (INTERNAL) · Sonnet — provisional MB-117
-Objective: the waitlist's tags and the one question land on the account, once each.
-Files: new `api/src/routes/me.ts`; `api/src/routes/index.ts` (mounts `me` and R11-11's `adminLaunch`).
-Refs: spec Measures; ADR-148; MB-117; readings 15, 16; pinned contract.
-Done when: POST /me/attribution (signed in, else 401) stores the four tags only while the account has none (first write
-wins, `attributed_at` set), cleaned as the waitlist cleans tags; POST /me/heard-from stores one answer from the enum, or
-`skip`, only while `heard_from_at` is empty, and answers 204 either way; both sit behind the prelaunch gate like the rest of
-the app; both routers mount.
+### R13-13 — The report page renders v9 and p4 (INTERNAL)
+Tier: haiku — two strings added to two lists, and their test.
+Objective: a report written after R13-12 opens like any other.
+Files: `web/src/types/chart.ts`; `web/src/types/chart.test.ts`.
+Refs: R13-12; the R12-14 precedent (v8).
+Done when: `RENDERABLE_PROMPT_VERSIONS` adds "v9" and `RENDERABLE_PAIR_PROMPT_VERSIONS` adds "p4"; the test pins both lists; web
+tests green.
 
-### R11-13 — The failure lines say the credit is back (USER-FACING) · Sonnet
-Objective: every failure line says what happened, what to do, and that the credit is back (MB-91); a retry at zero says so.
-Files: `api/src/lib/failureReasons.ts` (+ test), `web/src/components/report/OpeningOverlay.tsx`, `web/src/pages/ReportPage.tsx`
-(the retry's error line only).
-Refs: MB-91; ADR-84, 143 (the second refund rule); R-4.3; reading 7; `/ux-copy`'s error pattern.
-Done when: the four lines follow MB-91's recommendation, each saying "Your credit is back." (`failReport` always refunds) and
-`internal` gaining a next step, and pass `/ux-copy`, with a test that each ends on something to do; `OpeningOverlay`'s own
-`INTERNAL_LINE` goes and it prints the API's line; a retry answered 402 says no credit is left and points to the credits,
-not "try again in a minute". No report's words change.
-
-### R11-14 — The credits sheet: names, lines, prices, and a Get credits that pays (USER-FACING) · Opus — provisional MB-119
-Objective: each bundle with its name, line and price; Get credits opens Stripe where the host offers it, the free test
-checkout off production, or says plainly that checkout is not open.
-Files: `web/src/lib/credits-view.ts` (+ test), `web/src/components/dashboard/CreditsSheet.tsx`, `PathSheet.tsx`.
-Refs: spec Bundles and prices, Checkout, Offers, acceptance 1 to 3, 7; ADR-125, 138, 142, 143, 146; readings 2, 4, 9, 10, 20;
-pinned web shapes; the artifact's priced sheet and path.
+### R13-14 — The contract: a person's name, the label's three words, 429 and 503 (USER-FACING)
+Tier: opus — the contract spans three packages and puts the name rule at the API's door.
+Objective: the API refuses a name that is not a name, and the client knows a refusal and a pause when it meets one.
+Files: `packages/api-spec/openapi.yaml`; the generated client and zod files (codegen only); new `api/src/contract-names.test.ts`.
+Refs: ADR-202, 199; R-7.2; security scope 4, 7; readings 13, 14; pinned refusals and names.
 Done when:
-- The sheet renders `getCheckoutOptions` with the stored offer link: count, name, line, `priceLabel`; an offer adds the full
-  price and "until {date}" once, never a countdown; `BUNDLES` and credit-loop's names leave `credits-view.ts`, which gains
-  the three offer-link helpers.
-- `stripe` → `startCheckout({ bundle, returnTo, offer })`, `track("checkout_started")`, then the browser goes to its URL (the
-  button a status with dots meanwhile); `test` → today's free test checkout under "Credits are free while we test.";
-  `stripe` with `testAvailable` → Stripe first, the free line under it; `closed` → prices and the reason line, no button.
-- `onAdded(count)` replaces the hard-coded Add someone after a test bundle; the path is titled by the bundle bought, and
-  "Your people, then how you fit" is gone; tests for the four modes' labels and the path title.
+- `CreateReportBody.name`, `CreateProfileBody.name` and `CreateGiftBody.recipientName` take 1 to 60 characters of letters, marks,
+  spaces, apostrophes, hyphens and dots; `label` on `CreateCompatibilityBody` and `CreateRelationshipBody` is `family | friends |
+  colleagues`, nullable.
+- Components `RateLimited` (429, with the `Retry-After` header) and `Paused` (503) on each route R13-08 and 09 name. Left out, each
+  for its reason in a comment: `/api/csp-report` (browsers post it, never the client, like `/admin/*`) and the guard's 403.
+- Codegen twice, no diff. Orval writes `new RegExp(pattern)`: if it carries no `u` flag, the pattern spells the scripts' ranges
+  without `\p{…}`.
+- The test: the generated schemas take "Zoë", "José María", "Nguyễn Thị Minh", "O'Brien", "Anne-Marie", "St. John", "Иван" and
+  "李小龙", and refuse a digit, `<`, `{`, a line break and 61 letters.
 
-### R11-15 — Back from checkout, and one question (USER-FACING) · Opus
-Objective: the step that asked shows the credits arriving, then asks once where the buyer heard of us (ADR-143, 148).
-Files: new `web/src/hooks/useCheckoutReturn.ts` (+ test), new `web/src/components/CheckoutReturn.tsx`, new
-`web/src/components/HeardFromSheet.tsx`.
-Refs: spec Checkout (the step that asked), Measures (the question); ADR-143, 148; readings 9, 16, 20; pinned web shapes.
+### R13-15 — The shipped-code check (INTERNAL)
+Tier: sonnet — one script and its test in one package.
+Objective: CI fails, naming file and line, on what should never ship.
+Files: new `scripts/check-shipped.ts`; new `scripts/src/check-shipped.test.ts`; `scripts/package.json`, `scripts/tsconfig.json`;
+root `package.json` (`check:shipped`).
+Refs: ADR-192; agent-roster scope 8, acceptance 5; R-0.4, R-13.1; MB-108; reading 15.
 Done when:
-- `useCheckoutReturn` reads `?checkout=` once, polls `getCheckoutSession` each second for up to 30 seconds, and ends `added`
-  (the new balance), `late`, `refused` or `cancelled`, stripping the parameter without a reload; its reducer is pure and
-  tested.
-- `CheckoutReturn` prints the status above the page's primary control ("Adding your credits" with dots; late: the payment
-  went through and the credits follow within a minute; cancelled: nothing was charged; words through `/ux-copy`), names
-  credits and never an amount, and calls `onAdded`; after a first paid purchase it opens `HeardFromSheet`.
-- `HeardFromSheet`: "Where did you hear about us?", reading 16's answers and Skip, one tap through `answerHeardFrom`, never
-  shown twice; `track("checkout_returned")` fires once.
+- Over shipped code it fails on a `console.log` call, `localhost` or `127.0.0.1`, a TODO without `MB-NN`, the word "Astra", and an
+  import of `api/` from `web/`, each with file and line.
+- Its exceptions are one table in the script, each with file, rule and reason: today the API's three dev fallbacks to the local web
+  origin (`waitlist.ts`, `invites.ts`, `gifts.ts`) and the QA agent's two lines that look for "Astra".
+- `pnpm check:shipped` is green on this branch; the test plants each fault in a scratch tree and reads file and line back, and a
+  `console.log` planted in `api/src/lib/` fails it.
 
-### R11-16 — A gift claim opens the birth form (USER-FACING) · Sonnet
-Objective: a claimed gift lands on the form for the recipient's own chart, with Not now to the dashboard (ADR-149).
-Files: `web/src/pages/ClaimPage.tsx`, `api/src/routes/invites.ts`.
-Refs: spec Challenges 1, acceptance 8; ADR-139, 149; reading 13.
-Done when: `claimGift` answers `redirectTo: "/chart?self=1&from=gift"` when the claimer has no chart of their own and
-`/dashboard` otherwise; after "Claim my report" the page goes straight there, so the claimed cover's "Go to my dashboard"
-screen and its `MB-6` comment go; a send's claim is unchanged; nothing is written until they press Write (ADR-149). The walk's
-expectation moves in R11-26.
-
-### R11-17 — The legal pages read one seller (USER-FACING) · Opus — provisional MB-33, MB-115
-Objective: the four legal pages read `LEGAL_IDENTITY`, say what ADR-143 to 145 decided, and stay drafts while a placeholder remains.
-Files: `web/src/pages/legal/*.tsx` (all five), `web/src/components/DraftBanner.tsx`, new `web/src/lib/processors.ts` (+ test).
-Refs: spec Sold by Alex, Privacy until the company, Checkout (refunds), acceptance 4; ADR-139, 143 to 145; MB-33, 115 to 117;
-readings 14, 17 to 19.
+### R13-16 — CI: audit, gitleaks, SHA pins and Dependabot (INTERNAL)
+Tier: opus — supply chain is security.
+Objective: F4's CI half: a vulnerable or leaked change fails CI, every Action is pinned, and updates arrive as reviewed PRs.
+Files: `.github/workflows/ci.yml`, `report-lab.yml`, `promote.yml`; new `.github/dependabot.yml`; new `.gitleaks.toml` if needed.
+Refs: ADR-200, 192, 82; R-7.4; security scope 5, acceptance 8; agent-roster scope 8; reading 9; pinned commands.
 Done when:
-- No page types a bracketed placeholder: every seller detail reads `LEGAL_IDENTITY`; the banner follows reading 17. Who runs
-  Stars Decoded: the Owner as a private individual trading as Stars Decoded, address, country, contact, statement descriptor.
-  Refunds: exactly `REFUND_RULES`. Terms: the seller, bundles of credits priced before paying, another person's details only
-  with their knowledge and a child's only as parent or guardian, accounts 16 and over, the tick's effect, R10-05's section kept.
-- Privacy as ADR-145 states it: controller and contact; `processors.ts` (Supabase, Railway, Vercel, OpenAI, Clerk, Resend with
-  regions, unconfirmed ones `// MB-33 provisional`; Nominatim and timeapi.io from the browser); Stripe its own controller;
-  lawful bases; double opt-in and its retention; rights (export by email within 30 days, the mailbox read weekly, a breach
-  reported within 72 hours); necessary cookies only; reading 18's keys; no analytics (MB-116).
+- `ci.yml` adds, after the tests: `pnpm check:shipped`; `pnpm audit --prod --audit-level high`; gitleaks over the PR's commits or the
+  pushed range, keyless, with the checkout deep enough for the range; `permissions: contents: read`.
+- Every `uses:` in these three files is a full commit SHA with its tag in a comment.
+- `dependabot.yml`: npm and github-actions, weekly, minor and patch grouped, a 7-day cooldown matching pnpm's release age; security
+  updates ungrouped.
+- No workflow reads a secret; the built-in token stays only where it is today (`promote.yml`, `report-lab.yml`).
+- gitleaks fails on a fake AWS key planted in a scratch repo in the session, never pushed; CI is green on the round's PR.
 
-### R11-18 — The waitlist page confirms, and the tags wait for the account (USER-FACING) · Sonnet — provisional MB-116, MB-117
-Objective: the page asks people to confirm by email and confirms their link; their tags wait in the browser for an account.
-Files: `web/src/components/waitlist/WaitlistForm.tsx`, `web/src/pages/WaitlistPage.tsx`, `web/src/lib/waitlist.ts` (+ test), new
-`web/src/lib/attribution.ts` (+ test), new `web/src/lib/analytics.ts`.
-Refs: spec Privacy (double opt-in), Measures, acceptance 5; ADR-145, 148; MB-116, 117; readings 11, 18, 19; pinned web shapes.
+### R13-17 — The security probe, on every preview and after every deploy (INTERNAL)
+Tier: opus — the runtime half of the security gate.
+Objective: a deploy that drops a header, sends CORS or lets a foreign write through fails its smoke.
+Files: new `.github/scripts/security-probe.sh`; `.github/workflows/smoke-run.yml` (a checkout pinned by SHA, and the step).
+Refs: ADR-193, 197, 198; security acceptance 1 to 4; agent-roster scope 10, acceptance 10; reading 4; pinned origin and commands.
 Done when:
-- A join shows "Check your inbox" with the address (consent key `launch-email-v2`, its words through `/ux-copy`);
-  `/waitlist?confirm=` posts the token on load (a link scanner's GET alone confirms nothing) and shows "You're on the list", or
-  a line to join again when the link has expired; `readUtm` reads `utm_content`; the admin types gain `confirmedAt`,
-  `utmContent`.
-- `attribution.ts` (`// MB-117 provisional`): after a successful join the four tags, never the email, go to `sd.waitlist.tags`
-  with a date; `useAttributionHandoff` sends them once through `recordAttribution` when signed in and deletes the key; a key
-  older than 180 days is dropped unsent; tests with a fake store.
-- `analytics.ts` (`// MB-116 provisional`): `track` and `pageview` do nothing until a provider is chosen; a join calls
-  `track("waitlist_joined")`.
+- `web` mode: the home page sends HSTS, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy and the report-only CSP.
+- `full` mode adds: `/api/healthz` with `Origin: https://evil.example` sends no `Access-Control-Allow-Origin`; that Origin's `POST
+  /api/waitlist` with `{}` gets 403; a fresh API GET sets the session cookie with `SameSite=Lax` and `Secure`.
+- `smoke-run.yml` runs `full` after the crawl surface, so staging after every merge and production after every promote are probed;
+  each miss is one `::error::` line, retried until the deadline like the steps above it. The workflow holds no secret.
+- `shellcheck` clean; run against staging today it fails on CORS and the cookie (expected until the merge), which shows it bites.
+
+### R13-18 — Site checks: Lighthouse and axe on every preview (INTERNAL)
+Tier: opus — new CI with a browser, a trigger only previews fire, and budgets today's pages may miss.
+Objective: every PR's preview is measured for speed and accessibility with no key, and the results stay private artifacts.
+Files: new `.github/workflows/site-checks.yml`; `e2e/playwright.config.ts`; new `e2e/tests/a11y.spec.ts`; new
+`e2e/lighthouserc.json`; `e2e/package.json` (scripts only).
+Refs: ADR-192, 193; agent-roster scope 9, 10, acceptance 6; MB-20; R-7.6; readings 4, 9, 16; pinned commands.
+Done when:
+- `site-checks.yml` runs on a successful Vercel `deployment_status`, takes the URL from the event, pins every `uses:` by SHA, holds
+  no secret, and runs the probe's `web` mode (R13-17).
+- Lighthouse CI by its pinned Action on /, /sample and /faq: LCP ≤ 2.5 s, CLS ≤ 0.1, accessibility ≥ 95; reports as artifacts only.
+- axe on Playwright over every URL in the preview's `sitemap.xml` plus the legal pages, failing on serious or critical WCAG 2.2 AA
+  violations, each listed in an artifact.
+- `playwright.config.ts` loses its dev-server block and takes `BASE_URL`; root CI still skips `@workspace/e2e`.
+- Shown failing once locally on a planted `<img>` without `alt` against the built pages, then reverted. On the round's preview it is
+  green, or each failure goes to the orchestrator with its numbers for Group C; a budget is never loosened.
+
+### R13-19 — The PreToolUse hook (INTERNAL)
+Tier: opus — it guards secrets, generated code and the protected branches.
+Objective: no session can write a secret or generated file, push to `main` or `production`, or pipe a download into a shell.
+Files: new `.claude/hooks/guard.mjs`; `.claude/settings.json`; new `scripts/src/hook-guard.test.ts`.
+Refs: ADR-191; agent-roster scope 7, acceptance 4; R-7.2, R-7.4; reading 1; pinned hook.
+Done when:
+- `guard.mjs` exports `verdict(input)` and, run as the hook, exits 2 with one reason line on: an Edit, Write, MultiEdit or
+  NotebookEdit to an env file other than `.env.example`, or under `packages/api-client-react/src/generated/` or
+  `packages/api-zod/src/generated/`; a Read of an env file other than `.env.example`; a Bash `git push` to `main` or `production` in
+  any form (`HEAD:main`, `+x:refs/heads/production`, `--force`, a deletion); `curl` or `wget` piped into a shell.
+- `settings.json` keeps its permissions and plugins, and adds the PreToolUse entry and `permissions.deny` on reading `.env`,
+  `.env.local`, `.env.*.local`, `.env.production` and `.env.staging`.
+- The test feeds the hook's JSON for each block and each allow (`.env.example`, `git push origin round/R13`, `gh pr merge`, codegen
+  through Bash, `curl -o`) and checks the exit code and reason; typecheck green.
+- Hooks load at session start, so the live refusal shows in the next session; here `node guard.mjs < sample.json` exits 2.
+
+### R13-20 — The lab's pair campaign fits the limits (INTERNAL)
+Tier: sonnet — one function in the lab script.
+Objective: the anonymous campaigns still finish on staging now that writing is limited.
+Files: `scripts/src/report-lab.ts` (the remote campaigns only).
+Refs: ADR-199, 86; R-4.4; reading 7.
+Done when:
+- The pair campaign writes 16 times in three sessions: curie-winfrey's two natal reports once for its three lenses; the four band
+  runs in two sessions (beatrice-athena with william-charlotte, then william-george with charles-william), each inside 6 an hour.
+- A 429 stops the campaign with the API's line and `Retry-After`, never a retry loop; the natal campaign is untouched.
+- The script's header says to dispatch the natal and pair campaigns as separate runs; typecheck and the scripts' tests green.
 
 ---
 
-## Group C — the routes that take credits and money, the webhook, and the pages that ask
+## Group B — logs, the injection fixtures, the lines on the page, the CSP counts
 
-### R11-19 — Credits hard at every write (USER-FACING) · Opus — provisional MB-120
-Objective: no report is written without a credit taken first, on any host (ADR-143, R-6.1).
-Files: `api/src/routes/reports.ts`, `compatibility.ts`, `synastry.ts`, `gifts.ts`.
-Refs: spec Checkout ("consumeCredit goes hard"); ADR-42, 84, 140, 143; R-6.1; MB-45, 120; reading 7; pinned ledger.
+### R13-21 — Logs keep no birth data, email, names, Clerk ids or tokens (INTERNAL)
+Tier: opus — personal data (R-3.5) and the sentinel's "no user text in a log line".
+Objective: F5 closed: nothing in a log identifies a person or opens their invite.
+Files: `api/src/lib/logger.ts`; new `api/src/lib/logger.test.ts`; `api/src/lib/mailer.ts` (+ test); `api/src/app.ts` (the request
+serializer); `api/src/lib/failureLog.ts` (+ test) if the audit finds a gap.
+Refs: ADR-201; R-3.5; security scope 6, acceptance 9; reading 17.
 Done when:
-- POST /reports and POST /compatibility answer 401 signed out (ADR-140) and 402 `no_credit` with no credit, inserting the
-  report and taking its credit in one transaction before any generation starts; POST /synastry answers 410.
-- POST /reports/:id/regenerate: an earlier-version report regenerates free; a failed one takes a credit (402 at zero);
-  anything else answers 409 `not_regenerable`.
-- POST /gifts with no credit to hold stores nothing and answers 402; no `MB-6` comment or soft-pass wording is left in these
-  files; the birth-time route is unchanged (MB-120).
+- pino `redact` covers the birth date, time and place fields, `latitude`, `longitude`, `email`, `to`, `name`, `recipientName`,
+  `userId` and other Clerk ids, at the top level and one down, without hiding `err` or a section key; `LOG_LEVEL` still works.
+- The request line logs `/api/invites/<token>` as `/api/invites/:token`, and any other path token the same way.
+- `logRecipient` is off unless `NODE_ENV` is not `production`; a mailer test pins it.
+- The test logs a full request (body, headers, user) to a buffer and finds none of the values.
+- Every `generation_failures` message builder is read for birth data and names; a gap is closed in `redact` with a test.
+- The walk's own log, run as production, holds none of its birth dates or emails (acceptance 9); the report adds a staging log grep
+  where the session can read Railway's logs.
 
-### R11-20 — The checkout routes (USER-FACING) · Opus — provisional MB-119
-Objective: Get credits asks for a Stripe session for one bundle and comes back to where it was; the free test checkout stays
-off production.
-Files: `api/src/routes/checkout.ts` (+ `checkout.test.ts`).
-Refs: spec Checkout, acceptance 2, 3, 7; ADR-138, 143, 146; readings 4, 9, 10; pinned contract, seam and catalogue.
+### R13-22 — Three injection fixtures in the dry lab (INTERNAL)
+Tier: opus — two packages and the brain's measuring tool.
+Objective: the dry lab proves a hostile name stays inside its data block in every natal and pair prompt.
+Files: new `fixtures/charts/inject-instruction.json`, `inject-delimiter.json`, `inject-markup.json`; `fixtures/charts/README.md`;
+`api/src/lib/labDry.ts`; new `api/src/lib/labDry.test.ts`; `scripts/src/report-lab.ts` (the dry pass).
+Refs: ADR-202, 76, 86; R-3.1, R-4.4; security scope 8, acceptance 10; pinned data block and fixtures.
 Done when:
-- POST /checkout: 401 signed out; 400 for an unknown bundle or a `returnTo` outside `/chart` and `/dashboard`; 503
-  `checkout_closed` with the mode's reason unless the mode is `stripe`; else one session through R11-07 at `priceFor`'s price
-  now, with the verified link and an idempotency key from user, bundle, offer and the minute, answering 201 `{ url }`; at most
-  ten a minute per user.
-- GET /checkout/options gives the mode and each bundle priced now; GET /checkout/sessions/:id gives granted (with the counts
-  and `firstPaid`) or refused to its own buyer, pending when nothing has landed, 404 to anyone else.
-- POST /checkout/test is unchanged (403 on production) but reads its counts from the catalogue; tests on the pure parts
-  (the return path check, the idempotency key, the options' mapping).
+- Three synthetic structural fixtures, birth data only, `"injection": true`, each noted as synthetic: an instruction that the name
+  rule lets through (letters, spaces, a dot); R13-12's closing marker with an instruction after it; 500 characters of markup.
+- `dryInjection` renders every natal section prompt for each (the chart computed at run time, a matrix chart's stored r06
+  foundation standing in) and every pair prompt with two of them as A and B over curie-winfrey's runs, and flags a row when
+  `outsideDataBlocks` still holds any part of the payload.
+- `--dry` prints an injection table after the usual one and exits 1 on a leak; the test catches a planted raw name.
+- None of the three joins a campaign or the release lab; the README says why they exist.
 
-### R11-21 — The webhook grants, refunds and sends the receipt (USER-FACING) · Opus
-Objective: the one path that grants a paid bundle: keyed by Stripe's event id, once per session, and only with the tick.
-Files: new `api/src/routes/stripeWebhook.ts`, new `api/src/lib/fulfilment.ts` (+ test), `api/src/app.ts`.
-Refs: spec Checkout, acceptance 2; ADR-143; R-6.2, 6.6; readings 5, 6, 8; pinned seam, ledger, mailer and fulfilment.
+### R13-23 — The page shows a refusal, a pause and the name rule (USER-FACING)
+Tier: sonnet — error lines and a field hint in existing components, one package.
+Objective: where a person writes, sends or buys, a limit or a pause reads as one plain line, and a name that breaks the rule says
+why before it is sent.
+Files: new `web/src/lib/refusals.ts`, `web/src/lib/person-name.ts` (+ tests); `web/src/pages/BirthFormPage.tsx`, `ReportPage.tsx`
+(regenerate's error only); `web/src/components/CompatibilityPicker.tsx`, `BirthTimeDialog.tsx`, `SendDialog.tsx`,
+`dashboard/GiftFlow.tsx`, `dashboard/CreditsSheet.tsx`.
+Refs: ADR-199, 202, 130; security Screens; the artifact's two lines (Round start 3); reading 18; pinned refusals and names.
 Done when:
-- `POST /api/stripe/webhook` mounts in `app.ts` after health and before `express.json`, the session, Clerk and the prelaunch
-  gate, reading the raw body; a bad signature answers 400; each event id is recorded once, and a replay answers 200 and does
-  nothing; a test sends a correctly signed body through `app` and gets past the signature check, so no parser ran first.
-- `handleStripeEvent` grants a paid session (completed, or async succeeded) through `grantPaidBundle` only when reading 5
-  holds, then sends the receipt once to the checkout's email and marks it; `charge.refunded` calls `removeRefundedCredits`
-  with the cumulative amount; any other type is `ignored`; every outcome lands on the event's row.
-- Tests with fake deps: one grant across a replay and across both session events; refused without the tick, unpaid, in the
-  other mode, or with unknown metadata; a partial then a full refund; an unknown payment logged; no receipt on a repeat.
+- `refusalLine(error)` gives the API's line for `rate_limited` and `paused`, else null; each of the seven places shows it where it
+  shows errors today, instead of "Something went wrong"; nothing else on them moves.
+- `isPersonName` mirrors the contract, and its test reads the pattern out of `openapi.yaml`, so the two cannot drift; the birth
+  form's and the gift's name fields say the rule under the field when it breaks, before anything is sent.
+- Every new string passes `/ux-copy` and is listed for the Owner; screen readers hear each line; 390 px before 1440 px.
 
-### R11-22 — The admin waitlist and the opening email (USER-FACING) · Sonnet
-Objective: the admin sees who confirmed and sends the opening email in batches of 100, each address deleted once it is sent.
-Files: `api/src/routes/adminWaitlist.ts`.
-Refs: spec The launch (phase 2), Offers; ADR-141, 145 to 147; readings 10, 12; pinned mailer and offer link.
-Done when: GET /admin/waitlist adds `confirmedAt`, `utmContent` and the confirmed and pending counts; POST
-/admin/waitlist/opening-email sends the next 100 confirmed addresses `sendOpeningEmail` with a link signed for seven days
-(`/?offer=…&utm_source=waitlist&utm_medium=email&utm_campaign=opening`), deletes each address whose email Resend accepted,
-keeps any that failed for the next press, logs the batch in `waitlist_sends`, and answers `{ sent, left }`; it answers 409
-on production before launch.
-
-### R11-23 — The birth form asks for credits and comes back (USER-FACING) · Opus
-Objective: the form is one of the steps that ask (ADR-143): at zero its button is Get credits, after checkout it returns
-with everything typed still there, and after a gift claim it offers Not now (ADR-149).
-Files: `web/src/pages/BirthFormPage.tsx`.
-Refs: spec Checkout, Challenges 1, acceptance 2, 8; ADR-140, 143, 149; readings 9, 13, 18, 20; pinned web shapes.
-Done when:
-- With no credit the button reads Get credits beside "No credits left" and opens `CreditsSheet` with `returnTo` `/chart`
-  (keeping `self=1`); before leaving for Stripe the fields go to `sd.form.draft` and come back on return, then the key goes;
-  a 402 from POST /reports opens the sheet too.
-- `CheckoutReturn` sits above the button; once the credit is in it reads "Write my report" again, and nothing is submitted for
-  the reader.
-- `?from=gift`: one line that their gift is in their balance, and Not now to `/dashboard`, words through `/ux-copy`; nothing
-  else in the form changes (R12 extracts its place field).
-
-### R11-24 — The dashboard's asking steps come back (USER-FACING) · Opus
-Objective: Get credits from the picker or from Gift a report returns to that step with its pair or its draft, and credits
-count on every host.
-Files: `web/src/pages/DashboardPage.tsx`; `web/src/components/dashboard/GiftFlow.tsx`, `AddSomeoneSheet.tsx`,
-`CompatibilityRows.tsx`, `CreditPill.tsx`; `web/src/components/CompatibilityPicker.tsx`; `web/src/lib/orbit.ts` (+ test),
-`pair-selection.ts`, `credits-view.ts` (+ test).
-Refs: spec Checkout (the picker with its pair, Gift a report); ADR-105, 138, 143; readings 7, 9, 18; pinned web shapes.
-Done when:
-- `creditsEnforced` and every `enforced` input go, with each `MB-6` comment and the picker's "written on the house" line; zero
-  reads Get credits on every host.
-- `returnTo` is `/dashboard?resume=picker` from the picker and the rows, `/dashboard?resume=gift` from Gift a report (its
-  fields in `sd.gift.draft` first), `/dashboard` elsewhere; on return the page mounts `CheckoutReturn`, then reopens the gift
-  flow with its draft or scrolls to the picker holding its pair; a 402 from either opens the sheet.
-- `onAdded` opens Add someone after a bundle under 3, as today; tests: orbit points with no `enforced`; the gift draft kept
-  and cleared.
-
-### R11-25 — The Launch view, one admin nav, and the app's wiring (INTERNAL) · Sonnet
-Objective: the Owner reads the launch at `/admin/launch`, enters cash and hours by hand, and sends the opening email from
-the waitlist page (ADR-147, 148).
-Files: new `web/src/pages/AdminLaunchPage.tsx`, new `web/src/components/admin/AdminNav.tsx`; `web/src/pages/AdminWaitlistPage.tsx`;
-`AdminLabPage.tsx` and `AdminPromptsPage.tsx` (their nav only); `web/src/App.tsx`.
-Refs: spec The loop study, Measures, acceptance 6; ADR-147, 148; readings 10, 15, 18, 19; pinned Launch view; the artifact's
-launch and loop-study screens; `/web-taste` (the admin's dense tempo, §9).
-Done when:
-- The page renders every pinned field: the headline numbers, the five measures as "n of N" with the share against the
-  hypothesis, the gate at 100 criterion by criterion ("not yet" before 100), customers by source and the question's answers,
-  the entries with a small form; "Include test bundles" off production only.
-- One `AdminNav` (Prompts, Lab, Waitlist, Launch) replaces the three copies; the waitlist page shows confirmed and pending, the
-  CSV gains `utm_content` and `confirmed_at`, and "Send the opening email to the next 100" asks once, then prints `{ sent, left }`.
-- `App.tsx` routes `/admin/launch`, and on every page calls `keepOfferFromUrl`, `useAttributionHandoff` and `pageview` once.
+### R13-24 — The Failures tab counts CSP violations (INTERNAL)
+Tier: sonnet — one table added to an existing admin view.
+Objective: the admin sees the week's CSP violations by directive and blocked host, to decide when the policy is enforced (MB-147).
+Files: `web/src/components/lab/FailuresView.tsx`; `web/src/lib/labApi.ts`.
+Refs: ADR-198, 85; security scope 3; MB-147; §9 Two tempos; pinned CSP.
+Done when: under the rule counts, "CSP, last 7 days" lists one row per directive and blocked host with its count and last day; an
+empty state says there are none; an `extension` row is marked as not ours; the type reads the new field; nothing else on the tab
+moves.
 
 ---
 
-## Group D — the walk
+## After the builders: the orchestrator's steps, not cards
+1. **The tester** after group 0, A and B, over each group's changed files under `api/src/lib/`, `packages/*` and `web/src/lib/`
+   (general-purpose on Sonnet with `tester.md`'s text until the type registers). A failing test it writes is a fix for that card.
+2. **The gate:** `pnpm install --frozen-lockfile` · typecheck · `build:web` (now ending in the CSP check) · `build:api` · unit tests ·
+   `pnpm check:shipped` · `pnpm audit --prod --audit-level high` · codegen twice, no diff · `db:bootstrap` twice on a scratch
+   Postgres 16 · the walk · the dry lab: `pnpm report:lab --dry --base r06`, then `--pair curie-winfrey` under each lens, with the
+   injection table clean; paste it into the report.
+3. **The sentinel** on `main...round/R13` (general-purpose on Opus at max with `sentinel.md`'s text): a blocking finding becomes a
+   Group C card and the sentinel re-reads the fix; the rest become Mailbox rows.
+4. **The pull request:** CI (now with the shipped-code check, audit and gitleaks) and the site checks on its preview, with the
+   probe's web half. A first site-checks failure becomes Group C, never a loosened budget. Merge once green (R-12.5).
+5. **After the merge:** the smoke on `main`, the probe's full half included; the staging confirmation below; `/qa` on staging,
+   writing `docs/qa/QA-01.md`; then **the sentinel's first full audit of `main`** (acceptance 9), whose blocking findings are fixed
+   on a follow-up branch before any Release. The Owner gets the staging URL, QA-01 and three lines together (ADR-194).
 
-### R11-26 — The walk: the hard ledger and the paid path on a scratch Postgres (INTERNAL) · Sonnet
-Objective: prove the money rules end to end, with no Stripe account, no Clerk and no network.
-Files: `api/src/walk/loop.walk.ts`, new `api/src/walk/payments.walk.ts`, `api/package.json` (`walk` runs both).
-Refs: spec acceptance 2, 3, 5, 8; ADR-138, 140, 143, 145, 149; R10-22's walk and its stub mailer.
-Done when:
-- `loop.walk.ts` gives its readers test credits wherever it writes, retires its `MB-49` note (the soft pass is gone), and
-  passes its 23 rules again; its gift claim now expects the form for a claimer with no chart.
-- `payments.walk.ts`, against `WALK_DATABASE_URL` after `db:bootstrap`: a signed fake event (the SDK's test header, a fake
-  secret) grants once across a replay and is refused without the tick and in the other mode; a partial refund takes back
-  that many unspent credits; POST /reports answers 401 signed out, 402 at zero and 201 after a test bundle; a gift at zero
-  answers 402; the waitlist joins, confirms and sends a batch that deletes its addresses; the test checkout answers 403 on
-  production.
-- The orchestrator pastes both summaries into the round report.
+## Staging confirmation, after the merge and before Promote
+Free steps first; the orchestrator runs them and reports each line.
+1. The smoke on `main` is green with the probe's full half: no CORS, the foreign write 403, the cookie Lax and Secure, HSTS,
+   nosniff and X-Frame-Options on the home page (security acceptance 1 to 4).
+2. The deploy's bootstrap logs v9 and p4 (staging's natal, pair and `:system` overrides cleared, R12's way) and `csp_violations`
+   created (`/api/healthz/db`).
+3. **Dry** from the Lab page (base r06, free): every name inside its block.
+4. **The CSP walk:** every public page and the app's main flows on staging, the QA run included; the Failures tab shows no
+   violation from our pages (acceptance 5), or a fix card goes in before Promote.
+5. **Fixture runs** (about 50 ¢ on B): `report-lab.yml` with the natal campaign, then the pair campaign as its own dispatch; then
+   `chart=inject-instruction` (3 ¢), whose report must use the name as a name and obey none of it. The other two injection names are
+   refused by the API's name rule, which the run shows. The orchestrator reads the names in the prose of every run.
+6. **The limit** (about 18 ¢): seven POST /reports in an hour from one session; the 7th answers 429 with `Retry-After` and the line
+   (acceptance 6).
+7. **The breaker** is proven in the walk at 0.01 (acceptance 7). On staging it needs the variable set in Railway, so it runs only if
+   the Owner sets it for a minute; nobody asks.
+8. **"Promote":** the sentinel's full audit of `main` is in; the Release view runs the full lab on the five matrix charts and the
+   curie-hepburn pair, the gate against r06, the QA agent, then the fast-forward; production's smoke runs the probe.
 
----
-
-## Acceptance
-**Free, in the round (the gate):** `pnpm install --frozen-lockfile`, typecheck, `build:web`, `build:api`, unit tests (the
-catalogue and the offer link, the seller, the price gate, the seam's modes, parameters and signature, the ledger's grant,
-refund arithmetic and History, the fulfilment handler, the emails' words, the waitlist's tokens and gate, the loop study,
-attribution, the return reducer, the credits view, the processors, the failure lines), codegen twice with no diff after
-R11-02, `db:bootstrap` on the upgrade path and on an empty scratch Postgres as R11-01 states, both walks (R11-26), and smoke
-on the Vercel preview. **No dry lab**: the orchestrator confirms `git diff --name-only main... -- api/src/prompts
-api/src/lib/models.ts api/src/lib/aiInterpretation.ts api/src/lib/traditional.ts api/src/lib/chartCalculation.ts` is empty.
-Nothing generates or spends, and no key is needed. The spec's acceptance 1 to 8 are met in code; acceptance 4's last clause
-("no placeholder remains") waits for MB-115 and MB-33, and acceptance 9's test purchase for the Owner's Stripe test keys.
-**On staging after the merge (the Owner's look):**
-1. The credits sheet lists Single €24, Couple €48 and Family & friends €72 with their lines; Get credits adds free test credits
-   ("Credits are free while we test"); after 3 or 5 the path is titled by the bundle; the landing shows no price.
-2. With a second account: claim a gift and the birth form opens for your own chart; Not now opens the dashboard, the credit in
-   the balance.
-3. `/waitlist` on staging: join, confirm from the email (it reaches only the Resend account's own address until runbook L),
-   and the admin list shows the address confirmed; `/admin/launch` shows its numbers with test bundles included.
-4. Once Stripe's test keys are on staging (ask 2): Get credits opens Stripe's test checkout with the box unticked; pay with
-   Stripe's test card; back where you asked, "Adding your credits", then the question once; the receipt repeats the tick; a
-   partial refund from Stripe's test dashboard takes back that many unspent credits.
-**Production gets nothing from the round itself.** After it, the waitlist can go to production on MB-115's first two lines,
-Resend's domain (runbook L) and a Release, which runs the full lab since R09's v7 has never reached production (ADR-141, 145,
-147). The launch needs the rest of MB-115, live Stripe keys, `LAUNCHED` and `LAUNCH_DATE` in one edit, and a Release; MB-75
-is that Release's todo.
+## Production after the round
+Nothing ships to production in the round. The first Release brings R12 and R13 together, the brain changed in both, so the Release
+view runs the full lab and the pair, the gate and the QA agent within `LAB_BUDGET_USD` (R-4.4). Production keeps the waitlist over
+the site (ADR-167) and gains the headers, the report-only CSP and its counts, no CORS, the Lax cookie, the limits and the breaker.
+MB-147's seven days start at that Release. After it, the bible's release log (R-8.1).
 
 ## Risks
-1. **Schema** (R-7.3): the largest change yet: four tables altered, three created, one column dropped, all before `push` in
-   step 1. Tested on the upgrade path staging and production will take, not only on an empty database; a script that cannot
-   run twice would stop Railway's start.
-2. **New dependency**: `stripe` 22.6.2, exact, in `api`, the official SDK, chosen for its signature check and idempotency keys
-   (R-6.2). The fonts are copied, not installed.
-3. **Money** (R-6.1, 6.2): credits turn hard on every host, staging included (the free test checkout serves staging); the API
-   stops writing for anonymous sessions (ADR-140 was enforced only in the web); regeneration narrows to reading 7; grants come
-   only from the webhook; refunds take credits back by reading 6. The walk proves each on a real Postgres.
-4. **A public webhook**: signature-checked on the raw body, mounted before any parser; a test sends a signed body through
-   `app` so a reordered `app.ts` fails the gate.
-5. **User-visible without a locked spec**: the return-from-checkout lines, the question's answers, the kept drafts, the form's
-   zero state, the failure lines (MB-91's recommendation), the double opt-in's and the opening email's words, the regenerate
-   rule. Each passes `/ux-copy` and is listed for the Owner's look.
-6. **Legal**: the four pages stay drafts until MB-115 and MB-33; production refuses checkout while the seller has a placeholder,
-   so nothing can be sold under placeholder terms. The consumer-law and tax check (MB-114) stays the Owner's and changes
-   nothing in the build.
-7. **Privacy**: four new browser keys (reading 18), two of them holding personal data only in the tab that typed it; the
-   tags wait under MB-117; the fonts leave Google's CDN.
-8. **Emails** (USER-FACING): three new templates through Resend; until its domain is verified (runbook L) confirmations reach
-   only the Resend account's own address.
-9. **No report content change** and no brain change: no dry lab, no report reads differently.
-10. **Size**: twenty-six cards, twelve in group B; the shrink path is in Parallel groups.
+1. **Report content changes** (R-5.5): every natal and pair prompt gains the data rule, at v9 and p4; staging's overrides clear at
+   deploy and production copies staging's at the Release. The dry lab runs in the round, fixtures are read on staging, the Release
+   gates production. R13-12 leaves the bands, floors and room rule alone (MB-142, 143 stay at their defaults).
+2. **Schema:** one new table, from an idempotent script at a bootstrap 3x step, which can fail a deploy (unlike step 2's push,
+   MB-123); `db:bootstrap` twice on a scratch database in the gate.
+3. **Dependencies:** `express-rate-limit` (runtime), `@axe-core/playwright` and the pinned `@playwright/test` (dev); `cors` and
+   `@types/cors` gone; Lighthouse CI and gitleaks Actions by SHA; pnpm 10.0.0 to the newest 10.x on CI, Vercel and Railway. A
+   lockfile pnpm reads differently would show on the preview build and the staging deploy; the round report names the version.
+4. **A host missing from `WEB_ORIGINS`** would refuse every write from it. The code's default covers the three hosts the spec
+   names; the walk, the probe and the QA run each write through staging.
+5. **Today's pages may miss a budget or an axe rule.** The first preview run decides; fixes go in Group C before the merge, and if
+   one cannot land in the round the Owner hears it, since the budgets are locked.
+6. **The CSP check fails `build:web`** whenever a page's JSON-LD changes without `csp:write`: a deliberate friction, named in the
+   error, and a candidate line for `lessons.md`.
+7. **The per-IP limits** can be dodged by calling Railway directly with a forged forwarded header, as `clientKey`'s comment says;
+   the account and session limits and the breaker still hold. A WAF stays out of scope.
+8. **The lab's campaigns** meet the limits like any visitor: R13-20 fits the pair campaign into 16 writes; if natal and pair land
+   on one runner address on one day, the last pair run gets a 429 and reruns the next day.
+9. **The hook and the new agent types load at session start:** within R13 the hook is proven by its test and the agents run as
+   general-purpose with their files' text; the live refusal shows in the next session. An edit to `.claude/settings.json` may ask
+   for permission in the harness; it is the Owner's ADR-191.
+10. **The sentinel's first full audit** reads code built before it existed and may find blocking issues; they are fixed on a
+    follow-up branch, R12-26's way, before any Release.
+11. **Dependabot** will open grouped PRs weekly; the orchestrator merges green ones (R-12.5). Its support for pnpm's `catalog:`
+    entries is unproven here, so a catalog update that fails CI becomes a Mailbox row.
+12. **User-visible without a locked spec:** the name field's hint line and the Failures tab's CSP table; the refusal and pause lines
+    are in the spec. Each passes `/ux-copy` and is listed for the Owner.
+13. **Size:** 24 cards in three groups, 13 in group A, plus Group C if it fills. Spend: about 70 ¢ of staging runs; the Release
+    after.
 
-## Questions raised (Notion, 2026-09-28)
-- **Raised today:** **MB-119** (decision, later): ADR-142's catalogue keeps its file in `api/src/` and sends Stripe
-  `price_data` instead of a stored price id; R12 moves the file into `packages/commerce` for its prerender. Default: as built,
-  `// MB-119 provisional`. **MB-120** (gap, launch): a second birth-time update has never been charged (R-6.1). Default: free
-  until the next round that touches the report page.
-- **Raised for this round on 2026-09-27, kept:** **MB-115** (blocking todo): the seller's details, name and contact first
-  (default: placeholders, drafts, no production checkout, the waitlist stays on staging). **MB-116** (analytics: Plausible or
-  Vercel; default dark, R11-18). **MB-117** (the tags in the browser; built as recommended in R11-18 and R11-12, tagged).
-  **MB-118** (Mother's and Father's Day dates; computed, tagged, first in May 2027).
-- **Read, at their defaults:** MB-112 (Couple stays; the name lives in one catalogue row, tagged), MB-113 (one verb for
-  writing; not this round), MB-114 (the Owner's check; nothing in the build changes).
-- **Touched:** MB-91 → done by R11-13; MB-6, MB-57, MB-106 (decided) lose their seams; MB-33 keeps its region placeholders
-  in `processors.ts`; MB-43's rule covers the new keys; MB-49's note in the walk retires; MB-108 is R12's (the package pattern
-  starts here); MB-25 marked decided by ADR-147. **Rounds open** incremented on all 54 carried-over rows.
+## Questions raised (Notion, 2026-10-01)
+- **Raised before building:** **MB-144** idle anonymous sessions, 90 days (ask 2) · **MB-145** the spend cap's value, 20 USD by code
+  (ask 1; provisional in R13-09) · **MB-146** the horizon preview's missing limit (provisional in R13-08) · **MB-147** enforce the
+  CSP after 7 clean days (todo, for the first round seven days after the Release).
+- **Updated at the close:** MB-23 done (ADR-199 built) · notes on MB-12, 20, 21, 30 and 49 as above.
+- **Read at their defaults, untouched:** MB-142 (Luna's lengths), MB-143 (the room idiom), MB-115 (the seller's postal address stays
+  out of the repo).
 
-## For the Owner (three asks, highest stakes first)
-Nothing blocks the round: approving this plan starts it (§11.2). These three are for after the merge.
-1. **Your details for the legal pages (MB-115).** Production may collect addresses only once the privacy page names who
-   holds them, and EU law needs a postal address before any sale. Recommendation: send two lines now, the name to publish
-   and a contact address used only for Stars Decoded; the postal or forwarding address and the country can follow before
-   checkout. If silent: the pages stay drafts, production refuses checkout, and the waitlist stays on staging, so the
-   four-week warm-up has not started.
-2. **Stripe in test mode (runbook K, rewritten by R11-07).** The round builds and tests checkout with fake keys; the test
-   purchase on staging needs your account. Recommendation: open it as an Individual (business name Stars Decoded, descriptor
-   MYSTARSDECODED, the Terms URL set) and paste the test secret key and the test webhook's signing secret into Railway staging
-   only; live keys wait for launch. If silent: staging keeps the free test checkout and the test purchase waits.
-3. **Resend's domain (runbook L).** Every sign-up now gets a confirmation email; until `mystarsdecoded.com` is verified in
-   Resend, only the Resend account's own address receives mail, so nobody else can confirm. Recommendation: do it with ask 1
-   (about ten minutes, DNS on Vercel). If silent: the production waitlist would hold only unconfirmed addresses, so it waits
-   too.
-
-## Proposed R12 — landing-and-ai-search (the R10 outline, renumbered)
-`docs/rounds/R10-plan.md`'s R11 outline becomes R12, cards R12-01 to R12-18, with these changes from R11: R11-07 of that
-outline (MB-91) is done here (R11-13); the pricing slot (landing scope 11) and JSON-LD's Offer read the catalogue, which R12
-moves unchanged into `packages/commerce` so the prerender can import it (MB-119), and the slot prints offers only from
-`GET /checkout/options` after hydration, since a prerendered page cannot know today's offer; the place field R12-02 extracts
-comes from R11-23's `BirthFormPage.tsx`; `App.tsx` keeps R11-25's offer capture, so a link to any public page keeps the
-waitlist's offer; /sample waits only for MB-90 (ADR-144 closed MB-31); the waitlist page, the legal pages and "Who runs Stars
-Decoded" prerender with the rest (R-7.6). MB-108 is still R12's to answer for the engine; no payment key and no GitHub secret.
+## For the Owner (two asks, highest stakes first)
+Nothing blocks the round: approving this plan starts it (§11.2).
+1. **The day's spending cap (MB-145).** Past it, new reports pause with one line until midnight UTC, no credit is taken, and you get
+   one email. Recommendation: 20 USD a day on both environments, the code's default, so nothing needs setting in Railway. A report
+   costs about 3 cents on mix B, so that is about 650 reports a day, far above any day before 100 customers, and it caps a runaway
+   at about 600 USD a month. If silent: exactly that.
+2. **How long an idle anonymous visitor's data is kept (MB-144).** Someone who enters birth data and never signs in leaves a profile
+   behind. Recommendation: 90 days after their last visit, deleted the way Delete report deletes, stated on the privacy page, built
+   with payments in R14. If silent: that, and nothing is deleted before R14.
 
 ## Close (the orchestrator)
-Mark MB-91 done; record MB-112 and MB-115 to 119 at their defaults at their seams; MB-120 stays open. MASTERFILE 0.19: §3 gains
-`bundles`' Stripe columns, `stripe_events`, `launch_entries`, `waitlist_sends`, the waitlist's and `users`' new columns, the
-`refunded` status, and loses `credit_type` ("the typed columns go with the payments round" becomes done); R-6.1 says the soft
-pass is gone; R-6.2 says a grant is unique per checkout session and each event is recorded by id; R-6.3 says the web reads
-prices through `GET /checkout/options` and Stripe gets `price_data` (MB-119). INDEX's code map gains `catalogue.ts`,
-`offerLink.ts`, `stripe.ts`, `fulfilment.ts`, `launchStudy.ts`, routes `stripeWebhook.ts`, `me.ts`, `adminLaunch.ts`,
-`packages/commerce`, and on the web `CheckoutReturn`, `HeardFromSheet`, `useCheckoutReturn`, `AdminLaunchPage`, `AdminNav`,
-`attribution.ts`, `analytics.ts`, `processors.ts`; its Specs line marks pricing-and-launch built and the landing R12.
-CLAUDE.md's current focus: R11 shipped; production waits on MB-115, Resend's domain and a Release for the waitlist, and on
-live Stripe keys and the launch edit for launch (MB-75); next, R12 the landing. The four staging lines go to the Owner with
-the staging URL.
+- **Report** (at most 60 lines): every line tagged; the first **Spend** line (subagent tokens per tier from the Agent tool's usage,
+  cards per tier, escalations); the dry lab; the sentinel's two runs, the full audit of `main` included; QA-01's sev-1 count.
+- **`docs/annex/lessons.md`:** one line per cause of each gate failure, escalation, sentinel finding and QA sev-1, traced to its card;
+  nothing can be promoted yet, since no cause has two rounds.
+- **Decisions:** none; ADR-187 to 204 are recorded.
+- **MASTERFILE 0.23:** §10's agents line names the roster (planner, builder and its two tiers, tester, sentinel, qa, researcher,
+  verifier) and `docs/annex/` its two loop files.
+- **CLAUDE.md**, at its 120-line budget, so lines are rewritten in place: R-0.7's line (a tier per card, the roster); the CI line
+  (the shipped-code check, audit and gitleaks; site checks run Lighthouse and axe on each preview's public pages; no lint step);
+  `pnpm check:shipped` and `csp:write` among the commands; the current focus (R13 shipped, QA-01, the first Release next, R14 pricing).
+- **INDEX:** both specs built; the code map gains `origin.ts`, `limits.ts`, `spendCap.ts`, `csp.ts`, `cspReport.ts`,
+  `prompts/data.ts`, `csp_violations`, `web/scripts/csp.mjs`, `scripts/check-shipped.ts`, the hook, the probe, `site-checks.yml`,
+  `dependabot.yml`; agents and the loop files; QA-01; Decisions count 204.
+- **Mailbox:** as above, plus one row for R13's new words. Dependabot security updates are switched on through `gh api`
+  (`automated-security-fixes` and `vulnerability-alerts`); if the token lacks the right, one row asks the Owner for that toggle.
+  Dependabot's first PRs (security acceptance 8) are merged when green.
+- The Owner gets the staging URL, QA-01 and three lines: a refused write from a foreign site (from the probe's log), the 429 line on
+  the birth form, one fixture's names in prose.

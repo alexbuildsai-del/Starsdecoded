@@ -1,4 +1,4 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
+import express, { Router, type Request, type Response, type NextFunction } from "express";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db, promptTemplatesTable } from "@workspace/db";
@@ -84,8 +84,12 @@ router.get("/admin/me", (req, res) => {
 // Guard only the prompt admin endpoints, not /admin/me above.
 router.use("/admin/prompts", adminGuard, readOnlyGuard);
 
+// app.ts leaves the save's and Preview's bodies unread (its jsonBody), so a whole prompt, which can pass ADR-202's 32 kB, is
+// parsed here, behind the guards above, and only the admin can have up to 256 kB parsed.
+const promptBody = express.json({ limit: "256kb" });
+
 /** POST /api/admin/prompts/preview — call the AI with supplied prompts and return the raw response. */
-router.post("/admin/prompts/preview", async (req, res) => {
+router.post("/admin/prompts/preview", promptBody, async (req, res) => {
   const { systemPrompt, userPrompt } = req.body as {
     systemPrompt?: string | null;
     userPrompt?: string | null;
@@ -179,7 +183,7 @@ router.get("/admin/prompts/:key", async (req, res) => {
 });
 
 /** PUT /api/admin/prompts/:key — upsert a prompt override. */
-router.put("/admin/prompts/:key", async (req, res) => {
+router.put("/admin/prompts/:key", promptBody, async (req, res) => {
   const key = decodeURIComponent(req.params.key);
   const def = PROMPT_DEFAULTS_BY_KEY.get(key);
   if (!def) {

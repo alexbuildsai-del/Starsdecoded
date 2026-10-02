@@ -15,9 +15,31 @@ import adminLabSessionsRouter from "./adminLabSessions";
 import adminReleaseRouter from "./adminRelease";
 import adminWaitlistRouter from "./adminWaitlist";
 import homeRouter from "./home";
+import { anonWriteLimit, checkoutLimit, generationLimits, geocodeLimit, previewLimit, sendLimit } from "../lib/limits";
+import { spendGate } from "../lib/spendCap";
+import { requireAccount } from "../middlewares/requireAccount";
 
 // health is mounted directly in app.ts, ahead of auth
 const router: IRouter = Router();
+
+// Every route that spends or sends meets its limit here, ahead of the router that answers it, so the routes a limit guards
+// read as one list (ADR-199). Writing first needs an account on production (ADR-140), so a signed-out request takes no
+// count there. Elsewhere a signed-out write takes one from the count they all share (S1), then each caller's own limits;
+// none of these costs a query. Then the day's spend breaker. Exported so the limits' test can stand this very chain ahead
+// of a stub route.
+export const writing = [requireAccount(), ...anonWriteLimit, ...generationLimits, spendGate()];
+router.post("/reports", writing);
+router.post("/reports/:id/regenerate", writing);
+router.post("/compatibility", writing);
+router.post("/synastry", writing);
+router.patch("/profiles/:id/birth-time", writing);
+router.get("/geocode", geocodeLimit);
+// MB-146 provisional
+router.post("/horizon/preview", previewLimit);
+router.post("/invites", sendLimit);
+router.post("/compatibility/:id/send", sendLimit);
+router.post("/gifts", sendLimit);
+router.post("/checkout/test", checkoutLimit);
 
 router.use(reportsRouter);
 router.use(geocodeRouter);

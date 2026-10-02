@@ -1,11 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LabApiError, cents, labApi, type CatalogueEntry, type DryResponse, type ReplayStatus, type SpotEstimateResponse } from "@/lib/labApi";
+import { LabApiError, cents, labApi, type CatalogueEntry, type DryResponse, type InjectionReport, type ReplayStatus, type SpotEstimateResponse } from "@/lib/labApi";
 
 const SECTIONS = ["pipeline", "foundation", "overview", "triad", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"];
 const CHARTS = ["marie-curie", "day-angular", "night-angular", "high-latitude", "audrey-hepburn", "marie-curie-unknown"];
 const PAIRS = ["", "curie-winfrey", "william-charlotte", "william-george", "charles-william", "beatrice-athena"];
+
+/** The injection pass (ADR-202): one line when every hostile name stayed in its block, else each prompt it got out of. */
+function InjectionLines({ injection }: { injection: InjectionReport }) {
+  if (!injection.available) return <p className="text-xs text-muted-foreground">Injection: not rendered, {injection.reason}</p>;
+  const failed = injection.rows.filter((r) => !r.clean);
+  if (!failed.length) return <p className="text-xs text-primary">Injection: {injection.prompts} prompts, all clean</p>;
+  return (
+    <div className="flex flex-col gap-1 text-xs">
+      <p className="text-destructive">Injection: {injection.leaked} leaked, {injection.notRendered} not rendered, of {injection.prompts} prompts</p>
+      {failed.map((r) => (
+        <p key={`${r.fixture}-${r.set}-${r.section}`} className="font-numeric text-destructive">
+          {r.leak !== null ? "LEAK" : "NOT RENDERED"} {r.set}/{r.section} ({r.fixture}): {r.leak ?? r.error}
+        </p>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Spot and dry (ADR-86): the dry is a button and free, every natal prompt
@@ -127,6 +144,7 @@ export function SpotView({ readOnly }: { readOnly: boolean }) {
                 ))}
               </tbody>
             </table>
+            <InjectionLines injection={dry.injection} />
           </>
         )}
       </div>

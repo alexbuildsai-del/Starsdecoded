@@ -1,0 +1,202 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import type { AddressInfo } from "node:net";
+
+process.env.OPENAI_API_KEY ??= "test-key-never-sent";
+process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
+process.env.LOG_LEVEL = "silent";
+process.env.NODE_ENV = "test";
+// Clerk's middleware throws without a key pair. These name no instance, and a request with no token is never verified, so
+// nothing leaves the process; the admin's guard then answers for the prompt editor's path.
+process.env.CLERK_PUBLISHABLE_KEY = `pk_test_${Buffer.from("clerk.example.com$").toString("base64")}`;
+process.env.CLERK_SECRET_KEY = "test-secret-never-sent";
+process.env.CLERK_TELEMETRY_DISABLED = "1";
+delete process.env.WEB_ORIGINS;
+delete process.env.ADMIN_USER_ID;
+const { default: app } = await import("./app.js");
+
+async function serve() {
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const close = () => {
+    server.closeAllConnections();
+    return new Promise<void>((resolve) => server.close(() => resolve()));
+  };
+  return { base, close };
+}
+
+function send(base: string, method: string, path: string, body: string, headers: Record<string, string> = {}) {
+  return fetch(`${base}${path}`, { method, headers: { "content-type": "application/json", ...headers }, body });
+}
+
+function bodyOf(kilobytes: number): string {
+  return JSON.stringify({ template: "x".repeat(kilobytes * 1024) });
+}
+
+test("a 40 kB body is refused everywhere but the prompt editor's save and Preview, which the admin's guard answers before any parse", async (t) => {
+  const { base, close } = await serve();
+  t.after(close);
+
+  for (const [method, path] of [
+    ["POST", "/api/waitlist"],
+    ["POST", "/api/reports"],
+    ["PUT", "/api/admin/promptsx/natal:system"],
+    ["POST", "/api/admin/lab/runs"],
+    ["POST", "/api/admin/prompts/previewx"],
+  ]) {
+    const res = await send(base, method!, path!, bodyOf(40));
+    assert.equal(res.status, 413, `${method} ${path}`);
+  }
+  // Parsed ahead of the guard, 257 kB would answer 413.
+  for (const [method, path] of [
+    ["PUT", "/api/admin/prompts/pair:system"],
+    ["POST", "/api/admin/prompts/preview"],
+  ]) {
+    for (const kilobytes of [40, 257]) {
+      const res = await send(base, method!, path!, bodyOf(kilobytes));
+      assert.equal(res.status, 503, `${method} ${path} ${kilobytes} kB`);
+      assert.equal(((await res.json()) as { error: string }).error, "admin_disabled");
+    }
+  }
+});
+
+test("the admin's prompt save and Preview are parsed after the guard, up to 256 kB", async (t) => {
+  const { default: express } = await import("express");
+  const { jsonBody, requestErrorHandler } = await import("./app.js");
+  const { logger } = await import("./lib/logger.js");
+  const { default: adminPrompts } = await import("./routes/adminPrompts.js");
+  const before = process.env.ADMIN_USER_ID;
+  process.env.ADMIN_USER_ID = "user_admin";
+  t.after(() => {
+    if (before === undefined) delete process.env.ADMIN_USER_ID;
+    else process.env.ADMIN_USER_ID = before;
+  });
+
+  // app.ts's order, with a stub where Clerk and the session stand.
+  const mini = express();
+  mini.use((req, _res, next) => {
+    req.userId = req.header("x-user") || null;
+    req.log = logger;
+    next();
+  });
+  mini.use(jsonBody);
+  mini.use("/api", adminPrompts);
+  mini.use(requestErrorHandler);
+  const server = mini.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  const at = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const admin = { "x-user": "user_admin" };
+
+  // An unknown key is answered past the parser, so nothing is written and no database is needed.
+  const saved = await send(at, "PUT", "/api/admin/prompts/no-such-key", bodyOf(40), admin);
+  assert.equal(saved.status, 404);
+  assert.equal(((await saved.json()) as { error: string }).error, "not_found");
+  assert.equal((await send(at, "PUT", "/api/admin/prompts/no-such-key", bodyOf(257), admin)).status, 413);
+  // The body names no prompt, so Preview answers 400 past the parser and no model is called.
+  const preview = await send(at, "POST", "/api/admin/prompts/preview", bodyOf(40), admin);
+  assert.equal(preview.status, 400);
+  assert.equal(((await preview.json()) as { error: string }).error, "bad_request");
+  assert.equal((await send(at, "POST", "/api/admin/prompts/preview", bodyOf(257), admin)).status, 413);
+
+  const other = await send(at, "PUT", "/api/admin/prompts/no-such-key", bodyOf(257), { "x-user": "user_reader" });
+  assert.equal(other.status, 403, "a signed-in reader who is not the admin meets the guard first");
+  const otherPreview = await send(at, "POST", "/api/admin/prompts/preview", bodyOf(257), { "x-user": "user_reader" });
+  assert.equal(otherPreview.status, 403, "and so does Preview");
+});
+
+test("a CSP report is taken ahead of the origin guard and the session", async (t) => {
+  const { base, close } = await serve();
+  t.after(close);
+
+  const report = JSON.stringify({
+    "csp-report": {
+      "document-uri": "https://mystarsdecoded.com/",
+      "effective-directive": "script-src-elem",
+      "blocked-uri": "inline",
+    },
+  });
+  for (const origin of ["https://evil.example", "null"]) {
+    const res = await send(base, "POST", "/api/csp-report", report, { "content-type": "application/csp-report", origin });
+    assert.equal(res.status, 204, origin);
+    assert.equal(res.headers.get("set-cookie"), null, origin);
+    assert.equal(res.headers.get("x-content-type-options"), "nosniff");
+  }
+  const write = await send(base, "POST", "/api/waitlist", "{}", { origin: "https://evil.example" });
+  assert.equal(write.status, 403, "any other write from that Origin is still refused");
+});
+
+test("a malformed or over-limit body gets a JSON refusal and nothing of it reaches the log", async (t) => {
+  const { base, close } = await serve();
+  t.after(close);
+
+  // Express's default handler would print the error, with a few characters of the body, to stderr.
+  const written: string[] = [];
+  const { write: stderrWrite } = process.stderr;
+  const { write: stdoutWrite } = process.stdout;
+  const capture = ((chunk: string | Uint8Array) => {
+    written.push(String(chunk));
+    return true;
+  }) as typeof process.stderr.write;
+  process.stderr.write = capture;
+  process.stdout.write = capture;
+  t.after(() => {
+    process.stderr.write = stderrWrite;
+    process.stdout.write = stdoutWrite;
+  });
+
+  const secret = "Marguerite-Oyelaran-1987";
+  const malformed = await send(base, "POST", "/api/waitlist", `{"name":"${secret}",`);
+  assert.equal(malformed.status, 400);
+  assert.match(malformed.headers.get("content-type") ?? "", /application\/json/);
+  assert.deepEqual(await malformed.json(), { error: "bad_request" });
+
+  const big = await send(base, "POST", "/api/waitlist", JSON.stringify({ name: secret, pad: "x".repeat(40 * 1024) }));
+  assert.equal(big.status, 413);
+  assert.deepEqual(await big.json(), { error: "too_large" });
+
+  assert.equal(written.join("").includes(secret), false);
+});
+
+test("the handler logs the error's type and status, never its body or message", async (t) => {
+  const { default: pinoHttp } = await import("pino-http");
+  const { createLogger, httpSerializers } = await import("./lib/logger.js");
+  const { requestErrorHandler } = await import("./app.js");
+  const lines: string[] = [];
+  const log = createLogger({ NODE_ENV: "production", LOG_LEVEL: "info" }, { write: (line: string) => void lines.push(line) });
+  const { default: express } = await import("express");
+
+  const mini = express();
+  mini.use(pinoHttp({ logger: log, serializers: httpSerializers }));
+  mini.use(express.json({ limit: "1kb" }));
+  mini.post("/ok", (_req, res) => void res.json({}));
+  mini.post("/boom", () => {
+    throw Object.assign(new Error("failed for Marguerite Oyelaran"), { body: "Marguerite" });
+  });
+  mini.use(requestErrorHandler);
+  const server = mini.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  const at = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+  const parse = await send(at, "POST", "/ok", '{"name":"Marguerite Oyelaran",');
+  assert.equal(parse.status, 400);
+  const large = await send(at, "POST", "/ok", JSON.stringify({ name: "Marguerite Oyelaran", pad: "x".repeat(4096) }));
+  assert.equal(large.status, 413);
+  const other = await send(at, "POST", "/boom", "{}");
+  assert.equal(other.status, 500);
+  assert.deepEqual(await other.json(), { error: "internal_error" });
+
+  const text = lines.join("");
+  assert.equal(text.includes("Marguerite"), false);
+  assert.equal(text.includes("Unexpected"), false, "a parse error's own message is not logged");
+  assert.match(text, /"type":"entity\.parse\.failed","status":400/);
+  assert.match(text, /"type":"entity\.too\.large","status":413/);
+});

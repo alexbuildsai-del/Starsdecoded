@@ -1,12 +1,14 @@
 // Resend integration — every transactional email Stars Decoded sends: a
 // finished report shared with its subject, a Compatibility report shared or
-// granted, a gift and its reminder, and the waitlist's confirmation. All but
-// the last are written in the giver's name. A written report is shared and a
+// granted, a gift and its reminder, the waitlist's confirmation, and the
+// spend breaker's notice to the admin. The first four are written in the
+// giver's name. A written report is shared and a
 // credit is given: none says "send" for a report, or "made" or "created"
 // (ADR-181; credit-loop.md "Two verbs", ADR-128, 135).
 // Credentials come straight from the environment (RESEND_API_KEY,
 // RESEND_FROM_EMAIL), so any host that can set env vars can send mail.
 import { Resend } from "resend";
+import { readAppEnv, type AppEnv } from "./appEnv.js";
 import { logger } from "./logger.js";
 
 function getResendCredentials(): { apiKey: string; fromEmail: string } {
@@ -107,7 +109,9 @@ async function deliver(
   logLabel: string,
   { logRecipient = true }: { logRecipient?: boolean } = {},
 ): Promise<boolean> {
-  const who = logRecipient ? { to } : {};
+  // Production never hands the logger an address (ADR-201); elsewhere the line still says a recipient was set, though
+  // the logger censors the address itself.
+  const who = logRecipient && process.env.NODE_ENV !== "production" ? { to } : {};
   try {
     const { apiKey, fromEmail } = getResendCredentials();
     const resend = new Resend(apiKey);
@@ -362,4 +366,54 @@ export function buildWaitlistConfirmEmail(opts: SendWaitlistConfirmOptions): Ema
 export async function sendWaitlistConfirmEmail(opts: SendWaitlistConfirmOptions): Promise<boolean> {
   // An address nobody confirms is deleted after seven days (ADR-145); a log line would keep it longer.
   return deliver(opts.to, buildWaitlistConfirmEmail(opts), "waitlist-confirm", { logRecipient: false });
+}
+
+// The breaker's notice to the admin (ADR-199, MB-12's first alert): the day,
+// its spend and the cap, and nothing about who wrote what, so no customer
+// data leaves in it. Internal, so it skips the customer frame and its mark.
+
+export interface SendSpendPausedOptions {
+  to: string;
+  /** The UTC day the cap was reached, YYYY-MM-DD. */
+  day: string;
+  spentUsd: number;
+  capUsd: number;
+  /** Staging and production mail the same admin, so the email names its own; unset, it is this process's. */
+  appEnv?: AppEnv;
+}
+
+function usd(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}
+
+export function buildSpendPausedEmail(opts: SendSpendPausedOptions): EmailContent {
+  const where = opts.appEnv ?? readAppEnv();
+  const on = `${linkDay(new Date(`${opts.day}T00:00:00Z`))} (UTC)`;
+  // A cap of 0 is the Owner's off switch, which midnight does not lift.
+  const lede = opts.capUsd > 0
+    ? `New reports are paused on ${where}. The writing cost on ${on} reached the daily cap.`
+    : `New reports are paused on ${where}, because DAILY_SPEND_CAP_USD is 0.`;
+  const figures = [`Spent on ${on}: ${usd(opts.spentUsd)}`, `Daily cap: ${usd(opts.capUsd)}`];
+  const resume = opts.capUsd > 0
+    ? "Writing starts again at midnight UTC, or once DAILY_SPEND_CAP_USD is raised in Railway."
+    : "Writing starts again once DAILY_SPEND_CAP_USD is set above 0 in Railway.";
+  const lab = "Lab runs don't count toward the cap.";
+
+  const subject = `New reports paused on ${where}`;
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<body style="margin:0;padding:24px;font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1F2328;">
+  <p style="margin:0 0 16px;">${lede}</p>
+  <p style="margin:0 0 16px;">${figures.join("<br>")}</p>
+  <p style="margin:0 0 16px;">${resume}</p>
+  <p style="margin:0;color:#57606A;">${lab}</p>
+</body>
+</html>`;
+  const text = textShell([lede, ``, ...figures, ``, resume, lab]);
+  return { subject, html, text };
+}
+
+export async function sendSpendPausedEmail(opts: SendSpendPausedOptions): Promise<boolean> {
+  // The admin's address stays out of the logs like everyone else's (security scope 6).
+  return deliver(opts.to, buildSpendPausedEmail(opts), "spend-paused", { logRecipient: false });
 }

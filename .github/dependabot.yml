@@ -1,0 +1,30 @@
+# Updates arrive as pull requests: CI gates each one and the orchestrator
+# merges it once green (R-12.5, ADR-200). The groups apply to version updates
+# only, so each security update keeps its own PR and is never held for a batch.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # pnpm resolves no version younger than 7 days (minimumReleaseAge), so a
+    # PR opened sooner could not install.
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+
+  # A hijacked Action release is caught within days like a package, so it
+  # waits as long.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions-minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]

@@ -12,6 +12,7 @@ import { ASPECTS, BODIES, BODY_LABELS, cap } from "../vocabulary.js";
 import { SECTION_IDS, type ReportSectionId } from "../index.js";
 import { proseOf, softenQuote } from "../evidence.js";
 import { block, buffered, fixed, warned, type Check, type Validated } from "../checks.js";
+import { dataValue } from "../data.js";
 
 /** A chapter's one scene, or one per band under the parent lens, so the scene always fits the child (ADR-176). */
 export type ChapterScene = string | ((band: Band | null) => string);
@@ -494,19 +495,24 @@ export function houseChecks(brief: PairBrief, text: string): Check[] {
   return [];
 }
 
-const names = (brief: PairBrief) => ({ a: brief.a.name, b: brief.b.name });
+/**
+ * The two names as the writer was shown them, inside their data blocks, so a
+ * check never blocks a name the writer was right to use (ADR-81, ADR-202).
+ */
+export const promptNames = (brief: PairBrief) => ({ a: dataValue(brief.a.name), b: dataValue(brief.b.name) });
 
 /** The lens chapter's checks: the card, the scene, the whys, evidence out of prose, no number, the claims reconciled in allocation. */
 export function lensChapterChecks(out: PairLensChapterOutput, brief: PairBrief, chapterId?: string, table?: BandDoctrine): Validated<PairLensChapterOutput> {
   const checks: Check[] = [];
-  const n = names(brief);
+  const n = promptNames(brief);
   const stripped = stripBracketsDeep(out);
   if (stripped.stripped) checks.push(fixed("chk-20", `${stripped.stripped} bracketed body name(s) stripped from the prose`));
   const output = stripped.value;
-  const side = (lines: string[], who: string) => lines.map((l, i) => { const r = cardLineChecks(l, n, `card, ${who} line ${i + 1}`); checks.push(...r.checks); return r.line; });
+  // A blocking message is read back to the writer on a retry, so it names the side by letter, never by what was typed.
+  const side = (lines: string[], who: "A" | "B") => lines.map((l, i) => { const r = cardLineChecks(l, n, `card, ${who} line ${i + 1}`); checks.push(...r.checks); return r.line; });
   const pair = cardLineChecks(output.card.pair, n, "card, the pair line");
   checks.push(...pair.checks);
-  output.card = { a: side(output.card.a, first(n.a)), b: side(output.card.b, first(n.b)), pair: pair.line };
+  output.card = { a: side(output.card.a, "A"), b: side(output.card.b, "B"), pair: pair.line };
   checks.push(...sceneChecks(output.scene, n));
   checks.push(...whyChecks(output.nextTime.items, "next time"));
   const text = proseText(output);
@@ -525,7 +531,7 @@ export function twoChartsChecks(out: PairTwoChartsOutput, brief: PairBrief, chap
   const stripped = stripBracketsDeep(out);
   if (stripped.stripped) checks.push(fixed("chk-20", `${stripped.stripped} bracketed body name(s) stripped from the prose`));
   const output = stripped.value;
-  output.strengths = output.strengths.map((l, i) => { const r = cardLineChecks(l, names(brief), `strengths line ${i + 1}`); checks.push(...r.checks); return r.line; });
+  output.strengths = output.strengths.map((l, i) => { const r = cardLineChecks(l, promptNames(brief), `strengths line ${i + 1}`); checks.push(...r.checks); return r.line; });
   const text = proseText(output);
   checks.push(...evidenceChecks(text));
   checks.push(...houseChecks(brief, text));
@@ -540,21 +546,24 @@ export const NOW_AND_LATER_RULE = "NOW AND LATER. Describe situations of this ag
 /** Over 18, childhood is remembered, never described as present. */
 export const GROWN_RULE = "The child is an adult. Nothing from childhood is described as present: no bedtime, homework, pocket money or curfew today. The focus is a young adult's life: moving out, work, money, partners, visits home. Childhood may be remembered, in the past tense only.";
 
-/** The lens block appended to every section: the register, who is the parent, the band and the child's age on the day. */
+/**
+ * The lens block appended to every section: the register, who is the parent, the band and the child's age on the day.
+ * The names and the label are typed, so they stay in the brief's data blocks and this block says A, B and "the brief" (ADR-202).
+ */
 export function lensContext(brief: PairBrief): string {
   const r = LENS_REGISTER[brief.lens];
   const lines = [
     `LENS: ${r.label}. Every example in this section comes from this register: ${r.examples.join(", ")}.`,
   ];
   if (brief.lens === "parent_child") {
-    const parent = brief.parent === "B" ? brief.b.name : brief.a.name;
-    const child = brief.parent === "B" ? brief.a.name : brief.b.name;
+    const parent = brief.parent === "B" ? "B" : "A";
+    const child = parent === "A" ? "B" : "A";
     lines.push(`${parent} is the parent and ${child} is the child. Read ${child}'s chart as potential, never a verdict, and address ${parent} as the one who adapts.`);
     if (brief.band) lines.push(`${child} is in the ${brief.band} band${brief.childAge !== null ? `, ${writtenAge(brief.childAge)} years old on the day this is written` : ""}. Every scene, card line and "fair at this age" line is written for that age.`);
     lines.push(NOW_AND_LATER_RULE);
     if (brief.band === "grown") lines.push(GROWN_RULE);
   }
-  if (brief.lens === "people" && brief.label) lines.push(`How they know each other, in their words: ${brief.label}. That answer sets a few words of register in the scene, never the scene itself.`);
+  if (brief.lens === "people" && brief.label) lines.push(`How they know each other is in the brief, in their words. That answer sets a few words of register in the scene, never the scene itself.`);
   return lines.join("\n");
 }
 

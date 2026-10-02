@@ -71,6 +71,16 @@ echo "==> 3j/7 Send, Gift and the test checkout"
 # (ADR-120, 123, 138, 139; MB-81, 83). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-send-and-gift.ts
 
+echo "==> 3k/7 The CSP's counts"
+# csp_violations, one row per UTC day, directive and blocked host or keyword, which
+# POST /api/csp-report adds to (ADR-198). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-csp-violations.ts
+
+echo "==> 3l/7 The spend ledger"
+# spend_ledger, one row per UTC day and kind of visitor generation, which every model
+# call made for a visitor adds its cost to and the daily spend breaker sums (ADR-199). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-spend-ledger.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.

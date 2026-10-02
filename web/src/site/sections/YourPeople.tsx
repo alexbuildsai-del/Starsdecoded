@@ -115,10 +115,13 @@ function TriadRows({ chart, name }: { chart: ChartData; name: string }) {
     <dl className="rp-legend">
       {triadRows(chart, "full").map((row) => (
         <div key={row.key} className="lr">
-          {row.key === "rising"
-            ? <span aria-hidden className="rp-ascdot" />
-            : <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />}
-          <dt className="k">{row.label}</dt>
+          {/* The mark sits in the term: a definition list's groups hold only terms and definitions. */}
+          <dt className="k flex w-[83px] items-center gap-[9px]">
+            {row.key === "rising"
+              ? <span aria-hidden className="rp-ascdot" />
+              : <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />}
+            <span className="w-[52px]">{row.label}</span>
+          </dt>
           {row.blind ? (
             <dd className="v min-w-0 font-sans text-xs leading-[1.35] text-muted-foreground">{blindRisingText(name, false)}</dd>
           ) : (

@@ -35,8 +35,8 @@ function pair(lens: Lens = "partners", extra: Partial<Parameters<typeof buildPai
   });
 }
 
-test("registry: seventeen specs plus the link cards and the foundation, eight ids a lens, seven chapters, version p3", () => {
-  assert.equal(PAIR_PROMPT_VERSION, "p3");
+test("registry: seventeen specs plus the link cards and the foundation, eight ids a lens, seven chapters, version p4", () => {
+  assert.equal(PAIR_PROMPT_VERSION, "p4");
   assert.equal(PAIR_SECTIONS.length, 18, "two fixed, fifteen lens chapters, the link cards");
   assert.equal(PAIR_ALL_SECTIONS.length, 19);
   assert.equal(PAIR_ALL_SECTIONS[0].key, "pair:foundation");
@@ -84,14 +84,15 @@ test("lens: the register, the parent, the band and the free label reach the prom
     for (const example of LENS_REGISTER[lens].examples) assert.ok(ctx.includes(example), `${lens}: ${example}`);
   }
   const parentChild = pair("parent_child", { parent: "B", at: new Date("2026-09-21T00:00:00Z") });
-  assert.match(lensContext(parentChild), /Oprah Winfrey is the parent and Marie Curie is the child/);
+  assert.match(lensContext(parentChild), /^B is the parent and A is the child\. Read A's chart as potential, never a verdict, and address B as the one who adapts\.$/m);
   assert.match(lensContext(parentChild), /potential, never a verdict/);
   assert.match(lensContext(parentChild), /grown band/);
-  assert.match(parentChild.text, /Oprah Winfrey is the parent/);
+  assert.match(parentChild.text, /^B is the parent\. A is the child,/m);
+  assert.doesNotMatch(lensContext(parentChild), /Marie|Oprah/, "the names stay in the brief's blocks");
   const people = pair("people", { label: "colleagues" });
-  assert.match(lensContext(people), /colleagues/);
+  assert.match(lensContext(people), /How they know each other is in the brief, in their words\./);
   assert.match(lensContext(people), /sets a few words of register in the scene, never the scene itself/);
-  assert.match(people.text, /How they know each other: colleagues/);
+  assert.ok(people.text.includes("How they know each other:\n<<label>>\ncolleagues\n<<end>>"));
   const needs = pairSectionById("parentChild02")!;
   assert.equal(sceneOf(needs, "little"), "Bedtime, the third call");
   assert.equal(sceneOf(needs, "teen"), "The closed door");

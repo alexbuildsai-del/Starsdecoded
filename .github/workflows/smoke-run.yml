@@ -2,7 +2,8 @@ name: Smoke run
 
 # Reusable body of the deploy check. smoke.yml and promote.yml call it with
 # the web URL to probe and the environment the API behind it must report.
-# It only reads public URLs: no secret, no key, nothing is posted.
+# It reads public URLs and holds no secret or key. Its one post is a foreign
+# page's write the API must refuse, with an empty body nothing would store.
 on:
   workflow_call:
     inputs:
@@ -23,12 +24,21 @@ on:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       WEB_URL: ${{ inputs.web_url }}
       EXPECT_ENV: ${{ inputs.expect_env }}
       EXPECT_COMMIT: ${{ inputs.expect_commit }}
       DEADLINE_SECONDS: 600
     steps:
+      # Only the probe script, from the commit under test, so the probe and the deploy it judges change together.
+      - name: Check out the security probe
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
       - name: Wait for the web app
         run: |
           end=$((SECONDS + DEADLINE_SECONDS))
@@ -193,6 +203,12 @@ jobs:
             sleep 15
           done
 
+      # The runtime half of the security gate (ADR-193, 197, 198). A preview's /api is staging's API, so a preview runs only
+      # the web half (site-checks.yml); the API half runs here, on staging after every merge and on production after every
+      # promote. The script reads DEADLINE_SECONDS and retries like the steps above.
+      - name: Security probe
+        run: .github/scripts/security-probe.sh "$WEB_URL" full
+
       - name: Summary
         run: |
-          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n- env: %s\n- commit: %s\n- database: %s\n- crawl: %s pages read as OAI-SearchBot\n' "$WEB_URL" "$API_URL" "$API_ENV" "$API_COMMIT" "$API_DB" "$CRAWL_PAGES" >> "$GITHUB_STEP_SUMMARY"
+          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n- env: %s\n- commit: %s\n- database: %s\n- crawl: %s pages read as OAI-SearchBot\n- security: headers and CSP, no CORS, a foreign write refused, the session cookie Lax and Secure\n' "$WEB_URL" "$API_URL" "$API_ENV" "$API_COMMIT" "$API_DB" "$CRAWL_PAGES" >> "$GITHUB_STEP_SUMMARY"

@@ -113,9 +113,9 @@ database that does not match it. (Railway's `preDeployCommand` hook was never
 executed for this project, so the bootstrap does not depend on it.) Run the same script by hand
 (`pnpm run db:bootstrap`) to set up a database from a laptop.
 
-Because web and API are separate origins in production, the anonymous session
-cookie is `SameSite=None; Secure` (see `CROSS_SITE_COOKIES`). Serving both from
-one origin means turning that off.
+The web calls `/api` on its own origin (Vercel rewrites it to Railway), so the
+session cookie is `SameSite=Lax; Secure` and the API sends no CORS headers; a
+write from any origin outside `WEB_ORIGINS` gets 403 (ADR-197).
 
 ## Porting notes
 

@@ -13,12 +13,13 @@ export function isPrelaunch(env: NodeJS.ProcessEnv = process.env, launched: bool
   return !launched && readAppEnv(env) === "production";
 }
 
-// Health and the waitlist with its confirmation (ADR-145) are mounted ahead of
-// this gate; they are listed so a reordering of app.ts cannot take the smoke
-// check, the form or the emailed link down. The public pages call nothing else,
+// Health, the waitlist with its confirmation (ADR-145) and the CSP's reports
+// (ADR-198) are mounted ahead of this gate; they are listed so a reordering of
+// app.ts cannot take the smoke check, the form, the emailed link or
+// production's violation counts down. The public pages call nothing else,
 // since they compute in the browser and read build data. /admin carries its own
 // guard, and /admin/me is how the admin's page learns who is signed in.
-const OPEN_PATHS = [/^\/healthz(?:\/|$)/, /^\/waitlist(?:\/confirm)?\/?$/, /^\/admin(?:\/|$)/];
+const OPEN_PATHS = [/^\/healthz(?:\/|$)/, /^\/waitlist(?:\/confirm)?\/?$/, /^\/csp-report\/?$/, /^\/admin(?:\/|$)/];
 
 export function prelaunchAllows(path: string, userId: string | null, env: NodeJS.ProcessEnv = process.env): boolean {
   return OPEN_PATHS.some((open) => open.test(path)) || labActor({ userId }, env) !== null;

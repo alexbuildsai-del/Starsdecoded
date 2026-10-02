@@ -28,7 +28,9 @@ import { StatusDots } from "@/components/StatusDots";
 import { GiftCover } from "@/components/dashboard/GiftCover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { creditsEnforced } from "@/lib/credits-view";
+import { isPersonName, nameRuleLine } from "@/lib/person-name";
 import { PRODUCT } from "@/lib/product";
+import { refusalLine } from "@/lib/refusals";
 import { cn } from "@/lib/utils";
 
 export interface GiftFlowProps {
@@ -97,7 +99,7 @@ function Progress({ step }: { step: Step }) {
 /** The helper line under a field, which becomes its error once the step is tried, so the field's description stays one element. */
 function Hint({ id, error, children }: { id: string; error: string | null; children: ReactNode }) {
   return (
-    <p id={id} className={cn("text-xs leading-[1.4]", error ? "text-destructive" : "text-muted-foreground")}>
+    <p id={id} aria-live="polite" className={cn("text-xs leading-[1.4]", error ? "text-destructive" : "text-muted-foreground")}>
       {error ?? children}
     </p>
   );
@@ -118,6 +120,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
   const [tried, setTried] = useState(false);
+  const [nameLeft, setNameLeft] = useState(false);
   const [gift, setGift] = useState<GiftCreated | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -147,7 +150,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
   const firstName = name.trim();
   const address = email.trim();
   const words = note.trim();
-  const nameError = tried && !firstName ? "Enter their first name." : null;
+  const nameError = tried && !firstName ? "Enter their first name." : tried || nameLeft ? nameRuleLine(firstName) : null;
   const emailError = tried && !EMAIL.test(address) ? "Enter their email, like name@example.com." : null;
 
   // The server prints the giver's self profile's first word, else their account's first name; the preview does the same.
@@ -280,9 +283,10 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
     const sendError =
       !create.isError || status === 401
         ? null
-        : status === 400
-          ? "Check their first name and email, then send it again."
-          : "We couldn't send the gift. Try again in a few minutes.";
+        : (refusalLine(create.error) ??
+          (status === 400
+            ? "Check their first name and email, then send it again."
+            : "We couldn't send the gift. Try again in a few minutes."));
     return (
       <>
         {header("How it arrives", true)}
@@ -386,7 +390,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
   const next = (e: FormEvent) => {
     e.preventDefault();
     setTried(true);
-    if (!firstName) nameRef.current?.focus();
+    if (!isPersonName(firstName)) nameRef.current?.focus();
     else if (!EMAIL.test(address)) emailRef.current?.focus();
     else setStep(2);
   };
@@ -403,6 +407,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
             id={nameId}
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onBlur={() => setNameLeft(true)}
             autoFocus
             autoComplete="off"
             aria-invalid={nameError ? true : undefined}

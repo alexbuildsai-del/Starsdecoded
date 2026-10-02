@@ -4,8 +4,9 @@ import { previewHorizon, validatePreviewInput } from "../lib/horizonPreview.js";
 
 const router = Router();
 
-// Unauthenticated like the geocode path and rate-limited by the session
-// middleware ahead of it. Reads no profile, stores nothing, calls no model.
+// Unauthenticated like the geocode path, and limited per address like it in
+// routes/index.ts (MB-146 provisional). Reads no profile, stores nothing,
+// calls no model.
 router.post("/horizon/preview", (req, res) => {
   const parsed = PreviewHorizonBody.safeParse(req.body);
   if (!parsed.success) {

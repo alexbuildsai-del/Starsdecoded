@@ -1,35 +1,74 @@
-import { createRoot, hydrateRoot } from "react-dom/client";
-import { setBaseUrl } from "@workspace/api-client-react";
-import App, { type FirstPage } from "./App";
-import { API_ORIGIN } from "./lib/api";
-import { PUBLIC_ROUTES } from "./site/routes";
 import "./index.css";
-
-// The generated client requests relative paths like /api/reports. Same-origin
-// in dev (Vite proxies them); in production they need the Railway origin
-// prepended. Cookies still ride along — customFetch always sends credentials.
-if (API_ORIGIN) {
-  setBaseUrl(API_ORIGIN);
-}
 
 const root = document.getElementById("root")!;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const path = window.location.pathname.slice(basePath.length) || "/";
-const route = PUBLIC_ROUTES.find((entry) => entry.path === path);
 
-// A public page and 404.html arrive prerendered (R-7.6); app.html and the dev server's page arrive empty. The page's
-// own chunk loads first, so the first render matches the HTML without suspending. Should it fail to load, the HTML
-// stays as it is, and its links still work as plain links.
-if (!root.hasChildNodes()) {
-  createRoot(root).render(<App />);
-} else if (!route) {
-  hydrateRoot(root, <App />);
-} else {
-  route.load().then(
-    ({ default: Page }) => {
-      const first: FirstPage = { path: route.path, Page };
-      hydrateRoot(root, <App first={first} />);
-    },
-    (error: unknown) => console.error("[hydrate] The page's script did not load:", error),
-  );
+// A tab opened in the background paints only once it is shown, so a page that has not painted by then starts anyway.
+const PAINT_WAIT_MS = 5000;
+
+/**
+ * A public page and 404.html arrive prerendered (R-7.6) and paint from their HTML and stylesheets alone. The app's
+ * scripts and the webfonts wait for that paint rather than take a phone's bandwidth from the stylesheets it waits on,
+ * and Lighthouse's LCP, which counts every download that ends before the paint, no longer counts them (R13-C7). The
+ * words show in their fallback faces until the fonts swap in.
+ */
+function afterFirstPaint(run: () => void): void {
+  let started = false;
+  let observer: PerformanceObserver | undefined;
+  const start = () => {
+    if (started) return;
+    started = true;
+    observer?.disconnect();
+    run();
+  };
+  if (PerformanceObserver.supportedEntryTypes?.includes("paint")) {
+    observer = new PerformanceObserver((list) => {
+      if (list.getEntriesByName("first-contentful-paint").length > 0) start();
+    });
+    observer.observe({ type: "paint", buffered: true });
+  } else {
+    requestAnimationFrame(() => setTimeout(start));
+  }
+  setTimeout(start, PAINT_WAIT_MS);
 }
+
+async function startApp(prerendered: boolean): Promise<void> {
+  // A face that fails to load leaves its words in the fallback, which the page already shows.
+  import("./fonts.css").catch(() => {});
+  // The page's own chunk loads beside the app, so the first render matches the HTML without suspending.
+  const first = prerendered
+    ? import("./site/routes").then(({ PUBLIC_ROUTES }) => {
+        const route = PUBLIC_ROUTES.find((entry) => entry.path === path);
+        return route?.load().then(({ default: Page }) => ({ path: route.path, Page }));
+      })
+    : Promise.resolve(undefined);
+  const [{ createRoot, hydrateRoot }, { setBaseUrl }, { API_ORIGIN }, { default: App }, firstPage] = await Promise.all([
+    import("react-dom/client"),
+    import("@workspace/api-client-react"),
+    import("./lib/api"),
+    import("./App"),
+    first,
+  ]);
+
+  // The generated client requests relative paths like /api/reports. Same-origin
+  // in dev (Vite proxies them); in production they need the Railway origin
+  // prepended. Cookies still ride along — customFetch always sends credentials.
+  if (API_ORIGIN) {
+    setBaseUrl(API_ORIGIN);
+  }
+
+  if (!prerendered) {
+    createRoot(root).render(<App />);
+  } else {
+    hydrateRoot(root, <App first={firstPage} />);
+  }
+}
+
+// app.html and the dev server's page arrive empty, with nothing to paint before the app, so they start at once. Should
+// a prerendered page's scripts fail to load, the HTML stays as it is, and its links still work as plain links.
+const prerendered = root.hasChildNodes();
+const boot = () =>
+  startApp(prerendered).catch((error: unknown) => console.error("[hydrate] The page's script did not load:", error));
+if (prerendered) afterFirstPaint(boot);
+else void boot();

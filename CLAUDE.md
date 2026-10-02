@@ -9,7 +9,7 @@ product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 - Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
 - Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel; a single lookup or edit stays here.
-- Model triage (R-0.7): `/round` is the orchestrator, run in the main loop on Opus 5.5 at max effort; planner and builders Opus at max, simple fixes Sonnet, mechanical Haiku.
+- Model triage (R-0.7): `/round` is the orchestrator, in the main loop on Opus 5.5 at max; every card carries a `Tier:` (builder, builder-sonnet, builder-haiku); tester, sentinel, qa, researcher, verifier (ADR-187 to 195).
 
 ## Read this first
 
@@ -42,12 +42,13 @@ pnpm run typecheck                    # the type gate; build does not typecheck
 pnpm run build:web && pnpm run build:api
 pnpm -r --filter '!@workspace/e2e' --if-present run test
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
+pnpm check:shipped · pnpm --filter @workspace/web run csp:write   # shipped-code check; CSP hashes after JSON-LD
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
 pnpm report:lab --render|--compare|--dry --base r06   # free: stored runs re-read, every prompt rendered; the levels: /report-lab
 ```
 
-Gate before any pull request: typecheck, both builds, unit tests, `db:bootstrap`
-clean when the schema changed, smoke on the Vercel preview. Never skip or disable a
+Gate before any pull request: typecheck, both builds, unit tests, `check:shipped`, audit, `db:bootstrap`
+clean when the schema changed, the sentinel, site checks and smoke on the Vercel preview. Never skip or disable a
 check. The lab runs from the admin panel: dry at every brain change, spot and reading on
 demand, full lab plus QA agent in the Release view before production.
 
@@ -108,13 +109,12 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   outside the catalogue does not compile. A check blocks only when the text would be wrong
   for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
 - Real chart data only. Fixtures hold birth data; charts are computed at run time. Never fabricate a placement, even in a demo.
-- CI runs typecheck, both builds and unit tests; no Playwright, no lint step.
+- CI runs typecheck, builds, tests, `check:shipped`, audit and gitleaks; no lint step. Each preview runs Lighthouse, axe and the probe (ADR-192).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-10-01)
+## Current focus (2026-10-02)
 
-1. R12 shipped to staging: Review 01/10 (the dashboard as a home, one scene per chapter, House by House, /sample at four
-   chapters, €54 with a launch price, Personal report and Your circle) and production's writers on Sol and Luna (ADR-184, 185).
-2. Production waits for a Release: R11's site and R12 together, after the full lab and the QA agent on Sol. Checkout, the postal
-   address and `LAUNCHED` wait for R13 (ADR-138). Open for the Owner: MB-103 (pairs, Not me), MB-104 (sharing your chart).
-3. Next: R13, pricing and launch (`docs/rounds/R13-plan.md`, re-planned at its /plan).
+1. R13 shipped to staging: security hardening (no CORS, Lax cookie, headers and a report-only CSP, limits and a spend ledger breaker,
+   names as data at v9 and p4, logs without personal data, supply chain) and the agent roster (tiers, tester, sentinel, hook, lessons).
+2. Next: /qa on staging (QA-01), the sentinel's full audit of `main`, then the first Release (R11, R12, R13 together; the brain changed).
+3. Then R14, pricing and launch (`R14-plan.md`; checkout, the postal address, `LAUNCHED`). Open for the Owner: MB-103, MB-104, R13's words.

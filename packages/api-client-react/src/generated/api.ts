@@ -51,7 +51,9 @@ import type {
   JoinWaitlistBody,
   ListInvitesParams,
   PairSendResult,
+  PausedResponse,
   ProfileSummary,
+  RateLimitedResponse,
   RegenerateReport202,
   RelationshipCreateResponse,
   RelationshipSummary,
@@ -59,6 +61,7 @@ import type {
   ReportStatus,
   ReportSummary,
   SendCompatibilityBody,
+  SignInRequiredResponse,
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
@@ -529,7 +532,7 @@ return customFetch<ReportSummary>(getCreateReportUrl(),
 
 export const getCreateReportMutationKey = () => ['createReport'] as const;
 
-export const getCreateReportMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getCreateReportMutationOptions = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,CreateReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,CreateReportMutationVariables, TContext> => {
 
@@ -558,13 +561,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateReportMutationResult = NonNullable<Awaited<ReturnType<typeof createReport>>>
     export type CreateReportMutationBody = BodyType<CreateReportBody>
-    export type CreateReportMutationError = ErrorType<ErrorResponse>
+    export type CreateReportMutationError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>
     export type CreateReportMutationVariables = {data: BodyType<CreateReportBody>}
 
     /**
  * @summary Create a new natal chart report
  */
-export const useCreateReport = <TError = ErrorType<ErrorResponse>,
+export const useCreateReport = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,CreateReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createReport>>,
@@ -897,7 +900,7 @@ export const getRegenerateReportUrl = (id: string,) => {
 }
 
 /**
- * Re-runs interpretation on the stored chart. Used for reports generated before the current prompt version. Rate-limited per report.
+ * Re-runs interpretation on the stored chart. Used for reports generated before the current prompt version. Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
  * @summary Regenerate a report's interpretation
  */
 export const regenerateReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<RegenerateReport202> => {
@@ -917,7 +920,7 @@ export const regenerateReport = async (id: string, options?: Parameters<typeof c
 
 export const getRegenerateReportMutationKey = () => ['regenerateReport'] as const;
 
-export const getRegenerateReportMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getRegenerateReportMutationOptions = <TError = ErrorType<SignInRequiredResponse | ErrorResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateReport>>, TError,RegenerateReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof regenerateReport>>, TError,RegenerateReportMutationVariables, TContext> => {
 
@@ -946,13 +949,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RegenerateReportMutationResult = NonNullable<Awaited<ReturnType<typeof regenerateReport>>>
 
-    export type RegenerateReportMutationError = ErrorType<ErrorResponse>
+    export type RegenerateReportMutationError = ErrorType<SignInRequiredResponse | ErrorResponse | RateLimitedResponse | PausedResponse>
     export type RegenerateReportMutationVariables = {id: string}
 
     /**
  * @summary Regenerate a report's interpretation
  */
-export const useRegenerateReport = <TError = ErrorType<ErrorResponse>,
+export const useRegenerateReport = <TError = ErrorType<SignInRequiredResponse | ErrorResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateReport>>, TError,RegenerateReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof regenerateReport>>,
@@ -1313,7 +1316,7 @@ return customFetch<BirthTimeUpdateResponse>(getUpdateProfileBirthTimeUrl(id),
 
 export const getUpdateProfileBirthTimeMutationKey = () => ['updateProfileBirthTime'] as const;
 
-export const getUpdateProfileBirthTimeMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getUpdateProfileBirthTimeMutationOptions = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfileBirthTime>>, TError,UpdateProfileBirthTimeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateProfileBirthTime>>, TError,UpdateProfileBirthTimeMutationVariables, TContext> => {
 
@@ -1342,13 +1345,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateProfileBirthTimeMutationResult = NonNullable<Awaited<ReturnType<typeof updateProfileBirthTime>>>
     export type UpdateProfileBirthTimeMutationBody = BodyType<UpdateBirthTimeBody>
-    export type UpdateProfileBirthTimeMutationError = ErrorType<ErrorResponse>
+    export type UpdateProfileBirthTimeMutationError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>
     export type UpdateProfileBirthTimeMutationVariables = {id: string;data: BodyType<UpdateBirthTimeBody>}
 
     /**
  * @summary Add or correct the birth time and run the horizon pass
  */
-export const useUpdateProfileBirthTime = <TError = ErrorType<ErrorResponse>,
+export const useUpdateProfileBirthTime = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfileBirthTime>>, TError,UpdateProfileBirthTimeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateProfileBirthTime>>,
@@ -1394,7 +1397,7 @@ return customFetch<Horizon>(getPreviewHorizonUrl(),
 
 export const getPreviewHorizonMutationKey = () => ['previewHorizon'] as const;
 
-export const getPreviewHorizonMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getPreviewHorizonMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewHorizon>>, TError,PreviewHorizonMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof previewHorizon>>, TError,PreviewHorizonMutationVariables, TContext> => {
 
@@ -1423,13 +1426,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type PreviewHorizonMutationResult = NonNullable<Awaited<ReturnType<typeof previewHorizon>>>
     export type PreviewHorizonMutationBody = BodyType<HorizonPreviewBody>
-    export type PreviewHorizonMutationError = ErrorType<ErrorResponse>
+    export type PreviewHorizonMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
     export type PreviewHorizonMutationVariables = {data: BodyType<HorizonPreviewBody>}
 
     /**
  * @summary What the entered birth time settles
  */
-export const usePreviewHorizon = <TError = ErrorType<ErrorResponse>,
+export const usePreviewHorizon = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewHorizon>>, TError,PreviewHorizonMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof previewHorizon>>,
@@ -1475,7 +1478,7 @@ return customFetch<CompatibilityCreateResponse>(getCreateCompatibilityReportUrl(
 
 export const getCreateCompatibilityReportMutationKey = () => ['createCompatibilityReport'] as const;
 
-export const getCreateCompatibilityReportMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getCreateCompatibilityReportMutationOptions = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext> => {
 
@@ -1504,13 +1507,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateCompatibilityReportMutationResult = NonNullable<Awaited<ReturnType<typeof createCompatibilityReport>>>
     export type CreateCompatibilityReportMutationBody = BodyType<CreateCompatibilityBody>
-    export type CreateCompatibilityReportMutationError = ErrorType<ErrorResponse>
+    export type CreateCompatibilityReportMutationError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>
     export type CreateCompatibilityReportMutationVariables = {data: BodyType<CreateCompatibilityBody>}
 
     /**
  * @summary Write a compatibility report from two finished natal reports
  */
-export const useCreateCompatibilityReport = <TError = ErrorType<ErrorResponse>,
+export const useCreateCompatibilityReport = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createCompatibilityReport>>,
@@ -1634,7 +1637,7 @@ return customFetch<PairSendResult>(getSendCompatibilityUrl(id),
 
 export const getSendCompatibilityMutationKey = () => ['sendCompatibility'] as const;
 
-export const getSendCompatibilityMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getSendCompatibilityMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCompatibility>>, TError,SendCompatibilityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof sendCompatibility>>, TError,SendCompatibilityMutationVariables, TContext> => {
 
@@ -1663,13 +1666,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type SendCompatibilityMutationResult = NonNullable<Awaited<ReturnType<typeof sendCompatibility>>>
     export type SendCompatibilityMutationBody = BodyType<SendCompatibilityBody>
-    export type SendCompatibilityMutationError = ErrorType<ErrorResponse>
+    export type SendCompatibilityMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
     export type SendCompatibilityMutationVariables = {id: string;data: BodyType<SendCompatibilityBody>}
 
     /**
  * @summary Send a compatibility report to the other of its two people
  */
-export const useSendCompatibility = <TError = ErrorType<ErrorResponse>,
+export const useSendCompatibility = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCompatibility>>, TError,SendCompatibilityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof sendCompatibility>>,
@@ -2024,7 +2027,7 @@ return customFetch<SynastryCreateResponse>(getCreateSynastryReportUrl(),
 
 export const getCreateSynastryReportMutationKey = () => ['createSynastryReport'] as const;
 
-export const getCreateSynastryReportMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getCreateSynastryReportMutationOptions = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSynastryReport>>, TError,CreateSynastryReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createSynastryReport>>, TError,CreateSynastryReportMutationVariables, TContext> => {
 
@@ -2053,13 +2056,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateSynastryReportMutationResult = NonNullable<Awaited<ReturnType<typeof createSynastryReport>>>
     export type CreateSynastryReportMutationBody = BodyType<CreateSynastryBody>
-    export type CreateSynastryReportMutationError = ErrorType<ErrorResponse>
+    export type CreateSynastryReportMutationError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>
     export type CreateSynastryReportMutationVariables = {data: BodyType<CreateSynastryBody>}
 
     /**
  * @summary Create a synastry (two-person) report
  */
-export const useCreateSynastryReport = <TError = ErrorType<ErrorResponse>,
+export const useCreateSynastryReport = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSynastryReport>>, TError,CreateSynastryReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createSynastryReport>>,
@@ -2439,7 +2442,7 @@ return customFetch<CreditCounts>(getTestCheckoutUrl(),
 
 export const getTestCheckoutMutationKey = () => ['testCheckout'] as const;
 
-export const getTestCheckoutMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getTestCheckoutMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext> => {
 
@@ -2468,13 +2471,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type TestCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof testCheckout>>>
     export type TestCheckoutMutationBody = BodyType<TestCheckoutBody>
-    export type TestCheckoutMutationError = ErrorType<ErrorResponse>
+    export type TestCheckoutMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
     export type TestCheckoutMutationVariables = {data: BodyType<TestCheckoutBody>}
 
     /**
  * @summary Add a free test bundle of credits
  */
-export const useTestCheckout = <TError = ErrorType<ErrorResponse>,
+export const useTestCheckout = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof testCheckout>>,
@@ -2608,7 +2611,7 @@ return customFetch<InviteSummary>(getCreateInviteUrl(),
 
 export const getCreateInviteMutationKey = () => ['createInvite'] as const;
 
-export const getCreateInviteMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getCreateInviteMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInvite>>, TError,CreateInviteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createInvite>>, TError,CreateInviteMutationVariables, TContext> => {
 
@@ -2637,13 +2640,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateInviteMutationResult = NonNullable<Awaited<ReturnType<typeof createInvite>>>
     export type CreateInviteMutationBody = BodyType<CreateInviteBody>
-    export type CreateInviteMutationError = ErrorType<ErrorResponse>
+    export type CreateInviteMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
     export type CreateInviteMutationVariables = {data: BodyType<CreateInviteBody>}
 
     /**
  * @summary Create an invite token and send the claim email
  */
-export const useCreateInvite = <TError = ErrorType<ErrorResponse>,
+export const useCreateInvite = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInvite>>, TError,CreateInviteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createInvite>>,
@@ -2926,7 +2929,7 @@ return customFetch<GiftCreated>(getCreateGiftUrl(),
 
 export const getCreateGiftMutationKey = () => ['createGift'] as const;
 
-export const getCreateGiftMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getCreateGiftMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext> => {
 
@@ -2955,13 +2958,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateGiftMutationResult = NonNullable<Awaited<ReturnType<typeof createGift>>>
     export type CreateGiftMutationBody = BodyType<CreateGiftBody>
-    export type CreateGiftMutationError = ErrorType<ErrorResponse>
+    export type CreateGiftMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
     export type CreateGiftMutationVariables = {data: BodyType<CreateGiftBody>}
 
     /**
  * @summary Gift a report
  */
-export const useCreateGift = <TError = ErrorType<ErrorResponse>,
+export const useCreateGift = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createGift>>,
@@ -3163,7 +3166,7 @@ export const getGeocodePlaceQueryKey = (params?: GeocodePlaceParams,) => {
     }
 
 
-export const getGeocodePlaceQueryOptions = <TData = Awaited<ReturnType<typeof geocodePlace>>, TError = ErrorType<ErrorResponse>>(params: GeocodePlaceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof geocodePlace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGeocodePlaceQueryOptions = <TData = Awaited<ReturnType<typeof geocodePlace>>, TError = ErrorType<ErrorResponse | RateLimitedResponse>>(params: GeocodePlaceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof geocodePlace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -3182,14 +3185,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GeocodePlaceQueryResult = NonNullable<Awaited<ReturnType<typeof geocodePlace>>>
-export type GeocodePlaceQueryError = ErrorType<ErrorResponse>
+export type GeocodePlaceQueryError = ErrorType<ErrorResponse | RateLimitedResponse>
 
 
 /**
  * @summary Geocode a place name to coordinates
  */
 
-export function useGeocodePlace<TData = Awaited<ReturnType<typeof geocodePlace>>, TError = ErrorType<ErrorResponse>>(
+export function useGeocodePlace<TData = Awaited<ReturnType<typeof geocodePlace>>, TError = ErrorType<ErrorResponse | RateLimitedResponse>>(
  params: GeocodePlaceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof geocodePlace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {

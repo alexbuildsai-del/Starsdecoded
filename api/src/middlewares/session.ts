@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Request, Response, NextFunction } from "express";
+import type { CookieOptions, Request, Response, NextFunction } from "express";
 
 declare global {
   namespace Express {
@@ -12,23 +12,26 @@ declare global {
 const COOKIE_NAME = "sd_session_id";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
-// The web app and this API are deployed to different origins (Vercel and
-// Railway), which makes every API call cross-site: browsers drop a
-// SameSite=Lax cookie there, and anonymous ownership of profiles and
-// reports silently stops working. SameSite=None requires Secure, so this
-// is only correct over HTTPS — hence the dev default of Lax over plain
-// http. Set CROSS_SITE_COOKIES explicitly to override the guess.
-const crossSiteCookies = process.env.CROSS_SITE_COOKIES
-  ? process.env.CROSS_SITE_COOKIES === "true"
-  : process.env.NODE_ENV === "production";
+/**
+ * The web calls /api on its own origin through Vercel's rewrites, so the cookie is first-party: Lax keeps it off every request
+ * another site starts, and Secure keeps it off plain http, which only a laptop's dev server speaks (ADR-197).
+ */
+export function sessionCookie(env: NodeJS.ProcessEnv = process.env): CookieOptions {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: env.NODE_ENV !== "development",
+    maxAge: ONE_YEAR_MS,
+    path: "/",
+  };
+}
 
 /**
  * Issues an anonymous, stable session id on first visit and exposes it as
  * `req.sessionId` for downstream handlers. Used to scope profiles/reports
  * to the current browser before real auth lands.
  *
- * The cookie is httpOnly so the value never leaks to client JS; the client
- * just needs `credentials: "include"` on every fetch.
+ * The cookie is httpOnly so the value never leaks to client JS.
  */
 export function sessionMiddleware(
   req: Request,
@@ -39,18 +42,11 @@ export function sessionMiddleware(
   // middleware is robust if cookie-parser is ever removed.
   const fromParser = (req as unknown as { cookies?: Record<string, string> }).cookies?.[COOKIE_NAME];
   const fromHeader = !fromParser ? parseCookieHeader(req.headers.cookie, COOKIE_NAME) : undefined;
-  let sessionId = fromParser ?? fromHeader;
+  const sessionId = fromParser || fromHeader || randomUUID();
 
-  if (!sessionId) {
-    sessionId = randomUUID();
-    res.cookie(COOKIE_NAME, sessionId, {
-      httpOnly: true,
-      sameSite: crossSiteCookies ? "none" : "lax",
-      secure: crossSiteCookies,
-      maxAge: ONE_YEAR_MS,
-      path: "/",
-    });
-  }
+  // Re-issued on every request, so a cookie set as SameSite=None before ADR-197 turns Lax at its next visit; the year
+  // therefore runs from the last visit.
+  res.cookie(COOKIE_NAME, sessionId, sessionCookie());
 
   req.sessionId = sessionId;
   next();

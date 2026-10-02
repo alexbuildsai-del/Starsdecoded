@@ -21,9 +21,9 @@
     "@workspace/integrations-openai-ai-server": "workspace:*",
     "@workspace/launch": "workspace:*",
     "cookie-parser": "^1.4.7",
-    "cors": "^2",
     "drizzle-orm": "catalog:",
     "express": "^5",
+    "express-rate-limit": "8.7.0",
     "gpt-tokenizer": "^4.0.0",
     "pino": "^9",
     "pino-http": "^10",
@@ -33,7 +33,6 @@
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "catalog:",
     "esbuild": "^0.27.3",

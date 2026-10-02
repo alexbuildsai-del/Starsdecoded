@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { labApi, type FailuresResponse } from "@/lib/labApi";
+import { labApi, type CspViolation, type FailuresResponse } from "@/lib/labApi";
 import { annexRow, groupBySection, rateLabel } from "@/lib/failureCounts";
 
 /**
@@ -46,6 +46,46 @@ export function FailuresView() {
           </table>
         </div>
       ))}
+      <CspTable rows={data.csp ?? []} />
+    </div>
+  );
+}
+
+// The API returns one row per day; the admin decides on the week, so a directive and blocked host become one line.
+function CspTable({ rows }: { rows: CspViolation[] }) {
+  const lines = new Map<string, { directive: string; blocked: string; count: number; last: string }>();
+  for (const r of rows) {
+    const key = `${r.directive} ${r.blocked}`;
+    const line = lines.get(key);
+    if (line) {
+      line.count += r.count;
+      if (r.day > line.last) line.last = r.day;
+    } else {
+      lines.set(key, { directive: r.directive, blocked: r.blocked, count: r.count, last: r.day });
+    }
+  }
+  const sorted = [...lines.values()].sort((a, b) => b.count - a.count || b.last.localeCompare(a.last));
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 p-3">
+      <p className="font-label text-xs tracking-wide mb-2 text-primary">CSP, last 7 days</p>
+      {sorted.length === 0 ? (
+        <p className="text-muted-foreground">No CSP violations in the last 7 days.</p>
+      ) : (
+        <table className="w-full text-xs font-numeric">
+          <thead className="text-muted-foreground"><tr><th className="text-left">directive</th><th className="text-left">blocked</th><th>count</th><th className="text-left">last day</th></tr></thead>
+          <tbody>
+            {sorted.map((l) => (
+              <tr key={`${l.directive} ${l.blocked}`} className="border-t border-border/30">
+                <td>{l.directive}</td>
+                <td>{l.blocked}{l.blocked === "extension" && <span className="text-muted-foreground"> · a browser extension, not ours</span>}</td>
+                <td className="text-center">{l.count}</td>
+                <td className="text-muted-foreground">{l.last.slice(0, 10)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

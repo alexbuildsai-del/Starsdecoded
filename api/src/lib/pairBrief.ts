@@ -12,12 +12,16 @@
  * personal-report sections it draws on, its one scene and the band
  * (ADR-66, ADR-176). A blind chart on either side means the overlays and
  * every house-based line are omitted, not guessed (R-4.6).
+ *
+ * The two names and how they know each other are typed by a reader, so each
+ * appears once, in its data block, and every other line says A or B (ADR-202).
  */
 import { hasHorizon, type NatalChartData } from "./chartCalculation.js";
 import type { ReportInterpretation } from "./aiInterpretation.js";
 import { computeCrossAspects, type CrossAspect } from "./synastryCompute.js";
 import { computeOverlays, notableOverlays, type NotableOverlay, type Overlay, type Side } from "./overlays.js";
 import { SECTION_IDS, type StoredClaim } from "../prompts/index.js";
+import { dataBlock } from "../prompts/data.js";
 import { BODY_LABELS, cap, ordinal, type Body } from "../prompts/vocabulary.js";
 
 export type Lens = "partners" | "parent_child" | "people";
@@ -210,7 +214,6 @@ export function buildPairBrief(input: PairInput): PairBrief {
     childAge = ageAt(child.birthDate, at);
   }
 
-  const who = (s: Side) => (s === "A" ? a.name : b.name);
   const placement = (s: PairSide, body: Body) => {
     const p = s.chart.planets[body];
     return p ? `${label(body)} ${p.degree.toFixed(1)} ${p.sign}${p.house !== undefined && !blind ? `, ${ordinal(p.house)} house` : ""}` : null;
@@ -219,13 +222,17 @@ export function buildPairBrief(input: PairInput): PairBrief {
     .map((body) => placement(s, body)).filter((l): l is string => l !== null).map((l) => `  - ${l}`);
 
   const lines = [
-    `PAIR: A is ${a.name}. B is ${b.name}. LENS: ${register.label}.`,
-    ...(parent ? [`${who(parent)} is the parent. ${who(parent === "A" ? "B" : "A")} is the child, ${writtenAge(childAge!)} years old on the day this is written, in the ${BAND_LABELS[band!]} band. Read the child's chart as potential, never a verdict. Write for this age now. A later stage may be discussed, framed as later${band === "grown" ? ". Childhood is past tense only" : ""}.`] : []),
-    ...(input.lens === "people" && input.label ? [`How they know each other: ${input.label}.`] : []),
+    `PAIR: A and B. LENS: ${register.label}.`,
+    `A's name:`,
+    dataBlock("name", a.name),
+    `B's name:`,
+    dataBlock("name", b.name),
+    ...(parent ? [`${parent} is the parent. ${parent === "A" ? "B" : "A"} is the child, ${writtenAge(childAge!)} years old on the day this is written, in the ${BAND_LABELS[band!]} band. Read the child's chart as potential, never a verdict. Write for this age now. A later stage may be discussed, framed as later${band === "grown" ? ". Childhood is past tense only" : ""}.`] : []),
+    ...(input.lens === "people" && input.label ? [`How they know each other:`, dataBlock("label", input.label)] : []),
     `EXAMPLE REGISTER (every example in every section comes from here): ${register.examples.join(", ")}.`,
     ...(blind ? [`HORIZON: one chart has no recorded birth time, so there are no houses across the pair. Never name a house or an overlay.`] : []),
     ``,
-    `A, ${a.name}:`,
+    `A:`,
     `  thesis: ${a.foundation.chartThesis}`,
     `  pattern: ${a.foundation.dominantPattern}`,
     `  tension: ${a.foundation.centralTension}`,
@@ -233,7 +240,7 @@ export function buildPairBrief(input: PairInput): PairBrief {
     `  connects best with: ${a.connectBestWith.map((c) => `${c.item} (${c.reason})`).join(", ") || "not stated"}`,
     ...placements(a),
     ``,
-    `B, ${b.name}:`,
+    `B:`,
     `  thesis: ${b.foundation.chartThesis}`,
     `  pattern: ${b.foundation.dominantPattern}`,
     `  tension: ${b.foundation.centralTension}`,
