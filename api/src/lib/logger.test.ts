@@ -164,3 +164,73 @@ test("the request line names a path's token by its parameter and keeps every id"
   assert.equal(logPath("/api/admin/prompts/natal:system#top"), "/api/admin/prompts/natal:system");
   assert.equal(logPath(undefined), undefined);
 });
+
+test("the request line keeps the route and the id and nothing else, whatever the request carried", () => {
+  const req = { id: "req-1", method: "POST", url: `/api/reports?email=${PERSON.email}`, headers: { cookie: SESSION, authorization: BEARER }, body: PERSON, query: { token: QUERY_TOKEN } };
+  assert.deepEqual(httpSerializers.req(req), { id: "req-1", method: "POST", url: "/api/reports" });
+  assert.deepEqual(httpSerializers.res({ statusCode: 429, headers: { "set-cookie": [`sd_session_id=${SESSION}`] } } as { statusCode: number }), { statusCode: 429 });
+  assert.equal(httpSerializers.req({}).url, undefined);
+});
+
+test("a request, a response and a header block logged under their own keys lose the credential headers and keep the rest", () => {
+  const out = buffer();
+  createLogger({}, out.dest).info({
+    req: { method: "GET", headers: { authorization: `Bearer ${BEARER}`, cookie: `sd_session_id=${SESSION}`, accept: "text/html" } },
+    res: { statusCode: 200, headers: { "set-cookie": [`sd_session_id=${SESSION}`], "content-type": "text/html" } },
+  }, "whole objects");
+  const line = JSON.parse(out.lines[0]);
+  assert.deepEqual([line.req.headers.authorization, line.req.headers.cookie], ["[Redacted]", "[Redacted]"]);
+  assert.equal(line.req.headers.accept, "text/html");
+  assert.equal(line.res.headers["set-cookie"], "[Redacted]");
+  assert.equal(line.res.headers["content-type"], "text/html");
+  assert.ok(!out.text().includes(SESSION) && !out.text().includes(BEARER));
+});
+
+test("every address in a string goes, whatever its case, and a bare @ handle is not one", () => {
+  const out = buffer();
+  const log = createLogger({}, out.dest);
+  log.warn({ detail: "from Marie.Curie+news@Example.COM to pierre@lab.example.co.uk, cc a_b@x-y.org" }, "see @marie on example.com");
+  const line = JSON.parse(out.lines[0]);
+  assert.equal(line.detail, "from [email] to [email], cc [email]");
+  assert.equal(line.msg, "see @marie on example.com");
+});
+
+test("a failed query's parameters go from an error nested in another's cause, and the statement of each stays", () => {
+  const out = buffer();
+  const inner = new DrizzleQueryError('select * from "profiles" where "email" = $1', [PERSON.email], new Error("deadlock detected"));
+  const outer = new Error("write failed", { cause: inner });
+  const log = createLogger({}, out.dest);
+  log.error({ err: inner, reportId: "rep-1" });
+  log.error({ err: outer });
+  const [first, second] = out.lines.map((l) => JSON.parse(l));
+  assert.equal(first.err.message, 'Failed query: select * from "profiles" where "email" = $1: deadlock detected', "the statement and the cause stay");
+  assert.equal(first.reportId, "rep-1");
+  assert.equal(second.err.message, 'write failed: Failed query: select * from "profiles" where "email" = $1: deadlock detected', "pino joins a cause's message to its parent's");
+  assert.ok(!out.text().includes("@example.com"), out.text());
+});
+
+test("a value that is not an error reaches the err key as it is, and an address in it still goes", () => {
+  const out = buffer();
+  const log = createLogger({}, out.dest);
+  log.warn({ err: `provider said no to ${PERSON.email}` }, "string");
+  log.warn({ err: undefined, code: 7 }, "nothing");
+  log.warn({ err: null }, "null");
+  const [str, none, nul] = out.lines.map((l) => JSON.parse(l));
+  assert.equal(str.err, "provider said no to [email]");
+  assert.equal("err" in none, false);
+  assert.equal(none.code, 7);
+  assert.equal(nul.err, null);
+});
+
+test("only a token's shape or an invite route changes a path: each piece must be 16 characters, and a trailing slash or a bare route is left", () => {
+  const piece = (n: number) => "a".repeat(n);
+  assert.equal(logPath(`/x/${piece(16)}.${piece(16)}`), "/x/:token", "16 and 16 is a token");
+  assert.equal(logPath(`/x/${piece(15)}.${piece(16)}`), `/x/${piece(15)}.${piece(16)}`, "15 and 16 is not");
+  assert.equal(logPath(`/x/${piece(16)}.${piece(15)}`), `/x/${piece(16)}.${piece(15)}`, "16 and 15 is not");
+  assert.equal(logPath(`/x/${piece(16)}.${piece(16)}.${piece(16)}/`), "/x/:token/", "a JWT's three pieces, and the slash after it");
+  assert.equal(logPath("/api/invites/"), "/api/invites/", "no token, nothing to name");
+  assert.equal(logPath("/api/invites/abc"), "/api/invites/:token");
+  assert.equal(logPath("/assets/index-3f9a7c1b.min.js"), "/assets/index-3f9a7c1b.min.js", "a bundle's name is not a token");
+  assert.equal(logPath(""), "");
+  assert.equal(logPath("/?token=x"), "/");
+});
