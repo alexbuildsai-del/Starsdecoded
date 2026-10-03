@@ -28,14 +28,16 @@ function accessControl(res: Response): string[] {
   return [...res.headers.keys()].filter((name) => name.startsWith("access-control-"));
 }
 
-test("unset, the list is production, www, the staging alias and the previews", () => {
+test("unset, the list is production, www, the staging alias and this team's previews", () => {
   const origins = webOrigins({});
   for (const ok of [
     "https://mystarsdecoded.com",
     "https://www.mystarsdecoded.com",
     "https://starsdecoded-staging.vercel.app",
-    "https://starsdecoded-git-round-r13-alex.vercel.app",
-    "https://starsdecoded-k3j9x2abc-alex.vercel.app",
+    // The Vercel bot's link on PR #100, 2026-10-03.
+    "https://starsdecoded-git-claude-ecstatic-noether-9n2lyc-stars-decoded.vercel.app",
+    "https://starsdecoded-git-round-r15-stars-decoded.vercel.app",
+    "https://starsdecoded-k3j9x2abc-stars-decoded.vercel.app",
   ]) {
     assert.equal(originAllowed(ok, origins), true, ok);
   }
@@ -48,16 +50,34 @@ test("unset, the list is production, www, the staging alias and the previews", (
     "https://evil-mystarsdecoded.com",
     "https://staging.mystarsdecoded.com",
     "http://starsdecoded-staging.vercel.app",
-    "https://starsdecoded-.vercel.app",
-    "https://starsdecoded-a.b.vercel.app",
-    "https://starsdecoded-x.vercel.app.evil.example",
-    "https://evil-starsdecoded-x.vercel.app",
     "https://starsdecoded.vercel.app",
-    "https://starsdecoded-x.vercel.app:8443",
+    "https://starsdecoded-git-stars-decoded.vercel.app",
+    "https://starsdecoded-git-a.b-stars-decoded.vercel.app",
+    "https://starsdecoded-git-x-stars-decoded.vercel.app.evil.example",
+    "https://starsdecoded-k3j9x2abc-stars-decoded.vercel.app.evil.example",
+    "https://evil-starsdecoded-git-x-stars-decoded.vercel.app",
+    "https://starsdecoded-git-x-stars-decoded.vercel.app:8443",
+    "http://starsdecoded-git-x-stars-decoded.vercel.app",
     "http://localhost:5173",
     "https://mystarsdecoded.com, https://evil.example",
   ]) {
     assert.equal(originAllowed(foreign, origins), false, foreign);
+  }
+});
+
+test("another team's starsdecoded project is not ours, whatever it is called (MB-154)", () => {
+  const origins = webOrigins({});
+  for (const theirs of [
+    "https://starsdecoded-evil.vercel.app",
+    "https://starsdecoded-git-round-r13-alex.vercel.app",
+    "https://starsdecoded-k3j9x2abc-alex.vercel.app",
+    "https://starsdecoded-stars-decoded-k3j9x2abc-alex.vercel.app",
+    "https://starsdecoded-k3j9x2abc-evil-stars-decoded.vercel.app",
+    "https://starsdecoded-foo-k3j9x2abc-evil-stars-decoded.vercel.app",
+    "https://starsdecoded-foo-git-main-evil-stars-decoded.vercel.app",
+    "https://starsdecoded-k3j9x2ab-stars-decoded.vercel.app",
+  ]) {
+    assert.equal(originAllowed(theirs, origins), false, theirs);
   }
 });
 
@@ -82,7 +102,7 @@ test("under development with none set every Origin passes but null; set, the lis
   assert.equal(originAllowed("http://localhost:5173", webOrigins({ NODE_ENV: "production" })), false);
 });
 
-test("a write from a foreign Origin, null included, answers 403; ours, a preview's and none pass", async (t) => {
+test("a write from a foreign Origin, null or another team's preview included, answers 403; ours, our preview's and none pass", async (t) => {
   const app = express();
   app.use(originGuard(webOrigins({})));
   app.all("/{*any}", (_req, res) => {
@@ -92,14 +112,14 @@ test("a write from a foreign Origin, null included, answers 403; ours, a preview
   t.after(close);
 
   for (const method of WRITES) {
-    for (const origin of [EVIL, "null", "https://starsdecoded-x.vercel.app.evil.example"]) {
+    for (const origin of [EVIL, "null", "https://starsdecoded-evil.vercel.app", "https://starsdecoded-git-x-stars-decoded.vercel.app.evil.example"]) {
       const res = await call(base, method, "/api/reports", origin);
       assert.equal(res.status, 403, `${method} ${origin}`);
       const body = (await res.json()) as { error: string; message: unknown };
       assert.equal(body.error, "forbidden_origin");
       assert.equal(typeof body.message, "string");
     }
-    for (const origin of [undefined, "https://mystarsdecoded.com", "https://starsdecoded-staging.vercel.app", "https://starsdecoded-git-x-alex.vercel.app"]) {
+    for (const origin of [undefined, "https://mystarsdecoded.com", "https://starsdecoded-staging.vercel.app", "https://starsdecoded-git-x-stars-decoded.vercel.app"]) {
       const res = await call(base, method, "/api/reports", origin);
       assert.equal(res.status, 200, `${method} ${origin ?? "no Origin"}`);
     }
