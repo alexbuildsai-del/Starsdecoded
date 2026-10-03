@@ -1,9 +1,11 @@
 /**
  * The birth date as one typed field (ADR-222, review-02-10 §5): digits on the
  * number pad, laid out in the reader's order as they go in, the date in words
- * under it so it cannot be misread, and "YYYY-MM-DD" out. The rules live in
- * lib/date-entry; this keeps the caret where the reader expects it. The form
- * owns the label, through `id`, and where focus goes once the date is whole.
+ * under it so it cannot be misread, and "YYYY-MM-DD" out. A paste in words it
+ * cannot read leaves the field as it was and the line says why (MB-185). The
+ * rules live in lib/date-entry; this keeps the caret where the reader expects
+ * it. The form owns the label, through `id`, and where focus goes once the date
+ * is whole.
  */
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,7 @@ export function BirthDateField({ id, value, onChange, onComplete, min, max, desc
   const { order } = useEntryFormat();
   const [digits, setDigits] = useState(() => dateDigits(value, order));
   const [left, setLeft] = useState(false);
+  const [refused, setRefused] = useState(false);
   // Every change renders, even one the field refuses, so the caret is put back where it belongs.
   const [, rendered] = useReducer((n: number) => n + 1, 0);
   const input = useRef<HTMLInputElement>(null);
@@ -44,6 +47,7 @@ export function BirthDateField({ id, value, onChange, onComplete, min, max, desc
     if (value === stood.current) return;
     stood.current = value;
     setDigits(dateDigits(value, order));
+    setRefused(false);
   }, [value, order]);
 
   // The browser's order arrives after hydration; a whole date is laid out again in it.
@@ -62,7 +66,7 @@ export function BirthDateField({ id, value, onChange, onComplete, min, max, desc
 
   const text = dateText(digits, order);
   const range = { min, max };
-  const note = dateNote(digits, order, { range, today: localDay(new Date()), left });
+  const note = dateNote(digits, order, { range, today: localDay(new Date()), left, refused });
   const noteId = `${id}-note`;
 
   const change = (event: ChangeEvent<HTMLInputElement>) => {
@@ -81,6 +85,7 @@ export function BirthDateField({ id, value, onChange, onComplete, min, max, desc
     caret.current = step.caret;
     setDigits(step.digits);
     setLeft(false);
+    setRefused(step.refused);
     rendered();
     if (step.value !== stood.current) {
       stood.current = step.value;

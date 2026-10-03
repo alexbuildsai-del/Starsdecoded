@@ -23,8 +23,6 @@ export const base = import.meta.env.BASE_URL;
 
 const basePath = base.replace(/\/$/, "");
 
-const NOT_FOUND_HEAD = `<title>${NOT_FOUND_TITLE}</title>\n<meta name="robots" content="noindex" />`;
-
 /**
  * The providers a page can reach for, and the one Suspense boundary App.tsx renders every route in: hydration expects
  * that boundary's markers. Like App.tsx before hydration, no level has a second child, so useId counts the same here.
@@ -50,12 +48,20 @@ export async function render(path: string): Promise<{ html: string; head: string
       <Page />
     </Shell>,
   );
-  return { html, head: route ? headFor(route.path, env) : NOT_FOUND_HEAD };
+  return { html, head: route ? headFor(route.path, env) : notFoundHead() };
 }
 
 /** app.html's head: the tags headFor gives every app route, noindex and the site's share card among them. */
 export function appHead(): string {
   return headFor("/chart", env);
+}
+
+/**
+ * 404.html's head: an unknown path's, so a broken link someone shares still shows the site's card, under the page's
+ * own title.
+ */
+export function notFoundHead(): string {
+  return headFor("/404", env).replace(/<title>[^<]*<\/title>/, () => `<title>${NOT_FOUND_TITLE}</title>`);
 }
 
 const PAGE_MODULES = import.meta.glob<{ default: ComponentType }>(["./site/pages/*.tsx", "./pages/legal/*.tsx"]);

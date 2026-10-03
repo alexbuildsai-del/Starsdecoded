@@ -130,6 +130,8 @@ for (const { locale, datePlaceholder, date, dateShown, twelveHour } of LANGUAGES
       await paste(page, "4 Mai 1929");
       await expect(dateInput, "words it cannot read leave the field as it was (MB-185)").toHaveValue("");
       await expect(dateInput).toBeFocused();
+      await expect(page.getByText(`We couldn't read that as a date. Type it as ${datePlaceholder}.`), "and the line says why").toBeVisible();
+      await expect(dateInput).toHaveAttribute("aria-invalid", "true");
 
       // The readout's own style first, the one QA-02 #12 pasted.
       for (const clip of ["4 May 1929", "May 4 1929", "4 may 1929"]) {

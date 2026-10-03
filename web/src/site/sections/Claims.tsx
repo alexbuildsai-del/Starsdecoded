@@ -144,11 +144,10 @@ function readSpots(host: HTMLElement): Spots | null {
   const viewBox = svg?.getAttribute("viewBox");
   if (!svg || !viewBox) return null;
   const [x, , width] = viewBox.split(/[\s,]+/).map(Number);
-  const keys = Object.keys(PLANET_LABELS);
   const bodies: Record<string, Spot> = {};
-  for (const g of svg.querySelectorAll('g[role="button"][aria-label]')) {
-    const label = g.getAttribute("aria-label") ?? "";
-    const key = keys.find((k) => label.startsWith(`${PLANET_LABELS[k]} `) && label.includes(" degrees "));
+  // By data-body, not a button's label: this wheel takes no stops (MB-177), so none of its bodies is a button.
+  for (const g of svg.querySelectorAll<SVGGElement>("g[data-body]")) {
+    const key = g.dataset.body;
     const disc = g.querySelector("circle");
     if (key && disc) {
       bodies[key] = { x: Number(disc.getAttribute("cx")), y: Number(disc.getAttribute("cy")), r: Number(disc.getAttribute("r")) };

@@ -36,7 +36,8 @@ export async function openWheels() {
 
   async function wheel({ date, time, lat, lon, tz, windowMinutes = 0, centreName, tilt = true }) {
     const chart = calculateNatalChart(date, time, lat, lon, tz, windowMinutes);
-    const props = { chartData: chart, selectedHouse: 0, ...(centreName !== undefined ? { centreName } : {}) };
+    // A slide is a picture: no stops, so no skip link either, which a slide would print as text with no sr-only to hide it.
+    const props = { chartData: chart, selectedHouse: 0, stops: false, ...(centreName !== undefined ? { centreName } : {}) };
     let svg = renderToStaticMarkup(React.createElement(NatalWheel, props));
     svg = svg.replace(/(href|src)="\/src\//g, `$1="file://${WEB}/src/`);
     // As on the website: the wheel turns so the Ascendant point sits on the horizon (sky-now.ts tiltToAscendant).
