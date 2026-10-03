@@ -38,6 +38,9 @@ redesign it.
      high) once for that group. It writes tests only; a bug it finds comes
      back as a failing test, which is a fix for the card that owns the file.
      A group ends green before the next one starts.
+   - **Push (ADR-234).** Push `round/RNN` once per parallel group and once
+     per fix, never per card: each push builds a Vercel preview, and the
+     plan allows 100 deployments a day.
    - **Tally.** As each subagent returns, add its usage figures, from the
      Agent tool's own result, to a running tally by tier for the Spend line.
 3. **Gate**, in this order, all green before the round closes:
