@@ -423,14 +423,17 @@ export function sceneTitleOf(interpretation: PairInterpretation | null, id: stri
 }
 
 /**
- * The prompt versions this page renders: v7 and v8 changed the words, not the
+ * The prompt versions this page renders: v7 to v10 changed the words, not the
  * shape (ADR-104, ADR-185), so a stored v6 report reads as it was written.
  * Older stored reports get the regenerate call to action.
  */
-export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7", "v8", "v9"] as const;
+export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7", "v8", "v9", "v10"] as const;
 
-/** p3 dropped the pointer and wrote one scene a chapter; the page reads a p2 report's written scene the same way (ADR-176). */
-export const RENDERABLE_PAIR_PROMPT_VERSIONS = ["p2", "p3", "p4"] as const;
+/**
+ * p3 dropped the pointer and wrote one scene a chapter, and p4 and p5 kept that
+ * shape; the page reads a p2 report's written scene the same way (ADR-176).
+ */
+export const RENDERABLE_PAIR_PROMPT_VERSIONS = ["p2", "p3", "p4", "p5"] as const;
 
 /**
  * A stored report this page can render. Anything older keeps its words but not
@@ -445,6 +448,38 @@ export function isCurrentInterpretation(v: unknown): v is Interpretation {
 export function isCurrentPairInterpretation(v: unknown): v is PairInterpretation {
   return typeof v === "object" && v !== null
     && (RENDERABLE_PAIR_PROMPT_VERSIONS as readonly string[]).includes((v as PairInterpretation).meta?.promptVersion as string);
+}
+
+/** What the report row says about rewriting it. `status` is the freshest one: the status route's while it polls. */
+export interface RewriteFacts {
+  status?: string;
+  canRegenerate?: boolean;
+  outdated?: boolean;
+}
+
+export interface RewriteOffer {
+  /** Try again under a failed report's line. */
+  tryAgain: boolean;
+  /** The line over chapter 01: a complete report written before its birth time was last updated. */
+  outdated: boolean;
+  /** Regenerate, wherever the page shows it: under that line, or on an earlier version's screen. */
+  regenerate: boolean;
+}
+
+/**
+ * Try again and Regenerate show only where the server says this reader may run
+ * them: the writer, or the holder after a hand-over, never a shared reader
+ * (MB-169). An API that doesn't say offers neither, rather than a button its
+ * route may refuse. Every reader of an outdated report is told so, and the line
+ * goes the moment a rewrite or a pass starts (MB-170).
+ */
+export function rewriteOffer({ status, canRegenerate, outdated }: RewriteFacts): RewriteOffer {
+  const may = canRegenerate === true;
+  return {
+    tryAgain: may && status === "failed",
+    outdated: outdated === true && status === "complete",
+    regenerate: may,
+  };
 }
 
 export const PLANET_LABELS: Record<string, string> = {

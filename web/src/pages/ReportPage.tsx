@@ -7,7 +7,10 @@
  * R04's ground. Ten chapters, the last one Closing
  * (ADR-46); a chapter not yet landed shows a skeleton. A blind report renders
  * no rising text and no house readings, the call to action instead, and the
- * ledger above chapter 01 once a pass has run (ADR-35, ADR-37).
+ * ledger above chapter 01 once a pass has run (ADR-35, ADR-37). A report
+ * written before its birth time was last updated keeps its words and says so
+ * there (MB-170); Try again and Regenerate show only where the server lets the
+ * reader rewrite it (MB-169).
  */
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
@@ -21,6 +24,7 @@ import {
   PLANET_GLYPHS,
   PLANET_LABELS,
   isCurrentInterpretation,
+  rewriteOffer,
   type ChartData,
   type ChartPlanet,
   type Interpretation,
@@ -82,6 +86,33 @@ function Centred({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** The hero and the houses draw the chart as it stands now, so a report written before the change says why its words differ. */
+function OutdatedLine({ onRegenerate, pending, error }: { onRegenerate?: () => void; pending: boolean; error: string | null }) {
+  return (
+    <div
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-[#242C3B] bg-[rgba(20,24,31,.6)] px-3 py-2.5"
+      data-testid="outdated-line"
+    >
+      <p id="outdated-line-text" className="min-w-0 flex-1 basis-[200px] text-[13.5px] leading-snug text-foreground">
+        The birth time was updated after this report was written.
+      </p>
+      {onRegenerate && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pending}
+          onClick={onRegenerate}
+          aria-describedby="outdated-line-text"
+          className="shrink-0 font-label text-xs text-[#9FA8DA] [border-color:rgba(92,107,192,.6)]"
+        >
+          {pending ? "Starting…" : "Regenerate"}
+        </Button>
+      )}
+      {error && <p role="alert" className="basis-full text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -128,7 +159,12 @@ export default function ReportPage() {
   }
 
   const chartData = (report.chartData ?? null) as unknown as ChartData | null;
-  const failed = report.status === "failed" && !interpretation;
+  // The status route is fresher than the row while it polls, and a failure reaches it first.
+  const offer = rewriteOffer({ status: live.status, canRegenerate: report.canRegenerate, outdated: report.outdated });
+  const rewrite = () => regenerate.mutate({ id: id! });
+  const regenerateError = regenerate.isError
+    ? refusalLine(regenerate.error) ?? "Could not start regeneration. Please try again in a minute."
+    : null;
 
   // MB-45: a finished report from an earlier prompt version keeps its words
   // but not this page's shape, so it is offered a regeneration and never
@@ -139,13 +175,13 @@ export default function ReportPage() {
         <p className="text-muted-foreground mb-4">
           This report was generated with an earlier version and needs to be regenerated to view.
         </p>
-        <Button variant="outline" disabled={regenerate.isPending} onClick={() => regenerate.mutate({ id: id! })}>
-          {regenerate.isPending ? "Starting…" : "Regenerate"}
-        </Button>
-        {regenerate.isError && (
-          <p role="alert" className="text-sm text-destructive mt-3">
-            {refusalLine(regenerate.error) ?? "Could not start regeneration. Please try again in a minute."}
-          </p>
+        {offer.regenerate && (
+          <Button variant="outline" disabled={regenerate.isPending} onClick={rewrite}>
+            {regenerate.isPending ? "Starting…" : "Regenerate"}
+          </Button>
+        )}
+        {regenerateError && (
+          <p role="alert" className="text-sm text-destructive mt-3">{regenerateError}</p>
         )}
       </Centred>
     );
@@ -153,9 +189,11 @@ export default function ReportPage() {
 
   // Until the door is taken the generation screen is the page; behind it the
   // body mounts as soon as the chart and the first sections exist, so the
-  // hero has measured its ring by the time the screen leaves.
+  // hero has measured its ring by the time the screen leaves. A failed report
+  // has no door, so with chapters written or not it stays on the screen and its
+  // line, unless the reader had already gone through.
   const ready = !!chartData && !!interpretation;
-  const showOverlay = !open || failed;
+  const showOverlay = !open;
   const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1);
   const onHero = active < 0;
   const revisions = revisionSet(horizonPass, marks);
@@ -170,7 +208,7 @@ export default function ReportPage() {
           chart={chartData}
           failureLine={live.failureReason?.line ?? null}
           onOpen={setOpen}
-          onRetry={() => regenerate.mutate({ id: id! })}
+          onRetry={offer.tryAgain ? rewrite : undefined}
           retrying={regenerate.isPending}
         />
       </div>
@@ -208,7 +246,7 @@ export default function ReportPage() {
           chart={chartData}
           failureLine={live.failureReason?.line ?? null}
           onOpen={setOpen}
-          onRetry={failed ? () => regenerate.mutate({ id: id! }) : undefined}
+          onRetry={offer.tryAgain ? rewrite : undefined}
           retrying={regenerate.isPending}
         />
       )}
@@ -261,6 +299,14 @@ export default function ReportPage() {
       />
 
       <main className="rp-body pb-20">
+        {offer.outdated && (
+          <div className="rp-chapter no-print pb-6">
+            <div className="max-w-[64ch]">
+              <OutdatedLine onRegenerate={offer.regenerate ? rewrite : undefined} pending={regenerate.isPending} error={regenerateError} />
+            </div>
+          </div>
+        )}
+
         {horizonPass && (
           <div className="rp-chapter">
             <RevisionLedger

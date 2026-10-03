@@ -6,8 +6,9 @@
  * no numbers. At 100% the page opens itself after a 1.2 s hold. Taking the
  * door crossfades the screen out, under Reduce Motion too, then hands the
  * page back so it can unmount it, show the report at the top and run the
- * gather once. A failed report keeps the screen with its message and "Try
- * again". A report in revising is already readable and shows no screen.
+ * gather once. A failed report keeps the screen with its message, and "Try
+ * again" only for a reader the server lets rewrite it (MB-169). A report in
+ * revising is already readable and shows no screen.
  */
 import { useEffect, useRef, useState } from "react";
 import { Orrery } from "@/components/report/Orrery";
@@ -27,6 +28,7 @@ export interface OpeningOverlayProps {
   /** The coded line a failed report shows (ADR-84); the internal message never reaches the page. */
   failureLine?: string | null;
   onOpen: () => void;
+  /** Try again. Left out where the reader may not rewrite the report, a shared reader say, so no button leads to a refusal. */
   onRetry?: () => void;
   retrying?: boolean;
 }
