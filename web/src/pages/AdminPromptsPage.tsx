@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BASE_URL } from "@/lib/api";
 import { Wordmark } from "@/components/Wordmark";
+import { ClerkStalledPage } from "@/components/ClerkStalled";
+import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { usePageTitle } from "@/lib/page-title";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -370,6 +372,7 @@ export default function AdminPromptsPage() {
 
   const [, navigate] = useLocation();
   const { user, isLoaded } = useUser();
+  const clerkStalled = useClerkStalled();
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [readOnly, setReadOnly] = useState(false);
@@ -413,6 +416,8 @@ export default function AdminPromptsPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user]);
+
+  if (clerkStalled) return <ClerkStalledPage />;
 
   if (!isLoaded || loading) {
     return (

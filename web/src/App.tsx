@@ -14,6 +14,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import LoadingState from "@/components/LoadingState";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { ClerkStalled, ClerkStalledPage } from "@/components/ClerkStalled";
+import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { StagingRibbon } from "@/components/StagingRibbon";
 import { PrelaunchRibbon } from "@/components/PrelaunchRibbon";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -152,6 +154,8 @@ function SignInPage() {
         forceRedirectUrl={fullRet}
         signUpForceRedirectUrl={fullRet}
       />
+      {/* Until Clerk loads, its form draws nothing, so a blocked script would leave the page blank (MB-183). */}
+      <ClerkStalled className="max-w-sm text-center" />
     </div>
   );
 }
@@ -169,6 +173,7 @@ function SignUpPage() {
         forceRedirectUrl={fullRet}
         signInForceRedirectUrl={fullRet}
       />
+      <ClerkStalled className="max-w-sm text-center" />
     </div>
   );
 }
@@ -177,6 +182,7 @@ function SignUpPage() {
 // /sign-in with the full current path (including query string) as return_to.
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
+  const clerkStalled = useClerkStalled();
   const [location, navigate] = useLocation();
 
   useEffect(() => {
@@ -185,7 +191,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     }
   }, [isLoaded, isSignedIn, location, navigate]);
 
-  if (!isLoaded) return <LoadingState />;
+  if (!isLoaded) return clerkStalled ? <ClerkStalledPage /> : <LoadingState />;
   if (!isSignedIn) return null;
   return <>{children}</>;
 }

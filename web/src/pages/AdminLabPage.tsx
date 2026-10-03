@@ -5,6 +5,8 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BASE_URL } from "@/lib/api";
 import { Wordmark } from "@/components/Wordmark";
+import { ClerkStalledPage } from "@/components/ClerkStalled";
+import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { usePageTitle } from "@/lib/page-title";
 import { cents, labApi, type SpendResponse } from "@/lib/labApi";
 import { RunsView } from "@/components/lab/RunsView";
@@ -31,6 +33,7 @@ export default function AdminLabPage() {
   usePageTitle("Report lab");
   const [, navigate] = useLocation();
   const { user, isLoaded } = useUser();
+  const clerkStalled = useClerkStalled();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [readOnly, setReadOnly] = useState(false);
   const [spend, setSpend] = useState<SpendResponse | null>(null);
@@ -52,6 +55,8 @@ export default function AdminLabPage() {
   }, [isLoaded, user, navigate]);
 
   const onSession = useCallback((id: string) => setSessionId(id), []);
+
+  if (clerkStalled) return <ClerkStalledPage />;
 
   if (!isLoaded || isAdmin === null) {
     return (

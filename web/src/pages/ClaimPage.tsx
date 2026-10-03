@@ -29,6 +29,7 @@ import {
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
+import { ClerkStalled } from "@/components/ClerkStalled";
 import { StatusDots } from "@/components/StatusDots";
 import { GiftCover } from "@/components/dashboard/GiftCover";
 import { usePageTitle } from "@/lib/page-title";
@@ -145,7 +146,7 @@ export default function ClaimPage() {
     );
   }
 
-  if (inviteQ.isLoading || !isLoaded) {
+  if (inviteQ.isLoading) {
     return (
       <Centered>
         <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
@@ -218,8 +219,11 @@ export default function ClaimPage() {
 
   if (!isSignedIn) {
     // ADR-140: writing a report needs an account, and the claim binds to the invited email, so a gift is claimed signed in.
-    if (isGift) return <GiftScreen inv={inv} giver={giver} signedOut onClaim={() => goSignIn(true)} />;
-    return <SendPreview inv={inv} giver={giver} onSignIn={() => goSignIn(false)} />;
+    // The preview needs only the public GET, so it never waits for Clerk (MB-183). Its button does: a reader who turns out
+    // to be signed in claims from here rather than signing in.
+    const waiting = !isLoaded;
+    if (isGift) return <GiftScreen inv={inv} giver={giver} signedOut waiting={waiting} onClaim={() => goSignIn(true)} />;
+    return <SendPreview inv={inv} giver={giver} waiting={waiting} onSignIn={() => goSignIn(false)} />;
   }
 
   if (inv.alreadyClaimed) {
@@ -290,7 +294,14 @@ export default function ClaimPage() {
   );
 }
 
-function SendPreview({ inv, giver, onSignIn }: { inv: InvitePreview; giver: string | null; onSignIn: () => void }) {
+function SendPreview({
+  inv, giver, waiting, onSignIn,
+}: {
+  inv: InvitePreview;
+  giver: string | null;
+  waiting: boolean;
+  onSignIn: () => void;
+}) {
   const pair = !!inv.relationshipId;
   return (
     <Centered>
@@ -302,20 +313,21 @@ function SendPreview({ inv, giver, onSignIn }: { inv: InvitePreview; giver: stri
       <p className="text-xs text-muted-foreground mb-5">
         Sign in with <span className="text-foreground [overflow-wrap:anywhere]">{inv.email}</span> {pair ? "to read it" : "and it's yours"}.
       </p>
-      <Button onClick={onSignIn} data-testid="button-claim-signin">Sign in to open it</Button>
+      <Button onClick={onSignIn} disabled={waiting} data-testid="button-claim-signin">Sign in to open it</Button>
     </Centered>
   );
 }
 
 // The cover is its own card, so it stands on the page rather than inside another one.
 function GiftScreen({
-  inv, giver, claimed = false, signedOut = false, busy = false, onClaim, onDashboard,
+  inv, giver, claimed = false, signedOut = false, busy = false, waiting = false, onClaim, onDashboard,
 }: {
   inv: InvitePreview;
   giver: string | null;
   claimed?: boolean;
   signedOut?: boolean;
   busy?: boolean;
+  waiting?: boolean;
   onClaim?: () => void;
   onDashboard?: () => void;
 }) {
@@ -341,11 +353,12 @@ function GiftScreen({
                 Sign in with <span className="text-foreground [overflow-wrap:anywhere]">{inv.email}</span> to claim it.
               </p>
             )}
-            <Button onClick={onClaim} disabled={busy} aria-busy={busy} data-testid="button-claim-gift">
+            <Button onClick={onClaim} disabled={busy || waiting} aria-busy={busy} data-testid="button-claim-gift">
               {busy ? <StatusDots label="Claiming" /> : "Claim my report"}
             </Button>
           </>
         )}
+        <ClerkStalled className="max-w-sm" />
       </div>
     </div>
   );
@@ -411,6 +424,7 @@ function Centered({ children }: { children: React.ReactNode }) {
     <div className="min-h-[100dvh] bg-background bg-stars text-foreground flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center p-8 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm">
         {children}
+        <ClerkStalled className="mt-6 border-t border-border/60 pt-5" />
       </div>
     </div>
   );

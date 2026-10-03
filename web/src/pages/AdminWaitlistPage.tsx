@@ -9,6 +9,8 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Wordmark } from "@/components/Wordmark";
+import { ClerkStalledPage } from "@/components/ClerkStalled";
+import { useClerkStalled } from "@/hooks/useClerkStalled";
 import { BASE_URL } from "@/lib/api";
 import { APP_ENV } from "@/lib/appEnv";
 import { usePageTitle } from "@/lib/page-title";
@@ -45,6 +47,7 @@ export default function AdminWaitlistPage() {
   const [, navigate] = useLocation();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const clerkStalled = useClerkStalled();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [rows, setRows] = useState<WaitlistSignup[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +81,8 @@ export default function AdminWaitlistPage() {
       setRemoving(null);
     }
   }
+
+  if (clerkStalled) return <ClerkStalledPage />;
 
   if (!isLoaded || isAdmin === null) {
     return (
