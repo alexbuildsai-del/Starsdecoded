@@ -1,7 +1,7 @@
 # The report section after the hero
 
 Ideation 2026-10-03 with the Owner, from production on a phone. Artifact: https://claude.ai/artifact/ELwG7Aa1VLr5v5cgrRMGRG.
-Status: **draft**. Amends `review-02-10` scope 1 (ADR-218, itself amending ADR-173): one annotated line becomes two
+Status: **locked 2026-10-03** (ADR-243 to 245). Amends `review-02-10` scope 1 (ADR-218, itself amending ADR-173): one annotated line becomes two
 workbook cards. Touches `web/src/site/sections/Differences.tsx`, `web/src/site/data/differences.ts` and its test.
 **Brain:** untouched (the site quotes the stored run; no prompt, model or engine change).
 **Phone first**: designed at 390 px before desktop.
@@ -16,7 +16,7 @@ personality report for day-to-day life, "very actionable yet grounded in your bi
 
 ## Scope
 
-### 1. Two workbook cards (Q1 default: A)
+### 1. Two workbook cards (Q1: A, the Owner 2026-10-03)
 - Eyebrow "Your report", heading "A personality report, not a horoscope", the lede "Two pages from Audrey Hepburn's
   report. Yours is written the same way, from your own chart." (the sample's name read from `SAMPLE`).
 - Two cards, each the report's own path in four rows:
@@ -27,13 +27,11 @@ personality report for day-to-day life, "very actionable yet grounded in your bi
   4. **Something to try**: the chapter action that answers it, with its why, in the one `Checklist` (ADR-172; local
      ticks, never sent).
 - Card head: the card's name (brass label) and the house number with its word ("06 · Work").
-- Option A, the default: **How you work** and **How you spend**, from r06:
+- **How you work** and **How you spend** (option A), from r06:
   - Work: house 6 reading sentence 2 (moment), sentence 1 (plain), its check; chips Mars 25.2° Cancer and Pluto
     16.4° Cancer, 6th house; `career.actions[0]`.
   - Spend: house 2 reading sentence 1 (moment), sentence 2 (plain), its check; chip Moon 6.5° Pisces, 2nd house;
     `money.actions[1]`.
-- Option B: How you work and **How you love** (house 7 sentences 2 and 1, its check, Neptune 28.6° Leo, 7th house,
-  `relationships.actions[0]`).
 - Phone: cards stacked. Desktop (≥ 900 px): side by side, the rows in the same order in both.
 - Same placement as today: after the home hero, and at the end of /sample.
 
@@ -71,12 +69,11 @@ personality report for day-to-day life, "very actionable yet grounded in your bi
    axe on home and /sample.
 
 ## Screens
-The artifact: before and its three faults, A and B at 390 px with a "where each line comes from" toggle, A at
+The artifact: before and its three faults, A (chosen) and B at 390 px with a "where each line comes from" toggle, A at
 desktop, and the pick-and-test rule. https://claude.ai/artifact/ELwG7Aa1VLr5v5cgrRMGRG
 
 ## Open questions
-- **Q1. Which two pages?** A (work + spend, recommended: work and money are where a horoscope never goes, and "You
-  spend to soothe, and you save to feel safe" reads at a glance) or B (work + love). Default: A.
+None. Q1 answered by the Owner 2026-10-03: A, How you work and How you spend ("go with A").
 
 Settled without asking: the Behaviour check stays (the Owner asked for it by name, 2026-10-03); two cards, not
 three (playbook: shortest version first); the report's own pieces only (playbook: one kind of thing, one look).
@@ -87,4 +84,5 @@ three (playbook: shortest version first); the report's own pieces only (playbook
    ADR-173).
 2. The cards' pieces are picked by hand and checked word for word by a test. No rule picks them, and they are
    picked again in the pull request that refreshes /sample.
-3. Q1's answer: the two pages (default work + spend).
+3. The two pages are How you work (house 6, the career chapter's action) and How you spend (house 2, the money
+   chapter's action).
