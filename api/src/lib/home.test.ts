@@ -8,8 +8,8 @@ process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.OPENAI_API_KEY ??= "test-key-never-sent";
 const { GetHomeResponse } = await import("@workspace/api-zod");
 const {
-  CLOSING_FIRST_PRACTICE, PIN_LIMIT, buildHome, firstSentence, isItemKey, isPinKey, isWorkbookKey, linesOf, pairListed,
-  patchWorkbook, pinsOf, triadOf, workbookOf,
+  CLOSING_FIRST_PRACTICE, PIN_LIMIT, buildHome, firstSentence, isItemKey, isPinKey, isWorkbookKey, linesOf, natalRowsOf,
+  pairListed, pairReportsOf, patchWorkbook, pinsOf, triadOf, workbookOf,
 } = await import("./home.js");
 const { chartForProfile } = await import("./profiles.js");
 const { PAIR_PROMPT_VERSION } = await import("../prompts/pair/index.js");
@@ -19,10 +19,16 @@ type Viewer = import("./access.js").Viewer;
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "charts");
 
-/** Birth data from a committed fixture and the chart computed from it, as a profile stores both. */
-function birth(name: string) {
+/**
+ * Birth data from a committed fixture and the chart computed from it, as a profile stores both. A window
+ * widens the fixture's own time into a band around it, as a reader who knows only roughly when does.
+ */
+function birth(name: string, windowMinutes?: number) {
   const f = JSON.parse(readFileSync(join(FIXTURES, `${name}.json`), "utf8"));
-  return { birthDate: f.birthDate as string, chartData: chartForProfile({ ...f, birthTimeWindowMinutes: f.birthTimeWindowMinutes ?? 0 }) };
+  return {
+    birthDate: f.birthDate as string,
+    chartData: chartForProfile({ ...f, birthTimeWindowMinutes: windowMinutes ?? f.birthTimeWindowMinutes ?? 0 }),
+  };
 }
 const MARIE = birth("marie-curie");
 const AUDREY = birth("audrey-hepburn");
@@ -33,6 +39,10 @@ const GIVER: Viewer = { userId: "user_giver", sessionId: "s-giver" };
 const SUBJECT: Viewer = { userId: "user_subject", sessionId: "s-subject" };
 const STRANGER: Viewer = { userId: "user_stranger", sessionId: "s-stranger" };
 const SESSION: Viewer = { userId: null, sessionId: "s-anon" };
+/** Audrey's own account, which shares her own Personal report with Marie's (ADR-235). */
+const SHARER: Viewer = { userId: "user_sharer", sessionId: "s-sharer" };
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
 
 const D1 = "2026-09-20T09:00:00.000Z";
 const D2 = "2026-09-21T09:00:00.000Z";
@@ -112,6 +122,13 @@ function family() {
   return { marie, audrey, oprah, natal: [natal("RM", marie), natal("RA", audrey), natal("RO", oprah)] };
 }
 
+/** Audrey's own chart on her own account, the one she shares with Marie. */
+function sharersOwn(): Profile {
+  return person("PS", "Audrey Hepburn", AUDREY, { userId: SHARER.userId, sessionId: SHARER.sessionId, isSelf: true });
+}
+
+const GRANTED = { shared: new Set(["PS"]), shareBack: new Set(["PS"]) };
+
 const valid = (home: unknown) => GetHomeResponse.parse(home);
 
 test("workbook keys: a pair chapter's digits and a pin key pass, nothing else does (ADR-24, ADR-174)", () => {
@@ -133,7 +150,7 @@ test("workbook keys: a pair chapter's digits and a pin key pass, nothing else do
   }
 });
 
-test("pins: three a report; a fourth is refused whole, while re-dating, swapping and unpinning go through (ADR-174, MB-110)", () => {
+test("pins: three a report; a fourth is refused whole, while re-dating, swapping and unpinning go through (ADR-174, ADR-239)", () => {
   assert.equal(PIN_LIMIT, 3);
   const three = {
     "pin.focus.practice.bullets.0": D1, "pin.focus.practice.bullets.1": D2, "pin.partners02.nextTime.items.0": D3,
@@ -259,6 +276,56 @@ test("circle: two charts marked as the reader's own leave the centre empty and b
   assert.deepEqual(home.people.map((p) => [p.profileId, p.isSelf]), [["PM", true], ["PB", true]]);
 });
 
+test("circle: a sharer sits in the reader's circle marked shared while the grant stands, offered Share yours back until it is done (ADR-235, reading 4)", () => {
+  const { marie, oprah } = family();
+  const audrey = sharersOwn();
+  // Even a workbook row of the reader's on the sharer's report lends nothing to practise: that is never another person's report.
+  const rows = [natal("RM", marie), natal("RO", oprah), natal("RS", audrey, { workbook: { "pin.focus.practice.bullets.1": D1 } })];
+
+  const home = valid(buildHome(GIVER, rows, [], GRANTED));
+  assert.deepEqual([home.you?.profileId, home.you?.access, "shareBack" in home.you!], ["PM", "owner", false]);
+  assert.deepEqual(home.people.map((p) => [p.profileId, p.reportId, p.access, p.isSelf, p.shareBack]), [
+    ["PO", "RO", "owner", false, undefined],
+    ["PS", "RS", "shared", false, true],
+  ]);
+  const sharer = home.people[1];
+  assert.deepEqual([sharer.name, sharer.birthDate, sharer.lines], ["Audrey Hepburn", AUDREY.birthDate, null]);
+  assert.deepEqual(sharer.triad, triadOf(audrey.chartData));
+  assert.deepEqual(home.practising.map((p) => [p.reportId, p.key]), [["RM", CLOSING_FIRST_PRACTICE]]);
+
+  const sharedBack = valid(buildHome(GIVER, rows, [], { shared: GRANTED.shared, shareBack: new Set() }));
+  assert.deepEqual(sharedBack.people.map((p) => [p.profileId, p.access, p.shareBack]), [["PO", "owner", undefined], ["PS", "shared", false]]);
+
+  // Stop sharing revokes the grant, so the next read has none and the sharer has left the circle.
+  assert.deepEqual(valid(buildHome(GIVER, rows, [])).people.map((p) => p.profileId), ["PO"]);
+
+  const sharersHome = valid(buildHome(SHARER, [natal("RS", audrey)], []));
+  assert.deepEqual([sharersHome.you?.reportId, sharersHome.you?.access, sharersHome.you?.shareBack], ["RS", "owner", undefined]);
+  assert.deepEqual(buildHome(STRANGER, rows, []).people, []);
+  assert.deepEqual(buildHome(SESSION, [natal("RS", audrey)], [], GRANTED).people, [], "a session is never shared with");
+});
+
+test("circle: Try again and Regenerate are its writer's, and its holder's after a hand-over, never a shared reader's nor the person it was sent to (reading 10, MB-137, MB-169)", () => {
+  const { marie, audrey } = family();
+  const failed = { status: "failed" } as const;
+  const writer = valid(buildHome(GIVER, [natal("RM", marie), natal("RA", audrey, failed)], []));
+  assert.deepEqual([writer.you?.canRegenerate, writer.people[0].canRegenerate], [true, true]);
+
+  const sent = { ...audrey, claimedByUserId: SUBJECT.userId };
+  assert.equal(valid(buildHome(SUBJECT, [natal("RA", sent, failed)], [])).people[0].canRegenerate, false);
+  assert.equal(valid(buildHome(GIVER, [natal("RA", sent, failed)], [])).people[0].canRegenerate, true);
+
+  const handedOver = { ...sent, userId: SUBJECT.userId, sessionId: "s-nobody" };
+  const holder = valid(buildHome(SUBJECT, [natal("RA", handedOver, { ...failed, sessionId: "s-nobody" })], []));
+  assert.deepEqual(holder.people.map((p) => [p.access, p.canRegenerate]), [["claimed", true]]);
+
+  const shared = valid(buildHome(GIVER, [natal("RS", sharersOwn(), failed)], [], GRANTED));
+  assert.deepEqual(shared.people.map((p) => [p.access, p.status, p.canRegenerate]), [["shared", "failed", false]]);
+
+  const draft = person("PD", "Marie Curie", MARIE, { userId: null, sessionId: SESSION.sessionId, isSelf: true });
+  assert.equal(valid(buildHome(SESSION, [natal("RD", draft)], [])).you?.canRegenerate, true);
+});
+
 test("triad: the stored chart's degrees to two decimals, whole-sign houses for the Sun and Moon, none for the Rising or without a birth time (ADR-174)", () => {
   const chart = MARIE.chartData;
   const triad = triadOf(chart);
@@ -282,6 +349,37 @@ test("triad: the stored chart's degrees to two decimals, whole-sign houses for t
 
   assert.equal(triadOf(null), null);
   assert.equal(triadOf({}), null);
+});
+
+test("triad: on a windowed birth time the Moon gives its range from the stored chart's band, each end in its own sign; an exact time and the Sun give none (MB-139, reading 11)", () => {
+  const rough = birth("audrey-hepburn", 180).chartData;
+  const band = rough.planets.moon.band!;
+  assert.ok(band.fromDegree >= 330 && band.toDegree < 360, "Audrey's Moon stays in Pisces three hours either side");
+  const triad = triadOf(rough);
+  assert.deepEqual(triad?.moon, {
+    sign: rough.planets.moon.sign, degree: rough.planets.moon.degree, house: rough.planets.moon.house ?? null,
+    band: { from: { sign: "Pisces", degree: r2(band.fromDegree - 330) }, to: { sign: "Pisces", degree: r2(band.toDegree - 330) } },
+  });
+  assert.ok(rough.planets.sun.band, "the stored chart has the Sun's band too");
+  assert.equal(triad?.sun.band, undefined);
+
+  const acrossCusp = birth("charles", 180).chartData;
+  const crossing = acrossCusp.planets.moon.band!;
+  assert.ok(crossing.fromDegree < 30 && crossing.toDegree >= 30, "Charles's Moon enters Taurus inside three hours of his birth time");
+  assert.deepEqual(triadOf(acrossCusp)?.moon.band, {
+    from: { sign: "Aries", degree: crossing.fromDegree }, to: { sign: "Taurus", degree: r2(crossing.toDegree - 30) },
+  });
+
+  const day = MARIE_BLIND.chartData.planets.moon.band!;
+  assert.deepEqual(triadOf(MARIE_BLIND.chartData)?.moon.band, {
+    from: { sign: "Pisces", degree: r2(day.fromDegree - 330) }, to: { sign: "Pisces", degree: r2(day.toDegree - 330) },
+  });
+
+  assert.equal(MARIE.chartData.planets.moon.band, undefined);
+  assert.equal(triadOf(MARIE.chartData)?.moon.band, undefined);
+
+  const you = valid(buildHome(GIVER, [natal("RR", person("PR", "Audrey Hepburn", birth("audrey-hepburn", 180), { isSelf: true }))], [])).you;
+  assert.deepEqual(you?.triad?.moon.band, triad?.moon.band);
 });
 
 test("lines: chapter 08's superpower and growing edge, each its title and first sentence as written, on the reader's own only (ADR-174, ADR-18)", () => {
@@ -331,10 +429,10 @@ test("pairs: three strong lines, the first work line as the challenge, the story
   assert.deepEqual(buildHome(GIVER, [], [{ ...pair("RP", marie, audrey), parts: pair("RP", marie, audrey).parts.slice(0, 1) }]).pairs, []);
 });
 
-test("pairs: one rule lists them everywhere: none written before p2 once complete (MB-65)", () => {
-  assert.ok(pairListed({ status: "complete", interpretation: { meta: { promptVersion: PAIR_PROMPT_VERSION } } }));
-  assert.ok(pairListed({ status: "complete", interpretation: { meta: { promptVersion: "p2" } } }));
-  assert.ok(pairListed({ status: "complete", interpretation: { meta: { promptVersion: "p3" } } }), "a p3 pair stays listed after p4");
+test("pairs: one rule lists them everywhere: p2 to p5 and the current version, none written before p2 once complete (reading 16, MB-65)", () => {
+  for (const version of ["p2", "p3", "p4", "p5", PAIR_PROMPT_VERSION]) {
+    assert.ok(pairListed({ status: "complete", interpretation: { meta: { promptVersion: version } } }), version);
+  }
   assert.ok(!pairListed({ status: "complete", interpretation: { meta: { promptVersion: "p1" } } }));
   assert.ok(!pairListed({ status: "complete", interpretation: null }));
   assert.ok(pairListed({ status: "interpreting", interpretation: null }));
@@ -343,7 +441,26 @@ test("pairs: one rule lists them everywhere: none written before p2 once complet
   assert.deepEqual(buildHome(GIVER, [], [pair("RP", marie, audrey, { interpretation: { ...PAIR_TEXT, meta: { promptVersion: "p1" } } })]).pairs, []);
 });
 
-test("practising: the reader's own report and the pairs they are one of, pins first, else the Closing's first Practice item (reading 5, MB-110)", () => {
+test("pairs: one the reader made from a chart shared with them reads while the grant stands, then closes naming its sharer; a grant opens none its sharer made (ADR-235)", () => {
+  const { marie, oprah } = family();
+  const audrey = sharersOwn();
+  const made = pair("RP", marie, audrey, { workbook: { "pin.partners02.nextTime.items.0": D1 } });
+
+  const granted = valid(buildHome(GIVER, [natal("RM", marie)], [made], GRANTED));
+  assert.deepEqual(granted.pairs.map((p) => [p.reportId, p.stoppedBy, p.story?.headline]), [["RP", null, PAIR_TEXT.twoCharts.headline]]);
+  assert.deepEqual(granted.practising.map((p) => [p.reportId, p.key]), [["RP", "partners02.nextTime.items.0"], ["RM", CLOSING_FIRST_PRACTICE]]);
+
+  const stopped = valid(buildHome(GIVER, [natal("RM", marie)], [made]));
+  assert.deepEqual(stopped.pairs.map((p) => [p.reportId, p.stoppedBy, p.strong, p.story]), [["RP", "Audrey", [], null]]);
+  assert.deepEqual(stopped.practising.map((p) => [p.reportId, p.key]), [["RM", CLOSING_FIRST_PRACTICE]]);
+
+  const sharersPair = pair("RQ", audrey, oprah, {
+    relationship: { type: "people", label: "friends", userId: SHARER.userId, sessionId: SHARER.sessionId },
+  });
+  assert.deepEqual(buildHome(GIVER, [], [sharersPair], GRANTED).pairs, []);
+});
+
+test("practising: the reader's own report and the pairs they are one of, pins first, else the Closing's first Practice item (reading 5, ADR-239)", () => {
   const { marie, audrey, oprah } = family();
   const bullets = NATAL_TEXT.focus.practice.bullets;
   const items = PAIR_TEXT.partners02.nextTime.items;
@@ -382,4 +499,30 @@ test("practising: the reader's own report and the pairs they are one of, pins fi
 
   const sentPair = pair("RP", marie, { ...audrey, claimedByUserId: SUBJECT.userId }, { workbook: { "pin.partners02.nextTime.items.1": D1 } }, ["owner", "participant"]);
   assert.deepEqual(buildHome(SUBJECT, [], [sentPair]).practising.map((p) => [p.reportId, p.key]), [["RP", "partners02.nextTime.items.1"]]);
+});
+
+test("the reads: each report with the reader's own workbook row and never the report's; a natal report through their own, sent and shared charts (ADR-235, ADR-239, reading 8)", () => {
+  const ownRow = /left join "report_workbooks" on \("report_workbooks"\."report_id" = "reports"\."id" and "report_workbooks"\."reader" = \$1\)/;
+
+  const signedIn = natalRowsOf(GIVER, new Set(["PS", "PT"])).toSQL();
+  assert.match(signedIn.sql, ownRow);
+  assert.equal(signedIn.params[0], "user_giver");
+  assert.match(signedIn.sql, /^select .*"report_workbooks"\."workbook".* from "reports"/);
+  assert.doesNotMatch(signedIn.sql, /"reports"\."workbook"/);
+  assert.match(signedIn.sql, /\("profiles"\."user_id" = \$\d+ or "profiles"\."claimed_by_user_id" = \$\d+ or "profiles"\."id" in \(\$\d+, \$\d+\)\)/);
+  assert.deepEqual(signedIn.params.slice(-2), ["PS", "PT"]);
+
+  assert.doesNotMatch(natalRowsOf(GIVER, new Set()).toSQL().sql, /"profiles"\."id" in/);
+
+  const session = natalRowsOf(SESSION, new Set(["PS"])).toSQL();
+  assert.match(session.sql, ownRow);
+  assert.equal(session.params[0], "session:s-anon");
+  assert.match(session.sql, /"reports"\."session_id" = \$\d+/);
+  assert.ok(!session.params.includes("PS"), "a session is never shared with");
+
+  const pairs = pairReportsOf(SUBJECT, ["REL1", "REL2"]).toSQL();
+  assert.match(pairs.sql, ownRow);
+  assert.equal(pairs.params[0], "user_subject");
+  assert.doesNotMatch(pairs.sql, /"reports"\."workbook"/);
+  assert.deepEqual(pairs.params.slice(-2), ["REL1", "REL2"]);
 });
