@@ -21,17 +21,17 @@ merged into the rule it repeats.
 - **Less text, never fewer parts.** Three quote cards became one annotated line (Review 02/10) that read "nor
   understandable": propose the fewest examples, each whole (moment, chart in plain words, check, action), picked by hand
   (home-report-section); a tie's wording became "just remove that line", "Not me" kept two buttons (sweep 03/10).
-- **Speed of entry beats pickers.** One typed date field that jumps ahead, not three boxes (Review 02/10): forms are judged
-  by how fast a birth date goes in.
+- **Speed of entry beats pickers.** One typed date field that jumps ahead, not three boxes (Review 02/10).
 - **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):
   propose the proper fix alone and say what it needs.
+- **A visual that says what we sell beats the safest layout.** Share cover: the wheel centred, safe in WhatsApp's square
+  crop, was "nice" but "not wow"; the Owner took the headline beside the wheel, cut square and all (share-cover, 2026-10-03).
 - **Don't redraw what was only misread.** The look-alike nodes stay; the answer was the explanation (Review 02/10).
 
 ## Asked for
 - **Opus for orchestrating, planning and research.** The orchestrator (the Owner, ADR-137), planning (R-0.7) and, from
   2026-10-01, research, with the verifier on any claim that feeds a decision (agent-roster scope 6; MASTERFILE §11.1).
-- **A process that learns.** This file after every ideation, `lessons.md` after every round (agent-roster scope 12, ADR-195,
-  2026-10-01).
+- **A process that learns.** This file after every ideation, `lessons.md` after every round (ADR-195, 2026-10-01).
 - **Fewer questions, each with a default.** At most three, highest stakes first, each with a recommendation and what happens
   if he is silent (R-12.1; "For the Owner" in the R11, R12 and R13 plans). Never a chore (R-12.5). Read the day's locks on
   every branch first: never re-ask what one settled (release-one-findings, 2026-10-03: the tie, the order, the network).
