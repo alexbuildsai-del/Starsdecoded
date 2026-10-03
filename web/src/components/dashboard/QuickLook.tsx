@@ -44,13 +44,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import {
   OWN_LINES, SHARE_MINE, TRY_AGAIN, birthDateText, blindRisingText, failureLine, firstName, isFailed, offersShareBack, offersShareMine,
-  offersTryAgain, quickLookDoors, shareErrorLine, shareLine, shareName, shareStateText, shareTargetFor, sharedBackText, triadLines,
-  tryAgainErrorLine, withYouText, writingText,
+  offersTryAgain, quickLookDoors, shareControl, shareErrorLine, shareLine, shareName, shareStateText, shareTargetFor, sharedBackText,
+  triadLines, tryAgainErrorLine, withYouText, writingText,
   type Door, type ShareTarget, type TriadLine,
 } from "@/lib/home-view";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { refusalLine } from "@/lib/refusals";
-import { SHARE_LABELS, pairStoryText, shareWith } from "@/lib/share-card";
+import { SHARE_LABELS, pairStoryText } from "@/lib/share-card";
 
 export interface QuickLookProps {
   person: HomePerson;
@@ -260,8 +260,8 @@ export function QuickLook({ person, pair, self, onClose }: QuickLookProps) {
   const doors = quickLookDoors(look);
   const triad = triadLines(person.triad);
   const share = shareTargetFor(look, { person: sendOf(person.reportId), pair: sendOf(look.pair?.reportId) });
+  const control = share ? shareControl(share, person.name) : null;
   const story = look.pair ? pairStoryText(look.pair) : null;
-  const name = firstName(person.name);
 
   // On a phone the sheet may hold the story below its fold, so the story is brought into view as it opens.
   useEffect(() => {
@@ -327,9 +327,10 @@ export function QuickLook({ person, pair, self, onClose }: QuickLookProps) {
           {(doors.report || share || story) && (
             <div className="flex flex-wrap gap-2">
               {doors.report && <DoorView door={doors.report} />}
-              {share && (
+              {control?.status && <span className="self-center font-label text-xs text-[var(--paper-dim)]">{control.status}</span>}
+              {share && control && (
                 <Button variant="outline" size="sm" onClick={() => setSending(share)} className="font-label text-xs">
-                  {shareWith(name)}
+                  {control.label}
                 </Button>
               )}
               {story && (

@@ -10,10 +10,11 @@ import type { Home, HomePair, HomePerson, SendState, Spot, SpotPoint } from "@wo
 import {
   NOT_WRITTEN, OWN_LINES, PAIR_BLOCK, SHARE_EMAIL_MISSING, SHARE_MINE, TRY_AGAIN, birthDateText, blindRisingText, doorText, failureLine,
   firstName, isFailed, isFinished, isWriting, lensWords, offersShareBack, offersShareMine, offersTryAgain, ownIds, pairWithYou,
-  quickLookDoors, quickLookFor, shareErrorLine, shareLine, shareName, shareSentLine, shareStateText, shareTargetFor, sharedBackText,
-  spotText, triadLines, tryAgainErrorLine, withYouText, writingText,
+  quickLookDoors, quickLookFor, shareControl, shareErrorLine, shareLine, shareName, shareSentLine, shareStateText, shareTargetFor,
+  sharedBackText, spotText, triadLines, tryAgainErrorLine, withYouText, writingText,
 } from "./home-view";
 import { CENTRE_ID } from "./orbit";
+import { HANDED_BACK, SEND_AGAIN } from "./pair-row";
 
 type Birth = [date: string, time: string, latitude: number, longitude: number, zone: string | number, windowMinutes: number];
 
@@ -297,6 +298,16 @@ describe("Share with", () => {
     const back = send("handed_back", "Audrey", "audrey");
     expect(shareTargetFor(look, { person: back, pair: send("can_send", "Audrey", "audrey", "rel") })).toEqual({ kind: "person", send: back, reportId: "r-audrey" });
     expect(shareTargetFor(look, { person: send("joined", "Audrey", "audrey"), pair: send("handed_back", "Audrey", "audrey", "rel") })).toBeNull();
+  });
+
+  it("says Handed back beside Send again for that send, as the person's row does, and Share with otherwise", () => {
+    const back = shareTargetFor(look, { person: send("handed_back", "Audrey", "audrey") })!;
+    expect(shareControl(back, AUDREY.name)).toEqual({ status: "Handed back", label: "Send again" });
+    expect(shareControl(back, AUDREY.name)).toEqual({ status: HANDED_BACK, label: SEND_AGAIN });
+    const offer = shareTargetFor(look, { person: send("can_send", "Audrey", "audrey") })!;
+    expect(shareControl(offer, AUDREY.name)).toEqual({ status: null, label: "Share with Audrey" });
+    const pairOffer = shareTargetFor(look, { person: send("joined", "Audrey", "audrey"), pair: send("can_grant", "Audrey", "audrey", "rel") })!;
+    expect(shareControl(pairOffer, AUDREY.name)).toEqual({ status: null, label: "Share with Audrey" });
   });
 
   it("never lets a reader send on a report shared with them, though a pair of theirs still goes (ADR-235)", () => {

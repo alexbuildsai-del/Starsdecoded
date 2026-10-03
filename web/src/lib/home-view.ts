@@ -15,7 +15,9 @@ import { MEET_TAGS } from "@/lib/charts-meet";
 import { houseWithWord } from "@/lib/evidence-glossary";
 import { lensInfo } from "@/lib/lenses";
 import { CENTRE_ID } from "@/lib/orbit";
+import { HANDED_BACK, SEND_AGAIN } from "@/lib/pair-row";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
+import { shareWith } from "@/lib/share-card";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 
@@ -214,6 +216,16 @@ export function shareTargetFor(look: QuickLookTarget, sends: { person?: SendStat
   if (sendable(person, PERSON_SENDS)) return { kind: "person", send: person, reportId: look.person.reportId };
   if (look.pair && isFinished(look.pair.status) && sendable(sends.pair, PAIR_SENDS)) return { kind: "pair", send: sends.pair, reportId: look.pair.reportId };
   return null;
+}
+
+/**
+ * The share control as the person's row says it, so the two never disagree: a
+ * send its claimer handed back with Not me reads "Handed back" beside Send
+ * again, which opens the same dialog for a new send (ADR-236).
+ */
+export function shareControl(target: ShareTarget, name: string): { status: string | null; label: string } {
+  if (target.kind === "person" && target.send.state === "handed_back") return { status: HANDED_BACK, label: SEND_AGAIN };
+  return { status: null, label: shareWith(firstName(name)) };
 }
 
 /** Share my report: the reader's own quick look, once that report is finished (ADR-235, MB-104). */
