@@ -32,8 +32,8 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
    promise in plain words, why you'd care (one or two sentences), then **what Mira sees**, marked Sample account or
    Sample words. Plain words first; aspect, house and exact date last, small and grey.
    - *Now and ahead* · "Know what's going on for you, and for how long": the day's mix bar, then cards with tone,
-     how long it lasts ("until 19 Oct, back in February"), the headline ("Getting serious about how you come
-     across"), the everyday line, and "Saturn on your Ascendant · 1st house · exact 25 Sep" under it; then "Coming up".
+     how long it lasts ("until 19 Oct, back in February"), the headline ("Taking yourself more
+     seriously"), the everyday line, and "Saturn on your Ascendant · 1st house · exact 25 Sep" under it; then "Coming up".
    - *Life* · "Know which chapter of your life you're in": why the known ages matter (29, 37, the early forties),
      the link **"When is your Saturn return? Find yours ↓"**, then Mira's wave from birth to 90, a look-back ("Think
      back to January 2021…") and her next cycles with ages, dates and chips.
@@ -50,7 +50,7 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 4. **What you get**: the plan card (life's big cycles with ages and what each means · what's going on now, this
    month and over six months, in plain words with tone and duration · a reading for each, tied to your report ·
    Ask · your week on your dashboard · a Monday email in weeks that touch your chart · with the yearly plan, 1
-   credit to give), the price line per open question 2, and **How to get it** in three steps.
+   credit to give), "Coming soon" where a price would go (the Owner: no price yet), and **How to get it** in three steps.
 5. **How it stays honest**: no horoscope for the day · dates for the sky, never for your life · no do or don't ·
    quiet weeks stay quiet.
 6. **Questions** (folded, `FAQPage`): What is Timeline? Is it a daily horoscope? What is a Saturn return? Do I need
@@ -122,9 +122,6 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 ## Open questions
 1. **R15.** Read as: R15 stays pricing and launch, and this page doesn't go into it; it waits for the round the
    Owner gives it at the next /plan. Default: so.
-2. **The price.** Recommended: none until Timeline opens ("The price shows when Timeline opens"); a public price is
-   a promise before Stripe Billing and MB-114's recurring-billing check. Or "€9.99 a month or €69.99 a year, with 1
-   credit to give" from the catalogue now. Default: no price.
 
 ## Decisions to record
 1. `/timeline` is Timeline's prerendered product page: hero with the dial, five things it gives you, try it free
@@ -137,4 +134,7 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 4. The way in: one line on the home page after Prices about Timeline as a whole, and "Timeline" in the footer.
 5. Four sentences change with it (Prices, two FAQ answers, Method), approved by the Owner 2026-10-03.
 6. R15 stays pricing and launch; the page's round is set at the next /plan (Q1).
-7. No Timeline price on the site until Timeline opens (Q2).
+7. No Timeline price on the site yet: the plan card says "Coming soon" (the Owner, 2026-10-03).
+8. Every sample line on the page is plain and simple: everyday words, one idea per sentence, no drama ("What you
+   hope for is asked to go deeper or let go" became "A good time to look at your plans again and keep the ones
+   that still matter"; the Owner, 2026-10-03). The same rule goes into the Timeline readings' brief.
