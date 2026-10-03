@@ -3,7 +3,7 @@ import { profilesTable } from "./profiles";
 import { relationshipsTable } from "./relationships";
 import { creditsTable } from "./credits";
 
-export const INVITE_KINDS = ["send", "gift"] as const;
+export const INVITE_KINDS = ["send", "gift", "share"] as const;
 export type InviteKind = (typeof INVITE_KINDS)[number];
 
 export const inviteTokensTable = pgTable(
@@ -15,7 +15,9 @@ export const inviteTokensTable = pgTable(
     tokenHash: text("token_hash").notNull().unique(),
     email: text("email").notNull(),
     // "send" hands over a finished report; "gift" holds a credit and has no
-    // profile of its own (ADR-120, 139).
+    // profile of its own (ADR-120, 139); "share" lets its claimer read the
+    // sender's own Personal report through a grant, handing nothing over
+    // (ADR-235). Plain text, so a new kind needs no DDL.
     kind: text("kind").notNull().default("send"),
     profileId: text("profile_id").references(() => profilesTable.id, { onDelete: "cascade" }),
     relationshipId: text("relationship_id").references(() => relationshipsTable.id, {
@@ -33,6 +35,9 @@ export const inviteTokensTable = pgTable(
     claimedByUserId: text("claimed_by_user_id"),
     remindedAt: timestamp("reminded_at"),
     revokedAt: timestamp("revoked_at"),
+    // Stamped when the person a send reached hands the report back with Not me
+    // (ADR-236), so the writer's row can read Handed back and offer Send again.
+    handedBackAt: timestamp("handed_back_at"),
     // Whether the invite email was successfully delivered via Resend.
     // null = unknown / pre-migration rows.
     emailDelivered: boolean("email_delivered"),
