@@ -15,13 +15,15 @@
  *
  * The two names and how they know each other are typed by a reader, so each
  * appears once, in its data block, and every other line says A or B (ADR-202).
+ * That holds for the natal text quoted here too: a natal writer was shown its
+ * reader's name and may have written it back (ADR-240).
  */
 import { hasHorizon, type NatalChartData } from "./chartCalculation.js";
 import type { ReportInterpretation } from "./aiInterpretation.js";
 import { computeCrossAspects, type CrossAspect } from "./synastryCompute.js";
 import { computeOverlays, notableOverlays, type NotableOverlay, type Overlay, type Side } from "./overlays.js";
 import { SECTION_IDS, type StoredClaim } from "../prompts/index.js";
-import { dataBlock } from "../prompts/data.js";
+import { dataBlock, lettersNote, maskNames } from "../prompts/data.js";
 import { BODY_LABELS, cap, ordinal, type Body } from "../prompts/vocabulary.js";
 
 export type Lens = "partners" | "parent_child" | "people";
@@ -158,6 +160,30 @@ function side(input: PairInput["a"]): PairSide {
   };
 }
 
+interface Quoter {
+  quote: (text: string) => string;
+  /** Whether any quoted text had a name to letter, so the writer is asked for the names back. */
+  lettered: () => boolean;
+}
+
+/**
+ * Natal text as a pair prompt quotes it, each typed name as its letter. Only
+ * the prompt changes: the sides keep the stored text, which the source labels
+ * and the claim checks read.
+ */
+function quoter(a: PairSide, b: PairSide): Quoter {
+  const names = { a: a.name, b: b.name };
+  let lettered = false;
+  return {
+    quote: (text) => {
+      const masked = maskNames(text, names);
+      lettered ||= masked !== text;
+      return masked;
+    },
+    lettered: () => lettered,
+  };
+}
+
 const label = (b: string): string => BODY_LABELS[b as Body] ?? cap(b);
 
 /** A luminary leads a notable overlay's card when the group holds one. */
@@ -220,6 +246,17 @@ export function buildPairBrief(input: PairInput): PairBrief {
   };
   const placements = (s: PairSide) => (["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"] as Body[])
     .map((body) => placement(s, body)).filter((l): l is string => l !== null).map((l) => `  - ${l}`);
+  const quoted = quoter(a, b);
+  const sideLines = (tag: Side, s: PairSide) => [
+    `${tag}:`,
+    `  thesis: ${quoted.quote(s.foundation.chartThesis)}`,
+    `  pattern: ${quoted.quote(s.foundation.dominantPattern)}`,
+    `  tension: ${quoted.quote(s.foundation.centralTension)}`,
+    `  the challenge in intimacy: ${quoted.quote(s.theChallenge)}`,
+    `  connects best with: ${s.connectBestWith.map((c) => `${quoted.quote(c.item)} (${quoted.quote(c.reason)})`).join(", ") || "not stated"}`,
+    ...placements(s),
+  ];
+  const sides = [...sideLines("A", a), ``, ...sideLines("B", b)];
 
   const lines = [
     `PAIR: A and B. LENS: ${register.label}.`,
@@ -232,21 +269,9 @@ export function buildPairBrief(input: PairInput): PairBrief {
     `EXAMPLE REGISTER (every example in every section comes from here): ${register.examples.join(", ")}.`,
     ...(blind ? [`HORIZON: one chart has no recorded birth time, so there are no houses across the pair. Never name a house or an overlay.`] : []),
     ``,
-    `A:`,
-    `  thesis: ${a.foundation.chartThesis}`,
-    `  pattern: ${a.foundation.dominantPattern}`,
-    `  tension: ${a.foundation.centralTension}`,
-    `  the challenge in intimacy: ${a.theChallenge}`,
-    `  connects best with: ${a.connectBestWith.map((c) => `${c.item} (${c.reason})`).join(", ") || "not stated"}`,
-    ...placements(a),
-    ``,
-    `B:`,
-    `  thesis: ${b.foundation.chartThesis}`,
-    `  pattern: ${b.foundation.dominantPattern}`,
-    `  tension: ${b.foundation.centralTension}`,
-    `  the challenge in intimacy: ${b.theChallenge}`,
-    `  connects best with: ${b.connectBestWith.map((c) => `${c.item} (${c.reason})`).join(", ") || "not stated"}`,
-    ...placements(b),
+    ...sides,
+    // A writer borrows a person's own words from these lines, and would borrow a letter with them.
+    ...(quoted.lettered() ? [lettersNote("the personal reports' lines above")] : []),
     ``,
     `LINKS, numbered (the cross aspects within ${CROSS_ORB} degrees, strongest first, A's body then B's, then the notable overlays):`,
     ...(links.length ? links.map((l) => `  - L${l.n}: ${l.label}`) : ["  - none within orb"]),
@@ -263,12 +288,16 @@ export function buildPairBrief(input: PairInput): PairBrief {
   return { text: lines.join("\n"), lens: input.lens, parent, label: input.label ?? null, band, childAge, a, b, cross, overlays, notable, links, blind };
 }
 
-/** The claim lines of one side, for the sections named; every section when none are. */
-export function claimLines(brief: PairBrief, s: PairSide, tag: Side, sections?: readonly string[]): string[] {
+/**
+ * The claim lines of one side, for the sections named; every section when none
+ * are. A quote is natal text, so its names are lettered; a label is composed in
+ * code and stays as stored.
+ */
+export function claimLines(brief: PairBrief, s: PairSide, tag: Side, sections?: readonly string[], quote: (text: string) => string = quoter(brief.a, brief.b).quote): string[] {
   // Across a blind pair the labels stay out: a drawn report's own evidence names houses, and no house is spoken of here.
   return Object.entries(s.claims)
     .filter(([section]) => !sections || sections.includes(section))
-    .flatMap(([section, list]) => list.map((c, i) => `  - ${tag}/${section} claim ${i + 1}: "${c.quote}"${brief.blind ? "" : ` (${c.evidence.map((e) => e.label).join(". ")})`}`));
+    .flatMap(([section, list]) => list.map((c, i) => `  - ${tag}/${section} claim ${i + 1}: "${quote(c.quote)}"${brief.blind ? "" : ` (${c.evidence.map((e) => e.label).join(". ")})`}`));
 }
 
 export interface ChapterTail {
@@ -286,13 +315,16 @@ export interface ChapterTail {
  */
 export function chapterBrief(brief: PairBrief, tail: ChapterTail): string {
   const owned = brief.links.filter((l) => tail.owned.includes(l.key));
+  const quoted = quoter(brief.a, brief.b);
+  const claims = [...claimLines(brief, brief.a, "A", tail.draws, quoted.quote), ...claimLines(brief, brief.b, "B", tail.draws, quoted.quote)];
   const lines = [
     `THIS CHAPTER'S LINKS (the only cross aspects and overlays this chapter may cite):`,
     ...(owned.length ? owned.map((l) => `  - L${l.n}: ${l.label}`) : ["  - none: cite sources only"]),
     ``,
     `CLAIMS FROM THE PERSONAL REPORTS this chapter draws on, citable as source evidence (report, section, claim number):`,
-    ...claimLines(brief, brief.a, "A", tail.draws),
-    ...claimLines(brief, brief.b, "B", tail.draws),
+    ...claims,
+    // A card line and a because-line copy a claim's words, and would copy a letter with them.
+    ...(quoted.lettered() ? [lettersNote("these claims")] : []),
   ];
   if (tail.scene) lines.push(``, `SCENE for this chapter (write this one and no other): ${tail.scene}`);
   if (brief.band) lines.push(``, `BAND: the child is in the ${BAND_LABELS[brief.band]} band${brief.childAge !== null ? `, ${writtenAge(brief.childAge)} years old today` : ""}. Write for this age now. Later stages only as later.`);
