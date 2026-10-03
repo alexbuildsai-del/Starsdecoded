@@ -48,6 +48,11 @@ export interface BundleMix {
 export interface BundleRow {
   id: BundleId;
   name: string;
+  /**
+   * The catalogue's line under the name, word for word: the home page's JSON-LD gives it as the Offer's description,
+   * which may only describe what the page shows (MB-140).
+   */
+  line: string;
   credits: number;
   /** "1 credit", or "3 credits, for example:" over mixes that are only one way to spend them. */
   count: string;
@@ -69,6 +74,7 @@ export function bundleRow(bundle: Bundle): BundleRow {
   return {
     id: bundle.id,
     name: bundle.name,
+    line: bundle.line,
     credits: bundle.credits,
     count: either ? creditCount(bundle.credits) : `${creditCount(bundle.credits)}, for example:`,
     either,

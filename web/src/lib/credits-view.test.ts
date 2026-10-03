@@ -66,6 +66,7 @@ describe("bundleRows", () => {
       {
         id: "solo",
         name: "Single",
+        line: "1 credit · a Personal report or a Compatibility report",
         credits: 1,
         count: "1 credit",
         either: true,
@@ -81,6 +82,7 @@ describe("bundleRows", () => {
       {
         id: "couple",
         name: "Couple",
+        line: "3 credits · a report each and how you get along",
         credits: 3,
         count: "3 credits, for example:",
         either: false,
@@ -96,6 +98,7 @@ describe("bundleRows", () => {
       {
         id: "family",
         name: "Family & friends",
+        line: "5 credits · for the people close to you",
         credits: 5,
         count: "5 credits, for example:",
         either: false,
@@ -109,6 +112,11 @@ describe("bundleRows", () => {
         save: "you save €48",
       },
     ]);
+  });
+
+  it("carries each bundle's line word for word, the description the home page's JSON-LD gives its Offer (MB-140)", () => {
+    expect(bundleRows().map((row) => row.line)).toEqual(BUNDLES.map((bundle) => bundle.line));
+    expect(bundleRow({ ...bundleById("couple"), line: "a moved line" }).line).toBe("a moved line");
   });
 
   it("follows the catalogue, so a moved price moves every list", () => {
@@ -128,7 +136,7 @@ describe("bundleRows", () => {
 
   it("prints no end date and no earlier price (ADR-169)", () => {
     for (const row of bundleRows()) {
-      const words = [row.name, row.count, row.price, row.singles, row.save, ...row.mixes.map((mix) => mix.text)].join(" ");
+      const words = [row.name, row.line, row.count, row.price, row.singles, row.save, ...row.mixes.map((mix) => mix.text)].join(" ");
       expect(words).not.toMatch(/\bwas\b|\buntil\b|\bends?\b|\boffer\b|\d{4}/i);
     }
   });

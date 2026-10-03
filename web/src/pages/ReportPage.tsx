@@ -105,7 +105,7 @@ export default function ReportPage() {
   // complete report's title is the filename we want to hand the buyer.
   const complete = report?.status === "complete";
   usePageTitle(
-    complete ? reportFileTitle("Natal Report", report.name) : "Natal Report",
+    complete ? reportFileTitle("Personal Report", report.name) : "Personal Report",
     { raw: complete },
   );
 

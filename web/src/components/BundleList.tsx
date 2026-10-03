@@ -1,8 +1,8 @@
 /**
  * The bundles in one look wherever a price shows: the site's prices, the credits sheet and the dashboard's first state
- * (ADR-168 to 170, 172). Every name, number and mix comes from the catalogue through `bundleRows` (R-6.3), and a launch
- * price stands against the struck Singles total, never a "was" price and never with an end date (R-6.7). Nothing here
- * buys: each surface puts its own action under the list.
+ * (ADR-168 to 170, 172). Every name, line, number and mix comes from the catalogue through `bundleRows` (R-6.3), and a
+ * launch price stands against the struck Singles total, never a "was" price and never with an end date (R-6.7). Nothing
+ * here buys: each surface puts its own action under the list.
  */
 import { Fragment } from "react";
 import { CREDIT_LINE } from "@workspace/commerce";
@@ -62,8 +62,8 @@ function Row({ row, compact }: { row: BundleRow; compact: boolean }) {
         compact ? "gap-x-3 gap-y-2.5 px-4 py-3.5" : "gap-x-4 gap-y-1.5 px-[22px] py-5",
       )}
     >
-      {/* A screen reader meets each bundle by its name, then its launch chip, and the price before the struck total:
-          the chip and the total are only drawn above them. */}
+      {/* A screen reader meets each bundle by its name, then its launch chip and its line, and the price before the
+          struck total: the chip and the total are only drawn above them. */}
       <div className="flex min-w-0 flex-col">
         <Name
           className={cn(
@@ -81,6 +81,7 @@ function Row({ row, compact }: { row: BundleRow; compact: boolean }) {
             </span>
           )}
         </div>
+        <p className="mt-1 text-[13px] leading-snug text-[#AEB6C6]">{row.line}</p>
         <p className="mt-0.5 text-[13px] leading-snug text-[#AEB6C6]">{row.count}</p>
         {!compact && mixes}
       </div>
