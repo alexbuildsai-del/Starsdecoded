@@ -15,17 +15,17 @@ merged into the rule it repeats.
   question.
 
 ## Changed, and why
-- **No hotfix.** Production serves non-admins only healthz, the waitlist and the admin (ADR-167), and the app's session data
-  lives on staging, which has no real visitors, so the security fixes wait for R13, then a QA, then the first Release
-  (security-hardening, Open questions, 2026-10-01; ADR-204).
+- **No hotfix.** Production serves non-admins only healthz, the waitlist and the admin (ADR-167), and staging has no real
+  visitors, so security fixes wait for their round, a QA and a Release (security-hardening, 2026-10-01; ADR-204).
 - **He orders the rounds.** Pricing and launch went behind the website (R11 plan, 2026-09-30), Review 01/10 (R12 plan,
   2026-10-01) and security with the roster (ADR-204): deferred three times (R14-plan header). Offer an order as a recommendation.
-- **Less text on public pages.** Three quote cards with counts became one annotated line: "simple", one actionable
-  example, no figures "no one's gonna read" (Review 02/10, 2026-10-02). Propose the shortest version first.
+- **Less text on public pages.** Quote cards became one annotated line (Review 02/10). Propose the shortest version first.
 - **Speed of entry beats pickers.** Three date boxes with a month list became one typed field that jumps ahead
   (Review 02/10). Forms are judged by how fast a birth date goes in.
 - **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):
   propose the proper fix alone and say what it needs.
+- **A visual that says what we sell beats the safest layout.** Share cover: the wheel centred, safe in WhatsApp's square
+  crop, was "nice" but "not wow"; the Owner took the headline beside the wheel, cut square and all (share-cover, 2026-10-03).
 - **Don't redraw what was only misread.** The look-alike nodes stay; the answer was the explanation (Review 02/10).
 
 ## Asked for

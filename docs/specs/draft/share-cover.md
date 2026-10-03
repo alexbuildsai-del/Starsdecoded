@@ -1,6 +1,6 @@
 # Share cover: draft spec
 
-Ideation 2026-10-03 with the Owner. Status: **draft**, waiting on the Owner's answers to Q1 and Q2.
+Ideation 2026-10-03 with the Owner. Status: **final draft**. The Owner chose cover A (3 Oct); Q2 stands at its default.
 Artifact: https://claude.ai/artifact/UVrFGzzXDJkDVbTkKxKgYR
 
 The Owner shared https://mystarsdecoded.com/ on WhatsApp and got no image, and the domain in place of
@@ -29,13 +29,16 @@ a title. The Owner wants a cover that makes sharing exciting.
   verifier alike. The checks below are sized so they hold whichever way those limits turn out.
 
 ## Scope
-1. **A new cover, B: the wheel centred** (default, Q1). 1200 × 630, drawn from the home page's own
-   `HorizonWheel` with the engine's positions (`skyAt`) for one stated minute over London, the home
-   page's default place. Every body sits at its true degree (R-3.1). The whole wheel sits inside the
-   centre 630 × 630 square, so WhatsApp's small preview still shows all of it. The wordmark (mark and
-   Newsreader) is top left. "What does yours say about you?" sits bottom right in Newsreader. The
-   corner labels stay in mono: the minute as "THE SKY · 3 OCT 2026 · 08:50", the place with its
-   coordinates, "WHOLE SIGN · TROPICAL" and the Sun's altitude. A still never says "Live".
+1. **A new cover, A: headline and wheel** (the Owner's pick, Q1). 1200 × 630, the home page's hero
+   as a still. On the left: the eyebrow "PERSONAL REPORT", the h1 "Find out what your birth chart
+   *says about you*" as the page sets it, the line "A report on how you think, work and love, with
+   every claim pointing to your chart." and the wordmark (mark and Newsreader) at the foot. On the
+   right: the home page's own `HorizonWheel`, with the engine's positions (`skyAt`) for one stated
+   minute over London, the home page's default place. Every body sits at its true degree (R-3.1).
+   The horizon line runs the full width. The corner labels stay in mono: the minute as "THE SKY ·
+   3 OCT 2026 · 08:50", the place with its coordinates, "WHOLE SIGN · TROPICAL" and the Sun's
+   altitude. A still never says "Live". Accepted trade-off: WhatsApp's small square preview cuts
+   both the headline and the wheel (artifact, cover A); the large preview is the one designed for.
 2. **Rendered by `pnpm brand:render`** (`scripts/render-brand.mjs`), which takes the minute as an
    argument and defaults to now. It writes `web/public/share-cover-v2.jpg` (JPEG, under 150 KB). The
    SVG mark and the planet renders stay the sources (ADR-31). The cover is redrawn by hand when the
@@ -58,32 +61,37 @@ A cover per page (/sample, /sky) or per report (MB-104); a cover redrawn daily o
 the report share card (ADR-103, 175).
 
 ## Acceptance criteria
-1. `share-cover-v2.jpg` is 1200 × 630, JPEG, under 150 KB, and matches cover B in the artifact. Every
+1. `share-cover-v2.jpg` is 1200 × 630, JPEG, under 150 KB, and matches cover A in the artifact. Every
    body's degree equals `skyAt` for the stamped minute over London, and a unit test pins the minute
    the committed image was drawn for.
-2. The centre 630 × 630 crop holds the whole wheel and its ring, with no label cut.
+2. Nothing overlaps: the headline, line and wordmark clear the wheel's ring and its labels; no
+   label is cut at the image's edges except the horizon line, which runs off both sides.
 3. The prerendered head of every public page, `app.html` and `404.html` names
    `https://mystarsdecoded.com/share-cover-v2.jpg`. No file names `opengraph.jpg`.
 4. The smoke's preview step passes on the staging preview and on production after the Release. With
    the image removed, the step fails and names `og:image`.
 5. The Owner shares the bare https://mystarsdecoded.com/ on WhatsApp after the Release and sees
-   cover B with the title. That is the Owner's yes or no.
+   cover A with the title. That is the Owner's yes or no.
 
 ## Screens
 Artifact: https://claude.ai/artifact/UVrFGzzXDJkDVbTkKxKgYR. It shows the Owner's screenshot, the
-three covers (B wheel centred, A headline and wheel, C today's card) in WhatsApp's full and small
-layouts, and the build list. A and C fail the centre-square crop.
+three covers (A headline and wheel, chosen; B wheel centred; C today's card) in WhatsApp's full and
+small layouts, and the build list.
 
 ## Open questions
-- **Q1. Which cover?** Recommendation B. Default B.
+- **Q1. Which cover?** Answered 3 Oct: A. Recommended B. The Owner found B nice but not "wow",
+  and liked that A says what the product is.
 - **Q2. The Owner's test.** Send `mystarsdecoded.com/?v=2` to yourself on WhatsApp: does today's card
   show? Yes means a cached preview, and the new file name fixes it. No means a block, and the smoke
-  finds what kind. Default: the smoke answers it on its first deploy.
+  finds what kind. Unanswered; the default stands: the smoke answers it on its first deploy.
+- **Later, not this spec.** The Owner wants a more striking visual than the wheel one day ("not
+  wow"). No candidate yet; held as a Mailbox idea (https://app.notion.com/p/3eefefe7493181819339d9205fba797c), not built here.
 
 ## Decisions to record
-1. The share cover is the home page's wheel centred, for one stated minute over London, with the
-   wordmark and "What does yours say about you?"; it supersedes the type-only card (MB-13, Review
-   01/10 §10). It is a still, so it never says "Live".
+1. The share cover is the home page's hero as a still: the headline left, the live wheel right for
+   one stated minute over London, the wordmark at the foot; it supersedes the type-only card (MB-13,
+   Review 01/10 §10). It is a still, so it never says "Live". The small square preview's crop is an
+   accepted cost (the Owner, 2026-10-03).
 2. A new cover ships under a new file name, never over the old one.
 3. The deploy smoke fetches the home page and the cover as WhatsApp and Facebook's crawler, and a
    missing or blocked preview fails the run.
