@@ -11,7 +11,7 @@ starts once this round has merged); pricing and checkout are not planned or slot
 `docs/rounds/R15-plan.md`** (pricing and launch, deferred five times) moved in this plan's commit to `docs/annex/pricing-and-launch-plan.md`,
 to be renumbered at pricing's own /plan; INDEX's pricing line points there. **Not here:** lane 1 is paper, closed in the Mailbox on the
 Owner's word, but for two file edits (R15-00 writes ADR-233's QA method into `qa.md`; ADR-234's line in `/round` is N1, outside the round);
-lane 5 is the Owner's own (MB-102, MB-186). The draft `timeline-page` (`claude/timeline-page-ideation`) folds into R15 or R16 once locked;
+lane 5 is the Owner's own (MB-102, MB-186). `timeline-page` (locked 2026-10-03, `claude/timeline-page-ideation`) is left out of R15 on the Owner's word;
 its standing rule, "Simple words, everywhere" (the Owner, 2026-10-03), already binds every new string here through `/ux-copy`. QA-02 has no
 sev-1, no Mailbox row is `blocking`, and no Owner comment sits on ADR-227 to 248 or on the rows this plan touches.
 **Tiers:** 20 Opus, 9 Sonnet, no Haiku, and Opus for the contingent R15-C1. **Tags:** INTERNAL are R15-00 to 03, 11 to 13, 18 and 28;
