@@ -144,16 +144,16 @@ function usePracticeStore(items: readonly HomePractice[]): TickStore {
   }, [items, client, mutateAsync, isPending]);
 }
 
-// The sample's action, the one the home page quotes. Her run and her chart weigh more than the dashboard, so only an
-// empty one loads them.
+// The sample's action that the home page's first workbook card offers, so the dashboard and the site show the same
+// thing to try. Her run and her chart weigh more than the dashboard, so only an empty one loads them.
 function useSample(wanted: boolean): ChecklistItem | null {
   const [sample, setSample] = useState<ChecklistItem | null>(null);
   useEffect(() => {
     if (!wanted || sample) return;
     let live = true;
     Promise.all([import("@/site/data/differences"), import("@/site/data/sample")])
-      .then(([{ DIFFERENCES }, { SAMPLE }]) => {
-        if (live) setSample({ ...DIFFERENCES.action, label: `Sample · ${SAMPLE.name}` });
+      .then(([{ WORKBOOK_CARDS }, { SAMPLE }]) => {
+        if (live) setSample({ ...WORKBOOK_CARDS[0].action, label: `Sample · ${SAMPLE.name}` });
       })
       // Without her item the section stays out, rather than a heading over nothing.
       .catch(() => undefined);
