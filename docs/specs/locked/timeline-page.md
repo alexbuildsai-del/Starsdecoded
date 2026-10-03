@@ -1,6 +1,6 @@
 # Timeline page (`/timeline`)
 
-Locked 2026-10-03 from `/ideate timeline-page`, version 4 (ADR-249 to 259, 254 superseded by 259; the Owner: "do a proper product page where we show the
+Locked 2026-10-03 from `/ideate timeline-page`, version 4 (ADR-249 to 261; 254 and 260 superseded; the Owner: "do a proper product page where we show the
 value propositions and what you're getting when paying the subscription fee"; then "we say something when we
 offer, but then we need to support it"). Builds on the locked `timeline`
 spec (ADR-205 to 217; screen 7, ADR-215), which it details and does not change.
@@ -119,6 +119,13 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 1. The product page at 390 px and desktop, live: https://claude.ai/artifact/YTpuNi1CqPfJJHVNEdtMJG#page
 2. The home line: #home · 3. The four sentences: #words
 
+## For R16's planner
+- Build this spec in R16 as Timeline's first group, with the simple-words audit (`docs/annex/simple-words-audit.md`,
+  ADR-257, 258, 261), the writer's prompt rule included. R15 stays the cleanup round (ADR-242).
+- `docs/rounds/R16-plan.md` (on `claude/youthful-gauss-7snkqd`) predates this spec: its coming-soon page, finder and
+  copy items (5, 21, 22) follow the old screen 7. Replace them with this spec; its cycles card serves the finder.
+- Merge `claude/timeline-page-ideation` first. MASTERFILE: this branch and R16's plan both say 0.26; renumber at merge.
+
 ## The Owner's answers (2026-10-03)
 1. "Stop planning R15 launch and the pricing": pricing and launch are on hold (ADR-230, 242), R15 is the cleanup
    round, and this page is built with Timeline in R16, as its first group (ADR-259, superseding ADR-254's misreading).
@@ -136,7 +143,8 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
    Horizons; date only.
 4. The way in: one line on the home page after Prices about Timeline as a whole, and "Timeline" in the footer.
 5. Four sentences change with it (Prices, two FAQ answers, Method), approved by the Owner 2026-10-03.
-6. The page is built in R16, Timeline's round, as its first group; R15 stays the cleanup round (ADR-259).
+6. The page is built in R16, Timeline's round, as its first group, with the simple-words audit; R15 stays the cleanup
+   round (ADR-259, 261).
 7. No Timeline price on the site yet: the plan card says "Coming soon" (the Owner, 2026-10-03).
 8. Every sample line on the page is plain and simple: everyday words, one idea per sentence, no drama ("What you
    hope for is asked to go deeper or let go" became "A good time to look at your plans again and keep the ones
