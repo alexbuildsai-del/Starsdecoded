@@ -4,3 +4,7 @@
 edf89906d75694fce30f9cdd048038fbf987c7a2:api/src/app.test.ts:generic-api-key:94
 705ed067090cca4ee7d8eb2925c67a0eaf638621:api/src/lib/logger.test.ts:jwt:34
 705ed067090cca4ee7d8eb2925c67a0eaf638621:api/src/lib/logger.test.ts:generic-api-key:35
+# The first full-history scan, on production (2026-10-03): IndexNow's test key, 0123…cdef, and PostHog's
+# public project key (phc_, write-only by design) in HyperFrames, vendored and switched off in .claude/vendor/.
+af2bda2f68d65eb55923e70c73663a3ef17ae0b7:api/src/lib/indexNow.test.ts:generic-api-key:25
+6e0b278a7ed3f61ba7b52daefeb56263ba9a8450:.claude/vendor/hyperframes/skills/media-use/scripts/lib/telemetry.mjs:generic-api-key:12

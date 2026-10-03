@@ -112,9 +112,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - CI runs typecheck, builds, tests, `check:shipped`, audit and gitleaks; no lint step. Each preview runs Lighthouse, axe and the probe (ADR-192).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-10-02)
+## Current focus (2026-10-03)
 
-1. R14 shipped to staging: Review 02/10 (one line after the hero, Gift and Share, no credit-back line, Chiron from JPL Horizons at
-   chart version 4, typed date and time fields by language) and the edge secret behind per-address limits; R13 before it.
-2. Next: QA-02 on staging, `edge: true` in the smoke (MB-167), the sentinel's audit of `main`, the first Release (R11 to R14), /sample refreshed.
+1. First Release: R11 to R14 on production at 27bb5c5 (2026-10-03), the waitlist over the site. A retry reuses an unchanged
+   brain's lab, the gate weighs production's run, QA sev-1 is only what is wrong for the reader (`docs/annex/first-release-plan.md`).
+2. Next: the Owner's waitlist sign-up on production, `edge: true` in the smoke (MB-167), /sample refreshed, the bible's release log.
 3. Then R15, pricing and launch (`R15-plan.md`, to re-plan at its /plan; checkout, the postal address, `LAUNCHED`). Open: MB-103, MB-104.
