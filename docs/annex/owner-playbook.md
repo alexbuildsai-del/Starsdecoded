@@ -20,8 +20,8 @@ merged into the rule it repeats.
   (security-hardening, Open questions, 2026-10-01; ADR-204).
 - **He orders the rounds.** Pricing and launch went behind the website (R11 plan, 2026-09-30), Review 01/10 (R12 plan,
   2026-10-01) and security with the roster (ADR-204): deferred three times (R14-plan header). Offer an order as a recommendation.
-- **Less text on public pages.** Three quote cards with counts became one annotated line: "simple", one actionable
-  example, no figures "no one's gonna read" (Review 02/10, 2026-10-02). Propose the shortest version first.
+- **Less text, simple words, everywhere.** Quote cards became one annotated line (Review 02/10); a "so dramatic" line became
+  plain (timeline-page, 2026-10-03). Everyday words, one idea a sentence, in prose, posts and the site; never make him ask again.
 - **Speed of entry beats pickers.** Three date boxes with a month list became one typed field that jumps ahead
   (Review 02/10). Forms are judged by how fast a birth date goes in.
 - **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):

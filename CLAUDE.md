@@ -7,8 +7,8 @@ product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 ## Working with the Owner
 
-- Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
-- Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel; a single lookup or edit stays here.
+- Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5); commits and files stay unprefixed. Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel.
+- **Simple words, everywhere** (Owner, 2026-10-03): report prose, site, app, emails, posts, mocks. Everyday words, one idea per sentence, no drama; a line that sounds deep gets rewritten until it sounds normal (`/ux-copy` voice chart).
 - Model triage (R-0.7): `/round` is the orchestrator, in the main loop on Opus 5.5 at max; every card carries a `Tier:` (builder, builder-sonnet, builder-haiku); tester, sentinel, qa, researcher, verifier (ADR-187 to 195).
 
 ## Read this first
