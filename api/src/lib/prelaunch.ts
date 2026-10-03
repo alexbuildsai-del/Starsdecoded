@@ -19,7 +19,9 @@ export function isPrelaunch(env: NodeJS.ProcessEnv = process.env, launched: bool
 // production's violation counts down. The public pages call nothing else,
 // since they compute in the browser and read build data. /admin carries its own
 // guard, and /admin/me is how the admin's page learns who is signed in.
-const OPEN_PATHS = [/^\/healthz(?:\/|$)/, /^\/waitlist(?:\/confirm)?\/?$/, /^\/csp-report\/?$/, /^\/admin(?:\/|$)/];
+// /geocode is open because the public /sky page finds places through it since the zone moved to the server
+// (ADR-246); it reads and writes nothing of ours, so ADR-167's gate on the product holds.
+const OPEN_PATHS = [/^\/healthz(?:\/|$)/, /^\/waitlist(?:\/confirm)?\/?$/, /^\/csp-report\/?$/, /^\/admin(?:\/|$)/, /^\/geocode\/?$/];
 
 export function prelaunchAllows(path: string, userId: string | null, env: NodeJS.ProcessEnv = process.env): boolean {
   return OPEN_PATHS.some((open) => open.test(path)) || labActor({ userId }, env) !== null;
