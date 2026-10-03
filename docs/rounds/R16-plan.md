@@ -3,7 +3,7 @@
 Planned 2026-10-03 on `claude/youthful-gauss-7snkqd` (`main` at 30b45b6, R14's report merged) for the locked spec `timeline` (ADR-205
 to 217, locked 2026-10-01; artifact https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE). **The lock had never reached `main`**: the spec,
 MASTERFILE's Timeline paragraph and its INDEX line sat on the unmerged branch `claude/tender-lovelace-ynaemg` (6d0733a); they land
-with this plan (MASTERFILE 0.26). **Order:** next, with no pricing round before it (ADR-230, next section). **Split:** Timeline is about forty cards, past R05's thirty-two
+with this plan (MASTERFILE 0.26). **Order:** after R15, the cleanup round; no pricing round before it (ADR-230, next section). **Split:** Timeline is about forty cards, past R05's thirty-two
 (two compactions) and the forty at which R10's planner split, so R16 builds what a subscriber gets, behind `TIMELINE`, with the pieces
 the spec lets ship before it; R17 (outlined at the end) builds how it is sold and kept, once pricing's Stripe seam exists. QA-02 (staging after R14)
 has no sev-1, no Mailbox row is `blocking`, and no Owner comment sits on ADR-205 to 217 or on the Mailbox rows this plan touches.
@@ -20,17 +20,18 @@ step · MB-21 variables missing from `.env.example` · MB-22 dead code left by t
 port's chat tables with no user; Ask gets its own and leaves them alone). No row counts rounds: a row's age is its Created time.
 
 ## Round number and order
-R14 is the last round built (`R14-report.md`). R15 stays reserved for pricing and launch, which the Owner put on hold on
-2026-10-03: unplanned, and not planned or referred to by any planner until the Owner asks (ADR-230, amending ADR-217 and 226). So
-Timeline goes next as **R16**, from `main` as it is. Nothing in R16 needs pricing: it builds what a subscriber gets behind a switch
-that is off everywhere. How Timeline is sold (R17) needs a Stripe seam and waits for pricing's /plan. **Approving this plan starts
-`/round R16` at once.**
+R14 is the last round built (`R14-report.md`). The Owner set the order on 2026-10-03: R15 is the cleanup round from
+`docs/specs/draft/mailbox-sweep-03-10.md` (being locked in its own session), then Timeline as **R16**. Pricing and launch are on hold,
+not planned or slotted between rounds until the Owner asks (ADR-230, amending ADR-217 and 226); the old `R15-plan.md` is renamed then.
+Nothing in R16 needs pricing: it builds what a subscriber gets behind a switch that is off everywhere. How Timeline is sold (R17)
+needs a Stripe seam and waits for pricing's /plan. **Approving this plan queues R16 behind R15**; `/round R16` starts when R15 has
+merged, and Round start 3 re-reads every pinned shape R15 touched.
 
 ## Round start (the orchestrator)
-1. Branch `round/R16` from `main` with this plan's commit (merged first if it is not yet on `main`).
+1. **R15 (the cleanup round) is merged**; branch `round/R16` from `main` with this plan's commit (merged first if it is not yet).
 2. **The lock** landed with this plan: `docs/specs/locked/timeline.md`, MASTERFILE 0.26's §2 changes (the V1 exclusions line and the
    Timeline paragraph) and INDEX's Specs line. ADR-205 to 217 and 230 are recorded and locked; the round adds no Decisions row for it.
-3. **Re-read the pinned shapes against `main`** (the files in Risk 10) if anything merged after 30b45b6. A shape that changed is
+3. **Re-read the pinned shapes against `main`** (the files in Risk 10) after R15. A shape R15 changed is
    re-pinned here before any builder starts; one that cannot be stops the round (R-0.1).
 4. Builders cannot open claude.ai: extract the artifact's screens into the session scratchpad, phone first then desktop: the dial and
    Now and ahead (R16-13, 14), Life (R16-15), Ask's mark and chat (R16-16), the triad row and At a glance (R16-17, 23, 24), the
@@ -613,7 +614,7 @@ production. The brain changed, so that Release runs the full lab; natal and pair
 9. **Dependencies**: none. astronomy-engine 2.1.19 already has the searches; Ask uses the existing OpenAI client.
 10. **Shared files.** Pinned shapes in `openapi.yaml`, the schema index, `bootstrap-db.sh`, `home.ts`, `limits.ts`,
     `routes/index.ts`, `reports.ts`, `DashboardPage.tsx`, `ReportPage.tsx`, `App.tsx`, `AccountMenu.tsx`, `faq.ts`, `Pricing.tsx`,
-    `TermsPage.tsx`; Round start 3 re-reads them against `main` if anything merged after 30b45b6.
+    `TermsPage.tsx`; R15's cleanup may touch some; Round start 3 re-reads them against `main` after it.
 11. **Size**: twenty-five cards, thirteen in group B; the shrink path is in Parallel groups.
 12. **Deployments**: Vercel's 100 a day (MB-187); one push per group and one per fix.
 13. **Escalations**: none in R13 or R14, so no card or kind of card was escalated to Opus two rounds running.
@@ -632,7 +633,7 @@ production. The brain changed, so that Release runs the full lab; natal and pair
   claims) and MB-185 (pasting a date, inherited by the finder's field) shape R16-13, 14 and 18.
 
 ## For the Owner (three asks, highest stakes first)
-Approving this plan starts `/round R16` at once (ADR-230).
+Approving this plan queues R16 behind R15, the cleanup round (ADR-230 and the Owner's order of 2026-10-03).
 1. **What Ask keeps (MB-191).** Ask stores what you type, and the spec doesn't say for how long. Recommendation: 31 days, then gone; a
    card about someone else keeps only who and which day and shows only while you can still read them; deleting your Personal report
    deletes your Ask thread and readings. If silent: built that way, tagged, and the privacy page says so when Timeline goes on sale.
