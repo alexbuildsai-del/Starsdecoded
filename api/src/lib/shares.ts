@@ -48,7 +48,7 @@ function account(userId: string): Viewer {
   return { userId, sessionId: "" };
 }
 
-const live = (profileId: string, readerUserId: string) =>
+const unrevoked = (profileId: string, readerUserId: string) =>
   and(
     eq(profileSharesTable.profileId, profileId),
     eq(profileSharesTable.readerUserId, readerUserId),
@@ -101,18 +101,13 @@ export async function sharerOf(readerUserId: string, profileId: string): Promise
     })
     .from(profileSharesTable)
     .innerJoin(profilesTable, eq(profileSharesTable.profileId, profilesTable.id))
-    .where(live(profileId, readerUserId))
+    .where(unrevoked(profileId, readerUserId))
     .limit(1);
   const row = rows[0];
   return row && grantStands(row.share, row.chart) ? row.share.ownerUserId : null;
 }
 
-/**
- * The account's own chart, the one profile marked as theirs (reading 16), and
- * whether its Personal report is finished. Null when none is marked, or when
- * several are, since which one is theirs is not settled yet (home's `several`).
- */
-export async function ownChartOf(userId: string): Promise<{ profileId: string; finished: boolean } | null> {
+async function ownChart(userId: string): Promise<{ chart: Chart & { id: string }; finished: boolean } | null> {
   if (!userId) return null;
   const marked = await db
     .select(chartColumns)
@@ -136,7 +131,17 @@ export async function ownChartOf(userId: string): Promise<{ profileId: string; f
       ),
     )
     .limit(1);
-  return { profileId: own[0].id, finished: !!finished };
+  return { chart: own[0], finished: !!finished };
+}
+
+/**
+ * The account's own chart, the one profile marked as theirs (reading 16), and
+ * whether its Personal report is finished. Null when none is marked, or when
+ * several are, since which one is theirs is not settled yet (home's `several`).
+ */
+export async function ownChartOf(userId: string): Promise<{ profileId: string; finished: boolean } | null> {
+  const own = await ownChart(userId);
+  return own ? { profileId: own.chart.id, finished: own.finished } : null;
 }
 
 /**
@@ -227,7 +232,7 @@ export async function grantShare(
     })
     .from(profileSharesTable)
     .innerJoin(profilesTable, eq(profileSharesTable.profileId, profilesTable.id))
-    .where(live(profileId, readerUserId))
+    .where(unrevoked(profileId, readerUserId))
     .limit(1);
   if (held) {
     if (held.ownerUserId === ownerUserId || grantStands(held, held.chart)) return held.id;
@@ -240,7 +245,7 @@ export async function grantShare(
     .returning({ id: profileSharesTable.id });
   if (made) return made.id;
   // A grant of the same chart to the same reader landed between the read and the insert; it is the one.
-  const [raced] = await tx.select({ id: profileSharesTable.id }).from(profileSharesTable).where(live(profileId, readerUserId)).limit(1);
+  const [raced] = await tx.select({ id: profileSharesTable.id }).from(profileSharesTable).where(unrevoked(profileId, readerUserId)).limit(1);
   if (!raced) throw new Error("A conflicting share grant could not be read back");
   return raced.id;
 }
@@ -293,9 +298,7 @@ export async function revokeShare(id: string, ownerUserId: string): Promise<bool
 export async function shareBackOffered(readerUserId: string, profileId: string): Promise<boolean> {
   const sharer = await sharerOf(readerUserId, profileId);
   if (!sharer) return false;
-  const own = await ownChartOf(readerUserId);
-  if (!own?.finished) return false;
-  const [chart] = await db.select(chartColumns).from(profilesTable).where(eq(profilesTable.id, own.profileId)).limit(1);
-  if (!chart || canReadProfile(account(sharer), chart)) return false;
-  return !(await sharedProfileIds(sharer)).has(own.profileId);
+  const own = await ownChart(readerUserId);
+  if (!own?.finished || canReadProfile(account(sharer), own.chart)) return false;
+  return !(await sharedProfileIds(sharer)).has(own.chart.id);
 }
