@@ -2,11 +2,12 @@
  * The time field's keystrokes and its AM/PM switch. Web tests render no
  * components (MB-47), so the browser's part is played by plain string edits
  * and the field's by the same calls BirthTimeField makes: stepTime on each
- * change, timeValue when the switch is tapped, onChange when the value moves
- * and onComplete when the step says the time is done.
+ * change, pickHalf when the switch is tapped or chosen from the keyboard,
+ * onChange when the value moves and onComplete when a step or a tap says the
+ * time is done.
  */
 import { describe, expect, it } from "vitest";
-import { stepTime, timeNote, timeState, timeText, timeValue, type Clock, type Half } from "@/lib/date-entry";
+import { pickHalf, stepTime, timeNote, timeState, timeText, type Clock, type Half } from "@/lib/date-entry";
 
 // A pattern inside a sentence is bound by no-break spaces, so it never splits across lines.
 const nb = (pattern: string) => pattern.replace(/ /g, "\u00a0");
@@ -14,6 +15,7 @@ const nb = (pattern: string) => pattern.replace(/ /g, "\u00a0");
 class TimeField {
   digits: string;
   half: Half;
+  halfSet = false;
   text: string;
   caret: number;
   value: string;
@@ -36,8 +38,9 @@ class TimeField {
   }
 
   private edit(text: string, caret: number, inputType: string) {
-    const step = stepTime({ digits: this.digits, half: this.half }, { shown: this.text, text, caret, inputType }, this.clock);
-    ({ digits: this.digits, half: this.half, text: this.text, caret: this.caret } = step);
+    const state = { digits: this.digits, half: this.half, halfSet: this.halfSet };
+    const step = stepTime(state, { shown: this.text, text, caret, inputType }, this.clock);
+    ({ digits: this.digits, half: this.half, halfSet: this.halfSet, text: this.text, caret: this.caret } = step);
     this.left = false;
     this.shown.push(step.text);
     this.send(step.value);
@@ -61,11 +64,22 @@ class TimeField {
     return this.edit(this.text.slice(0, this.caret) + clip + this.text.slice(this.caret), this.caret + clip.length, "insertFromPaste");
   }
 
+  private choose(half: Half, tapped: boolean) {
+    const step = pickHalf({ digits: this.digits, half: this.half, halfSet: this.halfSet }, half, this.clock);
+    ({ half: this.half, halfSet: this.halfSet } = step);
+    this.send(step.value);
+    if (tapped && step.done) this.completed++;
+    return this;
+  }
+
   /** A tap on the switch. */
   pick(half: Half) {
-    this.half = half;
-    this.send(timeValue({ digits: this.digits, half }, this.clock));
-    return this;
+    return this.choose(half, true);
+  }
+
+  /** The switch moved with the arrow keys, where focus is the reader's own to move on. */
+  arrow(half: Half) {
+    return this.choose(half, false);
   }
 
   leave() {
@@ -129,23 +143,41 @@ describe("typing a time straight through", () => {
 });
 
 describe("on a 12-hour clock", () => {
-  it("starts the switch on AM and sends the 24-hour time", () => {
+  it("starts the switch on AM and sends the 24-hour time, but keeps focus after four digits until AM or PM is set (MB-173)", () => {
     const field = new TimeField(12).type("0300");
-    expect(field).toMatchObject({ text: "03 : 00", half: "am", sent: ["03:00"], completed: 1 });
+    expect(field).toMatchObject({ text: "03 : 00", half: "am", sent: ["03:00"], completed: 0 });
   });
 
-  it("sets the switch from an A or P typed in the field, without moving on", () => {
-    const field = new TimeField(12).type("0300").type("p");
+  it("moves on once an A or P is typed, so the P of 0300p stays in the time field (MB-173)", () => {
+    const field = new TimeField(12).type("0300p");
     expect(field).toMatchObject({ text: "03 : 00", half: "pm", sent: ["03:00", "15:00"], completed: 1 });
-    field.type("A");
-    expect(field).toMatchObject({ half: "am", sent: ["03:00", "15:00", "03:00"] });
-    expect(new TimeField(12).type("p0300")).toMatchObject({ half: "pm", sent: ["15:00"], completed: 1 });
+    expect(new TimeField(12).type("0300a")).toMatchObject({ half: "am", sent: ["03:00"], completed: 1 });
   });
 
-  it("sets it from a tap, without moving on", () => {
-    const field = new TimeField(12).type("0300").pick("pm");
-    expect(field).toMatchObject({ value: "15:00", completed: 1 });
-    expect(field.pick("am").value).toBe("03:00");
+  it("moves on at the fourth digit when the half was set first", () => {
+    expect(new TimeField(12).type("p0300")).toMatchObject({ half: "pm", sent: ["15:00"], completed: 1 });
+    expect(new TimeField(12).pick("pm").type("0300")).toMatchObject({ value: "15:00", completed: 1 });
+  });
+
+  it("moves on once the switch is tapped, the AM it starts on included", () => {
+    expect(new TimeField(12).type("0300").pick("pm")).toMatchObject({ value: "15:00", completed: 1 });
+    expect(new TimeField(12).type("0300").pick("am")).toMatchObject({ value: "03:00", completed: 1 });
+  });
+
+  it("stays put for a half changed once it was set, so a reader putting it right is not sent away again", () => {
+    const field = new TimeField(12).type("0300p");
+    field.type("A");
+    expect(field).toMatchObject({ half: "am", sent: ["03:00", "15:00", "03:00"], completed: 1 });
+    expect(field.pick("pm")).toMatchObject({ value: "15:00", completed: 1 });
+  });
+
+  it("sets the switch from the arrow keys without moving focus out of it", () => {
+    expect(new TimeField(12).type("0300").arrow("pm")).toMatchObject({ value: "15:00", halfSet: true, completed: 0 });
+  });
+
+  it("moves on at the fourth digit when the hour itself says the half: 13 to 23, or 00", () => {
+    expect(new TimeField(12).type("1530")).toMatchObject({ half: "pm", sent: ["15:30"], completed: 1 });
+    expect(new TimeField(12).type("0030")).toMatchObject({ half: "am", sent: ["00:30"], completed: 1 });
   });
 
   it("reads an hour from 13 to 23 as that 24-hour time and sets PM (reading 9)", () => {
@@ -171,6 +203,14 @@ describe("on a 12-hour clock", () => {
 });
 
 describe("pasting a time", () => {
+  it("moves on from a 12-hour time when the paste says its half, and waits when it does not", () => {
+    expect(new TimeField(12).paste("3:30 pm")).toMatchObject({ value: "15:30", completed: 1 });
+    expect(new TimeField(12).paste("15:30")).toMatchObject({ value: "15:30", completed: 1 });
+    const field = new TimeField(12).paste("3:30");
+    expect(field).toMatchObject({ value: "03:30", completed: 0 });
+    expect(field.paste("pm")).toMatchObject({ value: "15:30", completed: 1 });
+  });
+
   it("reads it whole, its am or pm included, on either clock", () => {
     expect(new TimeField(24).paste("15:30")).toMatchObject({ text: "15 : 30", sent: ["15:30"], completed: 1 });
     expect(new TimeField(24).paste("3:30 pm").sent).toEqual(["15:30"]);

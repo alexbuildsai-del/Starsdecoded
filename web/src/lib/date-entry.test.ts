@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ENTRY, TIME_PATTERN, clockWords, dateDigits, dateNote, datePattern, dateText, dateValue, entryFormat, localDay,
-  readDate, readTime, timeNote, timeState, timeText, timeValue,
+  pickHalf, readDate, readTime, stepDate, stepTime, timeNote, timeState, timeText, timeValue,
   type Clock, type DateOrder,
 } from "./date-entry";
 
@@ -20,6 +20,7 @@ const LANGUAGES: [lang: string, order: DateOrder, clock: Clock][] = [
   ["en-CA", "ymd", 12],
 ];
 
+const ORDERS: DateOrder[] = ["dmy", "mdy", "ymd"];
 const PATTERN: Record<DateOrder, string> = { dmy: "DD / MM / YYYY", mdy: "MM / DD / YYYY", ymd: "YYYY / MM / DD" };
 // 4 May 1929, Audrey Hepburn's birth date, as each order types and writes it.
 const TYPED: Record<DateOrder, string> = { dmy: "04051929", mdy: "05041929", ymd: "19290504" };
@@ -190,6 +191,74 @@ describe("a pasted date", () => {
   });
 });
 
+describe("a date pasted in words (MB-185, QA-02 #12)", () => {
+  it("reads 4 May 1929, May 4 1929 and 4 may 1929 in every field order, since the month's name says which part it is", () => {
+    for (const order of ORDERS) {
+      for (const clip of ["4 May 1929", "May 4 1929", "4 may 1929"]) {
+        expect(readDate(clip, order), `${clip} into ${order}`).toBe(TYPED[order]);
+      }
+    }
+  });
+
+  it("reads the ways a date is written out: a comma, 4th, a short month, a weekday, the year first, all capitals", () => {
+    for (const clip of [
+      "May 4, 1929", "4th May 1929", "May 4th, 1929", "4th of May, 1929", "Saturday, 4 May 1929", "Sat, May 4, 1929",
+      "04-May-1929", "04MAY1929", "1929 May 4", "MAY 4 1929", "4 May 1929 at 03:00", "May 4, 1929, 3:00 pm",
+    ]) {
+      expect(readDate(clip, "dmy"), clip).toBe("04051929");
+      expect(readDate(clip, "mdy"), clip).toBe("05041929");
+    }
+    expect(readDate("Sept. 30, 1929", "dmy")).toBe("30091929");
+    expect(readDate("31 Dec 1999", "ymd")).toBe("19991231");
+    expect(readDate("2 february 2000", "mdy")).toBe("02022000");
+  });
+
+  it("reads a month's name ahead of the numbers around it, so a year-first date with a time after it is not misread", () => {
+    expect(readDate("1929 May 4 03:00", "dmy")).toBe("04051929");
+  });
+
+  it("hands an impossible day on as digits for the field to refuse, as it does for one in numbers", () => {
+    expect(readDate("31 April 1990", "dmy")).toBe("31041990");
+    expect(dateValue(readDate("31 April 1990", "dmy")!, "dmy")).toBe("");
+  });
+
+  it("reads nothing it would have to guess: a month in another language, a missing part, a short year, two months", () => {
+    for (const clip of ["4 Mai 1929", "4 de mayo de 1929", "May 1929", "4 May", "4 May 29", "4 May 1929 to 5 June 1930", "tomorrow"]) {
+      expect(readDate(clip, "dmy"), clip).toBeNull();
+    }
+  });
+});
+
+describe("a paste the date field cannot read", () => {
+  const paste = (digits: string, shown: string, clip: string, order: DateOrder = "dmy") =>
+    stepDate(digits, { shown, text: shown + clip, caret: (shown + clip).length, inputType: "insertFromPaste" }, order);
+
+  it("fills an empty field from words and finishes the date, so focus moves on to the time", () => {
+    for (const order of ORDERS) {
+      expect(paste("", "", "4 May 1929", order), order).toMatchObject({ digits: TYPED[order], value: "1929-05-04", done: true, refused: false });
+    }
+  });
+
+  it("leaves the field as it was, its caret after what it held, never 41 / 92 / 9", () => {
+    expect(paste("", "", "4 Mai 1929")).toMatchObject({ digits: "", text: "", caret: 0, value: "", done: false, refused: true });
+    expect(paste("0405", "04 / 05 / ", "nineteen")).toMatchObject({ digits: "0405", text: "04 / 05 / ", caret: 10, done: false, refused: true });
+  });
+
+  it("still takes a paste of digits alone as typed, as the keypad would", () => {
+    expect(paste("0405", "04 / 05 / ", "1929")).toMatchObject({ digits: "04051929", value: "1929-05-04", refused: false });
+    expect(paste("", "", "0405")).toMatchObject({ digits: "0405", refused: false });
+  });
+
+  it("says why on the line under the field, in the field's order, until the next change (MB-185)", () => {
+    for (const order of ORDERS) {
+      expect(dateNote("", order, { today: TODAY, left: false, refused: true }), order)
+        .toEqual({ kind: "problem", text: `We couldn't read that as a date. Type it as ${nb(PATTERN[order])}.` });
+    }
+    expect(dateNote(TYPED.dmy, "dmy", { today: TODAY, left: true, refused: true })?.kind).toBe("problem");
+    expect(dateNote(TYPED.dmy, "dmy", { today: TODAY, left: false, refused: false })).toEqual({ kind: "readout", text: "4 May 1929" });
+  });
+});
+
 describe("the time field", () => {
   it("lays the time out and shows the pattern", () => {
     expect(TIME_PATTERN).toBe("HH : MM");
@@ -240,6 +309,33 @@ describe("the time field", () => {
     expect(timeNote("2500", 12, false)).toBe("There's no 25:00. Check the hour.");
     expect(timeNote("0375", 24, false)).toBe("There's no 03:75. Check the minutes.");
     expect(timeNote("0300", 12, false)).toBeNull();
+  });
+});
+
+describe("the half of the day on a 12-hour clock (MB-173)", () => {
+  const key = (shown: string, typed: string) => ({ shown, text: shown + typed, caret: (shown + typed).length, inputType: "insertText" });
+
+  it("holds a whole time back from moving on until its half is set, and lets it go once an A or P is typed", () => {
+    expect(stepTime({ digits: "030", half: "am" }, key("03 : 0", "0"), 12)).toMatchObject({ value: "03:00", halfSet: false, done: false });
+    expect(stepTime({ digits: "0300", half: "am" }, key("03 : 00", "p"), 12)).toMatchObject({ value: "15:00", halfSet: true, done: true });
+    expect(stepTime({ digits: "030", half: "pm", halfSet: true }, key("03 : 0", "0"), 12)).toMatchObject({ value: "15:00", done: true });
+  });
+
+  it("takes an hour only one half has, 13 to 23 or 00, as the half set", () => {
+    expect(stepTime({ digits: "1", half: "am" }, key("1", "5"), 12)).toMatchObject({ digits: "03", half: "pm", halfSet: true, done: false });
+    expect(stepTime({ digits: "0", half: "am" }, key("0", "0"), 12)).toMatchObject({ digits: "12", half: "am", halfSet: true });
+    expect(stepTime({ digits: "1", half: "am" }, key("1", "2"), 12)).toMatchObject({ digits: "12", halfSet: false });
+  });
+
+  it("moves on at the fourth digit on the 24-hour clock, as before", () => {
+    expect(stepTime({ digits: "030", half: "am" }, key("03 : 0", "0"), 24)).toMatchObject({ value: "03:00", done: true });
+  });
+
+  it("calls a tap on the switch done once the time is whole, on the half it already shows too, and only the first time", () => {
+    expect(pickHalf({ digits: "0300", half: "am" }, "am", 12)).toMatchObject({ half: "am", halfSet: true, value: "03:00", done: true });
+    expect(pickHalf({ digits: "0300", half: "am" }, "pm", 12)).toMatchObject({ half: "pm", halfSet: true, value: "15:00", done: true });
+    expect(pickHalf({ digits: "0300", half: "pm", halfSet: true }, "am", 12)).toMatchObject({ value: "03:00", done: false });
+    expect(pickHalf({ digits: "03", half: "am" }, "pm", 12)).toMatchObject({ halfSet: true, value: "", done: false });
   });
 });
 

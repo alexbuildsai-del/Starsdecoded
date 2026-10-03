@@ -287,13 +287,53 @@ export function dateValue(digits: string, order: DateOrder, range: DateRange = {
 
 const pad2 = (part: string) => part.padStart(2, "0");
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+] as const;
+const MONTH_KEYS = MONTHS.map((name) => name.toLowerCase());
+
+/** The month a word names, 0 to 11, or -1: its English name or the first three letters or more, in any case (reading 6). */
+function monthOf(word: string): number {
+  const key = word.toLowerCase();
+  return key.length < 3 ? -1 : MONTH_KEYS.findIndex((name) => name.startsWith(key));
+}
+
+const isDay = (part: string) => part.length === 1 || part.length === 2;
+
+/**
+ * A date in words: one month named, the day beside it and a four-digit year, as
+ * "4 May 1929", "May 4, 1929" or "1929 May 4". Any other word, a weekday or the
+ * "th" of "4th", is passed over, and so is a time after the date. The year is
+ * never short here, since a century would have to be guessed.
+ */
+function inWords(text: string): DateParts | null {
+  const tokens = text.match(/\d+|\p{L}+/gu) ?? [];
+  const months = tokens.flatMap((token, i) => (monthOf(token) < 0 ? [] : [i]));
+  if (months.length !== 1) return null;
+  const at = months[0];
+  const m = two(monthOf(tokens[at]) + 1);
+  const numbersBefore = tokens.slice(0, at).filter((token) => isDigit(token[0]));
+  const before = numbersBefore[numbersBefore.length - 1] ?? "";
+  const [first = "", second = ""] = tokens.slice(at + 1).filter((token) => isDigit(token[0]));
+  if (isDay(first) && second.length === 4) return { d: pad2(first), m, y: second };
+  if (isDay(before) && first.length === 4) return { d: pad2(before), m, y: first };
+  if (before.length === 4 && isDay(first)) return { d: pad2(first), m, y: before };
+  return null;
+}
+
 /**
  * A pasted date read whole: "1929-05-04" in any field, since four digits first
- * can only be a year, or "4/5/1929" in the field's own order. Null when the
- * text is neither, and the field takes its digits as typed.
+ * can only be a year; "4 May 1929" or "May 4, 1929" in any field, since the
+ * month's name says which part it is (MB-185); or "4/5/1929" in the field's own
+ * order. Null when the text is none of these.
  */
 export function readDate(text: string, order: DateOrder): string | null {
-  const groups = ascii(text).split(/\D+/).filter(Boolean);
+  const plain = ascii(text);
+  // A month's name goes first, so "1929 May 4 03:00" is never read as 3 April by its numbers.
+  const named = inWords(plain);
+  if (named) return inOrder(named, order);
+  const groups = plain.split(/\D+/).filter(Boolean);
   if (groups.length === 1) return groups[0].length === DATE_DIGITS ? groups[0] : null;
   if (groups.length < 3) return null;
   const [a, b, c] = groups;
@@ -312,23 +352,29 @@ export interface DateStep {
   value: string;
   /** The change finished a valid date at the end of the field, so the form moves on to the time. */
   done: boolean;
+  /** A paste with words in it that is no date the field can read: the field keeps what it had, and the line under it says so. */
+  refused: boolean;
 }
+
+// No key types a letter into the field, so a clip with one in it is a date in words or no date at all.
+const WORD = /\p{L}/u;
 
 /** One change to the date field: the browser's edit read back into digits, laid out again in the reader's order. */
 export function stepDate(digits: string, edit: FieldEdit, order: DateOrder, range: DateRange = {}): DateStep {
   const mask = DATE_MASKS[order];
   const cut = cutOf(edit);
-  const whole = cut.inserted.length > 1 ? readDate(cut.inserted, order) : null;
+  const pasted = cut.inserted.length > 1;
+  const whole = pasted ? readDate(cut.inserted, order) : null;
+  // Its digits alone would land in the wrong parts, "4 Mai 1929" as "41 / 92 / 9" (QA-02 #12).
+  if (pasted && whole === null && WORD.test(cut.inserted)) {
+    const text = laidOut(digits, mask);
+    return { digits, text, caret: caretAfter(text, cut.index), value: dateValue(digits, order, range), done: false, refused: true };
+  }
   const next = whole === null ? applyCut(digits, cut, edit.inputType, mask) : { digits: whole, at: whole.length };
   const text = laidOut(next.digits, mask);
   const value = dateValue(next.digits, order, range);
-  return { digits: next.digits, text, caret: caretAfter(text, next.at), value, done: finished(value, digits, next) };
+  return { digits: next.digits, text, caret: caretAfter(text, next.at), value, done: finished(value, digits, next), refused: false };
 }
-
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-] as const;
 
 /** The line under the date field: the readout, a problem, or the order while the digits are going in. */
 export type DateNote =
@@ -347,14 +393,16 @@ function rangeLine({ min, max }: DateRange, today: string): string {
  * What the line under the date says. The readout keeps the site's one style,
  * "4 May 1929", in every language (reading 6). An unfinished date is only a
  * problem once the reader has left the field, so nobody is told off mid-date.
+ * A paste the field refused says so until the next change, whatever it held.
  */
 export function dateNote(
   digits: string,
   order: DateOrder,
-  { range = {}, today, left }: { range?: DateRange; today: string; left: boolean },
+  { range = {}, today, left, refused = false }: { range?: DateRange; today: string; left: boolean; refused?: boolean },
 ): DateNote | null {
-  if (digits === "") return null;
   const pattern = datePattern(order);
+  if (refused) return { kind: "problem", text: `We couldn't read that as a date. Type it as ${unbroken(pattern)}.` };
+  if (digits === "") return null;
   if (digits.length < DATE_DIGITS) {
     return left ? { kind: "problem", text: `Type the full date as ${unbroken(pattern)}.` } : { kind: "order", text: pattern };
   }
@@ -378,6 +426,12 @@ export function dateNote(
 export interface TimeState {
   digits: string;
   half: Half;
+  /**
+   * The reader has set the half: typed an A or P, tapped the switch, pasted an
+   * am or pm, or typed an hour only one half has. A whole 12-hour time keeps
+   * focus until then (MB-173).
+   */
+  halfSet?: boolean;
 }
 
 /** The field's text for its digits: "03 : 00". */
@@ -423,12 +477,8 @@ function halfIn(text: string): Half | null {
   return match[1].toLowerCase() === "p" ? "pm" : "am";
 }
 
-/**
- * A pasted time read whole: "15:30", "3:30 pm", "0330" or "15h30". An am or pm
- * in it decides the half of the day on either clock. Null when the text is not
- * a time, and the field takes its digits as typed.
- */
-export function readTime(text: string, clock: Clock, half: Half = "am"): TimeState | null {
+/** A pasted time, and whether it named its own half: an am or pm in it, or an hour only one half has. */
+function pastedTime(text: string, clock: Clock, half: Half): { state: TimeState; named: boolean } | null {
   const plain = ascii(text);
   const groups = plain.split(/\D+/).filter(Boolean);
   let hh: string;
@@ -449,15 +499,29 @@ export function readTime(text: string, clock: Clock, half: Half = "am"): TimeSta
   // With no am or pm in it, a 12-hour time keeps the switch where the reader left it.
   const settled = marker !== null || clock === 24;
   const state: TimeState = { digits: two(h) + mm, half: settled ? (h >= 12 ? "pm" : "am") : half };
-  return clock === 12 ? onTwelve(state) : state;
+  const shown = clock === 12 ? onTwelve(state) : state;
+  return { state: shown, named: marker !== null || shown !== state };
+}
+
+/**
+ * A pasted time read whole: "15:30", "3:30 pm", "0330" or "15h30". An am or pm
+ * in it decides the half of the day on either clock. Null when the text is not
+ * a time, and the field takes its digits as typed.
+ */
+export function readTime(text: string, clock: Clock, half: Half = "am"): TimeState | null {
+  return pastedTime(text, clock, half)?.state ?? null;
 }
 
 export interface TimeStep extends TimeState {
+  halfSet: boolean;
   text: string;
   caret: number;
   /** "HH:MM" on the 24-hour clock, or "" while the field holds no real time. */
   value: string;
-  /** The change finished a valid time at the end of the field, so the form moves on to the place. */
+  /**
+   * The change finished a valid time at the end of the field, its half set on a
+   * 12-hour clock, so the form moves on to the next step.
+   */
   done: boolean;
 }
 
@@ -469,26 +533,52 @@ export interface TimeStep extends TimeState {
 export function stepTime(state: TimeState, edit: FieldEdit, clock: Clock): TimeStep {
   // "15h30" is how French writes a time, so an h typed after the hour ends it as a colon would.
   const cut = cutOf({ ...edit, text: edit.text.replace(/h/gi, ":") });
-  const whole = cut.inserted.length > 1 ? readTime(cut.inserted, clock, state.half) : null;
+  const whole = cut.inserted.length > 1 ? pastedTime(cut.inserted, clock, state.half) : null;
   let next: TimeState;
   let at: number;
+  // The edit itself said the half: an A or P typed, or a paste that named one.
+  let named: boolean;
+  let byHour = false;
   if (whole) {
-    next = whole;
-    at = whole.digits.length;
+    ({ state: next, named } = whole);
+    at = next.digits.length;
   } else {
     const moved = applyCut(state.digits, cut, edit.inputType, TIME_MASK);
-    next = { digits: moved.digits, half: (clock === 12 && halfIn(cut.inserted)) || state.half };
+    const typed = clock === 12 ? halfIn(cut.inserted) : null;
+    next = { digits: moved.digits, half: typed ?? state.half };
+    named = typed !== null;
     at = moved.at;
     // No hour starts with 3 to 9, so that first digit is the whole hour.
     if (next.digits.length === 1 && digitsOf(cut.inserted) !== "" && Number(next.digits) >= 3) {
       next = { ...next, digits: `0${next.digits}` };
       at = 2;
     }
-    if (clock === 12) next = onTwelve(next);
+    if (clock === 12) {
+      const twelve = onTwelve(next);
+      byHour = twelve !== next;
+      next = twelve;
+    }
   }
+  const halfSet = !!state.halfSet || named || byHour;
   const text = timeText(next.digits);
   const value = timeValue(next, clock);
-  return { ...next, text, caret: caretAfter(text, at), value, done: finished(value, state.digits, { digits: next.digits, at }) };
+  const atEnd = finished(value, state.digits, { digits: next.digits, at });
+  // A 12-hour time is not whole until its half is set: then it moves on from its last digit, or from the A or P that
+  // set it, so the P of "0300p" never lands in the place (MB-173). An hour typed over in the middle never moves it on.
+  const done = clock === 24 ? atEnd : value !== "" && halfSet && (atEnd || (named && !state.halfSet));
+  return { digits: next.digits, half: next.half, halfSet, text, caret: caretAfter(text, at), value, done };
+}
+
+/**
+ * A half chosen on the AM/PM switch: it is set, and a whole time that was
+ * waiting for it is done the first time, which the field acts on for a tap and
+ * not for the arrow keys (MB-173). A half changed after that is a correction,
+ * and focus stays.
+ */
+export function pickHalf(state: TimeState, half: Half, clock: Clock): Omit<TimeStep, "text" | "caret"> {
+  const next = { digits: state.digits, half, halfSet: true };
+  const value = timeValue(next, clock);
+  return { ...next, value, done: value !== "" && !state.halfSet };
 }
 
 /** What the line under the time says: a problem, or nothing. */
