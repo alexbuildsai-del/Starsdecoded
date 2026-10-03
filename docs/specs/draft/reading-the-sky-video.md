@@ -1,6 +1,6 @@
 # Reading the Sky: an explainer video (draft)
 
-Status: draft, words first (marketing rule 24), 2026-10-02. Storyboard, VO, voices and the chart
+Status: draft v2, words first (marketing rule 24), 2026-10-03. v2 puts the real astronomy first (Owner, 2026-10-03: "stick to scientific facts and then make it a bit easier"). Storyboard, VO, voices and the chart
 compared: https://claude.ai/artifact/6b7SrcCjsS5sg1ZoQJnXXX
 
 The Owner asked for an explainer on how to read a natal chart, on the product's own chart, simple
@@ -9,33 +9,29 @@ marketing G2 (video waits for the report rework) for this one film.
 
 ## Scope
 
-- One 16:9 film, 1920×1080, about 6:15, with a voiceover and burned-in captions, built in HyperFrames
+- Four 16:9 episodes of 2 to 3 minutes (the real sky, the planets, the houses, the special points), also
+  joined as one film of about 10 minutes. 1920×1080, voiceover, burned-in captions, built in HyperFrames
   (`.claude/vendor/hyperframes`, pinned 0.8.96), rendered locally.
+- Method: every scene states the sky fact first (orbits, speeds, the horizon, the meridian, eclipses),
+  then the chart meaning in the doctrine's words. No simplification may contradict the astronomy.
 - One chart all the way through: 30 Aug 2012, 06:30 BST, London (51.5074 N, 0.1278 W). It is a real
   sunrise birth, chosen by a scan of London sunrises from 1980 to 2026 for its spread across the
   houses. Virgo is rising at 9°43′ and the Sun is at Virgo 7°15′ in house 1, so 10 planets sit in
   10 houses. Every placement shown or said comes from `calculateNatalChart`, and every wheel is
   the product's `NatalWheel`.
-- Twelve scenes:
-  1. Hook
-  2. The ecliptic and the signs
-  3. Who, how, where
-  4. The horizon and the birth time
-  5. The planets
-  6. Counting whole-sign houses
-  7. The house chant and the six opposite pairs
-  8. The MC
-  9. The nodes
-  10. Chiron
-  11. Reading one placement
-  12. Close
-- Memory helpers:
-  - **Who, how, where.** Planet = actor, sign = costume, house = stage.
-  - **The house chant.** Me, mine, chat, home, play, chores, you, ours, far, top, friends, dream.
-    Each word sits over the product's own house word (`HOUSE_WORDS`).
-  - **The six opposites.** Each house has a partner straight across the wheel.
-  - **Telling the nodes apart.** The North Node is an arch, a gate to grow through. The South Node is
-    a cup, which holds what is easy.
+- Thirteen scenes: hook; the flat solar system and the zodiac strip; twelve equal signs from the March
+  equinox (not the constellations); the horizon and birth time (Virgo rose in 2 h 50 m, Pisces in 52 m,
+  computed); who-how-where; the planets, each with a sky fact and its role, retrograde as Earth
+  overtaking; counting whole-sign houses (1–6 below the horizon, 7–12 above); twelve objects; the MC
+  as the meridian; the nodes and eclipses; Chiron; reading one placement; close.
+- Memory helpers: who, how, where (planet = actor, sign = costume, house = stage); twelve objects for
+  the houses (mirror, wallet, phone, family tree, paintbrush, to-do list, handshake, locked box,
+  passport, spotlight, team, pillow), each over the product's house word; six real opposites across
+  the wheel (me / the other person, mine / shared, near / far, private / public, my joy / our hopes,
+  doing / resting); North Node an arch, South Node a cup.
+- Science: every astronomy line is supported by JPL (researcher plus verifier, 2026-10-03) or computed
+  with the product's engine or astronomy-engine 2.1.19. The table is in the artifact. Chiron's myth is
+  told as a story and is unsourced.
 - Look: the Observatory direction (MASTERFILE §9), with the tokens, the four faces and one easing
   `cubic-bezier(.16,1,.3,1)`. Brass is geometry and east is on the left. The planet renders are
   bodies. Sky scenes (starfield, ecliptic, the turning dome, orbits in 3D) are drawn in the
@@ -91,7 +87,7 @@ The storyboard artifact above holds all of this:
 1. Chart: the sunrise demo (default) or Audrey Hepburn, the site's sample. Audrey's chart has 4 empty
    houses and 3 bodies stacked in the 4th.
 2. Voice: af_heart (default), bf_emma, bm_george or am_michael.
-3. Shape: one 16:9 master (default), with the cut-downs later.
+3. Shape: four episodes (default), also joined as one film.
 
 ## Decisions to record
 
