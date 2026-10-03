@@ -99,6 +99,9 @@ async function buildAll() {
       "playwright",
       // Ships its own CJS bundle with optional requires; loaded at run time by the QA agent only (MB-77).
       "playwright-core",
+      // The zone table (MB-194) reads its data/ from beside its own dist at run time; bundled, it would look for the data
+      // beside this bundle instead, so it loads from node_modules.
+      "geo-tz",
       "puppeteer",
       "puppeteer-core",
       "electron",
