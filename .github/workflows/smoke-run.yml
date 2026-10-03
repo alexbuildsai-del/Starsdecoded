@@ -32,14 +32,15 @@ jobs:
       EXPECT_COMMIT: ${{ inputs.expect_commit }}
       DEADLINE_SECONDS: 600
     steps:
-      # Only the probe script, from the commit under test, so the probe and the deploy it judges change together.
-      - name: Check out the security probe
+      # Only the probe scripts, from the commit under test, so a probe and the deploy it judges change together.
+      - name: Check out the probe scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: .github/scripts
           persist-credentials: false
 
       - name: Wait for the web app
+        id: web
         run: |
           end=$((SECONDS + DEADLINE_SECONDS))
           until curl -sSf --max-time 20 "$WEB_URL" -o index.html && grep -q 'id="root"' index.html; do
@@ -209,6 +210,12 @@ jobs:
       - name: Security probe
         run: .github/scripts/security-probe.sh "$WEB_URL" full
 
+      # What WhatsApp and Facebook's crawler are handed for a shared link (ADR-229). It needs only the web app, so it runs
+      # after a failed API step too, and every run says what the crawlers got, production's included.
+      - name: Share preview
+        if: ${{ !cancelled() && steps.web.outcome == 'success' }}
+        run: .github/scripts/share-preview.sh "$WEB_URL"
+
       - name: Summary
         run: |
-          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n- env: %s\n- commit: %s\n- database: %s\n- crawl: %s pages read as OAI-SearchBot\n- security: headers and CSP, no CORS, a foreign write refused, the session cookie Lax and Secure\n' "$WEB_URL" "$API_URL" "$API_ENV" "$API_COMMIT" "$API_DB" "$CRAWL_PAGES" >> "$GITHUB_STEP_SUMMARY"
+          printf '## Smoke\n- Web: %s\n- API: %s/api/healthz\n- env: %s\n- commit: %s\n- database: %s\n- crawl: %s pages read as OAI-SearchBot\n- security: headers and CSP, no CORS, a foreign write refused, the session cookie Lax and Secure\n- share preview: / with og:title and og:image, and the whole cover from this host, as WhatsApp and facebookexternalhit\n' "$WEB_URL" "$API_URL" "$API_ENV" "$API_COMMIT" "$API_DB" "$CRAWL_PAGES" >> "$GITHUB_STEP_SUMMARY"
