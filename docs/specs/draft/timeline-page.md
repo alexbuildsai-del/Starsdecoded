@@ -1,7 +1,8 @@
 # Timeline page (`/timeline`)
 
-Draft 2026-10-03 from `/ideate timeline-page`, version 2 (the Owner: "do a proper product page where we show the
-value propositions and what you're getting when paying the subscription fee"). Builds on the locked `timeline`
+Draft 2026-10-03 from `/ideate timeline-page`, version 3 (the Owner: "do a proper product page where we show the
+value propositions and what you're getting when paying the subscription fee"; then "we say something when we
+offer, but then we need to support it"). Builds on the locked `timeline`
 spec (ADR-205 to 217; screen 7, ADR-215), which it details and does not change.
 Artifact: https://claude.ai/artifact/YTpuNi1CqPfJJHVNEdtMJG
 
@@ -20,57 +21,65 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 ### The page (screen 1), top to bottom
 1. **Hero.** Eyebrow "Coming soon · Timeline"; H1 "Your chart, with the sky moving across it". The lede answers
    alone and names the product (ADR-116): "Timeline is Stars Decoded's one subscription, for people with a Personal
-   natal report. It shows when the planets reach the points in your own chart, from the big cycles of your life to
-   this week, reads each one against your report, and answers your questions about it." Get my report, and "When
-   is your Saturn return?" (jumps to the finder). Under them: "Timeline opens after launch. You'll need a Personal
-   natal report." The picture is the locked dial: a natal chart inside, Jupiter to Pluto today on their own tracks,
-   a brass line for each contact (no motion here; Play belongs to Timeline).
-2. **What Timeline gives you**, "Five things, all about your own chart", each a card with its computed picture:
-   - *Now and ahead* (wide): today's mix bar, up to three contacts with tone dot (easy, mixed, intense, by the locked
-     fixed table), a plain headline ("Pluto faces your Jupiter"), how long it lasts, aspect and orb small; then the
-     next contact to start within six months.
-   - *Life*: Saturn's distance from its birth place as a wave, birth to 90 (Jupiter faint), the past shaded, ages on
-     top, brass at each Saturn return.
-   - *Readings*: the top contact's headline, "Builds on your report's Venus section ›", and blank lines marked
-     "Written for you in Timeline". No sample prose: nothing has written it.
-   - *Ask*: its mark and three questions built by code from the chart (the locked offer's rule). No sample answer.
-   - *Your week*: seven day cells with tone dots, and "No letter in a quiet week" for the Monday letter.
-3. **Try it free**: "When is your Saturn return?" One typed birth-date field (R14's `BirthDateField`, the reader's
-   order), helper "No birth time or place needed.", "Show my dates". The big ring with the age of the current or
-   next return and one line per return; then four compact cycle cards (Saturn return, Jupiter return, nodal return,
-   Uranus opposition) with ages, the passes of one cycle on one row, a chip (behind you, happening now within 120
-   days of a pass, in N years) and the locked fixed why line. **A typed date redraws the whole page**: the hero
-   dial, the five cards and the finder. Before a date the page shows an example date, marked "example date".
-4. **What you get**: a plan card "Timeline" listing what the fee includes: your life's big cycles, birth to 90 ·
-   what touches your chart now, this month and over six months, each marked easy, mixed or intense with how long it
-   lasts · a reading for each, tied to your Personal natal report · Ask, about your chart, reports and timeline ·
-   your week on your dashboard · a Monday letter in weeks that touch your chart (every week, only the big ones, or
-   off) · with the yearly plan, 1 credit to give. Price line per open question 2. Beside it, **How to get it** in
-   three steps: get your Personal natal report; read it to the end (its last page shows your sky today and one free
-   question); Start Timeline there or from your dashboard, cancel in two clicks. Get my report.
+   natal report. It shows when the planets reach the points in your own chart, what that means for you in plain
+   words, and how long it lasts, from the big cycles of your life to this week." Get my report, and "When is your
+   Saturn return?" (jumps to the finder); "Timeline opens after launch. You'll need a Personal natal report."
+   **The picture is the Timeline ideation's dial** on Mira's chart: her houses and natal points inside, Mars to
+   Pluto each on its own track outside, a brass line per contact (dashed unless a conjunction), planets filled by
+   tone, a dashed ring on a retrograde. **Play** (only when pressed) runs the next six months day by day with a
+   trail; the date and up to three plain headlines under it change with the day. Reduced motion steps a week at a time.
+2. **What Timeline gives you**, "Five things, each shown on Mira's chart". Every card has the same three parts: a
+   promise in plain words, why you'd care (one or two sentences), then **what Mira sees**, marked Sample account or
+   Sample words. Plain words first; aspect, house and exact date last, small and grey.
+   - *Now and ahead* · "Know what's going on for you, and for how long": the day's mix bar, then cards with tone,
+     how long it lasts ("until 19 Oct, back in February"), the headline ("Getting serious about how you come
+     across"), the everyday line, and "Saturn on your Ascendant · 1st house · exact 25 Sep" under it; then "Coming up".
+   - *Life* · "Know which chapter of your life you're in": why the known ages matter (29, 37, the early forties),
+     the link **"When is your Saturn return? Find yours ↓"**, then Mira's wave from birth to 90, a look-back ("Think
+     back to January 2021…") and her next cycles with ages, dates and chips.
+   - *Readings* · "Every moment read against your own report": a line from Mira's report (House by House, 1st
+     house), the reading that builds on it, quoting that line and naming the computed passes ("the second of three
+     passes… the last is on 20 Feb 2027"), and "Read your 1st house again ›".
+   - *Ask* · "Ask about any of it, in your own words": its mark and three questions built from her chart.
+   - *Your week* · "Your week at a glance, and an email only when something changes": a summary sentence counted
+     from the week ("Two things ease and nothing new starts this week"), seven day cells with tone dots, the tone
+     key, the days with something on them in plain words, and the Monday email's subject line.
+3. **Try it free**: "When is your Saturn return?" (the Owner: "perfect"). One typed birth-date field (R14's
+   `BirthDateField`), the big ring, four compact cycle cards with the locked why lines. It opens on Mira's birth
+   date, marked as an example, and a typed date redraws the finder only.
+4. **What you get**: the plan card (life's big cycles with ages and what each means · what's going on now, this
+   month and over six months, in plain words with tone and duration · a reading for each, tied to your report ·
+   Ask · your week on your dashboard · a Monday email in weeks that touch your chart · with the yearly plan, 1
+   credit to give), the price line per open question 2, and **How to get it** in three steps.
 5. **How it stays honest**: no horoscope for the day · dates for the sky, never for your life · no do or don't ·
-   quiet weeks stay quiet (stop the letter in one click).
+   quiet weeks stay quiet.
 6. **Questions** (folded, `FAQPage`): What is Timeline? Is it a daily horoscope? What is a Saturn return? Do I need
-   my birth time? How do I cancel? In `data/faq.ts` under a Timeline topic, not marked `home`.
-7. **Fine print**: worked out with astronomy-engine from the birth date at midday, so a date can be a day off; the
-   meanings come from astrology, which science doesn't back.
+   my birth time? Who is Mira? How do I cancel? In `data/faq.ts` under a Timeline topic, not marked `home`.
+7. **Fine print**: the finder works from the birth date at midday; the meanings come from astrology, which science
+   doesn't back.
+- **Mira** is the site's sample account (`fixtures/sample-people/mira.json`, synthetic). Her examples are a fixed
+  snapshot week (5 to 11 October 2026 in the artifact), computed at build and renewed with each Release like
+  /sample. Every date, contact, house and position is computed. The headlines come from the Timeline ideation; the
+  everyday lines, the report line and the reading are **sample words** (the Owner: "you can even put dummy data"),
+  written to the house voice and R-5.2 as amended, checked by `/ux-copy`, and replaced by Timeline's stored readings
+  for Mira once its prompt family exists.
 - Registry entry in `site.ts` (kind `page`, schema `WebPage` and `FAQPage`, sitemap), prerendered (R-7.6) with
-  the hero, card text, plan and FAQ readable without JavaScript; share preview and crawl entry like `/sky`.
-- Phone first: one column at 390 px; from 880 px the hero splits, the five cards sit two across with Now and
-  ahead full width, the cycle cards four across, the plan and steps side by side.
-- Ask's monthly cap stays off the page (silent until 10, as locked). Previews use the date only; the FAQ says a
-  birth time adds the rising sign, houses and Moon in Timeline.
+  the hero, the five cards, the plan and the FAQ readable without JavaScript; share preview and crawl entry like `/sky`.
+- Phone first: one column at 390 px; from 880 px the hero splits, each card puts its words left and Mira's example
+  right, the cycle cards sit four across, the plan and steps side by side.
+- Ask's monthly cap stays off the page (silent until 10, as locked).
 - Get my report: `ReportCta source="timeline"`, the waitlist before launch; once `TIMELINE` is on, an owner of a
   Personal natal report sees Start Timeline and the eyebrow drops "Coming soon".
 
 ### The engine (`packages/engine/src/`, the brain)
 - `cycles.ts`: returns and oppositions for Saturn, Jupiter, the mean node and Uranus (opposition), birth to 90, from
   12:00 UTC on the birth date; scan, bisection to the minute, retrograde passes grouped into one cycle.
-- Contacts for a day and the next six months: the locked doctrine (Jupiter to Pluto onto Sun to Saturn; conjunction,
-  square, opposition, trine; 2° and 1.5° orbs), date only, so no angle, house or natal Moon target (R-4.6). In-orb
-  windows from daily positions.
+- Contacts for a day and the next six months on Mira's chart: the locked doctrine (Jupiter to Pluto onto the Sun to
+  Saturn, the Moon, the Ascendant and the Midheaven; conjunction, square, opposition, trine; 2° and 1.5° orbs; Mars by
+  conjunction, square and opposition at 1°), in-orb windows, exact passes and returning windows. Built at prerender,
+  not in the reader's browser.
 - Both are first slices of the locked `transits.ts`, reused by Timeline. The tone table is the locked fixed table, a
-  brain file. The artifact runs both in the browser in under half a second. Touching the engine runs the dry lab.
+  brain file. The finder runs in the browser in about a quarter of a second. Touching the engine runs the dry lab.
 
 ### The way in (screen 2)
 - **Home** (option A, the Owner's pick, rewritten): one line between Prices and the questions, a small dial of
@@ -88,8 +97,8 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 - R-5.2 changes only when Timeline itself ships, as locked.
 
 ## Out of scope
-- Timeline itself (the dial with Play, Life, Ask, readings, billing, the letter), after launch as locked.
-- Sample reading or Ask prose on the page, share cards (MB-104), birth time or place in the finder, a top-menu
+- Timeline itself (the dial with its ranges and slider, Life, Ask, readings, billing, the letter), after launch as locked.
+- An Ask answer on the page, share cards (MB-104), birth time or place in the finder, a top-menu
   link, a separate Timeline list, any change to R15.
 
 ## Acceptance criteria
@@ -97,9 +106,10 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 2. `cycles.ts` and the contact windows match NASA JPL Horizons to the hour for at least five pinned birth dates
    (one three-pass Saturn return, one before 1950), in unit tests.
 3. The prerendered HTML holds the hero, the five cards' words, the plan, the rules and the FAQ without JavaScript.
-4. A full birth date redraws the hero, the five cards and the finder without pressing the button; an impossible
-   or future date shows its inline error. Nothing is sent to the API.
-5. No reading or Ask answer text appears that nothing wrote; a test fails a sample string.
+4. A full birth date redraws the finder without pressing the button; an impossible or future date shows its
+   inline error. Nothing is sent to the API. Play runs only when pressed and stops at six months.
+5. Every example is marked as Mira's (Sample account or Sample words); every computed fact in her sample words
+   (a date, a pass count, a house) comes from the engine, and a test fails one that doesn't.
 6. Get my report opens the waitlist before launch with source `timeline`.
 7. The four sentences change in the same release; `check:shipped` and the price gates stay green.
 8. Axe clean, Lighthouse within the site's budgets, no sideways scroll at 390, 768 and 1440 px, complete at
@@ -119,8 +129,9 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 ## Decisions to record
 1. `/timeline` is Timeline's prerendered product page: hero with the dial, five things it gives you, try it free
    (the Saturn-return finder), what you get with three steps, how it stays honest, FAQ. It details ADR-215.
-2. Its pictures are computed from one typed birth date (an example date until then) and redraw together; readings
-   and Ask show no prose that nothing wrote.
+2. Each of the five things is a promise, why it matters, and what Mira (the sample account) sees, computed from her
+   chart for a snapshot week renewed per Release; plain words first, astronomy small. Sample words are allowed and
+   marked until Timeline's readings exist. The hero is the Timeline ideation's dial with Play.
 3. The finder and previews run on `cycles.ts` and day contacts, the first slices of `transits.ts`, pinned to JPL
    Horizons; date only.
 4. The way in: one line on the home page after Prices about Timeline as a whole, and "Timeline" in the footer.
