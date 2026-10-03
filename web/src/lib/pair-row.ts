@@ -90,13 +90,13 @@ export function signsSpoken(triad: Triad): string | null {
   return parts.join(", ");
 }
 
-export type ShareState = "can_send" | "can_grant" | "sent" | "joined";
+export type ShareState = "can_send" | "can_grant" | "sent" | "joined" | "handed_back";
 
 export interface PersonRowInput {
   /** The reader's own chart from their side (ADR-120). */
   isSelf: boolean;
-  /** Owner: the reader wrote it; claimed: it was sent to them (ADR-139). */
-  access: "owner" | "claimed";
+  /** Owner: the reader wrote it; claimed: it was sent to them (ADR-139); shared: its subject shares it with them (ADR-235). */
+  access: "owner" | "claimed" | "shared";
   status: string;
   /** GET /profiles' ownership, "claimed" once the person it was sent to holds it. */
   ownership?: string | null;
@@ -131,7 +131,8 @@ export interface PersonRowView {
 
 export function personRowView(input: PersonRowInput): PersonRowView {
   const claimed = input.access === "claimed";
-  const send = input.send ?? null;
+  // Whoever reads a shared report cannot send it on; only its sharer can (ADR-235).
+  const send = input.access === "shared" ? null : input.send ?? null;
   let share: PersonShare | null = null;
   if (send?.firstName) {
     const kind = send.state === "sent" ? "waiting" : send.state === "joined" ? "joined" : "offer";

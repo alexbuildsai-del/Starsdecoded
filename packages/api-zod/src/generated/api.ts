@@ -98,23 +98,55 @@ export const GetHomeResponse = zod.object({
   "name": zod.string(),
   "birthDate": zod.string().describe('YYYY-MM-DD, as entered (ADR-174).'),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
-  "access": zod.enum(['owner', 'claimed']).describe('The reader\'s standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139).'),
+  "access": zod.enum(['owner', 'claimed', 'shared']).describe('The reader\'s standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139), shared is its subject\'s own Personal report read through their grant, the sharer\'s seat (ADR-235).'),
   "isSelf": zod.boolean().describe('The reader\'s own chart from their side, as ProfileSummary marks it (ADR-120).'),
+  "shareBack": zod.boolean().optional().describe('On a sharer\'s seat, Share yours back is offered, since the reader has a finished Personal report of their own not yet shared with them (ADR-235, MB-104).'),
+  "canRegenerate": zod.boolean().optional().describe('The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-137, MB-169).'),
   "triad": zod.object({
   "sun": zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).'),
+  "band": zod.object({
+  "from": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).'),
+  "to": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).')
+}).nullish().describe('The Moon\'s range across a windowed birth time, read from the stored chart\'s band; absent or null on the Sun, the Rising and an exact time (MB-139).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "moon": zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).'),
+  "band": zod.object({
+  "from": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).'),
+  "to": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).')
+}).nullish().describe('The Moon\'s range across a windowed birth time, read from the stored chart\'s band; absent or null on the Sun, the Rising and an exact time (MB-139).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "rising": zod.union([zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponseYouOneTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).'),
+  "band": zod.object({
+  "from": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).'),
+  "to": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).')
+}).nullish().describe('The Moon\'s range across a windowed birth time, read from the stored chart\'s band; absent or null on the Sun, the Rising and an exact time (MB-139).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),zod.null()]).describe('Null when the horizon is unknown (ADR-174).')
 }).nullable().describe('Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).'),
   "lines": zod.object({
@@ -129,23 +161,55 @@ export const GetHomeResponse = zod.object({
   "name": zod.string(),
   "birthDate": zod.string().describe('YYYY-MM-DD, as entered (ADR-174).'),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
-  "access": zod.enum(['owner', 'claimed']).describe('The reader\'s standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139).'),
+  "access": zod.enum(['owner', 'claimed', 'shared']).describe('The reader\'s standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139), shared is its subject\'s own Personal report read through their grant, the sharer\'s seat (ADR-235).'),
   "isSelf": zod.boolean().describe('The reader\'s own chart from their side, as ProfileSummary marks it (ADR-120).'),
+  "shareBack": zod.boolean().optional().describe('On a sharer\'s seat, Share yours back is offered, since the reader has a finished Personal report of their own not yet shared with them (ADR-235, MB-104).'),
+  "canRegenerate": zod.boolean().optional().describe('The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-137, MB-169).'),
   "triad": zod.object({
   "sun": zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadSunHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).'),
+  "band": zod.object({
+  "from": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).'),
+  "to": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).')
+}).nullish().describe('The Moon\'s range across a windowed birth time, read from the stored chart\'s band; absent or null on the Sun, the Rising and an exact time (MB-139).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "moon": zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadMoonHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).'),
+  "band": zod.object({
+  "from": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).'),
+  "to": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).')
+}).nullish().describe('The Moon\'s range across a windowed birth time, read from the stored chart\'s band; absent or null on the Sun, the Rising and an exact time (MB-139).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),
   "rising": zod.union([zod.object({
   "sign": zod.string(),
   "degree": zod.number().describe('Degrees within the sign, rounded to two decimals (ADR-174).'),
-  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).')
+  "house": zod.number().int().min(1).max(getHomeResponsePeopleItemTriadRisingOneHouseMax).nullable().describe('The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).'),
+  "band": zod.object({
+  "from": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).'),
+  "to": zod.object({
+  "sign": zod.string(),
+  "degree": zod.number().describe('Degrees within the sign, rounded to two decimals as a Spot\'s are (ADR-174, MB-139).')
+}).describe('One end of the Moon\'s range, its sign and its degree within it (MB-139).')
+}).nullish().describe('The Moon\'s range across a windowed birth time, read from the stored chart\'s band; absent or null on the Sun, the Rising and an exact time (MB-139).')
 }).describe('Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).'),zod.null()]).describe('Null when the horizon is unknown (ADR-174).')
 }).nullable().describe('Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).'),
   "lines": zod.object({
@@ -219,9 +283,9 @@ export const ListReportsResponseItem = zod.object({
   "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
   "line": zod.string().describe('The plain line the customer reads.')
 }).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
-  "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
+  "access": zod.enum(['owner', 'claimed', 'participant', 'shared']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined', 'handed_back']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236).'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
@@ -281,9 +345,9 @@ export const CreateReportResponse = zod.object({
   "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
   "line": zod.string().describe('The plain line the customer reads.')
 }).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
-  "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
+  "access": zod.enum(['owner', 'claimed', 'participant', 'shared']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined', 'handed_back']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236).'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
@@ -1425,14 +1489,16 @@ export const GetReportResponse = zod.object({
 }).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "access": zod.enum(['owner', 'claimed', 'participant']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
+  "access": zod.enum(['owner', 'claimed', 'participant', 'shared']).optional().describe('The viewer\'s standing on this report (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined', 'handed_back']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236).'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this report; null where it is not offered (ADR-120, ADR-133).'),
-  "giverName": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).')
+  "giverName": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).'),
+  "canRegenerate": zod.boolean().optional().describe('The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169).'),
+  "outdated": zod.boolean().optional().describe('A complete natal report written for another birth time or horizon than its profile\'s now, which Regenerate rewrites free (MB-170).')
 })
 
 
@@ -2367,7 +2433,7 @@ export const ListProfilesResponseItem = zod.object({
   "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
   "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined', 'handed_back']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236).'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
@@ -2417,7 +2483,7 @@ export const CreateProfileResponse = zod.object({
   "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
   "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined', 'handed_back']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236).'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
@@ -2461,7 +2527,7 @@ export const UpdateProfileResponse = zod.object({
   "claimedAsSelf": zod.boolean().optional().describe('The claimer marked this sent chart as their own, This is me; false after Not me and on the owner\'s charts (ADR-120).'),
   "giverName": zod.string().nullish().describe('First name of whoever sent this chart to the viewer; null on the viewer\'s own (ADR-139).'),
   "send": zod.union([zod.object({
-  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".'),
+  "state": zod.enum(['can_send', 'can_grant', 'sent', 'joined', 'handed_back']).describe('can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236).'),
   "profileId": zod.string().describe('The person it goes to, the report\'s subject or the pair\'s other person.'),
   "relationshipId": zod.string().nullable().describe('The pair\'s relationship; null on a natal report.'),
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
@@ -2478,6 +2544,19 @@ export const StopSharingProfileParams = zod.object({
 })
 
 export const StopSharingProfileResponse = zod.void()
+
+
+/**
+ * Not me's Hand it back (ADR-236, MB-103), the claimer's alone and in one transaction: the claim ends, that profile's participant grants return to its writer, and the send is stamped handed back, so the writer's row reads "Handed back" with Send again.
+ * @summary Hand a sent chart back to whoever sent it
+ */
+export const HandBackProfileParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const HandBackProfileResponse = zod.object({
+  "profileId": zod.string()
+}).describe('What Hand it back answers, the profile now back with its writer alone (ADR-236, MB-103).')
 
 
 /**
@@ -2953,14 +3032,14 @@ export const GetInviteResponse = zod.object({
   "relationshipReportId": zod.string().nullish(),
   "expiresAt": zod.string(),
   "alreadyClaimed": zod.boolean(),
-  "kind": zod.enum(['send', 'gift']).optional().describe('A sent report or a gifted credit (ADR-120, ADR-139).'),
+  "kind": zod.enum(['send', 'gift', 'share']).optional().describe('A sent report or a gifted credit (ADR-120, ADR-139), or the sharer\'s own Personal report shared with them (ADR-235).'),
   "recipientName": zod.string().nullish().describe('The name the giver gave a gift\'s recipient, for the cover; null on a send (ADR-128).'),
   "note": zod.string().nullish().describe('The giver\'s note on a gift\'s cover, at most 280 characters; null without one (ADR-128).')
 })
 
 
 /**
- * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139).
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
  * @summary Claim an invite as the signed-in user
  */
 export const ClaimInviteParams = zod.object({
@@ -2972,8 +3051,33 @@ export const ClaimInviteResponse = zod.object({
   "relationshipId": zod.string().nullish(),
   "relationshipReportId": zod.string().nullish(),
   "redirectTo": zod.string().describe('Where the claim lands; a gift answers /dashboard (ADR-139).'),
-  "kind": zod.enum(['send', 'gift']).optional().describe('A sent report or a gifted credit (ADR-120, ADR-139).'),
-  "askSelf": zod.boolean().optional().describe('Ask "Is this you?", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120).')
+  "kind": zod.enum(['send', 'gift', 'share']).optional().describe('A sent report or a gifted credit (ADR-120, ADR-139), or a share, whose claim writes a grant and never a hand-over (ADR-235).'),
+  "askSelf": zod.boolean().optional().describe('Ask "Is this you?", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120).'),
+  "shareBack": zod.boolean().optional().describe('On a share\'s claim, Share yours back is offered, since the claimer has a finished Personal report of their own not yet shared with the sharer (ADR-235, MB-104).')
+})
+
+
+/**
+ * Change address (ADR-237, MB-109), in one transaction: the old link is revoked and a new one is emailed to the new address, so the old link answers as revoked from then on.
+ * @summary Send a waiting send's link to a corrected address
+ */
+export const ChangeInviteAddressParams = zod.object({
+  "id": zod.coerce.string().describe('The invite\'s id, as GET /invites lists it, never its token.')
+})
+
+export const ChangeInviteAddressBody = zod.object({
+  "email": zod.string().email()
+}).describe('Change address on a waiting send or gift, the corrected address its new link goes to (ADR-237, MB-109).')
+
+export const ChangeInviteAddressResponse = zod.object({
+  "id": zod.string(),
+  "token": zod.string(),
+  "email": zod.string(),
+  "profileId": zod.string(),
+  "relationshipId": zod.string().nullish(),
+  "expiresAt": zod.string(),
+  "claimUrl": zod.string(),
+  "emailDelivered": zod.boolean()
 })
 
 
@@ -3038,6 +3142,34 @@ export const RemindGiftResponse = zod.void()
 
 
 /**
+ * Change address (ADR-237, MB-109), in one transaction: the old link is revoked and a new one is emailed to the new address; the gift keeps its held credit and its return date.
+ * @summary Send a waiting gift's link to a corrected address
+ */
+export const ChangeGiftAddressParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ChangeGiftAddressBody = zod.object({
+  "email": zod.string().email()
+}).describe('Change address on a waiting send or gift, the corrected address its new link goes to (ADR-237, MB-109).')
+
+export const ChangeGiftAddressResponse = zod.object({
+  "id": zod.string(),
+  "recipientName": zod.string(),
+  "email": zod.string(),
+  "note": zod.string().nullable(),
+  "sentAt": zod.string().describe('ISO-8601 timestamp when the gift went out'),
+  "returnsAt": zod.string().describe('When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123).'),
+  "remindedAt": zod.string().nullable().describe('The last reminder; null before any'),
+  "state": zod.enum(['waiting', 'claimed', 'returned']).describe('Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).'),
+  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).')
+}).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).').and(zod.object({
+  "claimUrl": zod.string().describe('The link to copy and send by hand when the email did not go.'),
+  "emailDelivered": zod.boolean()
+})).describe('What POST /gifts answers: the gift, plus the claim link exactly as its email carried it and whether that email reached the recipient, the same two fields POST /invites answers (ADR-123). The raw token lives only in this one response; GET /gifts stores just its hash and can never rebuild the link.')
+
+
+/**
  * Its claim link stops working and the held credit returns to the giver's balance (ADR-123).
  * @summary Take a waiting gift back
  */
@@ -3046,6 +3178,65 @@ export const TakeBackGiftParams = zod.object({
 })
 
 export const TakeBackGiftResponse = zod.void()
+
+
+/**
+ * The list on the sharer's own quick look, each share waiting on its claim or read through its grant, each with Stop sharing (ADR-235). Empty for anonymous users.
+ * @summary Who the viewer's own Personal report is shared with
+ */
+export const ListSharesResponseItem = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "readerName": zod.string().nullable().describe('The reader\'s first name once they claim it; null while the link waits (ADR-235).'),
+  "state": zod.enum(['waiting', 'active']).describe('waiting until the link is claimed; active while the grant reads (ADR-235).'),
+  "sentAt": zod.string().describe('ISO-8601 timestamp when the share went out')
+}).describe('One person the viewer\'s own Personal report is shared with, as the sharer\'s quick look lists them (ADR-235).')
+export const ListSharesResponse = zod.array(ListSharesResponseItem)
+
+
+/**
+ * Share my report (ADR-235, MB-104): a `share` invite on the send-and-claim path, its link living 7 days and counted with sends. Its claim writes a grant, never a hand-over, so the recipient reads the whole Personal report but never its workbook, and the sharer sits on their circle marked shared.
+ * @summary Share the viewer's own Personal report by email
+ */
+export const ShareMyReportBody = zod.object({
+  "email": zod.string().email()
+}).describe('Share my report, the address of whoever should read the viewer\'s own Personal report (ADR-235, MB-104).')
+
+export const ShareMyReportResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "claimUrl": zod.string().describe('The link to copy and send by hand when the email did not go.'),
+  "expiresAt": zod.string(),
+  "emailDelivered": zod.boolean()
+}).describe('What POST /shares answers: the share, waiting, plus the claim link exactly as its email carried it and whether that email went, as POST /invites answers (ADR-235).')
+
+
+/**
+ * Share yours back (ADR-235, MB-104), one tap and no email, since both people are known: the viewer's own finished Personal report is granted at once to whoever shared the given profile with them.
+ * @summary Share yours back with someone who shared theirs
+ */
+export const ShareBackBody = zod.object({
+  "profileId": zod.string().describe('The sharer\'s profile shared with the viewer, which names who gets the viewer\'s own report back.')
+}).describe('Share yours back, naming the sharer by the Personal report of theirs the viewer reads (ADR-235, MB-104).')
+
+export const ShareBackResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "readerName": zod.string().nullable().describe('The reader\'s first name once they claim it; null while the link waits (ADR-235).'),
+  "state": zod.enum(['waiting', 'active']).describe('waiting until the link is claimed; active while the grant reads (ADR-235).'),
+  "sentAt": zod.string().describe('ISO-8601 timestamp when the share went out')
+}).describe('One person the viewer\'s own Personal report is shared with, as the sharer\'s quick look lists them (ADR-235).')
+
+
+/**
+ * The sharer's Stop sharing, at once (ADR-235): the grant or the waiting link is revoked, the sharer leaves the reader's circle, and a pair the reader built on that chart closes, naming the sharer.
+ * @summary Stop sharing the viewer's own Personal report with one person
+ */
+export const StopShareParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const StopShareResponse = zod.void()
 
 
 /**
@@ -3069,7 +3260,7 @@ export const GeocodePlaceResponse = zod.object({
   "latitude": zod.number(),
   "longitude": zod.number(),
   "timezoneOffset": zod.number().describe('UTC offset in hours'),
-  "timezone": zod.string().optional().describe('IANA zone name of the place, when known.'),
+  "timezone": zod.string().describe('IANA zone name of the place from the server\'s offline table; a place without one is never answered (ADR-246, MB-30).'),
   "placeType": zod.string().describe('Nominatim place type (city, town, village, administrative, etc.)')
 }))
 })

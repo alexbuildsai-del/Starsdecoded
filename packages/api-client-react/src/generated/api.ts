@@ -21,6 +21,7 @@ import type {
 
 import type {
   BirthTimeUpdateResponse,
+  ChangeAddressBody,
   CompatibilityCreateResponse,
   CompatibilitySummary,
   ConfirmWaitlistBody,
@@ -30,6 +31,7 @@ import type {
   CreateProfileBody,
   CreateRelationshipBody,
   CreateReportBody,
+  CreateShareBody,
   CreateSynastryBody,
   CreditCounts,
   CreditHistoryItem,
@@ -40,6 +42,7 @@ import type {
   GetSynastryReportStatusParams,
   Gift,
   GiftCreated,
+  HandBackResponse,
   HealthStatus,
   Home,
   Horizon,
@@ -61,6 +64,9 @@ import type {
   ReportStatus,
   ReportSummary,
   SendCompatibilityBody,
+  Share,
+  ShareBackBody,
+  ShareCreated,
   SignInRequiredResponse,
   SynastryCreateResponse,
   SynastryReport,
@@ -1326,6 +1332,81 @@ export const useStopSharingProfile = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getStopSharingProfileMutationOptions(options));
+    }
+
+export const getHandBackProfileUrl = (id: string,) => {
+
+
+
+
+  return `/api/profiles/${id}/hand-back`
+}
+
+/**
+ * Not me's Hand it back (ADR-236, MB-103), the claimer's alone and in one transaction: the claim ends, that profile's participant grants return to its writer, and the send is stamped handed back, so the writer's row reads "Handed back" with Send again.
+ * @summary Hand a sent chart back to whoever sent it
+ */
+export const handBackProfile = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<HandBackResponse> => {
+
+  return customFetch<HandBackResponse>(getHandBackProfileUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getHandBackProfileMutationKey = () => ['handBackProfile'] as const;
+
+export const getHandBackProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof handBackProfile>>, TError,HandBackProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof handBackProfile>>, TError,HandBackProfileMutationVariables, TContext> => {
+
+const mutationKey = getHandBackProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof handBackProfile>>, HandBackProfileMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  handBackProfile(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HandBackProfileMutationResult = NonNullable<Awaited<ReturnType<typeof handBackProfile>>>
+
+    export type HandBackProfileMutationError = ErrorType<ErrorResponse>
+    export type HandBackProfileMutationVariables = {id: string}
+
+    /**
+ * @summary Hand a sent chart back to whoever sent it
+ */
+export const useHandBackProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof handBackProfile>>, TError,HandBackProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof handBackProfile>>,
+        TError,
+        HandBackProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getHandBackProfileMutationOptions(options));
     }
 
 export const getUpdateProfileBirthTimeUrl = (id: string,) => {
@@ -2862,7 +2943,7 @@ export const getClaimInviteUrl = (token: string,) => {
 }
 
 /**
- * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139).
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
  * @summary Claim an invite as the signed-in user
  */
 export const claimInvite = async (token: string, options?: Parameters<typeof customFetch>[1]): Promise<InviteClaimResponse> => {
@@ -2926,6 +3007,96 @@ export const useClaimInvite = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getClaimInviteMutationOptions(options));
+    }
+
+export const getChangeInviteAddressUrl = (id: string,) => {
+
+
+
+
+  return `/api/invites/${id}/change-address`
+}
+
+/**
+ * Change address (ADR-237, MB-109), in one transaction: the old link is revoked and a new one is emailed to the new address, so the old link answers as revoked from then on.
+ * @summary Send a waiting send's link to a corrected address
+ */
+export const changeInviteAddress = async (id: string,
+    changeAddressBody: ChangeAddressBody, options?: Parameters<typeof customFetch>[1]): Promise<InviteSummary> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<InviteSummary>(getChangeInviteAddressUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeAddressBody)
+  }
+);}
+
+
+
+
+
+export const getChangeInviteAddressMutationKey = () => ['changeInviteAddress'] as const;
+
+export const getChangeInviteAddressMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeInviteAddress>>, TError,ChangeInviteAddressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changeInviteAddress>>, TError,ChangeInviteAddressMutationVariables, TContext> => {
+
+const mutationKey = getChangeInviteAddressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeInviteAddress>>, ChangeInviteAddressMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  changeInviteAddress(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeInviteAddressMutationResult = NonNullable<Awaited<ReturnType<typeof changeInviteAddress>>>
+    export type ChangeInviteAddressMutationBody = BodyType<ChangeAddressBody>
+    export type ChangeInviteAddressMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
+    export type ChangeInviteAddressMutationVariables = {id: string;data: BodyType<ChangeAddressBody>}
+
+    /**
+ * @summary Send a waiting send's link to a corrected address
+ */
+export const useChangeInviteAddress = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeInviteAddress>>, TError,ChangeInviteAddressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof changeInviteAddress>>,
+        TError,
+        ChangeInviteAddressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getChangeInviteAddressMutationOptions(options));
     }
 
 export const getListGiftsUrl = () => {
@@ -3170,6 +3341,96 @@ export const useRemindGift = <TError = ErrorType<ErrorResponse>,
       return useMutation(getRemindGiftMutationOptions(options));
     }
 
+export const getChangeGiftAddressUrl = (id: string,) => {
+
+
+
+
+  return `/api/gifts/${id}/change-address`
+}
+
+/**
+ * Change address (ADR-237, MB-109), in one transaction: the old link is revoked and a new one is emailed to the new address; the gift keeps its held credit and its return date.
+ * @summary Send a waiting gift's link to a corrected address
+ */
+export const changeGiftAddress = async (id: string,
+    changeAddressBody: ChangeAddressBody, options?: Parameters<typeof customFetch>[1]): Promise<GiftCreated> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GiftCreated>(getChangeGiftAddressUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeAddressBody)
+  }
+);}
+
+
+
+
+
+export const getChangeGiftAddressMutationKey = () => ['changeGiftAddress'] as const;
+
+export const getChangeGiftAddressMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeGiftAddress>>, TError,ChangeGiftAddressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changeGiftAddress>>, TError,ChangeGiftAddressMutationVariables, TContext> => {
+
+const mutationKey = getChangeGiftAddressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeGiftAddress>>, ChangeGiftAddressMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  changeGiftAddress(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeGiftAddressMutationResult = NonNullable<Awaited<ReturnType<typeof changeGiftAddress>>>
+    export type ChangeGiftAddressMutationBody = BodyType<ChangeAddressBody>
+    export type ChangeGiftAddressMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
+    export type ChangeGiftAddressMutationVariables = {id: string;data: BodyType<ChangeAddressBody>}
+
+    /**
+ * @summary Send a waiting gift's link to a corrected address
+ */
+export const useChangeGiftAddress = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeGiftAddress>>, TError,ChangeGiftAddressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof changeGiftAddress>>,
+        TError,
+        ChangeGiftAddressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getChangeGiftAddressMutationOptions(options));
+    }
+
 export const getTakeBackGiftUrl = (id: string,) => {
 
 
@@ -3243,6 +3504,337 @@ export const useTakeBackGift = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getTakeBackGiftMutationOptions(options));
+    }
+
+export const getListSharesUrl = () => {
+
+
+
+
+  return `/api/shares`
+}
+
+/**
+ * The list on the sharer's own quick look, each share waiting on its claim or read through its grant, each with Stop sharing (ADR-235). Empty for anonymous users.
+ * @summary Who the viewer's own Personal report is shared with
+ */
+export const listShares = async ( options?: Parameters<typeof customFetch>[1]): Promise<Share[]> => {
+
+  return customFetch<Share[]>(getListSharesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSharesQueryKey = () => {
+    return [
+    `/api/shares`
+    ] as const;
+    }
+
+
+export const getListSharesQueryOptions = <TData = Awaited<ReturnType<typeof listShares>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listShares>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSharesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listShares>>> = ({ signal }) => listShares({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listShares>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSharesQueryResult = NonNullable<Awaited<ReturnType<typeof listShares>>>
+export type ListSharesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Who the viewer's own Personal report is shared with
+ */
+
+export function useListShares<TData = Awaited<ReturnType<typeof listShares>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listShares>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSharesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getShareMyReportUrl = () => {
+
+
+
+
+  return `/api/shares`
+}
+
+/**
+ * Share my report (ADR-235, MB-104): a `share` invite on the send-and-claim path, its link living 7 days and counted with sends. Its claim writes a grant, never a hand-over, so the recipient reads the whole Personal report but never its workbook, and the sharer sits on their circle marked shared.
+ * @summary Share the viewer's own Personal report by email
+ */
+export const shareMyReport = async (createShareBody: CreateShareBody, options?: Parameters<typeof customFetch>[1]): Promise<ShareCreated> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ShareCreated>(getShareMyReportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createShareBody)
+  }
+);}
+
+
+
+
+
+export const getShareMyReportMutationKey = () => ['shareMyReport'] as const;
+
+export const getShareMyReportMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof shareMyReport>>, TError,ShareMyReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof shareMyReport>>, TError,ShareMyReportMutationVariables, TContext> => {
+
+const mutationKey = getShareMyReportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof shareMyReport>>, ShareMyReportMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  shareMyReport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ShareMyReportMutationResult = NonNullable<Awaited<ReturnType<typeof shareMyReport>>>
+    export type ShareMyReportMutationBody = BodyType<CreateShareBody>
+    export type ShareMyReportMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
+    export type ShareMyReportMutationVariables = {data: BodyType<CreateShareBody>}
+
+    /**
+ * @summary Share the viewer's own Personal report by email
+ */
+export const useShareMyReport = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof shareMyReport>>, TError,ShareMyReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof shareMyReport>>,
+        TError,
+        ShareMyReportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getShareMyReportMutationOptions(options));
+    }
+
+export const getShareBackUrl = () => {
+
+
+
+
+  return `/api/shares/back`
+}
+
+/**
+ * Share yours back (ADR-235, MB-104), one tap and no email, since both people are known: the viewer's own finished Personal report is granted at once to whoever shared the given profile with them.
+ * @summary Share yours back with someone who shared theirs
+ */
+export const shareBack = async (shareBackBody: ShareBackBody, options?: Parameters<typeof customFetch>[1]): Promise<Share> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Share>(getShareBackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(shareBackBody)
+  }
+);}
+
+
+
+
+
+export const getShareBackMutationKey = () => ['shareBack'] as const;
+
+export const getShareBackMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof shareBack>>, TError,ShareBackMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof shareBack>>, TError,ShareBackMutationVariables, TContext> => {
+
+const mutationKey = getShareBackMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof shareBack>>, ShareBackMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  shareBack(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ShareBackMutationResult = NonNullable<Awaited<ReturnType<typeof shareBack>>>
+    export type ShareBackMutationBody = BodyType<ShareBackBody>
+    export type ShareBackMutationError = ErrorType<ErrorResponse>
+    export type ShareBackMutationVariables = {data: BodyType<ShareBackBody>}
+
+    /**
+ * @summary Share yours back with someone who shared theirs
+ */
+export const useShareBack = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof shareBack>>, TError,ShareBackMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof shareBack>>,
+        TError,
+        ShareBackMutationVariables,
+        TContext
+      > => {
+      return useMutation(getShareBackMutationOptions(options));
+    }
+
+export const getStopShareUrl = (id: string,) => {
+
+
+
+
+  return `/api/shares/${id}`
+}
+
+/**
+ * The sharer's Stop sharing, at once (ADR-235): the grant or the waiting link is revoked, the sharer leaves the reader's circle, and a pair the reader built on that chart closes, naming the sharer.
+ * @summary Stop sharing the viewer's own Personal report with one person
+ */
+export const stopShare = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getStopShareUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getStopShareMutationKey = () => ['stopShare'] as const;
+
+export const getStopShareMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopShare>>, TError,StopShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof stopShare>>, TError,StopShareMutationVariables, TContext> => {
+
+const mutationKey = getStopShareMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stopShare>>, StopShareMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  stopShare(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StopShareMutationResult = NonNullable<Awaited<ReturnType<typeof stopShare>>>
+
+    export type StopShareMutationError = ErrorType<ErrorResponse>
+    export type StopShareMutationVariables = {id: string}
+
+    /**
+ * @summary Stop sharing the viewer's own Personal report with one person
+ */
+export const useStopShare = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopShare>>, TError,StopShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof stopShare>>,
+        TError,
+        StopShareMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStopShareMutationOptions(options));
     }
 
 export const getGeocodePlaceUrl = (params: GeocodePlaceParams,) => {
