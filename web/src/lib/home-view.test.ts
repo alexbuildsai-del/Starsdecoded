@@ -11,7 +11,7 @@ import {
   NOT_WRITTEN, OWN_LINES, PAIR_BLOCK, SHARE_EMAIL_MISSING, SHARE_MINE, TRY_AGAIN, birthDateText, blindRisingText, doorText, failureLine,
   firstName, isFailed, isFinished, isWriting, lensWords, offersShareBack, offersShareMine, offersTryAgain, ownIds, pairWithYou,
   quickLookDoors, quickLookFor, shareControl, shareErrorLine, shareLine, shareName, shareSentLine, shareStateText, shareTargetFor,
-  sharedBackText, spotText, triadLines, tryAgainErrorLine, withYouText, writingText,
+  sharedBackText, spotText, triadLines, tryAgainErrorLine, UNNAMED_READER, withYouText, writingText,
 } from "./home-view";
 import { CENTRE_ID } from "./orbit";
 import { HANDED_BACK, SEND_AGAIN } from "./pair-row";
@@ -381,7 +381,16 @@ describe("sharing your own report (ADR-235)", () => {
     const active = { readerName: "Mira", email: "mira@example.com", state: "active" as const };
     expect([shareName(waiting), shareStateText(waiting)]).toEqual(["sam@example.com", "Waiting for them to sign in"]);
     expect([shareName(active), shareStateText(active)]).toEqual(["Mira", "Can read it"]);
-    expect(shareName({ readerName: "  ", email: "sam@example.com" })).toBe("sam@example.com");
+    expect(shareName({ ...active, readerName: "  " })).toBe("mira@example.com");
+  });
+
+  it("never names a share by an empty address: a grant made by Share yours back carries none (R-3.6)", () => {
+    const sharedBack = { readerName: "Alex", email: "", state: "active" as const };
+    expect(shareName(sharedBack)).toBe("Alex");
+    expect(shareName({ ...sharedBack, readerName: null })).toBe("Someone");
+    expect(shareName({ ...sharedBack, readerName: " ", email: "  " })).toBe(UNNAMED_READER);
+    expect(shareName({ readerName: "Sam", email: "sam@example.com", state: "waiting" })).toBe("sam@example.com");
+    expect(shareName({ readerName: null, email: "", state: "waiting" })).toBe("Someone");
   });
 
   it("confirms Share yours back by first name", () => {

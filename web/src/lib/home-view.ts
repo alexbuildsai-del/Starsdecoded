@@ -294,9 +294,19 @@ export function shareErrorLine(code: unknown): string {
 /** The toast that confirms Share yours back, since its one tap leaves nothing else on screen to say it happened. */
 export const sharedBackText = (name: string): string => `${firstName(name)} can read your ${PERSONAL_REPORT} now`;
 
-/** Whom a share names on the list: their first name once they claim it, the address it went to until then. */
-export function shareName(share: Pick<Share, "readerName" | "email">): string {
-  return share.readerName?.trim() || share.email;
+/** Said for a reader with no first name on a grant that carries no address either, as the gift's unnamed giver is. */
+export const UNNAMED_READER = "Someone";
+
+/**
+ * Whom a share names, on the list and in Stop sharing: a waiting one the
+ * address the link went to, a claimed one its reader's first name. A grant
+ * made by Share yours back carries no address, since the sharer never gave
+ * one (R-3.6), so an address stands in only where there is one.
+ */
+export function shareName(share: Pick<Share, "readerName" | "email" | "state">): string {
+  const name = share.readerName?.trim();
+  const email = share.email.trim();
+  return (share.state === "waiting" ? email || name : name || email) || UNNAMED_READER;
 }
 
 /** Where a share stands, under its name on the list. */
