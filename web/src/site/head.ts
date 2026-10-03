@@ -11,8 +11,11 @@ type Block = Record<string, unknown>;
 const HOME = pageUrl("/");
 const ORGANIZATION_ID = `${HOME}#organization`;
 const WEBSITE_ID = `${HOME}#website`;
-/** Drawn at 1200 by 630 by scripts/render-brand.mjs (MB-13). */
-const SHARE_IMAGE = `${SITE.origin}/opengraph.jpg`;
+/**
+ * Cover A, the home page's hero as a still, drawn at 1200 by 630 by scripts/render-brand.mjs (ADR-227). A new cover
+ * takes a new file name, so no preview a crawler cached can stand in for it (ADR-228).
+ */
+const SHARE_IMAGE = `${SITE.origin}/share-cover-v2.jpg`;
 const NOINDEX = `<meta name="robots" content="noindex" />`;
 
 const HTML_ENTITIES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" };
