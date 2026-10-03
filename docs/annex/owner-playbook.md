@@ -10,20 +10,19 @@ merged into the rule it repeats.
   2026-10-01 (agent-roster, Open questions; ADR-192). Propose a check that way and do not re-ask.
 - **The default carries an ask.** "go", with MB-93, 128 and 129 left at their defaults (R12 report, built 2026-10-01). Write
   each ask so that his silence is safe.
-- **Housekeeping on a yes.** The /round skill swap, removing a promise from the site, /sample refreshed from each
-  Release (Review 02/10, 2026-10-02); fifteen built-at-default rows closed in one line (sweep 03/10, 2026-10-03). Small,
-  reversible operations need one line, not a question.
+- **Housekeeping on a yes.** The /round skill swap, a promise removed, /sample from each Release (Review 02/10); fifteen
+  built-at-default rows closed in one line (sweep 03/10). Small, reversible operations need one line, not a question.
 
 ## Changed, and why
-- **No hotfix.** Production serves non-admins only healthz, the waitlist and the admin (ADR-167), and the app's session data
-  lives on staging, which has no real visitors, so the security fixes wait for R13, then a QA, then the first Release
-  (security-hardening, Open questions, 2026-10-01; ADR-204).
+- **No hotfix.** Production serves non-admins only healthz, the waitlist and the admin (ADR-167) and staging has no real
+  visitors, so security fixes waited for R13, a QA, then the first Release (security-hardening, 2026-10-01; ADR-204).
 - **He orders the rounds.** Pricing went behind the website, Review 01/10, security and Review 02/10, then "don't plan it",
   cleanup and Timeline first, pricing "whenever I say" (sweep 03/10, 2026-10-03). Never slot pricing in between rounds.
-- **Less text, fewer choices.** Three quote cards became one annotated line (Review 02/10); a tie's wording became "just
-  remove that line", and "Not me" kept only Hand it back and Cancel (sweep 03/10). Propose the cut, and two buttons, first.
-- **Speed of entry beats pickers.** Three date boxes with a month list became one typed field that jumps ahead
-  (Review 02/10). Forms are judged by how fast a birth date goes in.
+- **Less text, never fewer parts.** Three quote cards became one annotated line (Review 02/10) that read "nor
+  understandable": propose the fewest examples, each whole (moment, chart in plain words, check, action), picked by hand
+  (home-report-section); a tie's wording became "just remove that line", "Not me" kept two buttons (sweep 03/10).
+- **Speed of entry beats pickers.** One typed date field that jumps ahead, not three boxes (Review 02/10): forms are judged
+  by how fast a birth date goes in.
 - **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):
   propose the proper fix alone and say what it needs.
 - **Don't redraw what was only misread.** The look-alike nodes stay; the answer was the explanation (Review 02/10).
@@ -46,7 +45,8 @@ merged into the rule it repeats.
 ## Formats he likes
 - **An HTML artifact before any question or lock.** He decides visually (MASTERFILE §11.1). Phone first, 390 px before
   desktop (§9, ADR-171).
-- **The annotated line** (moment, chart, something to try) also as a marketing post (Review 02/10).
+- **The workbook card** (moment, chart, check, something to try), also as a marketing post (02/10, 2026-10-03); How you
+  work and How you spend, "go with A" (home-report-section, 2026-10-03).
 
 ## His own lines, verbatim
 - "Continue without this for now." The Owner, 2026-09-27, `docs/rounds/R14-plan.md` (pricing and launch, first written as
