@@ -1,0 +1,7 @@
+{ "voice": "af_heart", "lang": "en", "bgm": { "mode": "none" },
+  "lines": [
+    { "id": "c1-hook", "text": "This circle is a map of the sky, at the minute and the place you were born. Here's how to read it, starting with what's really up there." },
+    { "id": "c1-disc", "text": "Earth and the planets all circle the Sun, each on its own path, at its own speed. But the paths lie almost flat, like marbles on one plate. So from Earth, the Sun, the Moon and the planets always appear in one narrow strip of sky: the zodiac." },
+    { "id": "c1-signs", "text": "That strip is cut into twelve equal slices, counted from where the Sun stands on the first day of spring. These are the signs. They're named after star patterns, but measured like a ruler, and each describes a style." },
+    { "id": "c1-horizon", "text": "Now the line that makes a chart yours: the horizon. As Earth spins, the zodiac rises in the east, one sign after another, some fast and some slow. Our baby was born in London at half past six in the morning. Virgo was rising, with the Sun just up beside it. The date fixes where the planets are. The time and the place fix how they sit on your horizon. East is on the left, so the rising point, the A S C, sits here." }
+  ] }

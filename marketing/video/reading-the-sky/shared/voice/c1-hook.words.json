@@ -1,0 +1,170 @@
+[
+  {
+    "id": "w0",
+    "text": "This",
+    "start": 0,
+    "end": 0.24
+  },
+  {
+    "id": "w1",
+    "text": "circle",
+    "start": 0.24,
+    "end": 0.72
+  },
+  {
+    "id": "w2",
+    "text": "is",
+    "start": 0.72,
+    "end": 0.88
+  },
+  {
+    "id": "w3",
+    "text": "a",
+    "start": 0.88,
+    "end": 0.96
+  },
+  {
+    "id": "w4",
+    "text": "map",
+    "start": 0.96,
+    "end": 1.28
+  },
+  {
+    "id": "w5",
+    "text": "of",
+    "start": 1.28,
+    "end": 1.36
+  },
+  {
+    "id": "w6",
+    "text": "the",
+    "start": 1.36,
+    "end": 1.6
+  },
+  {
+    "id": "w7",
+    "text": "sky,",
+    "start": 1.6,
+    "end": 2.16
+  },
+  {
+    "id": "w8",
+    "text": "at",
+    "start": 2.16,
+    "end": 2.32
+  },
+  {
+    "id": "w9",
+    "text": "the",
+    "start": 2.32,
+    "end": 2.4
+  },
+  {
+    "id": "w10",
+    "text": "minute,",
+    "start": 2.4,
+    "end": 2.8
+  },
+  {
+    "id": "w11",
+    "text": "and",
+    "start": 2.8,
+    "end": 3.04
+  },
+  {
+    "id": "w12",
+    "text": "the",
+    "start": 3.04,
+    "end": 3.12
+  },
+  {
+    "id": "w13",
+    "text": "place",
+    "start": 3.12,
+    "end": 3.44
+  },
+  {
+    "id": "w14",
+    "text": "you",
+    "start": 3.44,
+    "end": 3.6
+  },
+  {
+    "id": "w15",
+    "text": "were",
+    "start": 3.6,
+    "end": 3.76
+  },
+  {
+    "id": "w16",
+    "text": "born.",
+    "start": 3.76,
+    "end": 4.48
+  },
+  {
+    "id": "w17",
+    "text": "Here's",
+    "start": 4.48,
+    "end": 4.96
+  },
+  {
+    "id": "w18",
+    "text": "how",
+    "start": 4.96,
+    "end": 5.12
+  },
+  {
+    "id": "w19",
+    "text": "to",
+    "start": 5.12,
+    "end": 5.28
+  },
+  {
+    "id": "w20",
+    "text": "read",
+    "start": 5.28,
+    "end": 5.52
+  },
+  {
+    "id": "w21",
+    "text": "it,",
+    "start": 5.52,
+    "end": 5.84
+  },
+  {
+    "id": "w22",
+    "text": "starting",
+    "start": 5.84,
+    "end": 6.24
+  },
+  {
+    "id": "w23",
+    "text": "with",
+    "start": 6.24,
+    "end": 6.48
+  },
+  {
+    "id": "w24",
+    "text": "what's",
+    "start": 6.48,
+    "end": 6.8
+  },
+  {
+    "id": "w25",
+    "text": "really",
+    "start": 6.8,
+    "end": 6.96
+  },
+  {
+    "id": "w26",
+    "text": "up",
+    "start": 6.96,
+    "end": 7.2
+  },
+  {
+    "id": "w27",
+    "text": "there.",
+    "start": 7.2,
+    "end": 7.44
+  }
+]

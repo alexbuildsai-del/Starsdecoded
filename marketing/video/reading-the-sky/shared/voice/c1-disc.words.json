@@ -1,0 +1,290 @@
+[
+  {
+    "id": "w0",
+    "text": "Earth",
+    "start": 0.08,
+    "end": 0.4
+  },
+  {
+    "id": "w1",
+    "text": "and",
+    "start": 0.4,
+    "end": 0.56
+  },
+  {
+    "id": "w2",
+    "text": "the",
+    "start": 0.56,
+    "end": 0.64
+  },
+  {
+    "id": "w3",
+    "text": "planets",
+    "start": 0.64,
+    "end": 1.12
+  },
+  {
+    "id": "w4",
+    "text": "all",
+    "start": 1.12,
+    "end": 1.28
+  },
+  {
+    "id": "w5",
+    "text": "circle",
+    "start": 1.28,
+    "end": 1.76
+  },
+  {
+    "id": "w6",
+    "text": "the",
+    "start": 1.76,
+    "end": 1.92
+  },
+  {
+    "id": "w7",
+    "text": "sun,",
+    "start": 1.92,
+    "end": 2.4
+  },
+  {
+    "id": "w8",
+    "text": "each",
+    "start": 2.4,
+    "end": 2.72
+  },
+  {
+    "id": "w9",
+    "text": "on",
+    "start": 2.72,
+    "end": 2.88
+  },
+  {
+    "id": "w10",
+    "text": "its",
+    "start": 2.88,
+    "end": 3.04
+  },
+  {
+    "id": "w11",
+    "text": "own",
+    "start": 3.04,
+    "end": 3.28
+  },
+  {
+    "id": "w12",
+    "text": "path",
+    "start": 3.28,
+    "end": 3.6
+  },
+  {
+    "id": "w13",
+    "text": "at",
+    "start": 3.68,
+    "end": 3.84
+  },
+  {
+    "id": "w14",
+    "text": "its",
+    "start": 3.84,
+    "end": 4.08
+  },
+  {
+    "id": "w15",
+    "text": "own",
+    "start": 4.08,
+    "end": 4.4
+  },
+  {
+    "id": "w16",
+    "text": "speed.",
+    "start": 4.4,
+    "end": 5.12
+  },
+  {
+    "id": "w17",
+    "text": "But",
+    "start": 5.12,
+    "end": 5.36
+  },
+  {
+    "id": "w18",
+    "text": "the",
+    "start": 5.36,
+    "end": 5.52
+  },
+  {
+    "id": "w19",
+    "text": "path",
+    "start": 5.52,
+    "end": 6
+  },
+  {
+    "id": "w20",
+    "text": "lie",
+    "start": 6,
+    "end": 6.32
+  },
+  {
+    "id": "w21",
+    "text": "almost",
+    "start": 6.32,
+    "end": 6.64
+  },
+  {
+    "id": "w22",
+    "text": "flat,",
+    "start": 6.64,
+    "end": 7.12
+  },
+  {
+    "id": "w23",
+    "text": "like",
+    "start": 7.28,
+    "end": 7.52
+  },
+  {
+    "id": "w24",
+    "text": "marbles",
+    "start": 7.52,
+    "end": 8.08
+  },
+  {
+    "id": "w25",
+    "text": "on",
+    "start": 8.08,
+    "end": 8.24
+  },
+  {
+    "id": "w26",
+    "text": "one",
+    "start": 8.24,
+    "end": 8.56
+  },
+  {
+    "id": "w27",
+    "text": "plate.",
+    "start": 8.56,
+    "end": 9.2
+  },
+  {
+    "id": "w28",
+    "text": "So",
+    "start": 9.2,
+    "end": 9.44
+  },
+  {
+    "id": "w29",
+    "text": "from",
+    "start": 9.52,
+    "end": 9.76
+  },
+  {
+    "id": "w30",
+    "text": "Earth,",
+    "start": 9.76,
+    "end": 10.32
+  },
+  {
+    "id": "w31",
+    "text": "the",
+    "start": 10.32,
+    "end": 10.48
+  },
+  {
+    "id": "w32",
+    "text": "sun,",
+    "start": 10.48,
+    "end": 10.88
+  },
+  {
+    "id": "w33",
+    "text": "the",
+    "start": 11.04,
+    "end": 11.2
+  },
+  {
+    "id": "w34",
+    "text": "moon,",
+    "start": 11.2,
+    "end": 11.52
+  },
+  {
+    "id": "w35",
+    "text": "and",
+    "start": 11.52,
+    "end": 11.68
+  },
+  {
+    "id": "w36",
+    "text": "the",
+    "start": 11.68,
+    "end": 11.84
+  },
+  {
+    "id": "w37",
+    "text": "planets",
+    "start": 11.84,
+    "end": 12.32
+  },
+  {
+    "id": "w38",
+    "text": "always",
+    "start": 12.32,
+    "end": 12.72
+  },
+  {
+    "id": "w39",
+    "text": "appear",
+    "start": 12.72,
+    "end": 13.12
+  },
+  {
+    "id": "w40",
+    "text": "in",
+    "start": 13.12,
+    "end": 13.28
+  },
+  {
+    "id": "w41",
+    "text": "one",
+    "start": 13.28,
+    "end": 13.52
+  },
+  {
+    "id": "w42",
+    "text": "narrow",
+    "start": 13.52,
+    "end": 13.92
+  },
+  {
+    "id": "w43",
+    "text": "strip",
+    "start": 13.92,
+    "end": 14.32
+  },
+  {
+    "id": "w44",
+    "text": "of",
+    "start": 14.32,
+    "end": 14.48
+  },
+  {
+    "id": "w45",
+    "text": "sky.",
+    "start": 14.48,
+    "end": 15.12
+  },
+  {
+    "id": "w46",
+    "text": "The",
+    "start": 15.12,
+    "end": 15.28
+  },
+  {
+    "id": "w47",
+    "text": "zodiac.",
+    "start": 15.28,
+    "end": 16.16
+  }
+]

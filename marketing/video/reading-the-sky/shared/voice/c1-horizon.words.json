@@ -1,0 +1,500 @@
+[
+  {
+    "id": "w0",
+    "text": "Now",
+    "start": 0,
+    "end": 0.24
+  },
+  {
+    "id": "w1",
+    "text": "the",
+    "start": 0.32,
+    "end": 0.4
+  },
+  {
+    "id": "w2",
+    "text": "line",
+    "start": 0.4,
+    "end": 0.64
+  },
+  {
+    "id": "w3",
+    "text": "that",
+    "start": 0.64,
+    "end": 0.8
+  },
+  {
+    "id": "w4",
+    "text": "makes",
+    "start": 0.8,
+    "end": 1.04
+  },
+  {
+    "id": "w5",
+    "text": "a",
+    "start": 1.04,
+    "end": 1.12
+  },
+  {
+    "id": "w6",
+    "text": "chart",
+    "start": 1.12,
+    "end": 1.44
+  },
+  {
+    "id": "w7",
+    "text": "yours,",
+    "start": 1.52,
+    "end": 2
+  },
+  {
+    "id": "w8",
+    "text": "the",
+    "start": 2,
+    "end": 2.24
+  },
+  {
+    "id": "w9",
+    "text": "horizon.",
+    "start": 2.24,
+    "end": 3.12
+  },
+  {
+    "id": "w10",
+    "text": "As",
+    "start": 3.12,
+    "end": 3.36
+  },
+  {
+    "id": "w11",
+    "text": "Earth",
+    "start": 3.36,
+    "end": 3.76
+  },
+  {
+    "id": "w12",
+    "text": "spins,",
+    "start": 3.76,
+    "end": 4.32
+  },
+  {
+    "id": "w13",
+    "text": "the",
+    "start": 4.32,
+    "end": 4.48
+  },
+  {
+    "id": "w14",
+    "text": "zodiac",
+    "start": 4.48,
+    "end": 5.28
+  },
+  {
+    "id": "w15",
+    "text": "rises",
+    "start": 5.28,
+    "end": 5.68
+  },
+  {
+    "id": "w16",
+    "text": "in",
+    "start": 5.68,
+    "end": 5.84
+  },
+  {
+    "id": "w17",
+    "text": "the",
+    "start": 5.84,
+    "end": 6
+  },
+  {
+    "id": "w18",
+    "text": "east,",
+    "start": 6,
+    "end": 6.48
+  },
+  {
+    "id": "w19",
+    "text": "one",
+    "start": 6.48,
+    "end": 6.8
+  },
+  {
+    "id": "w20",
+    "text": "sign",
+    "start": 6.8,
+    "end": 7.12
+  },
+  {
+    "id": "w21",
+    "text": "after",
+    "start": 7.12,
+    "end": 7.36
+  },
+  {
+    "id": "w22",
+    "text": "another,",
+    "start": 7.36,
+    "end": 7.84
+  },
+  {
+    "id": "w23",
+    "text": "some",
+    "start": 7.84,
+    "end": 8.16
+  },
+  {
+    "id": "w24",
+    "text": "fast",
+    "start": 8.16,
+    "end": 8.48
+  },
+  {
+    "id": "w25",
+    "text": "and",
+    "start": 8.48,
+    "end": 8.64
+  },
+  {
+    "id": "w26",
+    "text": "some",
+    "start": 8.64,
+    "end": 8.96
+  },
+  {
+    "id": "w27",
+    "text": "slow.",
+    "start": 8.96,
+    "end": 9.68
+  },
+  {
+    "id": "w28",
+    "text": "Our",
+    "start": 9.68,
+    "end": 9.92
+  },
+  {
+    "id": "w29",
+    "text": "baby",
+    "start": 9.92,
+    "end": 10.32
+  },
+  {
+    "id": "w30",
+    "text": "was",
+    "start": 10.32,
+    "end": 10.48
+  },
+  {
+    "id": "w31",
+    "text": "born",
+    "start": 10.48,
+    "end": 10.72
+  },
+  {
+    "id": "w32",
+    "text": "in",
+    "start": 10.72,
+    "end": 10.88
+  },
+  {
+    "id": "w33",
+    "text": "London",
+    "start": 10.88,
+    "end": 11.2
+  },
+  {
+    "id": "w34",
+    "text": "at",
+    "start": 11.2,
+    "end": 11.28
+  },
+  {
+    "id": "w35",
+    "text": "half",
+    "start": 11.28,
+    "end": 11.6
+  },
+  {
+    "id": "w36",
+    "text": "past",
+    "start": 11.6,
+    "end": 11.92
+  },
+  {
+    "id": "w37",
+    "text": "six",
+    "start": 11.92,
+    "end": 12.24
+  },
+  {
+    "id": "w38",
+    "text": "in",
+    "start": 12.24,
+    "end": 12.4
+  },
+  {
+    "id": "w39",
+    "text": "the",
+    "start": 12.4,
+    "end": 12.56
+  },
+  {
+    "id": "w40",
+    "text": "morning.",
+    "start": 12.56,
+    "end": 13.2
+  },
+  {
+    "id": "w41",
+    "text": "Virgo",
+    "start": 13.2,
+    "end": 13.76
+  },
+  {
+    "id": "w42",
+    "text": "was",
+    "start": 13.92,
+    "end": 14.08
+  },
+  {
+    "id": "w43",
+    "text": "rising,",
+    "start": 14.08,
+    "end": 14.56
+  },
+  {
+    "id": "w44",
+    "text": "with",
+    "start": 14.56,
+    "end": 14.72
+  },
+  {
+    "id": "w45",
+    "text": "the",
+    "start": 14.72,
+    "end": 14.88
+  },
+  {
+    "id": "w46",
+    "text": "sun",
+    "start": 14.88,
+    "end": 15.04
+  },
+  {
+    "id": "w47",
+    "text": "just",
+    "start": 15.2,
+    "end": 15.36
+  },
+  {
+    "id": "w48",
+    "text": "up",
+    "start": 15.36,
+    "end": 15.6
+  },
+  {
+    "id": "w49",
+    "text": "beside",
+    "start": 15.6,
+    "end": 16
+  },
+  {
+    "id": "w50",
+    "text": "it.",
+    "start": 16,
+    "end": 16.4
+  },
+  {
+    "id": "w51",
+    "text": "The",
+    "start": 16.4,
+    "end": 16.64
+  },
+  {
+    "id": "w52",
+    "text": "date",
+    "start": 16.64,
+    "end": 16.96
+  },
+  {
+    "id": "w53",
+    "text": "fixes",
+    "start": 16.96,
+    "end": 17.44
+  },
+  {
+    "id": "w54",
+    "text": "where",
+    "start": 17.44,
+    "end": 17.6
+  },
+  {
+    "id": "w55",
+    "text": "the",
+    "start": 17.6,
+    "end": 17.68
+  },
+  {
+    "id": "w56",
+    "text": "planets",
+    "start": 17.68,
+    "end": 18.16
+  },
+  {
+    "id": "w57",
+    "text": "are.",
+    "start": 18.16,
+    "end": 18.56
+  },
+  {
+    "id": "w58",
+    "text": "The",
+    "start": 18.56,
+    "end": 18.8
+  },
+  {
+    "id": "w59",
+    "text": "time",
+    "start": 18.8,
+    "end": 19.04
+  },
+  {
+    "id": "w60",
+    "text": "and",
+    "start": 19.04,
+    "end": 19.2
+  },
+  {
+    "id": "w61",
+    "text": "the",
+    "start": 19.2,
+    "end": 19.28
+  },
+  {
+    "id": "w62",
+    "text": "place",
+    "start": 19.28,
+    "end": 19.52
+  },
+  {
+    "id": "w63",
+    "text": "fix",
+    "start": 19.68,
+    "end": 20
+  },
+  {
+    "id": "w64",
+    "text": "how",
+    "start": 20,
+    "end": 20.16
+  },
+  {
+    "id": "w65",
+    "text": "they",
+    "start": 20.16,
+    "end": 20.32
+  },
+  {
+    "id": "w66",
+    "text": "sit",
+    "start": 20.32,
+    "end": 20.48
+  },
+  {
+    "id": "w67",
+    "text": "on",
+    "start": 20.48,
+    "end": 20.64
+  },
+  {
+    "id": "w68",
+    "text": "your",
+    "start": 20.64,
+    "end": 20.8
+  },
+  {
+    "id": "w69",
+    "text": "horizon.",
+    "start": 20.8,
+    "end": 21.76
+  },
+  {
+    "id": "w70",
+    "text": "East",
+    "start": 21.76,
+    "end": 22.24
+  },
+  {
+    "id": "w71",
+    "text": "is",
+    "start": 22.24,
+    "end": 22.4
+  },
+  {
+    "id": "w72",
+    "text": "on",
+    "start": 22.4,
+    "end": 22.56
+  },
+  {
+    "id": "w73",
+    "text": "the",
+    "start": 22.56,
+    "end": 22.72
+  },
+  {
+    "id": "w74",
+    "text": "left,",
+    "start": 22.72,
+    "end": 23.12
+  },
+  {
+    "id": "w75",
+    "text": "so",
+    "start": 23.12,
+    "end": 23.36
+  },
+  {
+    "id": "w76",
+    "text": "the",
+    "start": 23.36,
+    "end": 23.52
+  },
+  {
+    "id": "w77",
+    "text": "rising",
+    "start": 23.52,
+    "end": 23.92
+  },
+  {
+    "id": "w78",
+    "text": "point,",
+    "start": 23.92,
+    "end": 24.24
+  },
+  {
+    "id": "w79",
+    "text": "the",
+    "start": 24.24,
+    "end": 24.48
+  },
+  {
+    "id": "w80",
+    "text": "SC,",
+    "start": 24.48,
+    "end": 25.12
+  },
+  {
+    "id": "w81",
+    "text": "sits",
+    "start": 25.28,
+    "end": 25.52
+  },
+  {
+    "id": "w82",
+    "text": "here.",
+    "start": 25.52,
+    "end": 25.76
+  }
+]

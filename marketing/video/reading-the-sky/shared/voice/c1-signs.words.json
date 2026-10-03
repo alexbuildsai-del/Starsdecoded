@@ -1,0 +1,236 @@
+[
+  {
+    "id": "w0",
+    "text": "That",
+    "start": 0,
+    "end": 0.24
+  },
+  {
+    "id": "w1",
+    "text": "strip",
+    "start": 0.24,
+    "end": 0.64
+  },
+  {
+    "id": "w2",
+    "text": "is",
+    "start": 0.64,
+    "end": 0.8
+  },
+  {
+    "id": "w3",
+    "text": "cut",
+    "start": 0.8,
+    "end": 1.04
+  },
+  {
+    "id": "w4",
+    "text": "into",
+    "start": 1.04,
+    "end": 1.28
+  },
+  {
+    "id": "w5",
+    "text": "twelve",
+    "start": 1.28,
+    "end": 1.76
+  },
+  {
+    "id": "w6",
+    "text": "equal",
+    "start": 1.76,
+    "end": 2.16
+  },
+  {
+    "id": "w7",
+    "text": "slices,",
+    "start": 2.16,
+    "end": 3.04
+  },
+  {
+    "id": "w8",
+    "text": "counted",
+    "start": 3.04,
+    "end": 3.6
+  },
+  {
+    "id": "w9",
+    "text": "from",
+    "start": 3.6,
+    "end": 3.84
+  },
+  {
+    "id": "w10",
+    "text": "where",
+    "start": 3.84,
+    "end": 4.08
+  },
+  {
+    "id": "w11",
+    "text": "the",
+    "start": 4.08,
+    "end": 4.24
+  },
+  {
+    "id": "w12",
+    "text": "sun",
+    "start": 4.24,
+    "end": 4.4
+  },
+  {
+    "id": "w13",
+    "text": "stands",
+    "start": 4.56,
+    "end": 4.96
+  },
+  {
+    "id": "w14",
+    "text": "on",
+    "start": 4.96,
+    "end": 5.12
+  },
+  {
+    "id": "w15",
+    "text": "the",
+    "start": 5.12,
+    "end": 5.28
+  },
+  {
+    "id": "w16",
+    "text": "first",
+    "start": 5.28,
+    "end": 5.52
+  },
+  {
+    "id": "w17",
+    "text": "day",
+    "start": 5.52,
+    "end": 5.76
+  },
+  {
+    "id": "w18",
+    "text": "of",
+    "start": 5.76,
+    "end": 6
+  },
+  {
+    "id": "w19",
+    "text": "spring.",
+    "start": 6,
+    "end": 6.88
+  },
+  {
+    "id": "w20",
+    "text": "These",
+    "start": 6.88,
+    "end": 7.28
+  },
+  {
+    "id": "w21",
+    "text": "are",
+    "start": 7.28,
+    "end": 7.52
+  },
+  {
+    "id": "w22",
+    "text": "the",
+    "start": 7.52,
+    "end": 7.84
+  },
+  {
+    "id": "w23",
+    "text": "signs.",
+    "start": 7.84,
+    "end": 8.56
+  },
+  {
+    "id": "w24",
+    "text": "They're",
+    "start": 8.56,
+    "end": 8.96
+  },
+  {
+    "id": "w25",
+    "text": "named",
+    "start": 8.96,
+    "end": 9.36
+  },
+  {
+    "id": "w26",
+    "text": "after",
+    "start": 9.36,
+    "end": 9.68
+  },
+  {
+    "id": "w27",
+    "text": "star",
+    "start": 9.68,
+    "end": 10
+  },
+  {
+    "id": "w28",
+    "text": "patterns,",
+    "start": 10.16,
+    "end": 10.8
+  },
+  {
+    "id": "w29",
+    "text": "but",
+    "start": 10.8,
+    "end": 11.12
+  },
+  {
+    "id": "w30",
+    "text": "measured",
+    "start": 11.12,
+    "end": 11.6
+  },
+  {
+    "id": "w31",
+    "text": "like",
+    "start": 11.6,
+    "end": 11.76
+  },
+  {
+    "id": "w32",
+    "text": "a",
+    "start": 11.76,
+    "end": 11.92
+  },
+  {
+    "id": "w33",
+    "text": "ruler,",
+    "start": 11.92,
+    "end": 12.48
+  },
+  {
+    "id": "w34",
+    "text": "and",
+    "start": 12.48,
+    "end": 12.72
+  },
+  {
+    "id": "w35",
+    "text": "each",
+    "start": 12.72,
+    "end": 13.04
+  },
+  {
+    "id": "w36",
+    "text": "describes",
+    "start": 13.04,
+    "end": 13.52
+  },
+  {
+    "id": "w37",
+    "text": "a",
+    "start": 13.52,
+    "end": 13.68
+  },
+  {
+    "id": "w38",
+    "text": "style.",
+    "start": 13.68,
+    "end": 14.08
+  }
+]

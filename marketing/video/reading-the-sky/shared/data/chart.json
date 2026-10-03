@@ -1,0 +1,355 @@
+{
+  "chartVersion": 3,
+  "sunAltitude": 2.13,
+  "datetimeUtc": "2012-08-30T05:30:00.000Z",
+  "julianDay": 2456169.73,
+  "latitude": 51.5074,
+  "longitude": -0.1278,
+  "timezoneOffset": 1,
+  "timezone": "Europe/London",
+  "windowMinutes": 0,
+  "horizon": {
+    "status": "known",
+    "ascendant": {
+      "value": "Virgo",
+      "holds": true,
+      "flipsAt": [],
+      "values": [
+        "Virgo"
+      ],
+      "holdsFrom": "05:36",
+      "holdsTo": "08:26"
+    },
+    "midheaven": {
+      "value": "Gemini",
+      "holds": true,
+      "flipsAt": [],
+      "values": [
+        "Gemini"
+      ],
+      "holdsFrom": "06:18",
+      "holdsTo": "08:26"
+    },
+    "sect": {
+      "value": "day",
+      "holds": true,
+      "flipsAt": [],
+      "values": [
+        "day"
+      ],
+      "holdsFrom": "06:16",
+      "holdsTo": "19:46"
+    },
+    "moonSign": {
+      "value": "Aquarius",
+      "holds": true,
+      "flipsAt": [],
+      "values": [
+        "Aquarius"
+      ],
+      "holdsFrom": "00:00",
+      "holdsTo": "23:32"
+    },
+    "sunSign": {
+      "value": "Virgo",
+      "holds": true,
+      "flipsAt": [],
+      "values": [
+        "Virgo"
+      ],
+      "holdsFrom": "00:00",
+      "holdsTo": "24:00"
+    }
+  },
+  "planets": {
+    "sun": {
+      "sign": "Virgo",
+      "degree": 7.25,
+      "absoluteDegree": 157.25,
+      "house": 1,
+      "retrograde": false,
+      "speed": 0.966
+    },
+    "mercury": {
+      "sign": "Leo",
+      "degree": 26.39,
+      "absoluteDegree": 146.39,
+      "house": 12,
+      "retrograde": false,
+      "speed": 1.908
+    },
+    "venus": {
+      "sign": "Cancer",
+      "degree": 22.15,
+      "absoluteDegree": 112.15,
+      "house": 11,
+      "retrograde": false,
+      "speed": 1.046
+    },
+    "mars": {
+      "sign": "Scorpio",
+      "degree": 4.24,
+      "absoluteDegree": 214.24,
+      "house": 3,
+      "retrograde": false,
+      "speed": 0.65
+    },
+    "jupiter": {
+      "sign": "Gemini",
+      "degree": 14.4,
+      "absoluteDegree": 74.4,
+      "house": 10,
+      "retrograde": false,
+      "speed": 0.108
+    },
+    "saturn": {
+      "sign": "Libra",
+      "degree": 26.08,
+      "absoluteDegree": 206.08,
+      "house": 2,
+      "retrograde": false,
+      "speed": 0.093
+    },
+    "uranus": {
+      "sign": "Aries",
+      "degree": 7.69,
+      "absoluteDegree": 7.69,
+      "house": 8,
+      "retrograde": true,
+      "speed": -0.033
+    },
+    "neptune": {
+      "sign": "Pisces",
+      "degree": 1.59,
+      "absoluteDegree": 331.59,
+      "house": 7,
+      "retrograde": true,
+      "speed": -0.027
+    },
+    "pluto": {
+      "sign": "Capricorn",
+      "degree": 7.04,
+      "absoluteDegree": 277.04,
+      "house": 5,
+      "retrograde": true,
+      "speed": -0.009
+    },
+    "moon": {
+      "sign": "Aquarius",
+      "degree": 20.45,
+      "absoluteDegree": 320.45,
+      "house": 6,
+      "retrograde": false,
+      "speed": 13.543
+    },
+    "chiron": {
+      "sign": "Gemini",
+      "degree": 8.04,
+      "absoluteDegree": 68.04,
+      "house": 10,
+      "retrograde": false,
+      "speed": 0.038
+    },
+    "north_node": {
+      "sign": "Sagittarius",
+      "degree": 0.15,
+      "absoluteDegree": 240.15,
+      "house": 4,
+      "retrograde": true,
+      "speed": -0.053
+    },
+    "south_node": {
+      "sign": "Gemini",
+      "degree": 0.15,
+      "absoluteDegree": 60.15,
+      "house": 10,
+      "retrograde": true,
+      "speed": -0.053
+    }
+  },
+  "angles": {
+    "ascendant": {
+      "sign": "Virgo",
+      "degree": 9.72,
+      "absoluteDegree": 159.72
+    },
+    "midheaven": {
+      "sign": "Gemini",
+      "degree": 3.22,
+      "absoluteDegree": 63.22
+    },
+    "descendant": {
+      "sign": "Pisces",
+      "degree": 9.72,
+      "absoluteDegree": 339.72
+    },
+    "ic": {
+      "sign": "Sagittarius",
+      "degree": 3.22,
+      "absoluteDegree": 243.22
+    }
+  },
+  "houses": {
+    "1": {
+      "sign": "Virgo",
+      "degree": 0
+    },
+    "2": {
+      "sign": "Libra",
+      "degree": 0
+    },
+    "3": {
+      "sign": "Scorpio",
+      "degree": 0
+    },
+    "4": {
+      "sign": "Sagittarius",
+      "degree": 0
+    },
+    "5": {
+      "sign": "Capricorn",
+      "degree": 0
+    },
+    "6": {
+      "sign": "Aquarius",
+      "degree": 0
+    },
+    "7": {
+      "sign": "Pisces",
+      "degree": 0
+    },
+    "8": {
+      "sign": "Aries",
+      "degree": 0
+    },
+    "9": {
+      "sign": "Taurus",
+      "degree": 0
+    },
+    "10": {
+      "sign": "Gemini",
+      "degree": 0
+    },
+    "11": {
+      "sign": "Cancer",
+      "degree": 0
+    },
+    "12": {
+      "sign": "Leo",
+      "degree": 0
+    }
+  },
+  "aspects": [
+    {
+      "planet1": "sun",
+      "planet2": "mars",
+      "type": "sextile",
+      "orb": 3,
+      "applying": true
+    },
+    {
+      "planet1": "sun",
+      "planet2": "neptune",
+      "type": "opposition",
+      "orb": 5.7,
+      "applying": true
+    },
+    {
+      "planet1": "sun",
+      "planet2": "pluto",
+      "type": "trine",
+      "orb": 0.2,
+      "applying": true
+    },
+    {
+      "planet1": "moon",
+      "planet2": "mercury",
+      "type": "opposition",
+      "orb": 5.9,
+      "applying": false
+    },
+    {
+      "planet1": "moon",
+      "planet2": "saturn",
+      "type": "trine",
+      "orb": 5.6,
+      "applying": false
+    },
+    {
+      "planet1": "mercury",
+      "planet2": "saturn",
+      "type": "sextile",
+      "orb": 0.3,
+      "applying": true
+    },
+    {
+      "planet1": "mercury",
+      "planet2": "neptune",
+      "type": "opposition",
+      "orb": 5.2,
+      "applying": true
+    },
+    {
+      "planet1": "venus",
+      "planet2": "saturn",
+      "type": "square",
+      "orb": 3.9,
+      "applying": true
+    },
+    {
+      "planet1": "mars",
+      "planet2": "neptune",
+      "type": "trine",
+      "orb": 2.7,
+      "applying": true
+    },
+    {
+      "planet1": "mars",
+      "planet2": "pluto",
+      "type": "sextile",
+      "orb": 2.8,
+      "applying": true
+    },
+    {
+      "planet1": "saturn",
+      "planet2": "neptune",
+      "type": "trine",
+      "orb": 5.5,
+      "applying": true
+    },
+    {
+      "planet1": "uranus",
+      "planet2": "pluto",
+      "type": "square",
+      "orb": 0.6,
+      "applying": true
+    }
+  ],
+  "elements": {
+    "fire": 2,
+    "earth": 2,
+    "air": 3,
+    "water": 3
+  },
+  "modalities": {
+    "cardinal": 4,
+    "fixed": 3,
+    "mutable": 3
+  },
+  "dominance": {
+    "dominantPlanets": [
+      "sun",
+      "jupiter",
+      "neptune"
+    ],
+    "dominantElement": "air",
+    "dominantModality": "cardinal"
+  },
+  "chartShape": "locomotive",
+  "hemisphereEmphasis": {
+    "northern": 5,
+    "southern": 5,
+    "eastern": 5,
+    "western": 5
+  }
+}

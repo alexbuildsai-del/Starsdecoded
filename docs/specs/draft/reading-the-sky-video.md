@@ -82,6 +82,21 @@ The storyboard artifact above holds all of this:
   Adding `ssr: { external: ["react", "react-dom"] }` to its Vite server fixes it. The kit's
   carousels hit the same error, so the fix belongs in the kit.
 
+## Chapter 1 build (2026-10-03, after the Owner's yes on v3)
+
+- Project: `marketing/video/reading-the-sky/`. `tools/data.mjs` computes everything the film draws:
+  - the chart and the minute-by-minute Ascendant, from the product engine through the marketing kit;
+  - the year of orbits, from astronomy-engine;
+  - the XHIP stars and the IAU constellation crossings, from d3-celestial (BSD-3), via `tools/stars/stars.js`.
+- `tools/build.mjs` writes `ch1-16x9/` and `ch1-9x16/`: the voice placed on the timeline, captions in the
+  script's words on the voice's own timings, and the product wheel tagged by layer.
+- `render.sh` renders both formats locally.
+- The scenes are drawn on a canvas, frame by frame from the seek time. The words and the product wheel ride
+  one GSAP timeline.
+- The kit's `wheel.mjs` got its one-line SSR fix, which the carousels need too.
+- The "timeline" the Owner named is a product he is building now. It gets its own video later; this film
+  closes on the /sky rewind.
+
 ## Open questions (each with its default)
 
 1. Chart: the sunrise demo (default) or Audrey Hepburn, the site's sample. Audrey's chart has 4 empty

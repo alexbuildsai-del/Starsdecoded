@@ -20,19 +20,18 @@ merged into the rule it repeats.
   (security-hardening, Open questions, 2026-10-01; ADR-204).
 - **He orders the rounds.** Pricing and launch went behind the website (R11 plan, 2026-09-30), Review 01/10 (R12 plan,
   2026-10-01) and security with the roster (ADR-204): deferred three times (R14-plan header). Offer an order as a recommendation.
-- **Less text on public pages.** Three quote cards with counts became one annotated line: "simple", one actionable
-  example, no figures "no one's gonna read" (Review 02/10, 2026-10-02). Propose the shortest version first.
+- **Less text, more shown.** Three quote cards became one annotated line (Review 02/10); a 10-minute video script became
+  five minutes with lists and facts on screen, one idea per line of voice (Reading the Sky v3, 2026-10-03). Shortest first.
 - **Speed of entry beats pickers.** Three date boxes with a month list became one typed field that jumps ahead
   (Review 02/10). Forms are judged by how fast a birth date goes in.
-- **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):
-  propose the proper fix alone and say what it needs.
+- **The real fix, never a fallback; true before simple.** A Chiron stopgap read as "a workaround" (Review 02/10); a kid-simple
+  script that bent the astronomy was sent back: "stick to scientific facts and then make it a bit easier" (2026-10-03).
 - **Don't redraw what was only misread.** The look-alike nodes stay; the answer was the explanation (Review 02/10).
 
 ## Asked for
 - **Opus for orchestrating, planning and research.** The orchestrator (the Owner, ADR-137), planning (R-0.7) and, from
   2026-10-01, research, with the verifier on any claim that feeds a decision (agent-roster scope 6; MASTERFILE §11.1).
-- **A process that learns.** This file after every ideation, `lessons.md` after every round (agent-roster scope 12, ADR-195,
-  2026-10-01).
+- **A process that learns.** This file after every ideation, `lessons.md` after every round (ADR-195, 2026-10-01).
 - **Fewer questions, each with a default.** At most three, highest stakes first, each with a recommendation and what happens
   if he is silent (R-12.1; "For the Owner" in the R11, R12 and R13 plans). Never a chore: he tests the site and says yes or
   no, and operations are Claude's (R-12.5; CLAUDE.md).
@@ -42,6 +41,7 @@ merged into the rule it repeats.
 - **No secret on GitHub, ever** (the Owner, 2026-09-25; CLAUDE.md): no proposal may need one (agent-roster, Out of scope).
 - **Keep what already looks great, and don't repeat a promise.** Add to a section the Owner likes without touching its
   visuals, and check a new line against every section on the page (Review 02/10, 2026-10-02).
+- **Close on the reader.** An explainer ends on how it applies to you, then the product, for you and your family (2026-10-03).
 
 ## Formats he likes
 - **An HTML artifact before any question or lock.** He decides visually (MASTERFILE §11.1). Phone first, 390 px before
