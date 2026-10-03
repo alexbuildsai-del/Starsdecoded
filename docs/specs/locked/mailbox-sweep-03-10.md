@@ -1,8 +1,8 @@
 # Mailbox sweep 03/10
 
 Ideation 2026-10-03 on the Mailbox rows raised 2026-09-26 to 2026-10-03 that are still open and that no other
-session or plan holds. Artifact: https://claude.ai/artifact/1f8CkTF3ET9wGxVkce3YRf. Status: **draft, answered by
-the Owner 2026-10-03** (Q1 yes, Q2 changed, Q3 changed: no pricing until he starts it, MB-181 cut to one removal).
+session or plan holds. Artifact: https://claude.ai/artifact/1f8CkTF3ET9wGxVkce3YRf. Status: **locked 2026-10-03**
+(ADR-231 to 242), answered by the Owner (Q1 yes, Q2 changed, Q3 changed: no pricing until he starts it, MB-181 cut to one removal).
 Checked against `main` at 30b45b6 by three code reads, each row confirmed still true or not.
 **Brain:** lane 4 only (`api/src/prompts/`, `aiInterpretation.ts`, `pairInterpretation.ts`): dry lab, spot, release lab.
 **Schema:** lane 3 only (a share grant, per-reader workbooks), each with an idempotent script in `bootstrap-db.sh`.
@@ -130,16 +130,16 @@ tie line before and after; the round order.
 None. Answered 2026-10-03: Q1 the whole Personal report; Q2 hand it back, with Cancel as the only other choice;
 Q3 cleanup, then Timeline, pricing when the Owner says. MB-102 and MB-186 are the Owner's, in hand.
 
-## Decisions to record
-- Lane 1's seven built-at-default rows decided as built (MB-89, 128, 129, 130, 131, 145, 146).
-- MB-151, 174, 176 kept as they are. MB-127, 141, 175 ship as written.
-- QA in a cloud session uses the pinned-certificate browser method, written into `qa.md` (MB-164).
-- One push per group and per fix (MB-187).
-- Sharing your own report: a grant through send-and-claim, the whole Personal report, "Share yours back"
-  (MB-104, Q1).
-- "Not me" hands the report back; its confirmation is Hand it back or Cancel (MB-103, Q2, amending ADR-139's
-  'Not me' as locked). Change address on a waiting send or gift (MB-109). Stop sharing in the third person (MB-135).
-- The Elements readout line leaves home and /method (MB-181).
-- Workbooks per reader (MB-110). Name masking in returned model text, built regardless of spot results (MB-152).
-- Round order: the cleanup round (lanes 2 to 4) next, then Timeline; pricing and checkout only when the Owner
-  starts them (Q3).
+## Decisions recorded (Notion Decisions, 2026-10-03)
+- ADR-231: seven provisional seams decided as built (MB-89, 128, 129, 130, 131, 145, 146).
+- ADR-232: MB-151, 174, 176 kept; the R11, R12 and R14 word lists ship as written (MB-127, 141, 175).
+- ADR-233: QA in a cloud session uses the pinned-certificate browser method, written into `qa.md` (MB-164).
+- ADR-234: one push per group and per fix (MB-187).
+- ADR-235: sharing your own Personal report from the quick look, the whole report, a grant, Share yours back (MB-104).
+- ADR-236: Not me hands the report back, Hand it back or Cancel only (MB-103; amends ADR-139's Not me).
+- ADR-237: Change address on a waiting send or gift (MB-109).
+- ADR-238: Stop sharing in the third person (MB-135).
+- ADR-239: workbook ticks and pins per reader (MB-110).
+- ADR-240: names masked in model text sent back into prompts (MB-152).
+- ADR-241: the Elements readout line leaves home and /method (MB-181).
+- ADR-242: R15 is this cleanup round, before Timeline as R16 (ADR-230); pricing waits for the Owner.
