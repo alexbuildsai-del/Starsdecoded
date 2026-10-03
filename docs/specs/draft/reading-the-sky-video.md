@@ -1,6 +1,6 @@
 # Reading the Sky: an explainer video (draft)
 
-Status: draft v2, words first (marketing rule 24), 2026-10-03. v2 puts the real astronomy first (Owner, 2026-10-03: "stick to scientific facts and then make it a bit easier"). Storyboard, VO, voices and the chart
+Status: draft v3, words first (marketing rule 24), 2026-10-03. v2 put the real astronomy first (Owner: "stick to scientific facts and then make it a bit easier"); v3 halves the length by showing lists and facts instead of saying them, and closes on the viewer's own sky (Owner: "close it on how it applies to you"). Storyboard, VO, voices and the chart
 compared: https://claude.ai/artifact/6b7SrcCjsS5sg1ZoQJnXXX
 
 The Owner asked for an explainer on how to read a natal chart, on the product's own chart, simple
@@ -9,9 +9,9 @@ marketing G2 (video waits for the report rework) for this one film.
 
 ## Scope
 
-- Four 16:9 episodes of 2 to 3 minutes (the real sky, the planets, the houses, the special points), also
-  joined as one film of about 10 minutes. 1920×1080, voiceover, burned-in captions, built in HyperFrames
-  (`.claude/vendor/hyperframes`, pinned 0.8.96), rendered locally.
+- One 16:9 film of about 5:15 in three chapters (the real sky; who, how, where; the points, and you),
+  each under two minutes and posted alone as a short. 1920×1080, voiceover, burned-in captions, built
+  in HyperFrames (`.claude/vendor/hyperframes`, pinned 0.8.96), rendered locally.
 - Method: every scene states the sky fact first (orbits, speeds, the horizon, the meridian, eclipses),
   then the chart meaning in the doctrine's words. No simplification may contradict the astronomy.
 - One chart all the way through: 30 Aug 2012, 06:30 BST, London (51.5074 N, 0.1278 W). It is a real
@@ -19,11 +19,11 @@ marketing G2 (video waits for the report rework) for this one film.
   houses. Virgo is rising at 9°43′ and the Sun is at Virgo 7°15′ in house 1, so 10 planets sit in
   10 houses. Every placement shown or said comes from `calculateNatalChart`, and every wheel is
   the product's `NatalWheel`.
-- Thirteen scenes: hook; the flat solar system and the zodiac strip; twelve equal signs from the March
-  equinox (not the constellations); the horizon and birth time (Virgo rose in 2 h 50 m, Pisces in 52 m,
-  computed); who-how-where; the planets, each with a sky fact and its role, retrograde as Earth
-  overtaking; counting whole-sign houses (1–6 below the horizon, 7–12 above); twelve objects; the MC
-  as the meridian; the nodes and eclipses; Chiron; reading one placement; close.
+- Twelve scenes: hook; the flat solar system and the zodiac strip; twelve equal signs (styles shown, not
+  said); the horizon and birth time; who-how-where; the planets (facts on screen, roles in the voice);
+  the houses (counting said, the twelve objects shown in a 20-second beat); the MC; the nodes and
+  eclipses; Chiron; reading one placement; your own sky: the /sky rewind from today's sky over the
+  city back to the birth minute, then the report, Gift and pair screens recorded from staging.
 - Memory helpers: who, how, where (planet = actor, sign = costume, house = stage); twelve objects for
   the houses (mirror, wallet, phone, family tree, paintbrush, to-do list, handshake, locked box,
   passport, spotlight, team, pillow), each over the product's house word; six real opposites across
@@ -87,7 +87,9 @@ The storyboard artifact above holds all of this:
 1. Chart: the sunrise demo (default) or Audrey Hepburn, the site's sample. Audrey's chart has 4 empty
    houses and 3 bodies stacked in the 4th.
 2. Voice: af_heart (default), bf_emma, bm_george or am_michael.
-3. Shape: four episodes (default), also joined as one film.
+3. Shape: one film in three chapters (default), each chapter also a short.
+4. "Timeline": the /sky rewind (default) or the Learn page's day strip. A forward life timeline is not
+   in V1 (predictions are excluded) and stays out of the video.
 
 ## Decisions to record
 
