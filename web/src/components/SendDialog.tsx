@@ -6,7 +6,9 @@
  * unless the other person is already on Stars Decoded and is granted it at
  * once; then one line on what happened, with the link to pass on by hand when
  * the email did not go. Sharing is the sharer's consent (ADR-139), so the
- * dialog says what the other person will see and how it stops.
+ * dialog says what the other person will see and how it stops. Its change mode
+ * sends a link still waiting to a corrected address instead, and the old link
+ * stops working (ADR-237).
  */
 import { useRef, useState, type FormEvent } from "react";
 import { Check, Copy } from "lucide-react";
@@ -16,7 +18,9 @@ import {
   getListInvitesQueryKey,
   getListProfilesQueryKey,
   getListReportsQueryKey,
+  useChangeInviteAddress,
   useCreateInvite,
+  useListInvites,
   useSendCompatibility,
   type InviteSummary,
   type SendState,
@@ -27,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusDots } from "@/components/StatusDots";
 import { useOpenerFocus } from "@/components/dashboard/RowMenu";
-import { sharedWaiting } from "@/lib/pair-row";
+import { HANDED_BACK, SEND_AGAIN, sharedWaiting, waitingInvite } from "@/lib/pair-row";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { refusalLine } from "@/lib/refusals";
 import { shareWith } from "@/lib/share-card";
@@ -35,11 +39,12 @@ import { shareWith } from "@/lib/share-card";
 /**
  * Who a send goes to; `send` names them and holds the state. A person's
  * `reportId` is their natal report, refreshed once it is sent; a pair's is the
- * Compatibility report, which addresses the send route.
+ * Compatibility report, which addresses the send route. `change` opens the
+ * change mode on a send still waiting (ADR-237).
  */
 export type SendTarget =
-  | { kind: "person"; send: SendState; reportId?: string }
-  | { kind: "pair"; send: SendState; reportId: string };
+  | { kind: "person"; send: SendState; reportId?: string; change?: boolean }
+  | { kind: "pair"; send: SendState; reportId: string; change?: boolean };
 
 export interface SendDialogProps {
   open: boolean;
@@ -93,11 +98,28 @@ function failureLine(code: string | undefined, name: string, askedEmail: boolean
   return "We couldn't share it. Try again in a minute.";
 }
 
+const NOT_WAITING = "This link was claimed or has expired, so its address can't change.";
+
+function changeIntro(email: string | null): string {
+  const went = email ? `The link went to ${email}. ` : "";
+  return `${went}Enter the right address and we'll send a new link. The old one stops working.`;
+}
+
+/** The API says which of claimed or expired stopped the change, which the page cannot tell apart, and why an address was refused. */
+function changeFailureLine(error: { data: { error?: string; message?: string } | null }): string {
+  const code = error.data?.error;
+  const told = error.data?.message;
+  if (code === "not_waiting" || code === "not_found") return told || NOT_WAITING;
+  if (code === "validation_error") return told || "That email address did not work. Check it and try again.";
+  return "We couldn't change the address. Try again in a few minutes.";
+}
+
 function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void }) {
   const client = useQueryClient();
   const { send } = target;
   const name = send.firstName;
-  const askEmail = target.kind === "person" || send.state !== "can_grant";
+  const changing = target.change === true;
+  const askEmail = changing || target.kind === "person" || send.state !== "can_grant";
   const [email, setEmail] = useState("");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [copied, setCopied] = useState(false);
@@ -112,25 +134,41 @@ function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void
   };
   const invite = useCreateInvite({ mutation: { onSettled: refresh } });
   const pairSend = useSendCompatibility({ mutation: { onSettled: refresh } });
+  const change = useChangeInviteAddress({ mutation: { onSettled: refresh } });
+  // The send's own id lives on its invite, which only the change mode reads.
+  const invites = useListInvites(
+    { profileId: send.profileId },
+    { query: { queryKey: getListInvitesQueryKey({ profileId: send.profileId }), enabled: changing } },
+  );
+  const waiting = changing ? waitingInvite(invites.data, send.relationshipId) : null;
+  const gone = changing && invites.isSuccess && !waiting;
 
-  const pending = invite.isPending || pairSend.isPending;
-  const failure = invite.error ?? pairSend.error;
+  const pending = invite.isPending || pairSend.isPending || change.isPending;
   const address = email.trim();
-  const ready = !askEmail || EMAIL.test(address);
-  const error = failure ? (refusalLine(failure) ?? failureLine(failure.data?.error, name, askEmail)) : null;
-  const addressRefused = askEmail && failure?.data?.error === "validation_error";
+  const ready = (!askEmail || EMAIL.test(address)) && (!changing || !!waiting);
+  const failure = invite.error ?? pairSend.error;
+  let error: string | null = null;
+  if (change.error) error = refusalLine(change.error) ?? changeFailureLine(change.error);
+  else if (gone && !outcome) error = NOT_WAITING;
+  else if (failure) error = refusalLine(failure) ?? failureLine(failure.data?.error, name, askEmail);
+  const addressRefused = askEmail && (failure ?? change.error)?.data?.error === "validation_error";
 
   function edit(value: string) {
     setEmail(value);
-    if (failure) {
+    if (invite.error || pairSend.error || change.error) {
       invite.reset();
       pairSend.reset();
+      change.reset();
     }
   }
 
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!ready || pending) return;
+    if (changing) {
+      if (waiting) change.mutate({ id: waiting.id, data: { email: address } }, { onSuccess: (sent) => setOutcome(outcomeOf(sent)) });
+      return;
+    }
     if (target.kind === "person") {
       invite.mutate({ data: { profileId: send.profileId, email: address } }, { onSuccess: (sent) => setOutcome(outcomeOf(sent)) });
       return;
@@ -155,8 +193,10 @@ function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="font-display text-xl">{shareWith(name)}</DialogTitle>
-        <DialogDescription aria-live="polite">{outcome ? outcomeLine(outcome, name) : introOf(target, askEmail)}</DialogDescription>
+        <DialogTitle className="font-display text-xl">{changing ? "Change address" : shareWith(name)}</DialogTitle>
+        <DialogDescription aria-live="polite">
+          {outcome ? outcomeLine(outcome, name) : changing ? changeIntro(waiting?.email ?? null) : introOf(target, askEmail)}
+        </DialogDescription>
       </DialogHeader>
 
       {outcome ? (
@@ -205,7 +245,7 @@ function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose} className="font-label">Cancel</Button>
             <Button type="submit" disabled={!ready || pending} className="font-label" data-testid="button-send">
-              {pending ? <StatusDots label="Sharing" /> : "Share"}
+              {pending ? <StatusDots label={changing ? "Sending" : "Sharing"} /> : changing ? "Send new link" : "Share"}
             </Button>
           </div>
         </form>
@@ -230,7 +270,13 @@ function lineText(send: SendState): { title: string; note: string } {
   const name = send.firstName;
   if (send.state === "sent") return { title: sharedWaiting(name), note: "When they sign in, the report is theirs." };
   if (send.state === "joined") return { title: `${name} joined`, note: "The report is theirs now. They can delete it or stop you seeing it." };
+  if (send.state === "handed_back") return { title: HANDED_BACK, note: "Whoever opened your link said it isn't about them, so it's yours again." };
   return { title: `Give ${name} their report`, note: "An email and a link. When they sign in, it is theirs." };
+}
+
+/** A send offered at once: a first one, a grant to someone already here, or a new one after a handback (ADR-236). */
+function offered(state: SendState["state"]): boolean {
+  return state === "can_send" || state === "can_grant" || state === "handed_back";
 }
 
 /**
@@ -257,7 +303,7 @@ export function SendLine({ send, onSend }: SendLineProps) {
           Joined ✓
         </span>
       )}
-      {(send.state === "can_send" || send.state === "can_grant") && (
+      {offered(send.state) && (
         <Button
           variant="outline"
           size="sm"
@@ -265,7 +311,7 @@ export function SendLine({ send, onSend }: SendLineProps) {
           className="shrink-0 font-label text-xs text-[#9FA8DA] [border-color:rgba(92,107,192,.6)]"
           data-testid="button-send-to"
         >
-          {shareWith(send.firstName)}
+          {send.state === "handed_back" ? SEND_AGAIN : shareWith(send.firstName)}
         </Button>
       )}
     </div>
