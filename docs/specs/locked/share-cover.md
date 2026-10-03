@@ -1,6 +1,6 @@
-# Share cover: draft spec
+# Share cover: locked spec
 
-Ideation 2026-10-03 with the Owner. Status: **final draft**. The Owner chose cover A (3 Oct); Q2 stands at its default.
+Ideation 2026-10-03 with the Owner. Status: **locked** 2026-10-03 (ADR-227 to 229). The Owner chose cover A and answered Q2 no (3 Oct).
 Artifact: https://claude.ai/artifact/UVrFGzzXDJkDVbTkKxKgYR
 
 The Owner shared https://mystarsdecoded.com/ on WhatsApp and got no image, and the domain in place of
