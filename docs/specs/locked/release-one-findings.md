@@ -1,6 +1,6 @@
 # Release one's findings: what the sweep does not cover
 
-Ideation 2026-10-03. Draft, second pass. Source: `docs/qa/QA-02.md` (staging at R14, the QA that cleared the first
+Ideation 2026-10-03. Status: **locked 2026-10-03** (ADR-246 to 248), the Owner's "lock it" after the second pass. Source: `docs/qa/QA-02.md` (staging at R14, the QA that cleared the first
 Release at 27bb5c5). Every finding was re-read against `main` at 30b45b6, then against the locked
 `mailbox-sweep-03-10` (ADR-231 to 242, on `claude/affectionate-ride-n4l2zb`), which already holds QA-02's rows as R15.
 Artifact: https://claude.ai/artifact/X4mFcvZkWtmNWG2vJqgnP7
@@ -57,10 +57,10 @@ Everything the sweep holds; anything about pricing.
 The artifact's place flow, before and after: https://claude.ai/artifact/X4mFcvZkWtmNWG2vJqgnP7
 
 ## Open questions
-None. MB-30 joins R15 as the sweep's lane 2, row 23, and the three gaps ride their cards, unless the Owner says no.
+None. MB-30 (decided, ADR-246) joins R15 as the sweep's lane 2, row 23; the three gaps ride their cards.
 
-## Decisions to record
-- Places and their zones are resolved on the server; a place without a zone is refused; the offset is the zone's at
+## Decisions recorded (Notion Decisions, 2026-10-03)
+- ADR-246: places and their zones are resolved on the server; a place without a zone is refused; the offset is the zone's at
   the birth date; the browser calls no geocoder or zone service (MB-30).
-- A passing Release pushes /sample's refreshed run on its own branch with the release token (amends ADR-223's step).
-- `access-control-allow-origin: *` on public static HTML is accepted.
+- ADR-247: a passing Release pushes /sample's refreshed run on its own branch with the release token (amends ADR-223's step).
+- ADR-248: `access-control-allow-origin: *` on public static HTML is accepted.

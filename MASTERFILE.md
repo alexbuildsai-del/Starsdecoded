@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.25 (2026-10-02) |
+| Version | 0.26 (2026-10-03) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -89,13 +89,13 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 The heart of the product. `api/src/lib/` is the engine; keep it pure enough that the report lab can run it against a fixture without the web app.
 
 ```
-birth data → geocode (Nominatim + timeapi) → calculateNatalChart (astronomy-engine, whole sign)
+birth data → /api/geocode (Nominatim, the zone at the birth date from an offline table) → calculateNatalChart (astronomy-engine, whole sign)
   → traditional derivation (sect, dignity, rulers, Lots) → per-chart brief
   → foundation call (internal JSON) → eleven section calls in parallel (ten chapter sections and the house readings), each schema-enforced
   → each section stored as it lands → client polls /api/reports/:id/status (sections, chartReady, provisional positions) and renders chapters as they arrive
 ```
 
-- **R-4.1** Positions are computed locally. A user-facing string names the real library. Never fix a wrong claim by changing the library.
+- **R-4.1** Positions are computed locally. A user-facing string names the real library. Never fix a wrong claim by changing the library. A place's zone is resolved on the server; a place without one is refused, never guessed from its longitude (ADR-246).
 - **R-4.2** Whole sign is the only house system in the product. Placidus is a parked second view with its design already decided (Mailbox).
 - **R-4.3** Every section's output is enforced by a zod schema through structured outputs. `Section | string` types are a bug, not a fallback. A check blocks only when the text would be wrong or harmful for the reader or would cost money; everything else is fixed in code, logged, or buffered 20% around the target the prompt states (`docs/annex/pair-reliability-checks.md`). A claim problem never rewrites prose. A section that exhausts its attempts gets one more round alone; a report that still fails refunds the credit and tells the customer why. Every rejected or corrected attempt is logged by rule id (ADR-81 to 85).
 - **R-4.4** No prompt or engine change reaches production without the full report lab on the five matrix charts under `fixtures/charts/`, which the admin panel's Release view runs when the brain changed since production's commit, followed by the QA agent on Railway staging; both gate the fast-forward (ADR-76, ADR-86). Inside a round the lab is lighter: a dry render of every prompt at each brain change; a spot replay runs only on demand from the Lab page. Nothing spends automatically on staging, and no secret lives on GitHub (ADR-86). Lab spend is capped at `LAB_BUDGET_USD` (ADR-77).
