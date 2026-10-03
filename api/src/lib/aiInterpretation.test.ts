@@ -3,6 +3,7 @@
  * from canned, schema-valid replies, so the blind pipeline and the horizon
  * pass can be proven end to end without an API key or a cent of inference.
  */
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { calculateNatalChart } from "./chartCalculation.js";
@@ -436,5 +437,117 @@ test("a network error fails the report as provider_unreachable; a quota 429 as p
     await assert.rejects(generateInterpretation(blindCurie(), "Marie Curie"), (err: unknown) => err instanceof ReportFailure && err.code === "provider_out_of_credit");
   } finally {
     failWith = null;
+  }
+});
+
+// A name a reader typed, written back by the writer, reaches the next prompt only inside a data block (ADR-240, MB-152, sentinel S8).
+const { dataBlock, dataValue, outsideDataBlocks } = await import("../prompts/data.js");
+const { generateHorizonBlocks } = await import("./aiInterpretation.js");
+
+/** The three injection fixtures' names, read from disk so the test plants what the lab plants (security scope 8). */
+const INJECTED = ["inject-delimiter", "inject-instruction", "inject-markup"].map((fixture) =>
+  (JSON.parse(readFileSync(new URL(`../../../fixtures/charts/${fixture}.json`, import.meta.url), "utf8")) as { name: string }).name);
+
+/** What a name left outside its blocks shows in a prompt: the payload each fixture carries, or the name as its block shows it. */
+function leftOut(prompt: string, name: string): string | null {
+  const outside = outsideDataBlocks(prompt);
+  return outside.match(/pirate|ignore every rule/i)?.[0] ?? (outside.includes(dataValue(name)) ? dataValue(name) : null);
+}
+
+const blocksOf = (text: string, value: string) => text.split(dataBlock("name", value)).length - 1;
+
+/** Stands in for the model while `answer` is in force: every request is heard, and each reply comes from its schema name. */
+async function hearing<T>(answer: (schema: string, user: string) => unknown, run: () => Promise<T>): Promise<{ result: T; heard: Array<{ name: string; user: string }> }> {
+  const target = openai.chat.completions as unknown as { create: unknown };
+  const previous = target.create;
+  const heard: Array<{ name: string; user: string }> = [];
+  target.create = async (req: { response_format: { json_schema: { name: string } }; messages: Array<{ content: string }> }) => {
+    const name = req.response_format.json_schema.name;
+    heard.push({ name, user: req.messages[1].content });
+    return { choices: [{ message: { content: JSON.stringify(answer(name, req.messages[1].content)) }, finish_reason: "stop" }], usage: { prompt_tokens: 1000, completion_tokens: 100 } };
+  };
+  try {
+    return { result: await run(), heard };
+  } finally {
+    target.create = previous;
+  }
+}
+
+test("a name the writer wrote back reaches the next prompt only in a data block: the foundation, the last reply, the prose as written (ADR-240)", async () => {
+  const saved = { ...REPLIES };
+  try {
+    for (const name of INJECTED) {
+      const where = name.slice(0, 24);
+      calls.length = 0;
+      prompts.length = 0;
+      const shown = dataValue(name);
+      const first = name.split(/\s+/)[0];
+      // The foundation names the reader as typed, as the block shows it, and by the first word in capitals.
+      REPLIES.natal_foundation = { ...(saved.natal_foundation as object), chartThesis: `${name} works in depth.`, dominantPattern: `${first.toUpperCase()} commits late and hard.`, centralTension: `${shown} cares against control.` };
+      // Mind's claims miss, and the repair copies its quote from the prose as the prompt showed it.
+      const mindLine = `${name} tests an idea before saying it.`;
+      REPLIES.natal_mind = { ...(saved.natal_mind as object), howYouThink: mindLine, claims: claims("Not in the prose, and not close to anything in it either.") };
+      REPLIES.natal_mind_claims = () => {
+        const user = prompts.filter((p) => p.name === "natal_mind_claims").at(-1)!.user;
+        const copied = /"howYouThink": "([\s\S]*?)",\n/.exec(user.slice(user.indexOf("PROSE AS WRITTEN")))![1];
+        return { claims: [claims(copied)[0], ...claims().slice(1)] };
+      };
+      // Career's claims miss twice, so its second attempt reads its last reply back.
+      const careerLine = `${shown} keeps going after the room has given up.`;
+      let careerCalls = 0;
+      REPLIES.natal_career = () => (careerCalls++ === 0 ? { ...(saved.natal_career as object), vocationalPull: careerLine, claims: claims("Not in the prose, and not close to anything in it either.") } : saved.natal_career);
+      REPLIES.natal_career_claims = { claims: claims("Still nowhere near the prose.") };
+
+      const out = await generateInterpretation(blindCurie(), name);
+
+      assert.equal(calls.filter((c) => c === "natal_mind_claims").length, 1, `${where}: one claims-only repair`);
+      assert.equal(calls.filter((c) => c === "natal_career").length, 2, `${where}: one retry`);
+      for (const p of prompts) assert.equal(leftOut(p.user, name), null, `${where}: ${p.name}`);
+      const overview = prompts.find((p) => p.name === "natal_overview")!.user;
+      assert.equal(blocksOf(overview, shown), 3, `${where}: the brief's block, then the thesis's and the tension's`);
+      assert.ok(!outsideDataBlocks(overview).includes(`${first.toUpperCase()} commits`), `${where}: the first word in capitals too`);
+      const repaired = prompts.find((p) => p.name === "natal_mind_claims")!.user;
+      assert.equal(blocksOf(repaired.slice(repaired.indexOf("PROSE AS WRITTEN")), shown), 1, `${where}: the prose as written holds the name in a block`);
+      const retried = prompts.filter((p) => p.name === "natal_career")[1].user;
+      assert.equal(blocksOf(retried.slice(retried.indexOf("YOUR LAST REPLY:")), shown), 1, `${where}: the last reply holds the name in a block`);
+      assert.equal(out.mind.howYouThink, mindLine, `${where}: the stored prose keeps the name as typed`);
+      assert.equal(out.mind.claims[0].quote, mindLine, `${where}: the quote copied from the masked prose quotes the prose as stored`);
+      assert.equal(out.career.vocationalPull, (saved.natal_career as { vocationalPull: string }).vocationalPull);
+    }
+  } finally {
+    delete REPLIES.natal_mind_claims;
+    delete REPLIES.natal_career_claims;
+    Object.assign(REPLIES, saved);
+  }
+});
+
+test("adding the hour reads the stored foundation and prose with the name in a block, and an amendment copied from them lands on the prose as stored (ADR-240)", async () => {
+  const chart = drawn();
+  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week." })) };
+  for (const name of INJECTED) {
+    const where = name.slice(0, 24);
+    // What a writer can write back is the name as its block showed it.
+    const shown = dataValue(name);
+    const stored = JSON.parse(JSON.stringify(await generateInterpretation(blindCurie(), name))) as Awaited<ReturnType<typeof generateInterpretation>>;
+    stored.foundation.chartThesis = `${shown} works in depth.`;
+    stored.triad.sun.text = `${shown} keeps going after the room has given up.`;
+    stored.mind.howYouDecide = `${shown} decides late and then all at once.`;
+
+    const rising = await hearing((schema) => (schema === "natal_houses" ? houses : {
+      rising: { label: "Capricorn rising", text: PARA },
+      claims: [{ quote: "You investigate first and commit second.", evidence: [{ kind: "angle", angle: "ascendant", sign: "capricorn" }] }],
+    }), () => generateHorizonBlocks(chart, name, stored));
+    for (const h of rising.heard) assert.equal(leftOut(h.user, name), null, `${where}: ${h.name}`);
+    assert.equal(blocksOf(rising.heard.find((h) => h.name === "natal_triad_rising")!.user, shown), 3, `${where}: the brief's block, the foundation's and the Sun part's`);
+
+    const amended = await hearing((schema, user) => {
+      if (schema !== "natal_mind_amend") return { amendments: [], additions: [] };
+      const copied = /"howYouDecide": "([\s\S]*?)",\n/.exec(user.slice(user.indexOf("AS WRITTEN")))![1];
+      return { amendments: [{ quote: copied, replacement: "You decide late, and in public.", evidence: [{ kind: "angle", angle: "ascendant", sign: "capricorn" }] }], additions: [] };
+    }, () => amendSections(chart, stored, buildBrief(chart, name)));
+    for (const h of amended.heard) assert.equal(leftOut(h.user, name), null, `${where}: ${h.name}`);
+    assert.equal(blocksOf(amended.heard.find((h) => h.name === "natal_mind_amend")!.user, shown), 3, `${where}: the brief's block, the section's and the foundation's`);
+    assert.equal(amended.result.interpretation.mind.howYouDecide, "You decide late, and in public.", `${where}: the amendment found the sentence as stored`);
+    assert.equal(amended.result.counts.mind.amended, 1);
   }
 });
