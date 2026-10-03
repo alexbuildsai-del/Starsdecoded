@@ -209,3 +209,20 @@ describe("the labels", () => {
     expect(placeLine(placesOf(answer(IXELLES))[0])).toBe("Municipality · Brussels-Capital · Belgium");
   });
 });
+
+// R15 tester: a search whose places are only partly zoned, and the card's offset either side of a birth year's clock changes (readings 1, 2).
+describe("a search with some places zoned", () => {
+  it("offers the zoned ones in the server's order and says nothing about the rest", () => {
+    const ixelles = IXELLES;
+    const sea = { ...IXELLES, name: "North Sea", timezone: "Etc/GMT" };
+    expect(searchResult(answer(sea, ixelles, zoneless({ ...IXELLES, name: "Old" })))).toEqual({ places: [ixelles], line: null });
+  });
+
+  it("prints the offset of the birth date, not today's, on either side of the changes in Audrey Hepburn's birth year", () => {
+    // Belgium's summer time in 1929 ran from 21 April to 6 October; outside it Belgium kept Greenwich time.
+    expect(offsetOn("Europe/Brussels", "1929-04-20")).toBe(0);
+    expect(offsetOn("Europe/Brussels", "1929-04-22")).toBe(1);
+    expect(offsetOn("Europe/Brussels", "1929-10-05")).toBe(1);
+    expect(offsetOn("Europe/Brussels", "1929-10-07")).toBe(0);
+  });
+});

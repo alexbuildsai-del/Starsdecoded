@@ -129,3 +129,27 @@ describe("the birth form's draft", () => {
     expect(takeFormDraft(stubborn)).toEqual(DRAFT);
   });
 });
+
+// R15 tester: a kept place at the limits of what a place can hold, and an old tab's place (ADR-246, reading 2).
+describe("a draft's place at its limits", () => {
+  const place = (over: Record<string, unknown>) => parseFormDraft(JSON.stringify({ ...DRAFT, place: { ...MILAN, ...over } }))?.place;
+
+  it("keeps the globe's last points and the widest offsets, and drops the first past each", () => {
+    for (const over of [{ latitude: 90 }, { latitude: -90 }, { longitude: 180 }, { longitude: -180 }, { timezoneOffset: 14 }, { timezoneOffset: -12 }, { timezoneOffset: 5.75 }]) {
+      expect(place(over), JSON.stringify(over)).toEqual({ ...MILAN, ...over });
+    }
+    for (const over of [{ latitude: 90.0001 }, { longitude: 180.0001 }, { timezoneOffset: 14.25 }, { timezoneOffset: -14.5 }, { latitude: null }, { timezoneOffset: "2" }]) {
+      expect(place(over), JSON.stringify(over)).toBeNull();
+    }
+  });
+
+  it("keeps a place's zone as the server gave it, and drops a tab's place whose zone came from timeapi.io at sea", () => {
+    expect(place({ timezone: "America/Argentina/Buenos_Aires" })?.timezone).toBe("America/Argentina/Buenos_Aires");
+    for (const timezone of ["Etc/GMT+3", "Etc/UTC", "Etc/GMT"]) expect(place({ timezone }), timezone).toBeNull();
+  });
+
+  it("drops only the place of an old tab's draft, so the date and the time answer still fill the form", () => {
+    const old = JSON.stringify({ birthDate: "1929-05-04", time: KNOWN, place: { ...MILAN, timezone: null, timezoneOffset: 1 } });
+    expect(takeFormDraft(memoryStore(old))).toEqual({ birthDate: "1929-05-04", time: KNOWN, place: null });
+  });
+});

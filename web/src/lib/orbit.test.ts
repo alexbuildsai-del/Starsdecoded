@@ -447,3 +447,31 @@ describe("initials", () => {
     expect(initials("'Nana' O'Brien")).toBe("NO");
   });
 });
+
+// R15 tester: a sharer's seat at its edges (ADR-235, §9).
+describe("a sharer's seat at its edges", () => {
+  it("keeps the mark on a failed report's seat, which holds its place like any other's", () => {
+    const points = circle({ you: YOU, people: [person("alex", "Alex Moreau", { access: "shared", status: "failed" })] });
+    expect(points.find((p) => p.id === "alex")).toMatchObject({ kind: "person", label: "ALEX · SHARED", writing: false, shared: true });
+  });
+
+  it("goes the moment GET /home stops listing the sharer, ring and mark with them", () => {
+    const before = circle({ you: YOU, people: [person("alex", "Alex Moreau", { access: "shared" })], pairs: [homePair("me", "alex")] });
+    expect(before.find((p) => p.id === "alex")).toMatchObject({ shared: true, sharedPair: true });
+    const after = circle({ you: YOU, people: [], pairs: [homePair("me", "alex", { stoppedBy: "Alex" })] });
+    expect(after.some((p) => p.id === "alex" || p.shared)).toBe(false);
+  });
+
+  it("names the person and the mark, never a sign, degree or glyph (§9)", () => {
+    const [seat] = persons(circle({ you: YOU, people: [person("alex", "Alex Moreau", { access: "shared" })] }));
+    expect(Object.keys(seat).sort()).toEqual(["id", "initials", "kind", "label", "name", "profileId", "reportId", "shared", "sharedPair", "writing"]);
+    expect(seat.label).not.toMatch(/[°♈-♓]|Aries|Taurus|Gemini|Cancer|Leo|Virgo|Libra|Scorpio|Sagittarius|Capricorn|Aquarius|Pisces/i);
+  });
+
+  it("on the sample orbit, seats a sharer at their latest report that did not fail, and not at all when every one did", () => {
+    const profiles = [ME, profile("alex", "Alex Moreau")];
+    const kept = orbit({ profiles, reports: [MINE, natal("r-alex-1", "alex", { access: "shared" }), natal("r-alex-2", "alex", { access: "shared", status: "failed", createdAt: LATER })] });
+    expect(persons(kept)).toEqual([expect.objectContaining({ id: "alex", reportId: "r-alex-1", shared: true, label: "ALEX · SHARED" })]);
+    expect(persons(orbit({ profiles, reports: [MINE, natal("r-alex", "alex", { access: "shared", status: "failed" })] }))).toEqual([]);
+  });
+});

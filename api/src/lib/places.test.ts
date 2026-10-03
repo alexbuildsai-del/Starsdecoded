@@ -328,3 +328,60 @@ describe("the address it calls", () => {
     assert.ok(nominatimUrl("a&b=c").includes("q=a%26b%3Dc&"));
   });
 });
+
+// R15 tester: the table at the globe's edges, a border town, and the zone's offset as a birth date kept it (reading 1).
+describe("the zone at the edges", () => {
+  it("reads the globe's last points without failing, and refuses the first past them", () => {
+    for (const [lat, lon] of [[90, 0], [-90, 0], [0, 180], [0, -180], [90, 180], [-90, -180]]) {
+      assert.doesNotThrow(() => zoneAt(lat, lon), `${lat}, ${lon}`);
+    }
+    assert.equal(zoneAt(90, 0), null, "the North Pole is sea");
+    assert.equal(zoneAt(0, 180), null, "the date line at the equator is sea");
+    for (const [lat, lon] of [[90.0001, 0], [-90.0001, 0], [0, 180.0001], [0, -180.0001]]) {
+      assert.equal(zoneAt(lat, lon), null, `${lat}, ${lon}`);
+    }
+  });
+
+  it("reads a town against a border and a city-state as their own zones, never a neighbour's", () => {
+    assert.equal(zoneAt(36.1408, -5.3536), "Europe/Gibraltar", "Gibraltar, not Madrid");
+    assert.equal(zoneAt(41.9029, 12.4534), "Europe/Vatican", "the Vatican, inside Rome");
+    assert.equal(zoneAt(47.5596, 7.5886), "Europe/Zurich", "Basel, on the French and German border");
+    assert.equal(zoneAt(1.2903, 103.8519), "Asia/Singapore");
+  });
+
+  it("keeps apart the zones that parted before 1970, so a chart reads the birth's own clock (geo-tz/all)", () => {
+    // Košice keeps Bratislava's zone, which the default table folds into Prague's.
+    assert.equal(zoneAt(48.7164, 21.2611), "Europe/Bratislava");
+    assert.equal(offsetAtBirth("Europe/Bratislava", "1940-06-01", "12:00"), 2);
+  });
+});
+
+describe("a hit's zone and its offsets", () => {
+  const hitAt = (lat: string, lon: string) =>
+    hit({ display_name: "Somewhere", lat, lon, address: { city: "Somewhere", country: "Nowhere" } });
+
+  it("drops a hit whose coordinates are empty, off the globe or not numbers, and keeps the rest in order", () => {
+    const kept = hit({ display_name: "Milan, Lombardy, Italy", address: lombardy });
+    const places = placesFrom([hitAt("", ""), hitAt("91", "0"), hitAt("45", "east"), kept], OCTOBER);
+    assert.deepEqual(places.map((p) => [p.name, p.timezone]), [["Milan, Lombardy, Italy", "Europe/Rome"]]);
+  });
+
+  it("sends the zone's offset today, never the birth's: Brussels is +2 in October 2026 though Audrey Hepburn was born on +1", () => {
+    const [ixelles] = placesFrom([hit({
+      display_name: "Ixelles - Elsene, Brussels-Capital, Belgium", lat: "50.8333", lon: "4.3667", type: "town",
+      address: { town: "Ixelles - Elsene", state: "Brussels-Capital", country: "Belgium" },
+    })], OCTOBER);
+    assert.equal(ixelles.timezone, "Europe/Brussels");
+    assert.equal(ixelles.timezoneOffset, 2);
+    assert.equal(offsetAtBirth(ixelles.timezone, "1929-05-04", "03:00"), 1);
+    assert.notEqual(ixelles.timezoneOffset, offsetAtBirth(ixelles.timezone, "1929-05-04", "03:00"));
+  });
+
+  it("reads the offset today at noon on either side of a clock change, so the night of the change never decides it", () => {
+    // 25 October 2026 is the night Brussels goes back: noon that day is already winter time, the day before summer time.
+    assert.equal(offsetToday("Europe/Brussels", new Date("2026-10-24T23:30:00Z")), 2);
+    assert.equal(offsetToday("Europe/Brussels", new Date("2026-10-25T00:30:00Z")), 1);
+    assert.equal(offsetToday("Australia/Lord_Howe", new Date("2026-01-15T00:00:00Z")), 11, "a half-hour change kept whole");
+    assert.equal(offsetToday("Australia/Lord_Howe", new Date("2026-07-15T00:00:00Z")), 10.5);
+  });
+});

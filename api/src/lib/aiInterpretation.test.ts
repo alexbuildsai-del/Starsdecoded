@@ -577,3 +577,7 @@ test("BUG R15-04: YOUR LAST REPLY, the model's JSON, keeps a name that opens a p
     assert.equal(leftOut(retryTail(["claims: a quote is not in the prose"], reply, { name }), name), null, name.slice(0, 24));
   }
 });
+
+test("the natal prompts are v10, the version every report written from this round's prompts carries (reading 16, R15-23)", () => {
+  assert.equal(PROMPT_VERSION, "v10");
+});

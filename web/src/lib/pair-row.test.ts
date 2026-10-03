@@ -277,3 +277,32 @@ describe("waitingInvite", () => {
     expect(waitingInvite([link("pair", { relationshipId: "rel" })], null)).toBeNull();
   });
 });
+
+// R15 tester: a row read through a share at its edges (ADR-235, 236, reading 10).
+describe("personRowView on a shared report", () => {
+  const SHARED: PersonRowInput = { isSelf: false, access: "shared", status: "complete", ownership: null, unmarked: false };
+
+  it("offers no send of any state, so never Handed back, Send again or Change address", () => {
+    for (const state of ["can_send", "can_grant", "sent", "joined", "handed_back"] as const) {
+      expect(personRowView({ ...SHARED, send: { state, firstName: "Alex" } }), state).toMatchObject({
+        share: null, handedBack: false, changeAddress: false,
+      });
+    }
+  });
+
+  it("offers no Try again on a failed report, and no Stop sharing with a giver or by the chart's person", () => {
+    expect(personRowView({ ...SHARED, status: "failed", canRegenerate: false })).toMatchObject({ retry: false, opens: false });
+    expect(personRowView({ ...SHARED, giver: "Alex", name: "Alex Moreau" })).toMatchObject({ stopWith: null, stopSubject: null });
+  });
+
+  it("offers no This is me, Not me, hand-back or delete whatever the lists say about the chart", () => {
+    for (const over of [{ isSelf: true }, { unmarked: true, ownership: "owner" }, { ownership: "claimed" }] as Partial<PersonRowInput>[]) {
+      expect(personRowView({ ...SHARED, ...over }), JSON.stringify(over)).toMatchObject({ mark: false, notMe: false, handBack: false, deletes: false });
+    }
+  });
+
+  it("still opens when finished and says when it is being rewritten", () => {
+    expect(personRowView(SHARED)).toMatchObject({ opens: true, busy: null });
+    expect(personRowView({ ...SHARED, status: "interpreting" })).toMatchObject({ opens: false, busy: "Writing" });
+  });
+});

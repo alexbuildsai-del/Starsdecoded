@@ -526,3 +526,93 @@ test("the reads: each report with the reader's own workbook row and never the re
   assert.doesNotMatch(pairs.sql, /"reports"\."workbook"/);
   assert.deepEqual(pairs.params.slice(-2), ["REL1", "REL2"]);
 });
+
+// R15 tester: the edges of a sharer's seat (ADR-235, reading 4), Try again (reading 10) and the Moon's range (reading 11).
+
+test("circle: a Share yours back offer outliving its grant seats no one, and an offer is only ever a sharer's seat's (reading 4)", () => {
+  const { marie, oprah } = family();
+  const rows = [natal("RM", marie), natal("RO", oprah), natal("RS", sharersOwn())];
+  // Stop sharing revoked the grant; an offer read in the same instant must not bring the sharer back.
+  const revoked = valid(buildHome(GIVER, rows, [], { shared: new Set(), shareBack: new Set(["PS"]) }));
+  assert.deepEqual(revoked.people.map((p) => p.profileId), ["PO"]);
+  assert.ok(revoked.people.every((p) => !("shareBack" in p)) && !("shareBack" in revoked.you!));
+
+  // An offer named for the reader's own chart, or one they wrote, says nothing there.
+  const stray = valid(buildHome(GIVER, rows, [], { shared: GRANTED.shared, shareBack: new Set(["PM", "PO", "PS"]) }));
+  assert.ok(!("shareBack" in stray.you!));
+  assert.deepEqual(stray.people.map((p) => [p.profileId, p.shareBack]), [["PO", undefined], ["PS", true]]);
+});
+
+test("circle: a grant on a chart the reader already holds changes nothing: their own standing shows, never shared", () => {
+  const { marie } = family();
+  // Audrey's own chart, written by Audrey and sent to the reader, who claimed it: a grant of it too adds nothing.
+  const sentToReader = person("PS", "Audrey Hepburn", AUDREY, { userId: SHARER.userId, sessionId: SHARER.sessionId, claimedByUserId: GIVER.userId });
+  const home = valid(buildHome(GIVER, [natal("RM", marie), natal("RS", sentToReader)], [], GRANTED));
+  assert.deepEqual(home.people.map((p) => [p.profileId, p.access, "shareBack" in p]), [["PS", "claimed", false]]);
+});
+
+test("circle: a sharer's failed report keeps their seat with nothing to read, rewrite or practise; one that still opens outranks it", () => {
+  const { marie } = family();
+  const audrey = sharersOwn();
+  const failedOnly = valid(buildHome(GIVER, [natal("RM", marie), natal("RS", audrey, { status: "failed" })], [], GRANTED));
+  assert.deepEqual(failedOnly.people.map((p) => [p.reportId, p.access, p.status, p.canRegenerate, p.lines, p.shareBack]), [
+    ["RS", "shared", "failed", false, null, true],
+  ]);
+  assert.deepEqual(failedOnly.practising.map((p) => p.reportId), ["RM"]);
+
+  const retried = valid(buildHome(GIVER, [natal("RM", marie), natal("RS", audrey), natal("RS2", audrey, { status: "failed" })], [], GRANTED));
+  assert.deepEqual(retried.people.map((p) => [p.reportId, p.status, p.canRegenerate]), [["RS", "complete", false]]);
+
+  const writing = valid(buildHome(GIVER, [natal("RM", marie), natal("RS", audrey), natal("RS3", audrey, { status: "interpreting", interpretation: {} })], [], GRANTED));
+  assert.deepEqual(writing.people.map((p) => [p.reportId, p.status, p.access]), [["RS3", "interpreting", "shared"]]);
+});
+
+test("circle: a session holds no grant, so a sharer never sits in a signed-out circle, and its own reports keep Try again", () => {
+  const draft = person("PD", "Marie Curie", MARIE, { userId: null, sessionId: SESSION.sessionId, isSelf: true });
+  const home = valid(buildHome(SESSION, [natal("RD", draft, { status: "failed" }), natal("RS", sharersOwn())], [], GRANTED));
+  assert.deepEqual([home.you?.reportId, home.you?.canRegenerate, home.people.length], ["RD", true, 0]);
+});
+
+test("triad: the Moon gives no range when the stored chart has no window, or half a band, whatever else it holds (reading 11)", () => {
+  const rough = birth("audrey-hepburn", 180).chartData;
+  const moon = rough.planets.moon;
+  assert.ok(moon.band, "a windowed chart stores the Moon's band");
+  const exact = { ...rough, windowMinutes: 0 };
+  assert.equal(triadOf(exact)?.moon.band, undefined, "a band left from a window since narrowed to an exact time");
+  const unsaid = { ...rough, windowMinutes: undefined };
+  assert.equal(triadOf(unsaid)?.moon.band, undefined);
+  const { toDegree: _to, ...fromOnly } = moon.band;
+  const half = { ...rough, planets: { ...rough.planets, moon: { ...moon, band: fromOnly } } };
+  assert.equal(triadOf(half)?.moon.band, undefined);
+  const broken = { ...rough, planets: { ...rough.planets, moon: { ...moon, band: { fromDegree: moon.band.fromDegree, toDegree: Number.NaN } } } };
+  assert.equal(triadOf(broken)?.moon.band, undefined);
+  // The rest of the triad stands without its range.
+  assert.deepEqual(triadOf(half)?.sun, triadOf(rough)?.sun);
+  assert.equal(triadOf(half)?.moon.degree, triadOf(rough)?.moon.degree);
+});
+
+test("triad: each end of the Moon's range is a degree inside its sign, from 0 up to but never 30, at every window", () => {
+  for (const name of ["audrey-hepburn", "charles", "beatrice", "william", "george", "charlotte", "oprah-winfrey", "marie-curie"]) {
+    for (const window of [30, 120, 360, 720]) {
+      const band = triadOf(birth(name, window).chartData)?.moon.band;
+      assert.ok(band, `${name} ${window}`);
+      for (const end of [band.from, band.to]) {
+        assert.ok(end.degree >= 0 && end.degree < 30, `${name} ${window}: ${end.degree}`);
+        assert.equal(Math.round(end.degree * 100) / 100, end.degree, `${name} ${window}: two decimals`);
+      }
+    }
+  }
+});
+
+test("triad: an end of the Moon's range on a cusp reads 0° of the sign it enters, never 30° of the one it leaves", () => {
+  const george = birth("george", 163).chartData.planets.moon.band!;
+  assert.equal(george.toDegree, 300, "George's Moon reaches Aquarius at the window's late end");
+  assert.deepEqual(triadOf(birth("george", 163).chartData)?.moon.band, {
+    from: { sign: "Capricorn", degree: r2(george.fromDegree - 270) }, to: { sign: "Aquarius", degree: 0 },
+  });
+  const charles = birth("charles", 50).chartData.planets.moon.band!;
+  assert.equal(charles.fromDegree, 30, "Charles's Moon has just entered Taurus at the window's early end");
+  assert.deepEqual(triadOf(birth("charles", 50).chartData)?.moon.band, {
+    from: { sign: "Taurus", degree: 0 }, to: { sign: "Taurus", degree: r2(charles.toDegree - 30) },
+  });
+});

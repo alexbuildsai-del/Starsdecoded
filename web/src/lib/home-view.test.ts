@@ -412,3 +412,51 @@ describe("Try again (MB-137, reading 10)", () => {
     expect(tryAgainErrorLine("Gus Olsen", false)).toBe("We couldn't start Gus's report again. Try again in a minute.");
   });
 });
+
+// R15 tester: a sharer's quick look at its edges (ADR-235, readings 4, 10, 11).
+describe("a sharer's quick look at its edges", () => {
+  const SHARER = person("alex", "Alex Moreau", BIRTHS.audrey, { access: "shared", shareBack: true, canRegenerate: false });
+
+  it("opens while GET /home seats the sharer, and nothing once Stop sharing takes them off, whatever was offered", () => {
+    expect(quickLookFor(home({ people: [SHARER] }), "alex")).toEqual({ person: SHARER, self: false });
+    expect(quickLookFor(home({ people: [] }), "alex")).toBeNull();
+  });
+
+  it("on a failed report keeps Share yours back but offers no Try again, and never Share with", () => {
+    const failed = { ...SHARER, status: "failed" as const };
+    const look = { person: failed, self: false };
+    expect(offersTryAgain(failed)).toBe(false);
+    expect(offersShareBack(look)).toBe(true);
+    expect(shareTargetFor(look, { person: send("can_send", "Alex", "alex") })).toBeNull();
+    expect(shareTargetFor(look, { person: send("handed_back", "Alex", "alex") })).toBeNull();
+  });
+
+  it("never offers Share my report on someone else's seat, nor Share yours back on the reader's own", () => {
+    expect(offersShareMine({ person: SHARER, self: false })).toBe(false);
+    expect(offersShareBack({ person: { ...ME, access: "shared", shareBack: true }, self: true })).toBe(false);
+  });
+
+  it("shows no pair block for a pair made from the sharer's chart once it closed", () => {
+    const closed = pair("c-alex", ME, SHARER, { stoppedBy: "Alex" });
+    expect(quickLookFor(home({ people: [SHARER], pairs: [closed] }), "alex")).toEqual({ person: SHARER, self: false });
+    const open = pair("c-alex", ME, SHARER);
+    expect(quickLookFor(home({ people: [SHARER], pairs: [open] }), "alex")?.pair).toEqual(open);
+  });
+});
+
+describe("the Moon's range at a cusp (reading 11)", () => {
+  // George's published birth data with a window of 163 minutes: his Moon reaches 0° Aquarius at its late end.
+  const george = triadOf(["2013-07-22", "16:24", 51.517, -0.1735, "Europe/London", 163]);
+
+  it("reads an end on the cusp as 0.00° of the sign it enters, and names no house across it", () => {
+    expect(george?.moon.band?.to).toEqual({ sign: "Aquarius", degree: 0 });
+    expect(spotText(george!.moon)).toBe(`${george!.moon.band!.from.degree.toFixed(2)}° Capricorn to 0.00° Aquarius`);
+    expect(spotText({ ...george!.moon, house: 6 })).toBe(spotText(george!.moon));
+  });
+
+  it("prints the range in the triad's Moon row and leaves the Sun its one degree", () => {
+    const lines = triadLines(george);
+    expect(lines[1].text).toMatch(/^\d+\.\d{2}° Capricorn to 0\.00° Aquarius$/);
+    expect(lines[0].text).toMatch(/^\d+\.\d{2}° Cancer( · .+)?$/);
+  });
+});

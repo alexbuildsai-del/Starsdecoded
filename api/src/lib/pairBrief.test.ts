@@ -368,3 +368,36 @@ test("the brief changes nowhere but the names: it reads as if A and B had been w
   const plain = buildPairBrief(input());
   assert.ok(!plain.text.includes(HEAD_NOTE) && !chapterBrief(plain, { owned: [] }).includes(TAIL_NOTE), "a brief whose reports name no one carries neither note");
 });
+
+// R15 tester: two people who share a first name, and words that only contain a name (R15-04, ADR-240).
+test("a first name both people share has no one letter: it goes back in a block, each whole name as its own letter, and a word holding the name stays", () => {
+  const thesis = "Marie Curie tests first. Then Marie waits, MARIE asks Marie Laveau, and Mariette and Annmarie watch.";
+  const challenge = "Marie Laveau leaves first.";
+  const report = structuredClone(curieReport);
+  report.foundation = { ...report.foundation, chartThesis: thesis };
+  report.relationships = { ...report.relationships, theChallenge: challenge };
+  const brief = buildPairBrief({
+    ...input(), lens: "people", label: "friends",
+    a: { ...input().a, name: "Marie Curie", interpretation: report },
+    b: { ...input().b, name: "Marie Laveau" },
+  });
+  const outside = outsideDataBlocks(brief.text);
+  assert.match(outside, /thesis: A tests first\. Then\s+waits,\s+asks B, and Mariette and Annmarie watch\./);
+  assert.match(outside, /the challenge in intimacy: B leaves first\./);
+  assert.doesNotMatch(outside, /(?<![\p{L}])Marie(?![\p{L}])/iu, "no Marie outside a block");
+  assert.equal(brief.text.split(dataBlock("name", "Marie")).length, 2, "the shared first name, in a block where it was written");
+  assert.equal(brief.text.split(dataBlock("name", "MARIE")).length, 2);
+  assert.equal(brief.text.split(lettersNote("the personal reports' lines above")).length, 2, "the note once, though both sides were lettered");
+  assert.equal(brief.a.foundation.chartThesis, thesis, "the side keeps the stored text");
+});
+
+test("the claims a chapter quotes are lettered as the head is, and a claim naming no one leaves the tail without the note", () => {
+  const report = structuredClone(curieReport);
+  report.overview.claims[0].quote = "Marie Curie investigates first.";
+  const named = buildPairBrief({ ...input(), a: { ...input().a, interpretation: report } });
+  const tail = chapterBrief(named, { owned: [], draws: ["overview"] });
+  assert.match(tail, /A\/overview claim 1: "A investigates first\."/);
+  assert.ok(tail.includes(lettersNote("these claims")));
+  const other = chapterBrief(named, { owned: [], draws: ["relationships"] });
+  assert.ok(!other.includes(lettersNote("these claims")), "a chapter that does not draw on the named claim has nothing lettered");
+});
