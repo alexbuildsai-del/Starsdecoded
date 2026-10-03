@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.25 (2026-10-02) |
+| Version | 0.26 (2026-10-03) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -56,9 +56,11 @@ Stars Decoded sells one thing: a 3,500 to 5,500 word psychological report built 
 7. **Legal**: privacy, terms, refunds, who runs Stars Decoded, working deletion. One constant in `@workspace/commerce` names the seller: the Owner as a private individual until the company exists (ADR-144). The legal pages are public before launch.
 8. **Admin**: runtime prompt overrides with preview, gated by `ADMIN_USER_ID`, and the Launch view that reads the loop study (ADR-148).
 
-**V1 explicitly excludes:** predictions, transits, daily horoscopes; subscriptions; native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; the old chart-to-chart synastry page and dashboard zone, hidden until the compatibility report ships (ADR-45).
+**V1 explicitly excludes:** predictions, daily horoscopes; transits and subscriptions (Timeline, below, is the one exception, off at launch); native mobile (the `mobile/` scaffold stays empty); a light theme; medical, therapeutic or diagnostic claims; the old chart-to-chart synastry page and dashboard zone, hidden until the compatibility report ships (ADR-45).
 
 **V1 after payments:** the compatibility report, one product with three lenses (partners, parent and child, two people), locked 2026-09-19; its second pass, a counselling workbook of seven chapters with the two charts first, locked 2026-09-21 (`docs/specs/locked/compatibility-report-p2.md`, ADR-63 to 71). The two reports are the Personal report and the Compatibility report wherever they are named; 1 credit = 1 report of either kind (ADR-170, superseding ADR-61).
+
+**R16, behind the `TIMELINE` switch, while pricing and launch wait (ADR-230, 242):** Timeline, the one subscription, sold only to an owner of a Personal natal report: the sky moving across the reader's own chart (life cycles, Now and ahead, Ask, a weekly letter), €9.99 a month or €69.99 a year with 1 credit to give. Its job is to sell more reports; R12's dashboard stays, a subscriber gains Your week after Your circle. At its Release §1, this section's exclusions, R-5.2 and R-6.1 change as the spec says (`docs/specs/locked/timeline.md`, ADR-205 to 217). Its public product page `/timeline` (what it gives you, shown on Mira's chart, with the free Saturn-return finder) has no switch, shows no price until Timeline opens and is R16's first group (`docs/specs/locked/timeline-page.md`, ADR-249 to 259).
 
 **V2 candidates (do not build, do not block):** further lenses (friends, colleagues); composite chart add-on; Placidus second view; prompt version history; transit re-runs; family bundles.
 

@@ -1,6 +1,6 @@
 # Timeline page (`/timeline`)
 
-Draft 2026-10-03 from `/ideate timeline-page`, version 3 (the Owner: "do a proper product page where we show the
+Locked 2026-10-03 from `/ideate timeline-page`, version 4 (ADR-249 to 259, 254 superseded by 259; the Owner: "do a proper product page where we show the
 value propositions and what you're getting when paying the subscription fee"; then "we say something when we
 offer, but then we need to support it"). Builds on the locked `timeline`
 spec (ADR-205 to 217; screen 7, ADR-215), which it details and does not change.
@@ -12,8 +12,8 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 (ADR-167). Everything it describes is already locked; it promises nothing the Timeline spec doesn't.
 
 ## State on 2026-10-03
-- The locked `docs/specs/locked/timeline.md` and its MASTERFILE line exist only on `claude/tender-lovelace-ynaemg`
-  (lock commit 6d0733a). They come to main with this spec's lock.
+- The locked `docs/specs/locked/timeline.md` and its MASTERFILE paragraph (from lock commit 6d0733a, which never
+  reached main) came to main with this lock.
 - Main's site has no Timeline section or page.
 
 ## Scope
@@ -99,7 +99,7 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 ## Out of scope
 - Timeline itself (the dial with its ranges and slider, Life, Ask, readings, billing, the letter), after launch as locked.
 - An Ask answer on the page, share cards (MB-104), birth time or place in the finder, a top-menu
-  link, a separate Timeline list, any change to R15.
+  link, a separate Timeline list, pricing and checkout (on hold, ADR-230).
 
 ## Acceptance criteria
 1. Every date, age, orb, tone and position on `/timeline` comes from the engine; no date or degree is typed in copy.
@@ -119,9 +119,12 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 1. The product page at 390 px and desktop, live: https://claude.ai/artifact/YTpuNi1CqPfJJHVNEdtMJG#page
 2. The home line: #home · 3. The four sentences: #words
 
-## Open questions
-1. **R15.** Read as: R15 stays pricing and launch, and this page doesn't go into it; it waits for the round the
-   Owner gives it at the next /plan. Default: so.
+## The Owner's answers (2026-10-03)
+1. "Stop planning R15 launch and the pricing": pricing and launch are on hold (ADR-230, 242), R15 is the cleanup
+   round, and this page is built with Timeline in R16, as its first group (ADR-259, superseding ADR-254's misreading).
+2. No price: "keep it as coming soon". The four sentences: approved. Home option A, rewritten about Timeline as a whole.
+3. On version 2: "you don't actually say what it gives you"; every card became a promise, why it matters and Mira's
+   example. On version 3: "much, much better"; the dramatic lines became plain (decision 8).
 
 ## Decisions to record
 1. `/timeline` is Timeline's prerendered product page: hero with the dial, five things it gives you, try it free
@@ -133,7 +136,7 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
    Horizons; date only.
 4. The way in: one line on the home page after Prices about Timeline as a whole, and "Timeline" in the footer.
 5. Four sentences change with it (Prices, two FAQ answers, Method), approved by the Owner 2026-10-03.
-6. R15 stays pricing and launch; the page's round is set at the next /plan (Q1).
+6. The page is built in R16, Timeline's round, as its first group; R15 stays the cleanup round (ADR-259).
 7. No Timeline price on the site yet: the plan card says "Coming soon" (the Owner, 2026-10-03).
 8. Every sample line on the page is plain and simple: everyday words, one idea per sentence, no drama ("What you
    hope for is asked to go deeper or let go" became "A good time to look at your plans again and keep the ones

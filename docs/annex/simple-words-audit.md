@@ -1,8 +1,9 @@
 # Simple words audit (2026-10-03)
 
 The Owner's standing rule, "simple words, everywhere" (CLAUDE.md; `/ux-copy` voice chart), applied to the
-shipped site and app by three read-only passes. Nothing here is built yet; the round that takes it turns each
-group into cards. Paths under `web/src/` unless given. Rendered for the Owner:
+shipped site and app by three read-only passes. **The Owner approved every proposal here (2026-10-03) except one:
+"Key Paradoxes & Discoveries" keeps its title.** Built in its own small round, set at the next /plan (ADR-258); R15's cleanup round, which already holds one brain
+pass (ADR-242), is the natural home if he agrees. Nothing here is built yet; that round turns each group into cards. Paths under `web/src/` unless given. Rendered for the Owner:
 https://claude.ai/artifact/VqW2umpB8JCyFfmwFS7Gcn
 
 Shared strings change more than one surface; they are marked **[shared]**. `/method` line 192 must keep matching
@@ -27,7 +28,7 @@ quotes) are the brain's and change only through the prompts.
 | `site/sections/Differences.tsx:54` | A moment you'd recognise. | Something from your everyday life. |
 | `site/sections/Claims.tsx:49-50` [shared /sample] | Sect / Lot | Day or night / Lot (or Calculated point) |
 | `site/sections/Inside.tsx:81-82` | There are ten chapters, starting with… In between they cover… | There are ten chapters. They start with the big picture and end with what to try next. In between… |
-| `lib/chapters.ts:14-15` [shared report, /sample, /method] | Superpowers, Chronic Patterns & Growing Edges / Key Paradoxes & Discoveries | Strengths, Habits & Where You Can Grow / Where You Pull Two Ways (Owner's question 1) |
+| `lib/chapters.ts:14-15` [shared report, /sample, /method] | Superpowers, Chronic Patterns & Growing Edges / Key Paradoxes & Discoveries | Strengths, Habits & Where You Can Grow / Key Paradoxes & Discoveries kept (the Owner) |
 | `site/data/inside.ts:18-54` [shared report section heads via `components/ReportSections.tsx:58-59,110,112,148,176-177`, `lib/home-view.ts:45`] | Where it all points · Where the weight sits · How you run · How you are understood · A practice · Vocational pull · How you show up · Growth through work · Your relationship to resources · The challenge · What partnership asks · What you carry · What roots you · The inherited edge · The pattern you will always navigate · Your growing edge · Two or three paradoxes · A way through each · Lean into · Notice · Practice | What it all adds up to · What stands out · How you get through your days · How people see you · Something to try · Work that suits you · How you come across at work · How work helps you grow · How you handle money · What keeps going wrong · What a relationship needs from you · What you got from your family · What keeps you steady · What you'd do differently · A habit you'll always have to manage · Where you can grow · Two or three ways you feel torn · What helps with each · Do more of · Watch for · Try next |
 | `site/sections/YourPeople.tsx:360` | …on your dashboard, so you can tap anyone to see their chart. | …on your dashboard. Tap anyone to see their chart. |
 | `site/sections/YourPeople.tsx:81` | They get a credit and write their own Personal natal report… | They get a credit for their own Personal natal report… |
