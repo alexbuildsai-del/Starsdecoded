@@ -11,17 +11,17 @@ merged into the rule it repeats.
 - **The default carries an ask.** "go", with MB-93, 128 and 129 left at their defaults (R12 report, built 2026-10-01). Write
   each ask so that his silence is safe.
 - **Housekeeping on a yes.** The /round skill swap, removing a promise from the site, /sample refreshed from each
-  Release, the round order at its default (Review 02/10, 2026-10-02). Small, reversible operations need one line, not a
-  question.
+  Release (Review 02/10, 2026-10-02); fifteen built-at-default rows closed in one line (sweep 03/10, 2026-10-03). Small,
+  reversible operations need one line, not a question.
 
 ## Changed, and why
 - **No hotfix.** Production serves non-admins only healthz, the waitlist and the admin (ADR-167), and the app's session data
   lives on staging, which has no real visitors, so the security fixes wait for R13, then a QA, then the first Release
   (security-hardening, Open questions, 2026-10-01; ADR-204).
-- **He orders the rounds.** Pricing and launch went behind the website (R11 plan, 2026-09-30), Review 01/10 (R12 plan,
-  2026-10-01) and security with the roster (ADR-204): deferred three times (R14-plan header). Offer an order as a recommendation.
-- **Less text on public pages.** Three quote cards with counts became one annotated line: "simple", one actionable
-  example, no figures "no one's gonna read" (Review 02/10, 2026-10-02). Propose the shortest version first.
+- **He orders the rounds.** Pricing went behind the website, Review 01/10, security and Review 02/10, then "don't plan it",
+  cleanup and Timeline first, pricing "whenever I say" (sweep 03/10, 2026-10-03). Never slot pricing in between rounds.
+- **Less text, fewer choices.** Three quote cards became one annotated line (Review 02/10); a tie's wording became "just
+  remove that line", and "Not me" kept only Hand it back and Cancel (sweep 03/10). Propose the cut, and two buttons, first.
 - **Speed of entry beats pickers.** Three date boxes with a month list became one typed field that jumps ahead
   (Review 02/10). Forms are judged by how fast a birth date goes in.
 - **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):

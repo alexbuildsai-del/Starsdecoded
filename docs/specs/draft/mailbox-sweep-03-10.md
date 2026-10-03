@@ -1,7 +1,8 @@
 # Mailbox sweep 03/10
 
 Ideation 2026-10-03 on the Mailbox rows raised 2026-09-26 to 2026-10-03 that are still open and that no other
-session or plan holds. Artifact: https://claude.ai/artifact/1f8CkTF3ET9wGxVkce3YRf. Status: **draft**.
+session or plan holds. Artifact: https://claude.ai/artifact/1f8CkTF3ET9wGxVkce3YRf. Status: **draft, answered by
+the Owner 2026-10-03** (Q1 yes, Q2 changed, Q3 changed: no pricing until he starts it, MB-181 cut to one removal).
 Checked against `main` at 30b45b6 by three code reads, each row confirmed still true or not.
 **Brain:** lane 4 only (`api/src/prompts/`, `aiInterpretation.ts`, `pairInterpretation.ts`): dry lab, spot, release lab.
 **Schema:** lane 3 only (a share grant, per-reader workbooks), each with an idempotent script in `bootstrap-db.sh`.
@@ -9,11 +10,11 @@ Checked against `main` at 30b45b6 by three code reads, each row confirmed still 
 
 Left alone because they are already held: MB-125 (the timeline planner session's round plan, in progress),
 MB-91 and 113 to 120 (`docs/rounds/R15-plan.md`), MB-144, 148, 162 (follow payments to R15, `R14-plan.md`),
-MB-147 (seven clean CSP days from the first Release, 2026-10-03). MB-111 and 149 ride with R15's pricing re-plan.
+MB-147 (seven clean CSP days from the first Release, 2026-10-03). MB-111 and 149 wait with the pricing plan.
 
 ## Scope
 
-### Lane 1. Close on paper (15 rows, no build)
+### Lane 1. Close on paper (15 rows, no build; closed in the Mailbox 2026-10-03 on the Owner's word)
 - Built at their default, so they are decided as built: MB-128 (gpt-6-sol plans), 129 (a refused release fixes the
   prompt, then moves one section), 130 (offset once a place is picked), 131 (no signs on the circle), 145 (20 USD a
   day), 146 (60 a minute on the horizon preview), 89 (the ledger chip from stored claims). Their `// MB-NN
@@ -26,7 +27,7 @@ MB-147 (seven clean CSP days from the first Release, 2026-10-03). MB-111 and 149
   alone, Nominatim and timeapi.io stubbed) is written into `.claude/agents/qa.md`. Certificate checks stay on.
 - MB-187: one line in `/round`: push once per group and once per fix (Vercel's 100 deployments a day).
 
-### Lane 2. Launch fixes (22 rows, R15's group 0)
+### Lane 2. Launch fixes (22 rows, the cleanup round)
 Each is a proper fix, confirmed still true on 30b45b6 (file and line in the session's reads):
 1. MB-177: a brass focus outline on every wheel house and planet stop (`NatalWheel.tsx` drops
    `focus-visible:outline-none`), and "Skip past the chart wheel" before the svg.
@@ -36,8 +37,8 @@ Each is a proper fix, confirmed still true on 30b45b6 (file and line in the sess
 3. MB-184: the waitlist's bad-email path focuses the field. `.wl-fld input:focus` gets a 2 px outline.
 4. MB-180: /method step 1 adds "Chiron, which astronomy-engine doesn't cover, comes from NASA JPL Horizons
    positions.", through `/ux-copy`.
-5. MB-181: a tie reads "Fire, Earth, Water level · 3 each" on home and /method, and BalanceRail's label reads
-   "Leading" on a tie. Both come from `leaders.ts`.
+5. MB-181: the "Elements · …" readout line leaves home and /method (`site/lib/readouts.ts:96`). Nothing else:
+   no tie wording, no `leaders.ts` work, BalanceRail as it is (the Owner: "just remove that line").
 6. MB-138: the tab title and the saved PDF say Personal Report. `page-title.ts` drops "Natal" and "Synastry".
 7. MB-140: each bundle's line shows in `BundleList`, so the JSON-LD describes visible text.
 8. MB-178: every printed time goes through `clockWords` with `useEntryFormat` (`plateAnswer`, `summaryLine`,
@@ -60,7 +61,7 @@ Each is a proper fix, confirmed still true on 30b45b6 (file and line in the sess
 21. MB-154: the origin rule matches this team's preview form only, and a test refuses `starsdecoded-evil.vercel.app`.
 22. MB-172: the 43 unused `web/src/components/ui/` files and the 28 dev libraries only they import are removed.
 
-### Lane 3. Sharing, kept honest (5 rows, R16)
+### Lane 3. Sharing, kept honest (5 rows, the cleanup round)
 The home page says "Share reports with each other. Share yours, read theirs" (`YourPeople.tsx:90`). The API refuses
 your own chart (`invites.ts:330`, 409 `own_chart`), and nothing puts a person on someone else's circle.
 1. MB-104: "Share my report" on your own quick look, shown when your Personal report is finished. A sheet takes an
@@ -69,16 +70,16 @@ your own chart (`invites.ts:330`, 409 `own_chart`), and nothing puts a person on
    The claim writes a grant, so the recipient reads the whole Personal report (Q1) and you sit on their circle
    marked "shared". After the claim they see "Share yours back", one tap and optional. Stop sharing revokes the
    grant at once. A new access kind `shared` sits in `accessFor`, `canReadProfile`, `natalRowsOf` and `seatsOf`.
-2. MB-103: "Not me" hands the report back (Q2). The claim ends, participant grants for that profile return to
-   the owner, and the giver's row reads "Handed back" with Send again. "Keep it as someone else's chart" stays as
-   the second choice.
+2. MB-103: "Not me" hands the report back (Q2). The confirmation offers only Hand it back and Cancel; "Keep it
+   as someone else's chart" is gone (the Owner: "it doesn't need to be there"). The claim ends, participant grants
+   for that profile return to the owner, and the giver's row reads "Handed back" with Send again.
 3. MB-109: a waiting send or gift offers Change address. The old token is revoked and a new one goes to the new
    address in one transaction. A gift keeps its held credit and return date.
 4. MB-110: workbook ticks and pins are stored per reader (`report_workbooks`), backfilled to each report's writer,
    so a shared report's ticks stay its reader's own.
 5. MB-135: Stop sharing's lines name the person ("June's Personal report") when the chart is not the reader's own.
 
-### Lane 4. One brain pass (6 rows, R16)
+### Lane 4. One brain pass (6 rows, the cleanup round)
 1. MB-152: `maskNames` in `prompts/data.ts` turns typed names into A, B or a data block in model text sent back
    on retries and repairs (`retryTail`, PROSE AS WRITTEN, chapter 07's tail, the foundation JSON). Built whether or
    not a spot run obeys an injection, because the sentinel found the path (S8).
@@ -89,15 +90,20 @@ your own chart (`invites.ts:330`, 409 `own_chart`), and nothing puts a person on
    doctrine, not as sentences to repeat.
 5. MB-87: each `HOUSE.short` in `vocabulary.ts` opens with the page's word for that house (ADR-98).
 
-### Lane 5. The Owner's, ten minutes (2 rows, no question)
+### Lane 5. The Owner's, ten minutes (2 rows; he is doing them, 2026-10-03)
 - MB-102: Search Console domain property with its TXT record in Vercel DNS, Bing imported from it, and Vercel's
   AI-bot rule on Log. The sitemap is submitted at launch.
 - MB-186: `*.clerk.accounts.dev` and `starsdecoded-staging.up.railway.app` added under the environment's Network
   access (Custom, package-manager defaults kept). Without it, the Release view's QA agent covers those personas.
 
+### Order (Q3, the Owner 2026-10-03)
+- Clean up first: lanes 2, 3 and 4 are the next round (R15), then Timeline (ADR-205 to 217).
+- Pricing and checkout are not planned and not slotted between rounds until the Owner says to start them ("don't
+  try to keep adding it in between"). `docs/rounds/R15-plan.md` (the pricing plan) is renamed to its number then.
+
 ## Out of scope
 - Rows held elsewhere (listed above), MB-93 (a sample pair run) and MB-94 (our own place index).
-- Offers and their dates (MB-149, 118): R15's pricing re-plan.
+- Pricing, checkout, offers and their dates (MB-111, 113 to 120, 149): until the Owner starts pricing.
 - A share image for a Personal report (the other use of "MB-104" in `review-01-10.md:132`).
 - Sharing a pair report by its maker: unchanged (ADR-133).
 
@@ -121,13 +127,8 @@ Change address; Stop sharing in the third person; the wheel's focus, the Clerk l
 tie line before and after; the round order.
 
 ## Open questions
-1. **Q1. Does sharing your own report share the whole Personal report?** Recommendation: yes (A). It keeps the
-   home line true and reuses the report page. Default if silent: A, built in R16.
-2. **Q2. Does "Not me" hand the report back to its giver?** Recommendation: yes. Default if silent: as locked
-   until R16 builds the handback.
-3. **Q3. Is R15 the 22 fixes then pricing, and R16 sharing plus the brain pass, with Timeline after?**
-   Recommendation: yes (playbook: offer an order). Default if silent: this order, with the timeline plan
-   renumbered after R16.
+None. Answered 2026-10-03: Q1 the whole Personal report; Q2 hand it back, with Cancel as the only other choice;
+Q3 cleanup, then Timeline, pricing when the Owner says. MB-102 and MB-186 are the Owner's, in hand.
 
 ## Decisions to record
 - Lane 1's seven built-at-default rows decided as built (MB-89, 128, 129, 130, 131, 145, 146).
@@ -136,6 +137,9 @@ tie line before and after; the round order.
 - One push per group and per fix (MB-187).
 - Sharing your own report: a grant through send-and-claim, the whole Personal report, "Share yours back"
   (MB-104, Q1).
-- "Not me" hands the report back (MB-103, Q2). Change address on a waiting send or gift (MB-109).
+- "Not me" hands the report back; its confirmation is Hand it back or Cancel (MB-103, Q2, amending ADR-139's
+  'Not me' as locked). Change address on a waiting send or gift (MB-109). Stop sharing in the third person (MB-135).
+- The Elements readout line leaves home and /method (MB-181).
 - Workbooks per reader (MB-110). Name masking in returned model text, built regardless of spot results (MB-152).
-- Round order: R15 launch fixes then pricing, R16 sharing and the brain pass, Timeline after (Q3).
+- Round order: the cleanup round (lanes 2 to 4) next, then Timeline; pricing and checkout only when the Owner
+  starts them (Q3).
