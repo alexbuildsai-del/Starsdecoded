@@ -1,20 +1,22 @@
-# R16 plan — Timeline: its product page first, simple words everywhere, then the sky on the reader's own chart behind the switch
+# R16 plan — Timeline: its product page first, simple words everywhere, then Timeline itself for its subscribers and a teaser for everyone else
 
-Planned 2026-10-03 on `claude/youthful-gauss-7snkqd` (ec133c4: `main` at 30b45b6 plus both locks) for the locked specs `timeline`
+Planned 2026-10-03 on `claude/youthful-gauss-7snkqd` (24f6e6c: `main` at 30b45b6 plus both locks) for the locked specs `timeline`
 (ADR-205 to 217; artifact https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE) and `timeline-page` (ADR-249 to 261, 254 and 260
 superseded; artifact https://claude.ai/artifact/YTpuNi1CqPfJJHVNEdtMJG) with its simple-words audit (`docs/annex/simple-words-audit.md`,
-artifact https://claude.ai/artifact/VqW2umpB8JCyFfmwFS7Gcn). Revised the same day, when the Owner added `timeline-page` to R16 (ADR-259,
-261). **Order:** after R15, the cleanup round (ADR-242), now being built on `round/R15`. **Scope:** Timeline's product page first, on an
-engine built once for all of Timeline; every approved simple-words line and the writer's rule; then Timeline part one behind `TIMELINE`
-(readings, Ask, its screens, Your week); and for everyone, one triad row and At a glance. How Timeline is sold (R17) waits for pricing.
-QA-02 has no sev-1, no Mailbox row is `blocking`, and no Owner comment sits on ADR-205 to 261 or on the rows this plan touches.
-**Cards:** thirty-four, past R05's thirty-two; the shrink path is in Parallel groups. **Tiers:** 27 Opus, 7 Sonnet, no Haiku. **Tags:**
-USER-FACING are R16-01 to 17, 32 and 33 (they reach production at the next Release); R16-18 to 31 and 34 are INTERNAL, behind a switch
-that is off everywhere. **The brain changes three ways:** the engine (four new files and the shared plain words), the writer's rule
-(report words change, R16-13), and two new prompt families with two model jobs; the dry lab runs in the round and a spot run on staging
-comes before the Release (timeline-page acceptance 10). **The schema changes** (R16-19). **The contract changes** (R16-20). **No new
-dependency.** No credential is needed, nothing goes on GitHub, nothing generates in the session, and nothing reaches production in the
-round.
+artifact https://claude.ai/artifact/VqW2umpB8JCyFfmwFS7Gcn), and the Owner's ADR-262 to 264. Revised twice the same day: when the Owner
+added `timeline-page` (ADR-259, 261), and when he dropped the switch (ADR-262), added the Account page (ADR-263) and put Timeline's
+billing with pricing (ADR-264). **Order:** after R15, the cleanup round (ADR-242), now being built on `round/R15`. **Scope:** Timeline's
+product page first, on an engine built once for all of Timeline; every approved simple-words line and the writer's rule; then Timeline
+the normal way, with no switch: readings, Ask, its screens and Your week for a subscriber (the admin, until billing exists), the
+dashboard teaser for everyone else, and an Account page with Ask's use this month; for everyone, one triad row and At a glance. Nothing
+in R16 takes a payment; Timeline's billing waits for pricing (ADR-264). QA-02 has no sev-1, no Mailbox row is `blocking`, and no Owner
+comment sits on ADR-205 to 264 or on the rows this plan touches. **Cards:** thirty-four, past R05's thirty-two; the shrink path is in
+Parallel groups. **Tiers:** 27 Opus, 7 Sonnet, no Haiku. **Tags:** USER-FACING are R16-01 to 17 and 30 to 33; INTERNAL are R16-18 to 29
+and 34 (the server under Timeline, and the subscriber's screens, which only the admin can open until billing exists). **The brain
+changes three ways:** the engine (four new files and the shared plain words), the writer's rule (report words change, R16-13), and two
+new prompt families with two model jobs; the dry lab runs in the round and a spot run on staging comes before the Release (timeline-page
+acceptance 10). **The schema changes** (R16-19). **The contract changes** (R16-20). **No new dependency.** No credential is needed,
+nothing goes on GitHub, nothing generates in the session, and nothing reaches production in the round.
 
 ## Open Mailbox rows created more than 14 days ago (oldest first, ADR-186)
 **2026-09-09:** MB-12 no error reporting or alerting · MB-19 no prompt version history · MB-20 the one e2e spec cannot pass, no lint
@@ -25,62 +27,73 @@ step · MB-21 variables missing from `.env.example` · MB-22 dead code left by t
 ## Round number and order
 R14 is the last round with a report. The Owner set the order on 2026-10-03: R15 is the cleanup round (`mailbox-sweep-03-10`, ADR-242),
 then Timeline as **R16**, its product page the first group and the simple-words audit inside it (ADR-259, 261). Pricing and launch are
-on hold and not planned until the Owner starts them (ADR-230, 242). Nothing in R16 needs pricing. **Approving this plan queues R16
-behind R15**; `/round R16` starts when R15 has merged, and Round start 3 re-reads every file R15 touched.
+on hold and not planned until the Owner starts them (ADR-230, 242); Timeline's billing is built with them (ADR-264). Nothing in R16
+needs pricing. **Approving this plan queues R16 behind R15**; `/round R16` starts when R15 has merged, and Round start 3 re-reads every
+file R15 touched.
 
 ## Round start (the orchestrator)
 1. **R15 is merged**; branch `round/R16` from `main` with this plan (merge `claude/youthful-gauss-7snkqd` first if it is not on `main`).
-2. **Both locks are on this branch:** `timeline.md` and `timeline-page.md`, the audit, MASTERFILE 0.26 (R-5.1, §9, §2's R16 paragraph)
-   and INDEX. ADR-205 to 261 are recorded; the round adds no Decisions row.
+2. **Both locks are on this branch:** `timeline.md` and `timeline-page.md`, the audit, MASTERFILE and INDEX as the coordinator left
+   them. ADR-205 to 264 are recorded; the round adds no Decisions row.
 3. **Re-read against `main` after R15** every pinned shape and every file the audit names: R15 changes `data.ts`, `system.ts`,
    `vocabulary.ts`, `aiInterpretation.ts`, `access.ts`, `home.ts`, the schema, `openapi.yaml`, `bootstrap-db.sh`, `page-title.ts`,
-   `NatalWheel.tsx`, `date-entry.ts` and many site files (Risk 10). A shape R15 changed is re-pinned before any builder starts; one that
-   cannot be stops the round (R-0.1).
+   `NatalWheel.tsx`, `date-entry.ts`, `processors.ts` and many site files (Risk 10). A shape R15 changed is re-pinned before any builder
+   starts; one that cannot be stops the round (R-0.1).
 4. Builders cannot open claude.ai: extract into the session scratchpad, phone first then desktop, the page (#page), the home line
    (#home) and the four sentences (#words) from the page's artifact; the dial, Now and ahead, Life, Ask's mark and chat, Your week, the
-   triad row and At a glance from Timeline's; the audit's before and after. Also any tone table (MB-188), place for the ruler (reading
-   20) or finder dates (reading 21) they show. Where a builder's draft differs, the artifact wins and the report says so.
+   dashboard invitation (R16-31's teaser), the triad row and At a glance from Timeline's; the audit's before and after. Also any tone
+   table (MB-188), place for the ruler (reading 20) or finder dates (reading 21) they show. Where a builder's draft differs, the
+   artifact wins and the report says so.
 5. The dry lab's base: `git fetch origin report-lab/r06 && git checkout FETCH_HEAD -- fixtures/reports/` (never committed).
 6. `curl -sS -o /dev/null -w '%{http_code}' https://ssd.jpl.nasa.gov/api/horizons.api` (200 from this planning session). If it is
    blocked when R16-01 or R16-03 starts, their Horizons tests wait and the rest goes on. NASA's eclipse site is blocked from the sandbox,
    so R16-01 pins the two eclipse instants its card gives.
 
-## What already shipped (checked at ec133c4; `round/R15` read at 4d9ef09)
+## What already shipped (checked at 24f6e6c; `round/R15` read at 4d9ef09)
 - **Met, and reused:** `@workspace/engine` on the server, in the browser and in the prerender (R11); Chiron from Horizons and
   `CHART_VERSION` 4 (R14); `isSelfFor`, `natalReportAccess`, `pairReadable`; `recordSpend`, the spend gate, `recordChecks` and
   `generation_failures`; `LIMITS`; names as data and the dry lab's injection pass; `promptDefaults.ts`, `prompt-families.ts`,
-  `models.ts`; `packages/launch`; `useIsAdmin`, `readAppEnv`; `GET /home`; `PLANET_RENDERS`, `AngleGlyph`, the one Sun; `NatalWheel`;
-  `BirthDateField`; the site's registry, prerender, crawl files and axe over every sitemap page; `ReportCta`'s free `source` tag (the
-  API keeps 32 characters); `FOOTER` in `site.ts`; Mira (`fixtures/sample-people/mira.json`, synthetic, born 1991-03-14 in Lisbon);
-  `vercel.json` sending `/dashboard/*` to the app; `testModel.ts`. From R15 (in flight): the `shared` access kind (ADR-235), per-reader
-  workbooks (ADR-239), masked names (ADR-240), the wheel's focus (MB-177), every time in the reader's clock (MB-178), pasted dates
-  (MB-185), zones on the server (ADR-246), /sample's refresh branch in `sampleRun.ts` (ADR-247), the home report section (ADR-243 to 245).
-- **Not met:** no `/timeline` page, home line or footer link; no transit, cycle or plain-words code; no `TIMELINE`; no Timeline or Ask
-  prompt family, job, table, route or screen; the audit's lines as they were; the writer's prompts with no reading level, no one idea per
-  sentence and no ban on metaphor and drama, and `vocabulary.ts`'s `full` entries in textbook words; triad rows built four ways, both
-  heroes printing "ruled by"; Prices, the FAQ and Method saying what the four sentences replace.
+  `models.ts`; how the admin is known (`ADMIN_USER_ID`, `labGuard.ts`, `useIsAdmin`); `GET /home`; `PLANET_RENDERS`, `AngleGlyph`, the
+  one Sun; `NatalWheel`; `BirthDateField`; the site's registry, prerender, crawl files and axe over every sitemap page; `ReportCta`'s free
+  `source` tag; `FOOTER` in `site.ts`; `BROWSER_KEYS` in `processors.ts`, which the privacy page prints; Mira
+  (`fixtures/sample-people/mira.json`, synthetic, born 1991-03-14 in Lisbon); `vercel.json` sending `/dashboard/*` to the app;
+  `testModel.ts`. From R15 (in flight): the `shared` access kind (ADR-235), per-reader workbooks (ADR-239), masked names (ADR-240), the
+  wheel's focus (MB-177), every time in the reader's clock (MB-178), pasted dates (MB-185), zones on the server (ADR-246), /sample's
+  refresh branch in `sampleRun.ts` (ADR-247), the home report section (ADR-243 to 245).
+- **Not met:** no `/timeline` page, home line or footer link; no transit, cycle or plain-words code; no Timeline access check, prompt
+  family, job, table, route or screen; no Account page; the audit's lines as they were; the writer's prompts with no reading level, no
+  one idea per sentence and no ban on metaphor and drama, and `vocabulary.ts`'s `full` entries in textbook words; triad rows built four
+  ways, both heroes printing "ruled by"; Prices, the FAQ and Method saying what the four sentences replace.
 - **Found while planning:** (1) the spec's own condition for Chiron is met (MB-189); (2) no tone table in either spec or their drafts,
   and the page now shows tones on Mira's examples (MB-188); (3) no model for readings (MB-190); (4) Horizons answers and NASA's eclipse
-  site does not; (5) R15 rewrites some audited lines and removes others, so the audit is read by its words (reading 24).
+  site does not; (5) R15 rewrites some audited lines and removes others, so the audit is read by its words (reading 24); (6) `/account`
+  is not an app path in `vercel.json`, so the Account page lives at `/dashboard/account`.
 
 ## Where the specs disagree, and how this plan settles it
 1. **The timeline spec's "after pricing and launch"** → ADR-230 and 242 (later): Timeline is R16, after the cleanup round.
-2. **Its screen 7, a coming-soon page with a finder** → `timeline-page` (ADR-249 to 259, later and more specific) replaces it.
-3. **"Mercury to Pluto" on Timeline's dial and "Mars to Pluto" on the page's hero** → one dial that draws the bodies it is given.
-4. **ADR-250's "renewed per Release" and hand-written sample words** → sample words are templates whose facts the engine fills, and
+2. **ADR-215's `TIMELINE` switch** → ADR-262 (later): no switch; one access check, an active subscription or, until billing exists, the
+   admin; everyone else gets the dashboard teaser. Production keeps the waitlist over the app until launch (ADR-167).
+3. **Its screen 7, a coming-soon page with a finder** → `timeline-page` (ADR-249 to 259) replaces it.
+4. **The dashboard invitation's "Start Timeline with the price"** → ADR-255 and 262: the teaser points to `/timeline` and shows no price.
+5. **The timeline spec's "silent until 10"** → ADR-263 (later): Ask shows what's left this month, always, and the Account page shows
+   the month's use.
+6. **"Mercury to Pluto" on Timeline's dial and "Mars to Pluto" on the page's hero** → one dial that draws the bodies it is given.
+7. **ADR-250's "renewed per Release" and hand-written sample words** → sample words are templates whose facts the engine fills, and
    each Release's sample branch moves Mira's week (reading 22).
-5. **The finder's "dates only" and a date with no time** → month and year, passes as a span (reading 21); the artifact wins if it
+8. **The finder's "dates only" and a date with no time** → month and year, passes as a span (reading 21); the artifact wins if it
    shows days, with the fine print saying the finder works from midday.
-6. **§9: the dashboard's one visual is its circle** (ADR-89 to 96) → ADR-211 adds Your week's dial, for a subscriber only.
-7. **R12's "the Rising never shows a house"** (`home.ts`) → ADR-211's "1st (self)": the web prints it; the stored triad is unchanged.
-8. **Chiron "excluded until it has a real ephemeris"** against ADR-221's table → it stays out until the Owner adds it (MB-189).
-9. **Ask's model in the spec's cap note** (two gpt-5.2 calls) against ADR-184 (Luna writes every other prose call) → MB-190.
-10. **The timeline spec's "Terms" with the coming-soon copy** → the page spec's four sentences, which leave Terms as it is ("There's no
-    subscription" stays true until Timeline is sold).
-11. **"Someone … never stored"** against a chat that keeps its history → a person card is kept as who and which day and computed when
+9. **§9: the dashboard's one visual is its circle** (ADR-89 to 96) → ADR-211 adds Your week's dial, for a subscriber only.
+10. **R12's "the Rising never shows a house"** (`home.ts`) → ADR-211's "1st (self)": the web prints it; the stored triad is unchanged.
+11. **Chiron "excluded until it has a real ephemeris"** against ADR-221's table → it stays out until the Owner adds it (MB-189).
+12. **Ask's model in the spec's cap note** (two gpt-5.2 calls) against ADR-184 (Luna writes every other prose call) → MB-190.
+13. **The timeline spec's "Terms" with the coming-soon copy** → the four sentences leave Terms as it is; Timeline's Terms and Privacy
+    lines come with its billing (ADR-264).
+14. **"Someone … never stored"** against a chat that keeps its history → a person card is kept as who and which day and computed when
     shown, only while the reader can still read them (MB-191).
-12. **"Exact dates match JPL Horizons to the hour"** against hits near a station → the pinned hits sit away from stations; stations and
+15. **"Exact dates match JPL Horizons to the hour"** against hits near a station → the pinned hits sit away from stations; stations and
     eclipses carry their own tolerances (R16-01).
+16. **Timeline acceptance 8's spot "before the Release"** against no switch → R16's Release carries Timeline to the admin only; the
+    fixture spot comes before Timeline opens to subscribers (MB-198).
 
 ## Goals
 1. **The Timeline page first** (ADR-249 to 259): `/timeline` with the dial and Play on Mira's chart, the five things with her examples,
@@ -91,9 +104,10 @@ behind R15**; `/round R16` starts when R15 has merged, and Round start 3 re-read
    one, `/method` matching the FAQ, and the writer's rule in the prompts with a check that only logs (page acceptance 9, 10).
 3. **Readings and Ask on the brain** (ADR-206, 210, 213, 256): a prompt family written once per event and stored, blocked on an
    uncomputed date or degree, a predicted life event or a do or don't; Ask as a chat with tools that reads only what the reader can read,
-   with a fixed harm reply and 50 messages a month; both in the dry lab (Timeline acceptance 4, 8, 10).
-4. **Timeline behind `TIMELINE`**, off everywhere and the admin's on staging (ADR-207, 211, 215): Now and ahead, Life, Ask in the
-   corner, and Your week after Your circle from one more `GET /home` field (Timeline acceptance 9).
+   with a fixed harm reply and 50 messages a month; both in the dry lab (Timeline acceptance 4, 10).
+4. **Timeline the normal way** (ADR-207, 211, 262, 263): one access check, with the admin its one subscriber until billing; Now and ahead,
+   Life, readings, Ask with what's left this month and Your week for a subscriber; the dashboard teaser pointing to `/timeline` for
+   everyone else; an Account page with Ask's use this month and its reset date.
 5. **For everyone** (ADR-211): "At a glance ›" under the reader's name in the circle, and one triad row everywhere with the ruler moved
    into the report.
 
@@ -103,23 +117,25 @@ behind R15**; `/round R16` starts when R15 has merged, and Round start 3 re-read
    `vercel.json` → the orchestrator (`csp:write` after groups A and B); `.claude/skills/ux-copy/SKILL.md` → R16-17.
 3. Inside a group a card may land before one it imports from (pinned shapes): the orchestrator accepts a red intermediate until the
    group ends, and every group ends green. A builder who needs a pinned shape changed stops (R-0.1).
-4. **No card spends or reaches a network.** The model is stubbed (`testModel.ts`); only R16-01 and R16-03 read Horizons, by hand, and
-   commit the values; walks run on a scratch Postgres. **No new dependency:** a builder who needs a package stops and reports.
+4. **No card spends, takes a payment or reaches a network.** The model is stubbed (`testModel.ts`); only R16-01 and R16-03 read
+   Horizons, by hand, and commit the values; walks run on a scratch Postgres. **No new dependency:** a builder who needs a package stops.
 5. Provisional seams: `// MB-188 provisional` (`tone.ts`), `// MB-190 provisional` (`models.ts`), `// MB-191 provisional` (`ask.ts`,
-   `timelineReadings.ts`); `doctrine.ts` names MB-189 where Chiron stays out. Code cites ADR-205 to 261 where it follows them.
+   `timelineReadings.ts`), `// MB-197 provisional` (`timelineAccess.ts`); `doctrine.ts` names MB-189 where Chiron stays out. Code cites
+   ADR-205 to 264 where it follows them.
 6. **The promoted rule** (`lessons.md`, ADR-195): before changing a shared export, a pinned value or what a function may return, grep
    every caller; a caller outside the card's files is named in its report, never left on the old shape.
 7. **Simple words** (CLAUDE.md, R-5.1, §9): every new word a builder writes, sample words and headlines included, is everyday words,
    one idea per sentence, no drama. One push per group and one per fix (ADR-234); a builder commits as it goes.
 
 ## Readings pinned where the spec is silent
-1. **Two pages say Timeline.** `/timeline` is the public product page (no switch, ADR-215, 249); the app's is `/dashboard/timeline`
-   (noindex, already sent to the app by `vercel.json`), its file `TimelineAppPage.tsx`.
+1. **Two pages say Timeline.** `/timeline` is the public product page (ADR-249); the app's is `/dashboard/timeline` (noindex, already
+   sent to the app by `vercel.json`), its file `TimelineAppPage.tsx`; a reader without access who opens it is sent to `/timeline`.
 2. **The reader** is the viewer's self profile (`isSelfFor`) with a complete Personal report they can read; Timeline reads its stored
    chart (R-4.5). Without one, the Timeline routes answer 409 `no_personal_report` and the app says how to get one.
-3. **Open and entitled.** Open: `TIMELINE` on, or the admin (`ADMIN_USER_ID`) where `APP_ENV` is not production. Entitled: open and
-   the admin, until Timeline is sold. Every Timeline route, field and app surface is entitled-only; anyone else gets the 404 every
-   unknown path gets, so with `TIMELINE` off nothing reaches a non-admin or production (acceptance 9). `/timeline` is not one of them.
+3. **Access is one check** (ADR-262): `timelineAccess(viewer)` answers from a list of sources; R16 has one, the signed-in admin
+   (`ADMIN_USER_ID`), on every host; billing adds an active subscription later (MB-197). No subscriptions table is made now: nothing
+   would write it before Stripe, and it should mirror Stripe's webhooks when they exist (R-6.2). Timeline's routes answer anyone else
+   403 `no_timeline`; `GET /timeline/access` answers every signed-in reader. Production's app stays behind the waitlist until launch.
 4. **Days** are the reader's: the browser's IANA zone sent as `tz` and validated, else the profile's birth zone. Week is 7 days from
    today, month 30, six months 182. Timeline prints dates in the reader's language order and no clock time.
 5. **Event keys**, URL-safe and at most 80 characters: `{kind}.{body}.{aspect|-}.{target|-}.{yyyymmdd}`, the date a contact first
@@ -141,8 +157,8 @@ behind R15**; `/round R16` starts when R15 has merged, and Round start 3 re-read
 11. **Models** (MB-190): readings `gpt-6-luna`, Ask `gpt-5.2`, as jobs in `models.ts`.
 12. **Ask's tools are ours.** Call one plans (intent, tools, choices); the server computes the tools; call two writes the text and
     names the cards it shows; no function calling. Quotes are inserted by the server, word for word, never written by the model.
-13. **The cap**: 50 reader messages a UTC calendar month, a tapped choice included; `left` is null above 10; at 0, 429 `ask_cap` with
-    the date it resets.
+13. **The cap**: 50 reader messages a UTC calendar month, a tapped choice included. Ask always shows "N left this month" and the
+    Account page "N of 50 used this month" with the reset date (ADR-263); at 0, 429 `ask_cap` with the date it resets.
 14. **What Ask reads**: reports the reader can read (`natalReportAccess`, `pairReadable`, R15's `shared` grant); another person only
     through a Compatibility report the reader can read, for the day asked about. The Moon's sign and phase appear only in Ask's day card.
 15. **What Ask keeps** (MB-191): 31 days; a person card as who and which day; gone with the reader's Personal report. Nothing the
@@ -167,15 +183,23 @@ behind R15**; `/round R16` starts when R15 has merged, and Round start 3 re-read
     Each passing Release's `sample/<release-id>` branch (ADR-247) moves the week to the Monday after it (ADR-250); that pull request's
     CI fails when a sample line no longer matches her week, so the session that merges it fixes the words.
 23. **The page before Timeline is sold** shows Get my report (`source="timeline"`, the waitlist before launch) and "Coming soon" where a
-    price would go, always; Start Timeline for an owner comes with Timeline's sale (R17).
+    price would go; Start Timeline comes with billing (ADR-264).
 24. **The audit is read by its words** on `main` after R15 (its line numbers are from 30b45b6). A line R15 removed is skipped; a line
     R15 rewrote gets the audit's pattern and is listed for the Owner's look; strings copied from a stored report (`sample.ts`,
     `differences.ts`, the Claims quotes) wait for /sample's refresh after the prompt change.
 25. **"Every claim shows its source" twice on home**: the home lede and Claims' line keep it; every other home mention says it without
     the phrase, and "reference" becomes "claim" wherever it means a claim.
-26. **Your week** sits between Your circle and What you're practising; the invitation and the why card come with Timeline's sale (R17).
+26. **The dashboard, one or the other.** With access, Your week sits between Your circle and What you're practising. Without it, a
+    reader with their own finished Personal report gets the teaser last, after the stories: "Your life's big cycles", the Saturn ring
+    with its age, the four cycles soonest first ("Your next big cycle is at 37") with dates from their chart, a link to `/timeline`, no
+    price, and Not now. Not now is kept in the browser (`sd.timeline.notnow`, listed on the privacy page) and the teaser comes back once
+    when the next cycle is under a year away. Never on an empty dashboard; a subscriber sees none. The why card waits with the rest.
 27. Copy and layout no spec words pass `/ux-copy` (simple words first) and `/web-taste`; each builder lists its new strings, before and
     after, for the Owner's look.
+28. **The Account page** (ADR-263), at `/dashboard/account` from the account menu, holds Timeline: with access, its plan line
+    ("Timeline, through admin access" until billing) and Ask's use this month with the reset date; without, one line and a link to
+    `/timeline`. Cancel Timeline and Manage payment are left out until billing builds them with what they do (ADR-264): no control
+    without its action. Credits stay about reports.
 
 ## Pinned shapes
 - **Engine, `transits.ts`** (R16-01). `SkyBody` = sun | moon | mercury | venus | mars | jupiter | saturn | uranus | neptune | pluto |
@@ -211,7 +235,7 @@ behind R15**; `/round R16` starts when R15 has merged, and Round start 3 re-read
   basis text NOT NULL; status text NOT NULL (writing | ready | failed); reading jsonb; model text; created_at, updated_at timestamptz
   NOT NULL DEFAULT now() }`, unique (profile_id, event_key), index (user_id). `ask_messages { id text PK; user_id text NOT NULL; role
   text NOT NULL (reader | ask); body jsonb NOT NULL; created_at timestamptz NOT NULL DEFAULT now() }`, index (user_id, created_at).
-  `GenerationFailureKind` and `SpendKind` gain `timeline` and `ask`.
+  `GenerationFailureKind` and `SpendKind` gain `timeline` and `ask`. No subscriptions table (reading 3).
 - **Contract** (R16-20; operationIds in brackets). `Tone`; `TimelineRange` = week | month | six-months; `ReadingStatus` = none |
   writing | ready | failed. `TimelineEvent { key; kind: contact | retrograde | eclipse; body; aspect: string | null; target: string |
   null; houses: integer[]; start; end; exact: date-time[]; orbNow: number | null; tone: Tone | null; headline; facts: { sky; house:
@@ -222,38 +246,43 @@ behind R15**; `/round R16` starts when R15 has merged, and Round start 3 re-read
   }`. `TimelineLife { ages: { id; age; last: date-time | null; next: date-time | null; progress: number }[]; cycles: LifeCycleView[];
   waves: { body; points: { age; distance }[] }[] }`. `TimelineReading { key; line; body; buildsOn: { kind: house; house } | { kind:
   chapter; chapter } | null; writtenAt }`. `OpenedReading { status: ready | writing | failed; reading: TimelineReading | null; line:
-  string | null }`. `TimelineState { open; entitled; hasPersonalReport }`. `Week { headline: string | null; natal: NatalPoint[]; angles:
-  Angles | null; days: { date; tones: Tone[] }[]; on: TimelineEvent[] }`. `AskCard` = day { date; events; moon: { sign; phase } } |
-  window { from; to; days: { date; tone: Tone | null }[] } | cycle { cycle } | quote { reportId; reportName; section; text } | person {
-  name; date; events }. `AskChoice { id; label; kind: date | window | person | report }`. `AskMessage { id; role: reader | ask; text;
-  cards: AskCard[]; choices: AskChoice[]; createdAt }`. `AskThread { messages; left: integer | null }`. `SendAskBody { text? (1 to 500);
-  choiceId?; reportId? }`, one of text or choiceId. Paths: `GET /timeline/state` [getTimelineState] 200 or 404; `GET
-  /timeline/now?range&tz` [getTimelineNow] and `GET /timeline/life?tz` [getTimelineLife], each 200, 404 or 409; `POST
-  /timeline/readings/{key}` [openTimelineReading] 200 `OpenedReading`, 404, 429, 503; `GET /ask` [getAskThread]; `POST /ask`
-  [sendAskMessage] 200, 400, 404, 429 (a limit or `ask_cap`), 503. `GET /home` gains `tz?` and `Home.week?: Week | null`.
-- **Server.** `timelineGate.ts` (R16-18): `timelineOpen(viewer, env?)`, `timelineEntitled(viewer, env?)`, `requireTimeline`.
-  `timeline.ts` (R16-23): `ReaderChart { userId; profileId; reportId; chart; blind; zone; birth; basis }`, `readerChart(viewer)`,
-  `nowView(reader, range, tz, statuses, now?)`, `lifeView(reader, tz, statuses, now?)`, `weekView(reader, tz, now?)`,
-  `eventByKey(reader, key, now?)`. `timelineReadings.ts` (R16-24): `readingStatuses(profileId, keys)`, `openReading(reader, key)` →
-  ready with the reading | writing | failed with a line | unknown, `queueReadings(reader, keys, max = 3)`, `forgetTimeline(userId,
-  profileId)`. `prompts/timeline` (R16-21): `TIMELINE_PROMPT_VERSION = "t1"`, `ReadingInput { event; brief; excerpts: { source; text
-  }[]; name; blind }`, `ReadingSchema`, `readingPrompt(input, override?)`, `checkReading(output, input)`, `TIMELINE_PROMPTS`.
-  `prompts/ask` (R16-22): `ASK_PROMPT_VERSION = "a1"`, `askPlanPrompt`, `askAnswerPrompt`, `AskPlanSchema`, `AskAnswerSchema`,
-  `checkAskAnswer`, `HARM_REPLY`, `OFF_TOPIC_LINE`, `FALLBACK_LINE`, `capLine(resetsOn)`, `ASK_PROMPTS`. `ask.ts` (R16-25):
-  `ASK_MONTHLY_CAP = 50`, `askThread(viewer)`, `sendAsk(viewer, body)`.
-- **Web, the app.** `useTimelineState()` (R16-18) → `{ open; entitled; hasPersonalReport; loading }`. `ReadingSheet({ eventKey, open,
-  onClose })` (R16-27). `AskLauncher({ reportId? })` (R16-28). `TriadRow({ rows, compact? })`, `triadRowsOf(triadOrChart, options?)`
-  (R16-32).
+  string | null }`. `AskUsage { used: integer; left: integer; cap: integer; resetsOn: date }`. `TimelineAccess { access: boolean;
+  source: admin | subscription | null; hasPersonalReport: boolean; ask: AskUsage | null }`. `Week { headline: string | null; natal:
+  NatalPoint[]; angles: Angles | null; days: { date; tones: Tone[] }[]; on: TimelineEvent[] }`. `Teaser { saturn: { age: number;
+  progress: number }; cycles: { id; name; word; age: number; on: date }[] }` (the four, soonest first). `AskCard` = day { date; events;
+  moon: { sign; phase } } | window { from; to; days: { date; tone: Tone | null }[] } | cycle { cycle } | quote { reportId; reportName;
+  section; text } | person { name; date; events }. `AskChoice { id; label; kind: date | window | person | report }`. `AskMessage { id;
+  role: reader | ask; text; cards: AskCard[]; choices: AskChoice[]; createdAt }`. `AskThread { messages; usage: AskUsage }`. `SendAskBody
+  { text? (1 to 500); choiceId?; reportId? }`, one of text or choiceId. Paths: `GET /timeline/access` [getTimelineAccess] 200 or 401;
+  `GET /timeline/now?range&tz` [getTimelineNow] and `GET /timeline/life?tz` [getTimelineLife], each 200, 403 `no_timeline` or 409; `POST
+  /timeline/readings/{key}` [openTimelineReading] 200 `OpenedReading`, 403, 404, 429, 503; `GET /ask` [getAskThread] 200 or 403; `POST
+  /ask` [sendAskMessage] 200, 400, 403, 429 (a limit or `ask_cap`), 503. `GET /home` gains `tz?`, `Home.week?: Week | null` and
+  `Home.teaser?: Teaser | null`.
+- **Server.** `timelineAccess.ts` (R16-18): `TimelineSource` = admin | subscription; `ACCESS_SOURCES`; `timelineAccess(viewer):
+  Promise<{ access: boolean; source: TimelineSource | null }>`; `requireTimelineAccess` (403 `no_timeline`). `timeline.ts` (R16-23):
+  `ReaderChart { userId; profileId; reportId; chart; blind; zone; birth; basis }`, `readerChart(viewer)`, `nowView(reader, range, tz,
+  statuses, now?)`, `lifeView(reader, tz, statuses, now?)`, `weekView(reader, tz, now?)`, `teaserView(reader, now?)`, `eventByKey(reader,
+  key, now?)`. `timelineReadings.ts` (R16-24): `readingStatuses(profileId, keys)`, `openReading(reader, key)` → ready with the reading |
+  writing | failed with a line | unknown, `queueReadings(reader, keys, max = 3)`, `forgetTimeline(userId, profileId)`.
+  `prompts/timeline` (R16-21): `TIMELINE_PROMPT_VERSION = "t1"`, `ReadingInput { event; brief; excerpts: { source; text }[]; name;
+  blind }`, `ReadingSchema`, `readingPrompt(input, override?)`, `checkReading(output, input)`, `TIMELINE_PROMPTS`. `prompts/ask`
+  (R16-22): `ASK_PROMPT_VERSION = "a1"`, `askPlanPrompt`, `askAnswerPrompt`, `AskPlanSchema`, `AskAnswerSchema`, `checkAskAnswer`,
+  `HARM_REPLY`, `OFF_TOPIC_LINE`, `FALLBACK_LINE`, `capLine(resetsOn)`, `ASK_PROMPTS`. `ask.ts` (R16-25): `ASK_MONTHLY_CAP = 50`,
+  `askUsage(viewer, now?)`, `askThread(viewer)`, `sendAsk(viewer, body)`.
+- **Web, the app.** `useTimelineAccess()` (R16-18) → `{ access; source; hasPersonalReport; ask; loading }`. `ReadingSheet({ eventKey,
+  open, onClose })` and `TimelineAppPage` (R16-27). `AskLauncher({ reportId? })` (R16-28). `AccountPage` (R16-30). `TriadRow({ rows,
+  compact? })`, `triadRowsOf(triadOrChart, options?)` (R16-32).
 
 ## Parallel groups
 **Group A**, one message: the page's ground, R16-01 to R16-07, with the simple-words cards R16-08 to R16-13 beside it (no file in
 common). Inside it R16-02 and R16-03 build on R16-01's functions, R16-04 on R16-02's events, R16-05 on R16-01 to 04, and R16-06 and
 R16-07 on R16-02's `Tone`, all on pinned shapes. Then the orchestrator runs `csp:write`. **Group B**, one message once A is green: the
-page, R16-14 to R16-17, with Timeline's server ground, R16-18 to R16-23, beside it (no file in common; R16-23 reads R16-20's types).
-Then `csp:write` again. **Group C**, once B is green: R16-24 to R16-28. **Group D**, once C is green: R16-29 to R16-33 (R16-33 uses
-R16-32's row). **Group E**: R16-34. Then the gate. **If R16 must shrink**, R16-32 and R16-33 go first (the triad row and At a glance),
-then R16-31 (Your week), then R16-28 with R16-25 (Ask's chat and panel; its prompts stay, rendered by the dry lab), each whole to the
-next /plan. The page (R16-01 to 07, 14 to 17) and simple words (R16-08 to 13) never move (ADR-261).
+page, R16-14 to R16-17, with Timeline's server ground, R16-18 to R16-23, beside it (no file in common; R16-18 and R16-23 read R16-20's
+types). Then `csp:write` again. **Group C**, once B is green: R16-24 to R16-28 (R16-27's page holds R16-28's launcher). **Group D**, once C
+is green: R16-29 to R16-33 (R16-33 uses R16-32's row). **Group E**: R16-34. Then the gate. **If R16 must shrink**, R16-32 and R16-33 go
+first (the triad row and At a glance), then R16-28 with R16-25 (Ask's chat and panel; its prompts stay, rendered by the dry lab, and the
+Account page shows no Ask line), each whole to the next /plan. The page (R16-01 to 07, 14 to 17), simple words (R16-08 to 13) and the
+teaser with the Account page (R16-30, 31) never move (ADR-261, 262, 263).
 
 ---
 
@@ -291,7 +320,7 @@ Done when:
   `audrey-hepburn` and Mira from 2026 to 2028.
 
 ### R16-03 — Life's cycles from birth to 90, and the waves (USER-FACING)
-Tier: opus — the brain: the finder's and Life's ages and dates are computed here
+Tier: opus — the brain: the finder's, the teaser's and Life's ages and dates are computed here
 Objective: every cycle the doctrine names, from a chart or from a birth date at midday (the finder), quick enough for a phone.
 Files: new `packages/engine/src/cycles.ts`, `cycles.test.ts`, `cycles.horizons.test.ts`.
 Refs: Timeline's The engine (Life cycles), Life; timeline-page The engine, acceptance 2; ADR-208, 209, 251; readings 5, 6, 21; pinned
@@ -353,7 +382,7 @@ Done when:
 
 ### R16-07 — Timeline's pieces: contact cards, the mix bar, day cells, cycle cards, rings, waves, Ask's mark (USER-FACING)
 Tier: opus — the shared look of every Timeline surface, on the page now and in the app later
-Objective: one look per kind of thing (ADR-172): the pieces the page shows with Mira's data and Timeline's screens reuse.
+Objective: one look per kind of thing (ADR-172): the pieces the page shows with Mira's data and the app and the teaser reuse.
 Files: new `web/src/components/timeline/ContactCard.tsx`, `MixBar.tsx`, `DayCells.tsx`, `CycleCard.tsx`, `AgeRing.tsx`, `Waves.tsx`;
 new `web/src/components/ask/AskMark.tsx`; new `web/src/lib/timeline-view.ts`, `life-view.ts` (+ tests).
 Refs: Timeline's Now and ahead, Life, Ask (the mark); timeline-page §2, §3; ADR-98, 172, 207, 209; readings 9, 17, 19; pinned shapes.
@@ -492,27 +521,29 @@ Done when:
   /method); the Timeline topic's six questions in `faq.ts`, not marked `home`, exported for R16-14.
 - `/ux-copy`'s date rule: sky dates may be named, a date in the reader's life never; `check:shipped` and the price gates green.
 
-### R16-18 — The switch: `TIMELINE`, off everywhere, the admin's on staging (INTERNAL)
-Tier: opus — access: who may reach a route, on which host
-Objective: one constant decides whether Timeline exists for a viewer; with it off, nothing reaches anyone but the admin off production.
-Files: `packages/launch/src/index.ts`; new `api/src/lib/timelineGate.ts` (+ test); new `web/src/lib/timeline-gate.ts` (+ test).
-Refs: Timeline's The switch; ADR-215, 230; acceptance 9; `labGuard.ts` (how the admin is known), `appEnv.ts`; reading 3; pinned shapes.
+### R16-18 — Timeline access: one check, the admin its one source until billing (INTERNAL) — provisional MB-197
+Tier: opus — access: who gets a paid product
+Objective: one answer to "does this reader have Timeline?", read by the routes, `GET /home` and the web, that billing extends by one source.
+Files: new `api/src/lib/timelineAccess.ts` (+ test); new `web/src/lib/timeline-access.ts` (+ test).
+Refs: ADR-167, 262, 263, 264; R-3.6, R-6.2; `labGuard.ts` (how the admin is known); MB-197; reading 3; pinned shapes.
 Done when:
-- `TIMELINE = false` beside `LAUNCHED`, its comment naming ADR-215 (on is a Release).
-- `timelineOpen` and `timelineEntitled` as reading 3; `requireTimeline` answers the 404 body every unknown path gets; tests over every
-  combination of switch, host and viewer (signed out, a reader, the admin).
-- `useTimelineState` reads `getTimelineState` once per signed-in user (React Query, keyed by user, none when signed out), a 404
-  meaning closed; tests with a stubbed client.
+- `timelineAccess(viewer)` answers `{ access, source }` from `ACCESS_SOURCES`, today one: the signed-in `ADMIN_USER_ID` on any host
+  (`// MB-197 provisional`); a signed-out or anonymous viewer has none; no table is made or read; `requireTimelineAccess` answers 403
+  `no_timeline`.
+- Tests: the admin has it, a reader does not, signed out does not, an unset `ADMIN_USER_ID` gives no one access, and a stubbed second
+  source is honoured, so billing adds one entry and changes no caller.
+- `useTimelineAccess` reads `getTimelineAccess` once per signed-in user (React Query, keyed by user; none signed out); tests with a
+  stubbed client.
 
 ### R16-19 — The tables for readings and Ask (INTERNAL)
 Tier: opus — schema, run by every deploy's bootstrap
 Objective: the two tables Timeline writes, in place before any route reads them, created idempotently.
 Files: new `packages/db/src/schema/timeline.ts`; `packages/db/src/schema/index.ts`, `generationFailures.ts`, `spendLedger.ts`; new
 `packages/db/scripts/migrate-add-timeline.ts`; `scripts/bootstrap-db.sh` (a step after R15's, its comment saying why).
-Refs: pinned schema; MASTERFILE R-7.3, §3; ADR-210, 213; MB-123, MB-191; reading 8.
+Refs: pinned schema; MASTERFILE R-7.3, §3; ADR-210, 213, 262; MB-123, MB-191, MB-197; readings 3, 8.
 Done when:
-- Both tables and their indexes exist as pinned, in drizzle and in the script (`IF NOT EXISTS` throughout); `GenerationFailureKind`
-  and `SpendKind` gain `timeline` and `ask` with no DDL, every caller grepped (Preconditions 6).
+- Both tables and their indexes exist as pinned, in drizzle and in the script (`IF NOT EXISTS` throughout), and no subscriptions table;
+  `GenerationFailureKind` and `SpendKind` gain `timeline` and `ask` with no DDL, every caller grepped (Preconditions 6).
 - On a scratch Postgres 16 with a dummy `OPENAI_API_KEY` (MB-80): `db:bootstrap` from `main`'s tree, then this branch's twice, then
   an empty database twice; each run clean, step 2 applying nothing after the script; `packages/db` tests green.
 
@@ -520,10 +551,11 @@ Done when:
 Tier: opus — the contract spans three packages and every Timeline surface in the app reads it
 Objective: every shape Timeline's routes answer, in `openapi.yaml`, with the client and zod regenerated.
 Files: `packages/api-spec/openapi.yaml`; `packages/api-client-react/src/generated/**`, `packages/api-zod/src/generated/**` (codegen).
-Refs: pinned contract; MASTERFILE R-7.2; ADR-207, 209 to 213, 215; MB-191.
+Refs: pinned contract; MASTERFILE R-7.2; ADR-207, 209 to 213, 262, 263; MB-191, MB-197.
 Done when:
 - Every pinned schema, path, response and operationId is in the spec with a one-line description naming its ADR (and its MB where
-  provisional); every change is additive (`Home.week` optional and nullable, `GET /home`'s `tz` optional), so no other file breaks.
+  provisional): 403 `no_timeline` on every Timeline and Ask route, `GET /timeline/access` for every signed-in reader, `AskUsage` on the
+  thread; every change is additive (`Home.week` and `Home.teaser` optional and nullable, `tz` optional), so no other file breaks.
 - `pnpm --filter @workspace/api-spec run codegen`, then typecheck green with no other file changed; a second codegen leaves no diff.
 
 ### R16-21 — Readings: the timeline prompt family and its blocking checks (INTERNAL)
@@ -556,24 +588,24 @@ Done when:
 - `MODELS.timelineReading = "gpt-6-luna"`, `MODELS.ask = "gpt-5.2"` (`// MB-190 provisional`); `PROMPT_DEFAULTS` gains the timeline
   and ask families; `promptFamilies` gains their version rows, every caller moved (Preconditions 6).
 
-### R16-23 — The Timeline view on the server (INTERNAL)
+### R16-23 — The Timeline view on the server, and the teaser's cycles (INTERNAL)
 Tier: opus — it turns the engine into what every app surface prints, and dates must be the engine's
-Objective: from the viewer's own chart, Now and ahead, Life and the week, in plain words, with no model call.
+Objective: from the viewer's own chart, Now and ahead, Life, the week and the teaser, in plain words, with no model call.
 Files: new `api/src/lib/timeline.ts` (+ test).
-Refs: Timeline's Now and ahead, Life, Where it is sold (Your week); ADR-207, 209, 211; R-3.6, R-4.5, R-4.6; readings 2, 4 to 9;
-pinned shapes; R16-04's plain words, R16-20's types.
+Refs: Timeline's Now and ahead, Life, Where it is sold, Free and paid; ADR-207, 209, 211, 212, 262; R-3.6, R-4.5, R-4.6; readings 2, 4
+to 9, 26; pinned shapes; R16-04's plain words, R16-20's types.
 Done when:
 - `readerChart` finds the viewer's self profile with a complete Personal report they can read and its stored chart, recomputed and
   cached when its version is old (R-4.5); `null` without one.
-- `nowView`, `lifeView` and `weekView` give the pinned contract types for a range in the reader's zone: whole windows, headlines and
-  facts from `plainWords.ts`, tones and each day's mix, what starts, peaks or eases next, natal points and angles for the dial, the
-  no-time flag, reading statuses as passed in; `eventByKey` resolves events and cycles.
+- `nowView`, `lifeView` and `weekView` give the pinned contract types in the reader's zone: whole windows, headlines and facts from
+  `plainWords.ts`, tones and each day's mix, what starts, peaks or eases next, natal points and angles, the no-time flag, reading
+  statuses as passed in; `teaserView` gives the Saturn return's age and ring and the four known cycles soonest first; `eventByKey`.
 - Tests: every date and degree in each view comes from `skyEvents` or `lifeCycles` (acceptance 1's server half);
   `marie-curie-unknown` has no angle, house or Moon contact (acceptance 3); a quiet range has no event.
 
 ---
 
-## Group C — the brain's writers and Timeline's screens
+## Group C — the brain's writers and Timeline in the app
 
 ### R16-24 — Readings written once, stored, gated and logged (INTERNAL) — provisional MB-191
 Tier: opus — the brain's call path, spend and personal data
@@ -590,98 +622,107 @@ Done when:
 - Tests with the model stubbed: one write across two concurrent opens; a stale basis rewrites; a paused day writes nothing; a blocked
   attempt is logged with its rule.
 
-### R16-25 — Ask: the chat with its tools, the reader's access, the cap (INTERNAL) — provisional MB-191
+### R16-25 — Ask: the chat with its tools, the reader's access, the cap and its count (INTERNAL) — provisional MB-191
 Tier: opus — access and consent: every tool reads reports, and a test proves each access
-Objective: a message in, two calls, computed cards out, and nothing the reader cannot read.
+Objective: a message in, two calls, computed cards out, nothing the reader cannot read, and the month's count for Ask and the Account page.
 Files: new `api/src/lib/ask.ts` (+ `ask.test.ts`).
-Refs: Timeline's Ask; ADR-139, 182, 201, 213, 235; R-3.5, R-3.6; acceptance 10; `access.ts`; MB-191; readings 12 to 16; pinned shapes.
+Refs: Timeline's Ask; ADR-139, 182, 201, 213, 235, 263; R-3.5, R-3.6; acceptance 10; `access.ts`; MB-191; readings 12 to 16; pinned shapes.
 Done when:
 - `sendAsk`: the cap first (reading 13), the reader's message stored, the plan call; `harm` and `off_topic` answer their fixed lines
   with no second call; `ask_back` stores its choices; `answer` runs the tools, then the answer call, one retry carrying the errors, else
-  `FALLBACK_LINE`; `recordSpend("ask", …)` per call; nothing the reader types is logged.
+  `FALLBACK_LINE`; `recordSpend("ask", …)` per call; `askUsage` counts the UTC month; nothing the reader types is logged.
 - Tools `day`, `window` (at most six months), `cycle`, `quote`, `reports`, `person`, each re-checking access; a person card is kept as
   who and which day and computed on read while readable; rows older than 31 days go on each read or send (`// MB-191 provisional`).
 - `ask.test.ts`, one test per access: the reader's own report, one sent to them, one shared by its owner (R15's grant), one not shared,
   a pair readable, a pair closed by Stop sharing, a person in it, a person not; each tool refuses what the reader can't read; the 51st
-  message of a month is refused.
+  message of a month is refused and `askUsage` says 0 left until the 1st.
 
 ### R16-26 — The dry lab renders Timeline and Ask (INTERNAL)
 Tier: opus — the lab that guards the brain, across the api and scripts packages
 Objective: every change to either family renders free at each brain change, and a hostile name stays a name (ADR-210).
 Files: `api/src/lib/labDry.ts` (+ test); `scripts/src/report-lab.ts` (+ test).
-Refs: ADR-76, 86, 202, 210; R-4.4; acceptance 8; pinned shapes of R16-21 and R16-22; `fixtures/charts/`.
+Refs: ADR-76, 86, 202, 210; R-4.4; acceptance 8; pinned shapes of R16-21 and R16-22; `fixtures/charts/`; MB-198.
 Done when:
 - `dryTimeline` renders a reading prompt for each natal fixture's first five events that read, from 2026-10-05 over six months, and
   its three nearest life cycles; `dryAsk` renders both of Ask's prompts for three fixed questions; tokens counted, every schema strict;
   the injection pass covers both families with the three `inject-*` fixtures.
 - `report-lab --dry` and `--render` include both families; natal and pair rows unchanged by this card; tests on the rows' shape.
 
-### R16-27 — Timeline's two screens: Now and ahead, and Life (INTERNAL)
-Tier: opus — two new screens on live data
-Objective: the reader's own Now and ahead beside the dial, and their Life, from the API, each read on tap.
-Files: new `web/src/components/timeline/NowAhead.tsx`, `Life.tsx`, `ReadingSheet.tsx`; new `web/src/lib/now-ahead.ts` (+ test).
-Refs: Timeline's Now and ahead, Life; ADR-98, 172, 207, 209; acceptance 1, 3; readings 4, 7, 9, 10, 18, 19; R16-06's dial and R16-07's
-pieces; pinned shapes.
+### R16-27 — Timeline in the app: its page, Now and ahead, and Life (INTERNAL)
+Tier: opus — a new page with two screens on live data
+Objective: the reader's own Timeline on one page, each event read on tap; a reader without access is sent to `/timeline`.
+Files: new `web/src/pages/TimelineAppPage.tsx`; new `web/src/components/timeline/NowAhead.tsx`, `Life.tsx`, `ReadingSheet.tsx`; new
+`web/src/lib/now-ahead.ts` (+ test).
+Refs: Timeline's Now and ahead, Life, "Timeline is one page"; ADR-98, 172, 207, 209, 262; acceptance 1, 3; readings 1 to 4, 7, 9, 10,
+18, 19; R16-06's dial, R16-07's pieces, R16-18's hook, R16-28's launcher; pinned shapes.
 Done when:
-- Now and ahead: this week, this month and six months from `getTimelineNow` in the browser's zone; the dial (Mercury to Pluto, frames
-  from `framesFor`); the mix bar, a contact card each, then what starts, peaks or eases, each moving the dial's day; without a horizon,
-  one line says what can't be timed and how to add the time.
-- Life: four age cards with the reader's dates, the waves and a cycle card each, from `getTimelineLife`.
+- The page (routed by R16-30): Now and ahead, then Life (a two-way switch on a phone), the no-report line and Ask's launcher; without
+  access it replaces itself with `/timeline`; noindex like every app route.
+- Now and ahead: week, month or six months from `getTimelineNow` in the browser's zone; the dial (Mercury to Pluto, `framesFor`); the mix
+  bar, a contact card each, then what starts, peaks or eases; without a horizon, one line on what can't be timed and how to add the time.
+  Life: four age cards with the reader's dates, the waves, a cycle card each, from `getTimelineLife`.
 - `ReadingSheet` posts `openTimelineReading`, shows "Writing" with dots while it writes, then the reading and what it builds on; a test
   fails any date or degree on either screen that the API did not send (acceptance 1).
 
 ### R16-28 — Ask in the corner: the launcher and the chat (INTERNAL)
 Tier: opus — a new flow
-Objective: Ask one tap away, its answers shown as the same computed cards Timeline shows.
+Objective: Ask one tap away for a reader with Timeline, its answers shown as the same computed cards, and what's left always in view.
 Files: new `web/src/components/ask/AskLauncher.tsx`, `AskPanel.tsx`, `AskCards.tsx`; new `web/src/lib/ask-view.ts` (+ test).
-Refs: Timeline's Ask; ADR-172, 213; readings 13 to 16; R16-07's `AskMark` and pieces; pinned shapes; the artifact's chat.
+Refs: Timeline's Ask; ADR-172, 213, 263; readings 13 to 16; R16-07's `AskMark` and pieces; pinned shapes; the artifact's chat.
 Done when:
-- Bottom right, the mark opening the panel; it takes text (at most 500 characters) or a tapped choice, shows "Writing" with dots, then
-  text and cards: a day (contact cards and the Moon's sign), a window (day cells), a cycle (`CycleCard`), a quote (the report's
-  evidence look), a person's day.
-- What's left shows only at 10 or fewer; at the cap, its line and date; the harm reply as given; focus moves into the panel and back
-  to the launcher; Escape closes; 390 px first; `ask-view.ts` tested.
+- Bottom right, the mark opening the panel, rendered only with access; it takes text (at most 500 characters) or a tapped choice, shows
+  "Writing" with dots, then text and cards: a day (contact cards and the Moon's sign), a window (day cells), a cycle (`CycleCard`), a
+  quote (the report's evidence look), a person's day.
+- "N left this month" always under the box (ADR-263); at the cap, its line and date; the harm reply as given; focus moves into the
+  panel and back to the launcher; Escape closes; 390 px first; `ask-view.ts` tested.
 
 ---
 
-## Group D — the routes and the app's wiring; one triad row for everyone
+## Group D — the routes, the Account page and the dashboard; one triad row for everyone
 
-### R16-29 — The routes, their limits, and home's week (INTERNAL)
-Tier: opus — routes that spend and read personal data, behind the switch
-Objective: the Timeline and Ask routes behind `requireTimeline`, limited and capped, and `GET /home` carrying an entitled reader's week.
+### R16-29 — The routes, their limits, the access answer, and home's week or teaser (INTERNAL)
+Tier: opus — routes that spend and read personal data, behind the access check
+Objective: the Timeline and Ask routes behind `requireTimelineAccess`, limited and capped, and `GET /home` carrying the week or the teaser.
 Files: new `api/src/routes/timeline.ts`, `api/src/routes/ask.ts`; `api/src/routes/index.ts`, `routes/home.ts`, `routes/reports.ts`
 (its DELETE only); `api/src/lib/limits.ts` (+ test), `api/src/lib/home.ts` (+ test).
-Refs: pinned contract and shapes; ADR-199, 201, 211, 213, 215; R-7.5; acceptance 9; MB-191; readings 2 to 4, 7.
+Refs: pinned contract and shapes; ADR-199, 201, 211, 212, 213, 262, 263; R-7.5; MB-191, MB-197; readings 2, 3, 7, 13, 26.
 Done when:
-- `/timeline/*` and `/ask` mount behind `requireTimeline`; now and life answer 409 `no_personal_report` without one; the six-month
-  range calls `queueReadings`; both POSTs sit behind the spend gate (503 and its line) and per-user limits (`ask` 6 a minute,
-  `timelineReading` 20 a minute, each with a line); no route logs what the reader typed.
-- `GET /home` adds `week` only when entitled with a chart, else leaves it out; deleting one's own Personal report calls
-  `forgetTimeline`; `home.test.ts` and `limits.test.ts` cover both.
+- `GET /timeline/access` answers every signed-in reader (401 signed out) with access, source, a Personal report or not, and Ask's
+  count; now, life, readings and `/ask` sit behind `requireTimelineAccess` (403 `no_timeline`), now and life answering 409
+  `no_personal_report` without one; the six-month range calls `queueReadings`; both POSTs behind the spend gate (503) and per-user
+  limits (`ask` 6 a minute, `timelineReading` 20 a minute, each with a line); no route logs what the reader typed.
+- `GET /home` adds `week` with access and a chart, `teaser` without access for a reader with their own finished Personal report (never
+  on an empty dashboard), and neither otherwise; deleting one's own Personal report calls `forgetTimeline`; tests cover each case.
 
-### R16-30 — The Timeline page in the app, and its doors (INTERNAL)
-Tier: opus — a new page and its routing, behind the switch
-Objective: Timeline as one page, reached from Your week and the account menu, with Ask on the reader's reports.
-Files: new `web/src/pages/TimelineAppPage.tsx`; `web/src/App.tsx`, `web/src/components/AccountMenu.tsx`, `web/src/pages/ReportPage.tsx`,
+### R16-30 — The Account page, and the app's doors to Timeline (USER-FACING)
+Tier: opus — a new page every signed-in reader can open, with the routes and the menu
+Objective: an Account page that holds Timeline (ADR-263), and the doors: the menu, both routes, Ask on reports, the admin's prompt tabs.
+Files: new `web/src/pages/AccountPage.tsx`; `web/src/App.tsx`, `web/src/components/AccountMenu.tsx`, `web/src/pages/ReportPage.tsx`,
 `CompatibilityReportPage.tsx`, `AdminPromptsPage.tsx`; `web/src/lib/page-title.ts` (+ test).
-Refs: Timeline's Where it is sold ("Timeline is one page"); ADR-211, 213, 215; acceptance 9; readings 1 to 3; pinned shapes; `/web-taste`.
+Refs: ADR-211, 213, 255, 262, 263, 264; readings 1, 3, 13, 28; pinned shapes; `/ux-copy`, `/web-taste`.
 Done when:
-- `/dashboard/timeline` shows Now and ahead, then Life (a two-way switch on a phone), the no-report line and Ask's launcher; for anyone
-  not entitled it is the app's 404; noindex like every app route; the tab says Timeline.
-- The account menu shows Timeline only when entitled; `AskLauncher` sits on every report page an entitled reader opens, with that
-  report's id; the admin's prompts page shows the Timeline and Ask tabs.
-- With `TIMELINE` off, a signed-in non-admin's browser makes one state call (404) and a signed-out one none; neither renders any of it.
+- `/dashboard/account`, from the menu's Account for every signed-in reader, reads `getTimelineAccess`: with access, the plan line and
+  "N of 50 Ask messages used this month" with the reset date; without, one line and a link to `/timeline`, no price; no Cancel Timeline
+  or Manage payment until billing builds them (reading 28); noindex; tab titles for both new pages.
+- App routes `/dashboard/timeline` (R16-27's page) and `/dashboard/account`; the menu shows Timeline only with access; `AskLauncher` on
+  every report page a reader with access opens, with that report's id; the admin's prompts page shows the Timeline and Ask tabs.
+- A signed-out visitor makes no Timeline call; a signed-in reader without access sees no Timeline door, only Account.
 
-### R16-31 — Your week, after Your circle (INTERNAL)
-Tier: opus — a new dashboard section
-Objective: a subscriber's week on their dashboard, R12's dashboard otherwise as it is.
-Files: new `web/src/components/dashboard/YourWeek.tsx`; new `web/src/lib/week-view.ts` (+ test); `web/src/pages/DashboardPage.tsx`.
-Refs: Timeline's Where it is sold (Your week); ADR-207, 211; §9 (two tempos); reading 26; pinned shapes; the artifact's dashboard.
+### R16-31 — Your week for a subscriber, the teaser for everyone else (USER-FACING)
+Tier: opus — two new dashboard sections, one of them for every reader
+Objective: a subscriber's week after Your circle; for everyone else, the Timeline ideation's teaser at the end, pointing to `/timeline`.
+Files: new `web/src/components/dashboard/YourWeek.tsx`, `TimelineTeaser.tsx`; new `web/src/lib/week-view.ts`, `teaser-view.ts` (+ tests);
+`web/src/pages/DashboardPage.tsx`; `web/src/lib/processors.ts` (+ test).
+Refs: Timeline's Where it is sold (Your week), Free and paid (the dashboard invitation); ADR-207, 211, 212, 255, 262; §9; reading 26;
+pinned shapes; the artifact's dashboard and invitation.
 Done when:
-- Only when `home.week` is present, between Your circle and What you're practising: the dial with Week · Month · 6 months (the longer
-  two from `getTimelineNow`) and Play (the planets move, nothing else does; Back to today), the headline, `DayCells`, what's on you,
-  Open Timeline; Ask's launcher on the dashboard when entitled.
-- Without `week` the dashboard renders as before, in the same order; the why card waits for Timeline's sale; `week-view.ts` tested.
+- With `home.week`, between Your circle and What you're practising: the dial with Week · Month · 6 months (the longer two from
+  `getTimelineNow`) and Play (only the planets move; Back to today), the headline, `DayCells`, what's on you, Open Timeline; Ask's
+  launcher on the dashboard.
+- With `home.teaser`, last after the stories: "Your life's big cycles", the Saturn `AgeRing` with its age, the four cycles soonest first
+  ("Your next big cycle is at 37") as compact `CycleCard`s, a link to `/timeline` and Not now, no price; Not now as reading 26, its key
+  in `BROWSER_KEYS`.
+- With neither, the dashboard renders as before, in the same order; `week-view.ts` and `teaser-view.ts` tested (Not now's return).
 
 ### R16-32 — One triad row, and At a glance under your name (USER-FACING)
 Tier: opus — a shared row every surface will print, and a change inside the circle's geometry
@@ -713,13 +754,14 @@ Done when:
 
 ### R16-34 — The walk: Timeline on a scratch Postgres (INTERNAL)
 Tier: sonnet — tests on their own
-Objective: the switch, the reader's own chart, readings once, and Ask's cap and access, end to end with no network.
+Objective: access, the reader's own chart, the teaser, readings once, and Ask's cap and access, end to end with no network.
 Files: new `api/src/walk/timeline.walk.ts`; `api/package.json` (`walk` runs it).
-Refs: Timeline acceptance 3, 9, 10; MB-191; R10-22's walk; R16-29's routes.
-Done when: against `WALK_DATABASE_URL` after `db:bootstrap`, the model stubbed: a non-admin gets 404 on every Timeline and Ask route
-and no `home.week`; the admin with `APP_ENV=staging` gets 200s, and 409 without a Personal report; two opens write one reading; the
-51st message of a month answers 429 `ask_cap`; `quote` refuses an unshared report and reads a shared one; deleting the Personal
-report takes the readings and the thread. The orchestrator pastes the summary into the round report.
+Refs: Timeline acceptance 3, 10; ADR-262, 263; MB-191, MB-197; R10-22's walk; R16-29's routes.
+Done when: against `WALK_DATABASE_URL` after `db:bootstrap`, the model stubbed: a reader with a Personal report and no access gets 403
+`no_timeline` on every Timeline and Ask route, `home.teaser` and no `home.week`; an empty dashboard gets no teaser; the admin gets 200s,
+`home.week` and no teaser, and 409 without a Personal report; `GET /timeline/access` answers both; two opens write one reading; the 51st
+message of a month answers 429 `ask_cap` and the count says 0 left; `quote` refuses an unshared report and reads a shared one; deleting
+the Personal report takes the readings and the thread. The orchestrator pastes the summary into the round report.
 
 ---
 
@@ -732,93 +774,93 @@ report takes the readings and the thread. The orchestrator pastes the summary in
 3. **The dry lab** against r06, free: every natal and pair prompt carries the writer's rule, every schema strict; the new check's base
    counts over r06 printed; every timeline and Ask prompt rendered for every natal fixture; injection clean in all four families.
 4. **The tester** after groups A to D (logic in `packages/engine`, `api/src/lib`, `web/src/lib`, `web/src/site/lib`); **the sentinel**
-   on the round's diff before the PR, its eye on Ask (each tool's access, quotes and names as data, nothing typed in a log, limits and
-   the cap keyed on the signed-in user, rows bounded by the cap, spend recorded per call), on every closed route's 404, and on the
-   Release's sample branch writing Mira's week.
+   on the round's diff before the PR, its eye on the access check (one source, the admin, no other way in), on Ask (each tool's access,
+   quotes and names as data, nothing typed in a log, limits and the cap keyed on the signed-in user, rows bounded by the cap, spend
+   recorded per call), on every 403, and on the Release's sample branch writing Mira's week.
 5. **After the merge, before any Release:** dispatch `report-lab.yml`'s natal and pair campaigns against staging (a few cents) and
    compare the new check's counts with r06's: they fall, and no check that blocks fires more often than before (page acceptance 10).
-   Nothing else generates; Timeline's first readings and answers are written on staging by the admin. The Lab's Timeline spot comes
-   before the Release that turns `TIMELINE` on (Timeline acceptance 8).
+   Nothing else generates; Timeline's first readings and answers are written on staging by the admin. The fixture spot for readings
+   comes before Timeline opens to subscribers (MB-198).
 
 ## Staging confirmation, after the merge (the Owner's look)
 1. `/timeline`: the dial and Play on Mira's chart, the five things, the finder with your own birth date, what you get with "Coming
    soon", the questions. From home, the line after Prices; in the footer, Timeline.
 2. The four sentences and the simple-words lines (the close's before and after list); chapter 08 reads "Strengths, Habits & Where You
-   Can Grow".
-3. A new report on staging reads in simple words (the spot's counts sit in the round report).
-4. One triad row in the quick look, both report heroes and /sample (the Rising "· 1st (self)"); "At a glance ›" opens your quick look;
+   Can Grow"; a new report reads in simple words (the spot's counts sit in the round report).
+3. One triad row in the quick look, both report heroes and /sample (the Rising "· 1st (self)"); "At a glance ›" opens your quick look;
    the 1st house card names your chart ruler.
-5. As anyone but the admin: no Timeline in the app. As the admin, with your own Personal report: the account menu's Timeline (Now and
-   ahead, Life, a reading on tap), Ask from the dashboard and a report, and Your week after Your circle.
+4. As a reader without Timeline (a test account with its own Personal report): the teaser at the end of the dashboard, and Not now
+   hides it; Account says you don't have Timeline and links to `/timeline`; `/dashboard/timeline` takes you to `/timeline`.
+5. As the admin, with your own Personal report: the menu's Timeline (Now and ahead, Life, a reading on tap), Ask from the dashboard and
+   a report with "N left this month", Your week after Your circle, and Account's "N of 50 used this month".
 
 ## Production after the round
-Nothing until a Release. At the next one, production gets the Timeline page with its home line, footer link and four sentences, every
+Nothing until a Release. At the next one, everyone gets the Timeline page with its home line, footer link and four sentences, every
 simple-words line, the report's new words (the writer's rule, after the spot), one triad row, At a glance and the ruler's move.
-Timeline itself stays off: `TIMELINE` is false and the admin sees nothing of it on production. The brain changed, so that Release runs
-the full lab.
+Production's app stays behind the waitlist until launch (ADR-167), so there only the admin has Timeline, the teaser and the Account
+page, and nothing is sold (ADR-262, 264). The brain changed, so that Release runs the full lab.
 
 ## Risks
-1. **Schema** (R-7.3): two new tables, two kind unions widened with no DDL, one bootstrap step after R15's; tested on the upgrade path
-   and on an empty database (R16-19).
+1. **Schema** (R-7.3): two new tables, two kind unions widened with no DDL, one bootstrap step after R15's; no subscriptions table
+   (reading 3); tested on the upgrade path and on an empty database (R16-19).
 2. **The brain, three ways**: four engine files and the shared plain words (no natal chart changes; `CHART_VERSION` stays 4); the
    writer's rule, which changes every new report's words (USER-FACING, R-5.5; prompt versions bump; R15's brain pass changed the same
-   files first); two prompt families and two model jobs. A section the rule pushes below its band is handled by ADR-231's MB-129 rule
-   at the Release.
-3. **New generated text, seen only by the admin**: readings and Ask's answers; no fixture generation in the session; the first are
-   written on staging and every check that fires is logged.
-4. **Words without a locked line**: about 54 headlines, Mira's sample words, Ask's harm, off-topic, fallback and cap lines, the
-   ruler's line, and the audited lines R15 rewrote. Each passes `/ux-copy`; the close lists them, before and after, for the Owner.
-5. **USER-FACING on production at the next Release**: R16-01 to 17, 32 and 33. Everything else stays behind `TIMELINE`.
-6. **Security**: Ask is the product's first free-text chat with tools over reports; the sentinel reads each tool's access
+   files first); two prompt families and two model jobs. A section the rule pushes below its band is handled by ADR-231's MB-129 rule.
+3. **Access** (ADR-262): one check with one source, the admin; a wrong answer would open a paid product, so the sentinel reads it and
+   the walk proves both paths; billing adds its source through MB-197.
+4. **Timeline reaches production's app at the next Release**, for the admin only, before its fixture spot (MB-198); readings and Ask
+   spend there under the daily cap, and every check that fires is logged.
+5. **Words without a locked line**: about 54 headlines, Mira's sample words, Ask's harm, off-topic, fallback and cap lines, the teaser's
+   link and Not now, the Account page's lines, the ruler's line, and the audited lines R15 rewrote. Each passes `/ux-copy`; the close
+   lists them, before and after, for the Owner.
+6. **USER-FACING at the next Release**: R16-01 to 17 and 30 to 33 (on production the app parts only for the admin until launch).
+7. **Security**: Ask is the product's first free-text chat with tools over reports; the sentinel reads each tool's access
    (acceptance 10, R15's `shared` grant included), names and quotes as data, no typed text in a log, limits and the cap keyed on the
-   signed-in user (R13-08's lesson), rows bounded by the cap (R13-10's), spend recorded per call (R13-09's), every closed route's 404.
-7. **Privacy** (R-3.5): Ask keeps what the reader types for 31 days (MB-191); no new processor; Mira is synthetic and marked.
-8. **Accuracy claims**: "to the hour" holds for the pinned hits and birth dates, away from stations; the finder shows month and year
+   signed-in user (R13-08's lesson), rows bounded by the cap (R13-10's), spend recorded per call (R13-09's).
+8. **Privacy** (R-3.5): Ask keeps what the reader types for 31 days (MB-191); one new browser key, listed on the privacy page; no new
+   processor; Mira is synthetic and marked.
+9. **Accuracy claims**: "to the hour" holds for the pinned hits and birth dates, away from stations; the finder shows month and year
    from a date at midday and its fine print says so; tones on Mira's examples rest on MB-188's default until the Owner answers.
-9. **The Release path**: R16-05 makes each Release's sample branch move Mira's week; it may never fail a release (R15's rule), and the
-   sentinel reads it.
 10. **R15 first.** R15 rewrites many files this round edits (Round start 3's list, and the site files the audit names); its shapes are
-    re-read against `main` before any builder starts.
+    re-read against `main` before any builder starts. The Release path: R16-05 makes each Release's sample branch move Mira's week,
+    never failing a release.
 11. **Size**: thirty-four cards, thirteen in group A and ten in B; the shrink path is in Parallel groups.
 12. **Deployments**: Vercel's 100 a day (ADR-234); one push per group and one per fix.
 13. **Escalations**: none in R13 or R14 (R15's report is not out yet), so no card or kind of card was escalated twice running.
 
 ## Questions raised (Notion, 2026-10-03)
-- **No new row.** Kept and brought up to date: **MB-188** (decision, launch) the tone table, now shown on `/timeline` through Mira's
-  examples; default as recommended in `tone.ts` (R16-02). **MB-189** (decision, later) Chiron stays out. **MB-190** (decision, launch)
-  readings on gpt-6-luna and Ask on gpt-5.2, in `models.ts` (R16-22). **MB-191** (decision, launch) what Ask keeps (R16-24, 25, 29).
-  **MB-192** parked: pricing is not planned until the Owner starts it (ADR-230, 242).
-- **Touched:** MB-125 (held by this plan, answered for Timeline's path by `longitudeAt`, the sky screen's rewind untouched); MB-22;
-  MB-104 and 103 (decided by ADR-235, 236 and built in R15; Ask reads R15's grant); R15's MB-177, 178, 185 and 196 shape the dial's
-  focus ring, Timeline's dates and the finder's field.
+- **Raised today:** **MB-197** (todo, launch) Timeline access has one source in R16, the admin, and billing adds the subscription source;
+  default: as built, `// MB-197 provisional` in `timelineAccess.ts` (R16-18). **MB-198** (todo, launch) the fixture spot for readings
+  (Timeline acceptance 8) before Timeline opens to subscribers; default: built before then, R16's Release carrying Timeline for the admin.
+- **Kept:** **MB-188** (decision, launch) the tone table, shown on `/timeline` through Mira's examples (R16-02). **MB-189** (decision,
+  later) Chiron stays out. **MB-190** (decision, launch) readings on gpt-6-luna, Ask on gpt-5.2 (R16-22). **MB-191** (decision, launch)
+  what Ask keeps (R16-24, 25, 29). **MB-192** parked with pricing.
+- **Touched:** MB-125 (held by this plan, answered for Timeline's path by `longitudeAt`); MB-22; MB-104 and 103 (ADR-235, 236, built in
+  R15; Ask reads R15's grant); R15's MB-177, 178, 185 and 196 shape the dial's focus ring, Timeline's dates and the finder's field.
 
 ## For the Owner (three asks, highest stakes first)
-Approving this plan queues R16 behind R15, the cleanup round (ADR-242).
+Approving this plan queues R16 behind R15, the cleanup round (ADR-242). Nothing in it takes a payment (ADR-264).
 1. **The tone table (MB-188).** Every Timeline card is coloured easy, mixed or intense, the spec never wrote the table, and Mira's
    examples on `/timeline` will show it in public. Recommendation: every trine easy; Jupiter's conjunction easy, its square and
    opposition mixed; Neptune's and Mars's conjunctions mixed; every other conjunction, square or opposition intense; retrogrades mixed;
    a close eclipse intense. If silent: built that way.
 2. **What Ask keeps (MB-191).** Ask stores what you type, and the spec doesn't say for how long. Recommendation: 31 days, then gone; a
    card about someone else keeps only who and which day and shows only while you can still read them; deleting your Personal report
-   deletes your Ask thread and readings. If silent: built that way; the privacy page says so when Timeline is sold.
+   deletes your Ask thread and readings. If silent: built that way; the privacy page says so with Timeline's billing.
 3. **The models (MB-190).** Recommendation: readings on gpt-6-luna, like every report section after the plan; Ask on gpt-5.2, as the
-   spec priced it (about €1.50 a reader at the cap). If silent: built that way; the lab compares both before Timeline's Release.
+   spec priced it (about €1.50 a reader at the cap). If silent: built that way; the lab compares both before Timeline opens (MB-198).
 
-## Proposed R17 — Timeline, part two: how it is sold and kept
-Waits for pricing, which is not planned until the Owner starts it (ADR-230, 242); R17 is planned at its own /plan after that. What the
-locked Timeline spec still holds after R16: the subscription and its billing, Start Timeline on `/timeline` and the end-of-report offer
-with its free first question, the dashboard invitation, the why card and Ask's pair offer, share cards per life cycle (under ADR-235),
-the weekly letter, the Lab's Timeline spot and the loop study's measure, and the Release that turns `TIMELINE` on and amends MASTERFILE
-§1, §2's exclusions, R-5.2 and R-6.1 (ADR-205, 206).
+## Billing
+Timeline's billing waits for pricing and is built with the rest of Stripe checkout when the Owner starts it (ADR-264).
 
 ## Close (the orchestrator)
-MB-188, 190 and 191 built at their defaults with their seams tagged; MB-189 open; MB-192 parked; MB-125 as above. MASTERFILE (after
-0.26): §3 gains `timeline_readings` and `ask_messages`; R-5.6 names the two jobs (MB-190 provisional); §4 says Timeline's sky comes
-from `transits.ts` and `cycles.ts` with no horizon (ADR-208, 251); §1, §2's exclusions, R-5.2 and R-6.1 wait for Timeline's Release.
-INDEX: both specs' lines mark what R16 built; the audit marked built; the code map gains `transits.ts`, `doctrine.ts`, `tone.ts`,
-`cycles.ts`, `plainWords.ts`, Mira's week, the dial and the pieces, `site/pages/TimelinePage.tsx` with its sections and the finder,
-`TimelineLine`, `prompts/timeline/`, `prompts/ask/`, `timeline.ts`, `timelineReadings.ts`, `ask.ts`, `timelineGate.ts`, routes
-`timeline.ts` and `ask.ts`, `NowAhead`, `Life`, `ReadingSheet`, the Ask panel, `TimelineAppPage`, `YourWeek` and `TriadRow`. CLAUDE.md's
-focus: R16 shipped, Timeline behind `TIMELINE`; the page waits for a Release. A Mailbox row lists R16's new words before and after for
-the Owner's look; `lessons.md` takes each failure's cause; `/qa` on staging, then the URL, the QA report and Staging confirmation's
-five lines go to the Owner.
+MB-188, 190, 191 and 197 built at their defaults with their seams tagged; MB-189 and 198 open; MB-192 parked; MB-125 as above.
+MASTERFILE and INDEX are the coordinator's for this plan; at the round's close the orchestrator records in them what R16 built: §3's two
+tables, R-5.6's two jobs (MB-190 provisional), §4's sky from `transits.ts` and `cycles.ts` with no horizon (ADR-208, 251), access as one
+check (ADR-262), the Account page (ADR-263), and the code map (`transits.ts`, `doctrine.ts`, `tone.ts`, `cycles.ts`, `plainWords.ts`,
+Mira's week, the dial and the pieces, `site/pages/TimelinePage.tsx` with its sections and the finder, `TimelineLine`,
+`prompts/timeline/`, `prompts/ask/`, `timeline.ts`, `timelineAccess.ts`, `timelineReadings.ts`, `ask.ts`, routes `timeline.ts` and
+`ask.ts`, `TimelineAppPage`, `NowAhead`, `Life`, `ReadingSheet`, the Ask panel, `AccountPage`, `YourWeek`, `TimelineTeaser`,
+`TriadRow`); §1, §2's exclusions, R-5.2 and R-6.1 wait until Timeline is sold. CLAUDE.md's focus: R16 shipped. A Mailbox row lists
+R16's new words before and after for the Owner's look; `lessons.md` takes each failure's cause; `/qa` on staging, then the URL, the QA
+report and Staging confirmation's five lines go to the Owner.
