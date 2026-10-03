@@ -110,3 +110,24 @@ describe("where to find it", () => {
     expect(hintFor("Brazil")).toEqual(ELSEWHERE);
   });
 });
+
+describe("the readout's clock at noon and midnight (MB-178)", () => {
+  it("noon is 12 pm, never midnight, and a minute either side of it keeps its own half", () => {
+    expect(risingReadout(fact({ holdsFrom: "11:59", holdsTo: "12:00" }), 12)).toBe("Capricorn · holds from 11:59 am to 12 pm");
+    expect(risingReadout(fact({ holdsFrom: "12:00", holdsTo: "12:01" }), 12)).toBe("Capricorn · holds from 12 pm to 12:01 pm");
+    expect(risingReadout(fact({ holdsFrom: "00:01", holdsTo: "23:59" }), 12)).toBe("Capricorn · holds from 12:01 am to 11:59 pm");
+  });
+
+  it("a flip at either edge of the day reads midnight on the 12-hour clock and stays as stored on the 24-hour one", () => {
+    const edges = fact({ holds: false, values: ["Pisces", "Aries", "Taurus"], flipsAt: ["00:00", "24:00"] });
+    expect(risingReadout(edges, 12)).toBe("3 possible: Pisces, Aries, Taurus · flips at midnight, midnight");
+    expect(risingReadout(edges, 24)).toBe("3 possible: Pisces, Aries, Taurus · flips at 00:00, 24:00");
+    expect(risingReadout(edges)).toBe(risingReadout(edges, 24));
+  });
+
+  it("every status's line carries the 12-hour run when asked for it", () => {
+    for (const status of ["known", "approximate"] as const) {
+      expect(readout(horizon(status, fact({})), 12).line, status).toContain("11:12 am");
+    }
+  });
+});

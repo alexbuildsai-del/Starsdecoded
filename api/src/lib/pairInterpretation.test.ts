@@ -400,3 +400,15 @@ test("a name the writer wrote back reaches the next prompt as A or B: the founda
     assert.equal(stored.claims[0].quote, `${typed} comes in late and says nothing.`, `${where}: the quote copied from the masked prose quotes the prose as stored`);
   }
 });
+
+// BUG R15-04, left failing for the card's builder: the foundation reaches every chapter as JSON, where a paragraph break
+// is written `\n`, and a name opening the paragraph after it is never lettered (ADR-240, MB-152, sentinel S8).
+test("BUG R15-04: a name that opens a paragraph of the foundation reaches a chapter's prompt as A or B", async () => {
+  const { assemblePairUser } = await import("./pairInterpretation.js");
+  const brief = buildPairBrief(input());
+  const foundation = { ...(pairReplies(brief).pair_foundation as object), pairThesis: "Trust comes first.\n\nMarie Curie and Oprah Winfrey build it through talk." };
+  const user = assemblePairUser("Write the chapter.", brief, pairSectionById("partners02")!, foundation as never);
+  const shown = outsideDataBlocks(user.slice(user.indexOf("FOUNDATION (internal")));
+  assert.match(shown, /"pairThesis": "Trust comes first\.\\n\\nA and B build it through talk\."/);
+  assert.doesNotMatch(shown, /Marie|Oprah/);
+});

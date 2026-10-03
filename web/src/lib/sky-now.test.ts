@@ -36,3 +36,17 @@ describe("the words around the live wheel", () => {
     expect(tiltToAscendant({})).toBe(0);
   });
 });
+
+describe("the live wheel's minute on a 12-hour clock at the day's edges (MB-178)", () => {
+  it("noon is 12 pm, a minute past midnight is 12:01 am, a minute before it 11:59 pm, the date the city's own", () => {
+    expect(clockLine(new Date("2026-09-26T10:00:00Z"), "Europe/Brussels", 12)).toBe("26 SEP 2026 · 12 pm");
+    expect(clockLine(new Date("2026-09-26T22:01:00Z"), "Europe/Brussels", 12)).toBe("27 SEP 2026 · 12:01 am");
+    expect(clockLine(new Date("2026-09-26T21:59:00Z"), "Europe/Brussels", 12)).toBe("26 SEP 2026 · 11:59 pm");
+    expect(clockLine(new Date("2026-09-26T22:01:00Z"), "Europe/Brussels", 24)).toBe("27 SEP 2026 · 00:01");
+  });
+
+  it("24-hour unless told, as the prerender draws it", () => {
+    const at = new Date("2026-09-26T18:04:00Z");
+    expect(clockLine(at, "Europe/Brussels")).toBe(clockLine(at, "Europe/Brussels", 24));
+  });
+});

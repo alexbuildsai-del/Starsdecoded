@@ -250,3 +250,36 @@ test("/sample's skips and failures are a line in forward's detail, never a faile
 
   for (const done of [noToken, same, none, refused, unmoved]) assert.ok(!JSON.stringify(done).includes(token), "the token is in no record");
 });
+
+test("production's move is on the record before /sample's push starts, so a push that hangs or a restart never hides it", async () => {
+  const d = deps({ token: "tok" });
+  const seen: Array<{ status: string; forward: Step }> = [];
+  d.github.commitFile = async (input) => {
+    const row = (await d.store.get(input.branch.replace(/^sample\//, "")))!;
+    seen.push({ status: row.status, forward: { ...stepOf(row, "forward") } });
+    return "c0ffee";
+  };
+  const done = await startRelease(d, { wait: true });
+  assert.equal(seen.length, 1, "one push");
+  assert.equal(seen[0].status, "forwarded");
+  assert.equal(seen[0].forward.status, "passed");
+  assert.equal(seen[0].forward.detail, "production fast-forwarded to abcdef1");
+  assert.equal(d.forwarded.length, 1);
+  assert.equal(done.status, "forwarded");
+});
+
+test("a failed lab, a red gate or a QA sev-1 pushes no /sample run and never reaches the token", async () => {
+  for (const over of [{ qaStatus: "fail" as const }, { lab: (async () => { throw new Error("lab broke"); }) as ReleaseDeps["lab"] }]) {
+    const d = deps({ token: "tok", ...over });
+    const done = await startRelease(d, { wait: true });
+    assert.equal(done.status, "failed");
+    assert.equal(d.pushed.length, 0);
+    assert.equal(d.forwarded.length, 0);
+  }
+  const gated = deps({ token: "tok" });
+  const red = await startRelease(gated, { wait: true, seedFault: true });
+  assert.equal(red.status, "failed");
+  assert.equal(stepOf(red, "gate").status, "failed");
+  assert.equal(gated.pushed.length, 0);
+  assert.equal(gated.forwarded.length, 0);
+});

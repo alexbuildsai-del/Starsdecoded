@@ -127,3 +127,28 @@ test("the panel judges every writer against gpt-5.2 by name and names the writer
     assert.deepEqual([m.input, m.cachedInput, m.output, m.reasoningEffort, m.flex], [p.input, p.cachedInput, p.output, p.reasoningEffort, p.flex], `${m.id} is listed at its catalogue price`);
   }
 });
+
+test("the sample row goes in the same insert as her section rows, so a store that fails keeps neither, and a chart that fails keeps none", async () => {
+  const batches: InsertLabRun[][] = [];
+  const s = { insert: async (r: InsertLabRun[]) => { batches.push(r); }, numbers: async () => [], sampleOutput: async () => null };
+  await runReleaseLab({ label: "release-abc", withPair: false, engine: { natal: async () => curie, pair: async () => ({}) }, store: s, charts: [SAMPLE_CHART] });
+  assert.equal(batches.length, 1);
+  assert.deepEqual(batches[0].filter((r) => r.section === "sample").map((r) => r.runKey), ["sample:release-abc"]);
+
+  const failing = store();
+  const out = await runReleaseLab({
+    label: "release-abc", withPair: false, store: failing, charts: [SAMPLE_CHART, "marie-curie"],
+    engine: { natal: async (_chart, name) => { if (name === "Audrey Hepburn") throw new Error("model down"); return curie; }, pair: async () => ({}) },
+  });
+  assert.deepEqual(out.failed.map((f) => f.fixture), [SAMPLE_CHART]);
+  assert.equal(failing.rows.filter((r) => r.section === "sample").length, 0, "no run, no sample row");
+  assert.ok(failing.rows.length > 0, "the next chart still lands");
+});
+
+test("the sample's run key is its own, never a fixture's, so the gate's and the QA reader's keys never reach it", () => {
+  for (const label of ["release-abc", "r06"]) {
+    const key = sampleRunKey(label);
+    for (const fixture of MATRIX_CHARTS) assert.notEqual(key, `${fixture}.${label}`);
+    assert.ok(!key.includes("."), "no fixture.label shape");
+  }
+});

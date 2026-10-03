@@ -551,3 +551,29 @@ test("adding the hour reads the stored foundation and prose with the name in a b
     assert.equal(amended.result.counts.mind.amended, 1);
   }
 });
+
+// BUG R15-04, left failing for the card's builder: the foundation reaches every section prompt as JSON, where a paragraph
+// break is written `\n`, and a name opening the paragraph after it is never masked (ADR-240, MB-152, sentinel S8).
+test("BUG R15-04: a name that opens a paragraph of the foundation reaches no section prompt outside a data block", async () => {
+  const saved = REPLIES.natal_foundation;
+  try {
+    for (const name of INJECTED) {
+      prompts.length = 0;
+      REPLIES.natal_foundation = { ...(saved as object), chartThesis: `Depth over display.\n\n${dataValue(name)} works in depth.` };
+      await generateInterpretation(blindCurie(), name);
+      const sections = prompts.filter((p) => p.name !== "natal_foundation");
+      assert.ok(sections.length > 0);
+      for (const p of sections) assert.equal(leftOut(p.user, name), null, `${name.slice(0, 24)}: ${p.name}`);
+    }
+  } finally {
+    REPLIES.natal_foundation = saved;
+  }
+});
+
+test("BUG R15-04: YOUR LAST REPLY, the model's JSON, keeps a name that opens a paragraph in a block", async () => {
+  const { retryTail } = await import("./aiInterpretation.js");
+  for (const name of INJECTED) {
+    const reply = JSON.stringify({ howYouThink: `You plan first.\n\n${dataValue(name)} tests an idea before saying it.`, claims: [] });
+    assert.equal(leftOut(retryTail(["claims: a quote is not in the prose"], reply, { name }), name), null, name.slice(0, 24));
+  }
+});

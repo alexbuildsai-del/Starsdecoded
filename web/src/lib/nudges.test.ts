@@ -73,3 +73,19 @@ describe("nudgeFor", () => {
     expect(nudgeFor({})).toBeNull();
   });
 });
+
+describe("the nudges that left with MB-136", () => {
+  it("a card that once fired a pair, share-a-person or share-a-pair row says nothing now", () => {
+    const old = [
+      { finishedPerson: { reportId: "r1", name: "Mamca" } },
+      { finishedPair: { reportId: "p1", names: ["Mamca", "Thibault"] } },
+      { sharePerson: true, sharePair: true, credits: 3 },
+    ] as unknown as NudgeCard[];
+    for (const card of old) expect(nudgeFor(card)).toBeNull();
+  });
+
+  it("the module keeps no note of what was seen: it exports the picker alone", async () => {
+    const mod = await import("./nudges");
+    expect(Object.keys(mod).sort()).toEqual(["nudgeFor"]);
+  });
+});

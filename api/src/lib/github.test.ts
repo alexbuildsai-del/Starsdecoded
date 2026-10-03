@@ -112,3 +112,71 @@ test("changedFiles: a list at GitHub's cap, or none at all, is unknown, not brai
   const unlisted = (async () => new Response(JSON.stringify({ status: "ahead" }), { status: 200 })) as unknown as typeof fetch;
   assert.equal(await githubApi(unlisted).changedFiles("abc", "def"), null);
 });
+
+test("a release's own branch is accepted at its edges: one character, a release id, letters in either case", async () => {
+  for (const branch of ["sample/a", "sample/0", "sample/R15-final", SAMPLE_BRANCH]) {
+    const { calls, fetcher } = gitData();
+    assert.equal(await githubApi(fetcher).commitFile({ branch, parent: "def", path: SAMPLE_PATH, content: "{}", message: "m" }, "tok"), "commit-3", branch);
+    assert.deepEqual(calls.at(-1)!.body, { ref: `refs/heads/${branch}`, sha: "commit-3" });
+  }
+  for (const path of ["web/src/site/data/sample/a.json", "web/src/site/data/sample/audrey-hepburn.r1.json"]) {
+    const { fetcher } = gitData();
+    assert.equal(await githubApi(fetcher).commitFile({ branch: SAMPLE_BRANCH, parent: "def", path, content: "{}", message: "m" }, "tok"), "commit-3", path);
+  }
+});
+
+test("a ref or a path that only ends like an allowed one is refused: a trailing line break, an underscore, an encoded dot, a second json", async () => {
+  let sent = 0;
+  const api = githubApi((async () => { sent += 1; return Response.json({ sha: "x" }); }) as unknown as typeof fetch);
+  for (const branch of [`${SAMPLE_BRANCH}\n`, "sample/x\nmain", "sample/x_y", "sample/%2e%2e", "sample/x:main", "sample/x~1", "SAMPLE/x", "", " sample/x"]) {
+    await assert.rejects(() => api.commitFile({ branch, parent: "def", path: SAMPLE_PATH, content: "{}", message: "m" }, "tok"), /^Error: refused to write refs\/heads\//, JSON.stringify(branch));
+  }
+  for (const path of [`${SAMPLE_PATH}\n`, "web/src/site/data/sample/x.json.ts", "web/src/site/data/sample/x.JSON", "web/src/site/data/sample/.json", "web/src/site/data/sample/%2e%2e.json", "web/src/site/data/sample/x y.json", "web/src/site/data/sample/x.json/y.json", "web/src/site/data/samples/x.json"]) {
+    await assert.rejects(() => api.commitFile({ branch: SAMPLE_BRANCH, parent: "def", path, content: "{}", message: "m" }, "tok"), /^Error: refused to write /, JSON.stringify(path));
+  }
+  assert.equal(sent, 0, "a refusal sends nothing, the token included");
+});
+
+test("a branch that exists already is GitHub's 422 on the ref, never moved: no PATCH and no force are ever sent", async () => {
+  const { calls, fetcher: base } = gitData();
+  const fetcher = (async (url: string, init?: RequestInit) => (/git\/refs$/.test(url) ? new Response("Reference already exists", { status: 422 }) : base(url, init))) as unknown as typeof fetch;
+  await assert.rejects(
+    () => githubApi(fetcher).commitFile({ branch: SAMPLE_BRANCH, parent: "def", path: SAMPLE_PATH, content: "{}", message: "m" }, "tok"),
+    new RegExp(`^Error: GitHub 422 creating ${SAMPLE_BRANCH}: Reference already exists$`),
+  );
+  assert.ok(calls.every((c) => c.method !== "PATCH"));
+  assert.ok(calls.every((c) => !JSON.stringify(c.body ?? null).includes("force")));
+});
+
+test("an answer with no sha stops the write before the next request, and no ref is made from a missing object", async () => {
+  for (const [step, path] of [["reading def", "git/commits/def"], ["writing the tree", "git/trees"], ["writing the commit", "git/commits"], [`writing ${SAMPLE_PATH}`, "git/blobs"]] as const) {
+    const { calls, fetcher: base } = gitData();
+    const fetcher = (async (url: string, init?: RequestInit) => (url.endsWith(`/${path}`) ? (calls.push({ method: init?.method ?? "GET", path, body: undefined, authorization: undefined }), Response.json({}, { status: 201 })) : base(url, init))) as unknown as typeof fetch;
+    await assert.rejects(
+      () => githubApi(fetcher).commitFile({ branch: SAMPLE_BRANCH, parent: "def", path: SAMPLE_PATH, content: "{}", message: "m" }, "tok"),
+      new RegExp(`^Error: GitHub answered with no sha ${step.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}$`),
+      step,
+    );
+    assert.ok(!calls.some((c) => c.method === "POST" && c.path === "git/refs"), `${step}: no ref`);
+  }
+});
+
+test("the token is cut from an echo however long the answer, before the 200-character cut, and from a non-Error the network throws", async () => {
+  const token = "github_pat_11ABCDEFG0123456789_secret";
+  const long = (async () => new Response(`${"x".repeat(180)}${token}${token}`, { status: 500 })) as unknown as typeof fetch;
+  const thrown = (async () => { throw `socket hang up with ${token}`; }) as unknown as typeof fetch;
+  for (const fetcher of [long, thrown]) {
+    const err = await githubApi(fetcher).fastForward("production", "def", token).then(() => null, (e: unknown) => e);
+    assert.ok(err instanceof Error);
+    assert.ok(!err.message.includes(token), err.message);
+    assert.ok(!err.message.includes(token.slice(0, 20)), "not even the token's head survives the cut");
+  }
+});
+
+test("the public reads send no token and name the status they failed on", async () => {
+  const seen: Array<RequestInit | undefined> = [];
+  const fetcher = (async (_url: string, init?: RequestInit) => { seen.push(init); return new Response("", { status: 503 }); }) as unknown as typeof fetch;
+  await assert.rejects(() => githubApi(fetcher).branchHead("production"), /^Error: GitHub 503 reading production$/);
+  await assert.rejects(() => githubApi(fetcher).changedFiles("abc", "def"), /^Error: GitHub 503 comparing abc\.\.\.def$/);
+  assert.ok(seen.every((init) => !("authorization" in ((init?.headers as Record<string, string>) ?? {}))));
+});
