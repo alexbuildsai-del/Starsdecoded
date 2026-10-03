@@ -27,6 +27,8 @@ export async function openWheels() {
     configFile: path.join(WEB, "vite.config.ts"), root: WEB, logLevel: "error", appType: "custom",
     server: { middlewareMode: true, hmr: false, fs: { allow: [REPO] } },
     optimizeDeps: { noDiscovery: true, include: [] },
+    // R11-09 inlines every SSR import (noExternal); React stays external so its CommonJS loads through Node.
+    ssr: { external: ["react", "react-dom"] },
   });
   // React comes from web/node_modules through Node, the same copy the component's own import resolves to.
   const React = requireWeb("react");
