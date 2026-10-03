@@ -21,10 +21,14 @@ import { refusalLine } from "@/lib/refusals";
 
 const TIME_ID = "birthTime";
 
-/** Whether the element was there to take focus, so a caller can fall through to the next. */
+/**
+ * Whether the element was there to take focus, so a caller can fall through to the next. Focus arrives mid-typing, so a
+ * value already in the field is selected and the next keys replace it (QA-02 #2).
+ */
 function focusById(id: string): true | undefined {
   const el = document.getElementById(id);
   el?.focus();
+  if (el instanceof HTMLInputElement) el.select();
   return el ? true : undefined;
 }
 

@@ -54,7 +54,7 @@ Promoted into `builder.md`: grep every caller before changing a shared export, p
 redaction by key depth, unnamed transitive packages, "next control" read as DOM order.
 
 ## Mailbox
-Built at their defaults (done, seams tagged): MB-124, 126, 150, 157 to 160, 163, 165, 166; MB-161 waits for the staging run; MB-91's two
-seams and MB-93's band seam gone. Raised MB-168 to 176: the secret's length in the three dashboards, regenerate after Stop sharing,
-more reports than an hour's writes, the triad plate's Sun near the Moon, unused `ui/` files, "0300p", the middleware without
-`@vercel/functions`, R14's words, undici in the dev tree.
+Built at their defaults (done, seams tagged): MB-124, 126, 150, 157 to 160, 163, 165, 166; on staging MB-161 (no element leads), 167 and
+168 (`edge: true`) done; MB-91's two seams and MB-93's band seam gone. Raised MB-169 to 176 (regenerate after Stop sharing, an hour's
+writes, the triad plate's Sun, unused `ui/` files, "0300p", the middleware's package, R14's words, undici); QA-02 raised MB-177 to 186,
+its #2 fixed in PR #100; MB-187 Vercel's 100 deployments a day.

@@ -30,6 +30,7 @@ ADR-195). Lines, not a diary: at most 60 lines.
 - R14 · R14-01 · a card said "nothing else enters" while the new dependency brought 17 transitive packages no plan line named (sentinel S1) · - · -
 - R14 · R14-12 · focus after a whole time went to the dialog's Not now, so a stray Enter closed it; "the next control" read as DOM order, not the next step · - · -
 - R14 · R14-14 · the gate type-checked the edge middleware with its own tsconfig while Vercel used the root one, so the preview failed on fetch types · - · -
+- R14 · orchestrator · about thirty pushes in one day spent Vercel's free 100 deployments, so the QA fix's preview could not build; batch pushes, one per group and one per fix · - · -
 - R13 · R13-01 · a container restart killed a builder before its commit (also the planner, twice); work on disk survived · - · -
 
 ## Promoted
