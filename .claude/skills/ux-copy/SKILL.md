@@ -28,6 +28,10 @@ Every string is:
 4. **Clear.** Plain words at a grade 7 to 8 reading level, specific verbs, one name
    per thing (`product.ts`), and every number from code (R-6.3).
 
+**Simple words, everywhere** is the Owner's standing rule over all four (2026-10-03;
+the before and after table opens `voice-chart.md`): everyday words, one idea per
+sentence, no drama. A line that sounds deep gets rewritten until it sounds normal.
+
 ## Voice and tone
 
 The voice never changes: **exact, plain, warm and honest** (`voice-chart.md`, with

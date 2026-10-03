@@ -46,7 +46,8 @@ code should supply them.
 - Body text meets AA contrast; focus is visible; every control works by keyboard.
 - Each section has one job and one focal point; cut what doesn't help the reader
   understand or act.
-- The words pass `ux-copy`.
+- The words pass `ux-copy`, simple words first (the Owner, 2026-10-03): everyday words,
+  one idea per sentence, no drama, on every label, caption and mock.
 
 A review answers with the problems first, most visible first, each with its fix and
 the rule it breaks.
