@@ -216,7 +216,7 @@ export const GetHomeResponse = zod.object({
   "superpower": zod.string(),
   "growingEdge": zod.string()
 }).nullable().describe('Chapter 08\'s superpower and growing edge, each its title and first sentence, on `you` only; null elsewhere and until chapter 08 is written (ADR-174).\n')
-}).describe('One person in the reader\'s circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).')).describe('The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, each with its latest readable report (ADR-182).\n'),
+}).describe('One person in the reader\'s circle, with what their quick look and row show, read from the stored chart and report (ADR-174, ADR-182).')).describe('The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, and each sharer whose own Personal report they read through a grant, seated as `shared` until that sharer stops sharing; each with its latest readable report (ADR-182, ADR-235).\n'),
   "pairs": zod.array(zod.object({
   "reportId": zod.string(),
   "lens": zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),
@@ -230,14 +230,14 @@ export const GetHomeResponse = zod.object({
   "name": zod.string()
 }).describe('The report\'s person B (ADR-174).'),
   "status": zod.enum(['pending', 'computing', 'interpreting', 'revising', 'complete', 'failed']),
-  "stoppedBy": zod.string().nullable().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).'),
+  "stoppedBy": zod.string().nullable().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).'),
   "strong": zod.array(zod.string()).describe('What comes naturally to the pair, chapter 01\'s strong lines; empty until chapter 01 is written (ADR-174).'),
   "challenge": zod.string().nullable().describe('The one challenge to work on; null until the report has it (ADR-174).'),
   "story": zod.object({
   "headline": zod.string(),
   "strengths": zod.array(zod.string())
 }).nullable().describe('The 9:16 story\'s text, chapter 01\'s headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).')
-}).describe('One Compatibility report on the reader\'s list, with what its pair block and story show (ADR-174, ADR-175).')).describe('The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional).'),
+}).describe('One Compatibility report on the reader\'s list, with what its pair block and story show (ADR-174, ADR-175).')).describe('The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, ADR-236).'),
   "practising": zod.array(zod.object({
   "reportId": zod.string(),
   "kind": zod.enum(['natal', 'compatibility']),
@@ -246,7 +246,7 @@ export const GetHomeResponse = zod.object({
   "why": zod.string().nullable(),
   "pinned": zod.boolean().describe('False on the Closing\'s first Practice item, offered with none pinned (ADR-174).'),
   "ticked": zod.boolean().describe('Ticked in the same workbook; a tick is silent and a box unticks (ADR-24, ADR-48).')
-}).describe('One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing\'s first Practice item with none pinned; pins and ticks sit in the report\'s one workbook, shared by everyone who reads it (ADR-174, MB-110 provisional).\n')).describe('What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing\'s first Practice item (ADR-174).\n')
+}).describe('One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing\'s first Practice item with none pinned; pins and ticks sit in the reader\'s own workbook on that report, which no other reader sees (ADR-174, ADR-239).\n')).describe('What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing\'s first Practice item (ADR-174).\n')
 }).describe('The dashboard\'s one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).')
 
 
@@ -291,7 +291,7 @@ export const ListReportsResponseItem = zod.object({
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this row; null where it is not offered (ADR-120, ADR-133).'),
   "sharedBy": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).'),
-  "stoppedBy": zod.string().nullish().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).')
+  "stoppedBy": zod.string().nullish().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).')
 })
 export const ListReportsResponse = zod.array(ListReportsResponseItem)
 
@@ -353,7 +353,7 @@ export const CreateReportResponse = zod.object({
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this row; null where it is not offered (ADR-120, ADR-133).'),
   "sharedBy": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).'),
-  "stoppedBy": zod.string().nullish().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).')
+  "stoppedBy": zod.string().nullish().describe('On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).')
 })
 
 
@@ -376,7 +376,7 @@ export const GetReportResponse = zod.object({
   "timezoneOffset": zod.number(),
   "timezone": zod.string().nullish(),
   "birthTimeWindowMinutes": zod.number().int(),
-  "profileId": zod.string().nullish().describe('The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.'),
+  "profileId": zod.string().nullish().describe('The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report, and for a reader through a share grant, who changes nothing of the sharer\'s, so the page offers them no birth time pass (ADR-235).'),
   "type": zod.enum(['natal', 'compatibility']),
   "lens": zod.union([zod.enum(['partners', 'parent_child', 'people']).describe('The lens (ADR-40, ADR-68). `people` carries family, friends or colleagues in the label.'),zod.null()]).optional(),
   "participants": zod.array(zod.object({
@@ -1503,7 +1503,7 @@ export const GetReportResponse = zod.object({
 
 
 /**
- * Deletes a report the viewer owns. The profile behind a natal report is deleted too when no other report or relationship references it. A compatibility report is deleted through the relationship's access roles.
+ * Deletes a report the viewer owns. The profile behind a natal report is deleted too when no other report or relationship references it. A compatibility report is deleted through the relationship's access roles. Deleting the viewer's own Personal report ends their sharing of it in the same transaction, its grants and waiting share links revoked as Stop sharing revokes them (ADR-235).
  * @summary Delete a report
  */
 export const DeleteReportParams = zod.object({
@@ -1529,6 +1529,8 @@ export const GetReportStatusResponse = zod.object({
   "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
   "line": zod.string().describe('The plain line the customer reads.')
 }).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
+  "canRegenerate": zod.boolean().optional().describe('The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last.'),
+  "outdated": zod.boolean().optional().describe('A complete natal report written for another birth time or horizon than its profile\'s now, which Regenerate rewrites free (MB-170). Sent as on Report.'),
   "chartReady": zod.boolean().describe('The chart is stored, so the report page can open on the hero and the explorer.'),
   "provisional": zod.object({
   "bodies": zod.record(zod.string(), zod.object({
@@ -2381,20 +2383,20 @@ export const GetReportStatusResponse = zod.object({
 
 
 /**
- * Shallow-merges the patch into the report's workbook, the reader's own record of which actions they have taken. A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. The viewer must own the report. A pin key pins its item to What you're practising the same way, three pins a report at most (ADR-174, MB-110 provisional).
+ * Shallow-merges the patch into the viewer's own workbook on the report, their record of which actions they have taken. Every reader of the report, its writer, the person it was sent to or a reader through a grant, keeps their own ticks and pins, and no one else's show (ADR-239). A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. A pin key pins its item to What you're practising the same way, three pins a workbook at most (ADR-174, ADR-239).
  * @summary Tick or untick workbook items on a report
  */
 export const UpdateReportWorkbookParams = zod.object({
   "id": zod.coerce.string()
 })
 
-export const UpdateReportWorkbookBody = zod.record(zod.string(), zod.string().nullable()).describe('A shallow merge onto the report\'s workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter\'s id does in "partners02.nextTime.items.0" (ADR-24). A pin key is "pin." and an item key, "pin.focus.practice.bullets.0", valued by the ISO date of the pin and cleared by null; at most three pins stand on a report, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, MB-110 provisional).\n')
+export const UpdateReportWorkbookBody = zod.record(zod.string(), zod.string().nullable()).describe('A shallow merge onto the viewer\'s own workbook on the report (ADR-239). A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter\'s id does in "partners02.nextTime.items.0" (ADR-24). A pin key is "pin." and an item key, "pin.focus.practice.bullets.0", valued by the ISO date of the pin and cleared by null; at most three pins stand in a reader\'s workbook, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, ADR-239).\n')
 
 export const UpdateReportWorkbookResponse = zod.record(zod.string(), zod.string()).describe('The reader\'s ticked items on a report, keyed by item, valued by the ISO date of the tick. A pin sits beside the ticks under "pin." and its item key, valued by the ISO date it was pinned (ADR-174).')
 
 
 /**
- * Re-runs interpretation on the stored chart. Used for reports generated before the current prompt version. Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
+ * Re-runs interpretation on the stored chart, free, for whoever may rewrite the report, as `canRegenerate` says (MB-169), and only where a rewrite is wanted: a failed report (Try again, MB-137), an outdated one (MB-170), or one written on an earlier prompt version. Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
  * @summary Regenerate a report's interpretation
  */
 export const RegenerateReportParams = zod.object({
@@ -2560,7 +2562,7 @@ export const HandBackProfileResponse = zod.object({
 
 
 /**
- * Owner only. Stores the new time and window on the profile, recomputes its chart, and runs a horizon pass on every complete report of the profile: the previous text is kept in report_revisions, the horizon sections are generated and the rest is amended by quote match, never regenerated (ADR-35). The first pass is free (MB-52).
+ * Its owner, or whoever claimed it as their own, only. Stores the new time and window on the profile, recomputes its chart, and runs a horizon pass on the newest complete Personal report of the profile: the previous text is kept in report_revisions, the horizon sections are generated and the rest is amended by quote match, never regenerated (ADR-35). Its older complete reports keep their text and read as outdated, which Regenerate rewrites free (MB-170). The first pass is free (MB-52).
  * @summary Add or correct the birth time and run the horizon pass
  */
 export const UpdateProfileBirthTimeParams = zod.object({
@@ -2575,7 +2577,7 @@ export const UpdateProfileBirthTimeBody = zod.object({
 export const UpdateProfileBirthTimeResponse = zod.object({
   "profileId": zod.string(),
   "horizon": zod.enum(['known', 'approximate', 'unknown']),
-  "reportIds": zod.array(zod.string()).describe('The reports a pass has started on.')
+  "reportIds": zod.array(zod.string()).describe('The report a pass has started on: the profile\'s newest complete Personal report, or none when it has none, the time draws no horizon, or the report is written for this time already (MB-170).')
 })
 
 
@@ -2681,7 +2683,7 @@ export const GetCompatibilitySummaryResponse = zod.object({
 
 
 /**
- * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82). MB-103 provisional.
+ * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236).
  * @summary Send a compatibility report to the other of its two people
  */
 export const SendCompatibilityParams = zod.object({
@@ -2690,7 +2692,7 @@ export const SendCompatibilityParams = zod.object({
 
 export const SendCompatibilityBody = zod.object({
   "email": zod.string().email().optional()
-}).describe('The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; MB-103 provisional).')
+}).describe('The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; ADR-236).')
 
 export const SendCompatibilityResponse = zod.object({
   "state": zod.enum(['invited', 'granted']),
@@ -2704,11 +2706,11 @@ export const SendCompatibilityResponse = zod.object({
   "claimUrl": zod.string(),
   "emailDelivered": zod.boolean()
 }),zod.null()]).describe('The invite sent; null when access was granted at once.')
-}).describe('How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; MB-103 provisional).')
+}).describe('How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; ADR-236).')
 
 
 /**
- * The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, MB-103 provisional).
+ * The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, ADR-236).
  * @summary Stop sharing a compatibility report its sender sent
  */
 export const StopSharingCompatibilityParams = zod.object({
@@ -3186,7 +3188,7 @@ export const TakeBackGiftResponse = zod.void()
  */
 export const ListSharesResponseItem = zod.object({
   "id": zod.string(),
-  "email": zod.string(),
+  "email": zod.string().describe('The address the link went to; empty for a share made by Share yours back, which goes to no address, so the sharer is never given the reader\'s (R-3.6).'),
   "readerName": zod.string().nullable().describe('The reader\'s first name once they claim it; null while the link waits (ADR-235).'),
   "state": zod.enum(['waiting', 'active']).describe('waiting until the link is claimed; active while the grant reads (ADR-235).'),
   "sentAt": zod.string().describe('ISO-8601 timestamp when the share went out')
@@ -3221,7 +3223,7 @@ export const ShareBackBody = zod.object({
 
 export const ShareBackResponse = zod.object({
   "id": zod.string(),
-  "email": zod.string(),
+  "email": zod.string().describe('The address the link went to; empty for a share made by Share yours back, which goes to no address, so the sharer is never given the reader\'s (R-3.6).'),
   "readerName": zod.string().nullable().describe('The reader\'s first name once they claim it; null while the link waits (ADR-235).'),
   "state": zod.enum(['waiting', 'active']).describe('waiting until the link is claimed; active while the grant reads (ADR-235).'),
   "sentAt": zod.string().describe('ISO-8601 timestamp when the share went out')

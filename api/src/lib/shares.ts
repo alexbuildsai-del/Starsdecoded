@@ -6,7 +6,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
-import { db, inviteTokensTable, profileSharesTable, profilesTable, reportsTable, usersTable } from "@workspace/db";
+import { db, inviteTokensTable, profileSharesTable, profilesTable, reportsTable } from "@workspace/db";
 import { canReadProfile, isSelfFor, type ProfileHolders, type Viewer } from "./access.js";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -25,7 +25,10 @@ export type ShareRow = {
   id: string;
   profileId: string;
   state: "waiting" | "active";
-  /** The address the link went to; Share yours back sends none, so the reader's address on file, else empty. */
+  /**
+   * The address the link went to. Empty for a grant made without one, as Share yours back makes it: the reader's own
+   * address on file was never given to its sharer (R-3.6).
+   */
   email: string;
   /** Null while the link waits. */
   readerUserId: string | null;
@@ -162,13 +165,11 @@ export async function sharesOf(ownerUserId: string): Promise<ShareRow[]> {
         createdAt: profileSharesTable.createdAt,
         linkEmail: inviteTokensTable.email,
         linkSentAt: inviteTokensTable.createdAt,
-        readerEmail: usersTable.email,
         chart: chartColumns,
       })
       .from(profileSharesTable)
       .innerJoin(profilesTable, eq(profileSharesTable.profileId, profilesTable.id))
       .leftJoin(inviteTokensTable, eq(profileSharesTable.inviteId, inviteTokensTable.id))
-      .leftJoin(usersTable, eq(profileSharesTable.readerUserId, usersTable.id))
       .where(and(eq(profileSharesTable.ownerUserId, ownerUserId), isNull(profileSharesTable.revokedAt))),
     db
       .select({
@@ -201,7 +202,7 @@ export async function sharesOf(ownerUserId: string): Promise<ShareRow[]> {
       id: g.id,
       profileId: g.chart.id,
       state: "active",
-      email: g.linkEmail ?? g.readerEmail ?? "",
+      email: g.linkEmail ?? "",
       readerUserId: g.readerUserId,
       sentAt: g.linkSentAt ?? g.createdAt,
     }));

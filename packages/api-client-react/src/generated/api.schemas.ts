@@ -194,7 +194,7 @@ export interface CreateReportBody {
 }
 
 /**
- * The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs MB-103 provisional), shared reads its subject's own Personal report through their grant (ADR-235).
+ * The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs ADR-236), shared reads its subject's own Personal report through their grant (ADR-235).
  */
 export type Access = typeof Access[keyof typeof Access];
 
@@ -374,7 +374,7 @@ export interface ReportSummary {
      */
   sharedBy?: string | null;
   /**
-     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).
      * @nullable
      */
   stoppedBy?: string | null;
@@ -952,6 +952,10 @@ export interface ReportStatus {
      */
   errorMessage?: string | null;
   failureReason?: FailureReason | null;
+  /** The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last. */
+  canRegenerate?: boolean;
+  /** A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170). Sent as on Report. */
+  outdated?: boolean;
   /** The chart is stored, so the report page can open on the hero and the explorer. */
   chartReady: boolean;
   /**
@@ -1053,7 +1057,7 @@ export const BirthTimeUpdateResponseHorizon = {
 export interface BirthTimeUpdateResponse {
   profileId: string;
   horizon: BirthTimeUpdateResponseHorizon;
-  /** The reports a pass has started on. */
+  /** The report a pass has started on: the profile's newest complete Personal report, or none when it has none, the time draws no horizon, or the report is written for this time already (MB-170). */
   reportIds: string[];
 }
 
@@ -1149,7 +1153,7 @@ export interface ChartData {
 export interface Workbook {[key: string]: string}
 
 /**
- * A shallow merge onto the report's workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter's id does in "partners02.nextTime.items.0" (ADR-24). A pin key is "pin." and an item key, "pin.focus.practice.bullets.0", valued by the ISO date of the pin and cleared by null; at most three pins stand on a report, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, MB-110 provisional).
+ * A shallow merge onto the viewer's own workbook on the report (ADR-239). A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter's id does in "partners02.nextTime.items.0" (ADR-24). A pin key is "pin." and an item key, "pin.focus.practice.bullets.0", valued by the ISO date of the pin and cleared by null; at most three pins stand in a reader's workbook, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, ADR-239).
  */
 export interface WorkbookPatch {[key: string]: string | null}
 
@@ -1321,7 +1325,7 @@ export interface HomePair {
   b: HomePairB;
   status: HomePairStatus;
   /**
-     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).
      * @nullable
      */
   stoppedBy: string | null;
@@ -1348,7 +1352,7 @@ export const HomePracticeKind = {
 } as const;
 
 /**
- * One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing's first Practice item with none pinned; pins and ticks sit in the report's one workbook, shared by everyone who reads it (ADR-174, MB-110 provisional).
+ * One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing's first Practice item with none pinned; pins and ticks sit in the reader's own workbook on that report, which no other reader sees (ADR-174, ADR-239).
  */
 export interface HomePractice {
   reportId: string;
@@ -1372,9 +1376,9 @@ export interface Home {
   you: HomePerson | null;
   /** More than one chart is marked as the reader's own, so `you` stays null until they settle which (ADR-120, ADR-174). */
   several: boolean;
-  /** The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, each with its latest readable report (ADR-182). */
+  /** The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, and each sharer whose own Personal report they read through a grant, seated as `shared` until that sharer stops sharing; each with its latest readable report (ADR-182, ADR-235). */
   people: HomePerson[];
-  /** The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional). */
+  /** The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, ADR-236). */
   pairs: HomePair[];
   /** What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing's first Practice item (ADR-174). */
   practising: HomePractice[];
@@ -1439,7 +1443,7 @@ export interface Report {
   timezone?: string | null;
   birthTimeWindowMinutes: number;
   /**
-     * The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.
+     * The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report, and for a reader through a share grant, who changes nothing of the sharer's, so the page offers them no birth time pass (ADR-235).
      * @nullable
      */
   profileId?: string | null;
@@ -1707,7 +1711,7 @@ export interface CompatibilitySummary {
 }
 
 /**
- * The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; MB-103 provisional).
+ * The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; ADR-236).
  */
 export interface SendCompatibilityBody {
   email?: string;
@@ -1734,7 +1738,7 @@ export interface InviteSummary {
 }
 
 /**
- * How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; MB-103 provisional).
+ * How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; ADR-236).
  */
 export interface PairSendResult {
   state: PairSendResultState;
@@ -2150,6 +2154,7 @@ export const ShareState = {
  */
 export interface Share {
   id: string;
+  /** The address the link went to; empty for a share made by Share yours back, which goes to no address, so the sharer is never given the reader's (R-3.6). */
   email: string;
   /**
      * The reader's first name once they claim it; null while the link waits (ADR-235).

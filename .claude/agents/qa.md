@@ -34,8 +34,8 @@ Play each persona end to end:
 
 In a cloud session (ADR-233, QA-02): drive the preinstalled Chromium by `executablePath` through `HTTPS_PROXY`, the proxy's CA
 pinned by SPKI (`--ignore-certificate-errors-spki-list`) for that browser alone, certificate checks on, no system or NSS trust
-changed. Nominatim and timeapi.io are denied there: stub them with `page.route`, from a fixture's real place and zone, and say
-so in the report.
+changed. The browser reaches neither Nominatim nor timeapi.io now (ADR-246): where a step needs a place, stub `/api/geocode`
+with `page.route`, from a fixture's real place and zone, and say so in the report.
 
 Write `docs/qa/QA-NN.md` (at most 80 lines): numbered findings only, each with
 severity (sev-1 wrong or blocking, sev-2 degraded, sev-3 polish), the persona,

@@ -1,8 +1,9 @@
 /**
  * The share grant (ADR-235). Whether a grant stands is pure and runs here
- * with no database. Its writes and reads, and the pair picker and summary that
- * read through it, run on a scratch Postgres when WALK_DATABASE_URL names a
- * bootstrapped one (the walk's own variable), and skip, saying why, without it.
+ * with no database. Its writes and reads, the pair picker and summary that
+ * read through it, and Share yours back's route, run on a scratch Postgres when
+ * WALK_DATABASE_URL names a bootstrapped one (the walk's own variable), and
+ * skip, saying why, without it.
  */
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -239,10 +240,11 @@ test("list: each waiting link and each grant that stands, a claimed link once as
   const back = await grantTo(GEORGE);
 
   const rows = await sharesOf(BEA.userId as string);
+  // A grant made with no link, as Share yours back makes it, carries no address: its sharer was never given George's (R-3.6).
   assert.deepEqual(rows.map((r) => [r.id, r.state, r.email, r.readerUserId, r.profileId]), [
     [waiting, "waiting", `${CHARLES.userId}@example.com`, null, P.bea],
     [fromLink, "active", "william.windsor@example.com", WILL.userId, P.bea],
-    [back, "active", `${GEORGE.userId}@example.com`, GEORGE.userId, P.bea],
+    [back, "active", "", GEORGE.userId, P.bea],
   ]);
   assert.equal(rows[1].sentAt.getTime(), (await linkRow(claimed)).createdAt.getTime());
   assert.deepEqual(await sharesOf(WILL.userId as string), []);
@@ -302,10 +304,19 @@ test("share back: never to a sharer who wrote the reader's chart and reads it al
   assert.equal(await shareBackOffered(GEORGE.userId as string, P.bea), false);
 });
 
-/** The compatibility routes as app.ts mounts them, the session and Clerk middleware stood in by the viewer. */
-async function asViewer(viewer: Viewer, method: "GET" | "POST", path: string, body?: unknown) {
+type Answered = {
+  error?: string;
+  participants?: Array<{ name: string }>;
+  email?: string;
+  readerName?: string | null;
+  state?: string;
+};
+
+/** The compatibility and share routes as app.ts mounts them, the session and Clerk middleware stood in by the viewer. */
+async function asViewer<Body = Answered>(viewer: Viewer, method: "GET" | "POST", path: string, body?: unknown) {
   const { default: express } = await import("express");
   const { default: compatibility } = await import("../routes/compatibility.js");
+  const { default: shares } = await import("../routes/shares.js");
   const { logger } = await import("./logger.js");
   const app = express();
   app.use(express.json());
@@ -316,6 +327,7 @@ async function asViewer(viewer: Viewer, method: "GET" | "POST", path: string, bo
     next();
   });
   app.use(compatibility);
+  app.use(shares);
   const server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.on("listening", () => resolve()));
   try {
@@ -324,11 +336,22 @@ async function asViewer(viewer: Viewer, method: "GET" | "POST", path: string, bo
       headers: { "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    return { status: res.status, body: (await res.json()) as { error?: string; participants?: Array<{ name: string }> } };
+    return { status: res.status, body: (await res.json()) as Body };
   } finally {
     server.close();
   }
 }
+
+test("share back through the route: the share it answers, and the sharer's list, name the reader and never their address (R-3.6)", { skip: NO_DB }, async () => {
+  await fresh();
+  await grantTo(WILL);
+  const back = await asViewer(WILL, "POST", "/shares/back", { profileId: P.bea });
+  assert.equal(back.status, 201);
+  assert.deepEqual([back.body.email, back.body.readerName, back.body.state], ["", "Beatrice", "active"]);
+  const listed = await asViewer<Answered[]>(WILL, "GET", "/shares");
+  assert.equal(listed.status, 200);
+  assert.deepEqual(listed.body.map((s) => [s.email, s.readerName, s.state]), [["", "Beatrice", "active"]]);
+});
 
 test("picker: a chart shared with the reader is theirs to pair while the grant stands; revoked or absent, it is not", { skip: NO_DB }, async () => {
   await fresh();

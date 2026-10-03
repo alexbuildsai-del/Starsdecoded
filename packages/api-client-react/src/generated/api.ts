@@ -695,7 +695,7 @@ export const getDeleteReportUrl = (id: string,) => {
 }
 
 /**
- * Deletes a report the viewer owns. The profile behind a natal report is deleted too when no other report or relationship references it. A compatibility report is deleted through the relationship's access roles.
+ * Deletes a report the viewer owns. The profile behind a natal report is deleted too when no other report or relationship references it. A compatibility report is deleted through the relationship's access roles. Deleting the viewer's own Personal report ends their sharing of it in the same transaction, its grants and waiting share links revoked as Stop sharing revokes them (ADR-235).
  * @summary Delete a report
  */
 export const deleteReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
@@ -848,7 +848,7 @@ export const getUpdateReportWorkbookUrl = (id: string,) => {
 }
 
 /**
- * Shallow-merges the patch into the report's workbook, the reader's own record of which actions they have taken. A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. The viewer must own the report. A pin key pins its item to What you're practising the same way, three pins a report at most (ADR-174, MB-110 provisional).
+ * Shallow-merges the patch into the viewer's own workbook on the report, their record of which actions they have taken. Every reader of the report, its writer, the person it was sent to or a reader through a grant, keeps their own ticks and pins, and no one else's show (ADR-239). A string value is the ISO date of the tick, null removes the item. Returns the merged workbook. A pin key pins its item to What you're practising the same way, three pins a workbook at most (ADR-174, ADR-239).
  * @summary Tick or untick workbook items on a report
  */
 export const updateReportWorkbook = async (id: string,
@@ -938,7 +938,7 @@ export const getRegenerateReportUrl = (id: string,) => {
 }
 
 /**
- * Re-runs interpretation on the stored chart. Used for reports generated before the current prompt version. Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
+ * Re-runs interpretation on the stored chart, free, for whoever may rewrite the report, as `canRegenerate` says (MB-169), and only where a rewrite is wanted: a failed report (Try again, MB-137), an outdated one (MB-170), or one written on an earlier prompt version. Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
  * @summary Regenerate a report's interpretation
  */
 export const regenerateReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<RegenerateReport202> => {
@@ -1418,7 +1418,7 @@ export const getUpdateProfileBirthTimeUrl = (id: string,) => {
 }
 
 /**
- * Owner only. Stores the new time and window on the profile, recomputes its chart, and runs a horizon pass on every complete report of the profile: the previous text is kept in report_revisions, the horizon sections are generated and the rest is amended by quote match, never regenerated (ADR-35). The first pass is free (MB-52).
+ * Its owner, or whoever claimed it as their own, only. Stores the new time and window on the profile, recomputes its chart, and runs a horizon pass on the newest complete Personal report of the profile: the previous text is kept in report_revisions, the horizon sections are generated and the rest is amended by quote match, never regenerated (ADR-35). Its older complete reports keep their text and read as outdated, which Regenerate rewrites free (MB-170). The first pass is free (MB-52).
  * @summary Add or correct the birth time and run the horizon pass
  */
 export const updateProfileBirthTime = async (id: string,
@@ -1763,7 +1763,7 @@ export const getSendCompatibilityUrl = (id: string,) => {
 }
 
 /**
- * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82). MB-103 provisional.
+ * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236).
  * @summary Send a compatibility report to the other of its two people
  */
 export const sendCompatibility = async (id: string,
@@ -1853,7 +1853,7 @@ export const getStopSharingCompatibilityUrl = (id: string,) => {
 }
 
 /**
- * The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, MB-103 provisional).
+ * The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, ADR-236).
  * @summary Stop sharing a compatibility report its sender sent
  */
 export const stopSharingCompatibility = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {

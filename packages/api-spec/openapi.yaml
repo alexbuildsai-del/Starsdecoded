@@ -228,6 +228,9 @@ paths:
         Deletes a report the viewer owns. The profile behind a natal report is
         deleted too when no other report or relationship references it. A
         compatibility report is deleted through the relationship's access roles.
+        Deleting the viewer's own Personal report ends their sharing of it in
+        the same transaction, its grants and waiting share links revoked as Stop
+        sharing revokes them (ADR-235).
       parameters:
         - name: id
           in: path
@@ -276,12 +279,14 @@ paths:
       tags: [reports]
       summary: Tick or untick workbook items on a report
       description: >
-        Shallow-merges the patch into the report's workbook, the reader's own
-        record of which actions they have taken. A string value is the ISO date
-        of the tick, null removes the item. Returns the merged workbook. The
-        viewer must own the report. A pin key pins its item to What you're
-        practising the same way, three pins a report at most (ADR-174, MB-110
-        provisional).
+        Shallow-merges the patch into the viewer's own workbook on the report,
+        their record of which actions they have taken. Every reader of the
+        report, its writer, the person it was sent to or a reader through a
+        grant, keeps their own ticks and pins, and no one else's show (ADR-239).
+        A string value is the ISO date of the tick, null removes the item.
+        Returns the merged workbook. A pin key pins its item to What you're
+        practising the same way, three pins a workbook at most (ADR-174,
+        ADR-239).
       parameters:
         - name: id
           in: path
@@ -322,10 +327,12 @@ paths:
       tags: [reports]
       summary: Regenerate a report's interpretation
       description: >
-        Re-runs interpretation on the stored chart. Used for reports generated
-        before the current prompt version. Its 429 is the writing limit, or a
-        second regenerate of the same report within a minute, which sends
-        Retry-After but no `retryAfterSeconds` in its body.
+        Re-runs interpretation on the stored chart, free, for whoever may
+        rewrite the report, as `canRegenerate` says (MB-169), and only where a
+        rewrite is wanted: a failed report (Try again, MB-137), an outdated one
+        (MB-170), or one written on an earlier prompt version. Its 429 is the
+        writing limit, or a second regenerate of the same report within a
+        minute, which sends Retry-After but no `retryAfterSeconds` in its body.
       parameters:
         - name: id
           in: path
@@ -346,13 +353,17 @@ paths:
                     type: string
                 required: [id, status]
         "404":
-          description: Report not found
+          description: Report not found, or not a Personal report the viewer may regenerate (MB-169)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Report is already being generated
+          description: >
+            `in_progress`: the report is already being written. `up_to_date`:
+            a finished report on the current prompt version, written for its
+            profile's birth time, needs no rewrite ("This report is already up
+            to date"; MB-170).
           content:
             application/json:
               schema:
@@ -519,11 +530,13 @@ paths:
       tags: [profiles, horizon]
       summary: Add or correct the birth time and run the horizon pass
       description: >
-        Owner only. Stores the new time and window on the profile, recomputes
-        its chart, and runs a horizon pass on every complete report of the
-        profile: the previous text is kept in report_revisions, the horizon
-        sections are generated and the rest is amended by quote match, never
-        regenerated (ADR-35). The first pass is free (MB-52).
+        Its owner, or whoever claimed it as their own, only. Stores the new time
+        and window on the profile, recomputes its chart, and runs a horizon pass
+        on the newest complete Personal report of the profile: the previous text
+        is kept in report_revisions, the horizon sections are generated and the
+        rest is amended by quote match, never regenerated (ADR-35). Its older
+        complete reports keep their text and read as outdated, which Regenerate
+        rewrites free (MB-170). The first pass is free (MB-52).
       parameters:
         - name: id
           in: path
@@ -538,7 +551,7 @@ paths:
               $ref: "#/components/schemas/UpdateBirthTimeBody"
       responses:
         "202":
-          description: The pass has started on the listed reports
+          description: The pass has started on the listed report, or on none (MB-170)
           content:
             application/json:
               schema:
@@ -675,7 +688,7 @@ paths:
       description: >
         Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139):
         someone already on Stars Decoded reads it at once, anyone else is invited at `email`
-        (MB-82). MB-103 provisional.
+        (MB-82, ADR-236).
       parameters:
         - name: id
           in: path
@@ -721,7 +734,7 @@ paths:
       operationId: stopSharingCompatibility
       tags: [compatibility]
       summary: Stop sharing a compatibility report its sender sent
-      description: The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, MB-103 provisional).
+      description: The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, ADR-236).
       parameters:
         - name: id
           in: path
@@ -1744,7 +1757,7 @@ components:
         - timezoneOffset
 
     Access:
-      description: "The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs MB-103 provisional), shared reads its subject's own Personal report through their grant (ADR-235)."
+      description: "The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs ADR-236), shared reads its subject's own Personal report through their grant (ADR-235)."
       type: string
       enum: [owner, claimed, participant, shared]
 
@@ -1867,7 +1880,7 @@ components:
         stoppedBy:
           type: string
           nullable: true
-          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).
       required:
         - id
         - kind
@@ -1902,6 +1915,12 @@ components:
         failureReason:
           $ref: "#/components/schemas/FailureReason"
           nullable: true
+        canRegenerate:
+          type: boolean
+          description: The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last.
+        outdated:
+          type: boolean
+          description: A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170). Sent as on Report.
         chartReady:
           description: The chart is stored, so the report page can open on the hero and the explorer.
           type: boolean
@@ -2060,7 +2079,7 @@ components:
           enum: [known, approximate, unknown]
         reportIds:
           type: array
-          description: The reports a pass has started on.
+          description: "The report a pass has started on: the profile's newest complete Personal report, or none when it has none, the time draws no horizon, or the report is written for this time already (MB-170)."
           items:
             type: string
       required: [profileId, horizon, reportIds]
@@ -2309,15 +2328,16 @@ components:
 
     WorkbookPatch:
       description: >
-        A shallow merge onto the report's workbook. A string value is the ISO
-        date the reader ticked the item, null unticks it. A key is a section id,
+        A shallow merge onto the viewer's own workbook on the report
+        (ADR-239). A string value is the ISO date the reader ticked the item,
+        null unticks it. A key is a section id,
         a dot path and an index, for example "career.actions.0". Each segment
         before the index starts with a letter and may carry digits after it,
         as a pair chapter's id does in "partners02.nextTime.items.0" (ADR-24).
         A pin key is "pin." and an item key, "pin.focus.practice.bullets.0",
         valued by the ISO date of the pin and cleared by null; at most three
-        pins stand on a report, and a patch that would leave a fourth answers
-        400 pin_limit (ADR-174, MB-110 provisional).
+        pins stand in a reader's workbook, and a patch that would leave a fourth
+        answers 400 pin_limit (ADR-174, ADR-239).
       type: object
       minProperties: 1
       maxProperties: 200
@@ -2344,13 +2364,14 @@ components:
           type: array
           description: >
             The circle and the People list, the same people: every profile with a Personal report
-            the reader can read, written until its subject stops sharing or sent to them, each with
-            its latest readable report (ADR-182).
+            the reader can read, written until its subject stops sharing or sent to them, and each
+            sharer whose own Personal report they read through a grant, seated as `shared` until
+            that sharer stops sharing; each with its latest readable report (ADR-182, ADR-235).
           items:
             $ref: "#/components/schemas/HomePerson"
         pairs:
           type: array
-          description: The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional).
+          description: The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, ADR-236).
           items:
             $ref: "#/components/schemas/HomePair"
         practising:
@@ -2495,7 +2516,7 @@ components:
         stoppedBy:
           type: string
           nullable: true
-          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).
         strong:
           type: array
           description: What comes naturally to the pair, chapter 01's strong lines; empty until chapter 01 is written (ADR-174).
@@ -2523,8 +2544,8 @@ components:
       description: >
         One thing the reader is practising, an item pinned on their own Personal report or on a
         pair they are one of, or their Closing's first Practice item with none pinned; pins and
-        ticks sit in the report's one workbook, shared by everyone who reads it (ADR-174, MB-110
-        provisional).
+        ticks sit in the reader's own workbook on that report, which no other reader sees (ADR-174,
+        ADR-239).
       type: object
       properties:
         reportId:
@@ -3288,7 +3309,7 @@ components:
         profileId:
           type: string
           nullable: true
-          description: The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.
+          description: The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report, and for a reader through a share grant, who changes nothing of the sharer's, so the page offers them no birth time pass (ADR-235).
         type:
           type: string
           enum: [natal, compatibility]
@@ -3546,13 +3567,13 @@ components:
 
     SendCompatibilityBody:
       type: object
-      description: The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; MB-103 provisional).
+      description: The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; ADR-236).
       properties:
         email: { type: string, format: email }
 
     PairSendResult:
       type: object
-      description: How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; MB-103 provisional).
+      description: How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; ADR-236).
       properties:
         state:
           type: string
@@ -3928,7 +3949,9 @@ components:
       description: One person the viewer's own Personal report is shared with, as the sharer's quick look lists them (ADR-235).
       properties:
         id: { type: string }
-        email: { type: string }
+        email:
+          type: string
+          description: The address the link went to; empty for a share made by Share yours back, which goes to no address, so the sharer is never given the reader's (R-3.6).
         readerName:
           type: string
           nullable: true

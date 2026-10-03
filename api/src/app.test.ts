@@ -138,12 +138,15 @@ test("a malformed or over-limit body gets a JSON refusal and nothing of it reach
   const written: string[] = [];
   const { write: stderrWrite } = process.stderr;
   const { write: stdoutWrite } = process.stdout;
-  const capture = ((chunk: string | Uint8Array) => {
-    written.push(String(chunk));
-    return true;
-  }) as typeof process.stderr.write;
-  process.stderr.write = capture;
-  process.stdout.write = capture;
+  // Kept and passed on: the test runner sends the result of the test before this one down stdout, and a write swallowed
+  // here lost that result from the run's count.
+  const capture = (stream: NodeJS.WriteStream, write: typeof stream.write) =>
+    ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+      written.push(String(chunk));
+      return Reflect.apply(write, stream, [chunk, ...rest]);
+    }) as typeof stream.write;
+  process.stderr.write = capture(process.stderr, stderrWrite);
+  process.stdout.write = capture(process.stdout, stdoutWrite);
   t.after(() => {
     process.stderr.write = stderrWrite;
     process.stdout.write = stdoutWrite;
@@ -234,4 +237,55 @@ test("an unknown path under /api answers a JSON 404, after the routers and ahead
     assert.match(res.headers.get("content-type") ?? "", /application\/json/);
     assert.deepEqual(await res.json(), { error: "not_found" });
   }
+});
+
+test("a place search from a public page sets no cookie, still meets its limit by address, and answers before launch too", async (t) => {
+  const { base, close } = await serve();
+  t.after(close);
+  const { readFileSync } = await import("node:fs");
+  const { LIMITS } = await import("./lib/limits.js");
+  const audrey = JSON.parse(readFileSync(new URL("../../fixtures/charts/audrey-hepburn.json", import.meta.url), "utf8")) as {
+    latitude: number;
+    longitude: number;
+    timezone: string;
+  };
+  // Nominatim answers with the fixture's real place, so a search runs end to end and never leaves the process.
+  const hit = {
+    display_name: "Ixelles, Brussels-Capital, Belgium",
+    lat: String(audrey.latitude),
+    lon: String(audrey.longitude),
+    category: "place",
+    type: "town",
+    address: { town: "Ixelles", region: "Brussels-Capital", country: "Belgium" },
+  };
+  const realFetch = globalThis.fetch;
+  let asked = 0;
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (url.startsWith(base)) return realFetch(input, init);
+    asked++;
+    return new Response(JSON.stringify([hit]), { status: 200, headers: { "content-type": "application/json" } });
+  }) as typeof fetch;
+  const appEnv = process.env.APP_ENV;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+    if (appEnv === undefined) delete process.env.APP_ENV;
+    else process.env.APP_ENV = appEnv;
+  });
+  // Production before launch (ADR-167), where /sky still finds places through it while the rest of the API waits (ADR-246).
+  process.env.APP_ENV = "production";
+  const search = (address: string) => fetch(`${base}/api/geocode?q=Ixelles`, { headers: { "x-forwarded-for": address } });
+
+  const found = await search("203.0.113.7");
+  assert.equal(found.status, 200);
+  assert.equal(found.headers.get("set-cookie"), null, "no session cookie from a place search");
+  assert.equal(((await found.json()) as { results: Array<{ timezone: string }> }).results[0]?.timezone, audrey.timezone);
+  assert.equal(asked, 1);
+
+  for (let i = 1; i < LIMITS.geocode.limit; i++) assert.equal((await search("203.0.113.7")).status, 200, `search ${i + 1}`);
+  const refused = await search("203.0.113.7");
+  assert.equal(refused.status, 429);
+  assert.equal(refused.headers.get("set-cookie"), null);
+  assert.equal(((await refused.json()) as { error: string }).error, "rate_limited");
+  assert.equal((await search("203.0.113.8")).status, 200, "another address keeps its own count");
 });

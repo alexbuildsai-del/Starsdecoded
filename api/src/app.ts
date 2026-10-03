@@ -6,6 +6,8 @@ import router from "./routes";
 import healthRouter from "./routes/health";
 import cspReportRouter from "./routes/cspReport";
 import waitlistRouter from "./routes/waitlist";
+import geocodeRouter from "./routes/geocode";
+import { geocodeLimit } from "./lib/limits";
 import { httpSerializers, logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
 import { authMiddleware } from "./middlewares/auth";
@@ -97,6 +99,10 @@ app.use(jsonBody);
 app.use(express.urlencoded({ extended: true, limit: "32kb" }));
 // Ahead of the session: the waitlist's two calls, joining and confirming, set no cookie (ADR-141, 145).
 app.use("/api", waitlistRouter);
+// A place search too: home and /sky make one, and a public page sets no cookie. Its limit counts by address, which needs
+// no session; ahead of the prelaunch gate it is open to everyone, as the gate already lists it (ADR-246).
+app.get("/api/geocode", geocodeLimit);
+app.use("/api", geocodeRouter);
 app.use(sessionMiddleware);
 
 app.use(

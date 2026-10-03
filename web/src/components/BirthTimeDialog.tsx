@@ -2,8 +2,9 @@
  * The one door to the horizon pass (ADR-35): the three-way control with its
  * live readout, opened from the hero, the house deck, the method strip, the
  * dashboard tile and the claim. Saving calls PATCH /profiles/:id/birth-time,
- * which recomputes the chart and starts a pass on every complete natal
- * report of the profile. The first pass is free; the copy says so.
+ * which recomputes the chart and starts a pass on the newest complete natal
+ * report of the profile; the older ones are left outdated, each offering
+ * Regenerate (MB-170). The first pass is free; the copy says so.
  */
 import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
