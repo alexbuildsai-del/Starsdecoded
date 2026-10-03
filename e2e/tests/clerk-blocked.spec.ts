@@ -25,10 +25,14 @@ const INVITE = {
 };
 const SEND = { ...INVITE, token: "e2e-send", kind: "send", profileName: "Sam", recipientName: null, note: null };
 const GIFT = { ...INVITE, token: "e2e-gift", kind: "gift", profileName: null, recipientName: "Sam", note: null };
+// The page is public, so a share's preview carries its sharer's first name alone, as both names, or no name at all
+// when neither their account nor their chart gives one (R15-19).
+const SHARE = { ...INVITE, token: "e2e-share", kind: "share", profileName: INVITE.inviterName, recipientName: null, note: null };
+const NAMELESS_SHARE = { ...SHARE, token: "e2e-share-nameless", inviterName: null, profileName: null };
 
 const PAGES = ["/chart", "/sign-in", "/sign-up", "/admin/prompts", "/admin/report-lab", "/admin/waitlist"];
 
-// Each test waits out the 8 s once, and the 404's waits for a second load as well.
+// A test waits out the 8 s once at most, and the 404's waits for a second load as well.
 test.describe.configure({ mode: "parallel", timeout: 45_000 });
 test.use({ viewport: PHONE });
 
@@ -47,7 +51,7 @@ async function blockClerk(page: Page): Promise<() => number> {
     (url) => url.pathname.startsWith("/api/"),
     (route) => {
       const path = new URL(route.request().url()).pathname;
-      const invite = [SEND, GIFT].find(({ token }) => path === `/api/invites/${token}`);
+      const invite = [SEND, GIFT, SHARE, NAMELESS_SHARE].find(({ token }) => path === `/api/invites/${token}`);
       return invite ? route.fulfill({ json: invite }) : route.fulfill({ status: 404, json: { error: "not_found" } });
     },
   );
@@ -99,6 +103,33 @@ test("/claim shows a gift's cover at once, its button waiting for sign-in", asyn
   await expect(line(page)).toBeVisible({ timeout: STALL_MS });
   await lineFitsThePhone(page);
   expect(stopped(), "Clerk's script was asked for and stopped").toBeGreaterThan(0);
+});
+
+// A share once fell through to a sent report's preview, which tells the reader the sharer had a report written for them.
+test("/claim shows a share's preview at once, naming its sharer, its button waiting for sign-in", async ({ page }) => {
+  const stopped = await blockClerk(page);
+  await page.goto(`/claim?token=${SHARE.token}`);
+  const heading = page.getByRole("heading", { name: "Mira shared their Personal report with you", exact: true });
+  await expect(heading).toBeVisible({ timeout: AT_ONCE_MS });
+  await expect(page.getByText("Mira joins your circle, and you can read the whole report.", { exact: true })).toBeVisible();
+  await expect(page.getByText(`Sign in with ${SHARE.email} to read it.`, { exact: true })).toBeVisible();
+  const signIn = page.getByRole("button", { name: "Sign in to open it" });
+  await expect(signIn).toBeDisabled();
+  await expect(line(page)).toBeVisible({ timeout: STALL_MS });
+  await expect(line(page).getByRole("button", { name: "Try again" })).toBeEnabled();
+  await expect(signIn, "Clerk never loaded, so the button still waits").toBeDisabled();
+  await lineFitsThePhone(page);
+  expect(stopped(), "Clerk's script was asked for and stopped").toBeGreaterThan(0);
+});
+
+test("/claim calls a share's sharer Someone when the preview has no name for them", async ({ page }) => {
+  const stopped = await blockClerk(page);
+  await page.goto(`/claim?token=${NAMELESS_SHARE.token}`);
+  const heading = page.getByRole("heading", { name: "Someone shared their Personal report with you", exact: true });
+  await expect(heading).toBeVisible({ timeout: AT_ONCE_MS });
+  await expect(page.getByText("They join your circle, and you can read the whole report.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in to open it" })).toBeDisabled();
+  await expect.poll(stopped, { message: "Clerk's script was asked for and stopped" }).toBeGreaterThan(0);
 });
 
 for (const path of PAGES) {
