@@ -57,20 +57,23 @@ export function profileOwnershipFor(
 
 /**
  * Can the viewer READ this profile? Owner (creator session/user) OR
- * claimer (the user who accepted an invite for this profile). Writes
- * (regenerate, delete, invite) remain owner-only and use a stricter
- * check elsewhere. Token-only viewer grants are scoped to relationship
- * / synastry-report reads (see `tokenGrantsRelationshipRead`) and do
- * not apply at the profile level.
+ * claimer (the user who accepted an invite for this profile), or `shared`:
+ * the caller found a standing grant of it to the viewer (`sharedProfileIds`,
+ * ADR-235). Writes (regenerate, delete, invite) remain owner-only and use a
+ * stricter check elsewhere. Token-only viewer grants are scoped to
+ * relationship / synastry-report reads (see `tokenGrantsRelationshipRead`)
+ * and do not apply at the profile level.
  */
 export function canReadProfile(
   viewer: Viewer,
   profile: { userId: string | null; sessionId: string; claimedByUserId: string | null },
+  shared = false,
 ): boolean {
   if (viewer.userId && profile.userId === viewer.userId) return true;
   if (viewer.userId && profile.claimedByUserId === viewer.userId) return true;
   if (!viewer.userId && profile.sessionId === viewer.sessionId) return true;
-  return false;
+  // A grant joins two accounts, so a session never reads through one.
+  return shared && !!viewer.userId;
 }
 
 export function ownsProfile(
@@ -94,26 +97,53 @@ export function ownsRelationship(
  * them and they claimed it, whoever holds the row since, so a report handed
  * over by Stop sharing still reads as sent to them rather than as one they
  * wrote. A session reads nothing an account has claimed: only the account can
- * show the subject still shares it (ADR-139).
+ * show the subject still shares it (ADR-139). `shared` only when the grant is
+ * all that reads it, so a grant never hides that the viewer wrote or holds
+ * the chart (ADR-235).
  */
-export function accessFor(viewer: Viewer, profile: ProfileHolders): Access | null {
-  if (!canReadProfile(viewer, profile)) return null;
-  if (!viewer.userId) return profile.claimedByUserId ? null : "owner";
-  return profile.claimedByUserId === viewer.userId ? "claimed" : "owner";
+export function accessFor(viewer: Viewer, profile: ProfileHolders, shared = false): Access | null {
+  if (canReadProfile(viewer, profile)) {
+    if (!viewer.userId) return profile.claimedByUserId ? null : "owner";
+    return profile.claimedByUserId === viewer.userId ? "claimed" : "owner";
+  }
+  return canReadProfile(viewer, profile, shared) ? "shared" : null;
 }
 
 /**
  * A natal report's reader. Signed in, through its profile (MB-84: the person
- * it was sent to reads it too). A session keeps reading the reports it asked
- * for, as it always has, until an account claims one (ADR-139).
+ * it was sent to reads it too), or through a grant of it (ADR-235). A session
+ * keeps reading the reports it asked for, as it always has, until an account
+ * claims one (ADR-139), and is never `shared`.
  */
 export function natalReportAccess(
   viewer: Viewer,
   profile: ProfileHolders,
   report: { sessionId: string },
+  shared = false,
 ): Access | null {
-  if (viewer.userId) return accessFor(viewer, profile);
+  if (viewer.userId) return accessFor(viewer, profile, shared);
   return report.sessionId === viewer.sessionId && !profile.claimedByUserId ? "owner" : null;
+}
+
+/**
+ * Try again and Regenerate on a natal report (reading 10): its writer, and
+ * its holder once a hand-over made the row theirs (MB-169). Never a reader
+ * through a grant, nor the person it was sent to while its writer still holds
+ * it, since a rewrite replaces the text everyone reading it sees.
+ */
+export function mayRegenerate(viewer: Viewer, profile: ProfileHolders, report: { sessionId: string }): boolean {
+  const access = natalReportAccess(viewer, profile, report);
+  if (access === "owner") return true;
+  return access === "claimed" && profile.userId === viewer.userId;
+}
+
+/**
+ * Whose workbook a reader's ticks and pins fill (reading 8, ADR-239): their
+ * account, else their session, spelled as the backfill in
+ * migrate-add-shares-and-workbooks.ts spells it.
+ */
+export function readerKey(viewer: Viewer): string {
+  return viewer.userId ? viewer.userId : `session:${viewer.sessionId}`;
 }
 
 /** Reading 16: the viewer's own chart from their side, the claimer's This is me or the writer's own mark. */
@@ -142,16 +172,20 @@ export function giverIdOf(viewer: Viewer, profile: ProfileHolders): string | nul
  * and a control must never offer what fails. Signed in only, since the giver
  * keeps reading a claimed report through their account alone (ADR-139). Only
  * the presence of `openInvite` counts: an unclaimed, unexpired send to them.
+ * `handedBackAt` is the stamp on their latest send (`handedBackByProfile`):
+ * Not me gave it back (ADR-236), so the row reads Handed back, and its Send
+ * again is a new send, which then reads sent like any other.
  */
 export function sendStateFor(
   viewer: Viewer,
   profile: ProfileHolders & { id: string; name: string; isSelf: boolean },
   report: { type: string; status: string },
   openInvite: unknown,
+  handedBackAt?: Date | null,
 ): SendState | null {
   if (!viewer.userId || accessFor(viewer, profile) !== "owner") return null;
   if (profile.isSelf || report.type !== "natal" || report.status !== "complete") return null;
-  const state = profile.claimedByUserId ? "joined" : openInvite ? "sent" : "can_send";
+  const state = profile.claimedByUserId ? "joined" : openInvite ? "sent" : handedBackAt ? "handed_back" : "can_send";
   return { state, profileId: profile.id, relationshipId: null, firstName: firstWord(profile.name) };
 }
 
@@ -161,7 +195,9 @@ export function sendStateFor(
  * (MB-82); `joined` once their grant stands. The caller passes only a pair the
  * viewer made and can read; `other.relationshipId` fills the state's own, and
  * `pair`, when given, holds it back until the pair is complete, as for a natal
- * report.
+ * report. `other.userId`, when given, is the other profile's holder: one held
+ * by another account and claimed by no one is a chart shared with the viewer,
+ * already its sharer's own, which a send would claim from them (ADR-235).
  */
 // MB-103 provisional
 export function pairSendStateFor(
@@ -173,6 +209,7 @@ export function pairSendStateFor(
     claimedByUserId: string | null;
     accessRole: string;
     relationshipId?: string | null;
+    userId?: string | null;
   },
   openInvite: unknown,
   pair?: { status: string },
@@ -180,6 +217,7 @@ export function pairSendStateFor(
   if (!viewer.userId || !selfProfileId || other.profileId === selfProfileId) return null;
   if (pair && pair.status !== "complete") return null;
   if (other.claimedByUserId === viewer.userId) return null;
+  if (other.userId && other.userId !== viewer.userId && !other.claimedByUserId) return null;
   const state = other.claimedByUserId
     ? other.accessRole === "participant" ? "joined" : "can_grant"
     : openInvite ? "sent" : "can_send";
@@ -192,17 +230,21 @@ export function pairSendStateFor(
  * naming them, and nothing is deleted. The other of its two reads it while
  * its sender's grant stands. A pair neither readable nor closed with a name is
  * not the viewer's to list; a session's pair turns so once a person in it is
- * claimed, as its natal reports do.
+ * claimed, as its natal reports do. `shared` holds the profile ids granted to
+ * the viewer (`sharedProfileIds`): a pair made from a chart shared with them
+ * reads while that grant stands and closes, naming its sharer, once it goes
+ * (ADR-235). A grant never opens a pair its sharer made.
  */
 // MB-103 provisional
 export function pairReadable(
   viewer: Viewer,
   relationship: { userId: string | null; sessionId: string },
   participants: readonly PairPerson[],
+  shared: ReadonlySet<string> = new Set(),
 ): PairReading {
   if (ownsRelationship(viewer, relationship)) {
     if (!viewer.userId && participants.some((p) => p.claimedByUserId)) return { readable: false, stoppedBy: null };
-    const withdrawn = participants.find((p) => !canReadProfile(viewer, p));
+    const withdrawn = participants.find((p) => !canReadProfile(viewer, p, shared.has(p.profileId)));
     if (!withdrawn) return { readable: true, stoppedBy: null };
     return { readable: false, stoppedBy: firstWord(withdrawn.name) || null };
   }
@@ -213,7 +255,9 @@ export function pairReadable(
 
 /**
  * Looks up open (unexpired, unclaimed) send invite emails for the given set
- * of profile ids. Returns a Map<profileId, email>.
+ * of profile ids. Returns a Map<profileId, email>. A waiting share link stays
+ * out: it hands nothing over, so it must neither mark the sharer's own chart
+ * invited nor read as sent; `sharesOf` lists it (ADR-235).
  */
 export async function openInvitesByProfile(
   profileIds: string[],
@@ -241,6 +285,25 @@ export async function openInvitesByProfile(
     if (r.profileId && !m.has(r.profileId)) m.set(r.profileId, r.email);
   }
   return m;
+}
+
+/**
+ * The stamp Not me left on each profile's latest send (ADR-236), for
+ * `sendStateFor`; a profile whose latest send was not handed back is absent,
+ * so a send made after a hand-back reads as itself, never as Handed back.
+ */
+export async function handedBackByProfile(profileIds: string[]): Promise<Map<string, Date>> {
+  if (!profileIds.length) return new Map();
+  const rows = await db
+    .select({ profileId: inviteTokensTable.profileId, handedBackAt: inviteTokensTable.handedBackAt })
+    .from(inviteTokensTable)
+    .where(and(inArray(inviteTokensTable.profileId, profileIds), eq(inviteTokensTable.kind, "send")))
+    .orderBy(desc(inviteTokensTable.createdAt), desc(inviteTokensTable.id));
+  const latest = new Map<string, Date | null>();
+  for (const r of rows) {
+    if (r.profileId && !latest.has(r.profileId)) latest.set(r.profileId, r.handedBackAt);
+  }
+  return new Map([...latest].filter((entry): entry is [string, Date] => entry[1] !== null));
 }
 
 /** The same for pairs: open send invites keyed by relationship. */
