@@ -30,6 +30,11 @@ echo "==> 2/7 Schema push"
 # half-pushed schema stops the deploy instead of starting the API on it.
 push_status=0
 push_output=$(pnpm --filter @workspace/db run push 2>&1) || push_status=$?
+# Postgres's detail line names the row a statement tripped on (a duplicated
+# key's value: a Clerk id, an email), and a deploy log is no place for it. It
+# is dropped before anything is printed or read; the error line still names
+# what failed and the constraint line where.
+push_output=$(printf '%s\n' "$push_output" | sed -E '/^[[:space:]]*[Dd][Ee][Tt][Aa][Ii][Ll]:/d')
 printf '%s\n' "$push_output"
 push_error=$(printf '%s\n' "$push_output" | grep -m1 -oE '(Error|error): .*' | cut -c1-160)
 if [ "$push_status" -ne 0 ] || [ -n "$push_error" ]; then

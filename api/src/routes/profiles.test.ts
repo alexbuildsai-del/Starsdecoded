@@ -274,3 +274,42 @@ test("reportToPass: the newest complete report, whichever order the rows come in
   assert.equal(reportToPass([r("R2b", 2), r("R2a", 2)], "known", false)?.id, "R2b", "a tie keeps the first, as the query ordered it");
   assert.equal(reportToPass([r("R1", 1, "generating")], "known", false), null);
 });
+
+/** Charlotte's chart as its writer holds it once she claimed it, with or without a mark its writer left on it. */
+function claimedRow(isSelf: boolean): Row {
+  return { ...profileRow(), id: "P1", claimed_by_user_id: CLAIMER.user, claimed_as_self: true, is_self: isSelf };
+}
+
+/** The PATCH's one read, the profile among those the viewer holds or claimed; every write is kept and answers nothing. */
+function markDb(t: TestContext, row: () => Row) {
+  return fakePool(t, ({ text, params }) => {
+    if (text.startsWith("select ") && text.includes(' from "profiles" where ("profiles"."id" = $1 and ')) {
+      return params[0] === row().id ? [row()] : [];
+    }
+    return undefined;
+  });
+}
+
+test("mark: a writer's This is me on a chart its subject claimed is refused, whether or not a mark was left on it, and nothing is written (R-3.6)", async (t) => {
+  let row = claimedRow(false);
+  const sent = markDb(t, () => row);
+  const call = await serve(t);
+  for (const isSelf of [false, true]) {
+    row = claimedRow(isSelf);
+    const before = sent.length;
+    const r = await call(WRITER, "PATCH", "/profiles/P1", { isSelf: true });
+    assert.equal(r.status, 403, `left marked: ${isSelf}`);
+    assert.deepEqual(r.body, { error: "forbidden", message: "Charlotte already has this report, so you can't mark it as yours." });
+    assert.deepEqual(sent.slice(before).map((s) => s.text.split(" ")[0]), ["select"], `left marked: ${isSelf}`);
+  }
+});
+
+test("mark: the writer can still take a mark off a chart its subject claimed, and the chart reads as theirs to no one but her", async (t) => {
+  const sent = markDb(t, () => claimedRow(true));
+  const call = await serve(t);
+  const r = await call(WRITER, "PATCH", "/profiles/P1", { isSelf: false });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((r.body as { isSelf: boolean }).isSelf, false);
+  const unmark = sent.find((s) => s.text.startsWith('update "profiles" set "is_self" = $1'));
+  assert.deepEqual([unmark?.params[0], unmark?.params.at(-1)], [false, "P1"]);
+});

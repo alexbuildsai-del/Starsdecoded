@@ -59,17 +59,29 @@ const unrevoked = (profileId: string, readerUserId: string) =>
   );
 
 /**
+ * The account's own chart, the only one it may share (reading 16). One another
+ * account claimed is its subject's whatever mark its writer left on it, so only
+ * the subject shares it (R-3.6); this says so here as well as in `isSelfFor`,
+ * since a grant reads a whole report.
+ */
+function isOwnChart(userId: string, chart: Chart): boolean {
+  if (chart.claimedByUserId && chart.claimedByUserId !== userId) return false;
+  return isSelfFor(account(userId), chart);
+}
+
+/**
  * A grant reads only while its sharer still holds the chart as their own
- * (R-3.6): once Not me hands it back, or they mark another chart as theirs,
- * it is someone else's chart, whose subject never shared it. A grant to its
- * own sharer reads nothing they could not already.
+ * (R-3.6): once Not me hands it back, they mark another chart as theirs, or
+ * its subject claims a chart its writer shared as theirs, it is someone else's
+ * chart, whose subject never shared it. A grant to its own sharer reads
+ * nothing they could not already.
  */
 export function grantStands(
   share: { ownerUserId: string; readerUserId: string | null; revokedAt: Date | null },
   chart: Chart,
 ): boolean {
   if (share.revokedAt || !share.ownerUserId || share.readerUserId === share.ownerUserId) return false;
-  return isSelfFor(account(share.ownerUserId), chart);
+  return isOwnChart(share.ownerUserId, chart);
 }
 
 /** The charts shared with this reader whose grants still stand; none for a session, which holds no grant. */
@@ -121,7 +133,7 @@ async function ownChart(userId: string): Promise<{ chart: Chart & { id: string }
         and(eq(profilesTable.claimedByUserId, userId), eq(profilesTable.claimedAsSelf, true)),
       ),
     );
-  const own = marked.filter((p) => isSelfFor(account(userId), p));
+  const own = marked.filter((p) => isOwnChart(userId, p));
   if (own.length !== 1) return null;
   const [finished] = await db
     .select({ id: reportsTable.id })
@@ -141,6 +153,7 @@ async function ownChart(userId: string): Promise<{ chart: Chart & { id: string }
  * The account's own chart, the one profile marked as theirs (reading 16), and
  * whether its Personal report is finished. Null when none is marked, or when
  * several are, since which one is theirs is not settled yet (home's `several`).
+ * A chart its writer marked and its subject has claimed is never the writer's.
  */
 export async function ownChartOf(userId: string): Promise<{ profileId: string; finished: boolean } | null> {
   const own = await ownChart(userId);

@@ -35,7 +35,7 @@ import {
   type SendState,
   type Viewer,
 } from "../lib/access.js";
-import { firstNameOf } from "../lib/names.js";
+import { firstNameOf, firstWord } from "../lib/names.js";
 import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
@@ -228,6 +228,14 @@ router.patch("/profiles/:id", async (req, res) => {
     const writer = access === "owner" && (!!viewer.userId || !profile.userId);
     if (isSelf !== undefined && !writer) {
       return res.status(403).json({ error: "forbidden", message: "Not the owner of this profile" });
+    }
+    // A chart its subject claimed is theirs: the writer's mark would make it the writer's own to share (R-3.6).
+    // Taking a mark off stays theirs, so one left from before the claim can still be cleared.
+    if (isSelf === true && profile.claimedByUserId) {
+      return res.status(403).json({
+        error: "forbidden",
+        message: `${firstWord(profile.name)} already has this report, so you can't mark it as yours.`,
+      });
     }
     if (claimedAsSelf !== undefined && access !== "claimed") {
       return res.status(403).json({ error: "forbidden", message: "Not the person this chart was shared with" });

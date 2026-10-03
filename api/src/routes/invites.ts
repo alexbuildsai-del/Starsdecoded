@@ -62,6 +62,9 @@ class Refusal extends Error {
 
 type PairSide = { rp: RelationshipParticipant; profile: Profile };
 
+/** A claim's miss is read where the claim ran: on the pool, or on its own transaction's connection. */
+type Reader = Pick<Parameters<Parameters<typeof db.transaction>[0]>[0], "select">;
+
 type SendInvite = {
   id: string;
   token: string;
@@ -338,7 +341,8 @@ router.post("/invites", async (req, res) => {
     if (!ownsProfile(viewerOf(req), profile)) {
       return res.status(403).json({ error: "forbidden", message: "You do not own this profile" });
     }
-    if (profile.isSelf) {
+    // The writer's mark counts only on a chart no one has claimed (`isSelfFor`); a claimed one hears so below.
+    if (profile.isSelf && !profile.claimedByUserId) {
       return res.status(409).json({
         error: "own_chart",
         message: "This report is about you. You can share a report with the person it's about.",
@@ -622,6 +626,35 @@ router.get("/invites/:token", async (req, res) => {
 });
 
 /**
+ * A claim takes only the link it read and whose address it checked, never the row as it stands by then: Change
+ * address gives the row a new link and address, and a gift's reminder a new link, between the two (ADR-237).
+ */
+function asRead(inv: InviteToken) {
+  return [eq(inviteTokensTable.tokenHash, inv.tokenHash), eq(inviteTokensTable.email, inv.email)];
+}
+
+/**
+ * Why a claim found no link to take. Taken since by a racing claim of the same link, it keeps its 409; changed,
+ * stopped or run out since, the link it read no longer opens, so it answers as a revoked link does.
+ */
+async function missedClaim(reader: Reader, inv: InviteToken): Promise<Refusal> {
+  const [row] = await reader
+    .select({
+      tokenHash: inviteTokensTable.tokenHash,
+      email: inviteTokensTable.email,
+      claimedAt: inviteTokensTable.claimedAt,
+      revokedAt: inviteTokensTable.revokedAt,
+    })
+    .from(inviteTokensTable)
+    .where(eq(inviteTokensTable.id, inv.id))
+    .limit(1);
+  const takenAsRead = !!row?.claimedAt && !row.revokedAt && row.tokenHash === inv.tokenHash && row.email === inv.email;
+  return takenAsRead
+    ? new Refusal(409, "already_claimed", "Invite already claimed")
+    : new Refusal(404, "not_found", "Invite not found");
+}
+
+/**
  * A gift is a credit, not a report: its claim moves the held credit into the
  * claimer's balance and links no one to anyone (ADR-139).
  */
@@ -634,13 +667,14 @@ async function claimGift(inv: InviteToken, userId: string) {
       .where(
         and(
           eq(inviteTokensTable.id, inv.id),
+          ...asRead(inv),
           isNull(inviteTokensTable.claimedAt),
           isNull(inviteTokensTable.revokedAt),
           gt(inviteTokensTable.expiresAt, now),
         ),
       )
       .returning({ id: inviteTokensTable.id });
-    if (!consumed.length) throw new Refusal(409, "already_claimed", "Invite already claimed");
+    if (!consumed.length) throw await missedClaim(db, inv);
   }
   // Idempotent, so the claimer's retry finishes a move that failed after the token was taken.
   await moveHeldCredit(inv.id, userId);
@@ -695,6 +729,7 @@ async function claimSend(req: Request, inv: InviteToken, userId: string) {
       .where(and(eq(profilesTable.id, profileId), isNull(profilesTable.claimedByUserId)))
       .returning({ id: profilesTable.id });
     if (fresh.length) {
+      // Their own chart as `isSelfFor` reads it: a mark they left on a chart someone else claimed is not one.
       const [ownChart] = await tx
         .select({ id: profilesTable.id })
         .from(profilesTable)
@@ -702,7 +737,7 @@ async function claimSend(req: Request, inv: InviteToken, userId: string) {
           and(
             ne(profilesTable.id, profileId),
             or(
-              and(eq(profilesTable.userId, userId), eq(profilesTable.isSelf, true)),
+              and(eq(profilesTable.userId, userId), eq(profilesTable.isSelf, true), isNull(profilesTable.claimedByUserId)),
               and(eq(profilesTable.claimedByUserId, userId), eq(profilesTable.claimedAsSelf, true)),
             ),
           ),
@@ -742,12 +777,13 @@ async function claimSend(req: Request, inv: InviteToken, userId: string) {
       .where(
         and(
           eq(inviteTokensTable.id, inv.id),
+          ...asRead(inv),
           isNull(inviteTokensTable.claimedAt),
           isNull(inviteTokensTable.revokedAt),
         ),
       )
       .returning({ id: inviteTokensTable.id });
-    if (!consumed.length) throw new Refusal(409, "already_claimed", "Invite already claimed");
+    if (!consumed.length) throw await missedClaim(tx, inv);
   });
 
   return sendClaimBody(profileId, pairId, askSelf);

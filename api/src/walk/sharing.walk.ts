@@ -4,6 +4,8 @@
 // seat and a pair built on it at once, each reader's own ticks, Change address
 // on a send and a gift, Not me after a hand-over, and the holder's rewrite
 // (sweep acceptance 3 to 5; ADR-235 to 239; readings 3 to 10; MB-169).
+// R15-D1 adds that a chart its subject claimed is never its writer's own to
+// mark, share or pair-send (R-3.6).
 // Every report's text is a stored row. A route that starts writing one meets
 // a local model stand-in that refuses, mail goes to a local stub and Clerk is
 // never asked, so nothing leaves the machine.
@@ -221,13 +223,17 @@ const KEEPER = { user: "user_keeper", session: "s-keeper" };
 const FRIEND = { user: "user_friend", session: "s-friend" };
 // Claims a chart sent to them and keeps it, so it is theirs to rewrite.
 const HOLDER = { user: "user_holder", session: "s-holder" };
+// Writes Charlotte's chart, sends it to her and marks it as their own before she claims it; Noor reads what is shared.
+const MARKER = { user: "user_marker", session: "s-marker" };
+const CHARLOTTE = { user: "user_charlotte", session: "s-charlotte" };
+const NOOR = { user: "user_noor", session: "s-noor" };
 
 let setupError: unknown = null;
 try {
   await q(
     "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger, profile_shares, report_workbooks, generation_failures cascade",
   );
-  for (const who of [SHARER, RECIPIENT, STRANGER, WRITING, KIM, GIVER, WILLIAM, BEATRICE, KEEPER, FRIEND, HOLDER]) {
+  for (const who of [SHARER, RECIPIENT, STRANGER, WRITING, KIM, GIVER, WILLIAM, BEATRICE, KEEPER, FRIEND, HOLDER, MARKER, CHARLOTTE, NOOR]) {
     await q("insert into users (id, email) values ($1, $2)", [who.user, emailOf(who)]);
   }
 
@@ -610,6 +616,73 @@ try {
 
     const current = await call(GIVER, "POST", "/reports/RG/regenerate");
     assert.deepEqual([current.status, current.body.error], [409, "up_to_date"]);
+  });
+
+  await step("a chart its subject claimed is never its writer's own: marking it is refused, and a mark left from before her claim shares, re-sends and pair-sends nothing, ends the share it made and is no chart of theirs when one is sent to them, while her own share stands (R-3.6)", async () => {
+    await person("PX", "charlotte", MARKER);
+    await natal("RX", "PX", MARKER.session);
+    await person("PY", "beatrice", MARKER);
+    await natal("RY", "PY", MARKER.session);
+    // The marker's pair of the two, stored finished as the walk stores every report.
+    await q("insert into relationships (id, session_id, user_id, type) values ('LXY', $1, $2, 'people')", [MARKER.session, MARKER.user]);
+    await q("insert into relationship_participants (id, relationship_id, profile_id, role, position) values ('LXY-a', 'LXY', 'PX', 'primary', '0'), ('LXY-b', 'LXY', 'PY', 'secondary', '1')");
+    await q(
+      "insert into reports (id, profile_id, session_id, type, status, relationship_id, interpretation, compute_data) values ('RXY', 'PX', $1, 'compatibility', 'complete', 'LXY', $2, $3)",
+      [MARKER.session, JSON.stringify(PAIR_TEXT), JSON.stringify({ reportAId: "RX", reportBId: "RY", lens: "people" })],
+    );
+
+    // While the send waits, nothing refuses its writer marking the chart as theirs and sharing it.
+    assert.equal((await call(MARKER, "POST", "/invites", { profileId: "PX", email: emailOf(CHARLOTTE) })).status, 201);
+    const sendToken = tokenOf(mails.at(-1)!);
+    assert.equal((await call(MARKER, "PATCH", "/profiles/PX", { isSelf: true })).status, 200);
+    const shared = await call(MARKER, "POST", "/shares", { email: emailOf(NOOR) });
+    assert.equal(shared.status, 201, JSON.stringify(shared.body));
+    assert.equal((await call(NOOR, "POST", claimPath(tokenOf(mails.at(-1)!)))).status, 200);
+    assert.equal((await call(NOOR, "GET", "/reports/RX")).body.access, "shared");
+
+    const claim = await call(CHARLOTTE, "POST", claimPath(sendToken));
+    assert.deepEqual([claim.status, claim.body.kind, claim.body.askSelf], [200, "send", false]);
+    assert.deepEqual(
+      (await q("select is_self, claimed_by_user_id, claimed_as_self from profiles where id = 'PX'")).rows[0],
+      { is_self: true, claimed_by_user_id: CHARLOTTE.user, claimed_as_self: true },
+    );
+
+    const remark = await call(MARKER, "PATCH", "/profiles/PX", { isSelf: true });
+    assert.deepEqual([remark.status, remark.body.error], [403, "forbidden"]);
+    assert.equal((await call(NOOR, "GET", "/reports/RX")).status, 404, "the share made before her claim reads no more");
+    assert.deepEqual(await shares(MARKER), []);
+    const mailsBefore = mails.length;
+    const again = await call(MARKER, "POST", "/shares", { email: "yusuf@example.com" });
+    assert.deepEqual([again.status, again.body.error], [409, "no_own_report"]);
+    const resend = await call(MARKER, "POST", "/invites", { profileId: "PX", email: "charlotte.w@example.com" });
+    assert.deepEqual([resend.status, resend.body.error], [409, "already_claimed"]);
+    assert.deepEqual((await listReports(MARKER)).get("RX").send, { state: "joined", profileId: "PX", relationshipId: null, firstName: "Charlotte" });
+    assert.equal((await listReports(MARKER)).get("RXY").send, null);
+    assert.equal((await call(MARKER, "POST", "/compatibility/RXY/send", { email: "beatrice.york@example.com" })).status, 403);
+    assert.equal(mails.length, mailsBefore);
+    assert.equal((await readHome(MARKER)).you, null);
+    assert.equal((await call(MARKER, "GET", "/profiles")).body.find((p: { id: string }) => p.id === "PX").isSelf, false);
+
+    const hers = await call(CHARLOTTE, "POST", "/shares", { email: emailOf(NOOR) });
+    assert.equal(hers.status, 201, JSON.stringify(hers.body));
+    assert.equal((await call(NOOR, "POST", claimPath(tokenOf(mails.at(-1)!)))).status, 200);
+    assert.deepEqual(
+      (await q("select owner_user_id from profile_shares where profile_id = 'PX' and reader_user_id = $1 and revoked_at is null", [NOOR.user])).rows,
+      [{ owner_user_id: CHARLOTTE.user }],
+    );
+    assert.equal((await call(NOOR, "GET", "/reports/RX")).body.access, "shared");
+
+    // A chart sent to the marker is theirs at once: the mark left on Charlotte's is no chart of theirs to ask about.
+    await person("PM", "george", CHARLOTTE);
+    await natal("RM", "PM", CHARLOTTE.session);
+    assert.equal((await call(CHARLOTTE, "POST", "/invites", { profileId: "PM", email: emailOf(MARKER) })).status, 201);
+    const sentToMarker = await call(MARKER, "POST", claimPath(tokenOf(mails.at(-1)!)));
+    assert.deepEqual([sentToMarker.status, sentToMarker.body.askSelf], [200, false]);
+    assert.equal((await readHome(MARKER)).you?.profileId, "PM");
+
+    // Taking the mark off is still the writer's.
+    assert.equal((await call(MARKER, "PATCH", "/profiles/PX", { isSelf: false })).status, 200);
+    assert.equal((await q("select is_self from profiles where id = 'PX'")).rows[0].is_self, false);
   });
 } catch (err) {
   setupError = err;

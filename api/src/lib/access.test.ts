@@ -62,6 +62,16 @@ test("isSelf is the viewer's own chart from their side: the writer's mark or the
   assert.equal(isSelfFor(STRANGER, sent()), false);
 });
 
+test("a chart its subject claimed is never its writer's own, whatever mark the writer left on it (R-3.6)", () => {
+  const marked = sent({ isSelf: true });
+  assert.equal(isSelfFor(GIVER, marked), false);
+  assert.equal(isSelfFor(SUBJECT, marked), true, "the subject's This is me still stands");
+  assert.equal(isSelfFor(SUBJECT, { ...marked, claimedAsSelf: false }), false);
+  assert.equal(isSelfFor(GIVER, beatrice({ isSelf: true })), true, "unclaimed, it is still the writer's own");
+  // A chart sent to its subject is theirs, so its row offers what any claimed send does.
+  assert.equal(sendStateFor(GIVER, marked, COMPLETE, null)?.state, "joined");
+});
+
 test("the giver is named to the subject only while the giver still reads it", () => {
   assert.equal(giverIdOf(SUBJECT, sent()), GIVER.userId);
   assert.equal(giverIdOf(GIVER, sent()), null);

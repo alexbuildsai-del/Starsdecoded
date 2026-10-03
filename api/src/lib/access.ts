@@ -146,14 +146,18 @@ export function readerKey(viewer: Viewer): string {
   return viewer.userId ? viewer.userId : `session:${viewer.sessionId}`;
 }
 
-/** Reading 16: the viewer's own chart from their side, the claimer's This is me or the writer's own mark. */
+/**
+ * Reading 16: the viewer's own chart from their side, the claimer's This is me or the writer's own mark. A chart
+ * another account claimed is its subject's, so a mark its writer left on it never makes it theirs to share or
+ * pair-send (R-3.6).
+ */
 export function isSelfFor(
   viewer: Viewer,
   profile: ProfileHolders & { isSelf: boolean; claimedAsSelf: boolean },
 ): boolean {
   const access = accessFor(viewer, profile);
   if (access === "claimed") return profile.claimedAsSelf;
-  if (access === "owner") return profile.isSelf;
+  if (access === "owner") return profile.isSelf && !profile.claimedByUserId;
   return false;
 }
 
@@ -184,7 +188,9 @@ export function sendStateFor(
   handedBackAt?: Date | null,
 ): SendState | null {
   if (!viewer.userId || accessFor(viewer, profile) !== "owner") return null;
-  if (profile.isSelf || report.type !== "natal" || report.status !== "complete") return null;
+  // The writer's own chart goes to no one; a mark left on one its subject claimed counts for nothing, as in `isSelfFor`.
+  const own = profile.isSelf && !profile.claimedByUserId;
+  if (own || report.type !== "natal" || report.status !== "complete") return null;
   const state = profile.claimedByUserId ? "joined" : openInvite ? "sent" : handedBackAt ? "handed_back" : "can_send";
   return { state, profileId: profile.id, relationshipId: null, firstName: firstWord(profile.name) };
 }

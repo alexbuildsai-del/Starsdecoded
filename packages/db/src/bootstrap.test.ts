@@ -84,6 +84,33 @@ test("a push that exits non-zero stops the deploy at step 2, even with no error 
   assert.deepEqual(out.calls, ["--filter @workspace/db run migrate", "--filter @workspace/db run push"]);
 });
 
+// pg's error as drizzle-kit prints it when the duplicates are real rows: its detail names the duplicated key's value,
+// a Clerk id or an address, and psql-style output spells the same line in capitals.
+const DUPLICATED_ADDRESS = [
+  'error: could not create unique index "users_email_unique"',
+  "    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.23.0/node_modules/pg-pool/index.js:45:11",
+  "    at async pgPush (/app/node_modules/.pnpm/drizzle-kit@0.31.11/node_modules/drizzle-kit/bin.cjs:82768:13) {",
+  "  severity: 'ERROR',",
+  "  code: '23505',",
+  "  detail: 'Key (email)=(a@b.c) is duplicated.',",
+  "  constraint: 'users_email_unique'",
+  "}",
+  "DETAIL:  Key (clerk_id)=(user_2xKeptOutOfTheLog) is duplicated.",
+].join("\n");
+
+test("a failed push prints no row's values: the detail lines naming a duplicated key stay out of the deploy log, and the deploy still stops naming the error", () => {
+  for (const status of [0, 1]) {
+    const out = bootstrap({ stdout: PULLED, stderr: DUPLICATED_ADDRESS, status });
+    assert.equal(out.status, 1, `push exited ${status}`);
+    assert.match(out.stderr, /bootstrap-db: schema push FAILED: error: could not create unique index "users_email_unique"/);
+    for (const value of ["a@b.c", "user_2xKeptOutOfTheLog"]) {
+      assert.ok(!`${out.stdout}\n${out.stderr}`.includes(value), `${value} reached the deploy log (push exited ${status})`);
+    }
+    assert.ok(out.stdout.includes("  constraint: 'users_email_unique'"), "the rest of push's output still reaches the log");
+    assert.deepEqual(out.calls, ["--filter @workspace/db run migrate", "--filter @workspace/db run push"]);
+  }
+});
+
 test("a clean push goes on to step 3, its output in the deploy log", () => {
   for (const done of ["[✓] Changes applied", "[i] No changes detected"]) {
     const out = bootstrap({ stdout: `${PULLED}\n${done}`, status: 0 });
