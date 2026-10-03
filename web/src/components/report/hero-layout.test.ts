@@ -84,6 +84,19 @@ describe("layoutHero", () => {
     expect(separation(ECLIPSE.bodies[0].absoluteDegree, ECLIPSE.bodies[1].absoluteDegree)).toBeLessThan(CONJUNCTION_DEGREES);
   });
 
+  it("steps the Sun by the step a plate passes, still along its own spoke, with the Moon still on the ring (MB-171)", () => {
+    const step = 40;
+    const layout = layoutHero({ ...PLATE, frameDegree: ECLIPSE.ascendant, bodies: ECLIPSE.bodies, obstacles: OBSTACLES, outsideStep: step });
+    const sun = layout.bodies.find((b) => b.key === "sun")!;
+    const moon = layout.bodies.find((b) => b.key === "moon")!;
+    const spoke = pointAt(PLATE.cx, PLATE.cy, PLATE.ringRadius + step, theta(ECLIPSE.bodies[0].absoluteDegree, ECLIPSE.ascendant));
+    expect(sun.outside).toBe(true);
+    expect(sun.x).toBeCloseTo(spoke.x, 6);
+    expect(sun.y).toBeCloseTo(spoke.y, 6);
+    expect(moon.outside).toBe(false);
+    expect(Math.hypot(moon.x - PLATE.cx, moon.y - PLATE.cy)).toBeCloseTo(PLATE.ringRadius, 6);
+  });
+
   it("puts every label beside its body, on the side away from the centre", () => {
     for (const chart of [CURIE, ECLIPSE]) {
       const layout = run(chart);

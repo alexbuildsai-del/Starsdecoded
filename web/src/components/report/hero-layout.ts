@@ -39,6 +39,11 @@ export interface HeroLayoutInput {
   labelHeight: number;
   /** The name plate and the two horizon labels, which labels must also avoid. */
   obstacles: Rect[];
+  /**
+   * `OUTSIDE_STEP` unless given: a plate too small for it passes the room it has, so its Sun stays on it even where
+   * the two discs then overlap (MB-171).
+   */
+  outsideStep?: number;
 }
 
 export interface PlacedBody {
@@ -82,7 +87,7 @@ function labelRect(x: number, y: number, anchor: "start" | "end", w: number, h: 
 }
 
 export function layoutHero(input: HeroLayoutInput): HeroLayout {
-  const { cx, cy, ringRadius, frameDegree: asc, labelWidth, labelHeight } = input;
+  const { cx, cy, ringRadius, frameDegree: asc, labelWidth, labelHeight, outsideStep = OUTSIDE_STEP } = input;
 
   // The Sun is the one body allowed to leave the ring, and only to clear the
   // Moon. Everything else sits on it.
@@ -91,7 +96,7 @@ export function layoutHero(input: HeroLayoutInput): HeroLayout {
     const t = theta(b.absoluteDegree, asc);
     const tight = b.key === "sun" && moon !== undefined
       && separation(b.absoluteDegree, moon.absoluteDegree) < CONJUNCTION_DEGREES;
-    const radius = tight ? ringRadius + OUTSIDE_STEP : ringRadius;
+    const radius = tight ? ringRadius + outsideStep : ringRadius;
     const p = pointAt(cx, cy, radius, t);
     return { key: b.key, x: p.x, y: p.y, size: b.size, outside: tight };
   });

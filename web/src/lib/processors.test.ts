@@ -77,6 +77,10 @@ describe("what the browser keeps", () => {
     expect(BROWSER_KEYS.map(storageKeyOf).sort()).toEqual(keysWritten());
   });
 
+  it("names no note of which dashboard suggestions were seen: nothing writes one since those nudges left (MB-136)", () => {
+    expect(BROWSER_KEYS.map(storageKeyOf)).not.toContain("sd.nudge.seen");
+  });
+
   it("keeps the birth form's draft and the preview for the tab alone (readings 3 and 14)", () => {
     const store = (name: string) => BROWSER_KEYS.find((key) => key.name === name)?.store;
     expect(store("sd.form.draft")).toBe("tab");

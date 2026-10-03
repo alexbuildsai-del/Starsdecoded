@@ -1,8 +1,43 @@
 import { describe, expect, it } from "vitest";
 import { pointAt, theta } from "@/components/chart/wheel-geometry";
-import { MOON_SIZE, moonDayArc } from "./TriadPlate";
+import { chartOf } from "@/site/lib/chart";
+import { CONJUNCTION_DEGREES, separation } from "./hero-layout";
+import { MOON_SIZE, moonDayArc, triadBodies } from "./TriadPlate";
 
-const PLATE = { cx: 110, cy: 110, ring: 72 };
+const PLATE = { cx: 110, cy: 110, ring: 72, side: 220 };
+
+/**
+ * 11 August 1999 in London, the day of the total eclipse, on every hour: the Sun stays within 12° of the Moon all day
+ * while every sign rises in turn, so the Sun comes near each edge of the plate. Then the same day with the time not
+ * known, which frames the plate on 0° Aries. The engine computes each chart from the birth data here.
+ */
+const LONDON = { birthDate: "1999-08-11", latitude: 51.5074, longitude: -0.1278, timezone: "Europe/London", timezoneOffset: 1 };
+const ECLIPSE_DAY = [
+  ...Array.from({ length: 24 }, (_, hour) => chartOf({ ...LONDON, birthTime: `${String(hour).padStart(2, "0")}:10` })),
+  chartOf({ ...LONDON, birthTime: "12:00", birthTimeWindowMinutes: 720 }),
+];
+
+describe("a Sun within 12° of the Moon on the triad plate (MB-171)", () => {
+  it("steps outside the ring along its own spoke and stays on the 220-unit plate, with the Moon on the ring", () => {
+    for (const chart of ECLIPSE_DAY) {
+      const { sun, moon } = chart.planets;
+      expect(separation(sun.absoluteDegree, moon.absoluteDegree)).toBeLessThan(CONJUNCTION_DEGREES);
+      const frame = chart.angles?.ascendant.absoluteDegree ?? 0;
+      const placed = triadBodies(chart);
+      const s = placed.find((b) => b.key === "sun")!;
+      const m = placed.find((b) => b.key === "moon")!;
+      const reach = Math.hypot(s.x - PLATE.cx, s.y - PLATE.cy);
+      const spoke = pointAt(PLATE.cx, PLATE.cy, reach, theta(sun.absoluteDegree, frame));
+      expect(s.outside).toBe(true);
+      expect(reach).toBeGreaterThan(PLATE.ring);
+      expect(s.x).toBeCloseTo(spoke.x, 6);
+      expect(s.y).toBeCloseTo(spoke.y, 6);
+      expect(Math.min(s.x, s.y) - s.size / 2).toBeGreaterThanOrEqual(0);
+      expect(Math.max(s.x, s.y) + s.size / 2).toBeLessThanOrEqual(PLATE.side);
+      expect(Math.hypot(m.x - PLATE.cx, m.y - PLATE.cy)).toBeCloseTo(PLATE.ring, 6);
+    }
+  });
+});
 
 describe("the Moon's day arc on the triad plate", () => {
   const frame = 190;
