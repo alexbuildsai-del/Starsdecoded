@@ -142,4 +142,4 @@ Q3 cleanup, then Timeline, pricing when the Owner says. MB-102 and MB-186 are th
 - ADR-239: workbook ticks and pins per reader (MB-110).
 - ADR-240: names masked in model text sent back into prompts (MB-152).
 - ADR-241: the Elements readout line leaves home and /method (MB-181).
-- ADR-242: R15 is this cleanup round, before Timeline as R16 (ADR-230); pricing waits for the Owner.
+- ADR-242: R15 is this cleanup round, before Timeline as R16; pricing waits for the Owner (supersedes ADR-230 in part: R15 is no longer reserved for pricing).
