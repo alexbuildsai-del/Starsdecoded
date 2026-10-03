@@ -83,7 +83,10 @@ small layouts, and the build list.
   and liked that A says what the product is.
 - **Q2. The Owner's test.** Send `mystarsdecoded.com/?v=2` to yourself on WhatsApp: does today's card
   show? Yes means a cached preview, and the new file name fixes it. No means a block, and the smoke
-  finds what kind. Unanswered; the default stands: the smoke answers it on its first deploy.
+  finds what kind. Answered 3 Oct, 10:05: **no**. `mystarsdecoded.com/?v=2` showed no preview at all,
+  not even the domain card. A fresh address can't be served from a cache, so the cause is the fetch
+  itself: most likely a block at the edge. The preview check (scope 4) goes first in the round, and
+  the round report names the Vercel firewall setting it finds.
 - **Later, not this spec.** The Owner wants a more striking visual than the wheel one day ("not
   wow"). No candidate yet; held as a Mailbox idea (https://app.notion.com/p/3eefefe7493181819339d9205fba797c), not built here.
 
