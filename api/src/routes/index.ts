@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
 import reportsRouter from "./reports";
-import geocodeRouter from "./geocode";
 import profilesRouter from "./profiles";
 import invitesRouter from "./invites";
 import sharesRouter from "./shares";
@@ -15,7 +14,7 @@ import adminLabSessionsRouter from "./adminLabSessions";
 import adminReleaseRouter from "./adminRelease";
 import adminWaitlistRouter from "./adminWaitlist";
 import homeRouter from "./home";
-import { anonWriteLimit, checkoutLimit, generationLimits, geocodeLimit, previewLimit, sendLimit } from "../lib/limits";
+import { anonWriteLimit, checkoutLimit, generationLimits, previewLimit, sendLimit } from "../lib/limits";
 import { spendGate } from "../lib/spendCap";
 import { requireAccount } from "../middlewares/requireAccount";
 
@@ -32,7 +31,6 @@ router.post("/reports", writing);
 router.post("/reports/:id/regenerate", writing);
 router.post("/compatibility", writing);
 router.patch("/profiles/:id/birth-time", writing);
-router.get("/geocode", geocodeLimit);
 // The preview's own pace, decided as built (ADR-231, MB-146).
 router.post("/horizon/preview", previewLimit);
 router.post("/invites", sendLimit);
@@ -55,7 +53,6 @@ router.all(["/synastry{/*rest}", "/relationships{/*rest}"], (_req, res) => {
 });
 
 router.use(reportsRouter);
-router.use(geocodeRouter);
 router.use(profilesRouter);
 router.use(invitesRouter);
 router.use(sharesRouter);
