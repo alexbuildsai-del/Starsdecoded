@@ -235,6 +235,46 @@ test("sending: 10 an hour per account, whichever browser sends", async () => {
   }
 });
 
+test("sharing your own report and Change address count with the sends: once an account's 10 have gone, routes/index.ts answers each with the send line before its route runs, and Share yours back, which sends nothing, takes no count (ADR-235, 237)", async (t) => {
+  const { sendLimit } = await import("./limits.js");
+  const { logger } = await import("./logger.js");
+  const { default: router } = await import("../routes/index.js");
+  const app = express();
+  app.use(express.json());
+  app.use((req, _res, next) => {
+    req.userId = req.header("x-user") || null;
+    req.sessionId = "s-sends";
+    req.log = logger;
+    next();
+  });
+  // The very count the router stands ahead of every send, filled here by sends that went out.
+  const sent: RequestHandler = (_req, res) => void res.status(201).json({});
+  app.post("/sent", sendLimit, sent);
+  app.use("/api", router);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    return new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const post = async (path: string, body: unknown, user = "user_sharer"): Promise<Answer> => {
+    const res = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-user": user },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, retryAfter: res.headers.get("retry-after"), body: await res.json() };
+  };
+
+  await passes(LIMITS.send.limit, () => post("/sent", {}));
+  for (const path of ["/api/shares", "/api/invites/i-1/change-address", "/api/gifts/g-1/change-address", "/api/invites", "/api/gifts"]) {
+    await refused(post(path, { email: "sam@example.com", profileId: "p-1", recipientName: "Sam" }), "send");
+  }
+  assert.equal((await post("/api/shares/back", {})).status, 400, "Share yours back answers for itself, past a full send count");
+  assert.equal((await post("/api/shares", { email: "not-an-email" }, "user_other")).status, 400, "another account's count is its own");
+});
+
 test("checkout: 10 an hour per session, as the table counts it", async () => {
   const app = await serve(buildLimits().checkoutLimit);
   try {

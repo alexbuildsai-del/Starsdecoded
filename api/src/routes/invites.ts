@@ -14,6 +14,8 @@ import {
   type RelationshipParticipant,
 } from "@workspace/db";
 import {
+  ChangeInviteAddressBody,
+  ChangeInviteAddressParams,
   CreateInviteBody,
   SendCompatibilityBody,
   SendCompatibilityParams,
@@ -32,14 +34,15 @@ import {
 import { firstNameOf, firstWord } from "../lib/names.js";
 import { sendPairEmail, sendReportEmail } from "../lib/mailer.js";
 import { moveHeldCredit } from "../lib/credits.js";
+import { grantShare, grantStands, shareBackOffered, sharerOf } from "../lib/shares.js";
 import { validationFailure } from "../lib/validation.js";
 import { publicWebBase } from "../lib/waitlist.js";
 
 const router = Router();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// Reading 8: a send's link lives 7 days and a gift's 30 (ADR-123). Nothing sweeps old
-// links, so every read applies the lifetime itself.
+// Reading 8: a send's link lives 7 days and a gift's 30 (ADR-123); a share's lives as a
+// send's does (ADR-235). Nothing sweeps old links, so every read applies the lifetime itself.
 const LIFETIME_MS = { send: 7 * DAY_MS, gift: 30 * DAY_MS } as const;
 
 // A report under a horizon pass keeps its text, so it can be sent as a complete one can,
@@ -79,6 +82,10 @@ function expiryOf(inv: Pick<InviteToken, "kind" | "createdAt" | "expiresAt">): D
   return new Date(Math.min(inv.expiresAt.getTime(), inv.createdAt.getTime() + lifetime));
 }
 
+function claimUrlFor(token: string): string {
+  return `${publicWebBase()}/claim?token=${encodeURIComponent(token)}`;
+}
+
 async function inviteByToken(raw: string): Promise<InviteToken | null> {
   const tokenHash = verifyInviteToken(raw);
   if (!tokenHash) return null;
@@ -91,7 +98,7 @@ async function inviteByToken(raw: string): Promise<InviteToken | null> {
 }
 
 /** The local copy first, then Clerk, for a user the local table has not caught yet. */
-async function emailOfUser(req: Request, userId: string): Promise<string | null> {
+export async function emailOfUser(req: Request, userId: string): Promise<string | null> {
   const [u] = await db
     .select({ email: usersTable.email })
     .from(usersTable)
@@ -109,12 +116,12 @@ async function emailOfUser(req: Request, userId: string): Promise<string | null>
 }
 
 /** A name is a nicety on an email or the claim page; a failed lookup leaves it out rather than failing the send. */
-async function giverFirstName(userId: string | null): Promise<string | null> {
+export async function giverFirstName(userId: string | null): Promise<string | null> {
   if (!userId) return null;
   return firstNameOf(userId).catch(() => null);
 }
 
-async function finishedNatalId(profileId: string): Promise<string | null> {
+export async function finishedNatalId(profileId: string): Promise<string | null> {
   const [r] = await db
     .select({ id: reportsTable.id })
     .from(reportsTable)
@@ -188,8 +195,10 @@ async function makerSendsPairTo(relationshipId: string, profileId: string): Prom
   return split?.other.profile.id === profileId;
 }
 
-async function createSendInvite(
+/** A send hands its chart over at the claim and a share grants a reading of the sharer's own; both go by email and claim. */
+export async function createInvite(
   req: Request,
+  kind: "send" | "share",
   target: { email: string; profileId: string; relationshipId: string | null },
 ): Promise<SendInvite> {
   const { token, tokenHash } = mintInviteToken();
@@ -200,7 +209,7 @@ async function createSendInvite(
     id,
     tokenHash,
     email,
-    kind: "send",
+    kind,
     profileId: target.profileId,
     relationshipId: target.relationshipId,
     createdByUserId: req.userId ?? null,
@@ -215,7 +224,7 @@ async function createSendInvite(
     profileId: target.profileId,
     relationshipId: target.relationshipId,
     expiresAt: expiresAt.toISOString(),
-    claimUrl: `${publicWebBase()}/claim?token=${encodeURIComponent(token)}`,
+    claimUrl: claimUrlFor(token),
   };
 }
 
@@ -228,7 +237,7 @@ function signInToSend(res: Response) {
   return res.status(401).json({ error: "unauthorized", message: "Sign in to share a report." });
 }
 
-async function recordDelivery(req: Request, inviteId: string, delivered: boolean): Promise<void> {
+export async function recordDelivery(req: Request, inviteId: string, delivered: boolean): Promise<void> {
   await db
     .update(inviteTokensTable)
     .set({ emailDelivered: delivered })
@@ -272,6 +281,8 @@ router.get("/invites", async (req, res) => {
       .where(
         and(
           eq(inviteTokensTable.profileId, profileId),
+          // A share of the viewer's own report is listed by GET /shares with its Stop sharing; read
+          // here, it would show on the row as a send waiting to hand the chart over.
           eq(inviteTokensTable.kind, "send"),
           isNull(inviteTokensTable.claimedAt),
           isNull(inviteTokensTable.revokedAt),
@@ -346,7 +357,7 @@ router.post("/invites", async (req, res) => {
       });
     }
 
-    const invite = await createSendInvite(req, { email, profileId: profile.id, relationshipId: null });
+    const invite = await createInvite(req, "send", { email, profileId: profile.id, relationshipId: null });
     // A failed email still answers 201: the sender gets the copy link instead.
     const emailDelivered = await sendReportEmail({
       to: invite.email,
@@ -407,6 +418,8 @@ router.post("/compatibility/:id/send", async (req, res) => {
           claimedByUserId: split.other.profile.claimedByUserId,
           accessRole: split.other.rp.accessRole,
           relationshipId,
+          // A chart shared with the maker is already its sharer's own, so no send may claim it from them (ADR-235).
+          userId: split.other.profile.userId,
         },
         (await openInvitesByRelationship([relationshipId])).get(relationshipId) ?? null,
       )
@@ -459,7 +472,7 @@ router.post("/compatibility/:id/send", async (req, res) => {
         message: `Add ${send.firstName}'s email to share it.`,
       });
     }
-    const invite = await createSendInvite(req, {
+    const invite = await createInvite(req, "send", {
       email: body.data.email,
       profileId: other.profile.id,
       relationshipId,
@@ -524,6 +537,43 @@ router.post("/compatibility/:id/stop-sharing", async (req, res) => {
   }
 });
 
+/**
+ * A share's link opens only while what it offers still stands, read as its grant is read:
+ * waiting, while the chart is still its sharer's own; claimed, while the grant reads. Once the
+ * sharer stops sharing, or the chart is no longer theirs, it answers as a revoked link does
+ * (ADR-235, reading 5; R-3.6).
+ */
+async function openShare(inv: InviteToken): Promise<Profile | null> {
+  if (!inv.profileId || !inv.createdByUserId) return null;
+  const [chart] = await db.select().from(profilesTable).where(eq(profilesTable.id, inv.profileId)).limit(1);
+  if (!chart) return null;
+  const stands = inv.claimedAt
+    ? !!inv.claimedByUserId && (await sharerOf(inv.claimedByUserId, chart.id)) === inv.createdByUserId
+    : grantStands({ ownerUserId: inv.createdByUserId, readerUserId: null, revokedAt: null }, chart);
+  return stands ? chart : null;
+}
+
+/**
+ * The page is public, so the sharer is named by the first name alone, never by the full name
+ * their chart carries, and nothing of a pair or a gift rides along (ADR-135, ADR-235).
+ */
+async function sharePreview(token: string, inv: InviteToken, chart: Profile, expiresAt: Date) {
+  const firstName = (await giverFirstName(inv.createdByUserId)) ?? (firstWord(chart.name) || null);
+  return {
+    token,
+    email: inv.email,
+    inviterName: firstName,
+    profileName: firstName,
+    relationshipId: null,
+    relationshipReportId: null,
+    expiresAt: expiresAt.toISOString(),
+    alreadyClaimed: !!inv.claimedAt,
+    kind: "share" as const,
+    recipientName: null,
+    note: null,
+  };
+}
+
 // GET /invites/:token — public preview used by the claim landing page.
 router.get("/invites/:token", async (req, res) => {
   try {
@@ -534,6 +584,11 @@ router.get("/invites/:token", async (req, res) => {
     const expiresAt = expiryOf(inv);
     if (expiresAt.getTime() < Date.now()) {
       return res.status(404).json({ error: "expired", message: "This invite has expired" });
+    }
+    if (inv.kind === "share") {
+      const chart = await openShare(inv);
+      if (!chart) return res.status(404).json({ error: "not_found", message: "Invite not found" });
+      return res.json(await sharePreview(req.params.token, inv, chart, expiresAt));
     }
 
     const gift = inv.kind === "gift";
@@ -698,7 +753,55 @@ async function claimSend(req: Request, inv: InviteToken, userId: string) {
   return sendClaimBody(profileId, pairId, askSelf);
 }
 
-// POST /invites/:token/claim — Clerk-authenticated claim, of a send or a gift.
+/** A share lands on the dashboard, the sharer now in the reader's circle, with Share yours back when it is offered. */
+function shareClaimBody(profileId: string, shareBack: boolean) {
+  return {
+    profileId,
+    relationshipId: null,
+    relationshipReportId: null,
+    redirectTo: "/dashboard",
+    kind: "share" as const,
+    askSelf: false,
+    shareBack,
+  };
+}
+
+/**
+ * A share's claim writes a grant to read the sharer's own Personal report and hands nothing
+ * over: the profile stays the sharer's, so their Stop sharing ends the reading at once (ADR-235,
+ * reading 3).
+ */
+async function claimShare(inv: InviteToken, userId: string) {
+  const sharerId = inv.createdByUserId;
+  if (sharerId === userId) throw new Refusal(409, "own_chart", "This is your own Personal report.");
+  const chart = await openShare(inv);
+  if (!chart || !sharerId) throw new Refusal(404, "not_found", "Invite not found");
+  const profileId = chart.id;
+  // A repeat claim by its reader writes nothing more; `openShare` has just read that its grant stands.
+  if (inv.claimedAt) return shareClaimBody(profileId, await shareBackOffered(userId, profileId));
+
+  const now = new Date();
+  // The link is taken and the grant written together, so a link is never spent without the reading it promised.
+  await db.transaction(async (tx) => {
+    const consumed = await tx
+      .update(inviteTokensTable)
+      .set({ claimedAt: now, claimedByUserId: userId })
+      .where(
+        and(
+          eq(inviteTokensTable.id, inv.id),
+          isNull(inviteTokensTable.claimedAt),
+          isNull(inviteTokensTable.revokedAt),
+          gt(inviteTokensTable.expiresAt, now),
+        ),
+      )
+      .returning({ id: inviteTokensTable.id });
+    if (!consumed.length) throw new Refusal(409, "already_claimed", "Invite already claimed");
+    await grantShare(tx, { profileId, ownerUserId: sharerId, readerUserId: userId, inviteId: inv.id });
+  });
+  return shareClaimBody(profileId, await shareBackOffered(userId, profileId));
+}
+
+// POST /invites/:token/claim — Clerk-authenticated claim, of a send, a share or a gift.
 router.post("/invites/:token/claim", async (req, res) => {
   const userId = req.userId;
   if (!userId) {
@@ -726,13 +829,148 @@ router.post("/invites/:token/claim", async (req, res) => {
       return res.status(409).json({ error: "already_claimed", message: "Invite already claimed" });
     }
 
-    return res.json(inv.kind === "gift" ? await claimGift(inv, userId) : await claimSend(req, inv, userId));
+    if (inv.kind === "gift") return res.json(await claimGift(inv, userId));
+    if (inv.kind === "share") return res.json(await claimShare(inv, userId));
+    return res.json(await claimSend(req, inv, userId));
   } catch (err) {
     if (err instanceof Refusal) {
       return res.status(err.status).json({ error: err.code, message: err.message });
     }
     req.log.error({ err }, "Failed to claim invite");
     return res.status(500).json({ error: "internal_error", message: "Failed to claim invite" });
+  }
+});
+
+export const CHANGE_ADDRESS_LINES = {
+  invalid: "Check the email address and try again.",
+  sameAddress: "That's the address the link already went to. Add the new one.",
+  notFound: "We couldn't find that link.",
+  claimed: "This report was already claimed, so its address can't change.",
+  expired: "This link has expired. Share the report again for a new one.",
+  raced: "The address just changed. Check it before you change it again.",
+  failed: "We couldn't change the address. Try again in a few minutes.",
+} as const;
+
+/** Why a send's address can no longer change: its link was claimed, or it stopped working (ADR-237, reading 7). */
+export function sendChangeRefusal(
+  inv: Pick<InviteToken, "kind" | "claimedAt" | "revokedAt" | "createdAt" | "expiresAt">,
+  now: Date,
+): string | null {
+  if (inv.claimedAt) return CHANGE_ADDRESS_LINES.claimed;
+  if (inv.revokedAt || expiryOf(inv).getTime() <= now.getTime()) return CHANGE_ADDRESS_LINES.expired;
+  return null;
+}
+
+/** Only its sender can change a send's address; to anyone else, signed out included, it does not exist. */
+async function ownSend(userId: string, id: string): Promise<InviteToken | null> {
+  const [row] = await db
+    .select()
+    .from(inviteTokensTable)
+    .where(
+      and(
+        eq(inviteTokensTable.id, id),
+        eq(inviteTokensTable.kind, "send"),
+        eq(inviteTokensTable.createdByUserId, userId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/** The email the send first carried, now to its new address: the person at it never saw the first one. */
+async function resendEmail(req: Request, inv: InviteToken, to: string, claimUrl: string): Promise<boolean> {
+  const [profile] = inv.profileId
+    ? await db
+      .select({ name: profilesTable.name })
+      .from(profilesTable)
+      .where(eq(profilesTable.id, inv.profileId))
+      .limit(1)
+    : [];
+  const personFirstName = firstWord(profile?.name ?? "");
+  const giver = await giverFirstName(req.userId);
+  if (!inv.relationshipId) {
+    return sendReportEmail({ to, giverFirstName: giver, personFirstName, claimUrl });
+  }
+  const split = splitPair(viewerOf(req), await pairSides(inv.relationshipId));
+  return sendPairEmail({
+    to,
+    giverFirstName: giver ?? (split ? firstWord(split.self.profile.name) : null),
+    otherFirstName: personFirstName || null,
+    url: claimUrl,
+    granted: false,
+  });
+}
+
+// POST /invites/:id/change-address — Change address on a waiting send (ADR-237, MB-109).
+router.post("/invites/:id/change-address", async (req, res) => {
+  const userId = req.userId;
+  const params = ChangeInviteAddressParams.safeParse(req.params);
+  if (!userId || !params.success) {
+    return res.status(404).json({ error: "not_found", message: CHANGE_ADDRESS_LINES.notFound });
+  }
+  const body = ChangeInviteAddressBody.safeParse(req.body ?? {});
+  if (!body.success) {
+    return res.status(400).json({ error: "validation_error", message: CHANGE_ADDRESS_LINES.invalid });
+  }
+
+  try {
+    const inv = await ownSend(userId, params.data.id);
+    if (!inv?.profileId) return res.status(404).json({ error: "not_found", message: CHANGE_ADDRESS_LINES.notFound });
+    const profileId = inv.profileId;
+    const now = new Date();
+    const refusal = sendChangeRefusal(inv, now);
+    if (refusal) return res.status(409).json({ error: "not_waiting", message: refusal });
+    const email = body.data.email.trim().toLowerCase();
+    if (email === inv.email.trim().toLowerCase()) {
+      return res.status(400).json({ error: "validation_error", message: CHANGE_ADDRESS_LINES.sameAddress });
+    }
+
+    // Only a token's hash is stored, so the swap is the revocation: from this statement on the
+    // old link finds no invite and answers as a revoked one does, and the link the new address
+    // gets lives the full week its email promises. It is guarded on the old hash, so a claim or
+    // a second change racing this one leaves one winner.
+    const { token, tokenHash } = mintInviteToken();
+    const expiresAt = new Date(now.getTime() + LIFETIME_MS.send);
+    const [changed] = await db
+      .update(inviteTokensTable)
+      .set({ tokenHash, email, createdAt: now, expiresAt, emailDelivered: null })
+      .where(
+        and(
+          eq(inviteTokensTable.id, inv.id),
+          eq(inviteTokensTable.tokenHash, inv.tokenHash),
+          isNull(inviteTokensTable.claimedAt),
+          isNull(inviteTokensTable.revokedAt),
+          gt(inviteTokensTable.expiresAt, now),
+        ),
+      )
+      .returning();
+    if (!changed) {
+      const after = await ownSend(userId, inv.id);
+      if (!after) return res.status(404).json({ error: "not_found", message: CHANGE_ADDRESS_LINES.notFound });
+      return res.status(409).json({
+        error: "not_waiting",
+        message: sendChangeRefusal(after, new Date()) ?? CHANGE_ADDRESS_LINES.raced,
+      });
+    }
+
+    const claimUrl = claimUrlFor(token);
+    // A failed email still answers 200, as a first send does: the sender has the copy link, and
+    // the old address keeps nothing it could open.
+    const emailDelivered = await resendEmail(req, changed, email, claimUrl);
+    await recordDelivery(req, changed.id, emailDelivered);
+    return res.json({
+      id: changed.id,
+      token,
+      email,
+      profileId,
+      relationshipId: changed.relationshipId ?? null,
+      expiresAt: expiresAt.toISOString(),
+      claimUrl,
+      emailDelivered,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to change an invite's address");
+    return res.status(500).json({ error: "internal_error", message: CHANGE_ADDRESS_LINES.failed });
   }
 });
 

@@ -3,6 +3,7 @@ import reportsRouter from "./reports";
 import geocodeRouter from "./geocode";
 import profilesRouter from "./profiles";
 import invitesRouter from "./invites";
+import sharesRouter from "./shares";
 import giftsRouter from "./gifts";
 import adminPromptsRouter from "./adminPrompts";
 import creditsRouter from "./credits";
@@ -32,13 +33,18 @@ router.post("/reports/:id/regenerate", writing);
 router.post("/compatibility", writing);
 router.patch("/profiles/:id/birth-time", writing);
 router.get("/geocode", geocodeLimit);
-// MB-146 provisional
+// The preview's own pace, decided as built (ADR-231, MB-146).
 router.post("/horizon/preview", previewLimit);
 router.post("/invites", sendLimit);
 router.post("/compatibility/:id/send", sendLimit);
+// A share of the reader's own report goes by email and claim like a send, so it counts with the sends (ADR-235).
+router.post("/shares", sendLimit);
 router.post("/gifts", sendLimit);
 // A reminder sends our mail too, so it counts with the sends; its own once-a-day refusal keeps ADR-127's wording.
 router.post("/gifts/:id/remind", sendLimit);
+// A new address gets a new email, so Change address counts with the sends too (ADR-237).
+router.post("/invites/:id/change-address", sendLimit);
+router.post("/gifts/:id/change-address", sendLimit);
 router.post("/checkout/test", checkoutLimit);
 
 // The legacy pair report gave way to Compatibility (MB-58). Its routes read a pair past `pairReadable`, so after Stop
@@ -52,6 +58,7 @@ router.use(reportsRouter);
 router.use(geocodeRouter);
 router.use(profilesRouter);
 router.use(invitesRouter);
+router.use(sharesRouter);
 // A gift seats no one in anyone's circle: /home seats only a Personal report the reader can read (ADR-139, ADR-182).
 router.use(homeRouter);
 router.use(giftsRouter);
