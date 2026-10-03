@@ -1,11 +1,14 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
-import { and, eq, ne, inArray, asc, count, or } from "drizzle-orm";
+import { and, eq, ne, inArray, isNull, asc, count, or, sql } from "drizzle-orm";
 import {
   db,
+  inviteTokensTable,
+  profileSharesTable,
   profilesTable,
   reportsTable,
   reportRevisionsTable,
+  reportWorkbooksTable,
   relationshipsTable,
   relationshipParticipantsTable,
 } from "@workspace/db";
@@ -14,7 +17,7 @@ import {
   UpdateReportWorkbookBody, UpdateReportWorkbookParams,
 } from "@workspace/api-zod";
 import { calculateNatalChart, type NatalChartData } from "../lib/chartCalculation.js";
-import { SectionError, generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
+import { PROMPT_VERSION, SectionError, generateInterpretation, type SectionFrame } from "../lib/aiInterpretation.js";
 import { SECTION_IDS } from "../prompts/index.js";
 import { pairSectionIds } from "../prompts/pair/index.js";
 import type { Lens } from "../lib/pairBrief.js";
@@ -22,22 +25,27 @@ import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
 import {
   canReadProfile,
   giverIdOf,
+  handedBackByProfile,
   isSelfFor,
+  mayRegenerate,
   natalReportAccess,
   openInvitesByProfile,
   openInvitesByRelationship,
   ownsRelationship,
   pairReadable,
   pairSendStateFor,
+  readerKey,
   sendStateFor,
   viewerRelationshipIds,
   type Access,
   type PairPerson,
+  type ProfileHolders,
   type SendState,
   type Viewer,
 } from "../lib/access.js";
+import { sharedProfileIds } from "../lib/shares.js";
 import { firstNameOf } from "../lib/names.js";
-import { PIN_LIMIT, isWorkbookKey, pairListed, patchWorkbook, workbookOf, type WorkbookPatch } from "../lib/home.js";
+import { PIN_LIMIT, isWorkbookKey, pairListed, patchWorkbook, workbookOf, type Workbook, type WorkbookPatch } from "../lib/home.js";
 import { consumeCredit, refundCredit } from "../lib/credits.js";
 import { failureCodeOf, failureReasonOf } from "../lib/failureReasons.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
@@ -99,6 +107,24 @@ function pairPerson({ rp, profile }: PartRow): PairPerson {
   return { ...profile, profileId: profile.id, accessRole: rp.accessRole };
 }
 
+const NO_GRANTS: ReadonlySet<string> = new Set();
+
+/** The charts shared with a signed-in viewer whose grants stand (ADR-235); a session holds none, so it asks nothing. */
+function grantsOf(viewer: Viewer): Promise<ReadonlySet<string>> {
+  return viewer.userId ? sharedProfileIds(viewer.userId) : Promise.resolve(NO_GRANTS);
+}
+
+/**
+ * Who shared this chart with the viewer: whichever of its holders keeps it as
+ * their own, which is the only chart a grant reads (ADR-235).
+ */
+export function sharerIdOf(profile: ProfileHolders & { isSelf: boolean; claimedAsSelf: boolean }): string | null {
+  for (const id of [profile.claimedByUserId, profile.userId]) {
+    if (id && isSelfFor({ userId: id, sessionId: "" }, profile)) return id;
+  }
+  return null;
+}
+
 type Loaded = {
   report: ReportRow;
   profile: ProfileRow;
@@ -112,8 +138,8 @@ type Loaded = {
 
 /**
  * A report with the viewer's standing on it: a natal report through its
- * profile (MB-84), a pair through the pair reading. The routes answer every
- * refusal with 404, so no id is ever confirmed.
+ * profile (MB-84) or a grant of it (ADR-235), a pair through the pair reading.
+ * The routes answer every refusal with 404, so no id is ever confirmed.
  */
 async function loadReport(viewer: Viewer, id: string): Promise<Loaded | null> {
   const rows = await db
@@ -130,11 +156,147 @@ async function loadReport(viewer: Viewer, id: string): Promise<Loaded | null> {
     const parts = (await partsOf([relationship.id])).get(relationship.id) ?? [];
     const maker = ownsRelationship(viewer, relationship);
     // MB-103 provisional
-    const { readable } = pairReadable(viewer, relationship, parts.map(pairPerson));
+    const { readable } = pairReadable(viewer, relationship, parts.map(pairPerson), maker ? await grantsOf(viewer) : NO_GRANTS);
     return { report, profile, relationship, parts, maker, access: readable ? (maker ? "owner" : "participant") : null };
   }
   if (report.type !== "natal") return null;
-  return { report, profile, relationship: null, parts: [], maker: false, access: natalReportAccess(viewer, profile, report) };
+  // A grant never outranks writing or holding the chart, so it is looked up only for a viewer who reads it no other way.
+  const access = natalReportAccess(viewer, profile, report)
+    ?? ((await grantsOf(viewer)).has(profile.id) ? natalReportAccess(viewer, profile, report, true) : null);
+  return { report, profile, relationship: null, parts: [], maker: false, access };
+}
+
+type Rights = { send: boolean; delete: boolean; regenerate: boolean };
+
+/**
+ * What a reader may do with a report beyond reading it. A grant reads and
+ * nothing more (ADR-235). Send is a natal report's writer's, or a pair's
+ * maker's while it reads; Delete is whoever holds a natal report or made a
+ * pair, closed or not; a rewrite is `mayRegenerate`'s (reading 10).
+ */
+export function rightsOf(
+  viewer: Viewer,
+  found: { report: { type: string; sessionId: string }; profile: ProfileHolders; access: Access | null; maker: boolean },
+): Rights {
+  const send = !!viewer.userId && found.access === "owner";
+  if (found.report.type !== "natal") return { send, delete: found.maker, regenerate: false };
+  return {
+    send,
+    delete: found.access === "owner" || found.access === "claimed",
+    regenerate: mayRegenerate(viewer, found.profile, found.report),
+  };
+}
+
+/** What a natal report's text was written for, stamped whenever this file writes it (reading 9). */
+type WrittenFor = { birthTime: string; birthTimeWindowMinutes: number; passes: number };
+
+/**
+ * The stamp lives in compute_data, which a natal report has no other use for.
+ * It keeps the horizon passes the report had when written, since a pass
+ * (horizonPass.ts) rewrites it for a new time without stamping it.
+ */
+export function writtenForStamp(profile: { birthTime: string; birthTimeWindowMinutes: number }, passes: number): { writtenFor: WrittenFor } {
+  return { writtenFor: { birthTime: profile.birthTime, birthTimeWindowMinutes: profile.birthTimeWindowMinutes, passes } };
+}
+
+function writtenForOf(computeData: unknown): WrittenFor | null {
+  const w = (computeData as { writtenFor?: Partial<WrittenFor> } | null)?.writtenFor;
+  if (!w || typeof w.birthTime !== "string" || typeof w.birthTimeWindowMinutes !== "number" || typeof w.passes !== "number") return null;
+  return { birthTime: w.birthTime, birthTimeWindowMinutes: w.birthTimeWindowMinutes, passes: w.passes };
+}
+
+function basisKey(moment: unknown, band: unknown): string | null {
+  return typeof moment === "string" && moment ? `${moment}|${Number(band ?? 0)}` : null;
+}
+
+/** A chart's moment and band, which every birth-time change moves. */
+export function chartKeyOf(chart: unknown): string | null {
+  const c = chart as { datetimeUtc?: unknown; windowMinutes?: unknown } | null;
+  return basisKey(c?.datetimeUtc, c?.windowMinutes);
+}
+
+/** One horizon pass as report_revisions keeps it: the report it amended, when it began, the chart it replaced (ADR-35). */
+export type PassRecord = { reportId: string; at: Date; replaced: string | null };
+
+/**
+ * Reading 9: a complete natal report whose written horizon or birth time is
+ * not its profile's now. The stamp answers on its own; a report a pass has
+ * amended since its stamp, or one written before stamps, is read from
+ * `passes`, every pass on the profile's natal reports, oldest first.
+ */
+export function isOutdated(
+  report: { id: string; type: string; status: string; interpretation: unknown; computeData: unknown; horizonPasses: number; createdAt: Date },
+  profile: { birthTime: string; birthTimeWindowMinutes: number; chartData: unknown },
+  passes: readonly PassRecord[],
+): boolean {
+  if (report.type !== "natal" || report.status !== "complete") return false;
+  const written = (report.interpretation as { meta?: { horizon?: unknown } } | null)?.meta?.horizon;
+  const now = (profile.chartData as { horizon?: { status?: unknown } } | null)?.horizon?.status;
+  if (typeof written === "string" && typeof now === "string" && written !== now) return true;
+  const stamp = writtenForOf(report.computeData);
+  if (stamp && stamp.passes === report.horizonPasses) {
+    return stamp.birthTime !== profile.birthTime || stamp.birthTimeWindowMinutes !== profile.birthTimeWindowMinutes;
+  }
+  return changedSince(report, chartKeyOf(profile.chartData), passes);
+}
+
+/**
+ * Whether a birth-time change came after the report last took one. A change
+ * leaves one run of passes that replaced the same chart: every complete
+ * report at once before MB-170, the newest alone since. A run that replaced
+ * the chart the profile holds now changed nothing, because a failed pass puts
+ * the profile back as it found it.
+ */
+function changedSince(report: { id: string; createdAt: Date }, chartNow: string | null, passes: readonly PassRecord[]): boolean {
+  const runs: PassRecord[][] = [];
+  for (const pass of passes) {
+    const run = runs[runs.length - 1];
+    if (run && run[0].replaced === pass.replaced) run.push(pass);
+    else runs.push([pass]);
+  }
+  let own = -1;
+  runs.forEach((run, i) => {
+    if (run.some((p) => p.reportId === report.id)) own = i;
+  });
+  // A report no pass has reached was written when it was made, so only a change that began later passed it by.
+  const later = own >= 0 ? runs.slice(own + 1) : runs.filter((run) => run[0].at > report.createdAt);
+  return later.some((run) => run[0].replaced !== chartNow);
+}
+
+async function passesOn(profileId: string): Promise<PassRecord[]> {
+  const rows = await db
+    .select({
+      reportId: reportRevisionsTable.reportId,
+      at: reportRevisionsTable.createdAt,
+      moment: sql<string | null>`${reportRevisionsTable.chartData} ->> 'datetimeUtc'`,
+      band: sql<string | null>`${reportRevisionsTable.chartData} ->> 'windowMinutes'`,
+    })
+    .from(reportRevisionsTable)
+    .innerJoin(reportsTable, eq(reportRevisionsTable.reportId, reportsTable.id))
+    .where(and(
+      eq(reportsTable.profileId, profileId),
+      eq(reportsTable.type, "natal"),
+      eq(reportRevisionsTable.reason, "birth_time_added"),
+    ))
+    .orderBy(asc(reportRevisionsTable.createdAt), asc(reportRevisionsTable.id));
+  return rows.map((r) => ({ reportId: r.reportId, at: r.at, replaced: basisKey(r.moment, r.band) }));
+}
+
+async function outdatedOf(report: ReportRow, profile: ProfileRow): Promise<boolean> {
+  if (report.type !== "natal" || report.status !== "complete") return false;
+  const stamp = writtenForOf(report.computeData);
+  const passes = stamp && stamp.passes === report.horizonPasses ? [] : await passesOn(profile.id);
+  return isOutdated(report, profile, passes);
+}
+
+/** The reader's own ticks and pins, never another reader's (ADR-239). */
+async function workbookFor(viewer: Viewer, reportId: string): Promise<Workbook> {
+  const [row] = await db
+    .select({ workbook: reportWorkbooksTable.workbook })
+    .from(reportWorkbooksTable)
+    .where(and(eq(reportWorkbooksTable.reportId, reportId), eq(reportWorkbooksTable.reader, readerKey(viewer))))
+    .limit(1);
+  return workbookOf(row?.workbook);
 }
 
 /** The two people of a pair, each with the natal report it was written from, marked from the viewer's side (reading 16). */
@@ -168,6 +330,7 @@ function pairSend(viewer: Viewer, report: { status: string; relationshipId: stri
     claimedByUserId: other.profile.claimedByUserId,
     accessRole: other.rp.accessRole,
     relationshipId: report.relationshipId,
+    userId: other.profile.userId,
   }, openInvite, report);
 }
 
@@ -185,21 +348,22 @@ function nameCache(): (userId: string | null) => Promise<string | null> {
   };
 }
 
-/** Whoever sent the viewer this report and still reads it: a natal report's giver, a pair's sender (ADR-139). */
+/** Whoever sent the viewer this report: a natal report's giver or sharer, a pair's sender (ADR-139, ADR-235). */
 function senderIdOf(viewer: Viewer, found: Pick<Loaded, "profile" | "relationship" | "access">): string | null {
   if (found.access === "participant") return found.relationship?.userId ?? null;
-  return found.relationship ? null : giverIdOf(viewer, found.profile);
+  if (found.relationship) return null;
+  return found.access === "shared" ? sharerIdOf(found.profile) : giverIdOf(viewer, found.profile);
 }
 
-/** Send on one report, with the one invite lookup it needs; only its writer or a pair's maker sends. */
+/** Send on one report, with the lookups it needs; only its writer or a pair's maker sends. */
 async function sendOn(viewer: Viewer, found: Loaded): Promise<SendState | null> {
-  if (!viewer.userId || found.access !== "owner") return null;
+  if (!rightsOf(viewer, found).send) return null;
   if (found.relationship) {
     const invites = await openInvitesByRelationship([found.relationship.id]);
     return pairSend(viewer, found.report, found.parts, invites.get(found.relationship.id));
   }
-  const invites = await openInvitesByProfile([found.profile.id]);
-  return sendStateFor(viewer, found.profile, found.report, invites.get(found.profile.id));
+  const [invites, handedBack] = await Promise.all([openInvitesByProfile([found.profile.id]), handedBackByProfile([found.profile.id])]);
+  return sendStateFor(viewer, found.profile, found.report, invites.get(found.profile.id), handedBack.get(found.profile.id) ?? null);
 }
 
 function pairName(participants: Array<{ name: string }>): string {
@@ -207,14 +371,20 @@ function pairName(participants: Array<{ name: string }>): string {
 }
 
 // List the viewer's reports: natal and compatibility, never the retired
-// synastry rows (MB-58). Natal: signed in, the reports they wrote and the ones
-// sent to them (MB-84); a session, the reports it asked for. Compatibility:
-// the pairs they made and the ones sent to them, by the pair reading.
+// synastry rows (MB-58). Natal: signed in, the reports they wrote, the ones
+// sent to them (MB-84) and the ones shared with them (ADR-235); a session, the
+// reports it asked for. Compatibility: the pairs they made and the ones sent
+// to them, by the pair reading.
 router.get("/reports", async (req, res) => {
   try {
     const viewer: Viewer = { userId: req.userId, sessionId: req.sessionId };
+    const shared = await grantsOf(viewer);
     const natalOwnerWhere = viewer.userId
-      ? or(eq(profilesTable.userId, viewer.userId), eq(profilesTable.claimedByUserId, viewer.userId))
+      ? or(
+        eq(profilesTable.userId, viewer.userId),
+        eq(profilesTable.claimedByUserId, viewer.userId),
+        shared.size ? inArray(profilesTable.id, [...shared]) : undefined,
+      )
       : eq(reportsTable.sessionId, viewer.sessionId);
 
     const natalWhere = and(eq(reportsTable.type, "natal"), natalOwnerWhere);
@@ -236,12 +406,11 @@ router.get("/reports", async (req, res) => {
 
     const nameOf = nameCache();
     const natal = natalRows.flatMap((r) => {
-      const access = natalReportAccess(viewer, r.profile, r);
+      const access = natalReportAccess(viewer, r.profile, r, shared.has(r.profile.id));
       return access ? [{ ...r, access }] : [];
     });
-    const natalInvites = viewer.userId
-      ? await openInvitesByProfile(natal.filter((r) => r.access === "owner").map((r) => r.profile.id))
-      : new Map<string, string>();
+    const sendable = viewer.userId ? natal.filter((r) => r.access === "owner").map((r) => r.profile.id) : [];
+    const [natalInvites, handedBack] = await Promise.all([openInvitesByProfile(sendable), handedBackByProfile(sendable)]);
 
     type ReportSummaryOut = {
       id: string;
@@ -302,8 +471,8 @@ router.get("/reports", async (req, res) => {
       createdAt: r.createdAt.toISOString(),
       failureReason: failureReasonOf(r.failureCode),
       access: r.access,
-      send: sendStateFor(viewer, r.profile, r, natalInvites.get(r.profile.id)),
-      sharedBy: await nameOf(giverIdOf(viewer, r.profile)),
+      send: sendStateFor(viewer, r.profile, r, natalInvites.get(r.profile.id), handedBack.get(r.profile.id) ?? null),
+      sharedBy: await nameOf(r.access === "shared" ? sharerIdOf(r.profile) : giverIdOf(viewer, r.profile)),
       stoppedBy: null,
     })));
 
@@ -341,7 +510,7 @@ router.get("/reports", async (req, res) => {
       const pairs = current.flatMap((r) => {
         const rel = { userId: r.relUserId, sessionId: r.relSessionId };
         const parts = (r.relationshipId && partsByRel.get(r.relationshipId)) || [];
-        const reading = pairReadable(viewer, rel, parts.map(pairPerson));
+        const reading = pairReadable(viewer, rel, parts.map(pairPerson), shared);
         if (!reading.readable && !reading.stoppedBy) return [];
         return [{ r, rel, parts, reading, maker: ownsRelationship(viewer, rel) }];
       });
@@ -352,7 +521,7 @@ router.get("/reports", async (req, res) => {
       pairSummaries = await Promise.all(pairs.map(async ({ r, rel, parts, reading, maker }): Promise<ReportSummaryOut> => {
         const participants = parts.map((p) => {
           // A closed pair keeps the names its maker typed but no longer shows the chart of whoever stopped sharing (ADR-139).
-          const chart = reading.readable || canReadProfile(viewer, p.profile) ? (p.profile.chartData as any) : null;
+          const chart = reading.readable || canReadProfile(viewer, p.profile, shared.has(p.profile.id)) ? (p.profile.chartData as any) : null;
           return {
             id: p.profile.id,
             name: p.profile.name,
@@ -433,6 +602,7 @@ router.post("/reports", async (req, res) => {
       // Chart is already cached on the profile, so we can skip "computing"
       // and go straight to interpreting.
       status: profile.chartData ? "interpreting" : "pending",
+      computeData: writtenForStamp(profile, 0),
     });
 
     // Soft-consume one credit for signed-in users. Non-blocking — missing credits are just logged.
@@ -484,7 +654,7 @@ router.get("/reports/:id", async (req, res) => {
     }
     const { report: r, profile: p, relationship, access } = found;
     const participants = r.type === "compatibility" ? participantsOut(req, r, found.parts) : null;
-    const [revisions, send, giverName] = await Promise.all([
+    const [revisions, send, giverName, workbook, outdated] = await Promise.all([
       db
         .select({ id: reportRevisionsTable.id, reason: reportRevisionsTable.reason, createdAt: reportRevisionsTable.createdAt })
         .from(reportRevisionsTable)
@@ -492,6 +662,8 @@ router.get("/reports/:id", async (req, res) => {
         .orderBy(asc(reportRevisionsTable.createdAt)),
       sendOn(req, found),
       nameCache()(senderIdOf(req, found)),
+      workbookFor(req, r.id),
+      outdatedOf(r, p),
     ]);
     return res.json({
       id: r.id,
@@ -504,7 +676,8 @@ router.get("/reports/:id", async (req, res) => {
       timezoneOffset: p.timezoneOffset,
       timezone: p.timezone ?? null,
       birthTimeWindowMinutes: p.birthTimeWindowMinutes,
-      profileId: r.type === "natal" ? p.id : null,
+      // The birth time pass is addressed here, and a reader through a grant changes nothing of the sharer's (ADR-235).
+      profileId: r.type === "natal" && access !== "shared" ? p.id : null,
       type: r.type,
       lens: relationship?.type ?? null,
       participants,
@@ -513,7 +686,7 @@ router.get("/reports/:id", async (req, res) => {
       status: r.status,
       chartData: p.chartData ?? null,
       interpretation: r.interpretation ?? null,
-      workbook: (r.workbook ?? {}) as Record<string, string>,
+      workbook,
       // The internal message stays in the database; the customer reads the coded line (ADR-84).
       errorMessage: null,
       failureReason: failureReasonOf(r.failureCode),
@@ -522,6 +695,8 @@ router.get("/reports/:id", async (req, res) => {
       access,
       send,
       giverName,
+      canRegenerate: rightsOf(req, found).regenerate,
+      outdated,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get report");
@@ -548,6 +723,9 @@ router.get("/reports/:id/status", async (req, res) => {
     return res.json({
       id: r.id,
       status: r.status,
+      // The page offers a rewrite from whichever of the two reads it fetched last, so both answer alike.
+      canRegenerate: rightsOf(req, found).regenerate,
+      outdated: await outdatedOf(r, p),
       errorMessage: null,
       failureReason: failureReasonOf(r.failureCode),
       // The chart is what the page opens on, so the client stops waiting the
@@ -575,10 +753,13 @@ export function workbookPatchFault(patch: WorkbookPatch): string | null {
 }
 
 /**
- * The reader's workbook. A tick is one shallow merge, so a slow connection
- * cannot lose the rest of the page's ticks by overwriting them.
+ * The reader's own workbook, a row of report_workbooks under `readerKey`:
+ * whoever else reads the report, its writer, the person it was sent to or a
+ * reader through a grant, keeps theirs apart, pins included (ADR-239). A tick
+ * is one shallow merge, so a slow connection cannot lose the rest of the
+ * page's ticks by overwriting them. reports.workbook is no longer written
+ * (MB-195).
  */
-// MB-110 provisional: pins ride the workbook beside the ticks, so everyone who reads the report shares them.
 router.patch("/reports/:id/workbook", async (req, res) => {
   const params = UpdateReportWorkbookParams.safeParse(req.params);
   if (!params.success) {
@@ -599,16 +780,19 @@ router.patch("/reports/:id/workbook", async (req, res) => {
     if (!found?.access) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
-    const id = found.report.id;
+    const reader = readerKey(req);
+    const own = and(eq(reportWorkbooksTable.reportId, found.report.id), eq(reportWorkbooksTable.reader, reader));
 
-    // The row is locked for the merge, so two patches at once can neither drop
-    // each other's ticks nor pass the pin limit together.
+    // The reader's row is made first and locked for the merge, so two patches
+    // at once, even a reader's first two, can neither drop each other's ticks
+    // nor pass the pin limit together.
     const outcome = await db.transaction(async (tx) => {
-      const [row] = await tx.select({ workbook: reportsTable.workbook }).from(reportsTable).where(eq(reportsTable.id, id)).for("update");
+      await tx.insert(reportWorkbooksTable).values({ reportId: found.report.id, reader }).onConflictDoNothing();
+      const [row] = await tx.select({ workbook: reportWorkbooksTable.workbook }).from(reportWorkbooksTable).where(own).for("update");
       if (!row) return null;
       const next = patchWorkbook(workbookOf(row.workbook), patch);
       if ("error" in next) return next;
-      await tx.update(reportsTable).set({ workbook: next.workbook, updatedAt: new Date() }).where(eq(reportsTable.id, id));
+      await tx.update(reportWorkbooksTable).set({ workbook: next.workbook, updatedAt: new Date() }).where(own);
       return next;
     });
     if (!outcome) {
@@ -641,6 +825,29 @@ async function handOver(tx: Tx, profileId: string, toUserId: string): Promise<vo
     .where(and(eq(reportsTable.profileId, profileId), eq(reportsTable.type, "natal")));
 }
 
+/**
+ * Deleting your Personal report ends your sharing of that chart at once, its
+ * grants and their links as Stop sharing ends them (R-3.6): a pair a reader
+ * made on it can keep the chart alive, with no quick look left to stop
+ * sharing from (ADR-235). Built, not run, so the caller runs it in its own
+ * transaction.
+ */
+export function shareEndings(tx: Pick<Tx, "update">, profileId: string, ownerUserId: string, at: Date) {
+  return [
+    tx.update(profileSharesTable).set({ revokedAt: at }).where(and(
+      eq(profileSharesTable.profileId, profileId),
+      eq(profileSharesTable.ownerUserId, ownerUserId),
+      isNull(profileSharesTable.revokedAt),
+    )),
+    tx.update(inviteTokensTable).set({ revokedAt: at, expiresAt: at }).where(and(
+      eq(inviteTokensTable.profileId, profileId),
+      eq(inviteTokensTable.kind, "share"),
+      eq(inviteTokensTable.createdByUserId, ownerUserId),
+      isNull(inviteTokensTable.revokedAt),
+    )),
+  ] as const;
+}
+
 // Regenerate an existing report's interpretation in place. Reuses cached
 // chartData from the profile when available; falls back to a full recompute.
 //
@@ -655,6 +862,39 @@ export function regenerateCooldown(elapsedMs: number): { retryAfterSeconds: numb
 }
 const lastRegenerateAt = new Map<string, number>();
 
+const BEING_WRITTEN = new Set(["pending", "computing", "interpreting", "revising"]);
+
+type Refusal = { status: 404 | 409; body: { error: string; message: string; status?: string } };
+
+/**
+ * Why POST /reports/:id/regenerate refuses, or null when it runs, free as it
+ * always has. Only whoever may rewrite the report (reading 10), and only where
+ * a rewrite is wanted: a report that failed (Try again, MB-137), one written
+ * for another birth time (reading 9, MB-170), or one written on an earlier
+ * prompt version than the server writes now, which the page's earlier-version
+ * screen asks to regenerate (MB-45). No other user regeneration exists (R-6.1).
+ */
+export function regenerateRefusal(
+  viewer: Viewer,
+  report: { type: string; status: string; sessionId: string; interpretation: unknown },
+  profile: ProfileHolders,
+  outdated: boolean,
+): Refusal | null {
+  if (report.type !== "natal" || !mayRegenerate(viewer, profile, report)) {
+    return { status: 404, body: { error: "not_found", message: "Report not found" } };
+  }
+  if (BEING_WRITTEN.has(report.status)) {
+    return { status: 409, body: { error: "in_progress", message: "Report is already being generated", status: report.status } };
+  }
+  if (report.status === "failed" || outdated || writtenEarlier(report.interpretation)) return null;
+  return { status: 409, body: { error: "up_to_date", message: "This report is already up to date" } };
+}
+
+/** Every version the page cannot render is earlier than the one written now, so the server needs no list of the page's. */
+function writtenEarlier(interpretation: unknown): boolean {
+  return (interpretation as { meta?: { promptVersion?: unknown } } | null)?.meta?.promptVersion !== PROMPT_VERSION;
+}
+
 // Delete a report its holder deletes: a natal report by whoever wrote it or
 // the person it was sent to, a pair by its maker. A report mid-generation is
 // deleted too; generateReport tolerates its row vanishing. A compatibility
@@ -668,20 +908,14 @@ router.delete("/reports/:id", async (req, res) => {
   }
   try {
     const found = await loadReport(req, parsed.data.id);
-    if (!found) {
+    // MB-103 provisional: a closed pair is still its maker's to delete; the other of its two only reads it, as a reader through a grant does.
+    if (!found || !rightsOf(req, found).delete) {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     const { report: r, profile: p } = found;
     if (r.type === "compatibility") {
-      // MB-103 provisional: a closed pair is still its maker's to delete; the other of its two only reads it.
-      if (!found.maker) {
-        return res.status(404).json({ error: "not_found", message: "Report not found" });
-      }
       await db.delete(reportsTable).where(eq(reportsTable.id, r.id));
       return res.status(204).end();
-    }
-    if (!found.access) {
-      return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
 
     // A claimed report is its subject's (ADR-139), so its giver's Delete lets
@@ -703,6 +937,9 @@ router.delete("/reports/:id", async (req, res) => {
         .where(eq(relationshipParticipantsTable.profileId, p.id));
 
       await tx.delete(reportsTable).where(eq(reportsTable.id, r.id));
+      if (req.userId) {
+        for (const ending of shareEndings(tx, p.id, req.userId, new Date())) await ending;
+      }
       if (shouldDeleteProfile({ otherReportCount, relationshipParticipantCount })) {
         await tx.delete(profilesTable).where(eq(profilesTable.id, p.id));
       } else if (found.access === "claimed" && req.userId && p.userId !== req.userId) {
@@ -735,15 +972,12 @@ router.post("/reports/:id/regenerate", async (req, res) => {
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
     const { report: r, profile: p } = rows[0];
-    // MB-166 provisional: only its writer rewrites a report, and a session that wrote one stops at its subject's claim,
-    // as its reads do (ADR-139).
-    if (r.type !== "natal" || natalReportAccess(req, p, r) !== "owner") {
-      return res.status(404).json({ error: "not_found", message: "Report not found" });
-    }
-    if (r.status === "interpreting" || r.status === "computing" || r.status === "pending" || r.status === "revising") {
-      return res
-        .status(409)
-        .json({ error: "in_progress", message: "Report is already being generated", status: r.status });
+    // MB-166 provisional: a session that wrote a report stops rewriting it at its subject's claim, as its reads do (ADR-139).
+    // Who may is settled before the passes are read, so a refused viewer costs nothing more than the row.
+    const asked = r.type === "natal" && r.status === "complete" && mayRegenerate(req, p, r) && !writtenEarlier(r.interpretation);
+    const refusal = regenerateRefusal(req, r, p, asked && (await outdatedOf(r, p)));
+    if (refusal) {
+      return res.status(refusal.status).json(refusal.body);
     }
     const last = lastRegenerateAt.get(r.id) ?? 0;
     const elapsed = Date.now() - last;
@@ -753,9 +987,16 @@ router.post("/reports/:id/regenerate", async (req, res) => {
       return res.status(429).json(cooldown.body);
     }
     lastRegenerateAt.set(r.id, Date.now());
+    // A birth-time change is refused while this writes, so the profile's time now is the one the new text is for.
     await db
       .update(reportsTable)
-      .set({ status: "interpreting", errorMessage: null, failureCode: null, updatedAt: new Date() })
+      .set({
+        status: "interpreting",
+        errorMessage: null,
+        failureCode: null,
+        computeData: { ...((r.computeData as Record<string, unknown> | null) ?? {}), ...writtenForStamp(p, r.horizonPasses) },
+        updatedAt: new Date(),
+      })
       .where(eq(reportsTable.id, r.id));
     (async () => {
       try {
