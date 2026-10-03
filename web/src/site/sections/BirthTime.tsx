@@ -62,13 +62,13 @@ export default function BirthTime() {
               {plates.map((plate) => (
                 <li key={plate.mode} className={PLATE}>
                   <p className="sd-eyebrow text-[10.5px] tracking-[.2em] text-[var(--paper)]">{MODE_LABELS[plate.mode].title}</p>
-                  <p className="min-h-[2.8em] text-[12px] leading-[1.4] text-[var(--sd-muted)]">{plateAnswer(plate)}</p>
+                  <p className="min-h-[2.8em] text-[12px] leading-[1.4] text-[var(--sd-muted)]">{plateAnswer(plate, clock)}</p>
                   {/* The readout under the plate states its facts, so the drawing stays out of the reading order. */}
                   <div aria-hidden="true">
                     <TriadPlate chart={plate.chart} name={person.name} className="block h-auto w-[150px] max-w-full" />
                   </div>
                   <p className="sd-mono text-[11px] leading-[1.5] tracking-[.04em] uppercase text-[var(--paper-dim)]">
-                    {plateReadout(plate)}
+                    {plateReadout(plate, clock)}
                   </p>
                   <p className="text-[12.5px] leading-[1.45] text-[var(--sd-muted)]">{plateLine(plate)}</p>
                 </li>

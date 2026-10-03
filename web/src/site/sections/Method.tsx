@@ -1,4 +1,6 @@
 import { Link } from "wouter";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
+import { clockWords } from "@/lib/date-entry";
 import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { ReferenceCheck } from "@/site/components/ReferenceCheck";
 import { SAMPLE, sampleChart } from "@/site/data/sample";
@@ -9,7 +11,6 @@ import { formatUpdated } from "@/site/site";
 const HUE: Record<NoteKind, string> = {
   sect: "var(--violet)",
   strongest: "var(--indigo-lt)",
-  element: "var(--indigo-lt)",
   modality: "var(--indigo-lt)",
 };
 
@@ -29,6 +30,7 @@ const CHIP =
  */
 export default function Method() {
   const chart = sampleChart();
+  const { clock } = useEntryFormat();
 
   return (
     <section id="method" className="sd-sec sd-sec-c sd-line" aria-labelledby="method-h">
@@ -56,7 +58,7 @@ export default function Method() {
             </p>
             <figure className={FIGURE}>
               <figcaption className="sd-tag">
-                {[SAMPLE.name, formatUpdated(SAMPLE.birth.birthDate), SAMPLE.birth.birthTime, SAMPLE.place].join(" · ")}
+                {[SAMPLE.name, formatUpdated(SAMPLE.birth.birthDate), clockWords(SAMPLE.birth.birthTime, clock), SAMPLE.place].join(" · ")}
               </figcaption>
               <div className="sd-readout">
                 {chartReadout(chart, SAMPLE.birth).map((row) => (

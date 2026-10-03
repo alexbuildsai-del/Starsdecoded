@@ -16,6 +16,7 @@ import {
 } from "@workspace/engine";
 import { houseOf } from "@/components/chart/wheel-geometry";
 import { DEFAULT_ANSWER, WINDOW_UNKNOWN, isTime, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
+import { clockWords, type Clock } from "@/lib/date-entry";
 import { ORDINALS, houseWithWord, houseWord } from "@/lib/evidence-glossary";
 import type { FormDraft } from "@/lib/form-draft";
 import { placeTitle, type GeocodeResult } from "@/lib/places";
@@ -345,9 +346,15 @@ export function dayLine(date: string): string {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
-/** "4 May 1929 · 03:00 · Ixelles" */
-export function summaryLine(birth: SkyBirth): string {
-  return `${dayLine(birth.date)} · ${birth.time ?? "Time unknown"} · ${placeTitle(birth.place)}`;
+/** A birth's minute on the reader's clock (MB-178), so a page never prints two clocks; a blank time says so. */
+const timeLine = (birth: SkyBirth, clock: Clock): string => (birth.time === null ? "Time unknown" : clockWords(birth.time, clock));
+
+/**
+ * "4 May 1929 · 03:00 · Ixelles", or "4 May 1929 · 3 am · Ixelles" on a
+ * 12-hour clock; 24-hour unless told, as the prerender draws it (reading 5).
+ */
+export function summaryLine(birth: SkyBirth, clock: Clock = 24): string {
+  return `${dayLine(birth.date)} · ${timeLine(birth, clock)} · ${placeTitle(birth.place)}`;
 }
 
 /** ["13.12°", "Taurus"], from the engine's longitude, to the hundredth every readout prints. */
@@ -454,14 +461,14 @@ export interface HudLines {
   br: string;
 }
 
-/** The four corners around the wheel, set in capitals by the page. */
-export function hudLines(sky: Sky): HudLines {
+/** The four corners around the wheel, set in capitals by the page, the minute on the reader's clock. */
+export function hudLines(sky: Sky, clock: Clock = 24): HudLines {
   const { chart, place } = sky;
   const at = latLngLine(place.latitude, place.longitude);
   const whose = sky.kind === "sample" ? `Sample · ${sky.name ?? ""}` : "Your chart";
   const tl = sky.kind === "now" && place.timezone
-    ? `Live · ${clockLine(sky.at, place.timezone)}`
-    : sky.birth ? `${whose} · ${dayLine(sky.birth.date)} · ${sky.birth.time ?? "Time unknown"}` : "";
+    ? `Live · ${clockLine(sky.at, place.timezone, clock)}`
+    : sky.birth ? `${whose} · ${dayLine(sky.birth.date)} · ${timeLine(sky.birth, clock)}` : "";
   return {
     tl,
     tr: `${sky.kind === "now" ? "Over " : ""}${placeTitle(place)} · ${at}`,
@@ -487,8 +494,8 @@ export interface ResultLines {
   caption: string;
 }
 
-/** The words over /sky's placements: whose sky the table lists, and when and where it is from. */
-export function resultLines(sky: Sky): ResultLines {
+/** The words over /sky's placements: whose sky the table lists, and when and where it is from, on the reader's clock. */
+export function resultLines(sky: Sky, clock: Clock = 24): ResultLines {
   const { chart, place, birth } = sky;
   if (sky.kind === "now") {
     return {
@@ -498,7 +505,7 @@ export function resultLines(sky: Sky): ResultLines {
       caption: "Where each planet is now",
     };
   }
-  const when = birth ? summaryLine(birth) : "";
+  const when = birth ? summaryLine(birth, clock) : "";
   return {
     eyebrow: sky.kind === "sample" ? "Sample chart" : "Your birth chart",
     title: plainLine(chart),

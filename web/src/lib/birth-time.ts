@@ -95,15 +95,29 @@ export function fromValue(v: BirthTimeValue): BirthTimeAnswer {
   return { mode: "known", time: v.birthTime, part: "afternoon", kind: "part" };
 }
 
-/** "Capricorn · holds from 11:12 to 12:58", or the many-sign form with its flips. */
-export function risingReadout(fact: HorizonFact): string {
-  if (fact.holds) return `${fact.value} · holds from ${fact.holdsFrom} to ${fact.holdsTo}`;
-  return `${fact.values.length} possible: ${fact.values.join(", ")} · flips at ${fact.flipsAt.join(", ")}`;
+/**
+ * A sweep's time on the reader's clock. A run that reaches the day's end stops
+ * at "24:00", which the 12-hour clock has no form for, so both of the day's
+ * edges read "midnight", as the parts of the day say it.
+ */
+function sweepTime(hhmm: string, clock: Clock): string {
+  return clock === 12 && (hhmm === "00:00" || hhmm === "24:00") ? "midnight" : clockWords(hhmm, clock);
+}
+
+/**
+ * "Capricorn · holds from 11:12 to 12:58", or the many-sign form with its
+ * flips, on the reader's clock (MB-178); 24-hour unless told, as the prerender
+ * draws it (reading 5).
+ */
+export function risingReadout(fact: HorizonFact, clock: Clock = 24): string {
+  const at = (hhmm: string) => sweepTime(hhmm, clock);
+  if (fact.holds) return `${fact.value} · holds from ${at(fact.holdsFrom)} to ${at(fact.holdsTo)}`;
+  return `${fact.values.length} possible: ${fact.values.join(", ")} · flips at ${fact.flipsAt.map(at).join(", ")}`;
 }
 
 /** The one line under the control: what the answer settles. */
-export function readout(h: Horizon): { status: HorizonStatus; rising: string; line: string } {
-  const rising = risingReadout(h.ascendant);
+export function readout(h: Horizon, clock: Clock = 24): { status: HorizonStatus; rising: string; line: string } {
+  const rising = risingReadout(h.ascendant, clock);
   const line = h.status === "known"
     ? `Rising sign ${rising}. The horizon is drawn.`
     : h.status === "approximate"

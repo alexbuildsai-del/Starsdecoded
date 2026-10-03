@@ -1,3 +1,4 @@
+import { clockWords, type Clock } from "@/lib/date-entry";
 import type { ChartData } from "@/types/chart";
 
 /**
@@ -14,13 +15,17 @@ export function visitorZone(): string | undefined {
   }
 }
 
-/** "26 SEP 2026 · 19:46" on the city's clock. */
-export function clockLine(at: Date, zone: string): string {
+/**
+ * "26 SEP 2026 · 19:46" on the city's clock, the minute said on the reader's
+ * (MB-178): "7:46 pm" on a 12-hour one. 24-hour unless told, as the prerender
+ * draws it (reading 5).
+ */
+export function clockLine(at: Date, zone: string, clock: Clock = 24): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: zone, year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).formatToParts(at);
   const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${Number(get("day"))} ${MONTHS[Number(get("month")) - 1]} ${get("year")} · ${get("hour")}:${get("minute")}`;
+  return `${Number(get("day"))} ${MONTHS[Number(get("month")) - 1]} ${get("year")} · ${clockWords(`${get("hour")}:${get("minute")}`, clock)}`;
 }
 
 /** "50.83°N 4.33°E" */

@@ -603,7 +603,7 @@ export default function Claims() {
 
   const showing = wheel.shown === "her" && phase === "landed" && cur >= 0 ? claims[cur] : undefined;
   const hud =
-    wheel.shown === "her" ? [`${SAMPLE.name} · ${BORN_ON} · ${SAMPLE.birth.birthTime}`, WHERE, `Birth time · ${SAMPLE.source}`, sunLine(chart)]
+    wheel.shown === "her" ? [`${SAMPLE.name} · ${BORN_ON} · ${clockWords(SAMPLE.birth.birthTime, clock)}`, WHERE, `Birth time · ${SAMPLE.source}`, sunLine(chart)]
     : wheel.shown === "now" ? ["The sky now", `Over ${WHERE}`, "", ""]
     : [`Rewinding to ${BORN_ON}`, WHERE, "", ""];
 
@@ -754,6 +754,8 @@ export default function Claims() {
                     chartData={wheel.chart}
                     orbs={wheel.shown === "her" ? SAMPLE.run.meta.orbs : undefined}
                     selectedHouse={showing ? houseOfTarget(showing.target, chart) : 0}
+                    // Nothing here answers a house or a planet, so Tab passes the wheel rather than 25 stops that do nothing (MB-177).
+                    stops={false}
                   />
                   {showing && spots && <Marks spots={spots} claim={showing} chart={chart} />}
                 </div>

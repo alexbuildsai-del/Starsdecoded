@@ -3,6 +3,7 @@
  * and every birth-time plate says what the birth form itself would say for
  * that answer: its window, its sweep, its readout (ADR-33).
  */
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart, offsetAtBirth } from "@workspace/engine";
 import {
@@ -10,7 +11,7 @@ import {
   partLabels, readout, risingReadout, toValue, type PartOfDay,
 } from "@/lib/birth-time";
 import { houseWithWord } from "@/lib/evidence-glossary";
-import { elementLead, modalityLine } from "@/lib/sky-card";
+import { modalityLine } from "@/lib/sky-card";
 import { utcLine } from "@/lib/sky-now";
 import { PLANET_LABELS } from "@/types/chart";
 import { SAMPLE_PEOPLE } from "@/site/data/people";
@@ -76,6 +77,19 @@ describe("the birth-time plates", () => {
     const moon = moonSign.holds ? `Your Moon is in ${moonSign.value} either way.` : `Your Moon could be in ${moonSign.values.join(" or ")}.`;
     expect(plateLine(plates[1])).toBe(`Your rising sign could be one of ${count}, so the report leaves it out. ${moon}`);
     expect(plateLine(plates[2])).toBe("There's no rising sign, and your Moon is somewhere in that range.");
+  });
+
+  it("say the answer and the rising sign's run on the reader's clock, the 24-hour one being the prerender's (MB-178)", () => {
+    expect(mira.birth.birthTime).toBe("07:40");
+    expect(plateAnswer(plates[0], 12)).toBe("7:40\u00a0am on the birth certificate");
+    expect(plateAnswer(plates[1], 12)).toBe("About 8\u00a0am, give or take an hour");
+    expect(plateAnswer(plates[2], 12)).toBe("The report is written from the date alone.");
+    expect(plateAnswer(plates[0], 24)).toBe(plateAnswer(plates[0]));
+    expect(plateReadout(plates[0], 12)).toBe("Aries · holds from 7:12\u00a0am to 8:26\u00a0am");
+    expect(plateReadout(plates[0], 24)).toBe("Aries · holds from 07:12 to 08:26");
+    expect(plateReadout(plates[1], 12)).toBe(risingReadout(plates[1].chart.horizon.ascendant, 12));
+    expect(plateReadout(plates[1], 12)).not.toMatch(/\d\d:\d\d/);
+    expect(plateReadout(plates[2], 12)).toBe(plateReadout(plates[2], 24));
   });
 
   it("round a remembered time to its hour and never past the day's last", () => {
@@ -167,8 +181,15 @@ describe("the method's notes", () => {
   const notes = chartNotes(chart);
   const note = (kind: string) => notes.find((n) => n.kind === kind);
 
-  it("come in the reading's order: day or night, the strongest planets, then the element and modality", () => {
-    expect(notes.map((n) => n.kind)).toEqual(["sect", "strongest", "element", "modality"]);
+  it("come in the reading's order: day or night, the strongest planets, then the modality", () => {
+    expect(notes.map((n) => n.kind)).toEqual(["sect", "strongest", "modality"]);
+  });
+
+  it("say nothing about the elements, on her chart or any sample person's (MB-181, ADR-241)", () => {
+    for (const c of [chart, ...SAMPLE_PEOPLE.map((p) => p.chart)]) {
+      expect(chartNotes(c).map((n) => n.kind)).not.toContain("element");
+      for (const n of chartNotes(c)) expect(n.text).not.toMatch(/element/i);
+    }
   });
 
   it("say she was born at night from the sweep, with the Sun's altitude to a tenth of a degree", () => {
@@ -186,18 +207,8 @@ describe("the method's notes", () => {
     }
   });
 
-  it("say the balance of elements and modalities as the dashboard's sky card says it, from the chart's own counts", () => {
-    expect(note("element")?.text).toBe(`Elements · ${elementLead(chart.elements).line}`);
+  it("say the balance of modalities as the dashboard's sky card says it, from the chart's own counts", () => {
     expect(note("modality")?.text).toBe(modalityLine(chart.modalities));
-  });
-
-  it("never pass off the engine's tie-broken dominant element as a lead, and name a real one", () => {
-    const counts = Object.values(chart.elements);
-    const tied = counts.filter((n) => n === Math.max(...counts)).length > 1;
-    if (tied) expect(note("element")?.text).not.toMatch(/leads/);
-    const leading = SAMPLE_PEOPLE.map((p) => p.chart).find((c) => elementLead(c.elements).lead);
-    expect(leading).toBeDefined();
-    expect(chartNotes(leading!).find((n) => n.kind === "element")?.text).toMatch(/^Elements · [A-Z][a-z]+ leads · \d+ of \d+$/);
   });
 
   it("leave out the day and night, and the dominant Sun the engine names by default, when no birth time is known", () => {
@@ -206,5 +217,20 @@ describe("the method's notes", () => {
     expect(noor.chart.horizon.status).toBe("unknown");
     expect(kinds).not.toContain("sect");
     expect(kinds).not.toContain("strongest");
+  });
+});
+
+describe("/method's first step", () => {
+  // The page is a component, which these tests do not render; its words are read from the source as JSX joins them.
+  const code = readFileSync(new URL("../pages/MethodPage.tsx", import.meta.url), "utf8")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+    .replace(/\s+/g, " ");
+  const step = code.slice(code.indexOf("n={1}"), code.indexOf("n={2}"));
+
+  it("keeps the arcminute claim to astronomy-engine and says where Chiron comes from (MB-180)", () => {
+    const claim = step.indexOf("accurate to within one arcminute");
+    const chiron = step.indexOf("Chiron, which astronomy-engine doesn't cover, comes from NASA JPL Horizons positions.");
+    expect(claim).toBeGreaterThan(0);
+    expect(chiron).toBeGreaterThan(claim);
   });
 });

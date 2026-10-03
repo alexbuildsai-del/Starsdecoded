@@ -6,8 +6,10 @@
  */
 import type { ReactNode } from "react";
 import { Link } from "wouter";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { CHAPTERS } from "@/lib/chapters";
+import { clockWords } from "@/lib/date-entry";
 import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { SiteLayout } from "../SiteLayout";
 import { ReferenceCheck } from "../components/ReferenceCheck";
@@ -26,7 +28,6 @@ const two = (n: number): string => String(n).padStart(2, "0");
 const HUE: Record<NoteKind, string> = {
   sect: "var(--violet)",
   strongest: "var(--indigo-lt)",
-  element: "var(--indigo-lt)",
   modality: "var(--indigo-lt)",
 };
 const CHIP =
@@ -61,6 +62,7 @@ function Shown({ caption, children }: { caption: string; children: ReactNode }) 
 function Steps() {
   const chart = sampleChart();
   const chapters = countWord(CHAPTERS.length);
+  const { clock } = useEntryFormat();
 
   return (
     <section className="sd-pg-sec sd-sec-a sd-line">
@@ -70,7 +72,7 @@ function Steps() {
             n={1}
             title="We work out your chart"
             figure={
-              <Shown caption={[SAMPLE.name, formatUpdated(SAMPLE.birth.birthDate), SAMPLE.birth.birthTime, SAMPLE.place].join(" · ")}>
+              <Shown caption={[SAMPLE.name, formatUpdated(SAMPLE.birth.birthDate), clockWords(SAMPLE.birth.birthTime, clock), SAMPLE.place].join(" · ")}>
                 <div className="sd-readout">
                   {chartReadout(chart, SAMPLE.birth).map((row) => (
                     <span key={row.label}>
@@ -85,7 +87,8 @@ function Steps() {
             <p className={PROSE}>
               We find where the Sun, Moon and planets were at the minute and place you were born. {PRODUCT} uses
               astronomy-engine, an open-source astronomy library that's accurate to within one arcminute, a sixtieth of a degree,
-              and tested against NASA's JPL Horizons. Every chart is worked out by the same code.
+              and tested against NASA's JPL Horizons. Chiron, which astronomy-engine doesn't cover, comes from NASA JPL Horizons
+              positions. Every chart is worked out by the same code.
             </p>
             <p className={PROSE}>
               We also check your birth town's clock history, so summer time and old time zones are right. Your houses are whole

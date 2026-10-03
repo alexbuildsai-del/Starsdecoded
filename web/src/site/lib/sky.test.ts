@@ -244,6 +244,27 @@ describe("/sky's worked example", () => {
   });
 });
 
+describe("the times printed on a 12-hour clock (MB-178)", () => {
+  const example = sampleSky(SAMPLE.name, SAMPLE.place, SAMPLE.birth, sampleChart());
+
+  it("say a birth's minute in the reader's words, the 24-hour clock being the prerender's", () => {
+    expect(summaryLine(HEPBURN, 12)).toBe("4 May 1929 · 3\u00a0am · Ixelles");
+    expect(summaryLine(HEPBURN, 24)).toBe("4 May 1929 · 03:00 · Ixelles");
+    expect(summaryLine(HEPBURN)).toBe(summaryLine(HEPBURN, 24));
+    expect(summaryLine({ ...HEPBURN, time: "15:00" }, 12)).toBe("4 May 1929 · 3\u00a0pm · Ixelles");
+    expect(summaryLine(CURIE_NO_TIME, 12)).toBe("7 Nov 1867 · Time unknown · Warsaw");
+    expect(resultLines(example, 12).summary).toBe("Audrey Hepburn · 4 May 1929 · 3\u00a0am · Ixelles");
+  });
+
+  it("say the corners' minute in the reader's words, the sky now's on its city's clock", () => {
+    expect(hudLines(NOW, 12).tl).toBe("Live · 30 SEP 2026 · 2:34\u00a0pm");
+    expect(hudLines(birthSky(HEPBURN), 12).tl).toBe("Your chart · 4 May 1929 · 3\u00a0am");
+    expect(hudLines(example, 12).tl).toBe("Sample · Audrey Hepburn · 4 May 1929 · 3\u00a0am");
+    expect(hudLines(birthSky(CURIE_NO_TIME), 12).tl).toBe("Your chart · 7 Nov 1867 · Time unknown");
+    expect(hudLines(example, 24)).toEqual(hudLines(example));
+  });
+});
+
 describe("/sky's placements", () => {
   it("lists the ten bodies the wheel draws, then Rising in the 1st and the Midheaven in its whole-sign house", () => {
     const rows = placementRows(sampleChart());

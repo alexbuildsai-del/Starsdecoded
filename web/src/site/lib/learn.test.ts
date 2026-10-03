@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart } from "@workspace/engine";
 import { SIGN_ORDER, norm360 } from "@/components/chart/wheel-geometry";
+import { clockWords } from "@/lib/date-entry";
 import { ORDINALS, houseWord } from "@/lib/evidence-glossary";
 import { degreeLine } from "@/lib/sky-now";
 import { SAMPLE_PEOPLE } from "@/site/data/people";
@@ -15,7 +16,7 @@ import { SAMPLE, sampleChart } from "@/site/data/sample";
 import { chartOf, type Birth } from "@/site/lib/chart";
 import {
   MINUTES_IN_DAY, chartLine, clockOf, dayStats, houseSigns, litHouses, minuteOf, moveLine, pickLine, riseWindow,
-  ringLabel, risingIndex, sampleDayLine, spanAt, sweepDay,
+  ringLabel, risingIndex, sampleDayLine, spanAt, spanLine, sweepDay,
 } from "./learn";
 
 /** The engine's rising sign at one minute of a birth's day, charted as a birth at that minute on the local clock. */
@@ -119,6 +120,18 @@ describe("the sample's day", () => {
     expect(line).toContain(`Her birth record says ${SAMPLE.birth.birthTime}`);
     expect(line).toContain(w.left !== null && w.left <= 15 ? `before ${w.next} began to rise` : w.sign);
   });
+
+  it("says every time in it on the reader's clock, the 24-hour one being the prerender's (MB-178)", () => {
+    const w = riseWindow(SAMPLE.birth);
+    if (!w?.from || !w.to) throw new Error("Her window lies inside her birth day");
+    const twentyFour = sampleDayLine(SAMPLE.name, "Brussels", SAMPLE.birth, w, 24);
+    const twelve = sampleDayLine(SAMPLE.name, "Brussels", SAMPLE.birth, w, 12);
+    expect(twentyFour).toBe(sampleDayLine(SAMPLE.name, "Brussels", SAMPLE.birth, w));
+    expect(twelve).toContain(`${w.sign} was rising from ${clockWords(w.from, 12)} to ${clockWords(w.to, 12)}.`);
+    expect(twelve).toContain("Her birth record says 3\u00a0am");
+    expect(twelve).toBe(twentyFour.replace(/\b\d\d:\d\d\b/g, (time) => clockWords(time, 12)));
+    expect(twelve).not.toMatch(/\d\d:\d\d/);
+  });
 });
 
 describe("a whole day's rising signs", () => {
@@ -157,6 +170,23 @@ describe("a whole day's rising signs", () => {
       expect(rows.Sun.value).toBe(degreeLine(chart.planets.sun));
     }
     expect(moveLine(day.moon, 1)).toContain(`${norm360(day.moon.toDegree - day.moon.fromDegree).toFixed(1)}°`);
+  }, 60_000);
+
+  it("say the rising sign's span on the reader's clock, the 24-hour one being the prerender's (MB-178)", () => {
+    const at = days[2];
+    const day = sweepDay(at);
+    const time = clockOf(720);
+    const chart = chartOf({ ...at, birthTime: time });
+    const span = spanAt(day, time);
+    if (!span || span.from === null || span.to === null) throw new Error("The sign rising at noon starts and ends rising inside the day");
+    const twentyFour = spanLine(day, span, 24);
+    const twelve = spanLine(day, span, 12);
+    expect(twentyFour).toBe(spanLine(day, span));
+    expect(twentyFour).toMatch(/^[A-Z][a-z]+ rises from \d\d:\d\d to \d\d:\d\d today\.$/);
+    expect(twelve).toBe(twentyFour.replace(/\b\d\d:\d\d\b/g, (t) => clockWords(t, 12)));
+    expect(twelve).toMatch(/^[A-Z][a-z]+ rises from \d{1,2}(:\d\d)?\u00a0[ap]m to \d{1,2}(:\d\d)?\u00a0[ap]m today\.$/);
+    expect(dayStats(day, chart, time, 12).find((r) => r.label === "Rising")?.note).toBe(twelve);
+    expect(dayStats(day, chart, time).find((r) => r.label === "Rising")?.note).toBe(twentyFour);
   }, 60_000);
 });
 

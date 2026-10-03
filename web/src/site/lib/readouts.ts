@@ -7,12 +7,12 @@
 import { cityName, offsetAtBirth } from "@workspace/engine";
 import { SIGN_ORDER } from "@/components/chart/wheel-geometry";
 import {
-  DEFAULT_ANSWER, partLabels, readout, toValue,
+  DEFAULT_ANSWER, partLabels, readout, risingReadout, toValue,
   type BirthTimeAnswer, type BirthTimeMode, type BirthTimeValue,
 } from "@/lib/birth-time";
-import type { Clock } from "@/lib/date-entry";
+import { clockWords, type Clock } from "@/lib/date-entry";
 import { houseWithWord } from "@/lib/evidence-glossary";
-import { elementLead, modalityLine } from "@/lib/sky-card";
+import { modalityLine } from "@/lib/sky-card";
 import { degreeLine, utcLine } from "@/lib/sky-now";
 import { PLANET_LABELS, type ChartData, type ChartPlanet } from "@/types/chart";
 import { chartOf, type Birth } from "@/site/lib/chart";
@@ -52,7 +52,7 @@ export function chartReadout(chart: ChartData, birth: Birth): ReadoutRow[] {
   ];
 }
 
-export type NoteKind = "sect" | "strongest" | "element" | "modality";
+export type NoteKind = "sect" | "strongest" | "modality";
 
 export interface ChartNote {
   kind: NoteKind;
@@ -72,10 +72,10 @@ const capital = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 /**
  * What stands out, as the engine itself computes it (reading 6): a day or night
  * birth from the Sun's altitude, the planets it counts as dominant, and the
- * balance of elements and modalities. The brief the report is written from
- * stays on the server. The balance is said as the dashboard's sky card says
- * it, since the engine's dominant element settles a tie by key order and the
- * card names a lead only when it is real (ADR-92).
+ * balance of modalities, said as the dashboard's sky card says it. The brief
+ * the report is written from stays on the server. The elements are left out
+ * (ADR-241): on a three-way tie their line read as a spread across all four,
+ * where the brief names the three.
  */
 export function chartNotes(chart: ChartData): ChartNote[] {
   const notes: ChartNote[] = [];
@@ -92,10 +92,7 @@ export function chartNotes(chart: ChartData): ChartNote[] {
     const names = listed(strongest.map((p) => PLANET_LABELS[p] ?? capital(p)));
     notes.push({ kind: "strongest", text: `${strongest.length === 1 ? "Strongest planet" : "Strongest planets"} · ${names}` });
   }
-  notes.push(
-    { kind: "element", text: `Elements · ${elementLead(chart.elements).line}` },
-    { kind: "modality", text: modalityLine(chart.modalities) },
-  );
+  notes.push({ kind: "modality", text: modalityLine(chart.modalities) });
   return notes;
 }
 
@@ -140,13 +137,16 @@ export function timePlates(birth: Birth, own?: ChartData): TimePlate[] {
   });
 }
 
-/** What was answered, as the person would put it. */
-export function plateAnswer(plate: TimePlate): string {
+/**
+ * What was answered, as the person would put it, on their clock (MB-178);
+ * 24-hour unless told, as the prerender draws it (reading 5).
+ */
+export function plateAnswer(plate: TimePlate, clock: Clock = 24): string {
   switch (plate.mode) {
     case "known":
-      return `${plate.value.birthTime} on the birth certificate`;
+      return `${clockWords(plate.value.birthTime, clock)} on the birth certificate`;
     case "roughly":
-      return `About ${plate.value.birthTime}, give or take an hour`;
+      return `About ${clockWords(plate.value.birthTime, clock)}, give or take an hour`;
     case "unknown":
       return "The report is written from the date alone.";
   }
@@ -167,13 +167,15 @@ export function moonRange(band: { fromDegree: number; toDegree: number }): strin
 }
 
 /**
- * The plate's readout: the rising sign as the form reads the sweep, or, with
- * no time, where the Moon went that day, since the form's line for a whole day
- * lists every sign that rose and names the first one twice.
+ * The plate's readout: the rising sign as the form reads the sweep, on the
+ * reader's clock, or, with no time, where the Moon went that day, since the
+ * form's line for a whole day lists every sign that rose and names the first
+ * one twice. The plates are swept once, so the clock is applied here, never by
+ * sweeping again when the browser's clock arrives.
  */
-export function plateReadout(plate: TimePlate): string {
+export function plateReadout(plate: TimePlate, clock: Clock = 24): string {
   const band = plate.chart.planets.moon.band;
-  return plate.mode === "unknown" && band ? moonRange(band) : plate.said.rising;
+  return plate.mode === "unknown" && band ? moonRange(band) : risingReadout(plate.chart.horizon.ascendant, clock);
 }
 
 const COUNTS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];

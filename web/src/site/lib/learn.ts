@@ -6,6 +6,7 @@
  */
 import { calculateNatalChart, localParts, offsetAtBirth, type DegreeBand, type HorizonFact } from "@workspace/engine";
 import { SIGN_ORDER, norm360 } from "@/components/chart/wheel-geometry";
+import { clockWords, type Clock } from "@/lib/date-entry";
 import { ORDINALS, houseWithWord, houseWord } from "@/lib/evidence-glossary";
 import { degreeLine, skySentence } from "@/lib/sky-now";
 import type { ChartData } from "@/types/chart";
@@ -225,12 +226,14 @@ const CLOSE_MINUTES = 15;
 /**
  * The sample's day in three sentences: when her rising sign rose over her
  * birthplace, and how near her recorded minute came to the next sign or the
- * last one. Her birth time is from her birth record (reading 4).
+ * last one. Her birth time is from her birth record (reading 4). Every time is
+ * on the reader's clock (MB-178), 24-hour unless told, as the prerender draws it.
  */
-export function sampleDayLine(name: string, city: string, birth: Birth, w: RiseWindow): string {
-  const span = w.from && w.to ? `from ${w.from} to ${w.to}` : w.to ? `from before midnight to ${w.to}` : w.from ? `from ${w.from} to after midnight` : "all day";
+export function sampleDayLine(name: string, city: string, birth: Birth, w: RiseWindow, clock: Clock = 24): string {
+  const at = (hhmm: string) => clockWords(hhmm, clock);
+  const span = w.from && w.to ? `from ${at(w.from)} to ${at(w.to)}` : w.to ? `from before midnight to ${at(w.to)}` : w.from ? `from ${at(w.from)} to after midnight` : "all day";
   const opening = `On ${formatUpdated(birth.birthDate)} in ${city}, the day ${name} was born, ${w.sign} was rising ${span}.`;
-  const record = `Her birth record says ${birth.birthTime}`;
+  const record = `Her birth record says ${at(birth.birthTime)}`;
   if (w.left !== null && w.next && w.left <= CLOSE_MINUTES) {
     return `${opening} ${record}, just ${minutesSaid(w.left)} before ${w.next} began to rise. A little later, and her rising sign and every one of her houses would have been different.`;
   }
@@ -240,12 +243,16 @@ export function sampleDayLine(name: string, city: string, birth: Birth, w: RiseW
   return `${opening} ${record}, well inside that window, so her rising sign holds even if the time is a few minutes out.`;
 }
 
-/** "Leo rises from 09:12 to 11:40 today."; the day's first and last signs rose before it or still rise after it. */
-export function spanLine(day: SweptDay, span: RisingSpan): string {
+/**
+ * "Leo rises from 09:12 to 11:40 today.", on the reader's clock (MB-178); the
+ * day's first and last signs rose before it or still rise after it.
+ */
+export function spanLine(day: SweptDay, span: RisingSpan, clock: Clock = 24): string {
+  const at = (minute: number) => clockWords(clockAt(day, minute), clock);
   if (span.from === null && span.to === null) return `${span.sign} rises all day.`;
-  if (span.from === null) return `${span.sign} rises from before midnight to ${clockAt(day, span.to ?? 0)}.`;
-  if (span.to === null) return `${span.sign} rises from ${clockAt(day, span.from)} to after midnight.`;
-  return `${span.sign} rises from ${clockAt(day, span.from)} to ${clockAt(day, span.to)} today.`;
+  if (span.from === null) return `${span.sign} rises from before midnight to ${at(span.to ?? 0)}.`;
+  if (span.to === null) return `${span.sign} rises from ${at(span.from)} to after midnight.`;
+  return `${span.sign} rises from ${at(span.from)} to ${at(span.to)} today.`;
 }
 
 /** "It moves 12.97° today, all of it in Pisces." The Moon and the Sun only ever move forward. */
@@ -265,15 +272,16 @@ export interface DayStat {
 /**
  * The readout beside the day's wheel at one minute: the rising sign and its
  * span, the 1st house it makes, and the Moon and Sun with their whole day's
- * move. The span is said only when the sweep and the chart agree on the sign.
+ * move. The span is said only when the sweep and the chart agree on the sign,
+ * and on the reader's clock.
  */
-export function dayStats(day: SweptDay, chart: ChartData, time: string): DayStat[] {
+export function dayStats(day: SweptDay, chart: ChartData, time: string, clock: Clock = 24): DayStat[] {
   const rows: DayStat[] = [];
   const ascendant = chart.angles?.ascendant;
   if (ascendant) {
     const span = spanAt(day, time);
     rows.push(
-      { label: "Rising", value: degreeLine(ascendant), note: span?.sign === ascendant.sign ? spanLine(day, span) : "" },
+      { label: "Rising", value: degreeLine(ascendant), note: span?.sign === ascendant.sign ? spanLine(day, span, clock) : "" },
       { label: "Houses", value: `${ascendant.sign} is the ${houseNamed(1)}`, note: "They turn with the rising sign." },
     );
   }

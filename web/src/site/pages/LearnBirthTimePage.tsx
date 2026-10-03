@@ -10,7 +10,9 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { Link } from "wouter";
 import { localParts, offsetAtBirth, placeForZone, type Place } from "@workspace/engine";
 import { TriadPlate } from "@/components/report/TriadPlate";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { MODE_LABELS } from "@/lib/birth-time";
+import { clockWords, type Clock } from "@/lib/date-entry";
 import type { GeocodeResult } from "@/lib/places";
 import { PRODUCT } from "@/lib/product";
 import { visitorZone } from "@/lib/sky-now";
@@ -19,7 +21,10 @@ import { HorizonWheel } from "../components/HorizonWheel";
 import { SAMPLE_PEOPLE } from "../data/people";
 import { SAMPLE } from "../data/sample";
 import { chartOf, type Birth } from "../lib/chart";
-import { MINUTES_IN_DAY, clockOf, dayStats, instantOf, minuteOf, riseWindow, sampleDayLine, spanAt, sweepDay, type SweptDay } from "../lib/learn";
+import {
+  MINUTES_IN_DAY, clockOf, dayStats, instantOf, minuteOf, riseWindow, sampleDayLine, spanAt, sweepDay,
+  type RiseWindow, type SweptDay,
+} from "../lib/learn";
 import { plateAnswer, plateLine, plateReadout, timePlates } from "../lib/readouts";
 import { placeOfZone, type Sky } from "../lib/sky";
 import { formatUpdated, pageFor } from "../site";
@@ -57,16 +62,17 @@ const PLATE_TOKENS = {
 const PLATE =
   "grid min-w-0 content-start justify-items-center gap-[9px] rounded-[16px] border border-[var(--line)] bg-[rgba(17,22,31,.6)] px-[14px] py-4 text-center";
 
-let sampleDay: string | null | undefined;
+let sampleRose: RiseWindow | null | undefined;
 
-/** Her day in words, worked out once from two engine sweeps of the day she was born. */
-function sampleDaySentence(): string | null {
-  if (sampleDay === undefined) {
-    const rose = riseWindow(SAMPLE.birth);
-    const city = SAMPLE.place.split(", ").slice(-1)[0];
-    sampleDay = rose ? sampleDayLine(SAMPLE.name, city, SAMPLE.birth, rose) : null;
-  }
-  return sampleDay;
+/**
+ * Her day in words on the reader's clock. The window is worked out once, from
+ * two engine sweeps of the day she was born, so the browser's clock arriving
+ * after hydration only says it again.
+ */
+function sampleDaySentence(clock: Clock): string | null {
+  if (sampleRose === undefined) sampleRose = riseWindow(SAMPLE.birth);
+  const city = SAMPLE.place.split(", ").slice(-1)[0];
+  return sampleRose ? sampleDayLine(SAMPLE.name, city, SAMPLE.birth, sampleRose, clock) : null;
 }
 
 interface Town {
@@ -151,15 +157,17 @@ function useTodaysSky() {
 }
 
 function DayControls({ town, minute, onMinute, shown }: { town: Town | null; minute: number | null; onMinute: (m: number) => void; shown: Shown | null }) {
+  const { clock } = useEntryFormat();
   // Held open before the visitor's day is known, so the page does not move when it arrives.
   if (!town || minute === null) return <div className="min-h-[268px]" aria-hidden="true" />;
   const time = clockOf(minute);
+  const said = clockWords(time, clock);
   const rising = spanAt(town.day, time)?.sign;
   return (
     <div className="grid min-h-[268px] content-start gap-4">
       <div className="grid gap-2.5">
         <label htmlFor="bt-day" className="sd-mono text-[11px] uppercase tracking-[.14em] text-[color:var(--paper-dim)]">
-          {`${formatUpdated(town.day.at.birthDate)} · ${time} · over ${town.place.city}`}
+          {`${formatUpdated(town.day.at.birthDate)} · ${said} · over ${town.place.city}`}
         </label>
         <input
           id="bt-day"
@@ -168,14 +176,14 @@ function DayControls({ town, minute, onMinute, shown }: { town: Town | null; min
           max={MINUTES_IN_DAY - STEP_MINUTES}
           step={STEP_MINUTES}
           value={minute}
-          aria-valuetext={rising ? `${time}, ${rising} rising` : time}
+          aria-valuetext={rising ? `${said}, ${rising} rising` : said}
           onChange={(event) => onMinute(Number(event.currentTarget.value))}
           className={RANGE}
         />
       </div>
       {shown ? (
         <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-[18px] gap-y-2.5 rounded-[14px] border border-[var(--line)] bg-[rgba(17,22,31,.45)] p-4">
-          {dayStats(town.day, shown.sky.chart, clockOf(shown.minute)).map((row) => (
+          {dayStats(town.day, shown.sky.chart, clockOf(shown.minute), clock).map((row) => (
             <div key={row.label} className="contents">
               <dt className="[font:500_10.5px/1.6_var(--f-label)] uppercase tracking-[.16em] text-[color:var(--sd-muted)]">{row.label}</dt>
               <dd className="sd-mono m-0 text-[13px] leading-[1.55] text-[color:var(--paper)]">
@@ -193,6 +201,7 @@ function DayControls({ town, minute, onMinute, shown }: { town: Town | null; min
 /** The birth form's three answers on one sample person's birth, each read through the form's own sweep (R11-17). */
 function Plates() {
   const person = SAMPLE_PEOPLE[0];
+  const { clock } = useEntryFormat();
   // Two of the plates sweep a whole day, so a re-render must not work them out again.
   const plates = useMemo(() => timePlates(person.birth, person.chart), [person]);
   return (
@@ -202,12 +211,12 @@ function Plates() {
         {plates.map((plate) => (
           <li key={plate.mode} className={PLATE}>
             <p className="sd-eyebrow text-[10.5px] tracking-[.2em] text-[var(--paper)]">{MODE_LABELS[plate.mode].title}</p>
-            <p className="min-h-[2.8em] text-[12px] leading-[1.4] text-[color:var(--sd-muted)]">{plateAnswer(plate)}</p>
+            <p className="min-h-[2.8em] text-[12px] leading-[1.4] text-[color:var(--sd-muted)]">{plateAnswer(plate, clock)}</p>
             {/* The readout under the plate states its facts, so the drawing stays out of the reading order. */}
             <div aria-hidden="true">
               <TriadPlate chart={plate.chart} name={person.name} className="block h-auto w-[150px] max-w-full" />
             </div>
-            <p className="sd-mono text-[11px] uppercase leading-[1.5] tracking-[.04em] text-[color:var(--paper-dim)]">{plateReadout(plate)}</p>
+            <p className="sd-mono text-[11px] uppercase leading-[1.5] tracking-[.04em] text-[color:var(--paper-dim)]">{plateReadout(plate, clock)}</p>
             <p className="text-[12.5px] leading-[1.45] text-[color:var(--sd-muted)]">{plateLine(plate)}</p>
           </li>
         ))}
@@ -236,7 +245,8 @@ function Related() {
 /** Its own component, so a move of the slider redraws this section and never the plates below it. */
 function TimeChanges() {
   const today = useTodaysSky();
-  const herDay = sampleDaySentence();
+  const { clock } = useEntryFormat();
+  const herDay = sampleDaySentence(clock);
 
   return (
     <section className="sd-pg-sec sd-sec-a sd-line" aria-labelledby="time-h">

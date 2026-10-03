@@ -72,6 +72,21 @@ describe("the readout", () => {
       .toBe("6 possible: Capricorn, Aquarius, Pisces, Aries, Taurus, Gemini · flips at 12:58, 14:06, 14:56, 15:46, 16:54");
   });
 
+  it("reads the run on the reader's clock, the day's edges as midnight on the 12-hour one (MB-178)", () => {
+    expect(risingReadout(fact({}), 12)).toBe("Capricorn · holds from 11:12\u00a0am to 12:58\u00a0pm");
+    expect(risingReadout(fact({ holds: false, values: ["Sagittarius", "Capricorn", "Aquarius"], flipsAt: ["11:12", "12:58"] }), 12))
+      .toBe("3 possible: Sagittarius, Capricorn, Aquarius · flips at 11:12\u00a0am, 12:58\u00a0pm");
+    expect(risingReadout(fact({ holdsFrom: "22:40", holdsTo: "24:00" }), 12)).toBe("Capricorn · holds from 10:40\u00a0pm to midnight");
+    expect(risingReadout(fact({ holdsFrom: "00:00", holdsTo: "01:12" }), 12)).toBe("Capricorn · holds from midnight to 1:12\u00a0am");
+    expect(risingReadout(fact({ holdsFrom: "22:40", holdsTo: "24:00" }), 24)).toBe("Capricorn · holds from 22:40 to 24:00");
+    expect(readout(horizon("known", fact({})), 12)).toEqual({
+      status: "known",
+      rising: "Capricorn · holds from 11:12\u00a0am to 12:58\u00a0pm",
+      line: "Rising sign Capricorn · holds from 11:12\u00a0am to 12:58\u00a0pm. The horizon is drawn.",
+    });
+    expect(readout(horizon("known", fact({})))).toEqual(readout(horizon("known", fact({})), 24));
+  });
+
   it("says whether the horizon is drawn", () => {
     expect(readout(horizon("known", fact({}))).line).toMatch(/The horizon is drawn/);
     expect(readout(horizon("approximate", fact({}))).line).toMatch(/holds across your window/);

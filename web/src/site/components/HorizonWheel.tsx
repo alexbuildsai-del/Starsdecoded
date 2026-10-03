@@ -24,6 +24,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type RefO
 import { ASPECT_ORBS } from "@workspace/engine";
 import { houseBandLabel } from "@/components/chart/NatalWheel";
 import { arcLabelPath, arcPath, aspectStrength, assignLanes, norm360, pointAt, wedgePath, wheelRadii } from "@/components/chart/wheel-geometry";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { renderFor } from "@/lib/planet-renders";
 import { PLANET_LABELS, type ChartData } from "@/types/chart";
@@ -175,6 +176,7 @@ export function HorizonWheel({
 }: HorizonWheelProps) {
   const uid = useId();
   const reduced = useReducedMotion();
+  const { clock } = useEntryFormat();
   const [shown, setShown] = useState<Sky | null>(() => sky ?? example);
   const [phase, setPhase] = useState<Phase>("rest");
   const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -453,7 +455,7 @@ export function HorizonWheel({
   };
 
   const drawn = geo?.drawn ?? true;
-  const lines = shown ? hudLines(shown) : null;
+  const lines = hud && shown ? hudLines(shown, clock) : null;
   const flying = phase === "flying";
   const showHorizon = horizon && drawn && !flying;
   const horizonOpacity = showHorizon ? (lit && lit !== "horizon" ? UNLIT_HORIZON : 1) : 0;
@@ -576,7 +578,7 @@ export function HorizonWheel({
           </>
         ) : null}
       </div>
-      {hud && lines ? (
+      {lines ? (
         <>
           <div className="sd-hud tl" aria-hidden="true">
             {shown?.kind === "now" ? <span className="sd-live" /> : null}
