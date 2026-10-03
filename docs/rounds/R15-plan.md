@@ -233,6 +233,7 @@ Refs: ADR-227 to 248; MASTERFILE §10, §11.2; R-10.1, R-10.2; the four lock bra
 Done when:
 - `git merge --no-ff` of `origin/claude/affectionate-ride-n4l2zb`, `amazing-hamilton-kbhsdr`, `home-report-section` and
   `vibrant-ritchie-mh2gu2`, in that order, each its own merge commit, never squashed; the four specs sit under `docs/specs/locked/`.
+  (A trial merge at /plan: the sweep merges clean; INDEX conflicts with the other three, the playbook with the last two; MASTERFILE none.)
 - INDEX: one Decisions line (248 rows, each lock's span), the sweep's Mailbox line, the four specs' entries, this plan's pricing line,
   at most 60 lines. MASTERFILE: 0.26 once, every lock's hunk present (R-3.6, §9's asides and cover, §4 and R-4.1, §11.2's smoke).
 - The playbook keeps each lock's rule, a repeat merged into one ("He orders the rounds", "Less text …"), at most 60 lines.
