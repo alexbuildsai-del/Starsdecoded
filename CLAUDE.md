@@ -117,4 +117,4 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 1. First Release: R11 to R14 on production at 27bb5c5 (2026-10-03), the waitlist over the site. A retry reuses an unchanged
    brain's lab, the gate weighs production's run, QA sev-1 is only what is wrong for the reader (`docs/annex/first-release-plan.md`).
 2. Next: the Owner's waitlist sign-up on production, `edge: true` in the smoke (MB-167), /sample refreshed, the bible's release log.
-3. Then R15, pricing and launch (`R15-plan.md`, to re-plan at its /plan; checkout, the postal address, `LAUNCHED`). Open: MB-103, MB-104.
+3. Then R16, Timeline behind `TIMELINE` (`R16-plan.md`), on the Owner's go. Pricing and launch: never plan until asked (ADR-230).

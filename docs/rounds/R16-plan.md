@@ -1,11 +1,11 @@
 # R16 plan — Timeline, part one: the sky on the reader's own chart, readings and Ask, behind the switch; one triad row and /timeline for everyone
 
 Planned 2026-10-03 on `claude/youthful-gauss-7snkqd` (`main` at 30b45b6, R14's report merged) for the locked spec `timeline` (ADR-205
-to 217, locked 2026-10-01; artifact https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE). **The lock never reached `main`**: the spec,
-MASTERFILE 0.22's Timeline paragraph and its INDEX line sit on the unmerged branch `claude/tender-lovelace-ynaemg` (6d0733a); Round
-start 2 lands them. **Order:** after R15, not beside it (next section). **Split:** Timeline is about forty cards, past R05's thirty-two
+to 217, locked 2026-10-01; artifact https://claude.ai/artifact/V93jKVXrQKQ8S4byLefuFE). **The lock had never reached `main`**: the spec,
+MASTERFILE's Timeline paragraph and its INDEX line sat on the unmerged branch `claude/tender-lovelace-ynaemg` (6d0733a); they land
+with this plan (MASTERFILE 0.26). **Order:** next, with no pricing round before it (ADR-230, next section). **Split:** Timeline is about forty cards, past R05's thirty-two
 (two compactions) and the forty at which R10's planner split, so R16 builds what a subscriber gets, behind `TIMELINE`, with the pieces
-the spec lets ship before it; R17 (outlined at the end) builds how it is sold and kept, on R15's Stripe seam. QA-02 (staging after R14)
+the spec lets ship before it; R17 (outlined at the end) builds how it is sold and kept, once pricing's Stripe seam exists. QA-02 (staging after R14)
 has no sev-1, no Mailbox row is `blocking`, and no Owner comment sits on ADR-205 to 217 or on the Mailbox rows this plan touches.
 **Tiers:** 21 Opus, 4 Sonnet, no Haiku. **Tags:** USER-FACING are R16-17, 18, 19, 23 and 24 (they reach production at the next
 Release); every other card is INTERNAL, behind a switch that is off everywhere. **The brain changes** (four engine files, two prompt
@@ -20,23 +20,18 @@ step · MB-21 variables missing from `.env.example` · MB-22 dead code left by t
 port's chat tables with no user; Ask gets its own and leaves them alone). No row counts rounds: a row's age is its Created time.
 
 ## Round number and order
-R14 is the last round built (`R14-report.md`). R15 is pricing and launch by ADR-226 (locked); its plan file is still the deferred R11
-body, to re-plan at its own /plan. ADR-217 (locked) builds Timeline after pricing and launch because it uses pricing's asking steps,
-its ledger and Stripe, and ADR-226 keeps that order. So this round is **R16**, and it starts once R15 is merged. Beside R15 it would
-also collide in `openapi.yaml`, the schema index, `bootstrap-db.sh`, `home.ts`, `limits.ts`, `routes/index.ts`, `reports.ts`,
-`DashboardPage.tsx`, `ReportPage.tsx`, `App.tsx`, `faq.ts` and `TermsPage.tsx`. If R15's re-plan takes two rounds, this plan becomes R17
-and its outline R18, card ids with it. R16-17, 18, 19, 23 and 24 need nothing from pricing, and ADR-211 and ADR-215 let them ship
-before Timeline, so R15's /plan may take them if the Owner wants them at launch; the rest waits (ADR-217). **Approving this plan
-queues R16 behind R15**; `/round R16` starts when R15 has merged.
+R14 is the last round built (`R14-report.md`). R15 stays reserved for pricing and launch, which the Owner put on hold on
+2026-10-03: unplanned, and not planned or referred to by any planner until the Owner asks (ADR-230, amending ADR-217 and 226). So
+Timeline goes next as **R16**, from `main` as it is. Nothing in R16 needs pricing: it builds what a subscriber gets behind a switch
+that is off everywhere. How Timeline is sold (R17) needs a Stripe seam and waits for pricing's /plan. **Approving this plan starts
+`/round R16` at once.**
 
 ## Round start (the orchestrator)
-1. **R15 is merged**; branch `round/R16` from `main` with this plan's commit.
-2. **The lock on `main`** (better now, with this plan's commit, so R15's planner sees it): `git checkout
-   origin/claude/tender-lovelace-ynaemg -- docs/specs/locked/timeline.md`; MASTERFILE gains 6d0733a's §2 changes (the V1 exclusions
-   line and the "After pricing and launch" paragraph, its "(R14)" read as R15 by ADR-226) as its next version; INDEX's Specs list
-   gains the spec's line. ADR-205 to 217 are already recorded and locked; the round adds no Decisions row.
-3. **Re-read the pinned shapes against `main` after R15** (the files in Risk 10). A shape R15 changed is re-pinned here before any
-   builder starts; one that cannot be stops the round (R-0.1).
+1. Branch `round/R16` from `main` with this plan's commit (merged first if it is not yet on `main`).
+2. **The lock** landed with this plan: `docs/specs/locked/timeline.md`, MASTERFILE 0.26's §2 changes (the V1 exclusions line and the
+   Timeline paragraph) and INDEX's Specs line. ADR-205 to 217 and 230 are recorded and locked; the round adds no Decisions row for it.
+3. **Re-read the pinned shapes against `main`** (the files in Risk 10) if anything merged after 30b45b6. A shape that changed is
+   re-pinned here before any builder starts; one that cannot be stops the round (R-0.1).
 4. Builders cannot open claude.ai: extract the artifact's screens into the session scratchpad, phone first then desktop: the dial and
    Now and ahead (R16-13, 14), Life (R16-15), Ask's mark and chat (R16-16), the triad row and At a glance (R16-17, 23, 24), the
    coming-soon page (R16-18), Your week (R16-22), and any tone table (MB-188) or place for the ruler (reading 20) it shows. Where a
@@ -58,14 +53,14 @@ queues R16 behind R15**; `/round R16` starts when R15 has merged.
   table, route or screen; no scheduler (the letter is R17's); triad rows built four ways (`home-view.ts` `triadLines`,
   `pair-hero-layout.ts` `triadRows`, `ReportHero`, `SampleHead` and `TwoPlates`), both heroes printing "ruled by"; the FAQ, the Pricing
   lede and Terms say there is no subscription, and the FAQ that the report names no dates.
-- **Found while planning:** (1) the unmerged lock (Round start 2); (2) the spec's own condition for Chiron is met by R14 (MB-189);
+- **Found while planning:** (1) the unmerged lock, landed with this plan (Round start 2); (2) the spec's own condition for Chiron is met by R14 (MB-189);
   (3) the spec gives no tone table (MB-188) and no model for readings (MB-190); (4) Horizons answers and NASA's eclipse site does not;
-  (5) `catalogue.ts`'s header still says offers wait "until R13" (R15's to fix).
+  (5) `catalogue.ts`'s header still says offers wait "until R13" (pricing's to fix, untouched here).
 
 ## Where the specs disagree, and how this plan settles it
-1. **The spec's "after pricing and launch (R14)"** → ADR-226 moved pricing to R15; this is R16, after it.
+1. **The spec's "after pricing and launch (R14)"** → ADR-230 (later) builds Timeline next as R16, pricing on hold.
 2. **MASTERFILE §2 excludes transits and subscriptions** → ADR-205 (later) makes Timeline the one exception, off at launch; the lock's
-   paragraph lands at Round start 2; §1, §2's exclusions, R-5.2 and R-6.1 change at Timeline's Release, as the spec says.
+   paragraph landed with this plan (MASTERFILE 0.26); §1, §2's exclusions, R-5.2 and R-6.1 change at Timeline's Release, as the spec says.
 3. **§9: the dashboard's one visual is its circle** (ADR-89 to 96) → ADR-211 (later) adds Your week's dial, for a subscriber only; it
    draws planet renders, never a Unicode glyph.
 4. **R12's "the Rising never shows a house"** (`home.ts`) → ADR-211's "1st (self)": the web prints it; the stored triad is unchanged.
@@ -593,7 +588,7 @@ the thread. The orchestrator pastes the summary into the round report.
 5. The dashboard: Your week after Your circle; Play moves only the planets.
 
 ## Production after the round
-Nothing until a Release. At the next one after R15's, production gets R16-17, 18, 19, 23 and 24: the triad row, At a glance, the
+Nothing until a Release. At the next one, production gets R16-17, 18, 19, 23 and 24: the triad row, At a glance, the
 ruler's move, `/timeline` with its finder, and the copy. Timeline stays off: `TIMELINE` is false and the admin sees nothing on
 production. The brain changed, so that Release runs the full lab; natal and pair words are unchanged by construction.
 
@@ -616,9 +611,9 @@ production. The brain changed, so that Release runs the full lab; natal and pair
 8. **Accuracy claims**: "to the hour" holds for the pinned fixtures, away from stations; the finder shows month and year from a date;
    the coming-soon page claims only what the code does (QA-02 #7).
 9. **Dependencies**: none. astronomy-engine 2.1.19 already has the searches; Ask uses the existing OpenAI client.
-10. **Planned before R15's re-plan.** Files both rounds touch: `openapi.yaml`, the schema index, `bootstrap-db.sh`, `home.ts`,
-    `limits.ts`, `routes/index.ts`, `reports.ts`, `DashboardPage.tsx`, `ReportPage.tsx`, `App.tsx`, `AccountMenu.tsx`, `faq.ts`,
-    `Pricing.tsx`, `TermsPage.tsx`. Round start 3 re-reads every pinned shape against `main` after R15.
+10. **Shared files.** Pinned shapes in `openapi.yaml`, the schema index, `bootstrap-db.sh`, `home.ts`, `limits.ts`,
+    `routes/index.ts`, `reports.ts`, `DashboardPage.tsx`, `ReportPage.tsx`, `App.tsx`, `AccountMenu.tsx`, `faq.ts`, `Pricing.tsx`,
+    `TermsPage.tsx`; Round start 3 re-reads them against `main` if anything merged after 30b45b6.
 11. **Size**: twenty-five cards, thirteen in group B; the shrink path is in Parallel groups.
 12. **Deployments**: Vercel's 100 a day (MB-187); one push per group and one per fix.
 13. **Escalations**: none in R13 or R14, so no card or kind of card was escalated to Opus two rounds running.
@@ -628,7 +623,7 @@ production. The brain changed, so that Release runs the full lab; natal and pair
   artifact's table winning if it shows one. **MB-189** (decision, later) Chiron in Timeline now that it has an ephemeris; default:
   out. **MB-190** (decision, launch) readings on gpt-6-luna, Ask on gpt-5.2; default: as recommended, tagged in `models.ts`. **MB-191**
   (decision, launch) Ask keeps 31 days, a person card as who and which day, all of it gone with the Personal report; default: as
-  recommended, tagged. **MB-192** (todo, launch) for R15's /plan: a Stripe seam, webhook and ledger with room for the subscription;
+  recommended, tagged. **MB-192** (todo, launch) for pricing's /plan whenever the Owner asks: a Stripe seam, webhook and ledger with room for the subscription;
   default: R17 adapts.
 - **Read, and governing R17:** MB-104 (what a share card may show), MB-103 (pairs stay out), MB-114 (the consumer-law check widens to
   recurring billing), MB-116 (analytics for the loop study).
@@ -637,7 +632,7 @@ production. The brain changed, so that Release runs the full lab; natal and pair
   claims) and MB-185 (pasting a date, inherited by the finder's field) shape R16-13, 14 and 18.
 
 ## For the Owner (three asks, highest stakes first)
-Approving this plan queues R16 behind R15 (ADR-217); nothing here is needed before R15 starts.
+Approving this plan starts `/round R16` at once (ADR-230).
 1. **What Ask keeps (MB-191).** Ask stores what you type, and the spec doesn't say for how long. Recommendation: 31 days, then gone; a
    card about someone else keeps only who and which day and shows only while you can still read them; deleting your Personal report
    deletes your Ask thread and readings. If silent: built that way, tagged, and the privacy page says so when Timeline goes on sale.
@@ -648,7 +643,7 @@ Approving this plan queues R16 behind R15 (ADR-217); nothing here is needed befo
    spec priced it (about €1.50 a reader at the cap). If silent: built that way; the lab compares both before Timeline's Release.
 
 ## Proposed R17 — Timeline, part two: how it is sold and kept
-Planned at its own /plan after R16, on R15's Stripe seam (MB-192), about sixteen cards:
+Planned at its own /plan after R16, once pricing's Stripe seam exists (MB-192), about sixteen cards:
 - **Billing**: Timeline's €9.99 and €69.99 rows in `catalogue.ts` (R-6.3); Stripe Billing with consent to start at once; a table
   mirroring its webhooks (R-6.2); `timelineEntitled` reads it; cancel in two clicks; a lapsed subscriber keeps readings and gets no new
   ones (acceptance 6, 7); the yearly plan's credit, "+1 · with Timeline", taken back if refunded unspent.
@@ -662,7 +657,7 @@ Planned at its own /plan after R16, on R15's Stripe seam (MB-192), about sixteen
 
 ## Close (the orchestrator)
 MB-188, 190 and 191 built at their defaults with their seams tagged; MB-189 and MB-192 stay open; MB-26 and MB-125 as above.
-MASTERFILE (the version after Round start 2's): §3 gains `timeline_readings` and `ask_messages`; R-5.6 names the two jobs (MB-190
+MASTERFILE (after 0.26): §3 gains `timeline_readings` and `ask_messages`; R-5.6 names the two jobs (MB-190
 provisional); §4 says Timeline's sky comes from `packages/engine/src/transits.ts` with no horizon (ADR-208); §1, §2's exclusions,
 R-5.2 and R-6.1 wait for Timeline's Release. INDEX: the spec's line marks part one built in R16; the code map gains `transits.ts`,
 `doctrine.ts`, `tone.ts`, `lifeCycles.ts`, `prompts/timeline/`, `prompts/ask/`, `timeline.ts`, `timelineReadings.ts`, `ask.ts`,
