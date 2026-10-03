@@ -96,6 +96,19 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 - Method, on home and `/method`: "It won't forecast events, put dates on your life or diagnose anything."
 - R-5.2 changes only when Timeline itself ships, as locked.
 
+### Simple words across the site, the app and the report (ADR-257, 258, 261)
+- Every line in `docs/annex/simple-words-audit.md` changes as written there, approved by the Owner on 2026-10-03,
+  with one exception: "Key Paradoxes & Discoveries" keeps its title. "Superpowers, Chronic Patterns & Growing
+  Edges" becomes "Strengths, Habits & Where You Can Grow". Shared strings change everywhere they show.
+- "Every claim shows its source" is said twice on the home page, not seven times, and always with "claim".
+- **The brain:** the writer's rule in `api/src/prompts/system.ts`: "Simple words, everywhere. Write the way you'd
+  talk to a friend across a table: everyday words, one idea per sentence, a reading level of grade 6 to 8. No
+  metaphor or poetic phrase the reader has to decode, and no drama. If a sentence sounds deep, rewrite it until it
+  sounds normal." The reference entries in `vocabulary.ts` are rewritten in everyday words, and a logging check
+  (ADR-81: it never blocks) counts sentences with two ideas or a metaphor. Prompt versions bump; report words change.
+- Strings copied from a stored report (`site/data/sample.ts`, `differences.ts`, the Claims quotes) change only when
+  /sample is refreshed from a Release after the prompt change.
+
 ## Out of scope
 - Timeline itself (the dial with its ranges and slider, Life, Ask, readings, billing, the letter), after launch as locked.
 - An Ask answer on the page, share cards (MB-104), birth time or place in the finder, a top-menu
@@ -114,14 +127,18 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 7. The four sentences change in the same release; `check:shipped` and the price gates stay green.
 8. Axe clean, Lighthouse within the site's budgets, no sideways scroll at 390, 768 and 1440 px, complete at
    first paint with reduced motion; CSP hashes rewritten after the FAQ markup; the dry lab clean.
+9. Every line in the simple-words audit reads as approved; a test pins the renamed chapter title and the kept one,
+   and `/method` still matches the FAQ's "How is it written?" answer.
+10. The writer's rule is in the prompts and the dry lab is clean; a spot run on staging shows the new check's counts
+   falling against the r06 base before the Release, and no check that blocks fires more often than before.
 
 ## Screens
 1. The product page at 390 px and desktop, live: https://claude.ai/artifact/YTpuNi1CqPfJJHVNEdtMJG#page
 2. The home line: #home · 3. The four sentences: #words
 
 ## For R16's planner
-- Build this spec in R16 as Timeline's first group, with the simple-words audit (`docs/annex/simple-words-audit.md`,
-  ADR-257, 258, 261), the writer's prompt rule included. R15 stays the cleanup round (ADR-242).
+- Build this spec in R16 as Timeline's first group, the simple-words section included (it is scope, with acceptance
+  9 and 10). R15 stays the cleanup round (ADR-242).
 - `docs/rounds/R16-plan.md` (on `claude/youthful-gauss-7snkqd`) predates this spec: its coming-soon page, finder and
   copy items (5, 21, 22) follow the old screen 7. Replace them with this spec; its cycles card serves the finder.
 - Merge `claude/timeline-page-ideation` first. MASTERFILE: this branch and R16's plan both say 0.26; renumber at merge.
@@ -149,3 +166,5 @@ subscription includes, how it stays honest, and the Saturn-return finder as the 
 8. Every sample line on the page is plain and simple: everyday words, one idea per sentence, no drama ("What you
    hope for is asked to go deeper or let go" became "A good time to look at your plans again and keep the ones
    that still matter"; the Owner, 2026-10-03). The same rule goes into the Timeline readings' brief.
+9. The simple-words audit and the writer's rule are part of this spec: every approved line changes, the prompts carry
+   the rule with a logging check, and R16 does not ship without them (ADR-261; the Owner, 2026-10-03).

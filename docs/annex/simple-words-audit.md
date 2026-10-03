@@ -2,7 +2,7 @@
 
 The Owner's standing rule, "simple words, everywhere" (CLAUDE.md; `/ux-copy` voice chart), applied to the
 shipped site and app by three read-only passes. **The Owner approved every proposal here (2026-10-03) except one:
-"Key Paradoxes & Discoveries" keeps its title.** Built in R16 with the Timeline page (ADR-261). Nothing here is built yet; that round turns each group into cards. Paths under `web/src/` unless given. Rendered for the Owner:
+"Key Paradoxes & Discoveries" keeps its title.** Built in R16 as part of `docs/specs/locked/timeline-page.md` (its simple-words section, acceptance 9 and 10; ADR-261). Nothing here is built yet; that round turns each group into cards. Paths under `web/src/` unless given. Rendered for the Owner:
 https://claude.ai/artifact/VqW2umpB8JCyFfmwFS7Gcn
 
 Shared strings change more than one surface; they are marked **[shared]**. `/method` line 192 must keep matching
