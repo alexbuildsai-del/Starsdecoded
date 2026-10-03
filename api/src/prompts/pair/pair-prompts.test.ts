@@ -78,6 +78,20 @@ test("bands: chapter 01 300 to 360, lens chapters 230 to 300, prose total inside
   }
 });
 
+// MB-142: Luna wrote 32 of the 35 lens chapters of r12c-pair and r12d-pair under 230. Chapter 01's eight one-sentence
+// lines hold about 200 words under the 25-word cap and chapter 07's items are copied from the chapters, so neither can
+// reach its floor by writing longer: they state none, and their bands wait on a decision.
+test("floors: every lens chapter states its 230 once, with the top of each part's range, and chapters 01 and 07 state none", () => {
+  const floor = "\n\nWrite at least 230 words across the headline, the scene, what just happened and the pattern: the scene in six sentences, each because close to 40 words and the pattern close to 60.";
+  for (const lens of LENSES) {
+    for (const spec of LENS_SECTIONS[lens]) {
+      assert.deepEqual([...spec.instructions.matchAll(/at least (\d+) words/gi)].map((m) => Number(m[1])), [spec.wordTarget[0]], spec.key);
+      assert.ok(spec.instructions.endsWith(floor), spec.key);
+    }
+  }
+  for (const id of ["twoCharts", "whatToPractise", "links"]) assert.doesNotMatch(pairSectionById(id)!.instructions, /at least \d+ words/i, id);
+});
+
 test("lens: the register, the parent, the band and the free label reach the prompt; the scene follows the band", () => {
   for (const lens of LENSES) {
     const ctx = lensContext(pair(lens, lens === "parent_child" ? { parent: "A" } : {}));
@@ -404,7 +418,7 @@ test("the challenge: the doctrine, the lens contract and the fifteen chapters sa
 });
 
 test("a room is only ever a real room: the doctrine says so, and every room left in a pair prompt is one", () => {
-  assert.match(PAIR_DOCTRINE, /^- A room is only ever a real room, like the kitchen or the meeting room, never a figure of speech: "in public", never "public rooms", and never "read the room", "room to breathe" or "make room"\.$/m);
+  assert.match(PAIR_DOCTRINE, /^- A room is only ever a real room, like the kitchen or the meeting room, never a figure of speech: "in public", never "public rooms", and never "read the room", "room to breathe" or "make room"\. Say "time" or "space" instead: "time to breathe", "make time for it", "space to decide"\.$/m);
   assert.doesNotMatch(PAIR_DOCTRINE, /private room/);
   // A new room in a prompt is added here on purpose, with the real room it names.
   const real = [
@@ -418,6 +432,9 @@ test("a room is only ever a real room: the doctrine says so, and every room left
     /leaves the room the same way/,
     /A room is only ever a real room/,
     /"public rooms", and never "read the room", "room to breathe" or "make room"/,
+    /never "room to think"/,
+    /never "make room" or "leave room"/,
+    /Never "read the room"/,
   ];
   const strays: string[] = [];
   for (const t of promptTexts()) {

@@ -29,7 +29,7 @@ const deg = (rad: number) => (rad * 180) / Math.PI;
 
 // GET /home's circle: `you` at the centre, `people` and `pairs` in its order.
 const person = (profileId: string, name: string, over: Partial<CirclePerson> = {}): CirclePerson => ({
-  profileId, reportId: `r-${profileId}`, name, status: "complete", isSelf: false, ...over,
+  profileId, reportId: `r-${profileId}`, name, status: "complete", isSelf: false, access: "owner", ...over,
 });
 const homePair = (a: string, b: string, over: Partial<CirclePair> = {}): CirclePair => ({
   a: { profileId: a }, b: { profileId: b }, status: "complete", stoppedBy: null, ...over,
@@ -48,9 +48,9 @@ describe("who is on the circle", () => {
   it("gives the reader alone the add point at the top and two ghost seats, one add point however many credits", () => {
     for (const credits of [1, 5, 40]) {
       expect(circle({ you: YOU, credits })).toEqual([
-        { id: "add", kind: "add", name: "Add someone", initials: "+", label: "ADD SOMEONE", writing: false, sharedPair: false },
-        { id: "ghost:0", kind: "ghost", name: "Partner", initials: "", label: "PARTNER", writing: false, sharedPair: false },
-        { id: "ghost:1", kind: "ghost", name: "Mum", initials: "", label: "MUM", writing: false, sharedPair: false },
+        { id: "add", kind: "add", name: "Add someone", initials: "+", label: "ADD SOMEONE", writing: false, sharedPair: false, shared: false },
+        { id: "ghost:0", kind: "ghost", name: "Partner", initials: "", label: "PARTNER", writing: false, sharedPair: false, shared: false },
+        { id: "ghost:1", kind: "ghost", name: "Mum", initials: "", label: "MUM", writing: false, sharedPair: false, shared: false },
       ]);
     }
   });
@@ -67,8 +67,27 @@ describe("who is on the circle", () => {
     const points = circle({ you: YOU, people: [person("p1", "Dana Weiss"), sent] });
     expect(ids(points)).toEqual(["add", "p1", "sent"]);
     expect(points[2]).toEqual({
-      id: "sent", kind: "person", name: "Sam Keller", initials: "SK", label: "SAM", writing: false, sharedPair: false, profileId: "sent", reportId: "r-sent",
+      id: "sent", kind: "person", name: "Sam Keller", initials: "SK", label: "SAM", writing: false, sharedPair: false, shared: false, profileId: "sent", reportId: "r-sent",
     });
+  });
+
+  it("marks the seat of someone who shared their own report with the reader, and no one else's (ADR-235)", () => {
+    const people = [
+      person("alex", "Alex Moreau", { access: "shared" }),
+      person("sent", "Sam Keller", { access: "claimed" }),
+      person("p1", "Dana Weiss"),
+    ];
+    const points = circle({ you: YOU, people, pairs: [homePair("me", "alex")] });
+    expect(points[1]).toEqual({
+      id: "alex", kind: "person", name: "Alex Moreau", initials: "AM", label: "ALEX · SHARED", writing: false, sharedPair: true, shared: true,
+      profileId: "alex", reportId: "r-alex",
+    });
+    expect(points.filter((p) => p.shared).map((p) => p.id)).toEqual(["alex"]);
+  });
+
+  it("says a sharer's report is being written after the mark, so the seat still says whose it is", () => {
+    const rewriting = circle({ you: YOU, people: [person("alex", "Alex Moreau", { access: "shared", status: "interpreting" })] });
+    expect(rewriting.find((p) => p.id === "alex")).toMatchObject({ label: "ALEX · SHARED · WRITING", writing: true, shared: true });
   });
 
   it("lets a person go the moment GET /home stops listing them, whatever pair they were in", () => {
@@ -120,7 +139,7 @@ describe("who is on the circle", () => {
     const points = circle({ you: YOU, people: [person("p1", "Gus Olsen", { status: "failed" }), person("p2", "Hana Sato")] });
     expect(ids(points)).toEqual(["add", "p1", "p2"]);
     expect(points[1]).toEqual({
-      id: "p1", kind: "person", name: "Gus Olsen", initials: "GO", label: "GUS", writing: false, sharedPair: false, profileId: "p1", reportId: "r-p1",
+      id: "p1", kind: "person", name: "Gus Olsen", initials: "GO", label: "GUS", writing: false, sharedPair: false, shared: false, profileId: "p1", reportId: "r-p1",
     });
   });
 
@@ -129,7 +148,7 @@ describe("who is on the circle", () => {
     expect(circle({ you: YOU, people, gifts: [gift("g1", "Pierre"), gift("g2", "Zoé Durand", "returned")] })).toEqual([
       expect.objectContaining({ id: "add" }),
       expect.objectContaining({ id: "p1", kind: "person" }),
-      { id: "gift:g1", kind: "gift", name: "Pierre", initials: "P", label: "PIERRE · GIFT WAITING", writing: false, sharedPair: false, giftId: "g1" },
+      { id: "gift:g1", kind: "gift", name: "Pierre", initials: "P", label: "PIERRE · GIFT WAITING", writing: false, sharedPair: false, shared: false, giftId: "g1" },
     ]);
     expect(ids(circle({ gifts: [gift("g1", "Pierre")] }))).toEqual(["add", "gift:g1", "ghost:0"]);
     expect(ids(circle({ gifts: [gift("g1", "Pierre", "claimed")] }))).toEqual(["ghost:0", "ghost:1", "ghost:2", "ghost:3"]);
@@ -189,7 +208,7 @@ describe("the sample orbit, from a profile list and its reports", () => {
   it("draws one person as initials and a first name, with the report their seat opens", () => {
     const { profiles, reports } = people(["Beatrice Lund"]);
     expect(persons(orbit({ profiles, reports }))).toEqual([
-      { id: "p1", kind: "person", name: "Beatrice Lund", initials: "BL", label: "BEATRICE", writing: false, sharedPair: false, profileId: "p1", reportId: "r-p1" },
+      { id: "p1", kind: "person", name: "Beatrice Lund", initials: "BL", label: "BEATRICE", writing: false, sharedPair: false, shared: false, profileId: "p1", reportId: "r-p1" },
     ]);
     const accented = people(["  élodie   ångström "]);
     expect(persons(orbit(accented)).at(0)).toMatchObject({ name: "élodie   ångström", initials: "ÉÅ", label: "ÉLODIE" });
@@ -226,6 +245,20 @@ describe("the sample orbit, from a profile list and its reports", () => {
       ],
     });
     expect(ids(persons(points))).toEqual(["sent", "mine", "old-server"]);
+  });
+
+  it("seats someone whose own report is shared with the reader, marked shared, and never through a pair alone (ADR-235)", () => {
+    const points = orbit({
+      profiles: [ME, profile("alex", "Alex Moreau"), profile("pair-only", "Tom Berg")],
+      reports: [
+        MINE,
+        natal("r-alex", "alex", { access: "shared" }),
+        natal("r-pair-only", "pair-only", { access: "participant" }),
+      ],
+    });
+    expect(persons(points)).toEqual([
+      { id: "alex", kind: "person", name: "Alex Moreau", initials: "AM", label: "ALEX · SHARED", writing: false, sharedPair: false, shared: true, profileId: "alex", reportId: "r-alex" },
+    ]);
   });
 
   it("rings a person violet who shares a pair with the reader that the reader can open", () => {

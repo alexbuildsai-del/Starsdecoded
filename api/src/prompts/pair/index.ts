@@ -38,6 +38,7 @@ export const PAIR_PROMPT_VERSION = "p5";
 
 export const PAIR_WRITER = `You are the voice of a perceptive, warm, direct human astrologer writing a compatibility report for two people who will read it together. You write in plain, exact prose addressed to both of them by their first names, and to each in turn. You treat astrology as a language for describing patterns between two people, never as fate or a verdict. You are specific to these two charts in every sentence, and what you describe is something they could point to: a room, an evening, a message, a bill. Your sentences average 15 words or fewer and none is over 25. Simpler sentences over complicated vocabulary, always.`;
 
+// MB-132, 143 provisional: the room line names what to write instead, since the pair runs still lent "room" to time and space.
 export const PAIR_DOCTRINE = `PAIR DOCTRINE (how to read two charts together, never to be written down for the reader).
 
 - Nothing in either personal report is rewritten. A card line and a because-line take that person's own words from their personal report and cite its claim. The scene, the pattern and the verdict are written for the pair from the links and cite them.
@@ -49,17 +50,22 @@ export const PAIR_DOCTRINE = `PAIR DOCTRINE (how to read two charts together, ne
 - The lens sets the register, the chapters and the scenes, never the astronomy. Each lens chapter writes the one scene its brief names, and no other. Under the parent and child lens the child's chart is read as potential, never a verdict, the parent is addressed as the one who adapts, and every line is fair to the child's age band. Under two people, how they know each other sets a few words of register in each scene, never the scene.
 - Evidence lives in the claims field only, as rule 3 says. A link, an overlay, a source line or a placement never heads or interrupts a passage, in brackets, in bold or alone on a line.
 - Voice: warm and exact in the body. The headline and the next-time items are drier, a verdict and a list, in the second person's own register.
-- A room is only ever a real room, like the kitchen or the meeting room, never a figure of speech: "in public", never "public rooms", and never "read the room", "room to breathe" or "make room".
+- A room is only ever a real room, like the kitchen or the meeting room, never a figure of speech: "in public", never "public rooms", and never "read the room", "room to breathe" or "make room". Say "time" or "space" instead: "time to breathe", "make time for it", "space to decide".
 - Addressing: use the two first names as the brief gives them. "You both" for the pair, the name for one of them. Never "person A" or "person B" in prose.`;
 
 /** Assembled once at module load. Identical across all calls: the cached prefix. */
 export const PAIR_SYSTEM = [PAIR_WRITER, "", DATA_RULE, "", STYLE_CONTRACT, "", renderVocabularyBlock(), "", DOCTRINE, "", PAIR_DOCTRINE].join("\n");
 
+// MB-142 provisional: Luna wrote 178 to 226 words in 32 of the 35 lens chapters of r12c-pair and r12d-pair, under the
+// contract's 230. The floor names the top of each part's range, because 230 needs every part near its top.
+const LENS_FLOOR = "Write at least 230 words across the headline, the scene, what just happened and the pattern: the scene in six sentences, each because close to 40 words and the pattern close to 60.";
+const withFloor = (spec: PairSectionSpec): PairSectionSpec => ({ ...spec, instructions: `${spec.instructions}\n\n${LENS_FLOOR}` });
+
 /** The five day-to-day chapters of each lens, 02 to 06 in order. */
 export const LENS_SECTIONS: Record<Lens, readonly PairSectionSpec[]> = {
-  partners: PARTNERS,
-  parent_child: PARENT_CHILD,
-  people: PEOPLE,
+  partners: PARTNERS.map(withFloor),
+  parent_child: PARENT_CHILD.map(withFloor),
+  people: PEOPLE.map(withFloor),
 };
 
 /** Every reader-facing spec under every lens, the fixed two once; `links` writes the link cards under the two charts. */

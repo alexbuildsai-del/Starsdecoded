@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { MODELS } from "../../api/src/lib/models.js";
 import {
-  BODIES, SIGNS, ASPECTS, BODY_LABELS, STRUCTURE,
+  BODIES, SIGNS, ASPECTS, BODY_LABELS, HOUSE_WORDS, STRUCTURE, ordinal,
   type Body, type SignName, type AspectName,
 } from "../../api/src/prompts/vocabulary.js";
 
@@ -62,9 +62,10 @@ async function main() {
     `the sign ${s}`,
     "Name its element and modality, its ruler and any exaltation, then describe the style anything placed in it takes on, at its best and under strain.",
   )));
+  // MB-87 provisional: the short opens with the word the page prints for the house, so a regenerated file keeps it.
   const houses = await mapLimit([1,2,3,4,5,6,7,8,9,10,11,12] as const, (h) => ask<Out>(entryPrompt(
-    `the ${h}th house in whole-sign houses`,
-    "Name the life domain, any planetary joy, whether it is angular, succedent or cadent, and whether the tradition treats it as difficult. Describe what a placement here shows.",
+    `the ${ordinal(h)} house in whole-sign houses`,
+    `The short opens "The ${ordinal(h)} is ${HOUSE_WORDS[h - 1].toLowerCase()}:", the word the page prints for this house, then names the rest of its domain. Name the life domain, any planetary joy, whether it is angular, succedent or cadent, and whether the tradition treats it as difficult. Describe what a placement here shows.`,
   )));
   const aspects = await mapLimit(ASPECTS, (a) => ask<AspectOut>(
     `Write the vocabulary entry for the ${a} aspect between two planets. Return {"short": "<one sentence>", "dynamic": "<40-60 words: what the relationship between the two functions is>", "inFlow": "<one sentence: how it shows when working>", "underStress": "<one sentence: how it shows under pressure>", "growth": "<one sentence: what working with it looks like>"}.`,

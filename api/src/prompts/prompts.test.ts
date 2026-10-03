@@ -407,3 +407,54 @@ test("an instruction, a closing marker and 500 characters of markup render only 
   }
   assert.equal(rendered, INJECTED_NAMES.length * (ALL_SECTIONS.length + 1 + sectionsFor("unknown").length));
 });
+
+// ---------------------------------------------------------------------------
+// R15-23: floors where Luna ran short, and the page's word for every house.
+// ---------------------------------------------------------------------------
+import { readFileSync } from "node:fs";
+import { HOUSE_WORDS, ordinal } from "./vocabulary.js";
+
+// MB-142: on r14-staging these three ran under their band on all five charts; career, relationships and
+// discoveries fell short on one or two of five and ran in band on average, the rest in band or over.
+const FLOORS: Partial<Record<string, number>> = { overview: 400, mind: 250, superpowers: 600 };
+
+test("floors: the sections Luna wrote short state their band's own floor once, and no other section states one", () => {
+  for (const spec of REPORT_SECTIONS) {
+    const id = spec.key.split(":")[1];
+    const stated = [...spec.instructions.matchAll(/at least (\d+) words/gi)].map((m) => Number(m[1]));
+    const floor = FLOORS[id];
+    if (floor === undefined) { assert.deepEqual(stated, [], `${id} ran in band and states no floor`); continue; }
+    assert.deepEqual(stated, [floor], id);
+    assert.equal(floor, spec.wordTarget[0], `${id}: the floor is the band's own`);
+    assert.match(spec.instructions, new RegExp(`${spec.wordTarget[0]} to ${spec.wordTarget[1]} words(?: total)?\\. Write at least ${floor} words: `), id);
+  }
+});
+
+test("floors: superpowers' parts can reach 600, at 130 to 150 words of text and three actions an item", () => {
+  const spec = sectionById("superpowers")!;
+  assert.match(spec.instructions, /a title of 2 to 4 words, 130 to 150 words of text with at least one checkable behaviour, and three actions with a short why\./);
+  const strict = toStrictJsonSchema(spec.schema) as { properties: Record<string, { properties: { text: { description: string } } }> };
+  for (const item of ["superpower", "chronicPattern", "growingEdge"]) assert.match(strict.properties[item].properties.text.description, /^130-150 words: /);
+  // Three items of a title, the text at either end of its range and three actions at r14-staging's mean of 23 words
+  // an action and its why sit inside the band, where two actions of 100 to 120 never reached its floor.
+  const section = (title: number, text: number) => 3 * (title + text + 3 * 23);
+  assert.ok(section(2, 130) >= spec.wordTarget[0] && section(4, 150) <= spec.wordTarget[1]);
+  assert.ok(3 * (4 + 120 + 2 * 23) < spec.wordTarget[0]);
+});
+
+// MB-87: the word the page prints beside every house number (ADR-98) opens each house's short, which the
+// planet rows and the Midheaven's line a report stores are built from.
+test("vocabulary: each house's short opens with the page's word, the web's own list", () => {
+  const glossary = readFileSync(new URL("../../../web/src/lib/evidence-glossary.ts", import.meta.url), "utf8");
+  const web = [...glossary.match(/export const HOUSE_WORDS = \[([^\]]+)\]/)![1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual([...HOUSE_WORDS], web);
+  for (let h = 1; h <= 12; h++) {
+    const short = HOUSE[h].short;
+    assert.ok(short.startsWith(`The ${ordinal(h)} is ${HOUSE_WORDS[h - 1].toLowerCase()}: `), short);
+    assert.ok(!/—|;/.test(short), short);
+    assert.ok(short.split(/\s+/).length <= 20, short);
+  }
+  const brief = buildBrief(curie(), "Marie Curie");
+  assert.match(brief.personalPlanets.mercury, / The 12th is solitude: what is hidden, sorrow, secrets, and self-undoing\.$/);
+  assert.match(brief.angleMeanings!.midheaven.whereYouThrive, / The 11th is friends: allies, groups, and hopes shared with others\.$/);
+});
