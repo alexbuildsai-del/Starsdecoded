@@ -146,3 +146,26 @@ test("blockValues lists one label's blocks, a forged one left out; the letters n
   assert.equal(lettersNote("the foundation"), "A and B in the foundation stand for the two names in the brief. Write the names, never the letters.");
   assert.doesNotMatch(lettersNote("these items"), /;|—/);
 });
+
+test("in text shown as JSON a name reads as its escapes decode: after a line break, tab, quote, backslash or control character, and spelled with escapes", () => {
+  const pair = { a: "Zoë Saldana", b: "Oprah Winfrey" };
+  // Everything JSON.stringify writes before a name on the foundation, prose and section paths.
+  const ours = JSON.stringify({ text: "One.\n\nZoë waits.\tOprah \"Oprah\" \\Oprah\rZoë\bZoë\fZoë\u0007Zoë" });
+  assert.equal(maskNames(ours, pair), String.raw`{"text":"One.\n\nA waits.\tB \"B\" \\B\rA\bA\fA\u0007A"}`);
+  // A model's own reply may escape any character, inside a name or around it.
+  assert.equal(maskNames(String.raw`{"text":"\u201cZo\u00eb\u201d, \u00c9mile, Opr\u0061h\/Zo\u00EB."}`, pair), String.raw`{"text":"\u201cA\u201d, \u00c9mile, B\/A."}`);
+  assert.deepEqual(blockValues(maskNames(String.raw`{"t":"Zo\u00eb waits."}`, { name: "Zoë Saldana" }), "name"), ["Zoë"], "a block holds the name as it reads");
+  assert.equal(maskNames(String.raw`{"t":"\u00e9Zoë and \\\\Zoë"}`, pair), String.raw`{"t":"\u00e9Zoë and \\\\A"}`, "an escaped letter before it is a letter; two escaped backslashes are not");
+  assert.equal(maskNames(JSON.stringify("One.\\nZoë"), pair), String.raw`"One.\\nA"`, "a line break escaped twice still ends a line");
+  // A name stored before the rule may hold what JSON escapes.
+  assert.equal(maskNames(JSON.stringify(`Ada "Bo" and Marie\nCurie wait.`), { a: `Ada "Bo"`, b: "Marie\nCurie" }), `"A and B wait."`);
+});
+
+test("restoreBlocks after maskNames gives back a text whose name starts or ends a line, in plain text and in a JSON string", () => {
+  for (const text of ["One paragraph.\n\nMarie waits.", "Marie\nwaits.", "We saw Marie\n\nthen left.", "Marie"]) {
+    assert.equal(restoreBlocks(maskNames(text, { name: "Marie" })), text, JSON.stringify(text));
+  }
+  const json = JSON.stringify({ text: "One.\n\nMarie waits." });
+  const copied = JSON.parse(maskNames(json, { name: "Marie" }).replace(/\n/g, "\\n")) as { text: string };
+  assert.equal(restoreBlocks(copied.text), "One.\n\nMarie waits.", "a block a writer copies back into its JSON reply, read after the parse");
+});

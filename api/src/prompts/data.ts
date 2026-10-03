@@ -187,7 +187,9 @@ function matcherFor(names: TypedNames): Matcher | null {
   const spellings = [...byText.values()].sort((x, y) => y.text.length - x.text.length);
   if (!spellings.length) return null;
   const pattern = (s: Spelling) => s.text.split(/\s+/).map(literal).join("\\s+") + (s.cut ? `${NAME_CHAR}*` : "");
-  return { re: new RegExp(`(?<!${NAME_CHAR})(?:${spellings.map((s) => `(${pattern(s)})`).join("|")})(?!${NAME_CHAR})`, "giu"), spellings };
+  // A line break escaped twice still reads as one to a model, so the name after it starts a word.
+  const start = `(?:(?<!${NAME_CHAR})|(?<=\\\\[ntr]))`;
+  return { re: new RegExp(`${start}(?:${spellings.map((s) => `(${pattern(s)})`).join("|")})(?!${NAME_CHAR})`, "giu"), spellings };
 }
 
 /** The mask of the spelling whose group matched. */
@@ -195,26 +197,79 @@ function maskOf(matcher: Matcher, groups: readonly unknown[]): Mask {
   return matcher.spellings[groups.findIndex((g, i) => i < matcher.spellings.length && g !== undefined)].mask;
 }
 
+const JSON_ESCAPES: Readonly<Record<string, string>> = { n: "\n", t: "\t", r: "\r", b: "\b", f: "\f", '"': '"', "\\": "\\", "/": "/" };
+
+/**
+ * The text as it reads, each JSON escape decoded, and where each character it
+ * reads starts in the text. Model text goes back as JSON, where a paragraph
+ * break is the two characters `\n`, a quote is `\"` and a writer may spell é
+ * as `\u00e9`: a name is told from a word by what reads around it, never by the
+ * escape's letter.
+ */
+function readable(text: string): { read: string; at: number[] } {
+  let read = "";
+  const at: number[] = [];
+  for (let i = 0; i < text.length;) {
+    at.push(i);
+    const escaped = text[i] === "\\" ? JSON_ESCAPES[text[i + 1] ?? ""] : undefined;
+    if (escaped !== undefined) {
+      read += escaped;
+      i += 2;
+    } else if (text[i] === "\\" && text[i + 1] === "u" && /^[0-9a-fA-F]{4}$/.test(text.slice(i + 2, i + 6))) {
+      // A surrogate pair is two escapes, and decodes to its two halves, so the character reads whole.
+      read += String.fromCharCode(parseInt(text.slice(i + 2, i + 6), 16));
+      i += 6;
+    } else {
+      read += text[i];
+      i += 1;
+    }
+  }
+  at.push(text.length);
+  return { read, at };
+}
+
+interface NameHit {
+  /** Where the name sits in the text, escapes included. */
+  start: number;
+  end: number;
+  /** The name as it reads. */
+  read: string;
+  mask: Mask;
+}
+
+/** Every name in the text but the ordinary lower-case word, found where it reads as one. */
+function nameHits(text: string, matcher: Matcher): NameHit[] {
+  const { read, at } = readable(text);
+  const hits: NameHit[] = [];
+  for (const m of read.matchAll(matcher.re)) {
+    if (ORDINARY.test(m[0])) continue;
+    const from = m.index ?? 0;
+    hits.push({ start: at[from], end: at[from + m[0].length], read: m[0], mask: maskOf(matcher, m.slice(1)) });
+  }
+  return hits;
+}
+
 /**
  * Model text with every typed name in it made safe to send back into a prompt
  * (ADR-240): a pair's two become A and B, as the brief letters them, and a
  * natal reader's name, or a spelling both people share, goes back inside a
  * block of its own lines. Whole name or first word, in any case but the
- * ordinary lower-case word. Blocks already in the text stay as they are, so
- * masking twice changes nothing.
+ * ordinary lower-case word, in plain text or as JSON shows it. Blocks already
+ * in the text stay as they are, so masking twice changes nothing.
  */
 export function maskNames(text: string, names: TypedNames): string {
   const matcher = matcherFor(names);
   if (!matcher) return text;
-  return mapOutsideBlocks(text, (part) => part.replace(matcher.re, (match: string, ...rest: unknown[]) => {
-    if (ORDINARY.test(match)) return match;
-    const mask = maskOf(matcher, rest);
-    if (mask !== "block") return mask;
-    const at = rest[matcher.spellings.length] as number;
-    const before = at > 0 && part[at - 1] === "\n" ? "" : "\n";
-    const after = part[at + match.length] === "\n" ? "" : "\n";
-    return `${before}${dataBlock("name", match)}${after}`;
-  }));
+  return mapOutsideBlocks(text, (part) => {
+    let out = "";
+    let last = 0;
+    for (const hit of nameHits(part, matcher)) {
+      // A block always takes a line break of its own on each side, even beside one the text had, so restoreBlocks takes back exactly those.
+      out += part.slice(last, hit.start) + (hit.mask === "block" ? `\n${dataBlock("name", hit.read)}\n` : hit.mask);
+      last = hit.end;
+    }
+    return out + part.slice(last);
+  });
 }
 
 /**
@@ -228,7 +283,7 @@ export function lettersNote(where: string): string {
 
 const OPEN_NAME = literal(DATA_OPEN("name"));
 const CLOSE = literal(DATA_CLOSE);
-// A block a writer copies back may keep its line breaks or lose them to spaces.
+// The outer line breaks are the two maskNames always adds; a writer copying the block back may also lose them to spaces.
 const COPIED_BLOCK = new RegExp(`\\n?${OPEN_NAME}[ \\t\\n]?([^\\n]*?)[ \\t\\n]?${CLOSE}\\n?`, "gu");
 
 /** A block a writer copied back out of masked text, as the name it holds, so no marker reaches a stored sentence. */
@@ -252,12 +307,11 @@ export function unmaskQuote(quote: string, original: string, names: TypedNames):
   const stood: Record<Mask, Set<string>> = { A: new Set(), B: new Set(), block: new Set() };
   // A block's value differs from what it stood for where the name was cut or cleaned.
   const valued = new Map<string, Set<string>>();
-  for (const m of original.matchAll(matcher.re)) {
-    if (ORDINARY.test(m[0])) continue;
-    const mask = maskOf(matcher, m.slice(1));
-    stood[mask].add(m[0]);
-    const value = dataValue(m[0]);
-    if (mask === "block" && value !== m[0]) valued.set(value, new Set([...(valued.get(value) ?? []), m[0]]));
+  for (const hit of nameHits(original, matcher)) {
+    const spelled = original.slice(hit.start, hit.end);
+    stood[hit.mask].add(spelled);
+    const value = dataValue(hit.read);
+    if (hit.mask === "block" && value !== spelled) valued.set(value, new Set([...(valued.get(value) ?? []), spelled]));
   }
   const tokens = [`\\s*${OPEN_NAME}\\s*(?<block>[^\\n]*?)\\s*${CLOSE}\\s*`];
   if (!("name" in names)) tokens.push(`(?<!${NAME_CHAR})(?<letter>[AB])(?!${NAME_CHAR})`);
