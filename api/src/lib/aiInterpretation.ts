@@ -67,8 +67,8 @@ function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
 }
 
 const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted. Do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
-/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185). v9: the name reaches the prompt only as data (ADR-202); v6 to v8 reports still render. */
-export const PROMPT_VERSION = "v9";
+/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185). v9: the name reaches the prompt only as data (ADR-202). v10: floors where Luna ran short, a room only a real room, no model sentence to copy, each house opens with the page's word (R15-23); v6 to v9 reports still render. */
+export const PROMPT_VERSION = "v10";
 
 /** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
 type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };

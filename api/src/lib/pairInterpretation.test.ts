@@ -45,7 +45,7 @@ test("one foundation call, then seven sections in parallel, then the practice; e
   assert.deepEqual(frames.slice(0, 2), ["meta", "meta"], "the meta frame, then the foundation with the scenes");
   assert.deepEqual(frames.slice(2).sort(), [...ids].sort());
   assert.equal(frames[frames.length - 1], "whatToPractise");
-  assert.equal(out.meta.promptVersion, "p4");
+  assert.equal(out.meta.promptVersion, "p5");
   assert.equal(out.meta.reportType, "compatibility");
   assert.equal(out.meta.lens, "partners");
   assert.equal(out.meta.band, null);

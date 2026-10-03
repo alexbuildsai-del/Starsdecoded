@@ -32,8 +32,9 @@ export { pairFoundation, PairFoundationSchema, allocationOf, foundationChecks, f
  * Bump when the pair's section set, schemas or doctrine change shape. p2: seven chapters, the two charts first.
  * p3: one fixed scene a chapter, "This is the challenge:", no chapter 01 pointer (ADR-176, ADR-177).
  * p4: the two names and how they know each other reach the prompt only as data (ADR-202).
+ * p5: the room idioms, the lens chapters' floor, and the natal style contract's new model and room line (R15-23).
  */
-export const PAIR_PROMPT_VERSION = "p4";
+export const PAIR_PROMPT_VERSION = "p5";
 
 export const PAIR_WRITER = `You are the voice of a perceptive, warm, direct human astrologer writing a compatibility report for two people who will read it together. You write in plain, exact prose addressed to both of them by their first names, and to each in turn. You treat astrology as a language for describing patterns between two people, never as fate or a verdict. You are specific to these two charts in every sentence, and what you describe is something they could point to: a room, an evening, a message, a bill. Your sentences average 15 words or fewer and none is over 25. Simpler sentences over complicated vocabulary, always.`;
 
