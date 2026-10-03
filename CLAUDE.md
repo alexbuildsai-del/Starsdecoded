@@ -114,7 +114,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-10-03)
 
-1. First Release: R11 to R14 on production at 27bb5c5 (2026-10-03), the waitlist over the site. A retry reuses an unchanged
-   brain's lab, the gate weighs production's run, QA sev-1 is only what is wrong for the reader (`docs/annex/first-release-plan.md`).
-2. Next: the Owner's waitlist sign-up on production, `edge: true` in the smoke (MB-167), /sample refreshed, the bible's release log.
-3. Then R15, pricing and launch (`R15-plan.md`, to re-plan at its /plan; checkout, the postal address, `LAUNCHED`). Open: MB-103, MB-104.
+1. R15 (zones from the server, sharing your own report, v10 and p5, the launch fixes) on staging; production is R11 to R14 at 27bb5c5.
+   The next Release runs the full lab, ADR-247 pushes /sample's run on `sample/<id>`, then the Owner shares the site on WhatsApp.
+2. Next: R16 Timeline (`R16-plan.md` on `claude/youthful-gauss-7snkqd`, merged first, re-read against R15's files).
+3. Pricing and launch are never planned until the Owner asks (`docs/annex/pricing-and-launch-plan.md`).

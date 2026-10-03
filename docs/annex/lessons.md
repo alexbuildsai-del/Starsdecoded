@@ -32,6 +32,11 @@ ADR-195). Lines, not a diary: at most 60 lines.
 - R14 · R14-14 · the gate type-checked the edge middleware with its own tsconfig while Vercel used the root one, so the preview failed on fetch types · - · -
 - R14 · orchestrator · about thirty pushes in one day spent Vercel's free 100 deployments, so the QA fix's preview could not build; batch pushes, one per group and one per fix · - · -
 - R13 · R13-01 · a container restart killed a builder before its commit (also the planner, twice); work on disk survived · - · -
+- R15 · R15-04 · a name pattern matched on raw JSON text, so an escape's letter (`\n`) hid a name opening a paragraph (tester A) · - · -
+- R15 · R15-23 · a builder committed without a pathspec and took another builder's staged files into its commit · - · -
+- R15 · R15-16, R15-17 · a public page was pointed at a route the prelaunch gate closed and the session middleware cookies; no card owned the gate or the mount · - · -
+- R15 · R15-18, R15-19 · a list of grants filled an address from the reader's account for a grant made without a link, showing the sharer an email never given · - · -
+- R15 · orchestrator · the sentinel hit the session's usage limit before answering and had to run again · - · -
 
 ## Promoted
 The planner reads this section before it plans, and its rules bind the plan (ADR-195).

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.26 (2026-10-03) |
+| Version | 0.27 (2026-10-03) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -72,7 +72,9 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 | `reports` | The unit of revenue | `profile_id`, `type` natal or compatibility, `status`, `interpretation` JSONB, `compute_data` |
 | `users` | Clerk identity | Clerk id is the key |
 | `relationships`, `relationship_participants` | Two profiles and a lens for a compatibility report | `type` partners / parent_child / people, the free label carrying family, friends or colleagues; positional `role` and `access_role` are deliberately separate |
-| `invite_tokens` | Send a report, gift a credit | only the hash is stored; `kind` send or gift; a gift has no profile and carries `credit_id`, `recipient_name`, `note`; `reminded_at`, `revoked_at`; a send lives 7 days, a gift 30 (ADR-123) |
+| `invite_tokens` | Send a report, gift a credit | only the hash is stored; `kind` send, gift or share (a share writes a grant, never a hand-over, ADR-235); `handed_back_at` when its recipient handed a send back (ADR-236); a gift has no profile and carries `credit_id`, `recipient_name`, `note`; `reminded_at`, `revoked_at`; a send lives 7 days, a gift 30 (ADR-123) |
+| `profile_shares` | A reader's grant to read a sharer's Personal report | `profile_id`, `owner_user_id`, `reader_user_id`, the `invite_id` that made it, `revoked_at`; one active grant per profile and reader (ADR-235) |
+| `report_workbooks` | Each reader's ticks and pins on a report | key `(report_id, reader)`, the reader a Clerk id or `session:<id>`; `reports.workbook` is no longer written (ADR-239, MB-195) |
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
 | `waitlist_signups` | One address waiting for launch | `consent`, the tags and `utm_content`; `confirm_token_hash` (only the hash), `confirm_sent_at`, `confirmed_at`: an address counts once confirmed, and an unconfirmed one is deleted seven days after its latest link (ADR-145) |
 | `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); `is_test` marks free test credits (ADR-138); status `held` is a gift's credit until claimed or returned; the typed columns go with the payments round |
@@ -104,7 +106,7 @@ birth data → /api/geocode (Nominatim, the zone at the birth date from an offli
 
 ## 5 · Interpretation rules
 
-- **R-5.1** Tone, every section: second person; two friends talking over coffee, plain spoken words, never too fancy and never too trendy, counted both ways by a check that only logs (ADR-185); short sentences, simpler words over rarer ones always, sentences averaging 15 words or fewer and none over 25 until the prose study sets the numbers (ADR-87); no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words. The compatibility report adds: a verdict headline, a scene that may hold a short quoted exchange, the pattern with a because-line per person from their own report, a next-time checklist; one fixed scene a chapter, "This is the challenge:" for what rubs, "room" only for a real room (ADR-176, 177); research is doctrine and never named on the page; repetition is measured in the lab, not edited (ADR-63 to 69).
+- **R-5.1** Tone, every section: second person; two friends talking over coffee, plain spoken words, never too fancy and never too trendy, counted both ways by a check that only logs (ADR-185); short sentences, simpler words over rarer ones always, sentences averaging 15 words or fewer and none over 25 until the prose study sets the numbers (ADR-87); no em-dashes, no semicolons as list breaks, no parenthetical asides; scannable, bullets for actions; planet names sparingly in closing prose; never repeat a phrase across sections; every sentence specific to this chart; no coined phrases, and a why clause says what the action trains in plain words. The compatibility report adds: a verdict headline, a scene that may hold a short quoted exchange, the pattern with a because-line per person from their own report, a next-time checklist; one fixed scene a chapter, "This is the challenge:" for what rubs, "room" for a real room in every report (ADR-176, 177, 240); research is doctrine and never named on the page; repetition is measured in the lab, not edited (ADR-63 to 69).
 - **R-5.2** The model may describe behavioural patterns, tendencies and growth edges. It may never predict events, name dates, promise outcomes, give medical or psychological diagnoses, or invoke fate or karma.
 - **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings. House-card readings are a section like any other (ADR-21); the Ascendant and Midheaven are citable evidence (ADR-22).
 - **R-5.4** Source of truth for prompts is the section registry and `promptDefaults.ts`; overrides live in `prompt_templates` via `/admin/prompts`. Never edit a generated copy (the bible, docs). Re-sync instead.
@@ -140,7 +142,7 @@ Three bundles: Single €24, Couple €54, Family & friends €72, for 1, 3 and 
 Shared: packages/api-spec → Orval → api-client-react + api-zod
 ```
 
-- **R-7.1** The web app talks only to `/api` through the generated client. External services (geocoding, timezones, AI, email) are called from the API. The browser-side Nominatim call is a known exception in the Mailbox.
+- **R-7.1** The web app talks only to `/api` through the generated client. External services (geocoding, timezones, AI, email) are called from the API; places and their zones come from `/api/geocode` and an offline zone table (ADR-246).
 - **R-7.2** `packages/api-spec/openapi.yaml` is the contract. Generated files are never hand-edited; `pnpm --filter @workspace/api-spec run codegen` rewrites them. A route that is not in the spec does not exist for the client.
 - **R-7.3** Schema changes: edit `packages/db/src/schema`, add an idempotent script under `packages/db/scripts` when data must move, wire it into `scripts/bootstrap-db.sh`. Railway runs the bootstrap as its pre-deploy command, so a migration that cannot run twice breaks deploys.
 - **R-7.4** Secrets live only in the Vercel, Railway and Supabase dashboards. `.env.example` lists every variable the code reads, with no values. The repository is public. A hook blocks edits to `.env*`; pnpm installs no version younger than 7 days; Dependabot, `pnpm audit` and gitleaks run keyless, and Actions are pinned by SHA (ADR-191, 200).
