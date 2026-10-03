@@ -6,7 +6,6 @@
  */
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart } from "@workspace/engine";
-import type { GeocodeResult } from "@/lib/places";
 import { SAMPLE, sampleChart } from "@/site/data/sample";
 import {
   BODIES,
@@ -40,12 +39,13 @@ import {
   type PreparedRewind,
   type Sky,
   type SkyBirth,
+  type SkyPlace,
 } from "./sky";
 import audrey from "../../../../fixtures/charts/audrey-hepburn.json";
 import curie from "../../../../fixtures/charts/marie-curie.json";
 import curieUnknown from "../../../../fixtures/charts/marie-curie-unknown.json";
 
-const place = (p: { latitude: number; longitude: number; timezoneOffset: number; timezone?: string }, city: string): GeocodeResult => ({
+const place = (p: { latitude: number; longitude: number; timezoneOffset: number; timezone?: string }, city: string): SkyPlace => ({
   name: city, city, region: "", country: "", latitude: p.latitude, longitude: p.longitude,
   timezoneOffset: p.timezoneOffset, timezone: p.timezone ?? null, placeType: "city",
 });
@@ -321,5 +321,10 @@ describe("the form", () => {
   it("carries the time as the birth form's answer: a blank time is its I don't know", () => {
     expect(draftOf(HEPBURN)).toEqual({ birthDate: "1929-05-04", time: { mode: "known", time: "03:00", part: "afternoon", kind: "part" }, place: HEPBURN.place });
     expect(draftOf(CURIE_NO_TIME).time.mode).toBe("unknown");
+  });
+
+  it("carries a place only with its zone, so the form never sends a chart on an offset alone (reading 2)", () => {
+    expect(draftOf(HEPBURN).place?.timezone).toBe("Europe/Brussels");
+    expect(draftOf(CURIE).place).toBeNull();
   });
 });

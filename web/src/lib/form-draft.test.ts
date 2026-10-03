@@ -90,7 +90,6 @@ describe("the birth form's draft", () => {
   it("uses a place whole or not at all", () => {
     const place = (over: Record<string, unknown>) => parseFormDraft(JSON.stringify({ ...DRAFT, place: { ...MILAN, ...over } }))?.place;
     expect(place({})).toEqual(MILAN);
-    expect(place({ timezone: null })).toEqual({ ...MILAN, timezone: null });
     expect(place({ latitude: "45.4642" })).toBeNull();
     expect(place({ latitude: 91 })).toBeNull();
     expect(place({ longitude: -181 })).toBeNull();
@@ -101,6 +100,14 @@ describe("the birth form's draft", () => {
     expect(place({ timezone: undefined })).toBeNull();
     expect(place({ placeType: null })).toBeNull();
     expect(place({ osmId: 44915 })).toEqual(MILAN);
+  });
+
+  it("drops a place without a zone it can use, so the reader picks it again (reading 2, ADR-246)", () => {
+    const place = (over: Record<string, unknown>) => parseFormDraft(JSON.stringify({ ...DRAFT, place: { ...MILAN, ...over } }))?.place;
+    // A tab kept from before the zone came from our server: the longitude's hour and no zone, the guess MB-30 removed.
+    const guessed = { name: "Ixelles, Brussels-Capital, Belgium", city: "Ixelles", region: "Brussels-Capital", country: "Belgium", latitude: 50.8333, longitude: 4.3667, timezoneOffset: 0, timezone: null, placeType: "municipality" };
+    expect(parseFormDraft(JSON.stringify({ ...DRAFT, place: guessed }))).toEqual({ ...DRAFT, place: null });
+    for (const timezone of [null, "", "Etc/GMT-1", "Mars/Olympus_Mons"]) expect(place({ timezone }), String(timezone)).toBeNull();
   });
 
   it("costs nothing where the browser refuses storage, and on the server", () => {
