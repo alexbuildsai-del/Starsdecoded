@@ -3501,9 +3501,13 @@ export const OpenTimelineReadingResponse = zod.object({
 
 
 /**
- * The thread from the last 31 days, oldest first; a person card is kept as who and which day and computed when shown, while the reader can still read them (ADR-213, MB-191). `usage` is always there (ADR-263).
+ * The thread from the last 31 days, oldest first; a person card is kept as who and which day and computed when shown, while the reader can still read them (ADR-213, MB-191). `usage` is always there (ADR-263). Ask reads the reader's own chart, so it answers 409 without a finished Personal report of their own, as Timeline does.
  * @summary The reader's Ask thread and what's left this month (ADR-213, ADR-263)
  */
+export const GetAskThreadQueryParams = zod.object({
+  "tz": zod.coerce.string().optional().describe('The reader\'s IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place\'s zone (ADR-207, ADR-211).')
+})
+
 export const getAskThreadResponseMessagesItemCardsItemOneDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const getAskThreadResponseMessagesItemCardsItemOneEventsItemHousesItemMax = 12;
 
@@ -3635,9 +3639,13 @@ export const GetAskThreadResponse = zod.object({
 
 
 /**
- * Text or a tapped choice, never both, each one of the month's 50 (ADR-263). From a report page it carries that report's id, read only if the reader can read it. Ask answers with text and the same computed cards as Timeline, quoting reports word for word, or asks back with choices (ADR-213). Answers the thread with both new messages and the count after them. Nothing the reader types reaches a log (ADR-201).
+ * Text or a tapped choice, never both, each one of the month's 50 (ADR-263). From a report page it carries that report's id, read only if the reader can read it. Ask answers with text and the same computed cards as Timeline, quoting reports word for word, or asks back with choices (ADR-213). Answers the thread with both new messages and the count after them. Nothing the reader types reaches a log (ADR-201). Its days are the reader's, in the zone `tz` names (ADR-207).
  * @summary Send Ask a message or a tapped choice (ADR-213)
  */
+export const SendAskMessageQueryParams = zod.object({
+  "tz": zod.coerce.string().optional().describe('The reader\'s IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place\'s zone (ADR-207, ADR-211).')
+})
+
 export const sendAskMessageBodyTextMax = 500;
 
 

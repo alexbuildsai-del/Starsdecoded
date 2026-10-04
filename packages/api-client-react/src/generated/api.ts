@@ -40,6 +40,7 @@ import type {
   ErrorResponse,
   GeocodePlaceParams,
   GeocodeSearchResponse,
+  GetAskThreadParams,
   GetHomeParams,
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
@@ -73,6 +74,7 @@ import type {
   ReportStatus,
   ReportSummary,
   SendAskBody,
+  SendAskMessageParams,
   SendCompatibilityBody,
   Share,
   ShareBackBody,
@@ -4265,21 +4267,28 @@ export const useOpenTimelineReading = <TError = ErrorType<NoTimelineResponse | E
       return useMutation(getOpenTimelineReadingMutationOptions(options));
     }
 
-export const getGetAskThreadUrl = () => {
+export const getGetAskThreadUrl = (params?: GetAskThreadParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/ask`
+  return stringifiedParams.length > 0 ? `/api/ask?${stringifiedParams}` : `/api/ask`
 }
 
 /**
- * The thread from the last 31 days, oldest first; a person card is kept as who and which day and computed when shown, while the reader can still read them (ADR-213, MB-191). `usage` is always there (ADR-263).
+ * The thread from the last 31 days, oldest first; a person card is kept as who and which day and computed when shown, while the reader can still read them (ADR-213, MB-191). `usage` is always there (ADR-263). Ask reads the reader's own chart, so it answers 409 without a finished Personal report of their own, as Timeline does.
  * @summary The reader's Ask thread and what's left this month (ADR-213, ADR-263)
  */
-export const getAskThread = async ( options?: Parameters<typeof customFetch>[1]): Promise<AskThread> => {
+export const getAskThread = async (params?: GetAskThreadParams, options?: Parameters<typeof customFetch>[1]): Promise<AskThread> => {
 
-  return customFetch<AskThread>(getGetAskThreadUrl(),
+  return customFetch<AskThread>(getGetAskThreadUrl(params),
   {
     ...options,
     method: 'GET'
@@ -4292,23 +4301,23 @@ export const getAskThread = async ( options?: Parameters<typeof customFetch>[1])
 
 
 
-export const getGetAskThreadQueryKey = () => {
+export const getGetAskThreadQueryKey = (params?: GetAskThreadParams,) => {
     return [
-    `/api/ask`
+    `/api/ask`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetAskThreadQueryOptions = <TData = Awaited<ReturnType<typeof getAskThread>>, TError = ErrorType<NoTimelineResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAskThread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAskThreadQueryOptions = <TData = Awaited<ReturnType<typeof getAskThread>>, TError = ErrorType<NoTimelineResponse | NoPersonalReportResponse>>(params?: GetAskThreadParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAskThread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAskThreadQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetAskThreadQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAskThread>>> = ({ signal }) => getAskThread({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAskThread>>> = ({ signal }) => getAskThread(params, { signal, ...requestOptions });
 
 
 
@@ -4318,19 +4327,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetAskThreadQueryResult = NonNullable<Awaited<ReturnType<typeof getAskThread>>>
-export type GetAskThreadQueryError = ErrorType<NoTimelineResponse>
+export type GetAskThreadQueryError = ErrorType<NoTimelineResponse | NoPersonalReportResponse>
 
 
 /**
  * @summary The reader's Ask thread and what's left this month (ADR-213, ADR-263)
  */
 
-export function useGetAskThread<TData = Awaited<ReturnType<typeof getAskThread>>, TError = ErrorType<NoTimelineResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAskThread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetAskThread<TData = Awaited<ReturnType<typeof getAskThread>>, TError = ErrorType<NoTimelineResponse | NoPersonalReportResponse>>(
+ params?: GetAskThreadParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAskThread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetAskThreadQueryOptions(options)
+  const queryOptions = getGetAskThreadQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -4343,19 +4352,27 @@ export function useGetAskThread<TData = Awaited<ReturnType<typeof getAskThread>>
 
 
 
-export const getSendAskMessageUrl = () => {
+export const getSendAskMessageUrl = (params?: SendAskMessageParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/ask`
+  return stringifiedParams.length > 0 ? `/api/ask?${stringifiedParams}` : `/api/ask`
 }
 
 /**
- * Text or a tapped choice, never both, each one of the month's 50 (ADR-263). From a report page it carries that report's id, read only if the reader can read it. Ask answers with text and the same computed cards as Timeline, quoting reports word for word, or asks back with choices (ADR-213). Answers the thread with both new messages and the count after them. Nothing the reader types reaches a log (ADR-201).
+ * Text or a tapped choice, never both, each one of the month's 50 (ADR-263). From a report page it carries that report's id, read only if the reader can read it. Ask answers with text and the same computed cards as Timeline, quoting reports word for word, or asks back with choices (ADR-213). Answers the thread with both new messages and the count after them. Nothing the reader types reaches a log (ADR-201). Its days are the reader's, in the zone `tz` names (ADR-207).
  * @summary Send Ask a message or a tapped choice (ADR-213)
  */
-export const sendAskMessage = async (sendAskBody: SendAskBody, options?: Parameters<typeof customFetch>[1]): Promise<AskThread> => {
+export const sendAskMessage = async (sendAskBody: SendAskBody,
+    params?: SendAskMessageParams, options?: Parameters<typeof customFetch>[1]): Promise<AskThread> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -4371,7 +4388,7 @@ export const sendAskMessage = async (sendAskBody: SendAskBody, options?: Paramet
     }
     return headers;
   };
-return customFetch<AskThread>(getSendAskMessageUrl(),
+return customFetch<AskThread>(getSendAskMessageUrl(params),
   {
     ...options,
     method: 'POST',
@@ -4386,7 +4403,7 @@ return customFetch<AskThread>(getSendAskMessageUrl(),
 
 export const getSendAskMessageMutationKey = () => ['sendAskMessage'] as const;
 
-export const getSendAskMessageMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | RateLimited | AskCap | PausedResponse>,
+export const getSendAskMessageMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimited | AskCap | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAskMessage>>, TError,SendAskMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof sendAskMessage>>, TError,SendAskMessageMutationVariables, TContext> => {
 
@@ -4401,9 +4418,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendAskMessage>>, SendAskMessageMutationVariables> = (props) => {
-          const {data} = props ?? {};
+          const {data,params} = props ?? {};
 
-          return  sendAskMessage(data,requestOptions)
+          return  sendAskMessage(data,params,requestOptions)
         }
 
 
@@ -4415,13 +4432,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type SendAskMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendAskMessage>>>
     export type SendAskMessageMutationBody = BodyType<SendAskBody>
-    export type SendAskMessageMutationError = ErrorType<ErrorResponse | NoTimelineResponse | RateLimited | AskCap | PausedResponse>
-    export type SendAskMessageMutationVariables = {data: BodyType<SendAskBody>}
+    export type SendAskMessageMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimited | AskCap | PausedResponse>
+    export type SendAskMessageMutationVariables = {data: BodyType<SendAskBody>;params?: SendAskMessageParams}
 
     /**
  * @summary Send Ask a message or a tapped choice (ADR-213)
  */
-export const useSendAskMessage = <TError = ErrorType<ErrorResponse | NoTimelineResponse | RateLimited | AskCap | PausedResponse>,
+export const useSendAskMessage = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimited | AskCap | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAskMessage>>, TError,SendAskMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof sendAskMessage>>,

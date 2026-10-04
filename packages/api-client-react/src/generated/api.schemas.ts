@@ -3048,3 +3048,17 @@ export type GetTimelineLifeParams = {
 tz?: ReaderZoneParameter;
 };
 
+export type GetAskThreadParams = {
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
+};
+
+export type SendAskMessageParams = {
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
+};
+

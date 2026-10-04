@@ -1657,6 +1657,10 @@ paths:
         The thread from the last 31 days, oldest first; a person card is kept
         as who and which day and computed when shown, while the reader can
         still read them (ADR-213, MB-191). `usage` is always there (ADR-263).
+        Ask reads the reader's own chart, so it answers 409 without a
+        finished Personal report of their own, as Timeline does.
+      parameters:
+        - $ref: "#/components/parameters/ReaderZone"
       responses:
         "200":
           description: The thread and Ask's count this month (ADR-213, ADR-263, MB-191)
@@ -1666,6 +1670,8 @@ paths:
                 $ref: "#/components/schemas/AskThread"
         "403":
           $ref: "#/components/responses/NoTimeline"
+        "409":
+          $ref: "#/components/responses/NoPersonalReport"
     post:
       operationId: sendAskMessage
       tags: [ask]
@@ -1677,6 +1683,9 @@ paths:
         cards as Timeline, quoting reports word for word, or asks back with
         choices (ADR-213). Answers the thread with both new messages and the
         count after them. Nothing the reader types reaches a log (ADR-201).
+        Its days are the reader's, in the zone `tz` names (ADR-207).
+      parameters:
+        - $ref: "#/components/parameters/ReaderZone"
       requestBody:
         required: true
         content:
@@ -1698,6 +1707,8 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           $ref: "#/components/responses/NoTimeline"
+        "409":
+          $ref: "#/components/responses/NoPersonalReport"
         "429":
           description: >
             `rate_limited`: too many messages in a minute, Retry-After carrying
