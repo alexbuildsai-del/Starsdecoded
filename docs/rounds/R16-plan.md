@@ -74,7 +74,14 @@ Every named file is where the plan says; R15 rewrote no audited line (it removed
     `triadRows`) and retires `pair-hero-layout.ts`'s `interface TriadRow` for the component's name.
 13. **R16-34** appends `&& tsx ./src/walk/timeline.walk.ts` to the `walk` script.
 14. **The orchestrator after group A**: `site.ts`'s `updated` set to the day on each page whose words moved.
-
+15. **After group A** (what its builders found): `inOrb` merges passes, so a contact's window can hold gaps. **R16-20** adds
+    `spans: { start: date-time; end: date-time }[]` to `TimelineEvent` (the stretches it is in orb, a gap between) and `TimelineLife`
+    gains `age: number` (the reader's age today) and `birth: date-time` (their own birth instant), which `Waves.today` and
+    `cycleMark` need; **R16-23** fills them. Cycle names and words come from the engine's `CYCLE_WORDS` everywhere (R16-15, 16, 31),
+    never the artifacts' older words. Mira's week is `mira-week.json`, written by the API at a Release (`MIRA_WEEK=write` re-pins it
+    after an engine change), read by `MIRA`; the dial takes `framesFor({ points, angles }, from, days, bodies)` and is itself the one
+    keyboard slider. `lookBack`'s third argument is a `DateOrder`. Engine `DOCTRINE` clashes by name with `api/src/prompts`' `DOCTRINE`:
+    alias on import.
 ## What already shipped (checked at 24f6e6c; `round/R15` read at 4d9ef09)
 - **Met, and reused:** `@workspace/engine` on the server, in the browser and in the prerender (R11); Chiron from Horizons and
   `CHART_VERSION` 4 (R14); `isSelfFor`, `natalReportAccess`, `pairReadable`; `recordSpend`, the spend gate, `recordChecks` and
