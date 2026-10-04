@@ -64,4 +64,24 @@ describe("useHome", () => {
       .map((file) => relative(WEB_SRC, file));
     expect(direct).toEqual([]);
   });
+
+  it("is the one key: no file builds GET /home's key with params, which would split the cache the callers share", () => {
+    const withParams = sources(WEB_SRC)
+      .filter((file) => /getGetHomeQueryKey\(\s*[^\s)]/.test(readFileSync(file, "utf8")))
+      .map((file) => relative(WEB_SRC, file));
+    expect(withParams).toEqual([]);
+    expect(getGetHomeQueryKey()).toEqual(["/api/home"]);
+  });
+
+  it("keeps the key whatever zone is sent, so a refetch from any caller lands on the one cache entry", () => {
+    expect(getGetHomeQueryKey()).toEqual(getGetHomeQueryKey());
+    for (const zone of ["Asia/Tokyo", undefined]) expect(homeParams(zone)).toEqual(zone ? { tz: zone } : {});
+    expect(homeParams("")).toEqual({});
+  });
+
+  it("passes the query options on without losing the key: a caller can only switch the read off or on", () => {
+    calls.length = 0;
+    useHome({ enabled: false });
+    expect(calls[0][1].query).toEqual({ queryKey: getGetHomeQueryKey(), enabled: false });
+  });
 });

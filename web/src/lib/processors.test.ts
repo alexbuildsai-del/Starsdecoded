@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { NOT_NOW_KEY } from "@/lib/teaser-view";
 import { BROWSER_KEYS, PROCESSORS, US_TRANSFER, storageKeyOf, whereLine } from "@/lib/processors";
 
 const WEB_SRC = fileURLToPath(new URL("..", import.meta.url));
@@ -101,5 +102,23 @@ describe("what the browser keeps", () => {
   it("reads a per-report key without the part each report fills in", () => {
     expect(storageKeyOf({ name: "sd.marks.<report id>", store: "kept", holds: "" })).toBe("sd.marks.");
     expect(storageKeyOf({ name: "sd.form.draft", store: "tab", holds: "" })).toBe("sd.form.draft");
+  });
+
+  it("lists Not now's key once, under the name the code writes, in the browser's kept storage and not the tab's", () => {
+    expect(NOT_NOW_KEY).toBe("sd.timeline.notnow");
+    const listed = BROWSER_KEYS.filter((key) => storageKeyOf(key) === NOT_NOW_KEY);
+    expect(listed).toHaveLength(1);
+    expect(listed[0].store).toBe("kept");
+  });
+
+  it("lists no key twice, and gives each one a full sentence of what it holds", () => {
+    const names = BROWSER_KEYS.map(storageKeyOf);
+    expect(new Set(names).size).toBe(names.length);
+    for (const key of BROWSER_KEYS) expect(key.holds, key.name).toMatch(/^[A-Z].*[.]$/);
+  });
+
+  it("says nothing of the chart, a name or a birth date for what Not now keeps", () => {
+    const holds = BROWSER_KEYS.find((key) => storageKeyOf(key) === NOT_NOW_KEY)!.holds;
+    expect(holds).not.toMatch(/birth|name|chart|age\b|price/i);
   });
 });

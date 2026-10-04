@@ -349,3 +349,60 @@ test("a read begun on yesterday is not served to today, and callers that arrive 
   assert.equal(await today, 4);
   assert.deepEqual([await first, await second], [9, 9]);
 });
+
+test("the gate: with no line named it speaks of reports, and 'reports' named is the same gate; the two lines differ", async () => {
+  assert.notEqual(PAUSED_LINES.reports, PAUSED_LINES.timeline);
+  assert.deepEqual(Object.keys(PAUSED_LINES).sort(), ["reports", "timeline"]);
+  for (const pausedFor of [undefined, "reports"] as const) {
+    const { deps } = gateDeps(20, 25);
+    const app = await gated(deps, pausedFor);
+    try {
+      const res = await app.post();
+      assert.equal(res.status, 503);
+      assert.deepEqual(res.body, PAUSED_BODY, String(pausedFor));
+      assert.doesNotMatch(String((res.body as { message?: string }).message), /Timeline/);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("the gate for Timeline: a cap of 0 pauses it with nothing spent or read, and a sum that cannot be read lets it through", async () => {
+  for (const spent of [0, new Error("database down")]) {
+    const { deps, notices } = gateDeps(0, spent);
+    const app = await gated(deps, "timeline");
+    try {
+      const res = await app.post();
+      assert.equal(res.status, 503);
+      assert.deepEqual(res.body, { error: "paused", reason: "paused", message: TIMELINE_PAUSED_LINE });
+      assert.equal(app.handled(), 0);
+      assert.equal(notices.length, 1);
+    } finally {
+      await app.close();
+    }
+  }
+  const { deps, notices } = gateDeps(20, new Error("database down"));
+  const app = await gated(deps, "timeline");
+  try {
+    assert.equal((await app.post()).status, 201);
+    assert.equal(notices.length, 0);
+  } finally {
+    await app.close();
+  }
+});
+
+test("the gate for Timeline: the cap's last cent and its first, at and past it, on the same boundary as a report's", async () => {
+  for (const [spent, status] of [[19.99, 201], [19.999, 201], [20, 503], [20.01, 503]] as const) {
+    for (const pausedFor of ["reports", "timeline"] as const) {
+      const { deps } = gateDeps(20, spent);
+      const app = await gated(deps, pausedFor);
+      try {
+        const res = await app.post();
+        assert.equal(res.status, status, `${pausedFor} ${spent}`);
+        if (status === 503) assert.equal((res.body as { message?: string }).message, PAUSED_LINES[pausedFor]);
+      } finally {
+        await app.close();
+      }
+    }
+  }
+});

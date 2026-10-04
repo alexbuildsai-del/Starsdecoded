@@ -205,3 +205,75 @@ describe("Not now", () => {
     expect(yearsOn("2026-10-05", -1)).toBe("2025-10-05");
   });
 });
+
+describe("Not now's return, at its edges", () => {
+  // Only `on` matters to the rule; these are days, not placements.
+  const cyclesOn = (...days: string[]) => ({ cycles: days.map((on) => ({ on })) });
+  const pressed = notNowPressed(null, "2027-03-10");
+
+  it("counts a cycle exactly a year away on the day it was pressed as a year away, and exactly a year away today as not yet under a year", () => {
+    const teaser = cyclesOn("2028-03-10");
+    expect(teaserShows(teaser, pressed, "2027-03-10")).toBe(false);
+    expect(teaserShows(teaser, pressed, "2027-03-11")).toBe(true);
+  });
+
+  it("never brings it back for a cycle that was a day under a year away when it was pressed", () => {
+    const teaser = cyclesOn("2028-03-09");
+    for (const today of ["2027-03-10", "2027-09-01", "2028-03-08"]) expect(teaserShows(teaser, pressed, today), today).toBe(false);
+  });
+
+  it("is brought back by any one of the cycles, not only the first", () => {
+    expect(teaserShows(cyclesOn("2026-01-01", "2034-01-01", "2028-03-20"), pressed, "2027-03-25")).toBe(true);
+    expect(teaserShows(cyclesOn("2026-01-01", "2034-01-01", "2040-03-20"), pressed, "2027-03-25")).toBe(false);
+  });
+
+  it("hides it where the API lists no cycle, and while the reader's clock reads a day before they pressed", () => {
+    expect(teaserShows(cyclesOn(), pressed, "2030-01-01")).toBe(false);
+    expect(teaserShows(cyclesOn("2028-03-20"), pressed, "2027-03-09")).toBe(false);
+    expect(teaserShows(cyclesOn(), null, "2030-01-01")).toBe(true);
+  });
+
+  it("keeps a final Not now hidden whatever the cycles and the day, and a come-back one shown", () => {
+    const soon = cyclesOn("2027-04-01");
+    expect(teaserShows(soon, { day: "2027-03-10", back: true, final: true }, "2027-03-20")).toBe(false);
+    expect(teaserShows(cyclesOn(), { day: "2027-03-10", back: true, final: false }, "2027-03-20")).toBe(true);
+  });
+
+  it("walks the whole rule: shown, Not now, hidden, back once, Not now again, hidden for good", () => {
+    let kept: NotNow | null = null;
+    const teaser = cyclesOn("2028-06-01", "2035-08-01");
+    expect(teaserShows(teaser, kept, "2026-10-05")).toBe(true);
+    kept = notNowPressed(kept, "2026-10-05");
+    expect(teaserShows(teaser, kept, "2027-05-31")).toBe(false);
+    const shows = teaserShows(teaser, kept, "2027-06-02");
+    expect(shows).toBe(true);
+    kept = cameBack(kept, shows) ?? kept;
+    expect(kept.back).toBe(true);
+    expect(teaserShows(teaser, kept, "2030-01-01")).toBe(true);
+    kept = notNowPressed(kept, "2030-01-01");
+    expect(kept).toEqual({ day: "2030-01-01", back: false, final: true });
+    expect(teaserShows(teaser, kept, "2035-01-01")).toBe(false);
+  });
+
+  it("keeps a day and two flags and nothing else, even handed more: no chart data, name, age or date of birth reaches the key", () => {
+    const loaded = { ...pressed, name: "Mira", birthDate: "1991-03-14", saturn: { age: 29 }, cycles: [{ on: "2028-06-01" }] } as NotNow;
+    const raw = serializeNotNow(loaded);
+    expect(raw).toBe('{"day":"2027-03-10"}');
+    expect(Object.keys(JSON.parse(serializeNotNow({ day: "2027-03-10", back: true, final: true })))).toEqual(["day", "back", "final"]);
+    const parsed = parseNotNow('{"day":"2027-03-10","back":true,"name":"Mira","birthDate":"1991-03-14"}');
+    expect(parsed).toEqual({ day: "2027-03-10", back: true, final: false });
+  });
+
+  it("reads a flag only when it is the boolean true", () => {
+    for (const bad of ['"true"', "1", "null", '"yes"']) {
+      expect(parseNotNow(`{"day":"2027-03-10","back":${bad},"final":${bad}}`)).toEqual({ day: "2027-03-10", back: false, final: false });
+    }
+  });
+
+  it("has a status for no cycles at all, and the past title where all are past", () => {
+    expect(teaserStatuses([], "2027-03-10")).toEqual([]);
+    expect(teaserStatuses([{ on: "2027-03-10" }], "2027-03-10")).toEqual(["now"]);
+    expect(teaserStatuses([{ on: "2027-03-11" }], "2027-03-10")).toEqual(["ahead"]);
+    expect(teaserStatuses([{ on: "2027-03-09" }], "2027-03-10")).toEqual(["past"]);
+  });
+});

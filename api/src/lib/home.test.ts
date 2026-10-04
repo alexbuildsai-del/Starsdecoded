@@ -700,3 +700,68 @@ test("a chart the engine cannot read leaves the dashboard with neither section, 
   assert.deepEqual(timelinePartOf(seated, { access: true, reader: broken }, { now: TONIGHT }), {});
   assert.deepEqual(timelinePartOf(seated, { access: false, reader: broken }, { now: TONIGHT }), {});
 });
+
+/** Mira's birth with the time not known: noon, within 12 hours, so the chart has no horizon (R-4.6). */
+function blindMira(): ReaderChart {
+  const f = JSON.parse(readFileSync(join(FIXTURES, "..", "sample-people", "mira.json"), "utf8"));
+  const profile = {
+    id: "PBLIND", userId: "user_blind", sessionId: "s-blind", claimedByUserId: null, isSelf: true, claimedAsSelf: false,
+    birthDate: f.birthDate, birthTime: "12:00", birthTimeWindowMinutes: 720, latitude: f.latitude, longitude: f.longitude,
+    timezoneOffset: f.timezoneOffset, timezone: f.timezone, chartData: null,
+  };
+  const report = { id: "RBLIND", status: "complete", sessionId: "s-blind", createdAt: new Date("2026-09-01T09:00:00Z") };
+  return T.readerOf("user_blind", { report, profile }, chartForProfile(profile));
+}
+
+test("Timeline on the home: every case of access, chart and dashboard gives Your week, the teaser or neither, and never both", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const empty = buildHome(STRANGER, [], []);
+  const blind = blindMira();
+  assert.equal(blind.blind, true);
+  const expected = (home: typeof seated, access: boolean | null, reader: ReaderChart | null): TimelineKeys => {
+    if (access === null || !reader) return [];
+    if (access) return ["week"];
+    return home === empty ? [] : ["teaser"];
+  };
+  type TimelineKeys = Array<"week" | "teaser">;
+  for (const home of [seated, empty]) {
+    for (const access of [true, false, null]) {
+      for (const reader of [MIRA, blind, null]) {
+        const timeline = access === null ? null : { access, reader };
+        const part = timelinePartOf(home, timeline, { now: TONIGHT });
+        assert.deepEqual(Object.keys(part), expected(home, access, reader), `${home === empty ? "empty" : "seated"} access ${String(access)} reader ${reader ? "yes" : "no"}`);
+      }
+    }
+  }
+});
+
+test("Timeline on the home: a chart with no birth time still gets a week without a horizon and a teaser of four cycles", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const blind = blindMira();
+  const week = timelinePartOf(seated, { access: true, reader: blind }, { tz: "Europe/Lisbon", now: TONIGHT }).week;
+  assert.equal(week?.angles, null);
+  assert.equal(week?.days.length, 7);
+  assert.ok(week?.natal.every((point) => point.house === null), "no house without a horizon");
+  const teaser = timelinePartOf(seated, { access: false, reader: blind }, { now: TONIGHT }).teaser;
+  assert.equal(teaser?.cycles.length, 4);
+  valid({ ...seated, week });
+  valid({ ...seated, teaser });
+});
+
+// The same names are in web/src/lib/reader-zone.test.ts: what the web sends as `tz` must be what the server reads, and what the
+// web leaves out must be what the server would drop, since neither package can import the other.
+const ZONE_AGREEMENT = {
+  read: ["Europe/Lisbon", "Asia/Tokyo", "America/Argentina/Buenos_Aires", "Pacific/Kiritimati", "Etc/GMT+5", "UTC"],
+  dropped: ["Etc/Unknown", "Not/AZone", "", " ", "+05:30", "Europe/Lisbon ", "Europe/Lisbon;x", "a".repeat(64), "a".repeat(65), 42, null, undefined, {}],
+};
+
+test("the zone the web sends is one the server reads, whatever canonical name it gives it, and the ones the web leaves out the server drops", () => {
+  const instant = new Date("2026-10-05T23:30:00Z");
+  for (const tz of ZONE_AGREEMENT.read) {
+    // The runtime may answer an old alias by its canonical name (Buenos Aires), which is the same zone and the same day.
+    const read = T.validZone(tz);
+    assert.ok(read, String(tz));
+    assert.equal(T.dayIn(instant, read), T.dayIn(instant, tz), String(tz));
+  }
+  for (const tz of ZONE_AGREEMENT.dropped) assert.equal(T.validZone(tz), null, JSON.stringify(tz));
+});

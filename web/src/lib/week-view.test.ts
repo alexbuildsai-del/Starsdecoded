@@ -288,3 +288,46 @@ describe("the dial's source", () => {
     expect(loadLine("six-months")).toBe("We couldn't load the next 6 months. Check your connection and try again.");
   });
 });
+
+describe("edges of the week", () => {
+  const empty: Week = { headline: null, natal: [], angles: null, days: [], on: [] };
+
+  it("reads a week with no days, no events and no chart as a quiet, empty one, never a throw", () => {
+    for (const order of ORDERS) {
+      const model = weekModel(empty, ZONE, order);
+      expect(model).toMatchObject({ headline: null, days: [], onYou: null, more: 0 });
+      expect(typeof model.span).toBe("string");
+    }
+    expect(weekAsNow(empty, ZONE)).toMatchObject({ range: "week", from: "", to: "", blind: true, events: [], next: [] });
+    expect(weekSource(empty)).toMatchObject({ from: "", days: 0, angles: null, points: [] });
+  });
+
+  it("copies each day's tones, so the section can never move the payload it was handed", () => {
+    const model = weekModel(week, ZONE, "dmy");
+    model.days.forEach((day, i) => {
+      expect(day.tones).not.toBe(week.days[i].tones);
+      expect(day.tones).toEqual(week.days[i].tones);
+    });
+  });
+
+  it("reads a week with no birth time without a horizon: the blind flag, no angles, and still a card for the day", () => {
+    const blindWeek = weekOf(blind);
+    expect(blindWeek.angles).toBeNull();
+    const model = weekModel(blindWeek, ZONE, "dmy");
+    expect(weekAsNow(blindWeek, ZONE).blind).toBe(true);
+    expect(model.days).toHaveLength(7);
+    expect(model.more).toBeGreaterThanOrEqual(0);
+  });
+
+  it("keeps the year on a dial day six months or more ahead or in the last year, and drops it for the days a week crosses into a new year", () => {
+    expect(dialWhen("2027-01-02", "2026-12-30", "dmy")).toBe(`Sat 2${NB}Jan`);
+    expect(dialWhen("2027-03-04", "2026-10-05", "dmy")).not.toContain("2027");
+    expect(dialWhen("2027-05-06", "2026-10-05", "dmy")).toContain("2027");
+    expect(dialWhen("2025-12-30", "2026-01-02", "mdy")).toContain("2025");
+  });
+
+  it("counts more things in the plural from two, and says nothing for none", () => {
+    expect(moreLine(2)).toBe("2 more things touch your chart today.");
+    expect(moreLine(-1)).toBeNull();
+  });
+});

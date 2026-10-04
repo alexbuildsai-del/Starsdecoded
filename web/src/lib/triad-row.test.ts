@@ -4,6 +4,8 @@
  * george), and the stored triad is shaped from it as `GET /home` shapes it
  * (api/src/lib/home.ts, `triadOf`), so no placement is typed in.
  */
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart } from "@workspace/engine";
 import type { HomePerson, Spot, SpotPoint } from "@workspace/api-client-react";
@@ -22,6 +24,8 @@ const BIRTHS = {
   beatriceUnknown: ["1988-08-08", "20:18", 51.521, -0.1445, "Europe/London", 720],
   // George's record with a window of 163 minutes: his Moon reaches 0° Aquarius at its late end.
   george: ["2013-07-22", "16:24", 51.517, -0.1735, "Europe/London", 163],
+  // The Moon crosses from Pisces into Aries within this half day, so its range wraps past 360° into the next sign.
+  moonIntoAries: ["2021-01-18", "12:00", 51.5, -0.1, "Europe/London", 360],
 } satisfies Record<string, Birth>;
 
 const chartOf = (birth: Birth): ChartData => calculateNatalChart(...birth) as unknown as ChartData;
@@ -36,7 +40,10 @@ function pointOf(longitude: number): SpotPoint {
 
 /** As `GET /home` builds a triad: two decimals, a house only with a horizon, never on the Rising, and the Moon's range on a rough time. */
 function storedTriad(birth: Birth): HomePerson["triad"] {
-  const chart = chartOf(birth);
+  return storedTriadOf(chartOf(birth));
+}
+
+function storedTriadOf(chart: ChartData): HomePerson["triad"] {
   const spot = (p: { sign: string; degree: number; house?: number }, house: boolean): Spot => ({
     sign: p.sign, degree: Math.round(p.degree * 100) / 100, house: house && p.house ? p.house : null,
   });
@@ -144,5 +151,63 @@ describe("a stored triad and its chart (re-pin 11)", () => {
   it("reads the Moon's range from a chart only over a windowed time, as GET /home does", () => {
     const chart = chartOf(BIRTHS.marie);
     expect(triadRowsOf({ ...chart, windowMinutes: 0 })[1].at).toBe(`Pisces ${chart.planets.moon.degree.toFixed(2)}°`);
+  });
+});
+
+describe("a stored triad and its chart, on every committed fixture (re-pin 11)", () => {
+  const DIR = fileURLToPath(new URL("../../../fixtures/charts/", import.meta.url));
+  const fixtures = readdirSync(DIR).filter((name) => name.endsWith(".json"));
+
+  it("reads every fixture's birth data, so a new one is covered the day it lands", () => {
+    expect(fixtures.length).toBeGreaterThanOrEqual(16);
+  });
+
+  it("prints equal rows from the stored triad and from the chart, exactly and over a rough time, and never a ruler", { timeout: 180_000 }, () => {
+    for (const name of fixtures) {
+      const f = JSON.parse(readFileSync(`${DIR}${name}`, "utf8"));
+      for (const window of [f.birthTimeWindowMinutes ?? 0, 45, 720]) {
+        const chart = calculateNatalChart(f.birthDate, f.birthTime, f.latitude, f.longitude, f.timezone ?? f.timezoneOffset, window) as unknown as ChartData;
+        const stored = storedTriadOf(chart);
+        const label = `${name} ${window}`;
+        expect(triadOfChart(chart), label).toEqual(stored);
+        const fromChart = triadRowsOf(chart, { blind: "x" });
+        expect(fromChart, label).toEqual(triadRowsOf(stored, { blind: "x" }));
+        expect(fromChart.map((row) => row.key), label).toEqual(["sun", "moon", "rising"]);
+        for (const line of texts(fromChart)) expect(line, label).not.toMatch(/rule/i);
+        const rising = fromChart[2];
+        if (chart.angles) expect(rising, label).toMatchObject({ house: "1st (self)", blind: null });
+        else expect(rising, label).toMatchObject({ at: null, house: null, blind: "x" });
+      }
+    }
+  });
+});
+
+describe("the Moon's range past the end of Pisces", () => {
+  it("names both signs and no house, each end in its own sign, the second starting at 0° of Aries", () => {
+    const moon = triadRowsOf(storedTriad(BIRTHS.moonIntoAries))[1];
+    expect(moon.at).toMatch(/^\d+\.\d{2}° Pisces to \d+\.\d{2}° Aries$/);
+    expect(moon.house).toBeNull();
+    expect(triadRowsOf(chartOf(BIRTHS.moonIntoAries))[1]).toEqual(moon);
+  });
+});
+
+describe("a row's words", () => {
+  it("lists Sun, Moon and Rising in that order whatever the input, with a label each", () => {
+    for (const source of [storedTriad(BIRTHS.audrey), chartOf(BIRTHS.audrey), storedTriad(BIRTHS.marie)]) {
+      expect(triadRowsOf(source).map((row) => [row.key, row.label])).toEqual([["sun", "Sun"], ["moon", "Moon"], ["rising", "Rising"]]);
+    }
+  });
+
+  it("gives a chart with no Sun or no Moon no rows at all", () => {
+    const chart = chartOf(BIRTHS.audrey);
+    expect(triadRowsOf({ ...chart, planets: { ...chart.planets, sun: undefined } } as unknown as ChartData)).toEqual([]);
+    expect(triadRowsOf({ ...chart, planets: { ...chart.planets, moon: undefined } } as unknown as ChartData)).toEqual([]);
+  });
+
+  it("prints a blind Rising as its line alone, in the full row and the compact one, never an empty sign", () => {
+    const rising = triadRowsOf(storedTriad(BIRTHS.marie), { blind: "Add your birth time" })[2];
+    expect(triadText(rising)).toBe("Add your birth time");
+    expect(triadText(rising, true)).toBe("Add your birth time");
+    expect(rising.at).toBeNull();
   });
 });

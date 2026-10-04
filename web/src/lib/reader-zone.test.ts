@@ -94,3 +94,25 @@ describe("the zone a screen prints days in", () => {
     expect(servedZoneRead(false, undefined).enabled).toBe(false);
   });
 });
+
+// The same names are in api/src/lib/home.test.ts: the web sends a zone the server reads and leaves out one it would drop.
+describe("the zone as the server reads it", () => {
+  const read = ["Europe/Lisbon", "Asia/Tokyo", "America/Argentina/Buenos_Aires", "Pacific/Kiritimati", "Etc/GMT+5", "UTC"];
+  const dropped = ["Etc/Unknown", "Not/AZone", "", " ", "+05:30", "Europe/Lisbon ", "Europe/Lisbon;x", "a".repeat(64), "a".repeat(65), 42, null, undefined, {}];
+
+  it("agrees with the api's list name for name", () => {
+    for (const zone of read) expect(readableZone(zone), zone).toBe(zone);
+    for (const zone of dropped) expect(readableZone(zone), JSON.stringify(zone)).toBeUndefined();
+  });
+
+  it("serves the key Now and ahead's week reads under, so one cached read names the zone for every screen", () => {
+    expect(servedZoneRead(true, undefined).staleTime).toBe(5 * 60_000);
+    expect(servedZoneRead(true, undefined).queryKey).toEqual(getGetTimelineNowQueryKey({ range: "week" }));
+    expect(servedZoneRead(true, undefined).queryKey).not.toEqual(getGetTimelineNowQueryKey({ range: "month" }));
+  });
+
+  it("prints no zone at all rather than a wrong one when nothing names it, and a name Intl refuses is no name", () => {
+    expect(shownZone(undefined, "", "")).toBeUndefined();
+    expect(shownZone(undefined, "Etc/Unknown", "Not/AZone")).toBeUndefined();
+  });
+});

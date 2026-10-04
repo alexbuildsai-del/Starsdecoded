@@ -932,3 +932,124 @@ test("a change refused a hold after the hour has turned does not take off a late
     await app.close();
   }
 });
+
+test("Ask, a new reading and Now and ahead: the last status that spends is 399 and the first that does not is 400", async () => {
+  for (const [kind, handlers] of [
+    ["ask", buildLimits().askLimit],
+    ["timelineReading", buildLimits().timelineReadingLimit],
+    ["timelineNow", buildLimits().timelineNowLimit],
+  ] as const) {
+    const app = await serve(handlers);
+    try {
+      for (let i = 0; i < 40; i++) assert.equal((await app.hit({ user: "u1", answer: 400 })).status, 400, `${kind} 400 ${i}`);
+      await passes(LIMITS[kind].limit - 1, () => app.hit({ user: "u1", answer: 399 }), 399);
+      assert.equal((await app.hit({ user: "u1", answer: 399 })).status, 399, `${kind}: the last allowed`);
+      await refused(app.hit({ user: "u1" }), kind);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("a new reading's 20th in the minute passes, the 21st is refused, and the minute's end lets 20 more open", async (t) => {
+  const start = Date.parse("2026-10-04T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().timelineReadingLimit);
+  try {
+    await passes(LIMITS.timelineReading.limit, () => app.hit({ user: "u1" }));
+    t.mock.timers.setTime(start + LIMITS.timelineReading.windowMs - 1_000);
+    const seconds = await refused(app.hit({ user: "u1" }), "timelineReading");
+    assert.ok(seconds <= 1, `a second left in the minute, Retry-After ${seconds}`);
+    t.mock.timers.setTime(start + LIMITS.timelineReading.windowMs + 1);
+    await passes(LIMITS.timelineReading.limit, () => app.hit({ user: "u1" }));
+    await refused(app.hit({ user: "u1" }), "timelineReading");
+  } finally {
+    await app.close();
+  }
+});
+
+test("Now and ahead's 30th read in the minute passes, the 31st is refused, and the minute's end lets 30 more through", async (t) => {
+  const start = Date.parse("2026-10-04T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().timelineNowLimit);
+  try {
+    await passes(LIMITS.timelineNow.limit, () => app.hit({ user: "u1" }));
+    t.mock.timers.setTime(start + LIMITS.timelineNow.windowMs - 1_000);
+    await refused(app.hit({ user: "u1" }), "timelineNow");
+    t.mock.timers.setTime(start + LIMITS.timelineNow.windowMs + 1);
+    await passes(LIMITS.timelineNow.limit, () => app.hit({ user: "u1" }));
+    await refused(app.hit({ user: "u1" }), "timelineNow");
+  } finally {
+    await app.close();
+  }
+});
+
+test("the wait Ask is told shrinks as the minute runs, and hammering a full count does not push it out", async (t) => {
+  const start = Date.parse("2026-10-04T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().askLimit);
+  try {
+    await passes(LIMITS.ask.limit, () => app.hit({ user: "u1" }));
+    t.mock.timers.setTime(start + 45_000);
+    assert.equal(await refused(app.hit({ user: "u1" }), "ask"), 15);
+    t.mock.timers.setTime(start + 50_000);
+    for (let i = 0; i < 20; i++) await app.hit({ user: "u1" });
+    assert.equal(await refused(app.hit({ user: "u1" }), "ask"), 10, "refusals added nothing to the count");
+    t.mock.timers.setTime(start + 60_001);
+    assert.equal((await app.hit({ user: "u1" })).status, 201);
+  } finally {
+    await app.close();
+  }
+});
+
+test("eight Ask messages at once from one account: six pass and two hear Ask's line, whichever lands first", async () => {
+  const app = await serve(buildLimits().askLimit);
+  try {
+    const answers = await Promise.all(Array.from({ length: 8 }, () => app.hit({ user: "racer" })));
+    assert.equal(answers.filter((a) => a.status === 201).length, LIMITS.ask.limit);
+    assert.equal(answers.filter((a) => a.status === 429).length, 2);
+    await refused(app.hit({ user: "racer" }), "ask");
+  } finally {
+    await app.close();
+  }
+});
+
+test("twenty-five readings opened at once from one account: twenty pass and five hear the readings' line", async () => {
+  const app = await serve(buildLimits().timelineReadingLimit);
+  try {
+    const answers = await Promise.all(Array.from({ length: 25 }, () => app.hit({ user: "racer" })));
+    assert.equal(answers.filter((a) => a.status === 201).length, LIMITS.timelineReading.limit);
+    assert.equal(answers.filter((a) => a.status === 429).length, 5);
+  } finally {
+    await app.close();
+  }
+});
+
+test("Timeline's counts are an account's: a session with no account is its own count, and an account's never meets it", async () => {
+  const limits = buildLimits();
+  for (const [kind, handlers] of [
+    ["ask", limits.askLimit],
+    ["timelineReading", limits.timelineReadingLimit],
+    ["timelineNow", limits.timelineNowLimit],
+  ] as const) {
+    const app = await serve(handlers);
+    try {
+      await passes(LIMITS[kind].limit, () => app.hit({ session: "same" }));
+      await refused(app.hit({ session: "same" }), kind);
+      assert.equal((await app.hit({ session: "other" })).status, 201, `${kind}: another session`);
+      assert.equal((await app.hit({ user: "same", session: "same" })).status, 201, `${kind}: an account named like the session`);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("a reader who hangs up on Ask keeps the message's count, since the model may already be answering", async () => {
+  const app = await serve(buildLimits().askLimit);
+  try {
+    for (let i = 0; i < LIMITS.ask.limit; i++) await app.hangUp({ user: "u1" });
+    await refused(app.hit({ user: "u1" }), "ask");
+  } finally {
+    await app.close();
+  }
+});
