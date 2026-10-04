@@ -1,6 +1,6 @@
 /**
- * Every check a section can fail, classified (ADR-81; the annex
- * `docs/annex/pair-reliability-checks.md`, rows 1 to 42). A check blocks
+ * Every check a section or a Timeline reading can fail, classified (ADR-81;
+ * the annex `docs/annex/pair-reliability-checks.md`, rows 1 to 48). A check blocks
  * only when the text would be wrong or harmful for the reader or would cost
  * money; everything else is fixed in code, logged, or buffered by 20% around
  * the target the prompt states. Rule ids are stable so the failure log and
@@ -64,6 +64,11 @@ export const RULES: Record<string, { row: number; cls: CheckClass }> = {
   "chk-41": { row: 41, cls: "fix" },
   "chk-42": { row: 42, cls: "fix" },
   "chk-43": { row: 43, cls: "warn" },
+  "chk-44": { row: 44, cls: "block" },
+  "chk-45": { row: 45, cls: "block" },
+  "chk-46": { row: 46, cls: "block" },
+  "chk-47": { row: 47, cls: "buffer" },
+  "chk-48": { row: 48, cls: "fix" },
 };
 
 export const block = (rule: string, message: string): Check => ({ rule, cls: "block", message });
