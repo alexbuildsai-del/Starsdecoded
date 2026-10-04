@@ -82,14 +82,14 @@ describe("the readout", () => {
     expect(readout(horizon("known", fact({})), 12)).toEqual({
       status: "known",
       rising: "Capricorn · holds from 11:12\u00a0am to 12:58\u00a0pm",
-      line: "Rising sign Capricorn · holds from 11:12\u00a0am to 12:58\u00a0pm. The horizon is drawn.",
+      line: "Rising sign Capricorn · holds from 11:12\u00a0am to 12:58\u00a0pm. Your houses are set.",
     });
     expect(readout(horizon("known", fact({})))).toEqual(readout(horizon("known", fact({})), 24));
   });
 
-  it("says whether the horizon is drawn", () => {
-    expect(readout(horizon("known", fact({}))).line).toMatch(/The horizon is drawn/);
-    expect(readout(horizon("approximate", fact({}))).line).toMatch(/holds across your window/);
+  it("says whether your rising sign and houses are set", () => {
+    expect(readout(horizon("known", fact({}))).line).toMatch(/\. Your houses are set\.$/);
+    expect(readout(horizon("approximate", fact({}))).line).toMatch(/\. It's the same across your time range, so your houses are set\.$/);
     expect(readout(horizon("unknown", fact({ holds: false, values: ["A", "B"], flipsAt: ["12:58"] }))).line).toMatch(/We can't tell your rising sign without a time. The report uses your birth date/);
   });
 

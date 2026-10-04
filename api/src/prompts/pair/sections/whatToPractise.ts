@@ -6,8 +6,8 @@ import { fixed } from "../../checks.js";
 /** Chapter 07 collects the lens chapters' next-time items into three checklists and adds nothing new (ADR-63). */
 export const whatToPractise: PairSectionSpec<typeof PairPractiseSchema> = {
   key: "pair:whatToPractise",
-  label: "What to practise",
-  adminLabel: "07 What to practise",
+  label: "Things to try",
+  adminLabel: "07 Things to try",
   chapter: 7,
   wordTarget: [450, 560],
   maxTokens: 3_500,
@@ -32,7 +32,7 @@ export const whatToPractise: PairSectionSpec<typeof PairPractiseSchema> = {
       ],
     };
   },
-  instructions: `Write What to practise, the closing chapter: an opening paragraph, three checklists and a closing paragraph, 450 to 560 words in total, the items included.
+  instructions: `Write Things to try, the closing chapter: an opening paragraph, three checklists and a closing paragraph, 450 to 560 words in total, the items included.
 
 The opening says plainly what this pair asks of each of them, in three or four sentences. Then three checklists of exactly three items each, with one intro sentence naming who it is for: for A, for B, and for both. Every item comes from the NEXT-TIME ITEMS listed below, collected and deduplicated, the wording kept or tightened, never a new action: an item for A goes under A, for B under B, for both under both. Where a list has more than three, keep the three that carry the most, and where it has fewer than three, move the nearest item marked for both. Each item keeps a why with a verb that says what it trains.
 

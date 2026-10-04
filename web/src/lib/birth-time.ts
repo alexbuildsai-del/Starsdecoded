@@ -119,9 +119,9 @@ export function risingReadout(fact: HorizonFact, clock: Clock = 24): string {
 export function readout(h: Horizon, clock: Clock = 24): { status: HorizonStatus; rising: string; line: string } {
   const rising = risingReadout(h.ascendant, clock);
   const line = h.status === "known"
-    ? `Rising sign ${rising}. The horizon is drawn.`
+    ? `Rising sign ${rising}. Your houses are set.`
     : h.status === "approximate"
-      ? `Rising sign ${rising}. It holds across your window, so the horizon is drawn.`
+      ? `Rising sign ${rising}. It's the same across your time range, so your houses are set.`
       : `Rising sign ${rising}. We can't tell your rising sign without a time. The report uses your birth date.`;
   return { status: h.status, rising, line };
 }

@@ -83,7 +83,7 @@ describe("the birth-time plates", () => {
     expect(mira.birth.birthTime).toBe("07:40");
     expect(plateAnswer(plates[0], 12)).toBe("7:40\u00a0am on the birth certificate");
     expect(plateAnswer(plates[1], 12)).toBe("About 8\u00a0am, give or take an hour");
-    expect(plateAnswer(plates[2], 12)).toBe("The report is written from the date alone.");
+    expect(plateAnswer(plates[2], 12)).toBe("We write the report from your birth date.");
     expect(plateAnswer(plates[0], 24)).toBe(plateAnswer(plates[0]));
     expect(plateReadout(plates[0], 12)).toBe("Aries · holds from 7:12\u00a0am to 8:26\u00a0am");
     expect(plateReadout(plates[0], 24)).toBe("Aries · holds from 07:12 to 08:26");

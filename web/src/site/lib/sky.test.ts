@@ -297,7 +297,7 @@ describe("/sky's placements", () => {
     expect(resultLines(NOW)).toEqual({
       eyebrow: "The sky right now",
       title: "Where the planets are over Brussels right now",
-      summary: "50.83°N 4.33°E · Whole sign · tropical",
+      summary: "50.83°N 4.33°E · Whole-sign houses · tropical zodiac",
       caption: "Where each planet is now",
     });
     expect(resultLines(birthSky(CURIE_NO_TIME))).toMatchObject({ eyebrow: "Your birth chart", summary: "7 Nov 1867 · Time unknown · Warsaw" });

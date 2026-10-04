@@ -48,7 +48,7 @@ test("the pair measure reads the seven chapters of the lens, counts prose withou
   assert.match(measurePair({ ...base, links: { links: [card("Too short. Behaviour check: no.")] } }).cards[0], /5 words/);
   assert.match(measurePair({ ...base, links: { links: [card(fifty.replace("Behaviour check:", "Try:"))] } }).cards[0], /no behaviour check/);
   assert.match(measurePair({ ...base, links: { links: [card(fifty.replace("The room notices.", "This scores 8/10."))] } }).cards[0], /RATING/);
-  assert.match(measurePair({ ...base, meta: { ...(base.meta as object), lens: "people" } }).rows[4].section, /The hard talk/);
+  assert.match(measurePair({ ...base, meta: { ...(base.meta as object), lens: "people" } }).rows[4].section, /Hard conversations/);
 });
 
 test("the pair measure flags a rating, evidence in prose, a card line over twelve words, a scene missing a name, and a band line", () => {

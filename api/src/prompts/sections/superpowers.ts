@@ -17,8 +17,8 @@ export const SuperpowersSchema = z.object({
 
 export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
   key: "natal:superpowers",
-  label: "Superpowers, Chronic Patterns & Growing Edges",
-  adminLabel: "Superpowers / Patterns / Edges",
+  label: "Strengths, Habits & Where You Can Grow",
+  adminLabel: "Strengths, Habits & Where You Can Grow",
   wordTarget: [600, 700],
   blindWordTarget: [480, 580],
   maxTokens: 3_600,
@@ -26,7 +26,7 @@ export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
   // MB-142 provisional: Luna wrote 446 to 502 words here on all five r14-staging charts. Items of 100 to 120 words with
   // two or three actions add up to under 600, so the floor comes with item text and actions that reach it.
-  instructions: `Write Superpowers, Chronic Patterns & Growing Edges. Three distinct items that never overlap.
+  instructions: `Write Strengths, Habits & Where You Can Grow. Three distinct items that never overlap.
 
 Superpower: what comes naturally and reliably. Evidence: planets in domicile or exaltation, the benefic of sect, angular planets, the South Node. Chronic pattern: what is structurally rooted, cannot be removed, only noticed and managed. Evidence: the malefic contrary to sect, planets in detriment or fall, the tightest hard aspect. Growing edge: what is uncomfortable but possible. Evidence: the North Node, the sect light, the weakest necessary function.
 

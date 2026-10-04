@@ -61,10 +61,10 @@ test("registry: seventeen specs plus the link cards and the foundation, eight id
   assert.deepEqual(pairSectionIds("partners").slice(1, 6), ["partners02", "partners03", "partners04", "partners05", "partners06"]);
   assert.deepEqual(pairSectionIds("people").slice(1, 6), ["people02", "people03", "people04", "people05", "people06"]);
   assert.equal(pairSectionById("links")?.chapter, 0);
-  assert.equal(pairChapterTitle("twoCharts"), "Your two charts");
-  assert.equal(pairChapterTitle("partners02"), "How you love");
-  assert.equal(pairChapterTitle("parentChild06"), "Rules, freedom and screens");
-  assert.equal(pairChapterTitle("people05"), "The hard talk");
+  // The web prints its own copy of these (PAIR_CHAPTER_TITLES in web/src/lib/lenses.ts), which the api cannot import, so the writer is pinned to the same words here.
+  assert.deepEqual(pairChapterIds("partners").map(pairChapterTitle), ["Your two charts", "How you love", "How you argue and make up", "Home, chores and money", "Fun, weekends and holidays", "What you are building", "Things to try"]);
+  assert.deepEqual(pairChapterIds("parent_child").map(pairChapterTitle), ["Your two charts", "What your child needs from you", "Big feelings and what helps", "Home and helping out", "School, homework and how they learn", "Rules, freedom and screens", "Things to try"]);
+  assert.deepEqual(pairChapterIds("people").map(pairChapterTitle), ["Your two charts", "Being together", "Working on something together", "Having fun", "Hard conversations", "What you give each other", "Things to try"]);
 });
 
 test("bands: chapter 01 300 to 360, lens chapters 230 to 300, prose total inside 1,900 to 2,500 under every lens", () => {
@@ -424,7 +424,6 @@ test("a room is only ever a real room: the doctrine says so, and every room left
   const real = [
     /a room, an evening, a message, a bill/,
     /the way they arrive in a room/,
-    /In a room together/,
     /in the same room with other people/,
     /In a room one of two people usually fills the silence/,
     /their own room/,

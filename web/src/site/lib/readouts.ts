@@ -148,7 +148,7 @@ export function plateAnswer(plate: TimePlate, clock: Clock = 24): string {
     case "roughly":
       return `About ${clockWords(plate.value.birthTime, clock)}, give or take an hour`;
     case "unknown":
-      return "The report is written from the date alone.";
+      return "We write the report from your birth date.";
   }
 }
 

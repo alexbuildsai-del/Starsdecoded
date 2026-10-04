@@ -12,11 +12,11 @@ const register = "How the two know each other, family, friends or colleagues, is
 const room = lensChapter({
   lens: "people",
   n: 2,
-  title: "In a room together",
+  title: "Being together",
   draws: ["overview", "triad", "mind"],
   scene: "The big dinner",
   grounding: `${register} In a room one of two people usually fills the silence and the other reads it. One arrives already talking and the other needs ten minutes. Neither is the right way, and the mismatch is only a problem when each takes the other's pace personally.`,
-  instructions: `Write In a room together: what happens when these two are in the same room with other people, who fills the silence and who reads it, and what each takes personally that is only pace.
+  instructions: `Write Being together: what happens when these two are in the same room with other people, who fills the silence and who reads it, and what each takes personally that is only pace.
 
 The scene is the big dinner, in present tense with both names and what each does in the first ten minutes. What just happened gives what each needs when other people are around, from their report's words on temperament and how they come across. The pattern says whether this comes naturally or is the challenge ("This is the challenge: …"). Next time gives each one thing to do for the other when they are next out with other people, and one for both.`,
 });
@@ -48,11 +48,11 @@ The scene is the weekend away, in present tense with both names. What just happe
 const hardTalk = lensChapter({
   lens: "people",
   n: 5,
-  title: "The hard talk",
+  title: "Hard conversations",
   draws: ["mind", "relationships", "money"],
   scene: "Money between you",
-  grounding: `${register} The hard talk between two people who are not partners has no shared bed to repair it in, so it is put off longer and lands harder. One of the two will say it too early and the other too late. The talk goes best when the one who waits names the day and the one who rushes names the one thing they want from it.`,
-  instructions: `Write The hard talk: the conversation these two put off, who would say it too early and who too late, and how it goes when it finally happens.
+  grounding: `${register} A hard conversation between two people who are not partners has no shared bed to repair it in, so it is put off longer and lands harder. One of the two will say it too early and the other too late. The talk goes best when the one who waits names the day and the one who rushes names the one thing they want from it.`,
+  instructions: `Write Hard conversations: the conversation these two put off, who would say it too early and who too late, and how it goes when it finally happens.
 
 The scene is money between the two of them and the talk about it, in present tense with both names and the actual words one of them opens with. What just happened gives the fear under each side's timing, from their report's words on how they are understood, intimacy and what they hold. The pattern says whether this is the challenge ("This is the challenge: …") and what it trains. Next time gives each one line to open with and one for both: when, where, and the one thing wanted.`,
 });
