@@ -240,7 +240,12 @@ function cycleOf(cycle: LifeCycle, zone: string): MiraCycle {
  * holds, the week's sentence, her known ages' cycles and waves, and the finder's answer for her birth date.
  */
 export function miraWeek(monday: Day, birth: MiraBirth): MiraWeek {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(monday) || noonUtc(monday).getUTCDay() !== 1) throw new Error(`${monday} is not a Monday`);
+  // A day the calendar lacks would roll over (30 Feb to 2 Mar) and could land on a Monday, so the day must read back as written.
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(monday) ||
+    noonUtc(monday).toISOString().slice(0, 10) !== monday ||
+    noonUtc(monday).getUTCDay() !== 1
+  ) throw new Error(`${monday} is not a Monday`);
   const zone = birth.timezone;
   const chart = calculateNatalChart(birth.birthDate, birth.birthTime, birth.latitude, birth.longitude, zone, 0);
   const born = new Date(chart.datetimeUtc);

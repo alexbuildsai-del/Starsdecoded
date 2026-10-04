@@ -422,17 +422,23 @@ export function eclipses(from: Date, to: Date): Eclipse[] {
   const b = to.getTime();
   if (!(a <= b)) return [];
   const out: Eclipse[] = [];
+  // The range is judged on the minute an eclipse is reported at, as stations and ingresses are, so an eclipse is always
+  // inside a range that holds its own `at`.
   const keep = (kind: Eclipse["kind"], peak: Date): void => {
     const eclipsed = kind === "solar" ? "sun" : "moon";
-    if (peak.getTime() >= a) out.push({ kind, at: new Date(toMinute(peak.getTime())), lon: longitudeAt(eclipsed, peak) });
+    const at = toMinute(peak.getTime());
+    if (at >= a && at <= b) out.push({ kind, at: new Date(at), lon: longitudeAt(eclipsed, peak) });
   };
-  let lunar = Astronomy.SearchLunarEclipse(from);
-  while (lunar.peak.date.getTime() <= b) {
+  const last = b + 60_000;
+  // The searches start from the new or full moon after the instant given, which can come hours before the eclipse's peak.
+  const start = new Date(a - 3 * DAY_MS);
+  let lunar = Astronomy.SearchLunarEclipse(start);
+  while (lunar.peak.date.getTime() <= last) {
     keep("lunar", lunar.peak.date);
     lunar = Astronomy.NextLunarEclipse(lunar.peak);
   }
-  let solar = Astronomy.SearchGlobalSolarEclipse(from);
-  while (solar.peak.date.getTime() <= b) {
+  let solar = Astronomy.SearchGlobalSolarEclipse(start);
+  while (solar.peak.date.getTime() <= last) {
     keep("solar", solar.peak.date);
     solar = Astronomy.NextGlobalSolarEclipse(solar.peak);
   }
