@@ -16,8 +16,8 @@ import { arcLabelPath, norm360 } from "@/components/chart/wheel-geometry";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import {
-  DIAL, bandSegments, beatMs, clampDay, dialAngle, dialAt, frameText, keyDay, playStart, playStep, trackRadii, trailPath,
-  type DialAngles, type DialFrame, type DialPoint,
+  DIAL, bandSegments, beatMs, clampDay, dialAngle, dialAt, frameText, keyDay, leavesTrail, playStart, playStep, trackRadii,
+  trailPath, type DialAngles, type DialFrame, type DialPoint,
 } from "@/lib/dial";
 
 export type DialTrail = "played" | "range";
@@ -179,7 +179,7 @@ export function Dial({ points, angles, frames, day, onDay, playable, trail, size
       {moving && <circle cx={DIAL.centre} cy={DIAL.centre} r={DIAL.ring} {...FOCUS_RING} />}
       {ground}
 
-      {trailTo > 0 && Object.entries(radii).map(([body, r]) => {
+      {trailTo > 0 && Object.entries(radii).filter(([body]) => leavesTrail(body)).map(([body, r]) => {
         const d = trailPath(frames, body, r, east, 0, trailTo);
         return d ? (
           <path

@@ -12,8 +12,8 @@ import mira from "../../../fixtures/sample-people/mira.json";
 import audrey from "../../../fixtures/charts/audrey-hepburn.json";
 import curieUnknown from "../../../fixtures/charts/marie-curie-unknown.json";
 import {
-  DIAL, DIAL_ORDER, bandSegments, beatMs, clampDay, dayWords, dialAngle, dialAt, framesFor, frameText, keyDay, playStart,
-  playStep, strongerTone, trackRadii, trailPath, type DialFrame, type DialNatal,
+  DIAL, DIAL_ORDER, bandSegments, beatMs, clampDay, dayWords, dialAngle, dialAt, framesFor, frameText, keyDay, leavesTrail,
+  playStart, playStep, strongerTone, trackRadii, trailPath, type DialFrame, type DialNatal,
 } from "./dial";
 
 const DAY = 86_400_000;
@@ -181,6 +181,10 @@ describe("the dial's geometry", () => {
     expect(trailPath(frames, "mars", 168, 0, 2, 2)).toBe("");
     expect(trailPath(frames, "venus", 168, 0, 0, 4)).toBe("");
     expect(trailPath(frames, "mars", 168, 0, 0, 99).split("L")).toHaveLength(5);
+  });
+
+  it("leaves a trail only behind a planet that can touch the chart", () => {
+    expect(DIAL_ORDER.filter(leavesTrail)).toEqual(HERO);
   });
 });
 

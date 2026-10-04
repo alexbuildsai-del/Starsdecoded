@@ -99,8 +99,16 @@ function targetsOf(natal: DialNatal): { target: NatalTarget; lon: number }[] {
   return found;
 }
 
-function isContactBody(body: SkyBody): body is ContactBody {
+function isContactBody(body: string): body is ContactBody {
   return (DOCTRINE.bodies as readonly string[]).includes(body);
+}
+
+/**
+ * Only a planet that can touch the chart leaves a trail, as Timeline's artifact draws it: Mercury and Venus are on the
+ * dial for their retrogrades, and over a range their way would ring the whole track.
+ */
+export function leavesTrail(body: string): boolean {
+  return isContactBody(body);
 }
 
 /**
