@@ -27,6 +27,14 @@ const sampleOutput = (label: string) => ({
 type Step = { name: string; status: string; detail: string | null };
 const stepOf = (done: LabRelease, name: string) => (done.steps as Step[]).find((s) => s.name === name)!;
 
+const MIRA_PATH = "web/src/site/data/timeline/mira-week.json";
+/** A Wednesday: the week moves to the Monday after it. */
+const FORWARDED_AT = new Date("2026-10-07T10:00:00Z");
+const NEXT_MONDAY = "2026-10-12";
+/** Mira's week as the stub engine writes it, so a test reads which Monday it was asked for. */
+const miraText = (monday: string) => `{"week":"${monday}"}\n`;
+const fileOf = (push: FileCommit, path: string) => push.files.find((f) => f.path === path);
+
 function memoryStore(): ReleaseStore & { rows: Map<string, LabRelease> } {
   const rows = new Map<string, LabRelease>();
   return {
@@ -67,6 +75,8 @@ function deps(over: Partial<ReleaseDeps> & { token?: string; forwarded?: string[
     spentUsd: async () => 1,
     env,
     webOrigin: "https://staging.test",
+    mira: { week: async (monday) => miraText(monday), current: async () => null },
+    now: () => FORWARDED_AT,
     ...over,
   };
 }
@@ -185,8 +195,9 @@ test("a retry with the brain unchanged reuses the newest passed lab, writes no r
     if (reuses) assert.match(lab.detail ?? "", /^reused release-1111111/);
     const from = reuses ? "release-1111111" : "release-abcdef1";
     assert.equal(pushed.length, 1);
-    assert.equal(JSON.parse(pushed[0].content).overview.headline, `written under ${from}`, "the run this release's reports came from");
-    assert.match(stepOf(done, "forward").detail ?? "", new RegExp(`; /sample: pushed .* from ${from}$`));
+    const run = fileOf(pushed[0], `web/src/site/data/sample/audrey-hepburn.${done.id}.json`)!;
+    assert.equal(JSON.parse(run.content).overview.headline, `written under ${from}`, "the run this release's reports came from");
+    assert.match(stepOf(done, "forward").detail ?? "", new RegExp(`; /sample: pushed .* from ${from}; Mira's week: pushed ${MIRA_PATH} `));
   }
 });
 
@@ -197,61 +208,89 @@ test("the estimate before the button is what mix B costs: about 25 cents with bo
   assert.equal(estimateUsd(false, true), 0.05);
 });
 
-test("a passing release pushes /sample's run from its lab on sample/<release-id> from the released commit; the outcome is a line in forward's detail", async () => {
+test("a passing release pushes /sample's run from its lab and Mira's week as one commit on sample/<release-id> from the released commit; a line for each in forward's detail", async () => {
   const d = deps({ token: "tok" });
   const done = await startRelease(d, { wait: true });
   assert.equal(done.status, "forwarded");
-  assert.equal(d.pushed.length, 1, "one file");
+  assert.equal(d.pushed.length, 1, "one commit");
   const [push] = d.pushed;
   assert.equal(push.branch, `sample/${done.id}`);
-  assert.equal(push.path, `web/src/site/data/sample/audrey-hepburn.${done.id}.json`);
+  assert.deepEqual(push.files.map((f) => f.path), [`web/src/site/data/sample/audrey-hepburn.${done.id}.json`, MIRA_PATH]);
   assert.equal(push.parent, "abcdef1234567890", "from the released sha");
   assert.equal(push.token, "tok");
-  const file = JSON.parse(push.content);
+  const file = JSON.parse(push.files[0].content);
   assert.equal("foundation" in file, false, "no foundation");
   assert.equal("usage" in file.meta, false, "no usage");
   assert.equal(file.overview.headline, "written under release-abcdef1");
+  assert.equal(fileOf(push, MIRA_PATH)!.content, miraText(NEXT_MONDAY), "the week moves to the Monday after the release");
   const forward = stepOf(done, "forward");
   assert.equal(forward.status, "passed");
-  assert.equal(forward.detail, `production fast-forwarded to abcdef1; /sample: pushed web/src/site/data/sample/audrey-hepburn.${done.id}.json on sample/${done.id}, from release-abcdef1`);
+  assert.equal(forward.detail, `production fast-forwarded to abcdef1; /sample: pushed web/src/site/data/sample/audrey-hepburn.${done.id}.json on sample/${done.id}, from release-abcdef1; Mira's week: pushed ${MIRA_PATH} on sample/${done.id}, the week of ${NEXT_MONDAY}`);
 });
 
-test("/sample's skips and failures are a line in forward's detail, never a failed release, and the token is in none of them", async () => {
+test("Mira's week moves on every forwarded release, a lab or not; the same week is not pushed again, and a week that fails to compute is a line", async () => {
+  const unchangedBrain = () => deps({ token: "tok", github: { branchHead: async (b) => (b === "main" ? "abcdef1234567890" : "0000000000000000"), changedFiles: async () => ["web/src/App.tsx"], fastForward: async () => undefined, commitFile: async () => "c0ffee" } });
+
+  const noLab = unchangedBrain();
+  const pushed: FileCommit[] = [];
+  noLab.github.commitFile = async (input) => { pushed.push(input); return "c0ffee"; };
+  const moved = await startRelease(noLab, { wait: true });
+  assert.equal(moved.status, "forwarded");
+  assert.deepEqual(pushed.map((p) => p.files.map((f) => f.path)), [[MIRA_PATH]], "Mira's week alone when no lab ran");
+  assert.match(pushed[0].message, /^Mira's week from release /);
+  assert.equal(stepOf(moved, "forward").detail, `production fast-forwarded to abcdef1; /sample: skipped, no lab ran for this release (the brain is unchanged), so there is no new run; Mira's week: pushed ${MIRA_PATH} on sample/${moved.id}, the week of ${NEXT_MONDAY}`);
+
+  const same = unchangedBrain();
+  same.mira = { week: async (monday) => miraText(monday), current: async () => miraText(NEXT_MONDAY) };
+  same.github.commitFile = async () => { throw new Error("no push expected"); };
+  const kept = await startRelease(same, { wait: true });
+  assert.equal(kept.status, "forwarded");
+  assert.equal(stepOf(kept, "forward").detail, `production fast-forwarded to abcdef1; /sample: skipped, no lab ran for this release (the brain is unchanged), so there is no new run; Mira's week: unchanged, the week of ${NEXT_MONDAY} is already on abcdef1`);
+
+  const broken = deps({ token: "tok" });
+  broken.mira = { week: async () => { throw new Error("no fixtures/sample-people/mira.json beside the process"); }, current: async () => null };
+  const half = await startRelease(broken, { wait: true });
+  assert.equal(half.status, "forwarded", "production moved; the week's failure fails nothing");
+  assert.deepEqual(broken.pushed.map((p) => p.files.map((f) => f.path)), [[`web/src/site/data/sample/audrey-hepburn.${half.id}.json`]], "/sample's run goes alone");
+  assert.match(stepOf(half, "forward").detail ?? "", /; \/sample: pushed .*; Mira's week: not pushed, no fixtures\/sample-people\/mira\.json beside the process$/);
+});
+
+test("/sample's and Mira's skips and failures are a line in forward's detail, never a failed release, and the token is in none of them", async () => {
   const token = "github_pat_11ABCDEFG0123456789_secret";
-  const noToken = await startRelease(deps(), { wait: true });
+  const asked: string[] = [];
+  const quiet = deps();
+  quiet.mira = { week: async (monday) => { asked.push(monday); return miraText(monday); }, current: async () => null };
+  const noToken = await startRelease(quiet, { wait: true });
   assert.equal(noToken.status, "passed");
   assert.equal(stepOf(noToken, "forward").status, "stopped");
-  assert.match(stepOf(noToken, "forward").detail ?? "", /MB-75.*; \/sample: skipped, no GITHUB_RELEASE_TOKEN to push it with$/);
-
-  const unchanged = deps({ token, github: { branchHead: async (b) => (b === "main" ? "abcdef1234567890" : "0000000000000000"), changedFiles: async () => ["web/src/App.tsx"], fastForward: async () => undefined, commitFile: async () => { throw new Error("no push expected"); } } });
-  const same = await startRelease(unchanged, { wait: true });
-  assert.equal(same.status, "forwarded");
-  assert.equal(stepOf(same, "forward").detail, "production fast-forwarded to abcdef1; /sample: skipped, no lab ran for this release (the brain is unchanged), so there is no new run");
+  assert.match(stepOf(noToken, "forward").detail ?? "", /MB-75.*; \/sample: skipped, no GITHUB_RELEASE_TOKEN to push it with; Mira's week: skipped, no GITHUB_RELEASE_TOKEN to push it with$/);
+  assert.deepEqual(asked, [], "no week is computed for a push that cannot happen");
 
   const kept = deps({ token, labStore: { insert: async () => undefined, numbers: async (label) => numbers(label), sampleOutput: async () => null } });
   const none = await startRelease(kept, { wait: true });
   assert.equal(none.status, "forwarded");
-  assert.match(stepOf(none, "forward").detail ?? "", /; \/sample: skipped, release-abcdef1 kept no audrey-hepburn run$/);
+  assert.match(stepOf(none, "forward").detail ?? "", new RegExp(`; /sample: skipped, release-abcdef1 kept no audrey-hepburn run; Mira's week: pushed ${MIRA_PATH} `));
+  assert.deepEqual(kept.pushed.map((p) => p.files.map((f) => f.path)), [[MIRA_PATH]]);
 
   const refusing = deps({ token });
   refusing.github.commitFile = async (input, t) => { throw new Error(`GitHub 422 creating ${input.branch}: Reference already exists (${t})`); };
   const refused = await startRelease(refusing, { wait: true });
-  assert.equal(refused.status, "forwarded", "production moved; /sample's failure fails nothing");
+  assert.equal(refused.status, "forwarded", "production moved; the push's failure fails nothing");
   assert.equal(refused.error, null);
-  assert.match(stepOf(refused, "forward").detail ?? "", /; \/sample: not pushed, GitHub 422 creating sample\/.*: Reference already exists \(\[token\]\)$/);
+  assert.match(stepOf(refused, "forward").detail ?? "", /; \/sample: not pushed, GitHub 422 creating sample\/.*: Reference already exists \(\[token\]\); Mira's week: not pushed, GitHub 422 creating sample\/.*: Reference already exists \(\[token\]\)$/);
 
   const stuck = deps({ token });
   stuck.github.fastForward = async () => { throw new Error("GitHub 422 fast-forwarding production: Update is not a fast forward"); };
   const unmoved = await startRelease(stuck, { wait: true });
   assert.equal(unmoved.status, "passed");
   assert.equal(stepOf(unmoved, "forward").status, "failed");
-  assert.equal(stepOf(unmoved, "forward").detail, "GitHub 422 fast-forwarding production: Update is not a fast forward; /sample: skipped, production did not move");
+  assert.equal(stepOf(unmoved, "forward").detail, "GitHub 422 fast-forwarding production: Update is not a fast forward; /sample: skipped, production did not move; Mira's week: skipped, production did not move");
   assert.equal(stuck.pushed.length, 0);
 
-  for (const done of [noToken, same, none, refused, unmoved]) assert.ok(!JSON.stringify(done).includes(token), "the token is in no record");
+  for (const done of [noToken, none, refused, unmoved]) assert.ok(!JSON.stringify(done).includes(token), "the token is in no record");
 });
 
-test("production's move is on the record before /sample's push starts, so a push that hangs or a restart never hides it", async () => {
+test("production's move is on the record before the sample branch's push starts, so a push that hangs or a restart never hides it", async () => {
   const d = deps({ token: "tok" });
   const seen: Array<{ status: string; forward: Step }> = [];
   d.github.commitFile = async (input) => {
@@ -268,7 +307,7 @@ test("production's move is on the record before /sample's push starts, so a push
   assert.equal(done.status, "forwarded");
 });
 
-test("a failed lab, a red gate or a QA sev-1 pushes no /sample run and never reaches the token", async () => {
+test("a failed lab, a red gate or a QA sev-1 pushes no /sample run and no week, and never reaches the token", async () => {
   for (const over of [{ qaStatus: "fail" as const }, { lab: (async () => { throw new Error("lab broke"); }) as ReleaseDeps["lab"] }]) {
     const d = deps({ token: "tok", ...over });
     const done = await startRelease(d, { wait: true });
