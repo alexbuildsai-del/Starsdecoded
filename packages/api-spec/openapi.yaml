@@ -32,6 +32,10 @@ tags:
     description: One balance of credits, its History and the test checkout (ADR-129, ADR-138)
   - name: waitlist
     description: The pre-launch list production collects until Stars Decoded opens
+  - name: timeline
+    description: Timeline, the sky across the reader's own chart, Now and ahead, Life and their readings, behind one access check (ADR-207, ADR-209, ADR-262)
+  - name: ask
+    description: Ask, the chat about the reader's chart, reports and timeline, 50 messages a month (ADR-213, ADR-263)
 paths:
   # /csp-report is left out on purpose: browsers post their CSP violation reports
   # to it on their own and the generated client never calls it, as with /admin/*,
@@ -137,7 +141,11 @@ paths:
         Moon and Rising, their quick looks, their pairs and stories, and what
         they are practising (ADR-174). The circle is the reader plus everyone
         whose Personal report they can read, the people GET /reports lists
-        (ADR-182).
+        (ADR-182). A reader with Timeline gets `week`, Your week in their own
+        days; a reader without it whose own Personal report is finished gets
+        `teaser`; anyone else neither (ADR-211, ADR-212, ADR-262).
+      parameters:
+        - $ref: "#/components/parameters/ReaderZone"
       responses:
         "200":
           description: The reader's home (ADR-174)
@@ -1515,6 +1523,200 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
+  /timeline/access:
+    get:
+      operationId: getTimelineAccess
+      tags: [timeline]
+      summary: Whether the signed-in reader has Timeline (ADR-262)
+      description: >
+        The one access check's answer (ADR-262), for every signed-in reader:
+        today its one source is the signed-in admin, until billing adds an
+        active subscription (MB-197). It says too whether the reader has a
+        finished Personal report of their own, and with access Ask's use this
+        month (ADR-263).
+      responses:
+        "200":
+          description: The reader's access, its source and Ask's count this month (ADR-262, ADR-263, MB-197)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineAccess"
+        "401":
+          description: "`sign_in_required`: no one is signed in, and Timeline belongs to an account (ADR-262)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /timeline/now:
+    get:
+      operationId: getTimelineNow
+      tags: [timeline]
+      summary: Now and ahead, the sky on the reader's own chart from today (ADR-207)
+      description: >
+        A week, a month or six months from today in the reader's days (ADR-207):
+        the natal points and angles the dial draws, each day's tones, every
+        event in the range with its whole window and plain words, and what
+        starts, peaks or eases next. Every date and degree is the engine's.
+        The six-month range queues the readings of contacts entering it, at
+        most three a call (ADR-210).
+      parameters:
+        - name: range
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/TimelineRange"
+          description: Seven days from today, thirty or 182 (ADR-207).
+        - $ref: "#/components/parameters/ReaderZone"
+      responses:
+        "200":
+          description: Now and ahead over the range (ADR-207)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineNow"
+        "400":
+          description: Validation error, a range that is not week, month or six-months (ADR-207)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/NoTimeline"
+        "409":
+          $ref: "#/components/responses/NoPersonalReport"
+
+  /timeline/life:
+    get:
+      operationId: getTimelineLife
+      tags: [timeline]
+      summary: Life, the reader's long cycles from birth to 90 (ADR-209)
+      description: >
+        From the reader's own chart (ADR-209): the four known ages first, then
+        every life cycle with its plain words and exact passes, and each slow
+        planet's wave. `age` and `birth` place today and each cycle on the waves.
+      parameters:
+        - $ref: "#/components/parameters/ReaderZone"
+      responses:
+        "200":
+          description: Life from birth to 90 (ADR-209)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineLife"
+        "403":
+          $ref: "#/components/responses/NoTimeline"
+        "409":
+          $ref: "#/components/responses/NoPersonalReport"
+
+  /timeline/readings/{key}:
+    post:
+      operationId: openTimelineReading
+      tags: [timeline]
+      summary: Open the reading of an event or a life cycle, written the first time (ADR-210)
+      description: >
+        A reading is written once per event per person, the first time it is
+        opened, then kept with the reader's Personal report (ADR-210, MB-191).
+        Ready answers it; writing says it is being written, so open it again
+        soon; failed carries the line the sheet shows. A reading whose basis
+        no longer matches the chart or the prompt is written again.
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The key a TimelineEvent or a LifeCycleView carries, at most 80 characters (ADR-210).
+      responses:
+        "200":
+          description: The reading, ready, writing or failed (ADR-210, MB-191)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenedReading"
+        "403":
+          $ref: "#/components/responses/NoTimeline"
+        "404":
+          description: No event or life cycle on the reader's own chart has this key, it gets no reading, or there is no chart to read (ADR-210)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/Paused"
+
+  /ask:
+    # MB-191 provisional: the thread keeps 31 days, a person as who and which day, and goes with the Personal report.
+    get:
+      operationId: getAskThread
+      tags: [ask]
+      summary: The reader's Ask thread and what's left this month (ADR-213, ADR-263)
+      description: >
+        The thread from the last 31 days, oldest first; a person card is kept
+        as who and which day and computed when shown, while the reader can
+        still read them (ADR-213, MB-191). `usage` is always there (ADR-263).
+      responses:
+        "200":
+          description: The thread and Ask's count this month (ADR-213, ADR-263, MB-191)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskThread"
+        "403":
+          $ref: "#/components/responses/NoTimeline"
+    post:
+      operationId: sendAskMessage
+      tags: [ask]
+      summary: Send Ask a message or a tapped choice (ADR-213)
+      description: >
+        Text or a tapped choice, never both, each one of the month's 50
+        (ADR-263). From a report page it carries that report's id, read only
+        if the reader can read it. Ask answers with text and the same computed
+        cards as Timeline, quoting reports word for word, or asks back with
+        choices (ADR-213). Answers the thread with both new messages and the
+        count after them. Nothing the reader types reaches a log (ADR-201).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendAskBody"
+      responses:
+        "200":
+          description: The thread with the reader's message and Ask's answer, and the count after them (ADR-213, ADR-263)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskThread"
+        "400":
+          description: Validation error, such as neither or both of text and choiceId, text over 500 characters, or a choice Ask did not offer (ADR-213)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/NoTimeline"
+        "429":
+          description: >
+            `rate_limited`: too many messages in a minute, Retry-After carrying
+            the wait (ADR-199); or `ask_cap`: the month's 50 are used, with the
+            day the count starts again (ADR-263).
+          headers:
+            Retry-After:
+              description: Seconds until the limit lets the next message through, on `rate_limited` only.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/RateLimited"
+                  - $ref: "#/components/schemas/AskCap"
+        "503":
+          $ref: "#/components/responses/Paused"
+
 components:
   parameters:
     AdminKey:
@@ -1524,6 +1726,16 @@ components:
       schema:
         type: string
       description: Shared-secret admin key. May also be passed as `?key=`.
+    ReaderZone:
+      name: tz
+      in: query
+      required: false
+      schema:
+        type: string
+      description: >-
+        The reader's IANA time zone as their browser names it, the zone their
+        days are read in; one the server cannot read falls back to the birth
+        place's zone (ADR-207, ADR-211).
 
   # The origin guard's 403 (`forbidden_origin`) is on no route: it refuses only a
   # write from an Origin outside WEB_ORIGINS, and the client calls /api from the
@@ -1560,6 +1772,23 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Paused"
+    NoTimeline:
+      description: >
+        `no_timeline`: the reader does not have Timeline. One access check
+        answers it on every Timeline and Ask route (ADR-262); today its one
+        source is the signed-in admin (MB-197).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NoTimeline"
+    NoPersonalReport:
+      description: >
+        `no_personal_report`: the reader has no finished Personal report of
+        their own, and Timeline reads that report's chart (ADR-205, ADR-209).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
     HealthStatus:
@@ -2381,6 +2610,19 @@ components:
             and the pairs they are one of; none pinned, the Closing's first Practice item (ADR-174).
           items:
             $ref: "#/components/schemas/HomePractice"
+        week:
+          description: Your week, for a reader with Timeline and a chart to read; absent or null for anyone else (ADR-211, ADR-262).
+          anyOf:
+            - $ref: "#/components/schemas/Week"
+            - type: "null"
+        teaser:
+          description: >
+            Your life's big cycles, last on the dashboard, for a reader without Timeline whose own
+            Personal report is finished, never on an empty dashboard; absent or null for anyone else
+            (ADR-212, ADR-255, ADR-262).
+          anyOf:
+            - $ref: "#/components/schemas/Teaser"
+            - type: "null"
       required: [you, several, people, pairs, practising]
 
     HomePerson:
@@ -4085,3 +4327,725 @@ components:
           type: integer
           enum: [1, 3, 5]
       required: [count]
+
+    # A day is a string, never format: date, which the zod codegen's useDates would turn into a UTC Date and so lose
+    # the reader's zone the day was read in.
+    CalendarDay:
+      type: string
+      pattern: '^\d{4}-\d{2}-\d{2}$'
+      description: A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).
+
+    Tone:
+      type: string
+      enum: [easy, mixed, intense]
+      description: How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).
+
+    TimelineRange:
+      type: string
+      enum: [week, month, six-months]
+      description: Now and ahead's range from today, 7, 30 or 182 days (ADR-207).
+
+    ReadingStatus:
+      type: string
+      enum: [none, writing, ready, failed]
+      description: Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).
+
+    CycleId:
+      type: string
+      enum:
+        - jupiter-return
+        - jupiter-opposition
+        - saturn-return
+        - saturn-opposition
+        - saturn-square
+        - node-return
+        - node-opposition
+        - uranus-return
+        - uranus-opposition
+        - uranus-square
+        - neptune-square
+        - pluto-square
+      description: A life cycle, as the engine names it (ADR-209).
+
+    TimelineSpan:
+      type: object
+      description: One stretch an event is within orb, from coming into it to leaving it (ADR-207).
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+      required: [start, end]
+
+    TimelineEvent:
+      type: object
+      description: One sky event on the reader's own chart, its dates and degrees the engine's and its words plain (ADR-207, ADR-208).
+      properties:
+        key:
+          type: string
+          description: "{kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210)."
+        kind:
+          type: string
+          enum: [contact, retrograde, eclipse]
+          description: A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).
+        body:
+          type: string
+          description: The moving body as the engine names it, "saturn"; an eclipse's is the sun or the moon eclipsed (ADR-208).
+        aspect:
+          type: string
+          nullable: true
+          description: A contact's aspect, conjunction, square, opposition or trine; null on a retrograde or an eclipse (ADR-208).
+        target:
+          type: string
+          nullable: true
+          description: The natal point a contact touches or an eclipse falls near, as the engine names it, "ascendant"; null otherwise (ADR-208).
+        houses:
+          type: array
+          description: The whole-sign houses it touches, a retrograde's in the order it moves back through them; empty without a birth time (ADR-208, R-4.6).
+          items:
+            type: integer
+            minimum: 1
+            maximum: 12
+        start:
+          type: string
+          format: date-time
+          description: Its whole window's start, which may be before the range (ADR-207).
+        end:
+          type: string
+          format: date-time
+          description: Its whole window's end, which may be after the range (ADR-207).
+        exact:
+          type: array
+          description: Each time it is exact, in order, two or three when a retrograde splits a contact; empty when it never is (ADR-207).
+          items:
+            type: string
+            format: date-time
+        spans:
+          type: array
+          description: The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).
+          items:
+            $ref: "#/components/schemas/TimelineSpan"
+        orbNow:
+          type: number
+          nullable: true
+          description: A contact's distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).
+        tone:
+          description: Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).
+          anyOf:
+            - $ref: "#/components/schemas/Tone"
+            - type: "null"
+        headline:
+          type: string
+          description: The engine's plain headline, which names no aspect (ADR-207).
+        facts:
+          type: object
+          description: The facts line's parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).
+          properties:
+            sky:
+              type: string
+            house:
+              type: string
+              nullable: true
+              description: Null without a birth time (R-4.6).
+          required: [sky, house]
+        line:
+          type: string
+          nullable: true
+          description: The everyday line, the reading's own once it is written; null before (ADR-210).
+        reading:
+          $ref: "#/components/schemas/ReadingStatus"
+      required: [key, kind, body, aspect, target, houses, start, end, exact, spans, orbNow, tone, headline, facts, line, reading]
+
+    NatalPoint:
+      type: object
+      description: A natal body the dial draws inside the chart, at its ecliptic longitude (ADR-207).
+      properties:
+        body:
+          type: string
+          description: As the engine names it, "sun".
+        lon:
+          type: number
+          description: Ecliptic longitude in degrees, 0 to 360.
+        house:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 12
+          description: Its whole-sign house; null without a birth time (R-4.6).
+      required: [body, lon, house]
+
+    Angles:
+      type: object
+      description: The Ascendant and the Midheaven in degrees of ecliptic longitude; the dial puts the Ascendant east, on the left (ADR-207).
+      properties:
+        ascendant:
+          type: number
+        midheaven:
+          type: number
+      required: [ascendant, midheaven]
+
+    TimelineDay:
+      type: object
+      description: One of the reader's days with the tone of each event on it; a day with none is quiet (ADR-207, MB-188).
+      properties:
+        date:
+          $ref: "#/components/schemas/CalendarDay"
+        tones:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tone"
+      required: [date, tones]
+
+    TimelineChange:
+      type: object
+      description: Something that starts, peaks or eases next, a tap moving the dial to its day (ADR-207).
+      properties:
+        key:
+          type: string
+          description: The event's key.
+        at:
+          type: string
+          format: date-time
+        change:
+          type: string
+          enum: [starts, peaks, eases]
+      required: [key, at, change]
+
+    TimelineNow:
+      type: object
+      description: Now and ahead over one range, from today in the reader's zone (ADR-207).
+      properties:
+        range:
+          $ref: "#/components/schemas/TimelineRange"
+        from:
+          $ref: "#/components/schemas/CalendarDay"
+          description: Today, the reader's day (ADR-207).
+        to:
+          $ref: "#/components/schemas/CalendarDay"
+          description: The range's last day, the reader's (ADR-207).
+        zone:
+          type: string
+          description: The IANA zone the days are read in, the tz sent when the server can read it, else the birth place's (ADR-207).
+        blind:
+          type: boolean
+          description: No birth time, so no angle, no house and no natal Moon contact, which the page says once (R-4.6).
+        natal:
+          type: array
+          items:
+            $ref: "#/components/schemas/NatalPoint"
+        angles:
+          description: Null without a birth time (R-4.6).
+          anyOf:
+            - $ref: "#/components/schemas/Angles"
+            - type: "null"
+        days:
+          type: array
+          description: Each day of the range in order (ADR-207).
+          items:
+            $ref: "#/components/schemas/TimelineDay"
+        events:
+          type: array
+          description: Every event in effect on a day of the range, each with its whole window (ADR-207).
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+        next:
+          type: array
+          description: What starts, peaks or eases next, soonest first (ADR-207).
+          items:
+            $ref: "#/components/schemas/TimelineChange"
+      required: [range, from, to, zone, blind, natal, angles, days, events, next]
+
+    LifeCycleView:
+      type: object
+      description: One life cycle on the reader's own chart, its dates the engine's and its words the engine's CYCLE_WORDS (ADR-209).
+      properties:
+        key:
+          type: string
+          description: cycle.{id}.{yyyymmdd}, the UTC day of its first exact pass, or of its window's start when it never is exact (ADR-210).
+        id:
+          $ref: "#/components/schemas/CycleId"
+        body:
+          type: string
+          description: Its planet as the engine names it, "north_node" for the nodes.
+        name:
+          type: string
+          description: Its name, "Saturn return".
+        word:
+          type: string
+          description: Its plain word, "A reset".
+        age:
+          type: number
+          description: Whole years at its first exact pass, or at its window's start when it never is exact.
+        exact:
+          type: array
+          description: Its exact passes in order, two or three when a retrograde splits it.
+          items:
+            type: string
+            format: date-time
+        start:
+          type: string
+          format: date-time
+          description: When its planet comes within orb.
+        end:
+          type: string
+          format: date-time
+          description: When it leaves the orb for the last time.
+        past:
+          type: boolean
+          description: Its window closed before today.
+        repeats:
+          type: boolean
+          description: It comes more than once in a life, so its card looks back to the last time (ADR-209).
+        passes:
+          type: integer
+          description: How many times it is exact.
+        reading:
+          $ref: "#/components/schemas/ReadingStatus"
+      required: [key, id, body, name, word, age, exact, start, end, past, repeats, passes, reading]
+
+    KnownAge:
+      type: object
+      description: One of the four known ages Life opens on, with the reader's own dates and ring (ADR-209).
+      properties:
+        id:
+          $ref: "#/components/schemas/CycleId"
+        age:
+          type: number
+          description: The reader's age at it, in whole years.
+        last:
+          type: string
+          format: date-time
+          nullable: true
+          description: When it last came; null when it has not come yet.
+        next:
+          type: string
+          format: date-time
+          nullable: true
+          description: When it comes next; null when it does not come again by 90.
+        progress:
+          type: number
+          description: How far round its planet has come since birth, today, 0 to 1, which the ring draws.
+      required: [id, age, last, next, progress]
+
+    LifeWave:
+      type: object
+      description: One slow planet's distance from its place at birth, month by month from birth to 90 (ADR-209).
+      properties:
+        body:
+          type: string
+          description: As the engine names it, "saturn".
+        points:
+          type: array
+          items:
+            type: object
+            properties:
+              age:
+                type: number
+                description: Years from birth.
+              distance:
+                type: number
+                description: Degrees from its place at birth, 0 to 180.
+            required: [age, distance]
+      required: [body, points]
+
+    TimelineLife:
+      type: object
+      description: Life from the reader's own chart, birth to 90, the four known ages first (ADR-209).
+      properties:
+        age:
+          type: number
+          description: The reader's age today in years, a fraction past their last birthday, which marks today on the waves (ADR-209).
+        birth:
+          type: string
+          format: date-time
+          description: The reader's own birth instant, from which each cycle's mark on the waves is aged (ADR-209).
+        ages:
+          type: array
+          description: The four known ages (ADR-209).
+          items:
+            $ref: "#/components/schemas/KnownAge"
+        cycles:
+          type: array
+          description: Every life cycle from birth to 90, in order (ADR-209).
+          items:
+            $ref: "#/components/schemas/LifeCycleView"
+        waves:
+          type: array
+          description: Each slow planet's wave, the slowest last (ADR-209).
+          items:
+            $ref: "#/components/schemas/LifeWave"
+      required: [age, birth, ages, cycles, waves]
+
+    ReadingOnHouse:
+      type: object
+      description: A reading built on the reader's house card for this house (ADR-210).
+      properties:
+        kind:
+          type: string
+          enum: [house]
+        house:
+          type: integer
+          minimum: 1
+          maximum: 12
+      required: [kind, house]
+
+    ReadingOnChapter:
+      type: object
+      description: A reading built on the chapter of the reader's report whose claims cite the point most (ADR-210).
+      properties:
+        kind:
+          type: string
+          enum: [chapter]
+        chapter:
+          type: string
+          description: The chapter's key in the report.
+      required: [kind, chapter]
+
+    TimelineReading:
+      type: object
+      description: The reading of an event or a life cycle, written once for the reader and kept (ADR-210, MB-191).
+      properties:
+        key:
+          type: string
+          description: The event's or the cycle's key.
+        line:
+          type: string
+          description: The everyday line its card shows.
+        body:
+          type: string
+          description: The reading.
+        buildsOn:
+          description: The part of the reader's Personal report it builds on, a house card or a chapter; null when none does (ADR-210).
+          anyOf:
+            - $ref: "#/components/schemas/ReadingOnHouse"
+            - $ref: "#/components/schemas/ReadingOnChapter"
+            - type: "null"
+        writtenAt:
+          type: string
+          format: date-time
+      required: [key, line, body, buildsOn, writtenAt]
+
+    OpenedReading:
+      type: object
+      description: What opening a reading answers, ready with it, writing while it is written, or failed with its line (ADR-210, MB-191).
+      properties:
+        status:
+          type: string
+          enum: [ready, writing, failed]
+        reading:
+          description: The reading when ready; null otherwise.
+          anyOf:
+            - $ref: "#/components/schemas/TimelineReading"
+            - type: "null"
+        line:
+          type: string
+          nullable: true
+          description: The line the sheet shows when it failed; null otherwise.
+      required: [status, reading, line]
+
+    AskUsage:
+      type: object
+      description: Ask's messages this UTC calendar month, a tapped choice included, shown always (ADR-263).
+      properties:
+        used:
+          type: integer
+          minimum: 0
+        left:
+          type: integer
+          minimum: 0
+        cap:
+          type: integer
+          minimum: 0
+          description: The month's cap, 50 (ADR-213).
+        resetsOn:
+          $ref: "#/components/schemas/CalendarDay"
+          description: The 1st of next month, UTC, when the count starts again (ADR-263).
+      required: [used, left, cap, resetsOn]
+
+    TimelineAccess:
+      type: object
+      description: The one access check's answer for the signed-in reader (ADR-262, MB-197).
+      properties:
+        access:
+          type: boolean
+        source:
+          # MB-197 provisional: the admin is the one source until billing adds an active subscription.
+          type: string
+          enum: [admin, subscription]
+          nullable: true
+          description: Where access comes from, the admin until billing adds a subscription; null without access (ADR-262, MB-197).
+        hasPersonalReport:
+          type: boolean
+          description: The reader has a finished Personal report of their own, whose chart Timeline reads (ADR-205).
+        ask:
+          description: Ask's use this month with access; null without (ADR-263).
+          anyOf:
+            - $ref: "#/components/schemas/AskUsage"
+            - type: "null"
+      required: [access, source, hasPersonalReport, ask]
+
+    Week:
+      type: object
+      description: Your week on the dashboard, seven days from today in the reader's zone (ADR-211).
+      properties:
+        headline:
+          type: string
+          nullable: true
+          description: The week in one plain line from the engine's words; null when it has none (ADR-211).
+        natal:
+          type: array
+          items:
+            $ref: "#/components/schemas/NatalPoint"
+        angles:
+          description: Null without a birth time (R-4.6).
+          anyOf:
+            - $ref: "#/components/schemas/Angles"
+            - type: "null"
+        days:
+          type: array
+          description: The seven days with their tones (ADR-211).
+          items:
+            $ref: "#/components/schemas/TimelineDay"
+        "on":
+          type: array
+          description: What touches the reader's chart this week (ADR-211).
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+      required: [headline, natal, angles, days, "on"]
+
+    TeaserCycle:
+      type: object
+      description: One of the four big cycles on the teaser, dated from the reader's own chart (ADR-212).
+      properties:
+        id:
+          $ref: "#/components/schemas/CycleId"
+        name:
+          type: string
+        word:
+          type: string
+        age:
+          type: number
+          description: The reader's age when it comes, in whole years.
+        "on":
+          $ref: "#/components/schemas/CalendarDay"
+          description: The day it comes, its first exact pass (ADR-212).
+      required: [id, name, word, age, "on"]
+
+    Teaser:
+      type: object
+      description: Your life's big cycles, for a reader without Timeline, pointing to /timeline with no price (ADR-212, ADR-255).
+      properties:
+        saturn:
+          type: object
+          description: The Saturn ring, the age of the reader's Saturn return and how far round Saturn has come since birth, 0 to 1 (ADR-212).
+          properties:
+            age:
+              type: number
+            progress:
+              type: number
+          required: [age, progress]
+        cycles:
+          type: array
+          description: The four big cycles, soonest first (ADR-212).
+          items:
+            $ref: "#/components/schemas/TeaserCycle"
+      required: [saturn, cycles]
+
+    AskDayCard:
+      type: object
+      description: A day's card, the contacts on the reader's chart that day and the Moon's sign and phase, the one place the Moon appears (ADR-213).
+      properties:
+        kind:
+          type: string
+          enum: [day]
+        date:
+          $ref: "#/components/schemas/CalendarDay"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+        moon:
+          type: object
+          properties:
+            sign:
+              type: string
+            phase:
+              type: string
+          required: [sign, phase]
+      required: [kind, date, events, moon]
+
+    AskWindowCard:
+      type: object
+      description: A window's card, at most six months, each day easy, mixed, intense or quiet (ADR-213, MB-188).
+      properties:
+        kind:
+          type: string
+          enum: [window]
+        from:
+          $ref: "#/components/schemas/CalendarDay"
+        to:
+          $ref: "#/components/schemas/CalendarDay"
+        days:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                $ref: "#/components/schemas/CalendarDay"
+              tone:
+                description: The tone most of its contacts hold, a tie to the more intense; null on a quiet day (MB-188).
+                anyOf:
+                  - $ref: "#/components/schemas/Tone"
+                  - type: "null"
+            required: [date, tone]
+      required: [kind, from, to, days]
+
+    AskCycleCard:
+      type: object
+      description: A life cycle's card, as Life shows it (ADR-213).
+      properties:
+        kind:
+          type: string
+          enum: [cycle]
+        cycle:
+          $ref: "#/components/schemas/LifeCycleView"
+      required: [kind, cycle]
+
+    AskQuoteCard:
+      type: object
+      description: A passage from a report the reader can read, put in word for word by the server, never written by the model (ADR-213).
+      properties:
+        kind:
+          type: string
+          enum: [quote]
+        reportId:
+          type: string
+        reportName:
+          type: string
+        section:
+          type: string
+          description: The section of the report it comes from.
+        text:
+          type: string
+      required: [kind, reportId, reportName, section, text]
+
+    AskPersonCard:
+      # MB-191 provisional: kept as who and which day, computed when shown, only while the reader can read them.
+      type: object
+      description: Someone in a Compatibility report the reader can read, on the day asked about, computed when shown (ADR-213, MB-191).
+      properties:
+        kind:
+          type: string
+          enum: [person]
+        name:
+          type: string
+        date:
+          $ref: "#/components/schemas/CalendarDay"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+      required: [kind, name, date, events]
+
+    AskCard:
+      description: One computed card in Ask's answer, the same pieces as Timeline's (ADR-213).
+      oneOf:
+        - $ref: "#/components/schemas/AskDayCard"
+        - $ref: "#/components/schemas/AskWindowCard"
+        - $ref: "#/components/schemas/AskCycleCard"
+        - $ref: "#/components/schemas/AskQuoteCard"
+        - $ref: "#/components/schemas/AskPersonCard"
+
+    AskChoice:
+      type: object
+      description: A choice Ask offers when it asks back; a tap sends its id (ADR-213).
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+          description: The words on the button.
+        kind:
+          type: string
+          enum: [date, window, person, report]
+      required: [id, label, kind]
+
+    AskMessage:
+      type: object
+      description: One message in the thread, the reader's or Ask's, Ask's with its cards and choices (ADR-213, MB-191).
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+          enum: [reader, ask]
+        text:
+          type: string
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/AskCard"
+        choices:
+          type: array
+          items:
+            $ref: "#/components/schemas/AskChoice"
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, role, text, cards, choices, createdAt]
+
+    AskThread:
+      type: object
+      description: The reader's thread from the last 31 days, oldest first, and Ask's count this month (ADR-213, ADR-263, MB-191).
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AskMessage"
+        usage:
+          $ref: "#/components/schemas/AskUsage"
+      required: [messages, usage]
+
+    SendAskBody:
+      type: object
+      description: A message to Ask, its text or a tapped choice, never both (ADR-213).
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: What the reader asks, 1 to 500 characters, never logged (ADR-201).
+        choiceId:
+          type: string
+          description: A choice Ask offered in its last message.
+        reportId:
+          type: string
+          description: The report page it was sent from, read only if the reader can read it (ADR-213).
+
+    NoTimeline:
+      type: object
+      description: The 403 body of a Timeline or Ask route for a reader without Timeline (ADR-262, MB-197).
+      properties:
+        error:
+          type: string
+          enum: [no_timeline]
+        message:
+          type: string
+      required: [error]
+
+    AskCap:
+      type: object
+      description: The 429 body once the month's 50 messages are used, with the day the count starts again (ADR-263).
+      properties:
+        error:
+          type: string
+          enum: [ask_cap]
+        message:
+          type: string
+          description: The one line the page shows, so its words live in the API.
+        resetsOn:
+          $ref: "#/components/schemas/CalendarDay"
+          description: The 1st of next month, UTC (ADR-263).
+      required: [error, message, resetsOn]

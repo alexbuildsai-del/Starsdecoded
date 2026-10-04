@@ -1369,6 +1369,225 @@ export interface HomePractice {
 }
 
 /**
+ * A natal body the dial draws inside the chart, at its ecliptic longitude (ADR-207).
+ */
+export interface NatalPoint {
+  /** As the engine names it, "sun". */
+  body: string;
+  /** Ecliptic longitude in degrees, 0 to 360. */
+  lon: number;
+  /**
+     * Its whole-sign house; null without a birth time (R-4.6).
+     * @minimum 1
+     * @maximum 12
+     * @nullable
+     */
+  house: number | null;
+}
+
+/**
+ * The Ascendant and the Midheaven in degrees of ecliptic longitude; the dial puts the Ascendant east, on the left (ADR-207).
+ */
+export interface Angles {
+  ascendant: number;
+  midheaven: number;
+}
+
+/**
+ * A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+export type CalendarDay = string;
+
+/**
+ * How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).
+ */
+export type Tone = typeof Tone[keyof typeof Tone];
+
+
+export const Tone = {
+  easy: 'easy',
+  mixed: 'mixed',
+  intense: 'intense',
+} as const;
+
+/**
+ * One of the reader's days with the tone of each event on it; a day with none is quiet (ADR-207, MB-188).
+ */
+export interface TimelineDay {
+  date: CalendarDay;
+  tones: Tone[];
+}
+
+/**
+ * A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).
+ */
+export type TimelineEventKind = typeof TimelineEventKind[keyof typeof TimelineEventKind];
+
+
+export const TimelineEventKind = {
+  contact: 'contact',
+  retrograde: 'retrograde',
+  eclipse: 'eclipse',
+} as const;
+
+/**
+ * One stretch an event is within orb, from coming into it to leaving it (ADR-207).
+ */
+export interface TimelineSpan {
+  start: string;
+  end: string;
+}
+
+/**
+ * Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).
+ */
+export type ReadingStatus = typeof ReadingStatus[keyof typeof ReadingStatus];
+
+
+export const ReadingStatus = {
+  none: 'none',
+  writing: 'writing',
+  ready: 'ready',
+  failed: 'failed',
+} as const;
+
+/**
+ * The facts line's parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).
+ */
+export type TimelineEventFacts = {
+  sky: string;
+  /**
+     * Null without a birth time (R-4.6).
+     * @nullable
+     */
+  house: string | null;
+};
+
+/**
+ * One sky event on the reader's own chart, its dates and degrees the engine's and its words plain (ADR-207, ADR-208).
+ */
+export interface TimelineEvent {
+  /** {kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210). */
+  key: string;
+  /** A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208). */
+  kind: TimelineEventKind;
+  /** The moving body as the engine names it, "saturn"; an eclipse's is the sun or the moon eclipsed (ADR-208). */
+  body: string;
+  /**
+     * A contact's aspect, conjunction, square, opposition or trine; null on a retrograde or an eclipse (ADR-208).
+     * @nullable
+     */
+  aspect: string | null;
+  /**
+     * The natal point a contact touches or an eclipse falls near, as the engine names it, "ascendant"; null otherwise (ADR-208).
+     * @nullable
+     */
+  target: string | null;
+  /**
+     * The whole-sign houses it touches, a retrograde's in the order it moves back through them; empty without a birth time (ADR-208, R-4.6).
+     * @items.minimum 1
+     * @items.maximum 12
+     */
+  houses: number[];
+  /** Its whole window's start, which may be before the range (ADR-207). */
+  start: string;
+  /** Its whole window's end, which may be after the range (ADR-207). */
+  end: string;
+  /** Each time it is exact, in order, two or three when a retrograde splits a contact; empty when it never is (ADR-207). */
+  exact: string[];
+  /** The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207). */
+  spans: TimelineSpan[];
+  /**
+     * A contact's distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).
+     * @nullable
+     */
+  orbNow: number | null;
+  /** Its tone; null on an eclipse far from every natal point (ADR-207, MB-188). */
+  tone: Tone | null;
+  /** The engine's plain headline, which names no aspect (ADR-207). */
+  headline: string;
+  /** The facts line's parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207). */
+  facts: TimelineEventFacts;
+  /**
+     * The everyday line, the reading's own once it is written; null before (ADR-210).
+     * @nullable
+     */
+  line: string | null;
+  reading: ReadingStatus;
+}
+
+/**
+ * Your week on the dashboard, seven days from today in the reader's zone (ADR-211).
+ */
+export interface Week {
+  /**
+     * The week in one plain line from the engine's words; null when it has none (ADR-211).
+     * @nullable
+     */
+  headline: string | null;
+  natal: NatalPoint[];
+  /** Null without a birth time (R-4.6). */
+  angles: Angles | null;
+  /** The seven days with their tones (ADR-211). */
+  days: TimelineDay[];
+  /** What touches the reader's chart this week (ADR-211). */
+  on: TimelineEvent[];
+}
+
+/**
+ * A life cycle, as the engine names it (ADR-209).
+ */
+export type CycleId = typeof CycleId[keyof typeof CycleId];
+
+
+export const CycleId = {
+  'jupiter-return': 'jupiter-return',
+  'jupiter-opposition': 'jupiter-opposition',
+  'saturn-return': 'saturn-return',
+  'saturn-opposition': 'saturn-opposition',
+  'saturn-square': 'saturn-square',
+  'node-return': 'node-return',
+  'node-opposition': 'node-opposition',
+  'uranus-return': 'uranus-return',
+  'uranus-opposition': 'uranus-opposition',
+  'uranus-square': 'uranus-square',
+  'neptune-square': 'neptune-square',
+  'pluto-square': 'pluto-square',
+} as const;
+
+/**
+ * One of the four big cycles on the teaser, dated from the reader's own chart (ADR-212).
+ */
+export interface TeaserCycle {
+  id: CycleId;
+  name: string;
+  word: string;
+  /** The reader's age when it comes, in whole years. */
+  age: number;
+  /** The day it comes, its first exact pass (ADR-212). */
+  on: CalendarDay;
+}
+
+/**
+ * The Saturn ring, the age of the reader's Saturn return and how far round Saturn has come since birth, 0 to 1 (ADR-212).
+ */
+export type TeaserSaturn = {
+  age: number;
+  progress: number;
+};
+
+/**
+ * Your life's big cycles, for a reader without Timeline, pointing to /timeline with no price (ADR-212, ADR-255).
+ */
+export interface Teaser {
+  /** The Saturn ring, the age of the reader's Saturn return and how far round Saturn has come since birth, 0 to 1 (ADR-212). */
+  saturn: TeaserSaturn;
+  /** The four big cycles, soonest first (ADR-212). */
+  cycles: TeaserCycle[];
+}
+
+/**
  * The dashboard's one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).
  */
 export interface Home {
@@ -1382,6 +1601,10 @@ export interface Home {
   pairs: HomePair[];
   /** What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing's first Practice item (ADR-174). */
   practising: HomePractice[];
+  /** Your week, for a reader with Timeline and a chart to read; absent or null for anyone else (ADR-211, ADR-262). */
+  week?: Week | null;
+  /** Your life's big cycles, last on the dashboard, for a reader without Timeline whose own Personal report is finished, never on an empty dashboard; absent or null for anyone else (ADR-212, ADR-255, ADR-262). */
+  teaser?: Teaser | null;
 }
 
 /**
@@ -2278,6 +2501,460 @@ export interface TestCheckoutBody {
 }
 
 /**
+ * Now and ahead's range from today, 7, 30 or 182 days (ADR-207).
+ */
+export type TimelineRange = typeof TimelineRange[keyof typeof TimelineRange];
+
+
+export const TimelineRange = {
+  week: 'week',
+  month: 'month',
+  'six-months': 'six-months',
+} as const;
+
+export type TimelineChangeChange = typeof TimelineChangeChange[keyof typeof TimelineChangeChange];
+
+
+export const TimelineChangeChange = {
+  starts: 'starts',
+  peaks: 'peaks',
+  eases: 'eases',
+} as const;
+
+/**
+ * Something that starts, peaks or eases next, a tap moving the dial to its day (ADR-207).
+ */
+export interface TimelineChange {
+  /** The event's key. */
+  key: string;
+  at: string;
+  change: TimelineChangeChange;
+}
+
+/**
+ * Now and ahead over one range, from today in the reader's zone (ADR-207).
+ */
+export interface TimelineNow {
+  range: TimelineRange;
+  /** Today, the reader's day (ADR-207). */
+  from: CalendarDay;
+  /** The range's last day, the reader's (ADR-207). */
+  to: CalendarDay;
+  /** The IANA zone the days are read in, the tz sent when the server can read it, else the birth place's (ADR-207). */
+  zone: string;
+  /** No birth time, so no angle, no house and no natal Moon contact, which the page says once (R-4.6). */
+  blind: boolean;
+  natal: NatalPoint[];
+  /** Null without a birth time (R-4.6). */
+  angles: Angles | null;
+  /** Each day of the range in order (ADR-207). */
+  days: TimelineDay[];
+  /** Every event in effect on a day of the range, each with its whole window (ADR-207). */
+  events: TimelineEvent[];
+  /** What starts, peaks or eases next, soonest first (ADR-207). */
+  next: TimelineChange[];
+}
+
+/**
+ * One life cycle on the reader's own chart, its dates the engine's and its words the engine's CYCLE_WORDS (ADR-209).
+ */
+export interface LifeCycleView {
+  /** cycle.{id}.{yyyymmdd}, the UTC day of its first exact pass, or of its window's start when it never is exact (ADR-210). */
+  key: string;
+  id: CycleId;
+  /** Its planet as the engine names it, "north_node" for the nodes. */
+  body: string;
+  /** Its name, "Saturn return". */
+  name: string;
+  /** Its plain word, "A reset". */
+  word: string;
+  /** Whole years at its first exact pass, or at its window's start when it never is exact. */
+  age: number;
+  /** Its exact passes in order, two or three when a retrograde splits it. */
+  exact: string[];
+  /** When its planet comes within orb. */
+  start: string;
+  /** When it leaves the orb for the last time. */
+  end: string;
+  /** Its window closed before today. */
+  past: boolean;
+  /** It comes more than once in a life, so its card looks back to the last time (ADR-209). */
+  repeats: boolean;
+  /** How many times it is exact. */
+  passes: number;
+  reading: ReadingStatus;
+}
+
+/**
+ * One of the four known ages Life opens on, with the reader's own dates and ring (ADR-209).
+ */
+export interface KnownAge {
+  id: CycleId;
+  /** The reader's age at it, in whole years. */
+  age: number;
+  /**
+     * When it last came; null when it has not come yet.
+     * @nullable
+     */
+  last: string | null;
+  /**
+     * When it comes next; null when it does not come again by 90.
+     * @nullable
+     */
+  next: string | null;
+  /** How far round its planet has come since birth, today, 0 to 1, which the ring draws. */
+  progress: number;
+}
+
+export type LifeWavePointsItem = {
+  /** Years from birth. */
+  age: number;
+  /** Degrees from its place at birth, 0 to 180. */
+  distance: number;
+};
+
+/**
+ * One slow planet's distance from its place at birth, month by month from birth to 90 (ADR-209).
+ */
+export interface LifeWave {
+  /** As the engine names it, "saturn". */
+  body: string;
+  points: LifeWavePointsItem[];
+}
+
+/**
+ * Life from the reader's own chart, birth to 90, the four known ages first (ADR-209).
+ */
+export interface TimelineLife {
+  /** The reader's age today in years, a fraction past their last birthday, which marks today on the waves (ADR-209). */
+  age: number;
+  /** The reader's own birth instant, from which each cycle's mark on the waves is aged (ADR-209). */
+  birth: string;
+  /** The four known ages (ADR-209). */
+  ages: KnownAge[];
+  /** Every life cycle from birth to 90, in order (ADR-209). */
+  cycles: LifeCycleView[];
+  /** Each slow planet's wave, the slowest last (ADR-209). */
+  waves: LifeWave[];
+}
+
+export type ReadingOnHouseKind = typeof ReadingOnHouseKind[keyof typeof ReadingOnHouseKind];
+
+
+export const ReadingOnHouseKind = {
+  house: 'house',
+} as const;
+
+/**
+ * A reading built on the reader's house card for this house (ADR-210).
+ */
+export interface ReadingOnHouse {
+  kind: ReadingOnHouseKind;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  house: number;
+}
+
+export type ReadingOnChapterKind = typeof ReadingOnChapterKind[keyof typeof ReadingOnChapterKind];
+
+
+export const ReadingOnChapterKind = {
+  chapter: 'chapter',
+} as const;
+
+/**
+ * A reading built on the chapter of the reader's report whose claims cite the point most (ADR-210).
+ */
+export interface ReadingOnChapter {
+  kind: ReadingOnChapterKind;
+  /** The chapter's key in the report. */
+  chapter: string;
+}
+
+/**
+ * The reading of an event or a life cycle, written once for the reader and kept (ADR-210, MB-191).
+ */
+export interface TimelineReading {
+  /** The event's or the cycle's key. */
+  key: string;
+  /** The everyday line its card shows. */
+  line: string;
+  /** The reading. */
+  body: string;
+  /** The part of the reader's Personal report it builds on, a house card or a chapter; null when none does (ADR-210). */
+  buildsOn: ReadingOnHouse | ReadingOnChapter | null;
+  writtenAt: string;
+}
+
+export type OpenedReadingStatus = typeof OpenedReadingStatus[keyof typeof OpenedReadingStatus];
+
+
+export const OpenedReadingStatus = {
+  ready: 'ready',
+  writing: 'writing',
+  failed: 'failed',
+} as const;
+
+/**
+ * What opening a reading answers, ready with it, writing while it is written, or failed with its line (ADR-210, MB-191).
+ */
+export interface OpenedReading {
+  status: OpenedReadingStatus;
+  /** The reading when ready; null otherwise. */
+  reading: TimelineReading | null;
+  /**
+     * The line the sheet shows when it failed; null otherwise.
+     * @nullable
+     */
+  line: string | null;
+}
+
+/**
+ * Ask's messages this UTC calendar month, a tapped choice included, shown always (ADR-263).
+ */
+export interface AskUsage {
+  /** @minimum 0 */
+  used: number;
+  /** @minimum 0 */
+  left: number;
+  /**
+     * The month's cap, 50 (ADR-213).
+     * @minimum 0
+     */
+  cap: number;
+  /** The 1st of next month, UTC, when the count starts again (ADR-263). */
+  resetsOn: CalendarDay;
+}
+
+/**
+ * Where access comes from, the admin until billing adds a subscription; null without access (ADR-262, MB-197).
+ * @nullable
+ */
+export type TimelineAccessSource = typeof TimelineAccessSource[keyof typeof TimelineAccessSource] | null;
+
+
+export const TimelineAccessSource = {
+  admin: 'admin',
+  subscription: 'subscription',
+} as const;
+
+/**
+ * The one access check's answer for the signed-in reader (ADR-262, MB-197).
+ */
+export interface TimelineAccess {
+  access: boolean;
+  /**
+     * Where access comes from, the admin until billing adds a subscription; null without access (ADR-262, MB-197).
+     * @nullable
+     */
+  source: TimelineAccessSource;
+  /** The reader has a finished Personal report of their own, whose chart Timeline reads (ADR-205). */
+  hasPersonalReport: boolean;
+  /** Ask's use this month with access; null without (ADR-263). */
+  ask: AskUsage | null;
+}
+
+export type AskDayCardKind = typeof AskDayCardKind[keyof typeof AskDayCardKind];
+
+
+export const AskDayCardKind = {
+  day: 'day',
+} as const;
+
+export type AskDayCardMoon = {
+  sign: string;
+  phase: string;
+};
+
+/**
+ * A day's card, the contacts on the reader's chart that day and the Moon's sign and phase, the one place the Moon appears (ADR-213).
+ */
+export interface AskDayCard {
+  kind: AskDayCardKind;
+  date: CalendarDay;
+  events: TimelineEvent[];
+  moon: AskDayCardMoon;
+}
+
+export type AskWindowCardKind = typeof AskWindowCardKind[keyof typeof AskWindowCardKind];
+
+
+export const AskWindowCardKind = {
+  window: 'window',
+} as const;
+
+export type AskWindowCardDaysItem = {
+  date: CalendarDay;
+  /** The tone most of its contacts hold, a tie to the more intense; null on a quiet day (MB-188). */
+  tone: Tone | null;
+};
+
+/**
+ * A window's card, at most six months, each day easy, mixed, intense or quiet (ADR-213, MB-188).
+ */
+export interface AskWindowCard {
+  kind: AskWindowCardKind;
+  from: CalendarDay;
+  to: CalendarDay;
+  days: AskWindowCardDaysItem[];
+}
+
+export type AskCycleCardKind = typeof AskCycleCardKind[keyof typeof AskCycleCardKind];
+
+
+export const AskCycleCardKind = {
+  cycle: 'cycle',
+} as const;
+
+/**
+ * A life cycle's card, as Life shows it (ADR-213).
+ */
+export interface AskCycleCard {
+  kind: AskCycleCardKind;
+  cycle: LifeCycleView;
+}
+
+export type AskQuoteCardKind = typeof AskQuoteCardKind[keyof typeof AskQuoteCardKind];
+
+
+export const AskQuoteCardKind = {
+  quote: 'quote',
+} as const;
+
+/**
+ * A passage from a report the reader can read, put in word for word by the server, never written by the model (ADR-213).
+ */
+export interface AskQuoteCard {
+  kind: AskQuoteCardKind;
+  reportId: string;
+  reportName: string;
+  /** The section of the report it comes from. */
+  section: string;
+  text: string;
+}
+
+export type AskPersonCardKind = typeof AskPersonCardKind[keyof typeof AskPersonCardKind];
+
+
+export const AskPersonCardKind = {
+  person: 'person',
+} as const;
+
+/**
+ * Someone in a Compatibility report the reader can read, on the day asked about, computed when shown (ADR-213, MB-191).
+ */
+export interface AskPersonCard {
+  kind: AskPersonCardKind;
+  name: string;
+  date: CalendarDay;
+  events: TimelineEvent[];
+}
+
+/**
+ * One computed card in Ask's answer, the same pieces as Timeline's (ADR-213).
+ */
+export type AskCard = AskDayCard | AskWindowCard | AskCycleCard | AskQuoteCard | AskPersonCard;
+
+export type AskChoiceKind = typeof AskChoiceKind[keyof typeof AskChoiceKind];
+
+
+export const AskChoiceKind = {
+  date: 'date',
+  window: 'window',
+  person: 'person',
+  report: 'report',
+} as const;
+
+/**
+ * A choice Ask offers when it asks back; a tap sends its id (ADR-213).
+ */
+export interface AskChoice {
+  id: string;
+  /** The words on the button. */
+  label: string;
+  kind: AskChoiceKind;
+}
+
+export type AskMessageRole = typeof AskMessageRole[keyof typeof AskMessageRole];
+
+
+export const AskMessageRole = {
+  reader: 'reader',
+  ask: 'ask',
+} as const;
+
+/**
+ * One message in the thread, the reader's or Ask's, Ask's with its cards and choices (ADR-213, MB-191).
+ */
+export interface AskMessage {
+  id: string;
+  role: AskMessageRole;
+  text: string;
+  cards: AskCard[];
+  choices: AskChoice[];
+  createdAt: string;
+}
+
+/**
+ * The reader's thread from the last 31 days, oldest first, and Ask's count this month (ADR-213, ADR-263, MB-191).
+ */
+export interface AskThread {
+  messages: AskMessage[];
+  usage: AskUsage;
+}
+
+/**
+ * A message to Ask, its text or a tapped choice, never both (ADR-213).
+ */
+export interface SendAskBody {
+  /**
+     * What the reader asks, 1 to 500 characters, never logged (ADR-201).
+     * @minLength 1
+     * @maxLength 500
+     */
+  text?: string;
+  /** A choice Ask offered in its last message. */
+  choiceId?: string;
+  /** The report page it was sent from, read only if the reader can read it (ADR-213). */
+  reportId?: string;
+}
+
+export type NoTimelineError = typeof NoTimelineError[keyof typeof NoTimelineError];
+
+
+export const NoTimelineError = {
+  no_timeline: 'no_timeline',
+} as const;
+
+/**
+ * The 403 body of a Timeline or Ask route for a reader without Timeline (ADR-262, MB-197).
+ */
+export interface NoTimeline {
+  error: NoTimelineError;
+  message?: string;
+}
+
+export type AskCapError = typeof AskCapError[keyof typeof AskCapError];
+
+
+export const AskCapError = {
+  ask_cap: 'ask_cap',
+} as const;
+
+/**
+ * The 429 body once the month's 50 messages are used, with the day the count starts again (ADR-263).
+ */
+export interface AskCap {
+  error: AskCapError;
+  /** The one line the page shows, so its words live in the API. */
+  message: string;
+  /** The 1st of next month, UTC (ADR-263). */
+  resetsOn: CalendarDay;
+}
+
+/**
  * Writing needs an account (ADR-140), so on production a request with no signed-in user is refused before any limit counts it. Staging keeps anonymous writes. `message` is the line the page shows.
  */
 export type SignInRequiredResponse = SignInRequired;
@@ -2293,9 +2970,31 @@ export type RateLimitedResponse = RateLimited;
 export type PausedResponse = Paused;
 
 /**
+ * `no_timeline`: the reader does not have Timeline. One access check answers it on every Timeline and Ask route (ADR-262); today its one source is the signed-in admin (MB-197).
+ */
+export type NoTimelineResponse = NoTimeline;
+
+/**
+ * `no_personal_report`: the reader has no finished Personal report of their own, and Timeline reads that report's chart (ADR-205, ADR-209).
+ */
+export type NoPersonalReportResponse = ErrorResponse;
+
+/**
  * Shared-secret admin key. May also be passed as `?key=`.
  */
 export type AdminKeyParameter = string;
+
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+export type ReaderZoneParameter = string;
+
+export type GetHomeParams = {
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
+};
 
 export type RegenerateReport202 = {
   id: string;
@@ -2329,5 +3028,23 @@ export type GeocodePlaceParams = {
  * @minLength 2
  */
 q: string;
+};
+
+export type GetTimelineNowParams = {
+/**
+ * Seven days from today, thirty or 182 (ADR-207).
+ */
+range: TimelineRange;
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
+};
+
+export type GetTimelineLifeParams = {
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
 };
 

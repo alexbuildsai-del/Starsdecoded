@@ -74,9 +74,13 @@ export const ConfirmWaitlistResponse = zod.object({
 
 
 /**
- * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs and stories, and what they are practising (ADR-174). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182).
+ * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs and stories, and what they are practising (ADR-174). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182). A reader with Timeline gets `week`, Your week in their own days; a reader without it whose own Personal report is finished gets `teaser`; anyone else neither (ADR-211, ADR-212, ADR-262).
  * @summary The dashboard's one read (ADR-174)
  */
+export const GetHomeQueryParams = zod.object({
+  "tz": zod.coerce.string().optional().describe('The reader\'s IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place\'s zone (ADR-207, ADR-211).')
+})
+
 export const getHomeResponseYouOneTriadSunHouseMax = 12;
 
 export const getHomeResponseYouOneTriadMoonHouseMax = 12;
@@ -89,6 +93,12 @@ export const getHomeResponsePeopleItemTriadMoonHouseMax = 12;
 
 export const getHomeResponsePeopleItemTriadRisingOneHouseMax = 12;
 
+export const getHomeResponseWeekOneNatalItemHouseMax = 12;
+
+export const getHomeResponseWeekOneDaysItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getHomeResponseWeekOneOnItemHousesItemMax = 12;
+
+export const getHomeResponseTeaserOneCyclesItemOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 
 
 export const GetHomeResponse = zod.object({
@@ -246,7 +256,60 @@ export const GetHomeResponse = zod.object({
   "why": zod.string().nullable(),
   "pinned": zod.boolean().describe('False on the Closing\'s first Practice item, offered with none pinned (ADR-174).'),
   "ticked": zod.boolean().describe('Ticked in the same workbook; a tick is silent and a box unticks (ADR-24, ADR-48).')
-}).describe('One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing\'s first Practice item with none pinned; pins and ticks sit in the reader\'s own workbook on that report, which no other reader sees (ADR-174, ADR-239).\n')).describe('What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing\'s first Practice item (ADR-174).\n')
+}).describe('One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing\'s first Practice item with none pinned; pins and ticks sit in the reader\'s own workbook on that report, which no other reader sees (ADR-174, ADR-239).\n')).describe('What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing\'s first Practice item (ADR-174).\n'),
+  "week": zod.union([zod.object({
+  "headline": zod.string().nullable().describe('The week in one plain line from the engine\'s words; null when it has none (ADR-211).'),
+  "natal": zod.array(zod.object({
+  "body": zod.string().describe('As the engine names it, "sun".'),
+  "lon": zod.number().describe('Ecliptic longitude in degrees, 0 to 360.'),
+  "house": zod.number().int().min(1).max(getHomeResponseWeekOneNatalItemHouseMax).nullable().describe('Its whole-sign house; null without a birth time (R-4.6).')
+}).describe('A natal body the dial draws inside the chart, at its ecliptic longitude (ADR-207).')),
+  "angles": zod.union([zod.object({
+  "ascendant": zod.number(),
+  "midheaven": zod.number()
+}).describe('The Ascendant and the Midheaven in degrees of ecliptic longitude; the dial puts the Ascendant east, on the left (ADR-207).'),zod.null()]).describe('Null without a birth time (R-4.6).'),
+  "days": zod.array(zod.object({
+  "date": zod.string().regex(getHomeResponseWeekOneDaysItemDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "tones": zod.array(zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'))
+}).describe('One of the reader\'s days with the tone of each event on it; a day with none is quiet (ADR-207, MB-188).')).describe('The seven days with their tones (ADR-211).'),
+  "on": zod.array(zod.object({
+  "key": zod.string().describe('{kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210).'),
+  "kind": zod.enum(['contact', 'retrograde', 'eclipse']).describe('A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).'),
+  "body": zod.string().describe('The moving body as the engine names it, "saturn"; an eclipse\'s is the sun or the moon eclipsed (ADR-208).'),
+  "aspect": zod.string().nullable().describe('A contact\'s aspect, conjunction, square, opposition or trine; null on a retrograde or an eclipse (ADR-208).'),
+  "target": zod.string().nullable().describe('The natal point a contact touches or an eclipse falls near, as the engine names it, "ascendant"; null otherwise (ADR-208).'),
+  "houses": zod.array(zod.number().int().min(1).max(getHomeResponseWeekOneOnItemHousesItemMax)).describe('The whole-sign houses it touches, a retrograde\'s in the order it moves back through them; empty without a birth time (ADR-208, R-4.6).'),
+  "start": zod.coerce.date().describe('Its whole window\'s start, which may be before the range (ADR-207).'),
+  "end": zod.coerce.date().describe('Its whole window\'s end, which may be after the range (ADR-207).'),
+  "exact": zod.array(zod.coerce.date()).describe('Each time it is exact, in order, two or three when a retrograde splits a contact; empty when it never is (ADR-207).'),
+  "spans": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
+  "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
+  "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
+  "facts": zod.object({
+  "sky": zod.string(),
+  "house": zod.string().nullable().describe('Null without a birth time (R-4.6).')
+}).describe('The facts line\'s parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).'),
+  "line": zod.string().nullable().describe('The everyday line, the reading\'s own once it is written; null before (ADR-210).'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One sky event on the reader\'s own chart, its dates and degrees the engine\'s and its words plain (ADR-207, ADR-208).')).describe('What touches the reader\'s chart this week (ADR-211).')
+}).describe('Your week on the dashboard, seven days from today in the reader\'s zone (ADR-211).'),zod.null()]).optional().describe('Your week, for a reader with Timeline and a chart to read; absent or null for anyone else (ADR-211, ADR-262).'),
+  "teaser": zod.union([zod.object({
+  "saturn": zod.object({
+  "age": zod.number(),
+  "progress": zod.number()
+}).describe('The Saturn ring, the age of the reader\'s Saturn return and how far round Saturn has come since birth, 0 to 1 (ADR-212).'),
+  "cycles": zod.array(zod.object({
+  "id": zod.enum(['jupiter-return', 'jupiter-opposition', 'saturn-return', 'saturn-opposition', 'saturn-square', 'node-return', 'node-opposition', 'uranus-return', 'uranus-opposition', 'uranus-square', 'neptune-square', 'pluto-square']).describe('A life cycle, as the engine names it (ADR-209).'),
+  "name": zod.string(),
+  "word": zod.string(),
+  "age": zod.number().describe('The reader\'s age when it comes, in whole years.'),
+  "on": zod.string().regex(getHomeResponseTeaserOneCyclesItemOnRegExp).describe('The day it comes, its first exact pass (ADR-212).')
+}).describe('One of the four big cycles on the teaser, dated from the reader\'s own chart (ADR-212).')).describe('The four big cycles, soonest first (ADR-212).')
+}).describe('Your life\'s big cycles, for a reader without Timeline, pointing to /timeline with no price (ADR-212, ADR-255).'),zod.null()]).optional().describe('Your life\'s big cycles, last on the dashboard, for a reader without Timeline whose own Personal report is finished, never on an empty dashboard; absent or null for anyone else (ADR-212, ADR-255, ADR-262).\n')
 }).describe('The dashboard\'s one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).')
 
 
@@ -3266,5 +3329,452 @@ export const GeocodePlaceResponse = zod.object({
   "placeType": zod.string().describe('Nominatim place type (city, town, village, administrative, etc.)')
 }))
 })
+
+
+/**
+ * The one access check's answer (ADR-262), for every signed-in reader: today its one source is the signed-in admin, until billing adds an active subscription (MB-197). It says too whether the reader has a finished Personal report of their own, and with access Ask's use this month (ADR-263).
+ * @summary Whether the signed-in reader has Timeline (ADR-262)
+ */
+export const getTimelineAccessResponseAskOneUsedMin = 0;
+
+export const getTimelineAccessResponseAskOneLeftMin = 0;
+
+export const getTimelineAccessResponseAskOneCapMin = 0;
+
+export const getTimelineAccessResponseAskOneResetsOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetTimelineAccessResponse = zod.object({
+  "access": zod.boolean(),
+  "source": zod.union([zod.literal('admin'),zod.literal('subscription'),zod.literal(null)]).nullable().describe('Where access comes from, the admin until billing adds a subscription; null without access (ADR-262, MB-197).'),
+  "hasPersonalReport": zod.boolean().describe('The reader has a finished Personal report of their own, whose chart Timeline reads (ADR-205).'),
+  "ask": zod.union([zod.object({
+  "used": zod.number().int().min(getTimelineAccessResponseAskOneUsedMin),
+  "left": zod.number().int().min(getTimelineAccessResponseAskOneLeftMin),
+  "cap": zod.number().int().min(getTimelineAccessResponseAskOneCapMin).describe('The month\'s cap, 50 (ADR-213).'),
+  "resetsOn": zod.string().regex(getTimelineAccessResponseAskOneResetsOnRegExp).describe('The 1st of next month, UTC, when the count starts again (ADR-263).')
+}).describe('Ask\'s messages this UTC calendar month, a tapped choice included, shown always (ADR-263).'),zod.null()]).describe('Ask\'s use this month with access; null without (ADR-263).')
+}).describe('The one access check\'s answer for the signed-in reader (ADR-262, MB-197).')
+
+
+/**
+ * A week, a month or six months from today in the reader's days (ADR-207): the natal points and angles the dial draws, each day's tones, every event in the range with its whole window and plain words, and what starts, peaks or eases next. Every date and degree is the engine's. The six-month range queues the readings of contacts entering it, at most three a call (ADR-210).
+ * @summary Now and ahead, the sky on the reader's own chart from today (ADR-207)
+ */
+export const GetTimelineNowQueryParams = zod.object({
+  "range": zod.enum(['week', 'month', 'six-months']).describe('Seven days from today, thirty or 182 (ADR-207).'),
+  "tz": zod.coerce.string().optional().describe('The reader\'s IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place\'s zone (ADR-207, ADR-211).')
+})
+
+export const getTimelineNowResponseFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTimelineNowResponseToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTimelineNowResponseNatalItemHouseMax = 12;
+
+export const getTimelineNowResponseDaysItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTimelineNowResponseEventsItemHousesItemMax = 12;
+
+
+
+export const GetTimelineNowResponse = zod.object({
+  "range": zod.enum(['week', 'month', 'six-months']).describe('Now and ahead\'s range from today, 7, 30 or 182 days (ADR-207).'),
+  "from": zod.string().regex(getTimelineNowResponseFromRegExp).describe('Today, the reader\'s day (ADR-207).'),
+  "to": zod.string().regex(getTimelineNowResponseToRegExp).describe('The range\'s last day, the reader\'s (ADR-207).'),
+  "zone": zod.string().describe('The IANA zone the days are read in, the tz sent when the server can read it, else the birth place\'s (ADR-207).'),
+  "blind": zod.boolean().describe('No birth time, so no angle, no house and no natal Moon contact, which the page says once (R-4.6).'),
+  "natal": zod.array(zod.object({
+  "body": zod.string().describe('As the engine names it, "sun".'),
+  "lon": zod.number().describe('Ecliptic longitude in degrees, 0 to 360.'),
+  "house": zod.number().int().min(1).max(getTimelineNowResponseNatalItemHouseMax).nullable().describe('Its whole-sign house; null without a birth time (R-4.6).')
+}).describe('A natal body the dial draws inside the chart, at its ecliptic longitude (ADR-207).')),
+  "angles": zod.union([zod.object({
+  "ascendant": zod.number(),
+  "midheaven": zod.number()
+}).describe('The Ascendant and the Midheaven in degrees of ecliptic longitude; the dial puts the Ascendant east, on the left (ADR-207).'),zod.null()]).describe('Null without a birth time (R-4.6).'),
+  "days": zod.array(zod.object({
+  "date": zod.string().regex(getTimelineNowResponseDaysItemDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "tones": zod.array(zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'))
+}).describe('One of the reader\'s days with the tone of each event on it; a day with none is quiet (ADR-207, MB-188).')).describe('Each day of the range in order (ADR-207).'),
+  "events": zod.array(zod.object({
+  "key": zod.string().describe('{kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210).'),
+  "kind": zod.enum(['contact', 'retrograde', 'eclipse']).describe('A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).'),
+  "body": zod.string().describe('The moving body as the engine names it, "saturn"; an eclipse\'s is the sun or the moon eclipsed (ADR-208).'),
+  "aspect": zod.string().nullable().describe('A contact\'s aspect, conjunction, square, opposition or trine; null on a retrograde or an eclipse (ADR-208).'),
+  "target": zod.string().nullable().describe('The natal point a contact touches or an eclipse falls near, as the engine names it, "ascendant"; null otherwise (ADR-208).'),
+  "houses": zod.array(zod.number().int().min(1).max(getTimelineNowResponseEventsItemHousesItemMax)).describe('The whole-sign houses it touches, a retrograde\'s in the order it moves back through them; empty without a birth time (ADR-208, R-4.6).'),
+  "start": zod.coerce.date().describe('Its whole window\'s start, which may be before the range (ADR-207).'),
+  "end": zod.coerce.date().describe('Its whole window\'s end, which may be after the range (ADR-207).'),
+  "exact": zod.array(zod.coerce.date()).describe('Each time it is exact, in order, two or three when a retrograde splits a contact; empty when it never is (ADR-207).'),
+  "spans": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
+  "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
+  "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
+  "facts": zod.object({
+  "sky": zod.string(),
+  "house": zod.string().nullable().describe('Null without a birth time (R-4.6).')
+}).describe('The facts line\'s parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).'),
+  "line": zod.string().nullable().describe('The everyday line, the reading\'s own once it is written; null before (ADR-210).'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One sky event on the reader\'s own chart, its dates and degrees the engine\'s and its words plain (ADR-207, ADR-208).')).describe('Every event in effect on a day of the range, each with its whole window (ADR-207).'),
+  "next": zod.array(zod.object({
+  "key": zod.string().describe('The event\'s key.'),
+  "at": zod.coerce.date(),
+  "change": zod.enum(['starts', 'peaks', 'eases'])
+}).describe('Something that starts, peaks or eases next, a tap moving the dial to its day (ADR-207).')).describe('What starts, peaks or eases next, soonest first (ADR-207).')
+}).describe('Now and ahead over one range, from today in the reader\'s zone (ADR-207).')
+
+
+/**
+ * From the reader's own chart (ADR-209): the four known ages first, then every life cycle with its plain words and exact passes, and each slow planet's wave. `age` and `birth` place today and each cycle on the waves.
+ * @summary Life, the reader's long cycles from birth to 90 (ADR-209)
+ */
+export const GetTimelineLifeQueryParams = zod.object({
+  "tz": zod.coerce.string().optional().describe('The reader\'s IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place\'s zone (ADR-207, ADR-211).')
+})
+
+export const GetTimelineLifeResponse = zod.object({
+  "age": zod.number().describe('The reader\'s age today in years, a fraction past their last birthday, which marks today on the waves (ADR-209).'),
+  "birth": zod.coerce.date().describe('The reader\'s own birth instant, from which each cycle\'s mark on the waves is aged (ADR-209).'),
+  "ages": zod.array(zod.object({
+  "id": zod.enum(['jupiter-return', 'jupiter-opposition', 'saturn-return', 'saturn-opposition', 'saturn-square', 'node-return', 'node-opposition', 'uranus-return', 'uranus-opposition', 'uranus-square', 'neptune-square', 'pluto-square']).describe('A life cycle, as the engine names it (ADR-209).'),
+  "age": zod.number().describe('The reader\'s age at it, in whole years.'),
+  "last": zod.coerce.date().nullable().describe('When it last came; null when it has not come yet.'),
+  "next": zod.coerce.date().nullable().describe('When it comes next; null when it does not come again by 90.'),
+  "progress": zod.number().describe('How far round its planet has come since birth, today, 0 to 1, which the ring draws.')
+}).describe('One of the four known ages Life opens on, with the reader\'s own dates and ring (ADR-209).')).describe('The four known ages (ADR-209).'),
+  "cycles": zod.array(zod.object({
+  "key": zod.string().describe('cycle.{id}.{yyyymmdd}, the UTC day of its first exact pass, or of its window\'s start when it never is exact (ADR-210).'),
+  "id": zod.enum(['jupiter-return', 'jupiter-opposition', 'saturn-return', 'saturn-opposition', 'saturn-square', 'node-return', 'node-opposition', 'uranus-return', 'uranus-opposition', 'uranus-square', 'neptune-square', 'pluto-square']).describe('A life cycle, as the engine names it (ADR-209).'),
+  "body": zod.string().describe('Its planet as the engine names it, "north_node" for the nodes.'),
+  "name": zod.string().describe('Its name, "Saturn return".'),
+  "word": zod.string().describe('Its plain word, "A reset".'),
+  "age": zod.number().describe('Whole years at its first exact pass, or at its window\'s start when it never is exact.'),
+  "exact": zod.array(zod.coerce.date()).describe('Its exact passes in order, two or three when a retrograde splits it.'),
+  "start": zod.coerce.date().describe('When its planet comes within orb.'),
+  "end": zod.coerce.date().describe('When it leaves the orb for the last time.'),
+  "past": zod.boolean().describe('Its window closed before today.'),
+  "repeats": zod.boolean().describe('It comes more than once in a life, so its card looks back to the last time (ADR-209).'),
+  "passes": zod.number().int().describe('How many times it is exact.'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One life cycle on the reader\'s own chart, its dates the engine\'s and its words the engine\'s CYCLE_WORDS (ADR-209).')).describe('Every life cycle from birth to 90, in order (ADR-209).'),
+  "waves": zod.array(zod.object({
+  "body": zod.string().describe('As the engine names it, "saturn".'),
+  "points": zod.array(zod.object({
+  "age": zod.number().describe('Years from birth.'),
+  "distance": zod.number().describe('Degrees from its place at birth, 0 to 180.')
+}))
+}).describe('One slow planet\'s distance from its place at birth, month by month from birth to 90 (ADR-209).')).describe('Each slow planet\'s wave, the slowest last (ADR-209).')
+}).describe('Life from the reader\'s own chart, birth to 90, the four known ages first (ADR-209).')
+
+
+/**
+ * A reading is written once per event per person, the first time it is opened, then kept with the reader's Personal report (ADR-210, MB-191). Ready answers it; writing says it is being written, so open it again soon; failed carries the line the sheet shows. A reading whose basis no longer matches the chart or the prompt is written again.
+ * @summary Open the reading of an event or a life cycle, written the first time (ADR-210)
+ */
+export const OpenTimelineReadingParams = zod.object({
+  "key": zod.coerce.string().describe('The key a TimelineEvent or a LifeCycleView carries, at most 80 characters (ADR-210).')
+})
+
+export const openTimelineReadingResponseReadingOneBuildsOnOneHouseMax = 12;
+
+
+
+export const OpenTimelineReadingResponse = zod.object({
+  "status": zod.enum(['ready', 'writing', 'failed']),
+  "reading": zod.union([zod.object({
+  "key": zod.string().describe('The event\'s or the cycle\'s key.'),
+  "line": zod.string().describe('The everyday line its card shows.'),
+  "body": zod.string().describe('The reading.'),
+  "buildsOn": zod.union([zod.object({
+  "kind": zod.enum(['house']),
+  "house": zod.number().int().min(1).max(openTimelineReadingResponseReadingOneBuildsOnOneHouseMax)
+}).describe('A reading built on the reader\'s house card for this house (ADR-210).'),zod.object({
+  "kind": zod.enum(['chapter']),
+  "chapter": zod.string().describe('The chapter\'s key in the report.')
+}).describe('A reading built on the chapter of the reader\'s report whose claims cite the point most (ADR-210).'),zod.null()]).describe('The part of the reader\'s Personal report it builds on, a house card or a chapter; null when none does (ADR-210).'),
+  "writtenAt": zod.coerce.date()
+}).describe('The reading of an event or a life cycle, written once for the reader and kept (ADR-210, MB-191).'),zod.null()]).describe('The reading when ready; null otherwise.'),
+  "line": zod.string().nullable().describe('The line the sheet shows when it failed; null otherwise.')
+}).describe('What opening a reading answers, ready with it, writing while it is written, or failed with its line (ADR-210, MB-191).')
+
+
+/**
+ * The thread from the last 31 days, oldest first; a person card is kept as who and which day and computed when shown, while the reader can still read them (ADR-213, MB-191). `usage` is always there (ADR-263).
+ * @summary The reader's Ask thread and what's left this month (ADR-213, ADR-263)
+ */
+export const getAskThreadResponseMessagesItemCardsItemOneDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getAskThreadResponseMessagesItemCardsItemOneEventsItemHousesItemMax = 12;
+
+export const getAskThreadResponseMessagesItemCardsItemTwoFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getAskThreadResponseMessagesItemCardsItemTwoToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getAskThreadResponseMessagesItemCardsItemTwoDaysItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getAskThreadResponseMessagesItemCardsItemFiveDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getAskThreadResponseMessagesItemCardsItemFiveEventsItemHousesItemMax = 12;
+
+export const getAskThreadResponseUsageUsedMin = 0;
+
+export const getAskThreadResponseUsageLeftMin = 0;
+
+export const getAskThreadResponseUsageCapMin = 0;
+
+export const getAskThreadResponseUsageResetsOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetAskThreadResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "role": zod.enum(['reader', 'ask']),
+  "text": zod.string(),
+  "cards": zod.array(zod.union([zod.object({
+  "kind": zod.enum(['day']),
+  "date": zod.string().regex(getAskThreadResponseMessagesItemCardsItemOneDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "events": zod.array(zod.object({
+  "key": zod.string().describe('{kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210).'),
+  "kind": zod.enum(['contact', 'retrograde', 'eclipse']).describe('A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).'),
+  "body": zod.string().describe('The moving body as the engine names it, "saturn"; an eclipse\'s is the sun or the moon eclipsed (ADR-208).'),
+  "aspect": zod.string().nullable().describe('A contact\'s aspect, conjunction, square, opposition or trine; null on a retrograde or an eclipse (ADR-208).'),
+  "target": zod.string().nullable().describe('The natal point a contact touches or an eclipse falls near, as the engine names it, "ascendant"; null otherwise (ADR-208).'),
+  "houses": zod.array(zod.number().int().min(1).max(getAskThreadResponseMessagesItemCardsItemOneEventsItemHousesItemMax)).describe('The whole-sign houses it touches, a retrograde\'s in the order it moves back through them; empty without a birth time (ADR-208, R-4.6).'),
+  "start": zod.coerce.date().describe('Its whole window\'s start, which may be before the range (ADR-207).'),
+  "end": zod.coerce.date().describe('Its whole window\'s end, which may be after the range (ADR-207).'),
+  "exact": zod.array(zod.coerce.date()).describe('Each time it is exact, in order, two or three when a retrograde splits a contact; empty when it never is (ADR-207).'),
+  "spans": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
+  "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
+  "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
+  "facts": zod.object({
+  "sky": zod.string(),
+  "house": zod.string().nullable().describe('Null without a birth time (R-4.6).')
+}).describe('The facts line\'s parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).'),
+  "line": zod.string().nullable().describe('The everyday line, the reading\'s own once it is written; null before (ADR-210).'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One sky event on the reader\'s own chart, its dates and degrees the engine\'s and its words plain (ADR-207, ADR-208).')),
+  "moon": zod.object({
+  "sign": zod.string(),
+  "phase": zod.string()
+})
+}).describe('A day\'s card, the contacts on the reader\'s chart that day and the Moon\'s sign and phase, the one place the Moon appears (ADR-213).'),zod.object({
+  "kind": zod.enum(['window']),
+  "from": zod.string().regex(getAskThreadResponseMessagesItemCardsItemTwoFromRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "to": zod.string().regex(getAskThreadResponseMessagesItemCardsItemTwoToRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "days": zod.array(zod.object({
+  "date": zod.string().regex(getAskThreadResponseMessagesItemCardsItemTwoDaysItemDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('The tone most of its contacts hold, a tie to the more intense; null on a quiet day (MB-188).')
+}))
+}).describe('A window\'s card, at most six months, each day easy, mixed, intense or quiet (ADR-213, MB-188).'),zod.object({
+  "kind": zod.enum(['cycle']),
+  "cycle": zod.object({
+  "key": zod.string().describe('cycle.{id}.{yyyymmdd}, the UTC day of its first exact pass, or of its window\'s start when it never is exact (ADR-210).'),
+  "id": zod.enum(['jupiter-return', 'jupiter-opposition', 'saturn-return', 'saturn-opposition', 'saturn-square', 'node-return', 'node-opposition', 'uranus-return', 'uranus-opposition', 'uranus-square', 'neptune-square', 'pluto-square']).describe('A life cycle, as the engine names it (ADR-209).'),
+  "body": zod.string().describe('Its planet as the engine names it, "north_node" for the nodes.'),
+  "name": zod.string().describe('Its name, "Saturn return".'),
+  "word": zod.string().describe('Its plain word, "A reset".'),
+  "age": zod.number().describe('Whole years at its first exact pass, or at its window\'s start when it never is exact.'),
+  "exact": zod.array(zod.coerce.date()).describe('Its exact passes in order, two or three when a retrograde splits it.'),
+  "start": zod.coerce.date().describe('When its planet comes within orb.'),
+  "end": zod.coerce.date().describe('When it leaves the orb for the last time.'),
+  "past": zod.boolean().describe('Its window closed before today.'),
+  "repeats": zod.boolean().describe('It comes more than once in a life, so its card looks back to the last time (ADR-209).'),
+  "passes": zod.number().int().describe('How many times it is exact.'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One life cycle on the reader\'s own chart, its dates the engine\'s and its words the engine\'s CYCLE_WORDS (ADR-209).')
+}).describe('A life cycle\'s card, as Life shows it (ADR-213).'),zod.object({
+  "kind": zod.enum(['quote']),
+  "reportId": zod.string(),
+  "reportName": zod.string(),
+  "section": zod.string().describe('The section of the report it comes from.'),
+  "text": zod.string()
+}).describe('A passage from a report the reader can read, put in word for word by the server, never written by the model (ADR-213).'),zod.object({
+  "kind": zod.enum(['person']),
+  "name": zod.string(),
+  "date": zod.string().regex(getAskThreadResponseMessagesItemCardsItemFiveDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "events": zod.array(zod.object({
+  "key": zod.string().describe('{kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210).'),
+  "kind": zod.enum(['contact', 'retrograde', 'eclipse']).describe('A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).'),
+  "body": zod.string().describe('The moving body as the engine names it, "saturn"; an eclipse\'s is the sun or the moon eclipsed (ADR-208).'),
+  "aspect": zod.string().nullable().describe('A contact\'s aspect, conjunction, square, opposition or trine; null on a retrograde or an eclipse (ADR-208).'),
+  "target": zod.string().nullable().describe('The natal point a contact touches or an eclipse falls near, as the engine names it, "ascendant"; null otherwise (ADR-208).'),
+  "houses": zod.array(zod.number().int().min(1).max(getAskThreadResponseMessagesItemCardsItemFiveEventsItemHousesItemMax)).describe('The whole-sign houses it touches, a retrograde\'s in the order it moves back through them; empty without a birth time (ADR-208, R-4.6).'),
+  "start": zod.coerce.date().describe('Its whole window\'s start, which may be before the range (ADR-207).'),
+  "end": zod.coerce.date().describe('Its whole window\'s end, which may be after the range (ADR-207).'),
+  "exact": zod.array(zod.coerce.date()).describe('Each time it is exact, in order, two or three when a retrograde splits a contact; empty when it never is (ADR-207).'),
+  "spans": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
+  "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
+  "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
+  "facts": zod.object({
+  "sky": zod.string(),
+  "house": zod.string().nullable().describe('Null without a birth time (R-4.6).')
+}).describe('The facts line\'s parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).'),
+  "line": zod.string().nullable().describe('The everyday line, the reading\'s own once it is written; null before (ADR-210).'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One sky event on the reader\'s own chart, its dates and degrees the engine\'s and its words plain (ADR-207, ADR-208).'))
+}).describe('Someone in a Compatibility report the reader can read, on the day asked about, computed when shown (ADR-213, MB-191).')]).describe('One computed card in Ask\'s answer, the same pieces as Timeline\'s (ADR-213).')),
+  "choices": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string().describe('The words on the button.'),
+  "kind": zod.enum(['date', 'window', 'person', 'report'])
+}).describe('A choice Ask offers when it asks back; a tap sends its id (ADR-213).')),
+  "createdAt": zod.coerce.date()
+}).describe('One message in the thread, the reader\'s or Ask\'s, Ask\'s with its cards and choices (ADR-213, MB-191).')),
+  "usage": zod.object({
+  "used": zod.number().int().min(getAskThreadResponseUsageUsedMin),
+  "left": zod.number().int().min(getAskThreadResponseUsageLeftMin),
+  "cap": zod.number().int().min(getAskThreadResponseUsageCapMin).describe('The month\'s cap, 50 (ADR-213).'),
+  "resetsOn": zod.string().regex(getAskThreadResponseUsageResetsOnRegExp).describe('The 1st of next month, UTC, when the count starts again (ADR-263).')
+}).describe('Ask\'s messages this UTC calendar month, a tapped choice included, shown always (ADR-263).')
+}).describe('The reader\'s thread from the last 31 days, oldest first, and Ask\'s count this month (ADR-213, ADR-263, MB-191).')
+
+
+/**
+ * Text or a tapped choice, never both, each one of the month's 50 (ADR-263). From a report page it carries that report's id, read only if the reader can read it. Ask answers with text and the same computed cards as Timeline, quoting reports word for word, or asks back with choices (ADR-213). Answers the thread with both new messages and the count after them. Nothing the reader types reaches a log (ADR-201).
+ * @summary Send Ask a message or a tapped choice (ADR-213)
+ */
+export const sendAskMessageBodyTextMax = 500;
+
+
+
+export const SendAskMessageBody = zod.object({
+  "text": zod.string().min(1).max(sendAskMessageBodyTextMax).optional().describe('What the reader asks, 1 to 500 characters, never logged (ADR-201).'),
+  "choiceId": zod.string().optional().describe('A choice Ask offered in its last message.'),
+  "reportId": zod.string().optional().describe('The report page it was sent from, read only if the reader can read it (ADR-213).')
+}).describe('A message to Ask, its text or a tapped choice, never both (ADR-213).')
+
+export const sendAskMessageResponseMessagesItemCardsItemOneDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const sendAskMessageResponseMessagesItemCardsItemOneEventsItemHousesItemMax = 12;
+
+export const sendAskMessageResponseMessagesItemCardsItemTwoFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const sendAskMessageResponseMessagesItemCardsItemTwoToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const sendAskMessageResponseMessagesItemCardsItemTwoDaysItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const sendAskMessageResponseMessagesItemCardsItemFiveDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const sendAskMessageResponseMessagesItemCardsItemFiveEventsItemHousesItemMax = 12;
+
+export const sendAskMessageResponseUsageUsedMin = 0;
+
+export const sendAskMessageResponseUsageLeftMin = 0;
+
+export const sendAskMessageResponseUsageCapMin = 0;
+
+export const sendAskMessageResponseUsageResetsOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const SendAskMessageResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "role": zod.enum(['reader', 'ask']),
+  "text": zod.string(),
+  "cards": zod.array(zod.union([zod.object({
+  "kind": zod.enum(['day']),
+  "date": zod.string().regex(sendAskMessageResponseMessagesItemCardsItemOneDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "events": zod.array(zod.object({
+  "key": zod.string().describe('{kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210).'),
+  "kind": zod.enum(['contact', 'retrograde', 'eclipse']).describe('A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).'),
+  "body": zod.string().describe('The moving body as the engine names it, "saturn"; an eclipse\'s is the sun or the moon eclipsed (ADR-208).'),
+  "aspect": zod.string().nullable().describe('A contact\'s aspect, conjunction, square, opposition or trine; null on a retrograde or an eclipse (ADR-208).'),
+  "target": zod.string().nullable().describe('The natal point a contact touches or an eclipse falls near, as the engine names it, "ascendant"; null otherwise (ADR-208).'),
+  "houses": zod.array(zod.number().int().min(1).max(sendAskMessageResponseMessagesItemCardsItemOneEventsItemHousesItemMax)).describe('The whole-sign houses it touches, a retrograde\'s in the order it moves back through them; empty without a birth time (ADR-208, R-4.6).'),
+  "start": zod.coerce.date().describe('Its whole window\'s start, which may be before the range (ADR-207).'),
+  "end": zod.coerce.date().describe('Its whole window\'s end, which may be after the range (ADR-207).'),
+  "exact": zod.array(zod.coerce.date()).describe('Each time it is exact, in order, two or three when a retrograde splits a contact; empty when it never is (ADR-207).'),
+  "spans": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
+  "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
+  "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
+  "facts": zod.object({
+  "sky": zod.string(),
+  "house": zod.string().nullable().describe('Null without a birth time (R-4.6).')
+}).describe('The facts line\'s parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).'),
+  "line": zod.string().nullable().describe('The everyday line, the reading\'s own once it is written; null before (ADR-210).'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One sky event on the reader\'s own chart, its dates and degrees the engine\'s and its words plain (ADR-207, ADR-208).')),
+  "moon": zod.object({
+  "sign": zod.string(),
+  "phase": zod.string()
+})
+}).describe('A day\'s card, the contacts on the reader\'s chart that day and the Moon\'s sign and phase, the one place the Moon appears (ADR-213).'),zod.object({
+  "kind": zod.enum(['window']),
+  "from": zod.string().regex(sendAskMessageResponseMessagesItemCardsItemTwoFromRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "to": zod.string().regex(sendAskMessageResponseMessagesItemCardsItemTwoToRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "days": zod.array(zod.object({
+  "date": zod.string().regex(sendAskMessageResponseMessagesItemCardsItemTwoDaysItemDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('The tone most of its contacts hold, a tie to the more intense; null on a quiet day (MB-188).')
+}))
+}).describe('A window\'s card, at most six months, each day easy, mixed, intense or quiet (ADR-213, MB-188).'),zod.object({
+  "kind": zod.enum(['cycle']),
+  "cycle": zod.object({
+  "key": zod.string().describe('cycle.{id}.{yyyymmdd}, the UTC day of its first exact pass, or of its window\'s start when it never is exact (ADR-210).'),
+  "id": zod.enum(['jupiter-return', 'jupiter-opposition', 'saturn-return', 'saturn-opposition', 'saturn-square', 'node-return', 'node-opposition', 'uranus-return', 'uranus-opposition', 'uranus-square', 'neptune-square', 'pluto-square']).describe('A life cycle, as the engine names it (ADR-209).'),
+  "body": zod.string().describe('Its planet as the engine names it, "north_node" for the nodes.'),
+  "name": zod.string().describe('Its name, "Saturn return".'),
+  "word": zod.string().describe('Its plain word, "A reset".'),
+  "age": zod.number().describe('Whole years at its first exact pass, or at its window\'s start when it never is exact.'),
+  "exact": zod.array(zod.coerce.date()).describe('Its exact passes in order, two or three when a retrograde splits it.'),
+  "start": zod.coerce.date().describe('When its planet comes within orb.'),
+  "end": zod.coerce.date().describe('When it leaves the orb for the last time.'),
+  "past": zod.boolean().describe('Its window closed before today.'),
+  "repeats": zod.boolean().describe('It comes more than once in a life, so its card looks back to the last time (ADR-209).'),
+  "passes": zod.number().int().describe('How many times it is exact.'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One life cycle on the reader\'s own chart, its dates the engine\'s and its words the engine\'s CYCLE_WORDS (ADR-209).')
+}).describe('A life cycle\'s card, as Life shows it (ADR-213).'),zod.object({
+  "kind": zod.enum(['quote']),
+  "reportId": zod.string(),
+  "reportName": zod.string(),
+  "section": zod.string().describe('The section of the report it comes from.'),
+  "text": zod.string()
+}).describe('A passage from a report the reader can read, put in word for word by the server, never written by the model (ADR-213).'),zod.object({
+  "kind": zod.enum(['person']),
+  "name": zod.string(),
+  "date": zod.string().regex(sendAskMessageResponseMessagesItemCardsItemFiveDateRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),
+  "events": zod.array(zod.object({
+  "key": zod.string().describe('{kind}.{body}.{aspect or -}.{target or -}.{yyyymmdd}, URL-safe and at most 80 characters, the same from any range that meets it (ADR-210).'),
+  "kind": zod.enum(['contact', 'retrograde', 'eclipse']).describe('A slow planet within orb of a natal point, Mercury, Venus or Mars turning back, or an eclipse (ADR-208).'),
+  "body": zod.string().describe('The moving body as the engine names it, "saturn"; an eclipse\'s is the sun or the moon eclipsed (ADR-208).'),
+  "aspect": zod.string().nullable().describe('A contact\'s aspect, conjunction, square, opposition or trine; null on a retrograde or an eclipse (ADR-208).'),
+  "target": zod.string().nullable().describe('The natal point a contact touches or an eclipse falls near, as the engine names it, "ascendant"; null otherwise (ADR-208).'),
+  "houses": zod.array(zod.number().int().min(1).max(sendAskMessageResponseMessagesItemCardsItemFiveEventsItemHousesItemMax)).describe('The whole-sign houses it touches, a retrograde\'s in the order it moves back through them; empty without a birth time (ADR-208, R-4.6).'),
+  "start": zod.coerce.date().describe('Its whole window\'s start, which may be before the range (ADR-207).'),
+  "end": zod.coerce.date().describe('Its whole window\'s end, which may be after the range (ADR-207).'),
+  "exact": zod.array(zod.coerce.date()).describe('Each time it is exact, in order, two or three when a retrograde splits a contact; empty when it never is (ADR-207).'),
+  "spans": zod.array(zod.object({
+  "start": zod.coerce.date(),
+  "end": zod.coerce.date()
+}).describe('One stretch an event is within orb, from coming into it to leaving it (ADR-207).')).describe('The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207).'),
+  "orbNow": zod.number().nullable().describe('A contact\'s distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).'),
+  "tone": zod.union([zod.enum(['easy', 'mixed', 'intense']).describe('How an event tends to feel, from a fixed table of planet and aspect, never a score (ADR-207, MB-188).'),zod.null()]).describe('Its tone; null on an eclipse far from every natal point (ADR-207, MB-188).'),
+  "headline": zod.string().describe('The engine\'s plain headline, which names no aspect (ADR-207).'),
+  "facts": zod.object({
+  "sky": zod.string(),
+  "house": zod.string().nullable().describe('Null without a birth time (R-4.6).')
+}).describe('The facts line\'s parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).'),
+  "line": zod.string().nullable().describe('The everyday line, the reading\'s own once it is written; null before (ADR-210).'),
+  "reading": zod.enum(['none', 'writing', 'ready', 'failed']).describe('Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).')
+}).describe('One sky event on the reader\'s own chart, its dates and degrees the engine\'s and its words plain (ADR-207, ADR-208).'))
+}).describe('Someone in a Compatibility report the reader can read, on the day asked about, computed when shown (ADR-213, MB-191).')]).describe('One computed card in Ask\'s answer, the same pieces as Timeline\'s (ADR-213).')),
+  "choices": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string().describe('The words on the button.'),
+  "kind": zod.enum(['date', 'window', 'person', 'report'])
+}).describe('A choice Ask offers when it asks back; a tap sends its id (ADR-213).')),
+  "createdAt": zod.coerce.date()
+}).describe('One message in the thread, the reader\'s or Ask\'s, Ask\'s with its cards and choices (ADR-213, MB-191).')),
+  "usage": zod.object({
+  "used": zod.number().int().min(sendAskMessageResponseUsageUsedMin),
+  "left": zod.number().int().min(sendAskMessageResponseUsageLeftMin),
+  "cap": zod.number().int().min(sendAskMessageResponseUsageCapMin).describe('The month\'s cap, 50 (ADR-213).'),
+  "resetsOn": zod.string().regex(sendAskMessageResponseUsageResetsOnRegExp).describe('The 1st of next month, UTC, when the count starts again (ADR-263).')
+}).describe('Ask\'s messages this UTC calendar month, a tapped choice included, shown always (ADR-263).')
+}).describe('The reader\'s thread from the last 31 days, oldest first, and Ask\'s count this month (ADR-213, ADR-263, MB-191).')
 
 

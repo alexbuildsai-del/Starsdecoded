@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AskCap,
+  AskThread,
   BirthTimeUpdateResponse,
   ChangeAddressBody,
   CompatibilityCreateResponse,
@@ -38,8 +40,11 @@ import type {
   ErrorResponse,
   GeocodePlaceParams,
   GeocodeSearchResponse,
+  GetHomeParams,
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
+  GetTimelineLifeParams,
+  GetTimelineNowParams,
   Gift,
   GiftCreated,
   HandBackResponse,
@@ -53,9 +58,13 @@ import type {
   InviteSummary,
   JoinWaitlistBody,
   ListInvitesParams,
+  NoPersonalReportResponse,
+  NoTimelineResponse,
+  OpenedReading,
   PairSendResult,
   PausedResponse,
   ProfileSummary,
+  RateLimited,
   RateLimitedResponse,
   RegenerateReport202,
   RelationshipCreateResponse,
@@ -63,6 +72,7 @@ import type {
   Report,
   ReportStatus,
   ReportSummary,
+  SendAskBody,
   SendCompatibilityBody,
   Share,
   ShareBackBody,
@@ -72,6 +82,9 @@ import type {
   SynastryReport,
   SynastryStatus,
   TestCheckoutBody,
+  TimelineAccess,
+  TimelineLife,
+  TimelineNow,
   UpdateBirthTimeBody,
   UpdateProfileBody,
   WaitlistConfirmed,
@@ -363,21 +376,28 @@ export const useConfirmWaitlist = <TError = ErrorType<ErrorResponse>,
       return useMutation(getConfirmWaitlistMutationOptions(options));
     }
 
-export const getGetHomeUrl = () => {
+export const getGetHomeUrl = (params?: GetHomeParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/home`
+  return stringifiedParams.length > 0 ? `/api/home?${stringifiedParams}` : `/api/home`
 }
 
 /**
- * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs and stories, and what they are practising (ADR-174). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182).
+ * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs and stories, and what they are practising (ADR-174). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182). A reader with Timeline gets `week`, Your week in their own days; a reader without it whose own Personal report is finished gets `teaser`; anyone else neither (ADR-211, ADR-212, ADR-262).
  * @summary The dashboard's one read (ADR-174)
  */
-export const getHome = async ( options?: Parameters<typeof customFetch>[1]): Promise<Home> => {
+export const getHome = async (params?: GetHomeParams, options?: Parameters<typeof customFetch>[1]): Promise<Home> => {
 
-  return customFetch<Home>(getGetHomeUrl(),
+  return customFetch<Home>(getGetHomeUrl(params),
   {
     ...options,
     method: 'GET'
@@ -390,23 +410,23 @@ export const getHome = async ( options?: Parameters<typeof customFetch>[1]): Pro
 
 
 
-export const getGetHomeQueryKey = () => {
+export const getGetHomeQueryKey = (params?: GetHomeParams,) => {
     return [
-    `/api/home`
+    `/api/home`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetHomeQueryOptions = <TData = Awaited<ReturnType<typeof getHome>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHome>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetHomeQueryOptions = <TData = Awaited<ReturnType<typeof getHome>>, TError = ErrorType<unknown>>(params?: GetHomeParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHome>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetHomeQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetHomeQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHome>>> = ({ signal }) => getHome({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHome>>> = ({ signal }) => getHome(params, { signal, ...requestOptions });
 
 
 
@@ -424,11 +444,11 @@ export type GetHomeQueryError = ErrorType<unknown>
  */
 
 export function useGetHome<TData = Awaited<ReturnType<typeof getHome>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHome>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetHomeParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHome>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetHomeQueryOptions(options)
+  const queryOptions = getGetHomeQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -3921,4 +3941,494 @@ export function useGeocodePlace<TData = Awaited<ReturnType<typeof geocodePlace>>
 
 
 
+
+export const getGetTimelineAccessUrl = () => {
+
+
+
+
+  return `/api/timeline/access`
+}
+
+/**
+ * The one access check's answer (ADR-262), for every signed-in reader: today its one source is the signed-in admin, until billing adds an active subscription (MB-197). It says too whether the reader has a finished Personal report of their own, and with access Ask's use this month (ADR-263).
+ * @summary Whether the signed-in reader has Timeline (ADR-262)
+ */
+export const getTimelineAccess = async ( options?: Parameters<typeof customFetch>[1]): Promise<TimelineAccess> => {
+
+  return customFetch<TimelineAccess>(getGetTimelineAccessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTimelineAccessQueryKey = () => {
+    return [
+    `/api/timeline/access`
+    ] as const;
+    }
+
+
+export const getGetTimelineAccessQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineAccess>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTimelineAccessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTimelineAccess>>> = ({ signal }) => getTimelineAccess({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTimelineAccess>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTimelineAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getTimelineAccess>>>
+export type GetTimelineAccessQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Whether the signed-in reader has Timeline (ADR-262)
+ */
+
+export function useGetTimelineAccess<TData = Awaited<ReturnType<typeof getTimelineAccess>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTimelineAccessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetTimelineNowUrl = (params: GetTimelineNowParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/timeline/now?${stringifiedParams}` : `/api/timeline/now`
+}
+
+/**
+ * A week, a month or six months from today in the reader's days (ADR-207): the natal points and angles the dial draws, each day's tones, every event in the range with its whole window and plain words, and what starts, peaks or eases next. Every date and degree is the engine's. The six-month range queues the readings of contacts entering it, at most three a call (ADR-210).
+ * @summary Now and ahead, the sky on the reader's own chart from today (ADR-207)
+ */
+export const getTimelineNow = async (params: GetTimelineNowParams, options?: Parameters<typeof customFetch>[1]): Promise<TimelineNow> => {
+
+  return customFetch<TimelineNow>(getGetTimelineNowUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTimelineNowQueryKey = (params?: GetTimelineNowParams,) => {
+    return [
+    `/api/timeline/now`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetTimelineNowQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineNow>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>>(params: GetTimelineNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTimelineNowQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTimelineNow>>> = ({ signal }) => getTimelineNow(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTimelineNow>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTimelineNowQueryResult = NonNullable<Awaited<ReturnType<typeof getTimelineNow>>>
+export type GetTimelineNowQueryError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>
+
+
+/**
+ * @summary Now and ahead, the sky on the reader's own chart from today (ADR-207)
+ */
+
+export function useGetTimelineNow<TData = Awaited<ReturnType<typeof getTimelineNow>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>>(
+ params: GetTimelineNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTimelineNowQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetTimelineLifeUrl = (params?: GetTimelineLifeParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/timeline/life?${stringifiedParams}` : `/api/timeline/life`
+}
+
+/**
+ * From the reader's own chart (ADR-209): the four known ages first, then every life cycle with its plain words and exact passes, and each slow planet's wave. `age` and `birth` place today and each cycle on the waves.
+ * @summary Life, the reader's long cycles from birth to 90 (ADR-209)
+ */
+export const getTimelineLife = async (params?: GetTimelineLifeParams, options?: Parameters<typeof customFetch>[1]): Promise<TimelineLife> => {
+
+  return customFetch<TimelineLife>(getGetTimelineLifeUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTimelineLifeQueryKey = (params?: GetTimelineLifeParams,) => {
+    return [
+    `/api/timeline/life`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetTimelineLifeQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineLife>>, TError = ErrorType<NoTimelineResponse | NoPersonalReportResponse>>(params?: GetTimelineLifeParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineLife>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTimelineLifeQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTimelineLife>>> = ({ signal }) => getTimelineLife(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTimelineLife>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTimelineLifeQueryResult = NonNullable<Awaited<ReturnType<typeof getTimelineLife>>>
+export type GetTimelineLifeQueryError = ErrorType<NoTimelineResponse | NoPersonalReportResponse>
+
+
+/**
+ * @summary Life, the reader's long cycles from birth to 90 (ADR-209)
+ */
+
+export function useGetTimelineLife<TData = Awaited<ReturnType<typeof getTimelineLife>>, TError = ErrorType<NoTimelineResponse | NoPersonalReportResponse>>(
+ params?: GetTimelineLifeParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineLife>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTimelineLifeQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getOpenTimelineReadingUrl = (key: string,) => {
+
+
+
+
+  return `/api/timeline/readings/${key}`
+}
+
+/**
+ * A reading is written once per event per person, the first time it is opened, then kept with the reader's Personal report (ADR-210, MB-191). Ready answers it; writing says it is being written, so open it again soon; failed carries the line the sheet shows. A reading whose basis no longer matches the chart or the prompt is written again.
+ * @summary Open the reading of an event or a life cycle, written the first time (ADR-210)
+ */
+export const openTimelineReading = async (key: string, options?: Parameters<typeof customFetch>[1]): Promise<OpenedReading> => {
+
+  return customFetch<OpenedReading>(getOpenTimelineReadingUrl(key),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getOpenTimelineReadingMutationKey = () => ['openTimelineReading'] as const;
+
+export const getOpenTimelineReadingMutationOptions = <TError = ErrorType<NoTimelineResponse | ErrorResponse | RateLimitedResponse | PausedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openTimelineReading>>, TError,OpenTimelineReadingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openTimelineReading>>, TError,OpenTimelineReadingMutationVariables, TContext> => {
+
+const mutationKey = getOpenTimelineReadingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openTimelineReading>>, OpenTimelineReadingMutationVariables> = (props) => {
+          const {key} = props ?? {};
+
+          return  openTimelineReading(key,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenTimelineReadingMutationResult = NonNullable<Awaited<ReturnType<typeof openTimelineReading>>>
+
+    export type OpenTimelineReadingMutationError = ErrorType<NoTimelineResponse | ErrorResponse | RateLimitedResponse | PausedResponse>
+    export type OpenTimelineReadingMutationVariables = {key: string}
+
+    /**
+ * @summary Open the reading of an event or a life cycle, written the first time (ADR-210)
+ */
+export const useOpenTimelineReading = <TError = ErrorType<NoTimelineResponse | ErrorResponse | RateLimitedResponse | PausedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openTimelineReading>>, TError,OpenTimelineReadingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof openTimelineReading>>,
+        TError,
+        OpenTimelineReadingMutationVariables,
+        TContext
+      > => {
+      return useMutation(getOpenTimelineReadingMutationOptions(options));
+    }
+
+export const getGetAskThreadUrl = () => {
+
+
+
+
+  return `/api/ask`
+}
+
+/**
+ * The thread from the last 31 days, oldest first; a person card is kept as who and which day and computed when shown, while the reader can still read them (ADR-213, MB-191). `usage` is always there (ADR-263).
+ * @summary The reader's Ask thread and what's left this month (ADR-213, ADR-263)
+ */
+export const getAskThread = async ( options?: Parameters<typeof customFetch>[1]): Promise<AskThread> => {
+
+  return customFetch<AskThread>(getGetAskThreadUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAskThreadQueryKey = () => {
+    return [
+    `/api/ask`
+    ] as const;
+    }
+
+
+export const getGetAskThreadQueryOptions = <TData = Awaited<ReturnType<typeof getAskThread>>, TError = ErrorType<NoTimelineResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAskThread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAskThreadQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAskThread>>> = ({ signal }) => getAskThread({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAskThread>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAskThreadQueryResult = NonNullable<Awaited<ReturnType<typeof getAskThread>>>
+export type GetAskThreadQueryError = ErrorType<NoTimelineResponse>
+
+
+/**
+ * @summary The reader's Ask thread and what's left this month (ADR-213, ADR-263)
+ */
+
+export function useGetAskThread<TData = Awaited<ReturnType<typeof getAskThread>>, TError = ErrorType<NoTimelineResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAskThread>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAskThreadQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendAskMessageUrl = () => {
+
+
+
+
+  return `/api/ask`
+}
+
+/**
+ * Text or a tapped choice, never both, each one of the month's 50 (ADR-263). From a report page it carries that report's id, read only if the reader can read it. Ask answers with text and the same computed cards as Timeline, quoting reports word for word, or asks back with choices (ADR-213). Answers the thread with both new messages and the count after them. Nothing the reader types reaches a log (ADR-201).
+ * @summary Send Ask a message or a tapped choice (ADR-213)
+ */
+export const sendAskMessage = async (sendAskBody: SendAskBody, options?: Parameters<typeof customFetch>[1]): Promise<AskThread> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AskThread>(getSendAskMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(sendAskBody)
+  }
+);}
+
+
+
+
+
+export const getSendAskMessageMutationKey = () => ['sendAskMessage'] as const;
+
+export const getSendAskMessageMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | RateLimited | AskCap | PausedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAskMessage>>, TError,SendAskMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendAskMessage>>, TError,SendAskMessageMutationVariables, TContext> => {
+
+const mutationKey = getSendAskMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendAskMessage>>, SendAskMessageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendAskMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendAskMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendAskMessage>>>
+    export type SendAskMessageMutationBody = BodyType<SendAskBody>
+    export type SendAskMessageMutationError = ErrorType<ErrorResponse | NoTimelineResponse | RateLimited | AskCap | PausedResponse>
+    export type SendAskMessageMutationVariables = {data: BodyType<SendAskBody>}
+
+    /**
+ * @summary Send Ask a message or a tapped choice (ADR-213)
+ */
+export const useSendAskMessage = <TError = ErrorType<ErrorResponse | NoTimelineResponse | RateLimited | AskCap | PausedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAskMessage>>, TError,SendAskMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendAskMessage>>,
+        TError,
+        SendAskMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendAskMessageMutationOptions(options));
+    }
 
