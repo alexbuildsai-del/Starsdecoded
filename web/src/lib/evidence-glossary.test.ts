@@ -5,7 +5,9 @@ import { whySentence } from "@/components/report/Checklist";
 describe("one word per house (ADR-98)", () => {
   it("is the first word of each house title", () => {
     expect(HOUSE_WORDS).toHaveLength(12);
-    HOUSE_WORDS.forEach((word, i) => expect(HOUSE_NAMES[i].split(/\s+/)[0]).toBe(word));
+    // The 12th's title opens "Time alone", a phrase; its one word stays "Solitude".
+    HOUSE_WORDS.forEach((word, i) => expect(HOUSE_NAMES[i].split(/\s+/)[0]).toBe(i === 11 ? "Time" : word));
+    expect(HOUSE_WORDS[11]).toBe("Solitude");
     expect(houseWord(3)).toBe("mind");
     expect(houseWord(11)).toBe("friends");
     expect(houseWord(0)).toBe("");

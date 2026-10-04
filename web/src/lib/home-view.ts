@@ -42,11 +42,11 @@ export function writingText(name: string, self: boolean): string {
 }
 
 export function blindRisingText(name: string, self: boolean): string {
-  return `Add ${self ? "your" : `${firstName(name)}'s`} birth time to draw the horizon`;
+  return `Add ${self ? "your" : `${firstName(name)}'s`} birth time to see ${self ? "your" : "their"} rising sign and houses`;
 }
 
 /** Chapter 08's two lines on the reader's own quick look, under the kickers the report prints over them. */
-export const OWN_LINES = { superpower: "Your superpower", growingEdge: "Your growing edge" } as const;
+export const OWN_LINES = { superpower: "Your superpower", growingEdge: "Where you can grow" } as const;
 
 /** A pair block's two headings: the tag the report's cards use for what comes easily, then the one challenge. */
 export const PAIR_BLOCK = { comes: MEET_TAGS.comes, challenge: "Challenge to work on" } as const;

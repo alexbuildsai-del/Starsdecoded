@@ -55,8 +55,8 @@ export function DeepdiveBlock({ s }: { s: OverviewSection }) {
   const k = newCitationCounter();
   return (
     <div className="rp-prose">
-      <LabelledBlock label="Where the weight sits" claims={s.claims} counter={k}>{s.concentration}</LabelledBlock>
-      <LabelledBlock label="How you run" claims={s.claims} counter={k}>{s.temperament}</LabelledBlock>
+      <LabelledBlock label="What stands out" claims={s.claims} counter={k}>{s.concentration}</LabelledBlock>
+      <LabelledBlock label="How you get through your days" claims={s.claims} counter={k}>{s.temperament}</LabelledBlock>
     </div>
   );
 }
@@ -67,7 +67,7 @@ export function MindBlock({ s }: { s: MindSection }) {
     <div className="rp-prose">
       <LabelledBlock label="How you think" claims={s.claims} counter={k}>{s.howYouThink}</LabelledBlock>
       <LabelledBlock label="How you decide" claims={s.claims} counter={k}>{s.howYouDecide}</LabelledBlock>
-      <LabelledBlock label="How you are understood" claims={s.claims} counter={k}>{s.howYouAreUnderstood}</LabelledBlock>
+      <LabelledBlock label="How people see you" claims={s.claims} counter={k}>{s.howYouAreUnderstood}</LabelledBlock>
     </div>
   );
 }
@@ -86,9 +86,9 @@ export function CareerBlock({ s }: { s: CareerSection }) {
   const k = newCitationCounter();
   return (
     <div className="rp-prose">
-      <LabelledBlock label="Vocational pull" claims={s.claims} counter={k}>{s.vocationalPull}</LabelledBlock>
-      <LabelledBlock label="How you show up" claims={s.claims} counter={k}>{s.howYouShowUp}</LabelledBlock>
-      <LabelledBlock label="Growth through work" claims={s.claims} counter={k}>{s.growthThroughWork}</LabelledBlock>
+      <LabelledBlock label="Work that suits you" claims={s.claims} counter={k}>{s.vocationalPull}</LabelledBlock>
+      <LabelledBlock label="How you come across at work" claims={s.claims} counter={k}>{s.howYouShowUp}</LabelledBlock>
+      <LabelledBlock label="How work helps you grow" claims={s.claims} counter={k}>{s.growthThroughWork}</LabelledBlock>
     </div>
   );
 }
@@ -107,7 +107,7 @@ export function MoneyBlock({ s }: { s: MoneySection }) {
   const k = newCitationCounter();
   return (
     <div className="rp-prose">
-      <LabelledBlock label="Your relationship to resources" claims={s.claims} counter={k}>{s.relationshipToResources}</LabelledBlock>
+      <LabelledBlock label="How you handle money" claims={s.claims} counter={k}>{s.relationshipToResources}</LabelledBlock>
       <LabelledBlock label="What works, and what does not" claims={s.claims} counter={k}>{s.whatWorks}</LabelledBlock>
       <LabelledBlock label="Shared money and exposure" claims={s.claims} counter={k}>{s.sharedAndExposed}</LabelledBlock>
     </div>
@@ -123,8 +123,8 @@ export function RelationshipsBlock({ s }: { s: RelationshipsSection }) {
   return (
     <div className="rp-prose">
       <LabelledBlock label="How you love" claims={s.claims} counter={k}>{s.howYouLove}</LabelledBlock>
-      <LabelledBlock label="The challenge" claims={s.claims} counter={k}>{s.theChallenge}</LabelledBlock>
-      <LabelledBlock label="What partnership asks of you" claims={s.claims} counter={k}>{s.whatPartnershipAsks}</LabelledBlock>
+      <LabelledBlock label="What keeps going wrong" claims={s.claims} counter={k}>{s.theChallenge}</LabelledBlock>
+      <LabelledBlock label="What a relationship needs from you" claims={s.claims} counter={k}>{s.whatPartnershipAsks}</LabelledBlock>
     </div>
   );
 }
@@ -143,9 +143,9 @@ export function FamilyBlock({ s }: { s: FamilySection }) {
   const k = newCitationCounter();
   return (
     <div className="rp-prose">
-      <LabelledBlock label="What you carry" claims={s.claims} counter={k}>{s.whatYouCarry}</LabelledBlock>
-      <LabelledBlock label="What roots you" claims={s.claims} counter={k}>{s.whatRootsYou}</LabelledBlock>
-      <LabelledBlock label="The inherited edge" claims={s.claims} counter={k}>{s.theInheritedEdge}</LabelledBlock>
+      <LabelledBlock label="What you got from your family" claims={s.claims} counter={k}>{s.whatYouCarry}</LabelledBlock>
+      <LabelledBlock label="What keeps you steady" claims={s.claims} counter={k}>{s.whatRootsYou}</LabelledBlock>
+      <LabelledBlock label="What you'd do differently" claims={s.claims} counter={k}>{s.theInheritedEdge}</LabelledBlock>
     </div>
   );
 }
@@ -173,8 +173,8 @@ export function SuperpowersBlock({ s }: { s: SuperpowersSection }) {
   return (
     <div>
       <SuperpowerCard kicker="Your superpower" item={s.superpower} path="superpower.actions" heading="How to use it" claims={s.claims} counter={k} />
-      <SuperpowerCard kicker="The pattern you will always navigate" item={s.chronicPattern} path="chronicPattern.actions" heading="How to manage it" claims={s.claims} counter={k} />
-      <SuperpowerCard kicker="Your growing edge" item={s.growingEdge} path="growingEdge.actions" heading="Practice this week" claims={s.claims} counter={k} />
+      <SuperpowerCard kicker="A habit you'll always have to manage" item={s.chronicPattern} path="chronicPattern.actions" heading="How to manage it" claims={s.claims} counter={k} />
+      <SuperpowerCard kicker="Where you can grow" item={s.growingEdge} path="growingEdge.actions" heading="Practice this week" claims={s.claims} counter={k} />
     </div>
   );
 }
@@ -191,7 +191,7 @@ export function DiscoveriesBlock({ s }: { s: DiscoveriesSection }) {
           <h3>{p.title}</h3>
           <p className="tn">{CitedText({ text: p.tension, claims: s.claims, counter: k })}</p>
           <div className="iv">
-            <span className="rp-lab">A way through</span>
+            <span className="rp-lab">What helps</span>
             <p className="mt-1.5">{p.invitation}</p>
           </div>
         </div>

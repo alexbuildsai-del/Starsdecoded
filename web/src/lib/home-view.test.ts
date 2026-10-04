@@ -102,12 +102,12 @@ describe("the person words", () => {
     expect(doorText("Beatrice Lund", true)).toBe("Open your report");
     expect(writingText("Audrey Hepburn", false)).toBe("Writing Audrey's report");
     expect(writingText("Beatrice Lund", true)).toBe("Writing your report");
-    expect(blindRisingText("Marie Curie", false)).toBe("Add Marie's birth time to draw the horizon");
-    expect(blindRisingText("Beatrice Lund", true)).toBe("Add your birth time to draw the horizon");
+    expect(blindRisingText("Marie Curie", false)).toBe("Add Marie's birth time to see their rising sign and houses");
+    expect(blindRisingText("Beatrice Lund", true)).toBe("Add your birth time to see your rising sign and houses");
   });
 
   it("heads chapter 08's lines and a pair's block in the report's own words", () => {
-    expect(OWN_LINES).toEqual({ superpower: "Your superpower", growingEdge: "Your growing edge" });
+    expect(OWN_LINES).toEqual({ superpower: "Your superpower", growingEdge: "Where you can grow" });
     expect(PAIR_BLOCK).toEqual({ comes: "Comes naturally", challenge: "Challenge to work on" });
   });
 });
