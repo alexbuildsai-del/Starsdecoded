@@ -121,7 +121,8 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
   `STRIPE_WEBHOOK_SECRET` per endpoint and `STRIPE_PUBLISHABLE_KEY` on Railway; nothing on Vercel.
   Staging's endpoint goes straight to Railway, `https://starsdecoded-staging.up.railway.app/api/stripe/webhook`. The sandbox keys the
   Owner placed in GitHub environment secrets are deleted there; no workflow reads them.
-- `api/src/lib/stripe.ts` the one seam: one `Stripe` client instance, the SDK's pinned API version.
+- `api/src/lib/stripe.ts` the one seam: one `Stripe` client instance, pinned to `2026-08-26.dahlia`,
+  the version staging's webhook destination was created with (2026-10-04), so payloads match the types.
 
 ## Out of scope
 - Timeline itself, a typed promotion-code box at checkout, a custom Checkout domain, Managed Payments
