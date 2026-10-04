@@ -394,8 +394,9 @@ describe("Now and ahead: what the day shows", () => {
 
   it("puts the strongest first, a contact before a retrograde before an eclipse, and says the day once", () => {
     const rank = (t: Tone | null) => (t === null ? 3 : RANK[t]);
+    const sixMonths = nowModel(NOWS["six-months"]);
     for (let i = 0; i < NOWS["six-months"].days.length; i++) {
-      const cards = nowDay(nowModel(NOWS["six-months"]), i, "dmy").cards;
+      const cards = nowDay(sixMonths, i, "dmy").cards;
       for (let k = 1; k < cards.length; k++) expect(rank(cards[k - 1].tone)).toBeLessThanOrEqual(rank(cards[k].tone));
     }
     expect(today.today).toBe(true);
