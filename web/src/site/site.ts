@@ -169,7 +169,7 @@ export const PAGES: readonly PageEntry[] = [
     eyebrow: "Legal",
     h1: "Privacy policy",
     lede: `This policy says what ${PRODUCT} keeps about you, why, who handles it for us and how to have it deleted.`,
-    updated: "2026-10-03",
+    updated: "2026-10-04",
     kind: "legal",
     schema: ["WebPage"],
     sitemap: true,
