@@ -1,18 +1,13 @@
 /**
  * The compatibility hero's layout (ADR-70, ADR-99), pure: which person sits on
- * the left, how much each triad row says at this width, whether the two
- * columns sit side by side, and where the cue's stem ends against the corner
- * text. No ring: one centred group, each name once over its three rows, and
- * both birth records in the four corners.
+ * the left, how much each triad row says at this width (the rows themselves
+ * are `triadRowsOf`'s), whether the two columns sit side by side, and where the
+ * cue's stem ends against the corner text. No ring: one centred group, each
+ * name once over its three rows, and both birth records in the four corners.
  */
-import { houseWithWord } from "@/lib/evidence-glossary";
-import { TRADITIONAL_RULER } from "@/lib/house-rulers";
-import { SIGN_ORDER, norm360 } from "@/components/chart/wheel-geometry";
-import { PLANET_LABELS, type ChartData } from "@/types/chart";
-
 export type PairSide = "A" | "B";
 
-/** From this width up a row carries the house and the ruler; below it, the degree and the sign. */
+/** From this width up a row carries the house; below it, the sign and the degrees. */
 export const PAIR_DETAIL_FROM = 640;
 
 export interface PairHeroInput {
@@ -32,59 +27,13 @@ export function pairHeroLayout(input: PairHeroInput): PairHeroLayout {
   return { left, right: left === "A" ? "B" : "A", detail: input.viewportWidth >= PAIR_DETAIL_FROM ? "full" : "degree" };
 }
 
-export const NOT_DRAWN = "not drawn";
-
-export interface TriadRow {
-  key: "sun" | "moon" | "rising";
-  label: string;
-  value: string;
-  /** The rising row of a blind chart: no degree, no sign. */
-  blind?: boolean;
-}
-
-const signAt = (absoluteDegree: number): string => SIGN_ORDER[Math.floor(norm360(absoluteDegree) / 30)];
-const inSign = (absoluteDegree: number): string => `${(norm360(absoluteDegree) % 30).toFixed(2)}°`;
-
-/** A body swept across the birth-time band (ADR-33): "10.20°–22.85° Pisces", both signs named when it crosses one. */
-export function bandText(band: { fromDegree: number; toDegree: number }): string {
-  const from = signAt(band.fromDegree);
-  const to = signAt(band.toDegree);
-  return from === to
-    ? `${inSign(band.fromDegree)}–${inSign(band.toDegree)} ${to}`
-    : `${inSign(band.fromDegree)} ${from}–${inSign(band.toDegree)} ${to}`;
-}
-
-/** The three rows of one column at this detail. A blind chart's rising row reads "not drawn". */
-export function triadRows(chart: ChartData, detail: PairHeroLayout["detail"]): TriadRow[] {
-  const asc = chart.angles?.ascendant ?? null;
-  const body = (key: "sun" | "moon"): string => {
-    const p = chart.planets[key];
-    if (!p) return "";
-    const base = p.band ? bandText(p.band) : `${p.degree.toFixed(2)}° ${p.sign}`;
-    return detail === "full" && p.house && asc ? `${base} · ${houseWithWord(p.house)}` : base;
-  };
-  const rising = (): string => {
-    if (!asc) return NOT_DRAWN;
-    const ruler = TRADITIONAL_RULER[asc.sign];
-    const base = `${asc.degree.toFixed(2)}° ${asc.sign}`;
-    return detail === "full" && ruler ? `${base} · ruled by ${PLANET_LABELS[ruler]}` : base;
-  };
-  return [
-    { key: "sun", label: "Sun", value: body("sun") },
-    { key: "moon", label: "Moon", value: body("moon") },
-    { key: "rising", label: "Rising", value: rising(), blind: !asc },
-  ];
-}
-
-/** The row's text as the page prints it: a blind rising row reads "rising · not drawn". */
-export function rowText(row: TriadRow): string {
-  return row.blind ? `rising · ${row.value}` : row.value;
-}
+/** What a blind side's rising row says: the chart has a Sun and a Moon but no horizon. */
+export const NOT_DRAWN = "Not drawn";
 
 /**
  * The pair hero's stack, in CSS pixels; the cue must end clear of the corner
- * text (ADR-70). A column is measured on its widest full row, "29.99°
- * Sagittarius · 7th (partnership)" at 11.5 px Plex Mono (38 characters at
+ * text (ADR-70). A column is measured on its widest full row, "Sagittarius
+ * 29.99° · 7th (partnership)" at 11.5 px Plex Mono (38 characters at
  * 6.9 px) plus the render, the key and their gaps.
  */
 export const PAIR_STACK = {

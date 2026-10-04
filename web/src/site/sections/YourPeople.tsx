@@ -6,22 +6,21 @@
  * The circle's rules are the dashboard's own (`orbitPoints`, `partnersOf`), fed
  * the sample account as a profile list and its reports.
  */
-import { Fragment, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
-import { blindRisingText, legendParts } from "@/components/dashboard/CardSections";
+import { blindRisingText } from "@/components/dashboard/CardSections";
 import { CENTRE_ID, Orbit, type OrbitLabels } from "@/components/dashboard/Orbit";
 import { SkyCard } from "@/components/dashboard/SkyCard";
-import { rowText, triadRows } from "@/components/report/pair-hero-layout";
+import { TriadRow } from "@/components/TriadRow";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { pairTitle } from "@/lib/lenses";
 import { orbitPoints, partnersOf, type OrbitProfile, type OrbitReport } from "@/lib/orbit";
-import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { first } from "@/lib/share-card";
+import { triadRowsOf } from "@/lib/triad-row";
 import { cn } from "@/lib/utils";
 import { SAMPLE_PAIRS, SAMPLE_PEOPLE, samplePerson } from "@/site/data/people";
-import type { ChartData } from "@/types/chart";
 
 const SELF = SAMPLE_PEOPLE.find((p) => p.relation === "self") ?? SAMPLE_PEOPLE[0];
 
@@ -133,37 +132,6 @@ function sampleCard(id: string | null): { node: ReactNode; label: string } | nul
   };
 }
 
-/** Mira's Sun, Moon and Rising as the card's legend reads them, without the plate, as the dashboard's panel sums up its centre. */
-function TriadRows({ chart, name }: { chart: ChartData; name: string }) {
-  return (
-    <dl className="rp-legend">
-      {triadRows(chart, "full").map((row) => (
-        <div key={row.key} className="lr">
-          {/* The mark sits in the term: a definition list's groups hold only terms and definitions. */}
-          <dt className="k flex w-[83px] items-center gap-[9px]">
-            {row.key === "rising"
-              ? <span aria-hidden className="rp-ascdot" />
-              : <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />}
-            <span className="w-[52px]">{row.label}</span>
-          </dt>
-          {row.blind ? (
-            <dd className="v min-w-0 font-sans text-xs leading-[1.35] text-muted-foreground">{blindRisingText(name, false)}</dd>
-          ) : (
-            <dd className="v min-w-0">
-              {legendParts(rowText(row)).map((part, i) => (
-                <Fragment key={i}>
-                  {i > 0 && " "}
-                  <span className="inline-block max-w-full">{part}</span>
-                </Fragment>
-              ))}
-            </dd>
-          )}
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 function IdlePanel() {
   const headingId = useId();
   const name = first(SELF.name);
@@ -173,7 +141,7 @@ function IdlePanel() {
         <p className={EYEBROW}>{`${name}'s circle`}</p>
         <h3 id={headingId} className="mt-1.5 font-display text-[22px] leading-[1.15] [overflow-wrap:anywhere]">{SELF.name}</h3>
       </div>
-      <TriadRows chart={SELF.chart} name={SELF.name} />
+      <TriadRow rows={triadRowsOf(SELF.chart, { blind: blindRisingText(SELF.name, false) })} />
       <p className="text-[13px] leading-[1.45] text-muted-foreground">
         {`Tap a person, or ${name} at the centre, for their chart at a glance. A violet ring marks a ${COMPATIBILITY_REPORT} with ${name}.`}
       </p>

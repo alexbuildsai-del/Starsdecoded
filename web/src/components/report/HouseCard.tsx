@@ -10,10 +10,12 @@ import { useId, useState } from "react";
 import { PLANET_GLYPHS } from "@/types/chart";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { hintFor } from "@/lib/birth-record-hints";
-import { HOUSE_NAMES, ORDINALS } from "@/lib/evidence-glossary";
+import { HOUSE_NAMES, ORDINALS, houseWord } from "@/lib/evidence-glossary";
+import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { splitReading } from "@/lib/house-deck";
 import { AngleGlyph, type AngleKey } from "@/components/report/AngleGlyph";
 import type { Occupant } from "@/lib/house-occupants";
+import { PLANET_LABELS, type ChartData } from "@/types/chart";
 
 const EASE = "ease-[cubic-bezier(.16,1,.3,1)]";
 
@@ -35,11 +37,28 @@ function OccupantMark({ o }: { o: Occupant }) {
   );
 }
 
+/** The planet that goes with the rising sign, and where the chart puts it. Null for a blind chart, which has no 1st house. */
+export interface ChartRuler {
+  label: string;
+  sign: string;
+  house: number;
+}
+
+export function chartRuler(chart: ChartData): ChartRuler | null {
+  const asc = chart.angles?.ascendant;
+  const key = asc ? TRADITIONAL_RULER[asc.sign] : undefined;
+  const planet = key ? chart.planets[key] : undefined;
+  if (!key || !planet || !planet.house) return null;
+  return { label: PLANET_LABELS[key] ?? key, sign: planet.sign, house: planet.house };
+}
+
 export interface HouseCardProps {
   house: number;
   /** The whole-sign sign on this house. */
   sign: string;
   occupants: Occupant[];
+  /** The chart ruler, on the 1st house's card only; the triad rows no longer print it. */
+  ruler?: ChartRuler | null;
   /** The house's reading as the report stored it; absent while the section is still being written. */
   reading?: string;
   /** The whole text at once, for the desktop card: no Read the rest. */
@@ -49,7 +68,7 @@ export interface HouseCardProps {
   className?: string;
 }
 
-export function HouseCard({ house, sign, occupants, reading, whole = false, lit = true, className = "" }: HouseCardProps) {
+export function HouseCard({ house, sign, occupants, ruler, reading, whole = false, lit = true, className = "" }: HouseCardProps) {
   const [open, setOpen] = useState(false);
   const restId = useId();
   const parts = reading ? splitReading(reading) : null;
@@ -75,6 +94,11 @@ export function HouseCard({ house, sign, occupants, reading, whole = false, lit 
       <h3 className={`font-display font-normal leading-[1.15] text-[color:var(--paper)] print:text-black ${whole ? "text-[28px]" : "text-[22px]"}`}>
         {HOUSE_NAMES[i]}
       </h3>
+      {ruler && (
+        <p className="-mt-1 font-numeric text-[12.5px] leading-[1.45] text-[color:var(--paper-dim)] print:text-black">
+          {`${ruler.label} is your chart ruler, the planet that goes with your rising sign. It stands in ${ruler.sign}, in the ${ORDINALS[ruler.house - 1]} house (${houseWord(ruler.house)}).`}
+        </p>
+      )}
       {parts ? (
         <>
           <p className={`font-display leading-[1.45] text-[color:var(--paper)] print:text-black ${whole ? "text-[20px]" : "text-[17px]"}`}>
