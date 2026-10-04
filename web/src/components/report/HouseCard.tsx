@@ -103,7 +103,7 @@ export function HouseCard({ house, sign, occupants, reading, whole = false, lit 
           )}
           {parts.check && (
             <div className="grid gap-1 border-t border-[color:var(--line-soft)] pt-2.5 print:border-neutral-300">
-              <p className="font-label text-[9.5px] font-medium uppercase tracking-[.16em] text-[color:var(--accent)]">Behaviour check</p>
+              <p className="font-label text-[9.5px] font-medium uppercase tracking-[.16em] text-[color:var(--accent)]">Does this sound like you?</p>
               <p className={`text-[color:var(--paper)] print:text-black ${whole ? "text-[14px] leading-[1.55]" : "text-[13.5px] leading-[1.5]"}`}>
                 {parts.check}
               </p>
@@ -119,9 +119,9 @@ export function HouseCard({ house, sign, occupants, reading, whole = false, lit 
 
 const HOUR_ADDS = [
   "Your rising sign, and the chapter it opens",
-  "Twelve houses: where each planet does its work",
-  "Day or night, and which planets carry weight",
-  "The Lots, drawn from the horizon",
+  "Twelve houses: which part of life each planet affects",
+  "Day or night, and which planets matter most",
+  "The Lots, points worked out from your rising sign",
 ];
 
 /** The country is the last part of the place the geocoder returned, when it gave one. */
@@ -135,8 +135,8 @@ export function AddBirthTimeCard({ birthPlace, onAddBirthTime }: { birthPlace?: 
   const hint = hintFor(countryOf(birthPlace));
   return (
     <div className="relative flex h-full flex-col rounded-xl border border-brass/40 bg-card/40 p-5 text-left" data-testid="add-birth-time-card">
-      <p className="rp-kicker">Horizon · not drawn</p>
-      <h4 className="mt-1 font-display text-2xl leading-tight text-foreground">What the hour adds</h4>
+      <p className="rp-kicker">Rising sign · needs a birth time</p>
+      <h4 className="mt-1 font-display text-2xl leading-tight text-foreground">What your birth time adds</h4>
       <ul className="mt-4 space-y-2 text-sm leading-relaxed text-foreground/85">
         {HOUR_ADDS.map((line) => <li key={line} className="flex gap-2"><span aria-hidden className="text-brass">·</span>{line}</li>)}
       </ul>
@@ -149,7 +149,7 @@ export function AddBirthTimeCard({ birthPlace, onAddBirthTime }: { birthPlace?: 
         >
           Add my birth time
         </button>
-        <p className="mt-2 font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Free. Every change is marked.</p>
+        <p className="mt-2 font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Free. We'll show you what changed.</p>
       </div>
       <p className="mt-auto border-t border-border/40 pt-3 text-xs leading-relaxed text-muted-foreground">
         <span className="font-label text-[10px] tracking-[0.16em] uppercase text-brass/80">Where to find it · </span>

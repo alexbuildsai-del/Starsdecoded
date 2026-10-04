@@ -67,7 +67,7 @@ export function RevisionLedger({
         </div>
       )}
       <div className="row mt-2">
-        <span>Before · <b>kept</b> · compare any time</span>
+        <span>Old version <b>saved</b> · compare any time</span>
       </div>
       <button type="button" className="toggle no-print" aria-pressed={shown} onClick={() => onToggle(!shown)}>
         <span aria-hidden className={`inline-block h-3 w-3 rounded-sm border border-brass ${shown ? "bg-brass" : ""}`} />

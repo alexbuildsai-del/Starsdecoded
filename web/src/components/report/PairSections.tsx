@@ -27,7 +27,7 @@ export function personKicker(name: string): string {
 export function ScenesIntro() {
   return (
     <p className="rp-lede" data-scenes-intro>
-      From here, each chapter plays out one scene between you: how it tends to go, what was going on under it, and one thing to try next time.
+      Each chapter from here shows one everyday moment between you: how it tends to go, what is behind it, and one thing to try next time.
     </p>
   );
 }
@@ -83,7 +83,7 @@ export function LensChapterBlock({ s, names, chapter, sceneTitle }: {
         </div>
       </div>
       <div className="rp-lblk">
-        <span className="rp-lab">The pattern under it</span>
+        <span className="rp-lab">What's behind it</span>
         <p>{CitedText({ text: s.pattern, claims: s.claims, counter: k })}</p>
       </div>
       <Checklist heading="Next time" items={nextTimeItems(chapter, s.nextTime.items, names)} pinnable />

@@ -124,7 +124,7 @@ function placementText(p: ChartPlanet): string {
   return `${p.degree.toFixed(2)}° ${p.sign}${p.house ? ` · ${houseWithWord(p.house)}` : ""}`;
 }
 
-const ADD_TIME = "add your birth time to draw the horizon";
+const ADD_TIME = "add your birth time to see your rising sign and houses";
 
 /** The cue is a button (ADR-50): 44 px hit area, scrolls to chapter 01, fades over the first half screen. */
 function ScrollCue({ flow, reduced, cueRef }: { flow?: boolean; reduced: boolean; cueRef: React.RefObject<HTMLDivElement | null> }) {
@@ -321,7 +321,7 @@ export function ReportHero({
 
   const sectLine = meta.sect && meta.sunAltitude !== undefined
     ? `${meta.sect} chart · sun alt ${meta.sunAltitude.toFixed(1)}°`
-    : "horizon · not drawn";
+    : "rising sign · needs a birth time";
 
   return (
     <>
@@ -340,7 +340,7 @@ export function ReportHero({
           viewBox={`0 0 ${W} ${H}`}
           style={stack ? { maxHeight: `${stack.svg.toFixed(0)}px`, maxWidth: `${stack.svg.toFixed(0)}px` } : undefined}
           role="img"
-          aria-label={blind ? `${name}: Sun and Moon at their true positions; the horizon is not drawn` : `${name}: Sun, Moon and Rising at their true positions`}
+          aria-label={blind ? `${name}: Sun and Moon at their true positions; the rising sign needs a birth time` : `${name}: Sun, Moon and Rising at their true positions`}
         >
           <g ref={diagramRef}>
             <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
@@ -418,7 +418,7 @@ export function ReportHero({
               <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={13} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.5} />
             )}
             {blind && !narrow && (
-              <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{`RISING · ${ADD_TIME.toUpperCase()}`}</Label>
+              <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{ADD_TIME.toUpperCase()}</Label>
             )}
           </g>
         </svg>
@@ -526,7 +526,7 @@ export function ReportHero({
             DOB · {dobText} · TOB · {tob} · POB · {birthPlace}
           </p>
           <p className="font-numeric text-xs mt-1">
-            {legend.map((row) => `${row.label} ${!row.key && blind ? "not drawn" : row.value}`).join(" · ")}
+            {legend.map((row) => `${row.label} ${!row.key && blind ? "needs a birth time" : row.value}`).join(" · ")}
           </p>
         </header>
       </section>

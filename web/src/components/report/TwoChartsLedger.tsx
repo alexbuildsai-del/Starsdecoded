@@ -125,7 +125,7 @@ export function TwoChartsLedger({ s, names, interpretation, lens }: TwoChartsLed
         <Column title={MEET_TAGS.challenge} colour={ROSE} rows={rows.work} names={names} claims={s.claims} counter={counter} cards={cards} />
       </div>
       <div className="mx-auto mt-10 max-w-[44ch] text-center" data-paradox>
-        <span className="font-label text-[10px] tracking-[0.2em] uppercase text-[var(--paper-dim)]">The paradox</span>
+        <span className="font-label text-[10px] tracking-[0.2em] uppercase text-[var(--paper-dim)]">Where you pull two ways</span>
         <span aria-hidden className="mx-auto mt-3 block h-px w-full" style={{ background: `linear-gradient(90deg, ${TEAL}, ${ROSE})` }} />
         <p className="mt-4 font-display italic text-[22px] leading-[1.35] text-[var(--paper)]">{CitedText({ text: s.paradox, claims: s.claims, counter })}</p>
       </div>

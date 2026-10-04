@@ -41,7 +41,7 @@ export function LinkCard({ card, rest = false }: { card: MeetCard; rest?: boolea
       <h4 className="text-[18px] leading-[1.25] text-[var(--paper)] first:mt-0 print:text-black">{card.title}</h4>
       <p className="mt-1 font-numeric text-[10.5px] uppercase leading-[1.5] tracking-[0.08em] text-[var(--paper-dim)] print:text-[#444]">{card.astro}</p>
       <p className="print:text-black">{card.body}</p>
-      {card.check && <p className="print:text-black"><span className="rp-lab">Behaviour check</span> {card.check}</p>}
+      {card.check && <p className="print:text-black"><span className="rp-lab">Does this sound like you?</span> {card.check}</p>}
     </article>
   );
 }
