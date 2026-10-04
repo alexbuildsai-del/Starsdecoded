@@ -90,7 +90,7 @@ describe("the readout", () => {
   it("says whether the horizon is drawn", () => {
     expect(readout(horizon("known", fact({}))).line).toMatch(/The horizon is drawn/);
     expect(readout(horizon("approximate", fact({}))).line).toMatch(/holds across your window/);
-    expect(readout(horizon("unknown", fact({ holds: false, values: ["A", "B"], flipsAt: ["12:58"] }))).line).toMatch(/not drawn; the report reads the date/);
+    expect(readout(horizon("unknown", fact({ holds: false, values: ["A", "B"], flipsAt: ["12:58"] }))).line).toMatch(/We can't tell your rising sign without a time. The report uses your birth date/);
   });
 
   it("labels the corner of the plate", () => {

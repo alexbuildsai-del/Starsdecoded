@@ -173,7 +173,7 @@ export default function ReportPage() {
     return (
       <Centred>
         <p className="text-muted-foreground mb-4">
-          This report was generated with an earlier version and needs to be regenerated to view.
+          This report was made with an older version. Write it again to read it.
         </p>
         {offer.regenerate && (
           <Button variant="outline" disabled={regenerate.isPending} onClick={rewrite}>

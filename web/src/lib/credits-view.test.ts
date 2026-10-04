@@ -217,7 +217,7 @@ describe("pathSteps", () => {
       ["The two of you", false, 2],
     ]);
     expect(steps[0].credits).toBe(0);
-    expect(pathView(3, 3, { ownChart: true, people: [], pairs: 0 }).spare).toBe("One credit stays for whoever comes next.");
+    expect(pathView(3, 3, { ownChart: true, people: [], pairs: 0 }).spare).toBe("One credit is left for someone else later.");
   });
 
   it("a top-up of 3 onto 3 plans the whole balance from what is written", () => {
@@ -232,7 +232,7 @@ describe("pathSteps", () => {
 
   it("a top-up of 3 onto 3 with nothing written yet starts from your own chart", () => {
     expect(titles(6, NOTHING)).toEqual(["Your own chart", "Two people close to you", "Two Compatibility reports"]);
-    expect(pathView(3, 6, NOTHING).spare).toBe("One credit stays for whoever comes next.");
+    expect(pathView(3, 6, NOTHING).spare).toBe("One credit is left for someone else later.");
   });
 
   it("names up to two people and counts beyond, and never plans more than the balance", () => {
@@ -265,7 +265,7 @@ describe("pathView", () => {
     expect(pathView(3, 6, { ownChart: true, people: ["Beatrice"], pairs: 1 })).toMatchObject({
       eyebrow: "3 more added · a top-up",
       title: "6 credits to use",
-      line: "3 left from before, 3 just added: one balance.",
+      line: "3 left from before, 3 just added: all in one balance.",
       spare: null,
     });
   });
