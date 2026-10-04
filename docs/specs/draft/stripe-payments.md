@@ -3,25 +3,20 @@
 Ideation 2026-10-04 with the Owner ("ok lets work on the stripe integration"; "subscription and
 also branded checkout pls"; testers get free credits and the full flow; a second QA account for
 invite and claim); 2026-10-04 later: "four products" saved in Stripe, campaigns with promotional
-pricing, where testers are managed, the seller address edited later. Artifact: https://claude.ai/artifact/Yamws6GPDB5jKvdk8U8rp2. Status: **draft**.
+pricing, where testers are managed, the seller address edited later. Artifact: https://claude.ai/artifact/Yamws6GPDB5jKvdk8U8rp2. Status: **draft, answered**.
 
 Builds on `pricing-and-launch.md` (locked 2026-09-27, ADR-142 to 149), whose checkout rules stand
 except where this draft says it supersedes them; the catalogue as built (Couple €54, ADR-168);
 Timeline's Billing section (`timeline.md`, on `claude/youthful-gauss-7snkqd`); MB-115, MB-119, MB-114.
 
 ## Where the code stands (audit 2026-10-04)
-
-Built: the catalogue in `packages/commerce`, `LEGAL_IDENTITY` (postal address null), `CHECKOUT_TICK`,
-`REFUND_RULES`, the legal pages, `bundles` and `credits` with holds and `refundCredit`, the free test
-checkout (`POST /checkout/test`, 403 on production), Copy link when an invite email fails.
-Missing: any Stripe code or key; a webhook (production's prelaunch gate would 403 it, and
-`express.json` at `app.ts:98` would eat the raw body); credits are soft on every host
-(`consumeCredit` fire-and-forget, `holdCredit` lets a gift out with none); no return to the asking
-step; no receipt; no refund removal; no purchase or event tables; Stripe absent from the privacy page.
+Built: the catalogue, `LEGAL_IDENTITY` (address null), the tick, refund rules, legal pages, the ledger,
+the test checkout. Missing: all Stripe code; credits soft on every host (`consumeCredit` after the
+write, `holdCredit` lets gifts out with none); `express.json` and the prelaunch gate in a webhook's way.
 
 ## Scope
 
-### Checkout: our page, Stripe's fields (Q1, recommended B)
+### Checkout: our page, Stripe's fields (B, the Owner, 2026-10-04)
 - `/checkout` on our origin, in the product's look: the bundle or plan with its price from the
   catalogue, Stripe's Express Checkout (Apple Pay, Google Pay, Link) and Payment Element styled
   through Stripe's Appearance API from our tokens, the one tick, Pay with the amount.
@@ -48,7 +43,7 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
   a changed amount makes a new Price and moves the key (`transfer_lookup_key`), old sales keep theirs.
   No product is created by hand in the Dashboard. Supersedes MB-119's `price_data` recommendation.
 
-### Campaigns (the Owner, 2026-10-04; amends ADR-146's home, Q2 on its rules)
+### Campaigns (the Owner, 2026-10-04; amends ADR-146's home)
 - Admin **Campaigns** view: name, products, the campaign price, start and end dates, audience
   (everyone, or link only via `?c=<slug>`, kept with the session like the UTM tags). Stored in a
   `campaigns` table, per environment, so starting one needs no deploy; offers leave the catalogue.
@@ -56,7 +51,9 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
   JSON-LD and `/checkout` show the campaign price beside the full one, the end date once, no countdown.
 - Stripe receives it as a Coupon (`amount_off`) made by the sync and applied as the session's
   discount, so the receipt and Stripe's reports name the campaign; the purchase row stores it.
-- Rules enforced on save (pending Q2): at most 25% off, one live campaign per product, never Single.
+- Rules enforced on save: at most 25% off, one live campaign per product, never Single; Couple and
+  Family & friends each alone or both at once. Timeline takes no campaign for now (out of scope,
+  not ruled out for later).
 - The landing's prerendered slot shows full prices; a live campaign is fetched after load, so a
   campaign never needs a rebuild.
 
@@ -75,7 +72,7 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
 - Receipt: Stripe's own receipt for the payment, plus our email through Resend repeating the tick
   and the refund rules (Art. 8(7)), the bundle, the amount and the History link.
 
-### The subscription (Q2): the plumbing now, the sale with Timeline
+### The subscription: the plumbing now, the sale with Timeline
 - Timeline is the fourth product, monthly €9.99 and yearly €69.99, VAT included, saved by the sync
   as recurring Prices. Settled 2026-10-04 (the Owner: "building for both the reports and the
   subscription product").
@@ -108,26 +105,30 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
 - After each staging deploy (and from Run now in the admin), the QA agent on Railway signs in as
   them with Clerk Testing Tokens (`@clerk/testing`, the `CLERK_SECRET_KEY` already on Railway) and
   walks: qa-a buys Couple in the sandbox with the test card and returns to the asking step, Sends a
-  report and Gifts one to qa-b; qa-b claims both from the links the app returns (Copy link's link),
+  report and Gifts one to qa-b; qa-b claims both from the links the app returns, reads the sent
+  report, and writes with the gifted credit;
   writes nothing new except once per Release; both dashboards checked; a sandbox refund takes back
   the unused credit; a plan starts, renews on a test clock and cancels. `emailDelivered` is recorded,
-  so a Resend failure is a finding, not a stop.
+  and must be true (Resend works, the Owner 2026-10-04): an undelivered email is a finding.
 - The verdict, steps and findings without personal data are public at `/api/qa/latest`, like
-  `/api/release/:id/verdict`; `/round` and `/qa` read it after every merge and fix what fails.
+  `/api/release/:id/verdict`; `/round` and `/qa` read it after every merge and fix what fails. The
+  payments round itself ends with this walk on staging and a `/qa` report on its flows.
   Staging only; production keeps today's read-only walk.
 
 ### Keys (no secret on GitHub, ever)
 - `STRIPE_SECRET_KEY` as a restricted key (`rk_test_` on Railway staging, `rk_live_` on production),
   `STRIPE_WEBHOOK_SECRET` per endpoint and `STRIPE_PUBLISHABLE_KEY` on Railway; nothing on Vercel.
-  Staging's endpoint goes straight to Railway, `https://starsdecoded-staging.up.railway.app/api/stripe/webhook`. The sandbox keys the
-  Owner placed in GitHub environment secrets are deleted there; no workflow reads them.
+  Staging's three are in place (2026-10-04): the restricted key, the publishable key, and the
+  webhook secret of a destination at `https://starsdecoded-staging.up.railway.app/api/stripe/webhook`
+  with the eleven events above. The copies in GitHub's secrets are deleted by the Owner; no workflow reads them.
 - `api/src/lib/stripe.ts` the one seam: one `Stripe` client instance, pinned to `2026-08-26.dahlia`,
   the version staging's webhook destination was created with (2026-10-04), so payloads match the types.
 
 ## Out of scope
-- Timeline itself, a typed promotion-code box at checkout, a custom Checkout domain, Managed Payments
+- Timeline's pages (R16 builds them; this round wires its Start Timeline to `/checkout` and re-reads
+  R16's files), campaigns on Timeline, a typed promotion-code box, a custom Checkout domain, Managed Payments
   (Stripe as seller of record: 3.5% plus fees, eligibility for a Belgian individual unconfirmed),
-  coupons, a second currency, invoices for businesses, `LAUNCHED = true` (a Release after this ships).
+  a second currency, invoices for businesses, `LAUNCHED = true` (a Release after this ships).
 - Stripe Tax stays off until the Owner confirms a VAT registration (MB-114); the seam takes
   `automatic_tax` with inclusive prices when one exists.
 
@@ -153,30 +154,30 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
    tests, codegen, `db:bootstrap` clean twice, the sentinel, preview checks and smoke all green.
 
 ## Screens
-In the artifact: the three checkout options at 390 px (B recommended), the purchase flow, the
-subscription, the Testers view, staging against production, the second QA account, the keys.
+In the artifact: the three checkout looks at 390 px (B chosen), the flow, the four products,
+Campaigns, the subscription, Testers, automatic QA, the keys and the Owner's checklist.
 
-## Open questions (artifact, each with a default)
-1. The checkout's look: A hosted and branded, **B our page with Stripe's fields**, C embedded.
-   Default B. (Unanswered in the Owner's 2026-10-04 reply; the default stands.)
-2. Campaign rules: **at most 25% off, one per product, never Single, Timeline included; by date or
-   link, no code box**. Default as recommended.
-3. Order: **payments is the next round**, Timeline after it, its plan re-read. Default payments next.
+## Answered (the Owner, 2026-10-04)
+1. The look: **B**. 2. Campaigns: 25% at most, one per product, never Single, Couple and Family
+alone or together, Timeline out for now. 3. Order: R16 Timeline (nearly done), then this round, then
+a round of fixes.
 
-## The Owner supplies
-Move the sandbox keys to Railway staging (a restricted key and the webhook secret; runbook K); in
-Stripe Public details the Terms and Privacy URLs and descriptor `MYSTARSDECODED`; the postal
-Resend's domain (runbook L; the waitlist confirmation and every email of ours wait on it, the
-automatic QA does not); Clerk's production instance before launch, then the new `ADMIN_USER_ID`; the postal
-address before the first live sale only (MB-115: name, Belgium and contact are in; the build and
-staging go ahead without it, `saleReady()` keeps production's checkout shut until it is set); the VAT position (MB-114); live keys at the launching Release.
+## The Owner's checklist (none of it blocks the build; sandbox first)
+Done: the three sandbox keys on Railway staging. After: delete the Stripe secrets from GitHub.
+Before the first live sale: activate the account (identity, the Revolut payout account); business
+details (individual, Stars Decoded, mystarsdecoded.com, what we sell); Public details (support
+email, Terms, Privacy and Refunds URLs, descriptor `MYSTARSDECODED`); Branding (icon, logo,
+indigo) for receipts and the Portal; receipts for payments and refunds on; two-step sign-in;
+payment method domains for Apple Pay; the postal address (MB-115); the VAT position (MB-114);
+Clerk's production instance and the new `ADMIN_USER_ID`; at launch the live restricted key,
+publishable key and webhook destination on Railway production.
 
 ## Research
 Two researcher passes 2026-10-04. docs.stripe.com, stripe.com and clerk.com were blocked by this
 session's network policy, so the verifier could not re-fetch them; claims rest on Stripe's SDK
 source and changelog on GitHub, the clerk-docs source repo, and the Stripe plugin's best-practice
-guide. Lookup keys, `transfer_lookup_key` and Coupons as session discounts are from the SDK, not yet
-read in Stripe's docs. The round's first card re-checks each Stripe fact in Stripe's docs before code.
+guide. The round's first card re-checks each Stripe fact (lookup keys, Coupons on `elements`
+sessions included) in Stripe's docs before code.
 
 ## Decisions to record
 1. **Our own checkout page** on a Checkout Session in `elements` mode, styled from our tokens, with
@@ -192,5 +193,8 @@ read in Stripe's docs. The round's first card re-checks each Stripe fact in Stri
    link, under ADR-146's rules (amends ADR-146's home in the catalogue).
 6. **Automatic QA on staging**: a server-made QA pair, signed in with Clerk Testing Tokens on
    Railway, walked after every deploy, verdict public at `/api/qa/latest` for sessions to read.
-7. **Restricted Stripe keys on Railway, publishable key on Vercel, none on GitHub.**
-8. **Order**: payments is the next round, Timeline after it (pending Q3).
+7. **Every Stripe key on Railway** (restricted secret key, publishable key served by the API,
+   webhook secret), none on Vercel or GitHub.
+8. **Campaign rules**: 25% at most, one per product, never Single, Couple and Family alone or
+   together; Timeline out for now.
+9. **Order**: R16 Timeline, then payments, then a round of fixes.
