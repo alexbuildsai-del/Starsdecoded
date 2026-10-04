@@ -9,21 +9,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, LayoutDashboard, Shield } from "lucide-react";
+import { CircleUser, LogOut, User as UserIcon, LayoutDashboard, Orbit, Shield } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useTimelineAccess } from "@/lib/timeline-access";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 /**
  * Header-aligned account control. Renders a "Sign in" button for anonymous
- * visitors and a dropdown with the user's email + sign-out for authenticated
- * users. Designed to slot into the right side of any page nav.
+ * visitors and, for a signed-in reader, a dropdown with their reports, Timeline
+ * only when they have it (ADR-262), their Account page (ADR-263) and sign-out.
+ * Designed to slot into the right side of any page nav.
  */
 export function AccountMenu() {
   const [, navigate] = useLocation();
   const { signOut } = useClerk();
   const { user } = useUser();
   const isAdmin = useIsAdmin();
+  // Read with the page rather than when the menu opens, so Timeline is already there or not and never pops in.
+  const { access: hasTimeline } = useTimelineAccess();
 
   return (
     <>
@@ -57,6 +61,14 @@ export function AccountMenu() {
             </DropdownMenuLabel>
             <DropdownMenuItem onClick={() => navigate("/dashboard")}>
               <LayoutDashboard className="h-4 w-4 mr-2" /> My reports
+            </DropdownMenuItem>
+            {hasTimeline && (
+              <DropdownMenuItem onClick={() => navigate("/dashboard/timeline")}>
+                <Orbit className="h-4 w-4 mr-2" /> Timeline
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => navigate("/dashboard/account")}>
+              <CircleUser className="h-4 w-4 mr-2" /> Account
             </DropdownMenuItem>
             {isAdmin && (
               <>

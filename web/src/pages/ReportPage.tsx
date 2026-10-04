@@ -12,7 +12,7 @@
  * there (MB-170); Try again and Regenerate show only where the server lets the
  * reader rewrite it (MB-169).
  */
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -55,6 +55,10 @@ import { useLiveReport } from "@/hooks/useLiveReport";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { CHAPTERS } from "@/lib/chapters";
 import { refusalLine } from "@/lib/refusals";
+import { useTimelineAccess } from "@/lib/timeline-access";
+
+// Ask's chat brings Timeline's pieces and the sky engine with it, so a reader without Timeline never downloads them.
+const AskLauncher = lazy(() => import("@/components/ask/AskLauncher"));
 
 const TOTAL = CHAPTERS.length;
 const OPENING_ACCENT = "#5C6BC0";
@@ -121,6 +125,12 @@ export default function ReportPage() {
   const [askTime, setAskTime] = useState(false);
   const [sending, setSending] = useState(false);
   const [marks, setMarks] = useState(() => marksShown(id ?? ""));
+  const { access } = useTimelineAccess();
+  // Once drawn, Ask stays: a chat open when access goes keeps its refusal on screen until the reader closes it.
+  const [asks, setAsks] = useState(false);
+  useEffect(() => {
+    if (access) setAsks(true);
+  }, [access]);
 
   const live = useLiveReport(id!);
   const { report, sections, workbook, writing, revising, open, setOpen, progress, horizonPass } = live;
@@ -448,6 +458,13 @@ export default function ReportPage() {
           <MethodologyStrip meta={interpretation.meta} chart={chartData} birthTime={report.birthTime} pass={horizonPass} />
         </div>
       </main>
+
+      {/* In the corner once the reading shows, past the generation screen; a question asked here can read this report (reading 16). */}
+      {open && asks && (
+        <Suspense fallback={null}>
+          <AskLauncher reportId={id} />
+        </Suspense>
+      )}
 
       {askTime && report.profileId && (
         <BirthTimeDialog
