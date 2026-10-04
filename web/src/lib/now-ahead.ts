@@ -50,15 +50,6 @@ export function nothingNext(range: TimelineRange): string {
   return `Nothing else starts, peaks or eases ${rangeAhead(range)}.`;
 }
 
-/** The zone the browser names, sent as `tz` so the reader's days are their own (reading 4); none when it names none. */
-export function browserZone(): string | undefined {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /** What gets a reading (reading 7): every contact, a retrograde crossing a known house, an eclipse near a natal point. */
 export function reads(event: Pick<TimelineEvent, "kind" | "houses" | "target">): boolean {
   if (event.kind === "contact") return true;

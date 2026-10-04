@@ -3,7 +3,6 @@ import { Loader2, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useDeleteReport,
-  useGetHome,
   useListShares,
   getGetHomeQueryKey,
   getListReportsQueryKey,
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useHome } from "@/hooks/useHome";
 import { ownIds } from "@/lib/home-view";
 
 export const ENDS_SHARING_LINE = "Anyone you shared it with can no longer read it.";
@@ -70,7 +70,7 @@ export function DeleteReportDialog({
   const qc = useQueryClient();
   const { toast } = useToast();
   // The copies the page and the quick look hold: a delete's dialog asks the server for neither.
-  const home = useGetHome(undefined, { query: { queryKey: getGetHomeQueryKey(), enabled: false } }).data;
+  const home = useHome({ enabled: false }).data;
   const shares = useListShares({ query: { queryKey: getListSharesQueryKey(), enabled: false } }).data;
 
   const deleteReport = useDeleteReport({

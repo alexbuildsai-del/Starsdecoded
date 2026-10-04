@@ -1,6 +1,7 @@
 /**
  * Ask's routes (ADR-213, 263): the reader's thread, and a message to Ask. Both stand behind Timeline's one access check
- * and read the reader's own chart (reading 2); routes/index.ts stands Ask's count and the breaker ahead of a message.
+ * and read the reader's own chart (reading 2); routes/index.ts stands Ask's count and the breaker ahead of a message,
+ * the breaker with Timeline's own pause line, since a message spends no credit.
  * Nothing the reader types reaches a log (ADR-201): a failure here logs its class and nothing else, as ask.ts does.
  */
 import { Router, type Request } from "express";

@@ -1,9 +1,9 @@
 /**
  * Timeline's and Ask's routes through the real router, in process (MB-49): the access answer, the one access check in
- * front of every other route, a reading's count and the breaker that an open writing nothing skips, Ask's answers,
- * GET /home's week or teaser, and deleting one's own Personal report. The decisions run with no database; the routes'
- * reads run on a scratch Postgres when WALK_DATABASE_URL names a bootstrapped one, and skip, saying why, without it.
- * The model is the test stub, so nothing here calls a real one.
+ * front of every other route, Now and ahead's count, a reading's count and the breaker that an open writing nothing
+ * skips, Timeline's own pause line, Ask's answers, GET /home's week or teaser, and deleting one's own Personal report.
+ * The decisions run with no database; the routes' reads run on a scratch Postgres when WALK_DATABASE_URL names a
+ * bootstrapped one, and skip, saying why, without it. The model is the test stub, so nothing here calls a real one.
  */
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -35,14 +35,14 @@ const { installFakeModel } = await import("../lib/testModel.js");
 const { setSpendSink } = await import("../lib/spendLedger.js");
 const { logger } = await import("../lib/logger.js");
 const { LIMITS, LIMIT_LINES } = await import("../lib/limits.js");
-const { PAUSED_LINE } = await import("../lib/spendCap.js");
+const { PAUSED_LINE, TIMELINE_PAUSED_LINE } = await import("../lib/spendCap.js");
 const { NO_TIMELINE_LINE } = await import("../lib/timelineAccess.js");
 const { ASK_CHOICE_GONE_LINE, ASK_EMPTY_LINE, monthOf } = await import("../lib/ask.js");
 const { chartForProfile } = await import("../lib/profiles.js");
 const T = await import("../lib/timeline.js");
 const { capLine } = await import("../prompts/ask/index.js");
 const Z = await import("@workspace/api-zod");
-const { default: router, asking, openingReading } = await import("./index.js");
+const { default: router, asking, nowAndAhead, openingReading } = await import("./index.js");
 const TL = await import("./timeline.js");
 const AK = await import("./ask.js");
 
@@ -277,7 +277,34 @@ test("Ask's chain as routes/index.ts stands it: the access check, then 6 a minut
   process.env.DAILY_SPEND_CAP_USD = "0";
   const answer = await fetched(base, "POST", "/ask", paused, { text: "Hi" });
   assert.equal(answer.status, 503);
-  assert.deepEqual(answer.body, { error: "paused", reason: "paused", message: PAUSED_LINE });
+  assert.deepEqual(answer.body, { error: "paused", reason: "paused", message: TIMELINE_PAUSED_LINE }, "Timeline's line, never the report's credit line");
+  assert.notEqual(TIMELINE_PAUSED_LINE, PAUSED_LINE);
+});
+
+test("Now and ahead's chain as routes/index.ts stands it: the access check, then 30 reads a minute with its line, and no breaker", async (t) => {
+  const looker = user("chain-now");
+  const stub = express();
+  stub.use(viewer);
+  // Stands in for the view: a range it does not know is its 400, any other read its 200.
+  const view: RequestHandler = (req, res) => void res.status(req.query.range === "year" ? 400 : 200).json({ range: req.query.range });
+  stub.get("/timeline/now", nowAndAhead, view);
+  const { base, close } = await listen(stub);
+  t.after(async () => {
+    process.env.ADMIN_USER_ID = ADMIN;
+    delete process.env.DAILY_SPEND_CAP_USD;
+    await close();
+  });
+  process.env.ADMIN_USER_ID = looker;
+  // A paused day: the six months' queue waits behind the breaker itself, so the view still answers.
+  process.env.DAILY_SPEND_CAP_USD = "0";
+  const get = (who: string, range: string) => fetched(base, "GET", `/timeline/now?range=${range}`, who);
+  for (let i = 0; i <= LIMITS.timelineNow.limit; i++) assert.equal((await get(user("chain-now-other"), "week")).status, 403, `try ${i + 1}`);
+  for (let i = 0; i < 3; i++) assert.equal((await get(looker, "year")).status, 400, "a range it does not know gives its count back");
+  const ranges = ["week", "month", "six-months"];
+  for (let i = 0; i < LIMITS.timelineNow.limit; i++) assert.equal((await get(looker, ranges[i % 3])).status, 200, `read ${i + 1}`);
+  const limited = await get(looker, "six-months");
+  assert.equal(limited.status, 429);
+  assert.deepEqual(limited.body, { error: "rate_limited", message: LIMIT_LINES.timelineNow, retryAfterSeconds: Number(limited.retryAfter) });
 });
 
 test(
@@ -308,7 +335,7 @@ test(
     process.env.DAILY_SPEND_CAP_USD = "0";
     const answer = await post(paused, SATURN_ON_ASC);
     assert.equal(answer.status, 503);
-    assert.deepEqual(answer.body, { error: "paused", reason: "paused", message: PAUSED_LINE });
+    assert.deepEqual(answer.body, { error: "paused", reason: "paused", message: TIMELINE_PAUSED_LINE });
   },
 );
 
@@ -319,6 +346,7 @@ const id = (name: string) => `r1629-${run}-${name}`;
 const OWNER = user("owner");
 const NOBODY = user("nobody");
 const LIMITER = user("limiter");
+const LOOKER = user("looker");
 const ASKER = user("asker");
 const CAPPED = user("capped");
 const DELETER = user("deleter");
@@ -326,13 +354,13 @@ const GIVER = user("giver");
 const SUBJECT = user("subject");
 const P = {
   admin: id("p-admin"), adminOther: id("p-admin-other"), owner: id("p-owner"), limiter: id("p-limiter"), asker: id("p-asker"),
-  capped: id("p-capped"), deleter: id("p-deleter"), given: id("p-given"),
+  capped: id("p-capped"), deleter: id("p-deleter"), given: id("p-given"), looker: id("p-looker"),
 };
 const R = {
   admin: id("r-admin"), adminOther: id("r-admin-other"), owner: id("r-owner"), limiter: id("r-limiter"), asker: id("r-asker"),
-  capped: id("r-capped"), deleter: id("r-deleter"), given: id("r-given"),
+  capped: id("r-capped"), deleter: id("r-deleter"), given: id("r-given"), looker: id("r-looker"),
 };
-const USERS = [ADMIN, OWNER, NOBODY, LIMITER, ASKER, CAPPED, DELETER, GIVER, SUBJECT];
+const USERS = [ADMIN, OWNER, NOBODY, LIMITER, LOOKER, ASKER, CAPPED, DELETER, GIVER, SUBJECT];
 
 /** A Personal report's text as a reading reads it: a card for each house. */
 const REPORT_TEXT = {
@@ -356,6 +384,7 @@ function seed(): Promise<void> {
       profile(P.adminOther, ADMIN),
       profile(P.owner, OWNER, { isSelf: true }),
       profile(P.limiter, LIMITER, { isSelf: true }),
+      profile(P.looker, LOOKER, { isSelf: true }),
       profile(P.asker, ASKER, { isSelf: true }),
       profile(P.capped, CAPPED, { isSelf: true }),
       profile(P.deleter, DELETER, { isSelf: true }),
@@ -370,6 +399,7 @@ function seed(): Promise<void> {
       report(R.adminOther, P.adminOther, ADMIN),
       report(R.owner, P.owner, OWNER),
       report(R.limiter, P.limiter, LIMITER),
+      report(R.looker, P.looker, LOOKER),
       report(R.asker, P.asker, ASKER),
       report(R.capped, P.capped, CAPPED),
       report(R.deleter, P.deleter, DELETER),
@@ -537,21 +567,44 @@ test("db, a reading's count: 20 new ones a minute, then its line; opening one ke
   assert.deepEqual([asked.status, asked.body], [200, { status: "writing", reading: null, line: null }], "the sheet asking again while it is written");
 });
 
-test("db, a paused day: a kept reading still opens, a new one is 503 with the pause's line and writes nothing", { skip: NO_DB }, async (t) => {
+test("db, Now and ahead's count through the router: 30 reads a minute, then its line; a range it does not know gives its count back, and Life, which writes nothing, has none", { skip: NO_DB }, async (t) => {
+  await seed();
+  process.env.ADMIN_USER_ID = LOOKER;
+  t.after(() => {
+    process.env.ADMIN_USER_ID = ADMIN;
+  });
+  for (let i = 0; i < 3; i++) assert.equal((await call("GET", "/timeline/now?range=year", LOOKER)).status, 400);
+  for (let i = 0; i < LIMITS.timelineNow.limit; i++) {
+    assert.equal((await call("GET", "/timeline/now?range=week", LOOKER)).status, 200, `read ${i + 1}`);
+  }
+  const limited = await call("GET", "/timeline/now?range=week", LOOKER);
+  assert.equal(limited.status, 429);
+  assert.deepEqual(limited.body, { error: "rate_limited", message: LIMIT_LINES.timelineNow, retryAfterSeconds: Number(limited.retryAfter) });
+  assert.equal((await call("GET", "/timeline/life", LOOKER)).status, 200);
+});
+
+test("db, a paused day: a kept reading and one still being written open, a new one is 503 with Timeline's pause line and writes nothing", { skip: NO_DB }, async (t) => {
   await seed();
   process.env.DAILY_SPEND_CAP_USD = "0";
   t.after(() => {
     delete process.env.DAILY_SPEND_CAP_USD;
   });
-  const kept = (await rowsFor(P.admin)).find((r) => r.status === "ready")!.eventKey;
+  const ready = (await rowsFor(P.admin)).filter((r) => r.status === "ready").map((r) => r.eventKey);
+  assert.ok(ready.length >= 2, `${ready.length} kept readings`);
+  const [kept, writing] = ready;
   const opened = await open(ADMIN, kept);
   assert.deepEqual([opened.status, opened.body.status], [200, "ready"]);
+  const { db, timelineReadingsTable: tr } = await import("@workspace/db");
+  const { and, eq } = await import("drizzle-orm");
+  await db.update(tr).set({ status: "writing", reading: null, updatedAt: new Date() }).where(and(eq(tr.profileId, P.admin), eq(tr.eventKey, writing)));
+  const asked = await open(ADMIN, writing);
+  assert.deepEqual([asked.status, asked.body], [200, { status: "writing", reading: null, line: null }], "the sheet asking again while it is written");
   const life = Z.GetTimelineLifeResponse.parse((await call("GET", "/timeline/life", ADMIN)).body);
   const fresh = life.cycles.find((c) => c.reading === "none")!.key;
   const before = calls("timeline_reading");
   const paused = await open(ADMIN, fresh);
   assert.equal(paused.status, 503);
-  assert.deepEqual(paused.body, { error: "paused", reason: "paused", message: PAUSED_LINE });
+  assert.deepEqual(paused.body, { error: "paused", reason: "paused", message: TIMELINE_PAUSED_LINE });
   assert.equal(calls("timeline_reading"), before);
   assert.ok(!(await rowsFor(P.admin)).some((r) => r.eventKey === fresh));
 });

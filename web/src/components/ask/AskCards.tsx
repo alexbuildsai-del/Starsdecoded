@@ -4,13 +4,14 @@
  * contact cards, a window its day cells, a cycle Life's card, and a quote the
  * report's evidence, word for word as the server put it in.
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { AskCard } from "@workspace/api-client-react";
 import { ContactCard } from "@/components/timeline/ContactCard";
 import { CycleCard } from "@/components/timeline/CycleCard";
 import { DayCells } from "@/components/timeline/DayCells";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { WINDOW_SHOWN, browserZone, cardView, type AskCardView, type EventView } from "@/lib/ask-view";
+import { WINDOW_SHOWN, cardView, type AskCardView, type EventView } from "@/lib/ask-view";
+import { useShownZone } from "@/lib/reader-zone";
 import { dayIn } from "@/lib/timeline-view";
 
 const HEAD = "font-label text-[10.5px] uppercase leading-snug tracking-[.14em] text-[#7E889A]";
@@ -98,7 +99,9 @@ function CardOf({ view }: { view: AskCardView }) {
 
 export function AskCards({ cards }: { cards: readonly AskCard[] }) {
   const { order } = useEntryFormat();
-  const zone = useMemo(browserZone, []);
+  // Only a reader with Timeline reads Ask, so the server can say which zone it read the cards' days in.
+  const zone = useShownZone(true);
+  if (!zone) return null;
   const today = dayIn(new Date(), zone);
   return (
     <div className="grid min-w-0 gap-3">

@@ -5,7 +5,7 @@
  * full life. `now-ahead.test.ts` reads both screens against the engine; the payloads here are chosen, not computed, so
  * each edge sits where the test says: only their days and the words around them are under test.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { KnownAge, LifeCycleView, TimelineEvent, TimelineLife, TimelineNow } from "@workspace/api-client-react";
 import {
   BLIND_FIX,
@@ -13,7 +13,6 @@ import {
   NEXT_MAX,
   ONE_DAY,
   RANGES,
-  browserZone,
   buildsOnText,
   comingUpTitle,
   contactOf,
@@ -31,10 +30,6 @@ import {
 } from "./now-ahead";
 
 const seen = (text: string) => text.replace(/ /g, " ");
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 function event(over: Partial<TimelineEvent> & Pick<TimelineEvent, "key" | "start" | "end">): TimelineEvent {
   return {
@@ -258,14 +253,6 @@ describe("houses and what a reading builds on, in words", () => {
     expect(paragraphs("One.\r\n\r\nTwo.\n  \n\n  Three.")).toEqual(["One.", "Two.", "Three."]);
     expect(paragraphs("One.\nStill one.")).toEqual(["One.\nStill one."]);
     expect(paragraphs("  \n\n ")).toEqual([]);
-  });
-
-  it("sends the browser's zone, and none when it names none or Intl fails", () => {
-    expect(browserZone()).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone || undefined);
-    vi.stubGlobal("Intl", { DateTimeFormat: () => ({ resolvedOptions: () => ({ timeZone: "" }) }) });
-    expect(browserZone()).toBeUndefined();
-    vi.stubGlobal("Intl", { DateTimeFormat: () => { throw new RangeError("no Intl"); } });
-    expect(browserZone()).toBeUndefined();
   });
 });
 

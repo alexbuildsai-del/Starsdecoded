@@ -30,6 +30,9 @@ export const LIMITS = {
   // Ask's month has its own cap besides (reading 13), and a reading counts only when its open starts a write.
   ask: { limit: 6, windowMs: MINUTE_MS, by: "account", counts: "success" },
   timelineReading: { limit: 20, windowMs: MINUTE_MS, by: "account", counts: "success" },
+  // Now and ahead's six months queue readings ahead (reading 7), so every read of it counts, whatever its range: a page
+  // switching ranges reads a few a minute, while a loop would set the queue writing with nothing to slow it (R-7.5).
+  timelineNow: { limit: 30, windowMs: MINUTE_MS, by: "account", counts: "success" },
 } as const satisfies Record<string, { limit: number; windowMs: number; by: CountedBy; counts: Counts }>;
 
 /** Whether an answer with this status cost anything, so whether its request keeps its count (reading 6). */
@@ -57,6 +60,7 @@ export const LIMIT_LINES: Record<LimitKind, string> = {
   checkout: `You've started checkout ${LIMITS.checkout.limit} times in the last hour. You can start it again within the hour.`,
   ask: `You've sent Ask ${LIMITS.ask.limit} messages in the last minute. Try again in a minute.`,
   timelineReading: `You've opened ${LIMITS.timelineReading.limit} new readings in the last minute. Try again in a minute.`,
+  timelineNow: `You've loaded your Timeline ${LIMITS.timelineNow.limit} times in the last minute. Try again in a minute.`,
 };
 
 type CallerKind = Exclude<LimitKind, "anonWrites">;
@@ -272,6 +276,7 @@ export interface Limits {
   checkoutLimit: RequestHandler[];
   askLimit: RequestHandler[];
   timelineReadingLimit: RequestHandler[];
+  timelineNowLimit: RequestHandler[];
 }
 
 /** Fresh counts on every call: the server keeps the one set below, and a test builds its own. */
@@ -286,9 +291,11 @@ export function buildLimits(): Limits {
     checkoutLimit: limitFor("checkout"),
     askLimit: limitFor("ask"),
     timelineReadingLimit: limitFor("timelineReading"),
+    timelineNowLimit: limitFor("timelineNow"),
   };
 }
 
 export const {
   anonWriteLimit, generationLimits, geocodeLimit, previewLimit, sendLimit, checkoutLimit, askLimit, timelineReadingLimit,
+  timelineNowLimit,
 } = buildLimits();

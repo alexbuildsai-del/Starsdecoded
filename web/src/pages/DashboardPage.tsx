@@ -22,7 +22,6 @@ import {
   getListReportsQueryKey,
   useGetCreditHistory,
   useGetCredits,
-  useGetHome,
   useListGifts,
   useListProfiles,
   useListReports,
@@ -52,8 +51,8 @@ import { WaitingGiftCard } from "@/components/dashboard/WaitingGiftCard";
 import { YourPairs } from "@/components/dashboard/YourPairs";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useHome } from "@/hooks/useHome";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { browserZone } from "@/lib/ask-view";
 import { creditsEnforced, pathHave } from "@/lib/credits-view";
 import { quickLookFor } from "@/lib/home-view";
 import { nudgeFor, type Nudge as NudgeData } from "@/lib/nudges";
@@ -61,6 +60,7 @@ import { CENTRE_ID, circlePoints, partnersOf } from "@/lib/orbit";
 import type { PairSelection } from "@/lib/pair-selection";
 import { usePageTitle } from "@/lib/page-title";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
+import { useShownZone } from "@/lib/reader-zone";
 import { first } from "@/lib/share-card";
 import { useTimelineAccess } from "@/lib/timeline-access";
 import { cn } from "@/lib/utils";
@@ -463,9 +463,7 @@ export default function DashboardPage() {
   const enforced = creditsEnforced();
   const viewIds = useId();
 
-  // The reader's own zone reads Your week's days (reading 4); the key stays the one every reader of GET /home shares.
-  const zone = useMemo(browserZone, []);
-  const homeQ = useGetHome({ tz: zone }, { query: { queryKey: getGetHomeQueryKey() } });
+  const homeQ = useHome();
   const reportsQ = useListReports({
     query: {
       queryKey: getListReportsQueryKey(),
@@ -499,6 +497,9 @@ export default function DashboardPage() {
   // One or the other, and the teaser never on an empty dashboard nor beside Your week (reading 26).
   const week = home?.week ?? null;
   const teaser = home && !week && !empty ? (home.teaser ?? null) : null;
+  // Both print the reader's days: with no zone from the browser, the birth place's, which the server reads them in.
+  const birthZone = you ? profiles.find((p) => p.id === you.profileId)?.timezone : undefined;
+  const zone = useShownZone(!!week, birthZone);
 
   const { access } = useTimelineAccess();
   // Once drawn, Ask stays: a chat open when access goes keeps its refusal on screen until the reader closes it.
@@ -725,7 +726,7 @@ export default function DashboardPage() {
               )}
             </section>
 
-            {week && (
+            {week && zone && (
               <Suspense
                 fallback={
                   <div className="grid min-h-[200px] place-items-center font-label text-sm text-muted-foreground">
@@ -739,7 +740,7 @@ export default function DashboardPage() {
             <Practising items={home.practising} />
             <YourPairs pairs={home.pairs} />
             <Stories pairs={home.pairs} />
-            {teaser && <TimelineTeaser teaser={teaser} zone={zone} />}
+            {teaser && zone && <TimelineTeaser teaser={teaser} zone={zone} />}
           </div>
         )}
       </main>

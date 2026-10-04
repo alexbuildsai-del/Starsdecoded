@@ -9,7 +9,7 @@ import { useCallback, useId, useMemo, useRef, useState, type KeyboardEvent } fro
 import { Link, Redirect } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetHomeQueryKey, getGetTimelineAccessQueryKey, useGetHome } from "@workspace/api-client-react";
+import { getGetTimelineAccessQueryKey } from "@workspace/api-client-react";
 import { AccountMenu } from "@/components/AccountMenu";
 import { StatusDots } from "@/components/StatusDots";
 import { AskLauncher } from "@/components/ask/AskLauncher";
@@ -17,9 +17,10 @@ import { Life } from "@/components/timeline/Life";
 import { NowAhead } from "@/components/timeline/NowAhead";
 import { ReadingSheet, type ReadingTarget } from "@/components/timeline/ReadingSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { browserZone } from "@/lib/now-ahead";
+import { useHome } from "@/hooks/useHome";
 import { usePageTitle } from "@/lib/page-title";
 import { PERSONAL_REPORT } from "@/lib/product";
+import { sentZone, useShownZone } from "@/lib/reader-zone";
 import { timelineDoor, useTimelineAccess } from "@/lib/timeline-access";
 import { dayIn } from "@/lib/timeline-view";
 import { cn } from "@/lib/utils";
@@ -120,16 +121,18 @@ export function TimelineAppPage() {
   const phone = useIsMobile();
   const uid = useId();
 
-  const zone = useMemo(() => browserZone(), []);
-  const today = useMemo(() => dayIn(new Date(), zone ?? "UTC"), [zone]);
+  const zone = sentZone();
   const [screen, setScreen] = useState<Screen>("now");
   const [missing, setMissing] = useState(false);
   const [reading, setReading] = useState<ReadingTarget | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const opened = door === "open";
-  const home = useGetHome(undefined, { query: { queryKey: getGetHomeQueryKey(), enabled: opened } });
+  const home = useHome({ enabled: opened });
   const reportId = home.data?.you?.reportId ?? null;
+  // Life's dates and today are the reader's: with no zone from the browser, those of the zone the server reads in.
+  const shown = useShownZone(opened);
+  const today = useMemo(() => (shown ? dayIn(new Date(), shown) : null), [shown]);
 
   const onNoReport = useCallback(() => setMissing(true), []);
   // Access that went while the page was open is read again, and a no sends the reader to /timeline like any other.
@@ -190,7 +193,13 @@ export function TimelineAppPage() {
           <h2 id={`${uid}-life-h`} className={cn(H2, "sr-only md:not-sr-only")}>
             Life
           </h2>
-          <Life zone={zone} today={today} onOpen={onOpen} onNoReport={onNoReport} onNoAccess={onNoAccess} />
+          {shown && today ? (
+            <Life zone={shown} today={today} onOpen={onOpen} onNoReport={onNoReport} onNoAccess={onNoAccess} />
+          ) : (
+            <div className="grid min-h-[240px] place-items-center font-label text-sm text-[#AEB6C6]">
+              <StatusDots label="Loading" />
+            </div>
+          )}
         </section>
       </div>
     );

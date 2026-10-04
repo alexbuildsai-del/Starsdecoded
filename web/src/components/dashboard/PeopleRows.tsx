@@ -19,7 +19,6 @@ import {
   getGetHomeQueryKey,
   getListProfilesQueryKey,
   getListReportsQueryKey,
-  useGetHome,
   useListProfiles,
   useListReports,
   useRegenerateReport,
@@ -36,6 +35,7 @@ import { HandBackDialog, type HandBackTarget } from "@/components/dashboard/Hand
 import { ListRow, MENU_DANGER, MenuItem, ROW_ACTION, ROW_DONE, ROW_STATUS } from "@/components/dashboard/RowMenu";
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useHome } from "@/hooks/useHome";
 import { birthDateText, failureLine, isFailed, ownIds } from "@/lib/home-view";
 import { initials } from "@/lib/orbit";
 import { HANDED_BACK, SEND_AGAIN, pairedWithReader, personRowView, sharedWaiting, signsLine, signsSpoken } from "@/lib/pair-row";
@@ -165,7 +165,7 @@ function PersonRow(props: PersonRowProps) {
 export function PeopleRows() {
   const client = useQueryClient();
   const { toast } = useToast();
-  const home = useGetHome(undefined, { query: { queryKey: getGetHomeQueryKey() } }).data;
+  const home = useHome().data;
   const reports = useListReports({ query: { queryKey: getListReportsQueryKey() } }).data;
   const profiles = useListProfiles({ query: { queryKey: getListProfilesQueryKey() } }).data;
   const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);

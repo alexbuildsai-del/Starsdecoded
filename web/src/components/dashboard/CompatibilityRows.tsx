@@ -10,9 +10,7 @@
  */
 import { useState, type ReactNode } from "react";
 import {
-  getGetHomeQueryKey,
   getListReportsQueryKey,
-  useGetHome,
   useListReports,
   type HomePair,
   type ReportSummary,
@@ -24,6 +22,7 @@ import { ListRow, MENU_DANGER, MenuItem, ROW_ACTION, ROW_STATUS, useOpenerFocus 
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
 import { StoryPreview } from "@/components/report/ShareCard";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useHome } from "@/hooks/useHome";
 import { lensWords, ownIds } from "@/lib/home-view";
 import { initials } from "@/lib/orbit";
 import { PAIR_ROW_COPY, pairRowState, pairRowTitle, sharedWaiting, storyTitle } from "@/lib/pair-row";
@@ -151,7 +150,7 @@ function StoryDialog({ story, onClose }: { story: Story | null; onClose: () => v
 }
 
 export function CompatibilityRows() {
-  const home = useGetHome(undefined, { query: { queryKey: getGetHomeQueryKey() } }).data;
+  const home = useHome().data;
   const reports = useListReports({ query: { queryKey: getListReportsQueryKey() } }).data;
   const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
   const [stopTarget, setStopTarget] = useState<StopTarget | null>(null);

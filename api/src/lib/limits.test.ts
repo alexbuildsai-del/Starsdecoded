@@ -312,18 +312,36 @@ test("a new Timeline reading: 20 a minute per account, then its line; a key that
   }
 });
 
-test("Ask's and the readings' counts are each their own, and neither draws on writing's", async () => {
+test("Now and ahead: 30 reads a minute per account in any browser, then its line; a read that cost nothing gives its count back", async () => {
+  const app = await serve(buildLimits().timelineNowLimit);
+  try {
+    for (const answer of [400, 403, 409, 500]) assert.equal((await app.hit({ user: "u1", answer })).status, answer, `${answer}`);
+    const half = Math.floor(LIMITS.timelineNow.limit / 2);
+    await passes(half, () => app.hit({ user: "u1", session: "s1" }));
+    await passes(LIMITS.timelineNow.limit - half, () => app.hit({ user: "u1", session: "s2" }));
+    const seconds = await refused(app.hit({ user: "u1", session: "s3" }), "timelineNow");
+    assert.ok(seconds <= 60, `a minute's wait at most, Retry-After ${seconds}`);
+    assert.equal((await app.hit({ user: "u2", session: "s1" })).status, 201);
+  } finally {
+    await app.close();
+  }
+});
+
+test("Ask's, the readings' and Now and ahead's counts are each their own, and none draws on writing's", async () => {
   const limits = buildLimits();
   const asking = await serve(limits.askLimit);
   const reading = await serve(limits.timelineReadingLimit);
+  const viewing = await serve(limits.timelineNowLimit);
   const writing = await serve(limits.generationLimits);
   try {
     await passes(LIMITS.ask.limit, () => asking.hit({ user: "u1" }));
     await refused(asking.hit({ user: "u1" }), "ask");
+    await passes(LIMITS.timelineNow.limit, () => viewing.hit({ user: "u1" }));
+    await refused(viewing.hit({ user: "u1" }), "timelineNow");
     assert.equal((await reading.hit({ user: "u1" })).status, 201);
     assert.equal((await writing.hit({ user: "u1" })).status, 201);
   } finally {
-    await Promise.all([asking.close(), reading.close(), writing.close()]);
+    await Promise.all([asking.close(), reading.close(), viewing.close(), writing.close()]);
   }
 });
 
@@ -343,10 +361,11 @@ test("Ask's minute: the last second inside it still refuses, the first after it 
   }
 });
 
-test("Ask's and the readings' lines: a minute's window the page leaves as written, never restated as a time", () => {
+test("Ask's, the readings' and Now and ahead's lines: a minute's window the page leaves as written, never restated as a time", () => {
   assert.equal(LIMIT_LINES.ask, "You've sent Ask 6 messages in the last minute. Try again in a minute.");
   assert.equal(LIMIT_LINES.timelineReading, "You've opened 20 new readings in the last minute. Try again in a minute.");
-  for (const kind of ["ask", "timelineReading"] as const) {
+  assert.equal(LIMIT_LINES.timelineNow, "You've loaded your Timeline 30 times in the last minute. Try again in a minute.");
+  for (const kind of ["ask", "timelineReading", "timelineNow"] as const) {
     assert.equal(LIMITS[kind].windowMs, MINUTE_MS);
     assert.equal(LIMITS[kind].by, "account");
     assert.doesNotMatch(LIMIT_LINES[kind], / within (?:the hour|a day)\.$/, "the web turns only an hour's or a day's window into a time");

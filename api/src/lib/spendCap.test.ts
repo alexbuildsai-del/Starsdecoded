@@ -1,7 +1,8 @@
 /**
  * The breaker without a database (MB-49): the cap's parsing, the gate below,
- * at and past the cap with an injected sum, the admin's notice and its
- * once-a-day rule, and the minute's cache. What the day's sum counts is
+ * at and past the cap with an injected sum, the line a report and Timeline
+ * each hear, the admin's notice and its once-a-day rule, and the minute's
+ * cache. What the day's sum counts is
  * spendLedger.test.ts's; the live query is proved on a scratch Postgres in
  * the round's walk (R13-08).
  */
@@ -12,8 +13,9 @@ import express from "express";
 // The pool connects lazily and nothing here queries it; the failure paths log on purpose.
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.LOG_LEVEL ??= "silent";
-const { PAUSED_LINE, cachedSpend, dailyCapUsd, pausedNotifier, spendGate, utcDay } = await import("./spendCap.js");
+const { PAUSED_LINE, PAUSED_LINES, TIMELINE_PAUSED_LINE, cachedSpend, dailyCapUsd, pausedNotifier, spendGate, utcDay } = await import("./spendCap.js");
 type GateDeps = import("./spendCap.js").GateDeps;
+type PausedFor = import("./spendCap.js").PausedFor;
 type PausedNotice = import("./spendCap.js").PausedNotice;
 type SendSpendPausedOptions = import("./mailer.js").SendSpendPausedOptions;
 
@@ -36,11 +38,11 @@ test("utcDay is the calendar day in UTC, whatever the hour", () => {
   assert.equal(utcDay(new Date("2026-10-01T23:30:00-02:00")), "2026-10-02");
 });
 
-async function gated(deps: GateDeps) {
+async function gated(deps: GateDeps, pausedFor?: PausedFor) {
   let handled = 0;
   const app = express();
   // The stub stands in for a writing route: reaching it is where a credit would move.
-  app.post("/reports", spendGate(deps), (_req, res) => {
+  app.post("/reports", spendGate(pausedFor, deps), (_req, res) => {
     handled += 1;
     res.status(201).json({ id: "r1" });
   });
@@ -137,6 +139,33 @@ test("the line: three short sentences, the credit named, no hour or day it could
   assert.doesNotMatch(PAUSED_LINE, /\btoday\b|\btomorrow\b|\bhours?\b|\d/i);
   const words = PAUSED_LINE.split(/\s+/).length;
   assert.ok(words >= 12 && words <= 18, `${words} words`);
+});
+
+test("Timeline's line: what can't happen now and what to do, naming no credit or report, and no hour or day", () => {
+  assert.equal(TIMELINE_PAUSED_LINE, "Timeline can't write anything new right now. Try again later.");
+  assert.deepEqual(PAUSED_LINES, { reports: PAUSED_LINE, timeline: TIMELINE_PAUSED_LINE });
+  assert.equal(TIMELINE_PAUSED_LINE.split(/(?<=\.) /).length, 2, "one idea a sentence");
+  assert.doesNotMatch(TIMELINE_PAUSED_LINE, /\bcredits?\b|\breports?\b/i, "Timeline spends no credit and writes no report");
+  assert.doesNotMatch(TIMELINE_PAUSED_LINE, /[—–;!]/);
+  assert.doesNotMatch(TIMELINE_PAUSED_LINE, /\btoday\b|\btomorrow\b|\bhours?\b|\bmidnight\b|\d/i);
+});
+
+test("the gate: a Timeline reading or an Ask message on a paused day hears Timeline's line, and below the cap its route runs", async () => {
+  for (const [spent, status, handled] of [[20, 503, 0], [19.99, 201, 1]] as const) {
+    const { deps, notices } = gateDeps(20, spent);
+    const app = await gated(deps, "timeline");
+    try {
+      const res = await app.post();
+      assert.equal(res.status, status, `spent ${spent}`);
+      assert.equal(app.handled(), handled);
+      if (status === 503) {
+        assert.deepEqual(res.body, { error: "paused", reason: "paused", message: TIMELINE_PAUSED_LINE });
+        assert.deepEqual(notices, [{ day: "2026-10-01", spentUsd: 20, capUsd: 20 }], "the same breaker, so the admin hears of it the same way");
+      }
+    } finally {
+      await app.close();
+    }
+  }
 });
 
 function notifier(admin: string | null, address: string | null | Error = "owner@example.com", sends = true) {

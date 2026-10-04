@@ -1,7 +1,8 @@
 /**
  * Timeline's routes (ADR-207, 209, 210, 262): whether the reader has it, Now and ahead, Life, and each reading. Every
  * route but the access answer stands behind the one access check and reads the reader's own chart with a finished
- * Personal report (reading 2). routes/index.ts stands a reading's count and the breaker ahead of its open.
+ * Personal report (reading 2). routes/index.ts stands Now and ahead's count ahead of it, and a reading's count and the
+ * breaker, with Timeline's own pause line, ahead of its open.
  */
 import { Router, type Request, type RequestHandler, type Response } from "express";
 import type { z } from "zod";

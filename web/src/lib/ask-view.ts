@@ -3,8 +3,9 @@
  * node test pins them: what a message may send, the line under the box, an
  * answer's paragraphs, a thread as a send answers it, a refusal as one line,
  * and each computed card as Timeline's own pieces draw it (ADR-172). Every date
- * and degree on a card is one the API sent; its days are the reader's, in
- * their browser's zone, printed in their language's order with no clock time.
+ * and degree on a card is one the API sent; its days are the reader's, in the
+ * zone the API read them in (reading 4), printed in their language's order
+ * with no clock time.
  */
 import type { Tone } from "@workspace/engine";
 import type {
@@ -165,15 +166,6 @@ export function mergeThread(current: AskThread | undefined, answer: AskThread): 
 export function openChoices(messages: readonly AskMessage[]): AskChoice[] {
   const last = messages[messages.length - 1];
   return last?.role === "ask" ? last.choices : [];
-}
-
-/** The browser's zone, the one Timeline's own days are read in (reading 4); UTC where Intl has none. */
-export function browserZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  } catch {
-    return "UTC";
-  }
 }
 
 /** A sky event on a day card. An eclipse far from every natal point has no tone (MB-188), so it carries no tone word. */

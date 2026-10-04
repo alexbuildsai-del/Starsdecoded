@@ -41,7 +41,7 @@ import {
   usageOf,
   type CapNote,
 } from "@/lib/ask-view";
-import { browserZone } from "@/lib/now-ahead";
+import { sentZone } from "@/lib/reader-zone";
 import { cn } from "@/lib/utils";
 
 /** The report's easing, the one the app moves on. */
@@ -145,7 +145,7 @@ export function AskPanel({ open, phone, reportId, usage: accessUsage, launcher }
   const jump = useRef<"end" | "question" | null>(null);
 
   // Ask's days are the reader's, as Timeline's are (reading 4); with no zone the server reads the birth place's.
-  const zone = useMemo(() => browserZone(), []);
+  const zone = sentZone();
   // Keyed by user, as the access answer is, so one account's conversation never shows to the next one in the same tab.
   const threadKey = useMemo(() => [...getGetAskThreadQueryKey(), userId ?? ""] as const, [userId]);
   const thread = useGetAskThread({ tz: zone }, { query: { queryKey: threadKey, enabled: open && Boolean(userId) } });

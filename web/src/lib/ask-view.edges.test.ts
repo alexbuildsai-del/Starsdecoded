@@ -4,7 +4,7 @@
  * cards' dates in zones a day apart. `ask-view.test.ts` reads the cards against the engine; the events here are API
  * payloads with instants chosen to sit at midnight, since only their days are under test.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { AskCard, AskMessage, AskThread, AskUsage, LifeCycleView, TimelineEvent } from "@workspace/api-client-react";
 import type { DateOrder } from "./date-entry";
 import {
@@ -15,7 +15,6 @@ import {
   NO_TIMELINE_LINE,
   ONE_DAY,
   askText,
-  browserZone,
   capLine,
   cardDay,
   cardView,
@@ -36,11 +35,6 @@ import {
 
 const seen = (text: string) => text.replace(/ /g, " ");
 const USAGE: AskUsage = { used: 3, left: 47, cap: 50, resetsOn: "2026-11-01" };
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
-});
 
 describe("the line always under the box, at its edges", () => {
   it("says how many are left down to 1, and the cap's line at 0 and at anything past it", () => {
@@ -188,16 +182,6 @@ describe("the thread, merged", () => {
     expect(openChoices([msg("m1", "ask", "Hello."), msg("m2", "reader", "Hi")])).toEqual([]);
     expect(openChoices([msg("m1", "ask", "Hello.")])).toEqual([]);
     expect(openChoices([])).toEqual([]);
-  });
-});
-
-describe("the browser's zone", () => {
-  it("is the one Intl names, and UTC when Intl names none or throws", () => {
-    expect(browserZone()).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
-    vi.stubGlobal("Intl", { DateTimeFormat: () => ({ resolvedOptions: () => ({ timeZone: "" }) }) });
-    expect(browserZone()).toBe("UTC");
-    vi.stubGlobal("Intl", { DateTimeFormat: () => { throw new RangeError("no Intl"); } });
-    expect(browserZone()).toBe("UTC");
   });
 });
 
