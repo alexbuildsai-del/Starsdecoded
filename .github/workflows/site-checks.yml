@@ -67,6 +67,7 @@ jobs:
             ${{ needs.preview.outputs.url }}/
             ${{ needs.preview.outputs.url }}/sample
             ${{ needs.preview.outputs.url }}/faq
+            ${{ needs.preview.outputs.url }}/timeline
           configPath: e2e/lighthouserc.json
           uploadArtifacts: true
           artifactName: lighthouse

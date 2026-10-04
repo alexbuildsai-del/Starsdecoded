@@ -13,6 +13,7 @@ export const PUBLIC_ROUTES: readonly PublicRoute[] = [
   ...(SAMPLE_LIVE ? [{ path: "/sample" as const, load: () => import("./pages/SamplePage") }] : []),
   { path: "/method", load: () => import("./pages/MethodPage") },
   { path: "/compatibility", load: () => import("./pages/CompatibilityPage") },
+  { path: "/timeline", load: () => import("./pages/TimelinePage") },
   { path: "/learn/whole-sign-houses", load: () => import("./pages/LearnHousesPage") },
   { path: "/learn/birth-time", load: () => import("./pages/LearnBirthTimePage") },
   { path: "/faq", load: () => import("./pages/FaqPage") },

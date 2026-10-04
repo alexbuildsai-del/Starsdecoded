@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitlistReady } from "@workspace/commerce";
+import { PERSONAL_REPORT } from "@/lib/product";
 import { SAMPLE } from "./data/sample";
 import { PUBLIC_ROUTES } from "./routes";
 import {
@@ -14,7 +15,17 @@ import {
   type PagePath,
 } from "./site";
 
-const SITE_PAGES = ["/", "/sky", "/sample", "/method", "/compatibility", "/learn/whole-sign-houses", "/learn/birth-time", "/faq"];
+const SITE_PAGES = [
+  "/",
+  "/sky",
+  "/sample",
+  "/method",
+  "/compatibility",
+  "/timeline",
+  "/learn/whole-sign-houses",
+  "/learn/birth-time",
+  "/faq",
+];
 const LEGAL_PAGES = ["/privacy", "/terms", "/refunds", "/company"];
 const APP_PATHS = ["/chart", "/dashboard", "/sign-in", "/sign-up", "/report/abc", "/compatibility/abc", "/claim", "/admin", "/no-such-page"];
 
@@ -25,7 +36,7 @@ const words = () => [
 ];
 
 describe("the registry", () => {
-  it("names the eight site pages, the waitlist and the four legal pages, once each", () => {
+  it("names the nine site pages, the waitlist and the four legal pages, once each", () => {
     const paths = PAGES.map((p) => p.path);
     expect(new Set(paths).size).toBe(paths.length);
     expect([...paths].sort()).toEqual([...SITE_PAGES, "/waitlist", ...LEGAL_PAGES].sort());
@@ -70,6 +81,7 @@ describe("the registry", () => {
 
   it("types each page's structured data by what it shows", () => {
     expect(pageFor("/faq").schema).toEqual(["FAQPage"]);
+    expect(pageFor("/timeline").schema).toEqual(["WebPage", "FAQPage"]);
     for (const path of ["/sample", "/learn/whole-sign-houses", "/learn/birth-time"] as const) {
       expect(pageFor(path).schema).toContain("Article");
     }
@@ -77,6 +89,14 @@ describe("the registry", () => {
 
   it("maps every page but the waitlist, the sample included (ADR-166)", () => {
     for (const page of PAGES) expect(page.sitemap, page.path).toBe(page.path !== "/waitlist");
+  });
+
+  it("heads /timeline with the locked words, the report named as the product names it and no price (ADR-116, 170, 255)", () => {
+    const timeline = pageFor("/timeline");
+    expect(timeline.eyebrow).toBe("Coming soon · Timeline");
+    expect(timeline.h1).toBe("Your chart, with the sky moving across it");
+    expect(timeline.lede.startsWith(`Timeline is ${SITE.name}'s one subscription, for people with a ${PERSONAL_REPORT}. `)).toBe(true);
+    expect(timeline.lede).not.toMatch(/€|\d/);
   });
 
   it("names the sample's person and dates the page as the stored run does", () => {
@@ -120,6 +140,12 @@ describe("the nav and the footer", () => {
     expect(FOOTER.map((c) => c.heading)).toEqual(["Reports", "Learn", "Company"]);
     expect(FOOTER[2].links.map((l) => l.href)).toEqual(["/privacy", "/terms", "/refunds", "/company"]);
     expect(FOOTER[2].links[3].label).toBe("Who runs Stars Decoded");
+  });
+
+  it("lists Timeline last in the footer's Reports column, and keeps it out of the top menu until it opens", () => {
+    expect(FOOTER[0].links.map((l) => l.href)).toEqual(["/", "/compatibility", "/sample", "/sky", "/timeline"]);
+    expect(FOOTER[0].links[4].label).toBe("Timeline");
+    expect(NAV.map((l) => l.href)).not.toContain("/timeline");
   });
 
   it("links only to pages a visitor can open", () => {
@@ -168,6 +194,6 @@ describe("a production build", () => {
     expect(site.NAV.map((l) => l.href)).toContain(sample);
     expect(site.FOOTER.flatMap((c) => c.links.map((l) => l.href))).toContain(sample);
     expect(routes.map((r) => r.path)).toContain(sample);
-    expect(routes).toHaveLength(13);
+    expect(routes).toHaveLength(14);
   });
 });

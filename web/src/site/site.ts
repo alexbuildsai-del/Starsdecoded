@@ -9,6 +9,7 @@ export type PagePath =
   | "/sample"
   | "/method"
   | "/compatibility"
+  | "/timeline"
   | "/learn/whole-sign-houses"
   | "/learn/birth-time"
   | "/faq"
@@ -101,6 +102,18 @@ export const PAGES: readonly PageEntry[] = [
     updated: "2026-10-04",
     kind: "page",
     schema: ["WebPage"],
+    sitemap: true,
+  },
+  // Live before Timeline is (ADR-249), so it says "Coming soon" and names no price until billing exists (ADR-255, 264).
+  {
+    path: "/timeline",
+    title: titled("Timeline"),
+    eyebrow: "Coming soon · Timeline",
+    h1: "Your chart, with the sky moving across it",
+    lede: `Timeline is ${PRODUCT}'s one subscription, for people with a ${PERSONAL_REPORT}. It shows when the planets reach the points in your own chart, what that means for you in plain words, and how long it lasts, from the big cycles of your life to this week.`,
+    updated: "2026-10-04",
+    kind: "page",
+    schema: ["WebPage", "FAQPage"],
     sitemap: true,
   },
   {
@@ -236,6 +249,7 @@ export const FOOTER: readonly { heading: string; links: readonly SiteLink[] }[] 
       { href: "/compatibility", label: COMPATIBILITY_REPORT },
       ...sampleLink("Sample report"),
       { href: "/sky", label: "Free birth chart" },
+      { href: "/timeline", label: "Timeline" },
     ],
   },
   {
