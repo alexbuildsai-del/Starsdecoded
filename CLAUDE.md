@@ -112,9 +112,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 - CI runs typecheck, builds, tests, `check:shipped`, audit and gitleaks; no lint step. Each preview runs Lighthouse, axe and the probe (ADR-192).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-10-03)
+## Current focus (2026-10-04)
 
-1. R15 (zones from the server, sharing your own report, v10 and p5, the launch fixes) on staging, QA-03 read; production is R11 to R14 at 27bb5c5.
-   The next Release runs the full lab, ADR-247 pushes /sample's run on `sample/<id>`, then the Owner shares the site on WhatsApp.
-2. Now: R16 Timeline on `round/R16` (`R16-plan.md`): the /timeline page, simple words, Timeline for subscribers (the admin until billing), the teaser.
-3. Pricing and launch are never planned until the Owner asks (ADR-230, 242); Timeline's billing comes with them (ADR-264).
+1. R16 (Timeline for the admin, `/timeline`, simple words, v11 and p6, the teaser, the Account page) on staging; production is R11 to R14.
+   Next: the staging report-lab campaign (chk-43 counts against r06), /qa, then a Release with the full lab when the Owner says promote.
+2. Before Timeline opens to subscribers: MB-198's spot, MB-219 and 220 (sentinel), MB-218's checks, billing with pricing (ADR-264).
+3. Pricing and launch are never planned until the Owner asks (ADR-230, 242).

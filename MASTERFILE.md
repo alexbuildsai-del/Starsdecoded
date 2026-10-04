@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.28 (2026-10-04) |
+| Version | 0.29 (2026-10-04) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -77,6 +77,8 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 | `invite_tokens` | Send a report, gift a credit | only the hash is stored; `kind` send, gift or share (a share writes a grant, never a hand-over, ADR-235); `handed_back_at` when its recipient handed a send back (ADR-236); a gift has no profile and carries `credit_id`, `recipient_name`, `note`; `reminded_at`, `revoked_at`; a send lives 7 days, a gift 30 (ADR-123) |
 | `profile_shares` | A reader's grant to read a sharer's Personal report | `profile_id`, `owner_user_id`, `reader_user_id`, the `invite_id` that made it, `revoked_at`; one active grant per profile and reader (ADR-235) |
 | `report_workbooks` | Each reader's ticks and pins on a report | key `(report_id, reader)`, the reader a Clerk id or `session:<id>`; `reports.workbook` is no longer written (ADR-239, MB-195) |
+| `timeline_readings` | One Timeline reading per event per reader (R16) | unique `(profile_id, event_key)`; `basis` (chart version, birth time, window, prompt version) rewrites a stale one; `status` writing, ready or failed; no foreign key, so `forgetTimeline` removes them with the reader's own Personal report (ADR-210, MB-191) |
+| `ask_messages` | Ask's thread, per account (R16) | `role` reader or ask, `body` JSONB; 50 reader messages a UTC month (ADR-263), rows older than 31 days deleted on each read or send (MB-191 provisional) |
 | `prompt_templates` | Runtime prompt overrides | per key, beats the file default field by field |
 | `waitlist_signups` | One address waiting for launch | `consent`, the tags and `utm_content`; `confirm_token_hash` (only the hash), `confirm_sent_at`, `confirmed_at`: an address counts once confirmed, and an unconfirmed one is deleted seven days after its latest link (ADR-145) |
 | `bundles`, `credits` | Purchase ledger | one credit kind, bundles are counts (ADR-42); `is_test` marks free test credits (ADR-138); status `held` is a gift's credit until claimed or returned; the typed columns go with the payments round |
@@ -89,6 +91,8 @@ One Postgres schema on Supabase, owned by `packages/db`. Names are canonical; us
 - **R-3.6** Consent. Nothing about a person (their chart, their report, their place in someone's circle) reaches anyone else until that person shares it, and Stop sharing ends the access at once (ADR-139). A shared report becomes its subject's, and its recipient's Not me hands it back to the giver (ADR-236); a pair reaches its other person only when one of its two shares it (MB-103). A reader may share their own Personal report, which seats them on the recipient's circle until they stop sharing (ADR-235). The circle is the reader plus everyone whose Personal report they can read; whoever stops sharing leaves it at once, after a dialog that names every consequence (ADR-182).
 
 ## 4 · Report engine
+
+**The sky over time (R16, ADR-208, 251):** `packages/engine` also searches the sky with no horizon sweep: `transits.ts` (any body's place at an instant, when it reaches a point, stations, ingresses, eclipses), `doctrine.ts` and `tone.ts` (which events touch a chart, MB-188 provisional), `cycles.ts` (life's cycles birth to 90, the finder from a date at midday) and `plainWords.ts`; one access check, `timelineAccess(viewer)`, with the admin its one source until billing (ADR-262, MB-197).
 
 The heart of the product. `api/src/lib/` is the engine; keep it pure enough that the report lab can run it against a fixture without the web app.
 
@@ -113,7 +117,7 @@ birth data → /api/geocode (Nominatim, the zone at the birth date from an offli
 - **R-5.3** Grounding: a section prompt is assembled from the static vocabulary and doctrine (`api/src/prompts/`) plus the per-chart brief derived in code. The model synthesises; it does not invent placement meanings. House-card readings are a section like any other (ADR-21); the Ascendant and Midheaven are citable evidence (ADR-22).
 - **R-5.4** Source of truth for prompts is the section registry and `promptDefaults.ts`; overrides live in `prompt_templates` via `/admin/prompts`. Never edit a generated copy (the bible, docs). Re-sync instead.
 - **R-5.5** A change to report content is USER-FACING even when no UI moved: someone who bought yesterday would get different words today.
-- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and pinned reasoning effort, and one outside it does not compile (ADR-58, 74). Every model is OpenAI's (ADR-73). Production runs mix B: gpt-6-sol writes both foundations and the vocabulary and reads for the QA agent, gpt-6-luna writes every other prose call, and gpt-5.2 stays in the catalogue as the lab's control (ADR-184, which made this move on the Owner's word). After it, a section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
+- **R-5.6** `api/src/lib/models.ts` is the single model catalogue: every model id lives there with its price and pinned reasoning effort, and one outside it does not compile (ADR-58, 74). Every model is OpenAI's (ADR-73). Production runs mix B: gpt-6-sol writes both foundations and the vocabulary and reads for the QA agent, gpt-6-luna writes every other prose call, and gpt-5.2 stays in the catalogue as the lab's control (ADR-184, which made this move on the Owner's word). Timeline's readings run on gpt-6-luna (`MODELS.timelineReading`) and Ask on gpt-5.2 (`MODELS.ask`), MB-190 provisional. After it, a section moves to another writer only on the reading-room rule (ADR-57): quality over cost, best or tied on every fixture the Owner read blind, never would-not-ship, contract gate held. Changing any value is an engine change under R-4.4 and USER-FACING under R-5.5.
 
 ## 6 · Payments and business model
 
