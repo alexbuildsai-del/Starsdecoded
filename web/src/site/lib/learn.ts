@@ -240,7 +240,7 @@ export function sampleDayLine(name: string, city: string, birth: Birth, w: RiseW
   if (w.since !== null && w.since <= CLOSE_MINUTES) {
     return `${opening} ${record}, just ${minutesSaid(w.since)} after ${w.sign} began to rise. A little earlier, and her rising sign and every one of her houses would have been different.`;
   }
-  return `${opening} ${record}, well inside that window, so her rising sign holds even if the time is a few minutes out.`;
+  return `${opening} ${record}, well inside that window, so her rising sign stays the same even if the time is a few minutes off.`;
 }
 
 /**

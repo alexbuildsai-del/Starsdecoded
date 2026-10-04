@@ -482,7 +482,7 @@ export function hudLines(sky: Sky, clock: Clock = 24): HudLines {
   return {
     tl,
     tr: `${sky.kind === "now" ? "Over " : ""}${placeTitle(place)} · ${at}`,
-    bl: chart.angles ? "Whole sign · tropical" : "Tropical · no horizon without a time",
+    bl: chart.angles ? "Whole-sign houses · tropical zodiac" : "No rising sign or houses without a birth time",
     br: sunLine(chart),
   };
 }

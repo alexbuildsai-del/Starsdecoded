@@ -78,7 +78,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 const WAYS: readonly { title: string; line: string; mark: ReactNode }[] = [
   {
     title: "Gift them a report",
-    line: `They get a credit and write their own ${PERSONAL_REPORT}, with their own birth details.`,
+    line: `They get a credit for their own ${PERSONAL_REPORT}, with their own birth details.`,
     mark: (
       <svg aria-hidden viewBox="0 0 34 34" fill="none" className="size-[34px]">
         <circle cx="17" cy="17" r="15.5" stroke="#3FA796" strokeDasharray="3 3" />
@@ -357,7 +357,7 @@ export default function YourPeople() {
             Add the people you care about
           </h2>
           <p className="sd-sub">
-            Add your partner, parents, kids or friends. They show up around you on your dashboard, so you can tap anyone to see their chart.
+            Add your partner, parents, kids or friends. They show up around you on your dashboard. Tap anyone to see their chart.
           </p>
           <ul className="m-0 grid max-w-[640px] list-none gap-2 p-0">
             {WAYS.map((way) => (

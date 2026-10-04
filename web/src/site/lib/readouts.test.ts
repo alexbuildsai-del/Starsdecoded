@@ -76,7 +76,7 @@ describe("the birth-time plates", () => {
     const count = ["two", "three", "four"][new Set(ascendant.values).size - 2];
     const moon = moonSign.holds ? `Your Moon is in ${moonSign.value} either way.` : `Your Moon could be in ${moonSign.values.join(" or ")}.`;
     expect(plateLine(plates[1])).toBe(`Your rising sign could be one of ${count}, so the report leaves it out. ${moon}`);
-    expect(plateLine(plates[2])).toBe("There's no rising sign, and your Moon is somewhere in that range.");
+    expect(plateLine(plates[2])).toBe("There's no rising sign. Your Moon is somewhere in the range above.");
   });
 
   it("say the answer and the rising sign's run on the reader's clock, the 24-hour one being the prerender's (MB-178)", () => {

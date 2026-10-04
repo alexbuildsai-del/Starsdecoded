@@ -173,7 +173,7 @@ describe("a birth day with no time", () => {
     const sky = birthSky(CURIE_NO_TIME);
     expect(sky.at.toISOString()).toBe("1867-11-07T10:36:00.000Z");
     expect(plainLine(sky.chart)).toMatch(/^Sun in \w+, Moon in \w+( or \w+)?\.$/);
-    expect(hudLines(sky).bl).toBe("Tropical · no horizon without a time");
+    expect(hudLines(sky).bl).toBe("No rising sign or houses without a birth time");
     expect(summaryLine(CURIE_NO_TIME)).toBe("7 Nov 1867 · Time unknown · Warsaw");
   });
 });
@@ -186,7 +186,7 @@ describe("the sky now", () => {
     const hud = hudLines(NOW);
     expect(hud.tl).toBe("Live · 30 SEP 2026 · 14:34");
     expect(hud.tr).toBe("Over Brussels · 50.83°N 4.33°E");
-    expect(hud.bl).toBe("Whole sign · tropical");
+    expect(hud.bl).toBe("Whole-sign houses · tropical zodiac");
     expect(hud.br).toMatch(/^SUN \d+\.\d° (ABOVE|BELOW) THE HORIZON$/);
     expect(wheelLabel(NOW)).toMatch(/^The sky now over Brussels, drawn as a birth chart: Sun in \w+, Moon in \w+, \w+ rising\.$/);
   });
@@ -196,7 +196,7 @@ describe("the sky now", () => {
     expect(hudLines(sky)).toEqual({
       tl: "Your chart · 4 May 1929 · 03:00",
       tr: "Ixelles · 50.83°N 4.37°E",
-      bl: "Whole sign · tropical",
+      bl: "Whole-sign houses · tropical zodiac",
       br: "SUN 16.6° BELOW THE HORIZON",
     });
     expect(wheelLabel(sky)).toBe("Your birth chart: Sun in Taurus, Moon in Pisces, Aquarius rising.");
@@ -224,7 +224,7 @@ describe("/sky's worked example", () => {
     expect(hudLines(example)).toEqual({
       tl: "Sample · Audrey Hepburn · 4 May 1929 · 03:00",
       tr: "Ixelles · 50.83°N 4.37°E",
-      bl: "Whole sign · tropical",
+      bl: "Whole-sign houses · tropical zodiac",
       br: "SUN 16.6° BELOW THE HORIZON",
     });
     expect(wheelLabel(example)).toBe("Audrey Hepburn's birth chart, a sample: Sun in Taurus, Moon in Pisces, Aquarius rising.");
