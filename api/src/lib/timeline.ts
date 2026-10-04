@@ -439,7 +439,10 @@ function anchorOf(cycle: LifeCycle): Date {
   return cycle.window.exact[0] ?? cycle.window.start;
 }
 
-/** Whole years and the fraction of the year since the last birthday, counted as the engine's `ageAt` counts birthdays. */
+/**
+ * Whole years and the thousandths of the year since the last birthday, counted as the engine's `ageAt` counts
+ * birthdays. Cut, never rounded: rounding read the last hours before a birthday as the new age.
+ */
 function exactAge(birth: Date, at: Date): number {
   const whole = ageAt(birth, at);
   const birthday = (years: number): number => {
@@ -448,7 +451,8 @@ function exactAge(birth: Date, at: Date): number {
     return day.getTime();
   };
   const last = birthday(whole);
-  return round3(whole + (at.getTime() - last) / (birthday(whole + 1) - last));
+  const thousandths = Math.floor((1000 * (at.getTime() - last)) / (birthday(whole + 1) - last));
+  return (whole * 1000 + thousandths) / 1000;
 }
 
 /** One known age's cycles split at today: the one under way or next, if any is left by 90, and the one before it. */

@@ -347,3 +347,53 @@ test("chk-45 stops a job lost or quit, love found, a house bought, riches and a 
     "You'll lose your job.", "You will quit your job.", "You will fall in love.", "You will meet your future husband.", "You will buy a house.", "You will get rich.",
   ], ["chk-45:block"]), []);
 });
+
+// R16-B2: the shapes the two tests above reach, the near misses they must not, and the habits a report names.
+const advice = (list: readonly string[]) => list.filter((s) => adviceChecks(s, "body").length > 0);
+const noAdvice = (list: readonly string[]) => list.filter((s) => adviceChecks(s, "body").length === 0);
+const told = (list: readonly string[]) => list.filter((s) => predictionChecks(s, "body").length > 0);
+
+test("chk-46 lets a choice the reader weighs, a concessive opening, a feeling, a regret and a noun before its verb pass", () => {
+  assert.deepEqual(misses(["Be it work or home, you feel it.", "Take it or leave it, you say."], []), []);
+  assert.deepEqual(advice([
+    "Stay or go, the choice feels heavy.", "Rest or push on, you choose.", "Be it a big change or a small one, the weight is the same.",
+    "When it gets heavy, you pull back.", "When it gets heavy, you pull back, take stock and wait.", "If you can rest, you do.",
+    "Trust in others comes slowly.", "Rest for you is rare.", "Focus on work feels harder.", "Talk about money makes you tense.",
+    "Rest and trust come slowly.", "Wait and see is your habit.", "Work, rest and play all matter.", "Today, rest feels far.", "Maybe rest feels far.",
+    "Saturn, the slow planet, sits on your Ascendant.", "Pierre, your partner, may feel distant.", "As Saturn moves on, the weight lifts.",
+    "You may feel as if you must earn rest.", "You feel like you should do more.", "You keep telling yourself you should cope.",
+    "You assume you must prove yourself.", "You replay what you should have said.", "You must have felt it.",
+  ]), []);
+});
+
+test("chk-46 finds the main clause past an aside, a name or a joined clause, and reads a preposition's phrase to its verb", () => {
+  assert.deepEqual(noAdvice([
+    "When it gets heavy, and it will, take a breath.", "When it gets heavy, as it will, take a breath.", "When it gets heavy, Marie, take a breath.",
+    "If you can, and only if you can, rest.", "So, Marie, take your time.", "Marie Curie, maybe take your time.", "In this stretch, take it slowly.",
+    "Be it work or home, take your time.", "Even so, take your time.", "Marie, don't rush.", "Marie, never sign anything now.", "Please take your time.",
+    "Do try to rest.", "Wait and see.", "Stop and start again.", "You'd better rest.", "You'd do well to wait.", "You should have a plan.",
+    "Take a break or rest, it helps.", "Ask for help when it gets heavy.", "Wait for the day it gets lighter.", "Focus on what feels right.",
+    "Ask for help earlier than feels necessary.", "Trust in yourself.", "“Marie, take your time.”",
+  ]), []);
+});
+
+test("chk-45 stops the close forms of a job lost, love found, a home bought and riches, and lets a habit the report names pass", () => {
+  assert.deepEqual(misses([
+    "You are going to lose your job.", "You will hand in your notice.", "You will resign.", "You will fall for someone.", "You will meet the one.",
+    "You'll find a partner.", "You'll buy your first home.", "You will sell the house.", "You'll be rich.", "You will make a lot of money.",
+    "You will go broke.", "This will lead you to fall in love.", "You will never lose your job.", "This could bring a chance to buy a house.",
+  ], ["chk-45:block"]), []);
+  assert.deepEqual(told([
+    "You lose money when growth is pushed too fast, because you will say yes to scale.", "You fall in love fast, and you will feel it in the body.",
+    "You will feel resigned.", "You will resign yourself to the wait.", "This time will be rich in feeling.", "You will find the one thing you need.",
+    "You will find love in small things.", "You get fired up by a cause, and you will notice it more now.", "You will think back to when you lost your job.",
+    "You will meet your partner halfway.", "An old habit fades and you will find a new one.",
+  ]), []);
+});
+
+test("the new shapes name the kind of fault and never the reader's words", () => {
+  const order = adviceChecks("Zorblax, when Quuxland gets heavy, take a breath.", "body");
+  const event = predictionChecks("You will lose your job at Zorblax and meet your future Quuxland husband.", "body");
+  assert.deepEqual(rules([...order, ...event]), ["chk-46:block", "chk-45:block"]);
+  for (const c of [...order, ...event]) assert.doesNotMatch(c.message, /Zorblax|Quuxland/i, c.message);
+});

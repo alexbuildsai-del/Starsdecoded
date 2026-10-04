@@ -456,3 +456,19 @@ test("an event key names a sky event only on the day it carries, in the chart's 
   for (const key of [null, undefined, 5, {}, []]) assert.equal(T.eventByKey(reader, key as never, NOW), null);
   assert.equal(T.eventByKey(reader, `cycle.saturn-return.${"9".repeat(8)}`, NOW), null);
 });
+
+test("the reader's age is cut at a thousandth of a year, never rounded up, on every hour of the two days before a birthday", () => {
+  const reader = readerFrom(MIRA);
+  const b = reader.birth;
+  const thirtieth = new Date(b);
+  thirtieth.setUTCFullYear(b.getUTCFullYear() + 30);
+  const age = (now: Date) => T.lifeView(reader, null, new Map(), now).age;
+  for (let hours = 48; hours >= 1; hours -= 1) {
+    const now = new Date(ms(thirtieth) - hours * 3_600_000);
+    const a = age(now);
+    assert.equal(Math.floor(a), E.ageAt(b, now), `${hours} hours before: ${a}`);
+    assert.equal(Number(a.toFixed(3)), a, "three decimals, as stored");
+  }
+  assert.equal(age(new Date(ms(thirtieth) - 1)), 29.999, "the last millisecond before is still 29");
+  assert.equal(age(thirtieth), 30, "the birthday itself is 30");
+});

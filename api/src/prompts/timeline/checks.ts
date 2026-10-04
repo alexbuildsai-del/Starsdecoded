@@ -234,12 +234,35 @@ type Listed = ReadonlyArray<readonly [label: string, pattern: RegExp]>;
 
 const LOOKS_AHEAD = String.raw`(?:will|won['’]t|shall|['’]ll|(?:is|are|['’]s|['’]re)\s+(?:going|set|bound|sure|certain|about|likely)\s+to|(?:is|are)\s+(?:coming|on\s+(?:its|their|the)\s+way|in\s+store|around\s+the\s+corner)|lies?\s+ahead|awaits?|expect(?:s|ed)?|(?:could|may|might|can)\s+bring|brings?|bringing|leads?\s+to)`;
 
+/** Words that mark a partner still to come, so "your future husband" is foretold where "your partner" is someone the reader has. */
+const TO_COME = String.raw`(?:future|next|new|true|real|perfect|right|special|dream|one\s+true)`;
+// "One" is left out: after "new" or "next" it is a thing as often as a person ("you will find a new one").
+const PARTNER = String.raw`(?:husband|wife|spouse|partner|lover|love|boyfriend|girlfriend|match|man|woman|person)`;
+/**
+ * A verb straight after its subject is a habit the report names ("You lose
+ * money when you rush, because you will say yes"), not a thing foretold, so
+ * the verbs below count only in another form: "you'll lose", "to fall in love".
+ */
+const HABIT = String.raw`(?<!\b(?:you|they|we|i|he|she|people)\s+(?:(?:often|usually|always|sometimes|rarely|tend\s+to|can|could)\s+)?)`;
+const owned = (pattern: string): RegExp => new RegExp(`${HABIT}(?:${pattern})`, "i");
+
 const LIFE_EVENTS: Listed = [
   ["a new job", /\b(?:new|dream|better|different)\s+(?:job|role|position|career)\b|\bjob\s+(?:offer|loss)\b/i],
   ["a promotion", /\bpromot(?:ion|ed)\b|\ba\s+(?:pay\s+)?raise\b|\bpay\s+rise\b/i],
-  ["losing a job", /\b(?:fired|laid\s+off|sacked|redundan(?:t|cy))\b|\blet\s+go\s+from\b/i],
+  // "Fired up" is a feeling.
+  ["losing a job", /\b(?:fired(?!\s+up\b)|laid\s+off|sacked|redundan(?:t|cy))\b|\blet\s+go\s+from\b/i],
+  // Present forms only: "you will think back to when you lost your job" recalls the reader's past.
+  ["losing a job", owned(String.raw`\b(?:los(?:e|es|ing)|quit(?:s|ting)?|leav(?:e|es|ing))\s+(?:your|their|his|her|my|our|a|the|this|that)\s+(?:(?:current|day|old)\s+)?(?:job|career)s?\b|\bout\s+of\s+a\s+job\b|\b(?:be|being)\s+out\s+of\s+work\b|\bhand(?:s|ing)?\s+in\s+(?:your|their|his|her|my|our|a|the)\s+notice\b`)],
+  // "Resigned" is a feeling and "resign yourself to it" is acceptance: neither is leaving a job.
+  ["losing a job", owned(String.raw`\bresign(?:s|ing)?\b(?!\s+(?:yourself|themselves|himself|herself|ourselves|myself|to)\b)`)],
   ["meeting someone", /\bmeet\s+(?:someone|somebody|a\s+(?:new\s+)?(?:partner|lover|love|man|woman|person))\b|\bsoul\s?mate\b|\bthe\s+love\s+of\s+your\s+life\b/i],
+  ["meeting someone", owned(String.raw`\b(?:meet|meets|meeting|find|finds|finding)\s+(?:your|the|a|an)\s+(?:${TO_COME}\s+)+${PARTNER}\b`)],
+  // "The one" alone is a person; "the one thing you need" is not.
+  ["meeting someone", owned(String.raw`\b(?:meet|meets|meeting|find|finds|finding)\s+the\s+one\b(?=\s*(?:[.,;:!?)”"’]|$)|\s+(?:for\s+you|who|you)\b)`)],
+  // Love found "in small things" or "for yourself" is a feeling, not a person.
+  ["meeting someone", owned(String.raw`\bfind(?:s|ing)?\s+(?:love\b(?!\s+(?:in|for|of)\b)|(?:a|your)\s+(?:partner|lover|husband|wife|boyfriend|girlfriend|spouse)\b)`)],
   ["a new relationship", /\b(?:new|romantic)\s+(?:relationship|romance|love|partner|lover)\b|\ban\s+affair\b/i],
+  ["a new relationship", owned(String.raw`\bfall(?:s|ing)?\s+(?:(?:head\s+over\s+heels\s+)?in\s+love|for\s+(?:someone|somebody))\b`)],
   ["a breakup", /\bbreak(?:s|ing)?[\s-]?up\b|\bsplit(?:s|ting)?\s+up\b|\bdivorc(?:e|es|ed|ing)\b/i],
   ["a wedding", /\b(?:wedding|marriage|marr(?:y|ies|ied|ying)|get(?:ting)?\s+engaged|propos(?:e|es|ing)\s+to)\b/i],
   ["a baby", /\bpregnan(?:t|cy)\b|\b(?:a|the)\s+baby\b|\bhave\s+(?:a\s+)?(?:baby|child|children|kids)\b/i],
@@ -247,6 +270,11 @@ const LIFE_EVENTS: Listed = [
   ["a death", /\b(?:death|dying|pass(?:es)?\s+away)\b|\bdies?\b(?!\s+(?:down|away|off|out))/i],
   ["an illness", /\b(?:illness|sickness|disease|diagnos(?:is|ed)|surgery|injur(?:y|ies|ed))\b|\b(?:an?|the)\s+accident\b|\b(?:fall|falls|get|gets|getting)\s+(?:ill|sick)\b/i],
   ["money coming", /\b(?:windfall|lottery|inheritance|inherit|bankrupt(?:cy)?)\b|\ba\s+(?:small\s+)?fortune\b|\bmoney\s+(?:comes|is\s+coming|arrives|flows\s+in)\b/i],
+  ["getting rich", owned(String.raw`\b(?:(?:get|gets|getting|become|becomes|becoming|grow|grows|growing|end\s+up)\s+(?:very\s+|really\s+|so\s+)?(?:rich|wealthy)\b|strike\s+it\s+rich\b|make\s+(?:(?:a\s+lot\s+of|lots\s+of|more|good|big|serious|real)\s+)?money\b|come\s+into\s+(?:some\s+)?money\b)`)],
+  // "Rich" after "be" is often a feeling ("this time will be rich"), so it counts only with a person as the subject.
+  ["getting rich", /\b(?:you|they|he|she|we)(?:['’]ll|\s+will|\s+(?:are|is|['’]re)\s+going\s+to)\s+(?:soon\s+|finally\s+)?be\s+(?:very\s+|really\s+)?(?:rich|wealthy)\b(?!\s+(?:in|with)\b)/i],
+  ["losing money", owned(String.raw`\b(?:los(?:e|es|ing)\s+(?:(?:a\s+lot\s+of|all\s+(?:of\s+)?(?:your|their|his|her)|your|their|his|her|some)\s+)?(?:money|savings)|(?:go|goes|going)\s+broke)\b`)],
+  ["buying or selling a home", owned(String.raw`\b(?:buy|buys|buying|sell|sells|selling|purchas(?:e|es|ing))\s+(?:a|an|the|your|their|his|her|our|my)\s+(?:(?:first|new|own|dream|next|bigger|smaller|family)\s+)*(?:house|home|flat|apartment|property|car)\b`)],
   ["a move", /\bmov(?:e|es|ing)\s+(?:house|home|abroad|away|cities|countries|to\s+a\s+new\s+(?:city|country|home|place))\b|\brelocat(?:e|es|ion|ing)\b|\bemigrat(?:e|es|ion|ing)\b/i],
   ["a trip", /\b(?:a|the|your)\s+trip\b|\btravel(?:s|ling|ing)?\s+abroad\b/i],
   ["a deal", /\ba\s+deal\b|\b(?:a|the|new)\s+contract\b|\blawsuit\b|\bcourt\s+case\b/i],
@@ -284,15 +312,20 @@ export function predictionChecks(text: string, where: string): Check[] {
 }
 
 /**
- * "You feel you should do more" says what the reader feels, so a thought or a
- * feeling before the word lets it pass. "You need to feel heard" names a need
- * the way a report does, so "need to" and "have to" are never counted.
+ * "You feel you should do more" and "as if you must earn rest" say what the
+ * reader feels, so a thought or a feeling before the word lets it pass. "You
+ * need to feel heard" names a need the way a report does, so "need to" and
+ * "have to" are never counted.
  */
-const FELT = String.raw`(?<!\b(?:feel|feels|felt|feeling|think|thinks|thought|believe|believes|sense|senses|tell\s+yourself|told\s+yourself|wonder\s+(?:if|whether))\s+(?:that\s+)?)`;
+const FELT = String.raw`(?<!\b(?:feel|feels|felt|feeling|think|thinks|thought|believe|believes|sense|senses|assume|assumes|assumed|tell\s+yourself|told\s+yourself|telling\s+yourself|wonder\s+(?:if|whether)|as\s+if|as\s+though|like)\s+(?:that\s+)?)`;
+
+/** "What you should have said" and "you must have felt it" look back, and order nothing. */
+const LOOKED_BACK = String.raw`(?!(?:\s+have|['’]ve)\s+(?:been|said|done|known|told|felt|seen|gone|made|taken|thought|kept|left|had|got|gotten|given|come|meant|spoken|chosen|let|put|\w+ed)\b)`;
 
 const ADVICE: Listed = [
-  ["should", new RegExp(String.raw`${FELT}\b(?:you|we)\s+(?:really\s+|probably\s+)?(?:should|shouldn['’]t|ought\s+(?:not\s+)?to)\b`, "i")],
-  ["must", new RegExp(String.raw`${FELT}\byou\s+(?:really\s+)?(?:must|mustn['’]t|had\s+better|['’]d\s+better|would\s+do\s+well\s+to|would\s+be\s+wise\s+to)\b`, "i")],
+  ["should", new RegExp(String.raw`${FELT}\b(?:you|we)\s+(?:really\s+|probably\s+)?(?:should|shouldn['’]t|ought\s+(?:not\s+)?to)${LOOKED_BACK}\b`, "i")],
+  // "You'd" carries its "would" or "had" with no space before it.
+  ["must", new RegExp(String.raw`${FELT}\byou(?:\s+(?:really\s+)?(?:must|mustn['’]t)${LOOKED_BACK}|(?:['’]d|\s+(?:would|had))\s+(?:really\s+)?(?:better|do\s+well\s+to|be\s+(?:wise|smart)\s+to|be\s+better\s+off))\b`, "i")],
   ["be sure to", /\bbe\s+sure\s+to\b/i],
   // "It's important to you" is what matters to the reader: only a verb after "to" makes it advice.
   ["it's best to", /\bit(?:['’]s|\s+is|\s+would\s+be)\s+(?:best|better|wise|smart|important|essential|crucial|vital|a\s+good\s+idea)\s+(?:(?:not\s+)?to\s+(?!(?:you|them|him|her|me|us)\b)\w|that\s+you|if\s+you)/i],
@@ -327,38 +360,102 @@ const AFTER_COMMAND = new Set([
   "about", "at", "in", "easy", "slow", "slower", "slowly", "calm", "patient", "kind", "careful", "gentle", "honest", "open", "ready", "clear",
   "nothing", "everything", "something", "anything", "someone", "somebody", "anyone", "what", "how", "why", "when", "where", "who", "whether",
   "if", "me", "us", "him", "her", "people", "others", "more", "less", "stock", "care", "charge", "heart", "note", "space", "rest", "not", "too",
-  "yes", "sure",
+  "yes", "sure", "go", "again",
 ]);
 
-/** Openers a command may sit behind: "So take it slowly", "For now, wait". */
-const LEAD = /^(?:(?:so|then|just|now|instead|rather|simply|first|for\s+now|this\s+time|meanwhile)\b[,]?\s+)+/i;
+/** Openers and softeners a command may sit behind: "So take it slowly", "For now, wait", "Maybe rest". */
+const LEAD = /^(?:(?:so|then|just|now|instead|rather|simply|first|for\s+now|this\s+time|meanwhile|maybe|perhaps|please)\b[,]?\s+)+/i;
+
+/** After an opening verb these begin a phrase, which may be the subject's ("Trust in others comes slowly") or the order's ("Trust in yourself"). */
+const PREPOSITIONS = new Set(["on", "to", "for", "with", "from", "into", "over", "around", "about", "at", "in"]);
+/** A verb whose subject is the opening word and its phrase: "Rest for you is rare". */
+const SUBJECT_VERBS = new Set([
+  "is", "isn't", "was", "wasn't", "has", "does", "doesn't", "feels", "seems", "comes", "takes", "gets", "grows", "builds", "makes",
+  "helps", "matters", "means", "needs", "asks", "brings", "goes", "keeps", "stays", "becomes", "remains", "sits", "starts", "can",
+  "can't", "cannot", "could", "may", "might", "will", "won't", "would",
+]);
+/** Where a clause of its own begins, so a verb after it is never the opening word's: "Ask for help when it gets heavy". */
+const CLAUSE_STARTS = new Set([
+  "when", "whenever", "if", "as", "while", "until", "till", "before", "after", "because", "since", "unless", "once", "though",
+  "although", "than", "like", "that", "which", "who", "whom", "whose", "what", "how", "why", "where", "whether", "so", "and", "but",
+  "or", "then",
+]);
+/** Past the phrase's own first word, a pronoun starts a clause: "Wait for the day it gets lighter". */
+const PRONOUNS = new Set(["i", "you", "we", "they", "he", "she", "it", "there"]);
+
+function nounBeforeVerb(raw: readonly string[], words: readonly string[]): boolean {
+  for (let i = 2; i < words.length; i += 1) {
+    if (CLAUSE_STARTS.has(words[i]) || (i > 2 && PRONOUNS.has(words[i]))) return false;
+    if (SUBJECT_VERBS.has(words[i])) return true;
+    if (/[,;:]/.test(raw[i])) return false;
+  }
+  return false;
+}
 
 function commandAt(clause: string): string | null {
   const text = clause.replace(/^[“"‘'(\[]+/, "").replace(LEAD, "");
-  const [first = "", second = ""] = text.split(/\s+/).map((w) => w.replace(/[^\p{L}'’-]/gu, "").toLowerCase());
+  const raw = text.split(/\s+/);
+  const words = raw.map((w) => w.replace(/[^\p{L}'’-]/gu, "").toLowerCase());
+  const [first = "", second = ""] = words;
   if (first === "never") return COMMANDS.has(second) ? `never ${second}` : null;
   if (first === "do" && second === "not") return "do not";
+  // A question never reaches here, so "do" before a bare verb leans on an order: "Do take your time".
+  if (first === "do" && COMMANDS.has(second)) return "do";
+  // "Be it work or home" weighs two things and orders neither.
+  if (first === "be" && (second === "it" || second === "they")) return null;
   if (!COMMANDS.has(first)) return null;
   if (ALWAYS_COMMANDS.has(first)) return first;
   if (first in ONLY_WITH) return second === ONLY_WITH[first] ? first : null;
   if (!second) return first;
-  return AFTER_COMMAND.has(second) ? first : null;
+  if (AFTER_COMMAND.has(second)) return PREPOSITIONS.has(second) && nounBeforeVerb(raw, words) ? null : first;
+  // "Stop and think" is two orders, and "Rest and trust come slowly" two nouns before their verb: the second word decides.
+  if (second === "and") return commandAt(raw.slice(2).join(" ")) ? first : null;
+  return null;
+}
+
+/** What stands before the main clause and its comma: a clause or a phrase ("When it gets heavy,", "In this stretch,"), or "Be it…". */
+const OPENING = /^(?:when|whenever|if|as|while|whilst|once|until|till|before|after|since|because|though|although|unless|even|wherever|whatever|however|whichever|now\s+that|in\s+case|each\s+time|every\s+time|any\s+time|next\s+time|the\s+moment|for|in|during|through|throughout|with|without|over|at|on|by|from|within|between|across|around|under|amid|despite|given|like|be\s+(?:it|they))\b/i;
+/** A word, or a name of up to three words, set off by commas: "Honestly,", "Marie,", "Marie Curie,". */
+const SET_OFF = /^(?:\S+|\p{Lu}[\p{L}'’-]*(?:\s+\p{Lu}[\p{L}'’-]*){1,2})$/u;
+/** A clause joined on between the opening and the main clause: "When it gets heavy, and it will, take a breath." */
+const JOINED = /^(?:and|or|but|nor|yet)\b/i;
+/** After a choice, the reader as the subject: "Stay or go, you weigh both" names what they weigh and orders neither. */
+const READER_WEIGHS = /^you\b(?!['’](?:ll|d)\b|\s+(?:will|would|should|must|need|have\s+to|are\s+going)\b)/i;
+
+/**
+ * Where an order may open in a sentence: its head, unless the head is a
+ * choice the reader weighs; the clause after ", so" or a colon; and the main
+ * clause after an opening clause, a name or a word set off by a comma. A main
+ * clause that is the reader's own ("When it gets heavy, you pull back, take
+ * stock") ends the search, since what follows it shares its subject.
+ */
+function clausesOf(sentence: string): string[] {
+  const parts = sentence.replace(/^[“"‘'(\[]+/, "").split(/,\s+/);
+  const choice = parts.length > 1 && /\bor\b/i.test(parts[0]) && READER_WEIGHS.test(parts[1]);
+  const clauses = choice ? [] : [sentence];
+  clauses.push(...sentence.split(/,\s+so\s+|:\s+/i).slice(1));
+  if (parts.length > 1 && (OPENING.test(parts[0]) || SET_OFF.test(parts[0]))) {
+    for (let i = 1; i < parts.length; i += 1) {
+      clauses.push(parts.slice(i).join(", "));
+      if (!(JOINED.test(parts[i]) || OPENING.test(parts[i]) || SET_OFF.test(parts[i]))) break;
+    }
+  }
+  return clauses;
 }
 
 /**
  * chk-46 (annex row 46): telling the reader to do or not do something (R-5.2
- * as amended, ADR-206): an obligation or advice anywhere, or a sentence, or
- * the clause after ", so" or a colon, that opens on a command. A question is
- * never one. "A good time to look again" is how astrology reads a time, the
- * house voice of the page's own sample lines, and passes.
+ * as amended, ADR-206): an obligation or advice anywhere, or a clause that
+ * opens on a command, wherever `clausesOf` finds one. A question is never
+ * one. "A good time to look again" is how astrology reads a time, the house
+ * voice of the page's own sample lines, and passes.
  */
 export function adviceChecks(text: string, where: string): Check[] {
   const hits = new Set<string>();
   for (const sentence of sentencesOf(text)) {
     if (/\?["”’')\]]*$/.test(sentence)) continue;
     for (const [label, pattern] of ADVICE) if (pattern.test(sentence)) hits.add(label);
-    const clauses = [sentence, ...sentence.split(/,\s+so\s+|:\s+/i).slice(1)];
-    for (const clause of clauses) {
+    for (const clause of clausesOf(sentence)) {
       const verb = commandAt(clause);
       if (verb) hits.add(`opens on "${verb}"`);
     }
