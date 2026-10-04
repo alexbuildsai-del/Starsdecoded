@@ -28,7 +28,7 @@ export const LENSES: readonly LensInfo[] = [
   {
     lens: "partners",
     title: "Partners",
-    strapline: "How you love, fight, live and rest together, and what you are building.",
+    strapline: "How you love, argue, live and rest together, and what you are building.",
     door: "Couples",
     register: "the end of a long day, a bill, an argument at 11 pm, Friday with no plan, a move",
     asksParent: false,
@@ -50,7 +50,7 @@ export const LENSES: readonly LensInfo[] = [
   {
     lens: "people",
     title: "Two people",
-    strapline: "In a room, on a job, having fun, in the hard talk, and what you give each other.",
+    strapline: "In a room, on a job, having fun, in hard conversations, and what you give each other.",
     door: "Friends, family, colleagues",
     register: "the big dinner, the meeting where one goes quiet, the weekend away, the group chat, the favour too big to ask",
     asksParent: false,
