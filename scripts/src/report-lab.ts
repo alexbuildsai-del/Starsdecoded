@@ -20,7 +20,8 @@
  * Level 0 of the lab runs here, in process, with no network and no key (ADR-86):
  *   pnpm report:lab --dry --base r06                               # every natal prompt for the base's stored charts, tokens, schema
  *   pnpm report:lab --dry --base r06 --pair curie-winfrey [--lens parent_child]   # plus every pair prompt for one pair
- * Either then prints the injection table and exits 1 if a hostile name got out of its data block (security scope 8).
+ * Either renders Timeline's readings and Ask for every natal fixture next, then prints the injection table and exits 1
+ * if a hostile name got out of its data block (security scope 8). --render renders both families for the run it reads.
  * Spot, the release lab, the gate and the import of stored runs live in the admin Lab page on staging; GitHub holds no secret.
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
@@ -77,7 +78,8 @@ import { PAIR_WORD_TARGETS, bandProblems, evidenceProblems, pairChapterIds, pair
 import { BAND_DOCTRINE } from "../../api/src/prompts/pair/sections/parent-child/doctrine.js";
 import { plainCount } from "../../api/src/prompts/checks.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
-import type { PairInput } from "../../api/src/lib/pairBrief.js";
+import type { Lens, PairInput } from "../../api/src/lib/pairBrief.js";
+import type { DryPerson, DryReader, DryRow } from "../../api/src/lib/labDry.js";
 /** The product target for a compatibility report's prose, the cards and the items outside it (ADR-63). */
 const PAIR_TOTAL: [number, number] = [1900, 2500];
 /** Cost comes from the engine's own table, so the lab cannot disagree with the bill. */
@@ -304,6 +306,30 @@ function listFixtures(): string[] {
       return !f.pairOnly && !f.injection;
     })
     .sort();
+}
+
+/** Every pair fixture on disk, in name order. */
+function pairFixtures(): PairFixture[] {
+  return readdirSync(PAIRS_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .sort()
+    .map((f) => JSON.parse(readFileSync(join(PAIRS_DIR, f), "utf8")) as PairFixture);
+}
+
+/**
+ * The person each natal fixture can ask Ask about, through the pair fixture
+ * that names it beside another natal fixture, under that pair's lens: Ask
+ * reads someone else only through a Compatibility report (reading 14).
+ */
+export function partnersOf(pairs: readonly PairFixture[], natal: readonly string[]): Map<string, { fixture: string; lens: string }> {
+  const out = new Map<string, { fixture: string; lens: string }>();
+  for (const pair of pairs) {
+    if (pair.a === pair.b || !natal.includes(pair.a) || !natal.includes(pair.b)) continue;
+    const { lens } = pairInput(pair, undefined);
+    if (!out.has(pair.a)) out.set(pair.a, { fixture: pair.b, lens });
+    if (!out.has(pair.b)) out.set(pair.b, { fixture: pair.a, lens });
+  }
+  return out;
 }
 
 /** The fixtures whose names are built to escape their data block, read by the dry lab alone. */
@@ -1169,24 +1195,120 @@ function loadRun(name: string, label: string): RunFile {
   return JSON.parse(readFileSync(path, "utf8")) as RunFile;
 }
 
+/** Level 0's ground: the prompts from their defaults, and a key and a database that are never reached. */
+function dryEnv(): void {
+  process.env.PROMPT_DEFAULTS_ONLY = "1";
+  process.env.OPENAI_API_KEY ??= "dry-run-never-sent";
+  process.env.DATABASE_URL ??= "postgres://dry:dry@127.0.0.1:1/never";
+}
+
+/** The natal and pair rows as --dry prints them: tokens against the base's recorded shape, and the strict schema. */
+export function dryTable(rows: readonly DryRow[]): string {
+  return table(["fixture", "section", "tokens", "baseline", "delta", "schema"], rows.map((r) => [
+    r.fixture, r.section, String(r.inputTokens), r.baselineInputTokens === null ? "-" : String(r.baselineInputTokens),
+    r.baselineInputTokens === null ? "-" : `${r.inputTokens - r.baselineInputTokens >= 0 ? "+" : ""}${r.inputTokens - r.baselineInputTokens}`, r.schemaOk ? "ok" : "BROKEN",
+  ]));
+}
+
+/**
+ * Timeline's or Ask's rows as the lab prints them: a line saying what was
+ * rendered and the tokens' span, a line per prompt, then every prompt whose
+ * schema broke or that never rendered. No baseline: no reading or answer was
+ * ever stored to measure one against.
+ */
+export function familyLines(heading: string, what: string, column: string, rows: readonly DryRow[]): string[] {
+  const counted = rows.filter((r) => r.error === undefined).map((r) => r.inputTokens);
+  const span = counted.length ? `${Math.min(...counted)} to ${Math.max(...counted)} tokens` : "no prompt rendered";
+  const broken = rows.filter((r) => !r.schemaOk);
+  return [
+    `${heading}: ${rows.length} prompts ${what}; ${span}, usage recorded 0, no network`,
+    table(["fixture", column, "tokens", "schema"], rows.map((r) => [r.fixture, r.section, String(r.inputTokens), r.schemaOk ? "ok" : "BROKEN"])),
+    ...(broken.length ? [`SCHEMA BROKEN: ${broken.map((r) => `${r.fixture}/${r.section}${r.error ? ` (${r.error})` : ""}`).join(", ")}`] : []),
+  ];
+}
+
+interface FamilyReader {
+  reader: DryReader;
+  person: DryPerson | null;
+}
+
+/**
+ * One chart as Timeline and Ask read it: computed now from its birth data,
+ * as the API recomputes a stale stored chart (R-4.5), with the report its
+ * readings build on, and the person a pair fixture lets it ask about.
+ */
+async function familyReader(name: string, f: ChartFixture, report: Record<string, unknown> | null): Promise<FamilyReader> {
+  const { calculateNatalChart } = await import("../../api/src/lib/chartCalculation.js");
+  const { readerZone } = await import("../../api/src/lib/labDry.js");
+  const partner = partnersOf(pairFixtures(), listFixtures()).get(name);
+  const other = partner ? loadFixture(partner.fixture) : null;
+  return {
+    reader: { fixture: name, name: f.name, chart: chartOf(calculateNatalChart, f), zone: readerZone(f), report },
+    person: partner && other ? { name: other.name, chart: chartOf(calculateNatalChart, other), lens: partner.lens as Lens } : null,
+  };
+}
+
+/** Timeline's and Ask's prompts for these readers, a table each (ADR-210, 213); a broken schema fails the run as a natal one does. */
+async function printFamilies(readers: readonly FamilyReader[], timeline: [heading: string, what: string], ask: [heading: string, what: string]): Promise<void> {
+  const { dryAsk, dryTimeline } = await import("../../api/src/lib/labDry.js");
+  const readings: DryRow[] = [];
+  const answers: DryRow[] = [];
+  for (const { reader, person } of readers) {
+    readings.push(...await dryTimeline(reader));
+    answers.push(...await dryAsk(reader, person));
+  }
+  console.log(`\n${familyLines(...timeline, "reading", readings).join("\n")}`);
+  console.log(`\n${familyLines(...ask, "prompt", answers).join("\n")}`);
+  if ([...readings, ...answers].some((r) => !r.schemaOk)) process.exitCode = 1;
+}
+
+/** --dry's Timeline and Ask: every natal fixture, each on the base's run of it for the passages its readings and Ask quote. */
+async function dryFamilies(base: string): Promise<void> {
+  const { DRY_FROM } = await import("../../api/src/lib/labDry.js");
+  const names = listFixtures();
+  const runs = new Map(names.map((name) => [name, existsSync(join(REPORTS_DIR, `${name}.${base}.json`)) ? loadRun(name, base).interpretation : null]));
+  const missing = names.filter((name) => runs.get(name) === null);
+  if (missing.length) console.log(`\nno ${base} run on disk for ${missing.join(", ")}: their readings build on no report, and Ask quotes none`);
+  const readers: FamilyReader[] = [];
+  for (const name of names) readers.push(await familyReader(name, loadFixture(name), runs.get(name) ?? null));
+  await printFamilies(readers,
+    [`timeline dry render against ${base}`, `for ${names.length} charts, each one's first five events that read in the six months from ${DRY_FROM} and its three nearest life cycles`],
+    [`ask dry render against ${base}`, `for ${names.length} readers, three fixed questions on ${DRY_FROM} with the plan and the answer each`]);
+}
+
+/** --render's Timeline and Ask, for the run it read: its chart from the run's birth data, its words as the passages. */
+async function renderFamilies(name: string, runKey: string, run: RunFile): Promise<void> {
+  dryEnv();
+  const { DRY_FROM } = await import("../../api/src/lib/labDry.js");
+  let reader: FamilyReader;
+  try {
+    reader = await familyReader(name, run.fixture, run.interpretation);
+  } catch (err) {
+    console.log(`\ntimeline and ask not rendered for ${runKey}: ${err instanceof Error ? err.message : String(err)}`);
+    return;
+  }
+  await printFamilies([reader],
+    [`timeline render for ${runKey}`, `built on this run, the first five events that read in the six months from ${DRY_FROM} and the three nearest life cycles`],
+    [`ask render for ${runKey}`, `quoting this run, three fixed questions on ${DRY_FROM} with the plan and the answer each`]);
+}
+
 /**
  * --dry --base <label> [--pair <fixture> [--lens <lens>]]: level 0, in
  * process. Every natal prompt for the base's stored charts, and every pair
  * prompt for one pair built from two of those runs, tokens against the
- * base's recorded shape, the strict schema checked. No network, no key, no
- * database: the prompts resolve from their defaults. Then the injection
- * table, which fails the run if a hostile name got out of its block.
+ * base's recorded shape, the strict schema checked; then Timeline's readings
+ * and Ask for every natal fixture. No network, no key, no database: the
+ * prompts resolve from their defaults. Then the injection table, which fails
+ * the run if a hostile name got out of its block.
  */
 async function dry(base: string, pairName: string | undefined, lensFlag: string | undefined): Promise<void> {
-  process.env.PROMPT_DEFAULTS_ONLY = "1";
-  process.env.OPENAI_API_KEY ??= "dry-run-never-sent";
-  process.env.DATABASE_URL ??= "postgres://dry:dry@127.0.0.1:1/never";
+  dryEnv();
   const { dryNatal, dryPair, dryPairPrompt } = await import("../../api/src/lib/labDry.js");
   const side = (name: string) => {
     const file = loadRun(name, base);
     return { name: file.fixture.name, birthDate: file.fixture.birthDate, chart: file.chart, interpretation: file.interpretation as never };
   };
-  const rows: Array<{ fixture: string; section: string; inputTokens: number; baselineInputTokens: number | null; schemaOk: boolean; error?: string }> = [];
+  const rows: DryRow[] = [];
   const shapesOf = (file: RunFile): Record<string, { inputTokens: number; cachedInputTokens: number; outputTokens: number }> => {
     const usage = (file.interpretation.meta as { usage?: ReportUsage } | undefined)?.usage;
     const out: Record<string, { inputTokens: number; cachedInputTokens: number; outputTokens: number }> = {};
@@ -1217,12 +1339,10 @@ async function dry(base: string, pairName: string | undefined, lensFlag: string 
     }
   }
   console.log(`dry render against ${base}: ${rows.length} prompts, usage recorded 0, no network`);
-  console.log(table(["fixture", "section", "tokens", "baseline", "delta", "schema"], rows.map((r) => [
-    r.fixture, r.section, String(r.inputTokens), r.baselineInputTokens === null ? "-" : String(r.baselineInputTokens),
-    r.baselineInputTokens === null ? "-" : `${r.inputTokens - r.baselineInputTokens >= 0 ? "+" : ""}${r.inputTokens - r.baselineInputTokens}`, r.schemaOk ? "ok" : "BROKEN",
-  ])));
+  console.log(dryTable(rows));
   const broken = rows.filter((r) => !r.schemaOk);
   if (broken.length) { console.log(`SCHEMA BROKEN: ${broken.map((r) => `${r.fixture}/${r.section}${r.error ? ` (${r.error})` : ""}`).join(", ")}`); process.exitCode = 1; }
+  await dryFamilies(base);
   await dryInjectionTable(base, standIn, side);
 }
 
@@ -1252,7 +1372,7 @@ async function dryInjectionTable(base: string, standIn: { name: string; file: Ru
   const rows = await dryInjection(fixtures, { natal: { subjectName: standIn.file.fixture.name, foundation: standIn.file.interpretation.foundation }, pairs });
   const sets = new Map<string, typeof rows>();
   for (const r of rows) sets.set(`${r.fixture} ${r.set}`, [...(sets.get(`${r.fixture} ${r.set}`) ?? []), r]);
-  console.log(`\ninjection against ${base}: each hostile name on its own chart with ${standIn.name}'s foundation standing in, then two as A and B over ${INJECTION_PAIR} under each lens; every prompt set against the same prompt with a plain name`);
+  console.log(`\ninjection against ${base}: each hostile name on its own chart with ${standIn.name}'s foundation standing in, then two as A and B over ${INJECTION_PAIR} under each lens, then each as the reader of its own Timeline readings and of Ask with the next as the person; every prompt set against the same prompt with a plain name`);
   console.log(table(["names", "set", "prompts", "blocks", "outside"], [...sets.values()].map((g) => {
     const leaks = g.filter((r) => r.leak !== null).length;
     const errors = g.filter((r) => r.error !== undefined).length;
@@ -1298,9 +1418,10 @@ async function main() {
       for (const name of names) {
         const path = join(REPORTS_DIR, `${name}.${label}.json`);
         if (!existsSync(path)) { console.log(`no run at ${path}`); continue; }
-        const run = JSON.parse(readFileSync(path, "utf8")) as { fixture: ChartFixture; chart: NatalChartData; interpretation: Record<string, unknown> };
+        const run = JSON.parse(readFileSync(path, "utf8")) as RunFile;
         console.log(`\n=== ${run.fixture.name} (${name}) re-rendered from ${label} ===`);
         report(name, label, run.fixture, run.chart, run.interpretation, "n/a");
+        await renderFamilies(name, `${name}.${label}`, run);
       }
       return;
     }
@@ -1313,6 +1434,8 @@ async function main() {
     // The "render" label makes report() print without writing, so re-reading a
     // run can never overwrite the run it read.
     report(run, "render", file.fixture, file.chart, file.interpretation, "n/a");
+    const runKey = run.replace(/\.json$/, "");
+    await renderFamilies(runKey.split(".")[0], runKey, file);
     return;
   }
 
