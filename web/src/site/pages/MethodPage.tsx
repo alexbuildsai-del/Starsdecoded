@@ -148,8 +148,8 @@ function Steps() {
               sentence has to be about you and in plain words. Every claim has to point to the part of your chart it comes from.
             </p>
             <p className={PROSE}>
-              It won't name dates, predict events or diagnose anything. It describes how you tend to think, work and love, and
-              gives you things to try.
+              It won't forecast events, put dates on your life or diagnose anything. It describes how you tend to think, work
+              and love, and gives you things to try.
             </p>
           </Step>
 
@@ -184,7 +184,8 @@ function FactsAndAi() {
           </p>
           {/* The home page's wording would repeat step 3 a screen above it, so this page keeps the locked design's own. */}
           <p className="sd-fact">
-            <b>No predictions</b> It won't name dates, talk about fate or diagnose anything. It's about how you tend to work.
+            <b>No predictions</b> It won't put dates on your life, talk about fate or diagnose anything. It's about how you tend
+            to work.
           </p>
         </div>
 

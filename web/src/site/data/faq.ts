@@ -1,8 +1,9 @@
 /**
- * Every question the site answers, written once: the home page shows the ten marked `home`, /faq every one by topic,
- * and /faq's FAQPage markup repeats them word for word (landing-and-ai-search scope 12, annex /faq; ADR-116, 117).
- * Answers stay plain text whose first sentence answers alone, so an answer engine can quote it without the page around it.
- * /compatibility asks none of its own: its three moved here (ADR-180).
+ * Every question the site answers, written once: the home page shows the ten marked `home`, /faq every one in
+ * `FAQ_GROUPS` by topic, and /faq's FAQPage markup repeats them word for word (landing-and-ai-search scope 12, annex
+ * /faq; ADR-116, 117). Answers stay plain text whose first sentence answers alone, so an answer engine can quote it
+ * without the page around it. /compatibility asks none of its own: its three moved here (ADR-180). Timeline's six are
+ * /timeline's alone (`TIMELINE_FAQ`).
  */
 import { BUNDLES, CREDIT_LINE, formatEuro } from "@workspace/commerce";
 import { CHAPTERS } from "@/lib/chapters";
@@ -55,9 +56,10 @@ const scientific: FaqItem = {
   home: true,
 };
 
+// All but its last sentence is the Owner's, approved word for word with Timeline's page (ADR-253).
 const predicts: FaqItem = {
   q: "Does it predict the future?",
-  a: "No. It doesn't forecast events, name dates or talk about fate. It describes how you tend to work and gives you things to try.",
+  a: "No. It never puts a date on anything in your life or talks about fate. The only dates we show are for the sky, like your Saturn return. It describes how you tend to work and gives you things to try.",
   home: true,
 };
 
@@ -140,9 +142,10 @@ const deleting: FaqItem = {
   home: true,
 };
 
+// Its first two sentences are the Owner's, approved word for word with Timeline's page (ADR-253).
 const payOnce: FaqItem = {
   q: "Do I pay once or every month?",
-  a: `Once. There's no subscription. ${CREDIT_LINE} Credits cost ${creditPrices()}, VAT included.`,
+  a: `Once for each report. Timeline, coming after launch, will be our one subscription. ${CREDIT_LINE} Credits cost ${creditPrices()}, VAT included.`,
   home: false,
 };
 
@@ -153,6 +156,46 @@ const goesWrong: FaqItem = {
   a: "If your report can't be finished, we tell you what happened and give back the credit it used, so you can try again.",
   home: false,
   link: "/refunds",
+};
+
+const whatTimeline: FaqItem = {
+  q: "What is Timeline?",
+  a: `Timeline is ${PRODUCT}'s one subscription, for people with a ${PERSONAL_REPORT}. It shows the sky moving across your own chart. You get your life's big cycles, what's happening for you now and next with a reading for each, and Ask. It opens after launch. The price comes later.`,
+  home: false,
+};
+
+const horoscope: FaqItem = {
+  q: "Is it a daily horoscope?",
+  a: "No. It only says something when a slow planet reaches a point in your own chart, and stays quiet otherwise. Nothing is written for your sign.",
+  home: false,
+};
+
+// Its ages hold for every chart, from Saturn's own period, so they are words here; a reader's own dates and ages come
+// from the engine (timeline-page acceptance 1).
+const saturnReturn: FaqItem = {
+  q: "What is a Saturn return?",
+  a: "A Saturn return is when Saturn comes back to where it was when you were born. Saturn takes about 29.5 years to go round the Sun, so this happens at about 29 and again at 58. Astrology reads it as a time of growing up. It can cross the exact point up to three times, which is why some dates come in threes.",
+  home: false,
+};
+
+const timelineBirthTime: FaqItem = {
+  q: "Do I need my birth time?",
+  a: "No. The Saturn finder needs only your birth date. In Timeline, a birth time adds your rising sign, your houses and your Moon. Without one, it shows what it can and says so.",
+  home: false,
+};
+
+const mira: FaqItem = {
+  q: "Who is Mira?",
+  a: "Mira is our sample account. She's invented, and her chart is worked out from her made-up birth details the same way yours would be. The words in her examples are samples of what Timeline writes.",
+  home: false,
+};
+
+// The page's own steps say the same: cancel where you started. What a reader keeps after cancelling is billing's to
+// decide (ADR-264), so the answer promises nothing about it yet.
+const cancelling: FaqItem = {
+  q: "How do I cancel?",
+  a: "In two clicks, from where you started Timeline.",
+  home: false,
 };
 
 export const FAQ_GROUPS: readonly FaqGroup[] = [
@@ -179,6 +222,12 @@ export const HOME_FAQ: readonly FaqItem[] = [
   deleting,
   howLong,
 ];
+
+/**
+ * The Timeline topic, which /timeline asks and marks up as its FAQPage (timeline-page §1 item 6). It stays off the home
+ * page and off /faq, so each question has one page to answer it.
+ */
+export const TIMELINE_FAQ: readonly FaqItem[] = [whatTimeline, horoscope, saturnReturn, timelineBirthTime, mira, cancelling];
 
 /** The words /faq links each deeper page with, written to make sense out of context. */
 export const FAQ_LINK_LABELS: Readonly<Record<string, string>> = {

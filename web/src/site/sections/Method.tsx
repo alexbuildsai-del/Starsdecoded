@@ -121,8 +121,8 @@ export default function Method() {
           </p>
           <p className="sd-fact">
             <b>No predictions</b>{" "}
-            It doesn't forecast events, name dates or diagnose anything. It describes how you tend to work and gives you things to
-            try.
+            It won't forecast events, put dates on your life or diagnose anything. It describes how you tend to work and gives you
+            things to try.
           </p>
         </div>
 
