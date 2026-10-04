@@ -335,10 +335,10 @@ interface Claim {
 
 /**
  * Takes the row for writing, atomically: a new row, or one whose basis moved, whose write died, or, for the reader's
- * own open, one that failed. Postgres rechecks the condition on a row another claim just took, so of two claims at
+ * own open, one that failed or whose kept reading no longer parses. Postgres rechecks the condition on a row another claim just took, so of two claims at
  * once exactly one wins.
  */
-async function claim(reader: ReaderChart, key: string, retryFailed: boolean): Promise<Claim | null> {
+async function claim(reader: ReaderChart, key: string, retryFailed: boolean, unreadable?: ReadingRow): Promise<Claim | null> {
   const t = timelineReadingsTable;
   const at = new Date();
   const model = MODELS.timelineReading;
@@ -358,6 +358,8 @@ async function claim(reader: ReaderChart, key: string, retryFailed: boolean): Pr
         ne(t.basis, reader.basis),
         and(eq(t.status, "writing"), lt(t.updatedAt, new Date(staleAt(at.getTime())))),
         retryFailed ? eq(t.status, "failed") : undefined,
+        // A kept reading that no longer parses is as good as none; the mark on it keeps two opens from both retaking it.
+        unreadable ? and(eq(t.status, "ready"), eq(t.updatedAt, unreadable.updatedAt)) : undefined,
       ),
     ))
     .returning({ id: t.id });
@@ -439,7 +441,8 @@ export async function openReading(reader: ReaderChart, key: string, options: { w
   const [row] = await rowsOf(reader.profileId, [key]);
   const answer = row && row.basis === reader.basis ? answerOf(row, Date.now()) : null;
   if (answer) return answer;
-  const claimed = await claim(reader, key, true);
+  const unreadable = row && row.basis === reader.basis && row.status === "ready" ? row : undefined;
+  const claimed = await claim(reader, key, true, unreadable);
   if (!claimed) {
     // Another open took it between the read and the claim: it is writing, or already written.
     const [now] = await rowsOf(reader.profileId, [key]);
