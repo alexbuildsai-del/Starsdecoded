@@ -8,8 +8,8 @@ merged into the rule it repeats.
 ## Took as proposed
 - **Keyless checks, narrowly scoped.** Playwright for axe on the public pages, no key, no sign-in: the default, approved
   2026-10-01 (agent-roster, Open questions; ADR-192). Propose a check that way and do not re-ask.
-- **The default carries an ask.** "go", with MB-93, 128 and 129 left at their defaults (R12 report, built 2026-10-01). Write
-  each ask so that his silence is safe.
+- **The default carries an ask.** "go" on MB-93, 128, 129 (R12, 2026-10-01); every r15-follow-ups recommendation in one
+  reply (2026-10-04), each traced to code with a mock and marked his or ours. Write each ask so his silence is safe.
 - **Housekeeping on a yes.** The /round skill swap, a promise removed, /sample from each Release (Review 02/10); fifteen
   built-at-default rows closed in one line (sweep 03/10). Small, reversible operations need one line, not a question.
 
@@ -18,9 +18,10 @@ merged into the rule it repeats.
   visitors, so security fixes waited for R13, a QA, then the first Release (security-hardening, 2026-10-01; ADR-204).
 - **He orders the rounds.** Pricing went behind the website, Review 01/10, security and Review 02/10, then "don't plan it",
   cleanup and Timeline first, pricing "whenever I say" (sweep 03/10, 2026-10-03). Never slot pricing in between rounds.
-- **Less text, never fewer parts.** Three quote cards became one annotated line (Review 02/10) that read "nor
-  understandable": propose the fewest examples, each whole (moment, chart in plain words, check, action), picked by hand
-  (home-report-section); a tie's wording became "just remove that line", "Not me" kept two buttons (sweep 03/10).
+- **Simpler text, never less content.** Three quote cards read "nor understandable" and became the fewest whole examples
+  (Review 02/10, home-report-section); "Not me" kept two buttons (sweep 03/10). The aim is plainer words for the same
+  content, never a lower word count: never argue a cut from it (r15-follow-ups, 2026-10-04).
+- **Three colours at most per section**, grey not counted: count them in every mock (r15-follow-ups, 2026-10-04).
 - **Speed of entry beats pickers.** One typed date field that jumps ahead, not three boxes (Review 02/10).
 - **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):
   propose the proper fix alone and say what it needs.
@@ -41,6 +42,8 @@ merged into the rule it repeats.
 - **No secret on GitHub, ever** (the Owner, 2026-09-25; CLAUDE.md): no proposal may need one (agent-roster, Out of scope).
 - **Keep what already looks great, and don't repeat a promise.** Add to a section the Owner likes without touching its
   visuals, and check a new line against every section on the page (Review 02/10, 2026-10-02).
+- **QA plays every flow two people share, signed in** (sharing, hand-back, the birth-time update), without him testing
+  (r15-follow-ups, 2026-10-04). He offered accounts and secrets; when a key already on Railway suffices, say so.
 
 ## Formats he likes
 - **An HTML artifact before any question or lock.** He decides visually (MASTERFILE §11.1). Phone first, 390 px before
@@ -51,10 +54,7 @@ merged into the rule it repeats.
 ## His own lines, verbatim
 - "Continue without this for now." The Owner, 2026-09-27, `docs/rounds/R14-plan.md` (pricing and launch, first written as
   R11): his name, address and accounts were not supplied.
-- "I would like the new website and the waitlist overlay on top of it. Let's leave Stripe settings on the side, I will handle
-  that in another round, and yes, we're going to keep going with Stripe." The Owner, 2026-09-30, `docs/rounds/R11-plan.md`.
+- "Let's leave Stripe settings on the side, I will handle that in another round." The Owner, 2026-09-30, R11 plan.
 - "go". R12's approval, with MB-93, 128 and 129 at their defaults (`docs/rounds/R12-report.md`, built 2026-10-01).
-- The two writers: "sol on the foundation, luna on everything else for the brain/prose". The Owner, 2026-10-01,
-  `docs/rounds/R12-plan.md`; his word settled the mix and the gate still ran (ADR-184).
-- The coffee voice: "two friends talking over coffee". The Owner, 2026-10-01, verbatim in ADR-185 (`docs/rounds/R12-plan.md`),
-  which the plan reads as neither too high nor too low.
+- "sol on the foundation, luna on everything else for the brain/prose". 2026-10-01, R12 plan; the gate still ran (ADR-184).
+- "two friends talking over coffee". 2026-10-01, ADR-185: neither too high nor too low.

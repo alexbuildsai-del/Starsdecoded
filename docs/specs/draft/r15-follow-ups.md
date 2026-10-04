@@ -1,10 +1,10 @@
 # R15 follow-ups: QA-03, MB-199 and MB-200
 
-Ideation 2026-10-04. Status: **draft**. Sources: `docs/qa/QA-03.md` (staging at R15, 705fa342), `docs/rounds/R15-report.md`,
+Ideation 2026-10-04. Status: **draft, answered** (the Owner took every recommendation on 2026-10-04, with two amendments: the three-colour rule and two-account QA). Sources: `docs/qa/QA-03.md` (staging at R15, 705fa342), `docs/rounds/R15-report.md`,
 Mailbox MB-199 to MB-214, the code at `main` d26dd04. Artifact: https://claude.ai/artifact/X2FeoFvemRamQfGsvz53qT
 
 ## Already held (not in scope)
-QA-03 #1 → MB-186 (the Release view's QA agent plays the signed-in personas). /sample's r06 prose → MB-182, ADR-247.
+QA-03 #1 is not held: the Release view's QA agent never signs in or writes (MB-78), so scope 5 takes it. /sample's r06 prose → MB-182, ADR-247.
 `access-control-allow-origin: *` on static HTML → ADR-248, accepted; `qa.md` should stop re-filing it.
 
 ## Scope
@@ -36,21 +36,23 @@ QA-03 #1 → MB-186 (the Release view's QA agent plays the signed-in personas). 
 - Words ship as written, with three edits: "didn't" in both not-delivered lines (share sheet and Change address);
   the outdated line gains "It's free." (true: regenerate consumes no credit, only `POST /reports` does); its error
   becomes "We couldn't start it. Try again in a minute."
-- **Behaviour check** in `Differences.tsx:68` takes `--indigo`, as `home-report-section` asks ("the label and look
-  `HouseCard` gives it") and §9 reserves brass; the card name stays brass. Rule followed: the locked spec, and "one kind of
-  thing, one look" (web-taste, the Owner 2026-10-01). Brass stays only on "keep brass".
+- **Behaviour check** in `Differences.tsx:68` leaves brass for `--indigo-lt`, the same indigo as "In her chart": three
+  colours on the card (brass name, indigo labels, teal action; grey not counted). **At most three colours per section**
+  (the Owner, 2026-10-04): the round checks every section it touches against it; §9 gains the rule at the lock.
 - No pair Send on a shared chart: kept (`access.ts:226`; sending would claim the sharer's own chart).
 - "pm" typed in full: after a jump made by a typed A or P, `BirthTimeField` swallows a following `m` or `.` (one-shot
   capture listener, cleared at the first other key or 1.5 s). MB-173's move on the P stays. S.
 - Stop sharing keeps "Keep sharing" and red.
-- **Not me after a hand-over** (question 2): recommended, `handBackOf` refuses once the claimer holds the chart, the menu
-  hides Not me and shows Delete; built today, `profiles.ts:375` returns it to the writer with the claimer's later reports.
+- **Not me after a hand-over**: `handBackOf` refuses once the claimer holds the chart (409); the menu hides Not me and
+  shows Delete. Replaces `profiles.ts:375`'s return to the writer, which took the claimer's later reports with it.
 
 ### 3. MB-200 (bands)
 - twoCharts `[300,360]` → `[150,220]`: eight one-sentence lines under the 25-word cap hold 200 at most.
 - whatToPractise `[450,560]` → `[350,450]`: its items are copied from the chapters (`whatToPractise.ts:37`).
 - `PAIR_TOTAL` `[1900,2500]` → `[1650,2200]` (five lens chapters at 230–300 plus the two).
 - Superpowers keeps 130–150-word items; `superpowers.ts:8` actions `.min(2)` → `.length(3)`, as the prompt asks.
+- The targets follow the shape; no part and no content goes. The Owner's rule is simpler text, never less content: a line
+  says the same thing in plainer words, and word count is never the aim.
 - Brain: the dry lab runs; no prompt wording changes beyond the schema line.
 
 ### 4. Mailbox code rows folded in
@@ -59,6 +61,26 @@ codegen), MB-207 (no preview pattern on production's API), MB-213 (Supabase's pu
 pool, migrate and push). Next: MB-203, 204, 210, 212, 214, 209. Brain pass: MB-201 (tzdb backzone before 1970, dry lab).
 After the Release: the pull request pointing /sample at `sample/<id>`, with `HOME_CLAIMS` re-picked by hand against the
 new run and the r06-pinned tests (`sample.test.ts`, `house-deck.test.ts:105`) moved.
+
+### 5. QA with two signed-in accounts (the Owner, 2026-10-04)
+- A walk in `api/src/lib/qaAgent/` on Railway staging, inside every Release and on demand from the admin panel, plays
+  person A and person B signed in. Refused on production. It supersedes MB-78 for this walk only.
+- Sign-in: `@clerk/testing`'s `clerk.signIn({ page, emailAddress })` with the `CLERK_SECRET_KEY` already on Railway
+  (needs only the secret key and sets the testing token itself; `page.goto` an unprotected page first). One browser
+  context per person, signed in once per run (Create SignIn is limited to 5 per 10 s per address). No new secret, no
+  account made by hand: two users created once through the Backend API with `+clerk_test` addresses (no email is sent;
+  emails made this way are verified; a development instance holds up to 100 users). Verified 2026-10-04, 40/47 claims.
+- Links: invite tokens are stored hashed, so on staging `deliver` (mailer.ts:105) puts mail to a `+clerk_test` address
+  in a QA outbox table the walk reads, and sends nothing; production never does.
+- People from the fixtures: A Marie Curie (starting from `marie-curie-unknown`), B Oprah Winfrey, the third Audrey Hepburn.
+  Reports persist between runs; staging test credits fund them; spend stays under `LAB_BUDGET_USD`.
+- Sharing: share mine → B claims and reads, A in B's circle → Share yours back → A reads B → Stop sharing, B refused at
+  once → share again, Change address before the claim, old link refused, new link works → A sends the third person's
+  report, B taps Not me, A sees Handed back and Send again → after a hand-over, no Not me, Delete there → no pair Send on
+  a shared chart.
+- Birth time: the walk resets A's chart to no time on the server, adds Curie's time, sees the outdated line with
+  "It's free.", regenerates, the balance unchanged, B reads the new report.
+- A failed step is Sev-2 and stops the Release. About $1.00 on the first run, about $0.25 (one rewrite) after. M to L.
 
 ## Out of scope
 Pricing and launch; Timeline's own cards; anything MB-186's network setting holds.
@@ -72,20 +94,22 @@ Pricing and launch; Timeline's own cards; anything MB-186's network setting hold
 - /sample's twelve house buttons have twelve distinct names.
 - "0300pm" leaves the place field's city untouched.
 - The dry lab passes with the new bands; the lab's band table shows twoCharts and whatToPractise in range on stored runs.
+- The two-account walk passes every sharing and birth-time step on staging, and refuses to start against production.
 
 ## Screens
 https://claude.ai/artifact/X2FeoFvemRamQfGsvz53qT: the band chart, the two hand-back options, the label in both colours,
 and before/after mocks for QA-03 #2 to #7.
 
 ## Open questions
-1. MB-200: lower the two bands and the pair total as above (recommended). Default: the same (Mailbox default).
-2. Not me after a hand-over: refuse once the chart is the claimer's (recommended). Default: as built.
-3. The fixes as R16's first group, before Timeline's cards (recommended). Default: the same.
+None. Answered 2026-10-04: every recommendation taken; the fixes run as R16's first group, before Timeline's cards.
 
 ## Decisions to record
-- (pending Q1) twoCharts 150–220, whatToPractise 350–450, pair total 1,650–2,200; superpowers exactly three actions.
-- (pending Q2) Not me only while the chart is the writer's; after a hand-over, Delete.
-- The Behaviour check label follows HouseCard (indigo); brass stays measured geometry and the card name.
+- twoCharts 150–220, whatToPractise 350–450, pair total 1,650–2,200; superpowers exactly three actions; simpler text,
+  never less content (MB-200).
+- Not me only while the chart is the writer's; after a hand-over, Delete.
+- At most three colours per section, grey not counted (MASTERFILE §9); the Behaviour check takes the indigo of its card.
 - R15's words as written, with the three edits above; "It's free." on the outdated line.
 - A typed "m" or "." right after a typed A or P belongs to the time.
-- (pending Q3) these fixes run as R16's first group.
+- These fixes run as R16's first group.
+- QA plays two signed-in accounts on Railway staging in every Release (Clerk testing helpers, the existing secret key,
+  `+clerk_test` users, a staging-only QA outbox); amends MB-78 and ADR-86 for that walk; MB-186 closes.
