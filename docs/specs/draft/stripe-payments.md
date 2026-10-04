@@ -2,7 +2,8 @@
 
 Ideation 2026-10-04 with the Owner ("ok lets work on the stripe integration"; "subscription and
 also branded checkout pls"; testers get free credits and the full flow; a second QA account for
-invite and claim). Artifact: https://claude.ai/artifact/Yamws6GPDB5jKvdk8U8rp2. Status: **draft**.
+invite and claim); 2026-10-04 later: "four products" saved in Stripe, campaigns with promotional
+pricing, where testers are managed, the seller address edited later. Artifact: https://claude.ai/artifact/Yamws6GPDB5jKvdk8U8rp2. Status: **draft**.
 
 Builds on `pricing-and-launch.md` (locked 2026-09-27, ADR-142 to 149), whose checkout rules stand
 except where this draft says it supersedes them; the catalogue as built (Couple €54, ADR-168);
@@ -25,8 +26,8 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
   catalogue, Stripe's Express Checkout (Apple Pay, Google Pay, Link) and Payment Element styled
   through Stripe's Appearance API from our tokens, the one tick, Pay with the amount.
 - Backed by a Checkout Session in `ui_mode: "elements"` (the API's name for the old `custom`
-  since 2026-03-25.dahlia), amounts as `price_data` from the catalogue (MB-119), no
-  `payment_method_types` (dynamic methods from the Dashboard), the account email prefilled.
+  since 2026-03-25.dahlia), line items by the price's lookup key, no `payment_method_types`
+  (dynamic methods from the Dashboard), the account email prefilled.
 - **The tick is ours** (supersedes ADR-143's use of Stripe's terms box, not its words): unticked,
   required, `CHECKOUT_TICK` verbatim with a Terms link; `POST /checkout` refuses without it and stores
   the tick's text hash and time on the purchase row; the webhook grants only purchases that carry it.
@@ -35,6 +36,27 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
 - CSP gains Stripe's script, frame and connect hosts (Report-Only today, so nothing breaks first);
   Apple Pay's domain registered for `mystarsdecoded.com` and the staging host.
 - `VITE_STRIPE_PUBLISHABLE_KEY` in Vercel (Preview: test, Production: live).
+
+### Four products, saved in Stripe (the Owner, 2026-10-04)
+- Single €24 (`single`, 1 credit), Couple €54 (`couple`, 3), Family & friends €72 (`family`, 5),
+  Timeline €9.99 a month and €69.99 a year (`timeline_month`, `timeline_year`). Prices stay typed
+  once, in `packages/commerce/src/catalogue.ts` (R-6.3), which gains the lookup keys and the plans.
+- `syncProducts` on Railway, run at start after `db:bootstrap` and from an admin button, creates or
+  updates each Product and its Prices in that environment's Stripe mode, keyed by `lookup_key`;
+  a changed amount makes a new Price and moves the key (`transfer_lookup_key`), old sales keep theirs.
+  No product is created by hand in the Dashboard. Supersedes MB-119's `price_data` recommendation.
+
+### Campaigns (the Owner, 2026-10-04; amends ADR-146's home, Q2 on its rules)
+- Admin **Campaigns** view: name, products, the campaign price, start and end dates, audience
+  (everyone, or link only via `?c=<slug>`, kept with the session like the UTM tags). Stored in a
+  `campaigns` table, per environment, so starting one needs no deploy; offers leave the catalogue.
+- The server resolves one price per product per request (R-7.1): the sheet, the landing's slot,
+  JSON-LD and `/checkout` show the campaign price beside the full one, the end date once, no countdown.
+- Stripe receives it as a Coupon (`amount_off`) made by the sync and applied as the session's
+  discount, so the receipt and Stripe's reports name the campaign; the purchase row stores it.
+- Rules enforced on save (pending Q2): at most 25% off, one live campaign per product, never Single.
+- The landing's prerendered slot shows full prices; a live campaign is fetched after load, so a
+  campaign never needs a rebuild.
 
 ### Fulfilment and the ledger
 - `POST /api/stripe/webhook`, mounted before `express.json` and before the prelaunch gate, raw body,
@@ -47,13 +69,14 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
   written and answer 402 `no_credit`; the soft pass, `creditsEnforced()` and MB-6 branches go.
 - Schema (idempotent script in `bootstrap-db.sh`): `purchases` (user, kind bundle|plan, catalogue id,
   cents, session id, payment intent, tick hash and time, returnTo, status, is_test), `stripe_events`,
-  `subscriptions`, a `refunded` credit status, `grant` as a bundle source; drop unused `credit_type`.
+  `subscriptions`, `campaigns`, `testers`, a `refunded` credit status, `grant` as a bundle source; drop unused `credit_type`.
 - Receipt: Stripe's own receipt for the payment, plus our email through Resend repeating the tick
   and the refund rules (Art. 8(7)), the bundle, the amount and the History link.
 
 ### The subscription (Q2): the plumbing now, the sale with Timeline
-- Two plans in the catalogue, Timeline monthly €9.99 and yearly €69.99, VAT included, as `price_data`
-  with `recurring` (no Dashboard Price objects).
+- Timeline is the fourth product, monthly €9.99 and yearly €69.99, VAT included, saved by the sync
+  as recurring Prices. Settled 2026-10-04 (the Owner: "building for both the reports and the
+  subscription product").
 - The same `/checkout` in subscription mode, with the renewal line before Pay ("Renews every month
   at €9.99 until you cancel."); one Stripe Customer per account, created on first purchase.
 - `subscriptions` mirrors `customer.subscription.created|updated|deleted`, `invoice.paid` and
@@ -65,7 +88,8 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
   two reports. Timeline's offer screen, Your week and Ask stay in Timeline's round.
 
 ### Testers and the full flow
-- Admin **Testers** view (staging and production): add an account by email, mark it a tester, grant
+- Admin **Testers** view at `/admin/testers` (staging and production, each its own list; the
+  accounts themselves are in Clerk's Users, one instance for both until launch): add an account by email, mark it a tester, grant
   1, 3 or 5 credits (source `grant`, `is_test`, History "+3 · from Stars Decoded"), remove.
   Granted credits never count as revenue or in the loop study.
 - Staging: every Get credits runs the real checkout on Stripe's sandbox (card `4242 4242 4242 4242`);
@@ -84,7 +108,7 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
 - `api/src/lib/stripe.ts` the one seam: one `Stripe` client instance, the SDK's pinned API version.
 
 ## Out of scope
-- Timeline itself, offers beyond ADR-146 as locked, a custom Checkout domain, Managed Payments
+- Timeline itself, a typed promotion-code box at checkout, a custom Checkout domain, Managed Payments
   (Stripe as seller of record: 3.5% plus fees, eligibility for a Belgian individual unconfirmed),
   coupons, a second currency, invoices for businesses, `LAUNCHED = true` (a Release after this ships).
 - Stripe Tax stays off until the Owner confirms a VAT registration (MB-114); the seam takes
@@ -99,10 +123,15 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
 5. No report or gift is written without a credit on any host (402 `no_credit`); a failed report
    gives its credit back; `POST /checkout/test` no longer exists.
 6. An admin grant shows in the recipient's History and is excluded from revenue.
-7. A monthly and a yearly plan can be started in sandbox by a tester, renewed with Stripe's test
+7. The sync leaves sandbox with exactly four Products and five Prices found by key; running it twice
+   changes nothing; changing Couple's amount moves `couple` to a new Price.
+8. A campaign saved in the admin changes that product's price on the sheet and `/checkout` between
+   its dates only; a link-only one only for visitors with its link; Stripe's receipt names it; a 30%
+   or Single campaign, or a second on the same product, is refused.
+9. A monthly and a yearly plan can be started in sandbox by a tester, renewed with Stripe's test
    clock, cancelled in the Portal; `subscriptions` follows each step; a non-tester cannot start one.
-8. The QA agent signs in as the QA pair on staging and completes Send, Gift, claim and one purchase.
-9. No Stripe key in the repo or GitHub; `pnpm check:shipped`, gitleaks, typecheck, both builds,
+10. The QA agent signs in as the QA pair on staging and completes Send, Gift, claim and one purchase.
+11. No Stripe key in the repo or GitHub; `pnpm check:shipped`, gitleaks, typecheck, both builds,
    tests, codegen, `db:bootstrap` clean twice, the sentinel, preview checks and smoke all green.
 
 ## Screens
@@ -118,20 +147,23 @@ subscription, the Testers view, staging against production, the second QA accoun
 
 ## Open questions (artifact, each with a default)
 1. The checkout's look: A hosted and branded, **B our page with Stripe's fields**, C embedded.
-   Default B.
-2. The subscription: **plumbing, plans and Portal now, sold with Timeline**. Default as recommended.
+   Default B. (Unanswered in the Owner's 2026-10-04 reply; the default stands.)
+2. Campaign rules: **at most 25% off, one per product, never Single, Timeline included; by date or
+   link, no code box**. Default as recommended.
 3. Order: **payments is the next round**, Timeline after it, its plan re-read. Default payments next.
 
 ## The Owner supplies
 Move the sandbox keys to Railway staging (a restricted key and the webhook secret; runbook K); in
 Stripe Public details the Terms and Privacy URLs and descriptor `MYSTARSDECODED`; the postal
-address (MB-115); the VAT position (MB-114); live keys at the launching Release.
+address before the first live sale only (MB-115: name, Belgium and contact are in; the build and
+staging go ahead without it, `saleReady()` keeps production's checkout shut until it is set); the VAT position (MB-114); live keys at the launching Release.
 
 ## Research
 Two researcher passes 2026-10-04. docs.stripe.com, stripe.com and clerk.com were blocked by this
 session's network policy, so the verifier could not re-fetch them; claims rest on Stripe's SDK
 source and changelog on GitHub, the clerk-docs source repo, and the Stripe plugin's best-practice
-guide. The round's first card re-checks each Stripe fact in Stripe's docs before code.
+guide. Lookup keys, `transfer_lookup_key` and Coupons as session discounts are from the SDK, not yet
+read in Stripe's docs. The round's first card re-checks each Stripe fact in Stripe's docs before code.
 
 ## Decisions to record
 1. **Our own checkout page** on a Checkout Session in `elements` mode, styled from our tokens, with
@@ -140,8 +172,11 @@ guide. The round's first card re-checks each Stripe fact in Stripe's docs before
    credits hard on every host (closes MB-6, MB-57 for good).
 3. **The free test checkout is deleted**; staging pays in Stripe's sandbox, testers get admin grants
    on both hosts, excluded from revenue (supersedes ADR-138).
-4. **Subscription plumbing ships with payments**, Timeline's two plans, the Portal, a mirrored
-   `subscriptions` table; sold only when `TIMELINE` is on.
-5. **QA signs in on staging** with Clerk Testing Tokens as a server-made QA pair.
-6. **Restricted Stripe keys on Railway, publishable key on Vercel, none on GitHub.**
-7. **Order**: payments is the next round, Timeline after it (pending Q3).
+4. **Four products saved in Stripe** by a sync from the catalogue, found by lookup key; Timeline
+   is the fourth, with its Portal and a mirrored `subscriptions` table, sold only when `TIMELINE`
+   is on (supersedes MB-119's `price_data`).
+5. **Campaigns from the admin**, stored per environment, sent to Stripe as coupons, by date or
+   link, under ADR-146's rules (amends ADR-146's home in the catalogue).
+6. **QA signs in on staging** with Clerk Testing Tokens as a server-made QA pair.
+7. **Restricted Stripe keys on Railway, publishable key on Vercel, none on GitHub.**
+8. **Order**: payments is the next round, Timeline after it (pending Q3).
