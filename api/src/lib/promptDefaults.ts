@@ -1,5 +1,7 @@
 import { ALL_SECTIONS, SHARED_SYSTEM } from "../prompts/index.js";
 import { PAIR_ALL_SECTIONS, PAIR_SYSTEM } from "../prompts/pair/index.js";
+import { TIMELINE_PROMPTS } from "../prompts/timeline/index.js";
+import { ASK_PROMPTS } from "../prompts/ask/index.js";
 
 export interface PromptDefault {
   key: string;
@@ -66,6 +68,11 @@ const PAIR_DEFAULTS: PromptDefault[] = PAIR_ALL_SECTIONS.flatMap((s) => {
   ];
 });
 
-export const PROMPT_DEFAULTS: PromptDefault[] = [...NATAL_DEFAULTS, ...PAIR_DEFAULTS];
+/**
+ * Timeline's readings and Ask derive their rows in their own registries
+ * (ADR-210, 213), a system row and an instructions row per call, so the
+ * admin edits them as it edits a chapter.
+ */
+export const PROMPT_DEFAULTS: PromptDefault[] = [...NATAL_DEFAULTS, ...PAIR_DEFAULTS, ...TIMELINE_PROMPTS, ...ASK_PROMPTS];
 
 export const PROMPT_DEFAULTS_BY_KEY = new Map(PROMPT_DEFAULTS.map((p) => [p.key, p]));
