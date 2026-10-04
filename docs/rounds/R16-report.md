@@ -32,6 +32,7 @@ stored answers outlive Stop sharing) are not blocking while the admin is the one
 - Acceptance "to the hour against Horizons" holds for the pinned hits and Jupiter and Saturn; astronomy-engine's Uranus, Pluto and Neptune drift up to 7 hours (tests bound at 75 and 480 minutes) → Mailbox.
 - Mira's week is computed by the API at a Release and committed as data (Vite runs no engine at build); an engine change re-pins it with `MIRA_WEEK=write`.
 - `/dashboard/timeline` and `/dashboard/account` need sign-in first; Ask loads lazily on reports and the dashboard; Ask says it's an AI under the box.
+- CI's gitleaks read Timeline's event keys ("cycle.saturn-return.20210118") as credentials, as R13's report item keys were (ADR-200): `.gitleaks.toml` gains one allowlist for exactly that shape; a key-shaped secret still fails.
 - R16-33 also edited `HouseDeck.tsx` (the ruler's prop); R16-13 moved `web/src/types/chart.ts` (v11, p6 renderable).
 
 ## New words for the Owner's look (Mailbox row)
