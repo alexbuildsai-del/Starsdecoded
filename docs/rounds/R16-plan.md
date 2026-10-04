@@ -49,6 +49,32 @@ file R15 touched.
    blocked when R16-01 or R16-03 starts, their Horizons tests wait and the rest goes on. NASA's eclipse site is blocked from the sandbox,
    so R16-01 pins the two eclipse instants its card gives.
 
+## Round start re-pins (the orchestrator, 2026-10-04, `main` at d26dd04 after R15)
+Every named file is where the plan says; R15 rewrote no audited line (it removed "A moment you'd recognise." and two nudges).
+1. **R16-05** adds `api/src/lib/github.ts` and `release.ts` (+ tests): `commitFile` takes `files: { path; content }[]` (one commit,
+   one branch); `SAMPLE_FILE` admits exactly `web/src/site/data/timeline/mira-week.json` besides `/sample`'s, its guard tests extended;
+   Mira's week moves on every forwarded Release, a lab run or not (only a missing token skips it); the detail gets a line for each.
+2. **R16-08 and R16-11** rename only the labels on screen (`Differences.tsx:68`, `HouseCard.tsx`, `LinkCard.tsx`); the
+   `"Behaviour check:"` marker in `charts-meet.ts` and `house-deck.ts` splits model text and stays.
+3. **R16-10** adds `web/src/site/data/sample.ts` (`DIMMED_LINES.focus` only), written with the new Closing heads.
+4. **R16-13**: natal `v10` → `v11`, pair `p5` → `p6`; R15's MB comments, rule 13 and the vocabulary header stay; the `full` entries
+   are rewritten in `vocabulary.ts` and in the generator (`scripts/src/generate-vocabulary.ts`, added) so `--write` keeps them.
+5. **R16-19**: the bootstrap step is `3n/7`, after R15's `3m/7`.
+6. **R16-21, 24, 25**: report text entering a reading or Ask prompt goes through R15's `maskNames` (ADR-240); `DataLabel` gains
+   `quote` with its own one-line maximum (about 900 characters; `DATA_MAX` stays 60 for names), and `DATA_RULE` names it.
+7. **R16-22**: `%:system` keeps matching `timeline:system` and `ask:system` (both carry the style contract); its comment says so.
+8. **R16-23** starts `readerChart` from `ownChartOf(userId)` (`shares.ts`); null or unfinished is 409 `no_personal_report`.
+9. **R16-25 (and every read check in R16-23, 29)**: fetch `sharedProfileIds(viewer.userId)` once a request and pass it to
+   `natalReportAccess(..., shared)` and `pairReadable(..., shared)`; the defaults deny a shared report.
+10. **R16-29**: `forgetTimeline` runs after `DELETE /reports/:id`'s transaction, on the path deleting the viewer's own natal report,
+    never on the `handOver` return; `LIMITS` gains `ask` (6 a minute) and `timelineReading` (20), `by: "account"`, each a `LIMIT_LINES` line.
+11. **R16-32**: `triadRowsOf` keeps R15's Moon range (MB-139) from a stored triad's `band` and a chart's `planets.moon.band`, one
+    format ("10.19° to 22.85° Pisces"; across a sign, both signs and no house), a test pinning both inputs equal.
+12. **R16-33** adds `web/src/components/dashboard/CardSections.tsx` and `web/src/site/sections/YourPeople.tsx` (both call
+    `triadRows`) and retires `pair-hero-layout.ts`'s `interface TriadRow` for the component's name.
+13. **R16-34** appends `&& tsx ./src/walk/timeline.walk.ts` to the `walk` script.
+14. **The orchestrator after group A**: `site.ts`'s `updated` set to the day on each page whose words moved.
+
 ## What already shipped (checked at 24f6e6c; `round/R15` read at 4d9ef09)
 - **Met, and reused:** `@workspace/engine` on the server, in the browser and in the prerender (R11); Chiron from Horizons and
   `CHART_VERSION` 4 (R14); `isSelfFor`, `natalReportAccess`, `pairReadable`; `recordSpend`, the spend gate, `recordChecks` and
