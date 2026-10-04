@@ -124,8 +124,9 @@ export interface Mira {
 const DAY_MS = 86_400_000;
 const YEAR_MS = 365.2425 * DAY_MS;
 const TONE_RANK: Readonly<Record<Tone, number>> = { intense: 0, mixed: 1, easy: 2 };
-// dial.ts orders a frame's contacts the same way; its module loads the engine, which this one never does.
+// framesFor orders a frame's contacts the same way, from the doctrine's lists; dial.ts loads the engine, this module never does.
 const SLOWEST_FIRST: readonly SkyBody[] = ["pluto", "neptune", "uranus", "saturn", "jupiter", "mars", "venus", "mercury"];
+const TARGET_ORDER: readonly NatalTarget[] = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "ascendant", "midheaven"];
 const stronger = (a: Tone | null, b: Tone): Tone => (a !== null && TONE_RANK[a] <= TONE_RANK[b] ? a : b);
 const ANGLES: readonly NatalTarget[] = ["ascendant", "midheaven"];
 
@@ -174,16 +175,17 @@ function rewrite(week: MiraWeekFile, why: string): never {
 }
 
 /**
- * The dial's frames from the week's facts, as `framesOf` orders them (strongest tone first, then the slowest planet,
- * up to three headlines), with one difference: a contact is on a frame only on the days the doctrine holds it in orb,
- * so a day inside a window but in a retrograde's gap draws no line.
+ * The dial's frames from the week's facts, as `framesFor` draws them (strongest tone first, then the slowest planet,
+ * then the doctrine's order of points, up to three headlines): a contact is on a frame only on the days the doctrine
+ * holds it in orb, so a day inside a window but in a retrograde's gap draws no line. Her days are Lisbon's (reading 4).
  */
 function heroFrames(week: MiraWeekFile): DialFrame[] {
   return Array.from({ length: week.sky[0]?.lon.length ?? 0 }, (_, i) => {
     const date = addDays(week.week, i);
     const on = week.contacts
       .filter((c) => inOrbOn(c, date))
-      .sort((a, b) => TONE_RANK[a.tone] - TONE_RANK[b.tone] || SLOWEST_FIRST.indexOf(a.body) - SLOWEST_FIRST.indexOf(b.body));
+      .sort((a, b) => TONE_RANK[a.tone] - TONE_RANK[b.tone] || SLOWEST_FIRST.indexOf(a.body) - SLOWEST_FIRST.indexOf(b.body)
+        || TARGET_ORDER.indexOf(a.target) - TARGET_ORDER.indexOf(b.target));
     const headlines: string[] = [];
     for (const c of on) if (headlines.length < 3 && !headlines.includes(c.headline)) headlines.push(c.headline);
     return {
