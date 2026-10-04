@@ -91,6 +91,13 @@ describe("what the browser keeps", () => {
     expect(store("sd.prelaunch.preview")).toBe("tab");
   });
 
+  it("keeps Not now on the dashboard's big cycles until the reader clears it, and says when they come back (reading 26)", () => {
+    const notNow = BROWSER_KEYS.find((key) => key.name === "sd.timeline.notnow");
+    expect(notNow?.store).toBe("kept");
+    expect(notNow?.holds).toContain("Not now");
+    expect(notNow?.holds).toContain("under a year away");
+  });
+
   it("reads a per-report key without the part each report fills in", () => {
     expect(storageKeyOf({ name: "sd.marks.<report id>", store: "kept", holds: "" })).toBe("sd.marks.");
     expect(storageKeyOf({ name: "sd.form.draft", store: "tab", holds: "" })).toBe("sd.form.draft");
