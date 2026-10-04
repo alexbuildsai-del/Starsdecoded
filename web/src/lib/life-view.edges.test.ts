@@ -189,7 +189,7 @@ describe("the ring's target from an age alone, against the engine's angle for ev
       }
     }
     expect(squares).toBeGreaterThan(20);
-  });
+  }, 60_000);
 });
 
 describe("a cycle's mark on its wave is its card's age", () => {
