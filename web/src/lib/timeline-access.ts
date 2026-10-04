@@ -10,6 +10,9 @@ export type TimelineAccessView = {
   loading: boolean;
 };
 
+/** What the hook answers: the view, and `error` when the read failed with no answer to go by, so no door decides on it. */
+export type TimelineAccessState = TimelineAccessView & { error: boolean };
+
 /** Who is asking, as Clerk's `useAuth` says it. */
 export type AccessReader = {
   isLoaded: boolean;
@@ -48,10 +51,31 @@ export function timelineAccessView(
   return { access, source, hasPersonalReport, ask, loading: false };
 }
 
+/**
+ * Access is unknown, not false, when a signed-in reader's read failed and no answer stands. A read that fails after an
+ * answer came keeps that answer, as React Query keeps its data, and the answer still holds.
+ */
+export function timelineAccessFailed(reader: AccessReader, answer: TimelineAccess | undefined, failed: boolean): boolean {
+  return signedIn(reader) && answer === undefined && failed;
+}
+
+/** What Timeline's own page does with the answer: wait, offer to read it again, send the reader to /timeline, or open. */
+export type TimelineDoor = "wait" | "retry" | "away" | "open";
+
+/** Away only once access is known to be false: a failed read would otherwise send a subscriber to the product page. */
+export function timelineDoor(state: Pick<TimelineAccessState, "access" | "loading" | "error">): TimelineDoor {
+  if (state.loading) return "wait";
+  if (state.access) return "open";
+  return state.error ? "retry" : "away";
+}
+
 /** Whether the signed-in reader has Timeline (ADR-262); a signed-out visitor makes no call and has none. */
-export function useTimelineAccess(): TimelineAccessView {
+export function useTimelineAccess(): TimelineAccessState {
   const { isLoaded, isSignedIn, userId } = useAuth();
   const reader: AccessReader = { isLoaded, isSignedIn, userId };
   const query = useGetTimelineAccess({ query: timelineAccessQuery(reader) });
-  return timelineAccessView(reader, query.data, query.isPending);
+  return {
+    ...timelineAccessView(reader, query.data, query.isPending),
+    error: timelineAccessFailed(reader, query.data, query.isError),
+  };
 }

@@ -6,7 +6,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { getGetTimelineAccessQueryKey, getGetTimelineAccessQueryOptions, type TimelineAccess } from "@workspace/api-client-react";
-import { timelineAccessQuery, timelineAccessView, type AccessReader } from "./timeline-access";
+import {
+  timelineAccessFailed,
+  timelineAccessQuery,
+  timelineAccessView,
+  timelineDoor,
+  type AccessReader,
+} from "./timeline-access";
 
 const NONE = { access: false, source: null, hasPersonalReport: false, ask: null };
 const ADMIN_ANSWER: TimelineAccess = {
@@ -137,5 +143,66 @@ describe("a read that fails", () => {
     await readOnce(200, ADMIN_ANSWER);
     expect(fetchStub).toHaveBeenCalledTimes(1);
     expect(String(fetchStub.mock.calls[0][0])).toBe("/api/timeline/access");
+  });
+
+  it("says the read failed after a 500 or a 401, so Timeline's page offers to read it again and never sends the reader away", async () => {
+    for (const status of [500, 401]) {
+      const result = await readOnce(status, { error: "boom" });
+      const error = timelineAccessFailed(reader({}), result.data, result.isError);
+      expect(error, String(status)).toBe(true);
+      const state = { ...timelineAccessView(reader({}), result.data, result.isPending), error };
+      expect(timelineDoor(state), String(status)).toBe("retry");
+    }
+  });
+
+  it("keeps the answer it had when a later read fails, so an open page stays open", async () => {
+    fetchStub.mockResolvedValueOnce(new Response(JSON.stringify(ADMIN_ANSWER), { status: 200, headers: { "content-type": "application/json" } }));
+    fetchStub.mockResolvedValueOnce(new Response(JSON.stringify({ error: "boom" }), { status: 500, headers: { "content-type": "application/json" } }));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    clients.push(client);
+    const observer = new QueryObserver(client, getGetTimelineAccessQueryOptions({ query: timelineAccessQuery(reader({})) }));
+    const unsubscribe = observer.subscribe(() => {});
+    await vi.waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
+    // Ask's send invalidates the key to move the count (R16-28); this read is the one that fails.
+    await client.invalidateQueries({ queryKey: getGetTimelineAccessQueryKey() });
+    await vi.waitFor(() => expect(observer.getCurrentResult().isError).toBe(true));
+    const result = observer.getCurrentResult();
+    unsubscribe();
+    expect(result.data).toEqual(ADMIN_ANSWER);
+    const error = timelineAccessFailed(reader({}), result.data, result.isError);
+    expect(error).toBe(false);
+    expect(timelineDoor({ ...timelineAccessView(reader({}), result.data, result.isPending), error })).toBe("open");
+  });
+});
+
+describe("what Timeline's own page does with the answer (R16-27)", () => {
+  it("calls a failed read an error only for a signed-in reader with no answer to go by", () => {
+    expect(timelineAccessFailed(reader({}), undefined, true)).toBe(true);
+    expect(timelineAccessFailed(reader({}), undefined, false)).toBe(false);
+    expect(timelineAccessFailed(reader({}), ADMIN_ANSWER, true)).toBe(false);
+    expect(timelineAccessFailed(reader({}), { ...ADMIN_ANSWER, access: false, source: null, ask: null }, true)).toBe(false);
+    // Signed out or still loading, no read is made, so nothing failed: a visitor has no Timeline and that is known.
+    for (const over of [{ isLoaded: false }, { isSignedIn: false }, { isSignedIn: undefined }, { userId: null }, { userId: "" }]) {
+      expect(timelineAccessFailed(reader(over), undefined, true), JSON.stringify(over)).toBe(false);
+    }
+  });
+
+  it("waits while loading, opens with access, sends away only a known no, and offers a retry on an error", () => {
+    expect(timelineDoor({ access: false, loading: true, error: false })).toBe("wait");
+    expect(timelineDoor({ access: true, loading: false, error: false })).toBe("open");
+    expect(timelineDoor({ access: false, loading: false, error: false })).toBe("away");
+    expect(timelineDoor({ access: false, loading: false, error: true })).toBe("retry");
+    // Loading wins over a stale error: the page waits for the read under way rather than offering another.
+    expect(timelineDoor({ access: false, loading: true, error: true })).toBe("wait");
+  });
+
+  it("sends a signed-out visitor and a reader without Timeline to /timeline, and opens for the admin", () => {
+    const door = (who: AccessReader, answer: TimelineAccess | undefined, pending: boolean, failed: boolean) =>
+      timelineDoor({ ...timelineAccessView(who, answer, pending), error: timelineAccessFailed(who, answer, failed) });
+    expect(door(reader({ isSignedIn: false, userId: null }), undefined, true, false)).toBe("away");
+    expect(door(reader({}), { access: false, source: null, hasPersonalReport: true, ask: null }, false, false)).toBe("away");
+    expect(door(reader({}), ADMIN_ANSWER, false, false)).toBe("open");
+    expect(door(reader({ isLoaded: false }), undefined, true, false)).toBe("wait");
+    expect(door(reader({}), undefined, true, false)).toBe("wait");
   });
 });
