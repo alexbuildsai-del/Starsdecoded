@@ -82,6 +82,19 @@ Every named file is where the plan says; R15 rewrote no audited line (it removed
     after an engine change), read by `MIRA`; the dial takes `framesFor({ points, angles }, from, days, bodies)` and is itself the one
     keyboard slider. `lookBack`'s third argument is a `DateOrder`. Engine `DOCTRINE` clashes by name with `api/src/prompts`' `DOCTRINE`:
     alias on import.
+16. **After group B** (what its builders found), for group C. **R16-24**: write through `callStructured` with
+    `resolveSection(READING_KEY)`, `validate: (o) => checkReading(o, input)`, `names: { name }` and `maxTokens: READING_MAX_TOKENS`;
+    `readingStatuses` returns R16-23's `ReadingStatuses` (key to a status or `{ status, line }`, a line shown only when ready).
+    **R16-25**: `askAnswerPrompt` takes `AskAnswerCard`s with days as `YYYY-MM-DD` in the reader's zone, short ids (r1, p1) mapped back
+    by the server, and a `ChartBrief`; the cycle tool has `which` (last or next); every name in history and quotes is masked by Ask's
+    builders (`callStructured`'s `names` holds one name or a pair); `POST /ask` answers `AskThread`, its 429 the `RateLimited` body or
+    `AskCap { error: "ask_cap", message, resetsOn }`; R16-23 exports `dayStart`, `dayIn`, `validZone` for the day card.
+    **R16-26**: `labDry.ts`'s `MARKER_LINES` adds `DATA_OPEN("quote")` (`DATA_LABELS` is exported). **R16-27** also owns
+    `web/src/lib/timeline-access.ts` (+ test) to add `error: boolean` to `useTimelineAccess`: the page sends a reader to `/timeline`
+    only when access is known false, never on a failed read; the dial is itself the slider (no second range input), frames from
+    `framesFor({ points: now.natal, angles: now.angles }, now.from, days, bodies)`; `Waves.today` from `TimelineLife.age`, marks from
+    `cycleMark(id, firstPass, birth)`; an eclipse with a null tone shows no tone word. **R16-28**: after each send it invalidates
+    `getGetTimelineAccessQueryKey()` (Ask's count lives there); an answer may hold up to three paragraphs split by a blank line.
 ## What already shipped (checked at 24f6e6c; `round/R15` read at 4d9ef09)
 - **Met, and reused:** `@workspace/engine` on the server, in the browser and in the prerender (R11); Chiron from Horizons and
   `CHART_VERSION` 4 (R14); `isSelfFor`, `natalReportAccess`, `pairReadable`; `recordSpend`, the spend gate, `recordChecks` and
