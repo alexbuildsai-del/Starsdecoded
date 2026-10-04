@@ -75,6 +75,7 @@ const PAIRS_DIR = join(ROOT, "fixtures", "pairs");
 import { ALL_SECTIONS, PASS_ADDS, SECTION_IDS } from "../../api/src/prompts/index.js";
 import { PAIR_WORD_TARGETS, bandProblems, evidenceProblems, pairChapterIds, pairChapterTitle, ratingProblems, sceneProblems } from "../../api/src/prompts/pair/index.js";
 import { BAND_DOCTRINE } from "../../api/src/prompts/pair/sections/parent-child/doctrine.js";
+import { plainCount } from "../../api/src/prompts/checks.js";
 import type { NatalChartData } from "../../api/src/lib/chartCalculation.js";
 import type { PairInput } from "../../api/src/lib/pairBrief.js";
 /** The product target for a compatibility report's prose, the cards and the items outside it (ADR-63). */
@@ -509,7 +510,9 @@ const shortModel = (m: string): string => m.replace(/^gpt-/, "");
  * wrote a better section, so this reports what the section is actually judged
  * on: the style contract, code-verified claims, the word band, and what each
  * one cost. Quality and cost are kept apart — a section that got cheaper and
- * broke the contract is not an improvement.
+ * broke the contract is not an improvement. The writer's rule is counted
+ * beside them as chk-43 counts it in a live write, a trend and never a
+ * verdict (ADR-81, ADR-257).
  */
 function compare(labelA: string, labelB: string): void {
   const names = listFixtures();
@@ -517,6 +520,9 @@ function compare(labelA: string, labelB: string): void {
   let costA = 0, costB = 0, priced = true;
   const regressed: string[] = [];
   const fixed: string[] = [];
+  const plainA = { sentences: 0, twoIdeas: 0, metaphor: 0 };
+  const plainB = { sentences: 0, twoIdeas: 0, metaphor: 0 };
+  const add = (into: typeof plainA, n: typeof plainA) => { into.sentences += n.sentences; into.twoIdeas += n.twoIdeas; into.metaphor += n.metaphor; };
 
   for (const name of names) {
     const pathA = join(REPORTS_DIR, `${name}.${labelA}.json`);
@@ -553,17 +559,23 @@ function compare(labelA: string, labelB: string): void {
         : fellOut ? "WORSE out of word band"
         : goneFaults.length || cameIn ? "better"
         : "same";
+      const pa = plainCount(a[section]);
+      const pb = plainCount(b[section]);
+      add(plainA, pa);
+      add(plainB, pb);
       body.push([
         section,
         ja.model === jb.model ? shortModel(ja.model) : `${shortModel(ja.model)}→${shortModel(jb.model)}`,
         `${ja.words}→${jb.words}`,
         `${usd(ja.costUsd)}→${usd(jb.costUsd)}`,
         `${secs(ja.ms)}→${secs(jb.ms)}`,
+        `${pa.twoIdeas}→${pb.twoIdeas}`,
+        `${pa.metaphor}→${pb.metaphor}`,
         verdict,
       ]);
     }
     console.log(`\n=== ${name}: ${labelA} → ${labelB} ===`);
-    console.log(table(["section", "model", "words", "$", "s", "verdict"], body));
+    console.log(table(["section", "model", "words", "$", "s", "2 ideas", "metaphor", "verdict"], body));
   }
 
   if (compared === 0) {
@@ -581,6 +593,10 @@ function compare(labelA: string, labelB: string): void {
   console.log(`quality: ${regressed.length} section(s) worse, ${fixed.length} better, out of ${compared * SECTION_IDS.length}`);
   if (regressed.length) console.log(`  worse: ${regressed.join(", ")}`);
   if (fixed.length) console.log(`  better: ${fixed.join(", ")}`);
+  const share = (n: number, of: number) => `${of ? Math.round((n / of) * 1000) / 10 : 0}%`;
+  console.log(`simple words (chk-43) over ${plainA.sentences} → ${plainB.sentences} sentences:`
+    + ` two ideas ${plainA.twoIdeas} → ${plainB.twoIdeas} (${share(plainA.twoIdeas, plainA.sentences)} → ${share(plainB.twoIdeas, plainB.sentences)}),`
+    + ` a metaphor ${plainA.metaphor} → ${plainB.metaphor} (${share(plainA.metaphor, plainA.sentences)} → ${share(plainB.metaphor, plainB.sentences)})`);
   console.log(regressed.length
     ? "A section that got cheaper and broke the contract is not an improvement."
     : "No section regressed. Cheaper is cheaper.");

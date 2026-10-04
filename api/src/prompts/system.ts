@@ -10,9 +10,17 @@
 import { DATA_RULE } from "./data.js";
 import { renderVocabularyBlock } from "./vocabulary.js";
 
+/**
+ * The Owner's rule for every word a reader gets (ADR-257), as the timeline-page spec gives it. It opens the contract
+ * unnumbered, so rules 7, 8, 12 and 13 read as its details and no rule's number moves.
+ */
+export const SIMPLE_WORDS = "Simple words, everywhere. Write the way you'd talk to a friend across a table: everyday words, one idea per sentence, a reading level of grade 6 to 8. No metaphor or poetic phrase the reader has to decode, and no drama. If a sentence sounds deep, rewrite it until it sounds normal.";
+
 // MB-92 provisional: writers copied rule 2's old model word for word, so no model is a line to reuse.
 // MB-132, 143 provisional: rule 13 binds both foundations too, so the room line reaches every word the reader gets.
 export const STYLE_CONTRACT = `STYLE CONTRACT. These rules are not optional. A model sentence shows the kind of sentence wanted: never copy one into the prose.
+
+${SIMPLE_WORDS}
 
 1. Never explain the method. Do not write "in traditional practice", "by day Mars is", "which is about as strong as a planet gets", "this placement means", "astrologically", or any sentence about astrology as a subject. The technique decides what is said and never appears in what is said.
 2. Every paragraph contains a behaviour the reader can check against themselves. If a sentence is not about them, cut it. Model: "You keep a list for everything, even the weekend."

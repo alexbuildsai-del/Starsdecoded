@@ -423,17 +423,17 @@ export function sceneTitleOf(interpretation: PairInterpretation | null, id: stri
 }
 
 /**
- * The prompt versions this page renders: v7 to v10 changed the words, not the
+ * The prompt versions this page renders: v7 to v11 changed the words, not the
  * shape (ADR-104, ADR-185), so a stored v6 report reads as it was written.
  * Older stored reports get the regenerate call to action.
  */
-export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7", "v8", "v9", "v10"] as const;
+export const RENDERABLE_PROMPT_VERSIONS = ["v6", "v7", "v8", "v9", "v10", "v11"] as const;
 
 /**
- * p3 dropped the pointer and wrote one scene a chapter, and p4 and p5 kept that
+ * p3 dropped the pointer and wrote one scene a chapter, and p4 to p6 kept that
  * shape; the page reads a p2 report's written scene the same way (ADR-176).
  */
-export const RENDERABLE_PAIR_PROMPT_VERSIONS = ["p2", "p3", "p4", "p5"] as const;
+export const RENDERABLE_PAIR_PROMPT_VERSIONS = ["p2", "p3", "p4", "p5", "p6"] as const;
 
 /**
  * A stored report this page can render. Anything older keeps its words but not

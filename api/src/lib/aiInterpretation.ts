@@ -37,7 +37,7 @@ import {
   buildBrief, hasClaims, instructionsFor, proseOf, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
   type ChartBrief, type Claim, type EvidenceRef, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
-import { block, blocking, clean, fixed, needsRepair, registerChecks, repair, warned, type Check, type Validated } from "../prompts/checks.js";
+import { block, blocking, clean, fixed, needsRepair, plainChecks, registerChecks, repair, warned, type Check, type Validated } from "../prompts/checks.js";
 import { blockValues, lettersNote, maskNames, restoreBlocks, unmaskQuote, type TypedNames } from "../prompts/data.js";
 import { followRepairs, semicolonsToFullStops } from "../prompts/pair/index.js";
 import { recordChecks } from "./failureLog.js";
@@ -67,8 +67,8 @@ function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
 }
 
 const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted. Do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
-/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185). v9: the name reaches the prompt only as data (ADR-202). v10: floors where Luna ran short, a room only a real room, no model sentence to copy, each house opens with the page's word (R15-23); v6 to v9 reports still render. */
-export const PROMPT_VERSION = "v10";
+/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185). v9: the name reaches the prompt only as data (ADR-202). v10: floors where Luna ran short, a room only a real room, no model sentence to copy, each house opens with the page's word (R15-23). v11: the Owner's simple-words rule opens the style contract and the vocabulary is in everyday words (ADR-257); v6 to v10 reports still render. */
+export const PROMPT_VERSION = "v11";
 
 /** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
 type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
@@ -276,6 +276,8 @@ export interface StructuredCall<T> {
   spend?: SpendKind;
   /** The names the prompt holds in blocks: model text sent back carries them as A, B or a block (ADR-240). */
   names?: TypedNames;
+  /** A foundation's handoff, which no reader reads: the style contract binds it only by rule 13, so chk-43 skips it. */
+  internal?: boolean;
 }
 
 /** The rule a count problem at this path belongs to, so the log names the annex row. */
@@ -499,6 +501,8 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     checks.push(...validated.checks);
     // Every call, natal or pair, foundation or section, so a list that keeps firing reaches the Failures tab (ADR-85, ADR-185).
     checks.push(...registerChecks(data));
+    // Counted on the reply as accepted, outside validate, so a claims-only repair never counts a sentence twice.
+    if (!call.internal) checks.push(...plainChecks(data));
     const repairWanted = needsRepair(checks) && !checks.some((c) => c.rule === "chk-09" && c.cls === "block");
 
     // Fewer than three valid claims after reconciliation is the one problem
@@ -627,6 +631,7 @@ async function callSection<T>(
     carry: options.carry,
     spend: options.spend,
     names: options.names ?? namesOf(brief),
+    internal: spec.key === FOUNDATION.key,
     onChecks: (checks, event) => recordChecks({ kind: log.kind, section: usageKey, model, writeId, reportId: log.reportId, attempt: event.attempt, final: event.final, checks }),
   });
 }

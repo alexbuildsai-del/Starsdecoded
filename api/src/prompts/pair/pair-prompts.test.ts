@@ -35,8 +35,8 @@ function pair(lens: Lens = "partners", extra: Partial<Parameters<typeof buildPai
   });
 }
 
-test("registry: seventeen specs plus the link cards and the foundation, eight ids a lens, seven chapters, version p5", () => {
-  assert.equal(PAIR_PROMPT_VERSION, "p5");
+test("registry: seventeen specs plus the link cards and the foundation, eight ids a lens, seven chapters, version p6", () => {
+  assert.equal(PAIR_PROMPT_VERSION, "p6");
   assert.equal(PAIR_SECTIONS.length, 18, "two fixed, fifteen lens chapters, the link cards");
   assert.equal(PAIR_ALL_SECTIONS.length, 19);
   assert.equal(PAIR_ALL_SECTIONS[0].key, "pair:foundation");
