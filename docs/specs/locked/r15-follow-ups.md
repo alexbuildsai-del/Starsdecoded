@@ -1,6 +1,6 @@
 # R15 follow-ups: QA-03, MB-199 and MB-200
 
-Ideation 2026-10-04. Status: **locked 2026-10-04** (ADR-249 to 255), the Owner's "lock it" after taking every recommendation with two amendments (three colours per section, two-account QA). Sources: `docs/qa/QA-03.md` (staging at R15, 705fa342), `docs/rounds/R15-report.md`,
+Ideation 2026-10-04. Status: **locked 2026-10-04** (ADR-266 to 272), the Owner's "lock it" after taking every recommendation with two amendments (three colours per section, two-account QA). Sources: `docs/qa/QA-03.md` (staging at R15, 705fa342), `docs/rounds/R15-report.md`,
 Mailbox MB-199 to MB-214, the code at `main` d26dd04. Artifact: https://claude.ai/artifact/X2FeoFvemRamQfGsvz53qT
 
 ## Already held (not in scope)
@@ -104,12 +104,12 @@ and before/after mocks for QA-03 #2 to #7.
 None. Answered 2026-10-04: every recommendation taken; the fixes run as R16's first group, before Timeline's cards.
 
 ## Decisions recorded (Notion Decisions, 2026-10-04)
-- twoCharts 150–220, whatToPractise 350–450, pair total 1,650–2,200; superpowers exactly three actions; simpler text,
+- ADR-266: twoCharts 150–220, whatToPractise 350–450, pair total 1,650–2,200; superpowers exactly three actions; simpler text,
   never less content (MB-200).
-- Not me only while the chart is the writer's; after a hand-over, Delete.
-- At most three colours per section, grey not counted (MASTERFILE §9); the Behaviour check takes the indigo of its card.
-- R15's words as written, with the three edits above; "It's free." on the outdated line.
-- A typed "m" or "." right after a typed A or P belongs to the time.
-- These fixes run as R16's first group.
-- QA plays two signed-in accounts on Railway staging in every Release (Clerk testing helpers, the existing secret key,
+- ADR-267: Not me only while the chart is the writer's; after a hand-over, Delete.
+- ADR-268: At most three colours per section, grey not counted (MASTERFILE §9); the Behaviour check takes the indigo of its card.
+- ADR-269: R15's words as written, with the three edits above; "It's free." on the outdated line.
+- ADR-270: A typed "m" or "." right after a typed A or P belongs to the time.
+- ADR-271: These fixes run as R16's first group.
+- ADR-272: QA plays two signed-in accounts on Railway staging in every Release (Clerk testing helpers, the existing secret key,
   `+clerk_test` users, a staging-only QA outbox); amends MB-78 and ADR-86 for that walk; MB-186 closes.
