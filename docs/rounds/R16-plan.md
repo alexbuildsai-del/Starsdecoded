@@ -95,6 +95,19 @@ Every named file is where the plan says; R15 rewrote no audited line (it removed
     `framesFor({ points: now.natal, angles: now.angles }, now.from, days, bodies)`; `Waves.today` from `TimelineLife.age`, marks from
     `cycleMark(id, firstPass, birth)`; an eclipse with a null tone shows no tone word. **R16-28**: after each send it invalidates
     `getGetTimelineAccessQueryKey()` (Ask's count lives there); an answer may hold up to three paragraphs split by a blank line.
+17. **After group C** (what its builders found), for group D. **R16-29** also owns `packages/api-spec/openapi.yaml` and its
+    codegen (additive only) and `web/src/components/ask/AskPanel.tsx` (only to send the zone): `GET` and `POST /ask` take the optional
+    `tz` the Timeline routes take, and the panel sends `browserZone()`; `/ask` answers 409 `no_personal_report` like now and life.
+    `sendAsk` maps `thread` → 200, `cap` → 429 `AskCap`, `invalid` → 400 (`validation_error` or `choice_not_offered`),
+    `no_personal_report` → 409. `openReading(reader, key)` waits up to 20 s then answers `writing`; the sheet re-posts every 4 s, so a
+    re-post for a reading already writing or ready does not count toward `timelineReading`'s 20 a minute (only a post that starts a
+    write does), and a stored reading opens on a paused day (the spend gate stops only a new write). `readingStatuses(profileId, keys,
+    reader.basis)`; `nowView` is called once with no statuses to learn its keys, then again with them (about 1 ms the second time);
+    `queueReadings` never rejects, so it runs unawaited. **R16-30** routes `/dashboard/timeline` to `TimelineAppPage`'s default export;
+    pages that mount `AskLauncher` keep about 72 px of space at the bottom. **R16-31** keeps `GET /home`'s query key
+    `getGetHomeQueryKey()` whatever `tz` it sends (the Timeline page and other readers share that cache), and its dashboard line
+    "You pay once, with no subscription." becomes "You pay once for each report." (the four sentences). **R16-34** walks with Mira
+    (Marie Curie's chart is past `eventByKey`'s 120 years) and truncates the two new tables.
 ## What already shipped (checked at 24f6e6c; `round/R15` read at 4d9ef09)
 - **Met, and reused:** `@workspace/engine` on the server, in the browser and in the prerender (R11); Chiron from Horizons and
   `CHART_VERSION` 4 (R14); `isSelfFor`, `natalReportAccess`, `pairReadable`; `recordSpend`, the spend gate, `recordChecks` and
