@@ -96,10 +96,20 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
   webhook, receipt, refund and subscription all real in sandbox.
 - **The free test checkout is deleted** (supersedes ADR-138): the sandbox and the grant replace it.
 - Production: real money; testers get credits by grant; Alex refunds from Stripe to test refunds.
-- **QA sign-in**: on staging, the QA agent signs in through Clerk Testing Tokens (`@clerk/testing`,
-  run on Railway where `CLERK_SECRET_KEY` lives); "Create QA pair" makes `qa-a+clerk_test@…` and
-  `qa-b+clerk_test@…` with `createUser`, marks them testers and grants credits; a new persona walks
-  Send, Gift and claim between them and one sandbox purchase.
+### Automatic QA on two accounts of our own (the Owner, 2026-10-04: "You should be testing automatically")
+- At start, staging creates `qa-a+clerk_test@mystarsdecoded.com` and `qa-b+clerk_test@…` through
+  Clerk's `createUser` (Development instance, test mode: no inbox, no code to read), marks them
+  testers, tops up their credits and seeds each with a report from a stored lab run (no model spend).
+- After each staging deploy (and from Run now in the admin), the QA agent on Railway signs in as
+  them with Clerk Testing Tokens (`@clerk/testing`, the `CLERK_SECRET_KEY` already on Railway) and
+  walks: qa-a buys Couple in the sandbox with the test card and returns to the asking step, Sends a
+  report and Gifts one to qa-b; qa-b claims both from the links the app returns (Copy link's link),
+  writes nothing new except once per Release; both dashboards checked; a sandbox refund takes back
+  the unused credit; a plan starts, renews on a test clock and cancels. `emailDelivered` is recorded,
+  so a Resend failure is a finding, not a stop.
+- The verdict, steps and findings without personal data are public at `/api/qa/latest`, like
+  `/api/release/:id/verdict`; `/round` and `/qa` read it after every merge and fix what fails.
+  Staging only; production keeps today's read-only walk.
 
 ### Keys (no secret on GitHub, ever)
 - `STRIPE_SECRET_KEY` as a restricted key (`rk_test_` on Railway staging, `rk_live_` on production),
@@ -130,20 +140,14 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
    or Single campaign, or a second on the same product, is refused.
 9. A monthly and a yearly plan can be started in sandbox by a tester, renewed with Stripe's test
    clock, cancelled in the Portal; `subscriptions` follows each step; a non-tester cannot start one.
-10. The QA agent signs in as the QA pair on staging and completes Send, Gift, claim and one purchase.
+10. After a staging deploy, with no one's hand, the QA pair exists, the walk completes purchase,
+   Send, Gift, claim, refund and a plan's cycle, and `/api/qa/latest` shows the verdict for that commit.
 11. No Stripe key in the repo or GitHub; `pnpm check:shipped`, gitleaks, typecheck, both builds,
    tests, codegen, `db:bootstrap` clean twice, the sentinel, preview checks and smoke all green.
 
 ## Screens
 In the artifact: the three checkout options at 390 px (B recommended), the purchase flow, the
 subscription, the Testers view, staging against production, the second QA account, the keys.
-
-## Second test account, by hand (works today on staging)
-1. Private window, staging, sign up as `alexbuildsai+clerk_test@gmail.com`; code `424242` (Clerk
-   Development instance test mode); Gmail still delivers invites for it to the Owner's inbox.
-2. As the Owner: take a bundle, Send or Gift a report to that address exactly.
-3. Open the email's link in the private window, or Copy link from the dialog; claim.
-4. Both dashboards show the result; a different address shows the mismatch message.
 
 ## Open questions (artifact, each with a default)
 1. The checkout's look: A hosted and branded, **B our page with Stripe's fields**, C embedded.
@@ -155,6 +159,8 @@ subscription, the Testers view, staging against production, the second QA accoun
 ## The Owner supplies
 Move the sandbox keys to Railway staging (a restricted key and the webhook secret; runbook K); in
 Stripe Public details the Terms and Privacy URLs and descriptor `MYSTARSDECODED`; the postal
+Resend's domain (runbook L; the waitlist confirmation and every email of ours wait on it, the
+automatic QA does not); Clerk's production instance before launch, then the new `ADMIN_USER_ID`; the postal
 address before the first live sale only (MB-115: name, Belgium and contact are in; the build and
 staging go ahead without it, `saleReady()` keeps production's checkout shut until it is set); the VAT position (MB-114); live keys at the launching Release.
 
@@ -177,6 +183,7 @@ read in Stripe's docs. The round's first card re-checks each Stripe fact in Stri
    is on (supersedes MB-119's `price_data`).
 5. **Campaigns from the admin**, stored per environment, sent to Stripe as coupons, by date or
    link, under ADR-146's rules (amends ADR-146's home in the catalogue).
-6. **QA signs in on staging** with Clerk Testing Tokens as a server-made QA pair.
+6. **Automatic QA on staging**: a server-made QA pair, signed in with Clerk Testing Tokens on
+   Railway, walked after every deploy, verdict public at `/api/qa/latest` for sessions to read.
 7. **Restricted Stripe keys on Railway, publishable key on Vercel, none on GitHub.**
 8. **Order**: payments is the next round, Timeline after it (pending Q3).
