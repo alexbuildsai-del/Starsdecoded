@@ -165,7 +165,7 @@ function PersonRow(props: PersonRowProps) {
 export function PeopleRows() {
   const client = useQueryClient();
   const { toast } = useToast();
-  const home = useGetHome({ query: { queryKey: getGetHomeQueryKey() } }).data;
+  const home = useGetHome(undefined, { query: { queryKey: getGetHomeQueryKey() } }).data;
   const reports = useListReports({ query: { queryKey: getListReportsQueryKey() } }).data;
   const profiles = useListProfiles({ query: { queryKey: getListProfilesQueryKey() } }).data;
   const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);

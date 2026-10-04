@@ -70,7 +70,7 @@ export function DeleteReportDialog({
   const qc = useQueryClient();
   const { toast } = useToast();
   // The copies the page and the quick look hold: a delete's dialog asks the server for neither.
-  const home = useGetHome({ query: { queryKey: getGetHomeQueryKey(), enabled: false } }).data;
+  const home = useGetHome(undefined, { query: { queryKey: getGetHomeQueryKey(), enabled: false } }).data;
   const shares = useListShares({ query: { queryKey: getListSharesQueryKey(), enabled: false } }).data;
 
   const deleteReport = useDeleteReport({

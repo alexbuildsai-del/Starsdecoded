@@ -453,7 +453,7 @@ export default function DashboardPage() {
   const enforced = creditsEnforced();
   const viewIds = useId();
 
-  const homeQ = useGetHome({ query: { queryKey: getGetHomeQueryKey() } });
+  const homeQ = useGetHome(undefined, { query: { queryKey: getGetHomeQueryKey() } });
   const reportsQ = useListReports({
     query: {
       queryKey: getListReportsQueryKey(),

@@ -151,7 +151,7 @@ function StoryDialog({ story, onClose }: { story: Story | null; onClose: () => v
 }
 
 export function CompatibilityRows() {
-  const home = useGetHome({ query: { queryKey: getGetHomeQueryKey() } }).data;
+  const home = useGetHome(undefined, { query: { queryKey: getGetHomeQueryKey() } }).data;
   const reports = useListReports({ query: { queryKey: getListReportsQueryKey() } }).data;
   const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
   const [stopTarget, setStopTarget] = useState<StopTarget | null>(null);
