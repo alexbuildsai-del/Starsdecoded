@@ -35,7 +35,9 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
   `returnTo` kept with the purchase; the return page waits for the credit, then carries on.
 - CSP gains Stripe's script, frame and connect hosts (Report-Only today, so nothing breaks first);
   Apple Pay's domain registered for `mystarsdecoded.com` and the staging host.
-- `VITE_STRIPE_PUBLISHABLE_KEY` in Vercel (Preview: test, Production: live).
+- The publishable key lives on Railway beside the others (`STRIPE_PUBLISHABLE_KEY`, where the Owner
+  put it) and reaches the browser through `GET /checkout/options`, so every Stripe key has one home
+  and a key change needs no web rebuild.
 
 ### Four products, saved in Stripe (the Owner, 2026-10-04)
 - Single €24 (`single`, 1 credit), Couple €54 (`couple`, 3), Family & friends €72 (`family`, 5),
@@ -116,7 +118,8 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
 
 ### Keys (no secret on GitHub, ever)
 - `STRIPE_SECRET_KEY` as a restricted key (`rk_test_` on Railway staging, `rk_live_` on production),
-  `STRIPE_WEBHOOK_SECRET` per endpoint on Railway; the publishable key in Vercel. The sandbox keys the
+  `STRIPE_WEBHOOK_SECRET` per endpoint and `STRIPE_PUBLISHABLE_KEY` on Railway; nothing on Vercel.
+  Staging's endpoint goes straight to Railway, `https://starsdecoded-staging.up.railway.app/api/stripe/webhook`. The sandbox keys the
   Owner placed in GitHub environment secrets are deleted there; no workflow reads them.
 - `api/src/lib/stripe.ts` the one seam: one `Stripe` client instance, the SDK's pinned API version.
 
