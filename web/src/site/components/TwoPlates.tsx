@@ -16,11 +16,13 @@ import { useId, useLayoutEffect, useRef } from "react";
 import { animate } from "framer-motion";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { separation } from "@/components/report/hero-layout";
-import { triadRows } from "@/components/report/pair-hero-layout";
+import { NOT_DRAWN } from "@/components/report/pair-hero-layout";
+import { TriadRow } from "@/components/TriadRow";
 import { norm360 } from "@/components/chart/wheel-geometry";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { first } from "@/lib/share-card";
+import { triadRowsOf } from "@/lib/triad-row";
 import type { ChartData } from "@/types/chart";
 
 export interface PlatePerson {
@@ -185,16 +187,8 @@ function Readout({ person }: { person: PlatePerson }) {
   return (
     <div className="grid min-w-0 content-start justify-items-center gap-1.5 px-1 text-center">
       <p className="font-display text-[20px] leading-tight text-[var(--paper-hi)] sm:text-[24px]">{first(person.name)}</p>
-      <dl className="grid gap-0.5 font-numeric text-[10px] uppercase leading-[1.5] tracking-[.08em] sm:text-[10.5px] sm:tracking-[.12em]">
-        {triadRows(person.chart, "degree").map((row) => (
-          <div key={row.key} className={row.key !== "rising" ? "text-[var(--paper-dim)]" : row.blind ? "text-[var(--sd-muted)]" : "text-[var(--sd-brass)]"}>
-            <dt className="inline">{row.label}</dt>
-            {row.blind ? " · " : " "}
-            {/* On the narrowest phones a row breaks after its label, never inside a degree and its sign. */}
-            <dd className="inline-block max-w-full">{row.value}</dd>
-          </div>
-        ))}
-      </dl>
+      {/* Two readouts share a phone's width, so a value that does not fit beside its label drops under it whole. */}
+      <TriadRow rows={triadRowsOf(person.chart, { blind: NOT_DRAWN })} compact className="w-auto! max-[460px]:[&_.lr]:flex-wrap max-[460px]:[&_.lr]:gap-y-0.5" />
     </div>
   );
 }

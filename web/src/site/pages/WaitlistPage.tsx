@@ -25,7 +25,7 @@ const STEPS = [
   },
   {
     title: "We email you when we launch",
-    text: `You hear from us once more, when you can get your ${PERSONAL_REPORT}. We use your address for nothing else.`,
+    text: `You hear from us once more, when you can get your ${PERSONAL_REPORT}. We don't use your address for anything else.`,
   },
 ];
 

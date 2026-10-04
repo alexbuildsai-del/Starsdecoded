@@ -43,10 +43,10 @@ const page = pageFor("/sky");
 const RELATED: readonly { path: PagePath; eyebrow: string; line: string }[] = [
   { path: "/learn/birth-time", eyebrow: "Learn", line: "What changes without it, and where to look for it" },
   { path: "/learn/whole-sign-houses", eyebrow: "Learn", line: "The oldest way to split a chart into twelve houses" },
-  { path: "/method", eyebrow: pageFor("/method").eyebrow, line: "From the positions of the planets to the last check" },
+  { path: "/method", eyebrow: pageFor("/method").eyebrow, line: "Each step, from working out your chart to the final check" },
 ];
 
-const NO_TIME = "Your chart still shows where every planet was that day, and the range the Moon covered. Your rising sign and houses need a birth time.";
+const NO_TIME = "Your chart still shows where every planet was that day, and where the Moon moved during it. Your rising sign and houses need a birth time.";
 
 interface OnWheel {
   sky: Sky;
@@ -146,7 +146,7 @@ export default function SkyPage() {
           <h2>Your {PERSONAL_REPORT} explains what your chart says about you</h2>
           {/* MB-160 provisional: every claim, not every line, shows its part of the chart. */}
           <p>
-            It has {countWord(CHAPTERS.length)} chapters about how you think, work, love and handle money, and every claim shows which part of
+            It has {countWord(CHAPTERS.length)} chapters about how you think, work, love and handle money. Every claim shows which part of
             your chart it comes from.
           </p>
         </div>

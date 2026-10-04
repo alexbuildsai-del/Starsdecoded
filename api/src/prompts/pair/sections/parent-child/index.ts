@@ -45,22 +45,22 @@ The scene is the one the brief names for the child's band, at the child's age, i
 
 const feelings = chapter({
   n: 3,
-  title: "Feelings and the big reactions",
+  title: "Big feelings and what helps",
   draws: ["mind", "superpowers", "discoveries"],
   scenes: { little: "The supermarket floor", school: "Losing the game", teen: "The door slam after a text", grown: "The call that ends in silence" },
   grounding: "Emotion coaching has five moves: notice the feeling early, treat it as a chance to get close, listen and take it seriously, help name it, and only then set a limit or solve the problem. Most parents skip one of the five. Which one this parent skips is the chapter. A big reaction is the child's regulation running out, not defiance, and the parent's own regulation is the first tool.",
-  instructions: `Write Feelings and the big reactions: how this child's chart carries a feeling and lets it out at this age, how this parent's chart meets a big reaction, and which of the moves that calm a child this parent tends to skip.
+  instructions: `Write Big feelings and what helps: how this child's chart carries a feeling and lets it out at this age, how this parent's chart meets a big reaction, and which of the moves that calm a child this parent tends to skip.
 
 The scene is the one the brief names for the child's band, at the child's age, in present tense with both names and what each does in the first minute. What just happened gives the feeling under the child's reaction and the reflex under the parent's response, from each report's words on how they think and their chronic patterns. The pattern says whether this comes naturally or is the challenge ("This is the challenge: …"), and what it trains in the parent. Next time gives the parent the move they skip, as behaviour, and one thing for both. Describe the calming moves as plain behaviour, never as a method with a name.`,
 });
 
 const home = chapter({
   n: 4,
-  title: "Home, chores and contributing",
+  title: "Home and helping out",
   draws: ["money", "family", "overview"],
   scenes: { little: "Tidying before dinner", school: "The room, the deal, the pocket money", teen: "The kitchen after they cooked", grown: "A week back home" },
   grounding: "Contributing at home is how a child learns they matter to the household, and the job has to fit the age: putting toys away and helping carry when little. A set table, a fed pet, a made bed and simple meals at school age. Real cooking, laundry and their own room as a teen. A guest's share when grown. A chore that is too big teaches failure, one that is too small teaches that they are not needed.",
-  instructions: `Write Home, chores and contributing: what this child can fairly contribute at this age, what this parent's chart expects of a home, and where the standard and the child's pace meet or miss.
+  instructions: `Write Home and helping out: what this child can fairly contribute at this age, what this parent's chart expects of a home, and where the standard and the child's pace meet or miss.
 
 The scene is the one the brief names for the child's band, at the child's age, in present tense with both names. What just happened gives what order and contribution mean to each, from the reports' words on resources, roots and temperament. The pattern says whether this comes naturally or is the challenge ("This is the challenge: …"), and what it trains in the parent. Next time gives the parent one job that fits this age and one way to ask for it, and one thing for both. Include one "fair at this age" line: what a child in this band can reasonably be asked to do at home.`,
 });

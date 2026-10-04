@@ -36,12 +36,17 @@ interface PromptEntry {
   updatedAt: string | null;
 }
 
-type Tab = "natal" | "pair";
+/** One tab per prompt family `GET /admin/prompts` serves, by its rows' `category` (`promptDefaults.ts`). */
+type Tab = "natal" | "pair" | "timeline" | "ask";
 
 const TAB_LABELS: Record<Tab, string> = {
   natal: PERSONAL_REPORT,
   pair: "Compatibility",
+  timeline: "Timeline",
+  ask: "Ask",
 };
+
+const TABS = Object.keys(TAB_LABELS) as Tab[];
 
 /** The lens reaches the model through the brief, so one prompt serves all three (ADR-40). */
 const LENS_NOTE = "One prompt per chapter serves the three lenses: partners, parent and child, family. The lens, its register and who the parent is reach the model through the pair brief.";
@@ -513,8 +518,8 @@ export default function AdminPromptsPage() {
               <h1 className="font-display text-2xl">Prompt Templates</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {readOnly
-                  ? "The prompts this environment generates reports with."
-                  : "Edit AI prompts used in report generation. Changes take effect on the next report."}
+                  ? "The prompts this environment uses for reports, Timeline and Ask."
+                  : "Edit the AI prompts for reports, Timeline and Ask. Changes take effect on the next report, reading or answer."}
                 {overrideCount > 0 && (
                   <> <span className="text-primary">{overrideCount} customised.</span></>
                 )}
@@ -535,8 +540,8 @@ export default function AdminPromptsPage() {
           )}
 
           {/* Tab bar */}
-          <div className="mb-4 flex gap-1 p-1 rounded-lg border border-border/60 bg-card/40 w-fit">
-            {(["natal", "pair"] as Tab[]).map((t) => (
+          <div className="mb-4 flex flex-wrap gap-1 p-1 rounded-lg border border-border/60 bg-card/40 w-fit max-w-full">
+            {TABS.map((t) => (
               <button
                 key={t}
                 type="button"

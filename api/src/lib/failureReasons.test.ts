@@ -27,7 +27,7 @@ test("codes from errors", () => {
 test("the customer lines are the spec's, verbatim, and an unknown stored code reads as internal", () => {
   assert.equal(FAILURE_LINES.provider_unreachable, "Our writing service didn't answer. Try again in a few minutes.");
   assert.equal(FAILURE_LINES.provider_out_of_credit, "We can't write reports right now. We've been alerted. Try again later.");
-  assert.equal(FAILURE_LINES.quality, "One chapter didn't meet our quality bar after several tries. Try again.");
+  assert.equal(FAILURE_LINES.quality, "We couldn't get one chapter right after several tries. Please try again.");
   assert.equal(FAILURE_LINES.internal, "Something went wrong on our side. We've been alerted.");
   assert.deepEqual(failureReasonOf("quality"), { code: "quality", line: FAILURE_LINES.quality });
   assert.deepEqual(failureReasonOf("something_else"), { code: "internal", line: FAILURE_LINES.internal });

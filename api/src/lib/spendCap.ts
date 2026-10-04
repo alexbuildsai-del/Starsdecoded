@@ -29,6 +29,21 @@ const SPEND_TTL_MS = 60_000;
  */
 export const PAUSED_LINE = "New reports are paused for now. Your credit hasn't been used. Please try again later.";
 
+/**
+ * Timeline's line for a new reading or an Ask message, through /ux-copy. Timeline spends no credit and a kept reading
+ * still opens on a paused day, so it speaks of neither: only that nothing new is written for now. Ask is part of
+ * Timeline, so one name covers both.
+ */
+export const TIMELINE_PAUSED_LINE = "Timeline can't write anything new right now. Try again later.";
+
+/** What a paused request is told, by what it would have written. */
+export const PAUSED_LINES = {
+  reports: PAUSED_LINE,
+  timeline: TIMELINE_PAUSED_LINE,
+} as const;
+
+export type PausedFor = keyof typeof PAUSED_LINES;
+
 const warnedCaps = new Set<string>();
 
 /**
@@ -172,9 +187,11 @@ const LIVE: GateDeps = {
  * Mounted ahead of each writing route's handler, so a paused request never
  * reaches the credit. A sum that cannot be read lets the request through:
  * the route meets the same database next, and "paused" would not be true.
- * A cap of 0 needs no sum and pauses everything.
+ * A cap of 0 needs no sum and pauses everything. A report's refusal speaks of
+ * its credit; Timeline's, which spends none, has its own line.
  */
-export function spendGate(deps: GateDeps = LIVE): RequestHandler {
+export function spendGate(pausedFor: PausedFor = "reports", deps: GateDeps = LIVE): RequestHandler {
+  const message = PAUSED_LINES[pausedFor];
   return async (_req, res, next) => {
     const capUsd = deps.capUsd();
     let spentUsd: number | null = null;
@@ -186,6 +203,6 @@ export function spendGate(deps: GateDeps = LIVE): RequestHandler {
     if (capUsd > 0 && (spentUsd === null || spentUsd < capUsd)) return next();
     deps.notify({ day: utcDay(deps.now()), spentUsd: spentUsd ?? 0, capUsd })
       .catch((err: unknown) => logger.error({ err }, "the spend pause notice failed"));
-    res.status(503).json({ error: "paused", reason: "paused", message: PAUSED_LINE });
+    res.status(503).json({ error: "paused", reason: "paused", message });
   };
 }

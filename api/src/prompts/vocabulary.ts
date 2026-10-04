@@ -7,17 +7,19 @@
  * each house puts it, what each aspect type is, and the structural concepts
  * that describe a chart as a whole. Composition happens at assembly time.
  *
- * Register follows the classical sources the product is grounded in
- * (Demetra George; Chris Brennan; Avelar & Ribeiro). Doctrine only, in our
- * own words. Entries are descriptive, third person, and never explain method:
- * the reader-facing prompts forbid method talk, so the vocabulary must not
- * smuggle it in.
+ * The doctrine follows the classical sources the product is grounded in
+ * (Demetra George; Chris Brennan; Avelar & Ribeiro), in our own words. Entries
+ * are descriptive, third person, and never explain method: the reader-facing
+ * prompts forbid method talk, so the vocabulary must not smuggle it in. The
+ * words are everyday words, one idea per sentence (ADR-257), because every
+ * system prompt carries the block and a writer echoes the register it is shown.
  *
  * Every entry has a `short` (one sentence, used for the wheel cards and the
  * chart brief) and a `full` (40–80 words, used in the shared system block).
- * Edit in place. `pnpm generate:vocabulary` regenerates the whole file from
- * the generation prompts in scripts/src/generate-vocabulary.ts and overwrites
- * it, so hand edits belong in git history, not in the generator.
+ * The `full` entries and the aspects' four lines are written by hand: edit
+ * them in place. `pnpm generate:vocabulary` regenerates the shorts from the
+ * generation prompts in scripts/src/generate-vocabulary.ts and keeps the rest
+ * as written, so a regeneration never brings the textbook register back.
  *
  * Provenance: this first version was drafted by Claude in September 2026 and
  * committed so the pipeline is complete end to end. It has not yet been
@@ -71,55 +73,55 @@ export const BODY_LABELS: Record<Body, string> = {
 export const BODY: Record<Body, VocabEntry> = {
   sun: {
     short: "The Sun is the centre of identity and the sense of what one is for.",
-    full: "The Sun is the organising centre of the chart: identity, vitality, purpose, and the part of a person that wants to be recognised as itself. It shows what someone is building a life around and where they feel most like themselves. In a day chart it leads. In a night chart it still holds the sense of direction but defers to the Moon for what feels safe.",
+    full: "The Sun is a person's sense of self: who they are, what drives them, and what they want their life to be about. It shows what they build their life around. It shows where they feel most like themselves and want to be seen for it. In a day chart it leads. In a night chart the Moon leads instead. The Sun still gives a sense of direction.",
   },
   moon: {
     short: "The Moon is the body, the habits, and what makes someone feel safe.",
-    full: "The Moon is the body and its needs: what steadies a person, what they reach for under stress, the rhythm of daily life, and the emotional memory that shapes reactions before thought arrives. It describes how someone takes care of themselves and others, and what they must have in place to function. In a night chart it leads.",
+    full: "The Moon is the body and its needs. It shows what calms a person down and what they reach for under stress. It sets the rhythm of their days and the feelings that come before they think. It shows how they look after themselves and others, and what they need in place to cope. In a night chart it leads.",
   },
   mercury: {
     short: "Mercury is how a person thinks, learns, decides and makes themselves understood.",
-    full: "Mercury is the faculty of mind in motion: perception, language, reasoning, learning, and the exchange of information. It shows how someone takes in the world, how they explain themselves, how they decide, and what kind of thinking comes easily. It has no sect of its own and takes on the character of whatever it is placed with.",
+    full: "Mercury is how a person thinks and talks: noticing, language, reasoning, learning and passing on information. It shows how someone takes in the world, explains themselves and decides. It shows what kind of thinking comes easily. It is neither a day planet nor a night planet. It takes on the nature of the planets it sits with.",
   },
   venus: {
     short: "Venus is attraction, pleasure, taste, and the capacity to draw people in.",
-    full: "Venus is the faculty of attraction and reconciliation: what a person finds beautiful, what they enjoy, how they relate, and how they bring others toward them. It describes taste, affection, cooperation, and the pleasures that make life worth the effort. It is the benefic of the night sect, gentler and more reliable in a night chart.",
+    full: "Venus is attraction and making peace. It shows what a person finds beautiful, what they enjoy, and how they draw people closer. It covers taste, affection, cooperation and the pleasures that make life worth the effort. It is the helpful planet of the night side, kinder and more reliable in a night chart.",
   },
   mars: {
     short: "Mars is drive, assertion, and the capacity to cut through and go after something.",
-    full: "Mars is the faculty of assertion: effort, courage, competition, anger, and the ability to separate one thing from another. It describes how someone pursues what they want, how they fight, and how they handle friction. It is the malefic of the night sect, more constructive by night. In a day chart it runs hotter and costs more.",
+    full: "Mars is how a person pushes for what they want: effort, courage, competition, anger, and the ability to say no and walk away. It shows how they go after things, how they fight and how they handle conflict. It is the hard planet of the night side. It does more good by night. In a day chart it is harsher and costs more.",
   },
   jupiter: {
     short: "Jupiter is expansion, confidence, generosity, and the sense that more is possible.",
-    full: "Jupiter is the faculty of growth and affirmation: confidence, generosity, meaning, opportunity, and the capacity to say yes. It describes where a person finds abundance, what they trust, how they expand, and where they may overreach. It is the benefic of the day sect, most helpful in a day chart and somewhat less steady by night.",
+    full: "Jupiter is growth and confidence: generosity, meaning, opportunity and the ability to say yes. It shows where a person finds plenty, what they trust, how they grow and where they take on too much. It is the helpful planet of the day side. It does the most good in a day chart and is a little less steady by night.",
   },
   saturn: {
     short: "Saturn is structure, limit, duration, and the discipline that makes things last.",
-    full: "Saturn is the faculty of limit and endurance: structure, responsibility, time, boundaries, and the seriousness that makes work hold. It describes where a person is disciplined, where they are afraid, what they must build slowly, and what they refuse to rush. It is the malefic of the day sect, constructive by day. In a night chart it turns colder and heavier.",
+    full: "Saturn is limits and staying power: structure, responsibility, time, boundaries and the seriousness that makes work last. It shows where a person is disciplined, where they are afraid, and what they build slowly and refuse to rush. It is the hard planet of the day side and does useful work by day. In a night chart it is harsher and brings more fear.",
   },
   uranus: {
     short: "Uranus is disruption, independence, and the sudden break from what was expected.",
-    full: "Uranus is the modern principle of disruption: independence, invention, sudden change, and the refusal to conform. It shows where a person breaks pattern, where they need freedom, and where life tends to turn abruptly. It has no rulership or dignity in the traditional scheme and is read as colour on the house it occupies rather than as a ruler.",
+    full: "Uranus is sudden change and independence. It covers invention, surprise and refusing to fit in. It shows where a person breaks the pattern and where they need freedom. It shows where life tends to change without warning. It rules no sign and has no dignity. It is read by the house it sits in, never as a ruler.",
   },
   neptune: {
     short: "Neptune is dissolution, longing, imagination, and the blurring of hard edges.",
-    full: "Neptune is the modern principle of dissolution: imagination, idealism, compassion, confusion, and the longing for something beyond the ordinary. It shows where a person is most sensitive, most inspired, and most easily misled. It has no rulership or dignity in the traditional scheme and colours the house it occupies rather than ruling anything.",
+    full: "Neptune is imagination and longing. It covers ideals, compassion, confusion and the wish for something beyond everyday life. It shows where a person is most sensitive and most inspired. It also shows where they are most easily fooled. It rules no sign and has no dignity. It adds to the house it sits in and rules nothing.",
   },
   pluto: {
     short: "Pluto is intensity, power, and transformation through what cannot be avoided.",
-    full: "Pluto is the modern principle of transformation: depth, compulsion, power, endings, and the capacity to be remade by what one cannot control. It shows where a person meets their own intensity and where life demands a full reckoning. It has no rulership or dignity in the traditional scheme and colours the house it occupies rather than ruling anything.",
+    full: "Pluto is intensity and deep change. It covers power, compulsion, endings and being changed by what a person cannot control. It shows where someone meets their own intensity. It shows where life asks them to face something fully. It rules no sign and has no dignity. It adds to the house it sits in and rules nothing.",
   },
   chiron: {
     short: "Chiron marks a wound that becomes a source of skill and understanding for others.",
-    full: "Chiron marks a place of persistent vulnerability that does not fully heal but becomes a source of skill, empathy, and usefulness to others. It shows where a person is competent at helping with exactly what they struggle with themselves. It is a modern point with no rulership or dignity and is read by house.",
+    full: "Chiron marks a lasting hurt that never fully goes away. Over time it becomes a source of skill and care for others. It shows where a person is good at helping with the very thing they struggle with themselves. It is a modern point. It rules nothing and has no dignity. It is read by its house.",
   },
   north_node: {
     short: "The North Node is the direction of growth: unfamiliar, uncomfortable, and worth it.",
-    full: "The North Node marks the direction a life is being pulled toward: the capacities that are underdeveloped, the situations that feel unfamiliar, and the territory where effort produces growth. It rarely feels natural. It is read as a direction rather than a placement, always with its opposite, and is not a planet.",
+    full: "The North Node marks the direction a life is pulled toward: skills that are still weak, situations that feel new, and areas where effort leads to growth. It rarely feels natural. It is read as a direction, not a placement, and always together with the South Node. It is not a planet.",
   },
   south_node: {
     short: "The South Node is the default: what comes easily and what gets overused.",
-    full: "The South Node marks the default: the competence someone arrived with, the habits they fall back on, and the comfort zone that becomes a trap when it is the only place they operate from. It shows what comes easily and what is overused. It is read together with the North Node as one axis and is not a planet.",
+    full: "The South Node marks what a person falls back on: the skills they arrived with, the habits they return to, and the comfort zone that holds them back when they never leave it. It shows what comes easily and what gets overused. It is read with the North Node as one axis. It is not a planet.",
   },
 };
 
@@ -127,54 +129,55 @@ export const BODY: Record<Body, VocabEntry> = {
 // Signs: the style
 // ---------------------------------------------------------------------------
 
+/** brief.ts reads a rising sign's `full`: sentences 2 and 3 are it at its best, and "Under strain it becomes" opens the last. */
 export const SIGN: Record<SignName, VocabEntry> = {
   aries: {
     short: "Aries acts first, directly and fast, and sorts things out afterward.",
-    full: "Aries is cardinal fire, ruled by Mars and exalting the Sun. Whatever is placed here moves first and moves directly: it initiates, competes, and would rather act and correct than wait. It is honest, impatient, brave, and blunt. Under strain it becomes rash, combative, or unable to sustain what it started.",
+    full: "Aries is a cardinal fire sign, ruled by Mars, with the Sun exalted in it. Anything placed here moves first and moves fast. It would rather act and fix things later than wait. It is honest, brave, competitive and blunt. Under strain it becomes rash, quick to fight, or unable to finish what it started.",
   },
   taurus: {
     short: "Taurus is steady, sensual, slow to start and slower to stop.",
-    full: "Taurus is fixed earth, ruled by Venus and exalting the Moon. Whatever is placed here wants stability, comfort, and tangible results, and takes its time getting there. It is patient, loyal, practical, and attached to what it has. Under strain it becomes stubborn, possessive, or unwilling to change even when change is clearly needed.",
+    full: "Taurus is a fixed earth sign, ruled by Venus, with the Moon exalted in it. Anything placed here wants life to be steady and comfortable. It takes its time and likes results it can see and touch. It is patient, loyal, practical and attached to what it has. Under strain it becomes stubborn, possessive, or unwilling to change even when it should.",
   },
   gemini: {
     short: "Gemini is quick, curious, verbal, and interested in everything at once.",
-    full: "Gemini is mutable air, ruled by Mercury. Whatever is placed here is curious, articulate, adaptable, and drawn to variety: it wants to know, to talk, to connect one thing to another. It is clever, sociable, and quick to see angles. Under strain it becomes scattered, restless, evasive, or unable to commit to one line.",
+    full: "Gemini is a mutable air sign, ruled by Mercury. Anything placed here is curious and quick with words. It wants to know things, talk about them and link one idea to the next. It is clever, friendly, adaptable and quick to see another angle. Under strain it becomes scattered, restless, vague, or unable to stick to one plan.",
   },
   cancer: {
     short: "Cancer protects, remembers, and holds close what it cares about.",
-    full: "Cancer is cardinal water, ruled by the Moon and exalting Jupiter. Whatever is placed here is protective, responsive, and shaped by memory and belonging: it cares for its own and builds a shell around what matters. It is tenacious, nurturing, and intuitive. Under strain it becomes defensive, moody, clinging, or unable to let go.",
+    full: "Cancer is a cardinal water sign, ruled by the Moon, with Jupiter exalted in it. Anything placed here protects and cares for people. It is shaped by memory and by where it belongs. It is loyal, caring and good at sensing what others need. Under strain it becomes defensive, moody, clingy, or unable to let go.",
   },
   leo: {
     short: "Leo is warm, proud, generous, and needs to be seen doing it.",
-    full: "Leo is fixed fire, ruled by the Sun. Whatever is placed here wants to shine, to create, and to be recognised for it: it is warm, loyal, expressive, and confident. It leads by presence and gives generously. Under strain it becomes proud, demanding of attention, dramatic, or unable to take correction without wounded dignity.",
+    full: "Leo is a fixed fire sign, ruled by the Sun. Anything placed here wants to stand out and to make things. It wants credit for what it does. It is warm, loyal, open and confident. It leads by example and gives generously. Under strain it becomes proud, demanding, dramatic, or unable to take criticism without feeling hurt.",
   },
   virgo: {
     short: "Virgo notices what is wrong and quietly fixes it.",
-    full: "Virgo is mutable earth, ruled by Mercury, which is also exalted here. Whatever is placed here analyses, refines, and serves: it notices detail, wants things to work properly, and improves through method. It is competent, careful, and useful. Under strain it becomes critical, anxious, perfectionistic, or lost in detail at the expense of the whole.",
+    full: "Virgo is a mutable earth sign, ruled by Mercury, which is also exalted in it. Anything placed here notices details and wants things to work properly. It improves things step by step, with a method. It is skilled, careful and useful. It likes to help in practical ways. Under strain it becomes critical, anxious, perfectionist, or lost in small details.",
   },
   libra: {
     short: "Libra weighs, balances, and seeks fairness and the other person's view.",
-    full: "Libra is cardinal air, ruled by Venus and exalting Saturn. Whatever is placed here seeks balance, fairness, partnership, and grace: it considers the other side, values agreement, and dislikes crudeness. It is diplomatic, aesthetic, and just. Under strain it becomes indecisive, conflict-avoidant, dependent on approval, or unable to state what it wants.",
+    full: "Libra is a cardinal air sign, ruled by Venus, with Saturn exalted in it. Anything placed here looks for balance, fairness and partnership. It thinks about the other side and values agreement. It is tactful, fair and has good taste. Under strain it becomes indecisive, afraid of conflict, dependent on approval, or unable to say what it wants.",
   },
   scorpio: {
     short: "Scorpio goes deep, holds on, and does not do anything by halves.",
-    full: "Scorpio is fixed water, ruled by Mars. Whatever is placed here is intense, private, penetrating, and all or nothing: it wants what is real underneath, holds on with great tenacity, and transforms rather than adjusts. It is loyal, perceptive, and resilient. Under strain it becomes controlling, suspicious, vengeful, or unable to release.",
+    full: "Scorpio is a fixed water sign, ruled by Mars. Anything placed here is intense, private and all or nothing. It wants to know what is really going on. It holds on hard and would rather change completely than adjust a little. It is loyal, perceptive and tough. Under strain it becomes controlling, suspicious, vengeful, or unable to let go.",
   },
   sagittarius: {
     short: "Sagittarius aims far, believes big, and says what it thinks.",
-    full: "Sagittarius is mutable fire, ruled by Jupiter. Whatever is placed here reaches for meaning, distance, and freedom: it explores, teaches, believes, and speaks frankly. It is optimistic, generous, and philosophical. Under strain it becomes preachy, careless with detail, restless, or unable to follow through on what it promised.",
+    full: "Sagittarius is a mutable fire sign, ruled by Jupiter. Anything placed here looks for meaning, distance and freedom. It explores, teaches and says what it thinks. It is hopeful, generous and drawn to big ideas. It likes to travel and to learn. Under strain it becomes preachy, careless with details, restless, or unable to keep its promises.",
   },
   capricorn: {
     short: "Capricorn is disciplined, ambitious, and plays the long game.",
-    full: "Capricorn is cardinal earth, ruled by Saturn and exalting Mars. Whatever is placed here is serious, strategic, and built for duration: it takes responsibility, climbs steadily, and respects structure. It is capable, reliable, and dry-humoured. Under strain it becomes cold, rigid, overworked, or unable to rest until it is too late.",
+    full: "Capricorn is a cardinal earth sign, ruled by Saturn, with Mars exalted in it. Anything placed here is serious and plans for the long run. It takes responsibility and works its way up slowly. It is capable, reliable and has a dry sense of humour. Under strain it becomes cold, rigid, overworked, or unable to rest until it is too late.",
   },
   aquarius: {
     short: "Aquarius stands apart, thinks in systems, and cares about the group.",
-    full: "Aquarius is fixed air, ruled by Saturn. Whatever is placed here is detached, principled, and oriented to the collective: it thinks in patterns and systems, values independence, and is loyal to ideas and to friends. It is original and fair. Under strain it becomes aloof, contrarian, dogmatic, or unable to be personally present.",
+    full: "Aquarius is a fixed air sign, ruled by Saturn. Anything placed here stands a little apart and lives by its principles. It thinks in patterns and systems. It cares about the group, values independence and is loyal to ideas and to friends. Under strain it becomes distant, contrary, rigid in its views, or unable to be close in person.",
   },
   pisces: {
     short: "Pisces feels everything, blurs boundaries, and gives more than it keeps.",
-    full: "Pisces is mutable water, ruled by Jupiter and exalting Venus. Whatever is placed here is receptive, compassionate, imaginative, and porous: it absorbs atmosphere, dissolves boundaries, and gives freely. It is gentle, intuitive, and forgiving. Under strain it becomes escapist, vague, overwhelmed, or unable to say no.",
+    full: "Pisces is a mutable water sign, ruled by Jupiter, with Venus exalted in it. Anything placed here is open, kind and imaginative. It takes on the moods of the people around it. It finds it hard to keep clear limits. It is gentle, generous, intuitive and forgiving. Under strain it becomes escapist, vague, overwhelmed, or unable to say no.",
   },
 };
 
@@ -194,18 +197,18 @@ export const HOUSE_WORDS = [
 ] as const;
 
 export const HOUSE: Record<number, VocabEntry> = {
-  1: { short: "The 1st is self: the body, presence, and how one meets the world.", full: "The 1st house is the person themselves: the body, the temperament, the way they arrive in a room and how others first read them. It holds the Ascendant and its ruler is the chart ruler. Angular and strong. What is here is unmistakably part of who the person is." },
-  2: { short: "The 2nd is money: resources, possessions, and what one values and keeps.", full: "The 2nd house is livelihood and possessions: money, property, what a person earns and keeps, and their relationship to having enough. It also shows what they value and how they assign worth. Succedent. What is here describes how resources come and how they are handled." },
-  3: { short: "The 3rd is mind: daily talk, learning, siblings, neighbours, and the near world.", full: "The 3rd house is the immediate environment: siblings, neighbours, short journeys, daily communication, early schooling, and the ordinary exchanges of a day. It is where the Moon has her joy. Cadent. What is here shows how a person handles the local, the habitual, and the spoken." },
-  4: { short: "The 4th is home: family, roots, and what a person carries from their origins.", full: "The 4th house is home and origin: family, parents, ancestry, land, private life, and the foundation everything else is built on. It is the bottom of the chart, the most private place. Angular. What is here describes where a person comes from and what they need in order to feel rooted." },
-  5: { short: "The 5th is play: pleasure, creativity, children, and what one does for its own sake.", full: "The 5th house is pleasure and creation: play, romance, children, art, performance, and whatever a person does for the joy of it. It is where Venus has her joy. Succedent. What is here shows how a person enjoys themselves, what they make, and how they treat delight." },
-  6: { short: "The 6th is work: routine, health, and what must be maintained.", full: "The 6th house is labour and maintenance: daily work, routines, illness, service, and the unglamorous effort that keeps a life running. It is where Mars has his joy. Cadent, and traditionally difficult. What is here shows how a person handles obligation, repetition, and the body under load." },
-  7: { short: "The 7th is partnership: the other person, spouses, open rivals, and one-to-one bonds.", full: "The 7th house is the other person: marriage, partnership, contracts, and open opposition. It holds the Descendant, opposite the self. Angular. What is here, and where its ruler goes, describes who a person is drawn to bind themselves to and how partnership plays out." },
-  8: { short: "The 8th is depth: shared resources, loss, inheritance, and what is not one's own.", full: "The 8th house is what belongs to others and what is lost: shared money, inheritance, debt, death, and the fear that accompanies them. It is traditionally difficult. Succedent. What is here shows how a person handles joint resources, endings, and the things they cannot control." },
-  9: { short: "The 9th is belief: the far world, higher learning, travel, and meaning.", full: "The 9th house is the distant and the elevated: philosophy, religion, higher education, long journeys, foreign places, and the search for meaning. It is where the Sun has his joy. Cadent but honoured. What is here shows what a person believes, how they learn at depth, and where they look for truth." },
-  10: { short: "The 10th is career: vocation, reputation, and what one is known for doing.", full: "The 10th house is public standing: career, reputation, authority, achievement, and what a person is seen to do in the world. It holds the Midheaven. Angular and strong. What is here, and where its ruler goes, describes the shape of a working life and how recognition arrives." },
-  11: { short: "The 11th is friends: allies, groups, and hopes shared with others.", full: "The 11th house is the good spirit: friends, allies, patrons, groups, and the hopes and benefits that come through other people. It is where Jupiter has his joy. Succedent and fortunate. What is here shows how a person is helped, whom they belong with, and how collective effort figures in their life." },
-  12: { short: "The 12th is solitude: what is hidden, sorrow, secrets, and self-undoing.", full: "The 12th house is the hidden: solitude, retreat, confinement, hidden enemies, secret sorrow, and the ways a person works against themselves. It is where Saturn has his joy. Cadent and traditionally the most difficult. What is here operates out of sight, and is often only understood in hindsight." },
+  1: { short: "The 1st is self: the body, presence, and how one meets the world.", full: "The 1st house is the person themselves: the body, the temperament, and how others first see them. It holds the Ascendant. Its ruler is the chart ruler. It is angular and strong. What is here is clearly part of who the person is. Other people notice it first." },
+  2: { short: "The 2nd is money: resources, possessions, and what one values and keeps.", full: "The 2nd house is money and the things a person owns. It covers income, property, what they earn and keep, and whether they feel they have enough. It also shows what they value and how they judge worth. It is succedent. What is here shows how money comes in and how it is handled." },
+  3: { short: "The 3rd is mind: daily talk, learning, siblings, neighbours, and the near world.", full: "The 3rd house is daily life close to home. It covers brothers and sisters, neighbours, short trips, everyday talk, early school and the ordinary chats of a day. The Moon has her joy here. It is cadent. What is here shows how a person handles what is local, what is routine, and what is said out loud." },
+  4: { short: "The 4th is home: family, roots, and what a person carries from their origins.", full: "The 4th house is home and family. It covers parents, family history, land and private life. It is the bottom of the chart and the most private place in it. It is angular. What is here shows where a person comes from. It also shows what they need in order to feel settled." },
+  5: { short: "The 5th is play: pleasure, creativity, children, and what one does for its own sake.", full: "The 5th house is fun and making things. It covers play, romance, children, art, performing, and whatever a person does just for the joy of it. Venus has her joy here. It is succedent. What is here shows how a person enjoys themselves, what they make, and how they treat pleasure." },
+  6: { short: "The 6th is work: routine, health, and what must be maintained.", full: "The 6th house is daily work and upkeep. It covers jobs, routines, illness, service, and the plain effort that keeps a life running. Mars has his joy here. It is cadent. The tradition counts it as a hard house. What is here shows how a person handles duties, repetition, and a body under strain." },
+  7: { short: "The 7th is partnership: the other person, spouses, open rivals, and one-to-one bonds.", full: "The 7th house is the other person. It covers marriage, partners, contracts and open rivals. It holds the Descendant, opposite the self. It is angular. What is here, and where its ruler goes, shows who a person commits to. It also shows how their partnerships go." },
+  8: { short: "The 8th is depth: shared resources, loss, inheritance, and what is not one's own.", full: "The 8th house is what belongs to other people and what is lost. It covers shared money, inheritance, debt, death, and the fear that comes with them. The tradition counts it as a hard house. It is succedent. What is here shows how a person handles shared money, endings, and what they cannot control." },
+  9: { short: "The 9th is belief: the far world, higher learning, travel, and meaning.", full: "The 9th house is what is far away and bigger than daily life. It covers beliefs, religion, higher education, long trips, foreign places and the search for meaning. The Sun has his joy here. It is cadent but respected. What is here shows what a person believes, how they study in depth, and where they look for the truth." },
+  10: { short: "The 10th is career: vocation, reputation, and what one is known for doing.", full: "The 10th house is a person's public life. It covers career, reputation, authority, success, and what they are seen to do in the world. It holds the Midheaven. It is angular and strong. What is here, and where its ruler goes, shows what a working life looks like. It also shows how recognition comes." },
+  11: { short: "The 11th is friends: allies, groups, and hopes shared with others.", full: "The 11th house is friends and allies. The tradition calls it the good spirit. It covers groups, supporters, and the hopes and help that come through other people. Jupiter has his joy here. It is succedent and lucky. What is here shows how a person gets help, who they belong with, and how they work with others toward shared goals." },
+  12: { short: "The 12th is solitude: what is hidden, sorrow, secrets, and self-undoing.", full: "The 12th house is what is hidden. It covers time alone, retreat, being shut away, hidden enemies, private sadness, and the ways a person works against themselves. Saturn has his joy here. It is cadent. The tradition counts it as the hardest house. What is here works out of sight. It is often only understood later." },
 };
 
 // ---------------------------------------------------------------------------
@@ -215,38 +218,38 @@ export const HOUSE: Record<number, VocabEntry> = {
 export const ASPECT: Record<AspectName, AspectEntry> = {
   conjunction: {
     short: "A conjunction fuses two functions so neither operates without the other.",
-    dynamic: "Two functions occupy the same place and act as one. Neither can be used without engaging the other, so their natures blend, for better or worse depending on how compatible they are.",
-    inFlow: "The two work as a single combined strength, each amplifying the other.",
-    underStress: "The two cannot be separated, so the difficulty of one contaminates the other and there is no clean way to use either alone.",
-    growth: "Learning to feel which of the two is speaking, and to give each its turn.",
+    dynamic: "Two planets sit in the same place and act as one. Neither can be used without the other. Their natures blend, for better or worse, depending on how well they get along.",
+    inFlow: "The two work as one combined strength.",
+    underStress: "The trouble with one affects the other. Neither is easy to use alone.",
+    growth: "Learning which of the two is acting, and giving each its turn.",
   },
   sextile: {
     short: "A sextile is an easy, workable connection that rewards a little effort.",
-    dynamic: "Two functions in compatible signs support each other when asked. The connection is friendly and productive but not automatic: it is an opportunity rather than a given.",
-    inFlow: "The two cooperate readily and produce practical results with modest effort.",
-    underStress: "Underused. The help is available but not taken, so the opportunity goes quiet.",
-    growth: "Deliberately using the connection rather than waiting for it to act on its own.",
+    dynamic: "Two planets in signs that get along support each other when asked. The link is friendly and useful but not automatic. It is a chance, not a given.",
+    inFlow: "The two cooperate easily and get practical results with a little effort.",
+    underStress: "Unused. The help is there but nobody takes it.",
+    growth: "Using the link on purpose instead of waiting for it to act by itself.",
   },
   square: {
     short: "A square is friction between two functions that forces something to develop.",
-    dynamic: "Two functions in signs that share a mode but not an element push against each other. Neither yields easily, so the pressure is constant and productive: this is where effort is forced and skill is built.",
-    inFlow: "Hard-won competence. The friction has been turned into a driving engine.",
-    underStress: "Recurring conflict, frustration, and the sense of being pulled two ways at once.",
-    growth: "Accepting that the tension is permanent and building something out of it rather than trying to resolve it.",
+    dynamic: "Two planets in signs that share a mode but not an element push against each other. Neither gives way easily. The pressure is constant. This is where effort is forced and skill is built.",
+    inFlow: "Skill earned the hard way. The tension now pushes the person forward.",
+    underStress: "Repeated conflict, frustration and the feeling of being pulled two ways at once.",
+    growth: "Accepting that the tension will stay and building something from it instead of trying to make it go away.",
   },
   trine: {
     short: "A trine is a natural ease between two functions that asks nothing.",
-    dynamic: "Two functions in signs of the same element flow into each other without resistance. What they do together comes easily, often so easily that it goes unnoticed and undervalued.",
-    inFlow: "Effortless talent. The two functions combine naturally and reliably.",
-    underStress: "Complacency. The gift is taken for granted, left undeveloped, or used as an excuse to avoid harder things.",
-    growth: "Treating the ease as a resource to be invested rather than a comfort to rest in.",
+    dynamic: "Two planets in signs of the same element work together without effort. What they do together comes easily. It often comes so easily that it goes unnoticed and undervalued.",
+    inFlow: "Natural talent. The two work together easily and reliably.",
+    underStress: "Taking it for granted. The gift is left undeveloped or used as an excuse to avoid harder things.",
+    growth: "Treating the ease as something to invest, not a comfort to rest in.",
   },
   opposition: {
     short: "An opposition sets two functions face to face, each seeing what the other lacks.",
-    dynamic: "Two functions in opposite signs pull in opposite directions and can see each other clearly. The tension is external and relational: it tends to play out between the person and someone else, or as a swing between two extremes.",
-    inFlow: "Balance and perspective. Each side tempers the other and the person can hold both.",
-    underStress: "Polarisation. The person identifies with one side and meets the other in someone else, usually as conflict.",
-    growth: "Owning both ends instead of projecting one, and finding the position between them.",
+    dynamic: "Two planets in opposite signs pull in opposite directions. Each can see the other clearly. The tension often shows up between the person and someone else. It can also show up as a swing between two extremes.",
+    inFlow: "Balance and perspective. Each side keeps the other in check. The person can hold both.",
+    underStress: "Taking sides. The person sides with one end and meets the other in someone else, usually as conflict.",
+    growth: "Owning both ends instead of putting one on someone else, and finding the middle ground.",
   },
 };
 
@@ -255,37 +258,37 @@ export const ASPECT: Record<AspectName, AspectEntry> = {
 // ---------------------------------------------------------------------------
 
 export const STRUCTURE: Record<string, VocabEntry> = {
-  sect_day: { short: "A day chart: the Sun leads, Jupiter and Saturn help, Mars costs.", full: "In a day chart the Sun is the leading light and the chart runs on identity, purpose, and visible direction. Jupiter is the more helpful benefic and Saturn behaves constructively. Mars is contrary to sect: the person's drive is real but tends to overrun and to charge for what it gives." },
-  sect_night: { short: "A night chart: the Moon leads, Venus and Mars help, Saturn costs.", full: "In a night chart the Moon is the leading light and the chart runs on need, safety, instinct, and relationship. Venus is the more helpful benefic and Mars behaves constructively. Saturn is contrary to sect: the person's discipline is real but tends toward coldness, fear, and heaviness." },
-  chart_ruler: { short: "The chart ruler is the planet that rules the rising sign and stands for the person.", full: "The ruler of the Ascendant sign is the chart ruler: the planet that most directly stands for the person, their vitality, and the direction of their life. Its sign, house, dignity, and sect condition are read as the condition of the person themselves." },
-  domicile: { short: "A planet in domicile is at home and does its work fully and on its own terms.", full: "A planet in one of its own signs is in domicile: it has full resources, acts with authority, and does not depend on anyone else. What it represents is strong, reliable, and self-directed in this person's life." },
-  exaltation: { short: "A planet in exaltation is honoured and elevated, sometimes beyond its means.", full: "A planet in its exaltation sign is an honoured guest: raised up, treated well, and capable of great things, though sometimes with more confidence than substance. What it represents is prominent and tends to be idealised." },
-  detriment: { short: "A planet in detriment is out of place and works hard for uneven results.", full: "A planet in the sign opposite its domicile is in detriment: away from home, without its usual resources, working in a style that does not suit it. What it represents is real and often intense, but it arrives through difficulty and does not come naturally." },
-  fall: { short: "A planet in fall is undervalued and tends to be doubted, including by its owner.", full: "A planet in the sign opposite its exaltation is in fall: disregarded, underestimated, and easily made to feel small. What it represents is often the thing the person doubts most in themselves, and the thing that most needs deliberate support." },
-  peregrine: { short: "A peregrine planet has no dignity here and takes its character from what surrounds it.", full: "A planet with no dignity in its sign is peregrine, a wanderer: neither at home nor honoured nor opposed. It has no fixed standing and depends on its house, its aspects, and its ruler for support. What it represents is adaptable but unanchored." },
-  angular: { short: "An angular planet is prominent, visible, and shapes the life directly.", full: "A planet in the 1st, 4th, 7th, or 10th house is angular: at one of the four pivots of the chart, prominent and active. What it represents shows up plainly in the person's life and is hard to miss." },
-  succedent: { short: "A succedent planet is steady, resourced, and follows through.", full: "A planet in the 2nd, 5th, 8th, or 11th house is succedent: stable, supported, and effective though less immediately visible than an angular one. What it represents builds over time and holds." },
-  cadent: { short: "A cadent planet is in the background, working in preparation or in private.", full: "A planet in the 3rd, 6th, 9th, or 12th house is cadent: falling away from the angles, quieter, working in preparation, in thought, or out of sight. What it represents is present but not prominent, and may need to be looked for." },
-  stellium: { short: "A stellium concentrates the chart into one place that dominates everything else.", full: "Three or more planets in one sign or house form a stellium: a concentration of energy that makes that area dominate the life. Whatever the sign and house describe becomes the person's central preoccupation, with other areas comparatively quiet." },
-  retrograde: { short: "A retrograde planet works inward and on its own schedule.", full: "A retrograde planet appears to move backward. Its function is turned inward: reconsidered, internalised, slower to express, and often developed privately before it shows. What it represents matures on the person's own timetable rather than the expected one." },
-  empty_house: { short: "An empty house is read through its ruler, not dismissed.", full: "A house with no planets in it is not inactive. Its affairs are read through the condition and placement of its ruling planet: where that ruler sits describes where and how the matters of the empty house play out." },
-  nodal_axis: { short: "The nodal axis runs from default competence toward unfamiliar growth.", full: "The nodes form one axis. The South Node marks what is easy, practised, and overused. The North Node marks what is underdeveloped, uncomfortable, and where effort produces growth. The signs and houses on each end name the territory." },
-  lot_of_fortune: { short: "The Lot of Fortune is where material circumstance and the body's fortune concentrate.", full: "The Lot of Fortune is a calculated point marking livelihood, the body, and material circumstance: what comes to a person from the world rather than what they make happen. Its house names where fortune, good or bad, tends to arrive." },
-  lot_of_spirit: { short: "The Lot of Spirit is where agency, intention, and vocation concentrate.", full: "The Lot of Spirit is the mirror of Fortune: a calculated point marking agency, intention, and what a person does rather than what happens to them. Its house names where their initiative and sense of vocation are most active." },
-  element_fire: { short: "Fire is initiative, heat, confidence, and the will to act.", full: "Fire signs carry initiative, enthusiasm, courage, and self-belief. A chart heavy in fire acts first and runs hot. A chart with little fire may lack drive or confidence and has to build it deliberately." },
-  element_earth: { short: "Earth is practicality, patience, the body, and what can be touched.", full: "Earth signs carry practicality, patience, endurance, and attention to the material world. A chart heavy in earth is grounded and slow. A chart with little earth may struggle with money, routine, or the body." },
-  element_air: { short: "Air is thought, language, connection, and distance from feeling.", full: "Air signs carry ideas, communication, sociability, and perspective. A chart heavy in air thinks and talks and can float above feeling. A chart with little air may find it hard to explain itself or to see other views." },
-  element_water: { short: "Water is feeling, memory, sensitivity, and the pull of what is unspoken.", full: "Water signs carry emotion, intuition, memory, and receptivity. A chart heavy in water feels everything and is shaped by atmosphere. A chart with little water may be out of touch with feeling or find it hard to empathise." },
-  modality_cardinal: { short: "Cardinal signs begin things.", full: "Cardinal signs initiate: they start, lead, and push forward. A chart heavy in cardinal energy begins a great deal and may not finish. A chart with little cardinality may wait for others to start." },
-  modality_fixed: { short: "Fixed signs sustain things.", full: "Fixed signs persist: they hold, consolidate, and resist change. A chart heavy in fixity is stable and stubborn. A chart with little fixity may not follow through or hold position." },
-  modality_mutable: { short: "Mutable signs adapt and finish things.", full: "Mutable signs adapt: they adjust, disperse, and complete. A chart heavy in mutability is flexible and scattered. A chart with little mutability may struggle to adapt when conditions shift." },
-  shape_bundle: { short: "A bundle chart concentrates everything within a third of the wheel.", full: "All planets within about a third of the wheel. The life is concentrated, focused, and specialised, with a narrow and intense field of concern and broad areas of the wheel left quiet. What lies in the occupied third dominates everything." },
-  shape_bowl: { short: "A bowl chart holds everything in one half and looks across at the empty half.", full: "All planets within one half of the wheel. The person is self-contained and oriented toward the empty half, often feeling that something is missing there and working toward it. The leading planet of the bowl sets the direction of that effort." },
-  shape_bucket: { short: "A bucket chart has one planet standing apart from the rest, and that planet leads.", full: "All planets in one half of the wheel except one, which stands alone as the handle. That singleton becomes the point of focus and release for everything else and is unusually important: the person channels the rest of the chart through it." },
-  shape_locomotive: { short: "A locomotive chart leaves one third empty and is driven by the planet leading the rest.", full: "Planets spread across two thirds of the wheel with one third empty. The person is driven and purposeful, with a sense of something to accomplish. The planet that leads the group in clockwise order acts as the engine, and the empty third names what they feel is missing." },
-  shape_seesaw: { short: "A seesaw chart splits into two opposing groups and lives in the tension between them.", full: "Planets in two groups roughly opposite each other. The life alternates between two sets of concerns and the person is at their best when they can hold both at once rather than swinging between them. Relationships often carry the other side." },
-  shape_splash: { short: "A splash chart spreads everything evenly, with wide interests and little concentration.", full: "Planets distributed around the whole wheel with no single concentration. The person has broad interests, adapts to many kinds of situation, and can lose focus by spreading effort thinly. No one area dominates, so the strongest individual placements and the chart ruler carry more weight than usual." },
-  shape_splay: { short: "A splay chart clusters in several separate places, each a distinct centre of interest.", full: "Planets gathered in several distinct clusters with clear gaps between them. The person is individualistic, hard to categorise, and organised around a few strong and separate centres of interest that do not necessarily connect. Each cluster is read as its own preoccupation." },
+  sect_day: { short: "A day chart: the Sun leads, Jupiter and Saturn help, Mars costs.", full: "In a day chart the Sun leads. The chart runs on identity, purpose and direction. Of the two helpful planets, Jupiter helps more. Saturn does steady, useful work. Mars is contrary to sect: out of step with the chart. The person's drive is real but tends to push too hard and cost them something." },
+  sect_night: { short: "A night chart: the Moon leads, Venus and Mars help, Saturn costs.", full: "In a night chart the Moon leads. The chart runs on needs, safety, instinct and relationships. Of the two helpful planets, Venus helps more. Mars does steady, useful work. Saturn is contrary to sect: out of step with the chart. The person's discipline is real but tends toward coldness, fear and a low mood." },
+  chart_ruler: { short: "The chart ruler is the planet that rules the rising sign and stands for the person.", full: "The planet that rules the rising sign is the chart ruler. It stands for the person more directly than any other planet. It shows their health, their drive and where their life is heading. Its sign, house, dignity and sect condition describe the person's own condition." },
+  domicile: { short: "A planet in domicile is at home and does its work fully and on its own terms.", full: "A planet in one of its own signs is in domicile. It has everything it needs and acts with authority. It does not depend on anyone else. What it stands for is strong and reliable in this person's life. It works on the person's own terms." },
+  exaltation: { short: "A planet in exaltation is honoured and elevated, sometimes beyond its means.", full: "A planet in its exaltation sign is raised up and treated well. It can do great things. Sometimes it has more confidence than substance. What it stands for is prominent in the person's life. It tends to be idealised." },
+  detriment: { short: "A planet in detriment is out of place and works hard for uneven results.", full: "A planet in the sign opposite its own is in detriment. It works in a style that does not suit it. It lacks its usual support. What it stands for is real and often strong. It comes through difficulty and does not come naturally." },
+  fall: { short: "A planet in fall is undervalued and tends to be doubted, including by its owner.", full: "A planet in the sign opposite its exaltation is in fall. It is overlooked and underestimated. It is easily made to feel small. What it stands for is often what the person doubts most in themselves. It is also what most needs deliberate support." },
+  peregrine: { short: "A peregrine planet has no dignity here and takes its character from what surrounds it.", full: "A planet with no dignity in its sign is peregrine. It is not at home, not honoured and not opposed. It has no fixed standing. It relies on its house, its aspects and its ruler for support. What it stands for is adaptable but unsteady." },
+  angular: { short: "An angular planet is prominent, visible, and shapes the life directly.", full: "A planet in the 1st, 4th, 7th or 10th house is angular. It sits at one of the four main points of the chart. It is prominent and active. What it stands for shows up clearly in the person's life. It is hard to miss." },
+  succedent: { short: "A succedent planet is steady, resourced, and follows through.", full: "A planet in the 2nd, 5th, 8th or 11th house is succedent. It is stable and well supported. It works well. It is less visible than an angular planet. What it stands for builds over time and lasts." },
+  cadent: { short: "A cadent planet is in the background, working in preparation or in private.", full: "A planet in the 3rd, 6th, 9th or 12th house is cadent. It sits away from the four main points. It is quieter and works in the background, in thought or out of sight. What it stands for is present but not prominent. It may need to be looked for." },
+  stellium: { short: "A stellium concentrates the chart into one place that dominates everything else.", full: "Three or more planets in one sign or house form a stellium. That part of the chart gets most of the attention. Whatever the sign and house describe becomes the person's main concern. Other areas of life stay quieter by comparison." },
+  retrograde: { short: "A retrograde planet works inward and on its own schedule.", full: "A retrograde planet seems to move backward in the sky. What it stands for is turned inward. It is rethought, slower to show and often worked out in private first. It matures on the person's own timetable, not the expected one." },
+  empty_house: { short: "An empty house is read through its ruler, not dismissed.", full: "A house with no planets in it is still active. Its matters are read through its ruling planet. Where that ruler sits, and what condition it is in, shows where and how the matters of the empty house happen." },
+  nodal_axis: { short: "The nodal axis runs from default competence toward unfamiliar growth.", full: "The nodes form one axis. The South Node marks what is easy, practised and overused. The North Node marks what is still weak and uncomfortable, and where effort leads to growth. The signs and houses at each end name the areas involved." },
+  lot_of_fortune: { short: "The Lot of Fortune is where material circumstance and the body's fortune concentrate.", full: "The Lot of Fortune is a calculated point. It marks income, the body and a person's material situation. It is about what comes to a person from the world, not what they make happen. Its house shows where luck, good or bad, tends to arrive." },
+  lot_of_spirit: { short: "The Lot of Spirit is where agency, intention, and vocation concentrate.", full: "The Lot of Spirit is the partner of the Lot of Fortune. It is a calculated point. It marks choice, intention and what a person does rather than what happens to them. Its house shows where their drive and the work they feel drawn to are most active." },
+  element_fire: { short: "Fire is initiative, heat, confidence, and the will to act.", full: "Fire signs carry initiative, enthusiasm, courage and self-belief. A chart with a lot of fire acts first and gets excited fast. A chart with little fire may lack drive or confidence. It has to build them on purpose." },
+  element_earth: { short: "Earth is practicality, patience, the body, and what can be touched.", full: "Earth signs carry practical sense, patience, staying power and attention to the physical world. A chart with a lot of earth is steady and slow. A chart with little earth may struggle with money, routine or the body." },
+  element_air: { short: "Air is thought, language, connection, and distance from feeling.", full: "Air signs carry ideas, talk, social ease and perspective. A chart with a lot of air thinks and talks a lot. It can keep its feelings at a distance. A chart with little air may find it hard to explain itself or to see other points of view." },
+  element_water: { short: "Water is feeling, memory, sensitivity, and the pull of what is unspoken.", full: "Water signs carry feeling, intuition, memory and openness. A chart with a lot of water feels everything and is affected by the mood around it. A chart with little water may lose touch with feelings or find it hard to understand others." },
+  modality_cardinal: { short: "Cardinal signs begin things.", full: "Cardinal signs start things. They begin, lead and push forward. A chart with a lot of cardinal signs starts a great deal and may not finish. A chart with few may wait for others to start." },
+  modality_fixed: { short: "Fixed signs sustain things.", full: "Fixed signs keep things going. They hold on, build up and resist change. A chart with a lot of fixed signs is stable and stubborn. A chart with few may not follow through or keep to a decision." },
+  modality_mutable: { short: "Mutable signs adapt and finish things.", full: "Mutable signs adapt and finish things. They adjust, spread out and complete. A chart with a lot of mutable signs is flexible and scattered. A chart with few may struggle to adapt when things change." },
+  shape_bundle: { short: "A bundle chart concentrates everything within a third of the wheel.", full: "All the planets sit within about a third of the wheel. The life is focused and specialised. The person cares about a narrow set of things. Much of the wheel stays quiet. What lies in the occupied third shapes everything else." },
+  shape_bowl: { short: "A bowl chart holds everything in one half and looks across at the empty half.", full: "All the planets sit within one half of the wheel. The person is self-contained. They look toward the empty half. They often feel something is missing there and work toward it. The leading planet of the bowl sets the direction of that effort." },
+  shape_bucket: { short: "A bucket chart has one planet standing apart from the rest, and that planet leads.", full: "All the planets sit in one half of the wheel except one, which stands alone as the handle. That single planet becomes the focus and the outlet for everything else. It matters more than usual. The person directs the rest of the chart through it." },
+  shape_locomotive: { short: "A locomotive chart leaves one third empty and is driven by the planet leading the rest.", full: "The planets spread across two thirds of the wheel, with one third empty. The person is driven and has a sense of something to get done. The planet that leads the group, counted clockwise, sets the pace. The empty third names what they feel is missing." },
+  shape_seesaw: { short: "A seesaw chart splits into two opposing groups and lives in the tension between them.", full: "The planets form two groups roughly opposite each other. Life moves back and forth between two sets of concerns. The person does best when they keep both in view at once. Other people often bring out the other side." },
+  shape_splash: { short: "A splash chart spreads everything evenly, with wide interests and little concentration.", full: "The planets are spread around the whole wheel with no single cluster. The person has wide interests and adapts to many kinds of situation. They can lose focus by spreading their effort too thin. No one area dominates. The strongest single placements and the chart ruler count for more than usual." },
+  shape_splay: { short: "A splay chart clusters in several separate places, each a distinct centre of interest.", full: "The planets gather in several separate clusters with clear gaps between them. The person is independent and hard to label. Their life is organised around a few strong interests that do not always connect. Each cluster is read as its own concern." },
 };
 
 /** Every full entry, rendered once as the static vocabulary block for the system prompt. */

@@ -5,15 +5,16 @@
  * card is their one reader (reading 2); the dashboard's quick look shares the
  * person words, which live in `home-view.ts` so a node test pins them.
  */
-import { Children, Fragment, type ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { TriadPlate } from "@/components/report/TriadPlate";
-import { rowText, triadRows } from "@/components/report/pair-hero-layout";
+import { TriadRow } from "@/components/TriadRow";
 import { WINDOW_UNKNOWN } from "@/lib/birth-time";
 import { ELEMENT_HEX } from "@/lib/chapter-accent";
 import { birthDateText, blindRisingText, doorText, firstName, writingText } from "@/lib/home-view";
-import { PLANET_RENDERS, SUN_HERO, renderFor } from "@/lib/planet-renders";
+import { renderFor } from "@/lib/planet-renders";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { busiestHouse, elementLead, houseCells, modalityLine, type ElementKey } from "@/lib/sky-card";
+import { triadRowsOf } from "@/lib/triad-row";
 import { PLANET_LABELS, type ChartData } from "@/types/chart";
 
 export { birthDateText, blindRisingText, doorText, firstName, writingText };
@@ -56,12 +57,6 @@ export function emptyElementsText(empty: readonly string[]): string | null {
   return `No ${empty.length === 1 ? last : `${empty.slice(0, -1).join(", ")} or ${last}`}`;
 }
 
-/** A legend value in the pieces a narrow card may wrap between, so "9th (belief)" never splits from itself. */
-export function legendParts(text: string): string[] {
-  const parts = text.split(" · ");
-  return parts.map((part, i) => (i < parts.length - 1 ? `${part} ·` : part));
-}
-
 const LABEL = "font-label text-[10px] font-medium uppercase leading-none tracking-[0.2em]";
 
 function SectionBox({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
@@ -100,28 +95,7 @@ export function TriadSection({ chart, name, self }: { chart: ChartData; name: st
   return (
     <div className="grid grid-cols-1 items-center justify-items-center gap-3 @xs:grid-cols-[104px_minmax(0,1fr)] @xs:justify-items-stretch">
       <TriadPlate chart={chart} name={name} className="block h-auto w-[104px]" />
-      <dl className="rp-legend">
-        {triadRows(chart, "full").map((row) => (
-          <div key={row.key} className="lr">
-            {row.key === "rising"
-              ? <span aria-hidden className="rp-ascdot" />
-              : <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />}
-            <dt className="k">{row.label}</dt>
-            {row.blind ? (
-              <dd className="v min-w-0 font-sans text-xs leading-[1.35] text-muted-foreground">{blindRisingText(name, self)}</dd>
-            ) : (
-              <dd className="v min-w-0">
-                {legendParts(rowText(row)).map((part, i) => (
-                  <Fragment key={i}>
-                    {i > 0 && " "}
-                    <span className="inline-block max-w-full">{part}</span>
-                  </Fragment>
-                ))}
-              </dd>
-            )}
-          </div>
-        ))}
-      </dl>
+      <TriadRow rows={triadRowsOf(chart, { blind: blindRisingText(name, self) })} />
     </div>
   );
 }

@@ -9,7 +9,7 @@
  * as the natal page, n = 8. No number, rating, percentage or bar anywhere, on
  * screen or in the PDF. No dawn, no gather.
  */
-import { useMemo, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,7 +38,11 @@ import { chapterAccent } from "@/lib/chapter-accent";
 import { PAIR_CHAPTER_TITLES, pairTabTitle } from "@/lib/lenses";
 import { pairSectionIds } from "@/lib/progress";
 import { recipientOf } from "@/lib/share-card";
+import { useTimelineAccess } from "@/lib/timeline-access";
 import { isCurrentPairInterpretation, lensChapterOf, sceneTitleOf, type ChartData, type Lens, type PairInterpretation } from "@/types/chart";
+
+// Ask's chat brings Timeline's pieces and the sky engine with it, so a reader without Timeline never downloads them.
+const AskLauncher = lazy(() => import("@/components/ask/AskLauncher"));
 
 const OPENING_ACCENT = "#5C6BC0";
 
@@ -57,6 +61,12 @@ export default function CompatibilityReportPage() {
   const [sending, setSending] = useState(false);
   const client = useQueryClient();
   const stopSharing = useStopSharingCompatibility();
+  const { access } = useTimelineAccess();
+  // Once drawn, Ask stays: a chat open when access goes keeps its refusal on screen until the reader closes it.
+  const [asks, setAsks] = useState(false);
+  useEffect(() => {
+    if (access) setAsks(true);
+  }, [access]);
 
   const live = useLiveReport(id!);
   const { report, sections, workbook, writing, open, setOpen, progress } = live;
@@ -219,6 +229,13 @@ export default function CompatibilityReportPage() {
           </div>
         )}
       </main>
+
+      {/* In the corner once the reading shows, past the generation screen; a question asked here can read this report (reading 16). */}
+      {open && !failed && asks && (
+        <Suspense fallback={null}>
+          <AskLauncher reportId={id} />
+        </Suspense>
+      )}
 
       <SendDialog open={sending} onClose={() => setSending(false)} target={send ? { kind: "pair", reportId: id!, send } : null} />
     </div>

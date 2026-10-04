@@ -243,6 +243,7 @@ export async function generatePairInterpretation(
     signal: controller.signal,
     spend,
     names: pairNames(brief),
+    internal: true,
     onChecks: (checks, event) => recordChecks({ kind: "pair", section: PAIR_FOUNDATION.key, model: MODELS.foundation, writeId: randomUUID(), reportId: options.reportId, attempt: event.attempt, final: event.final, checks }),
   }).catch((err) => { throw coded(err); });
   const foundation = foundationCall.data;

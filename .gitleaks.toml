@@ -11,3 +11,16 @@ description = "Report item keys: dotted paths ending in an index"
 targetRules = ["generic-api-key"]
 regexTarget = "secret"
 regexes = ['''^[a-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)+\.[0-9]+$''']
+
+# Timeline's event keys (R16, reading 5) sit beside `key:` the same way:
+# "cycle.saturn-return.20210118", "retrograde.mercury.-.-.20261009",
+# "contact.saturn.conjunction.ascendant.20260530". A kind, lowercase names or
+# a dash, and a calendar day; no credential has that shape.
+[[allowlists]]
+description = "Timeline event and cycle keys: a kind, names, a yyyymmdd day"
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = [
+  '''^cycle\.[a-z]+(?:-[a-z]+)+\.(?:19|20|21)[0-9]{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12][0-9]|3[01])$''',
+  '''^(?:contact|retrograde|eclipse)\.[a-z_]+\.(?:[a-z]+|-)\.(?:[a-z_]+|-)\.(?:19|20|21)[0-9]{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12][0-9]|3[01])$''',
+]

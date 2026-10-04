@@ -36,9 +36,9 @@ export default function BirthTime() {
             <p className="sd-eyebrow">Birth time</p>
             <h3 id="birth-time-h">You still get the full report without a birth time</h3>
             <p className="t max-w-[62ch]">
-              Lots of people only know roughly, from what a parent remembers, and some don't know at all. Tell us what you have: the
-              exact time, a part of the day, or nothing. The report only uses what that time can support, and tells you what it
-              can't. If you find your time later, add it for free and we'll mark every change.
+              Many people only know roughly, from what a parent remembers. Some don't know at all. Tell us what you have: the
+              exact time, a part of the day, or nothing. The report only uses what your answer can tell us. It says what it
+              leaves out. If you find your time later, add it for free and we'll mark every change.
             </p>
             <ul className="sd-parts" aria-label="Parts of the day">
               {partsOfDay(clock).map(({ part, hours }) => (

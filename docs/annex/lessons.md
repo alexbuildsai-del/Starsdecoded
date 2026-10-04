@@ -38,9 +38,18 @@ ADR-195). Lines, not a diary: at most 60 lines.
 - R15 · R15-18, R15-19 · a list of grants filled an address from the reader's account for a grant made without a link, showing the sharer an email never given · - · -
 - R15 · orchestrator · the sentinel hit the session's usage limit before answering and had to run again · - · -
 
+- R16 · R16-01, R16-03 · a spec promised dates "to the hour" against JPL Horizons, which the engine's ephemeris meets only for Jupiter and Saturn (Neptune drifts up to 7 hours) · - · -
+- R16 · R16-01 · a range was filtered on an instant's raw value while the instant was reported rounded, so an item fell outside a range holding its own reported time (tester A) · - · -
+- R16 · R16-05 · a day guard checked only the weekday of a date the calendar rolled over (30 Feb read as Monday 2 Mar) (tester A) · - · -
+- R16 · R16-21 · a sentence check looked only at a sentence's start, so an order after an opening clause, a name or a softener passed (tester B) · - · -
+- R16 · R16-23 · an age was rounded instead of floored, reading the next year for hours before a birthday (tester B) · - · -
+- R16 · R16-24 · a kept row that no longer parsed was neither returned nor claimable, so an open spun on "writing" for good (tester C) · - · -
+- R16 · R16-14 · structured data built from one page's list was stamped on every page of that kind (/timeline carried /faq's questions) · - · -
+- R16 · R16-29 · a new spending surface reused a refusal line written for another product (Ask showing "Your credit hasn't been used") · - · -
+
 ## Promoted
 The planner reads this section before it plans, and its rules bind the plan (ADR-195).
-- R13 · R13-12; R14 · R14-02, R14-13 · a change to a shared value or shape (a version pin, a body made optional, a new argument) left a caller outside the card's files on the old one (a test pin; the orrery's made-up Chiron; home's part-of-day chips) · "Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller outside your files is named in your report, never left on the old shape." · `.claude/agents/builder.md`
+- R13 · R13-12; R14 · R14-02, R14-13; R16 · R16-20 · a change to a shared value or shape (a version pin, a body made optional, a new argument) left a caller outside the card's files on the old one (a test pin; the orrery's made-up Chiron; home's part-of-day chips; `GET /home`'s new `tz` moved the generated hook's arguments under four callers) · "Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller outside your files is named in your report, never left on the old shape." · `.claude/agents/builder.md`
 
 ## Retired
 None yet.

@@ -22,14 +22,14 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
-import { houseWithWord } from "@/lib/evidence-glossary";
-import { TRADITIONAL_RULER } from "@/lib/house-rulers";
+import { TriadRow } from "@/components/TriadRow";
+import { triadRowsOf, triadText } from "@/lib/triad-row";
 import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
 import { PHONE, layoutHero, moonArc, phoneStack, type Rect } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { Mark } from "@/components/Mark";
-import { PLANET_LABELS, type ChartData, type ChartPlanet, type Interpretation } from "@/types/chart";
+import { PLANET_LABELS, type ChartData, type Interpretation } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { PERSONAL_REPORT } from "@/lib/product";
 import { ReportSky } from "@/components/report/ReportSky";
@@ -119,12 +119,7 @@ function Label({ x, y, anchor, size, fill, children }: {
   );
 }
 
-/** A body's line in the legend: degree and sign, and its house with its word when the chart has one (ADR-98). */
-function placementText(p: ChartPlanet): string {
-  return `${p.degree.toFixed(2)}° ${p.sign}${p.house ? ` · ${houseWithWord(p.house)}` : ""}`;
-}
-
-const ADD_TIME = "add your birth time to draw the horizon";
+const ADD_TIME = "add your birth time to see your rising sign and houses";
 
 /** The cue is a button (ADR-50): 44 px hit area, scrolls to chapter 01, fades over the first half screen. */
 function ScrollCue({ flow, reduced, cueRef }: { flow?: boolean; reduced: boolean; cueRef: React.RefObject<HTMLDivElement | null> }) {
@@ -254,8 +249,6 @@ export function ReportHero({
   const blind = asc === null;
   const sun = chartData.planets.sun;
   const moon = chartData.planets.moon;
-  const ascRuler = asc ? TRADITIONAL_RULER[asc.sign] : undefined;
-  const rising = asc ? `${asc.degree.toFixed(2)}° ${asc.sign}${ascRuler ? ` · ruled by ${PLANET_LABELS[ascRuler]}` : ""}` : ADD_TIME;
   const tob = timeOfBirthLabel({ birthTime, birthTimeWindowMinutes });
 
   // A narrow plate is wider than tall so the ring can fill the width and the
@@ -308,20 +301,16 @@ export function ReportHero({
   const dob = new Date(`${birthDate}T00:00:00Z`);
   const dobText = `${dob.getUTCDate()} ${MONTHS[dob.getUTCMonth()]} ${dob.getUTCFullYear()}`;
 
-  const legend = [
-    sun && { key: "sun", label: "Sun", value: placementText(sun) },
-    moon && { key: "moon", label: "Moon", value: placementText(moon) },
-    { key: null, label: "Rising", value: rising },
-  ].filter(Boolean) as { key: string | null; label: string; value: string }[];
+  const legend = triadRowsOf(chartData, { blind: ADD_TIME });
 
   function bodyValue(key: string): string {
-    const p = key === "sun" ? sun : moon;
-    return p ? placementText(p) : "";
+    const row = legend.find((r) => r.key === key);
+    return row ? triadText(row) : "";
   }
 
   const sectLine = meta.sect && meta.sunAltitude !== undefined
     ? `${meta.sect} chart · sun alt ${meta.sunAltitude.toFixed(1)}°`
-    : "horizon · not drawn";
+    : "rising sign · needs a birth time";
 
   return (
     <>
@@ -340,7 +329,7 @@ export function ReportHero({
           viewBox={`0 0 ${W} ${H}`}
           style={stack ? { maxHeight: `${stack.svg.toFixed(0)}px`, maxWidth: `${stack.svg.toFixed(0)}px` } : undefined}
           role="img"
-          aria-label={blind ? `${name}: Sun and Moon at their true positions; the horizon is not drawn` : `${name}: Sun, Moon and Rising at their true positions`}
+          aria-label={blind ? `${name}: Sun and Moon at their true positions; the rising sign needs a birth time` : `${name}: Sun, Moon and Rising at their true positions`}
         >
           <g ref={diagramRef}>
             <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
@@ -418,7 +407,7 @@ export function ReportHero({
               <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={13} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.5} />
             )}
             {blind && !narrow && (
-              <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{`RISING · ${ADD_TIME.toUpperCase()}`}</Label>
+              <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{ADD_TIME.toUpperCase()}</Label>
             )}
           </g>
         </svg>
@@ -469,21 +458,7 @@ export function ReportHero({
         )}
 
         {narrow && (
-          <dl className="rp-legend">
-            {legend.map((row) => (
-              <div key={row.label} className="lr">
-                {row.key
-                  ? <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />
-                  : <span aria-hidden className="rp-ascdot" />}
-                <dt className="k">{row.label}</dt>
-                <dd className="v">
-                  {!row.key && blind && onAddBirthTime
-                    ? <button type="button" onClick={onAddBirthTime} className="text-brass underline-offset-4 hover:underline">{row.value}</button>
-                    : row.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <TriadRow rows={legend} onAddBirthTime={onAddBirthTime} />
         )}
         {narrow && <ScrollCue flow reduced={reduced} cueRef={cueRef} />}
       </div>
@@ -526,7 +501,7 @@ export function ReportHero({
             DOB · {dobText} · TOB · {tob} · POB · {birthPlace}
           </p>
           <p className="font-numeric text-xs mt-1">
-            {legend.map((row) => `${row.label} ${!row.key && blind ? "not drawn" : row.value}`).join(" · ")}
+            {legend.map((row) => `${row.label} ${row.at === null ? "needs a birth time" : triadText(row)}`).join(" · ")}
           </p>
         </header>
       </section>

@@ -10,10 +10,12 @@ import { useId, useState } from "react";
 import { PLANET_GLYPHS } from "@/types/chart";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { hintFor } from "@/lib/birth-record-hints";
-import { HOUSE_NAMES, ORDINALS } from "@/lib/evidence-glossary";
+import { HOUSE_NAMES, ORDINALS, houseWord } from "@/lib/evidence-glossary";
+import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { splitReading } from "@/lib/house-deck";
 import { AngleGlyph, type AngleKey } from "@/components/report/AngleGlyph";
 import type { Occupant } from "@/lib/house-occupants";
+import { PLANET_LABELS, type ChartData } from "@/types/chart";
 
 const EASE = "ease-[cubic-bezier(.16,1,.3,1)]";
 
@@ -35,11 +37,28 @@ function OccupantMark({ o }: { o: Occupant }) {
   );
 }
 
+/** The planet that goes with the rising sign, and where the chart puts it. Null for a blind chart, which has no 1st house. */
+export interface ChartRuler {
+  label: string;
+  sign: string;
+  house: number;
+}
+
+export function chartRuler(chart: ChartData): ChartRuler | null {
+  const asc = chart.angles?.ascendant;
+  const key = asc ? TRADITIONAL_RULER[asc.sign] : undefined;
+  const planet = key ? chart.planets[key] : undefined;
+  if (!key || !planet || !planet.house) return null;
+  return { label: PLANET_LABELS[key] ?? key, sign: planet.sign, house: planet.house };
+}
+
 export interface HouseCardProps {
   house: number;
   /** The whole-sign sign on this house. */
   sign: string;
   occupants: Occupant[];
+  /** The chart ruler, on the 1st house's card only; the triad rows no longer print it. */
+  ruler?: ChartRuler | null;
   /** The house's reading as the report stored it; absent while the section is still being written. */
   reading?: string;
   /** The whole text at once, for the desktop card: no Read the rest. */
@@ -49,7 +68,7 @@ export interface HouseCardProps {
   className?: string;
 }
 
-export function HouseCard({ house, sign, occupants, reading, whole = false, lit = true, className = "" }: HouseCardProps) {
+export function HouseCard({ house, sign, occupants, ruler, reading, whole = false, lit = true, className = "" }: HouseCardProps) {
   const [open, setOpen] = useState(false);
   const restId = useId();
   const parts = reading ? splitReading(reading) : null;
@@ -75,6 +94,11 @@ export function HouseCard({ house, sign, occupants, reading, whole = false, lit 
       <h3 className={`font-display font-normal leading-[1.15] text-[color:var(--paper)] print:text-black ${whole ? "text-[28px]" : "text-[22px]"}`}>
         {HOUSE_NAMES[i]}
       </h3>
+      {ruler && (
+        <p className="-mt-1 font-numeric text-[12.5px] leading-[1.45] text-[color:var(--paper-dim)] print:text-black">
+          {`${ruler.label} is your chart ruler, the planet that goes with your rising sign. It stands in ${ruler.sign}, in the ${ORDINALS[ruler.house - 1]} house (${houseWord(ruler.house)}).`}
+        </p>
+      )}
       {parts ? (
         <>
           <p className={`font-display leading-[1.45] text-[color:var(--paper)] print:text-black ${whole ? "text-[20px]" : "text-[17px]"}`}>
@@ -103,7 +127,7 @@ export function HouseCard({ house, sign, occupants, reading, whole = false, lit 
           )}
           {parts.check && (
             <div className="grid gap-1 border-t border-[color:var(--line-soft)] pt-2.5 print:border-neutral-300">
-              <p className="font-label text-[9.5px] font-medium uppercase tracking-[.16em] text-[color:var(--accent)]">Behaviour check</p>
+              <p className="font-label text-[9.5px] font-medium uppercase tracking-[.16em] text-[color:var(--accent)]">Does this sound like you?</p>
               <p className={`text-[color:var(--paper)] print:text-black ${whole ? "text-[14px] leading-[1.55]" : "text-[13.5px] leading-[1.5]"}`}>
                 {parts.check}
               </p>
@@ -119,9 +143,9 @@ export function HouseCard({ house, sign, occupants, reading, whole = false, lit 
 
 const HOUR_ADDS = [
   "Your rising sign, and the chapter it opens",
-  "Twelve houses: where each planet does its work",
-  "Day or night, and which planets carry weight",
-  "The Lots, drawn from the horizon",
+  "Twelve houses: which part of life each planet affects",
+  "Day or night, and which planets matter most",
+  "The Lots, points worked out from your rising sign",
 ];
 
 /** The country is the last part of the place the geocoder returned, when it gave one. */
@@ -135,8 +159,8 @@ export function AddBirthTimeCard({ birthPlace, onAddBirthTime }: { birthPlace?: 
   const hint = hintFor(countryOf(birthPlace));
   return (
     <div className="relative flex h-full flex-col rounded-xl border border-brass/40 bg-card/40 p-5 text-left" data-testid="add-birth-time-card">
-      <p className="rp-kicker">Horizon · not drawn</p>
-      <h4 className="mt-1 font-display text-2xl leading-tight text-foreground">What the hour adds</h4>
+      <p className="rp-kicker">Rising sign · needs a birth time</p>
+      <h4 className="mt-1 font-display text-2xl leading-tight text-foreground">What your birth time adds</h4>
       <ul className="mt-4 space-y-2 text-sm leading-relaxed text-foreground/85">
         {HOUR_ADDS.map((line) => <li key={line} className="flex gap-2"><span aria-hidden className="text-brass">·</span>{line}</li>)}
       </ul>
@@ -149,7 +173,7 @@ export function AddBirthTimeCard({ birthPlace, onAddBirthTime }: { birthPlace?: 
         >
           Add my birth time
         </button>
-        <p className="mt-2 font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Free. Every change is marked.</p>
+        <p className="mt-2 font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Free. We'll show you what changed.</p>
       </div>
       <p className="mt-auto border-t border-border/40 pt-3 text-xs leading-relaxed text-muted-foreground">
         <span className="font-label text-[10px] tracking-[0.16em] uppercase text-brass/80">Where to find it · </span>

@@ -231,7 +231,7 @@ export function CompatibilityPicker({
         )}
         {noCredit && (
           // MB-6 provisional: the no-credit state names itself and still runs on the soft pass until checkout exists.
-          <span className="text-xs text-muted-foreground">No credit on your account yet; the report is written on the house until pricing lands.</span>
+          <span className="text-xs text-muted-foreground">No credits yet. This report is free until prices are set.</span>
         )}
         {create.isError && (
           <span role="alert" className="text-xs text-destructive">

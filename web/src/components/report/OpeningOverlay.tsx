@@ -110,7 +110,7 @@ export function OpeningOverlay({ progress, provisional, chart, failureLine, onOp
             {progress.door && (
               <div className="door">
                 <button type="button" onClick={leave}>Start reading →</button>
-                <small>The last chapters will be there when you reach them.</small>
+                <small>We'll finish the last chapters while you read.</small>
               </div>
             )}
           </>

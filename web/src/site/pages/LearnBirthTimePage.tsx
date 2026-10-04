@@ -256,13 +256,13 @@ function TimeChanges() {
             What the time changes
           </h2>
           <p>
-            The date alone settles the signs of your Sun, Moon and planets, unless one of them changed sign that day. The Moon does
+            The date alone tells us the signs of your Sun, Moon and planets, unless one of them changed sign that day. The Moon does
             that every two or three days, the Sun once a month.
           </p>
-          <p>The time settles your rising sign, your houses and whether you were born by day or by night.</p>
+          <p>The time tells us your rising sign, your houses and whether you were born by day or by night.</p>
           {herDay ? <p>{herDay}</p> : null}
           <p>
-            Slide through today to see it for yourself. The rising sign turns all the way round in a day, and the houses turn with it.
+            Move the slider through today to see it for yourself. The rising sign turns all the way round in a day, and the houses turn with it.
             The Moon moves a little, and the other planets hardly move at all.
           </p>
         </div>
@@ -293,7 +293,7 @@ export default function LearnBirthTimePage() {
             <h2 id="have-h" className="sd-h2">
               Tell us what you have
             </h2>
-            <p className="sd-sub">The exact time, a part of the day, or nothing. The report only uses what that time can support.</p>
+            <p className="sd-sub">The exact time, a part of the day, or nothing. The report only uses what your answer can tell us.</p>
           </div>
           <Plates />
         </div>

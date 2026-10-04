@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { pool } from "@workspace/db";
 import { PROMPT_VERSION } from "../../api/src/lib/aiInterpretation.js";
 import { PAIR_PROMPT_VERSION } from "../../api/src/prompts/pair/index.js";
+import { TIMELINE_PROMPT_VERSION } from "../../api/src/prompts/timeline/index.js";
+import { ASK_PROMPT_VERSION } from "../../api/src/prompts/ask/index.js";
 import { promptFamilies } from "./prompt-families.js";
 
 // Prompts resolve from api/src/prompts at run time; a prompt_templates row
@@ -13,7 +15,8 @@ async function main() {
   const force = process.argv.includes("--force");
   const client = await pool.connect();
   try {
-    for (const family of promptFamilies(PROMPT_VERSION, PAIR_PROMPT_VERSION)) {
+    const versions = { natal: PROMPT_VERSION, pair: PAIR_PROMPT_VERSION, timeline: TIMELINE_PROMPT_VERSION, ask: ASK_PROMPT_VERSION };
+    for (const family of promptFamilies(versions)) {
       const seen = await client.query<{ version: string | null }>(
         "SELECT user_prompt AS version FROM prompt_templates WHERE prompt_key = $1 LIMIT 1",
         [family.key],

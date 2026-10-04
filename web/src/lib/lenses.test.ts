@@ -27,12 +27,13 @@ describe("the lens table", () => {
       const titles = PAIR_CHAPTER_TITLES(l.lens);
       expect(titles.length).toBe(7);
       expect(titles[0]).toBe("Your two charts");
-      expect(titles[6]).toBe("What to practise");
+      expect(titles[6]).toBe("Things to try");
       expect(titles.slice(1, 6)).toEqual(l.chapters);
     }
     expect(PAIR_CHAPTER_TITLES("partners")[1]).toBe("How you love");
     expect(PAIR_CHAPTER_TITLES("parent_child")[5]).toBe("Rules, freedom and screens");
-    expect(PAIR_CHAPTER_TITLES("people")[4]).toBe("The hard talk");
+    expect(PAIR_CHAPTER_TITLES("people")[4]).toBe("Hard conversations");
+    expect(PAIR_CHAPTER_TITLES("people")[1]).toBe("Being together");
   });
 
   it("names the tile and the tab without the trade word", () => {

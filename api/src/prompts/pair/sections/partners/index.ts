@@ -21,11 +21,11 @@ The scene is the end of a long day: one of them comes home tired, one offers car
 const fight = lensChapter({
   lens: "partners",
   n: 3,
-  title: "How you fight and repair",
+  title: "How you argue and make up",
   draws: ["relationships", "mind", "superpowers"],
   scene: "The argument at 11 pm",
   grounding: "In most couples one pursues and one withdraws: the pursuer raises the volume to get a response, the withdrawer goes quiet to lower the temperature, and each move makes the other's worse. Four habits corrode a relationship, criticism, contempt, defensiveness and shutting down, and each has a plain antidote: name the specific behaviour instead of the person, say what you appreciate, take your part of it, and take a break and come back. A repair is any move that lowers the temperature and is accepted. What matters is not the fight but whether the repair lands, and each person accepts a different kind.",
-  instructions: `Write How you fight and repair: who pursues and who withdraws when these two disagree, the habit each falls into, and the repair each will actually accept.
+  instructions: `Write How you argue and make up: who pursues and who withdraws when these two disagree, the habit each falls into, and the repair each will actually accept.
 
 The scene is the argument at 11 pm, in present tense, with the actual words one of them says. What just happened gives the need under the pursuit and the fear under the withdrawal, from each person's report, in their words on how they think and when they go quiet. The pattern says whether this is the challenge ("This is the challenge: …") and what the friction trains. Next time gives each of them one repair move the other accepts, plain and doable, and one for both: the break, the return, the words. Describe the corrosive habits as behaviour, never by a label or a list name.`,
 });

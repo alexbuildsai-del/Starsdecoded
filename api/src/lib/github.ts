@@ -1,11 +1,11 @@
 /**
  * What the release needs from GitHub (ADR-86, MB-75, ADR-247). Read from the public API with no token: what
  * production and main are at, and which brain files differ. Written with the token Railway staging holds, and only
- * twice: the fast-forward of `production` (a PATCH on its ref, never forced) and /sample's run on a new
- * `sample/<release-id>` branch (the Git data API: a blob, a tree, a commit, then the ref). Each write checks its ref
- * before any request. A message built from GitHub's answer or the network's error ends up in the release's record and
- * the log, so the token's value is cut from it, and no error carries the request or its headers (R14-14: by name and by
- * value, never by where a field sits).
+ * twice: the fast-forward of `production` (a PATCH on its ref, never forced) and one commit on a new
+ * `sample/<release-id>` branch carrying /sample's run and Mira's week (the Git data API: a blob per file, a tree, a
+ * commit, then the ref). Each write checks its ref and every path before any request. A message built from GitHub's
+ * answer or the network's error ends up in the release's record and the log, so the token's value is cut from it, and
+ * no error carries the request or its headers (R14-14: by name and by value, never by where a field sits).
  */
 export const REPO = "alexbuildsai-del/Starsdecoded";
 const API = "https://api.github.com";
@@ -22,8 +22,8 @@ export const COMPARE_FILE_CAP = 300;
 export const RELEASE_BRANCH = "production";
 /** The only refs the token creates: one branch per release under sample/, named by the release's id. */
 export const SAMPLE_REF = /^refs\/heads\/sample\/[A-Za-z0-9][A-Za-z0-9-]*$/;
-/** The only file such a branch adds: /sample's run, one JSON file in its folder. */
-export const SAMPLE_FILE = /^web\/src\/site\/data\/sample\/[A-Za-z0-9][A-Za-z0-9.-]*\.json$/;
+/** The only files such a branch writes: /sample's run, one JSON file in its folder, and Mira's week at its one path (ADR-250). */
+export const SAMPLE_FILE = /^(?:web\/src\/site\/data\/sample\/[A-Za-z0-9][A-Za-z0-9.-]*\.json|web\/src\/site\/data\/timeline\/mira-week\.json)$/;
 
 export interface BrainDiff {
   brainChanged: boolean;
@@ -43,8 +43,8 @@ export interface FileCommit {
   branch: string;
   /** The commit the branch starts from. */
   parent: string;
-  path: string;
-  content: string;
+  /** Everything the one commit writes: at least one file, each at a path `SAMPLE_FILE` admits, no path twice. */
+  files: { path: string; content: string }[];
   message: string;
 }
 
@@ -53,7 +53,7 @@ export interface GithubApi {
   /** null when GitHub does not list the diff in full. */
   changedFiles(base: string, head: string): Promise<string[] | null>;
   fastForward(branch: string, sha: string, token: string): Promise<void>;
-  /** One file on top of `parent`, then a new branch at that commit; answers the commit's sha. */
+  /** The files as one commit on top of `parent`, then a new branch at that commit; answers the commit's sha. */
   commitFile(input: FileCommit, token: string): Promise<string>;
 }
 
@@ -114,13 +114,21 @@ export function githubApi(fetcher: Fetcher = fetch): GithubApi {
     async commitFile(input, token) {
       const ref = `refs/heads/${input.branch}`;
       if (!SAMPLE_REF.test(ref)) throw new Error(`refused to write ${ref}: the release token creates sample/<release-id> branches alone (ADR-247)`);
-      if (!SAMPLE_FILE.test(input.path)) throw new Error(`refused to write ${input.path}: a sample branch carries /sample's run alone`);
+      if (!input.files.length) throw new Error(`refused to write ${ref}: a commit with no file`);
+      const seen = new Set<string>();
+      for (const file of input.files) {
+        if (!SAMPLE_FILE.test(file.path)) throw new Error(`refused to write ${file.path}: a sample branch carries /sample's run and Mira's week alone`);
+        if (seen.has(file.path)) throw new Error(`refused to write ${file.path} twice in one commit`);
+        seen.add(file.path);
+      }
       const parent = await authed<{ tree?: { sha?: string } }>(fetcher, token, "GET", `git/commits/${encodeURIComponent(input.parent)}`, `reading ${input.parent.slice(0, 7)}`);
-      const blob = await authed<{ sha?: string }>(fetcher, token, "POST", "git/blobs", `writing ${input.path}`, { content: input.content, encoding: "utf-8" });
-      const tree = await authed<{ sha?: string }>(fetcher, token, "POST", "git/trees", "writing the tree", {
-        base_tree: shaOf(parent.tree, `reading ${input.parent.slice(0, 7)}`),
-        tree: [{ path: input.path, mode: "100644", type: "blob", sha: shaOf(blob, `writing ${input.path}`) }],
-      });
+      const baseTree = shaOf(parent.tree, `reading ${input.parent.slice(0, 7)}`);
+      const entries: Array<{ path: string; mode: "100644"; type: "blob"; sha: string }> = [];
+      for (const file of input.files) {
+        const blob = await authed<{ sha?: string }>(fetcher, token, "POST", "git/blobs", `writing ${file.path}`, { content: file.content, encoding: "utf-8" });
+        entries.push({ path: file.path, mode: "100644", type: "blob", sha: shaOf(blob, `writing ${file.path}`) });
+      }
+      const tree = await authed<{ sha?: string }>(fetcher, token, "POST", "git/trees", "writing the tree", { base_tree: baseTree, tree: entries });
       const commit = shaOf(await authed<{ sha?: string }>(fetcher, token, "POST", "git/commits", "writing the commit", {
         message: input.message, tree: shaOf(tree, "writing the tree"), parents: [input.parent],
       }), "writing the commit");

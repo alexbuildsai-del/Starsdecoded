@@ -65,7 +65,7 @@ function Card({ card, ticks }: { card: WorkbookCard; ticks: TickStore }) {
         <p className="text-[13.5px] leading-[1.5] text-[color:var(--paper-dim)]">{card.plain}</p>
       </div>
       <div className={ROW}>
-        <p className={`${LABEL} text-[color:var(--sd-brass)]`}>Behaviour check</p>
+        <p className={`${LABEL} text-[color:var(--sd-brass)]`}>Does this sound like you?</p>
         <p className="font-display text-[17px] italic leading-[1.4] text-[color:var(--paper)]">{card.check}</p>
       </div>
       <div className={ROW}>

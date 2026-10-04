@@ -148,7 +148,7 @@ export default function BirthFormPage() {
               Enter your birth details
             </h1>
             <p className="text-muted-foreground text-sm">
-              Accurate birth time and place are essential for a precise chart.
+              Your birth time and place make your chart exact.
             </p>
           </div>
 
@@ -232,7 +232,7 @@ export default function BirthFormPage() {
               </div>
               <div>
                 <p className={`text-sm font-medium leading-tight ${isSelf ? "text-foreground" : "text-muted-foreground"}`}>
-                  This is my natal chart
+                  This is my own chart
                 </p>
                 <p className="text-xs text-muted-foreground/70 mt-0.5 leading-tight">
                   Saves this chart as yours on your profile

@@ -15,43 +15,43 @@ export interface ChapterGlimpse {
 export const INSIDE: Record<ChapterSection, ChapterGlimpse> = {
   overview: {
     line: "The big picture and what stands out in your chart",
-    parts: ["Headline", "What makes it unusual", "Where it all points"],
+    parts: ["Headline", "What makes it unusual", "What it all adds up to"],
   },
   houses: {
     line: "A short read of each of your twelve houses, and where the weight of your chart sits",
-    parts: ["Twelve houses", "Where the weight sits", "How you run"],
+    parts: ["Twelve houses", "What stands out", "How you get through your days"],
   },
   mind: {
     line: "How you think, how you make decisions and why people sometimes get you wrong",
-    parts: ["How you think", "How you decide", "How you are understood", "A practice"],
+    parts: ["How you think", "How you decide", "How people see you", "Something to try"],
   },
   career: {
     line: "The kind of work that suits you, how you come across at work and where you can grow",
-    parts: ["Vocational pull", "How you show up", "Growth through work", "Career paths"],
+    parts: ["Work that suits you", "How you come across at work", "How work helps you grow", "Career paths"],
   },
   money: {
     line: "How you earn, spend and share money",
-    parts: ["Your relationship to resources", "What works", "Shared money"],
+    parts: ["How you handle money", "What works", "Shared money"],
   },
   relationships: {
     line: "How you love, what keeps going wrong and who suits you",
-    parts: ["How you love", "The challenge", "What partnership asks", "You connect best with"],
+    parts: ["How you love", "What keeps going wrong", "What a relationship needs from you", "You connect best with"],
   },
   family: {
     line: "What you took from the family you grew up in and what you want to do differently",
-    parts: ["What you carry", "What roots you", "The inherited edge"],
+    parts: ["What you got from your family", "What keeps you steady", "What you'd do differently"],
   },
   superpowers: {
     line: "What you're naturally good at, the habit you'll always have to manage and where you can grow",
-    parts: ["Your superpower", "The pattern you will always navigate", "Your growing edge"],
+    parts: ["Your superpower", "A habit you'll always have to manage", "Where you can grow"],
   },
   discoveries: {
     line: "The parts of you that pull in different directions and how to live with both",
-    parts: ["Two or three paradoxes", "A way through each"],
+    parts: ["Two or three ways you feel torn", "What helps with each"],
   },
   focus: {
     line: "What to do more of, what to watch for and what to try next",
-    parts: ["Lean into", "Notice", "Practice", "Closing"],
+    parts: ["Do more of", "Watch for", "Try next", "Closing"],
   },
 };
 

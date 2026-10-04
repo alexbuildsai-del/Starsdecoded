@@ -11,10 +11,11 @@ import {
   NOT_WRITTEN, OWN_LINES, PAIR_BLOCK, SHARE_EMAIL_MISSING, SHARE_MINE, TRY_AGAIN, birthDateText, blindRisingText, doorText, failureLine,
   firstName, isFailed, isFinished, isWriting, lensWords, offersShareBack, offersShareMine, offersTryAgain, ownIds, pairWithYou,
   quickLookDoors, quickLookFor, shareControl, shareErrorLine, shareLine, shareName, shareSentLine, shareStateText, shareTargetFor,
-  sharedBackText, spotText, triadLines, tryAgainErrorLine, UNNAMED_READER, withYouText, writingText,
+  sharedBackText, tryAgainErrorLine, UNNAMED_READER, withYouText, writingText,
 } from "./home-view";
 import { CENTRE_ID } from "./orbit";
 import { HANDED_BACK, SEND_AGAIN } from "./pair-row";
+import { triadRowsOf, triadText } from "./triad-row";
 
 type Birth = [date: string, time: string, latitude: number, longitude: number, zone: string | number, windowMinutes: number];
 
@@ -102,58 +103,34 @@ describe("the person words", () => {
     expect(doorText("Beatrice Lund", true)).toBe("Open your report");
     expect(writingText("Audrey Hepburn", false)).toBe("Writing Audrey's report");
     expect(writingText("Beatrice Lund", true)).toBe("Writing your report");
-    expect(blindRisingText("Marie Curie", false)).toBe("Add Marie's birth time to draw the horizon");
-    expect(blindRisingText("Beatrice Lund", true)).toBe("Add your birth time to draw the horizon");
+    expect(blindRisingText("Marie Curie", false)).toBe("Add Marie's birth time to see their rising sign and houses");
+    expect(blindRisingText("Beatrice Lund", true)).toBe("Add your birth time to see your rising sign and houses");
   });
 
   it("heads chapter 08's lines and a pair's block in the report's own words", () => {
-    expect(OWN_LINES).toEqual({ superpower: "Your superpower", growingEdge: "Your growing edge" });
+    expect(OWN_LINES).toEqual({ superpower: "Your superpower", growingEdge: "Where you can grow" });
     expect(PAIR_BLOCK).toEqual({ comes: "Comes naturally", challenge: "Challenge to work on" });
   });
 });
 
-describe("the triad with degrees", () => {
-  it("prints a body's degree, sign and house with its one word, as the approved quick look does (ADR-98)", () => {
-    expect(triadLines(AUDREY.triad)).toEqual([
-      { key: "sun", label: "Sun", text: "13.12° Taurus · 4th (home)" },
-      { key: "moon", label: "Moon", text: "6.45° Pisces · 2nd (money)" },
-      { key: "rising", label: "Rising", text: "28.62° Aquarius" },
+// The rows themselves are `triad-row.ts`'s, pinned in its own test; here, what the quick look hands them.
+describe("the quick look's triad (reading 20)", () => {
+  it("prints the one triad row, the Rising's 1st (self) included", () => {
+    expect(triadRowsOf(AUDREY.triad).map((row) => triadText(row))).toEqual([
+      "Taurus 13.12° · 4th (home)",
+      "Pisces 6.45° · 2nd (money)",
+      "Aquarius 28.62° · 1st (self)",
     ]);
   });
 
-  it("names no house without a birth time, and leaves the Rising to the line that asks for one", () => {
-    expect(triadLines(MARIE.triad)).toEqual([
-      { key: "sun", label: "Sun", text: "14.58° Scorpio" },
-      { key: "moon", label: "Moon", text: "10.19° to 22.85° Pisces" },
-      { key: "rising", label: "Rising", text: null },
+  it("keeps the Moon's range over a rough birth time, and gives a blind Rising the line that asks for the time", () => {
+    const rows = triadRowsOf(MARIE.triad, { blind: blindRisingText(MARIE.name, false) });
+    expect(rows.map((row) => triadText(row))).toEqual([
+      "Scorpio 14.58°",
+      "10.19° to 22.85° Pisces",
+      "Add Marie's birth time to see their rising sign and houses",
     ]);
-  });
-
-  it("prints the Moon's range over a rough birth time, in one sign or across a cusp (MB-139, reading 11)", () => {
-    expect(triadLines(MARIE.triad)[1].text).toBe("10.19° to 22.85° Pisces");
-    expect(triadLines(triadOf(BIRTHS.beatriceUnknown))[1].text).toBe("28.66° Gemini to 6.81° Cancer");
-    // An exact time keeps its one degree.
-    expect(triadLines(AUDREY.triad)[1].text).toBe("6.45° Pisces · 2nd (money)");
-  });
-
-  it("keeps a house on a range in one sign, and names none across a cusp, where the house changes with the sign", () => {
-    const inOne = MARIE.triad!.moon;
-    const across = triadOf(BIRTHS.beatriceUnknown)!.moon;
-    expect(spotText({ ...inOne, house: 2 })).toBe("10.19° to 22.85° Pisces · 2nd (money)");
-    expect(spotText({ ...across, house: 2 })).toBe("28.66° Gemini to 6.81° Cancer");
-    expect(spotText({ ...inOne, band: { from: inOne.band!.to, to: inOne.band!.to } })).toBe("22.85° Pisces");
-    expect(spotText({ ...inOne, band: null })).toBe("16.48° Pisces");
-  });
-
-  it("never gives the Rising a house, and draws no rows before the chart is stored", () => {
-    const triad = AUDREY.triad!;
-    expect(triadLines({ ...triad, rising: { ...triad.rising!, house: 1 } })[2].text).toBe("28.62° Aquarius");
-    expect(triadLines(null)).toEqual([]);
-  });
-
-  it("keeps two decimals on a degree", () => {
-    const sun = AUDREY.triad!.sun;
-    expect(spotText({ ...sun, degree: 5 })).toBe("5.00° Taurus · 4th (home)");
+    expect(triadText(triadRowsOf(triadOf(BIRTHS.beatriceUnknown))[1])).toBe("28.66° Gemini to 6.81° Cancer");
   });
 });
 
@@ -441,22 +418,5 @@ describe("a sharer's quick look at its edges", () => {
     expect(quickLookFor(home({ people: [SHARER], pairs: [closed] }), "alex")).toEqual({ person: SHARER, self: false });
     const open = pair("c-alex", ME, SHARER);
     expect(quickLookFor(home({ people: [SHARER], pairs: [open] }), "alex")?.pair).toEqual(open);
-  });
-});
-
-describe("the Moon's range at a cusp (reading 11)", () => {
-  // George's published birth data with a window of 163 minutes: his Moon reaches 0° Aquarius at its late end.
-  const george = triadOf(["2013-07-22", "16:24", 51.517, -0.1735, "Europe/London", 163]);
-
-  it("reads an end on the cusp as 0.00° of the sign it enters, and names no house across it", () => {
-    expect(george?.moon.band?.to).toEqual({ sign: "Aquarius", degree: 0 });
-    expect(spotText(george!.moon)).toBe(`${george!.moon.band!.from.degree.toFixed(2)}° Capricorn to 0.00° Aquarius`);
-    expect(spotText({ ...george!.moon, house: 6 })).toBe(spotText(george!.moon));
-  });
-
-  it("prints the range in the triad's Moon row and leaves the Sun its one degree", () => {
-    const lines = triadLines(george);
-    expect(lines[1].text).toMatch(/^\d+\.\d{2}° Capricorn to 0\.00° Aquarius$/);
-    expect(lines[0].text).toMatch(/^\d+\.\d{2}° Cancer( · .+)?$/);
   });
 });

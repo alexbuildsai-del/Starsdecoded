@@ -28,6 +28,8 @@ import { PUBLIC_ROUTES } from "@/site/routes";
 const importBirthForm = () => import("@/pages/BirthFormPage");
 const importReport = () => import("@/pages/ReportPage");
 const importDashboard = () => import("@/pages/DashboardPage");
+const importTimeline = () => import("@/pages/TimelineAppPage");
+const importAccount = () => import("@/pages/AccountPage");
 const importCompatibility = () => import("@/pages/CompatibilityReportPage");
 const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
 const importAdminLab = () => import("@/pages/AdminLabPage");
@@ -37,6 +39,8 @@ const importAdminWaitlist = () => import("@/pages/AdminWaitlistPage");
 const BirthFormPage = lazy(importBirthForm);
 const ReportPage = lazy(importReport);
 const DashboardPage = lazy(importDashboard);
+const TimelineAppPage = lazy(importTimeline);
+const AccountPage = lazy(importAccount);
 const CompatibilityReportPage = lazy(importCompatibility);
 const AdminPromptsPage = lazy(importAdminPrompts);
 const AdminLabPage = lazy(importAdminLab);
@@ -314,6 +318,17 @@ function Routes({ first }: { first?: FirstPage }) {
         </AppRoute>
         <AppRoute path="/compatibility/:id">
           <CompatibilityReportPage />
+        </AppRoute>
+        {/* Access is known only for a signed-in reader, so a signed-out one signs in first and then gets the page or /timeline (reading 1). */}
+        <AppRoute path="/dashboard/timeline">
+          <RequireAuth>
+            <TimelineAppPage />
+          </RequireAuth>
+        </AppRoute>
+        <AppRoute path="/dashboard/account">
+          <RequireAuth>
+            <AccountPage />
+          </RequireAuth>
         </AppRoute>
         <AppRoute path="/dashboard">
           <DashboardPage />

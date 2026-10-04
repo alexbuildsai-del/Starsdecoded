@@ -258,7 +258,7 @@ export default function ClaimPage() {
         <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
         <h1 className="font-display text-2xl mb-2">Invite unavailable</h1>
         <p className="text-muted-foreground text-sm mb-5">
-          This invite is invalid, expired, or already claimed.
+          This link doesn't work. It may have expired or already been used.
         </p>
         <Button variant="outline" onClick={() => navigate("/")}>Go home</Button>
       </Centered>
@@ -312,8 +312,8 @@ export default function ClaimPage() {
         <h1 className="font-display text-2xl mb-2">It's yours</h1>
         <p className="text-muted-foreground text-sm">
           {blind
-            ? "The report was written without your birth time. Add it and the horizon is drawn. The report keeps every word it can and marks each change."
-            : "Check the birth time before you read: a corrected time redraws the horizon and marks each change."}
+            ? "The report was written without your birth time. Add it and we update your rising sign and houses. The report keeps every word it can. We'll show you what changed."
+            : "Check the birth time before you read: a corrected time updates your rising sign and houses, and we'll show you what changed."}
         </p>
         <BirthTimeDialog
           open
