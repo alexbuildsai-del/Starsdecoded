@@ -29,7 +29,7 @@ whatToPractise and the lens chapters (32/35); twoCharts and whatToPractise canno
 back whole (200, image/jpeg, 61,604 bytes). Nothing blocks the crawlers from GitHub's network; WhatsApp's blank preview was most likely a
 cached failure from before the domain was live, which the new file name passes. The Owner's share after the next Release is the test.
 **Tester:** group A, about 60 tests, one bug (a name opening a JSON paragraph escaped masking) → the R15-04 fix; group B, no bug.
-**Sentinel:** BLOCKED 1 (S1: a writer could re-mark a claimed chart as their own and share its subject's report) → R15-D1, with S3 (a claim racing Change address) and S6 (a duplicated value in the deploy log) → re-read RESULT_PENDING. S2 (another team's look-alike preview, Lax the real guard) → MB-207; S4 (Nominatim's 1 a second) → MB-202; S5 (database TLS unverified) → MB-213.
+**Sentinel:** BLOCKED 1 (S1: a writer could re-mark a claimed chart as their own and share its subject's report) → R15-D1, with S3 (a claim racing Change address) and S6 (a duplicated value in the deploy log) → re-read **CLEAR** (S1, S3, S6 closed; S7, a pre-existing write path for the same mark with no effect today → MB-214). S2 (another team's look-alike preview, Lax the real guard) → MB-207; S4 (Nominatim's 1 a second) → MB-202; S5 (database TLS unverified) → MB-213.
 
 ## Deviations
 - The Owner put every card on Opus after R15-00. Cards R15-04b, 26b, A-fix and B-fix were added from builders' reports; R15-03 and 04 each took a fix.
@@ -52,4 +52,4 @@ Spend: about 10.7M Opus (35 builders and fix cards, two testers, the researcher,
 Five causes seen once (`lessons.md`): a name pattern on raw JSON text, a commit without a pathspec, a public page pointed at a gated route, an account address in a list of grants, a sentinel stopped by the usage limit. None seen twice, so no rule promoted; the promoted caller rule held (every builder named its outside callers).
 
 ## Mailbox
-Done: MB-30, 103, 104, 109, 110, 123, 133, 135 to 140, 152, 154, 162, 169 to 173, 177 to 181, 183 to 185, 194, 196. Built, seams kept until a Decisions row: MB-87, 92, 132, 142, 143. Open: MB-182 (at the refresh), 195, 186, 120. Raised: MB-199 (R15's words and choices) to MB-213.
+Done: MB-30, 103, 104, 109, 110, 123, 133, 135 to 140, 152, 154, 162, 169 to 173, 177 to 181, 183 to 185, 194, 196. Built, seams kept until a Decisions row: MB-87, 92, 132, 142, 143. Open: MB-182 (at the refresh), 195, 186, 120. Raised: MB-199 (R15's words and choices) to MB-214.
