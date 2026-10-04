@@ -64,9 +64,9 @@ describe("the compact card's head", () => {
     expect(head([29, 58])).toBe("At 29 and 58");
     expect(head([18, 37, 55])).toBe("At 18, 37 and 55");
     expect(head([18, 37, 55, 74])).toBe("At 18, 37, 55 and 74");
-    expect(head([9, 27, 46, 65, 83])).toBe("About every 19 years, from 9");
-    expect(head([11, 23, 35, 47, 59, 71, 83])).toBe("About every 12 years, from 11");
-    expect(head([5, 6, 7, 8, 9])).toBe("About every 1 years, from 5");
+    expect(seen(head([9, 27, 46, 65, 83]))).toBe("About every 19 years, from 9");
+    expect(seen(head([11, 23, 35, 47, 59, 71, 83]))).toBe("About every 12 years, from 11");
+    expect(seen(head([5, 6, 7, 8, 9]))).toBe("About every 1 years, from 5");
   });
 
   it("falls back to the card's own age with no ages or an empty list, and says once for a cycle that comes once, whatever ages came", () => {

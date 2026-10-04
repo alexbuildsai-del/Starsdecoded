@@ -106,9 +106,14 @@ describe("a cycle's status", () => {
 describe("a cycle's ages and dates", () => {
   it("heads a compact card with the ages it comes at, an even run of them by how often, or once", () => {
     expect(cycleAges(SATURN_RETURN)).toBe("At 29, 58 and 88");
-    expect(cycleAges(JUPITER_RETURN)).toBe("About every 12 years, from 11");
+    expect(seen(cycleAges(JUPITER_RETURN))).toBe("About every 12 years, from 11");
     expect(cycleAges(URANUS_OPPOSITION)).toBe("Once, at 44");
     expect(cycleAges({ ...SATURN_RETURN, ages: undefined })).toBe("At 29");
+  });
+
+  it("keeps the first age on the line with its 'from', so a narrow card never leaves it alone", () => {
+    expect(cycleAges(JUPITER_RETURN)).toBe("About every 12 years, from 11");
+    expect(cycleAges(JUPITER_RETURN)).not.toContain("from 11");
   });
 
   it("gives passes in one year that year once, and passes across years their own", () => {

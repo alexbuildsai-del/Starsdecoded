@@ -103,21 +103,33 @@ export function monthYear(day: string, order: DateOrder): string {
   return order === "ymd" ? `${p.y}${NB}${MONTH_NAMES[p.m - 1]}` : `${MONTH_NAMES[p.m - 1]}${NB}${p.y}`;
 }
 
+/** Whether a day can go without its year and not be misread, as `nearDate` says; null when either isn't a day. */
+function yearless(day: string, today: string): boolean | null {
+  const p = partsOf(day);
+  const t = partsOf(today);
+  if (!p || !t) return null;
+  return p.y === t.y || (day > today && monthsFrom(t, p) < 6);
+}
+
 /**
  * A date without its year when the reader can't mistake it: in this calendar
  * year, or less than six months ahead. Further off, or last year, it keeps it.
  */
 export function nearDate(day: string, today: string, order: DateOrder): string {
-  const p = partsOf(day);
-  const t = partsOf(today);
-  if (!p || !t) return day;
-  const near = p.y === t.y || (day > today && monthsFrom(t, p) < 6);
+  const near = yearless(day, today);
+  if (near === null) return day;
   return near ? dayMonth(day, order) : fullDate(day, order);
 }
 
-/** Several days, each as `nearDate` prints it: "30 May, 23 Sep and 20 Feb". */
+/**
+ * Several days: "30 May, 23 Sep and 20 Feb" while every one can drop its year,
+ * else every one with its own. A year on some dates and not others leaves the
+ * rest to guess: Mira's Neptune card read "27 May, 18 Aug, 21 Mar, 25 Nov 2027
+ * and 4 Jan 2028", its 21 Mar in 2027.
+ */
 export function dateList(days: readonly string[], today: string, order: DateOrder): string {
-  return listOf(days.map((day) => nearDate(day, today, order)));
+  const withYears = days.some((day) => yearless(day, today) === false);
+  return listOf(days.map((day) => (withYears ? fullDate(day, order) : nearDate(day, today, order))));
 }
 
 /** "Monday 5 October", or "Monday, October 5" where the month comes first: a screen reader's day. */

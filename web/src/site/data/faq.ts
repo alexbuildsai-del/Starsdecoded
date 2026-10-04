@@ -190,11 +190,11 @@ const mira: FaqItem = {
   home: false,
 };
 
-// The page's own steps say the same: cancel where you started. What a reader keeps after cancelling is billing's to
-// decide (ADR-264), so the answer promises nothing about it yet.
+// Cancelling lives on the Account page (ADR-263), as the page's own steps say too. What a reader keeps after cancelling
+// is billing's to decide (ADR-264), so the answer promises nothing about it yet.
 const cancelling: FaqItem = {
   q: "How do I cancel?",
-  a: "In two clicks, from where you started Timeline.",
+  a: "From your Account page, in two clicks.",
   home: false,
 };
 

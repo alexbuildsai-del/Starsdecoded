@@ -79,7 +79,8 @@ export function cycleAges(cycle: Pick<CycleView, "age" | "ages" | "repeats">): s
   const ages = cycle.ages?.length ? cycle.ages : [cycle.age];
   if (ages.length <= 4) return `At ${listOf(ages.map(String))}`;
   const every = Math.round((ages[ages.length - 1] - ages[0]) / (ages.length - 1));
-  return `About every ${every} years, from ${ages[0]}`;
+  // A narrow card's head never leaves the first age alone on a line below its "from".
+  return `About every ${every} years, from${NB}${ages[0]}`;
 }
 
 /** Passes in one year share it, "16 Aug and 28 Dec 2035"; across years each keeps its own. */

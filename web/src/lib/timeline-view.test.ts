@@ -77,6 +77,18 @@ describe("a date in the reader's order", () => {
     expect(seen(dateList(["2026-05-30", "2026-09-23", "2027-02-20"], TODAY, "mdy"))).toBe("May 30, Sep 23 and Feb 20");
   });
 
+  it("gives every date in a list its year once one of them needs it, so no year is left to guess", () => {
+    const neptune = ["2026-05-27", "2026-08-18", "2027-03-21", "2027-11-25", "2028-01-04"];
+    expect(seen(dateList(neptune, TODAY, "dmy"))).toBe("27 May 2026, 18 Aug 2026, 21 Mar 2027, 25 Nov 2027 and 4 Jan 2028");
+    expect(seen(dateList(neptune, TODAY, "mdy"))).toBe("May 27, 2026, Aug 18, 2026, Mar 21, 2027, Nov 25, 2027 and Jan 4, 2028");
+    expect(seen(dateList(neptune, TODAY, "ymd"))).toBe("2026 May 27, 2026 Aug 18, 2027 Mar 21, 2027 Nov 25 and 2028 Jan 4");
+    expect(seen(factsLine({ sky: "Neptune trine to your Jupiter", house: "5th house" }, neptune, TODAY, "dmy"))).toBe(
+      "Neptune trine to your Jupiter · 5th house · exact 27 May 2026, 18 Aug 2026, 21 Mar 2027, 25 Nov 2027 and 4 Jan 2028",
+    );
+    const pluto = ["2025-04-15", "2025-05-24", "2026-02-02", "2026-08-20", "2026-12-08"];
+    expect(seen(dateList(pluto, TODAY, "dmy"))).toBe("15 Apr 2025, 24 May 2025, 2 Feb 2026, 20 Aug 2026 and 8 Dec 2026");
+  });
+
   it("names a day in full for a screen reader, and heads a day cell with three letters and the date", () => {
     expect(longDay(TODAY, "dmy")).toBe("Monday 5 October");
     expect(longDay(TODAY, "mdy")).toBe("Monday, October 5");

@@ -13,6 +13,7 @@ const MAPPED: PagePath[] = [
   "/sample",
   "/method",
   "/compatibility",
+  "/timeline",
   "/learn/whole-sign-houses",
   "/learn/birth-time",
   "/faq",

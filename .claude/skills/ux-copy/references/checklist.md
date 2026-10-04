@@ -17,8 +17,9 @@ speak, no AI tells (`ai-tells.md`), no slang. Personality only where the moment 
 `product.ts`. Numbers from code. No meaning by colour alone; link text stands alone.
 
 **House checks** (pass or fail): both reports named where either could be meant; no
-model or vendor; AI never leads; no predictions, dates, fate or hype; report text
-untouched; no em dashes, semicolons, exclamation marks or emoji.
+model or vendor; AI never leads; no predictions, fate or hype; a sky date the engine
+computed may be named, a date in the reader's life never; report text untouched; no em
+dashes, semicolons, exclamation marks or emoji.
 
 **Scores.** 9 to 10 ship. 7 to 8 small fixes. 5 to 6 rework. Below 5 rewrite.
 

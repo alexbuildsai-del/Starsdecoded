@@ -229,6 +229,11 @@ describe("Timeline's questions (timeline-page §1 item 6)", () => {
     for (const item of TIMELINE_FAQ) expect(item.a, item.q).not.toMatch(/€|\d+\s*(EUR|euros?)\b/);
   });
 
+  it("say cancelling is on the Account page, in the answer and in the page's steps alike (ADR-263)", () => {
+    expect(answerTo("How do I cancel?")).toBe("From your Account page, in two clicks.");
+    expect(sourceOf("../sections/timeline/WhatYouGet.tsx")).toContain("Cancel from your Account page, in two clicks.");
+  });
+
   it("type no date or degree: a reader's dates come from the engine (acceptance 1)", () => {
     const month = /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b/;
     for (const item of TIMELINE_FAQ) {

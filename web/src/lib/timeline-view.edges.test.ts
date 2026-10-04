@@ -115,8 +115,21 @@ describe("the year is dropped only where it cannot be mistaken", () => {
     expect(dateList([], TODAY, "dmy")).toBe("");
     expect(seen(dateList(["2026-12-24"], TODAY, "dmy"))).toBe("24 Dec");
     expect(seen(dateList(["2026-12-24", "2027-01-02"], TODAY, "dmy"))).toBe("24 Dec and 2 Jan");
-    expect(seen(dateList(["2026-12-24", "2027-01-02", "2028-01-02", "2029-06-01"], TODAY, "dmy"))).toBe("24 Dec, 2 Jan, 2 Jan 2028 and 1 Jun 2029");
+    expect(seen(dateList(["2026-12-24", "2027-01-02", "2028-01-02", "2029-06-01"], TODAY, "dmy"))).toBe("24 Dec 2026, 2 Jan 2027, 2 Jan 2028 and 1 Jun 2029");
     expect(listOf(["a", "b", "c", "d"])).toBe("a, b, c and d");
+  });
+
+  it("gives every date a list holds its year when one alone needs it, last year's or six months ahead, and none when none does", () => {
+    expect(seen(dateList(["2025-12-31", "2026-01-01"], "2026-01-02", "dmy"))).toBe("31 Dec 2025 and 1 Jan 2026");
+    expect(seen(dateList(["2026-12-24", "2027-04-01"], TODAY, "ymd"))).toBe("2026 Dec 24 and 2027 Apr 1");
+    expect(seen(dateList(["2026-12-24", "2027-03-31"], TODAY, "dmy"))).toBe("24 Dec and 31 Mar");
+    expect(seen(dateList(["2027-04-01"], TODAY, "dmy"))).toBe("1 Apr 2027");
+  });
+
+  it("hands back a list's days as they came when today is not a day, and a bad day as it came beside good ones", () => {
+    expect(dateList(["2026-12-24", "2028-01-02"], "garbage", "dmy")).toBe("2026-12-24 and 2028-01-02");
+    expect(seen(dateList(["garbage", "2026-12-24"], TODAY, "dmy"))).toBe("garbage and 24 Dec");
+    expect(seen(dateList(["garbage", "2028-01-02"], TODAY, "dmy"))).toBe("garbage and 2 Jan 2028");
   });
 });
 
@@ -155,7 +168,7 @@ describe("the facts line", () => {
   });
 
   it("leaves the house out without a birth time, and lists exact passes across years in the reader's order", () => {
-    expect(seen(factsLine({ sky: "Pluto on your Saturn", house: null }, ["2025-04-15", "2026-10-05"], TODAY, "mdy"))).toBe("Pluto on your Saturn · exact Apr 15, 2025 and Oct 5");
+    expect(seen(factsLine({ sky: "Pluto on your Saturn", house: null }, ["2025-04-15", "2026-10-05"], TODAY, "mdy"))).toBe("Pluto on your Saturn · exact Apr 15, 2025 and Oct 5, 2026");
     expect(factsLine({ sky: "Pluto on your Saturn", house: "" }, [], TODAY, "dmy")).toBe("Pluto on your Saturn · never exact");
   });
 

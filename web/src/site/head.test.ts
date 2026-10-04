@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BUNDLES } from "@workspace/commerce";
 import { PERSONAL_REPORT } from "@/lib/product";
-import { FAQ_GROUPS } from "./data/faq";
+import { FAQ_GROUPS, TIMELINE_FAQ } from "./data/faq";
 import { SAMPLE } from "./data/sample";
 import { headFor } from "./head";
 import { PAGES, SITE, isPublicPath, pageFor, type PageEntry } from "./site";
@@ -148,7 +148,7 @@ describe("structured data", () => {
         expect(only(head, type)).toMatchObject({ url: urlOf(page), description: page.lede });
       }
     }
-    expect(PUBLIC.filter((p) => p.schema.includes("FAQPage")).map((p) => p.path)).toEqual(["/faq"]);
+    expect(PUBLIC.filter((p) => p.schema.includes("FAQPage")).map((p) => p.path)).toEqual(["/timeline", "/faq"]);
     for (const path of ["/sample", "/method", "/learn/whole-sign-houses", "/learn/birth-time"]) {
       expect(ofType(headFor(path, "production"), "Article"), path).toHaveLength(1);
     }
@@ -221,6 +221,20 @@ describe("structured data", () => {
       expect(q.acceptedAnswer["@type"]).toBe("Answer");
     }
     expect(faq.dateModified).toBe(pageFor("/faq").updated);
+  });
+
+  it("answers /timeline's own six on /timeline, word for word, and neither page the other's questions", () => {
+    const asked = (path: string) =>
+      (only(headFor(path, "production"), "FAQPage").mainEntity as Question[]).map((q) => [q.name, q.acceptedAnswer.text]);
+    const timeline = asked("/timeline");
+    expect(timeline).toEqual(TIMELINE_FAQ.map((item) => [item.q, item.a]));
+    expect(timeline).toHaveLength(6);
+    const onFaq = new Set(asked("/faq").map(([name]) => name));
+    for (const [name] of timeline) expect(onFaq.has(name), name).toBe(false);
+    expect(only(headFor("/timeline", "production"), "FAQPage")).toMatchObject({
+      name: pageFor("/timeline").h1,
+      dateModified: pageFor("/timeline").updated,
+    });
   });
 
   it("carries no review or rating anywhere", () => {
@@ -298,7 +312,7 @@ describe("escaping", () => {
   it("never lets an answer close its script element, and reads back unchanged", async () => {
     const q = 'Is "</script><script>alert(1)</script>" shown?';
     const a = "Only as text & <!-- never --> as markup.";
-    vi.doMock("./data/faq", () => ({ FAQ_GROUPS: [{ topic: "Odd", items: [{ q, a, home: false }] }] }));
+    vi.doMock("./data/faq", () => ({ FAQ_GROUPS: [{ topic: "Odd", items: [{ q, a, home: false }] }], TIMELINE_FAQ: [] }));
     vi.resetModules();
     const { headFor: oddHead } = await import("./head");
     const head = oddHead("/faq", "production");

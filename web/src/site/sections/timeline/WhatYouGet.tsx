@@ -1,7 +1,7 @@
 /**
  * What you get (timeline-page §1 item 4; ADR-255, 264): the plan card's lines with "Coming soon" where its price will
- * go, since Timeline has no price until billing is built, and how to get it in three steps. Get my report is the one
- * action, the waitlist before launch (ADR-167).
+ * go, since Timeline has no price until billing is built, and how to get it in three steps, the last naming the Account
+ * page, where cancelling lives (ADR-263). Get my report is the one action, the waitlist before launch (ADR-167).
  */
 import { PERSONAL_REPORT } from "@/lib/product";
 import { ReportCta } from "@/site/cta";
@@ -22,7 +22,7 @@ const INCLUDED: readonly { line: string; more?: string }[] = [
 const STEPS: readonly { lead: string; rest: string }[] = [
   { lead: `Get your ${PERSONAL_REPORT}.`, rest: "Timeline reads your chart through it." },
   { lead: "Read it to the end.", rest: "Its last page shows your sky today and lets you ask one question free." },
-  { lead: "Start Timeline", rest: "there or from your dashboard. Cancel in two clicks, from the same place." },
+  { lead: "Start Timeline", rest: "there or from your dashboard. Cancel from your Account page, in two clicks." },
 ];
 
 export default function WhatYouGet() {
