@@ -1,6 +1,6 @@
 # R15 follow-ups: QA-03, MB-199 and MB-200
 
-Ideation 2026-10-04. Status: **draft, answered** (the Owner took every recommendation on 2026-10-04, with two amendments: the three-colour rule and two-account QA). Sources: `docs/qa/QA-03.md` (staging at R15, 705fa342), `docs/rounds/R15-report.md`,
+Ideation 2026-10-04. Status: **locked 2026-10-04** (ADR-249 to 255), the Owner's "lock it" after taking every recommendation with two amendments (three colours per section, two-account QA). Sources: `docs/qa/QA-03.md` (staging at R15, 705fa342), `docs/rounds/R15-report.md`,
 Mailbox MB-199 to MB-214, the code at `main` d26dd04. Artifact: https://claude.ai/artifact/X2FeoFvemRamQfGsvz53qT
 
 ## Already held (not in scope)
@@ -103,7 +103,7 @@ and before/after mocks for QA-03 #2 to #7.
 ## Open questions
 None. Answered 2026-10-04: every recommendation taken; the fixes run as R16's first group, before Timeline's cards.
 
-## Decisions to record
+## Decisions recorded (Notion Decisions, 2026-10-04)
 - twoCharts 150–220, whatToPractise 350–450, pair total 1,650–2,200; superpowers exactly three actions; simpler text,
   never less content (MB-200).
 - Not me only while the chart is the writer's; after a hand-over, Delete.

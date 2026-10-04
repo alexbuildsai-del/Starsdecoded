@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.27 (2026-10-03) |
+| Version | 0.28 (2026-10-04) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -100,7 +100,7 @@ birth data → /api/geocode (Nominatim, the zone at the birth date from an offli
 - **R-4.1** Positions are computed locally. A user-facing string names the real library. Never fix a wrong claim by changing the library. A place's zone is resolved on the server; a place without one is refused, never guessed from its longitude (ADR-246).
 - **R-4.2** Whole sign is the only house system in the product. Placidus is a parked second view with its design already decided (Mailbox).
 - **R-4.3** Every section's output is enforced by a zod schema through structured outputs. `Section | string` types are a bug, not a fallback. A check blocks only when the text would be wrong or harmful for the reader or would cost money; everything else is fixed in code, logged, or buffered 20% around the target the prompt states (`docs/annex/pair-reliability-checks.md`). A claim problem never rewrites prose. A section that exhausts its attempts gets one more round alone; a report that still fails refunds the credit and tells the customer why. Every rejected or corrected attempt is logged by rule id (ADR-81 to 85).
-- **R-4.4** No prompt or engine change reaches production without the full report lab on the five matrix charts under `fixtures/charts/`, which the admin panel's Release view runs when the brain changed since production's commit, followed by the QA agent on Railway staging; both gate the fast-forward (ADR-76, ADR-86). Inside a round the lab is lighter: a dry render of every prompt at each brain change; a spot replay runs only on demand from the Lab page. Nothing spends automatically on staging, and no secret lives on GitHub (ADR-86). Lab spend is capped at `LAB_BUDGET_USD` (ADR-77).
+- **R-4.4** No prompt or engine change reaches production without the full report lab on the five matrix charts under `fixtures/charts/`, which the admin panel's Release view runs when the brain changed since production's commit, followed by the QA agent on Railway staging, which also plays two signed-in accounts through every sharing flow and the birth-time update (ADR-255); both gate the fast-forward (ADR-76, ADR-86). Inside a round the lab is lighter: a dry render of every prompt at each brain change; a spot replay runs only on demand from the Lab page. Nothing spends automatically on staging, and no secret lives on GitHub (ADR-86). Lab spend is capped at `LAB_BUDGET_USD` (ADR-77).
 - **R-4.5** A second report for the same profile skips computation. Cache on the profile, never on the request.
 - **R-4.6** The horizon is a status, not a guess. Birth time is a window the engine sweeps; without a horizon that holds, the chart carries no angle, house, sect or lot, the report withholds them and its frame says so. Adding the time later is a pass that amends sentences by quote match, never a regeneration (ADR-33 to ADR-38).
 
@@ -159,7 +159,7 @@ Two surfaces sit beside the code and must never drift from it.
 
 ## 9 · Design system
 
-Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report-ui.md`). Near-black ground. Indigo and violet mean the product; **brass `#D4B06A` means measured chart geometry and is never a control**; element hues mean element-derived data only. Newsreader for display and ledes, Inter for body and UI, Space Grotesk for labels, **IBM Plex Mono for every degree, orb and coordinate**. Tokens live in `web/src/index.css`; the bible's design-system section reads them live and is the reference.
+Dark only, and the direction is **Observatory** (`docs/specs/locked/natal-report-ui.md`). Near-black ground. Indigo and violet mean the product; **brass `#D4B06A` means measured chart geometry and is never a control**; element hues mean element-derived data only. **At most three colours per section**, grey text not counted (ADR-251). Newsreader for display and ledes, Inter for body and UI, Space Grotesk for labels, **IBM Plex Mono for every degree, orb and coordinate**. Tokens live in `web/src/index.css`; the bible's design-system section reads them live and is the reference.
 
 - **Consistency over novelty.** New visual work extends the existing tokens. A palette that breaks from the live app was rejected once and stays rejected.
 - **Analytical, not mystical.** Precision is the brand signal: tabular numerals for degrees and orbs, methodology always visible, claims literal. The weight-300 display serif that pulled the other way is settled — display moves to Newsreader 400 and the numerals to a real monospace. The starfield and gradients stay, budgeted: two moves per chapter change, one easing, and reduced motion is a real state.
