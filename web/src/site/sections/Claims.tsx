@@ -46,7 +46,7 @@ const KINDS: Record<string, { label: string; hue: string }> = {
   aspect: { label: "Aspect", hue: ASPECT_HUE },
   ruler: { label: "Ruler", hue: "var(--sd-brass)" },
   angle: { label: "Angle", hue: "var(--sd-brass)" },
-  sect: { label: "Sect", hue: "var(--violet)" },
+  sect: { label: "Day or night", hue: "var(--violet)" },
   lot: { label: "Lot", hue: "#7FB08B" },
 };
 const kindOf = (kind: string) => KINDS[kind] ?? { label: kind, hue: "var(--indigo-lt)" };

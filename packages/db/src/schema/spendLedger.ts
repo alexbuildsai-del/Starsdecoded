@@ -26,5 +26,9 @@ export const spendLedgerTable = pgTable(
 
 export type SpendLedgerRow = typeof spendLedgerTable.$inferSelect;
 export type InsertSpendLedgerRow = typeof spendLedgerTable.$inferInsert;
-/** What a visitor's call was for: a natal report or its regenerate, a pair, a horizon pass, or the legacy pair report. */
-export type SpendKind = "natal" | "pair" | "horizon" | "synastry";
+/**
+ * What a visitor's call was for: a natal report or its regenerate, a pair, a horizon pass, the legacy pair report,
+ * a Timeline reading or an Ask message (ADR-210, 213). The column is plain text, so a new kind needs no DDL.
+ */
+export const SPEND_KINDS = ["natal", "pair", "horizon", "synastry", "timeline", "ask"] as const;
+export type SpendKind = (typeof SPEND_KINDS)[number];

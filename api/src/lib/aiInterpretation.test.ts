@@ -578,6 +578,6 @@ test("BUG R15-04: YOUR LAST REPLY, the model's JSON, keeps a name that opens a p
   }
 });
 
-test("the natal prompts are v10, the version every report written from this round's prompts carries (reading 16, R15-23)", () => {
-  assert.equal(PROMPT_VERSION, "v10");
+test("the natal prompts are v11, the version every report written from this round's prompts carries (ADR-257, R16-13)", () => {
+  assert.equal(PROMPT_VERSION, "v11");
 });

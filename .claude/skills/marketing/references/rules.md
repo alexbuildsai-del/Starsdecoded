@@ -70,7 +70,9 @@ republished to the same address), under the same numbers. Approved by the Owner 
 ## Voice
 18. **The house voice** (`/ux-copy`): exact, plain, warm, honest. Second person, short sentences,
     15 words on average and none over 25. No em or en dashes, semicolons, exclamation marks or
-    emoji. Captions and replies too; replies start from the eight answers in the spec.
+    emoji. Captions and replies too; replies start from the eight answers in the spec. Simple
+    words everywhere (Owner, 3 Oct): everyday words, one idea per sentence, no drama; a line that
+    sounds deep is rewritten until it sounds normal (`/ux-copy`, voice chart).
 19. **No AI tells** (`/ux-copy`, in full): no "not X but Y" unless the reader believes X, no staged
     run-ups, no sayings that only sound deep, no triads for rhythm, no unlock, cosmic, journey,
     blueprint.

@@ -1,8 +1,9 @@
 /**
- * Every question the site answers, written once: the home page shows the ten marked `home`, /faq every one by topic,
- * and /faq's FAQPage markup repeats them word for word (landing-and-ai-search scope 12, annex /faq; ADR-116, 117).
- * Answers stay plain text whose first sentence answers alone, so an answer engine can quote it without the page around it.
- * /compatibility asks none of its own: its three moved here (ADR-180).
+ * Every question the site answers, written once: the home page shows the ten marked `home`, /faq every one in
+ * `FAQ_GROUPS` by topic, and /faq's FAQPage markup repeats them word for word (landing-and-ai-search scope 12, annex
+ * /faq; ADR-116, 117). Answers stay plain text whose first sentence answers alone, so an answer engine can quote it
+ * without the page around it. /compatibility asks none of its own: its three moved here (ADR-180). Timeline's six are
+ * /timeline's alone (`TIMELINE_FAQ`).
  */
 import { BUNDLES, CREDIT_LINE, formatEuro } from "@workspace/commerce";
 import { CHAPTERS } from "@/lib/chapters";
@@ -44,26 +45,27 @@ const whatIs: FaqItem = {
 
 const howWritten: FaqItem = {
   q: "How is the report written?",
-  a: "We work out your chart and note what stands out in it. Your report is then written from those notes with the help of AI, following our own rules. Every reference is checked against your chart before you see it.",
+  a: "We work out your chart and note what stands out in it. Then AI helps us write your report from those notes, following our own rules. We check every claim against your chart before you see it.",
   home: true,
   link: "/method",
 };
 
 const scientific: FaqItem = {
   q: "Is this scientific?",
-  a: "The planet positions are real astronomy, worked out from the sky at the minute you were born. What they mean comes from astrology, which science doesn't back, so think of the report as a way to reflect on yourself.",
+  a: "The planet positions are real astronomy, worked out from the sky at the minute you were born. What they mean comes from astrology, which science doesn't back. So think of the report as a way to reflect on yourself.",
   home: true,
 };
 
+// All but its last sentence is the Owner's, approved word for word with Timeline's page (ADR-253).
 const predicts: FaqItem = {
   q: "Does it predict the future?",
-  a: "No. It doesn't forecast events, name dates or talk about fate. It describes how you tend to work and gives you things to try.",
+  a: "No. It never puts a date on anything in your life or talks about fate. The only dates we show are for the sky, like your Saturn return. It describes how you tend to work and gives you things to try.",
   home: true,
 };
 
 const howLong: FaqItem = {
   q: "How long does it take?",
-  a: "It takes a few minutes, and you can start reading the first chapters while the rest are still being written.",
+  a: "It takes a few minutes. You can start reading the first chapters while the rest are still being written.",
   home: true,
 };
 
@@ -75,14 +77,14 @@ const needToStart: FaqItem = {
 
 const noBirthTime: FaqItem = {
   q: "What if I don't know my birth time?",
-  a: "You still get the full report. Tell us what you have: the exact time, a part of the day, or nothing. The report only uses what that supports, and says what a time would add. If you find it later, add it once for free and we'll mark every change.",
+  a: "You still get the full report. Tell us what you have: the exact time, a part of the day, or nothing. The report only uses what your answer can tell us. It also says what a time would add. If you find it later, add it once for free. We'll mark every change.",
   home: true,
   link: "/learn/birth-time",
 };
 
 const birthPlace: FaqItem = {
   q: "Why does my birth place matter?",
-  a: "It sets which sign was rising and so where your houses fall. A town nearby is fine, because a short distance moves your rising degree only a little.",
+  a: "It sets which sign was rising and so where your houses are. A town nearby is fine, because a short distance moves your rising degree only a little.",
   home: false,
 };
 
@@ -95,7 +97,7 @@ const wholeSign: FaqItem = {
 
 const twoOfYou: FaqItem = {
   q: "Can I get a report about me and someone else?",
-  a: `Yes. When you both have a ${PERSONAL_REPORT}, you can get a ${COMPATIBILITY_REPORT} about the two of you. You choose whether you're a couple, a parent and child, or friends, family or colleagues, and it never gives you a score.`,
+  a: `Yes. When you both have a ${PERSONAL_REPORT}, you can get a ${COMPATIBILITY_REPORT} about the two of you. You choose whether you're a couple, a parent and child, or friends, family or colleagues. It never gives you a score.`,
   home: true,
   link: "/compatibility",
 };
@@ -114,7 +116,7 @@ const withChild: FaqItem = {
 
 const score: FaqItem = {
   q: `Does the ${COMPATIBILITY_REPORT} give us a score?`,
-  a: "No. It looks at everyday life together, where you clash and what you can try, and it never rates the two of you.",
+  a: "No. It never rates the two of you. It looks at everyday life together, where you clash and what you can try.",
   home: false,
 };
 
@@ -136,13 +138,14 @@ const birthData: FaqItem = {
 
 const deleting: FaqItem = {
   q: "Can I delete my report?",
-  a: "Yes, any time. Deleting a report removes it, and your birth details too, unless another report uses them. We keep a record of the purchase.",
+  a: "Yes, any time. Deleting a report removes it. It also removes your birth details, unless another report uses them. We keep a record of the purchase.",
   home: true,
 };
 
+// Its first two sentences are the Owner's, approved word for word with Timeline's page (ADR-253).
 const payOnce: FaqItem = {
   q: "Do I pay once or every month?",
-  a: `Once. There's no subscription. ${CREDIT_LINE} Credits cost ${creditPrices()}, VAT included.`,
+  a: `Once for each report. Timeline, coming after launch, will be our one subscription. ${CREDIT_LINE} Credits cost ${creditPrices()}, VAT included.`,
   home: false,
 };
 
@@ -153,6 +156,46 @@ const goesWrong: FaqItem = {
   a: "If your report can't be finished, we tell you what happened and give back the credit it used, so you can try again.",
   home: false,
   link: "/refunds",
+};
+
+const whatTimeline: FaqItem = {
+  q: "What is Timeline?",
+  a: `Timeline is ${PRODUCT}'s one subscription, for people with a ${PERSONAL_REPORT}. It shows the sky moving across your own chart. You get your life's big cycles, what's happening for you now and next with a reading for each, and Ask. It opens after launch. The price comes later.`,
+  home: false,
+};
+
+const horoscope: FaqItem = {
+  q: "Is it a daily horoscope?",
+  a: "No. It only says something when a slow planet reaches a point in your own chart, and stays quiet otherwise. Nothing is written for your sign.",
+  home: false,
+};
+
+// Its ages hold for every chart, from Saturn's own period, so they are words here; a reader's own dates and ages come
+// from the engine (timeline-page acceptance 1).
+const saturnReturn: FaqItem = {
+  q: "What is a Saturn return?",
+  a: "A Saturn return is when Saturn comes back to where it was when you were born. Saturn takes about 29.5 years to go round the Sun, so this happens at about 29 and again at 58. Astrology reads it as a time of growing up. It can cross the exact point up to three times, which is why some dates come in threes.",
+  home: false,
+};
+
+const timelineBirthTime: FaqItem = {
+  q: "Do I need my birth time?",
+  a: "No. The Saturn finder needs only your birth date. In Timeline, a birth time adds your rising sign, your houses and your Moon. Without one, it shows what it can and says so.",
+  home: false,
+};
+
+const mira: FaqItem = {
+  q: "Who is Mira?",
+  a: "Mira is our sample account. She's invented, and her chart is worked out from her made-up birth details the same way yours would be. The words in her examples are samples of what Timeline writes.",
+  home: false,
+};
+
+// Cancelling lives on the Account page (ADR-263), as the page's own steps say too. What a reader keeps after cancelling
+// is billing's to decide (ADR-264), so the answer promises nothing about it yet.
+const cancelling: FaqItem = {
+  q: "How do I cancel?",
+  a: "From your Account page, in two clicks.",
+  home: false,
 };
 
 export const FAQ_GROUPS: readonly FaqGroup[] = [
@@ -179,6 +222,12 @@ export const HOME_FAQ: readonly FaqItem[] = [
   deleting,
   howLong,
 ];
+
+/**
+ * The Timeline topic, which /timeline asks and marks up as its FAQPage (timeline-page §1 item 6). It stays off the home
+ * page and off /faq, so each question has one page to answer it.
+ */
+export const TIMELINE_FAQ: readonly FaqItem[] = [whatTimeline, horoscope, saturnReturn, timelineBirthTime, mira, cancelling];
 
 /** The words /faq links each deeper page with, written to make sense out of context. */
 export const FAQ_LINK_LABELS: Readonly<Record<string, string>> = {

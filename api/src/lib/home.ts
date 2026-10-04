@@ -1,10 +1,11 @@
 /**
  * The dashboard's one read (ADR-174): the reader's circle with a quick look for
  * each person, their pairs with their stories, and what they are practising, so
- * no card opens a report to draw itself. Who reads what is decided only by
- * access.ts, the rule every list uses (ADR-139, ADR-182); the builders are pure
- * over the rows `loadHome` reads, so every rule here is tested without a
- * database (MB-49).
+ * no card opens a report to draw itself; and from Timeline, Your week for a
+ * subscriber or the teaser for a report owner (ADR-211, 212). Who reads what
+ * is decided only by access.ts, the rule every list uses (ADR-139, ADR-182);
+ * the builders are pure over the rows `loadHome` reads, so every rule here is
+ * tested without a database (MB-49).
  */
 import { and, asc, eq, inArray, or } from "drizzle-orm";
 import type { z } from "zod";
@@ -28,8 +29,10 @@ import {
   type ProfileHolders,
   type Viewer,
 } from "./access.js";
+import { logger } from "./logger.js";
 import { firstWord } from "./names.js";
 import { shareBackOffered, sharedProfileIds } from "./shares.js";
+import { readerChart, teaserView, weekView, type ReaderChart } from "./timeline.js";
 import { PAIR_PROMPT_VERSION } from "../prompts/pair/index.js";
 
 export type Home = z.infer<typeof GetHomeResponse>;
@@ -544,12 +547,83 @@ async function shareBackOf(viewer: Viewer, shared: ReadonlySet<string>): Promise
   return new Set(offered.flat());
 }
 
-export async function loadHome(viewer: Viewer): Promise<Home> {
+export interface HomeOptions {
+  /** The browser's zone, which Your week's days are read in; the birth place's when the server cannot read it (reading 4). */
+  tz?: string | null;
+  now?: Date;
+  /**
+   * The one access check's answer (ADR-262), which the route asks, so this file never reads a request; null when the
+   * check could not be read, which shows neither section.
+   */
+  access?: boolean | null;
+}
+
+/** Whether the reader has Timeline, and their own chart with a finished Personal report to read it from (reading 2). */
+export interface HomeTimeline {
+  access: boolean;
+  reader: ReaderChart | null;
+}
+
+export type TimelineSlot = "week" | "teaser" | null;
+
+/** Nobody in the circle and no pair: the dashboard's empty state, as the web reads it. */
+function isEmpty(home: Home): boolean {
+  return !home.you && !home.several && home.people.length === 0 && home.pairs.length === 0;
+}
+
+/**
+ * Which of Timeline's two sections the dashboard carries (ADR-211, 212, 262; reading 26): Your week for a reader with
+ * Timeline and their own chart; the teaser for one without it whose own Personal report is finished, never on an empty
+ * dashboard; neither for anyone else, a subscriber with no chart to read among them.
+ */
+export function timelineSlotOf(home: Home, timeline: HomeTimeline | null): TimelineSlot {
+  if (!timeline?.reader) return null;
+  if (timeline.access) return "week";
+  return isEmpty(home) ? null : "teaser";
+}
+
+/**
+ * Your week or the teaser, whichever the slot holds, and neither key otherwise, so every other home reads as it did.
+ * The engine's work fails alone: the dashboard still opens, with neither.
+ */
+export function timelinePartOf(home: Home, timeline: HomeTimeline | null, options: HomeOptions = {}): Pick<Home, "week" | "teaser"> {
+  const slot = timelineSlotOf(home, timeline);
+  const reader = timeline?.reader;
+  if (!slot || !reader) return {};
+  const now = options.now ?? new Date();
+  try {
+    if (slot === "week") return { week: weekView(reader, options.tz, now) };
+    const teaser = teaserView(reader, now);
+    return teaser ? { teaser } : {};
+  } catch (err) {
+    logger.error({ err }, "Your week or the teaser could not be drawn; the home shows neither");
+    return {};
+  }
+}
+
+/**
+ * Whether the signed-in reader has Timeline, and their chart. Both are an account's (ADR-262), so a session is asked
+ * nothing. A read that fails is neither: the dashboard still opens, and a broken read never offers a subscriber the
+ * teaser.
+ */
+async function homeTimelineOf(viewer: Viewer, access: boolean | null | undefined): Promise<HomeTimeline | null> {
+  if (!viewer.userId || access === null) return null;
+  try {
+    return { access: access === true, reader: await readerChart(viewer) };
+  } catch (err) {
+    logger.error({ err }, "Timeline could not be read for the home; it shows neither Your week nor the teaser");
+    return null;
+  }
+}
+
+export async function loadHome(viewer: Viewer, options: HomeOptions = {}): Promise<Home> {
   const shared = sharedProfileIds(viewer.userId);
-  const [natal, shareBack, pairs] = await Promise.all([
+  const [natal, shareBack, pairs, timeline] = await Promise.all([
     shared.then((ids) => natalRowsOf(viewer, ids)),
     shared.then((ids) => shareBackOf(viewer, ids)),
     pairRowsOf(viewer),
+    homeTimelineOf(viewer, options.access),
   ]);
-  return buildHome(viewer, natal, pairs, { shared: await shared, shareBack });
+  const home = buildHome(viewer, natal, pairs, { shared: await shared, shareBack });
+  return { ...home, ...timelinePartOf(home, timeline, options) };
 }

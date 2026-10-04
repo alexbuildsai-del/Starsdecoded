@@ -17,7 +17,7 @@ export default function Pricing() {
           <h2 className="sd-h2" id="price-h">
             What a report costs
           </h2>
-          <p className="sd-sub">You pay once, with no subscription.</p>
+          <p className="sd-sub">You pay once for each report.</p>
         </div>
         <div className="max-w-[620px]">
           <BundleList />

@@ -9,7 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test 'src/**/*.test.ts'",
-    "walk": "tsx ./src/walk/loop.walk.ts && tsx ./src/walk/sharing.walk.ts"
+    "walk": "tsx ./src/walk/loop.walk.ts && tsx ./src/walk/sharing.walk.ts && tsx ./src/walk/timeline.walk.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.72",
@@ -39,7 +39,7 @@
     "esbuild": "^0.28.2",
     "esbuild-plugin-pino": "^2.3.3",
     "pino-pretty": "^13",
-    "thread-stream": "3.1.0",
+    "thread-stream": "4.2.0",
     "tsx": "catalog:"
   }
 }

@@ -30,5 +30,7 @@ export const generationFailuresTable = pgTable(
 
 export type GenerationFailure = typeof generationFailuresTable.$inferSelect;
 export type InsertGenerationFailure = typeof generationFailuresTable.$inferInsert;
-export type GenerationFailureKind = "natal" | "pair" | "lab";
+/** What the checked write was for. The column is plain text, so Timeline's readings and Ask's answers joined with no DDL (ADR-210, 213). */
+export const GENERATION_FAILURE_KINDS = ["natal", "pair", "lab", "timeline", "ask"] as const;
+export type GenerationFailureKind = (typeof GENERATION_FAILURE_KINDS)[number];
 export type GenerationFailureClass = "block" | "fix" | "warn" | "buffer" | "repair" | "pass";

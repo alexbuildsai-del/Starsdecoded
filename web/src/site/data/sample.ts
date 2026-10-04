@@ -73,7 +73,7 @@ export const DIMMED_LINES: Record<DimmedChapter, string> = {
   money: "What makes you feel secure, and how you spend",
   relationships: "What you need from a partner and what you give",
   family: "Home, your parents and where you come from",
-  focus: "Lean into, Notice, Practice: the things to try",
+  focus: "Do more of, Watch for, Try next: the things to try",
 };
 
 /** The run's section whose claims a chapter marks. Chapter 2 prints its house readings alone, which carry none (reading 9). */

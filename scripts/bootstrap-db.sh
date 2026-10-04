@@ -102,6 +102,14 @@ echo "==> 3m/7 Share grants, per-reader workbooks, the handback stamp"
 # so whichever made the table. Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-shares-and-workbooks.ts
 
+echo "==> 3n/7 Timeline's readings and Ask's messages"
+# timeline_readings and ask_messages, the two tables Timeline writes (ADR-210, 213). The push
+# above usually makes both first. This step still runs because the push is only the safety net
+# (step 2): the script holds both tables by the schema's own names, so whichever makes them the
+# other finds no drift, and both exist before the API starts. No subscriptions table until
+# billing (ADR-262). Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-timeline.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.
@@ -114,10 +122,10 @@ pnpm --filter @workspace/db exec tsx scripts/migrate-drop-meaning-library.ts
 
 echo "==> 6/7 Prompt overrides"
 # Prompts resolve from code; a row exists only where /admin/prompts overrode
-# one. A prompt version bump clears that family's overrides, natal or pair,
-# since they target a contract that no longer exists (v7, p2); a natal bump
-# also clears every :system override, natal and pair, since both embed the
-# style contract (ADR-104). Never seeds copies of the defaults.
+# one. A prompt version bump clears that family's overrides (natal, pair,
+# timeline, ask), since they target a contract that no longer exists (v7, p2);
+# a natal bump also clears every :system override, all four families, since
+# each embeds the style contract (ADR-104). Never seeds copies of the defaults.
 pnpm --filter @workspace/scripts run prompts:reset-stale
 
 echo "==> 7/7 Promote prompt overrides from staging"

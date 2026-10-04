@@ -11,8 +11,8 @@ import type { Lens } from "@/types/chart";
  */
 
 export const LABELS = {
-  inputs: "Analysing your inputs",
-  chart: "Computing your chart",
+  inputs: "Checking your details",
+  chart: "Working out your chart",
   patterns: "Finding the patterns",
   writing: "Writing your report",
   ready: "Ready",

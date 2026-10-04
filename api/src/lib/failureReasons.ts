@@ -12,7 +12,7 @@ export const FAILURE_CODES: readonly FailureCode[] = ["provider_unreachable", "p
 export const FAILURE_LINES: Record<FailureCode, string> = {
   provider_unreachable: "Our writing service didn't answer. Try again in a few minutes.",
   provider_out_of_credit: "We can't write reports right now. We've been alerted. Try again later.",
-  quality: "One chapter didn't meet our quality bar after several tries. Try again.",
+  quality: "We couldn't get one chapter right after several tries. Please try again.",
   internal: "Something went wrong on our side. We've been alerted.",
 };
 

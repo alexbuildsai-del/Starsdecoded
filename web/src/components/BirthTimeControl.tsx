@@ -130,11 +130,11 @@ export function BirthTimeControl({
 
       <p className="min-h-[1.25rem] font-numeric text-xs text-muted-foreground" aria-live="polite" data-testid="horizon-readout">
         {!ready
-          ? "Enter the date and place, and the time you know, to see what it settles."
+          ? "Enter the date and place, and the time you know, to see your rising sign."
           : preview.isPending && !line
-            ? "Sweeping the sky…"
+            ? "Working it out…"
             : line
-              ? <><span className="text-foreground/85">{line.rising}</span> <span className="text-muted-foreground">· {line.status === "unknown" ? "horizon not drawn" : line.status === "approximate" ? "holds across the window" : "horizon drawn"}</span></>
+              ? <><span className="text-foreground/85">{line.rising}</span> <span className="text-muted-foreground">· {line.status === "unknown" ? "needs a birth time" : line.status === "approximate" ? "same across your time range" : "set"}</span></>
               : ""}
       </p>
     </fieldset>

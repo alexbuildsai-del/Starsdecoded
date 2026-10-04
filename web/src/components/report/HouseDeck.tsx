@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { NatalWheel } from "@/components/chart/NatalWheel";
 import { houseSign } from "@/components/chart/wheel-geometry";
-import { AddBirthTimeCard, HouseCard } from "@/components/report/HouseCard";
+import { AddBirthTimeCard, HouseCard, chartRuler } from "@/components/report/HouseCard";
 import { CHAPTERS } from "@/lib/chapters";
 import { houseOccupants } from "@/lib/house-occupants";
 import { HOUSE_NUMBERS, houseLine, houseName, keyStep, nearestCard, stepHouse, tickState } from "@/lib/house-deck";
@@ -142,6 +142,7 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
     house: h,
     sign: houseSign(h, ascendant),
     occupants: houseOccupants(chart, h),
+    ruler: h === 1 ? chartRuler(chart) : null,
     reading: readings?.find((r) => r.house === h)?.reading,
   })), [chart, ascendant, readings]);
   const current = houses[house - 1];

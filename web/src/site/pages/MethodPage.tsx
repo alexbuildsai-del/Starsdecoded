@@ -86,13 +86,13 @@ function Steps() {
           >
             <p className={PROSE}>
               We find where the Sun, Moon and planets were at the minute and place you were born. {PRODUCT} uses
-              astronomy-engine, an open-source astronomy library that's accurate to within one arcminute, a sixtieth of a degree,
-              and tested against NASA's JPL Horizons. Chiron, which astronomy-engine doesn't cover, comes from NASA JPL Horizons
+              astronomy-engine, an open-source astronomy library. It is accurate to within one arcminute, a sixtieth of a degree.
+              It is tested against NASA's JPL Horizons. Chiron, which astronomy-engine doesn't cover, comes from NASA JPL Horizons
               positions. Every chart is worked out by the same code.
             </p>
             <p className={PROSE}>
-              We also check your birth town's clock history, so summer time and old time zones are right. Your houses are whole
-              sign and the zodiac is tropical. <Link href="/learn/whole-sign-houses">What whole-sign houses are</Link>
+              We also check past clock changes in your birth town, so summer time and old time zones are right. Your houses are
+              whole-sign houses. The zodiac is tropical. <Link href="/learn/whole-sign-houses">What whole-sign houses are</Link>
             </p>
           </Step>
 
@@ -114,10 +114,10 @@ function Steps() {
           >
             <p className={PROSE}>
               Before anything is written, we note what stands out in your chart, such as a day or night birth and your strongest
-              planets. The notes also say which houses are crowded and which planet rules each part of your life.
+              planets. The notes also say which houses hold the most planets and which planet rules each part of your life.
             </p>
             <p className={PROSE}>
-              These notes decide what each chapter is about, so your report is built around your chart rather than a template.
+              These notes decide what each chapter is about. Your report comes from your chart, not a template.
             </p>
           </Step>
 
@@ -144,23 +144,23 @@ function Steps() {
           >
             {/* MB-160 provisional: a sentence can hold no claim, so the promise is made per claim. */}
             <p className={PROSE}>
-              Each of the {chapters} chapters is written from those notes, following our own rules for reading a chart. Every
-              sentence has to be about you, in plain words, and every claim has to point to the part of your chart it comes from.
+              We write each of the {chapters} chapters from those notes, following our own rules for reading a chart. Every
+              sentence has to be about you and in plain words. Every claim has to point to the part of your chart it comes from.
             </p>
             <p className={PROSE}>
-              It won't name dates, predict events or diagnose anything. It describes how you tend to think, work and love, and
-              gives you things to try.
+              It won't forecast events, put dates on your life or diagnose anything. It describes how you tend to think, work
+              and love, and gives you things to try.
             </p>
           </Step>
 
           {/* Unboxed, as the artifact draws it: the evidence card is the report's own raised card, never a card in a card. */}
-          <Step n={4} title="We check every reference" figure={<ReferenceCheck />}>
+          <Step n={4} title="We check every claim" figure={<ReferenceCheck />}>
             <p className={PROSE}>
-              Every reference in your report is checked against your chart by code. If one doesn't match, that sentence is
-              rewritten or taken out before you see it.
+              We check every claim in your report against your chart, using code. If one doesn't match, we rewrite that
+              sentence or take it out before you see it.
             </p>
             {/* MB-91 provisional: the soft pass writes some reports on no credit, so this holds for every failed report only once credits go hard (R12). */}
-            <p className={PROSE}>If a chapter still can't pass, you get your credit back and we tell you what went wrong.</p>
+            <p className={PROSE}>If a chapter still fails the check, you get your credit back and we tell you what went wrong.</p>
           </Step>
         </ol>
 
@@ -184,16 +184,17 @@ function FactsAndAi() {
           </p>
           {/* The home page's wording would repeat step 3 a screen above it, so this page keeps the locked design's own. */}
           <p className="sd-fact">
-            <b>No predictions</b> It won't name dates, talk about fate or diagnose anything. It's about how you tend to work.
+            <b>No predictions</b> It won't put dates on your life, talk about fate or diagnose anything. It's about how you tend
+            to work.
           </p>
         </div>
 
-        {/* It must agree with the FAQ's "How is the report written?", the only other place AI is named. */}
+        {/* Word for word the FAQ's "How is the report written?", the only other place AI is named; faq.test.ts keeps them equal. */}
         <div className="mt-14 grid max-w-[64ch] gap-2.5">
-          <h2 className="text-[clamp(26px,2.6vw,32px)] leading-[1.15]">Is the report written by AI?</h2>
+          <h2 className="text-[clamp(26px,2.6vw,32px)] leading-[1.15]">How is the report written?</h2>
           <p className="text-[16px] leading-[1.7] text-[var(--paper-dim)]">
-            Yes, with the help of AI. It writes each chapter from the notes about your chart, following our own rules. Then code
-            checks every reference against your chart before you see it.
+            We work out your chart and note what stands out in it. Then AI helps us write your report from those notes,
+            following our own rules. We check every claim against your chart before you see it.
           </p>
         </div>
       </div>

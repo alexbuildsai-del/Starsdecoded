@@ -28,13 +28,13 @@ export const LENSES: readonly LensInfo[] = [
   {
     lens: "partners",
     title: "Partners",
-    strapline: "How you love, fight, live and rest together, and what you are building.",
+    strapline: "How you love, argue, live and rest together, and what you are building.",
     door: "Couples",
     register: "the end of a long day, a bill, an argument at 11 pm, Friday with no plan, a move",
     asksParent: false,
     asksHow: false,
     roles: ["primary", "secondary"],
-    chapters: ["How you love", "How you fight and repair", "Home, chores and money", "Fun, weekends and holidays", "What you are building"],
+    chapters: ["How you love", "How you argue and make up", "Home, chores and money", "Fun, weekends and holidays", "What you are building"],
   },
   {
     lens: "parent_child",
@@ -45,18 +45,18 @@ export const LENSES: readonly LensInfo[] = [
     asksParent: true,
     asksHow: false,
     roles: ["parent", "child"],
-    chapters: ["What your child needs from you", "Feelings and the big reactions", "Home, chores and contributing", "School, homework and how they learn", "Rules, freedom and screens"],
+    chapters: ["What your child needs from you", "Big feelings and what helps", "Home and helping out", "School, homework and how they learn", "Rules, freedom and screens"],
   },
   {
     lens: "people",
     title: "Two people",
-    strapline: "In a room, on a job, having fun, in the hard talk, and what you give each other.",
+    strapline: "In a room, on a job, having fun, in hard conversations, and what you give each other.",
     door: "Friends, family, colleagues",
     register: "the big dinner, the meeting where one goes quiet, the weekend away, the group chat, the favour too big to ask",
     asksParent: false,
     asksHow: true,
     roles: ["primary", "secondary"],
-    chapters: ["In a room together", "Working on something together", "Having fun", "The hard talk", "What you give each other"],
+    chapters: ["Being together", "Working on something together", "Having fun", "Hard conversations", "What you give each other"],
   },
 ];
 
@@ -72,7 +72,7 @@ export const HOW_OPTIONS = ["family", "friends", "colleagues"] as const;
 export type HowKnown = (typeof HOW_OPTIONS)[number];
 
 /** The seven chapter titles under a lens, in order: the two charts, the lens's five, the practice. */
-export const PAIR_CHAPTER_TITLES = (lens: Lens): string[] => ["Your two charts", ...lensInfo(lens).chapters, "What to practise"];
+export const PAIR_CHAPTER_TITLES = (lens: Lens): string[] => ["Your two charts", ...lensInfo(lens).chapters, "Things to try"];
 
 /** The tile, tab and PDF name (ADR-39). */
 export function pairTitle(a: string, b: string): string {

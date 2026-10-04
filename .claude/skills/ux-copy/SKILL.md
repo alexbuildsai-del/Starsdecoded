@@ -28,6 +28,10 @@ Every string is:
 4. **Clear.** Plain words at a grade 7 to 8 reading level, specific verbs, one name
    per thing (`product.ts`), and every number from code (R-6.3).
 
+**Simple words, everywhere** is the Owner's standing rule over all four (2026-10-03;
+the before and after table opens `voice-chart.md`): everyday words, one idea per
+sentence, no drama. A line that sounds deep gets rewritten until it sounds normal.
+
 ## Voice and tone
 
 The voice never changes: **exact, plain, warm and honest** (`voice-chart.md`, with
@@ -89,8 +93,12 @@ and how they feel:
   plainly that AI helps write it; never suggest a person does.
 - **About the reader.** Your, not the: your body, your home. People are people: you add
   your partner, you don't "read" them.
-- **Honest and exact.** No word counts, predictions, dates, fate or hype (R-5.2); no
-  fake counters, reviews or experts. Product names and chapter titles come from code.
+- **Honest and exact.** No word counts, predictions, fate or hype (R-5.2); no fake
+  counters, reviews or experts. Product names and chapter titles come from code.
+- **Dates for the sky, never for your life** (the timeline spec's Rules and copy). A
+  computed sky date may be named ("Saturn reaches your Ascendant on 25 September"); a
+  date for something in the reader's life never ("a new job by May"). Every date is the
+  engine's.
 - **Report text is quoted, never edited** (ADR-18). If a real line fails, show another
   real one and raise the prompt rule it breaks.
 - **Punctuation.** No em dashes, semicolons, exclamation marks or emoji. Sentence case.

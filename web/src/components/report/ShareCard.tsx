@@ -345,7 +345,7 @@ export function ShareCard(props: ShareCardProps) {
       <div className={cn("min-w-0 min-[760px]:col-start-2 min-[760px]:row-start-1", offer ? "min-[760px]:self-end" : "min-[760px]:row-span-2 min-[760px]:self-center")}>
         <span className="rp-lab">At the end of chapter 01</span>
         <p className="mt-2 font-display text-[22px] leading-[1.25] text-[var(--paper)]">{shareLine(recipient)}</p>
-        <p className="mt-2 text-[14px] leading-[1.6] text-[var(--paper-dim)]">The story shows the verdict and your three strengths. Nothing from either birth chart is on it, and nothing is uploaded.</p>
+        <p className="mt-2 text-[14px] leading-[1.6] text-[var(--paper-dim)]">The story shows a short summary and your three strengths. It shows nothing from either birth chart. Nothing is uploaded.</p>
       </div>
       <div className="min-[760px]:col-start-1 min-[760px]:row-span-2 min-[760px]:row-start-1">
         <StoryPreview text={text} />

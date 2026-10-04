@@ -3,8 +3,8 @@ import { LAUNCHED } from "@workspace/launch";
 import type { AppEnv } from "@/lib/appEnv";
 import { PERSONAL_REPORT } from "@/lib/product";
 import { indexable, pageUrl } from "./crawl";
-import { FAQ_GROUPS } from "./data/faq";
-import { SITE, isPublicPath, pageFor, type PageEntry, type PageSchema } from "./site";
+import { FAQ_GROUPS, TIMELINE_FAQ, type FaqItem } from "./data/faq";
+import { SITE, isPublicPath, pageFor, type PageEntry, type PagePath, type PageSchema } from "./site";
 
 type Block = Record<string, unknown>;
 
@@ -105,9 +105,17 @@ function product(home: PageEntry): Block {
   };
 }
 
-/** Word for word what /faq shows: Google's rules for FAQ markup allow no question or answer the page does not show. */
-function questions(): Block[] {
-  return FAQ_GROUPS.flatMap((group) => group.items).map((item) => ({
+/**
+ * Each FAQ page's questions as that page shows them, /faq's by topic and /timeline's own six. Google's rules for FAQ
+ * markup allow no question or answer the page does not show, so neither page marks up the other's.
+ */
+const ASKED: Partial<Record<PagePath, readonly FaqItem[]>> = {
+  "/timeline": TIMELINE_FAQ,
+  "/faq": FAQ_GROUPS.flatMap((group) => group.items),
+};
+
+function questions(page: PageEntry): Block[] {
+  return (ASKED[page.path] ?? []).map((item) => ({
     "@type": "Question",
     name: item.q,
     acceptedAnswer: { "@type": "Answer", text: item.a },
@@ -121,7 +129,7 @@ function pageBlock(type: PageSchema, page: PageEntry): Block {
   if (type === "Article") {
     return { "@type": "Article", headline: page.h1, ...about, mainEntityOfPage: url, author: BY_US, publisher: BY_US };
   }
-  if (type === "FAQPage") return { "@type": "FAQPage", name: page.h1, ...about, mainEntity: questions() };
+  if (type === "FAQPage") return { "@type": "FAQPage", name: page.h1, ...about, mainEntity: questions(page) };
   return { "@type": "WebPage", name: page.h1, ...about };
 }
 

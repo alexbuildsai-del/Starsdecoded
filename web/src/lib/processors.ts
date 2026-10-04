@@ -2,6 +2,7 @@ import { PATH_SEEN_KEY } from "@/lib/credits-view";
 import { FORM_DRAFT_KEY } from "@/lib/form-draft";
 import { SELECTION_KEY } from "@/lib/pair-selection";
 import { PREVIEW_KEY } from "@/lib/prelaunch";
+import { NOT_NOW_KEY } from "@/lib/teaser-view";
 
 /**
  * The privacy page's two lists (ADR-145): who handles a visitor's data for Stars Decoded, and what the browser keeps.
@@ -126,6 +127,11 @@ export const BROWSER_KEYS: readonly BrowserKey[] = [
     name: "sd.marks.<report id>",
     store: "kept",
     holds: "Whether a report shows what changed after you updated your birth time.",
+  },
+  {
+    name: NOT_NOW_KEY,
+    store: "kept",
+    holds: "The day you chose Not now on your life's big cycles, and whether they have come back. Your dashboard shows them once more, when your next one is under a year away.",
   },
 ];
 

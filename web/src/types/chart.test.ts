@@ -3,10 +3,10 @@ import { RENDERABLE_PROMPT_VERSIONS, RENDERABLE_PAIR_PROMPT_VERSIONS, isCurrentI
 
 const withVersion = (promptVersion: string) => ({ meta: { promptVersion } });
 
-describe("the page renders v6 to v10 (ADR-104), and offers a regeneration below that (MB-45)", () => {
-  it("renders a stored v6 to v9 report and a new v10 one", () => {
-    expect(RENDERABLE_PROMPT_VERSIONS).toEqual(["v6", "v7", "v8", "v9", "v10"]);
-    for (const v of ["v6", "v7", "v8", "v9", "v10"]) expect(isCurrentInterpretation(withVersion(v)), v).toBe(true);
+describe("the page renders v6 to v11 (ADR-104), and offers a regeneration below that (MB-45)", () => {
+  it("renders a stored v6 to v10 report and a new v11 one", () => {
+    expect(RENDERABLE_PROMPT_VERSIONS).toEqual(["v6", "v7", "v8", "v9", "v10", "v11"]);
+    for (const v of ["v6", "v7", "v8", "v9", "v10", "v11"]) expect(isCurrentInterpretation(withVersion(v)), v).toBe(true);
   });
 
   it("offers v5 and a report with no meta the regenerate call", () => {
@@ -17,9 +17,9 @@ describe("the page renders v6 to v10 (ADR-104), and offers a regeneration below 
     expect(isCurrentInterpretation("v7")).toBe(false);
   });
 
-  it("renders a stored p2 to p4 pair and a new p5 one, and nothing older", () => {
-    expect(RENDERABLE_PAIR_PROMPT_VERSIONS).toEqual(["p2", "p3", "p4", "p5"]);
-    for (const v of ["p2", "p3", "p4", "p5"]) expect(isCurrentPairInterpretation(withVersion(v)), v).toBe(true);
+  it("renders a stored p2 to p5 pair and a new p6 one, and nothing older", () => {
+    expect(RENDERABLE_PAIR_PROMPT_VERSIONS).toEqual(["p2", "p3", "p4", "p5", "p6"]);
+    for (const v of ["p2", "p3", "p4", "p5", "p6"]) expect(isCurrentPairInterpretation(withVersion(v)), v).toBe(true);
     expect(isCurrentPairInterpretation(withVersion("p1"))).toBe(false);
     expect(isCurrentPairInterpretation(withVersion("v10"))).toBe(false);
     expect(isCurrentPairInterpretation({})).toBe(false);

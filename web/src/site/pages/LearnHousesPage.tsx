@@ -91,8 +91,8 @@ function PickRising({ first }: { first: number }) {
             houses, that whole sign is your 1st house (self), the next sign is your 2nd (money), and so on around the wheel.
           </p>
           <p>
-            Pick a sign to turn the zodiac to it. The houses stay put, counted from the east downward, so every sign lands in a new
-            house. This ring shows the system only, so it has no planets on it.
+            Pick a sign to turn the zodiac to it. The houses don't move. They're counted from the east downward, so every sign lands in a new
+            house. This ring only shows how the houses work. It has no planets on it.
           </p>
         </div>
         <div className={ART_FIGURE}>
@@ -236,7 +236,7 @@ export default function LearnHousesPage() {
               Greek-language astrologers divided a chart, about 2,000 years ago.
             </p>
             <p>
-              They also forgive a slightly wrong birth time. Your houses only change when your rising sign does, which happens every two
+              They also still work if your birth time is a little off. Your houses only change when your rising sign does, which happens every two
               hours on average.
             </p>
           </div>

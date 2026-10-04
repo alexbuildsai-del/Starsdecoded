@@ -55,7 +55,7 @@ export function partLabels(clock: Clock): Record<PartOfDay, string> {
 export const MODE_LABELS: Record<BirthTimeMode, { title: string; hint: string }> = {
   known: { title: "I know it", hint: "As written on the record." },
   roughly: { title: "Roughly", hint: "A part of the day, or a time give or take an hour." },
-  unknown: { title: "I don't know", hint: "The report is written from the date alone. Add the time later, free, and every change is marked." },
+  unknown: { title: "I don't know", hint: "We write the report from your birth date. You can add the time later for free. We'll show you what changed." },
 };
 
 export const WINDOW_EXACT = 0;
@@ -119,10 +119,10 @@ export function risingReadout(fact: HorizonFact, clock: Clock = 24): string {
 export function readout(h: Horizon, clock: Clock = 24): { status: HorizonStatus; rising: string; line: string } {
   const rising = risingReadout(h.ascendant, clock);
   const line = h.status === "known"
-    ? `Rising sign ${rising}. The horizon is drawn.`
+    ? `Rising sign ${rising}. Your houses are set.`
     : h.status === "approximate"
-      ? `Rising sign ${rising}. It holds across your window, so the horizon is drawn.`
-      : `Rising sign ${rising}. The horizon is not drawn; the report reads the date.`;
+      ? `Rising sign ${rising}. It's the same across your time range, so your houses are set.`
+      : `Rising sign ${rising}. We can't tell your rising sign without a time. The report uses your birth date.`;
   return { status: h.status, rising, line };
 }
 

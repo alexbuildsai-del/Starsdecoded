@@ -8,11 +8,11 @@
  * says why stands where all of that would be, with Try again where the reader
  * may rewrite it. The reader's own quick look shares their report and lists
  * who has it; a sharer's offers Share yours back (ADR-235). Every word it
- * prints is here, so a node test pins the copy.
+ * prints is here or, for Sun, Moon and Rising, in `triad-row.ts`, which every
+ * page shares, so node tests pin the copy.
  */
-import type { Home, HomePair, HomePerson, ReportSummary, SendState, Share, Spot, SpotPoint } from "@workspace/api-client-react";
+import type { Home, HomePair, HomePerson, ReportSummary, SendState, Share } from "@workspace/api-client-react";
 import { MEET_TAGS } from "@/lib/charts-meet";
-import { houseWithWord } from "@/lib/evidence-glossary";
 import { lensInfo } from "@/lib/lenses";
 import { CENTRE_ID } from "@/lib/orbit";
 import { HANDED_BACK, SEND_AGAIN } from "@/lib/pair-row";
@@ -42,11 +42,11 @@ export function writingText(name: string, self: boolean): string {
 }
 
 export function blindRisingText(name: string, self: boolean): string {
-  return `Add ${self ? "your" : `${firstName(name)}'s`} birth time to draw the horizon`;
+  return `Add ${self ? "your" : `${firstName(name)}'s`} birth time to see ${self ? "your" : "their"} rising sign and houses`;
 }
 
 /** Chapter 08's two lines on the reader's own quick look, under the kickers the report prints over them. */
-export const OWN_LINES = { superpower: "Your superpower", growingEdge: "Your growing edge" } as const;
+export const OWN_LINES = { superpower: "Your superpower", growingEdge: "Where you can grow" } as const;
 
 /** A pair block's two headings: the tag the report's cards use for what comes easily, then the one challenge. */
 export const PAIR_BLOCK = { comes: MEET_TAGS.comes, challenge: "Challenge to work on" } as const;
@@ -71,46 +71,6 @@ export const NOT_WRITTEN = "Could not be written.";
 /** Why a report failed, in the coded line the copy of `GET /reports` the page holds gives it (ADR-84). */
 export function failureLine(summary: Pick<ReportSummary, "failureReason"> | null | undefined): string {
   return summary?.failureReason?.line ?? NOT_WRITTEN;
-}
-
-const degreeText = (point: SpotPoint): string => `${point.degree.toFixed(2)}°`;
-
-/** The Moon over a rough birth time, "2.41° to 8.90° Pisces", or across a cusp "28.12° Aquarius to 3.40° Pisces" (reading 11). */
-function bandText({ from, to }: { from: SpotPoint; to: SpotPoint }): string {
-  if (from.sign !== to.sign) return `${degreeText(from)} ${from.sign} to ${degreeText(to)} ${to.sign}`;
-  if (from.degree === to.degree) return `${degreeText(to)} ${to.sign}`;
-  return `${degreeText(from)} to ${degreeText(to)} ${to.sign}`;
-}
-
-/**
- * "0.29° Virgo · 4th (home)"; with no birth time a body names no house. A
- * spot with a band prints its range rather than the one degree a rough birth
- * time cannot give (MB-139), and a range across a cusp names no house, since
- * a whole-sign house changes with the sign.
- */
-export function spotText(spot: Spot): string {
-  const band = spot.band ?? null;
-  const at = band ? bandText(band) : `${spot.degree.toFixed(2)}° ${spot.sign}`;
-  const oneSign = !band || band.from.sign === band.to.sign;
-  return spot.house && oneSign ? `${at} · ${houseWithWord(spot.house)}` : at;
-}
-
-export interface TriadLine {
-  key: "sun" | "moon" | "rising";
-  label: string;
-  /** Null for the Rising of a chart without a birth time: there is no horizon to name. */
-  text: string | null;
-}
-
-/** The three rows, or none while the chart is not stored yet. */
-export function triadLines(triad: HomePerson["triad"]): TriadLine[] {
-  if (!triad) return [];
-  return [
-    { key: "sun", label: "Sun", text: spotText(triad.sun) },
-    { key: "moon", label: "Moon", text: spotText(triad.moon) },
-    // The Rising is where the first house begins, so it never names one.
-    { key: "rising", label: "Rising", text: triad.rising ? spotText({ ...triad.rising, house: null }) : null },
-  ];
 }
 
 /** The reader's own charts: their report at the centre, and every one marked as theirs while there are several. */

@@ -4,6 +4,23 @@ The voice is the same on every page; the tone moves with the moment (SKILL.md). 
 concepts, each with what it sounds like and lines from our own pages. Structure after
 the voice chart template in content-designer/ux-writing-skill (MIT).
 
+## Simple words, everywhere
+
+The Owner's standing rule (2026-10-03), for every word we write: the site, the app, the report's prose,
+emails, posts, captions, mocks and specs a reader sees. Everyday words. One idea per sentence. Say it the
+way you'd say it to a friend across a table. No drama, no poetry, no abstract nouns doing the work, no
+metaphor the reader has to decode. If a line sounds deep, rewrite it until it sounds normal. He should
+never have to ask for this again.
+
+| Before | After |
+| --- | --- |
+| What you hope for is asked to go deeper or let go. | A good time to look at your plans again and keep the ones that still matter. |
+| Old rules, rebuilt from the ground up | Big changes to your routines |
+| Getting serious about how you come across | Taking yourself more seriously |
+| A few months that ask what you're willing to carry, and what you're done carrying. | For a few months you think more about how you come across and what you take on. |
+| Push and brake at once | Wanting to act, feeling held back |
+| Intuition sharpens while details blur. | Ideas flow, details slip. |
+
 ## Exact
 
 **Sounds:** precise, checkable, calm.
