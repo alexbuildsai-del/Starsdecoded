@@ -4063,7 +4063,7 @@ export const getGetTimelineNowQueryKey = (params?: GetTimelineNowParams,) => {
     }
 
 
-export const getGetTimelineNowQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineNow>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>>(params: GetTimelineNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetTimelineNowQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineNow>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>>(params: GetTimelineNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4082,14 +4082,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetTimelineNowQueryResult = NonNullable<Awaited<ReturnType<typeof getTimelineNow>>>
-export type GetTimelineNowQueryError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>
+export type GetTimelineNowQueryError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>
 
 
 /**
  * @summary Now and ahead, the sky on the reader's own chart from today (ADR-207)
  */
 
-export function useGetTimelineNow<TData = Awaited<ReturnType<typeof getTimelineNow>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>>(
+export function useGetTimelineNow<TData = Awaited<ReturnType<typeof getTimelineNow>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>>(
  params: GetTimelineNowParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineNow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {

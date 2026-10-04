@@ -1585,6 +1585,8 @@ paths:
           $ref: "#/components/responses/NoTimeline"
         "409":
           $ref: "#/components/responses/NoPersonalReport"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /timeline/life:
     get:
