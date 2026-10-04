@@ -19,13 +19,14 @@ export const mind: SectionSpec<typeof MindSchema> = {
   maxTokens: 2_500,
   schema: MindSchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  // MB-142 provisional: Luna wrote 209 to 247 words here on all five r14-staging charts, under the 250 floor.
   instructions: `Write Mind & Communication. Read Mercury by sign, house, dignity, and its aspects, then the rulers of the 3rd and 9th and where they sit.
 
 One paragraph on how they think: what they notice, what they miss, what kind of reasoning is native to them. One paragraph on how they actually decide, including one example of a decision going the way it usually goes. One paragraph on how they make themselves understood and the specific way it misfires. End with one practice.
 
 How they decide reads the modality. The dominant modality on the DISTRIBUTION line is the shape of a decision: cardinal opens one and moves, fixed settles it once and holds, mutable keeps it revisable. Say what that looks like when this person decides something real, and give that paragraph a claim for each placement it rests on. The modality word itself is allowed, because it is not a planet, sign or house name.
 
-Every paragraph contains a checkable behaviour. No planet, sign, or house names in the prose. 250 to 320 words.
+Every paragraph contains a checkable behaviour. No planet, sign, or house names in the prose. 250 to 320 words. Write at least 250 words: each of the three paragraphs runs 80 to 95 words.
 
 Sect. Mercury has no sect. Read it by placement, dignity and its aspects. Do not import day or night framing here.`,
 };

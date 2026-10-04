@@ -14,7 +14,7 @@ import {
   type BirthTimeMode,
   type PartOfDay,
 } from "@/lib/birth-time";
-import type { GeocodeResult } from "@/lib/places";
+import { placeZone, type GeocodeResult } from "@/lib/places";
 
 export const FORM_DRAFT_KEY = "sd.form.draft";
 
@@ -91,7 +91,10 @@ function timeAnswerOf(value: unknown): BirthTimeAnswer {
 const finiteWithin = (n: unknown, limit: number): n is number =>
   typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= limit;
 
-/** A place is used whole or not at all: half of one would send a chart to the wrong town. */
+/**
+ * A place is used whole or not at all: half of one would send a chart to the wrong town. One without a zone, which a
+ * tab kept from before the zone came from our server (ADR-246), is dropped, so the reader picks it again (reading 2).
+ */
 function placeOf(value: unknown): GeocodeResult | null {
   if (!value || typeof value !== "object") return null;
   const { name, city, region, country, latitude, longitude, timezoneOffset, timezone, placeType } = value as Record<string, unknown>;
@@ -99,7 +102,7 @@ function placeOf(value: unknown): GeocodeResult | null {
   if (typeof city !== "string" || typeof region !== "string" || typeof country !== "string") return null;
   if (typeof placeType !== "string") return null;
   if (!finiteWithin(latitude, 90) || !finiteWithin(longitude, 180) || !finiteWithin(timezoneOffset, 14)) return null;
-  if (timezone !== null && typeof timezone !== "string") return null;
+  if (!placeZone(timezone)) return null;
   return { name, city, region, country, latitude, longitude, timezoneOffset, timezone, placeType };
 }
 

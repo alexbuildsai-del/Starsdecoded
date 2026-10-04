@@ -6,7 +6,9 @@
  * form's whole width. The date and the time are typed straight through, in the
  * reader's order and clock, and focus follows them to the place (ADR-222); on a
  * phone every input is 16 px so the browser does not zoom into it.
- * Nothing typed here is stored or sent; the place search is the field's own.
+ * Nothing typed here is stored, and only the place search is sent: to our own
+ * server, which finds the place and its zone (ADR-246). The chart is worked out
+ * here, so the date and the time stay in the browser.
  */
 import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
 import { BirthDateField } from "@/components/BirthDateField";
@@ -128,6 +130,8 @@ export function SkyForm({ onShow, dateRef, heading = true, busy = false }: SkyFo
             id={`${id}place`}
             label="Birth place"
             value={place}
+            birthDate={date}
+            birthTime={time || null}
             onChange={(next) => {
               picked.current = true;
               setPlace(next);

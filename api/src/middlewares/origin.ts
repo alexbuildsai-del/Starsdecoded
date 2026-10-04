@@ -1,11 +1,16 @@
 import type { RequestHandler, Response } from "express";
 
+// Anyone can name a Vercel project starsdecoded-something, so a preview is ours only by the team slug Vercel ends its host
+// with (MB-154): `<project>-<9-character hash>-<team>` or `<project>-git-<branch>-<team>`. A team whose own slug ends in
+// -stars-decoded can still make a host of this shape, and no rule on the name alone tells the two apart.
+const OUR_PREVIEWS = /^https:\/\/starsdecoded-(?:[a-z0-9]{9}|git-[a-z0-9-]+)-stars-decoded\.vercel\.app$/;
+
 // Public hosts, so the code holds them and no deploy waits on a dashboard edit; WEB_ORIGINS replaces them (ADR-197).
 const OUR_ORIGINS: Array<string | RegExp> = [
   "https://mystarsdecoded.com",
   "https://www.mystarsdecoded.com",
   "https://starsdecoded-staging.vercel.app",
-  /^https:\/\/starsdecoded-[a-z0-9-]+\.vercel\.app$/,
+  OUR_PREVIEWS,
 ];
 
 // The dev server is local and runs on any port, and no localhost belongs in shipped code.

@@ -7,16 +7,43 @@
  */
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { pointAt, theta } from "@/components/chart/wheel-geometry";
-import { layoutHero, moonArc } from "@/components/report/hero-layout";
+import { layoutHero, moonArc, type PlacedBody } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import type { ChartData } from "@/types/chart";
 
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
 
+const W = 220;
+const R = 72;
+const SUN_SIZE = 44;
 export const MOON_SIZE = 28;
 /** Clear air between the Moon's picture and its day arc. */
 const ARC_GAP = 5;
+/**
+ * The room between the ring and the plate's edge. The report hero's step would put a Sun within 12° of the Moon off
+ * this plate (MB-171), so here it steps only as far as the plate allows, and the two pictures may still overlap.
+ */
+const SUN_STEP = W / 2 - R - SUN_SIZE / 2;
+
+/** The degree drawn at east: the Ascendant, or 0° Aries on a chart drawn without one. */
+function frameOf(chart: ChartData): number {
+  return chart.angles?.ascendant?.absoluteDegree ?? 0;
+}
+
+/** Where the plate draws the Sun and the Moon; pure, so a test can hold the drawing to the plate's edges (MB-171). */
+export function triadBodies(chart: ChartData): PlacedBody[] {
+  const sun = chart.planets.sun;
+  const moon = chart.planets.moon;
+  return layoutHero({
+    cx: W / 2, cy: W / 2, ringRadius: R, frameDegree: frameOf(chart), outsideStep: SUN_STEP,
+    bodies: [
+      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: SUN_SIZE },
+      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: MOON_SIZE },
+    ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
+    labelWidth: 0, labelHeight: 0, obstacles: [],
+  }).bodies;
+}
 
 /**
  * The Moon's day arc, drawn just outside the picture. On the ring itself a
@@ -34,26 +61,15 @@ export interface TriadPlateProps {
 }
 
 export function TriadPlate({ chart, name, className }: TriadPlateProps) {
-  const asc = chart.angles?.ascendant ?? null;
-  const blind = asc === null;
-  const sun = chart.planets.sun;
+  const blind = !chart.angles?.ascendant;
   const moon = chart.planets.moon;
-  const W = 220;
   const cx = W / 2;
   const cy = W / 2;
-  const R = 72;
-  const frame = asc ? asc.absoluteDegree : 0;
+  const frame = frameOf(chart);
   const ascTheta = theta(frame, frame);
   const ascAt = pointAt(cx, cy, R, ascTheta);
   const arc = moon?.band ? moonDayArc(cx, cy, R, frame, moon.band) : null;
-  const layout = layoutHero({
-    cx, cy, ringRadius: R, frameDegree: frame,
-    bodies: [
-      sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: 44 },
-      moon && { key: "moon", absoluteDegree: moon.absoluteDegree, size: MOON_SIZE },
-    ].filter(Boolean) as { key: string; absoluteDegree: number; size: number }[],
-    labelWidth: 0, labelHeight: 0, obstacles: [],
-  });
+  const bodies = triadBodies(chart);
   return (
     <svg
       viewBox={`0 0 ${W} ${W}`}
@@ -71,7 +87,7 @@ export function TriadPlate({ chart, name, className }: TriadPlateProps) {
         />
       )}
       {arc && <path d={arc.d} fill="none" stroke={SKY} strokeOpacity={0.7} strokeWidth={2.5} strokeLinecap="round" data-moon-arc />}
-      {layout.bodies.map((b) => (
+      {bodies.map((b) => (
         <image key={b.key} href={b.key === "sun" ? SUN_HERO : PLANET_RENDERS[b.key]} x={b.x - b.size / 2} y={b.y - b.size / 2} width={b.size} height={b.size} />
       ))}
       {!blind && <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={7} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.3} />}

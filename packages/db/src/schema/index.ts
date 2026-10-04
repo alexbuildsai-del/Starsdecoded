@@ -13,3 +13,5 @@ export * from "./labReleases";
 export * from "./waitlist";
 export * from "./cspViolations";
 export * from "./spendLedger";
+export * from "./shares";
+export * from "./reportWorkbooks";

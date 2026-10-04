@@ -1,66 +1,24 @@
 import { Router } from "express";
 import { GeocodePlaceQueryParams } from "@workspace/api-zod";
 import { validationFailure } from "../lib/validation.js";
+import { isNominatimHit, nominatimUrl, placesFrom } from "../lib/places.js";
 
 const router = Router();
 
-interface NominatimResult {
-  display_name: string;
-  lat: string;
-  lon: string;
-  class: string;
-  type: string;
-  importance?: number;
-  address?: {
-    country?: string;
-    country_code?: string;
-    city?: string;
-    town?: string;
-    village?: string;
-    hamlet?: string;
-    suburb?: string;
-    municipality?: string;
-    county?: string;
-    state?: string;
-    region?: string;
-    state_district?: string;
-  };
-}
+// Nominatim's usage policy asks every caller to name itself.
+const USER_AGENT = "StarsDecoded/1.0 (natal chart app)";
 
-const SETTLEMENT_TYPES = new Set([
-  "city",
-  "town",
-  "village",
-  "hamlet",
-  "municipality",
-  "suburb",
-  "neighbourhood",
-  "borough",
-]);
+/** What the place field says when every place found lies where the zone table has no zone (ADR-246, reading 1). */
+const NO_ZONE_LINE = "Pick a nearby town.";
 
-function specificityRank(r: NominatimResult): number {
-  if (r.class === "place" && SETTLEMENT_TYPES.has(r.type)) {
-    if (r.type === "city") return 0;
-    if (r.type === "town") return 1;
-    if (r.type === "village" || r.type === "municipality") return 2;
-    if (r.type === "suburb" || r.type === "borough" || r.type === "neighbourhood") return 3;
-    return 4;
-  }
-  if (r.class === "boundary" && r.type === "administrative") return 5;
-  return 6;
-}
+const UNAVAILABLE = { error: "geocode_failed", message: "Geocoding service unavailable" } as const;
 
-async function getTimezoneOffset(lat: number, lon: number): Promise<number> {
-  try {
-    const url = `https://timeapi.io/api/timezone/coordinate?latitude=${lat}&longitude=${lon}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) throw new Error("Timezone API failed");
-    const data = (await res.json()) as { currentUtcOffset?: { seconds: number }; utcOffset?: number };
-    const offset = data.currentUtcOffset?.seconds ?? data.utcOffset ?? 0;
-    return offset / 3600;
-  } catch {
-    return Math.round(lon / 15);
-  }
+/**
+ * The browser asked Nominatim itself until ADR-246, and so got place names in the reader's language; passing their
+ * Accept-Language on keeps that. A value that is not a plain list of language tags stays behind.
+ */
+function languageOf(header: string | undefined): Record<string, string> {
+  return header && /^[\w*,;=. -]{1,200}$/.test(header) ? { "Accept-Language": header } : {};
 }
 
 router.get("/geocode", async (req, res) => {
@@ -78,79 +36,41 @@ router.get("/geocode", async (req, res) => {
     return res.status(400).json(validationFailure(parsed.error));
   }
 
-  const query = parsed.data.q;
-
+  // Nominatim down, refusing, or answering with anything but a list of hits is a 502: the reader is told the search
+  // failed, never that their town does not exist. The sentinel reads this route, so a line holds a status or an error's
+  // class, never what was typed.
+  let hits: unknown;
   try {
-    const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=10&addressdetails=1`;
-    const nominatimRes = await fetch(nominatimUrl, {
-      headers: { "User-Agent": "StarsDecoded/1.0 (natal chart app)" },
+    const answer = await fetch(nominatimUrl(parsed.data.q), {
+      headers: { "User-Agent": USER_AGENT, ...languageOf(req.header("accept-language")) },
       signal: AbortSignal.timeout(8000),
     });
-
-    if (!nominatimRes.ok) {
-      return res.status(502).json({ error: "geocode_failed", message: "Geocoding service unavailable" });
+    if (!answer.ok) {
+      req.log.warn({ upstream: "nominatim", status: answer.status }, "Geocoding service refused");
+      return res.status(502).json(UNAVAILABLE);
     }
+    hits = await answer.json();
+  } catch (err) {
+    req.log.warn({ upstream: "nominatim", failure: err instanceof Error ? err.name : typeof err }, "Geocoding service unreachable");
+    return res.status(502).json(UNAVAILABLE);
+  }
+  if (!Array.isArray(hits) || !hits.every(isNominatimHit)) {
+    req.log.warn({ upstream: "nominatim" }, "Geocoding service answered no list of places");
+    return res.status(502).json(UNAVAILABLE);
+  }
+  if (hits.length === 0) {
+    return res.status(404).json({ error: "not_found", message: "Place not found" });
+  }
 
-    const rawResults = await nominatimRes.json();
-    // Nominatim can return an error object instead of an array (e.g. when rate-limited)
-    if (!Array.isArray(rawResults) || rawResults.length === 0) {
-      return res.status(404).json({ error: "not_found", message: "Place not found" });
+  try {
+    const results = placesFrom(hits);
+    if (results.length === 0) {
+      return res.status(422).json({ error: "no_zone", message: NO_ZONE_LINE });
     }
-    const allResults = rawResults as NominatimResult[];
-
-    // Sort by specificity (cities first, then towns/villages, then regions/states)
-    const sorted = [...allResults].sort((a, b) => {
-      const rankDiff = specificityRank(a) - specificityRank(b);
-      if (rankDiff !== 0) return rankDiff;
-      return (b.importance ?? 0) - (a.importance ?? 0);
-    });
-
-    // Take up to 5 candidates, deduplicating by (city, country) pair
-    const seen = new Set<string>();
-    const candidates = sorted
-      .filter((r) => {
-        const addr = r.address ?? {};
-        const cityName = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? addr.municipality ?? addr.suburb ?? r.display_name.split(",")[0].trim();
-        const region = addr.state ?? addr.region ?? addr.county ?? addr.state_district ?? "";
-        const country = addr.country ?? "";
-        const key = `${cityName.toLowerCase()}|${region.toLowerCase()}|${country.toLowerCase()}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .slice(0, 5);
-
-    // Resolve timezone for each candidate in parallel
-    const results = await Promise.all(
-      candidates.map(async (place) => {
-        const lat = parseFloat(place.lat);
-        const lon = parseFloat(place.lon);
-        const addr = place.address ?? {};
-        const city = addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? addr.municipality ?? addr.suburb ?? place.display_name.split(",")[0].trim();
-        const region = addr.state ?? addr.region ?? addr.county ?? addr.state_district ?? "";
-        const country = addr.country ?? "";
-
-        const parts = [city, region, country].filter((s, i, arr) => s && (i === 0 || s !== arr[i - 1]));
-        const displayName = parts.join(", ");
-
-        const timezoneOffset = await getTimezoneOffset(lat, lon);
-
-        return {
-          name: displayName,
-          city,
-          region,
-          country,
-          latitude: Math.round(lat * 10000) / 10000,
-          longitude: Math.round(lon * 10000) / 10000,
-          timezoneOffset,
-          placeType: place.type,
-        };
-      }),
-    );
-
     return res.json({ results });
   } catch (err) {
-    req.log.error({ err }, "Geocoding failed");
+    const { name, code } = (err ?? {}) as { name?: unknown; code?: unknown };
+    req.log.error({ failure: typeof name === "string" ? name : "unknown", code: typeof code === "string" ? code : undefined }, "Geocoding failed");
     return res.status(500).json({ error: "internal_error", message: "Geocoding failed" });
   }
 });

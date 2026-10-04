@@ -28,7 +28,7 @@ function keysWritten(): string[] {
 }
 
 describe("who handles a visitor's data", () => {
-  it("lists ADR-145's six in its order, then the two the browser asks itself", () => {
+  it("lists ADR-145's six in its order, then Nominatim, which our servers ask for a place, and no time zone service (ADR-246)", () => {
     expect(PROCESSORS.map((p) => [p.name, p.from])).toEqual([
       ["Supabase", "server"],
       ["Railway", "server"],
@@ -36,9 +36,13 @@ describe("who handles a visitor's data", () => {
       ["OpenAI", "server"],
       ["Clerk", "server"],
       ["Resend", "server"],
-      ["Nominatim", "browser"],
-      ["timeapi.io", "browser"],
+      ["Nominatim", "server"],
     ]);
+  });
+
+  it("names no service the browser asks itself: the place field asks our servers alone (ADR-246, MB-30)", () => {
+    expect(PROCESSORS.filter((p) => p.from === "browser")).toEqual([]);
+    expect(JSON.stringify(PROCESSORS).toLowerCase()).not.toContain("timeapi");
   });
 
   it("gives every company our servers call a confirmed region or its country (reading 10)", () => {
@@ -75,6 +79,10 @@ describe("who handles a visitor's data", () => {
 describe("what the browser keeps", () => {
   it("names every storage key the web writes, and none it doesn't", () => {
     expect(BROWSER_KEYS.map(storageKeyOf).sort()).toEqual(keysWritten());
+  });
+
+  it("names no note of which dashboard suggestions were seen: nothing writes one since those nudges left (MB-136)", () => {
+    expect(BROWSER_KEYS.map(storageKeyOf)).not.toContain("sd.nudge.seen");
   });
 
   it("keeps the birth form's draft and the preview for the tab alone (readings 3 and 14)", () => {

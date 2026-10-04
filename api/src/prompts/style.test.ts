@@ -11,8 +11,8 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SHARED_SYSTEM, STYLE_CONTRACT, WRITER } from "./system.js";
-import { ALL_SECTIONS, FOUNDATION, sectionsFor } from "./index.js";
-import { PAIR_FOUNDATION, PAIR_SYSTEM, PAIR_WRITER, pairSpecsFor, sceneOf } from "./pair/index.js";
+import { ALL_SECTIONS, FOUNDATION, instructionsFor, sectionsFor, toStrictJsonSchema } from "./index.js";
+import { PAIR_ALL_SECTIONS, PAIR_FOUNDATION, PAIR_SYSTEM, PAIR_WRITER, pairSpecsFor, sceneOf } from "./pair/index.js";
 import { REGISTER } from "./checks.js";
 import { PROMPT_DEFAULTS } from "../lib/promptDefaults.js";
 import { BANDS, LENSES, buildPairBrief, chapterBrief, type Lens } from "../lib/pairBrief.js";
@@ -192,4 +192,52 @@ test("the writers lose premium and the semicolon, and both foundations write the
     assert.doesNotMatch(spec.instructions, /does not apply to this internal output, but/);
   }
   assert.match(PAIR_FOUNDATION.instructions, /chapter 1's card carries your three strengths/);
+});
+
+// R15-23. Writers printed rule 2's old model, "You investigate first and commit second.", word for word in two of
+// five r14-staging overviews and from there in a pair card (MB-92), and lent "room" to time and space in every
+// natal run (MB-132, 143).
+const OLD_MODEL = /investigate first|\b\w+ first,? and \w+ second\b/i;
+
+/** Every natal text we write, drawn and blind, outside the chart's own data: the system, the instructions, the schemas. */
+function natalTexts(): string[] {
+  const texts = [SHARED_SYSTEM];
+  for (const spec of ALL_SECTIONS) {
+    texts.push(spec.instructions, instructionsFor(spec, spec.instructions, true), JSON.stringify(toStrictJsonSchema(spec.schema)));
+    if (spec.blindSchema) texts.push(JSON.stringify(toStrictJsonSchema(spec.blindSchema)));
+  }
+  return texts;
+}
+
+test("a model is never a line to copy: the contract says so first, and no natal or pair text carries the old model or its shape", () => {
+  assert.match(STYLE_CONTRACT.split("\n")[0], /^STYLE CONTRACT\. These rules are not optional\. A model sentence shows the kind of sentence wanted: never copy one into the prose\.$/);
+  const rule2 = STYLE_CONTRACT.split("\n").find((l) => l.startsWith("2."))!;
+  assert.match(rule2, /Model: "[^"]+"$/);
+  for (const text of [...natalTexts(), PAIR_SYSTEM, ...PAIR_ALL_SECTIONS.map((s) => s.instructions)]) {
+    assert.doesNotMatch(text, OLD_MODEL, text.slice(0, 120));
+  }
+});
+
+test("the vocabulary is introduced as doctrine, never lines to repeat, in both system prompts", () => {
+  const intro = "\nVOCABULARY (doctrine for reading a chart, never lines to repeat: put what an entry means into your own plain words).\n";
+  for (const system of [SHARED_SYSTEM, PAIR_SYSTEM]) assert.equal(system.split(intro).length, 2);
+});
+
+test("rule 13 keeps a room a real room and names what to write instead, so both foundations and every report read it", () => {
+  assert.match(rule13(), / A room is only ever a real room, like a kitchen or an office, never a figure of speech\. Say "time" or "space" instead: "time to think", never "room to think", and "make time for it" or "leave space for it", never "make room" or "leave room"\. Never "read the room": say what they notice about the people there\. Model: /);
+  const real = [
+    /the way they arrive in a room/,
+    /A room is only ever a real room/,
+    /never "room to think"/,
+    /never "make room" or "leave room"/,
+    /Never "read the room"/,
+  ];
+  const strays: string[] = [];
+  for (const t of natalTexts()) {
+    for (const m of t.matchAll(/\brooms?\b/gi)) {
+      const around = t.slice(Math.max(0, m.index! - 80), m.index! + m[0].length + 80);
+      if (!real.some((r) => r.test(around))) strays.push(around);
+    }
+  }
+  assert.deepEqual(strays, []);
 });

@@ -10,8 +10,7 @@ import {
 
 const BAD_EMAIL = "Enter an email address, like name@example.com.";
 
-const FAILURE_LINES: Record<Exclude<JoinFailure, "closed">, string> = {
-  bad_email: BAD_EMAIL,
+const FAILURE_LINES: Record<Exclude<JoinFailure, "closed" | "bad_email">, string> = {
   rate_limited: "Too many sign-ups from here. Try again in a few minutes.",
   retry: "We couldn't add you just now. Try again in a minute.",
 };
@@ -49,11 +48,17 @@ export function WaitlistForm({ source, joined, onJoined }: { source: string; joi
     if (changing) field.current?.focus();
   }, [changing]);
 
+  // The address is what needs fixing, so the reader lands where they can retype it (MB-184).
+  function refuseAddress() {
+    setError(BAD_EMAIL);
+    field.current?.focus();
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     const address = email.trim();
     if (!looksLikeEmail(address)) {
-      setError(BAD_EMAIL);
+      refuseAddress();
       return;
     }
     setSending(true);
@@ -66,6 +71,7 @@ export function WaitlistForm({ source, joined, onJoined }: { source: string; joi
     } catch (err) {
       const failure = joinFailure(err);
       if (failure === "closed") setRefused(true);
+      else if (failure === "bad_email") refuseAddress();
       else setError(FAILURE_LINES[failure]);
     } finally {
       setSending(false);

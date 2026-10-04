@@ -36,6 +36,8 @@ const only = (head: string, type: string) => {
 
 const PUBLIC = PAGES.filter((page) => isPublicPath(page.path));
 const HOME = `${SITE.origin}/`;
+/** Cover A under a name no crawler has cached (ADR-228). */
+const COVER = "https://mystarsdecoded.com/share-cover-v2.jpg";
 const urlOf = (page: PageEntry) => (page.path === "/" ? HOME : `${SITE.origin}${page.path}`);
 const APP_PATHS = [
   "/chart",
@@ -89,13 +91,13 @@ describe("a public page's head on production", () => {
       expect(metaOf(head, "og:title")).toBe(page.title);
       expect(metaOf(head, "og:description")).toBe(page.lede);
       expect(metaOf(head, "og:url")).toBe(urlOf(page));
-      expect(metaOf(head, "og:image")).toBe("https://mystarsdecoded.com/opengraph.jpg");
+      expect(metaOf(head, "og:image")).toBe(COVER);
       expect(metaOf(head, "og:image:width")).toBe("1200");
       expect(metaOf(head, "og:image:height")).toBe("630");
       expect(metaOf(head, "twitter:card")).toBe("summary_large_image");
       expect(metaOf(head, "twitter:title")).toBe(page.title);
       expect(metaOf(head, "twitter:description")).toBe(page.lede);
-      expect(metaOf(head, "twitter:image")).toBe("https://mystarsdecoded.com/opengraph.jpg");
+      expect(metaOf(head, "twitter:image")).toBe(COVER);
     }
   });
 
@@ -284,7 +286,8 @@ describe("a path outside the public site", () => {
         expect(metaOf(head, "description")).toBe(pageFor("/").lede);
         expect(canonicalOf(head)).toBeUndefined();
         expect(metaOf(head, "og:url")).toBeUndefined();
-        expect(metaOf(head, "og:image")).toBe("https://mystarsdecoded.com/opengraph.jpg");
+        expect(metaOf(head, "og:image")).toBe(COVER);
+        expect(metaOf(head, "twitter:image")).toBe(COVER);
         expect(scriptsOf(head)).toHaveLength(0);
       }
     }

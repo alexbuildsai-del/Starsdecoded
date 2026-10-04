@@ -13,19 +13,23 @@ import {
   profilesTable,
   relationshipParticipantsTable,
   relationshipsTable,
+  reportWorkbooksTable,
   reportsTable,
 } from "@workspace/db";
 import type { GetHomeResponse } from "@workspace/api-zod";
 import {
   isSelfFor,
+  mayRegenerate,
   natalReportAccess,
   pairReadable,
+  readerKey,
   viewerRelationshipIds,
   type PairPerson,
   type ProfileHolders,
   type Viewer,
 } from "./access.js";
 import { firstWord } from "./names.js";
+import { shareBackOffered, sharedProfileIds } from "./shares.js";
 import { PAIR_PROMPT_VERSION } from "../prompts/pair/index.js";
 
 export type Home = z.infer<typeof GetHomeResponse>;
@@ -33,14 +37,15 @@ export type HomePerson = Home["people"][number];
 export type HomePair = Home["pairs"][number];
 export type HomePractice = Home["practising"][number];
 type Spot = NonNullable<HomePerson["triad"]>["sun"];
+type SpotPoint = NonNullable<Spot["band"]>["from"];
 
 export type Workbook = Record<string, string>;
 export type WorkbookPatch = Record<string, string | null>;
 
 const ITEM_KEY = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+\.\d+$/;
 
-// MB-110 provisional: a pin is kept in the report's workbook beside the ticks,
-// so everyone who reads the report shares its pins as they share its ticks.
+// A pin sits beside the ticks in the reader's own workbook on the report, so
+// pins, like ticks, are each reader's and never show to another (ADR-239).
 export const PIN_PREFIX = "pin.";
 export const PIN_LIMIT = 3;
 
@@ -105,6 +110,7 @@ export type NatalRow = {
   sessionId: string;
   createdAt: Date;
   interpretation: unknown;
+  /** The reader's own ticks and pins on the report, never another reader's (ADR-239). */
   workbook: unknown;
   profile: HomeProfile;
 };
@@ -114,13 +120,29 @@ export type PairRow = {
   status: string;
   createdAt: Date;
   interpretation: unknown;
+  /** The reader's own ticks and pins on the report, never another reader's (ADR-239). */
   workbook: unknown;
   relationship: { type: string; label: string | null; userId: string | null; sessionId: string };
   /** In position order, since the report's items name its two as A and B. */
   parts: Array<PairPerson & { isSelf: boolean; claimedAsSelf: boolean }>;
 };
 
-type Seat = { row: NatalRow; access: HomePerson["access"]; isSelf: boolean };
+/**
+ * What the reader's grants add (ADR-235): the profiles shared with them while
+ * the grant stands, and of those, the ones whose sharer they are offered Share
+ * yours back for. A session holds none, since only an account is shared with.
+ */
+export type Grants = { shared: ReadonlySet<string>; shareBack: ReadonlySet<string> };
+
+const NO_GRANTS: Grants = { shared: new Set(), shareBack: new Set() };
+
+type Seat = {
+  row: NatalRow;
+  access: HomePerson["access"];
+  isSelf: boolean;
+  shareBack?: boolean;
+  canRegenerate: boolean;
+};
 
 function newer(x: { createdAt: Date; id: string }, y: { createdAt: Date; id: string }): boolean {
   const by = x.createdAt.getTime() - y.createdAt.getTime();
@@ -142,15 +164,23 @@ function outranks(x: NatalRow, y: NatalRow): boolean {
  * did not fail. A report still being written holds its seat already, and a
  * person whose every report failed keeps theirs at the latest of them, so
  * their row and quick look say so rather than the person vanishing (ADR-84).
+ * A sharer is seated only while their grant stands, so Stop sharing takes
+ * them from the circle at once (ADR-235).
  */
-function seatsOf(viewer: Viewer, natal: readonly NatalRow[]): Seat[] {
+function seatsOf(viewer: Viewer, natal: readonly NatalRow[], grants: Grants): Seat[] {
   const latest = new Map<string, Seat>();
   for (const row of natal) {
-    const access = natalReportAccess(viewer, row.profile, row);
-    if (access !== "owner" && access !== "claimed") continue;
+    const access = natalReportAccess(viewer, row.profile, row, grants.shared.has(row.profile.id));
+    if (access !== "owner" && access !== "claimed" && access !== "shared") continue;
     const kept = latest.get(row.profile.id);
     if (kept && !outranks(row, kept.row)) continue;
-    latest.set(row.profile.id, { row, access, isSelf: isSelfFor(viewer, row.profile) });
+    latest.set(row.profile.id, {
+      row,
+      access,
+      isSelf: isSelfFor(viewer, row.profile),
+      ...(access === "shared" ? { shareBack: grants.shareBack.has(row.profile.id) } : {}),
+      canRegenerate: mayRegenerate(viewer, row.profile, row),
+    });
   }
   return [...latest.values()].sort((x, y) =>
     x.row.profile.createdAt.getTime() - y.row.profile.createdAt.getTime() || x.row.profile.id.localeCompare(y.row.profile.id),
@@ -158,6 +188,18 @@ function seatsOf(viewer: Viewer, natal: readonly NatalRow[]): Seat[] {
 }
 
 type Placement = { sign?: unknown; degree?: unknown; house?: unknown };
+
+type StoredChart = {
+  windowMinutes?: unknown;
+  planets?: Record<string, Placement & { band?: { fromDegree?: unknown; toDegree?: unknown } }>;
+  angles?: { ascendant?: Placement };
+} | null;
+
+// The engine keeps its own list private, and a range's two ends need a sign from a longitude.
+const SIGNS = [
+  "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+  "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+] as const;
 
 function spotOf(body: Placement | undefined, housed: boolean): Spot | null {
   if (typeof body?.sign !== "string" || typeof body.degree !== "number" || !Number.isFinite(body.degree)) return null;
@@ -167,16 +209,39 @@ function spotOf(body: Placement | undefined, housed: boolean): Spot | null {
   return { sign: body.sign, degree: Math.round(body.degree * 100) / 100, house };
 }
 
+/** Counted in hundredths of a degree, so a point rounded up to a cusp reads 0° of the next sign, never 30° of its own. */
+function pointOf(longitude: unknown): SpotPoint | null {
+  if (typeof longitude !== "number" || !Number.isFinite(longitude)) return null;
+  const at = ((Math.round(longitude * 100) % 36000) + 36000) % 36000;
+  return { sign: SIGNS[Math.floor(at / 3000)], degree: (at % 3000) / 100 };
+}
+
+/**
+ * The Moon's range across a windowed birth time, from the two ends of the band
+ * the stored chart keeps for it (MB-139). Each end takes its sign from its own
+ * longitude: the Moon's `sign` is the one it held longest across the band,
+ * which would misname one end of a range across a cusp.
+ */
+function moonRangeOf(chart: StoredChart): Spot["band"] {
+  if (typeof chart?.windowMinutes !== "number" || chart.windowMinutes <= 0) return null;
+  const band = chart.planets?.moon?.band;
+  const from = pointOf(band?.fromDegree);
+  const to = pointOf(band?.toDegree);
+  return from && to ? { from, to } : null;
+}
+
 /**
  * The stored chart's Sun, Moon and Rising. A body has no house without a birth
- * time (R-4.6), and the Rising never shows one: it is where the first house begins.
+ * time (R-4.6), and the Rising never shows one: it is where the first house
+ * begins. On a windowed birth time the Moon carries its range.
  */
 export function triadOf(chartData: unknown): HomePerson["triad"] {
-  const chart = chartData as { planets?: Record<string, Placement>; angles?: { ascendant?: Placement } } | null;
+  const chart = chartData as StoredChart;
   const sun = spotOf(chart?.planets?.sun, true);
   const moon = spotOf(chart?.planets?.moon, true);
   if (!sun || !moon) return null;
-  return { sun, moon, rising: spotOf(chart?.angles?.ascendant, false) };
+  const band = moonRangeOf(chart);
+  return { sun, moon: band ? { ...moon, band } : moon, rising: spotOf(chart?.angles?.ascendant, false) };
 }
 
 /** A point with no space after it is a decimal, not the end of a sentence. */
@@ -204,7 +269,7 @@ export function linesOf(interpretation: unknown): HomePerson["lines"] {
 }
 
 function personOf(seat: Seat, lines: HomePerson["lines"]): HomePerson {
-  const { row, access, isSelf } = seat;
+  const { row, access, isSelf, shareBack, canRegenerate } = seat;
   return {
     profileId: row.profile.id,
     reportId: row.id,
@@ -213,14 +278,18 @@ function personOf(seat: Seat, lines: HomePerson["lines"]): HomePerson {
     status: row.status as HomePerson["status"],
     access,
     isSelf,
+    ...(shareBack === undefined ? {} : { shareBack }),
+    canRegenerate,
     triad: triadOf(row.profile.chartData),
     lines,
   };
 }
 
 // MB-65 provisional: a pair written before p2 cannot render on the seven-chapter
-// page, so no list shows it; p2 and p3 keep rendering beside the current version (reading 15).
-const LISTED_PAIR_VERSIONS: ReadonlySet<string> = new Set(["p2", "p3", PAIR_PROMPT_VERSION]);
+// page, so no list shows it. Every version since renders (p2 to p5, as the web
+// lists them); the current one is listed too, so a bump that forgets this list
+// still shows its new pairs.
+const LISTED_PAIR_VERSIONS: ReadonlySet<string> = new Set(["p2", "p3", "p4", "p5", PAIR_PROMPT_VERSION]);
 
 export function pairListed(report: { status: string; interpretation: unknown }): boolean {
   if (report.status !== "complete") return true;
@@ -244,13 +313,15 @@ type Listed = { row: PairRow; pair: HomePair; practised: boolean };
 /**
  * The pairs GET /reports lists, newest first. MB-103 provisional: one its maker
  * can no longer read stays, closed and naming who stopped sharing, with nothing
- * of it shown; one shared with the reader goes when its sender stops.
+ * of it shown; one shared with the reader goes when its sender stops. One made
+ * from a chart shared with its maker closes the same way when that grant goes
+ * (ADR-235).
  */
-function listedPairs(viewer: Viewer, rows: readonly PairRow[]): Listed[] {
+function listedPairs(viewer: Viewer, rows: readonly PairRow[], shared: ReadonlySet<string>): Listed[] {
   return rows
     .filter((row) => row.parts.length === 2 && pairListed(row))
     .flatMap((row): Listed[] => {
-      const reading = pairReadable(viewer, row.relationship, row.parts);
+      const reading = pairReadable(viewer, row.relationship, row.parts, shared);
       if (!reading.readable && !reading.stoppedBy) return [];
       const two = reading.readable
         ? ((row.interpretation as { twoCharts?: Record<string, unknown> } | null)?.twoCharts ?? null)
@@ -313,8 +384,9 @@ type Source = {
 
 /**
  * Reading 5: the reader's own Personal report and the pairs they are one of,
- * never another person's report. Pins come first, oldest first, then what an
- * own report with nothing pinned offers. MB-110 provisional, as pins are.
+ * never another person's report, a sharer's included. Pins come first, oldest
+ * first, then what an own report with nothing pinned offers; pins and ticks are
+ * the reader's own (ADR-239).
  */
 function practisingOf(selves: readonly Seat[], pairs: readonly Listed[]): HomePractice[] {
   const sources: Source[] = [
@@ -350,16 +422,21 @@ function practisingOf(selves: readonly Seat[], pairs: readonly Listed[]): HomePr
 
 /**
  * The circle is the reader and everyone whose Personal report they can read
- * (ADR-182); their own sits at the centre, unless several are marked as theirs,
- * when every marked one stays among the people until they settle which. A
- * failed report keeps its person's seat and lends nothing more: no lines and
- * nothing to practise.
+ * (ADR-182), a sharer among them while their grant stands (ADR-235); their own
+ * sits at the centre, unless several are marked as theirs, when every marked
+ * one stays among the people until they settle which. A failed report keeps
+ * its person's seat and lends nothing more: no lines and nothing to practise.
  */
-export function buildHome(viewer: Viewer, natal: readonly NatalRow[], pairs: readonly PairRow[]): Home {
-  const seats = seatsOf(viewer, natal);
+export function buildHome(
+  viewer: Viewer,
+  natal: readonly NatalRow[],
+  pairs: readonly PairRow[],
+  grants: Grants = NO_GRANTS,
+): Home {
+  const seats = seatsOf(viewer, natal, grants);
   const selves = seats.filter((s) => s.isSelf);
   const you = selves.length === 1 ? selves[0] : null;
-  const listed = listedPairs(viewer, pairs);
+  const listed = listedPairs(viewer, pairs, grants.shared);
   return {
     you: you ? personOf(you, written(you.row) ? linesOf(you.row.interpretation) : null) : null,
     several: selves.length > 1,
@@ -369,10 +446,24 @@ export function buildHome(viewer: Viewer, natal: readonly NatalRow[], pairs: rea
   };
 }
 
-/** The same reach GET /reports has: a natal report through its profile, a pair through the reader's relationships. */
-async function natalRowsOf(viewer: Viewer): Promise<NatalRow[]> {
+/** The reader's own row of report_workbooks, so no reader is ever handed another's ticks (ADR-239). */
+function ownWorkbook(viewer: Viewer) {
+  return and(eq(reportWorkbooksTable.reportId, reportsTable.id), eq(reportWorkbooksTable.reader, readerKey(viewer)));
+}
+
+/**
+ * The same reach GET /reports has: a natal report through its profile, the
+ * reader's own, sent to them, or shared with them while the grant stands
+ * (ADR-235). It returns the query unrun, so a test reads what it asks without
+ * a database (MB-49).
+ */
+export function natalRowsOf(viewer: Viewer, shared: ReadonlySet<string>) {
   const reach = viewer.userId
-    ? or(eq(profilesTable.userId, viewer.userId), eq(profilesTable.claimedByUserId, viewer.userId))
+    ? or(
+        eq(profilesTable.userId, viewer.userId),
+        eq(profilesTable.claimedByUserId, viewer.userId),
+        ...(shared.size ? [inArray(profilesTable.id, [...shared])] : []),
+      )
     : eq(reportsTable.sessionId, viewer.sessionId);
   return db
     .select({
@@ -381,7 +472,7 @@ async function natalRowsOf(viewer: Viewer): Promise<NatalRow[]> {
       sessionId: reportsTable.sessionId,
       createdAt: reportsTable.createdAt,
       interpretation: reportsTable.interpretation,
-      workbook: reportsTable.workbook,
+      workbook: reportWorkbooksTable.workbook,
       profile: {
         id: profilesTable.id,
         name: profilesTable.name,
@@ -397,7 +488,25 @@ async function natalRowsOf(viewer: Viewer): Promise<NatalRow[]> {
     })
     .from(reportsTable)
     .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
+    .leftJoin(reportWorkbooksTable, ownWorkbook(viewer))
     .where(and(eq(reportsTable.type, "natal"), reach));
+}
+
+/** A pair through the reader's relationships, unrun like `natalRowsOf`. */
+export function pairReportsOf(viewer: Viewer, relationshipIds: readonly string[]) {
+  return db
+    .select({
+      id: reportsTable.id,
+      status: reportsTable.status,
+      createdAt: reportsTable.createdAt,
+      interpretation: reportsTable.interpretation,
+      workbook: reportWorkbooksTable.workbook,
+      relationship: relationshipsTable,
+    })
+    .from(reportsTable)
+    .innerJoin(relationshipsTable, eq(reportsTable.relationshipId, relationshipsTable.id))
+    .leftJoin(reportWorkbooksTable, ownWorkbook(viewer))
+    .where(and(eq(reportsTable.type, "compatibility"), inArray(reportsTable.relationshipId, [...relationshipIds])));
 }
 
 async function pairRowsOf(viewer: Viewer): Promise<PairRow[]> {
@@ -405,18 +514,7 @@ async function pairRowsOf(viewer: Viewer): Promise<PairRow[]> {
   const ids = [...new Set([...owned, ...participant])];
   if (!ids.length) return [];
   const [reports, parts] = await Promise.all([
-    db
-      .select({
-        id: reportsTable.id,
-        status: reportsTable.status,
-        createdAt: reportsTable.createdAt,
-        interpretation: reportsTable.interpretation,
-        workbook: reportsTable.workbook,
-        relationship: relationshipsTable,
-      })
-      .from(reportsTable)
-      .innerJoin(relationshipsTable, eq(reportsTable.relationshipId, relationshipsTable.id))
-      .where(and(eq(reportsTable.type, "compatibility"), inArray(reportsTable.relationshipId, ids))),
+    pairReportsOf(viewer, ids),
     db
       .select({
         relationshipId: relationshipParticipantsTable.relationshipId,
@@ -439,7 +537,19 @@ async function pairRowsOf(viewer: Viewer): Promise<PairRow[]> {
   return reports.map((r) => ({ ...r, parts: byPair.get(r.relationship.id) ?? [] }));
 }
 
+async function shareBackOf(viewer: Viewer, shared: ReadonlySet<string>): Promise<Set<string>> {
+  const userId = viewer.userId;
+  if (!userId) return new Set();
+  const offered = await Promise.all([...shared].map(async (id) => ((await shareBackOffered(userId, id)) ? [id] : [])));
+  return new Set(offered.flat());
+}
+
 export async function loadHome(viewer: Viewer): Promise<Home> {
-  const [natal, pairs] = await Promise.all([natalRowsOf(viewer), pairRowsOf(viewer)]);
-  return buildHome(viewer, natal, pairs);
+  const shared = sharedProfileIds(viewer.userId);
+  const [natal, shareBack, pairs] = await Promise.all([
+    shared.then((ids) => natalRowsOf(viewer, ids)),
+    shared.then((ids) => shareBackOf(viewer, ids)),
+    pairRowsOf(viewer),
+  ]);
+  return buildHome(viewer, natal, pairs, { shared: await shared, shareBack });
 }

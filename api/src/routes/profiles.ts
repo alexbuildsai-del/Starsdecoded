@@ -1,30 +1,41 @@
 import { Router, type Request } from "express";
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
-import { db, profilesTable, reportsTable, type Profile } from "@workspace/db";
+import { and, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import {
+  db,
+  inviteTokensTable,
+  profileSharesTable,
+  profilesTable,
+  relationshipParticipantsTable,
+  reportsTable,
+  type Profile,
+} from "@workspace/db";
 import {
   CreateProfileBody,
+  HandBackProfileParams,
   StopSharingProfileParams,
   UpdateProfileBirthTimeBody,
   UpdateProfileBody,
   UpdateProfileParams,
 } from "@workspace/api-zod";
 import { chartForProfile, resolveOrCreateProfile } from "../lib/profiles.js";
-import { hasHorizon, type NatalChartData } from "../lib/chartCalculation.js";
+import { hasHorizon, type HorizonStatus, type NatalChartData } from "../lib/chartCalculation.js";
 import { runHorizonPass } from "../lib/horizonPass.js";
 import { holdWrites } from "../lib/limits.js";
 import {
   accessFor,
   claimerNamesByProfile,
   giverIdOf,
+  handedBackByProfile,
   isSelfFor,
   openInvitesByProfile,
   profileOwnershipFor,
   sendStateFor,
+  type ProfileHolders,
   type SendState,
   type Viewer,
 } from "../lib/access.js";
-import { firstNameOf } from "../lib/names.js";
+import { firstNameOf, firstWord } from "../lib/names.js";
 import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
@@ -73,9 +84,15 @@ async function firstNamesOf(userIds: string[]): Promise<Map<string, string | nul
 
 // One finished natal report is enough to offer Send, so a failed retry beside
 // it does not take the button away (reading 11).
-function sendOf(viewer: Viewer, p: Profile, reports: NatalReport[], openInvite: string | null): SendState | null {
+function sendOf(
+  viewer: Viewer,
+  p: Profile,
+  reports: NatalReport[],
+  openInvite: string | null,
+  handedBackAt: Date | null,
+): SendState | null {
   for (const r of reports) {
-    const state = sendStateFor(viewer, p, r, openInvite);
+    const state = sendStateFor(viewer, p, r, openInvite, handedBackAt);
     if (state) return state;
   }
   return null;
@@ -89,14 +106,16 @@ function sendOf(viewer: Viewer, p: Profile, reports: NatalReport[], openInvite: 
  */
 async function summarize(viewer: Viewer, rows: Profile[]) {
   const ids = rows.map((p) => p.id);
-  const [invites, claimers, natal, givers] = await Promise.all([
+  const [invites, claimers, natal, givers, handedBack] = await Promise.all([
     openInvitesByProfile(ids),
     claimerNamesByProfile(rows),
     natalReportsOf(ids),
     firstNamesOf(rows.flatMap((p) => giverIdOf(viewer, p) ?? [])),
+    handedBackByProfile(ids),
   ]);
   return rows.map((p) => {
     const access = accessFor(viewer, p);
+    const joined = access === "owner" || access === "claimed";
     const openInvite = invites.get(p.id) ?? null;
     const own = profileOwnershipFor(viewer, p, openInvite);
     const giverId = giverIdOf(viewer, p);
@@ -118,14 +137,14 @@ async function summarize(viewer: Viewer, rows: Profile[]) {
       risingSign: chart.angles?.ascendant?.sign ?? null,
       createdAt: p.createdAt.toISOString(),
       ownership: own,
-      // The claimer's address, for the two people the send joined and no one else.
-      claimedByName: access ? (claimers.get(p.id) ?? null) : null,
+      // The claimer's address, for the two people the send joined and no one else, never a reader through a grant.
+      claimedByName: joined ? (claimers.get(p.id) ?? null) : null,
       // The address a send went to is its recipient's; only the sender sees it, and only while it waits.
       inviteEmail: own === "invited" ? openInvite : null,
       isSelf: isSelfFor(viewer, p),
       claimedAsSelf: access === "claimed" && p.claimedAsSelf,
       giverName: giverId ? (givers.get(giverId) ?? null) : null,
-      send: sendOf(viewer, p, natal.get(p.id) ?? [], openInvite),
+      send: sendOf(viewer, p, natal.get(p.id) ?? [], openInvite, handedBack.get(p.id) ?? null),
     };
   });
 }
@@ -201,13 +220,22 @@ router.patch("/profiles/:id", async (req, res) => {
       .where(and(eq(profilesTable.id, id), ownership(req)))
       .limit(1);
     const access = profile ? accessFor(viewer, profile) : null;
-    if (!profile || !access) {
+    // A grant only lets its reader read; the marks are the writer's and the claimer's (ADR-235).
+    if (!profile || !access || access === "shared") {
       return res.status(404).json({ error: "not_found", message: "Profile not found" });
     }
     // A session may mark only its unattached drafts, never a row an account holds.
     const writer = access === "owner" && (!!viewer.userId || !profile.userId);
     if (isSelf !== undefined && !writer) {
       return res.status(403).json({ error: "forbidden", message: "Not the owner of this profile" });
+    }
+    // A chart its subject claimed is theirs: the writer's mark would make it the writer's own to share (R-3.6).
+    // Taking a mark off stays theirs, so one left from before the claim can still be cleared.
+    if (isSelf === true && profile.claimedByUserId) {
+      return res.status(403).json({
+        error: "forbidden",
+        message: `${firstWord(profile.name)} already has this report, so you can't mark it as yours.`,
+      });
     }
     if (claimedAsSelf !== undefined && access !== "claimed") {
       return res.status(403).json({ error: "forbidden", message: "Not the person this chart was shared with" });
@@ -260,8 +288,8 @@ router.post("/profiles/:id/stop-sharing", async (req, res) => {
   try {
     const session = randomUUID();
     const now = new Date();
-    // MB-103 provisional: a pair the giver made from this chart is left as it
-    // is; it closes on read (pairReadable) and nothing is deleted.
+    // A pair the giver made from this chart is left as it is; it closes on
+    // read (pairReadable) and nothing is deleted (MB-103, ADR-236).
     const handedOver = await db.transaction(async (tx) => {
       const moved = await tx
         .update(profilesTable)
@@ -287,15 +315,169 @@ router.post("/profiles/:id/stop-sharing", async (req, res) => {
   }
 });
 
+export type HandBack = "hand_back" | "not_claimed" | "not_found";
+
+/**
+ * Who may hand a chart back (ADR-236): the person it was sent to, who claimed
+ * it. The writer of a chart no one has claimed hears there is nothing to hand
+ * back; its giver, a reader through a grant, a stranger and a missing id read
+ * alike, so no id is confirmed.
+ */
+export function handBackOf(viewer: Viewer, profile: ProfileHolders | null): HandBack {
+  const access = profile ? accessFor(viewer, profile) : null;
+  if (access === "claimed") return "hand_back";
+  return access === "owner" && !profile?.claimedByUserId ? "not_claimed" : "not_found";
+}
+
+/** Whoever sent the claimer this chart, from the send they claimed, the latest if there were more. */
+async function senderOf(tx: Tx, profileId: string, claimer: string): Promise<string | null> {
+  const [send] = await tx
+    .select({ createdByUserId: inviteTokensTable.createdByUserId })
+    .from(inviteTokensTable)
+    .where(and(
+      eq(inviteTokensTable.profileId, profileId),
+      eq(inviteTokensTable.kind, "send"),
+      eq(inviteTokensTable.claimedByUserId, claimer),
+    ))
+    .orderBy(desc(inviteTokensTable.createdAt))
+    .limit(1);
+  return send?.createdByUserId ?? null;
+}
+
+/**
+ * Not me's Hand it back (ADR-236, amending ADR-139's Not me), in one
+ * transaction: the claim ends, the chart is its writer's alone again, and
+ * their row reads Handed back with Send again (reading 6). After a hand-over
+ * (the claimer's Stop sharing, or the giver's Remove) it goes back to whoever
+ * sent it, since a chart that is not theirs is not theirs to keep (R-3.6).
+ */
+router.post("/profiles/:id/hand-back", async (req, res) => {
+  const claimer = req.userId;
+  const params = HandBackProfileParams.safeParse(req.params);
+  // A visitor never holds a claim, so they read as anyone else does.
+  if (!claimer || !params.success) {
+    return res.status(404).json({ error: "not_found", message: "Profile not found" });
+  }
+  const { id } = params.data;
+  const viewer = viewerOf(req);
+
+  try {
+    const now = new Date();
+    const outcome = await db.transaction(async (tx): Promise<HandBack> => {
+      const [held] = await tx
+        .select({ userId: profilesTable.userId, sessionId: profilesTable.sessionId, claimedByUserId: profilesTable.claimedByUserId })
+        .from(profilesTable)
+        .where(eq(profilesTable.id, id))
+        .for("update");
+      const verdict = handBackOf(viewer, held ?? null);
+      if (verdict !== "hand_back") return verdict;
+      // A hand-over made the row the claimer's, so its writer is then whoever sent them the send they claimed.
+      const writer = held.userId !== claimer ? held.userId : await senderOf(tx, id, claimer);
+      if (!writer) return "not_found";
+
+      await tx
+        .update(profilesTable)
+        .set({
+          claimedByUserId: null,
+          claimedAsSelf: false,
+          // A holder's own-chart mark was never the writer's, and the writer may have a chart of their own marked.
+          ...(writer !== held.userId ? { userId: writer, isSelf: false } : {}),
+          updatedAt: now,
+        })
+        .where(eq(profilesTable.id, id));
+      if (writer !== held.userId) {
+        // A report the holder wrote since sits in their browser's session, which an ended claim would let read it again;
+        // it joins the rest where the hand-over put them, a session no browser holds.
+        await tx
+          .update(reportsTable)
+          .set({ sessionId: held.sessionId, updatedAt: now })
+          .where(and(eq(reportsTable.profileId, id), eq(reportsTable.type, "natal"), ne(reportsTable.sessionId, held.sessionId)));
+      }
+      // A pair grant the claim brought goes back with the chart, so whoever claims its next send starts with none.
+      await tx
+        .update(relationshipParticipantsTable)
+        .set({ accessRole: "owner" })
+        .where(and(eq(relationshipParticipantsTable.profileId, id), eq(relationshipParticipantsTable.accessRole, "participant")));
+      await tx
+        .update(inviteTokensTable)
+        .set({ handedBackAt: now })
+        .where(and(
+          eq(inviteTokensTable.profileId, id),
+          eq(inviteTokensTable.kind, "send"),
+          eq(inviteTokensTable.claimedByUserId, claimer),
+          isNull(inviteTokensTable.handedBackAt),
+        ));
+      // Sharing it was the claimer's word as its subject, which Not me takes back, so their grants and waiting links end now.
+      await tx
+        .update(profileSharesTable)
+        .set({ revokedAt: now })
+        .where(and(
+          eq(profileSharesTable.profileId, id),
+          eq(profileSharesTable.ownerUserId, claimer),
+          isNull(profileSharesTable.revokedAt),
+        ));
+      await tx
+        .update(inviteTokensTable)
+        .set({ revokedAt: now, expiresAt: now })
+        .where(and(
+          eq(inviteTokensTable.profileId, id),
+          eq(inviteTokensTable.kind, "share"),
+          eq(inviteTokensTable.createdByUserId, claimer),
+          isNull(inviteTokensTable.claimedAt),
+          isNull(inviteTokensTable.revokedAt),
+        ));
+      return verdict;
+    });
+
+    if (outcome === "not_claimed") {
+      return res.status(409).json({ error: "not_claimed", message: "You had this report written, so there's no one to hand it back to." });
+    }
+    if (outcome === "not_found") {
+      return res.status(404).json({ error: "not_found", message: "Profile not found" });
+    }
+    return res.json({ profileId: id });
+  } catch (err) {
+    req.log.error({ err }, "Failed to hand back");
+    return res.status(500).json({ error: "internal_error", message: "Failed to hand back" });
+  }
+});
+
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const WINDOWS = new Set([0, 60, 180, 720]);
 
+type PassCandidate = { status: string; interpretation: unknown; createdAt: Date };
+
+/**
+ * The one report a birth-time change passes (MB-170): the newest complete
+ * natal report, when the new chart can say more about it, because its text
+ * was written under another horizon or the time itself changed. The older
+ * complete ones are left as written, to read as outdated and offer
+ * Regenerate, so a profile with many reports still takes one pass and one
+ * write. Of two made in the same millisecond the first is kept, so a query
+ * ordered to the microsecond settles which is newer.
+ */
+export function reportToPass<R extends PassCandidate>(
+  reports: readonly R[],
+  horizon: HorizonStatus,
+  unchanged: boolean,
+): R | null {
+  let newest: R | null = null;
+  for (const r of reports) {
+    if (r.status !== "complete" || !r.interpretation) continue;
+    if (!newest || r.createdAt > newest.createdAt) newest = r;
+  }
+  if (!newest) return null;
+  const written = (newest.interpretation as { meta?: { horizon?: string } }).meta?.horizon;
+  return written !== horizon || !unchanged ? newest : null;
+}
+
 /**
  * PATCH /profiles/:id/birth-time — add or correct the birth time and run
- * the horizon pass on every complete natal report of the profile (ADR-35).
- * The owner, or the person who claimed the profile as their own, may do
- * this; anyone else sees 404. Dedupe keys on time and window together, so
- * the same answer twice is a no-op unless a report is still blind.
+ * the horizon pass on the newest complete natal report of the profile
+ * (ADR-35, MB-170). The owner, or the person who claimed the profile as
+ * their own, may do this; anyone else sees 404. Dedupe keys on time and
+ * window together, so the same answer twice is a no-op unless the newest
+ * report is still blind.
  */
 router.patch("/profiles/:id/birth-time", async (req, res) => {
   const { id } = req.params;
@@ -322,7 +504,8 @@ router.patch("/profiles/:id/birth-time", async (req, res) => {
     }
 
     const reports = await db.select().from(reportsTable)
-      .where(and(eq(reportsTable.profileId, profile.id), eq(reportsTable.type, "natal")));
+      .where(and(eq(reportsTable.profileId, profile.id), eq(reportsTable.type, "natal")))
+      .orderBy(desc(reportsTable.createdAt), desc(reportsTable.id));
     if (reports.some((r) => r.status === "revising")) {
       return res.status(409).json({ error: "in_progress", message: "A horizon pass is already running on this report" });
     }
@@ -337,32 +520,27 @@ router.patch("/profiles/:id/birth-time", async (req, res) => {
       return res.status(400).json({ error: "validation_error", message: "A birth time already recorded cannot be widened past the horizon" });
     }
 
-    // Only a report the new chart can say more about is passed: a complete
-    // one whose text was written under a different horizon than the chart now holds.
     const unchanged = profile.birthTime === birthTime && profile.birthTimeWindowMinutes === birthTimeWindowMinutes;
-    const toPass = hasHorizon(chart)
-      ? reports.filter((r) => r.status === "complete" && r.interpretation
-        && ((r.interpretation as { meta?: { horizon?: string } }).meta?.horizon !== chart.horizon.status || !unchanged))
-      : [];
-    // MB-159 provisional: one write per pass, held before the time is saved. A change refused here saves nothing, since a
-    // saved time with a report left unpassed would leave that report contradicting its chart.
-    if (!(await holdWrites(req, res, toPass.length))) return;
+    const pass = hasHorizon(chart) ? reportToPass(reports, chart.horizon.status, unchanged) : null;
+    // MB-159 provisional: one write for the pass, held before the time is saved. A change refused here saves nothing, so
+    // the newest report never contradicts its chart; the older ones are outdated by design and offer Regenerate (MB-170).
+    if (!(await holdWrites(req, res, pass ? 1 : 0))) return;
 
     await db.update(profilesTable)
       .set({ birthTime, birthTimeWindowMinutes, chartData: chart as unknown as object, updatedAt: new Date() })
       .where(eq(profilesTable.id, profile.id));
 
-    for (const r of toPass) {
+    if (pass) {
       runHorizonPass({
-        reportId: r.id,
+        reportId: pass.id,
         profileId: profile.id,
         name: profile.name,
         previous: { birthTime: profile.birthTime, birthTimeWindowMinutes: profile.birthTimeWindowMinutes, chart: previousChart },
         chart,
-      }).catch((err) => req.log.error({ err, reportId: r.id }, "horizon pass crashed"));
+      }).catch((err) => req.log.error({ err, reportId: pass.id }, "horizon pass crashed"));
     }
 
-    return res.status(202).json({ profileId: profile.id, horizon: chart.horizon.status, reportIds: toPass.map((r) => r.id) });
+    return res.status(202).json({ profileId: profile.id, horizon: chart.horizon.status, reportIds: pass ? [pass.id] : [] });
   } catch (err) {
     req.log.error({ err }, "Failed to update the birth time");
     return res.status(500).json({ error: "internal_error", message: "Failed to update the birth time" });

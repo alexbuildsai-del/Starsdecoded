@@ -6,8 +6,8 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  clockWords, dateDigits, dateNote, dateText, dateValue, entryFormat, localDay, readDate, readTime, stepDate, stepTime,
-  timeNote, timeState, timeText, timeValue,
+  clockWords, dateDigits, dateNote, dateText, dateValue, entryFormat, localDay, pickHalf, readDate, readTime, stepDate,
+  stepTime, timeNote, timeState, timeText, timeValue,
   type Clock, type DateOrder, type Half,
 } from "./date-entry";
 
@@ -177,6 +177,7 @@ class DateTyper {
   caret = 0;
   value = "";
   done = 0;
+  refused = false;
   sent: string[] = [];
 
   constructor(readonly order: DateOrder = "dmy", readonly range: { min?: string; max?: string } = {}, value = "") {
@@ -188,9 +189,11 @@ class DateTyper {
 
   edit(text: string, caret: number, inputType = "insertText") {
     const step = stepDate(this.digits, { shown: this.text, text, caret, inputType }, this.order, this.range);
+    if (step.refused) expect(step.digits, `a refused ${JSON.stringify(text)} keeps the digits`).toBe(this.digits);
     this.digits = step.digits;
     this.text = step.text;
     this.caret = step.caret;
+    this.refused = step.refused;
     if (step.value !== this.value) {
       this.value = step.value;
       this.sent.push(step.value);
@@ -326,7 +329,7 @@ describe("a pasted date in mixed separators", () => {
   });
 
   it("leaves a clip that is not three whole parts to be typed", () => {
-    for (const clip of ["", "   ", "4/5", "4", "/", "4//", "1929", "19290", "1929050", "190504", "123/5/1929", "4/5/19290", "1929-1929-1929", "May 4, 1929", "4th May 1929", "tomorrow"]) {
+    for (const clip of ["", "   ", "4/5", "4", "/", "4//", "1929", "19290", "1929050", "190504", "123/5/1929", "4/5/19290", "1929-1929-1929", "May 4", "4th May", "tomorrow"]) {
       expect(readDate(clip, "dmy"), JSON.stringify(clip)).toBeNull();
     }
     expect(readDate("29-5-4", "ymd")).toBeNull();
@@ -351,6 +354,56 @@ describe("a pasted date in mixed separators", () => {
     expect(field.text).toBe("04 / 05 / 1929");
     expect(field.value).toBe("1929-05-04");
     expect(field.done).toBe(1);
+  });
+});
+
+describe("a pasted date in words, through the field (MB-185, QA-02 #12)", () => {
+  it("reads the site's own readout back in, in every order, never as 41 / 92 / 9", () => {
+    for (const order of ORDERS) {
+      const field = new DateTyper(order).over(0, 0, "4 May 1929");
+      expect(field.digits, order).toBe(typed(order, 1929, 5, 4));
+      expect(field).toMatchObject({ value: "1929-05-04", done: 1, refused: false });
+    }
+  });
+
+  it("reads a date in words over a selection, replacing the date that was there", () => {
+    const field = new DateTyper("mdy").type("01011990");
+    field.over(0, field.text.length, "May 4, 1929");
+    expect(field).toMatchObject({ text: "05 / 04 / 1929", value: "1929-05-04", sent: ["1990-01-01", "1929-05-04"], done: 2 });
+  });
+
+  it("keeps what the field held when the words are not a date it can read, and the next edit clears the refusal", () => {
+    const field = new DateTyper("dmy").type("0405");
+    field.over(field.text.length, field.text.length, "4 Mai 1929");
+    expect(field).toMatchObject({ text: "04 / 05 / ", caret: "04 / 05 / ".length, value: "", refused: true, done: 0 });
+    field.type("1929");
+    expect(field).toMatchObject({ text: "04 / 05 / 1929", value: "1929-05-04", refused: false, done: 1 });
+  });
+
+  it("keeps a whole date when words over all of it cannot be read, and sends nothing new", () => {
+    const field = new DateTyper("dmy").type("04051929");
+    field.over(0, field.text.length, "the fourth of May");
+    expect(field).toMatchObject({ text: "04 / 05 / 1929", value: "1929-05-04", sent: ["1929-05-04"], refused: true });
+  });
+
+  it("reads a month named in any case or cut short, with the day and year in any script", () => {
+    for (const clip of ["4 MAY 1929", "4\u00a0May\u00a01929", "４ May １９２９", "٤ may ١٩٢٩", " 4 May 1929. "]) {
+      expect(readDate(clip, "dmy"), clip).toBe("04051929");
+    }
+    for (const [clip, digits] of [["4 Jan 1990", "04011990"], ["4 Febr. 1990", "04021990"], ["4 Sep 1990", "04091990"], ["4 Sept 1990", "04091990"]] as const) {
+      expect(readDate(clip, "dmy"), clip).toBe(digits);
+    }
+  });
+
+  it("never takes a word that only starts like a month, nor two letters, for one", () => {
+    for (const clip of ["4 Mayo 1929", "4 Ma 1929", "4 Junio 1929", "4 Marzo 1929", "4 Augusta 1929", "Mai 4, 1929"]) {
+      expect(readDate(clip, "dmy"), clip).toBeNull();
+    }
+  });
+
+  it("falls back to the numbers when a word that is also a month cannot be read as one", () => {
+    expect(readDate("Jan, 04.05.1929", "dmy")).toBe("04051929");
+    expect(readDate("you may type 4/5/1929", "dmy")).toBe("04051929");
   });
 });
 
@@ -464,6 +517,7 @@ describe("every minute of the day, on both clocks", () => {
 class TimeTyper {
   digits: string;
   half: Half;
+  halfSet = false;
   text: string;
   caret: number;
   value = "";
@@ -477,8 +531,9 @@ class TimeTyper {
   }
 
   edit(text: string, caret: number, inputType = "insertText") {
-    const step = stepTime({ digits: this.digits, half: this.half }, { shown: this.text, text, caret, inputType }, this.clock);
-    ({ digits: this.digits, half: this.half, text: this.text, caret: this.caret, value: this.value } = step);
+    const state = { digits: this.digits, half: this.half, halfSet: this.halfSet };
+    const step = stepTime(state, { shown: this.text, text, caret, inputType }, this.clock);
+    ({ digits: this.digits, half: this.half, halfSet: this.halfSet, text: this.text, caret: this.caret, value: this.value } = step);
     if (step.done) this.done++;
     return this;
   }
@@ -493,8 +548,9 @@ class TimeTyper {
   }
 
   pick(half: Half) {
-    this.half = half;
-    this.value = timeValue({ digits: this.digits, half }, this.clock);
+    const step = pickHalf({ digits: this.digits, half: this.half, halfSet: this.halfSet }, half, this.clock);
+    ({ half: this.half, halfSet: this.halfSet, value: this.value } = step);
+    if (step.done) this.done++;
     return this;
   }
 }
@@ -513,6 +569,30 @@ describe("typing a time on the 12-hour clock", () => {
     expect(new TimeTyper(12).type("1200pm").value).toBe("12:00");
     expect(new TimeTyper(12).type("1200p").type("a").value).toBe("00:00");
     expect(new TimeTyper(12).type("0159P").value).toBe("13:59");
+  });
+
+  it("is done once, when the half is set on a whole time, whichever comes last (MB-173)", () => {
+    for (const keys of ["1200p", "p1200", "1200a", "0159P"]) {
+      expect(new TimeTyper(12).type(keys).done, keys).toBe(1);
+    }
+    expect(new TimeTyper(12).type("1200").done).toBe(0);
+    expect(new TimeTyper(12).type("1200").pick("am").done).toBe(1);
+    expect(new TimeTyper(12).pick("pm").type("1200").done).toBe(1);
+    expect(new TimeTyper(12).type("1200pa").pick("pm").done).toBe(1);
+  });
+
+  it("is done again when the last digit is typed again at the end, once the half is set", () => {
+    const field = new TimeTyper(12).type("0300p");
+    field.edit("03 : 0", 6, "deleteContentBackward");
+    expect(field.value).toBe("");
+    field.type("5");
+    expect(field).toMatchObject({ value: "15:05", done: 2 });
+  });
+
+  it("is never done mid-edit, even when typing over the hour reads it as a 24-hour time", () => {
+    const field = new TimeTyper(12).type("0330");
+    field.edit("13 : 30", 1);
+    expect(field).toMatchObject({ half: "pm", halfSet: true, done: 0 });
   });
 
   it("sends nothing for hour 00 typed as 00 on a 12-hour clock: it is read as 12, never left as an hour that is not there", () => {
@@ -604,7 +684,10 @@ function randoms(seed: number) {
 }
 
 const KEYS = [..."0123456789", "/", " ", ".", "-", "p", "a", "m", "h", ":", "x", "٣", "４"];
-const CLIPS = ["1929-05-04", "4/5/1929", "04051929", "3:30 pm", "15h30", "0300", "12:00 am", "", "abc", "4/5", "1929-13-45", "２４", "9999999999"];
+const CLIPS = [
+  "1929-05-04", "4/5/1929", "04051929", "3:30 pm", "15h30", "0300", "12:00 am", "", "abc", "4/5", "1929-13-45", "２４", "9999999999",
+  "4 May 1929", "May 4, 1929", "4 Mai 1929", "31 Feb 1999",
+];
 
 describe("whatever is typed, pasted or deleted, the date field's step stays whole", () => {
   it.each(ORDERS)("%s: digits, text, value and caret agree after every one of 3000 random edits", (order) => {

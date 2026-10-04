@@ -4,13 +4,16 @@
  * a tap and keeps its actions (review-01-10, scope 3): This is me ✓ or Share
  * with {name} in view; Not me, Stop sharing and Delete report behind "⋯".
  * A report that could not be written keeps its row, which says why in its
- * coded line (ADR-84) and opens nothing, as the list did before R12.
+ * coded line (ADR-84), opens nothing, and offers Try again where the reader may
+ * run it again (MB-137). Not me on a report sent to the reader hands it back
+ * (ADR-236), and its writer's row then reads Handed back with Send again; a
+ * send still waiting can go to a corrected address (ADR-237).
  * Who is listed and what a row shows come from GET /home; the share, the giver,
  * why a report failed and the profile each action needs come from the lists
  * its route refreshes (reading 4). The page mounts it bare, so it holds its own
  * dialogs.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetHomeQueryKey,
@@ -19,6 +22,7 @@ import {
   useGetHome,
   useListProfiles,
   useListReports,
+  useRegenerateReport,
   useUpdateProfile,
   type HomePerson,
   type ProfileSummary,
@@ -28,12 +32,14 @@ import { BirthTimeDialog } from "@/components/BirthTimeDialog";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
 import { SendDialog, type SendTarget } from "@/components/SendDialog";
 import { StatusDots } from "@/components/StatusDots";
+import { HandBackDialog, type HandBackTarget } from "@/components/dashboard/HandBackDialog";
 import { ListRow, MENU_DANGER, MenuItem, ROW_ACTION, ROW_DONE, ROW_STATUS } from "@/components/dashboard/RowMenu";
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { birthDateText, failureLine, isFailed, ownIds } from "@/lib/home-view";
 import { initials } from "@/lib/orbit";
-import { pairedWithReader, personRowView, sharedWaiting, signsLine, signsSpoken } from "@/lib/pair-row";
+import { HANDED_BACK, SEND_AGAIN, pairedWithReader, personRowView, sharedWaiting, signsLine, signsSpoken } from "@/lib/pair-row";
+import { refusalLine } from "@/lib/refusals";
 import { shareWith } from "@/lib/share-card";
 
 interface PersonRowProps {
@@ -42,14 +48,20 @@ interface PersonRowProps {
   profile: ProfileSummary | undefined;
   unmarked: boolean;
   violet: boolean;
+  /** This row's Try again is under way. */
+  retrying: boolean;
   onShare: (target: SendTarget) => void;
   onMark: (person: HomePerson, mine: boolean) => void;
+  onHandBack: (target: HandBackTarget) => void;
+  onRetry: (reportId: string) => void;
   onBirthTime: (profile: ProfileSummary) => void;
   onStop: (target: StopTarget) => void;
 }
 
-function PersonRow({ person, report, profile, unmarked, violet, onShare, onMark, onBirthTime, onStop }: PersonRowProps) {
+function PersonRow(props: PersonRowProps) {
+  const { person, report, profile, unmarked, violet, retrying, onShare, onMark, onHandBack, onRetry, onBirthTime, onStop } = props;
   const send = report?.send ?? profile?.send ?? null;
+  const giver = profile?.giverName ?? report?.sharedBy ?? null;
   // The page polls the list while a report is under way; GET /home keeps the status it was read with.
   const status = report?.status ?? person.status;
   const view = personRowView({
@@ -59,8 +71,10 @@ function PersonRow({ person, report, profile, unmarked, violet, onShare, onMark,
     ownership: profile?.ownership,
     horizon: report?.horizon ?? profile?.horizon,
     send,
-    giver: profile?.giverName ?? report?.sharedBy ?? null,
+    giver,
     unmarked,
+    canRegenerate: person.canRegenerate,
+    name: person.name,
   });
   const date = birthDateText(person.birthDate);
   const signs = signsLine(person.triad);
@@ -73,18 +87,34 @@ function PersonRow({ person, report, profile, unmarked, violet, onShare, onMark,
       </span>
     ),
     isFailed(status) && <span key="failed" className={ROW_STATUS}>{failureLine(report)}</span>,
+    view.retry && (
+      <button key="retry" type="button" onClick={() => onRetry(person.reportId)} disabled={retrying} className={ROW_ACTION}>
+        {retrying ? <StatusDots label="Starting" /> : "Try again"}
+      </button>
+    ),
     view.self && <span key="self" className={ROW_DONE}>This is me ✓</span>,
     view.mark && (
       <button key="mark" type="button" onClick={() => onMark(person, true)} className={ROW_ACTION}>
         This is me
       </button>
     ),
+    view.handedBack && <span key="back" className={ROW_STATUS}>{HANDED_BACK}</span>,
     view.share?.kind === "offer" && send && (
       <button key="share" type="button" onClick={() => onShare({ kind: "person", send, reportId: person.reportId })} className={ROW_ACTION}>
-        {shareWith(view.share.name)}
+        {view.handedBack ? SEND_AGAIN : shareWith(view.share.name)}
       </button>
     ),
     view.share?.kind === "waiting" && <span key="waiting" className={ROW_STATUS}>{sharedWaiting(view.share.name)}</span>,
+    view.changeAddress && send && (
+      <button
+        key="address"
+        type="button"
+        onClick={() => onShare({ kind: "person", send, reportId: person.reportId, change: true })}
+        className={ROW_ACTION}
+      >
+        Change address
+      </button>
+    ),
     view.share?.kind === "joined" && <span key="joined" className={ROW_DONE}>Joined ✓</span>,
     view.addBirthTime && profile && (
       <button key="time" type="button" onClick={() => onBirthTime(profile)} className={ROW_ACTION}>
@@ -92,7 +122,26 @@ function PersonRow({ person, report, profile, unmarked, violet, onShare, onMark,
       </button>
     ),
   ].filter(Boolean);
+
   const stopWith = view.stopWith;
+  const menu: ReactNode[] = [
+    view.notMe && (
+      <MenuItem
+        key="not-me"
+        onSelect={() => (view.handBack ? onHandBack({ profileId: person.profileId, giverFirstName: giver ?? "" }) : onMark(person, false))}
+      >
+        Not me
+      </MenuItem>
+    ),
+    stopWith && (
+      <MenuItem key="stop" onSelect={() => onStop({ kind: "profile", id: person.profileId, name: stopWith, subject: view.stopSubject })}>
+        Stop sharing with {stopWith}
+      </MenuItem>
+    ),
+    view.deletes && (
+      <DeleteReportDialog key="delete" reportId={person.reportId} personName={person.name} handsOver={view.handsOver} className={MENU_DANGER} />
+    ),
+  ].filter(Boolean);
 
   return (
     <ListRow
@@ -108,15 +157,7 @@ function PersonRow({ person, report, profile, unmarked, violet, onShare, onMark,
       }
       moreLabel={`More for ${person.name}`}
       actions={actions.length > 0 ? actions : null}
-      menu={
-        <>
-          {view.notMe && <MenuItem onSelect={() => onMark(person, false)}>Not me</MenuItem>}
-          {stopWith && (
-            <MenuItem onSelect={() => onStop({ kind: "profile", id: person.profileId, name: stopWith })}>Stop sharing with {stopWith}</MenuItem>
-          )}
-          <DeleteReportDialog reportId={person.reportId} personName={person.name} handsOver={view.handsOver} className={MENU_DANGER} />
-        </>
-      }
+      menu={menu.length > 0 ? menu : null}
     />
   );
 }
@@ -129,6 +170,7 @@ export function PeopleRows() {
   const profiles = useListProfiles({ query: { queryKey: getListProfilesQueryKey() } }).data;
   const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
   const [stopTarget, setStopTarget] = useState<StopTarget | null>(null);
+  const [handBackTarget, setHandBackTarget] = useState<HandBackTarget | null>(null);
   const [timeTarget, setTimeTarget] = useState<ProfileSummary | null>(null);
 
   // A mark moves the circle's centre and what each row offers, so all three reads follow it.
@@ -143,9 +185,21 @@ export function PeopleRows() {
       onError: () => toast({ variant: "destructive", title: "We couldn't save that", description: "Try again in a minute." }),
     },
   });
-  // The writer marks their own chart; the person a chart was sent to says This is me or Not me (ADR-120).
+  // The writer marks their own chart; the person a chart was sent to says This is me, and Not me hands it back (ADR-120, 236).
   const mark = (person: HomePerson, mine: boolean) =>
     updateProfile.mutate({ id: person.profileId, data: person.access === "claimed" ? { claimedAsSelf: mine } : { isSelf: mine } });
+
+  // Settled, not only started: the list then reads the report as written again, and the page polls it from there.
+  const regenerate = useRegenerateReport({
+    mutation: {
+      onSettled: refresh,
+      onError: (err) => {
+        // 409: it is already being written, which the refreshed row shows.
+        if (err.status === 409) return;
+        toast({ variant: "destructive", title: "We couldn't start it again", description: refusalLine(err) ?? "Try again in a minute." });
+      },
+    },
+  });
 
   if (!home) return null;
   const listed = Array.isArray(reports) ? new Map(reports.map((r) => [r.id, r])) : null;
@@ -173,8 +227,11 @@ export function PeopleRows() {
                 profile={byProfile.get(person.profileId)}
                 unmarked={unmarked}
                 violet={violet.has(person.profileId)}
+                retrying={regenerate.isPending && regenerate.variables?.id === person.reportId}
                 onShare={setSendTarget}
                 onMark={mark}
+                onHandBack={setHandBackTarget}
+                onRetry={(id) => regenerate.mutate({ id })}
                 onBirthTime={setTimeTarget}
                 onStop={setStopTarget}
               />
@@ -184,6 +241,7 @@ export function PeopleRows() {
       )}
       <SendDialog open={!!sendTarget} onClose={() => setSendTarget(null)} target={sendTarget} />
       <StopSharingDialog target={stopTarget} onClose={() => setStopTarget(null)} />
+      <HandBackDialog target={handBackTarget} onClose={() => setHandBackTarget(null)} />
       {timeTarget && (
         <BirthTimeDialog
           open

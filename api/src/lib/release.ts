@@ -2,20 +2,22 @@
  * The release (ADR-86, R-4.4): one admin action on staging runs, in order,
  * the release lab when the brain changed since production's commit, the
  * gate, the QA agent, and the fast-forward of `production` with the token
- * Railway holds. Every step is written to `lab_releases` as it ends, so a
- * restart finds the record and not a memory. Without the token the release
- * stops at `passed` and names MB-75; the Promote workflow then reads the
- * public verdict (MB-79). The pieces are injected so the whole flow is
- * rehearsed in a test with a stub lab and a stub verdict, no spend.
+ * Railway holds, then /sample's run on a branch of its own (ADR-247). Every
+ * step is written to `lab_releases` as it ends, so a restart finds the
+ * record and not a memory. Without the token the release stops at `passed`
+ * and names MB-75; the Promote workflow then reads the public verdict
+ * (MB-79). The pieces are injected so the whole flow is rehearsed in a test
+ * with a stub lab, a stub verdict and a stub GitHub, no spend.
  */
 import { randomUUID } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
 import { db, labReleasesTable, type InsertLabRelease, type LabRelease } from "@workspace/db";
 import { readAppEnv, readCommitSha } from "./appEnv.js";
-import { brainDiff, githubApi, type GithubApi } from "./github.js";
+import { RELEASE_BRANCH, brainDiff, githubApi, type GithubApi } from "./github.js";
 import { MATRIX_CHARTS, gateProblems } from "./labRules.js";
 import { budgetUsd, checkBudget, dbStore, monthStart } from "./labReplay.js";
 import { NATAL_ESTIMATE_USD, PAIR_ESTIMATE_USD, RELEASE_PAIR, dbReleaseStore, runReleaseLab, type ReleaseLabOutcome, type ReleaseLabStore } from "./releaseLab.js";
+import { pushSample } from "./sampleRun.js";
 import { findChromium } from "./qaAgent/browser.js";
 import { runQaAgent, type QaVerdict } from "./qaAgent/index.js";
 import { logger } from "./logger.js";
@@ -170,11 +172,6 @@ async function stepStart(deps: ReleaseDeps, id: string, steps: ReleaseStep[], na
 }
 
 /**
- * The steps in order. A failed lab, a red gate or a QA sev-1 stops the
- * release as `failed`; a clean run fast-forwards when the token is there
- * and otherwise stops `passed`, naming MB-75.
- */
-/**
  * The newest earlier release whose lab passed, when no brain file differs between its commit and this one: its reports
  * are the ones this commit would write, so a retry after a fix outside the brain pays for no new reports (the Owner,
  * 2026-10-02). Only the newest is asked about, so a retry costs GitHub one compare at most.
@@ -198,6 +195,13 @@ export async function reusableLab(deps: ReleaseDeps, row: LabRelease): Promise<{
   return { label, sha: earlier.sha, withPair };
 }
 
+/**
+ * The steps in order. A failed lab, a red gate or a QA sev-1 stops the
+ * release as `failed`; a clean run fast-forwards when the token is there
+ * and otherwise stops `passed`, naming MB-75. Once production has moved,
+ * /sample's run is pushed, and its outcome, a skip included, is a line in
+ * the forward step's detail, never a failed release (reading 14).
+ */
 export async function runRelease(id: string, deps: ReleaseDeps, options: { seedFault?: boolean } = {}): Promise<LabRelease> {
   const row = await deps.store.get(id);
   if (!row) throw new Error(`no release ${id}`);
@@ -263,20 +267,30 @@ export async function runRelease(id: string, deps: ReleaseDeps, options: { seedF
   await stepDone(deps, id, steps, "qa", verdict.status === "unconfigured" ? "skipped" : "passed", verdict.status === "unconfigured" ? (verdict.reason ?? "unconfigured") : `${verdict.findings.length} finding(s), none sev-1, $${verdict.costUsd.toFixed(4)}`);
 
   const token = deps.env.GITHUB_RELEASE_TOKEN;
+  // The run this release's reports came from: its own lab's or the reused one's; with no lab there is no new run.
+  const sample = () => pushSample({
+    releaseId: id, sha: row.sha, label: row.brainChanged ? labLabel : null, token,
+    github: deps.github, read: (from) => deps.labStore.sampleOutput(from),
+  });
   if (!token) {
-    await stepDone(deps, id, steps, "forward", "stopped", "GITHUB_RELEASE_TOKEN is not on Railway staging (MB-75); dispatch Promote with this release id");
+    await stepDone(deps, id, steps, "forward", "stopped", `GITHUB_RELEASE_TOKEN is not on Railway staging (MB-75); dispatch Promote with this release id; ${await sample()}`);
     await deps.store.update(id, { status: "passed" });
     return (await deps.store.get(id))!;
   }
   await stepStart(deps, id, steps, "forward");
   try {
-    await deps.github.fastForward("production", row.sha, token);
-    await stepDone(deps, id, steps, "forward", "passed", `production fast-forwarded to ${row.sha.slice(0, 7)}`);
-    await deps.store.update(id, { status: "forwarded" });
+    await deps.github.fastForward(RELEASE_BRANCH, row.sha, token);
   } catch (err) {
-    await stepDone(deps, id, steps, "forward", "failed", err instanceof Error ? err.message : String(err));
-    await deps.store.update(id, { status: "passed", error: err instanceof Error ? err.message : String(err) });
+    const message = err instanceof Error ? err.message : String(err);
+    await stepDone(deps, id, steps, "forward", "failed", `${message}; /sample: skipped, production did not move`);
+    await deps.store.update(id, { status: "passed", error: message });
+    return (await deps.store.get(id))!;
   }
+  const moved = `production fast-forwarded to ${row.sha.slice(0, 7)}`;
+  // Production's move is recorded before /sample's push starts, so a slow GitHub or a restart cannot hide that it moved.
+  await stepDone(deps, id, steps, "forward", "passed", moved);
+  await deps.store.update(id, { status: "forwarded" });
+  await stepDone(deps, id, steps, "forward", "passed", `${moved}; ${await sample()}`);
   return (await deps.store.get(id))!;
 }
 

@@ -11,6 +11,7 @@
  */
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { CHAPTERS } from "@/lib/chapters";
 import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
@@ -54,6 +55,7 @@ interface OnWheel {
 
 export default function SkyPage() {
   const reduced = useReducedMotion();
+  const { clock } = useEntryFormat();
   const titleId = useId();
   const sample = useMemo(() => sampleSky(SAMPLE.name, SAMPLE.place, SAMPLE.birth, sampleChart()), []);
   // The birth the wheel is drawing or rewinding to, and the one the table lists once the wheel has landed on it.
@@ -70,7 +72,7 @@ export default function SkyPage() {
   useEffect(() => () => stopPreparing.current?.(), []);
 
   const result = listed ?? live ?? sample;
-  const lines = resultLines(result);
+  const lines = resultLines(result, clock);
 
   // A phone stacks the wheel under the form, so the rewind would play off screen; the reader's own press brings it in.
   const bringWheelIn = () => {

@@ -66,7 +66,7 @@ export function BirthTimeControl({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, birthDate, latitude, longitude, timezone, timezoneOffset, mapped?.birthTime, mapped?.birthTimeWindowMinutes]);
 
-  const line = horizon ? readout(horizon) : null;
+  const line = horizon ? readout(horizon, clock) : null;
   const hint = hintFor(country);
   const set = (patch: Partial<BirthTimeAnswer>) => onChange({ ...value, ...patch });
 

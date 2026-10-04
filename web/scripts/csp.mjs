@@ -39,8 +39,6 @@ const POLICY = {
     CLERK,
     // A development instance, which staging's key names, sends Clerk its telemetry; a production instance sends none.
     "https://clerk-telemetry.com",
-    "https://nominatim.openstreetmap.org", // MB-30: the place field asks Nominatim from the browser until the API does,
-    "https://timeapi.io", // MB-30: and asks timeapi.io for the place's zone.
   ],
   "frame-src": [CHALLENGE],
   // Clerk runs its session timers in a worker it builds from a blob.

@@ -1,8 +1,9 @@
 // Resend integration — every transactional email Stars Decoded sends: a
-// finished report shared with its subject, a Compatibility report shared or
-// granted, a gift and its reminder, the waitlist's confirmation, and the
-// spend breaker's notice to the admin. The first four are written in the
-// giver's name. A written report is shared and a
+// finished report shared with its subject, a reader's own Personal report
+// shared with someone, a Compatibility report shared or granted, a gift and
+// its reminder, the waitlist's confirmation, and the spend breaker's notice
+// to the admin. The first five are written in the giver's name. A written
+// report is shared and a
 // credit is given: none says "send" for a report, or "made" or "created"
 // (ADR-181; credit-loop.md "Two verbs", ADR-128, 135).
 // Credentials come straight from the environment (RESEND_API_KEY,
@@ -178,6 +179,51 @@ export function buildReportEmail(opts: SendReportEmailOptions): EmailContent {
 
 export async function sendReportEmail(opts: SendReportEmailOptions): Promise<boolean> {
   return deliver(opts.to, buildReportEmail(opts), "report-email");
+}
+
+// ---- Share my report: the sharer's own Personal report, read through a grant (ADR-235) ----
+
+export interface SendShareEmailOptions {
+  to: string;
+  // Nullable: `names.ts`'s `firstNameOf` can resolve to none (ADR-135, MB-85).
+  sharerFirstName: string | null;
+  claimUrl: string;
+}
+
+export function buildShareEmail(opts: SendShareEmailOptions): EmailContent {
+  const { claimUrl } = opts;
+  const sharerFirstName = opts.sharerFirstName ?? "Someone";
+  const sharer = escapeHtml(sharerFirstName);
+  const origin = publicWebBase();
+
+  // The sharer typed only an address, so there is no name to greet. The report stays the
+  // sharer's: the claim lets the reader read it, and nothing says it becomes theirs.
+  const subject = `${sharerFirstName} shared their Personal report with you`;
+  const signIn = "Sign in with this email to read it.";
+  const html = shell(
+    origin,
+    paddedSection(
+      `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;"><strong>${sharer}</strong> shared their Personal report with you.</p>` +
+        `<p style="margin:0 0 32px;font-size:15px;line-height:1.6;color:#8B949E;">${signIn}</p>` +
+        `<div style="text-align:center;margin-bottom:32px;">${ctaButton("Read the report", claimUrl)}</div>` +
+        `<p style="margin:0;font-size:12px;color:#6E7681;text-align:center;">This link is private to you and expires in 7 days.</p>`,
+    ),
+  );
+  const text = textShell([
+    `${sharerFirstName} shared their Personal report with you.`,
+    ``,
+    signIn,
+    ``,
+    `Read the report:`,
+    claimUrl,
+    ``,
+    `This link is private to you and expires in 7 days.`,
+  ]);
+  return { subject, html, text };
+}
+
+export async function sendShareEmail(opts: SendShareEmailOptions): Promise<boolean> {
+  return deliver(opts.to, buildShareEmail(opts), "share-email");
 }
 
 // ---- A Compatibility report, shared with its other person or granted at once ----

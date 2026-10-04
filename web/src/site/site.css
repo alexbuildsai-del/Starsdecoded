@@ -171,7 +171,9 @@
   .wl-fld input { display: block; width: 100%; min-width: 0; height: 46px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--paper);
     padding-inline: 12px; font: 400 16px/1 var(--f-body); -webkit-appearance: none; appearance: none; }
   .wl-fld input::placeholder { color: var(--sd-muted-2, var(--muted-2)); }
-  .wl-fld input:focus { outline: none; border-color: var(--indigo-lt); }
+  .wl-fld input:focus { border-color: var(--indigo-lt); }
+  /* A border colour alone was too faint a cue (QA-02 #11), so the field draws the site's ring wherever the form sits. */
+  .wl-fld input:focus-visible { outline: 2px solid var(--indigo-lt); outline-offset: 3px; }
   .wl-fld input[aria-invalid="true"] { border-color: #E9A0A0; }
   .wl-trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
   .wl-hint { font-size: 12.5px; line-height: 1.5; color: var(--sd-muted, var(--muted)); max-width: 52ch; }

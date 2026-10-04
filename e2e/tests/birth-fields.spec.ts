@@ -3,8 +3,9 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 /**
  * The typed date and time on the two public forms (ADR-222, review-02-10 §5, acceptance 1 to 4), at 390 px: each
  * language's order and clock, focus carried from the date to the time to the place, the value that leaves the form,
- * and a hydration that raises nothing. The birth form and the birth-time dialog sit behind sign-in, so a preview
- * cannot reach them; they are looked at on the dev server.
+ * and a hydration that raises nothing; a date pasted in words (MB-185) and a 12-hour time that waits for AM or PM
+ * (MB-173). The birth form and the birth-time dialog sit behind sign-in, so a preview cannot reach them; they are
+ * looked at on the dev server.
  */
 const PHONE = { width: 390, height: 844 };
 
@@ -12,9 +13,9 @@ const PHONE = { width: 390, height: 844 };
 const ZONE = "Europe/London";
 
 const LANGUAGES = [
-  { locale: "en-US", datePlaceholder: "MM / DD / YYYY", date: "05041929", twelveHour: true },
-  { locale: "en-GB", datePlaceholder: "DD / MM / YYYY", date: "04051929", twelveHour: false },
-  { locale: "ja-JP", datePlaceholder: "YYYY / MM / DD", date: "19290504", twelveHour: false },
+  { locale: "en-US", datePlaceholder: "MM / DD / YYYY", date: "05041929", dateShown: "05 / 04 / 1929", twelveHour: true },
+  { locale: "en-GB", datePlaceholder: "DD / MM / YYYY", date: "04051929", dateShown: "04 / 05 / 1929", twelveHour: false },
+  { locale: "ja-JP", datePlaceholder: "YYYY / MM / DD", date: "19290504", dateShown: "1929 / 05 / 04", twelveHour: false },
 ] as const;
 
 const PAGES = ["/", "/sky"] as const;
@@ -27,6 +28,13 @@ test.beforeEach(({}, testInfo) => {
 
 const dateField = (page: Page) => page.getByRole("textbox", { name: "Birth date" });
 const timeField = (page: Page) => page.getByRole("textbox", { name: "Birth time" });
+const placeField = (page: Page) => page.getByRole("textbox", { name: "Birth place" });
+
+/** A paste as a reader makes one, from the clipboard by the shortcut, into the focused field. */
+async function paste(page: Page, clip: string) {
+  await page.evaluate((text) => navigator.clipboard.writeText(text), clip);
+  await page.keyboard.press("ControlOrMeta+V");
+}
 
 async function within(inner: Locator, outer: Locator, what: string) {
   const [a, b] = await Promise.all([inner.boundingBox(), outer.boundingBox()]);
@@ -45,9 +53,9 @@ test("the prerendered pages draw DD / MM / YYYY and the 24-hour clock whatever t
   }
 });
 
-for (const { locale, datePlaceholder, date, twelveHour } of LANGUAGES) {
+for (const { locale, datePlaceholder, date, dateShown, twelveHour } of LANGUAGES) {
   test.describe(locale, () => {
-    test.use({ locale, timezoneId: ZONE, viewport: PHONE });
+    test.use({ locale, timezoneId: ZONE, viewport: PHONE, permissions: ["clipboard-read", "clipboard-write"] });
 
     for (const path of PAGES) {
       test(`${path}: the order, the clock, focus on to the place, and the value sent`, async ({ page }) => {
@@ -85,26 +93,73 @@ for (const { locale, datePlaceholder, date, twelveHour } of LANGUAGES) {
         await expect(timeInput, "a whole date moves focus to the time").toBeFocused();
         await page.keyboard.type("0300");
         await expect(timeInput).toHaveValue("03 : 00");
-        const place = page.getByRole("textbox", { name: "Birth place" });
+        if (twelveHour) {
+          // Four digits are not yet a 12-hour time, so the P typed next sets PM here instead of landing in the place (MB-173).
+          await expect(timeInput, "a whole 12-hour time waits for AM or PM").toBeFocused();
+          await expect(halves.getByRole("radio", { name: "AM" })).toBeChecked();
+          await page.keyboard.type("p");
+          await expect(halves.getByRole("radio", { name: "PM" })).toBeChecked();
+        }
+        const place = placeField(page);
         await expect(place, "a whole time moves focus to the place").toBeFocused();
         // The visitor's city is already there, so it arrives selected and typing on replaces it (QA-02 #2).
         const selection = await place.evaluate((el: HTMLInputElement) => [el.selectionStart, el.selectionEnd, el.value.length]);
         expect(selection[2], "a city is pre-filled").toBeGreaterThan(0);
         expect(selection, "the pre-filled city is selected whole").toEqual([0, selection[2], selection[2]]);
-        if (twelveHour) {
-          await expect(halves.getByRole("radio", { name: "AM" })).toBeChecked();
-          await halves.getByText("PM", { exact: true }).click();
-        }
 
         await within(dateInput, card, "the typed date");
         await within(timeInput, card, "the typed time");
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), "no sideways scroll").toBe(true);
 
         await page.getByRole("button", { name: "Show my chart" }).click();
-        // The summary line is the form's own value read back: "YYYY-MM-DD" and "HH:MM" went in, whatever the reader saw.
-        const sent = twelveHour ? "4 May 1929 · 15:00 · London" : "4 May 1929 · 03:00 · London";
+        // The summary line is the form's own value read back on the reader's clock (MB-178): "YYYY-MM-DD" and "HH:MM" went
+        // in, whatever the reader saw, and the P typed above made it 3 pm.
+        const sent = twelveHour ? "4 May 1929 · 3\u00a0pm · London" : "4 May 1929 · 03:00 · London";
         await expect(page.getByText(sent, { exact: true }).first()).toBeVisible({ timeout: 20_000 });
         expect(raised, "no hydration warning").toEqual([]);
+      });
+    }
+
+    test("/sky: a date pasted in words reads in the field's order, and words it cannot read leave the field as it was", async ({ page }) => {
+      await page.goto("/sky");
+      await page.waitForLoadState("networkidle");
+      const dateInput = dateField(page);
+      await expect(dateInput, "the reader's order has arrived").toHaveAttribute("placeholder", datePlaceholder);
+
+      await dateInput.click();
+      await paste(page, "4 Mai 1929");
+      await expect(dateInput, "words it cannot read leave the field as it was (MB-185)").toHaveValue("");
+      await expect(dateInput).toBeFocused();
+      await expect(page.getByText(`We couldn't read that as a date. Type it as ${datePlaceholder}.`), "and the line says why").toBeVisible();
+      await expect(dateInput).toHaveAttribute("aria-invalid", "true");
+
+      // The readout's own style first, the one QA-02 #12 pasted.
+      for (const clip of ["4 May 1929", "May 4 1929", "4 may 1929"]) {
+        await dateInput.click();
+        await dateInput.press("ControlOrMeta+A");
+        await dateInput.press("Backspace");
+        await expect(dateInput).toHaveValue("");
+        await paste(page, clip);
+        await expect(dateInput, `${clip} reads whole (MB-185)`).toHaveValue(dateShown);
+        await expect(page.getByText("4 May 1929", { exact: true }), clip).toBeVisible();
+        await expect(timeField(page), `${clip}: a whole date moves focus to the time`).toBeFocused();
+      }
+    });
+
+    if (twelveHour) {
+      test("/: a whole 12-hour time moves on once the switch is tapped, on the AM it starts on too", async ({ page }) => {
+        await page.goto("/");
+        await page.waitForLoadState("networkidle");
+        const timeInput = timeField(page);
+        const halves = page.getByRole("radiogroup", { name: "AM or PM" });
+
+        await timeInput.click();
+        await page.keyboard.type("0300");
+        await expect(timeInput).toHaveValue("03 : 00");
+        await expect(timeInput, "four digits on a 12-hour clock wait for AM or PM (MB-173)").toBeFocused();
+        await halves.getByText("AM", { exact: true }).tap();
+        await expect(halves.getByRole("radio", { name: "AM" })).toBeChecked();
+        await expect(placeField(page), "a tap on the switch moves on to the place").toBeFocused();
       });
     }
   });

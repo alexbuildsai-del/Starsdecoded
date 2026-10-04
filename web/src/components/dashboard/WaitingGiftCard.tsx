@@ -1,24 +1,31 @@
 /**
  * A waiting gift, opened from its teal point on the orbit: when it went, the
- * date its held credit comes back, Send a reminder and Take it back. Dates
- * only, never a countdown (ADR-127). Like the person's card it is content
- * only: the panel on desktop and the bottom sheet on a phone own its frame.
+ * date its held credit comes back, Send a reminder, Change address and Take it
+ * back. Dates only, never a countdown (ADR-127). A new address revokes the old
+ * link and sends a new one, and the gift keeps its held credit and its date
+ * (ADR-237). Like the person's card it is content only: the panel on desktop
+ * and the bottom sheet on a phone own its frame.
  */
-import { useId, useState } from "react";
-import { Check } from "lucide-react";
+import { useId, useRef, useState, type FormEvent } from "react";
+import { Check, Copy } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCreditHistoryQueryKey,
   getGetCreditsQueryKey,
   getListGiftsQueryKey,
+  useChangeGiftAddress,
   useRemindGift,
   useTakeBackGift,
   type Gift,
+  type GiftCreated,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { StatusDots } from "@/components/StatusDots";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useToast } from "@/hooks/use-toast";
+import { refusalLine } from "@/lib/refusals";
 import { cn } from "@/lib/utils";
 
 export interface WaitingGiftCardProps {
@@ -36,6 +43,11 @@ const DETAIL = "text-[13px] leading-[1.45] text-[var(--paper-dim)]";
 const SMALL = "min-h-[30px] px-[11px] font-label text-xs";
 const PENDING =
   "inline-flex min-h-[30px] items-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] px-[11px] font-label text-xs text-[var(--indigo-lt)]";
+const QUESTION = "text-[13.5px] leading-[1.45] text-[var(--paper)]";
+const LABEL = "font-label text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground";
+const EMAIL = /.+@.+\..+/;
+
+type Step = "actions" | "take_back" | "address";
 
 function dateText(iso: string): string {
   const d = new Date(iso);
@@ -54,6 +66,16 @@ function dayText(iso: string, now: Date): string {
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   return sameDay(d, yesterday) ? "yesterday" : `on ${dateText(iso)}`;
+}
+
+/** The API's own line says why an address was refused, or that the gift was claimed or came back, which the card cannot tell apart. */
+function changeLine(error: { status: number; data: { message?: string } | null } | null): string {
+  const refusal = refusalLine(error);
+  if (refusal) return refusal;
+  const told = error?.data?.message;
+  if (error?.status === 400) return told || "That email address did not work. Check it and try again.";
+  if (error?.status === 404 || error?.status === 409) return told || "This gift isn't waiting any more.";
+  return "We couldn't change the address. Try again in a few minutes.";
 }
 
 /** The orbit's waiting-gift mark, its dashes turning while the gift waits; reduced motion holds it still (credit-loop acceptance 8). */
@@ -91,8 +113,14 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
   const { toast } = useToast();
   const still = useReducedMotion();
   const questionId = useId();
-  const [confirming, setConfirming] = useState(false);
+  const emailId = useId();
+  const [step, setStep] = useState<Step>("actions");
   const [remindedNow, setRemindedNow] = useState(false);
+  const [address, setAddress] = useState("");
+  // The new link, when its email didn't go, so the giver can pass it on by hand.
+  const [unsent, setUnsent] = useState<GiftCreated | null>(null);
+  const [copied, setCopied] = useState(false);
+  const linkRef = useRef<HTMLInputElement>(null);
   const name = gift.recipientName;
 
   const remind = useRemindGift({
@@ -104,6 +132,21 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
       onError: (err) => {
         // 404: claimed or come back meanwhile, so the refetch redraws the card in its new state.
         if (err.status === 404) qc.invalidateQueries({ queryKey: getListGiftsQueryKey() });
+      },
+    },
+  });
+  const changeAddress = useChangeGiftAddress({
+    mutation: {
+      onSuccess: (moved) => {
+        qc.invalidateQueries({ queryKey: getListGiftsQueryKey() });
+        setAddress("");
+        setStep("actions");
+        if (moved.emailDelivered) toast({ title: `We emailed ${name} at ${moved.email}` });
+        else setUnsent(moved);
+      },
+      onError: (err) => {
+        // 404 or 409: claimed or come back meanwhile, so the refetch redraws the card in its new state.
+        if (err.status === 404 || err.status === 409) qc.invalidateQueries({ queryKey: getListGiftsQueryKey() });
       },
     },
   });
@@ -159,6 +202,24 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
     : takeBack.error?.status === 409
       ? `${name} has already claimed it, so it can't be taken back.`
       : "We couldn't take the gift back. Try again in a few minutes.";
+  const changeError = changeAddress.isError ? changeLine(changeAddress.error) : null;
+  const addressReady = EMAIL.test(address.trim());
+
+  const sendTo = (event: FormEvent) => {
+    event.preventDefault();
+    if (!addressReady || changeAddress.isPending) return;
+    changeAddress.mutate({ id: gift.id, data: { email: address.trim() } });
+  };
+
+  async function copyLink(link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      // Without clipboard access the link is left selected, so the giver can copy it by hand.
+      linkRef.current?.select();
+    }
+  }
 
   return (
     <article aria-label={`Gift for ${name}, waiting`} className={frame}>
@@ -176,9 +237,77 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
         {last && !recent && <p className={DETAIL}>Last reminder {dayText(last, now)}.</p>}
       </div>
 
-      {confirming ? (
+      {unsent && (
+        <div className="grid gap-2.5 border-t border-[var(--line)] pt-3.5">
+          <p className={DETAIL}>
+            {`The email didn't go through. Copy this link and send it to ${name} yourself. They sign in with ${unsent.email} to claim it.`}
+          </p>
+          <div className="flex gap-2">
+            <Input
+              ref={linkRef}
+              readOnly
+              value={unsent.claimUrl}
+              aria-label={`The link for ${name}`}
+              onFocus={(e) => e.currentTarget.select()}
+            />
+            <Button type="button" variant="outline" onClick={() => copyLink(unsent.claimUrl)} className="shrink-0 gap-1.5 font-label">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Copied" : "Copy link"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === "address" ? (
+        <form noValidate onSubmit={sendTo} aria-labelledby={questionId} className="grid gap-3 border-t border-[var(--line)] pt-3.5">
+          <p id={questionId} className={QUESTION}>
+            {"Enter the right address and we'll send a new link. The old one stops working. "}
+            {gift.creditHeld
+              ? `Your credit stays held until ${dateText(gift.returnsAt)}.`
+              : `${name} can still claim it until ${dateText(gift.returnsAt)}.`}
+          </p>
+          <div className="grid gap-1.5">
+            <Label htmlFor={emailId} className={LABEL}>
+              Their email
+            </Label>
+            <Input
+              id={emailId}
+              type="email"
+              autoComplete="off"
+              autoFocus
+              value={address}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                if (changeAddress.isError) changeAddress.reset();
+              }}
+              aria-invalid={changeAddress.error?.status === 400 || undefined}
+              aria-describedby={changeError ? `${emailId}-error` : undefined}
+              className="h-10 aria-[invalid=true]:border-destructive"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {changeAddress.isPending ? (
+              <span className={PENDING}>
+                <StatusDots label="Sending" />
+              </span>
+            ) : (
+              <Button type="submit" size="sm" variant="outline" className={SMALL} disabled={!addressReady}>
+                Send new link
+              </Button>
+            )}
+            <Button type="button" size="sm" variant="ghost" className={SMALL} disabled={changeAddress.isPending} onClick={() => setStep("actions")}>
+              Cancel
+            </Button>
+          </div>
+          {changeError && (
+            <p id={`${emailId}-error`} role="alert" className="text-xs leading-[1.4] text-destructive">
+              {changeError}
+            </p>
+          )}
+        </form>
+      ) : step === "take_back" ? (
         <div role="group" aria-labelledby={questionId} className="grid gap-3 border-t border-[var(--line)] pt-3.5">
-          <p id={questionId} className="text-[13.5px] leading-[1.45] text-[var(--paper)]">
+          <p id={questionId} className={QUESTION}>
             Take back your gift to {name}? The link in the email stops working
             {gift.creditHeld ? ", and the credit comes back to you." : "."}
           </p>
@@ -198,7 +327,7 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
               autoFocus
               className={SMALL}
               disabled={takeBack.isPending}
-              onClick={() => setConfirming(false)}
+              onClick={() => setStep("actions")}
             >
               Keep it
             </Button>
@@ -239,8 +368,21 @@ export function WaitingGiftCard({ gift, onTakenBack, className }: WaitingGiftCar
               variant="outline"
               className={SMALL}
               onClick={() => {
+                changeAddress.reset();
+                setUnsent(null);
+                setCopied(false);
+                setStep("address");
+              }}
+            >
+              Change address
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className={SMALL}
+              onClick={() => {
                 takeBack.reset();
-                setConfirming(true);
+                setStep("take_back");
               }}
             >
               Take it back

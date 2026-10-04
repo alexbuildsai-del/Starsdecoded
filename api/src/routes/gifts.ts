@@ -3,7 +3,12 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import type { z } from "zod";
 import { db, creditsTable, inviteTokensTable, type InviteToken } from "@workspace/db";
-import { CreateGiftBody, createGiftBodyNoteMax, type ListGiftsResponseItem } from "@workspace/api-zod";
+import {
+  ChangeGiftAddressBody,
+  CreateGiftBody,
+  createGiftBodyNoteMax,
+  type ListGiftsResponseItem,
+} from "@workspace/api-zod";
 import { mintInviteToken } from "../lib/inviteToken.js";
 import { holdCredit, returnExpiredHolds, returnHeldCredit } from "../lib/credits.js";
 import { sendGiftEmail, sendGiftReminder } from "../lib/mailer.js";
@@ -267,6 +272,108 @@ router.post("/gifts/:id/remind", async (req, res) => {
     return res
       .status(500)
       .json({ error: "internal_error", message: "We couldn't send the reminder. Try again in a few minutes." });
+  }
+});
+
+export const GIFT_CHANGE_LINES = {
+  invalid: "Check the email address and try again.",
+  sameAddress: "That's the address the gift already went to. Add the new one.",
+  claimed: "This gift was claimed, so its address can't change.",
+  returned: "This gift was returned, so its address can't change.",
+  raced: "The address just changed. Check it before you change it again.",
+  failed: "We couldn't change the address. Try again in a few minutes.",
+} as const;
+
+/** Only a waiting gift's address can change; once claimed or returned it stays (ADR-237, reading 7). */
+export function giftChangeRefusal(row: Pick<InviteToken, "claimedAt" | "revokedAt" | "expiresAt">, now: Date): string | null {
+  const state = giftState(row, now);
+  if (state === "claimed") return GIFT_CHANGE_LINES.claimed;
+  if (state === "returned") return GIFT_CHANGE_LINES.returned;
+  return null;
+}
+
+/** The giver's credit held for the gift, read as GET /gifts reads it, so the answer says what the list will. */
+async function creditStatusOf(gift: InviteToken): Promise<string | null> {
+  if (!gift.creditId || !gift.createdByUserId) return null;
+  const [credit] = await db
+    .select({ status: creditsTable.status })
+    .from(creditsTable)
+    .where(and(eq(creditsTable.id, gift.creditId), eq(creditsTable.userId, gift.createdByUserId)))
+    .limit(1);
+  return credit?.status ?? null;
+}
+
+// Change address (ADR-237, MB-109): the gift itself stays, with its credit, its note and its return date.
+router.post("/gifts/:id/change-address", async (req, res) => {
+  const userId = req.userId;
+  if (!userId) return notFound(res);
+  const body = ChangeGiftAddressBody.safeParse(req.body ?? {});
+  if (!body.success) {
+    return res.status(400).json({ error: "validation_error", message: GIFT_CHANGE_LINES.invalid });
+  }
+  try {
+    const gift = await ownGift(userId, req.params.id);
+    if (!gift) return notFound(res);
+    const now = new Date();
+    const refusal = giftChangeRefusal(gift, now);
+    if (refusal) return res.status(409).json({ error: "not_waiting", message: refusal });
+    const email = body.data.email.trim().toLowerCase();
+    if (email === gift.email.trim().toLowerCase()) {
+      return res.status(400).json({ error: "validation_error", message: GIFT_CHANGE_LINES.sameAddress });
+    }
+
+    const giverFirstName = await firstNameOf(userId);
+    // Only a token's hash is stored, so the swap is the revocation: the old link finds no gift
+    // from this statement on. Guarded on the old hash, as a reminder's swap is, so a claim, a
+    // reminder or a second change racing this one leaves one winner.
+    const { token, tokenHash } = mintInviteToken();
+    const [changed] = await db
+      .update(inviteTokensTable)
+      .set({ tokenHash, email, emailDelivered: null })
+      .where(
+        and(
+          eq(inviteTokensTable.id, gift.id),
+          eq(inviteTokensTable.tokenHash, gift.tokenHash),
+          isNull(inviteTokensTable.claimedAt),
+          isNull(inviteTokensTable.revokedAt),
+          gt(inviteTokensTable.expiresAt, now),
+        ),
+      )
+      .returning();
+    if (!changed) {
+      const after = await ownGift(userId, gift.id);
+      if (!after) return notFound(res);
+      return res
+        .status(409)
+        .json({ error: "not_waiting", message: giftChangeRefusal(after, new Date()) ?? GIFT_CHANGE_LINES.raced });
+    }
+
+    // The whole gift, cover and note, since the person at the new address never saw the first email. A failed
+    // email keeps the change: the old address must not keep a link, and the giver has the copy link instead.
+    const claimUrl = claimUrlFor(token);
+    const emailDelivered = await mailed(
+      sendGiftEmail({
+        to: email,
+        giverFirstName,
+        recipientFirstName: changed.recipientName ?? "",
+        note: changed.note,
+        claimUrl,
+      }),
+      req,
+      changed.id,
+    );
+    await db
+      .update(inviteTokensTable)
+      .set({ emailDelivered })
+      .where(eq(inviteTokensTable.id, changed.id))
+      .catch((err: unknown) => req.log.warn({ err, giftId: changed.id }, "could not record the gift email's delivery"));
+    if (!emailDelivered) {
+      req.log.warn({ giftId: changed.id }, "[gift-email] not sent to the new address; the giver has the copy link");
+    }
+    return res.json({ ...toGift(changed, await creditStatusOf(changed), new Date()), claimUrl, emailDelivered });
+  } catch (err) {
+    req.log.error({ err }, "Failed to change a gift's address");
+    return res.status(500).json({ error: "internal_error", message: GIFT_CHANGE_LINES.failed });
   }
 });
 

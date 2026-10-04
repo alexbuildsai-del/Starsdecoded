@@ -26,6 +26,8 @@ tags:
     description: The claim link behind Send and Gift, previewed and claimed by its recipient (ADR-120, ADR-139)
   - name: gifts
     description: Gift a report, a credit held for someone until they claim it (ADR-123, ADR-139)
+  - name: shares
+    description: Share my report, the reader's own Personal report read through a grant until its sharer stops (ADR-235)
   - name: credits
     description: One balance of credits, its History and the test checkout (ADR-129, ADR-138)
   - name: waitlist
@@ -226,6 +228,9 @@ paths:
         Deletes a report the viewer owns. The profile behind a natal report is
         deleted too when no other report or relationship references it. A
         compatibility report is deleted through the relationship's access roles.
+        Deleting the viewer's own Personal report ends their sharing of it in
+        the same transaction, its grants and waiting share links revoked as Stop
+        sharing revokes them (ADR-235).
       parameters:
         - name: id
           in: path
@@ -274,12 +279,14 @@ paths:
       tags: [reports]
       summary: Tick or untick workbook items on a report
       description: >
-        Shallow-merges the patch into the report's workbook, the reader's own
-        record of which actions they have taken. A string value is the ISO date
-        of the tick, null removes the item. Returns the merged workbook. The
-        viewer must own the report. A pin key pins its item to What you're
-        practising the same way, three pins a report at most (ADR-174, MB-110
-        provisional).
+        Shallow-merges the patch into the viewer's own workbook on the report,
+        their record of which actions they have taken. Every reader of the
+        report, its writer, the person it was sent to or a reader through a
+        grant, keeps their own ticks and pins, and no one else's show (ADR-239).
+        A string value is the ISO date of the tick, null removes the item.
+        Returns the merged workbook. A pin key pins its item to What you're
+        practising the same way, three pins a workbook at most (ADR-174,
+        ADR-239).
       parameters:
         - name: id
           in: path
@@ -320,10 +327,12 @@ paths:
       tags: [reports]
       summary: Regenerate a report's interpretation
       description: >
-        Re-runs interpretation on the stored chart. Used for reports generated
-        before the current prompt version. Its 429 is the writing limit, or a
-        second regenerate of the same report within a minute, which sends
-        Retry-After but no `retryAfterSeconds` in its body.
+        Re-runs interpretation on the stored chart, free, for whoever may
+        rewrite the report, as `canRegenerate` says (MB-169), and only where a
+        rewrite is wanted: a failed report (Try again, MB-137), an outdated one
+        (MB-170), or one written on an earlier prompt version. Its 429 is the
+        writing limit, or a second regenerate of the same report within a
+        minute, which sends Retry-After but no `retryAfterSeconds` in its body.
       parameters:
         - name: id
           in: path
@@ -344,13 +353,17 @@ paths:
                     type: string
                 required: [id, status]
         "404":
-          description: Report not found
+          description: Report not found, or not a Personal report the viewer may regenerate (MB-169)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Report is already being generated
+          description: >
+            `in_progress`: the report is already being written. `up_to_date`:
+            a finished report on the current prompt version, written for its
+            profile's birth time, needs no rewrite ("This report is already up
+            to date"; MB-170).
           content:
             application/json:
               schema:
@@ -475,17 +488,55 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /profiles/{id}/hand-back:
+    post:
+      operationId: handBackProfile
+      tags: [profiles]
+      summary: Hand a sent chart back to whoever sent it
+      description: >
+        Not me's Hand it back (ADR-236, MB-103), the claimer's alone and in one
+        transaction: the claim ends, that profile's participant grants return to
+        its writer, and the send is stamped handed back, so the writer's row
+        reads "Handed back" with Send again.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Handed back to its writer (ADR-236)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandBackResponse"
+        "404":
+          description: No chart of this id the viewer may hand back (ADR-236)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "`not_claimed`: the chart is not claimed from a send, so there is nothing to hand back (ADR-236)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /profiles/{id}/birth-time:
     patch:
       operationId: updateProfileBirthTime
       tags: [profiles, horizon]
       summary: Add or correct the birth time and run the horizon pass
       description: >
-        Owner only. Stores the new time and window on the profile, recomputes
-        its chart, and runs a horizon pass on every complete report of the
-        profile: the previous text is kept in report_revisions, the horizon
-        sections are generated and the rest is amended by quote match, never
-        regenerated (ADR-35). The first pass is free (MB-52).
+        Its owner, or whoever claimed it as their own, only. Stores the new time
+        and window on the profile, recomputes its chart, and runs a horizon pass
+        on the newest complete Personal report of the profile: the previous text
+        is kept in report_revisions, the horizon sections are generated and the
+        rest is amended by quote match, never regenerated (ADR-35). Its older
+        complete reports keep their text and read as outdated, which Regenerate
+        rewrites free (MB-170). The first pass is free (MB-52).
       parameters:
         - name: id
           in: path
@@ -500,7 +551,7 @@ paths:
               $ref: "#/components/schemas/UpdateBirthTimeBody"
       responses:
         "202":
-          description: The pass has started on the listed reports
+          description: The pass has started on the listed report, or on none (MB-170)
           content:
             application/json:
               schema:
@@ -637,7 +688,7 @@ paths:
       description: >
         Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139):
         someone already on Stars Decoded reads it at once, anyone else is invited at `email`
-        (MB-82). MB-103 provisional.
+        (MB-82, ADR-236).
       parameters:
         - name: id
           in: path
@@ -683,7 +734,7 @@ paths:
       operationId: stopSharingCompatibility
       tags: [compatibility]
       summary: Stop sharing a compatibility report its sender sent
-      description: The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, MB-103 provisional).
+      description: The sender's Stop sharing, which ends the other person's access at once; nothing is deleted (ADR-139, ADR-236).
       parameters:
         - name: id
           in: path
@@ -1052,7 +1103,8 @@ paths:
         profile.claimed_by_user_id, and adds the user as a participant on the
         related relationship. A gift moves its held credit into the claimer's
         balance and answers `redirectTo: /dashboard`; it puts no one on an
-        orbit (ADR-139).
+        orbit (ADR-139). A share writes a grant to read the sharer's own
+        Personal report, never a hand-over, and answers `shareBack` (ADR-235).
       parameters:
         - name: token
           in: path
@@ -1084,6 +1136,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /invites/{id}/change-address:
+    post:
+      operationId: changeInviteAddress
+      tags: [invites]
+      summary: Send a waiting send's link to a corrected address
+      description: >
+        Change address (ADR-237, MB-109), in one transaction: the old link is
+        revoked and a new one is emailed to the new address, so the old link
+        answers as revoked from then on.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The invite's id, as GET /invites lists it, never its token.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeAddressBody"
+      responses:
+        "200":
+          description: The send at its new address, with the new claim link and whether its email went (ADR-237)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteSummary"
+        "400":
+          description: Validation error, such as an unusable email (ADR-237)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No send of the viewer's with this id (ADR-237)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "`not_waiting`: the send was claimed or has expired, so its address stays (ADR-237)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /gifts:
     get:
@@ -1161,6 +1263,55 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /gifts/{id}/change-address:
+    post:
+      operationId: changeGiftAddress
+      tags: [gifts]
+      summary: Send a waiting gift's link to a corrected address
+      description: >
+        Change address (ADR-237, MB-109), in one transaction: the old link is
+        revoked and a new one is emailed to the new address; the gift keeps
+        its held credit and its return date.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeAddressBody"
+      responses:
+        "200":
+          description: The gift at its new address, with the new claim link exactly as its email carried it and whether that email went (ADR-237)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftCreated"
+        "400":
+          description: Validation error, such as an unusable email (ADR-237)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No gift of the viewer's with this id (ADR-237)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "`not_waiting`: the gift was claimed or returned, so its address stays (ADR-237)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
   /gifts/{id}:
     delete:
       operationId: takeBackGift
@@ -1184,6 +1335,134 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Already claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /shares:
+    get:
+      operationId: listShares
+      tags: [shares]
+      summary: Who the viewer's own Personal report is shared with
+      description: The list on the sharer's own quick look, each share waiting on its claim or read through its grant, each with Stop sharing (ADR-235). Empty for anonymous users.
+      responses:
+        "200":
+          description: The viewer's shares, waiting and active (ADR-235)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Share"
+    post:
+      operationId: shareMyReport
+      tags: [shares]
+      summary: Share the viewer's own Personal report by email
+      description: >
+        Share my report (ADR-235, MB-104): a `share` invite on the
+        send-and-claim path, its link living 7 days and counted with sends.
+        Its claim writes a grant, never a hand-over, so the recipient reads the
+        whole Personal report but never its workbook, and the sharer sits on
+        their circle marked shared.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShareBody"
+      responses:
+        "201":
+          description: The share, waiting, plus the claim link exactly as its email carried it and whether that email went (ADR-235)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareCreated"
+        "400":
+          description: Validation error, such as an unusable email (ADR-235)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Sharing needs an account, since a grant joins two accounts (ADR-235)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >-
+            `no_own_report`: no Personal report is marked as the viewer's own;
+            `not_ready`: it is not finished; `already_shared`: it is already
+            shared with that address (ADR-235)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /shares/back:
+    post:
+      operationId: shareBack
+      tags: [shares]
+      summary: Share yours back with someone who shared theirs
+      description: >
+        Share yours back (ADR-235, MB-104), one tap and no email, since both
+        people are known: the viewer's own finished Personal report is granted
+        at once to whoever shared the given profile with them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShareBackBody"
+      responses:
+        "201":
+          description: The share, active at once (ADR-235)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Share"
+        "400":
+          description: Validation error, such as no profileId (ADR-235)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No active share of this profile with the viewer (ADR-235)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Share yours back is not offered, as `shareBack` would be false; no finished Personal report of the viewer's own, or it is already shared with them (ADR-235)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /shares/{id}:
+    delete:
+      operationId: stopShare
+      tags: [shares]
+      summary: Stop sharing the viewer's own Personal report with one person
+      description: >
+        The sharer's Stop sharing, at once (ADR-235): the grant or the waiting
+        link is revoked, the sharer leaves the reader's circle, and a pair the
+        reader built on that chart closes, naming the sharer.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The reader no longer reads it, or the waiting link no longer opens (ADR-235)
+        "404":
+          description: No share of the viewer's with this id (ADR-235)
           content:
             application/json:
               schema:
@@ -1221,6 +1500,14 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Place not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: >-
+            `no_zone`: no place found has a time zone, so none is offered, and
+            `message` is the line the page shows, "Pick a nearby town." (ADR-246, MB-30)
           content:
             application/json:
               schema:
@@ -1470,9 +1757,9 @@ components:
         - timezoneOffset
 
     Access:
-      description: "The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs MB-103 provisional)."
+      description: "The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs ADR-236), shared reads its subject's own Personal report through their grant (ADR-235)."
       type: string
-      enum: [owner, claimed, participant]
+      enum: [owner, claimed, participant, shared]
 
     SendState:
       description: Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).
@@ -1480,8 +1767,8 @@ components:
       properties:
         state:
           type: string
-          enum: [can_send, can_grant, sent, joined]
-          description: can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".
+          enum: [can_send, can_grant, sent, joined, handed_back]
+          description: can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236).
         profileId:
           type: string
           description: The person it goes to, the report's subject or the pair's other person.
@@ -1593,7 +1880,7 @@ components:
         stoppedBy:
           type: string
           nullable: true
-          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).
       required:
         - id
         - kind
@@ -1628,6 +1915,12 @@ components:
         failureReason:
           $ref: "#/components/schemas/FailureReason"
           nullable: true
+        canRegenerate:
+          type: boolean
+          description: The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last.
+        outdated:
+          type: boolean
+          description: A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170). Sent as on Report.
         chartReady:
           description: The chart is stored, so the report page can open on the hero and the explorer.
           type: boolean
@@ -1786,7 +2079,7 @@ components:
           enum: [known, approximate, unknown]
         reportIds:
           type: array
-          description: The reports a pass has started on.
+          description: "The report a pass has started on: the profile's newest complete Personal report, or none when it has none, the time draws no horizon, or the report is written for this time already (MB-170)."
           items:
             type: string
       required: [profileId, horizon, reportIds]
@@ -2035,15 +2328,16 @@ components:
 
     WorkbookPatch:
       description: >
-        A shallow merge onto the report's workbook. A string value is the ISO
-        date the reader ticked the item, null unticks it. A key is a section id,
+        A shallow merge onto the viewer's own workbook on the report
+        (ADR-239). A string value is the ISO date the reader ticked the item,
+        null unticks it. A key is a section id,
         a dot path and an index, for example "career.actions.0". Each segment
         before the index starts with a letter and may carry digits after it,
         as a pair chapter's id does in "partners02.nextTime.items.0" (ADR-24).
         A pin key is "pin." and an item key, "pin.focus.practice.bullets.0",
         valued by the ISO date of the pin and cleared by null; at most three
-        pins stand on a report, and a patch that would leave a fourth answers
-        400 pin_limit (ADR-174, MB-110 provisional).
+        pins stand in a reader's workbook, and a patch that would leave a fourth
+        answers 400 pin_limit (ADR-174, ADR-239).
       type: object
       minProperties: 1
       maxProperties: 200
@@ -2070,13 +2364,14 @@ components:
           type: array
           description: >
             The circle and the People list, the same people: every profile with a Personal report
-            the reader can read, written until its subject stops sharing or sent to them, each with
-            its latest readable report (ADR-182).
+            the reader can read, written until its subject stops sharing or sent to them, and each
+            sharer whose own Personal report they read through a grant, seated as `shared` until
+            that sharer stops sharing; each with its latest readable report (ADR-182, ADR-235).
           items:
             $ref: "#/components/schemas/HomePerson"
         pairs:
           type: array
-          description: The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional).
+          description: The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, ADR-236).
           items:
             $ref: "#/components/schemas/HomePair"
         practising:
@@ -2107,11 +2402,17 @@ components:
           enum: [pending, computing, interpreting, revising, complete, failed]
         access:
           type: string
-          enum: [owner, claimed]
-          description: "The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139)."
+          enum: [owner, claimed, shared]
+          description: "The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139), shared is its subject's own Personal report read through their grant, the sharer's seat (ADR-235)."
         isSelf:
           type: boolean
           description: The reader's own chart from their side, as ProfileSummary marks it (ADR-120).
+        shareBack:
+          type: boolean
+          description: On a sharer's seat, Share yours back is offered, since the reader has a finished Personal report of their own not yet shared with them (ADR-235, MB-104).
+        canRegenerate:
+          type: boolean
+          description: The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-137, MB-169).
         triad:
           type: object
           nullable: true
@@ -2156,7 +2457,28 @@ components:
           minimum: 1
           maximum: 12
           description: The whole-sign house it stands in, as the quick look prints it ("4th (home)"); null without a birth time, and for the Rising (ADR-174).
+        band:
+          type: object
+          nullable: true
+          description: The Moon's range across a windowed birth time, read from the stored chart's band; absent or null on the Sun, the Rising and an exact time (MB-139).
+          properties:
+            from:
+              $ref: "#/components/schemas/SpotPoint"
+            to:
+              $ref: "#/components/schemas/SpotPoint"
+          required: [from, to]
       required: [sign, degree, house]
+
+    SpotPoint:
+      description: One end of the Moon's range, its sign and its degree within it (MB-139).
+      type: object
+      properties:
+        sign:
+          type: string
+        degree:
+          type: number
+          description: Degrees within the sign, rounded to two decimals as a Spot's are (ADR-174, MB-139).
+      required: [sign, degree]
 
     HomePair:
       description: One Compatibility report on the reader's list, with what its pair block and story show (ADR-174, ADR-175).
@@ -2194,7 +2516,7 @@ components:
         stoppedBy:
           type: string
           nullable: true
-          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+          description: On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).
         strong:
           type: array
           description: What comes naturally to the pair, chapter 01's strong lines; empty until chapter 01 is written (ADR-174).
@@ -2222,8 +2544,8 @@ components:
       description: >
         One thing the reader is practising, an item pinned on their own Personal report or on a
         pair they are one of, or their Closing's first Practice item with none pinned; pins and
-        ticks sit in the report's one workbook, shared by everyone who reads it (ADR-174, MB-110
-        provisional).
+        ticks sit in the reader's own workbook on that report, which no other reader sees (ADR-174,
+        ADR-239).
       type: object
       properties:
         reportId:
@@ -2987,7 +3309,7 @@ components:
         profileId:
           type: string
           nullable: true
-          description: The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.
+          description: The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report, and for a reader through a share grant, who changes nothing of the sharer's, so the page offers them no birth time pass (ADR-235).
         type:
           type: string
           enum: [natal, compatibility]
@@ -3041,6 +3363,12 @@ components:
           type: string
           nullable: true
           description: First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).
+        canRegenerate:
+          type: boolean
+          description: The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169).
+        outdated:
+          type: boolean
+          description: A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170).
       required:
         - id
         - name
@@ -3239,13 +3567,13 @@ components:
 
     SendCompatibilityBody:
       type: object
-      description: The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; MB-103 provisional).
+      description: The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; ADR-236).
       properties:
         email: { type: string, format: email }
 
     PairSendResult:
       type: object
-      description: How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; MB-103 provisional).
+      description: How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; ADR-236).
       properties:
         state:
           type: string
@@ -3493,8 +3821,8 @@ components:
         alreadyClaimed: { type: boolean }
         kind:
           type: string
-          enum: [send, gift]
-          description: A sent report or a gifted credit (ADR-120, ADR-139).
+          enum: [send, gift, share]
+          description: A sent report or a gifted credit (ADR-120, ADR-139), or the sharer's own Personal report shared with them (ADR-235).
         recipientName:
           type: string
           nullable: true
@@ -3519,11 +3847,14 @@ components:
           description: Where the claim lands; a gift answers /dashboard (ADR-139).
         kind:
           type: string
-          enum: [send, gift]
-          description: A sent report or a gifted credit (ADR-120, ADR-139).
+          enum: [send, gift, share]
+          description: A sent report or a gifted credit (ADR-120, ADR-139), or a share, whose claim writes a grant and never a hand-over (ADR-235).
         askSelf:
           type: boolean
           description: Ask "Is this you?", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120).
+        shareBack:
+          type: boolean
+          description: On a share's claim, Share yours back is offered, since the claimer has a finished Personal report of their own not yet shared with the sharer (ADR-235, MB-104).
       required: [profileId, redirectTo]
 
     Gift:
@@ -3583,6 +3914,71 @@ components:
         note: { type: string, maxLength: 280 }
       required: [recipientName, email]
 
+    ChangeAddressBody:
+      type: object
+      description: Change address on a waiting send or gift, the corrected address its new link goes to (ADR-237, MB-109).
+      properties:
+        email: { type: string, format: email }
+      required: [email]
+
+    CreateShareBody:
+      type: object
+      description: Share my report, the address of whoever should read the viewer's own Personal report (ADR-235, MB-104).
+      properties:
+        email: { type: string, format: email }
+      required: [email]
+
+    ShareCreated:
+      type: object
+      description: >-
+        What POST /shares answers: the share, waiting, plus the claim link
+        exactly as its email carried it and whether that email went, as
+        POST /invites answers (ADR-235).
+      properties:
+        id: { type: string }
+        email: { type: string }
+        claimUrl:
+          type: string
+          description: The link to copy and send by hand when the email did not go.
+        expiresAt: { type: string }
+        emailDelivered: { type: boolean }
+      required: [id, email, claimUrl, expiresAt, emailDelivered]
+
+    Share:
+      type: object
+      description: One person the viewer's own Personal report is shared with, as the sharer's quick look lists them (ADR-235).
+      properties:
+        id: { type: string }
+        email:
+          type: string
+          description: The address the link went to; empty for a share made by Share yours back, which goes to no address, so the sharer is never given the reader's (R-3.6).
+        readerName:
+          type: string
+          nullable: true
+          description: The reader's first name once they claim it; null while the link waits (ADR-235).
+        state:
+          type: string
+          enum: [waiting, active]
+          description: waiting until the link is claimed; active while the grant reads (ADR-235).
+        sentAt: { type: string, description: "ISO-8601 timestamp when the share went out" }
+      required: [id, email, readerName, state, sentAt]
+
+    ShareBackBody:
+      type: object
+      description: Share yours back, naming the sharer by the Personal report of theirs the viewer reads (ADR-235, MB-104).
+      properties:
+        profileId:
+          type: string
+          description: The sharer's profile shared with the viewer, which names who gets the viewer's own report back.
+      required: [profileId]
+
+    HandBackResponse:
+      type: object
+      description: What Hand it back answers, the profile now back with its writer alone (ADR-236, MB-103).
+      properties:
+        profileId: { type: string }
+      required: [profileId]
+
     GeocodeResult:
       type: object
       properties:
@@ -3607,7 +4003,7 @@ components:
           description: UTC offset in hours
         timezone:
           type: string
-          description: IANA zone name of the place, when known.
+          description: IANA zone name of the place from the server's offline table; a place without one is never answered (ADR-246, MB-30).
         placeType:
           type: string
           description: Nominatim place type (city, town, village, administrative, etc.)
@@ -3616,6 +4012,7 @@ components:
         - latitude
         - longitude
         - timezoneOffset
+        - timezone
         - placeType
 
     GeocodeSearchResponse:

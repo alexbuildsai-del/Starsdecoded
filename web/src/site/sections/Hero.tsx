@@ -6,6 +6,7 @@
  * chart's summary until the reader tries another date.
  */
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { GATHER_MAX, GATHER_SECONDS, landing, planGather, type Ring } from "@/lib/gather";
 import { visitorZone } from "@/lib/sky-now";
@@ -57,6 +58,7 @@ export default function Hero({ onFirstLight }: HeroProps = {}) {
   const summary = useRef<HTMLDivElement>(null);
   const focusNext = useRef<"summary" | "date" | null>(null);
   const keepForForm = useKeepForForm(kept?.birth);
+  const { clock } = useEntryFormat();
 
   useEffect(() => {
     if (!lit || !onFirstLight) return;
@@ -117,7 +119,7 @@ export default function Hero({ onFirstLight }: HeroProps = {}) {
                   <>
                     <div className="sd-row">
                       <p className="sd-eyebrow">Your chart</p>
-                      <span className="sd-tag">{summaryLine(kept.birth)}</span>
+                      <span className="sd-tag">{summaryLine(kept.birth, clock)}</span>
                     </div>
                     <p className="font-[family-name:var(--f-display)] text-[clamp(22px,2.3vw,28px)] leading-[1.18] text-[color:var(--paper)]">{plainLine(kept.chart)}</p>
                     <div className="flex flex-wrap items-center gap-3">

@@ -12,6 +12,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "re
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { LAUNCHED } from "@workspace/launch";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { CHAPTERS } from "@/lib/chapters";
 import { saveFormDraft } from "@/lib/form-draft";
@@ -61,6 +62,7 @@ type Stage = "lifting" | "rewinding" | "shown" | "closing";
 
 export default function SkyScreen({ from, to, origin, frames, onClosed }: SkyScreenProps) {
   const reduced = useReducedMotion();
+  const { clock } = useEntryFormat();
   const [sky, setSky] = useState<Sky>(from);
   const [stage, setStage] = useState<Stage>("lifting");
   const [lifted, setLifted] = useState(false);
@@ -173,7 +175,7 @@ export default function SkyScreen({ from, to, origin, frames, onClosed }: SkyScr
           >
             <div className="grid gap-1.5">
               <Dialog.Title className="sd-eyebrow">Your chart</Dialog.Title>
-              <Dialog.Description className="sd-tag">{birth ? summaryLine(birth) : ""}</Dialog.Description>
+              <Dialog.Description className="sd-tag">{birth ? summaryLine(birth, clock) : ""}</Dialog.Description>
             </div>
             <button
               ref={closeButton}

@@ -16,6 +16,7 @@ import {
 } from "@workspace/engine";
 import { houseOf } from "@/components/chart/wheel-geometry";
 import { DEFAULT_ANSWER, WINDOW_UNKNOWN, isTime, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
+import { clockWords, type Clock } from "@/lib/date-entry";
 import { ORDINALS, houseWithWord, houseWord } from "@/lib/evidence-glossary";
 import type { FormDraft } from "@/lib/form-draft";
 import { placeTitle, type GeocodeResult } from "@/lib/places";
@@ -27,13 +28,19 @@ import { PLANET_LABELS, type ChartData, type ChartPlanet } from "@/types/chart";
 export const BODIES = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"] as const;
 export type Body = (typeof BODIES)[number];
 
+/**
+ * Where a sky is drawn from. A place the field gives always has its zone (ADR-246); a sample recorded on local mean
+ * time, before its town kept a zone's clock, may have only its offset.
+ */
+export type SkyPlace = Omit<GeocodeResult, "timezone"> & { timezone: string | null };
+
 /** A birth as the sky form takes it: the time is null when the visitor left it blank. */
 export interface SkyBirth {
   /** YYYY-MM-DD */
   date: string;
   /** HH:MM on the local clock. */
   time: string | null;
-  place: GeocodeResult;
+  place: SkyPlace;
 }
 
 export interface Sky {
@@ -43,7 +50,7 @@ export interface Sky {
   /** The minute drawn: now, the birth minute, or noon on a birth day with no time. */
   at: Date;
   /** Where it is drawn from, and whose calendar and clock name its dates. */
-  place: GeocodeResult;
+  place: SkyPlace;
   birth?: SkyBirth;
   /** Whose birth a sample is. */
   name?: string;
@@ -77,7 +84,7 @@ export function visitorPlace(now: Date, zone?: string): GeocodeResult {
   return placeOfZone(place, offsetAtBirth(place.zone, date, time));
 }
 
-function skyOf(kind: Sky["kind"], natal: NatalChartData, place: GeocodeResult, birth?: SkyBirth): Sky {
+function skyOf(kind: Sky["kind"], natal: NatalChartData, place: SkyPlace, birth?: SkyBirth): Sky {
   return { kind, chart: toChartData(natal), at: new Date(natal.datetimeUtc), place, ...(birth ? { birth } : {}) };
 }
 
@@ -103,13 +110,17 @@ function timeAnswer(birth: SkyBirth): BirthTimeAnswer {
   return birth.time && isTime(birth.time) ? { ...DEFAULT_ANSWER, mode: "known", time: birth.time } : { ...DEFAULT_ANSWER, mode: "unknown" };
 }
 
-/** What the birth form opens with after sign-in (ADR-140, reading 14): the date, the time answer and the place. */
+/**
+ * What the birth form opens with after sign-in (ADR-140, reading 14): the date, the time answer and the place, which
+ * goes only with its zone, so the form never sends a chart without one (reading 2).
+ */
 export function draftOf(birth: SkyBirth): FormDraft {
-  return { birthDate: birth.date, time: timeAnswer(birth), place: birth.place };
+  const { place } = birth;
+  return { birthDate: birth.date, time: timeAnswer(birth), place: place.timezone ? { ...place, timezone: place.timezone } : null };
 }
 
 /** The UTC minute of a time on a place's clock, turned as the engine turns a birth into one. */
-function instantAt(date: string, time: string, place: GeocodeResult): Date {
+function instantAt(date: string, time: string, place: SkyPlace): Date {
   const offset = place.timezone ? offsetAtBirth(place.timezone, date, time) : place.timezoneOffset;
   const [year, month, day] = date.split("-").map(Number);
   const [hour, minute] = time.split(":").map(Number);
@@ -126,7 +137,7 @@ function instantAt(date: string, time: string, place: GeocodeResult): Date {
  */
 export function sampleSky(name: string, where: string, birth: Birth, chart: ChartData): Sky {
   const [city, ...rest] = where.split(",").map((part) => part.trim());
-  const place: GeocodeResult = {
+  const place: SkyPlace = {
     name: where,
     city,
     region: rest.join(", "),
@@ -147,8 +158,8 @@ export function sampleSky(name: string, where: string, birth: Birth, chart: Char
   };
 }
 
-/** The date and minute on the place's own clock: its zone when the search found one, else the offset it gave. */
-function wallClock(at: Date, place: GeocodeResult): { date: string; time: string } {
+/** The date and minute on the place's own clock: its zone, else the offset a sample on local mean time was recorded with. */
+function wallClock(at: Date, place: SkyPlace): { date: string; time: string } {
   if (place.timezone) return localParts(at, place.timezone);
   const shifted = new Date(at.getTime() + place.timezoneOffset * 3_600_000).toISOString();
   return { date: shifted.slice(0, 10), time: shifted.slice(11, 16) };
@@ -209,7 +220,7 @@ export interface Rewind {
    */
   turn: number;
   /** The birth's place: every frame is worked out there, so the last is its chart. */
-  place: GeocodeResult;
+  place: SkyPlace;
 }
 
 export function planRewind(from: Sky, to: Sky): Rewind {
@@ -345,9 +356,15 @@ export function dayLine(date: string): string {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
-/** "4 May 1929 · 03:00 · Ixelles" */
-export function summaryLine(birth: SkyBirth): string {
-  return `${dayLine(birth.date)} · ${birth.time ?? "Time unknown"} · ${placeTitle(birth.place)}`;
+/** A birth's minute on the reader's clock (MB-178), so a page never prints two clocks; a blank time says so. */
+const timeLine = (birth: SkyBirth, clock: Clock): string => (birth.time === null ? "Time unknown" : clockWords(birth.time, clock));
+
+/**
+ * "4 May 1929 · 03:00 · Ixelles", or "4 May 1929 · 3 am · Ixelles" on a
+ * 12-hour clock; 24-hour unless told, as the prerender draws it (reading 5).
+ */
+export function summaryLine(birth: SkyBirth, clock: Clock = 24): string {
+  return `${dayLine(birth.date)} · ${timeLine(birth, clock)} · ${placeTitle(birth.place)}`;
 }
 
 /** ["13.12°", "Taurus"], from the engine's longitude, to the hundredth every readout prints. */
@@ -454,14 +471,14 @@ export interface HudLines {
   br: string;
 }
 
-/** The four corners around the wheel, set in capitals by the page. */
-export function hudLines(sky: Sky): HudLines {
+/** The four corners around the wheel, set in capitals by the page, the minute on the reader's clock. */
+export function hudLines(sky: Sky, clock: Clock = 24): HudLines {
   const { chart, place } = sky;
   const at = latLngLine(place.latitude, place.longitude);
   const whose = sky.kind === "sample" ? `Sample · ${sky.name ?? ""}` : "Your chart";
   const tl = sky.kind === "now" && place.timezone
-    ? `Live · ${clockLine(sky.at, place.timezone)}`
-    : sky.birth ? `${whose} · ${dayLine(sky.birth.date)} · ${sky.birth.time ?? "Time unknown"}` : "";
+    ? `Live · ${clockLine(sky.at, place.timezone, clock)}`
+    : sky.birth ? `${whose} · ${dayLine(sky.birth.date)} · ${timeLine(sky.birth, clock)}` : "";
   return {
     tl,
     tr: `${sky.kind === "now" ? "Over " : ""}${placeTitle(place)} · ${at}`,
@@ -487,8 +504,8 @@ export interface ResultLines {
   caption: string;
 }
 
-/** The words over /sky's placements: whose sky the table lists, and when and where it is from. */
-export function resultLines(sky: Sky): ResultLines {
+/** The words over /sky's placements: whose sky the table lists, and when and where it is from, on the reader's clock. */
+export function resultLines(sky: Sky, clock: Clock = 24): ResultLines {
   const { chart, place, birth } = sky;
   if (sky.kind === "now") {
     return {
@@ -498,7 +515,7 @@ export function resultLines(sky: Sky): ResultLines {
       caption: "Where each planet is now",
     };
   }
-  const when = birth ? summaryLine(birth) : "";
+  const when = birth ? summaryLine(birth, clock) : "";
   return {
     eyebrow: sky.kind === "sample" ? "Sample chart" : "Your birth chart",
     title: plainLine(chart),

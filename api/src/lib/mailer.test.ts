@@ -8,12 +8,14 @@ process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.PUBLIC_APP_URL = "https://mystarsdecoded.com";
 const {
   buildReportEmail,
+  buildShareEmail,
   buildPairEmail,
   buildGiftEmail,
   buildGiftReminderEmail,
   buildSpendPausedEmail,
   buildWaitlistConfirmEmail,
   sendReportEmail,
+  sendShareEmail,
   sendPairEmail,
   sendGiftEmail,
   sendGiftReminder,
@@ -68,6 +70,37 @@ test("a giver with no first name reads Someone, in the subject too", () => {
     granted: false,
   });
   assert.equal(pair.subject, "Someone shared a Compatibility report with you");
+});
+
+test("buildShareEmail: the sharer's own Personal report, in their first name, with no address and no claim to keep it (ADR-235)", () => {
+  const content = buildShareEmail({
+    to: "sam@example.com",
+    sharerFirstName: "Alex",
+    claimUrl: "https://mystarsdecoded.com/claim?token=abc",
+  });
+  assert.equal(content.subject, "Alex shared their Personal report with you");
+  assert.match(content.html, /Alex<\/strong> shared their Personal report with you\./);
+  assert.equal(content.text.split("\n")[0], "Alex shared their Personal report with you.");
+  assert.match(content.html, /Sign in with this email to read it\./);
+  assert.match(content.html, /href="https:\/\/mystarsdecoded\.com\/claim\?token=abc"[^>]*>Read the report<\/a>/);
+  assert.match(content.text, /\nRead the report:\nhttps:\/\/mystarsdecoded\.com\/claim\?token=abc\n/);
+  assert.match(content.text, /This link is private to you and expires in 7 days\./);
+  for (const body of allBodies(content)) {
+    assert.doesNotMatch(body, FORBIDDEN_VERBS);
+    assert.doesNotMatch(body, OVER_PROMISES);
+    assert.doesNotMatch(body, RETIRED);
+    // A share is read through a grant: the report never becomes the reader's, as a sent one does.
+    assert.doesNotMatch(body, /yours to keep|Claim my report/);
+    assert.ok(!body.includes("sam@example.com"), "no address in the body");
+  }
+  const ownWords = [content.subject, ...content.text.split("\n").slice(0, -1)].join("\n");
+  assert.doesNotMatch(ownWords, /[—–;!]/);
+
+  const unnamed = buildShareEmail({ to: "sam@example.com", sharerFirstName: null, claimUrl: "https://mystarsdecoded.com/claim?token=abc" });
+  assert.equal(unnamed.subject, "Someone shared their Personal report with you");
+  const escaped = buildShareEmail({ to: "sam@example.com", sharerFirstName: "A & <B>", claimUrl: "https://mystarsdecoded.com/claim?token=abc" });
+  assert.ok(!escaped.html.includes("<B>"));
+  assert.match(escaped.html, /A &amp; &lt;B&gt;<\/strong> shared their Personal report/);
 });
 
 test("buildPairEmail: shared, naming the other person, never the invitee alone", () => {
@@ -248,6 +281,7 @@ test("every image comes from the configured web origin, never from the origin a 
   const elsewhere = "https://evil.example";
   const build = () => [
     buildReportEmail({ to: "x@example.com", giverFirstName: "Alex", personFirstName: "Beatrice", claimUrl: `${elsewhere}/claim?token=a` }),
+    buildShareEmail({ to: "x@example.com", sharerFirstName: "Alex", claimUrl: `${elsewhere}/claim?token=a` }),
     buildPairEmail({ to: "x@example.com", giverFirstName: "Alex", otherFirstName: "Beatrice", url: `${elsewhere}/claim?token=a`, granted: false }),
     buildPairEmail({ to: "x@example.com", giverFirstName: "Alex", otherFirstName: "Beatrice", url: `${elsewhere}/compatibility/r-1`, granted: true }),
     buildGiftEmail({ to: "x@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", note: null, claimUrl: `${elsewhere}/claim?token=a` }),
@@ -264,7 +298,7 @@ test("every image comes from the configured web origin, never from the origin a 
       for (const src of srcs) assert.ok(src.startsWith(`${web}/`), `${content.subject}: ${src}`);
     }
   }
-  assert.deepEqual(images(build()[3].html).map((src) => new URL(src).pathname), ["/mark-email.png", "/gift-cover.png"]);
+  assert.deepEqual(images(build()[4].html).map((src) => new URL(src).pathname), ["/mark-email.png", "/gift-cover.png"]);
 });
 
 // Without RESEND_API_KEY every send logs its failure, which is the line a recipient would ride on.
@@ -279,6 +313,7 @@ test("production never hands the logger a recipient; elsewhere the address reach
   const warn = t.mock.method(logger, "warn", () => {});
   const sendAll = async () => {
     await sendReportEmail({ to: "beatrice@example.com", giverFirstName: "Alex", personFirstName: "Beatrice", claimUrl: "https://mystarsdecoded.com/claim?token=abc" });
+    await sendShareEmail({ to: "sam@example.com", sharerFirstName: "Alex", claimUrl: "https://mystarsdecoded.com/claim?token=abc" });
     await sendPairEmail({ to: "beatrice@example.com", giverFirstName: "Alex", otherFirstName: "Beatrice", url: "https://mystarsdecoded.com/claim?token=abc", granted: false });
     await sendGiftEmail({ to: "pierre@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", note: null, claimUrl: "https://mystarsdecoded.com/claim?token=xyz" });
     await sendGiftReminder({ to: "pierre@example.com", giverFirstName: "Alex", recipientFirstName: "Pierre", claimUrl: "https://mystarsdecoded.com/claim?token=xyz" });
@@ -289,17 +324,17 @@ test("production never hands the logger a recipient; elsewhere the address reach
 
   process.env.NODE_ENV = "production";
   await sendAll();
-  assert.equal(warn.mock.calls.length, 6);
+  assert.equal(warn.mock.calls.length, 7);
   for (const f of fields()) assert.ok(!("to" in f), JSON.stringify(f));
 
   warn.mock.resetCalls();
   process.env.NODE_ENV = "development";
   await sendAll();
-  assert.deepEqual(fields().map((f) => f.to), ["beatrice@example.com", "beatrice@example.com", "pierre@example.com", "pierre@example.com", undefined, undefined]);
+  assert.deepEqual(fields().map((f) => f.to), ["beatrice@example.com", "sam@example.com", "beatrice@example.com", "pierre@example.com", "pierre@example.com", undefined, undefined]);
   const lines: string[] = [];
   const written = createLogger({ LOG_LEVEL: "info" }, { write: (s: string) => void lines.push(s) });
   for (const c of warn.mock.calls) written.warn(...(c.arguments as [Record<string, unknown>, string]));
-  assert.equal(lines.length, 6);
+  assert.equal(lines.length, 7);
   assert.doesNotMatch(lines.join(""), /@example\.com/);
 });
 
@@ -316,6 +351,10 @@ test("send* functions resolve false without RESEND_API_KEY, never throw", async 
         personFirstName: "Beatrice",
         claimUrl: "https://mystarsdecoded.com/claim?token=abc",
       }),
+      false,
+    );
+    assert.equal(
+      await sendShareEmail({ to: "x@example.com", sharerFirstName: "Alex", claimUrl: "https://mystarsdecoded.com/claim?token=abc" }),
       false,
     );
     assert.equal(

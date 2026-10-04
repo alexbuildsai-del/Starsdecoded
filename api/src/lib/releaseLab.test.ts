@@ -10,10 +10,11 @@ import { chartFromFixture } from "./testFixtures.js";
 import { cannedNatalReplies, installFakeModel } from "./testModel.js";
 
 const { generateInterpretation } = await import("./aiInterpretation.js");
-const { runReleaseLab, natalRows, pairRows, RELEASE_PAIR } = await import("./releaseLab.js");
+const { runReleaseLab, natalRows, pairRows, priceTokens, sampleRunKey, NATAL_ESTIMATE_USD, NATAL_TOKENS, PAIR_ESTIMATE_USD, PAIR_TOKENS, RELEASE_PAIR } = await import("./releaseLab.js");
 const { MATRIX_CHARTS } = await import("./labRules.js");
 const { catalogueForPanel } = await import("./labReplay.js");
 const { CATALOGUE, MODELS, SECTION_MODELS, modelFor } = await import("./models.js");
+const { SAMPLE_CHART } = await import("./sampleRun.js");
 type InsertLabRun = import("@workspace/db").InsertLabRun;
 
 installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "scorpio", sunHouse: 11 }));
@@ -21,8 +22,41 @@ const curie = await generateInterpretation(chartFromFixture("marie-curie"), "Mar
 
 function store() {
   const rows: InsertLabRun[] = [];
-  return { rows, insert: async (r: InsertLabRun[]) => { rows.push(...r); }, numbers: async () => [] };
+  return { rows, insert: async (r: InsertLabRun[]) => { rows.push(...r); }, numbers: async () => [], sampleOutput: async () => null };
 }
+
+test("the estimates are stored reports' tokens on production's writers at the catalogue's prices, about 3 and 4 cents (MB-133)", () => {
+  // The counts are the stored runs': at the writer that ran them they give back each run's recorded cost.
+  assert.equal(priceTokens(NATAL_TOKENS, () => "gpt-5.2").toFixed(7), "0.2936941", "Audrey Hepburn's r06 run on gpt-5.2");
+  assert.equal(priceTokens(PAIR_TOKENS, (s) => (s === "foundation" ? "gpt-6-sol" : "gpt-6-luna")).toFixed(8), "0.04348252", "curie-winfrey partners, r12-pair");
+  // By hand at the catalogue's prices per million: the natal foundation on Sol, then its eleven sections on Luna.
+  const sol = CATALOGUE["gpt-6-sol"], luna = CATALOGUE["gpt-6-luna"];
+  const foundation = (1573 * sol.input + 5632 * sol.cachedInput + 1507 * sol.output) / 1e6;
+  const sections = Object.entries(NATAL_TOKENS).filter(([s]) => s !== "foundation")
+    .reduce((n, [, t]) => n + (t.inputTokens * luna.input + t.cachedInputTokens * luna.cachedInput + t.outputTokens * luna.output) / 1e6, 0);
+  assert.equal(foundation.toFixed(7), "0.0193424");
+  assert.equal(sections.toFixed(7), "0.0114711");
+  assert.equal(NATAL_ESTIMATE_USD.toFixed(7), (foundation + sections).toFixed(7));
+  assert.equal(NATAL_ESTIMATE_USD.toFixed(7), "0.0308135");
+  assert.equal(PAIR_ESTIMATE_USD.toFixed(8), "0.04348252");
+  // They are what MODELS names: the same tokens on the writers it picks.
+  assert.equal(NATAL_ESTIMATE_USD, priceTokens(NATAL_TOKENS, (s) => (s === "foundation" ? MODELS.foundation : modelFor(s))));
+  assert.equal(PAIR_ESTIMATE_USD, priceTokens(PAIR_TOKENS, (s) => (s === "foundation" ? MODELS.foundation : MODELS.sections)));
+});
+
+test("the lab keeps the sample chart's output whole, under its own run key, and only hers", async () => {
+  const s = store();
+  const engine = { natal: async () => curie, pair: async () => ({}) };
+  await runReleaseLab({ label: "release-abc", withPair: false, engine, store: s });
+  const kept = s.rows.filter((r) => r.section === "sample");
+  assert.equal(kept.length, 1);
+  assert.equal(kept[0].runKey, sampleRunKey("release-abc"));
+  assert.equal(kept[0].runKey, "sample:release-abc");
+  assert.equal(kept[0].fixture, SAMPLE_CHART);
+  assert.equal(kept[0].output, curie, "the engine's output whole, foundation and usage included; the push cuts them");
+  assert.deepEqual([kept[0].words, kept[0].costUsd, kept[0].faults], [0, 0, []], "its calls are priced on the chart's own rows");
+  assert.equal(s.rows.filter((r) => r.runKey === `${SAMPLE_CHART}.release-abc`).length, 12, "her report's rows are as before");
+});
 
 test("natalRows: the foundation row carries the chart, every section its words and faults, all under source release", () => {
   const rows = natalRows("marie-curie", "release-abc", chartFromFixture("marie-curie"), "Marie Curie", curie);
@@ -91,5 +125,30 @@ test("the panel judges every writer against gpt-5.2 by name and names the writer
   for (const m of panel.models) {
     const p = CATALOGUE[m.id];
     assert.deepEqual([m.input, m.cachedInput, m.output, m.reasoningEffort, m.flex], [p.input, p.cachedInput, p.output, p.reasoningEffort, p.flex], `${m.id} is listed at its catalogue price`);
+  }
+});
+
+test("the sample row goes in the same insert as her section rows, so a store that fails keeps neither, and a chart that fails keeps none", async () => {
+  const batches: InsertLabRun[][] = [];
+  const s = { insert: async (r: InsertLabRun[]) => { batches.push(r); }, numbers: async () => [], sampleOutput: async () => null };
+  await runReleaseLab({ label: "release-abc", withPair: false, engine: { natal: async () => curie, pair: async () => ({}) }, store: s, charts: [SAMPLE_CHART] });
+  assert.equal(batches.length, 1);
+  assert.deepEqual(batches[0].filter((r) => r.section === "sample").map((r) => r.runKey), ["sample:release-abc"]);
+
+  const failing = store();
+  const out = await runReleaseLab({
+    label: "release-abc", withPair: false, store: failing, charts: [SAMPLE_CHART, "marie-curie"],
+    engine: { natal: async (_chart, name) => { if (name === "Audrey Hepburn") throw new Error("model down"); return curie; }, pair: async () => ({}) },
+  });
+  assert.deepEqual(out.failed.map((f) => f.fixture), [SAMPLE_CHART]);
+  assert.equal(failing.rows.filter((r) => r.section === "sample").length, 0, "no run, no sample row");
+  assert.ok(failing.rows.length > 0, "the next chart still lands");
+});
+
+test("the sample's run key is its own, never a fixture's, so the gate's and the QA reader's keys never reach it", () => {
+  for (const label of ["release-abc", "r06"]) {
+    const key = sampleRunKey(label);
+    for (const fixture of MATRIX_CHARTS) assert.notEqual(key, `${fixture}.${label}`);
+    assert.ok(!key.includes("."), "no fixture.label shape");
   }
 });

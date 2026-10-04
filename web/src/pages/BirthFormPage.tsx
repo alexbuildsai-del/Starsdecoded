@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateReport, useListProfiles, getListProfilesQueryKey } from "@workspace/api-client-react";
+import { offsetAtBirth } from "@workspace/engine";
 import { Wordmark } from "@/components/Wordmark";
 import { usePageTitle } from "@/lib/page-title";
 import { BirthDateField } from "@/components/BirthDateField";
@@ -105,8 +106,9 @@ export default function BirthFormPage() {
         birthPlace: selectedPlace.name,
         latitude: selectedPlace.latitude,
         longitude: selectedPlace.longitude,
-        timezoneOffset: selectedPlace.timezoneOffset,
-        ...(selectedPlace.timezone ? { timezone: selectedPlace.timezone } : {}),
+        // The zone's offset at the birth, never the place's today (reading 1); the server works the chart out from the zone.
+        timezoneOffset: offsetAtBirth(selectedPlace.timezone, birthDate, time.birthTime),
+        timezone: selectedPlace.timezone,
         isForSelf: isSelf,
       },
     });
@@ -198,13 +200,18 @@ export default function BirthFormPage() {
               latitude={selectedPlace?.latitude}
               longitude={selectedPlace?.longitude}
               timezone={selectedPlace?.timezone}
-              timezoneOffset={selectedPlace?.timezoneOffset}
               country={selectedPlace?.country}
               timeId={TIME_ID}
               onTimeComplete={() => focusById("birthPlace")}
             />
 
-            <PlaceField id="birthPlace" value={selectedPlace} onChange={setSelectedPlace} />
+            <PlaceField
+              id="birthPlace"
+              value={selectedPlace}
+              onChange={setSelectedPlace}
+              birthDate={birthDate}
+              birthTime={time?.birthTime}
+            />
 
             {/* "This chart is for me" toggle */}
             <button

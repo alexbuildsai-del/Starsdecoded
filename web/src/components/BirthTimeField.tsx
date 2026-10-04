@@ -3,14 +3,15 @@
  * "03 : 00" as it goes in, and "HH:MM" on the 24-hour clock comes out whatever
  * clock the reader sees. On a 12-hour clock an AM/PM switch sits beside it,
  * set by a tap or by an A or P typed in the field, and it starts on AM
- * (reading 9). The form owns the label, through `id`, and where focus goes
- * once the time is whole.
+ * (reading 9); four digits keep focus here until the half is set, so the P of
+ * "0300p" never lands in the next field (MB-173). The form owns the label,
+ * through `id`, and where focus goes once the time is whole.
  */
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { ENTRY_FIELD } from "@/components/BirthDateField";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { TIME_PATTERN, stepTime, timeNote, timeState, timeText, timeValue, type Half, type TimeState } from "@/lib/date-entry";
+import { TIME_PATTERN, pickHalf, stepTime, timeNote, timeState, timeText, type Half, type TimeState } from "@/lib/date-entry";
 import { cn } from "@/lib/utils";
 
 export interface BirthTimeFieldProps {
@@ -18,7 +19,10 @@ export interface BirthTimeFieldProps {
   /** "HH:MM" on the 24-hour clock, or "" while the field holds no real time. */
   value: string;
   onChange: (value: string) => void;
-  /** Typing or pasting finished a valid time: the form moves focus on to the place. */
+  /**
+   * Typing, a paste or a tap on the switch finished a valid time, with its half
+   * set on a 12-hour clock: the form moves focus on to its next step.
+   */
   onComplete?: () => void;
   /** A hint the form already shows, read after the field's own note. */
   describedBy?: string;
@@ -81,17 +85,19 @@ export function BirthTimeField({ id, value, onChange, onComplete, describedBy }:
       clock,
     );
     caret.current = step.caret;
-    setState({ digits: step.digits, half: step.half });
+    setState({ digits: step.digits, half: step.half, halfSet: step.halfSet });
     setLeft(false);
     rendered();
     send(step.value);
     if (step.done) onComplete?.();
   };
 
-  const pick = (half: Half) => {
-    const next = { digits: state.digits, half };
-    setState(next);
-    send(timeValue(next, clock));
+  const pick = (half: Half, tapped: boolean) => {
+    const step = pickHalf(state, half, clock);
+    setState({ digits: step.digits, half: step.half, halfSet: step.halfSet });
+    send(step.value);
+    // The browser clicks and focuses the radio after the tap's own handlers have run, so the form moves focus after that.
+    if (tapped && step.done) window.setTimeout(() => onComplete?.());
   };
 
   return (
@@ -122,6 +128,10 @@ export function BirthTimeField({ id, value, onChange, onComplete, describedBy }:
             {HALVES.map((half) => (
               <label
                 key={half}
+                // Only a tap lands on the label itself; the arrow keys move the radio inside it, and focus stays with them.
+                onClick={(event) => {
+                  if (!(event.target instanceof HTMLInputElement)) pick(half, true);
+                }}
                 // The ring is the foreground colour, since an indigo one would vanish on the indigo of the chosen half.
                 className={cn(
                   "flex cursor-pointer select-none items-center px-3.5 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-foreground",
@@ -133,7 +143,7 @@ export function BirthTimeField({ id, value, onChange, onComplete, describedBy }:
                   name={`${id}-half`}
                   value={half}
                   checked={state.half === half}
-                  onChange={() => pick(half)}
+                  onChange={() => pick(half, false)}
                   className="sr-only"
                 />
                 {half === "am" ? "AM" : "PM"}

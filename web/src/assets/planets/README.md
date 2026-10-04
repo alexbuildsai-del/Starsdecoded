@@ -24,8 +24,7 @@ at 512 px rather than upscaling, which adds no detail.
 There is no render for Chiron or the lunar nodes. Those are points rather than
 planets and are drawn as glyphs, which is the correct distinction to show.
 
-`web/public/opengraph.jpg`, the social preview image, is still missing and has
-no placeholder.
+`web/public/share-cover-v2.jpg` is the social preview image, drawn by `pnpm brand:render`.
 
 `sun-512.webp` is the Sun at 512 px for the hero plate and the dawn, keyed from
 the Owner's render, which arrived with the transparency checkerboard flattened

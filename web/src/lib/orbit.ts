@@ -4,11 +4,12 @@
  * circle is not a chart (ADR-89): nothing here reads a placement.
  *
  * Membership is the People list (ADR-182, reading 6): everyone whose Personal
- * report the reader can read, written until its subject stops sharing or sent
- * to them, as `GET /home` lists them, so a stop takes the person off at the
- * next read. The reader's own report is the centre, never a point. Then the
- * reader's gifts still waiting, one Add someone point, and while the circle
- * is nearly empty, ghost seats that show who could join it.
+ * report the reader can read, written until its subject stops sharing, sent
+ * to them, or shared with them by its own subject (ADR-235), as `GET /home`
+ * lists them, so a stop takes the person off at the next read. The reader's
+ * own report is the centre, never a point. Then the reader's gifts still
+ * waiting, one Add someone point, and while the circle is nearly empty, ghost
+ * seats that show who could join it.
  */
 import type { CreditCounts, Gift, HomePerson, ProfileSummary, ReportSummary } from "@workspace/api-client-react";
 
@@ -24,11 +25,13 @@ export interface OrbitPoint {
   /** The whole name for the accessible label; the add point's action; a ghost's seat. */
   name: string;
   initials: string;
-  /** Printed under the disc, in capitals: BEATRICE · WRITING, PIERRE · GIFT WAITING, ADD SOMEONE, PARTNER. */
+  /** Printed under the disc, in capitals: BEATRICE · WRITING, ALEX · SHARED, PIERRE · GIFT WAITING, ADD SOMEONE, PARTNER. */
   label: string;
   writing: boolean;
   /** The violet ring: a compatibility report with the reader that the reader can open (reading 3). */
   sharedPair: boolean;
+  /** Someone who shared their own Personal report with the reader: their seat is marked shared, with no sign, degree or glyph (ADR-235, §9). */
+  shared: boolean;
   profileId?: string;
   reportId?: string;
   giftId?: string;
@@ -55,7 +58,7 @@ export interface OrbitInput {
 }
 
 /** One person as `GET /home` lists them; only what the circle reads. */
-export type CirclePerson = Pick<HomePerson, "profileId" | "reportId" | "name" | "status" | "isSelf">;
+export type CirclePerson = Pick<HomePerson, "profileId" | "reportId" | "name" | "status" | "isSelf" | "access">;
 
 /** One pair as `GET /home` lists it; only what the violet rings read. */
 export interface CirclePair {
@@ -155,14 +158,16 @@ export function circlePoints({ you, people, pairs, gifts, credits, enforced }: C
     placed.add(p.profileId);
     const name = p.name.trim();
     const writing = beingWritten(p.status);
+    const shared = p.access === "shared";
     seated.push({
       id: p.profileId,
       kind: "person",
       name,
       initials: initials(name),
-      label: label(words(name)[0] ?? "", writing ? "writing" : ""),
+      label: label(words(name)[0] ?? "", shared ? "shared" : "", writing ? "writing" : ""),
       writing,
       sharedPair: withReader.has(p.profileId),
+      shared,
       profileId: p.profileId,
       reportId: p.reportId,
     });
@@ -179,6 +184,7 @@ export function circlePoints({ you, people, pairs, gifts, credits, enforced }: C
       label: label(words(name)[0] ?? "", "gift waiting"),
       writing: false,
       sharedPair: false,
+      shared: false,
       giftId: g.id,
     });
   }
@@ -198,6 +204,7 @@ export function circlePoints({ you, people, pairs, gifts, credits, enforced }: C
       label: out ? "GET CREDITS" : "ADD SOMEONE",
       writing: false,
       sharedPair: false,
+      shared: false,
     });
   }
   points.push(...seated);
@@ -212,9 +219,16 @@ export function circlePoints({ you, people, pairs, gifts, credits, enforced }: C
       label: seat.toUpperCase(),
       writing: false,
       sharedPair: false,
+      shared: false,
     });
   });
   return points;
+}
+
+/** A natal report that seats its person: one the reader wrote, one sent to them, or one its subject shares with them (ADR-235). */
+function seatAccess(access: OrbitReport["access"]): CirclePerson["access"] | null {
+  const kind = access ?? "owner";
+  return kind === "owner" || kind === "claimed" || kind === "shared" ? kind : null;
 }
 
 /**
@@ -226,9 +240,7 @@ export function circlePoints({ you, people, pairs, gifts, credits, enforced }: C
 export function orbitPoints({ profiles, reports, gifts, credits, enforced }: OrbitInput): OrbitPoint[] {
   const readable = new Map<string, OrbitReport>();
   for (const r of reports) {
-    if (r.kind !== "natal" || !r.profileId || r.status === "failed") continue;
-    const access = r.access ?? "owner";
-    if (access !== "owner" && access !== "claimed") continue;
+    if (r.kind !== "natal" || !r.profileId || r.status === "failed" || !seatAccess(r.access)) continue;
     const kept = readable.get(r.profileId);
     if (!kept || r.createdAt > kept.createdAt) readable.set(r.profileId, r);
   }
@@ -239,7 +251,10 @@ export function orbitPoints({ profiles, reports, gifts, credits, enforced }: Orb
 
   const people = profiles.flatMap((p): CirclePerson[] => {
     const report = readable.get(p.id);
-    return report ? [{ profileId: p.id, reportId: report.id, name: p.name, status: report.status, isSelf: p.isSelf === true }] : [];
+    const access = report ? seatAccess(report.access) : null;
+    return report && access
+      ? [{ profileId: p.id, reportId: report.id, name: p.name, status: report.status, isSelf: p.isSelf === true, access }]
+      : [];
   });
 
   const pairs = reports.flatMap((r): CirclePair[] => {

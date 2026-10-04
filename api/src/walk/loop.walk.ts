@@ -9,13 +9,17 @@
 // legacy pair routes are gone (MB-58). R14-10 adds that a birth-time change
 // holds a write per report it passes, and that a browser's session loses a
 // report to its subject's claim when it regenerates or pairs (MB-159, 166).
+// R15-28 has Not me on a sent report hand it back (ADR-236), reads each
+// reader's ticks from their own workbook (ADR-239), and has a birth-time
+// change pass the newest of seven reports alone (MB-170); sharing.walk.ts
+// walks the rest of sharing.
 // MB-49 provisional: the ledger this proves is the soft-pass one `consumeCredit`
 // still runs, so this file's checks retire with that pass, not before it.
 //
-// `pnpm --filter @workspace/api-server run walk` runs this against
-// `WALK_DATABASE_URL`; without it, it skips. Run twice on the same database:
-// the first statement truncates every table it touches, so a prior run
-// leaves nothing behind for the next one to trip over.
+// `pnpm --filter @workspace/api-server run walk` runs this, then
+// sharing.walk.ts, against `WALK_DATABASE_URL`; without it, it skips. Run
+// twice on the same database: the first statement truncates every table it
+// touches, so a prior run leaves nothing behind for the next one to trip over.
 
 if (!process.env.WALK_DATABASE_URL) {
   console.log("walk: skipped (no WALK_DATABASE_URL)");
@@ -23,6 +27,9 @@ if (!process.env.WALK_DATABASE_URL) {
 }
 process.env.DATABASE_URL = process.env.WALK_DATABASE_URL;
 process.env.OPENAI_API_KEY ??= "sk-dummy-walk-never-sent";
+// A first name or an address with nothing behind it here is asked of Clerk (names.ts, invites.ts); without a key, Clerk
+// refuses before it sends anything, whatever key the shell holds.
+delete process.env.CLERK_SECRET_KEY;
 
 import assert from "node:assert/strict";
 import http from "node:http";
@@ -61,13 +68,61 @@ await new Promise<void>((resolve) => mailStub.listen(0, "127.0.0.1", () => resol
 process.env.RESEND_API_KEY = "re_stub_walk";
 process.env.RESEND_BASE_URL = `http://127.0.0.1:${(mailStub.address() as AddressInfo).port}`;
 
-// A birth-time change starts real horizon passes. Each fails on the walk's
-// stored text and puts its report and profile back (horizonPass.ts); should
-// one ever reach a model call, the client is pointed here whatever key the
-// shell holds, a stand-in that refuses at once, so nothing leaves the machine.
-const modelStub = http.createServer((_req, res) => {
-  res.writeHead(400, { "content-type": "application/json" });
-  res.end(JSON.stringify({ error: { message: "the walk calls no model", type: "invalid_request_error" } }));
+// A birth-time change starts a real horizon pass on the newest complete
+// report. The model client is pointed here whatever key the shell holds: a
+// stand-in that answers the pass's calls with canned text by the schema each
+// one names, as horizonPass.test.ts's fake does, so the pass finishes as it
+// would on staging, and refuses every other call, so nothing leaves the machine.
+// The pass checks the rising's evidence against the new chart, so the step
+// that changes the time names its Ascendant here first.
+let passRising = "";
+const PASS_LINE = "You are read as steady before you have said a word.";
+function passReply(schema: string): unknown {
+  if (schema.endsWith("_amend")) return { amendments: [], additions: [] };
+  if (schema === "natal_houses") {
+    return {
+      houses: Array.from({ length: 12 }, (_, i) => ({
+        house: i + 1,
+        reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week.",
+      })),
+    };
+  }
+  if (schema === "natal_triad_rising" && passRising) {
+    const evidence = [{ kind: "angle", angle: "ascendant", sign: passRising }];
+    return {
+      rising: { label: `${passRising[0].toUpperCase()}${passRising.slice(1)} rising`, text: PASS_LINE },
+      claims: [PASS_LINE, "read as steady before", "before you have said a word"].map((quote) => ({ quote, evidence })),
+    };
+  }
+  return null;
+}
+function schemaOf(body: string): string {
+  try {
+    return String(JSON.parse(body)?.response_format?.json_schema?.name ?? "");
+  } catch {
+    return "";
+  }
+}
+const modelStub = http.createServer((req, res) => {
+  let body = "";
+  req.on("data", (c) => (body += c));
+  req.on("end", () => {
+    const reply = passReply(schemaOf(body));
+    if (reply === null) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: { message: "the walk calls no model", type: "invalid_request_error" } }));
+      return;
+    }
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({
+      id: "chatcmpl-walk",
+      object: "chat.completion",
+      created: Math.floor(Date.now() / 1000),
+      model: "walk-stand-in",
+      choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify(reply), refusal: null }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 1000, completion_tokens: 200, total_tokens: 1200 },
+    }));
+  });
 });
 await new Promise<void>((resolve) => modelStub.listen(0, "127.0.0.1", () => resolve()));
 process.env.OPENAI_BASE_URL = `http://127.0.0.1:${(modelStub.address() as AddressInfo).port}/v1`;
@@ -78,10 +133,11 @@ process.env.OPENAI_BASE_URL = `http://127.0.0.1:${(modelStub.address() as Addres
 // base URL when it is made.
 const { pool } = await import("@workspace/db");
 const { chartForProfile } = await import("../lib/profiles.js");
+const { PROMPT_VERSION } = await import("../lib/aiInterpretation.js");
 const { PAIR_PROMPT_VERSION } = await import("../prompts/pair/index.js");
 const { grantBundle, getCredits } = await import("../lib/credits.js");
 const { logger } = await import("../lib/logger.js");
-const { LIMIT_LINES } = await import("../lib/limits.js");
+const { LIMIT_LINES, LIMITS } = await import("../lib/limits.js");
 const { apiHeaders, originGuard, webOrigins } = await import("../middlewares/origin.js");
 const { default: router } = await import("../routes/index.js");
 const { GetHomeResponse } = await import("@workspace/api-zod");
@@ -185,8 +241,23 @@ const PAIR_TEXT = {
     },
   },
 };
+// As much of a written report as a horizon pass reads: the method it keeps, the foundation it hands the model, and the
+// triad it adds the rising to.
+const PASSABLE_TEXT = {
+  meta: { promptVersion: PROMPT_VERSION, horizon: "known" },
+  foundation: { chartThesis: "Steady first, quick second.", dominantPattern: "A plan held quietly.", centralTension: "Calm against speed." },
+  triad: {
+    sun: { label: "Sun", text: "You take the long view before you take a step." },
+    moon: { label: "Moon", text: "You settle once the room is quiet." },
+    claims: [],
+  },
+};
 const tokenOf = (m: Mail) => decodeURIComponent(/claim\?token=([^\s"&]+)/.exec(m.text)![1]);
 const row = async (id: string) => (await q("select * from invite_tokens where id = $1", [id])).rows[0];
+// Ticks and pins are each reader's own row (ADR-239); reports.workbook is no longer written (MB-195).
+const workbookOf = async (who: Viewer, reportId: string) =>
+  ((await q("select workbook from report_workbooks where report_id = $1 and reader = $2", [reportId, who.user ?? `session:${who.session}`]))
+    .rows[0]?.workbook ?? {}) as Record<string, string>;
 const creditRow = async (id: string) => (await q("select status, user_id from credits where id = $1", [id])).rows[0];
 
 async function person(id: string, name: string, fx: string, owner: Viewer, isSelf = false) {
@@ -266,7 +337,7 @@ try {
   // Idempotent: running this walk twice on the same database starts here
   // both times, so nothing from the first run can trip up the second.
   await q(
-    "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger cascade",
+    "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger, profile_shares, report_workbooks, generation_failures cascade",
   );
 
   for (const [id, email] of [
@@ -367,7 +438,7 @@ try {
   await step("pins: a pair's Next time tick saves, a pin round-trips through GET /home, a fourth answers pin_limit even in a race (ADR-174, MB-110)", async () => {
     const items = PAIR_TEXT.partners02.nextTime.items;
     const patchRP = (body: Record<string, string | null>) => call(GIVER, "PATCH", "/reports/RP/workbook", body);
-    const storedRP = async () => (await q("select workbook from reports where id = 'RP'")).rows[0].workbook as Record<string, string>;
+    const storedRP = () => workbookOf(GIVER, "RP");
     const pinKeys = (workbook: Record<string, string>) => Object.keys(workbook).filter((k) => k.startsWith("pin."));
 
     assert.equal((await patchRP({ "partners02.nextTime.items.0": day(1) })).status, 200);
@@ -409,6 +480,7 @@ try {
       ["RP", "partners02.nextTime.items.1", true, true], ["RP", "partners02.nextTime.items.2", true, true],
     ]);
     assert.deepEqual(h.practising.slice(2).map((p) => p.action), [`Audrey: ${items[1].action}`, `Both: ${items[2].action}`]);
+    assert.deepEqual((await q("select workbook from reports where id = 'RP'")).rows[0].workbook, {});
   });
 
   await step("R12-13: nothing writes a scene on tap, so the live pair's own reader gets a 404 where its summary answers 200 (ADR-176)", async () => {
@@ -416,7 +488,7 @@ try {
     assert.equal((await call(GIVER, "POST", "/compatibility/RP/scenes", { chapter: "partners02", index: 0 })).status, 404);
   });
 
-  await step("send a natal report, its email and copy link on our web app whatever host the request names; the claimer reads, lists and works it (MB-84)", async () => {
+  await step("send a natal report, its email and copy link on our web app whatever host the request names; the claimer reads, lists and works it, and their ticks are theirs alone (MB-84, ADR-239)", async () => {
     const sent = await call(GIVER, "POST", "/invites", { profileId: "PA", email: "subject@example.com" }, FORGED_HOST);
     assert.equal(sent.status, 201);
     assert.ok(sent.body.claimUrl.startsWith(`${OUR_PAGE}/claim?token=`), sent.body.claimUrl);
@@ -451,6 +523,8 @@ try {
     assert.equal(asGiver.body.access, "owner");
     assert.equal(asGiver.body.send.state, "joined");
     assert.equal(asGiver.body.giverName, null);
+    assert.deepEqual(asGiver.body.workbook, {});
+    assert.deepEqual((await call(SUBJECT, "GET", "/reports/RA")).body.workbook, { "career.actions.0": "2026-09-26" });
   });
 
   await step("home: a claimed report marked as theirs sits at its subject's centre, and its giver still seats them (ADR-182)", async () => {
@@ -483,17 +557,39 @@ try {
     assert.ok(!(await listReports(SUBJECT)).has("RP2"));
   });
 
-  await step("Not me unmarks a chart claimed to someone", async () => {
-    const patched = await call(SUBJECT, "PATCH", "/profiles/PA", { claimedAsSelf: false });
-    assert.equal(patched.status, 200);
-    assert.equal(patched.body.claimedAsSelf, false);
-    assert.equal(patched.body.isSelf, false);
+  await step("Not me on a sent report hands it back: the claim ends, the pair grant it brought goes back, and the giver's row reads Handed back (ADR-236, reading 6)", async () => {
+    // A pair grant riding on the claim, for the hand-back to take back with it.
+    const granted = await call(GIVER, "POST", "/compatibility/RP/send", {});
+    assert.deepEqual([granted.status, granted.body], [201, { state: "granted", invite: null }]);
+    assert.equal((await call(SUBJECT, "GET", "/compatibility/RP/summary")).status, 200);
+
+    const back = await call(SUBJECT, "POST", "/profiles/PA/hand-back");
+    assert.deepEqual([back.status, back.body], [200, { profileId: "PA" }]);
+    assert.equal((await call(SUBJECT, "POST", "/profiles/PA/hand-back")).status, 404);
+    for (const p of ["/reports/RA", "/compatibility/RP/summary"]) assert.equal((await call(SUBJECT, "GET", p)).status, 404, p);
+    assert.equal((await listReports(SUBJECT)).size, 0);
+    assert.deepEqual(await listProfiles(SUBJECT), []);
+    assert.deepEqual((await q("select access_role from relationship_participants where profile_id = 'PA'")).rows.map((r) => r.access_role), ["owner", "owner"]);
+
+    const g = await listReports(GIVER);
+    assert.deepEqual(g.get("RA").send, { state: "handed_back", profileId: "PA", relationshipId: null, firstName: "Audrey" });
+    assert.equal(g.get("RP").send.state, "can_send");
+    const pa = (await call(GIVER, "GET", "/profiles")).body.find((p: { id: string }) => p.id === "PA");
+    assert.deepEqual([pa.ownership, pa.claimedByName, pa.send.state], ["owner", null, "handed_back"]);
   });
 
-  await step("home: Not me leaves a sent report in the circle as a person, not at the centre (reading 6)", async () => {
+  await step("home: after Hand it back the subject's circle is empty and the giver's seats the chart again; Send again is a new send, claimed as the subject's own (reading 6, ADR-236)", async () => {
+    assert.deepEqual(await readHome(SUBJECT), { you: null, several: false, people: [], pairs: [], practising: [] });
+    assert.equal((await readHome(GIVER)).people.find((p) => p.profileId === "PA")?.access, "owner");
+
+    const again = await call(GIVER, "POST", "/invites", { profileId: "PA", email: "subject@example.com" });
+    assert.equal(again.status, 201);
+    assert.equal((await listReports(GIVER)).get("RA").send.state, "sent");
+    const claim = await call(SUBJECT, "POST", `/invites/${encodeURIComponent(tokenOf(mails.at(-1)!))}/claim`);
+    assert.deepEqual([claim.status, claim.body.kind, claim.body.askSelf], [200, "send", false]);
+    assert.equal((await listReports(GIVER)).get("RA").send.state, "joined");
     const s = await readHome(SUBJECT);
-    assert.equal(s.you, null);
-    assert.deepEqual(s.people.map((p) => [p.profileId, p.access, p.isSelf]), [["PA", "claimed", false]]);
+    assert.deepEqual([s.you?.profileId, s.you?.access, s.you?.isSelf], ["PA", "claimed", true]);
   });
 
   await step("Stop sharing a claimed chart ends the giver's reading at once", async () => {
@@ -527,8 +623,8 @@ try {
     assert.equal((await call(GIVER, "PATCH", "/reports/RP/workbook", { "pin.partners02.nextTime.items.2": day(5) })).status, 404);
 
     const s = await readHome(SUBJECT);
-    assert.deepEqual(s.people.map((p) => [p.profileId, p.access]), [["PA", "claimed"]]);
-    assert.deepEqual(s.pairs, []);
+    assert.deepEqual([s.you?.profileId, s.you?.access], ["PA", "claimed"]);
+    assert.deepEqual([s.people, s.pairs], [[], []]);
   });
 
   await step("R10-23, R12-13: the closed pair 404s on compatibility summary, the scene route that stood beside it is gone, and the legacy pair routes answer 410 (MB-58)", async () => {
@@ -808,23 +904,41 @@ try {
     assert.equal((await call(LIMITED, "GET", "/credits")).body.available, 10);
   });
 
-  await step("MB-159: a birth-time change over two reports holds two writes, so one over more than the hour has left hears 429 before any pass and saves no time (ADR-199)", async () => {
-    await person("PH", "Charlotte Windsor", "charlotte", HORIZON, true);
-    for (const id of ["RH1", "RH2"]) await natal(id, "PH", HORIZON.session);
+  await step("MB-170: a birth-time change over seven complete reports passes the newest alone on one write and leaves the six older outdated, stamped or not, so the refusal naming 6 reports no longer fires; once the hour's writes are spent, a change hears 429 before any pass and saves no time (ADR-199)", async () => {
+    const f = fixture("charlotte");
+    await person("PH", f.name, "charlotte", HORIZON, true);
+    const ids = ["RH1", "RH2", "RH3", "RH4", "RH5", "RH6", "RH7"];
+    for (const [i, id] of ids.entries()) {
+      // The first three predate R15-20's stamp of the time a report was written for, so theirs is read from the passes.
+      const stamp = i < 3 ? null : { writtenFor: { birthTime: f.birthTime, birthTimeWindowMinutes: 0, passes: 0 } };
+      await q(
+        `insert into reports (id, profile_id, session_id, type, status, interpretation, compute_data, created_at)
+         values ($1, 'PH', $2, 'natal', 'complete', $3, $4, now() - make_interval(mins => $5))`,
+        [id, HORIZON.session, JSON.stringify(PASSABLE_TEXT), stamp && JSON.stringify(stamp), ids.length - i],
+      );
+    }
     const change = (birthTime: string) => call(HORIZON, "PATCH", "/profiles/PH/birth-time", { birthTime, birthTimeWindowMinutes: 0 });
     const revisions = async () =>
       (await q("select count(*)::int as n from report_revisions v join reports r on r.id = v.report_id where r.profile_id = 'PH'")).rows[0].n as number;
-    // A pass here fails and puts its report back with the failure noted, a mark only a finished pass leaves, so the next
-    // change waits until every report the last one passed carries it.
-    const passed = async (ids: string[]) => {
+    // A failed pass puts the old time back and leaves nothing outdated, so the step fails on one, with the pass's error.
+    const passed = async (passes: number) => {
       const end = Date.now() + 10_000;
-      const marked = async () =>
-        (await q("select count(*)::int as n from reports where id = any($1) and status = 'complete' and error_message like 'horizon pass failed%'", [ids])).rows[0].n;
-      while ((await marked()) < ids.length) {
-        if (Date.now() > end) throw new Error(`the passes on ${ids.join(", ")} did not finish`);
+      for (;;) {
+        const r = (await q("select status, horizon_passes, error_message from reports where id = 'RH7'")).rows[0];
+        if (r.error_message) throw new Error(`the pass on RH7 failed: ${r.error_message}`);
+        if (r.status === "complete" && r.horizon_passes === passes) return;
+        if (Date.now() > end) throw new Error(`pass ${passes} on RH7 did not finish`);
         await new Promise((resolve) => setTimeout(resolve, 25));
       }
     };
+    const passOn = async (birthTime: string, passes: number) => {
+      passRising = chartForProfile({ ...f, birthTime, birthTimeWindowMinutes: 0 }).angles!.ascendant.sign.toLowerCase();
+      const r = await change(birthTime);
+      assert.equal(r.status, 202, `${birthTime}: ${JSON.stringify(r.body)}`);
+      assert.deepEqual(r.body.reportIds, ["RH7"], birthTime);
+      await passed(passes);
+    };
+    const outdated = () => Promise.all(ids.map(async (id) => (await call(HORIZON, "GET", `/reports/${id}`)).body.outdated));
     const refusedBeforeAnyPass = async (birthTime: string) => {
       const before = await revisions();
       const r = await change(birthTime);
@@ -836,24 +950,21 @@ try {
       assert.equal(await revisions(), before, "no pass started");
     };
 
-    const first = await change("06:30");
-    assert.equal(first.status, 202);
-    assert.deepEqual([...first.body.reportIds].sort(), ["RH1", "RH2"]);
-    await passed(["RH1", "RH2"]);
+    // Seven reports outnumber the hour's writes, so a write held for each, the rule before MB-170, would have been refused.
+    assert.ok(ids.length > LIMITS.write.limit, "seven reports no longer outnumber the hour's writes");
+    const times = Array.from({ length: LIMITS.write.limit + 1 }, (_, i) => `${String(6 + i).padStart(2, "0")}:30`);
+    await passOn(times[0], 1);
+    assert.deepEqual(await outdated(), [true, true, true, true, true, true, false]);
+    const newest = (await call(HORIZON, "GET", "/reports/RH7")).body;
+    assert.deepEqual([newest.status, newest.horizonPasses, newest.revisions.map((v: { reason: string }) => v.reason)], ["complete", 1, ["birth_time_added"]]);
+    const oldest = (await call(HORIZON, "GET", "/reports/RH1/status")).body;
+    assert.deepEqual([oldest.outdated, oldest.canRegenerate], [true, true]);
+    assert.deepEqual((await call(HORIZON, "GET", "/reports/RH1")).body.interpretation, PASSABLE_TEXT);
 
-    // Five to pass where four writes are left; had the first change held one, five would be left.
-    for (const id of ["RH3", "RH4", "RH5"]) await natal(id, "PH", HORIZON.session);
-    await refusedBeforeAnyPass("07:45");
-
-    // Four, exactly what is left, so the first change held two and no more. The first passes' marks go, so only these
-    // passes can leave them.
-    await q("update reports set status = 'failed' where id = 'RH5'");
-    await q("update reports set error_message = null where profile_id = 'PH'");
-    const second = await change("08:15");
-    assert.equal(second.status, 202);
-    assert.deepEqual([...second.body.reportIds].sort(), ["RH1", "RH2", "RH3", "RH4"]);
-    await passed(["RH1", "RH2", "RH3", "RH4"]);
-    await refusedBeforeAnyPass("09:00");
+    // One write a change: the rest of the hour's writes each pass the newest again, and the next change is refused.
+    for (let n = 2; n <= LIMITS.write.limit; n++) await passOn(times[n - 1], n);
+    await refusedBeforeAnyPass(times[LIMITS.write.limit]);
+    assert.deepEqual(await outdated(), [true, true, true, true, true, true, false]);
   });
 
   await step("the breaker: past DAILY_SPEND_CAP_USD, POST /reports answers 503 paused before its route, and the admin hears once (ADR-199)", async () => {
@@ -891,7 +1002,7 @@ try {
     assert.equal(mails.length, mailsBefore);
 
     const tick = { "career.actions.0": day(6) };
-    const stored = async () => (await q("select workbook from reports where id = 'RM'")).rows[0].workbook as Record<string, string>;
+    const stored = () => workbookOf(GIVER, "RM");
     assert.equal((await call(GIVER, "PATCH", "/reports/RM/workbook", tick, { origin: FOREIGN_PAGE })).status, 403);
     assert.equal((await stored())["career.actions.0"], undefined);
     assert.equal((await call(GIVER, "PATCH", "/reports/RM/workbook", tick, { origin: OUR_PAGE })).status, 200);

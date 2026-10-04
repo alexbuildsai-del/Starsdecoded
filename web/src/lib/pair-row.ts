@@ -1,8 +1,9 @@
 /**
  * The dashboard's People and Compatibility rows, pure: which state a pair's
- * row reads as, what a person's row offers, and the words both print, Stop
- * sharing's among them. The rows draw from `GET /home` and act through their
- * own routes (reading 4); nothing here fetches or guesses.
+ * row reads as, what a person's row offers, the link Change address moves,
+ * and the words both print, Stop sharing's and Not me's handback among them.
+ * The rows draw from `GET /home` and act through their own routes (reading
+ * 4); nothing here fetches or guesses.
  */
 import { pairTitle } from "@/lib/lenses";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
@@ -90,13 +91,13 @@ export function signsSpoken(triad: Triad): string | null {
   return parts.join(", ");
 }
 
-export type ShareState = "can_send" | "can_grant" | "sent" | "joined";
+export type ShareState = "can_send" | "can_grant" | "sent" | "joined" | "handed_back";
 
 export interface PersonRowInput {
   /** The reader's own chart from their side (ADR-120). */
   isSelf: boolean;
-  /** Owner: the reader wrote it; claimed: it was sent to them (ADR-139). */
-  access: "owner" | "claimed";
+  /** Owner: the reader wrote it; claimed: it was sent to them (ADR-139); shared: its subject shares it with them (ADR-235). */
+  access: "owner" | "claimed" | "shared";
   status: string;
   /** GET /profiles' ownership, "claimed" once the person it was sent to holds it. */
   ownership?: string | null;
@@ -107,8 +108,13 @@ export interface PersonRowInput {
   giver?: string | null;
   /** No chart is marked as the reader's yet, so any they wrote may be theirs. */
   unmarked: boolean;
+  /** GET /home's: the writer, or the holder after a hand-over, may run it again; never a shared reader (reading 10). */
+  canRegenerate?: boolean;
+  /** The chart's person, whom Stop sharing names when the chart isn't the reader's own (ADR-238). */
+  name?: string;
 }
 
+/** "Offer" is Share with {name}, and Send again once a send came back (`handedBack`); never anything on a shared reader's row. */
 export type PersonShare = { kind: "offer" | "waiting" | "joined"; name: string };
 
 export interface PersonRowView {
@@ -116,38 +122,61 @@ export interface PersonRowView {
   opens: boolean;
   /** A report under way is a status with dots (ADR-130). */
   busy: "Writing" | "Revising" | null;
+  /** Try again on a report that failed, only where the reader may run it again (MB-137, reading 10). */
+  retry: boolean;
   /** "This is me ✓". */
   self: boolean;
   /** "This is me", the mark itself. */
   mark: boolean;
   share: PersonShare | null;
+  /** Its claimer handed the send back with Not me: "Handed back", and the offer reads Send again (ADR-236). */
+  handedBack: boolean;
+  /** A send still waiting on its claim can go to a corrected address (ADR-237). */
+  changeAddress: boolean;
   addBirthTime: boolean;
   /** Behind "⋯", with Delete report. */
   notMe: boolean;
+  /** Not me on a report sent to the reader hands it back to its writer; on the writer's own chart it unmarks (ADR-236). */
+  handBack: boolean;
   stopWith: string | null;
+  /** Stop sharing names the chart's person, by first name, when it isn't the reader's own (ADR-238). */
+  stopSubject: string | null;
+  /** Delete report, or the writer's Remove; a report read through a share is its sharer's to delete (ADR-235). */
+  deletes: boolean;
   /** The writer's Delete hands a report its subject claimed back to them (ADR-139). */
   handsOver: boolean;
 }
 
 export function personRowView(input: PersonRowInput): PersonRowView {
   const claimed = input.access === "claimed";
-  const send = input.send ?? null;
+  const shared = input.access === "shared";
+  // Whoever reads a shared report cannot send it on; only its sharer can (ADR-235).
+  const send = shared ? null : input.send ?? null;
   let share: PersonShare | null = null;
   if (send?.firstName) {
     const kind = send.state === "sent" ? "waiting" : send.state === "joined" ? "joined" : "offer";
     share = { kind, name: send.firstName };
   }
+  const subject = claimed && !input.isSelf && input.name ? first(input.name) : null;
   return {
     opens: finished(input.status),
     busy: WRITING.has(input.status) ? "Writing" : input.status === "revising" ? "Revising" : null,
+    retry: input.status === "failed" && input.canRegenerate === true,
     self: input.isSelf,
-    // The writer marks their own chart while none is marked; the person a chart was sent to says This is me or Not me (ADR-120).
-    mark: !input.isSelf && (claimed || (input.unmarked && (input.ownership ?? "owner") === "owner")),
+    // The writer marks their own chart while none is marked; the person a chart was sent to says This is me or Not me
+    // (ADR-120). A shared report is its sharer's own chart, never the reader's.
+    mark: !shared && !input.isSelf && (claimed || (input.unmarked && (input.ownership ?? "owner") === "owner")),
     share,
-    addBirthTime: input.horizon === "unknown" && input.status === "complete",
-    notMe: input.isSelf,
+    handedBack: share?.kind === "offer" && send?.state === "handed_back",
+    changeAddress: share?.kind === "waiting",
+    addBirthTime: !shared && input.horizon === "unknown" && input.status === "complete",
+    // A report sent to the reader answers Not me whether or not it is marked as theirs, since it may be someone else's (ADR-236).
+    notMe: claimed || (!shared && input.isSelf),
+    handBack: claimed,
     // Only the person a report was sent to learns who sent it, and only while the sender can still read it.
     stopWith: claimed ? (input.giver ?? null) : null,
+    stopSubject: subject,
+    deletes: !shared,
     handsOver: !claimed && input.ownership === "claimed",
   };
 }
@@ -155,14 +184,34 @@ export function personRowView(input: PersonRowInput): PersonRowView {
 /** A share sent and not yet claimed; "share" replaced "send" for giving a report (ADR-181). */
 export const sharedWaiting = (name: string): string => `Shared · waiting for ${name}`;
 
-export const stopSharingTitle = (name: string): string => `Stop sharing with ${name}?`;
+/** A send its claimer handed back with Not me, and the new send that answers it (ADR-236). */
+export const HANDED_BACK = "Handed back";
+export const SEND_AGAIN = "Send again";
+
+type ListedInvite = { id: string; email: string; relationshipId?: string | null; claimedAt?: string | null };
 
 /**
- * What Stop sharing does to the person who sent the reader their Personal
- * report, in the locked spec's words (review-01-10, scope 3), said before it is
- * done since it cannot be taken back.
+ * The link Change address moves (ADR-237): the newest one still waiting for
+ * this person (`relationshipId` null) or for this pair. GET /invites lists a
+ * profile's links oldest first, a person's and its pairs' together.
  */
-export function stopSharingLines(giver: string): string[] {
+export function waitingInvite<T extends ListedInvite>(invites: readonly T[] | undefined, relationshipId: string | null): T | null {
+  if (!Array.isArray(invites)) return null;
+  return invites.filter((i) => !i.claimedAt && (i.relationshipId ?? null) === relationshipId).at(-1) ?? null;
+}
+
+/** With whoever loses it on the reader's own chart; by the chart's person when it isn't theirs (ADR-238). */
+export const stopSharingTitle = (name: string, subject?: string | null): string =>
+  subject ? `Stop sharing ${subject}'s ${PERSONAL_REPORT}?` : `Stop sharing with ${name}?`;
+
+/**
+ * What Stop sharing does to the person who sent the reader a Personal report,
+ * said before it is done since it cannot be taken back: in the locked spec's
+ * words on the reader's own chart (review-01-10, scope 3), and in the approved
+ * artifact's, naming its person, on a chart that isn't theirs (ADR-238).
+ */
+export function stopSharingLines(giver: string, subject?: string | null): string[] {
+  if (subject) return [`${giver} can no longer read it.`, `${subject}'s birth details leave ${giver}'s account.`, "Pairs made from it close."];
   return [
     `${giver} can no longer read your ${PERSONAL_REPORT}.`,
     `You leave ${giver}'s circle. Your birth date and your Sun, Moon and Rising go from ${giver}'s dashboard.`,
@@ -170,6 +219,30 @@ export function stopSharingLines(giver: string): string[] {
     `${COMPATIBILITY_REPORT}s ${giver} made with you close for ${giver} too. Nothing is deleted.`,
     "Your report stays yours. You can't undo this.",
   ];
+}
+
+/**
+ * A reader ending a share of their own Personal report (ADR-235, reading 5):
+ * a claimed share ends as a giver's does, from the sharer's side; a link still
+ * waiting (`waitingAt`, the address it went to) only stops working. Either can
+ * be shared again, so neither says it can't be undone.
+ */
+export function stopShareLines(reader: string, waitingAt: string | null): string[] {
+  if (waitingAt) return [`The link we emailed to ${waitingAt} stops working.`, "You can share it again later."];
+  return [
+    `${reader} can no longer read your ${PERSONAL_REPORT}.`,
+    `You leave ${reader}'s circle. Your birth date and your Sun, Moon and Rising go from ${reader}'s dashboard.`,
+    `${COMPATIBILITY_REPORT}s ${reader} made with you close for ${reader} too. Nothing is deleted.`,
+    "You can share it again later.",
+  ];
+}
+
+/** Not me on a report sent to the reader (ADR-236): Hand it back and Cancel only, in the approved artifact's words. */
+export const HAND_BACK_TITLE = "This report isn't about you?";
+
+export function handBackLine(giver: string): string {
+  if (!giver) return "We'll hand it back to whoever sent it and it leaves your account. They can send it to the right person.";
+  return `We'll hand it back to ${giver} and it leaves your account. ${giver} can send it to the right person.`;
 }
 
 /** A pair's sender ends the other person's reading; the report stays theirs, so it can be shared again (MB-103 provisional). */

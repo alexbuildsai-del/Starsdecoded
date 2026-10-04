@@ -5,9 +5,9 @@ import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
-// Unauthenticated like the geocode path, and limited per address like it in
-// routes/index.ts (MB-146 provisional). Reads no profile, stores nothing,
-// calls no model.
+// Unauthenticated like the place search and, like it, limited per address: its
+// limit stands in routes/index.ts, at a pace decided as built (ADR-231, MB-146).
+// Reads no profile, stores nothing, calls no model.
 router.post("/horizon/preview", (req, res) => {
   const parsed = PreviewHorizonBody.safeParse(req.body);
   if (!parsed.success) {

@@ -25,8 +25,22 @@ pnpm --filter @workspace/db run migrate
 
 echo "==> 2/7 Schema push"
 # A safety net for any drift the migrations do not cover. A no-op once they
-# have run.
-pnpm --filter @workspace/db run push
+# have run. drizzle-kit prints a statement that fails and still exits 0
+# (MB-123), so its output is read for an error line, as step 7 reads one: a
+# half-pushed schema stops the deploy instead of starting the API on it.
+push_status=0
+push_output=$(pnpm --filter @workspace/db run push 2>&1) || push_status=$?
+# Postgres's detail line names the row a statement tripped on (a duplicated
+# key's value: a Clerk id, an email), and a deploy log is no place for it. It
+# is dropped before anything is printed or read; the error line still names
+# what failed and the constraint line where.
+push_output=$(printf '%s\n' "$push_output" | sed -E '/^[[:space:]]*[Dd][Ee][Tt][Aa][Ii][Ll]:/d')
+printf '%s\n' "$push_output"
+push_error=$(printf '%s\n' "$push_output" | grep -m1 -oE '(Error|error): .*' | cut -c1-160)
+if [ "$push_status" -ne 0 ] || [ -n "$push_error" ]; then
+  echo "bootstrap-db: schema push FAILED: ${push_error:-exit status $push_status}" >&2
+  exit 1
+fi
 
 echo "==> 3/7 Invite/claim migration"
 # Idempotent, so fresh and existing databases both end up with invite_tokens
@@ -80,6 +94,13 @@ echo "==> 3l/7 The spend ledger"
 # spend_ledger, one row per UTC day and kind of visitor generation, which every model
 # call made for a visitor adds its cost to and the daily spend breaker sums (ADR-199). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-spend-ledger.ts
+
+echo "==> 3m/7 Share grants, per-reader workbooks, the handback stamp"
+# profile_shares, report_workbooks and invite_tokens.handed_back_at (ADR-235, 236, 239).
+# The push above usually makes all three first; this step still runs because only it
+# copies each report's ticks from reports.workbook to the report's holder, and it does
+# so whichever made the table. Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-shares-and-workbooks.ts
 
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from

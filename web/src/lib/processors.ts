@@ -1,6 +1,5 @@
 import { PATH_SEEN_KEY } from "@/lib/credits-view";
 import { FORM_DRAFT_KEY } from "@/lib/form-draft";
-import { NUDGE_SEEN_KEY } from "@/lib/nudges";
 import { SELECTION_KEY } from "@/lib/pair-selection";
 import { PREVIEW_KEY } from "@/lib/prelaunch";
 
@@ -23,7 +22,7 @@ export interface Processor {
 }
 
 // MB-33 provisional: only Railway's region (ADR-164) and Resend's (the Owner, 2026-10-02) are confirmed, so each other
-// company shows its country (reading 10), and who runs timeapi.io, and where, is not confirmed at all.
+// company shows its country (reading 10).
 export const PROCESSORS: readonly Processor[] = [
   {
     name: "Supabase",
@@ -67,19 +66,13 @@ export const PROCESSORS: readonly Processor[] = [
     region: "Resend's EU West region, in Ireland",
     country: "the United States",
   },
+  // No time zone service follows it: our server reads each place's zone from a table of its own (ADR-246).
   {
     name: "Nominatim",
     does: "is OpenStreetMap's place search, run by the OpenStreetMap Foundation. It gets the words you type in the place field.",
-    from: "browser",
+    from: "server",
     region: null,
     country: "the United Kingdom",
-  },
-  {
-    name: "timeapi.io",
-    does: "finds the time zone of the place you pick. It gets that place's latitude and longitude.",
-    from: "browser",
-    region: null,
-    country: null,
   },
 ];
 
@@ -118,11 +111,6 @@ export const BROWSER_KEYS: readonly BrowserKey[] = [
     name: PREVIEW_KEY,
     store: "tab",
     holds: "Only when we test the site: that this tab shows the site as visitors see it before we launch.",
-  },
-  {
-    name: NUDGE_SEEN_KEY,
-    store: "kept",
-    holds: "Which suggestions on your dashboard you've already seen, by report ID.",
   },
   {
     name: PATH_SEEN_KEY,

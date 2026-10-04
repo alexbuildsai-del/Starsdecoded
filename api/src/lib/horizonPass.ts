@@ -1,12 +1,14 @@
 /**
  * The horizon pass (ADR-35, ADR-36): a birth time was added or corrected on a
- * profile, so every complete natal report of that profile is amended, never
- * regenerated. The previous text and chart go to report_revisions first; the
- * report reads throughout as `revising`; the horizon blocks are generated and
- * stored section by section so the page can follow; the rest is amended by
- * quote match; a failure restores the previous text and the previous profile
- * and records the error, so the chart never contradicts the text. The first
- * pass is free and no credit is consumed this round (MB-52).
+ * profile, so the newest complete natal report of that profile is amended,
+ * never regenerated; the older ones keep their text and read as outdated, each
+ * offering Regenerate (MB-170). The previous text and chart go to
+ * report_revisions first; the report reads throughout as `revising`; the
+ * horizon blocks are generated and stored section by section so the page can
+ * follow; the rest is amended by quote match; a failure restores the previous
+ * text and the previous profile and records the error, so the chart never
+ * contradicts the text. The first pass is free and no credit is consumed this
+ * round (MB-52).
  *
  * Storage is behind `PassStore` so the ordering and the failure path can be
  * proven against memory; `dbStore` is the one the route uses.

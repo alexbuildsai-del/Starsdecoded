@@ -13,7 +13,7 @@
  * (ADR-97): the name and the rising degree sit in the centre, no aspect line
  * is drawn and no house is selected or selectable; the degree chip stays.
  */
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode, type SVGProps } from "react";
 import { PLANET_GLYPHS, PLANET_LABELS, type ChartData } from "@/types/chart";
 import { renderFor } from "@/lib/planet-renders";
 import { HOUSE_WORDS } from "@/lib/evidence-glossary";
@@ -40,6 +40,18 @@ const ASPECT_STROKE: Record<string, string> = {
 };
 
 const BRASS = "hsl(var(--brass))";
+
+// MB-196 provisional: a stop's focus is the site's own focus colour, the one `.sd :focus-visible` draws, because brass
+// is measured geometry and never a control (§9). It is a ring in the stop's own shape, so every stop sets outline-none:
+// a CSS outline round an SVG group is a box across its neighbours. Non-scaling, it stays 2 px at any size of wheel.
+const FOCUS_RING = {
+  fill: "none",
+  stroke: "var(--indigo-lt)",
+  strokeWidth: 2,
+  vectorEffect: "non-scaling-stroke",
+  opacity: 0,
+  className: "group-focus-visible/stop:opacity-100",
+} as const;
 
 function BodyMark({ body, x, y, size }: { body: string; x: number; y: number; size: number }) {
   const src = renderFor(body, size);
@@ -87,6 +99,11 @@ export interface NatalWheelProps {
   renderHouse?: (house: number) => ReactNode;
   /** The wheel stands alone: this name and the rising line in the centre, no aspect lines, no house to select. */
   centreName?: string;
+  /**
+   * False when a house or planet would do nothing on focus or a click (MB-177): the wheel is then one picture, with no
+   * tab stop to wade through and no skip link past them.
+   */
+  stops?: boolean;
 }
 
 export function NatalWheel({
@@ -96,12 +113,14 @@ export function NatalWheel({
   onSelectHouse,
   renderHouse,
   centreName,
+  stops = true,
 }: NatalWheelProps) {
   // useId, not a module counter, so a prerendered wheel hydrates with the ids the server gave it however many pages
   // one build renders; SVG ids must be XML names, which React's older ":r0:" form is not, hence the filter.
   const uid = `natal-wheel${useId().replace(/[^\w-]/g, "")}`;
   const [internalHouse, setInternalHouse] = useState(1);
   const [hovered, setHovered] = useState<string | null>(null);
+  const after = useRef<HTMLSpanElement>(null);
 
   const standalone = centreName !== undefined;
   const house = standalone ? 0 : selectedHouse ?? internalHouse;
@@ -141,12 +160,26 @@ export function NatalWheel({
   return (
     // Without a side panel the wheel takes the whole box: the house deck lays its
     // card out itself, so the split here would only leave an empty column.
-    <div className={`grid gap-4 items-start${renderHouse ? " lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]" : ""}`}>
+    <div className={`relative grid gap-4 items-start${renderHouse ? " lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]" : ""}`}>
+      {stops && (
+        // Over the wheel's top while it has focus, never in the flow, so showing it moves nothing.
+        <a
+          href={`#${uid}-after`}
+          onClick={(e) => {
+            // Focus, not the fragment: the address keeps no generated id and the history no extra step.
+            e.preventDefault();
+            after.current?.focus();
+          }}
+          className="sr-only left-2 top-2 z-10 rounded-lg bg-[color:var(--indigo)] font-label text-sm font-medium leading-none text-white no-underline focus:m-0 focus:h-auto focus:w-auto focus:overflow-visible focus:px-3.5 focus:py-2.5 focus:[clip-path:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--indigo-lt)]"
+        >
+          Skip past the chart wheel
+        </a>
+      )}
       <svg
         viewBox={`${-pad} ${-pad} ${PLATE + 2 * pad} ${PLATE + 2 * pad}`}
         className="w-full h-auto"
-        // A group, not an img: the planets and houses inside take focus, which an img role may not hold.
-        role="group"
+        // A group while its planets and houses take focus, which an img role may not hold; with no stop it is one picture.
+        role={stops ? "group" : "img"}
         aria-label={`${standalone ? `${centreName}'s natal chart wheel` : "Natal chart wheel"}${drawn ? "" : ", horizon not drawn"}`}
         data-horizon={drawn ? "drawn" : "none"}
       >
@@ -245,13 +278,21 @@ export function NatalWheel({
             </>
           );
           if (standalone) return <g key={h}>{lines}</g>;
+          // Drawn with or without a stop: home lights the house its claim is about, and the deck's bar the one being read.
+          const wedge = (
+            <path
+              d={wedgePath(c, c, r.tick, r.aspect, b0, b1)}
+              fill={selected ? "hsl(var(--brass) / 0.14)" : `hsl(0 0% 100% / ${h % 2 ? 0.012 : 0.026})`}
+            />
+          );
+          if (!stops) return <g key={h}>{wedge}{lines}</g>;
           return (
             <g
               key={h}
               tabIndex={0}
               role="button"
               aria-label={`House ${h}, ${sign}`}
-              className="cursor-pointer focus:outline-none focus-visible:outline-none"
+              className="group/stop cursor-pointer outline-none"
               onClick={() => selectHouse(h)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -260,11 +301,9 @@ export function NatalWheel({
                 }
               }}
             >
-              <path
-                d={wedgePath(c, c, r.tick, r.aspect, b0, b1)}
-                fill={selected ? "hsl(var(--brass) / 0.14)" : `hsl(0 0% 100% / ${h % 2 ? 0.012 : 0.026})`}
-              />
+              {wedge}
               {lines}
+              <path d={wedgePath(c, c, r.signOuter, r.aspect, b0, b1)} {...FOCUS_RING} />
             </g>
           );
         })}
@@ -390,27 +429,30 @@ export function NatalWheel({
           const chipW = PLATE * 0.118;
           const chipX = at.x + side * r.node * 0.95 - (side > 0 ? 0 : chipW);
           const label = PLANET_LABELS[n.key] ?? n.key;
+          const show = () => setHovered(n.key);
+          const hide = () => setHovered((h) => (h === n.key ? null : h));
+          // The mouse still shows a body's degree on a wheel without stops; focus, the keys and a click need a stop.
+          const stop: SVGProps<SVGGElement> = stops ? {
+            tabIndex: 0,
+            role: "button",
+            "aria-label": `${label} ${p.degree.toFixed(1)} degrees ${p.sign}${p.house ? `, house ${p.house}` : ""}`,
+            className: "group/stop cursor-pointer outline-none",
+            onFocus: show,
+            onBlur: hide,
+            onClick: () => { if (!standalone && p.house) selectHouse(p.house); },
+            onKeyDown: (e) => {
+              if (!standalone && (e.key === "Enter" || e.key === " ") && p.house) {
+                e.preventDefault();
+                selectHouse(p.house);
+              }
+            },
+          } : {};
           return (
-            <g
-              key={n.key}
-              tabIndex={0}
-              role="button"
-              aria-label={`${label} ${p.degree.toFixed(1)} degrees ${p.sign}${p.house ? `, house ${p.house}` : ""}`}
-              className="cursor-pointer focus:outline-none focus-visible:outline-none"
-              onMouseEnter={() => setHovered(n.key)}
-              onMouseLeave={() => setHovered((h) => (h === n.key ? null : h))}
-              onFocus={() => setHovered(n.key)}
-              onBlur={() => setHovered((h) => (h === n.key ? null : h))}
-              onClick={() => { if (!standalone && p.house) selectHouse(p.house); }}
-              onKeyDown={(e) => {
-                if (!standalone && (e.key === "Enter" || e.key === " ") && p.house) {
-                  e.preventDefault();
-                  selectHouse(p.house);
-                }
-              }}
-            >
+            // data-body is where a page finds the body as drawn (home's claim marks), with or without a stop to read.
+            <g key={n.key} data-body={n.key} onMouseEnter={show} onMouseLeave={hide} {...stop}>
               <circle cx={at.x} cy={at.y} r={r.node * 0.62} fill="hsl(var(--background))" fillOpacity={0.92} />
               <BodyMark body={n.key} x={at.x} y={at.y} size={r.node} />
+              {stops && <circle cx={at.x} cy={at.y} r={r.node * 0.8} {...FOCUS_RING} />}
               {p.retrograde && (
                 <text
                   x={at.x + r.node * 0.46}
@@ -449,6 +491,7 @@ export function NatalWheel({
           );
         })}
       </svg>
+      {stops && <span ref={after} id={`${uid}-after`} tabIndex={-1} className="absolute bottom-0 left-0 outline-none" />}
 
       {renderHouse && !standalone && <div className="min-w-0">{renderHouse(house)}</div>}
     </div>

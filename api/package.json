@@ -9,7 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test 'src/**/*.test.ts'",
-    "walk": "tsx ./src/walk/loop.walk.ts"
+    "walk": "tsx ./src/walk/loop.walk.ts && tsx ./src/walk/sharing.walk.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.72",
@@ -24,6 +24,7 @@
     "drizzle-orm": "catalog:",
     "express": "^5",
     "express-rate-limit": "8.7.0",
+    "geo-tz": "8.1.9",
     "gpt-tokenizer": "^4.0.0",
     "pino": "^9",
     "pino-http": "^10",

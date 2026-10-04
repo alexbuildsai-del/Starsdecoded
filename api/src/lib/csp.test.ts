@@ -87,10 +87,10 @@ test("a foreign page's report is read but never counted", () => {
   const foreign = parseCspReport(REPORT_URI, reportUri({ "document-uri": "https://evil.example/page" }));
   assert.deepEqual(foreign, { directive: "script-src-elem", blocked: "cdn.evil.example", documentHost: "evil.example" });
   assert.deepEqual(cspCounts([foreign!], OURS), []);
-  for (const host of ["evil.example", "mystarsdecoded.com.evil.example", "starsdecoded-x.vercel.app.evil.example", "starsdecoded.vercel.app", "starsdecoded-x.vercel.app:8443"]) {
+  for (const host of ["evil.example", "mystarsdecoded.com.evil.example", "starsdecoded-x.vercel.app.evil.example", "starsdecoded.vercel.app", "starsdecoded-x.vercel.app:8443", "starsdecoded-git-round-r13-alex.vercel.app"]) {
     assert.equal(ourPage(host, OURS), false, host);
   }
-  for (const host of ["mystarsdecoded.com", "www.mystarsdecoded.com", "starsdecoded-staging.vercel.app", "starsdecoded-git-round-r13-alex.vercel.app"]) {
+  for (const host of ["mystarsdecoded.com", "www.mystarsdecoded.com", "starsdecoded-staging.vercel.app", "starsdecoded-git-round-r15-stars-decoded.vercel.app"]) {
     assert.equal(ourPage(host, OURS), true, host);
   }
   const batch = [reportingApi({}, "https://evil.example/"), reportingApi({})];

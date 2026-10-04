@@ -189,7 +189,7 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
       >
         {/* The deck is the control here; the wheel only follows it. */}
         <div inert aria-hidden className="w-[92px]">
-          <NatalWheel chartData={chart} orbs={orbs} selectedHouse={house} />
+          <NatalWheel chartData={chart} orbs={orbs} selectedHouse={house} stops={false} />
         </div>
         <div className="min-w-0">
           <p className="font-mono text-[10px] font-medium uppercase tracking-[.12em] text-[color:var(--accent)]">

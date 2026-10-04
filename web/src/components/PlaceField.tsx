@@ -1,71 +1,55 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Loader2, MapPin, Search, X } from "lucide-react";
+import { geocodePlace } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  fallbackZone,
-  nominatimUrl,
+  offsetOn,
   placeLine,
   placeTitle,
   placeWhere,
-  rankResults,
-  toMatch,
-  utcLabel,
-  withZone,
-  zoneFrom,
-  zoneUrl,
+  searchFailureLine,
+  searchResult,
+  searchable,
   type GeocodeResult,
-  type Match,
-  type NominatimResult,
-  type TimeApiZone,
-  type Zone,
 } from "@/lib/places";
+import { utcLine } from "@/lib/sky-now";
 
 export interface PlaceFieldProps {
   id: string;
   value: GeocodeResult | null;
   onChange: (place: GeocodeResult | null) => void;
   label?: string;
+  /** The form's birth date, "YYYY-MM-DD" or "": the card prints the zone's offset on that day, and none before (MB-179). */
+  birthDate?: string;
+  /** The form's birth time, "HH:MM", when it has one: the offset is the one at that time, else at noon (reading 2). */
+  birthTime?: string | null;
 }
 
-async function lookupZone(lat: number, lon: number): Promise<Zone> {
-  try {
-    const res = await fetch(zoneUrl(lat, lon), { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) throw new Error("Timezone API failed");
-    return zoneFrom((await res.json()) as TimeApiZone | null, lon);
-  } catch {
-    return fallbackZone(lon);
-  }
-}
+// Longer than the server gives Nominatim, so a slow search ends in the server's own answer rather than the browser's.
+const SEARCH_TIMEOUT_MS = 10_000;
 
 /**
  * The one place field (ADR-109): the birth form's search, which the landing
- * and /sky render as it is. The chosen place is the caller's, so a place it
- * hands in (a prefill, the visitor's own city) shows as chosen; the typed text
- * and the list are the field's own.
+ * and /sky render as it is. It asks our server, never an outside service, and
+ * every place the server offers carries its zone (ADR-246). The chosen place is
+ * the caller's, so a place it hands in (a prefill, the visitor's own city) shows
+ * as chosen; the typed text and the list are the field's own.
  */
-export function PlaceField({ id, value, onChange, label = "Birth Place" }: PlaceFieldProps) {
+export function PlaceField({ id, value, onChange, label = "Birth Place", birthDate = "", birthTime = null }: PlaceFieldProps) {
   const [query, setQuery] = useState(value?.name ?? "");
   const [shown, setShown] = useState(value);
-  const [candidates, setCandidates] = useState<Match[]>([]);
+  const [candidates, setCandidates] = useState<GeocodeResult[]>([]);
   const [placeError, setPlaceError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isPendingSearch, setIsPendingSearch] = useState(false);
-  const [isChoosing, setIsChoosing] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestSearch = useRef(0);
-  const latestChoice = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const reopenOnFocus = useRef(true);
-  // The zone comes after the tap, and the form may have changed meanwhile (an error up that the place should clear), so a
-  // choice reaches the caller's handler as it is when the zone arrives, not as the tap saw it.
-  const latestOnChange = useRef(onChange);
-  useEffect(() => {
-    latestOnChange.current = onChange;
-  });
 
   // The chosen place is the caller's: its prefill must show in the box, and its reset must not leave a name standing
   // with nothing chosen behind it. Text the reader has typed since is theirs and stays.
@@ -76,28 +60,27 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
   }
 
   const doSearch = useCallback(async (text: string) => {
-    if (!text || text.length < 2) return;
+    if (!searchable(text)) return;
     const search = ++latestSearch.current;
     const stale = () => search !== latestSearch.current;
     setIsPendingSearch(false);
     setIsSearching(true);
     setPlaceError("");
     try {
-      const res = await fetch(nominatimUrl(text), { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) throw new Error("Nominatim error");
-      const raw: unknown = await res.json();
+      const answer = await geocodePlace({ q: text.trim() }, { signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS) });
       if (stale()) return;
-      if (!Array.isArray(raw) || raw.length === 0) {
-        setPlaceError("No matching places found. Try a different spelling or nearby city.");
+      const { places, line } = searchResult(answer);
+      if (line) {
+        setPlaceError(line);
         setCandidates([]);
         setShowDropdown(false);
         return;
       }
-      setCandidates(rankResults(raw as NominatimResult[]).map(toMatch));
+      setCandidates(places);
       setShowDropdown(true);
-    } catch {
+    } catch (err) {
       if (stale()) return;
-      setPlaceError("Search failed. Please try again.");
+      setPlaceError(searchFailureLine(err));
       setCandidates([]);
       setShowDropdown(false);
     } finally {
@@ -105,23 +88,20 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
     }
   }, []);
 
-  // A reply to an older query, or a search still waiting to go, must not reopen the list over newer text or a chosen place;
-  // and a zone still on its way must not choose a place the reader has since typed over.
+  // A reply to an older query, or a search still waiting to go, must not reopen the list over newer text or a chosen place.
   const dropSearches = () => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     latestSearch.current++;
-    latestChoice.current++;
     setIsPendingSearch(false);
     setIsSearching(false);
-    setIsChoosing(false);
   };
 
-  // Leaving the page must not send a search the reader will never see: Nominatim's policy counts every call.
+  // Leaving the page must not send a search the reader will never see: each one is a call our server makes to Nominatim,
+  // and counts toward the reader's own limit.
   useEffect(
     () => () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
       latestSearch.current++;
-      latestChoice.current++;
     },
     [],
   );
@@ -131,7 +111,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
     setQuery(text);
     if (value) onChange(null);
     setPlaceError("");
-    if (text.length >= 2) {
+    if (searchable(text)) {
       setIsPendingSearch(true);
       searchTimer.current = setTimeout(() => doSearch(text), 600);
     } else {
@@ -149,25 +129,17 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
   };
 
   const handleSearchButton = () => {
-    if (isChoosing) return;
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (query.length >= 2) doSearch(query);
+    if (searchable(query)) doSearch(query);
   };
 
-  // MB-130 provisional: the list shows hits with no zone, since one timeapi.io call per match would multiply the calls;
-  // the zone is read once, for the place chosen, and the place is the form's only when it arrives (or falls back).
-  const selectCandidate = async (match: Match) => {
+  const selectCandidate = (place: GeocodeResult) => {
     dropSearches();
-    const choice = ++latestChoice.current;
-    setQuery(match.name);
+    setQuery(place.name);
     setShowDropdown(false);
     setCandidates([]);
-    setIsChoosing(true);
     focusInput();
-    const zone = await lookupZone(match.latitude, match.longitude);
-    if (choice !== latestChoice.current) return;
-    setIsChoosing(false);
-    latestOnChange.current(withZone(match, zone));
+    onChange(place);
   };
 
   const clearPlace = () => {
@@ -178,6 +150,8 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
     setPlaceError("");
     setShowDropdown(false);
   };
+
+  const offset = value ? offsetOn(value.timezone, birthDate, birthTime) : null;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -205,7 +179,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
       </Label>
       <div className="relative">
         <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-          {isSearching || isPendingSearch || isChoosing ? (
+          {isSearching || isPendingSearch ? (
             <Loader2 className="h-4 w-4 text-primary animate-spin" />
           ) : value ? (
             <MapPin className="h-4 w-4 text-primary" />
@@ -242,7 +216,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
               <X className="h-3.5 w-3.5" />
             </button>
           )}
-          {query.length >= 2 && !value && !isChoosing && (
+          {searchable(query) && !value && (
             <button
               type="button"
               onClick={() => {
@@ -320,14 +294,14 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="mt-2 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-sm">
+            <div data-testid="chosen-place" className="mt-2 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-sm">
               <Check className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
                 <div className="font-medium text-foreground break-words">{placeTitle(value)}</div>
                 <div className="text-xs text-muted-foreground break-words">
                   {placeWhere(value) ? `${placeWhere(value)} · ` : ""}
                   <span className="font-numeric">
-                    {value.latitude.toFixed(2)}°, {value.longitude.toFixed(2)}° · {utcLabel(value.timezoneOffset)}
+                    {value.latitude.toFixed(2)}°, {value.longitude.toFixed(2)}°{offset === null ? "" : ` · ${utcLine(offset)}`}
                   </span>
                 </div>
               </div>
@@ -348,7 +322,7 @@ export function PlaceField({ id, value, onChange, label = "Birth Place" }: Place
         )}
       </AnimatePresence>
 
-      {!value && !placeError && query.length >= 2 && !isSearching && !isPendingSearch && !isChoosing && candidates.length === 0 && (
+      {!value && !placeError && searchable(query) && !isSearching && !isPendingSearch && candidates.length === 0 && (
         <p className="text-xs text-muted-foreground mt-1">
           Press Enter or tap Search to find matching cities.
         </p>

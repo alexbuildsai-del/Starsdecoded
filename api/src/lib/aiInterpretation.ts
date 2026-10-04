@@ -34,10 +34,11 @@ import { MODELS, completionCap, effortFor, flexOffered, isModelId, modelFor, typ
 import { recordSpend, type SpendKind } from "./spendLedger.js";
 import {
   ALL_SECTIONS, CLAIMS_CONTRACT, ClaimSchema, EvidenceRefSchema, FOUNDATION, REPORT_SECTIONS, SECTION_IDS,
-  buildBrief, hasClaims, instructionsFor, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
+  buildBrief, hasClaims, instructionsFor, proseOf, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
   type ChartBrief, type Claim, type EvidenceRef, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
 import { block, blocking, clean, fixed, needsRepair, registerChecks, repair, warned, type Check, type Validated } from "../prompts/checks.js";
+import { blockValues, lettersNote, maskNames, restoreBlocks, unmaskQuote, type TypedNames } from "../prompts/data.js";
 import { followRepairs, semicolonsToFullStops } from "../prompts/pair/index.js";
 import { recordChecks } from "./failureLog.js";
 import { ReportFailure, failureCodeOf } from "./failureReasons.js";
@@ -66,8 +67,8 @@ function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
 }
 
 const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted. Do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
-/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185). v9: the name reaches the prompt only as data (ADR-202); v6 to v8 reports still render. */
-export const PROMPT_VERSION = "v9";
+/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185). v9: the name reaches the prompt only as data (ADR-202). v10: floors where Luna ran short, a room only a real room, no model sentence to copy, each house opens with the page's word (R15-23); v6 to v9 reports still render. */
+export const PROMPT_VERSION = "v10";
 
 /** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
 type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
@@ -167,12 +168,18 @@ export interface ReportInterpretation {
  */
 export const SELF_CHECK = "Before you answer, check every field: no semicolons, no em dashes.";
 
-function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec, foundationJson?: string): string {
+/** The reader's name as the brief's block holds it, for a caller handed the brief and not the name typed. */
+function namesOf(brief: ChartBrief): TypedNames {
+  return { name: blockValues(brief.text, "name")[0] ?? "" };
+}
+
+function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec, foundationJson?: string, names: TypedNames = namesOf(brief)): string {
   const blind = brief.horizon === "unknown";
   const parts = [instructionsFor(spec, instructions, blind).trim()];
   if (spec.key !== FOUNDATION.key && hasClaims(spec)) parts.push("", CLAIMS_CONTRACT);
   parts.push("", "CHART BRIEF", brief.text);
-  if (foundationJson) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", foundationJson);
+  // The foundation is model text, and the writer may have named the reader in it (ADR-240).
+  if (foundationJson) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", maskNames(foundationJson, names));
   const extra = spec.extraContext?.(brief);
   if (extra) parts.push("", extra);
   parts.push("", SELF_CHECK);
@@ -267,6 +274,8 @@ export interface StructuredCall<T> {
    * unset and never count (reading 7).
    */
   spend?: SpendKind;
+  /** The names the prompt holds in blocks: model text sent back carries them as A, B or a block (ADR-240). */
+  names?: TypedNames;
 }
 
 /** The rule a count problem at this path belongs to, so the log names the annex row. */
@@ -346,17 +355,46 @@ function parseLenient<T>(schema: z.ZodType<T>, raw: unknown): { data: T; checks:
   return { issues: "count problems did not settle" };
 }
 
-/** The retry's tail: every error so far and the reply they were found in, then the one instruction (ADR-84). */
-export function retryTail(errors: string[], lastReply: string): string {
+/**
+ * The retry's tail: every error so far and the reply they were found in, then
+ * the one instruction (ADR-84). Both are model text, so with the prompt's
+ * names given, a name in them comes back as A, B or a block (ADR-240).
+ */
+export function retryTail(errors: string[], lastReply: string, names?: TypedNames): string {
+  const shown = (text: string) => (names ? maskNames(text, names) : text);
+  const listed = errors.map(shown);
+  const reply = shown(lastReply);
+  const lettered = names !== undefined && !("name" in names) && (reply !== lastReply || listed.some((e, i) => e !== errors[i]));
   return [
     "EVERY ERROR SO FAR:",
-    ...errors.map((e, i) => `${i + 1}. ${e}`),
+    ...listed.map((e, i) => `${i + 1}. ${e}`),
     "",
     "YOUR LAST REPLY:",
-    lastReply,
+    reply,
     "",
+    ...(lettered ? [lettersNote("your last reply")] : []),
     "Fix these and keep the rest. Every claim quote must be copied exactly from the prose in this reply.",
   ].join("\n");
+}
+
+/** Every string in a reply with a copied block put back as its name, so no marker is stored. */
+function restoredDeep(value: unknown): unknown {
+  if (typeof value === "string") return restoreBlocks(value);
+  if (Array.isArray(value)) return value.map(restoredDeep);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, restoredDeep(v)]));
+  return value;
+}
+
+/** A claims-only reply's quotes, copied from the masked prose, read back as the prose holds them. */
+function unmaskedClaims(reply: unknown, prose: string, names: TypedNames): unknown {
+  const claims = (reply as { claims?: unknown } | null)?.claims;
+  if (!Array.isArray(claims)) return reply;
+  return {
+    ...(reply as object),
+    claims: claims.map((c) => (c && typeof c === "object" && typeof (c as { quote?: unknown }).quote === "string"
+      ? { ...c, quote: restoreBlocks(unmaskQuote((c as { quote: string }).quote, prose, names)) }
+      : c)),
+  };
 }
 
 /**
@@ -397,7 +435,7 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     // A retry that repeats the identical request mostly repeats the mistake.
     // The problems go at the end of the user turn, so the cached system
     // prefix is untouched and the model knows exactly what to fix.
-    const content = errors.length === 0 ? call.user : `${call.user}\n\n${retryTail(errors, lastReply)}`;
+    const content = errors.length === 0 ? call.user : `${call.user}\n\n${retryTail(errors, lastReply, call.names)}`;
     const startedAt = Date.now();
     const response = await guarded(call.usageKey, openai.chat.completions.create({
       model: call.model,
@@ -439,6 +477,8 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
       await reject([block("chk-00-json", `invalid JSON (${(err as Error).message})`)], attempt);
       continue;
     }
+    // A writer shown its own text with a name in a block may copy the block back.
+    if (call.names) raw = restoredDeep(raw);
     const checks: Check[] = [];
     if (call.normalise) {
       const normalised = call.normalise(raw);
@@ -472,6 +512,8 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
         const { claims: _rejected, ...prose } = data as Record<string, unknown>;
         const repairSchema = z.object({ claims: claimsShape });
         const why = checks.filter((c) => c.cls === "repair" || c.cls === "fix").map((c) => c.message).join("; ");
+        // The prose as written is model text: shown masked, and the quotes copied from it read back as the prose holds them.
+        const shown = (text: string) => (call.names ? maskNames(text, call.names) : text);
         const repairStartedAt = Date.now();
         const repairResponse = await guarded(call.usageKey, openai.chat.completions.create({
           model: call.model,
@@ -479,14 +521,14 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
           ...pinned,
           messages: [
             { role: "system", content: call.system },
-            { role: "user", content: `${call.user}\n\n${CLAIMS_ONLY}\n\nPROSE AS WRITTEN\n${JSON.stringify(prose, null, 2)}\n\nPREVIOUS CLAIMS REJECTED: ${why}` },
+            { role: "user", content: `${call.user}\n\n${CLAIMS_ONLY}\n\nPROSE AS WRITTEN\n${shown(JSON.stringify(prose, null, 2))}\n\nPREVIOUS CLAIMS REJECTED: ${shown(why)}` },
           ],
           response_format: { type: "json_schema", json_schema: { name: `${name}_claims`, strict: true, schema: toStrictJsonSchema(repairSchema) } },
         }, requestOptions));
         usage = addAttempt(usage, repairResponse.usage, Date.now() - repairStartedAt);
         await recordSpend(call.spend, call.model, repairResponse.usage, call.serviceTier);
         const repairedRaw = (() => { try { return JSON.parse(repairResponse.choices[0]?.message?.content ?? ""); } catch { return null; } })();
-        const parsedRepair = parseLenient(repairSchema, repairedRaw);
+        const parsedRepair = parseLenient(repairSchema, call.names ? unmaskedClaims(repairedRaw, proseOf(prose), call.names) : repairedRaw);
         if (!("issues" in parsedRepair)) {
           const merged = { ...prose, claims: parsedRepair.data.claims } as T;
           const again = call.validate ? call.validate(merged) : clean(merged);
@@ -530,6 +572,8 @@ interface CallOptions<T> {
   log?: { kind: GenerationFailureKind; reportId?: string | null };
   /** The ledger kind a visitor's call counts under; unset, the call never counts (ADR-199, reading 7). */
   spend?: SpendKind;
+  /** The name as typed; unset, the brief's block stands in for it. */
+  names?: TypedNames;
 }
 
 /**
@@ -582,6 +626,7 @@ async function callSection<T>(
     signal: options.signal,
     carry: options.carry,
     spend: options.spend,
+    names: options.names ?? namesOf(brief),
     onChecks: (checks, event) => recordChecks({ kind: log.kind, section: usageKey, model, writeId, reportId: log.reportId, attempt: event.attempt, final: event.final, checks }),
   });
 }
@@ -660,6 +705,7 @@ export async function generateInterpretation(
   const blind = brief.horizon === "unknown";
   const startedAt = Date.now();
   const spend = options.reportId ? ("natal" as const) : undefined;
+  const names = { name };
 
   // wordCount and usage are only knowable at the end, so the opening frame
   // carries the meta block without them and the final write completes it.
@@ -683,7 +729,7 @@ export async function generateInterpretation(
     foundationPrompt.system,
     assembleUser(foundationPrompt.user, brief, FOUNDATION),
     brief,
-    { schema: schemaFor(FOUNDATION, blind) as z.ZodType<FoundationData>, log: { kind: "natal", reportId: options.reportId }, spend },
+    { schema: schemaFor(FOUNDATION, blind) as z.ZodType<FoundationData>, log: { kind: "natal", reportId: options.reportId }, spend, names },
   ).catch((err) => { throw new ReportFailure(failureCodeOf(err), err instanceof Error ? err.message : String(err), err); });
   const foundation = foundationCall.data;
   const foundationJson = JSON.stringify(foundation, null, 2);
@@ -700,10 +746,10 @@ export async function generateInterpretation(
   const log = { kind: "natal" as const, reportId: options.reportId };
   const settled = await Promise.allSettled(
     specs.map(async (spec, i) => {
-      const user = assembleUser(prompts[i].user, brief, spec, foundationJson);
+      const user = assembleUser(prompts[i].user, brief, spec, foundationJson, names);
       const run = (carry?: Carry) => callSection<unknown>(
         spec, modelFor(spec.key), prompts[i].system, user, brief,
-        { schema: schemaFor(spec, blind), signal: controller.signal, carry, log, spend },
+        { schema: schemaFor(spec, blind), signal: controller.signal, carry, log, spend, names },
       );
       let call: SectionResult<unknown>;
       try {
@@ -786,12 +832,13 @@ export async function writeSection(
   const prompt = await resolveSection(spec.key);
   const brief = buildBrief(chart, name);
   const blind = brief.horizon === "unknown";
-  const user = assembleUser(prompt.user, brief, spec, isFoundation ? undefined : foundationJson);
+  const user = assembleUser(prompt.user, brief, spec, isFoundation ? undefined : foundationJson, { name });
   const call = await callSection<unknown>(spec, options.model, prompt.system, user, brief, {
     schema: schemaFor(spec, blind),
     serviceTier: options.serviceTier,
     signal: options.signal,
     log: { kind: "lab" },
+    names: { name },
   });
   return { data: isFoundation ? call.data : withStoredClaims(call.data, chart), usage: call.usage, checks: call.checks };
 }
@@ -803,7 +850,7 @@ export async function previewSectionPrompt(sectionKey: string, chart: NatalChart
   const prompt = await resolveSection(spec.key);
   const brief = buildBrief(chart, name);
   const blind = brief.horizon === "unknown";
-  return { system: prompt.system, user: assembleUser(prompt.user, brief, spec, foundationJson), schema: toStrictJsonSchema(schemaFor(spec, blind)) };
+  return { system: prompt.system, user: assembleUser(prompt.user, brief, spec, foundationJson, { name }), schema: toStrictJsonSchema(schemaFor(spec, blind)) };
 }
 
 // ---------------------------------------------------------------------------
@@ -840,13 +887,15 @@ export async function generateHorizonBlocks(
   if (!hasHorizon(chart)) throw new Error("generateHorizonBlocks needs a chart whose horizon holds");
   const brief = buildBrief(chart, name);
   if (!brief.angleMeanings) throw new Error("a drawn chart composes angle meanings");
+  const names = { name };
   const foundationJson = JSON.stringify(stored.foundation, null, 2);
   const triad = sectionById("triad")!;
   const houses = sectionById("houses")!;
   const [triadPrompt, housesPrompt] = await Promise.all([resolveSection(triad.key), resolveSection(houses.key)]);
 
-  const existingTriad = `EXISTING SUN AND MOON PARTS (keep them, write only rising):\n${JSON.stringify({ sun: stored.triad.sun, moon: stored.triad.moon }, null, 2)}`;
-  const risingUser = [RISING_INSTRUCTIONS, "", CLAIMS_CONTRACT, "", "CHART BRIEF", brief.text, "", "FOUNDATION (internal editorial handoff, never quote it)", foundationJson, "", existingTriad].join("\n");
+  // The stored foundation and Sun and Moon parts are model text going back into a prompt (ADR-240).
+  const existingTriad = `EXISTING SUN AND MOON PARTS (keep them, write only rising):\n${maskNames(JSON.stringify({ sun: stored.triad.sun, moon: stored.triad.moon }, null, 2), names)}`;
+  const risingUser = [RISING_INSTRUCTIONS, "", CLAIMS_CONTRACT, "", "CHART BRIEF", brief.text, "", "FOUNDATION (internal editorial handoff, never quote it)", maskNames(foundationJson, names), "", existingTriad].join("\n");
 
   const [risingCall, housesCall] = await Promise.all([
     callSection<z.infer<typeof RisingSchema>>(triad, modelFor(triad.key), triadPrompt.system, risingUser, brief, {
@@ -858,8 +907,9 @@ export async function generateHorizonBlocks(
       },
       usageKey: "natal:triad:rising",
       spend: options.spend,
+      names,
     }),
-    callSection<HousesSection>(houses, modelFor(houses.key), housesPrompt.system, assembleUser(housesPrompt.user, brief, houses, foundationJson), brief, { spend: options.spend }),
+    callSection<HousesSection>(houses, modelFor(houses.key), housesPrompt.system, assembleUser(housesPrompt.user, brief, houses, foundationJson, names), brief, { spend: options.spend, names }),
   ]);
   const rising = withStoredClaims(risingCall.data, chart) as RisingPart;
   await options.onSection?.({ section: "houses", patch: { houses: housesCall.data } });
@@ -1079,7 +1129,9 @@ export async function amendSections(
   options: PassOptions = {},
 ): Promise<AmendResult> {
   if (brief.horizon === "unknown") throw new Error("amendSections needs a brief whose horizon holds");
-  const foundationJson = JSON.stringify(stored.foundation, null, 2);
+  // The pass is handed the brief, whose block holds the name as the writer saw it, the only spelling it could write back.
+  const names = namesOf(brief);
+  const foundationJson = maskNames(JSON.stringify(stored.foundation, null, 2), names);
   const ids = SECTION_IDS.filter((id) => id in stored && id !== "houses");
   const specs = ids.map((id) => sectionById(id)!);
   const prompts = await Promise.all(specs.map((spec) => resolveSection(spec.key)));
@@ -1090,7 +1142,7 @@ export async function amendSections(
     const { claims: _claims, ...text } = current;
     const user = [
       AMENDMENT_INSTRUCTIONS, "",
-      `SECTION ${spec.label.toUpperCase()} AS WRITTEN`, JSON.stringify(text, null, 2), "",
+      `SECTION ${spec.label.toUpperCase()} AS WRITTEN`, maskNames(JSON.stringify(text, null, 2), names), "",
       "CHART BRIEF", brief.text, "",
       "FOUNDATION (internal editorial handoff, never quote it)", foundationJson,
     ].join("\n");
@@ -1118,8 +1170,15 @@ export async function amendSections(
         return { output: { amendments, additions }, checks };
       },
       spend: options.spend,
+      names,
     });
-    const applied = applyAmendment(id, current, call.data, chart);
+    // A quote or an anchor copied from the masked section finds the sentence as stored.
+    const original = proseOf(text);
+    const reply: Amendment = {
+      amendments: call.data.amendments.map((a) => ({ ...a, quote: unmaskQuote(a.quote, original, names) })),
+      additions: call.data.additions.map((a) => ({ ...a, after: unmaskQuote(a.after, original, names) })),
+    };
+    const applied = applyAmendment(id, current, reply, chart);
     await options.onSection?.({ section: id, patch: { [id]: applied.section } as Partial<ReportInterpretation> });
     return { id, applied, usage: call.usage };
   }));

@@ -29,7 +29,6 @@ function ProcessorList({ rows }: { rows: readonly Processor[] }) {
 export default function PrivacyPage() {
   const { name, tradingName, country } = LEGAL_IDENTITY;
   const servers = PROCESSORS.filter((row) => row.from === "server");
-  const browser = PROCESSORS.filter((row) => row.from === "browser");
   const anyInTheUs = servers.some((row) => row.country === "the United States");
 
   return (
@@ -75,7 +74,10 @@ export default function PrivacyPage() {
           businesses that use its API.
         </p>
         <p>OpenAI doesn't use what we send it to train its models.</p>
-        <p>The free birth chart is worked out in your browser, so the birth details you type there never reach our servers.</p>
+        <p>
+          The free birth chart is worked out in your browser, so the birth date and time you type there never reach our
+          servers. The words you type in the place field do, so we can find the place and its time zone.
+        </p>
       </LegalSection>
 
       <LegalSection id="waitlist" title="The waitlist">
@@ -105,11 +107,6 @@ export default function PrivacyPage() {
         <p>These companies run parts of {PRODUCT} for us.</p>
         <ProcessorList rows={servers} />
         {anyInTheUs ? <p>{US_TRANSFER}</p> : null}
-        <p>
-          Your browser also contacts these services directly when you look up a birth place. Like any website, they see your
-          IP address, but never your name or birth date.
-        </p>
-        <ProcessorList rows={browser} />
       </LegalSection>
 
       <LegalSection title="Why we can use your data">

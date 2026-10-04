@@ -3,9 +3,14 @@ import { Loader2, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useDeleteReport,
+  useGetHome,
+  useListShares,
   getGetHomeQueryKey,
   getListReportsQueryKey,
   getListProfilesQueryKey,
+  getListSharesQueryKey,
+  type Home,
+  type Share,
 } from "@workspace/api-client-react";
 import {
   AlertDialog,
@@ -20,6 +25,31 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ownIds } from "@/lib/home-view";
+
+export const ENDS_SHARING_LINE = "Anyone you shared it with can no longer read it.";
+
+/**
+ * Deleting the reader's own Personal report ends their sharing of it in the
+ * same transaction (ADR-235), and the dialog names every consequence
+ * (ADR-182). Their shares are read only where their quick look has listed
+ * them already, so on their own report the line is said unless that list is
+ * known to be empty.
+ */
+export function endsSharing(home: Pick<Home, "you" | "people"> | null | undefined, shares: Share[] | null | undefined, reportId: string): boolean {
+  if (!home) return false;
+  const person = [...(home.you ? [home.you] : []), ...home.people].find((p) => p.reportId === reportId);
+  if (!person || !ownIds(home).has(person.profileId)) return false;
+  return !Array.isArray(shares) || shares.length > 0;
+}
+
+export function deleteLine(sharing: boolean): string {
+  return [
+    "This deletes the report and its birth data if nothing else uses it.",
+    sharing ? ENDS_SHARING_LINE : null,
+    "Any purchase record is kept. This cannot be undone.",
+  ].filter(Boolean).join(" ");
+}
 
 // MB-32 provisional: the copy promises what the server decides today, the
 // report plus its birth data when nothing else uses it. A report its subject
@@ -39,6 +69,9 @@ export function DeleteReportDialog({
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const { toast } = useToast();
+  // The copies the page and the quick look hold: a delete's dialog asks the server for neither.
+  const home = useGetHome({ query: { queryKey: getGetHomeQueryKey(), enabled: false } }).data;
+  const shares = useListShares({ query: { queryKey: getListSharesQueryKey(), enabled: false } }).data;
 
   const deleteReport = useDeleteReport({
     mutation: {
@@ -87,7 +120,7 @@ export function DeleteReportDialog({
           <AlertDialogDescription>
             {handsOver
               ? `It stays with ${personName}, who owns it now. You won't be able to read it again.`
-              : "This deletes the report and its birth data if nothing else uses it. Any purchase record is kept. This cannot be undone."}
+              : deleteLine(endsSharing(home, shares, reportId))}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

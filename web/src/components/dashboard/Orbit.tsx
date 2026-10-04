@@ -5,7 +5,10 @@
  * (ADR-89, MASTERFILE §9): nothing on it sits at a degree, so no zodiac,
  * degree, house, render or glyph is drawn; those wait in the quick look. Who
  * is on it, and in what order, is `circlePoints` (ADR-182); this only draws
- * them. The landing's sample orbit (R11) is drawn by the same component.
+ * them, a seat whose report its subject shares with the reader in the
+ * dashboard's own teal, the approved artifact's mark for it (ADR-235), so it
+ * reads apart from a shared pair's violet. The landing's sample orbit (R11) is
+ * drawn by the same component.
  *
  * One SVG on a fixed 440 box that scales with its column, so the phone's full
  * width and the desktop's 440 px share one geometry. React draws the points;
@@ -18,6 +21,7 @@ import {
   type AnimationEvent as ReactAnimationEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent,
 } from "react";
 import { CENTRE_ID, pointAngles, ringGaps, type OrbitPoint, type RingGap } from "@/lib/orbit";
+import { PERSONAL_REPORT } from "@/lib/product";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import "./orbit.css";
 
@@ -218,7 +222,8 @@ function phaseOf(id: string): number {
 function pointName(p: OrbitPoint, sharedPair = "you share a Compatibility report"): string {
   if (p.kind === "add") return p.name;
   if (p.kind === "gift") return `${p.name}, gift waiting`;
-  return [p.name, p.writing ? "writing" : "", p.sharedPair ? sharedPair : ""].filter(Boolean).join(", ");
+  const shared = p.shared ? `shared their ${PERSONAL_REPORT} with you` : "";
+  return [p.name, shared, p.writing ? "writing" : "", p.sharedPair ? sharedPair : ""].filter(Boolean).join(", ");
 }
 
 function centreName(c: OrbitCentre): string {
@@ -684,19 +689,21 @@ function Disc({ point, selected, out, reduced }: { point: OrbitPoint; selected: 
     );
   }
   const dashed = point.writing && !selected;
+  // A selected seat reads as selected, shared or not, so the one control colour stays the selection's.
+  const shared = point.shared && !selected;
   return (
     <>
       <circle
         className={dashed && !reduced ? "orbit-turn" : undefined}
         r={NODE}
         fill={selected ? PAPER : GROUND}
-        stroke={selected ? INDIGO : PAPER}
-        strokeOpacity={selected ? 1 : 0.45}
-        strokeWidth={selected ? 2 : 1.4}
+        stroke={selected ? INDIGO : shared ? TEAL : PAPER}
+        strokeOpacity={selected || shared ? 1 : 0.45}
+        strokeWidth={selected ? 2 : shared ? 1.6 : 1.4}
         strokeDasharray={dashed ? "3 3" : undefined}
         pathLength={120}
       />
-      <text y={5} textAnchor="middle" fontFamily={SERIF} fontSize={14} fill={selected ? GROUND : PAPER}>{point.initials}</text>
+      <text y={5} textAnchor="middle" fontFamily={SERIF} fontSize={14} fill={selected ? GROUND : shared ? TEAL : PAPER}>{point.initials}</text>
     </>
   );
 }

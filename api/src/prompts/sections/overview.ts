@@ -20,13 +20,15 @@ export const overview: SectionSpec<typeof OverviewSchema> = {
   maxTokens: 3_000,
   schema: OverviewSchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  // MB-92 provisional: two of five r14-staging overviews printed the old quoted form word for word.
+  // MB-142 provisional: Luna wrote 306 to 381 words here on all five r14-staging charts, under the 400 floor.
   instructions: `Write the Chart Overview. This is the entry point: the reader should feel accurately seen within the first two sentences.
 
-Open with a headline that names what the chart is built around. Then one paragraph on where the energy concentrates and what is quiet, written entirely as behaviour the reader will recognise. Then one paragraph on temperament: how they take in the world, decide, and act, with at least two concrete examples of the form "You investigate first and commit second." Then one paragraph on what makes this combination unusual. Close with a single bridging sentence beginning "Everything here points toward".
+Open with a headline that names what the chart is built around. Then one paragraph on where the energy concentrates and what is quiet, written entirely as behaviour the reader will recognise. Then one paragraph on temperament: how they take in the world, decide, and act, with at least two concrete examples the reader can check against an ordinary week. Then one paragraph on what makes this combination unusual. Close with a single bridging sentence beginning "Everything here points toward".
 
 Temperament names the pair. The DISTRIBUTION line gives the dominant element and the dominant modality. Name both in the temperament paragraph, in plain words, as how this person runs: what they are made of and what they do with a course once they are on it. Cardinal starts, fixed holds, mutable adapts. Element and modality words are allowed here, because they are not planet, sign or house names. Give that paragraph a claim for each placement it rests on.
 
-Ground the whole thing in sect, the chart ruler, and any stellium. Do not name planets, signs, or houses in the prose. Do not list. 400 to 500 words total.
+Ground the whole thing in sect, the chart ruler, and any stellium. Do not name planets, signs, or houses in the prose. Do not list. 400 to 500 words total. Write at least 400 words: each of the three paragraphs runs 125 to 150 words.
 
 Sect. The SECT block names the sect light: write it as the side of this person the chart is organised around, in behaviour only. Never write luminary, sect, day chart or night chart. Name the malefic out of sect as the chart's central friction, in behaviour, not by name.`,
 };

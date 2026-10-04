@@ -6,7 +6,6 @@
  */
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart } from "@workspace/engine";
-import type { GeocodeResult } from "@/lib/places";
 import { SAMPLE, sampleChart } from "@/site/data/sample";
 import {
   BODIES,
@@ -40,12 +39,13 @@ import {
   type PreparedRewind,
   type Sky,
   type SkyBirth,
+  type SkyPlace,
 } from "./sky";
 import audrey from "../../../../fixtures/charts/audrey-hepburn.json";
 import curie from "../../../../fixtures/charts/marie-curie.json";
 import curieUnknown from "../../../../fixtures/charts/marie-curie-unknown.json";
 
-const place = (p: { latitude: number; longitude: number; timezoneOffset: number; timezone?: string }, city: string): GeocodeResult => ({
+const place = (p: { latitude: number; longitude: number; timezoneOffset: number; timezone?: string }, city: string): SkyPlace => ({
   name: city, city, region: "", country: "", latitude: p.latitude, longitude: p.longitude,
   timezoneOffset: p.timezoneOffset, timezone: p.timezone ?? null, placeType: "city",
 });
@@ -244,6 +244,27 @@ describe("/sky's worked example", () => {
   });
 });
 
+describe("the times printed on a 12-hour clock (MB-178)", () => {
+  const example = sampleSky(SAMPLE.name, SAMPLE.place, SAMPLE.birth, sampleChart());
+
+  it("say a birth's minute in the reader's words, the 24-hour clock being the prerender's", () => {
+    expect(summaryLine(HEPBURN, 12)).toBe("4 May 1929 · 3\u00a0am · Ixelles");
+    expect(summaryLine(HEPBURN, 24)).toBe("4 May 1929 · 03:00 · Ixelles");
+    expect(summaryLine(HEPBURN)).toBe(summaryLine(HEPBURN, 24));
+    expect(summaryLine({ ...HEPBURN, time: "15:00" }, 12)).toBe("4 May 1929 · 3\u00a0pm · Ixelles");
+    expect(summaryLine(CURIE_NO_TIME, 12)).toBe("7 Nov 1867 · Time unknown · Warsaw");
+    expect(resultLines(example, 12).summary).toBe("Audrey Hepburn · 4 May 1929 · 3\u00a0am · Ixelles");
+  });
+
+  it("say the corners' minute in the reader's words, the sky now's on its city's clock", () => {
+    expect(hudLines(NOW, 12).tl).toBe("Live · 30 SEP 2026 · 2:34\u00a0pm");
+    expect(hudLines(birthSky(HEPBURN), 12).tl).toBe("Your chart · 4 May 1929 · 3\u00a0am");
+    expect(hudLines(example, 12).tl).toBe("Sample · Audrey Hepburn · 4 May 1929 · 3\u00a0am");
+    expect(hudLines(birthSky(CURIE_NO_TIME), 12).tl).toBe("Your chart · 7 Nov 1867 · Time unknown");
+    expect(hudLines(example, 24)).toEqual(hudLines(example));
+  });
+});
+
 describe("/sky's placements", () => {
   it("lists the ten bodies the wheel draws, then Rising in the 1st and the Midheaven in its whole-sign house", () => {
     const rows = placementRows(sampleChart());
@@ -300,5 +321,10 @@ describe("the form", () => {
   it("carries the time as the birth form's answer: a blank time is its I don't know", () => {
     expect(draftOf(HEPBURN)).toEqual({ birthDate: "1929-05-04", time: { mode: "known", time: "03:00", part: "afternoon", kind: "part" }, place: HEPBURN.place });
     expect(draftOf(CURIE_NO_TIME).time.mode).toBe("unknown");
+  });
+
+  it("carries a place only with its zone, so the form never sends a chart on an offset alone (reading 2)", () => {
+    expect(draftOf(HEPBURN).place?.timezone).toBe("Europe/Brussels");
+    expect(draftOf(CURIE).place).toBeNull();
   });
 });

@@ -49,4 +49,6 @@ curie-winfrey's runs, and fails if a name changes anything outside its block.
 They never join a campaign or the release lab: the API refuses two of the names
 at the door, and a report written for any of them measures nothing the matrix
 does not. Only `inject-instruction` is ever written, on demand on staging, to
-see a report use it as a name and obey none of it.
+see a report use it as a name and obey none of it. The pair spot
+`inject-instruction-curie` also writes it on staging, then a compatibility
+report with Marie Curie, read the same way.

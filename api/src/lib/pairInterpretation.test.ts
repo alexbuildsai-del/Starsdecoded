@@ -3,6 +3,7 @@
  * built from the real pair brief, so the fan-out, the frames, the allocation,
  * the scenes, the stored claims and the failure path are proven end to end.
  */
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chartFromFixture } from "./testFixtures.js";
@@ -44,7 +45,7 @@ test("one foundation call, then seven sections in parallel, then the practice; e
   assert.deepEqual(frames.slice(0, 2), ["meta", "meta"], "the meta frame, then the foundation with the scenes");
   assert.deepEqual(frames.slice(2).sort(), [...ids].sort());
   assert.equal(frames[frames.length - 1], "whatToPractise");
-  assert.equal(out.meta.promptVersion, "p4");
+  assert.equal(out.meta.promptVersion, "p5");
   assert.equal(out.meta.reportType, "compatibility");
   assert.equal(out.meta.lens, "partners");
   assert.equal(out.meta.band, null);
@@ -332,4 +333,82 @@ test("a label left in a sentence blocks: the chapter retries with the message an
   assert.deepEqual(rows.filter((r) => r.ruleId === "chk-40").map((r) => `${r.class}:${r.attempt}`), ["block:1"]);
   assert.ok(rows.some((r) => r.ruleId === "pass" && r.attempt === 2));
   assert.ok(rows.every((r) => !/\bL1\b/.test(r.message)), "the log names the field and the rule, never the label");
+});
+
+// A name a reader typed, written back by the writer, reaches the next prompt only as A or B (ADR-240, MB-152, sentinel S8).
+const { dataValue, outsideDataBlocks } = await import("../prompts/data.js");
+
+/** The three injection fixtures' names, read from disk so the test plants what the lab plants (security scope 8). */
+const INJECTED = ["inject-delimiter", "inject-instruction", "inject-markup"].map((fixture) =>
+  (JSON.parse(readFileSync(new URL(`../../../fixtures/charts/${fixture}.json`, import.meta.url), "utf8")) as { name: string }).name);
+
+test("a name the writer wrote back reaches the next prompt as A or B: the foundation, chapter 07's tail, the last reply and the prose as written (ADR-240)", async () => {
+  const source = (report: "A" | "B", section: string) => ({ kind: "source", report, section, claim: 1 });
+  for (const typed of INJECTED) {
+    const where = typed.slice(0, 24);
+    const pair = input("partners", { a: { ...input().a, name: typed } });
+    const brief = buildPairBrief(pair);
+    // The canned replies call A Marie; a writer calls A by the first word typed, and writes the whole name where it planted it below.
+    const firstWord = typed.split(/\s+/)[0];
+    const canned = JSON.parse(JSON.stringify(pairReplies(brief)).replaceAll("Marie", () => firstWord)) as Record<string, Record<string, unknown>>;
+    const scene = `${typed} comes in late and says nothing. Oprah has the plan on the table already.`;
+    (canned.pair_foundation as { pairThesis: string }).pairThesis = `${typed} and Oprah build trust through talk.`;
+    (canned.pair_partners02 as { nextTime: { items: unknown[] } }).nextTime.items[0] = { for: "A", action: `${typed}, plan the weekend once, out loud, with Oprah.`, why: "so nobody plans it twice in private" };
+    const c = brief.cross[7];
+    const partners03 = { ...canned.pair_partners03, scene } as unknown as { claims: Array<{ quote: string; evidence: unknown[] }> };
+    partners03.claims = [{ ...partners03.claims[0], evidence: [{ kind: "cross", planetA: c.planetA, planetB: c.planetB, aspect: c.type, orb: c.orb }] }, ...partners03.claims.slice(1)];
+    const partners04 = { ...canned.pair_partners04, scene } as unknown as { pattern: string };
+    const seen: Array<{ name: string; system: string; user: string }> = [];
+    const heard = (name: string, reply: (req: FakeRequest) => unknown) => (req: FakeRequest) => {
+      seen.push({ name, system: req.messages[0].content, user: req.messages[1].content });
+      return reply(req);
+    };
+    let attempts04 = 0;
+    fake.replies = {
+      ...Object.fromEntries(Object.entries(canned).map(([k, v]) => [k, heard(k, () => v)])),
+      pair_partners03: heard("pair_partners03", () => partners03),
+      // A writer copies its quote from the prose as the prompt showed it.
+      pair_partners03_claims: heard("pair_partners03_claims", () => ({ claims: [{ quote: "A comes in late and says nothing.", evidence: [source("A", "overview")] }, ...partners03.claims.slice(1)] })),
+      pair_partners04: heard("pair_partners04", () => (attempts04++ === 0 ? { ...partners04, pattern: TRINE } : partners04)),
+    };
+    fake.calls = [];
+    const out = await generatePairInterpretation(pair);
+
+    assert.equal(seen.filter((s) => s.name === "pair_partners04").length, 2, `${where}: one retry`);
+    assert.equal(seen.filter((s) => s.name === "pair_partners03_claims").length, 1, `${where}: one claims-only repair`);
+    for (const s of seen) {
+      for (const text of [s.system, s.user]) {
+        const outside = outsideDataBlocks(text);
+        assert.doesNotMatch(outside, /pirate|ignore every rule/i, `${where}: ${s.name}`);
+        assert.ok(!outside.includes(dataValue(typed)), `${where}: ${s.name}`);
+        assert.doesNotMatch(outside, /Oprah|Winfrey/, `${where}: ${s.name}: B is B`);
+      }
+    }
+    const chapters = seen.filter((s) => s.name !== "pair_foundation");
+    for (const s of chapters) {
+      assert.match(s.user, /"pairThesis": "A and B build trust through talk\."/, `${where}: ${s.name}: the foundation says A and B`);
+      assert.match(s.user, /"A finishes what B starts\."/, `${where}: ${s.name}: the strengths the card copies too`);
+    }
+    const practise = seen.find((s) => s.name === "pair_whatToPractise")!.user;
+    assert.match(practise, /^ {2}- for A, from [^:]+: A, plan the weekend once, out loud, with B\. \(why: so nobody plans it twice in private\)$/m);
+    const retried = seen.filter((s) => s.name === "pair_partners04")[1].user;
+    assert.match(retried.slice(retried.indexOf("YOUR LAST REPLY:")), /A comes in late and says nothing\. B has the plan on the table already\./);
+    const repaired = seen.find((s) => s.name === "pair_partners03_claims")!.user;
+    assert.match(repaired.slice(repaired.indexOf("PROSE AS WRITTEN")), /A comes in late and says nothing\./);
+    const stored = lensChapterOf(out, "partners03")!;
+    assert.equal(stored.scene, scene, `${where}: the stored prose keeps the name as typed`);
+    assert.equal(stored.claims[0].quote, `${typed} comes in late and says nothing.`, `${where}: the quote copied from the masked prose quotes the prose as stored`);
+  }
+});
+
+// BUG R15-04, left failing for the card's builder: the foundation reaches every chapter as JSON, where a paragraph break
+// is written `\n`, and a name opening the paragraph after it is never lettered (ADR-240, MB-152, sentinel S8).
+test("BUG R15-04: a name that opens a paragraph of the foundation reaches a chapter's prompt as A or B", async () => {
+  const { assemblePairUser } = await import("./pairInterpretation.js");
+  const brief = buildPairBrief(input());
+  const foundation = { ...(pairReplies(brief).pair_foundation as object), pairThesis: "Trust comes first.\n\nMarie Curie and Oprah Winfrey build it through talk." };
+  const user = assemblePairUser("Write the chapter.", brief, pairSectionById("partners02")!, foundation as never);
+  const shown = outsideDataBlocks(user.slice(user.indexOf("FOUNDATION (internal")));
+  assert.match(shown, /"pairThesis": "Trust comes first\.\\n\\nA and B build it through talk\."/);
+  assert.doesNotMatch(shown, /Marie|Oprah/);
 });

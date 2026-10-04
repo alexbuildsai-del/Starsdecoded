@@ -2,27 +2,69 @@
  * The release lab on the server (ADR-76, ADR-86): the five matrix charts
  * through the customer's own generator, and one pair when the pair brain
  * changed, every section stored as a `release` row in `lab_runs` with its
- * numbers, so the gate and the QA agent read what the customer would get.
+ * numbers, so the gate and the QA agent read what the customer would get,
+ * and /sample's chart kept whole beside its rows (ADR-247).
  * Nothing here touches `reports` or a credit. The generator and the store
  * are injected so a rehearsal proves the flow with no spend.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db, labRunsTable, type InsertLabRun } from "@workspace/db";
 import { calculateNatalChart, type NatalChartData } from "./chartCalculation.js";
 import { generateInterpretation, type ReportInterpretation } from "./aiInterpretation.js";
 import { generatePairInterpretation } from "./pairInterpretation.js";
-import { MATRIX_CHARTS, faultsOf, measureSection, type RunNumbers } from "./labRules.js";
-import { MODELS, modelFor } from "./models.js";
+import { MATRIX_CHARTS, faultsOf, measureSection, priceSection, type RunNumbers, type TokenShape } from "./labRules.js";
+import { MODELS, modelFor, type ModelId } from "./models.js";
 import { costUsd, type ReportUsage } from "./usage.js";
+import { SAMPLE_CHART } from "./sampleRun.js";
 import { SECTION_IDS } from "../prompts/index.js";
 import { pairSectionIds } from "../prompts/pair/index.js";
 
-/** A natal report costs about 30 cents and a pair about 40 (ADR-77); the release lab is priced before it runs. */
-export const NATAL_ESTIMATE_USD = 0.3;
-export const PAIR_ESTIMATE_USD = 0.4;
+/**
+ * The tokens one stored report of each kind spent, section by section, retries included since a release pays for
+ * them too (MB-133): Audrey Hepburn's r06 natal run, the text /sample shows (report-lab/r06, ec4c839), and the
+ * curie-winfrey partners pair of report-lab/r12-pair (f8e7d22), the lens the release lab writes.
+ */
+export const NATAL_TOKENS: Readonly<Record<string, TokenShape>> = {
+  foundation: { inputTokens: 1573, cachedInputTokens: 5632, outputTokens: 1507 },
+  overview: { inputTokens: 3038, cachedInputTokens: 6784, outputTokens: 1465 },
+  triad: { inputTokens: 9584, cachedInputTokens: 19968, outputTokens: 2303 },
+  houses: { inputTokens: 4218, cachedInputTokens: 4736, outputTokens: 1040 },
+  mind: { inputTokens: 2956, cachedInputTokens: 6784, outputTokens: 927 },
+  career: { inputTokens: 3137, cachedInputTokens: 6784, outputTokens: 1053 },
+  money: { inputTokens: 2990, cachedInputTokens: 6784, outputTokens: 877 },
+  relationships: { inputTokens: 3171, cachedInputTokens: 6784, outputTokens: 1150 },
+  family: { inputTokens: 2913, cachedInputTokens: 6784, outputTokens: 1005 },
+  superpowers: { inputTokens: 3204, cachedInputTokens: 6784, outputTokens: 1149 },
+  discoveries: { inputTokens: 2942, cachedInputTokens: 6784, outputTokens: 985 },
+  focus: { inputTokens: 3112, cachedInputTokens: 6784, outputTokens: 1020 },
+};
+export const PAIR_TOKENS: Readonly<Record<string, TokenShape>> = {
+  foundation: { inputTokens: 9047, cachedInputTokens: 0, outputTokens: 592 },
+  twoCharts: { inputTokens: 12366, cachedInputTokens: 0, outputTokens: 783 },
+  partners02: { inputTokens: 19918, cachedInputTokens: 7543, outputTokens: 2675 },
+  partners03: { inputTokens: 19770, cachedInputTokens: 7543, outputTokens: 2167 },
+  partners04: { inputTokens: 12921, cachedInputTokens: 0, outputTokens: 1079 },
+  partners05: { inputTokens: 19162, cachedInputTokens: 7543, outputTokens: 1763 },
+  partners06: { inputTokens: 19034, cachedInputTokens: 7543, outputTokens: 2416 },
+  links: { inputTokens: 10088, cachedInputTokens: 0, outputTokens: 1714 },
+  whatToPractise: { inputTokens: 11229, cachedInputTokens: 0, outputTokens: 839 },
+};
+
+/** What those tokens cost on the writer each section calls, at its catalogue price and with its thinking. */
+export function priceTokens(tokens: Readonly<Record<string, TokenShape>>, writerFor: (section: string) => ModelId): number {
+  return Object.entries(tokens).reduce((n, [section, shape]) => n + (priceSection(writerFor(section), shape) ?? 0), 0);
+}
+
+/**
+ * The release lab is priced before it runs (ADR-77), on the writers production calls (ADR-184): the foundation on
+ * `MODELS.foundation`, a natal section on `modelFor`, a pair chapter on `MODELS.sections`. A move in `models.ts` moves
+ * the estimate with it.
+ */
+export const NATAL_ESTIMATE_USD = priceTokens(NATAL_TOKENS, (section) => (section === "foundation" ? MODELS.foundation : modelFor(section)));
+export const PAIR_ESTIMATE_USD = priceTokens(PAIR_TOKENS, (section) => (section === "foundation" ? MODELS.foundation : MODELS.sections));
 /** The pair the release lab writes: two matrix charts under the partners lens, so no extra natal report is spent. */
 export const RELEASE_PAIR = { name: "curie-hepburn", a: "marie-curie", b: "audrey-hepburn" } as const;
 
@@ -60,15 +102,42 @@ export const liveReleaseEngine: ReleaseLabEngine = {
 export interface ReleaseLabStore {
   insert(rows: InsertLabRun[]): Promise<void>;
   numbers(label: string): Promise<RunNumbers[]>;
+  /** The sample chart's whole natal output under a label, or null when that lab kept none. */
+  sampleOutput(label: string): Promise<unknown>;
+}
+
+const SAMPLE_SECTION = "sample";
+
+export function sampleRunKey(label: string): string {
+  return `sample:${label}`;
 }
 
 export const dbReleaseStore: ReleaseLabStore = {
   async insert(rows) { if (rows.length) await db.insert(labRunsTable).values(rows); },
   async numbers(label) {
-    const rows = await db.select().from(labRunsTable).where(eq(labRunsTable.label, label));
+    // The sample row is a whole report kept for /sample, not a section the gate weighs.
+    const rows = await db.select().from(labRunsTable).where(and(eq(labRunsTable.label, label), ne(labRunsTable.section, SAMPLE_SECTION)));
     return rows.map((r) => ({ fixture: r.fixture, label: r.label, section: r.section, words: r.words, costUsd: r.costUsd, faults: (r.faults as string[]) ?? [], status: r.status }));
   },
+  async sampleOutput(label) {
+    const [row] = await db.select({ output: labRunsTable.output }).from(labRunsTable)
+      .where(and(eq(labRunsTable.runKey, sampleRunKey(label)), eq(labRunsTable.section, SAMPLE_SECTION))).limit(1);
+    return row?.output ?? null;
+  },
 };
+
+/**
+ * The sample chart's natal output kept whole, under a run key of its own so neither the gate nor the QA reader takes it
+ * for a section: /sample is pushed from it once production moves, and from the reused lab's on a retry (reading 14).
+ * Its calls are priced on the chart's own rows, so it costs nothing here.
+ */
+export function sampleRow(label: string, interpretation: ReportInterpretation): InsertLabRun {
+  return {
+    id: randomUUID(), runKey: sampleRunKey(label), fixture: SAMPLE_CHART, label, source: "release", section: SAMPLE_SECTION,
+    model: interpretation.meta?.model ?? "mixed", serviceTier: "standard", status: "done", output: interpretation as unknown as object,
+    usage: null, faults: [], words: 0, costUsd: 0, seconds: null,
+  };
+}
 
 /** The rows one natal interpretation becomes under a release label; the foundation row carries the chart and the name. */
 export function natalRows(fixture: string, label: string, chart: NatalChartData, name: string, interpretation: ReportInterpretation): InsertLabRun[] {
@@ -140,6 +209,7 @@ export async function runReleaseLab(input: { label: string; withPair: boolean; e
       const chart = chartOf(fixture);
       const interpretation = await engine.natal(chart, fixture.name);
       const rows = natalRows(name, input.label, chart, fixture.name, interpretation);
+      if (name === SAMPLE_CHART) rows.push(sampleRow(input.label, interpretation));
       await store.insert(rows);
       out.natalRunKeys.push(`${name}.${input.label}`);
       out.costUsd += interpretation.meta?.usage?.costUsd ?? 0;

@@ -6,12 +6,15 @@
  */
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart } from "@workspace/engine";
-import type { Home, HomePair, HomePerson, SendState, Spot } from "@workspace/api-client-react";
+import type { Home, HomePair, HomePerson, SendState, Spot, SpotPoint } from "@workspace/api-client-react";
 import {
-  NOT_WRITTEN, OWN_LINES, PAIR_BLOCK, birthDateText, blindRisingText, doorText, failureLine, firstName, isFailed, isFinished, isWriting,
-  lensWords, ownIds, pairWithYou, quickLookDoors, quickLookFor, shareTargetFor, spotText, triadLines, withYouText, writingText,
+  NOT_WRITTEN, OWN_LINES, PAIR_BLOCK, SHARE_EMAIL_MISSING, SHARE_MINE, TRY_AGAIN, birthDateText, blindRisingText, doorText, failureLine,
+  firstName, isFailed, isFinished, isWriting, lensWords, offersShareBack, offersShareMine, offersTryAgain, ownIds, pairWithYou,
+  quickLookDoors, quickLookFor, shareControl, shareErrorLine, shareLine, shareName, shareSentLine, shareStateText, shareTargetFor,
+  sharedBackText, spotText, triadLines, tryAgainErrorLine, UNNAMED_READER, withYouText, writingText,
 } from "./home-view";
 import { CENTRE_ID } from "./orbit";
+import { HANDED_BACK, SEND_AGAIN } from "./pair-row";
 
 type Birth = [date: string, time: string, latitude: number, longitude: number, zone: string | number, windowMinutes: number];
 
@@ -19,18 +22,29 @@ const BIRTHS = {
   audrey: ["1929-05-04", "03:00", 50.8333, 4.3667, "Europe/Brussels", 0],
   beatrice: ["1988-08-08", "20:18", 51.521, -0.1445, "Europe/London", 0],
   marie: ["1867-11-07", "12:00", 52.2297, 21.0122, 1.4, 720],
+  // Beatrice's published record with the time left out, as a reader without it enters it: her Moon crosses a cusp that day.
+  beatriceUnknown: ["1988-08-08", "20:18", 51.521, -0.1445, "Europe/London", 720],
 } satisfies Record<string, Birth>;
 
-type Placement = { sign: string; degree: number; house?: number };
+type Placement = { sign: string; degree: number; house?: number; band?: { fromDegree: number; toDegree: number } };
 
-/** As `GET /home` builds a triad: two decimals, a house only with a horizon, and never on the Rising. */
+const SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
+
+/** One end of the Moon's band as `GET /home` sends it: its own sign and its degree in it, in hundredths. */
+function pointOf(longitude: number): SpotPoint {
+  const at = ((Math.round(longitude * 100) % 36000) + 36000) % 36000;
+  return { sign: SIGNS[Math.floor(at / 3000)], degree: (at % 3000) / 100 };
+}
+
+/** As `GET /home` builds a triad: two decimals, a house only with a horizon, never on the Rising, and the Moon's range on a rough time. */
 function triadOf(birth: Birth): HomePerson["triad"] {
   const chart = calculateNatalChart(...birth) as unknown as { planets: Record<string, Placement>; angles?: { ascendant: Placement } | null };
   const housed = !!chart.angles;
   const spot = (p: Placement, house: boolean): Spot => ({ sign: p.sign, degree: Math.round(p.degree * 100) / 100, house: house && p.house ? p.house : null });
+  const band = birth[5] > 0 ? chart.planets.moon.band : undefined;
   return {
     sun: spot(chart.planets.sun, housed),
-    moon: spot(chart.planets.moon, housed),
+    moon: band ? { ...spot(chart.planets.moon, housed), band: { from: pointOf(band.fromDegree), to: pointOf(band.toDegree) } } : spot(chart.planets.moon, housed),
     rising: chart.angles ? spot(chart.angles.ascendant, false) : null,
   };
 }
@@ -110,9 +124,25 @@ describe("the triad with degrees", () => {
   it("names no house without a birth time, and leaves the Rising to the line that asks for one", () => {
     expect(triadLines(MARIE.triad)).toEqual([
       { key: "sun", label: "Sun", text: "14.58° Scorpio" },
-      { key: "moon", label: "Moon", text: "16.48° Pisces" },
+      { key: "moon", label: "Moon", text: "10.19° to 22.85° Pisces" },
       { key: "rising", label: "Rising", text: null },
     ]);
+  });
+
+  it("prints the Moon's range over a rough birth time, in one sign or across a cusp (MB-139, reading 11)", () => {
+    expect(triadLines(MARIE.triad)[1].text).toBe("10.19° to 22.85° Pisces");
+    expect(triadLines(triadOf(BIRTHS.beatriceUnknown))[1].text).toBe("28.66° Gemini to 6.81° Cancer");
+    // An exact time keeps its one degree.
+    expect(triadLines(AUDREY.triad)[1].text).toBe("6.45° Pisces · 2nd (money)");
+  });
+
+  it("keeps a house on a range in one sign, and names none across a cusp, where the house changes with the sign", () => {
+    const inOne = MARIE.triad!.moon;
+    const across = triadOf(BIRTHS.beatriceUnknown)!.moon;
+    expect(spotText({ ...inOne, house: 2 })).toBe("10.19° to 22.85° Pisces · 2nd (money)");
+    expect(spotText({ ...across, house: 2 })).toBe("28.66° Gemini to 6.81° Cancer");
+    expect(spotText({ ...inOne, band: { from: inOne.band!.to, to: inOne.band!.to } })).toBe("22.85° Pisces");
+    expect(spotText({ ...inOne, band: null })).toBe("16.48° Pisces");
   });
 
   it("never gives the Rising a house, and draws no rows before the chart is stored", () => {
@@ -262,5 +292,171 @@ describe("Share with", () => {
     expect(shareTargetFor(look, { person: send("sent", "Audrey", "audrey"), pair: send("sent", "Audrey", "audrey", "rel") })).toBeNull();
     expect(shareTargetFor(look, {})).toBeNull();
     expect(shareTargetFor({ person: ME, self: true }, { person: send("can_send", "Beatrice", "me") })).toBeNull();
+  });
+
+  it("sends a report handed back with Not me again, as a new send, and never the pair in its place (ADR-236)", () => {
+    const back = send("handed_back", "Audrey", "audrey");
+    expect(shareTargetFor(look, { person: back, pair: send("can_send", "Audrey", "audrey", "rel") })).toEqual({ kind: "person", send: back, reportId: "r-audrey" });
+    expect(shareTargetFor(look, { person: send("joined", "Audrey", "audrey"), pair: send("handed_back", "Audrey", "audrey", "rel") })).toBeNull();
+  });
+
+  it("says Handed back beside Send again for that send, as the person's row does, and Share with otherwise", () => {
+    const back = shareTargetFor(look, { person: send("handed_back", "Audrey", "audrey") })!;
+    expect(shareControl(back, AUDREY.name)).toEqual({ status: "Handed back", label: "Send again" });
+    expect(shareControl(back, AUDREY.name)).toEqual({ status: HANDED_BACK, label: SEND_AGAIN });
+    const offer = shareTargetFor(look, { person: send("can_send", "Audrey", "audrey") })!;
+    expect(shareControl(offer, AUDREY.name)).toEqual({ status: null, label: "Share with Audrey" });
+    const pairOffer = shareTargetFor(look, { person: send("joined", "Audrey", "audrey"), pair: send("can_grant", "Audrey", "audrey", "rel") })!;
+    expect(shareControl(pairOffer, AUDREY.name)).toEqual({ status: null, label: "Share with Audrey" });
+  });
+
+  it("never lets a reader send on a report shared with them, though a pair of theirs still goes (ADR-235)", () => {
+    const sharer = { ...look, person: { ...AUDREY, access: "shared" as const } };
+    const pairSend = send("can_grant", "Audrey", "audrey", "rel");
+    expect(shareTargetFor({ ...sharer, pair: undefined }, { person: send("can_send", "Audrey", "audrey") })).toBeNull();
+    expect(shareTargetFor(sharer, { person: send("can_send", "Audrey", "audrey"), pair: pairSend })).toEqual({ kind: "pair", send: pairSend, reportId: "c1" });
+  });
+});
+
+describe("sharing your own report (ADR-235)", () => {
+  const SHARER = { ...AUDREY, access: "shared" as const, shareBack: true };
+
+  it("offers Share my report on the reader's own quick look once that report is finished", () => {
+    expect(offersShareMine({ person: ME, self: true })).toBe(true);
+    expect(offersShareMine({ person: { ...ME, status: "revising" }, self: true })).toBe(true);
+    for (const status of ["pending", "computing", "interpreting", "failed"] as const) {
+      expect(offersShareMine({ person: { ...ME, status }, self: true })).toBe(false);
+    }
+    expect(offersShareMine({ person: AUDREY, self: false })).toBe(false);
+  });
+
+  it("offers Share yours back on a sharer's seat only while GET /home says so (reading 4)", () => {
+    expect(offersShareBack({ person: SHARER, self: false })).toBe(true);
+    expect(offersShareBack({ person: { ...SHARER, shareBack: false }, self: false })).toBe(false);
+    expect(offersShareBack({ person: { ...SHARER, shareBack: undefined }, self: false })).toBe(false);
+    expect(offersShareBack({ person: { ...AUDREY, shareBack: true }, self: false })).toBe(false);
+    expect(offersShareBack({ person: { ...ME, shareBack: true }, self: true })).toBe(false);
+  });
+
+  it("names what goes before it goes, by name where the reader knows who gets it (ADR-139)", () => {
+    expect(shareLine()).toBe("They read your report and see you in their circle. Your birth date, time and place go with it. You can stop sharing any time.");
+    expect(shareLine(" Alex ")).toBe("Alex reads your report and sees you in their circle. Your birth date, time and place go with it. You can stop sharing any time.");
+    expect(shareLine("")).toBe(shareLine());
+  });
+
+  it("keeps the sheet's words in the approved artifact's order", () => {
+    expect(SHARE_MINE).toEqual({
+      open: "Share my report",
+      title: "Share your Personal report",
+      email: "Their email",
+      send: "Send link",
+      sending: "Sharing",
+      notNow: "Not now",
+      done: "Done",
+      copy: "Copy link",
+      copied: "Copied",
+      sharedWith: "Shared with",
+      stop: "Stop sharing",
+      back: "Share yours back",
+    });
+    expect(SHARE_EMAIL_MISSING).toBe("Enter their email, like name@example.com.");
+  });
+
+  it("says where the link went, or hands it over when the email did not go", () => {
+    expect(shareSentLine("sam@example.com", true)).toBe("We emailed a link to sam@example.com. They sign in with that address to open it.");
+    expect(shareSentLine("sam@example.com", false)).toBe(
+      "The email didn't go through. Copy this link and send it yourself. They sign in with sam@example.com to open it.",
+    );
+  });
+
+  it("says a refusal in plain words, with a fallback for anything else", () => {
+    expect(shareErrorLine("already_shared")).toBe("Your report is already shared with that address.");
+    expect(shareErrorLine("not_ready")).toBe("You can share it once it is finished.");
+    expect(shareErrorLine("validation_error")).toBe("That email address did not work. Check it and try again.");
+    for (const code of ["no_own_report", "internal_error", undefined]) expect(shareErrorLine(code)).toBe("We couldn't share it. Try again in a minute.");
+  });
+
+  it("lists each share by first name once claimed, by address while it waits, and says where it stands", () => {
+    const waiting = { readerName: null, email: "sam@example.com", state: "waiting" as const };
+    const active = { readerName: "Mira", email: "mira@example.com", state: "active" as const };
+    expect([shareName(waiting), shareStateText(waiting)]).toEqual(["sam@example.com", "Waiting for them to sign in"]);
+    expect([shareName(active), shareStateText(active)]).toEqual(["Mira", "Can read it"]);
+    expect(shareName({ ...active, readerName: "  " })).toBe("mira@example.com");
+  });
+
+  it("never names a share by an empty address: a grant made by Share yours back carries none (R-3.6)", () => {
+    const sharedBack = { readerName: "Alex", email: "", state: "active" as const };
+    expect(shareName(sharedBack)).toBe("Alex");
+    expect(shareName({ ...sharedBack, readerName: null })).toBe("Someone");
+    expect(shareName({ ...sharedBack, readerName: " ", email: "  " })).toBe(UNNAMED_READER);
+    expect(shareName({ readerName: "Sam", email: "sam@example.com", state: "waiting" })).toBe("sam@example.com");
+    expect(shareName({ readerName: null, email: "", state: "waiting" })).toBe("Someone");
+  });
+
+  it("confirms Share yours back by first name", () => {
+    expect(sharedBackText("Alex Moreau")).toBe("Alex can read your Personal report now");
+  });
+});
+
+describe("Try again (MB-137, reading 10)", () => {
+  it("is offered on a failed report only where the reader may rewrite it", () => {
+    expect(offersTryAgain({ status: "failed", canRegenerate: true })).toBe(true);
+    expect(offersTryAgain({ status: "failed", canRegenerate: false })).toBe(false);
+    expect(offersTryAgain({ status: "failed" })).toBe(false);
+    for (const status of ["complete", "revising", "interpreting"] as const) expect(offersTryAgain({ status, canRegenerate: true })).toBe(false);
+  });
+
+  it("names its status and a refusal for the reader's own report or by first name", () => {
+    expect(TRY_AGAIN).toEqual({ label: "Try again", starting: "Starting" });
+    expect(tryAgainErrorLine("Beatrice Lund", true)).toBe("We couldn't start your report again. Try again in a minute.");
+    expect(tryAgainErrorLine("Gus Olsen", false)).toBe("We couldn't start Gus's report again. Try again in a minute.");
+  });
+});
+
+// R15 tester: a sharer's quick look at its edges (ADR-235, readings 4, 10, 11).
+describe("a sharer's quick look at its edges", () => {
+  const SHARER = person("alex", "Alex Moreau", BIRTHS.audrey, { access: "shared", shareBack: true, canRegenerate: false });
+
+  it("opens while GET /home seats the sharer, and nothing once Stop sharing takes them off, whatever was offered", () => {
+    expect(quickLookFor(home({ people: [SHARER] }), "alex")).toEqual({ person: SHARER, self: false });
+    expect(quickLookFor(home({ people: [] }), "alex")).toBeNull();
+  });
+
+  it("on a failed report keeps Share yours back but offers no Try again, and never Share with", () => {
+    const failed = { ...SHARER, status: "failed" as const };
+    const look = { person: failed, self: false };
+    expect(offersTryAgain(failed)).toBe(false);
+    expect(offersShareBack(look)).toBe(true);
+    expect(shareTargetFor(look, { person: send("can_send", "Alex", "alex") })).toBeNull();
+    expect(shareTargetFor(look, { person: send("handed_back", "Alex", "alex") })).toBeNull();
+  });
+
+  it("never offers Share my report on someone else's seat, nor Share yours back on the reader's own", () => {
+    expect(offersShareMine({ person: SHARER, self: false })).toBe(false);
+    expect(offersShareBack({ person: { ...ME, access: "shared", shareBack: true }, self: true })).toBe(false);
+  });
+
+  it("shows no pair block for a pair made from the sharer's chart once it closed", () => {
+    const closed = pair("c-alex", ME, SHARER, { stoppedBy: "Alex" });
+    expect(quickLookFor(home({ people: [SHARER], pairs: [closed] }), "alex")).toEqual({ person: SHARER, self: false });
+    const open = pair("c-alex", ME, SHARER);
+    expect(quickLookFor(home({ people: [SHARER], pairs: [open] }), "alex")?.pair).toEqual(open);
+  });
+});
+
+describe("the Moon's range at a cusp (reading 11)", () => {
+  // George's published birth data with a window of 163 minutes: his Moon reaches 0° Aquarius at its late end.
+  const george = triadOf(["2013-07-22", "16:24", 51.517, -0.1735, "Europe/London", 163]);
+
+  it("reads an end on the cusp as 0.00° of the sign it enters, and names no house across it", () => {
+    expect(george?.moon.band?.to).toEqual({ sign: "Aquarius", degree: 0 });
+    expect(spotText(george!.moon)).toBe(`${george!.moon.band!.from.degree.toFixed(2)}° Capricorn to 0.00° Aquarius`);
+    expect(spotText({ ...george!.moon, house: 6 })).toBe(spotText(george!.moon));
+  });
+
+  it("prints the range in the triad's Moon row and leaves the Sun its one degree", () => {
+    const lines = triadLines(george);
+    expect(lines[1].text).toMatch(/^\d+\.\d{2}° Capricorn to 0\.00° Aquarius$/);
+    expect(lines[0].text).toMatch(/^\d+\.\d{2}° Cancer( · .+)?$/);
   });
 });

@@ -124,7 +124,7 @@ were left behind. Both are documented in place and neither blocks a build:
 
 - **Planet artwork** — `web/src/assets/planets/*.webp` are 1×1 transparent
   placeholders. The chart wheel works; the planets are invisible until the real
-  renders are copied over. `web/public/opengraph.jpg` is missing outright. See
+  renders are copied over. The share card is now `web/public/share-cover-v2.jpg`. See
   `web/src/assets/planets/README.md`.
 
 Replit-specific glue was removed rather than ported: the Vite dev plugins, the

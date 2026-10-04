@@ -22,7 +22,7 @@ export const LIMITS = {
   // one from a single count they all share, sized to the lab's natal and pair campaigns (R13-20).
   anonWrites: { limit: 24, windowMs: HOUR_MS, by: "signedOut", counts: "success" },
   geocode: { limit: 60, windowMs: MINUTE_MS, by: "address", counts: "work" },
-  // MB-146 provisional: the preview calls no model, so it is held to the geocoder's pace rather than to writing's.
+  // The preview calls no model, so it is held to the geocoder's pace rather than to writing's (ADR-231, MB-146).
   preview: { limit: 60, windowMs: MINUTE_MS, by: "address", counts: "work" },
   send: { limit: 10, windowMs: HOUR_MS, by: "account", counts: "success" },
   checkout: { limit: 10, windowMs: HOUR_MS, by: "session", counts: "success" },

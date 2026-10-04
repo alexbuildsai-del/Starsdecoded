@@ -22,6 +22,7 @@ import { buildReportUsage, type ReportUsage, type SectionUsage } from "./usage.j
 import { MODELS } from "./models.js";
 import { buildPairBrief, chapterBrief, CROSS_ORB, type Band, type Lens, type PairBrief, type PairInput } from "./pairBrief.js";
 import { toStrictJsonSchema, type StoredClaim } from "../prompts/index.js";
+import { lettersNote, maskNames, type TypedNames } from "../prompts/data.js";
 import {
   PAIR_CLAIMS_CONTRACT, PAIR_FOUNDATION, PAIR_PROMPT_VERSION,
   PairFoundationSchema, PairLensChapterSchema, PairLinksSchema, PairPractiseSchema, PairTwoChartsSchema,
@@ -115,6 +116,9 @@ function tailFor(brief: PairBrief, spec: PairSectionSpec): string {
   return chapterBrief(brief, { owned: brief.allocation?.[id] ?? [], draws: spec.draws, scene: sceneOf(spec, brief.band) });
 }
 
+/** The two names as typed, which model text sent back carries as A and B (ADR-240). */
+const pairNames = (brief: PairBrief): TypedNames => ({ a: brief.a.name, b: brief.b.name });
+
 /**
  * The user turn: the common brief first, then the foundation, then the
  * chapter's own tail, then the editable instructions, so every parallel
@@ -123,7 +127,13 @@ function tailFor(brief: PairBrief, spec: PairSectionSpec): string {
 export function assemblePairUser(instructions: string, brief: PairBrief, spec: PairSectionSpec, foundation: PairFoundationData | null, extraTail?: string): string {
   const parts = ["PAIR BRIEF", brief.text];
   if (spec.key === PAIR_FOUNDATION.key) parts.push("", chaptersBlock(brief));
-  if (foundation) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", JSON.stringify(foundation, null, 2));
+  if (foundation) {
+    // The foundation is model text, and its strengths are the lines chapter 01's card carries.
+    const json = JSON.stringify(foundation, null, 2);
+    const shown = maskNames(json, pairNames(brief));
+    parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", shown);
+    if (shown !== json) parts.push(lettersNote("the foundation"));
+  }
   if (spec.key !== PAIR_FOUNDATION.key && spec.key !== "pair:links") parts.push("", tailFor(brief, spec));
   if (extraTail) parts.push("", extraTail);
   parts.push("", instructions.trim());
@@ -150,13 +160,20 @@ function withStoredClaims(data: unknown, brief: PairBrief): unknown {
 
 /** The next-time items of the five lens chapters, as chapter 07 collects them, and the sources they cited. */
 function practiseTail(brief: PairBrief, chapters: Record<string, unknown>): string {
+  const names = pairNames(brief);
   const items: string[] = [];
   const sources = new Set<string>();
+  let lettered = false;
+  // The names are typed, so they stay in the brief's data blocks: an item says A, B or both (ADR-202), and so does its text (ADR-240).
+  const shown = (text: string) => {
+    const masked = maskNames(text, names);
+    lettered ||= masked !== text;
+    return masked;
+  };
   for (const id of pairChapterIds(brief.lens)) {
     const ch = chapters[id] as PairLensChapterSection | undefined;
     if (!ch || !("nextTime" in ch)) continue;
-    // The names are typed, so they stay in the brief's data blocks and an item says A, B or both (ADR-202).
-    for (const it of ch.nextTime.items) items.push(`  - for ${it.for}, from ${pairSectionById(id)?.label}: ${it.action} (why: ${it.why})`);
+    for (const it of ch.nextTime.items) items.push(`  - for ${it.for}, from ${pairSectionById(id)?.label}: ${shown(it.action)} (why: ${shown(it.why)})`);
     for (const c of ch.claims) for (const e of c.evidence) {
       const ref = e.ref as unknown as { kind: string; report?: string; section?: string; claim?: number };
       if (ref.kind === "source") sources.add(`  - ${ref.report}/${ref.section} claim ${ref.claim}`);
@@ -165,6 +182,7 @@ function practiseTail(brief: PairBrief, chapters: Record<string, unknown>): stri
   return [
     "NEXT-TIME ITEMS from the five chapters (collect these, add nothing new):",
     ...(items.length ? items : ["  - none written"]),
+    ...(lettered ? [lettersNote("these items")] : []),
     "",
     "SOURCES YOU MAY CITE (report, section, claim number), and any link in the LINKS list:",
     ...(sources.size ? [...sources] : ["  - none"]),
@@ -224,6 +242,7 @@ export async function generatePairInterpretation(
     validate: (out) => (PAIR_FOUNDATION.validate as (o: PairFoundationData, b: PairBrief) => Validated<PairFoundationData>)(out, brief),
     signal: controller.signal,
     spend,
+    names: pairNames(brief),
     onChecks: (checks, event) => recordChecks({ kind: "pair", section: PAIR_FOUNDATION.key, model: MODELS.foundation, writeId: randomUUID(), reportId: options.reportId, attempt: event.attempt, final: event.final, checks }),
   }).catch((err) => { throw coded(err); });
   const foundation = foundationCall.data;
@@ -253,6 +272,7 @@ export async function generatePairInterpretation(
       signal: controller.signal,
       carry,
       spend,
+      names: pairNames(brief),
       onChecks: logged(spec, randomUUID()),
     });
     let call: SectionResult<unknown>;

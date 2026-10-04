@@ -194,7 +194,7 @@ export interface CreateReportBody {
 }
 
 /**
- * The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs MB-103 provisional).
+ * The viewer's standing on a report: owner made it, claimed is its subject holding a sent report, participant was sent a pair (ADR-139; pairs ADR-236), shared reads its subject's own Personal report through their grant (ADR-235).
  */
 export type Access = typeof Access[keyof typeof Access];
 
@@ -203,10 +203,11 @@ export const Access = {
   owner: 'owner',
   claimed: 'claimed',
   participant: 'participant',
+  shared: 'shared',
 } as const;
 
 /**
- * can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓".
+ * can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236).
  */
 export type SendStateState = typeof SendStateState[keyof typeof SendStateState];
 
@@ -216,13 +217,14 @@ export const SendStateState = {
   can_grant: 'can_grant',
   sent: 'sent',
   joined: 'joined',
+  handed_back: 'handed_back',
 } as const;
 
 /**
  * Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).
  */
 export interface SendState {
-  /** can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓". */
+  /** can_send asks for an email; can_grant gives a pair at once to someone already on Stars Decoded (MB-82); sent waits on the claim; joined means they have it, "Joined ✓"; handed_back means they handed it back with Not me, and Send again is a new send (ADR-236). */
   state: SendStateState;
   /** The person it goes to, the report's subject or the pair's other person. */
   profileId: string;
@@ -372,7 +374,7 @@ export interface ReportSummary {
      */
   sharedBy?: string | null;
   /**
-     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).
      * @nullable
      */
   stoppedBy?: string | null;
@@ -950,6 +952,10 @@ export interface ReportStatus {
      */
   errorMessage?: string | null;
   failureReason?: FailureReason | null;
+  /** The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last. */
+  canRegenerate?: boolean;
+  /** A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170). Sent as on Report. */
+  outdated?: boolean;
   /** The chart is stored, so the report page can open on the hero and the explorer. */
   chartReady: boolean;
   /**
@@ -1051,7 +1057,7 @@ export const BirthTimeUpdateResponseHorizon = {
 export interface BirthTimeUpdateResponse {
   profileId: string;
   horizon: BirthTimeUpdateResponseHorizon;
-  /** The reports a pass has started on. */
+  /** The report a pass has started on: the profile's newest complete Personal report, or none when it has none, the time draws no horizon, or the report is written for this time already (MB-170). */
   reportIds: string[];
 }
 
@@ -1147,7 +1153,7 @@ export interface ChartData {
 export interface Workbook {[key: string]: string}
 
 /**
- * A shallow merge onto the report's workbook. A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter's id does in "partners02.nextTime.items.0" (ADR-24). A pin key is "pin." and an item key, "pin.focus.practice.bullets.0", valued by the ISO date of the pin and cleared by null; at most three pins stand on a report, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, MB-110 provisional).
+ * A shallow merge onto the viewer's own workbook on the report (ADR-239). A string value is the ISO date the reader ticked the item, null unticks it. A key is a section id, a dot path and an index, for example "career.actions.0". Each segment before the index starts with a letter and may carry digits after it, as a pair chapter's id does in "partners02.nextTime.items.0" (ADR-24). A pin key is "pin." and an item key, "pin.focus.practice.bullets.0", valued by the ISO date of the pin and cleared by null; at most three pins stand in a reader's workbook, and a patch that would leave a fourth answers 400 pin_limit (ADR-174, ADR-239).
  */
 export interface WorkbookPatch {[key: string]: string | null}
 
@@ -1164,7 +1170,7 @@ export const HomePersonStatus = {
 } as const;
 
 /**
- * The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139).
+ * The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139), shared is its subject's own Personal report read through their grant, the sharer's seat (ADR-235).
  */
 export type HomePersonAccess = typeof HomePersonAccess[keyof typeof HomePersonAccess];
 
@@ -1172,7 +1178,26 @@ export type HomePersonAccess = typeof HomePersonAccess[keyof typeof HomePersonAc
 export const HomePersonAccess = {
   owner: 'owner',
   claimed: 'claimed',
+  shared: 'shared',
 } as const;
+
+/**
+ * One end of the Moon's range, its sign and its degree within it (MB-139).
+ */
+export interface SpotPoint {
+  sign: string;
+  /** Degrees within the sign, rounded to two decimals as a Spot's are (ADR-174, MB-139). */
+  degree: number;
+}
+
+/**
+ * The Moon's range across a windowed birth time, read from the stored chart's band; absent or null on the Sun, the Rising and an exact time (MB-139).
+ * @nullable
+ */
+export type SpotBand = {
+  from: SpotPoint;
+  to: SpotPoint;
+} | null;
 
 /**
  * Where the Sun, the Moon or the Rising stands, its sign and its degree within it (ADR-174).
@@ -1188,6 +1213,11 @@ export interface Spot {
      * @nullable
      */
   house: number | null;
+  /**
+     * The Moon's range across a windowed birth time, read from the stored chart's band; absent or null on the Sun, the Rising and an exact time (MB-139).
+     * @nullable
+     */
+  band?: SpotBand;
 }
 
 /**
@@ -1221,10 +1251,14 @@ export interface HomePerson {
   /** YYYY-MM-DD, as entered (ADR-174). */
   birthDate: string;
   status: HomePersonStatus;
-  /** The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139). */
+  /** The reader's standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139), shared is its subject's own Personal report read through their grant, the sharer's seat (ADR-235). */
   access: HomePersonAccess;
   /** The reader's own chart from their side, as ProfileSummary marks it (ADR-120). */
   isSelf: boolean;
+  /** On a sharer's seat, Share yours back is offered, since the reader has a finished Personal report of their own not yet shared with them (ADR-235, MB-104). */
+  shareBack?: boolean;
+  /** The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-137, MB-169). */
+  canRegenerate?: boolean;
   /**
      * Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).
      * @nullable
@@ -1291,7 +1325,7 @@ export interface HomePair {
   b: HomePairB;
   status: HomePairStatus;
   /**
-     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (MB-103 provisional).
+     * On a closed pair, the first name of whoever stopped sharing a natal report it came from; null while it reads (ADR-236).
      * @nullable
      */
   stoppedBy: string | null;
@@ -1318,7 +1352,7 @@ export const HomePracticeKind = {
 } as const;
 
 /**
- * One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing's first Practice item with none pinned; pins and ticks sit in the report's one workbook, shared by everyone who reads it (ADR-174, MB-110 provisional).
+ * One thing the reader is practising, an item pinned on their own Personal report or on a pair they are one of, or their Closing's first Practice item with none pinned; pins and ticks sit in the reader's own workbook on that report, which no other reader sees (ADR-174, ADR-239).
  */
 export interface HomePractice {
   reportId: string;
@@ -1342,9 +1376,9 @@ export interface Home {
   you: HomePerson | null;
   /** More than one chart is marked as the reader's own, so `you` stays null until they settle which (ADR-120, ADR-174). */
   several: boolean;
-  /** The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, each with its latest readable report (ADR-182). */
+  /** The circle and the People list, the same people: every profile with a Personal report the reader can read, written until its subject stops sharing or sent to them, and each sharer whose own Personal report they read through a grant, seated as `shared` until that sharer stops sharing; each with its latest readable report (ADR-182, ADR-235). */
   people: HomePerson[];
-  /** The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, MB-103 provisional). */
+  /** The Compatibility reports GET /reports lists for the reader, for Your pairs and their stories; a closed one carries stoppedBy (ADR-174, ADR-236). */
   pairs: HomePair[];
   /** What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing's first Practice item (ADR-174). */
   practising: HomePractice[];
@@ -1409,7 +1443,7 @@ export interface Report {
   timezone?: string | null;
   birthTimeWindowMinutes: number;
   /**
-     * The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report.
+     * The profile a natal report reads; the birth time pass is addressed to it. Null on a compatibility report, and for a reader through a share grant, who changes nothing of the sharer's, so the page offers them no birth time pass (ADR-235).
      * @nullable
      */
   profileId?: string | null;
@@ -1444,6 +1478,10 @@ export interface Report {
      * @nullable
      */
   giverName?: string | null;
+  /** The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). */
+  canRegenerate?: boolean;
+  /** A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170). */
+  outdated?: boolean;
 }
 
 /**
@@ -1673,7 +1711,7 @@ export interface CompatibilitySummary {
 }
 
 /**
- * The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; MB-103 provisional).
+ * The email is needed only for someone not yet on Stars Decoded (ADR-133, MB-82; ADR-236).
  */
 export interface SendCompatibilityBody {
   email?: string;
@@ -1700,7 +1738,7 @@ export interface InviteSummary {
 }
 
 /**
- * How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; MB-103 provisional).
+ * How a pair went out, invited by email or granted at once to someone already joined (ADR-133, MB-82; ADR-236).
  */
 export interface PairSendResult {
   state: PairSendResultState;
@@ -1939,7 +1977,7 @@ export interface CreateInviteBody {
 }
 
 /**
- * A sent report or a gifted credit (ADR-120, ADR-139).
+ * A sent report or a gifted credit (ADR-120, ADR-139), or the sharer's own Personal report shared with them (ADR-235).
  */
 export type InvitePreviewKind = typeof InvitePreviewKind[keyof typeof InvitePreviewKind];
 
@@ -1947,6 +1985,7 @@ export type InvitePreviewKind = typeof InvitePreviewKind[keyof typeof InvitePrev
 export const InvitePreviewKind = {
   send: 'send',
   gift: 'gift',
+  share: 'share',
 } as const;
 
 export interface InvitePreview {
@@ -1968,7 +2007,7 @@ export interface InvitePreview {
   relationshipReportId?: string | null;
   expiresAt: string;
   alreadyClaimed: boolean;
-  /** A sent report or a gifted credit (ADR-120, ADR-139). */
+  /** A sent report or a gifted credit (ADR-120, ADR-139), or the sharer's own Personal report shared with them (ADR-235). */
   kind?: InvitePreviewKind;
   /**
      * The name the giver gave a gift's recipient, for the cover; null on a send (ADR-128).
@@ -1983,7 +2022,7 @@ export interface InvitePreview {
 }
 
 /**
- * A sent report or a gifted credit (ADR-120, ADR-139).
+ * A sent report or a gifted credit (ADR-120, ADR-139), or a share, whose claim writes a grant and never a hand-over (ADR-235).
  */
 export type InviteClaimResponseKind = typeof InviteClaimResponseKind[keyof typeof InviteClaimResponseKind];
 
@@ -1991,6 +2030,7 @@ export type InviteClaimResponseKind = typeof InviteClaimResponseKind[keyof typeo
 export const InviteClaimResponseKind = {
   send: 'send',
   gift: 'gift',
+  share: 'share',
 } as const;
 
 export interface InviteClaimResponse {
@@ -2005,10 +2045,12 @@ export interface InviteClaimResponse {
   relationshipReportId?: string | null;
   /** Where the claim lands; a gift answers /dashboard (ADR-139). */
   redirectTo: string;
-  /** A sent report or a gifted credit (ADR-120, ADR-139). */
+  /** A sent report or a gifted credit (ADR-120, ADR-139), or a share, whose claim writes a grant and never a hand-over (ADR-235). */
   kind?: InviteClaimResponseKind;
   /** Ask "Is this you?", only when the claimer already has a self profile; otherwise a sent chart is theirs at once (ADR-120). */
   askSelf?: boolean;
+  /** On a share's claim, Share yours back is offered, since the claimer has a finished Personal report of their own not yet shared with the sharer (ADR-235, MB-104). */
+  shareBack?: boolean;
 }
 
 /**
@@ -2070,6 +2112,76 @@ export interface CreateGiftBody {
   note?: string;
 }
 
+/**
+ * Change address on a waiting send or gift, the corrected address its new link goes to (ADR-237, MB-109).
+ */
+export interface ChangeAddressBody {
+  email: string;
+}
+
+/**
+ * Share my report, the address of whoever should read the viewer's own Personal report (ADR-235, MB-104).
+ */
+export interface CreateShareBody {
+  email: string;
+}
+
+/**
+ * What POST /shares answers: the share, waiting, plus the claim link exactly as its email carried it and whether that email went, as POST /invites answers (ADR-235).
+ */
+export interface ShareCreated {
+  id: string;
+  email: string;
+  /** The link to copy and send by hand when the email did not go. */
+  claimUrl: string;
+  expiresAt: string;
+  emailDelivered: boolean;
+}
+
+/**
+ * waiting until the link is claimed; active while the grant reads (ADR-235).
+ */
+export type ShareState = typeof ShareState[keyof typeof ShareState];
+
+
+export const ShareState = {
+  waiting: 'waiting',
+  active: 'active',
+} as const;
+
+/**
+ * One person the viewer's own Personal report is shared with, as the sharer's quick look lists them (ADR-235).
+ */
+export interface Share {
+  id: string;
+  /** The address the link went to; empty for a share made by Share yours back, which goes to no address, so the sharer is never given the reader's (R-3.6). */
+  email: string;
+  /**
+     * The reader's first name once they claim it; null while the link waits (ADR-235).
+     * @nullable
+     */
+  readerName: string | null;
+  /** waiting until the link is claimed; active while the grant reads (ADR-235). */
+  state: ShareState;
+  /** ISO-8601 timestamp when the share went out */
+  sentAt: string;
+}
+
+/**
+ * Share yours back, naming the sharer by the Personal report of theirs the viewer reads (ADR-235, MB-104).
+ */
+export interface ShareBackBody {
+  /** The sharer's profile shared with the viewer, which names who gets the viewer's own report back. */
+  profileId: string;
+}
+
+/**
+ * What Hand it back answers, the profile now back with its writer alone (ADR-236, MB-103).
+ */
+export interface HandBackResponse {
+  profileId: string;
+}
+
 export interface GeocodeResult {
   /** Full display name (City, Region, Country) */
   name: string;
@@ -2083,8 +2195,8 @@ export interface GeocodeResult {
   longitude: number;
   /** UTC offset in hours */
   timezoneOffset: number;
-  /** IANA zone name of the place, when known. */
-  timezone?: string;
+  /** IANA zone name of the place from the server's offline table; a place without one is never answered (ADR-246, MB-30). */
+  timezone: string;
   /** Nominatim place type (city, town, village, administrative, etc.) */
   placeType: string;
 }

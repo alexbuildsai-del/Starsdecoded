@@ -15,6 +15,7 @@ import type { ReportInterpretation } from "../lib/aiInterpretation.js";
 import { generatePairInterpretation } from "../lib/pairInterpretation.js";
 import { consumeCredit } from "../lib/credits.js";
 import { natalReportAccess, pairReadable, type PairPerson } from "../lib/access.js";
+import { sharedProfileIds } from "../lib/shares.js";
 import { failReport, streamInto } from "./reports.js";
 import { validationFailure } from "../lib/validation.js";
 
@@ -26,10 +27,15 @@ type RelationshipRow = typeof relationshipsTable.$inferSelect;
 type PartRow = { rp: typeof relationshipParticipantsTable.$inferSelect; profile: ProfileRow };
 
 /**
- * A natal report the viewer can read, whatever their standing on it. MB-166 provisional: the picker asks the same question
- * every read does, so a session that wrote a report loses it to its subject's claim here too (ADR-139).
+ * A natal report the viewer can read, whatever their standing on it, a chart shared with them included (ADR-235).
+ * MB-166 provisional: the picker asks the same question every read does, so a session that wrote a report loses it to
+ * its subject's claim here too (ADR-139).
  */
-async function readableNatal(viewer: { userId: string | null; sessionId: string }, id: string): Promise<{ report: ReportRow; profile: ProfileRow } | null> {
+async function readableNatal(
+  viewer: { userId: string | null; sessionId: string },
+  id: string,
+  shared: ReadonlySet<string>,
+): Promise<{ report: ReportRow; profile: ProfileRow } | null> {
   const rows = await db
     .select({ report: reportsTable, profile: profilesTable })
     .from(reportsTable)
@@ -38,7 +44,7 @@ async function readableNatal(viewer: { userId: string | null; sessionId: string 
     .limit(1);
   if (!rows.length) return null;
   const { report, profile } = rows[0];
-  return natalReportAccess(viewer, profile, report) ? { report, profile } : null;
+  return natalReportAccess(viewer, profile, report, shared.has(profile.id)) ? { report, profile } : null;
 }
 
 /** The viewer's relationship for this ordered pair of profiles, or a new one under the lens. */
@@ -94,7 +100,8 @@ function pairPerson({ rp, profile }: PartRow): PairPerson {
  * The relationship and its two people, only when the viewer may still read
  * the pair: a closed pair follows the same rule as every other read of one
  * (ADR-139), so the summary answers 404 as they do rather than confirming a
- * closed id with a different status.
+ * closed id with a different status. One made from a chart shared with the
+ * viewer reads while that grant stands (ADR-235).
  */
 // MB-103 provisional
 async function readablePair(
@@ -103,13 +110,16 @@ async function readablePair(
 ): Promise<{ rel: RelationshipRow; parts: PartRow[] } | null> {
   const [rel] = await db.select().from(relationshipsTable).where(eq(relationshipsTable.id, relationshipId)).limit(1);
   if (!rel) return null;
-  const parts = await db
-    .select({ rp: relationshipParticipantsTable, profile: profilesTable })
-    .from(relationshipParticipantsTable)
-    .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
-    .where(eq(relationshipParticipantsTable.relationshipId, rel.id))
-    .orderBy(asc(relationshipParticipantsTable.position));
-  return pairReadable(viewer, rel, parts.map(pairPerson)).readable ? { rel, parts } : null;
+  const [parts, shared] = await Promise.all([
+    db
+      .select({ rp: relationshipParticipantsTable, profile: profilesTable })
+      .from(relationshipParticipantsTable)
+      .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
+      .where(eq(relationshipParticipantsTable.relationshipId, rel.id))
+      .orderBy(asc(relationshipParticipantsTable.position)),
+    sharedProfileIds(viewer.userId),
+  ]);
+  return pairReadable(viewer, rel, parts.map(pairPerson), shared).readable ? { rel, parts } : null;
 }
 
 // Write a compatibility report from two finished natal reports (ADR-39). No
@@ -130,7 +140,8 @@ router.post("/compatibility", async (req, res) => {
   const viewer = { userId: req.userId, sessionId: req.sessionId };
 
   try {
-    const [a, b] = await Promise.all([readableNatal(viewer, reportAId), readableNatal(viewer, reportBId)]);
+    const shared = await sharedProfileIds(viewer.userId);
+    const [a, b] = await Promise.all([readableNatal(viewer, reportAId, shared), readableNatal(viewer, reportBId, shared)]);
     if (!a || !b) {
       return res.status(404).json({ error: "not_found", message: "Both reports must exist and be visible to you" });
     }

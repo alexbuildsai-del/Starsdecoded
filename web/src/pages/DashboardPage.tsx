@@ -490,9 +490,9 @@ export default function DashboardPage() {
   });
   const giftFrom = giftGiver(history.data);
   const giftNudge = giftFrom && !you && !several && !out
-    ? nudgeFor({ claimedGift: { giverName: giftFrom, hasOwnChart: false } }, new Set())
+    ? nudgeFor({ claimedGift: { giverName: giftFrom, hasOwnChart: false } })
     : null;
-  const circleNudge = nudgeFor({ alone, credits: enforced ? available : undefined }, new Set());
+  const circleNudge = nudgeFor({ alone, credits: enforced ? available : undefined });
 
   const [view, setView] = useState<View>("circle");
   const [selection, setSelection] = useState<{ id: string; giftId?: string } | null>(null);

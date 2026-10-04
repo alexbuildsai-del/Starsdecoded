@@ -7,6 +7,14 @@ describe("the words around the live wheel", () => {
     expect(clockLine(new Date("2026-01-05T23:30:00Z"), "Asia/Kolkata")).toBe("6 JAN 2026 · 05:00");
   });
 
+  it("says the minute on the reader's clock, the 24-hour one being the prerender's (MB-178)", () => {
+    const at = new Date("2026-09-26T18:04:00Z");
+    expect(clockLine(at, "Europe/Brussels", 24)).toBe("26 SEP 2026 · 20:04");
+    expect(clockLine(at, "Europe/Brussels", 12)).toBe("26 SEP 2026 · 8:04\u00a0pm");
+    expect(clockLine(new Date("2026-01-05T23:30:00Z"), "Asia/Kolkata", 12)).toBe("6 JAN 2026 · 5\u00a0am");
+    expect(clockLine(new Date("2026-09-26T22:00:00Z"), "Europe/Brussels", 12)).toBe("27 SEP 2026 · 12\u00a0am");
+  });
+
   it("prints a place and an offset the way the readouts do", () => {
     expect(latLngLine(50.83, 4.33)).toBe("50.83°N 4.33°E");
     expect(latLngLine(-33.87, -70.65)).toBe("33.87°S 70.65°W");
@@ -26,5 +34,19 @@ describe("the words around the live wheel", () => {
     const ascendant = { sign: "Aquarius", degree: 28.62, absoluteDegree: 328.62 };
     expect(tiltToAscendant({ angles: { ascendant, midheaven: ascendant, descendant: ascendant, ic: ascendant } })).toBeCloseTo(28.62, 5);
     expect(tiltToAscendant({})).toBe(0);
+  });
+});
+
+describe("the live wheel's minute on a 12-hour clock at the day's edges (MB-178)", () => {
+  it("noon is 12 pm, a minute past midnight is 12:01 am, a minute before it 11:59 pm, the date the city's own", () => {
+    expect(clockLine(new Date("2026-09-26T10:00:00Z"), "Europe/Brussels", 12)).toBe("26 SEP 2026 · 12 pm");
+    expect(clockLine(new Date("2026-09-26T22:01:00Z"), "Europe/Brussels", 12)).toBe("27 SEP 2026 · 12:01 am");
+    expect(clockLine(new Date("2026-09-26T21:59:00Z"), "Europe/Brussels", 12)).toBe("26 SEP 2026 · 11:59 pm");
+    expect(clockLine(new Date("2026-09-26T22:01:00Z"), "Europe/Brussels", 24)).toBe("27 SEP 2026 · 00:01");
+  });
+
+  it("24-hour unless told, as the prerender draws it", () => {
+    const at = new Date("2026-09-26T18:04:00Z");
+    expect(clockLine(at, "Europe/Brussels")).toBe(clockLine(at, "Europe/Brussels", 24));
   });
 });

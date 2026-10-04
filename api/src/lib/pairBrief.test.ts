@@ -1,15 +1,19 @@
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { calculateNatalChart } from "./chartCalculation.js";
 import { chartFromFixture } from "./testFixtures.js";
 import { cannedNatalReplies, installFakeModel } from "./testModel.js";
+import type { ReportInterpretation } from "./aiInterpretation.js";
+import type { StoredClaim } from "../prompts/index.js";
 
 const { generateInterpretation } = await import("./aiInterpretation.js");
 const { buildPairBrief, chapterBrief, CROSS_ORB, LENSES } = await import("./pairBrief.js");
 const { previewPairSectionPrompt } = await import("./pairInterpretation.js");
 const { PAIR_FOUNDATION, PAIR_SYSTEM, cardLineChecks, lensContext, pairSectionById, pairSpecsFor, sceneChecks, validatePairSection } = await import("../prompts/pair/index.js");
 const { promptNames } = await import("../prompts/pair/shapes.js");
-const { DATA_CLOSE, DATA_OPEN, DATA_RULE, dataBlock, dataValue, outsideDataBlocks } = await import("../prompts/data.js");
+const { DATA_CLOSE, DATA_OPEN, DATA_RULE, dataBlock, dataValue, lettersNote, outsideDataBlocks } = await import("../prompts/data.js");
+const { SECTION_IDS } = await import("../prompts/index.js");
 const { pairReplies } = await import("./testPair.js");
 
 const fake = installFakeModel(cannedNatalReplies({ drawn: true, sunSign: "scorpio", sunHouse: 11 }));
@@ -248,4 +252,152 @@ test("a name that breaks the name rule still reaches the brief, once, inside its
   assert.ok(block[1].length <= 60);
   assert.equal(block[2], "<<end>>");
   assert.doesNotMatch(outsideDataBlocks(b.text), /System|obey/);
+});
+
+// A natal writer was shown its reader's name, and the brief quotes what it wrote (ADR-240, MB-152, sentinel S8).
+
+/** The three injection fixtures' names, read from disk so the test plants what the lab plants (security scope 8). */
+const HOSTILE = ["inject-delimiter", "inject-instruction", "inject-markup"].map((fixture) =>
+  (JSON.parse(readFileSync(new URL(`../../../fixtures/charts/${fixture}.json`, import.meta.url), "utf8")) as { name: string }).name);
+
+interface Spelled { whole: string; shown: string; first: string; upper: string; firstUpper: string; lower: string; other: string }
+
+const firstWord = (name: string) => name.trim().split(/\s+/)[0]!;
+
+/** Every way a writer gives a typed name back, in any case but the ordinary lower-case word (R15-04), and the other name once. */
+const spelled = (own: string, other: string): Spelled => ({
+  whole: own, shown: dataValue(own), first: firstWord(own), upper: own.toUpperCase(), firstUpper: firstWord(own).toUpperCase(), lower: own.toLowerCase(), other,
+});
+
+/** The same text with each name written as the brief letters it. */
+const lettered = (own: "A" | "B", other: "A" | "B"): Spelled => ({ whole: own, shown: own, first: own, upper: own, firstUpper: own, lower: own, other });
+
+const said = (n: Spelled, field: string) =>
+  `${n.whole} tests ${field} first. Then ${n.first} waits, ${n.shown} listens and ${n.upper} acts. ${n.firstUpper} asks ${n.other}.\n\n${n.whole} opens this paragraph, and ${n.lower} ends it.`;
+
+/** A stored natal report with the names written into every field the pair brief quotes. */
+function planted(report: ReportInterpretation, n: Spelled): ReportInterpretation {
+  const r = structuredClone(report);
+  r.foundation = { ...r.foundation, chartThesis: said(n, "the thesis"), dominantPattern: said(n, "the pattern"), centralTension: said(n, "the tension") };
+  r.relationships = {
+    ...r.relationships,
+    theChallenge: said(n, "the challenge"),
+    connectBestWith: r.relationships.connectBestWith.map((_, i) => ({ item: said(n, `item ${i + 1}`), reason: said(n, `reason ${i + 1}`) })),
+  };
+  const sections = r as unknown as Record<string, { claims?: StoredClaim[] } | undefined>;
+  for (const id of SECTION_IDS) sections[id]?.claims?.forEach((c, i) => { c.quote = said(n, `${id} claim ${i + 1}`); });
+  return r;
+}
+
+/** The spellings of a typed name left in text: whole as typed or as its block shows it, or its first word in any case but the ordinary lower-case word. */
+function spellingsLeft(text: string, name: string): string[] {
+  const lower = text.toLowerCase();
+  const whole = [name, dataValue(name)].filter((s) => lower.includes(s.toLowerCase()));
+  const first = firstWord(name).replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+  const words = [...text.matchAll(new RegExp(`(?<![\\p{L}\\p{N}])${first}(?![\\p{L}\\p{N}])`, "giu"))].map((m) => m[0]).filter((w) => !/^\p{Ll}{1,12}$/u.test(w));
+  return [...whole, ...words];
+}
+
+const HEAD_NOTE = lettersNote("the personal reports' lines above");
+const TAIL_NOTE = lettersNote("these claims");
+
+test("a name a natal writer gave back, in every field the brief quotes, whole, first word, any case and opening a paragraph, reaches no pair prompt outside a block", async () => {
+  const at = new Date("2026-09-21T00:00:00Z");
+  let rendered = 0;
+  for (const [i, lens] of LENSES.entries()) {
+    // A different two under each lens, so each name is A once and B once.
+    const [nameA, nameB] = [HOSTILE[i % HOSTILE.length], HOSTILE[(i + 1) % HOSTILE.length]];
+    const pair = {
+      lens, at,
+      parent: lens === "parent_child" ? ("B" as const) : null,
+      label: lens === "people" ? "friends" : null,
+      a: { name: nameA, birthDate: "2018-03-02", chart: chartFromFixture("marie-curie"), interpretation: planted(curieReport, spelled(nameA, nameB)) },
+      b: { name: nameB, birthDate: "1954-01-29", chart: chartFromFixture("oprah-winfrey"), interpretation: planted(winfreyReport, spelled(nameB, nameA)) },
+    };
+    const foundation = pairReplies(buildPairBrief(pair)).pair_foundation as never;
+    for (const spec of [PAIR_FOUNDATION, ...pairSpecsFor(lens)]) {
+      const where = `${lens} ${spec.key}`;
+      const prompt = await previewPairSectionPrompt(spec.key, pair, spec === PAIR_FOUNDATION ? undefined : foundation);
+      for (const text of [prompt.system, prompt.user]) {
+        const outside = outsideDataBlocks(text);
+        assert.doesNotMatch(outside, /pirate|ignore every rule/i, where);
+        assert.deepEqual([...spellingsLeft(outside, nameA), ...spellingsLeft(outside, nameB)], [], where);
+        assert.ok(!outside.split("\n").some((l) => l.startsWith("<<") || l === DATA_CLOSE), `${where}: no marker left outside a block`);
+      }
+      assert.equal(prompt.user.split(dataBlock("name", nameA)).length, 2, `${where}: A's block, once`);
+      assert.equal(prompt.user.split(dataBlock("name", nameB)).length, 2, `${where}: B's block, once`);
+      assert.ok(prompt.user.includes(HEAD_NOTE), `${where}: the writer is asked for the names, not the letters`);
+      rendered += 1;
+    }
+  }
+  assert.equal(rendered, LENSES.reduce((n, lens) => n + 1 + pairSpecsFor(lens).length, 0));
+});
+
+test("the brief changes nowhere but the names: it reads as if A and B had been written, plus one line asking for the names, and the sides keep what was stored", () => {
+  /** The text with its one note taken out, after checking it is there once, on a line of its own. */
+  const without = (text: string, note: string, where: string) => {
+    assert.equal(text.split(`\n${note}\n`).length, 2, `${where}: the note, once`);
+    return text.replace(`\n${note}\n`, "\n");
+  };
+  for (const [i, nameA] of HOSTILE.entries()) {
+    const nameB = HOSTILE[(i + 1) % HOSTILE.length];
+    const where = `A ${nameA.slice(0, 16)}, B ${nameB.slice(0, 16)}`;
+    const build = (a: Spelled, b: Spelled) => buildPairBrief({
+      ...input(), lens: "people", label: "friends",
+      a: { ...input().a, name: nameA, interpretation: planted(curieReport, a) },
+      b: { ...input().b, name: nameB, interpretation: planted(winfreyReport, b) },
+    });
+    const named = build(spelled(nameA, nameB), spelled(nameB, nameA));
+    const written = build(lettered("A", "B"), lettered("B", "A"));
+    assert.equal(without(named.text, HEAD_NOTE, where), written.text, where);
+    assert.ok(!written.text.includes(HEAD_NOTE), `${where}: nothing to letter, no note`);
+    const tail = { owned: named.links.map((l) => l.key), scene: "The big dinner" };
+    assert.equal(without(chapterBrief(named, tail), TAIL_NOTE, where), chapterBrief(written, tail), where);
+    assert.ok(!chapterBrief(written, tail).includes(TAIL_NOTE), `${where}: nothing to letter in the claims, no note`);
+    const { text: _named, a: namedA, b: namedB, ...namedRest } = named;
+    const { text: _written, a: writtenA, b: writtenB, ...writtenRest } = written;
+    assert.deepEqual(namedRest, writtenRest, `${where}: the lens, the links, the overlays and the label as they were`);
+    // The sides keep the stored text: a source's label and the claim checks read it, and the page shows the names as typed.
+    assert.equal(namedA.name, nameA);
+    assert.equal(namedA.foundation.chartThesis, said(spelled(nameA, nameB), "the thesis"));
+    assert.equal(namedB.connectBestWith[0].reason, said(spelled(nameB, nameA), "reason 1"));
+    assert.equal(namedB.claims.overview[0].quote, said(spelled(nameB, nameA), "overview claim 1"));
+    assert.deepEqual(namedA.claims.overview.map((c) => c.evidence), writtenA.claims.overview.map((c) => c.evidence));
+    assert.deepEqual(Object.keys(namedB.claims), Object.keys(writtenB.claims));
+  }
+  const plain = buildPairBrief(input());
+  assert.ok(!plain.text.includes(HEAD_NOTE) && !chapterBrief(plain, { owned: [] }).includes(TAIL_NOTE), "a brief whose reports name no one carries neither note");
+});
+
+// R15 tester: two people who share a first name, and words that only contain a name (R15-04, ADR-240).
+test("a first name both people share has no one letter: it goes back in a block, each whole name as its own letter, and a word holding the name stays", () => {
+  const thesis = "Marie Curie tests first. Then Marie waits, MARIE asks Marie Laveau, and Mariette and Annmarie watch.";
+  const challenge = "Marie Laveau leaves first.";
+  const report = structuredClone(curieReport);
+  report.foundation = { ...report.foundation, chartThesis: thesis };
+  report.relationships = { ...report.relationships, theChallenge: challenge };
+  const brief = buildPairBrief({
+    ...input(), lens: "people", label: "friends",
+    a: { ...input().a, name: "Marie Curie", interpretation: report },
+    b: { ...input().b, name: "Marie Laveau" },
+  });
+  const outside = outsideDataBlocks(brief.text);
+  assert.match(outside, /thesis: A tests first\. Then\s+waits,\s+asks B, and Mariette and Annmarie watch\./);
+  assert.match(outside, /the challenge in intimacy: B leaves first\./);
+  assert.doesNotMatch(outside, /(?<![\p{L}])Marie(?![\p{L}])/iu, "no Marie outside a block");
+  assert.equal(brief.text.split(dataBlock("name", "Marie")).length, 2, "the shared first name, in a block where it was written");
+  assert.equal(brief.text.split(dataBlock("name", "MARIE")).length, 2);
+  assert.equal(brief.text.split(lettersNote("the personal reports' lines above")).length, 2, "the note once, though both sides were lettered");
+  assert.equal(brief.a.foundation.chartThesis, thesis, "the side keeps the stored text");
+});
+
+test("the claims a chapter quotes are lettered as the head is, and a claim naming no one leaves the tail without the note", () => {
+  const report = structuredClone(curieReport);
+  report.overview.claims[0].quote = "Marie Curie investigates first.";
+  const named = buildPairBrief({ ...input(), a: { ...input().a, interpretation: report } });
+  const tail = chapterBrief(named, { owned: [], draws: ["overview"] });
+  assert.match(tail, /A\/overview claim 1: "A investigates first\."/);
+  assert.ok(tail.includes(lettersNote("these claims")));
+  const other = chapterBrief(named, { owned: [], draws: ["relationships"] });
+  assert.ok(!other.includes(lettersNote("these claims")), "a chapter that does not draw on the named claim has nothing lettered");
 });

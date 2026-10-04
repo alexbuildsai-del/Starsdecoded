@@ -10,32 +10,31 @@ merged into the rule it repeats.
   2026-10-01 (agent-roster, Open questions; ADR-192). Propose a check that way and do not re-ask.
 - **The default carries an ask.** "go", with MB-93, 128 and 129 left at their defaults (R12 report, built 2026-10-01). Write
   each ask so that his silence is safe.
-- **Housekeeping on a yes.** The /round skill swap, removing a promise from the site, /sample refreshed from each
-  Release, the round order at its default (Review 02/10, 2026-10-02). Small, reversible operations need one line, not a
-  question.
+- **Housekeeping on a yes.** The /round skill swap, a promise removed, /sample from each Release (Review 02/10); fifteen
+  built-at-default rows closed in one line (sweep 03/10). Small, reversible operations need one line, not a question.
 
 ## Changed, and why
-- **No hotfix.** Production serves non-admins only healthz, the waitlist and the admin (ADR-167), and the app's session data
-  lives on staging, which has no real visitors, so the security fixes wait for R13, then a QA, then the first Release
-  (security-hardening, Open questions, 2026-10-01; ADR-204).
-- **He orders the rounds.** Pricing and launch went behind the website (R11 plan, 2026-09-30), Review 01/10 (R12 plan,
-  2026-10-01) and security with the roster (ADR-204): deferred three times (R14-plan header). Offer an order as a recommendation.
-- **Less text on public pages.** Three quote cards with counts became one annotated line: "simple", one actionable
-  example, no figures "no one's gonna read" (Review 02/10, 2026-10-02). Propose the shortest version first.
-- **Speed of entry beats pickers.** Three date boxes with a month list became one typed field that jumps ahead
-  (Review 02/10). Forms are judged by how fast a birth date goes in.
+- **No hotfix.** Production serves non-admins only healthz, the waitlist and the admin (ADR-167) and staging has no real
+  visitors, so security fixes waited for R13, a QA, then the first Release (security-hardening, 2026-10-01; ADR-204).
+- **He orders the rounds.** Pricing went behind the website, Review 01/10, security and Review 02/10, then "don't plan it",
+  cleanup and Timeline first, pricing "whenever I say" (sweep 03/10, 2026-10-03). Never slot pricing in between rounds.
+- **Less text, never fewer parts.** Three quote cards became one annotated line (Review 02/10) that read "nor
+  understandable": propose the fewest examples, each whole (moment, chart in plain words, check, action), picked by hand
+  (home-report-section); a tie's wording became "just remove that line", "Not me" kept two buttons (sweep 03/10).
+- **Speed of entry beats pickers.** One typed date field that jumps ahead, not three boxes (Review 02/10).
 - **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):
   propose the proper fix alone and say what it needs.
+- **A visual that says what we sell beats the safest layout.** Share cover: the wheel centred, safe in WhatsApp's square
+  crop, was "nice" but "not wow"; the Owner took the headline beside the wheel, cut square and all (share-cover, 2026-10-03).
 - **Don't redraw what was only misread.** The look-alike nodes stay; the answer was the explanation (Review 02/10).
 
 ## Asked for
 - **Opus for orchestrating, planning and research.** The orchestrator (the Owner, ADR-137), planning (R-0.7) and, from
   2026-10-01, research, with the verifier on any claim that feeds a decision (agent-roster scope 6; MASTERFILE §11.1).
-- **A process that learns.** This file after every ideation, `lessons.md` after every round (agent-roster scope 12, ADR-195,
-  2026-10-01).
+- **A process that learns.** This file after every ideation, `lessons.md` after every round (ADR-195, 2026-10-01).
 - **Fewer questions, each with a default.** At most three, highest stakes first, each with a recommendation and what happens
-  if he is silent (R-12.1; "For the Owner" in the R11, R12 and R13 plans). Never a chore: he tests the site and says yes or
-  no, and operations are Claude's (R-12.5; CLAUDE.md).
+  if he is silent (R-12.1; "For the Owner" in the R11, R12 and R13 plans). Never a chore (R-12.5). Read the day's locks on
+  every branch first: never re-ask what one settled (release-one-findings, 2026-10-03: the tie, the order, the network).
 - **What only he holds, he supplies or defers.** A name, a contact address, Resend's domain, a token: given before R11 began
   (R11 report, built 2026-09-30). Otherwise "Continue without this for now" (2026-09-27): build the rest behind marked
   seams (R-12.4) and never hold the round.
@@ -46,7 +45,8 @@ merged into the rule it repeats.
 ## Formats he likes
 - **An HTML artifact before any question or lock.** He decides visually (MASTERFILE §11.1). Phone first, 390 px before
   desktop (§9, ADR-171).
-- **The annotated line** (moment, chart, something to try) also as a marketing post (Review 02/10).
+- **The workbook card** (moment, chart, check, something to try), also as a marketing post (02/10, 2026-10-03); How you
+  work and How you spend, "go with A" (home-report-section, 2026-10-03).
 
 ## His own lines, verbatim
 - "Continue without this for now." The Owner, 2026-09-27, `docs/rounds/R14-plan.md` (pricing and launch, first written as
