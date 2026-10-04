@@ -7,8 +7,8 @@ product. "Astra" left the code on 2026-09-18; never add a new use of the name.
 
 ## Working with the Owner
 
-- Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5). Commits and files stay unprefixed.
-- Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel; a single lookup or edit stays here.
+- Every reply opens with `Alex, ` alone on its first line, until the Owner says to stop (R-0.5); commits and files stay unprefixed. Delegate unasked (R-0.6): independent parts, broad searches and long reads go to subagents in parallel.
+- **Simple words, everywhere** (Owner, 2026-10-03): report prose, site, app, emails, posts, mocks. Everyday words, one idea per sentence, no drama; a line that sounds deep gets rewritten until it sounds normal (`/ux-copy` voice chart).
 - Model triage (R-0.7): `/round` is the orchestrator, in the main loop on Opus 5.5 at max; every card carries a `Tier:` (builder, builder-sonnet, builder-haiku); tester, sentinel, qa, researcher, verifier (ADR-187 to 195).
 
 ## Read this first
@@ -114,7 +114,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Current focus (2026-10-03)
 
-1. R15 (zones from the server, sharing your own report, v10 and p5, the launch fixes) on staging; production is R11 to R14 at 27bb5c5.
+1. R15 (zones from the server, sharing your own report, v10 and p5, the launch fixes) on staging, QA-03 read; production is R11 to R14 at 27bb5c5.
    The next Release runs the full lab, ADR-247 pushes /sample's run on `sample/<id>`, then the Owner shares the site on WhatsApp.
-2. Next: R16 Timeline (`R16-plan.md` on `claude/youthful-gauss-7snkqd`, merged first, re-read against R15's files).
-3. Pricing and launch are never planned until the Owner asks (`docs/annex/pricing-and-launch-plan.md`).
+2. Now: R16 Timeline on `round/R16` (`R16-plan.md`): the /timeline page, simple words, Timeline for subscribers (the admin until billing), the teaser.
+3. Pricing and launch are never planned until the Owner asks (ADR-230, 242); Timeline's billing comes with them (ADR-264).

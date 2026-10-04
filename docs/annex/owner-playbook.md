@@ -17,11 +17,14 @@ merged into the rule it repeats.
 - **No hotfix.** Production serves non-admins only healthz, the waitlist and the admin (ADR-167) and staging has no real
   visitors, so security fixes waited for R13, a QA, then the first Release (security-hardening, 2026-10-01; ADR-204).
 - **He orders the rounds.** Pricing went behind the website, Review 01/10, security and Review 02/10, then "don't plan it",
-  cleanup and Timeline first, pricing "whenever I say" (sweep 03/10, 2026-10-03). Never slot pricing in between rounds.
-- **Less text, never fewer parts.** Three quote cards became one annotated line (Review 02/10) that read "nor
-  understandable": propose the fewest examples, each whole (moment, chart in plain words, check, action), picked by hand
-  (home-report-section); a tie's wording became "just remove that line", "Not me" kept two buttons (sweep 03/10).
+  cleanup and Timeline first, pricing "whenever I say" (sweep 03/10, 2026-10-03). Never slot pricing in between rounds; read
+  the latest Decisions rows before reading his words about rounds (ADR-254, a misread).
+- **Less text, simple words, everywhere.** Three quote cards became one annotated line (Review 02/10) that read "nor
+  understandable": propose the fewest examples, each whole, picked by hand (home-report-section); a "so dramatic" line
+  became plain (timeline-page, 2026-10-03). Everyday words, one idea a sentence; never make him ask again.
 - **Speed of entry beats pickers.** One typed date field that jumps ahead, not three boxes (Review 02/10).
+- **Ship it as normal, not behind a flag.** "Simply ship it as if we would normally": a subscriber gets it all, everyone
+  else a teaser; billing waits for Stripe "whenever I say" (timeline, 2026-10-04; ADR-262 to 264).
 - **The real fix, never a fallback.** A Chiron formula offered as a stopgap read as "a workaround" (Review 02/10):
   propose the proper fix alone and say what it needs.
 - **A visual that says what we sell beats the safest layout.** Share cover: the wheel centred, safe in WhatsApp's square
@@ -39,6 +42,10 @@ merged into the rule it repeats.
   (R11 report, built 2026-09-30). Otherwise "Continue without this for now" (2026-09-27): build the rest behind marked
   seams (R-12.4) and never hold the round.
 - **No secret on GitHub, ever** (the Owner, 2026-09-25; CLAUDE.md): no proposal may need one (agent-roster, Out of scope).
+- **A promise needs its proof.** "You don't actually say what it gives you": every feature on a product page is a promise,
+  why you'd care, and an example a reader can see; dummy words are fine if marked, placements stay computed
+  (timeline-page v3, 2026-10-03). Start from visuals an earlier ideation already drew ("bring those visuals in").
+- **No price before it's real.** "Keep it as coming soon": a price on the site waits for its launch (timeline-page, 2026-10-03).
 - **Keep what already looks great, and don't repeat a promise.** Add to a section the Owner likes without touching its
   visuals, and check a new line against every section on the page (Review 02/10, 2026-10-02).
 
@@ -47,12 +54,12 @@ merged into the rule it repeats.
   desktop (§9, ADR-171).
 - **The workbook card** (moment, chart, check, something to try), also as a marketing post (02/10, 2026-10-03); How you
   work and How you spend, "go with A" (home-report-section, 2026-10-03).
+- **Before and after tables** for any wording change: "I really like your before and after" (2026-10-03).
 
 ## His own lines, verbatim
 - "Continue without this for now." The Owner, 2026-09-27, `docs/rounds/R14-plan.md` (pricing and launch, first written as
   R11): his name, address and accounts were not supplied.
-- "I would like the new website and the waitlist overlay on top of it. Let's leave Stripe settings on the side, I will handle
-  that in another round, and yes, we're going to keep going with Stripe." The Owner, 2026-09-30, `docs/rounds/R11-plan.md`.
+- "Let's leave Stripe settings on the side, I will handle that in another round." The Owner, 2026-09-30, `R11-plan.md`.
 - "go". R12's approval, with MB-93, 128 and 129 at their defaults (`docs/rounds/R12-report.md`, built 2026-10-01).
 - The two writers: "sol on the foundation, luna on everything else for the brain/prose". The Owner, 2026-10-01,
   `docs/rounds/R12-plan.md`; his word settled the mix and the gate still ran (ADR-184).
