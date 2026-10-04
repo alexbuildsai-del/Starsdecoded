@@ -3,6 +3,7 @@
  * "Is this scientific?" as locked, every price from the catalogue and the one credit line beside them, /compatibility's
  * three in /faq's FAQPage markup (landing-and-ai-search scope 12 and settled at lock 3; annex /faq; R-6.3; ADR-170, 180).
  */
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BUNDLES, CREDIT_LINE, formatEuro } from "@workspace/commerce";
 import { lensInfo } from "@/lib/lenses";
@@ -106,7 +107,7 @@ describe("the questions", () => {
 
   it("keep Is this scientific? as locked", () => {
     expect(answerTo("Is this scientific?")).toBe(
-      "The planet positions are real astronomy, worked out from the sky at the minute you were born. What they mean comes from astrology, which science doesn't back, so think of the report as a way to reflect on yourself.",
+      "The planet positions are real astronomy, worked out from the sky at the minute you were born. What they mean comes from astrology, which science doesn't back. So think of the report as a way to reflect on yourself.",
     );
   });
 
@@ -182,6 +183,20 @@ describe("what the answers promise (MB-160)", () => {
   it("say every claim shows its part of the chart, never every line or sentence", () => {
     expect(answerTo(`What is a ${PERSONAL_REPORT}?`)).toContain("Every claim in it shows which part of your chart it comes from.");
     for (const item of items) expect(item.a, item.q).not.toMatch(/every (line|sentence)/i);
+  });
+});
+
+describe("/method and the FAQ (ADR-117)", () => {
+  // The page is a component these tests do not render; its words are read from the source as JSX joins them.
+  const code = readFileSync(new URL("../pages/MethodPage.tsx", import.meta.url), "utf8")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+    .replace(/\s+/g, " ");
+
+  it("answer How is the report written? in the same words", () => {
+    const heading = code.indexOf("How is the report written?</h2>");
+    expect(heading).toBeGreaterThan(0);
+    const paragraph = code.slice(heading).match(/<p [^>]*> (.*?) <\/p>/)?.[1];
+    expect(paragraph).toBe(answerTo("How is the report written?"));
   });
 });
 

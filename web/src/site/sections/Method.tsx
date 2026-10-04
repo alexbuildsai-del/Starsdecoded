@@ -41,7 +41,7 @@ export default function Method() {
             How we make <em>your report</em>
           </h2>
           <p className="sd-sub">
-            We work out your chart from where the planets really were, then write your report from it using our own rules for
+            We work out your chart from where the planets really were. Then we write your report from it, using our own rules for
             reading a chart.
           </p>
         </div>
@@ -53,8 +53,8 @@ export default function Method() {
             </span>
             <h3>We work out your chart</h3>
             <p className={PROSE}>
-              We find where the Sun, Moon and planets were at the minute and place you were born. We also check your birth town's
-              clock history, so summer time is right.
+              We find where the Sun, Moon and planets were at the minute and place you were born. We also check past clock changes in
+              your birth town, so summer time is right.
             </p>
             <figure className={FIGURE}>
               <figcaption className="sd-tag">
@@ -101,8 +101,8 @@ export default function Method() {
             </span>
             <h3>We write your report and check it</h3>
             <p className={PROSE}>
-              Each chapter is written from those notes. Then every reference is checked against your chart, and anything that
-              doesn't match is fixed or taken out before you see it.
+              Each chapter is written from those notes. Then we check every claim against your chart. Anything that doesn't match
+              is fixed or taken out before you see it.
             </p>
             <ReferenceCheck />
           </li>
@@ -121,7 +121,7 @@ export default function Method() {
           </p>
           <p className="sd-fact">
             <b>No predictions</b>{" "}
-            It won't forecast events, name dates or diagnose anything. It describes how you tend to work and gives you things to
+            It doesn't forecast events, name dates or diagnose anything. It describes how you tend to work and gives you things to
             try.
           </p>
         </div>

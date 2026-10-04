@@ -44,14 +44,14 @@ const whatIs: FaqItem = {
 
 const howWritten: FaqItem = {
   q: "How is the report written?",
-  a: "We work out your chart and note what stands out in it. Your report is then written from those notes with the help of AI, following our own rules. Every reference is checked against your chart before you see it.",
+  a: "We work out your chart and note what stands out in it. Then AI helps us write your report from those notes, following our own rules. We check every claim against your chart before you see it.",
   home: true,
   link: "/method",
 };
 
 const scientific: FaqItem = {
   q: "Is this scientific?",
-  a: "The planet positions are real astronomy, worked out from the sky at the minute you were born. What they mean comes from astrology, which science doesn't back, so think of the report as a way to reflect on yourself.",
+  a: "The planet positions are real astronomy, worked out from the sky at the minute you were born. What they mean comes from astrology, which science doesn't back. So think of the report as a way to reflect on yourself.",
   home: true,
 };
 
@@ -63,7 +63,7 @@ const predicts: FaqItem = {
 
 const howLong: FaqItem = {
   q: "How long does it take?",
-  a: "It takes a few minutes, and you can start reading the first chapters while the rest are still being written.",
+  a: "It takes a few minutes. You can start reading the first chapters while the rest are still being written.",
   home: true,
 };
 
@@ -75,14 +75,14 @@ const needToStart: FaqItem = {
 
 const noBirthTime: FaqItem = {
   q: "What if I don't know my birth time?",
-  a: "You still get the full report. Tell us what you have: the exact time, a part of the day, or nothing. The report only uses what that supports, and says what a time would add. If you find it later, add it once for free and we'll mark every change.",
+  a: "You still get the full report. Tell us what you have: the exact time, a part of the day, or nothing. The report only uses what your answer can tell us. It also says what a time would add. If you find it later, add it once for free. We'll mark every change.",
   home: true,
   link: "/learn/birth-time",
 };
 
 const birthPlace: FaqItem = {
   q: "Why does my birth place matter?",
-  a: "It sets which sign was rising and so where your houses fall. A town nearby is fine, because a short distance moves your rising degree only a little.",
+  a: "It sets which sign was rising and so where your houses are. A town nearby is fine, because a short distance moves your rising degree only a little.",
   home: false,
 };
 
@@ -95,7 +95,7 @@ const wholeSign: FaqItem = {
 
 const twoOfYou: FaqItem = {
   q: "Can I get a report about me and someone else?",
-  a: `Yes. When you both have a ${PERSONAL_REPORT}, you can get a ${COMPATIBILITY_REPORT} about the two of you. You choose whether you're a couple, a parent and child, or friends, family or colleagues, and it never gives you a score.`,
+  a: `Yes. When you both have a ${PERSONAL_REPORT}, you can get a ${COMPATIBILITY_REPORT} about the two of you. You choose whether you're a couple, a parent and child, or friends, family or colleagues. It never gives you a score.`,
   home: true,
   link: "/compatibility",
 };
@@ -114,7 +114,7 @@ const withChild: FaqItem = {
 
 const score: FaqItem = {
   q: `Does the ${COMPATIBILITY_REPORT} give us a score?`,
-  a: "No. It looks at everyday life together, where you clash and what you can try, and it never rates the two of you.",
+  a: "No. It never rates the two of you. It looks at everyday life together, where you clash and what you can try.",
   home: false,
 };
 
@@ -136,7 +136,7 @@ const birthData: FaqItem = {
 
 const deleting: FaqItem = {
   q: "Can I delete my report?",
-  a: "Yes, any time. Deleting a report removes it, and your birth details too, unless another report uses them. We keep a record of the purchase.",
+  a: "Yes, any time. Deleting a report removes it. It also removes your birth details, unless another report uses them. We keep a record of the purchase.",
   home: true,
 };
 
