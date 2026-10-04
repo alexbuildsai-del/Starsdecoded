@@ -50,6 +50,7 @@ import { consumeCredit, refundCredit } from "../lib/credits.js";
 import { failureCodeOf, failureReasonOf } from "../lib/failureReasons.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
 import { logger } from "../lib/logger.js";
+import { forgetTimeline } from "../lib/timelineReadings.js";
 import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
@@ -948,6 +949,9 @@ router.delete("/reports/:id", async (req, res) => {
         await handOver(tx, p.id, req.userId);
       }
     });
+    // MB-191 provisional: the reader's Timeline readings and Ask thread are kept with their own Personal report, so they go
+    // once it has. The hand-over above returns before this: its giver deletes nothing of their own, and its subject keeps theirs.
+    if (req.userId && isSelfFor(req, p)) await forgetTimeline(req.userId, p.id);
     lastRegenerateAt.delete(r.id);
     return res.status(204).end();
   } catch (err) {

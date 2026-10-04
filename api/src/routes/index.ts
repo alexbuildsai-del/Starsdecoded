@@ -14,8 +14,13 @@ import adminLabSessionsRouter from "./adminLabSessions";
 import adminReleaseRouter from "./adminRelease";
 import adminWaitlistRouter from "./adminWaitlist";
 import homeRouter from "./home";
-import { anonWriteLimit, checkoutLimit, generationLimits, previewLimit, sendLimit } from "../lib/limits";
+import timelineRouter, { startsAReading } from "./timeline";
+import askRouter from "./ask";
+import {
+  anonWriteLimit, askLimit, checkoutLimit, generationLimits, previewLimit, sendLimit, timelineReadingLimit,
+} from "../lib/limits";
 import { spendGate } from "../lib/spendCap";
+import { requireTimelineAccess } from "../lib/timelineAccess";
 import { requireAccount } from "../middlewares/requireAccount";
 
 // health is mounted directly in app.ts, ahead of auth
@@ -44,6 +49,14 @@ router.post("/gifts/:id/remind", sendLimit);
 router.post("/invites/:id/change-address", sendLimit);
 router.post("/gifts/:id/change-address", sendLimit);
 router.post("/checkout/test", checkoutLimit);
+// A new Timeline reading and an Ask message each call the model, so each meets its own count and the breaker. Both stand
+// after the access check: a reader without Timeline hears 403 before anything is counted (ADR-262). An open whose reading
+// is kept or being written skips both, since the sheet asks again every few seconds while one is written and a kept
+// reading opens on a paused day.
+export const openingReading = [requireTimelineAccess, startsAReading, ...timelineReadingLimit, spendGate()];
+export const asking = [requireTimelineAccess, ...askLimit, spendGate()];
+router.post("/timeline/readings/:key", openingReading);
+router.post("/ask", asking);
 
 // The legacy pair report gave way to Compatibility (MB-58). Its routes read a pair past `pairReadable`, so after Stop
 // sharing they still named the other person and showed their placements. They answer 410, so an old client learns the
@@ -58,6 +71,8 @@ router.use(invitesRouter);
 router.use(sharesRouter);
 // A gift seats no one in anyone's circle: /home seats only a Personal report the reader can read (ADR-139, ADR-182).
 router.use(homeRouter);
+router.use(timelineRouter);
+router.use(askRouter);
 router.use(giftsRouter);
 router.use(adminPromptsRouter);
 router.use(creditsRouter);

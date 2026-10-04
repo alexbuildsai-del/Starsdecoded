@@ -275,6 +275,84 @@ test("sharing your own report and Change address count with the sends: once an a
   assert.equal((await post("/api/shares", { email: "not-an-email" }, "user_other")).status, 400, "another account's count is its own");
 });
 
+test("Ask: 6 messages a minute per account, the 7th hears Ask's line, another account still asks", async () => {
+  const app = await serve(buildLimits().askLimit);
+  try {
+    await passes(3, () => app.hit({ user: "u1", session: "s1" }));
+    await passes(3, () => app.hit({ user: "u1", session: "s2" }));
+    const seconds = await refused(app.hit({ user: "u1", session: "s3" }), "ask");
+    assert.ok(seconds <= 60, `a minute's wait at most, Retry-After ${seconds}`);
+    assert.equal((await app.hit({ user: "u2", session: "s1" })).status, 201);
+  } finally {
+    await app.close();
+  }
+});
+
+test("Ask: a message that cost nothing gives its count back, the month's cap, a body Ask cannot take and a pause among them", async () => {
+  const app = await serve(buildLimits().askLimit);
+  try {
+    for (const answer of [400, 403, 409, 429, 500, 503]) assert.equal((await app.hit({ user: "u1", answer })).status, answer, `${answer}`);
+    await passes(LIMITS.ask.limit, () => app.hit({ user: "u1" }));
+    await refused(app.hit({ user: "u1" }), "ask");
+  } finally {
+    await app.close();
+  }
+});
+
+test("a new Timeline reading: 20 a minute per account, then its line; a key that names no reading gives its count back", async () => {
+  const app = await serve(buildLimits().timelineReadingLimit);
+  try {
+    await passes(5, () => app.hit({ user: "u1", answer: 404 }), 404);
+    await passes(LIMITS.timelineReading.limit, () => app.hit({ user: "u1" }));
+    const seconds = await refused(app.hit({ user: "u1" }), "timelineReading");
+    assert.ok(seconds <= 60, `a minute's wait at most, Retry-After ${seconds}`);
+    assert.equal((await app.hit({ user: "u2" })).status, 201);
+  } finally {
+    await app.close();
+  }
+});
+
+test("Ask's and the readings' counts are each their own, and neither draws on writing's", async () => {
+  const limits = buildLimits();
+  const asking = await serve(limits.askLimit);
+  const reading = await serve(limits.timelineReadingLimit);
+  const writing = await serve(limits.generationLimits);
+  try {
+    await passes(LIMITS.ask.limit, () => asking.hit({ user: "u1" }));
+    await refused(asking.hit({ user: "u1" }), "ask");
+    assert.equal((await reading.hit({ user: "u1" })).status, 201);
+    assert.equal((await writing.hit({ user: "u1" })).status, 201);
+  } finally {
+    await Promise.all([asking.close(), reading.close(), writing.close()]);
+  }
+});
+
+test("Ask's minute: the last second inside it still refuses, the first after it lets the reader ask again", async (t) => {
+  const start = Date.parse("2026-10-04T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: start });
+  const app = await serve(buildLimits().askLimit);
+  try {
+    await passes(LIMITS.ask.limit, () => app.hit({ user: "u1" }));
+    t.mock.timers.setTime(start + LIMITS.ask.windowMs - 1_000);
+    await refused(app.hit({ user: "u1" }), "ask");
+    t.mock.timers.setTime(start + LIMITS.ask.windowMs + 1);
+    await passes(LIMITS.ask.limit, () => app.hit({ user: "u1" }));
+    await refused(app.hit({ user: "u1" }), "ask");
+  } finally {
+    await app.close();
+  }
+});
+
+test("Ask's and the readings' lines: a minute's window the page leaves as written, never restated as a time", () => {
+  assert.equal(LIMIT_LINES.ask, "You've sent Ask 6 messages in the last minute. Try again in a minute.");
+  assert.equal(LIMIT_LINES.timelineReading, "You've opened 20 new readings in the last minute. Try again in a minute.");
+  for (const kind of ["ask", "timelineReading"] as const) {
+    assert.equal(LIMITS[kind].windowMs, MINUTE_MS);
+    assert.equal(LIMITS[kind].by, "account");
+    assert.doesNotMatch(LIMIT_LINES[kind], / within (?:the hour|a day)\.$/, "the web turns only an hour's or a day's window into a time");
+  }
+});
+
 test("checkout: 10 an hour per session, as the table counts it", async () => {
   const app = await serve(buildLimits().checkoutLimit);
   try {
