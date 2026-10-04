@@ -99,7 +99,10 @@ step; no receipt; no refund removal; no purchase or event tables; Stripe absent 
 ### Automatic QA on two accounts of our own (the Owner, 2026-10-04: "You should be testing automatically")
 - At start, staging creates `qa-a+clerk_test@mystarsdecoded.com` and `qa-b+clerk_test@…` through
   Clerk's `createUser` (Development instance, test mode: no inbox, no code to read), marks them
-  testers, tops up their credits and seeds each with a report from a stored lab run (no model spend).
+  testers and seeds each with a report from a stored lab run (no model spend).
+- Credits by code, no admin step: before each walk qa-a is topped up to 20 test credits and qa-b
+  reset to 0, so the walk also proves the no-credit path (402, Get credits) and the gift's credit.
+  Staging only; production refuses the top-up. Test credits never count as revenue.
 - After each staging deploy (and from Run now in the admin), the QA agent on Railway signs in as
   them with Clerk Testing Tokens (`@clerk/testing`, the `CLERK_SECRET_KEY` already on Railway) and
   walks: qa-a buys Couple in the sandbox with the test card and returns to the asking step, Sends a
