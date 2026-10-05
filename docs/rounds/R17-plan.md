@@ -692,6 +692,30 @@ typecheck green.
 
 ---
 
+## Changes during the round (the orchestrator, after group A)
+- **New card R17-29, group B** (from R17-05's report): the share and claim screens show the API's own line.
+  ### R17-29 — The pair's Send and claim show what the API says (USER-FACING)
+  Tier: sonnet — two existing screens, each behaviour pinned here
+  Objective: a refused pair Send and a refused claim show the API's line, and a pair claim (`profileId: null`) opens the pair at once.
+  Files: `web/src/components/SendDialog.tsx`; `web/src/pages/ClaimPage.tsx`.
+  Refs: ADR-285; R17-05's lines; `/ux-copy`.
+  Done when: SendDialog shows a 403's `message` in place of "We couldn't share it. Try again in a minute." (kept for a network or
+  5xx failure); ClaimPage shows a refusal's line as plain text with no "HTTP 403 Forbidden:" prefix, and with `profileId: null`
+  goes to the pair without the "It's yours" frame; typecheck and the web critical tier green.
+- **R17-22 gains:** `.github/workflows/ci.yml` (bootstrap the walk's database before the critical tier and pass its URL to it, so
+  the database tests the tier lists run in CI instead of skipping); `src/lib/stripeSync.test.ts` and `packages/db/test.critical`'s
+  `src/paymentsColumns.test.ts`; `openapi.yaml`'s descriptions R17-05 outdated (`claimInvite`, `InviteClaimResponse.profileId` null on
+  a pair's send, the pair Send's 403 reasons, `wrong_person`).
+- **R17-23 gains:** `sharing.walk.ts`'s pair-send step flips to ADR-285 (the send succeeds).
+- **R17-14 gains** `web/public/fonts/` (Round start 4 (b)) and loads Stripe.js only on `/checkout`; `keepCampaign` writes only with
+  `?c=` (R17-08's privacy lines depend on both).
+- **Notes for group B from group A's reports:** checkout is ready when `stripeReady().ok && lastSync()?.problem === null`;
+  `priceIdFor` is async and may be null; `couponIdFor` throws (answer 503); the Portal passes `configuration: await
+  portalConfigurationId()`; the webhook reads `webhookSecret()`; campaign names cap at 40 (Stripe's coupon name); R17-12 leaves
+  `plan` out of `/timeline/access` when there is none (three tests compare the whole body); `PriceItem.fullCents` is the un-campaigned
+  price; the new tables have no foreign keys, so a walk names them in its truncate list.
+- **The CSP** was rewritten once after group A as well (R17-08's pages), so group A's preview builds.
+
 ## After the builders: the orchestrator's steps, not cards
 1. **After group C, once:** `pnpm --filter @workspace/web run csp:write` (Stripe's hosts from R17-14; the build's `--check` fails
    until then, as expected), `vercel.json` committed; gitleaks over `main...round/R17` with CI's pinned version and config (ADR-283).
