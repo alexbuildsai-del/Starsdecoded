@@ -1,12 +1,13 @@
-// The buyer walk (ADR-273): the Owner's critical flow with two accounts, end to end on a scratch Postgres. Ana buys
-// test credits, writes her Personal report and gifts one to her mother Rosa; Rosa claims it and writes hers; the two
-// share their reports both ways, and Ana writes a parent and child report for them. Timeline stays the admin's until
-// billing (MB-197).
+// The buyer walk (ADR-273): the Owner's critical flow with three accounts, end to end on a scratch Postgres. Mira buys
+// test credits, writes her Personal report and gifts one to her parent Idris; Idris claims it and writes one; the two
+// share their reports both ways, and Mira writes a parent and child report for them, which she can't share with Idris
+// yet (MB-223). Then Mira writes her partner Tomás's Personal report and a partners report, sends Tomás both, and Tomás
+// claims and reads them. Timeline stays the admin's until billing (MB-197).
 // No Clerk, no network, no OpenAI. A header stands where the sign-in is, mail goes to a local stub, and the model client
-// is pointed at a local stand-in that answers each call with canned text that passes the checks, so both Personal
-// reports and the pair go through the real routes and are written as they are on staging. The charts are computed from
-// two committed fixtures, the lab's grown parent and child pair (William's and Charles's published births), under the
-// names Ana and Rosa.
+// is pointed at a local stand-in that answers each call with canned text that passes the checks, so every report goes
+// through the real routes and is written as it is on staging. The people are the site's sample people
+// (fixtures/sample-people/, web/src/site/data/people.ts), so the walk and the site share them; their charts are
+// computed from those birth data at run time.
 //
 // `pnpm --filter @workspace/api-server exec tsx src/walk/buyer.walk.ts` runs it against `WALK_DATABASE_URL`; without
 // it, it skips. CI runs it after the unit tests. Its first statement truncates every table it touches, so a second run
@@ -21,7 +22,7 @@ process.env.OPENAI_API_KEY ||= "sk-dummy-walk-never-sent";
 // A first name or an address with nothing behind it here is asked of Clerk (names.ts, invites.ts); without a key, Clerk
 // refuses before it sends anything, whatever key the shell holds.
 delete process.env.CLERK_SECRET_KEY;
-// Timeline is the admin's alone until billing (MB-197), and neither buyer may be the admin, whoever the shell names.
+// Timeline is the admin's alone until billing (MB-197), and no one in the walk may be the admin, whoever the shell names.
 delete process.env.ADMIN_USER_ID;
 // Staging, where the Owner walks this flow: production refuses the test checkout (ADR-138).
 process.env.APP_ENV = "staging";
@@ -42,10 +43,12 @@ type Viewer = { user: string | null; session: string };
 type Mail = { to: string; subject: string; text: string; html: string };
 type Chart = import("../lib/chartCalculation.js").NatalChartData;
 type ReportInterpretation = import("../lib/aiInterpretation.js").ReportInterpretation;
-type Fixture = { birthDate: string; birthTime: string; latitude: number; longitude: number; timezoneOffset: number; timezone?: string };
+type SamplePerson = {
+  name: string; birthDate: string; birthTime: string; latitude: number; longitude: number; timezoneOffset: number; timezone: string;
+};
 
-const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "charts");
-const fixture = (name: string): Fixture => JSON.parse(readFileSync(join(FIXTURES, `${name}.json`), "utf8"));
+const PEOPLE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "sample-people");
+const samplePerson = (id: string): SamplePerson => JSON.parse(readFileSync(join(PEOPLE, `${id}.json`), "utf8"));
 
 async function listening(server: http.Server): Promise<number> {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
@@ -160,9 +163,12 @@ const NO_CREDITS = { available: 0, used: 0, held: 0 };
 const tokenOf = (m: Mail) => decodeURIComponent(/claim\?token=([^\s"&]+)/.exec(m.text)![1]);
 const claimPath = (token: string) => `/invites/${encodeURIComponent(token)}/claim`;
 const previewPath = (token: string) => `/invites/${encodeURIComponent(token)}`;
+const claimUrlOf = (token: string) => `${OUR_PAGE}/claim?token=${encodeURIComponent(token)}`;
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 const creditRow = async (id: string) =>
   (await q("select status, user_id, used_for_report_id from credits where id = $1", [id])).rows[0];
+const creditFor = async (reportId: string) =>
+  (await q("select status, user_id from credits where used_for_report_id = $1", [reportId])).rows;
 
 // A pair's aspect card stores `of: "none"`, as the pair's link schema asks of the model, where the contract's PairLink
 // lists only A and B; with that one field set aside, every report read here is held to the contract.
@@ -217,6 +223,18 @@ async function shares(who: Viewer) {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   return zod.ListSharesResponse.parse(r.body).map((s) => [s.id, s.email, s.readerName, s.state]);
 }
+async function preview(who: Viewer, token: string) {
+  const r = await call(who, "GET", previewPath(token));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  zod.GetInviteResponse.parse(r.body);
+  return r.body;
+}
+async function claim(who: Viewer, token: string) {
+  const r = await call(who, "POST", claimPath(token));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  zod.ClaimInviteResponse.parse(r.body);
+  return r.body;
+}
 
 /** Polls until `done` holds, so a step can wait on work a route finishes after it answers. */
 async function until<T>(what: string, read: () => Promise<T>, done: (value: T) => boolean, ms = 5000): Promise<T> {
@@ -258,19 +276,19 @@ function natalTextFor(chart: Chart): Record<string, unknown> {
   return cannedNatalReplies({ drawn: true, sunSign: sun.sign.toLowerCase(), sunHouse: sun.house, sect });
 }
 
-/** What the birth form posts for the reader's own chart (BirthFormPage). */
-function ownBirth(name: string, f: Fixture) {
+/** What the birth form posts (BirthFormPage): the reader's own chart, or someone she adds. */
+function birthForm(p: SamplePerson, birthPlace: string, isForSelf: boolean) {
   return {
-    name,
-    birthDate: f.birthDate,
-    birthTime: f.birthTime,
+    name: p.name,
+    birthDate: p.birthDate,
+    birthTime: p.birthTime,
     birthTimeWindowMinutes: 0,
-    birthPlace: "London",
-    latitude: f.latitude,
-    longitude: f.longitude,
-    timezoneOffset: f.timezoneOffset,
-    timezone: f.timezone,
-    isForSelf: true,
+    birthPlace,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    timezoneOffset: p.timezoneOffset,
+    timezone: p.timezone,
+    isForSelf,
   };
 }
 
@@ -281,6 +299,13 @@ async function stored(reportId: string) {
     [reportId],
   )).rows[0];
   return { name: row.name as string, birthDate: row.birth_date as string, chart: row.chart_data as Chart, interpretation: row.interpretation as ReportInterpretation };
+}
+
+/** The canned pair speaks of Marie and Oprah; here it speaks of the two it is written for, from their stored reports. */
+async function pairTextFor(lens: "parent_child" | "partners", parent: "A" | "B" | undefined, aReportId: string, bReportId: string) {
+  const [a, b] = await Promise.all([stored(aReportId), stored(bReportId)]);
+  const canned = JSON.stringify(pairReplies(buildPairBrief({ lens, parent, a, b })));
+  return JSON.parse(canned.replaceAll("Marie", a.name.split(" ")[0]).replaceAll("Oprah", b.name.split(" ")[0]));
 }
 
 // Clerk's first sight of an account adds its row with the address Clerk holds (middlewares/auth.ts), so the walk adds it
@@ -312,18 +337,26 @@ async function step(label: string, fn: () => Promise<void>): Promise<void> {
   }
 }
 
-// One browser each, so a reader's session is the same before and after she signs in.
-const ANA_SIGNED_OUT: Viewer = { user: null, session: "s-ana" };
-const ANA: Viewer = { user: "user_ana", session: ANA_SIGNED_OUT.session };
-const ROSA_SIGNED_OUT: Viewer = { user: null, session: "s-rosa" };
-const ROSA: Viewer = { user: "user_rosa", session: ROSA_SIGNED_OUT.session };
-const ANA_EMAIL = "ana@example.com";
-const ROSA_EMAIL = "rosa@example.com";
-const GIFT_NOTE = "Happy birthday, Mum.";
-const ANA_BIRTH = fixture("william");
-const ROSA_BIRTH = fixture("charles");
-const anaChart = chartForProfile({ ...ANA_BIRTH, birthTimeWindowMinutes: 0 });
-const rosaChart = chartForProfile({ ...ROSA_BIRTH, birthTimeWindowMinutes: 0 });
+// One browser each, so a reader's session is the same before and after signing in.
+const MIRA_SIGNED_OUT: Viewer = { user: null, session: "s-mira" };
+const MIRA: Viewer = { user: "user_mira", session: MIRA_SIGNED_OUT.session };
+const IDRIS_SIGNED_OUT: Viewer = { user: null, session: "s-idris" };
+const IDRIS: Viewer = { user: "user_idris", session: IDRIS_SIGNED_OUT.session };
+const TOMAS_SIGNED_OUT: Viewer = { user: null, session: "s-tomas" };
+const TOMAS: Viewer = { user: "user_tomas", session: TOMAS_SIGNED_OUT.session };
+const MIRA_EMAIL = "mira@example.com";
+const IDRIS_EMAIL = "idris@example.com";
+const TOMAS_EMAIL = "tomas@example.com";
+const GIFT_NOTE = "Happy birthday. Love, Mira.";
+// Who each is to Mira on the site: herself, her parent and her partner.
+const MIRA_BIRTH = samplePerson("mira");
+const IDRIS_BIRTH = samplePerson("idris");
+const TOMAS_BIRTH = samplePerson("tomas");
+const miraChart = chartForProfile({ ...MIRA_BIRTH, birthTimeWindowMinutes: 0 });
+const idrisChart = chartForProfile({ ...IDRIS_BIRTH, birthTimeWindowMinutes: 0 });
+const tomasChart = chartForProfile({ ...TOMAS_BIRTH, birthTimeWindowMinutes: 0 });
+// Every report Mira pays for: her own, the gift Idris writes with, her pair with Idris, Tomás's and her pair with Tomás.
+const CREDITS_BOUGHT = 5;
 
 const started = Date.now();
 let setupError: unknown = null;
@@ -332,227 +365,349 @@ try {
     "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger, profile_shares, report_workbooks, generation_failures, timeline_readings, ask_messages cascade",
   );
 
-  let anaProfileId = "";
-  let anaReportId = "";
-  let rosaProfileId = "";
-  let rosaReportId = "";
+  let miraProfileId = "";
+  let miraReportId = "";
+  let idrisProfileId = "";
+  let idrisReportId = "";
   let giftId = "";
   let giftCreditId = "";
   let giftToken = "";
-  let pairId = "";
+  let idrisPairId = "";
+  let tomasProfileId = "";
+  let tomasReportId = "";
+  let tomasPairId = "";
+  let tomasPairRelationshipId = "";
+  let reportToken = "";
+  let pairToken = "";
 
-  await step("Ana arrives signed out, then signs in to an empty account", async () => {
-    assert.deepEqual(await readHome(ANA_SIGNED_OUT), EMPTY_HOME);
-    assert.deepEqual(await credits(ANA_SIGNED_OUT), NO_CREDITS);
-    const buy = await call(ANA_SIGNED_OUT, "POST", "/checkout/test", { count: 3 });
+  await step("Mira arrives signed out, then signs in to an empty account", async () => {
+    assert.deepEqual(await readHome(MIRA_SIGNED_OUT), EMPTY_HOME);
+    assert.deepEqual(await credits(MIRA_SIGNED_OUT), NO_CREDITS);
+    const buy = await call(MIRA_SIGNED_OUT, "POST", "/checkout/test", { count: CREDITS_BOUGHT });
     assert.deepEqual([buy.status, buy.body.error], [401, "unauthorized"]);
-    assert.equal((await call(ANA_SIGNED_OUT, "GET", "/timeline/access")).status, 401);
+    assert.equal((await call(MIRA_SIGNED_OUT, "GET", "/timeline/access")).status, 401);
     // The sky screen keeps her birth data in the browser until she signs in, and the birth form needs an account
     // (ADR-140), so a signed-out visit leaves nothing in the API for her account to claim.
-    const kept = await q("select (select count(*) from profiles where session_id = $1) + (select count(*) from reports where session_id = $1) as n", [ANA.session]);
+    const kept = await q("select (select count(*) from profiles where session_id = $1) + (select count(*) from reports where session_id = $1) as n", [MIRA.session]);
     assert.equal(Number(kept.rows[0].n), 0);
 
-    await signIn(ANA, ANA_EMAIL);
-    assert.deepEqual(await readHome(ANA), EMPTY_HOME);
-    assert.deepEqual(await credits(ANA), NO_CREDITS);
-    assert.deepEqual((await call(ANA, "GET", "/profiles")).body, []);
-    assert.equal((await listReports(ANA)).size, 0);
+    await signIn(MIRA, MIRA_EMAIL);
+    assert.deepEqual(await readHome(MIRA), EMPTY_HOME);
+    assert.deepEqual(await credits(MIRA), NO_CREDITS);
+    assert.deepEqual((await call(MIRA, "GET", "/profiles")).body, []);
+    assert.equal((await listReports(MIRA)).size, 0);
   });
 
-  await step("Ana buys 3 test credits and her balance shows them", async () => {
-    const bought = await call(ANA, "POST", "/checkout/test", { count: 3 });
+  await step(`Mira buys ${CREDITS_BOUGHT} test credits, one for each report she pays for, and her balance shows them`, async () => {
+    const bought = await call(MIRA, "POST", "/checkout/test", { count: CREDITS_BOUGHT });
     assert.equal(bought.status, 201, JSON.stringify(bought.body));
     const balance = zod.TestCheckoutResponse.parse(bought.body);
-    assert.deepEqual([balance.available, balance.used, balance.held, balance.lastBundle?.count], [3, 0, 0, 3]);
-    assert.deepEqual(await credits(ANA), { available: 3, used: 0, held: 0 });
-    const rows = (await q("select count(*)::int as n, count(*) filter (where is_test)::int as test from credits where user_id = $1", [ANA.user])).rows[0];
-    assert.deepEqual(rows, { n: 3, test: 3 });
-    assert.deepEqual(await history(ANA), [["bought", 3, "3 test credits"]]);
+    assert.deepEqual([balance.available, balance.used, balance.held, balance.lastBundle?.count], [CREDITS_BOUGHT, 0, 0, CREDITS_BOUGHT]);
+    assert.deepEqual(await credits(MIRA), { available: CREDITS_BOUGHT, used: 0, held: 0 });
+    const rows = (await q("select count(*)::int as n, count(*) filter (where is_test)::int as test from credits where user_id = $1", [MIRA.user])).rows[0];
+    assert.deepEqual(rows, { n: CREDITS_BOUGHT, test: CREDITS_BOUGHT });
+    assert.deepEqual(await history(MIRA), [["bought", CREDITS_BOUGHT, `${CREDITS_BOUGHT} test credits`]]);
   });
 
-  await step("Ana writes her Personal report and reads it; one credit is spent", async () => {
-    replies = natalTextFor(anaChart);
-    const made = await call(ANA, "POST", "/reports", ownBirth("Ana", ANA_BIRTH));
+  await step("Mira writes her Personal report and reads it; one credit is spent", async () => {
+    replies = natalTextFor(miraChart);
+    const made = await call(MIRA, "POST", "/reports", birthForm(MIRA_BIRTH, "Lisbon", true));
     assert.equal(made.status, 201, JSON.stringify(made.body));
     zod.CreateReportResponse.parse(made.body);
-    const sun = anaChart.planets.sun;
-    assert.deepEqual([made.body.status, made.body.sunSign, made.body.risingSign], ["interpreting", sun.sign, anaChart.angles!.ascendant.sign]);
-    anaReportId = made.body.id;
-    await written(ANA, anaReportId);
+    const sun = miraChart.planets.sun;
+    assert.deepEqual([made.body.status, made.body.sunSign, made.body.risingSign], ["interpreting", sun.sign, miraChart.angles!.ascendant.sign]);
+    miraReportId = made.body.id;
+    await written(MIRA, miraReportId);
 
-    const read = await readReport(ANA, anaReportId);
+    const read = await readReport(MIRA, miraReportId);
     assert.deepEqual([read.access, read.type, read.status, read.send, read.giverName], ["owner", "natal", "complete", null, null]);
-    anaProfileId = read.profileId;
+    miraProfileId = read.profileId;
     assert.deepEqual([read.chartData.planets.sun.sign, read.chartData.planets.sun.degree], [sun.sign, sun.degree]);
     assert.deepEqual([read.interpretation.meta.promptVersion, read.interpretation.meta.horizon], [PROMPT_VERSION, "known"]);
     // The evidence under a claim is drawn from the chart in code, never from the model's words.
     assert.equal(read.interpretation.triad.claims[0].evidence[0].label, `Sun ${sun.degree.toFixed(1)}° ${sun.sign}, ${ordinal(sun.house!)} house`);
     assert.deepEqual(unanswered, []);
 
-    const home = await readHome(ANA);
-    assert.deepEqual([home.you?.profileId, home.you?.reportId, home.you?.access, home.you?.isSelf], [anaProfileId, anaReportId, "owner", true]);
+    const home = await readHome(MIRA);
+    assert.deepEqual([home.you?.profileId, home.you?.reportId, home.you?.access, home.you?.isSelf], [miraProfileId, miraReportId, "owner", true]);
     assert.deepEqual(home.you?.triad?.sun, { sign: sun.sign, degree: sun.degree, house: sun.house });
 
     // MB-49 provisional: the soft pass spends the credit after POST answers and refuses no one, so the step waits for
     // the ledger and reads what it wrote; nothing here proves a report needs a credit.
-    assert.deepEqual(await until("Ana's credit is spent", () => credits(ANA), (c) => c.used === 1), { available: 2, used: 1, held: 0 });
-    assert.deepEqual((await q("select used_for_report_id from credits where user_id = $1 and status = 'used'", [ANA.user])).rows, [{ used_for_report_id: anaReportId }]);
-    assert.deepEqual(await history(ANA), [["spent", 1, "Ana"], ["bought", 3, "3 test credits"]]);
+    assert.deepEqual(await until("Mira's credit is spent", () => credits(MIRA), (c) => c.used === 1), { available: 4, used: 1, held: 0 });
+    assert.deepEqual(await creditFor(miraReportId), [{ status: "used", user_id: MIRA.user }]);
+    assert.deepEqual(await history(MIRA), [["spent", 1, "Mira Costa"], ["bought", 5, "5 test credits"]]);
   });
 
-  await step("Ana gifts a report to her mother Rosa; the email goes out and one credit is held", async () => {
-    const sent = await call(ANA, "POST", "/gifts", { recipientName: "Rosa", email: ROSA_EMAIL, note: GIFT_NOTE });
+  await step("Mira gifts a report to her parent Idris; the email goes out and one credit is held", async () => {
+    const mailsBefore = mails.length;
+    const sent = await call(MIRA, "POST", "/gifts", { recipientName: "Idris", email: IDRIS_EMAIL, note: GIFT_NOTE });
     assert.equal(sent.status, 201, JSON.stringify(sent.body));
     zod.CreateGiftResponse.parse(sent.body);
     assert.deepEqual([sent.body.state, sent.body.creditHeld, sent.body.emailDelivered], ["waiting", true, true]);
     giftId = sent.body.id;
 
     const mail = mails.at(-1)!;
-    assert.deepEqual([mails.length, mail.to, mail.subject], [1, ROSA_EMAIL, "Ana gave you a Personal report"]);
+    assert.deepEqual([mails.length - mailsBefore, mail.to, mail.subject], [1, IDRIS_EMAIL, "Mira gave you a Personal report"]);
     assert.ok(mail.text.includes(GIFT_NOTE), `the gift email lacks the note: ${mail.text}`);
     onOurWeb(mail);
     giftToken = tokenOf(mail);
-    assert.equal(sent.body.claimUrl, `${OUR_PAGE}/claim?token=${encodeURIComponent(giftToken)}`);
+    assert.equal(sent.body.claimUrl, claimUrlOf(giftToken));
 
     giftCreditId = (await q("select credit_id from invite_tokens where id = $1", [giftId])).rows[0].credit_id;
-    assert.deepEqual(await creditRow(giftCreditId), { status: "held", user_id: ANA.user, used_for_report_id: null });
-    assert.deepEqual(await credits(ANA), { available: 1, used: 1, held: 1 });
-    assert.deepEqual(await gifts(ANA), [[giftId, "Rosa", ROSA_EMAIL, "waiting", true]]);
+    assert.deepEqual(await creditRow(giftCreditId), { status: "held", user_id: MIRA.user, used_for_report_id: null });
+    assert.deepEqual(await credits(MIRA), { available: 3, used: 1, held: 1 });
+    assert.deepEqual(await gifts(MIRA), [[giftId, "Idris", IDRIS_EMAIL, "waiting", true]]);
   });
 
-  await step("Rosa signs up and claims the gift from her email; the credit moves to her", async () => {
-    const preview = await call(ROSA_SIGNED_OUT, "GET", previewPath(giftToken));
-    assert.equal(preview.status, 200, JSON.stringify(preview.body));
-    zod.GetInviteResponse.parse(preview.body);
-    assert.deepEqual(
-      [preview.body.kind, preview.body.inviterName, preview.body.recipientName, preview.body.note, preview.body.alreadyClaimed],
-      ["gift", "Ana", "Rosa", GIFT_NOTE, false],
-    );
-    assert.equal((await call(ROSA_SIGNED_OUT, "POST", claimPath(giftToken))).status, 401);
+  await step("Idris signs up and claims the gift from the email; the credit moves to Idris", async () => {
+    const opened = await preview(IDRIS_SIGNED_OUT, giftToken);
+    assert.deepEqual([opened.kind, opened.inviterName, opened.recipientName, opened.note, opened.alreadyClaimed], ["gift", "Mira", "Idris", GIFT_NOTE, false]);
+    assert.equal((await call(IDRIS_SIGNED_OUT, "POST", claimPath(giftToken))).status, 401);
 
-    await signIn(ROSA, ROSA_EMAIL);
-    const claim = await call(ROSA, "POST", claimPath(giftToken));
-    assert.equal(claim.status, 200, JSON.stringify(claim.body));
-    zod.ClaimInviteResponse.parse(claim.body);
-    assert.deepEqual([claim.body.kind, claim.body.redirectTo], ["gift", "/dashboard"]);
+    await signIn(IDRIS, IDRIS_EMAIL);
+    const claimed = await claim(IDRIS, giftToken);
+    assert.deepEqual([claimed.kind, claimed.redirectTo], ["gift", "/dashboard"]);
 
-    assert.deepEqual(await creditRow(giftCreditId), { status: "available", user_id: ROSA.user, used_for_report_id: null });
-    assert.deepEqual(await credits(ROSA), { available: 1, used: 0, held: 0 });
-    assert.deepEqual(await history(ROSA), [["gift", 1, "A gift from Ana"]]);
-    assert.deepEqual(await credits(ANA), { available: 1, used: 1, held: 0 });
-    assert.deepEqual(await gifts(ANA), [[giftId, "Rosa", ROSA_EMAIL, "claimed", false]]);
-    assert.deepEqual(await history(ANA), [["spent", 1, "Gift to Rosa"], ["spent", 1, "Ana"], ["bought", 3, "3 test credits"]]);
+    assert.deepEqual(await creditRow(giftCreditId), { status: "available", user_id: IDRIS.user, used_for_report_id: null });
+    assert.deepEqual(await credits(IDRIS), { available: 1, used: 0, held: 0 });
+    assert.deepEqual(await history(IDRIS), [["gift", 1, "A gift from Mira"]]);
+    assert.deepEqual(await credits(MIRA), { available: 3, used: 1, held: 0 });
+    assert.deepEqual(await gifts(MIRA), [[giftId, "Idris", IDRIS_EMAIL, "claimed", false]]);
+    assert.deepEqual(await history(MIRA), [["spent", 1, "Gift to Idris"], ["spent", 1, "Mira Costa"], ["bought", 5, "5 test credits"]]);
   });
 
-  await step("Rosa writes her Personal report with the gifted credit", async () => {
-    replies = natalTextFor(rosaChart);
-    const made = await call(ROSA, "POST", "/reports", ownBirth("Rosa", ROSA_BIRTH));
+  await step("Idris writes a Personal report with the gifted credit", async () => {
+    replies = natalTextFor(idrisChart);
+    const made = await call(IDRIS, "POST", "/reports", birthForm(IDRIS_BIRTH, "Cardiff", true));
     assert.equal(made.status, 201, JSON.stringify(made.body));
     zod.CreateReportResponse.parse(made.body);
-    rosaReportId = made.body.id;
-    await written(ROSA, rosaReportId);
+    idrisReportId = made.body.id;
+    await written(IDRIS, idrisReportId);
 
-    const read = await readReport(ROSA, rosaReportId);
-    const sun = rosaChart.planets.sun;
+    const read = await readReport(IDRIS, idrisReportId);
+    const sun = idrisChart.planets.sun;
     assert.deepEqual([read.access, read.status, read.chartData.planets.sun.sign, read.chartData.planets.sun.degree], ["owner", "complete", sun.sign, sun.degree]);
-    rosaProfileId = read.profileId;
+    idrisProfileId = read.profileId;
     assert.deepEqual(unanswered, []);
-    assert.deepEqual((await readHome(ROSA)).you?.reportId, rosaReportId);
+    assert.deepEqual((await readHome(IDRIS)).you?.reportId, idrisReportId);
 
-    // MB-49 provisional: as for Ana's, the soft pass's record of the spend.
-    assert.deepEqual(await until("Rosa's gifted credit is spent", () => credits(ROSA), (c) => c.used === 1), { available: 0, used: 1, held: 0 });
-    assert.deepEqual(await creditRow(giftCreditId), { status: "used", user_id: ROSA.user, used_for_report_id: rosaReportId });
-    assert.deepEqual(await history(ROSA), [["spent", 1, "Rosa"], ["gift", 1, "A gift from Ana"]]);
+    // MB-49 provisional: as for Mira's, the soft pass's record of the spend.
+    assert.deepEqual(await until("Idris's gifted credit is spent", () => credits(IDRIS), (c) => c.used === 1), { available: 0, used: 1, held: 0 });
+    assert.deepEqual(await creditRow(giftCreditId), { status: "used", user_id: IDRIS.user, used_for_report_id: idrisReportId });
+    assert.deepEqual(await history(IDRIS), [["spent", 1, "Idris Costa"], ["gift", 1, "A gift from Mira"]]);
   });
 
-  await step("Ana shares her report with Rosa, and Rosa reads it from the email's link", async () => {
-    assert.equal((await call(ROSA, "GET", `/reports/${anaReportId}`)).status, 404);
-    const shared = await call(ANA, "POST", "/shares", { email: ROSA_EMAIL });
+  await step("Mira shares her report with Idris, and Idris reads it from the email's link", async () => {
+    assert.equal((await call(IDRIS, "GET", `/reports/${miraReportId}`)).status, 404);
+    const mailsBefore = mails.length;
+    const shared = await call(MIRA, "POST", "/shares", { email: IDRIS_EMAIL });
     assert.equal(shared.status, 201, JSON.stringify(shared.body));
     zod.ShareMyReportResponse.parse(shared.body);
-    assert.deepEqual([shared.body.email, shared.body.emailDelivered], [ROSA_EMAIL, true]);
+    assert.deepEqual([shared.body.email, shared.body.emailDelivered], [IDRIS_EMAIL, true]);
     const mail = mails.at(-1)!;
-    assert.deepEqual([mails.length, mail.to, mail.subject], [2, ROSA_EMAIL, "Ana shared their Personal report with you"]);
+    assert.deepEqual([mails.length - mailsBefore, mail.to, mail.subject], [1, IDRIS_EMAIL, "Mira shared their Personal report with you"]);
     onOurWeb(mail);
     const token = tokenOf(mail);
 
-    const preview = await call(ROSA, "GET", previewPath(token));
-    assert.deepEqual([preview.status, preview.body.kind, preview.body.inviterName], [200, "share", "Ana"]);
-    const claim = await call(ROSA, "POST", claimPath(token));
-    assert.equal(claim.status, 200, JSON.stringify(claim.body));
-    zod.ClaimInviteResponse.parse(claim.body);
-    assert.deepEqual(claim.body, {
-      profileId: anaProfileId, relationshipId: null, relationshipReportId: null, redirectTo: "/dashboard", kind: "share", askSelf: false, shareBack: true,
+    const opened = await preview(IDRIS, token);
+    assert.deepEqual([opened.kind, opened.inviterName], ["share", "Mira"]);
+    assert.deepEqual(await claim(IDRIS, token), {
+      profileId: miraProfileId, relationshipId: null, relationshipReportId: null, redirectTo: "/dashboard", kind: "share", askSelf: false, shareBack: true,
     });
 
-    const read = await readReport(ROSA, anaReportId);
-    assert.deepEqual([read.access, read.giverName, read.canRegenerate, read.send], ["shared", "Ana", false, null]);
-    assert.deepEqual(read.interpretation, (await readReport(ANA, anaReportId)).interpretation, "the text Rosa reads is not the text Ana reads");
-    const home = await readHome(ROSA);
-    assert.deepEqual(home.people.map((p) => [p.profileId, p.reportId, p.access, p.shareBack]), [[anaProfileId, anaReportId, "shared", true]]);
-    assert.deepEqual((await shares(ANA)).map((s) => s.slice(1)), [[ROSA_EMAIL, "Rosa", "active"]]);
+    const read = await readReport(IDRIS, miraReportId);
+    assert.deepEqual([read.access, read.giverName, read.canRegenerate, read.send], ["shared", "Mira", false, null]);
+    assert.deepEqual(read.interpretation, (await readReport(MIRA, miraReportId)).interpretation, "the text Idris reads is not the text Mira reads");
+    const home = await readHome(IDRIS);
+    assert.deepEqual(home.people.map((p) => [p.profileId, p.reportId, p.access, p.shareBack]), [[miraProfileId, miraReportId, "shared", true]]);
+    assert.deepEqual((await shares(MIRA)).map((s) => s.slice(1)), [[IDRIS_EMAIL, "Idris", "active"]]);
   });
 
-  await step("Rosa shares hers back, and Ana reads it", async () => {
-    assert.equal((await call(ANA, "GET", `/reports/${rosaReportId}`)).status, 404);
-    const back = await call(ROSA, "POST", "/shares/back", { profileId: anaProfileId });
+  await step("Idris shares back, and Mira reads Idris's report", async () => {
+    assert.equal((await call(MIRA, "GET", `/reports/${idrisReportId}`)).status, 404);
+    const mailsBefore = mails.length;
+    const back = await call(IDRIS, "POST", "/shares/back", { profileId: miraProfileId });
     assert.equal(back.status, 201, JSON.stringify(back.body));
     zod.ShareBackResponse.parse(back.body);
-    assert.deepEqual([back.body.email, back.body.readerName, back.body.state], ["", "Ana", "active"]);
-    assert.equal(mails.length, 2);
+    assert.deepEqual([back.body.email, back.body.readerName, back.body.state], ["", "Mira", "active"]);
+    assert.equal(mails.length, mailsBefore);
 
-    const read = await readReport(ANA, rosaReportId);
-    assert.deepEqual([read.access, read.giverName, read.canRegenerate], ["shared", "Rosa", false]);
-    assert.deepEqual((await readHome(ANA)).people.map((p) => [p.profileId, p.reportId, p.access, p.shareBack]), [[rosaProfileId, rosaReportId, "shared", false]]);
-    assert.deepEqual((await readHome(ROSA)).people.map((p) => [p.profileId, p.shareBack]), [[anaProfileId, false]]);
+    const read = await readReport(MIRA, idrisReportId);
+    assert.deepEqual([read.access, read.giverName, read.canRegenerate], ["shared", "Idris", false]);
+    assert.deepEqual((await readHome(MIRA)).people.map((p) => [p.profileId, p.reportId, p.access, p.shareBack]), [[idrisProfileId, idrisReportId, "shared", false]]);
+    assert.deepEqual((await readHome(IDRIS)).people.map((p) => [p.profileId, p.shareBack]), [[miraProfileId, false]]);
   });
 
-  await step("Ana writes a parent and child report for the two of them, and it completes", async () => {
+  await step("Mira writes a parent and child report for herself and Idris, and it completes", async () => {
     const lens = "parent_child" as const;
-    const [a, b] = await Promise.all([stored(anaReportId), stored(rosaReportId)]);
-    // The canned pair speaks of Marie and Oprah; here it speaks of these two.
-    const canned = JSON.stringify(pairReplies(buildPairBrief({ lens, parent: "B", a, b })));
-    replies = JSON.parse(canned.replaceAll("Marie", "Ana").replaceAll("Oprah", "Rosa"));
-    const made = await call(ANA, "POST", "/compatibility", { reportAId: anaReportId, reportBId: rosaReportId, lens, parent: "B" });
+    replies = await pairTextFor(lens, "B", miraReportId, idrisReportId);
+    const made = await call(MIRA, "POST", "/compatibility", { reportAId: miraReportId, reportBId: idrisReportId, lens, parent: "B" });
     assert.equal(made.status, 201, JSON.stringify(made.body));
     zod.CreateCompatibilityReportResponse.parse(made.body);
-    pairId = made.body.id;
-    await written(ANA, pairId);
+    idrisPairId = made.body.id;
+    await written(MIRA, idrisPairId);
 
-    const read = await readReport(ANA, pairId);
+    const read = await readReport(MIRA, idrisPairId);
     assert.deepEqual([read.access, read.type, read.lens, read.status], ["owner", "compatibility", lens, "complete"]);
     assert.deepEqual(
       read.participants.map((p: any) => [p.name, p.role, p.reportId, p.isSelf]),
-      [["Ana", "child", anaReportId, true], ["Rosa", "parent", rosaReportId, false]],
+      [["Mira Costa", "child", miraReportId, true], ["Idris Costa", "parent", idrisReportId, false]],
     );
     const meta = read.interpretation.meta;
-    assert.deepEqual([meta.promptVersion, meta.lens, meta.band, meta.names, meta.blind], [PAIR_PROMPT_VERSION, lens, "grown", { a: "Ana", b: "Rosa" }, false]);
+    assert.deepEqual(
+      [meta.promptVersion, meta.lens, meta.band, meta.names, meta.blind],
+      [PAIR_PROMPT_VERSION, lens, "grown", { a: "Mira Costa", b: "Idris Costa" }, false],
+    );
     assert.deepEqual(unanswered, []);
-    const pair = (await readHome(ANA)).pairs.find((p) => p.reportId === pairId);
-    assert.deepEqual([pair?.lens, pair?.status, pair?.stoppedBy, pair?.a.name, pair?.b.name], [lens, "complete", null, "Ana", "Rosa"]);
+    const pair = (await readHome(MIRA)).pairs.find((p) => p.reportId === idrisPairId);
+    assert.deepEqual([pair?.lens, pair?.status, pair?.stoppedBy, pair?.a.name, pair?.b.name], [lens, "complete", null, "Mira Costa", "Idris Costa"]);
 
     // MB-49 provisional: one credit is one report, the pair too (ADR-42), recorded by the soft pass.
-    assert.deepEqual(await until("Ana's last credit is spent", () => credits(ANA), (c) => c.used === 2), { available: 0, used: 2, held: 0 });
-    assert.deepEqual((await history(ANA))[0], ["spent", 1, "Ana & Rosa"]);
+    assert.deepEqual(await until("Mira's pair credit is spent", () => credits(MIRA), (c) => c.used === 2), { available: 2, used: 2, held: 0 });
+    assert.deepEqual(await creditFor(idrisPairId), [{ status: "used", user_id: MIRA.user }]);
+    assert.deepEqual((await history(MIRA))[0], ["spent", 1, "Mira Costa & Idris Costa"]);
   });
 
-  // MB-223 provisional: the Owner's flow sends the pair to Rosa here, and she claims it and reads it. Today a pair made on a chart only
-  // shared with its maker offers no Send, since a send would claim the sharer's chart from her (ADR-235, which the
-  // sharing walk proves), so this step proves the refusal. It becomes the send and the claim once that rule changes.
-  await step("Ana tries to send the pair to Rosa: refused today, since Rosa's chart is only shared with Ana (ADR-235)", async () => {
-    assert.equal((await listReports(ANA)).get(pairId).send, null);
-    const sent = await call(ANA, "POST", `/compatibility/${pairId}/send`, { email: ROSA_EMAIL });
+  // MB-223 provisional: the Owner's flow sends the pair to Idris here, and Idris claims it and reads it. Today a pair
+  // made on a chart only shared with its maker offers no Send, since a send would claim the sharer's chart from its
+  // holder (ADR-235, which the sharing walk proves), so this step proves the refusal. It becomes the send and the claim
+  // once that rule changes.
+  await step("Mira can't yet share the pair report with Idris (MB-223)", async () => {
+    assert.equal((await listReports(MIRA)).get(idrisPairId).send, null);
+    const mailsBefore = mails.length;
+    const sent = await call(MIRA, "POST", `/compatibility/${idrisPairId}/send`, { email: IDRIS_EMAIL });
     assert.deepEqual([sent.status, sent.body.error], [403, "forbidden"], JSON.stringify(sent.body));
-    assert.equal(mails.length, 2);
-    assert.equal((await call(ROSA, "GET", `/reports/${pairId}`)).status, 404);
-    assert.equal((await call(ROSA, "GET", `/compatibility/${pairId}/summary`)).status, 404);
-    assert.ok(!(await listReports(ROSA)).has(pairId));
-    assert.deepEqual((await readHome(ROSA)).pairs, []);
+    assert.equal(mails.length, mailsBefore);
+    assert.equal((await call(IDRIS, "GET", `/reports/${idrisPairId}`)).status, 404);
+    assert.equal((await call(IDRIS, "GET", `/compatibility/${idrisPairId}/summary`)).status, 404);
+    assert.ok(!(await listReports(IDRIS)).has(idrisPairId));
+    assert.deepEqual((await readHome(IDRIS)).pairs, []);
+  });
+
+  await step("Mira writes her partner Tomás's Personal report on her own credit", async () => {
+    replies = natalTextFor(tomasChart);
+    const made = await call(MIRA, "POST", "/reports", birthForm(TOMAS_BIRTH, "Madrid", false));
+    assert.equal(made.status, 201, JSON.stringify(made.body));
+    zod.CreateReportResponse.parse(made.body);
+    const sun = tomasChart.planets.sun;
+    assert.deepEqual([made.body.status, made.body.sunSign, made.body.risingSign], ["interpreting", sun.sign, tomasChart.angles!.ascendant.sign]);
+    tomasReportId = made.body.id;
+    await written(MIRA, tomasReportId);
+
+    const read = await readReport(MIRA, tomasReportId);
+    tomasProfileId = read.profileId;
+    assert.deepEqual([read.access, read.status, read.chartData.planets.sun.sign, read.chartData.planets.sun.degree], ["owner", "complete", sun.sign, sun.degree]);
+    assert.deepEqual(read.send, { state: "can_send", profileId: tomasProfileId, relationshipId: null, firstName: "Tomás" });
+    assert.deepEqual(unanswered, []);
+    const profiles = zod.ListProfilesResponse.parse((await call(MIRA, "GET", "/profiles")).body);
+    const tomas = profiles.find((p) => p.id === tomasProfileId);
+    assert.deepEqual([tomas?.name, tomas?.ownership, tomas?.isSelf], ["Tomás Reyes", "owner", false]);
+    const seat = (await readHome(MIRA)).people.find((p) => p.profileId === tomasProfileId);
+    assert.deepEqual([seat?.reportId, seat?.access, seat?.isSelf], [tomasReportId, "owner", false]);
+
+    // MB-49 provisional: Tomás's report is paid from Mira's balance.
+    assert.deepEqual(await until("Mira's credit for Tomás is spent", () => credits(MIRA), (c) => c.used === 3), { available: 1, used: 3, held: 0 });
+    assert.deepEqual(await creditFor(tomasReportId), [{ status: "used", user_id: MIRA.user }]);
+    assert.deepEqual((await history(MIRA))[0], ["spent", 1, "Tomás Reyes"]);
+  });
+
+  await step("Mira writes a partners report for herself and Tomás, and it completes", async () => {
+    const lens = "partners" as const;
+    replies = await pairTextFor(lens, undefined, miraReportId, tomasReportId);
+    const made = await call(MIRA, "POST", "/compatibility", { reportAId: miraReportId, reportBId: tomasReportId, lens });
+    assert.equal(made.status, 201, JSON.stringify(made.body));
+    zod.CreateCompatibilityReportResponse.parse(made.body);
+    tomasPairId = made.body.id;
+    tomasPairRelationshipId = made.body.relationshipId;
+    await written(MIRA, tomasPairId);
+
+    const read = await readReport(MIRA, tomasPairId);
+    assert.deepEqual([read.access, read.type, read.lens, read.status], ["owner", "compatibility", lens, "complete"]);
+    assert.deepEqual(
+      read.participants.map((p: any) => [p.name, p.role, p.reportId, p.isSelf]),
+      [["Mira Costa", "primary", miraReportId, true], ["Tomás Reyes", "secondary", tomasReportId, false]],
+    );
+    const meta = read.interpretation.meta;
+    assert.deepEqual(
+      [meta.promptVersion, meta.lens, meta.band, meta.names, meta.blind],
+      [PAIR_PROMPT_VERSION, lens, null, { a: "Mira Costa", b: "Tomás Reyes" }, false],
+    );
+    assert.deepEqual(read.send, { state: "can_send", profileId: tomasProfileId, relationshipId: tomasPairRelationshipId, firstName: "Tomás" });
+    assert.deepEqual(unanswered, []);
+
+    // MB-49 provisional: the last of the credits she bought.
+    assert.deepEqual(await until("Mira's last credit is spent", () => credits(MIRA), (c) => c.used === 4), { available: 0, used: 4, held: 0 });
+    assert.deepEqual(await creditFor(tomasPairId), [{ status: "used", user_id: MIRA.user }]);
+    assert.deepEqual(await history(MIRA), [
+      ["spent", 1, "Mira Costa & Tomás Reyes"], ["spent", 1, "Tomás Reyes"], ["spent", 1, "Mira Costa & Idris Costa"],
+      ["spent", 1, "Gift to Idris"], ["spent", 1, "Mira Costa"], ["bought", 5, "5 test credits"],
+    ]);
+  });
+
+  await step("Mira sends both reports to Tomás, the Personal report and the partners report; two emails go out", async () => {
+    const mailsBefore = mails.length;
+    const sentReport = await call(MIRA, "POST", "/invites", { profileId: tomasProfileId, email: TOMAS_EMAIL });
+    assert.equal(sentReport.status, 201, JSON.stringify(sentReport.body));
+    zod.CreateInviteResponse.parse(sentReport.body);
+    assert.deepEqual([sentReport.body.profileId, sentReport.body.relationshipId, sentReport.body.emailDelivered], [tomasProfileId, null, true]);
+    const reportMail = mails.at(-1)!;
+    assert.deepEqual([reportMail.to, reportMail.subject], [TOMAS_EMAIL, "Mira shared your report with you"]);
+    onOurWeb(reportMail);
+    reportToken = tokenOf(reportMail);
+    assert.equal(sentReport.body.claimUrl, claimUrlOf(reportToken));
+
+    const sentPair = await call(MIRA, "POST", `/compatibility/${tomasPairId}/send`, { email: TOMAS_EMAIL });
+    assert.equal(sentPair.status, 201, JSON.stringify(sentPair.body));
+    zod.SendCompatibilityResponse.parse(sentPair.body);
+    const invite = sentPair.body.invite;
+    assert.deepEqual([sentPair.body.state, invite?.profileId, invite?.relationshipId, invite?.emailDelivered], ["invited", tomasProfileId, tomasPairRelationshipId, true]);
+    const pairMail = mails.at(-1)!;
+    assert.deepEqual([pairMail.to, pairMail.subject], [TOMAS_EMAIL, "Mira shared a Compatibility report with you"]);
+    assert.ok(pairMail.text.includes("Mira & Tomás"), `the pair email does not name the two: ${pairMail.text}`);
+    onOurWeb(pairMail);
+    pairToken = tokenOf(pairMail);
+    assert.equal(invite?.claimUrl, claimUrlOf(pairToken));
+    assert.equal(mails.length - mailsBefore, 2);
+
+    const listed = await listReports(MIRA);
+    assert.deepEqual([listed.get(tomasReportId).send.state, listed.get(tomasPairId).send.state], ["sent", "sent"]);
+  });
+
+  await step("Tomás signs up, claims both reports from the emails, and reads them", async () => {
+    const reportLink = await preview(TOMAS_SIGNED_OUT, reportToken);
+    assert.deepEqual([reportLink.kind, reportLink.inviterName, reportLink.profileName, reportLink.relationshipId], ["send", "Mira", "Tomás Reyes", null]);
+    const pairLink = await preview(TOMAS_SIGNED_OUT, pairToken);
+    assert.deepEqual([pairLink.kind, pairLink.inviterName, pairLink.relationshipId, pairLink.relationshipReportId], ["send", "Mira", tomasPairRelationshipId, tomasPairId]);
+    assert.equal((await call(TOMAS_SIGNED_OUT, "POST", claimPath(reportToken))).status, 401);
+
+    await signIn(TOMAS, TOMAS_EMAIL);
+    assert.deepEqual(await claim(TOMAS, reportToken), {
+      profileId: tomasProfileId, relationshipId: null, relationshipReportId: null, redirectTo: `/report/${tomasReportId}`, kind: "send", askSelf: false,
+    });
+    const report = await readReport(TOMAS, tomasReportId);
+    assert.deepEqual([report.access, report.giverName, report.send, report.chartData.planets.sun.sign], ["claimed", "Mira", null, tomasChart.planets.sun.sign]);
+    assert.deepEqual(report.interpretation, (await readReport(MIRA, tomasReportId)).interpretation, "the text Tomás reads is not the text Mira wrote");
+
+    assert.deepEqual(await claim(TOMAS, pairToken), {
+      profileId: tomasProfileId, relationshipId: tomasPairRelationshipId, relationshipReportId: tomasPairId, redirectTo: `/compatibility/${tomasPairId}`, kind: "send", askSelf: false,
+    });
+    const pair = await readReport(TOMAS, tomasPairId);
+    assert.deepEqual([pair.access, pair.giverName, pair.status], ["participant", "Mira", "complete"]);
+    assert.deepEqual(pair.participants.map((p: any) => [p.name, p.isSelf]), [["Mira Costa", false], ["Tomás Reyes", true]]);
+    assert.deepEqual(pair.interpretation, (await readReport(MIRA, tomasPairId)).interpretation, "the pair Tomás reads is not the pair Mira wrote");
+    assert.equal((await call(TOMAS, "GET", `/compatibility/${tomasPairId}/summary`)).status, 200);
+
+    const home = await readHome(TOMAS);
+    assert.deepEqual([home.you?.profileId, home.you?.reportId, home.you?.access, home.you?.isSelf], [tomasProfileId, tomasReportId, "claimed", true]);
+    assert.deepEqual(home.pairs.map((p) => p.reportId), [tomasPairId]);
+    const listed = await listReports(MIRA);
+    assert.deepEqual([listed.get(tomasReportId).send.state, listed.get(tomasPairId).send.state], ["joined", "joined"]);
   });
 
   // MB-197 provisional: replace with the subscription step when billing exists.
-  await step("Timeline stays closed to both: no access, and the teaser on their home", async () => {
-    for (const [who, name] of [[ANA, "Ana"], [ROSA, "Rosa"]] as const) {
+  await step("Timeline stays closed to all three: no access, and the teaser on their home", async () => {
+    for (const [who, name] of [[MIRA, "Mira"], [IDRIS, "Idris"], [TOMAS, "Tomás"]] as const) {
       const access = await call(who, "GET", "/timeline/access");
       assert.equal(access.status, 200, `${name}: ${JSON.stringify(access.body)}`);
       zod.GetTimelineAccessResponse.parse(access.body);

@@ -71,7 +71,7 @@ jobs:
           OPENAI_API_KEY: sk-dummy-walk-never-sent
         run: pnpm run db:bootstrap
 
-      # The Owner's critical flow with two accounts, end to end on that
+      # The Owner's critical flow with the site's sample people, end to end on that
       # database, with no Clerk, no network and no OpenAI (ADR-273).
       - name: Walk the buyer's flow
         timeout-minutes: 5

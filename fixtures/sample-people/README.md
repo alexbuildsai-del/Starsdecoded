@@ -8,6 +8,8 @@ shows them. Each file holds birth data only, in the `../charts/` format plus
 (R-3.1). Who each person is to Mira, and which pair each lens draws, lives in
 `web/src/site/data/people.ts`.
 
-Marketing only: the report lab never reads this directory, so no report is
-ever written about these people. The lab's charts, the published births among
-them included, stay in `../charts/`.
+The report lab never reads this directory, so no real report is written about
+these people. The buyer walk (`api/src/walk/buyer.walk.ts`, ADR-273) and the
+Timeline walk use Mira, Idris and Tomás with stand-in text on a throwaway
+database, so tests and the site share one cast. The lab's charts, the published
+births among them included, stay in `../charts/`.
