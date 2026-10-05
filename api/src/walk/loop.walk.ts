@@ -656,16 +656,19 @@ try {
     };
 
     assert.equal((await regenerate(WRITER_SIGNED_OUT)).status, 409, "unclaimed, the session that wrote it still may");
-    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW", "RW2"), "400 not_ready");
+    // A signed-out browser has no credit to take, so a pair answers it 402 before it reads either report (ADR-275).
+    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW", "RW2"), "402");
 
     // Where a claim leaves the row: the subject's account on it, the writer's account and session untouched.
     await q("update profiles set claimed_by_user_id = $1 where id = 'PW'", [CLAIMER.user]);
     assert.equal((await regenerate(WRITER_SIGNED_OUT)).status, 404);
-    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW", "RW2"), "404");
-    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW2", "RW"), "404");
+    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW", "RW2"), "402");
+    assert.equal(await pairOf(WRITER_SIGNED_OUT, "RW2", "RW"), "402");
     assert.equal((await regenerate(WRITER)).status, 409, "the writer's account is still its owner");
     assert.equal((await regenerate(CLAIMER)).status, 404, "the claimer reads it but does not rewrite it");
+    await grantBundle(CLAIMER.user, "solo", { test: true });
     assert.equal(await pairOf(CLAIMER, "RC", "RW"), "400 not_ready", "any reader picks it");
+    assert.equal((await getCredits(CLAIMER.user)).available, 1, "a pair refused before it is written takes no credit");
   });
 
   let giftPlain = "";
