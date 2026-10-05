@@ -14,8 +14,8 @@ ADR-195). Lines, not a diary: at most 60 lines.
 
 ## The rule
 1. A cause seen in two rounds is promoted at the close of the second: its rule goes into the agent file or skill it belongs to
-   (a builder line such as "run codegen after `openapi.yaml`", a planner tier rule), its line moves to Promoted, and the round
-   report lists it.
+   (a builder line such as "run codegen after `openapi.yaml`"), its line moves to Promoted, and the report lists it. A cause
+   that is a bug in the product also gets a regression test in the critical tier, written by the tester (ADR-273).
 2. **Early.** A cause seen once is promoted at once when its rule is one sentence costing no new step or tool, and a repeat
    would lose or mix work, show a secret or a reader's data, or stop the round; its line says `early`, the report says why.
 3. **Applied.** A cause already fixed another way (a Decisions row, a skill step, an agent file) moves to Promoted with

@@ -1,0 +1,8 @@
+src/components/chart/wheel-geometry.test.ts
+src/lib/house-occupants.test.ts
+src/lib/no-chiron.test.ts
+src/types/chart.test.ts
+src/lib/progress.test.ts
+src/lib/credits-view.test.ts
+src/lib/timeline-access.test.ts
+src/hooks/useClerkStalled.test.ts
