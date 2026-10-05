@@ -1,6 +1,6 @@
 import { PERSONAL_REPORT } from "@/lib/product";
 import { useState, useEffect } from "react";
-import { useLocation, useSearch } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,11 @@ import { BirthTimeControl } from "@/components/BirthTimeControl";
 import { PlaceField } from "@/components/PlaceField";
 import { DEFAULT_ANSWER, toValue, type BirthTimeAnswer } from "@/lib/birth-time";
 import { localDay } from "@/lib/date-entry";
-import { takeFormDraft } from "@/lib/form-draft";
+import { checkoutHref } from "@/lib/checkout-view";
+import { saveFormDraft, takeFormDraft } from "@/lib/form-draft";
 import type { GeocodeResult } from "@/lib/places";
 import { nameRuleLine, isPersonName } from "@/lib/person-name";
-import { refusalLine } from "@/lib/refusals";
+import { isNoCredit, refusalLine } from "@/lib/refusals";
 
 const TIME_ID = "birthTime";
 
@@ -67,11 +68,13 @@ export default function BirthFormPage() {
   const [birthTime, setBirthTime] = useState<BirthTimeAnswer>(DEFAULT_ANSWER);
   const [selectedPlace, setSelectedPlace] = useState<GeocodeResult | null>(null);
 
-  // The sky screen's date, time and place arrive through sign-in once (ADR-140); read after mount, so a
-  // render React throws away cannot use up the draft. The reader still names the chart and submits it.
+  // The sky screen's date, time and place arrive through sign-in once (ADR-140), and the whole form, the name too, comes
+  // back from checkout (reading 2); read after mount, so a render React throws away cannot use up the draft. The reader
+  // still submits it, and a form that kept no name leaves the name field as it is.
   useEffect(() => {
     const draft = takeFormDraft();
     if (!draft) return;
+    if (draft.name) setName(draft.name);
     setBirthDate(draft.birthDate);
     setBirthTime(draft.time);
     setSelectedPlace(draft.place);
@@ -97,24 +100,34 @@ export default function BirthFormPage() {
     e.preventDefault();
     if (!canSubmit || !selectedPlace || !time) return;
 
-    createReport.mutate({
-      data: {
-        name: name.trim(),
-        birthDate,
-        birthTime: time.birthTime,
-        birthTimeWindowMinutes: time.birthTimeWindowMinutes,
-        birthPlace: selectedPlace.name,
-        latitude: selectedPlace.latitude,
-        longitude: selectedPlace.longitude,
-        // The zone's offset at the birth, never the place's today (reading 1); the server works the chart out from the zone.
-        timezoneOffset: offsetAtBirth(selectedPlace.timezone, birthDate, time.birthTime),
-        timezone: selectedPlace.timezone,
-        isForSelf: isSelf,
+    createReport.mutate(
+      {
+        data: {
+          name: name.trim(),
+          birthDate,
+          birthTime: time.birthTime,
+          birthTimeWindowMinutes: time.birthTimeWindowMinutes,
+          birthPlace: selectedPlace.name,
+          latitude: selectedPlace.latitude,
+          longitude: selectedPlace.longitude,
+          // The zone's offset at the birth, never the place's today (reading 1); the server works the chart out from the zone.
+          timezoneOffset: offsetAtBirth(selectedPlace.timezone, birthDate, time.birthTime),
+          timezone: selectedPlace.timezone,
+          isForSelf: isSelf,
+        },
       },
-    });
+      {
+        // With no credit the form keeps what was typed for the trip to checkout, and nothing is written for the
+        // reader, who presses Write themselves when they are back (reading 2).
+        onError: (err) => {
+          if (isNoCredit(err)) saveFormDraft({ name: name.trim(), birthDate, time: birthTime, place: selectedPlace });
+        },
+      },
+    );
   };
 
   const refusal = createReport.isError ? refusalLine(createReport.error) : null;
+  const noCredit = createReport.isError && isNoCredit(createReport.error);
   // The reader's own day, so a birth today is allowed before UTC midnight and after it alike.
   const today = localDay(new Date());
 
@@ -258,7 +271,14 @@ export default function BirthFormPage() {
             {createReport.isError && (
               <div role="alert" className="text-sm text-destructive text-center space-y-1">
                 {refusal ? (
-                  <p>{refusal}</p>
+                  <>
+                    <p>{refusal}</p>
+                    {noCredit && (
+                      <Button asChild variant="outline" className="mt-2 font-label">
+                        <Link href={checkoutHref(null, "/chart")}>Get credits</Link>
+                      </Button>
+                    )}
+                  </>
                 ) : (
                   <>
                     <p>Something went wrong. Please try again.</p>

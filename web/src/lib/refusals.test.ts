@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { openingTime, refusalLine } from "@/lib/refusals";
+import { isNoCredit, openingTime, refusalLine } from "@/lib/refusals";
 
 const HOUR_LINE = "You've started 6 reports in the last hour. You can start the next one within the hour.";
 const DAY_LINE = "We've had 20 reports from your internet connection in the last day. You can start the next one within a day.";
@@ -46,6 +46,18 @@ describe("refusalLine", () => {
     const line = "Sign in to write a report.";
     expect(refusalLine({ status: 401, data: { error: "sign_in_required", message: line } }, NOW)).toBe(line);
     expect(refusalLine({ status: 401, data: { error: "sign_in_required" } }, NOW)).toBeNull();
+  });
+
+  it("shows the no-credit line as given, and isNoCredit tells it apart", () => {
+    const line = "You have no credits left. Get credits to write this report.";
+    const error = { status: 402, data: { error: "no_credit", message: line } };
+    expect(refusalLine(error, NOW)).toBe(line);
+    expect(isNoCredit(error)).toBe(true);
+    expect(refusalLine({ status: 402, data: { error: "no_credit" } }, NOW)).toBeNull();
+    expect(isNoCredit({ status: 402, data: { error: "no_credit" } })).toBe(true);
+    for (const other of [refusal({ error: "rate_limited", message: HOUR_LINE }), { status: 503, data: { error: "paused", message: PAUSED } }, new Error("boom"), null, undefined]) {
+      expect(isNoCredit(other)).toBe(false);
+    }
   });
 
   it("gives null for every other error", () => {

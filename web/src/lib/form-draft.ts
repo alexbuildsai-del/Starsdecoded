@@ -1,9 +1,8 @@
 /**
- * What the sky screen carries to the birth form through sign-in (ADR-140, R11
- * reading 14): the date, the time answer and the place, in the tab's own
- * sessionStorage, deleted as the form reads it. It is birth data, so only these
- * three fields are written, only by the sky screen's Get my report after
- * launch, and it never leaves the browser; the privacy page names the key.
+ * What the birth form keeps through sign-in and through checkout (ADR-140, R11 reading 14; R17 reading 2): the date, the
+ * time answer and the place, and the name when the form itself saves it after a refusal for no credit, in the tab's own
+ * sessionStorage, deleted as the form reads it. It is birth data, so only these four fields are written, only by the sky
+ * screen's Get my report after launch and by the form's own 402, and it never leaves the browser; the privacy page names the key.
  */
 import {
   DEFAULT_ANSWER,
@@ -19,6 +18,8 @@ import { placeZone, type GeocodeResult } from "@/lib/places";
 export const FORM_DRAFT_KEY = "sd.form.draft";
 
 export interface FormDraft {
+  /** Only the birth form writes it; the sky screen has no name to carry. */
+  name?: string;
   birthDate: string;
   time: BirthTimeAnswer;
   place: GeocodeResult | null;
@@ -38,6 +39,7 @@ function sessionStore(): DraftStore | null {
 
 export function saveFormDraft(draft: FormDraft, store: DraftStore | null = sessionStore()): void {
   const kept: FormDraft = { birthDate: draft.birthDate, time: draft.time, place: draft.place };
+  if (typeof draft.name === "string" && draft.name.trim()) kept.name = draft.name;
   try {
     store?.setItem(FORM_DRAFT_KEY, JSON.stringify(kept));
   } catch {
@@ -45,7 +47,7 @@ export function saveFormDraft(draft: FormDraft, store: DraftStore | null = sessi
   }
 }
 
-export function takeFormDraft(store: DraftStore | null = sessionStore()): FormDraft | null {
+export function takeFormDraft(store: DraftStore | null = sessionStore()): TakenDraft | null {
   let raw: string | null;
   try {
     raw = store?.getItem(FORM_DRAFT_KEY) ?? null;
@@ -59,6 +61,11 @@ export function takeFormDraft(store: DraftStore | null = sessionStore()): FormDr
   }
   return parseFormDraft(raw);
 }
+
+/** A draft as the form reads it: the name is there, empty when none was kept. */
+export type TakenDraft = FormDraft & { name: string };
+
+const NAME_LIMIT = 200;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MODES = Object.keys(MODE_LABELS) as BirthTimeMode[];
@@ -107,7 +114,7 @@ function placeOf(value: unknown): GeocodeResult | null {
 }
 
 /** The stored value is whatever the tab last wrote, so each field is checked and a bad one read as the form's empty. */
-export function parseFormDraft(raw: string | null): FormDraft | null {
+export function parseFormDraft(raw: string | null): TakenDraft | null {
   if (raw === null) return null;
   let value: unknown;
   try {
@@ -118,6 +125,7 @@ export function parseFormDraft(raw: string | null): FormDraft | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const v = value as Record<string, unknown>;
   return {
+    name: typeof v.name === "string" ? v.name.slice(0, NAME_LIMIT) : "",
     birthDate: typeof v.birthDate === "string" && isDate(v.birthDate) ? v.birthDate : "",
     time: timeAnswerOf(v.time),
     place: placeOf(v.place),
