@@ -15,9 +15,14 @@ spawned you on it. This file is Opus at max; `builder-sonnet` (high) and
 `builder-haiku` (medium) follow it exactly.
 
 Do the work. Then, on the packages you touched:
-`pnpm run typecheck` and the package's `test` script if it has one. For
+`pnpm run typecheck` and the package's `test` script (the critical tier). For
 `api/src/lib/` or prompt changes, also run the report lab if the card says so.
 If the gate fails, fix what your change broke and run it once more.
+
+Write a test only when your card names one: a step of the buyer flow it
+changes (the walk or a `test.critical` file) or a bug that came back (ADR-266).
+Tests outside `test.critical` are the archive: read one only when your card
+names it or you are tracing a bug in its area.
 
 Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller
 outside your files is named in your report, never left on the old shape (lessons, promoted R14).

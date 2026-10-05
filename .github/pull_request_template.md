@@ -12,7 +12,7 @@
 
 - [ ] `pnpm run typecheck`
 - [ ] `pnpm run build:web` and `pnpm run build:api`
-- [ ] `pnpm -r --filter '!@workspace/e2e' --if-present run test`
+- [ ] `pnpm -r --filter '!@workspace/e2e' --if-present run test` (the critical tier) and the buyer walk, both green in CI
 - [ ] `pnpm check:shipped` (the shipped-code check)
 - [ ] `pnpm audit --prod --audit-level high` and gitleaks over the diff, both green in CI
 - [ ] Report lab run against fixtures (required when `api/src/lib/` or prompts changed) — paste the measurement

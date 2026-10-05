@@ -40,24 +40,21 @@ pnpm run dev:api                      # :8080
 pnpm run dev:web                      # :5173, proxies /api
 pnpm run typecheck                    # the type gate; build does not typecheck
 pnpm run build:web && pnpm run build:api
-pnpm -r --filter '!@workspace/e2e' --if-present run test
+pnpm -r --filter '!@workspace/e2e' --if-present run test   # the critical tier; pnpm test:deep runs the archive
 pnpm --filter @workspace/api-spec run codegen   # after openapi.yaml
 pnpm check:shipped · pnpm --filter @workspace/web run csp:write   # shipped-code check; CSP hashes after JSON-LD
 pnpm run db:bootstrap                 # idempotent; Railway runs it at start
 pnpm report:lab --render|--compare|--dry --base r06   # free: stored runs re-read, every prompt rendered; the levels: /report-lab
 ```
 
-Gate before any pull request: typecheck, both builds, unit tests, `check:shipped`, audit, `db:bootstrap`
-clean when the schema changed, the sentinel, site checks and smoke on the Vercel preview. Never skip or disable a
-check. The lab runs from the admin panel: dry at every brain change, spot and reading on
-demand, full lab plus QA agent in the Release view before production.
+Gate before any pull request: typecheck, both builds, the critical tests and the buyer walk (ADR-266), `check:shipped`, audit,
+`db:bootstrap` clean when the schema changed, the sentinel, site checks and smoke on the Vercel preview. Never skip or disable a
+check. The lab runs from the admin panel: dry at every brain change, spot and reading on demand, the full lab plus QA in Release.
 
 ## Process
 
-`/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock <slug>`
-→ locked spec + Decisions rows · `/plan <slugs>` → parallel-grouped plan, and on
-the Owner's approval `/round RNN` starts at once → branch `round/RNN`, builders,
-gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox` · `/ux-copy` for words, `/web-taste` for pages, `/marketing` for social posts. MASTERFILE §11.
+`/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock <slug>` → locked spec + Decisions rows · `/plan <slugs>`
+→ parallel-grouped plan, and on the Owner's approval `/round RNN` starts at once → branch `round/RNN`, builders, gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox` · `/ux-copy` for words, `/web-taste` for pages, `/marketing` for social posts. MASTERFILE §11.
 
 The Owner tests the website and says yes or no. Everything else is ours:
 merging once the gate is green, watching CI and the Railway and Vercel deploys,
@@ -109,7 +106,9 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   outside the catalogue does not compile. A check blocks only when the text would be wrong
   for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
 - Real chart data only. Fixtures hold birth data; charts are computed at run time. Never fabricate a placement, even in a demo.
-- CI runs typecheck, builds, tests, `check:shipped`, audit and gitleaks; no lint step. Each preview runs Lighthouse, axe and the probe (ADR-192).
+- **Tests guard the buyer's flow** (ADR-266): CI runs typecheck, builds, each package's `test.critical`, the two-account buyer walk,
+  `check:shipped`, audit and gitleaks. Other tests are the archive (`docs/annex/test-archive.md`): kept, not run, read only to
+  research that area. New tests only for a change to the flow, a bug that came back, or a fix the Owner asked for twice. No lint step; each preview runs Lighthouse, axe and the probe (ADR-192).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
 ## Current focus (2026-10-04)

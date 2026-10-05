@@ -40,11 +40,12 @@ redesign it.
      failure, or a question its card, §0 and named files cannot answer, goes
      once more to `builder` (Opus) with its card and its report attached. Any
      other stop, and a stop by the retry itself, is yours (see the Rules).
-   - **Tester (ADR-190).** After each group that changed files in
-     `api/src/lib/`, `packages/*` or `web/src/lib/`, spawn `tester` (Sonnet,
-     high) once for that group. It writes tests only; a bug it finds comes
-     back as a failing test, which is a fix for the card that owns the file.
-     A group ends green before the next one starts.
+   - **Tester (ADR-266).** Once, after the last group, and only when a card
+     changed a step of the buyer flow or a bug came back (a lessons cause seen
+     twice, or a fix the Owner has asked for twice): spawn `tester` (Sonnet,
+     high) with the base commit and that reason. It updates the buyer walk and
+     the critical tier, or writes the one regression test; a bug it finds is a
+     fix for the card that owns the file. No tester per group.
    - **Push (ADR-234).** Push `round/RNN` once per parallel group and once
      per fix, never per card: each push builds a Vercel preview, and the
      plan allows 100 deployments a day.
@@ -53,7 +54,7 @@ redesign it.
 3. **Gate**, in this order, all green before the round closes:
    `pnpm install --frozen-lockfile` · `pnpm run typecheck` ·
    `pnpm run build:web` · `pnpm run build:api` ·
-   `pnpm -r --filter '!@workspace/e2e' --if-present run test` ·
+   `pnpm -r --filter '!@workspace/e2e' --if-present run test` (the critical tier) · the buyer walk on a scratch Postgres (`api/src/walk/buyer.walk.ts`) ·
    `pnpm check:shipped` (the shipped-code check, ADR-192).
    If any card touched the brain paths (`api/src/prompts/`, `models.ts`,
    `aiInterpretation.ts`, `traditional.ts`, `packages/engine/`): the dry
