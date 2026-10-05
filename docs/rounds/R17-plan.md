@@ -714,6 +714,18 @@ typecheck green.
   portalConfigurationId()`; the webhook reads `webhookSecret()`; campaign names cap at 40 (Stripe's coupon name); R17-12 leaves
   `plan` out of `/timeline/access` when there is none (three tests compare the whole body); `PriceItem.fullCents` is the un-campaigned
   price; the new tables have no foreign keys, so a walk names them in its truncate list.
+- **After group B, for group C:**
+  - **R17-22's `api/test.critical` additions** also take every new test group A and B wrote: `src/lib/stripeSync.test.ts`,
+    `src/lib/purchases.test.ts`, `src/routes/payments.test.ts`, `src/lib/fulfilment.test.ts`, `src/routes/stripeWebhook.test.ts`,
+    `src/lib/subscriptions.test.ts`, `src/lib/campaigns.test.ts`, `src/lib/testers.test.ts`, `src/lib/ask.edges.test.ts` (B-02's
+    guard); and `packages/db/test.critical` takes `src/paymentsColumns.test.ts`. With the ci.yml change, their database parts run.
+  - **R17-23 gains** `api/src/lib/timelineAccess.edges.test.ts` (archive): it deletes `DATABASE_URL`, and access now reads
+    `subscriptions` for anyone but the admin; give it the closed-port URL and an admin-only source list, as R17-12's critical test does.
+  - **R17-24 and 25:** the Stripe stand-in answers `GET /v1/invoice_payments` (R17-12 looks up an invoice's payment when the event
+    lacks it) or puts payments in its invoices; the walks' truncate lists name the new tables (no foreign keys); `buyer.walk.ts`'s
+    `// MB-197 provisional` comment goes. History reads `granted` for a grant made with no `source` (R17-11).
+  - **R17-21:** the `// MB-6 provisional` seams left in `consumeCredit`, `holdCredit` and `refundCredit` are yours to remove.
+  - **R17-25:** subscription checkouts carry `subscription_data.metadata.purchase_id` (R17-10); the done page reads `?purchase=`.
 - **The CSP** was rewritten once after group A as well (R17-08's pages), so group A's preview builds.
 
 ## After the builders: the orchestrator's steps, not cards
