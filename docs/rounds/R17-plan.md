@@ -48,6 +48,19 @@ planned (ADR-230, 242; the spec's out of scope).
    B, the flow, the four products, Campaigns, the subscription, Testers, automatic QA, the keys and the checklist (R17-14, 15, 18, 19, 28).
    Campaigns and Testers become the two sections of one Sales page, and automatic QA one line on the Release view (ADR-315). Where a
    builder's draft differs otherwise, the artifact wins and the report says so.
+   **Read 2026-10-05 (the researcher; the verifier on the GitHub sources; docs.stripe.com and clerk.com still blocked):**
+   (a) `discounts` takes one coupon and can't be set with `allow_promotion_codes`: R17-10 never sets the latter; the checkout SDK
+   draws no summary, so R17-14 prints the campaign line from our prices. (b) A font `src` must be an `https:` URL and needs CORS;
+   the woff2 files are Vite-hashed under `web/src/assets/fonts/`, so R17-14 also owns `web/public/fonts/` (Inter copied there) and
+   sends CORS on `/fonts/*`. (c) The card fields on a EUR session aren't documented: R17-25 fills number, expiry and CVC, then
+   country and postal code only if the frame shows them. (d) A customer can't leave a test clock and deleting the clock deletes it:
+   **reading 1 is re-pinned for the QA pair** — `resetQaPair` clears both accounts' `stripe_customer_id` (R17-09), and R17-25 makes a
+   fresh clock and customer per walk, polls the clock to `ready`, one advance per renewal. (e) Each host showing Apple Pay is
+   registered on its own, sandbox and live apart (MB-227/228); the Chromium walk never shows it. (f) `clerk.signIn({ page,
+   emailAddress })` needs `CLERK_SECRET_KEY`, `clerkSetup()` once (with `CLERK_PUBLISHABLE_KEY`, both already on Railway staging)
+   and a `page.goto` to a public page first; `createUser` passes `skipPasswordRequirement` (R17-09); `@clerk/testing` types
+   import `@playwright/test` as types only, never a fourth dependency. Group A went out before this read landed; (d) and (f) were
+   sent to R17-09 while it ran.
 6. `pnpm install --frozen-lockfile`, and confirm `stripe@22.6.2`, `@stripe/stripe-js@9.17.0` and `@clerk/testing@2.2.39` resolve under
    `minimumReleaseAge` (all three are older than seven days; `stripe@23` and `@stripe/stripe-js@10` are not, and move to `endive`).
 
