@@ -35,6 +35,9 @@ merged into the rule it repeats.
 - **A process that learns.** This file after every ideation, `lessons.md` after every round (ADR-195, 2026-10-01).
 - **Fewer questions, each with a default.** At most three, highest stakes first, a recommendation and the silent default
   (R-12.1); never a chore (R-12.5); never re-ask what a lock on any branch settled (release-one-findings, 2026-10-03).
+- **Decide what a rule answers, then show him.** "A million mailbox items… the slightest things": Claude takes what a
+  rule settles, marks it Decided by Claude and lists it; the Mailbox keeps only his. One home per kind, never a layer on
+  top ("an inbox on top of a mailbox on top of a decisions log… too much") (R-12.3, 2026-10-05).
 - **What only he holds, he supplies or defers.** Else "Continue without this for now" (2026-09-27): build behind marked
   seams (R-12.4), never hold the round. Give it as one checklist with when each item is due (stripe-payments, 04/10).
 - **Testing is ours, never his.** "I don't want to be testing by myself. You should be testing automatically" (2026-10-04):
