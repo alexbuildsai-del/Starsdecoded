@@ -1,12 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as commerce from "./index";
-import { BUNDLES, CREDIT_LINE, bundleById, formatEuro, type BundleId } from "./catalogue";
+import {
+  BUNDLES,
+  CAMPAIGN_ITEMS,
+  CREDIT_LINE,
+  MAX_CAMPAIGN_OFF,
+  PLANS,
+  bundleById,
+  formatEuro,
+  itemById,
+  renewalLine,
+  type BundleId,
+  type CatalogueItemId,
+} from "./catalogue";
 
 test("catalogue: the three bundles are the Owner's names, lines, credits, prices and example mixes, in the order shown (ADR-142, 168, 169, 170)", () => {
   assert.deepEqual(BUNDLES, [
     {
       id: "solo",
+      lookupKey: "single",
       name: "Single",
       line: "1 credit · a Personal report or a Compatibility report",
       credits: 1,
@@ -17,6 +30,7 @@ test("catalogue: the three bundles are the Owner's names, lines, credits, prices
     },
     {
       id: "couple",
+      lookupKey: "couple",
       name: "Couple",
       line: "3 credits · a report each and how you get along",
       credits: 3,
@@ -27,6 +41,7 @@ test("catalogue: the three bundles are the Owner's names, lines, credits, prices
     },
     {
       id: "family",
+      lookupKey: "family",
       name: "Family & friends",
       line: "5 credits · for the people close to you",
       credits: 5,
@@ -82,7 +97,7 @@ test("catalogue: a bundle holds no end date and no earlier price until the Owner
   for (const bundle of BUNDLES) {
     assert.deepEqual(
       Object.keys(bundle).sort(),
-      ["cents", "credits", "fullCents", "id", "launch", "line", "mixes", "name"],
+      ["cents", "credits", "fullCents", "id", "launch", "line", "lookupKey", "mixes", "name"],
       `${bundle.id} gained a field: an end date or a "was" price needs the Owner's word`,
     );
   }
@@ -145,4 +160,51 @@ test("catalogue: formatEuro refuses anything but whole, non-negative cents", () 
   for (const bad of [12.5, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert.throws(() => formatEuro(bad), RangeError, String(bad));
   }
+});
+
+test("catalogue: each bundle's lookup key is the one Stripe finds it by, and Single's is not 'solo' (ADR-277)", () => {
+  assert.deepEqual(
+    BUNDLES.map((bundle) => [bundle.id, bundle.lookupKey]),
+    [
+      ["solo", "single"],
+      ["couple", "couple"],
+      ["family", "family"],
+    ],
+  );
+});
+
+test("catalogue: Timeline has a monthly and a yearly plan at the Owner's prices, the year with one credit to give (ADR-277)", () => {
+  assert.deepEqual(PLANS, [
+    { id: "timeline_month", lookupKey: "timeline_month", name: "Timeline", interval: "month", cents: 999, creditsToGive: 0 },
+    { id: "timeline_year", lookupKey: "timeline_year", name: "Timeline", interval: "year", cents: 6999, creditsToGive: 1 },
+  ]);
+  assert.deepEqual(
+    PLANS.map((plan) => formatEuro(plan.cents)),
+    ["€9.99", "€69.99"],
+  );
+  for (const plan of PLANS) assert.equal(plan.lookupKey, plan.id);
+});
+
+test("catalogue: every lookup key in the catalogue is unique", () => {
+  const keys = [...BUNDLES.map((bundle) => bundle.lookupKey), ...PLANS.map((plan) => plan.lookupKey)];
+  assert.equal(new Set(keys).size, keys.length);
+});
+
+test("catalogue: itemById returns a bundle or a plan and refuses an id the catalogue lacks", () => {
+  for (const bundle of BUNDLES) assert.equal(itemById(bundle.id), bundle);
+  for (const plan of PLANS) assert.equal(itemById(plan.id), plan);
+  assert.throws(() => itemById("duo" as CatalogueItemId), /duo/);
+});
+
+test("catalogue: each plan's renewal line says its interval and where to stop it, in plain words", () => {
+  const [month, year] = PLANS;
+  assert.equal(renewalLine(month), "It renews each month. You can stop it any time on your Account page.");
+  assert.equal(renewalLine(year), "It renews each year. You can stop it any time on your Account page.");
+});
+
+test("catalogue: a campaign may price Couple and Family & friends, never Single and never a plan, and by at most a quarter off (MB-149)", () => {
+  assert.deepEqual(CAMPAIGN_ITEMS, ["couple", "family"]);
+  for (const plan of PLANS) assert.ok(!(CAMPAIGN_ITEMS as readonly string[]).includes(plan.id), plan.id);
+  assert.ok(!(CAMPAIGN_ITEMS as readonly string[]).includes("solo"));
+  assert.equal(MAX_CAMPAIGN_OFF, 0.25);
 });
