@@ -55,7 +55,9 @@ redesign it.
    `pnpm install --frozen-lockfile` · `pnpm run typecheck` ·
    `pnpm run build:web` · `pnpm run build:api` ·
    `pnpm -r --filter '!@workspace/e2e' --if-present run test` (the critical tier) · the buyer walk on a scratch Postgres (`api/src/walk/buyer.walk.ts`) ·
-   `pnpm check:shipped` (the shipped-code check, ADR-192).
+   `pnpm check:shipped` (the shipped-code check, ADR-192) · once, after the last group:
+   `pnpm --filter @workspace/web run csp:write` (committed if it moved) and gitleaks over `main...round/RNN` with the
+   version and config CI pins, so neither is found last by CI (ADR-283).
    If any card touched the brain paths (`api/src/prompts/`, `models.ts`,
    `aiInterpretation.ts`, `traditional.ts`, `packages/engine/`): the dry
    lab (`pnpm report:lab --dry`, in process, free); paste it into the report.
