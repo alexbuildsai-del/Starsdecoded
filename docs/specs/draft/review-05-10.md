@@ -36,7 +36,7 @@ Owner's chart (23 Aug 1995, 23:45, Košice) on Monday 5 Oct 2026.
 - **Dates always carry the year** on every Timeline card (drops `nearDate`'s rule of hiding it).
 - **The reading's prompt gets each stretch** (`spansOf`) with its dates, so its dates agree with the card.
 - **Tone words (Q1, answered)**: Heavy · Mixed · Light, with a three-line legend wherever the tone colours show:
-  "Heavy: asks more of you. Mixed: some push, some help. Light: goes your way." `tone.ts`'s table stays (MB-188).
+  "Heavy: asks more of you. Mixed: has its ups and downs. Light: goes your way." (Q5) `tone.ts`'s table stays (MB-188).
 - **Headlines agree with tone, by hand, no new test** (the Owner: "I don't want to invent new tests"): the `HEADLINES`
   rows for Light pairings are read and rewritten where they name only a strain ("More sensitive than usual" becomes
   "Softer, more open feelings"). The reading prompt gains: "On a Light time, say how it helps. On a Heavy time, say
@@ -98,12 +98,14 @@ Owner's chart (23 Aug 1995, 23:45, Košice) on Monday 5 Oct 2026.
 - **Where it shows**: the report's wheel (beside the R) and each house card holding an R planet ("Saturn was
   retrograde when you were born."); the Timeline set-up screen; Your week under the dial when a planet in view is
   retrograde; the Timeline app's dial legend; /timeline under Mira's dial.
-- The report's prose keeps the vocabulary's "turned inward" reading; nothing else in the brain changes.
+- The brain marks retrograde planets in the brief and defines the word, but the prose never says it (the r06 sample,
+  three retrograde planets: 0 uses; rule 1 keeps method out). No prompt change: the UI line is the explanation.
 
 ### 7. The Personal report (notes 13, 14, 15, 17, 18)
-- **Hero (bug)**: on the wheel itself, the east point is labelled like the bodies: "RISING", "Gemini 19.07°",
-  "1st house (self)". The "East · rising, drawn facing south…" and "West · setting" text goes, at every width. The
-  Ascendant marker's tick gets room (`AngleGlyph` at 22 px clips). The triad row under the ring stays on a phone.
+- **Hero (bug)**: the hero's look does not change. Under "EAST · RISING" the line "drawn facing south, so east is on
+  your left" (ReportHero.tsx:364-369) becomes the Ascendant's value in the Sun and Moon values' own style,
+  "19.07° Gemini · 1st (self)", on the narrow tier too. The Ascendant marker's tick gets room (`AngleGlyph` at 22 px
+  clips). The "east is on your left" sentence becomes a fact (§9).
 - **Pins**: every tick-box item pins: Practice, What to do, How to use it, How to manage it, Practice this week, a
   pair's Next time and Try together. Three per report. Not pinned: an outline pin, grey. Pinned: a filled pin in the
   chart's yellow (brass; the Owner's call over web-taste's "brass is never a control"). Hover and the first pin say
@@ -125,6 +127,14 @@ Owner's chart (23 Aug 1995, 23:45, Košice) on Monday 5 Oct 2026.
 - **Examples**: every idea Ask offers carries one everyday example, framed as an option ("for example"). No orders
   still (ASK_RULES). The 150-word cap stays.
 
+### 9. Facts you asked about (round 3)
+- **One list in the code** (`web/src/lib/facts.ts`), each fact a short title and two or three plain sentences, with
+  where the Owner asked it. Every "why is it like this?" the Owner asks in a review is added to it.
+- **Shown one at a time, about 10 s each, on the loading screens**: the report's opening screen and the Timeline
+  set-up. The retrograde fact also stays wherever an R shows (§6).
+- **The log so far**: Retrograde (note 11); Why east is on the left (round 3); A house's planet (note 18); Cycles and
+  ages (note 7). Words as on the artifact, Part 9.
+
 ## Out of scope
 Stripe, prices on the live site, any pricing work (ADR-230, 242, 264). The Monday letter. Chiron in Timeline (MB-189).
 New bundle names. Gift from Ask. The slow-planet Horizons table (MB-216).
@@ -140,7 +150,7 @@ New bundle names. Gift from Ask. The slow-planet Horizons table (MB-216).
 6. No "Think back to" names a date after today (the Owner's Jupiter opposition at 64 looks back to June 2024).
 7. After setup, opening any card in the six months or Life writes nothing and waits for nothing.
 8. The Life line drags by pointer and by slider; the card under it is the Your cycles card, ⓘ opens the science.
-9. The hero wheel prints "RISING · Gemini 19.07° · 1st house (self)" for the Owner's chart at 1440 px and 390 px.
+9. The hero prints "19.07° Gemini · 1st (self)" under EAST · RISING for the Owner's chart at 1440 px and 390 px.
 10. Any tick-box item pins (filled yellow) and shows on the dashboard under its chapter's name.
 11. The dry lab renders, per fixture, a node-opposition reading, a cycle before 16 and a Light reading; read by eye.
 12. Ask, asked about a person with a pair, quotes the pair report; about one without, shows the card once with the
@@ -156,7 +166,8 @@ Part 8 (Ask with and without credits).
 1. Tone words: answered, Heavy · Mixed · Light with a legend.
 2. Six-month refresh: written a week ahead, the drawing plays once (default; the Owner did not object).
 3. Account before billing: answered, a marked preview.
-4. The retrograde line: **always open, no X** (default), or under an ⓘ, or closable.
+4. The retrograde line: answered, always open, no X.
+5. Mixed in the legend: **"has its ups and downs"** (default), or "a bit of both", or "easier days and harder ones".
 
 ## Decisions to record
 - The empty dashboard shows the circle and the bundles as buttons; no sample practice item. Supersedes part of review-01-10.
@@ -167,8 +178,9 @@ Part 8 (Ask with and without credits).
 - Timeline readings are all written at setup from the engine's list; the next six months are written a week ahead.
 - Life: a draggable time line; the card under it is the Your cycles card, ordered what, for you, meaning, look-back, ⓘ science.
 - Look-backs only to the past; past cycles short; before 16, child's house words; nodes reversed stated in the facts.
-- Retrograde is marked R on the dial and explained in one always-open line wherever an R shows.
-- The hero wheel labels the Rising at the east point; the "drawn facing south" text goes.
+- Retrograde is marked R on the dial and explained in one always-open line wherever an R shows; no X.
+- A facts log in the code holds every fact the Owner asked to explain; the loading screens show them in turn.
+- The hero keeps its look; under EAST · RISING the Ascendant's value replaces the "drawn facing south" sentence.
 - Every tick-box item can be pinned, three per report; filled yellow when pinned, outline when not.
 - The report shows its date; report rule 1 allows one clause naming why a ruler belongs to a house.
 - Ask reads a named partner's pair report first, offers a pair once with the reader's credits, and gives everyday examples.
