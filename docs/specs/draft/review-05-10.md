@@ -126,13 +126,15 @@ prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels
 ### 9. Facts you asked about (round 3)
 - **One list in the code** (`web/src/lib/facts.ts`), each fact a short title and two or three plain sentences, with
   where the Owner asked it. Every "why is it like this?" the Owner asks in a review is added to it.
-- **One new component, the Did you know card** (rounds 4 to 6): the title is the whole question ("Did you know why
-  east is on the left?"), two or three sentences, a small drawing on the right of where to look on the chart, and one
-  bar per fact that fills like the home page's Claims (`Claims.tsx`): about 8 s a fact, a fade, tap a bar to jump,
-  hover pauses; no icon, no X. Under the report's opening screen and the set-up, whose progress does not change.
-- **The log so far**: "Did you know planets can look like they go backwards?" (names retrograde and the R; a loop);
-  "…why east is on the left?" (a simple hero: Sun, Moon, Rising at EAST); "…each house starts in a sign?" (a house
-  wedge and its planet); "…Saturn comes back every 29½ years?" (a ring). Words as on the artifact, Part 9.
+- **One new component, the Did you know card** (rounds 4 to 7): "DID YOU KNOW" in small brass capitals, the same on
+  every fact, then a title that finishes it ("…why east is on the left?"), two or three sentences, a drawing on the
+  right reused from what the product draws (no new drawings), and one bar per fact that fills like the home page's
+  Claims (`Claims.tsx`): about 8 s, a fade, tap a bar to jump, hover pauses; no X. Under the report's opening screen
+  and the set-up, whose progress does not change.
+- **The log so far**, with its drawing: "…planets can look like they go backwards?" (names retrograde and the R; the
+  Timeline dial's planet with its dashed ring and trail); "…why east is on the left?" (the report hero, Sun, Moon and
+  EAST · RISING); "…each house starts in a sign?" (the House by House wheel, one house lit); "…Saturn comes back every
+  29½ years?" (Your cycles' ring, `AgeRing.tsx`). Words as on the artifact, Part 9.
 
 ### 10. Retrograde in the words (round 4)
 - **Rule 1** (`prompts/system.ts:25`) gains named exceptions: "Never explain the method, except these ideas, which you
@@ -173,8 +175,7 @@ Stripe, live prices, pricing (ADR-230, 242, 264); the Monday letter; Chiron (MB-
     reader's credit count.
 
 ## Screens
-All on the artifact (version 6), Parts 1 to 10, one per section above; Part 9 is the Did you know card.
-
+The artifact (version 7), Parts 1 to 10, one per section; Part 9 is the Did you know card.
 ## Open questions (each with its default)
 Answered: tone words with a legend; written a week ahead; the marked preview; no X; every R planet in House by House.
 5. Mixed in the legend: **"has its ups and downs"** (default), or "a bit of both", or "easier days and harder ones".
@@ -189,8 +190,7 @@ Answered: tone words with a legend; written a week ahead; the marked preview; no
 - Life: a draggable time line; the card under it is the Your cycles card, ordered what, for you, meaning, look-back, ⓘ science.
 - Look-backs only to the past; past cycles short; before 16, child's house words; nodes reversed stated in the facts.
 - Retrograde is marked R on the dial and explained in one always-open line wherever an R shows; no X.
-- A facts log in the code holds every fact the Owner asked to explain; a new Did you know card shows them in turn
-  under the loading screens' unchanged progress.
+- A facts log in the code feeds a new Did you know card under the loading screens' unchanged progress.
 - Rule 1 names the ideas the writer may explain (retrograde, rising sign, a house's planet, a return); every R planet
   is explained in House by House and shapes its chapters; retrograde enters pair reports, Timeline and Ask.
 - The hero keeps its look; under EAST · RISING the Ascendant's value replaces the "drawn facing south" sentence.
