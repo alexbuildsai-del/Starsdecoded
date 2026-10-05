@@ -47,4 +47,4 @@ with it (ADR-188); do not make a third attempt yourself.
 Code rules (MASTERFILE §13.2): comments say why, never what; no banner
 comments, no commented-out code, no TODO without an `MB-NN` or `B-NN` ref; a change built
 on an open Mailbox topic carries `// MB-NN provisional` at the seam. Never
-introduce a new use of the name "Astra". Never commit a secret.
+introduce a new use of the name "Astra". Never commit a secret. A new log line or route path carries ids, types and counts, never a Clerk id, an email or a name the logger's redaction doesn't name (lessons, promoted R17).

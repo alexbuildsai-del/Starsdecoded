@@ -68,5 +68,6 @@ Private, Owner Claude (security, details in Notion only; done before Timeline op
 - MB-212 https://app.notion.com/p/3eefefe7493181249240f5c8c8f52875
 - MB-213 https://app.notion.com/p/3eefefe7493181328321dcbe281e8a16
 - MB-214 https://app.notion.com/p/3effefe7493181fa9c85ccda47f5f310
+- MB-233 https://app.notion.com/p/3f0fefe749318172a5c2df7fa8111c21
 
 Parked until the Owner starts pricing (ADR-296): MB-115, 120, 149.
