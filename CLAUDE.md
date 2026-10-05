@@ -24,10 +24,10 @@ dated after it. Prompts are never edited outside their source of truth.
 
 ## Notion (kept current in the same session that changes the product)
 
-- Decisions (ADR log, never edited, only superseded):
-  https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835
-- Mailbox (open topics, each with a recommendation and a default):
-  https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d
+- Three homes (R-12.3): `docs/backlog.md` is Claude's own work; Decisions (never edited, only superseded,
+  `Decided by` Alex or Claude) https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835; Mailbox, only what
+  the Owner decides, ten open at most, https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d. Never query
+  a Notion database (R-12.7). A session that decided or raised something ends with *Decided by me* and *Needs you* (R-12.6).
 - Product log, GTM and prompt research live under the STARS DECODED page.
 - The bible (browsable product reference, republish to the same URL):
   https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2
@@ -74,7 +74,7 @@ spec 200 · round or QA report 60 / 80 · agent file 50. Over budget: ten-line
 abstract in place, body to `docs/annex/`.
 
 Code: comments say why, never what; no banners, no commented-out code, no TODO
-without an `MB-NN` ref; `// MB-NN provisional` at any seam built on an open
+without an `MB-NN` or `B-NN` ref; `// MB-NN provisional` at any seam built on an open
 topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Things a session should know

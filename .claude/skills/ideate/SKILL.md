@@ -10,8 +10,8 @@ what it says they would pick, and skip any question it already answers,
 saying which rule you followed.
 
 Then read `CLAUDE.md`, `docs/INDEX.md`, `MASTERFILE.md` sections the topic
-touches, and any `docs/specs/draft/` file for the same topic. Check the Notion
-Mailbox for open rows on it.
+touches, and any `docs/specs/draft/` file for the same topic. Check `docs/backlog.md`
+and the Mailbox rows its *Waiting on Alex* list links for this topic.
 
 Outside evidence (a price, a vendor's limit, a standard, what a competitor
 does) goes to the `researcher` agent, on Opus, not into your own searching

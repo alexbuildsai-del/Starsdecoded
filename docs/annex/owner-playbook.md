@@ -38,6 +38,9 @@ merged into the rule it repeats.
 - **Fewer questions, each with a default.** At most three, highest stakes first, each with a recommendation and what happens
   if he is silent (R-12.1; "For the Owner" in the R11, R12 and R13 plans). Never a chore (R-12.5). Read the day's locks on
   every branch first: never re-ask what one settled (release-one-findings, 2026-10-03: the tie, the order, the network).
+- **Decide what a rule answers, then show him.** "A million mailbox items… the slightest things": Claude takes the choices
+  a rule settles, marks them Decided by Claude and lists them; the Mailbox keeps only his. One home per kind, never a layer
+  on top ("an inbox on top of a mailbox on top of a decisions log… too much") (R-12.3, 2026-10-05).
 - **What only he holds, he supplies or defers.** A name, a contact address, Resend's domain, a token: given before R11 began
   (R11 report, built 2026-09-30). Otherwise "Continue without this for now" (2026-09-27): build the rest behind marked
   seams (R-12.4) and never hold the round.
