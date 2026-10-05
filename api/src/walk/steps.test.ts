@@ -9,9 +9,9 @@ import assert from "node:assert/strict";
 import type { SeedStep } from "../lib/qaPair.js";
 import { STAGING_STEP_IDS, STEPS, STEP_IDS, mapProblem, seedsFor, type StoredStepId } from "./steps.js";
 
-// The staging walk's module reads the database's settings when it loads; nothing here queries it.
+// The staging walk's map loads the QA pair's module, which reads the database's settings; nothing here queries it.
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
-const { STAGING_STEPS } = await import("../lib/qaWalk/index.js");
+const { STAGING_STEPS } = await import("../lib/qaWalk/steps.js");
 
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 // A stored step the seed holds no report for would wait for good on every deploy, so typecheck holds the two together.
