@@ -1,6 +1,6 @@
-# Report loading story: draft spec
+# Report loading story: locked spec
 
-Ideation 2026-10-05 with the Owner. Status: **draft v4**, waiting on three questions.
+Ideation 2026-10-05 with the Owner. Status: **locked** 2026-10-05 (ADR-316 to 325). The three questions held their defaults.
 Artifact: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw (version 4)
 
 The Owner wants the Personal report's loading screen to tell, step by step, how a chart is made:
@@ -163,7 +163,7 @@ known), the Timeline setup player, the house set, transits and cycles, the expla
 the before and after, the rules and the questions. All frames are drawn from Mira's chart (synthetic), computed by
 `@workspace/engine`.
 
-## Open questions (each with its default)
+## The Owner's answers (2026-10-05, "lock it": each default held)
 1. **The house set everywhere, the report's House by House included, with the simpler covers lines?**
    Recommended: yes. Default: yes.
 2. **Where does the explainer play?** Recommended: `/method` step 1, tap to play. Default: that.
@@ -184,16 +184,16 @@ the before and after, the rules and the questions. All frames are drawn from Mir
 ## Decisions to record
 - The Personal loading screen tells how the chart is made in five steps, replacing the orrery (amends ADR-47, 59):
   place, sky, planets and lines, the time and horizon, then the houses in their six pairs while the report writes.
-  It holds still once built; progress and the door are kept.
+  It holds still once built; progress and the door are kept (ADR-316).
 - On that screen the six pairs take the Did you know card's place; a blind chart keeps the card (amends Review
-  05/10 for this screen only).
-- A blind chart's story skips the horizon and houses with one line each (ADR-33 holds).
-- `useLiveReport` refetches the report when `chartReady` turns true.
-- Review 05/10's setup screen is drawn as screen 2, on the R16 dial.
+  05/10 for this screen only) (ADR-317).
+- A blind chart's story skips the horizon and houses with one line each (ADR-33 holds) (ADR-318).
+- `useLiveReport` refetches the report when `chartReady` turns true (ADR-319).
+- Review 05/10's setup screen is drawn as screen 2, on the R16 dial (ADR-320).
 - One house set (word, object, covers, pair) in `houses.ts` is used across the app, the site, the film and the
   reels; the covers lines are simplified and the 5th says "love". This supersedes Reading the sky's
-  "marketing only" line (pending Q1).
-- Transit and cycle are the product's words for these; never moments, things or events.
-- Reading the sky plays on `/method` step 1, self-hosted, on a tap (pending Q2).
-- Reels come from the same scenes in HyperFrames and are posted only after the Owner's yes (pending Q3).
-- At this lock, Review 05/10's lock (branch `claude/cool-sagan-xu2iyz`) merges to `main` with it.
+  "marketing only" line (ADR-321).
+- Transit and cycle are the product's words for these; never moments, things or events (ADR-322).
+- Reading the sky plays on `/method` step 1, self-hosted, on a tap (ADR-323).
+- Reels come from the same scenes in HyperFrames and are posted only after the Owner's yes (ADR-324).
+- At this lock, Review 05/10's lock (branch `claude/cool-sagan-xu2iyz`) merges to `main` with it (ADR-325, Decided by Claude).
