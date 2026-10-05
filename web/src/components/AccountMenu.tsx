@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CircleUser, LogOut, User as UserIcon, LayoutDashboard, Orbit, Shield } from "lucide-react";
+import { CircleUser, LogOut, User as UserIcon, LayoutDashboard, Orbit, Receipt, Shield } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useTimelineAccess } from "@/lib/timeline-access";
 
@@ -78,6 +78,9 @@ export function AccountMenu() {
                 </DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => navigate("/admin/prompts")}>
                   <Shield className="h-4 w-4 mr-2" /> Prompts
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/admin/sales")}>
+                  <Receipt className="h-4 w-4 mr-2" /> Sales
                 </DropdownMenuItem>
               </>
             )}
