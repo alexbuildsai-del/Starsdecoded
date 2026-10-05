@@ -84,7 +84,7 @@ describe("who handles a visitor's data", () => {
 });
 
 describe("who takes a payment", () => {
-  it("is Stripe, its own controller, through its company in the EU (QA-04 #2, R-3.5)", () => {
+  it("is Stripe, through its company in the EU, apart from the companies that work for us (QA-04 #2, R-3.5)", () => {
     expect(PAYMENTS).toEqual({
       name: "Stripe",
       company: "Stripe Payments Europe",

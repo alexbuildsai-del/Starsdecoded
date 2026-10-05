@@ -39,7 +39,7 @@ export default function PrivacyPage() {
           In this policy, “we” means {name}, a private individual based in {country} who trades as {tradingName}. We decide
           how your data is used, which makes us its controller under the GDPR.
         </p>
-        <p>{PAYMENTS.name}, which takes your payments, decides for itself how it uses your payment details.</p>
+        <p>{PAYMENTS.name} takes your payments. It also uses your payment details for its own needs, like stopping fraud.</p>
         {CONTACT ? (
           <p>
             Write to <MailLink address={CONTACT} /> with any question about your data.
@@ -124,8 +124,8 @@ export default function PrivacyPage() {
           where you can change your card or stop Timeline.
         </p>
         <p>
-          Our payments go through {PAYMENTS.company}, which is based in {PAYMENTS.country}, in the EU. {PAYMENTS.name} is its
-          own controller for your payment details. It decides how it uses them, as{" "}
+          Our payments go through {PAYMENTS.company}, which is based in {PAYMENTS.country}, in the EU. {PAYMENTS.name} takes your
+          payment for us. It also uses your payment details for its own needs, like stopping fraud, as{" "}
           <a href={PAYMENTS.policy}>{PAYMENTS.name}'s privacy policy</a> explains.
         </p>
       </LegalSection>

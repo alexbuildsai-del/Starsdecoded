@@ -98,8 +98,8 @@ export interface PaymentProvider {
   policy: string;
 }
 
-// Stripe decides for itself how it uses a buyer's payment details, as a controller in its own right, so it is not one
-// of the companies that handle data for us and the page gives it a section of its own (QA-04 #2, R-3.5).
+// Stripe takes payments for us and also uses a buyer's payment details for its own needs, like stopping fraud, so it is
+// not only one of the companies that handle data for us and the page gives it a section of its own (QA-04 #2, R-3.5).
 export const PAYMENTS: PaymentProvider = {
   name: "Stripe",
   company: "Stripe Payments Europe",
