@@ -73,6 +73,12 @@ cut (rule 24), and the rendered file goes to the Owner before it posts. Start fr
 motion/public/temp-score.wav`, then `node motion/render.mjs video out/x.mp4 --date YYYY-MM-DD`,
 or `stills 4.6 9.7` to check frames. It finds the headless shell under `/opt/pw-browsers`; set
 `CHROME_PATH` elsewhere.
+The grammar is the v5 one (Owner's reference, 5 Oct 2026; `motion/src/v5/`): one shot with no
+cuts, one short sentence at a time built word by word by `kit.tsx`'s sentence engine, objects
+(the planet renders, never emoji) inline in the sentence, a rotating middle line, bursts that
+collapse into the next object, springs for objects, and a sound under every arrival cued from
+the same timeline JSON (`score/sfx.mjs`, mixed to -14 LUFS). Check stills with
+`COMP=v5-opening node motion/render.mjs stills 1.6 4.4`.
 
 ## The kit (`kit/`)
 - `wheel.mjs`: the product's NatalWheel, rendered through the web app's Vite config from

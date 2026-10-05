@@ -27,15 +27,15 @@ export const tilt = (c: ChartData) => (c.angles ? c.angles.ascendant.absoluteDeg
 // NatalWheel draws on a 600 plate inside a viewBox padded by 8.5% each side.
 const PLATE = 600, PAD = PLATE * 0.085, VIEW = PLATE + 2 * PAD;
 
-/** Where a body sits on a NatalWheel drawn `size` px wide, from the wheel's centre, after its tilt. */
-export function bodyOnWheel(c: ChartData, body: string, size: number): { x: number; y: number } {
+/** Where a body sits on a wheel drawn `size` px wide, from its centre: HorizonWheel's tilt by default, NatalWheel's none with `tilted` false. */
+export function bodyOnWheel(c: ChartData, body: string, size: number, tilted = true): { x: number; y: number } {
   const r = wheelRadii(PLATE);
   const asc = c.angles?.ascendant.absoluteDegree ?? 0;
   const bodies = Object.entries(c.planets).filter(([, p]) => p && typeof p.absoluteDegree === "number");
   const lanes = assignLanes(bodies.map(([key, p]) => ({ key, absoluteDegree: p.absoluteDegree })), asc, { lanes: r.lanes, node: r.node, gap: PLATE * 0.01 });
   const n = lanes.find((l) => l.key === body);
   if (!n) return { x: 0, y: 0 };
-  return polar(n.radius * (size / VIEW), n.theta - tilt(c));
+  return polar(n.radius * (size / VIEW), n.theta - (tilted ? tilt(c) : 0));
 }
 /** The Ascendant's point on the wheel's rim, after the tilt: always due east, on the left. */
 export function ascOnWheel(size: number) {

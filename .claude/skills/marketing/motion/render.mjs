@@ -20,13 +20,14 @@ const serveUrl = await bundle({
   publicDir: path.join(here, "public"),
   webpackOverride: override,
 });
-const inputProps = { date, music: "temp-score.wav" };
+// Each composition names its own music; MUSIC overrides it.
+const inputProps = { date, ...(process.env.MUSIC ? { music: process.env.MUSIC } : {}) };
 const composition = await selectComposition({ serveUrl, id: process.env.COMP ?? "launch-trailer", inputProps, browserExecutable });
 
 if (mode === "stills") {
   for (const s of rest) {
     const frame = Math.round(Number(s) * composition.fps);
-    const output = path.join(here, `out/still-${s.replace(".", "_")}.jpg`);
+    const output = path.join(here, `out/${process.env.COMP ? process.env.COMP + "-" : ""}still-${s.replace(".", "_")}.jpg`);
     await renderStill({ composition, serveUrl, frame, output, inputProps, browserExecutable, imageFormat: "jpeg", jpegQuality: 80, scale: 0.5 });
     console.log("still", s, output);
   }
