@@ -149,11 +149,11 @@ const payOnce: FaqItem = {
   home: false,
 };
 
+// ADR-313: a failed report keeps its credit, so Try again is free and only a final failure gives it back. A
+// Compatibility report has no Try again, so its failure gives the credit back at once.
 const goesWrong: FaqItem = {
   q: "What if something goes wrong?",
-  // MB-91 provisional: the soft pass writes some reports on no credit, so until credits go hard (R12) the answer
-  // gives back only the credit a report used, as the refund rule words it (R-6.6).
-  a: "If your report can't be finished, we tell you what happened and give back the credit it used, so you can try again.",
+  a: `If your report fails, we tell you what happened, and Try again is free. If we still can't write it, its credit comes back to your balance. For a ${COMPATIBILITY_REPORT}, the credit comes back at once.`,
   home: false,
   link: "/refunds",
 };
