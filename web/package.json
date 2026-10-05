@@ -9,7 +9,8 @@
     "csp:write": "node scripts/csp.mjs --write",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "TEST_TIER=critical vitest run",
+    "test:deep": "vitest run"
   },
   "devDependencies": {
     "@radix-ui/react-popover": "^1.1.7",

@@ -11,7 +11,8 @@
     "report:lab": "tsx ./src/report-lab.ts",
     "check:shipped": "tsx ./check-shipped.ts",
     "check:copies": "tsx ./check-single-copies.ts",
-    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "test": "node ./test-critical.mjs",
+    "test:deep": "node --import tsx --test 'src/**/*.test.ts'",
     "generate:vocabulary": "tsx ./src/generate-vocabulary.ts"
   },
   "dependencies": {
