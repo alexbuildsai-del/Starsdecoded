@@ -93,9 +93,8 @@ prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels
   beside its dashed ring.
 - **One line, always open, no X (Q4)**: "R · Retrograde. From Earth, the planet looks like it moves backwards for a
   few weeks. It doesn't really. Earth is passing it, the way a slower car seems to roll back when you overtake it."
-- **Where it shows**: the report's wheel (beside the R) and each house card holding an R planet ("Saturn was
-  retrograde when you were born."); the Timeline set-up screen; Your week under the dial when a planet in view is
-  retrograde; the Timeline app's dial legend; /timeline under Mira's dial.
+- **Where it shows**: House by House, beside the full chart and on each R planet's house card (never the hero); the
+  set-up screen; Your week and the Timeline app under the dial when a planet in view is retrograde; /timeline.
 - The brain marks retrograde planets in the brief and defines the word, but the prose never says it (the r06 sample,
   three retrograde planets: 0 uses; rule 1 keeps method out). §10 brings it into the words.
 
@@ -127,10 +126,10 @@ prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels
 ### 9. Facts you asked about (round 3)
 - **One list in the code** (`web/src/lib/facts.ts`), each fact a short title and two or three plain sentences, with
   where the Owner asked it. Every "why is it like this?" the Owner asks in a review is added to it.
-- **One new component, the Did you know card** (round 4): a small square topic mark, "Did you know?" in brass, a short
-  title, two or three sentences, "N of M". No X, no "Got it". It sits under the report's opening screen and the
-  Timeline set-up, whose progress does not change, one fact at a time, fading on about every 10 s. Where an R shows,
-  it holds the retrograde fact and stays.
+- **One new component, the Did you know card** (rounds 4, 5): "Did you know?" in brass, the topic as title
+  ("Retrograde"), two or three sentences, one bar per fact that fills like the home page's Claims (`Claims.tsx`), about
+  8 s a fact, a fade between, tap a bar to jump, hover pauses; no icon, no X. Under the report's opening screen and the
+  set-up, whose progress does not change. Where an R shows, it holds the retrograde fact.
 - **The log so far**: Retrograde (note 11); Why east is on the left (round 3); A house's planet (note 18); Cycles and
   ages (note 7). Words as on the artifact, Part 9.
 
@@ -141,14 +140,17 @@ prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels
 - **One definition** shared by the writer (`vocabulary.ts` retrograde, rewritten in simple words), Ask and the page:
   "From Earth, the planet looked like it moved backwards. What it stands for tends to go inward first: thought over,
   done in private, slower to show."
-- **Personal report (Q6)**: Mercury, Venus, Mars retrograde get one paragraph in the chapter they lead (How you think,
-  How you love, Career) and a line on their house card; Jupiter and Saturn a line on the card; Uranus, Neptune, Pluto
-  only the R line. The brief tags each retrograde planet with that weight and chapter.
-- **Compatibility report**: one sentence where a lens reads a retrograde planet of either person, on how it plays
-  between them. **Timeline**: retrograde cards show the R and "Mercury retrograde · about 3 weeks" above the headline;
-  the reading says how long from the engine's stations and how often it comes round. **Ask**: may explain it.
+- **Personal report, every R planet (Q6, answered)**: House by House names and explains each one on its house card, the
+  slow ones with how common it is ("as for about 4 in 10 people born that year"); the nodes' R is said to be normal.
+  The chapters never name planets (standing rule), so a retrograde shapes what they describe in its home chapter
+  and in any chapter reading it as a house's planet: Mercury, How you think; Venus, How you love and Money; Mars,
+  Career and how you fight; Jupiter, beliefs in How you think, Strengths when it is the helper; Saturn, Career and
+  Family; Uranus, Neptune, Pluto, only where a chapter reads them. Share of days retrograde, engine 1950 to 2010:
+  Mercury 19%, Venus 7%, Mars 9%, Jupiter 30%, Saturn 36%, Uranus 41%, Neptune 44%, Pluto 43%.
+- **Compatibility**: one sentence where a lens reads a retrograde planet of either person. **Timeline**: retrograde
+  cards show the R and "Mercury retrograde · about 3 weeks" with the engine's dates. **Ask**: may explain it.
 - Brain change: the dry lab, then a spot run on the fixtures with a retrograde Mercury, Venus or Mars (audrey-hepburn,
-  athena, night-angular, high-latitude), compared with r06.
+  athena, night-angular, high-latitude, oprah-winfrey), compared with r06.
 
 ## Out of scope
 Stripe, live prices, pricing (ADR-230, 242, 264); the Monday letter; Chiron (MB-189); new bundle names; Gift from Ask; MB-216.
@@ -174,10 +176,8 @@ Stripe, live prices, pricing (ADR-230, 242, 264); the Monday letter; Chiron (MB-
 All on the artifact (version 4), Parts 1 to 10, one per section above; Part 9 is the Did you know card.
 
 ## Open questions (each with its default)
-Answered: 1 Heavy · Mixed · Light with a legend; 2 written a week ahead (default, no objection); 3 the marked
-preview; 4 the retrograde line always open, no X.
+Answered: tone words with a legend; written a week ahead; the marked preview; no X; every R planet in House by House.
 5. Mixed in the legend: **"has its ups and downs"** (default), or "a bit of both", or "easier days and harder ones".
-6. Retrograde in the Personal report: **by weight** (default), or Mercury, Venus and Mars only, or every planet.
 
 ## Decisions to record
 - The empty dashboard shows the circle and the bundles as buttons; no sample practice item. Supersedes part of review-01-10.
@@ -191,8 +191,8 @@ preview; 4 the retrograde line always open, no X.
 - Retrograde is marked R on the dial and explained in one always-open line wherever an R shows; no X.
 - A facts log in the code holds every fact the Owner asked to explain; a new Did you know card shows them in turn
   under the loading screens' unchanged progress.
-- Rule 1 names the ideas the writer may explain (retrograde, rising sign, a house's planet, a return); retrograde
-  enters the Personal and Compatibility reports, Timeline and Ask, weighted per Q6.
+- Rule 1 names the ideas the writer may explain (retrograde, rising sign, a house's planet, a return); every R planet
+  is explained in House by House and shapes its chapters; retrograde enters pair reports, Timeline and Ask.
 - The hero keeps its look; under EAST · RISING the Ascendant's value replaces the "drawn facing south" sentence.
 - Every tick-box item can be pinned, three per report; filled yellow when pinned, outline when not.
 - The report shows its date; report rule 1 allows one clause naming why a ruler belongs to a house.
