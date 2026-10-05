@@ -16,7 +16,7 @@ minimumReleaseAgeExclude: []
 
 catalog:
   '@tailwindcss/vite': ^4.1.14
-  '@tanstack/react-query': ^5.103.2
+  '@tanstack/react-query': ^5.104.0
   '@types/node': ^25.3.3
   '@types/react': ^19.3.0
   '@types/react-dom': ^19.3.0
