@@ -282,6 +282,17 @@ export default function ClaimPage() {
     );
   }
 
+  // A pair sent on the chart its reader keeps hands nothing over (ADR-285), so there is no time question to ask: the
+  // effect above is already taking them to the pair.
+  if (claimed && kind === "send" && claimed.profileId === null) {
+    return (
+      <Centered>
+        <Loader2 className="h-6 w-6 animate-spin text-primary/60 mx-auto mb-3" />
+        <p className="text-muted-foreground">Opening your {COMPATIBILITY_REPORT}…</p>
+      </Centered>
+    );
+  }
+
   if (claimed) {
     if (step === "self" && sendProfileId) {
       return (
@@ -358,24 +369,27 @@ export default function ClaimPage() {
   }
 
   if (claim.isError) {
-    const errMsg = claim.error instanceof Error ? claim.error.message : null;
-    const lower = (errMsg ?? "").toLowerCase();
+    // The API's own line, never the client's "HTTP 403 Forbidden: ..." wrapper; a network or server failure has none.
+    const code = claim.error?.data?.error;
+    const told = typeof claim.error?.data?.message === "string" && claim.error.data.message ? claim.error.data.message : null;
     let title = "Could not claim invite";
-    let body = errMsg ?? "Please try again.";
+    let body = told ?? "Please try again.";
     // Every 409 names its status "Conflict", so a sharer opening the link to their own report is told so by its code.
-    const ownReport = claim.error?.data?.error === "own_chart";
+    const ownReport = code === "own_chart";
     if (ownReport) {
       title = "This is your own report";
       body = "You shared it from this account, so there's nothing to claim. It's on your dashboard.";
-    } else if (lower.includes("already") || lower.includes("conflict")) {
+    } else if (code === "already_claimed") {
       title = "Already claimed";
       body = "This invitation has already been accepted by someone else.";
-    } else if (lower.includes("expired")) {
+    } else if (code === "expired") {
       title = "Invite expired";
       body = "This invitation link has expired. Ask the sender for a new one.";
-    } else if (lower.includes("recipient") || lower.includes("email")) {
+    } else if (code === "wrong_recipient") {
       title = "Wrong account";
       body = `Sign in with ${inv.email} to accept this invitation.`;
+    } else if (code === "wrong_person") {
+      title = "Wrong account";
     }
     return (
       <Centered>
