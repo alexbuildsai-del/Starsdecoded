@@ -94,12 +94,13 @@ function DoorView({ door, primary = false }: { door: Door; primary?: boolean }) 
 }
 
 /**
- * Try again rewrites a failed report in place, free (MB-137). Once it starts,
+ * Try again rewrites a failed report in place and takes no credit (ADR-313). Once it starts,
  * the report is being written, so that status holds here until `GET /home`
  * says so and the quick look draws its door's own.
  */
 function TryAgain({ person, self }: { person: HomePerson; self: boolean }) {
   const client = useQueryClient();
+  const freeId = useId();
   const refresh = () => {
     void client.invalidateQueries({ queryKey: getGetHomeQueryKey() });
     void client.invalidateQueries({ queryKey: getListReportsQueryKey() });
@@ -119,9 +120,10 @@ function TryAgain({ person, self }: { person: HomePerson; self: boolean }) {
     : null;
   return (
     <div className="grid gap-2">
-      <Button size="lg" onClick={() => regenerate.mutate({ id: person.reportId })} className={WIDE}>
+      <Button size="lg" onClick={() => regenerate.mutate({ id: person.reportId })} aria-describedby={freeId} className={WIDE}>
         {TRY_AGAIN.label}
       </Button>
+      <p id={freeId} className="text-center text-xs leading-snug text-[#9AA3B5]">{TRY_AGAIN.free}</p>
       {error && <p role="alert" className={ALERT}>{error}</p>}
     </div>
   );
