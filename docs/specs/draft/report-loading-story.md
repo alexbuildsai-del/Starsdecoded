@@ -161,14 +161,10 @@ One screen under "Setting up Timeline", on the R16 dial:
 11. Words pass `/ux-copy`, and screens pass `/web-taste` at 390, 768 and 1440 px. The buyer walk still passes.
 
 ## Screens
-The artifact, version 2: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw
-- The Personal player, with the Known / Not known toggle.
-- The Timeline setup player.
-- The house set: the pairs, a still, and the covers before and after.
-- Transits and cycles.
-- The explainer on /method.
-- The reel storyboards, the before-and-after table, the rules and the questions.
-All frames are drawn from Mira's chart (synthetic), computed by `@workspace/engine`.
+The artifact, version 2: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw. In order: the Personal player (Known / Not
+known), the Timeline setup player, the house set, transits and cycles, the explainer on /method, the reel storyboards,
+the before and after, the rules and the questions. All frames are drawn from Mira's chart (synthetic), computed by
+`@workspace/engine`.
 
 ## Open questions (each with its default)
 1. **The house set everywhere, the report's House by House included, with the simpler covers lines?**
