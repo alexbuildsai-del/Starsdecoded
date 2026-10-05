@@ -27,10 +27,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusDots } from "@/components/StatusDots";
 import { GiftCover } from "@/components/dashboard/GiftCover";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { creditsEnforced } from "@/lib/credits-view";
 import { isPersonName, nameRuleLine } from "@/lib/person-name";
 import { PRODUCT } from "@/lib/product";
-import { refusalLine } from "@/lib/refusals";
+import { isNoCredit, refusalLine } from "@/lib/refusals";
 import { cn } from "@/lib/utils";
 
 export interface GiftFlowProps {
@@ -38,12 +37,10 @@ export interface GiftFlowProps {
   onClose: () => void;
   /** The gift once it exists, so the page can show its point on the orbit. */
   onSent?: (gift: Gift) => void;
-  /** Where credits are enforced and none are left, the flow offers Get credits through this. */
-  onGetCredits?: () => void;
+  /** Get credits, with none left or when the server finds none (402): a checkout that comes back to this flow. */
+  onGetCredits: () => void;
   /** The name on the cover; the viewer's own first name when left out, as the email prints it. */
   giverName?: string | null;
-  /** `creditsEnforced()` when left out. */
-  enforced?: boolean;
 }
 
 type Step = 1 | 2 | 3 | 4;
@@ -105,7 +102,7 @@ function Hint({ id, error, children }: { id: string; error: string | null; child
   );
 }
 
-function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<GiftFlowProps, "open">) {
+function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowProps, "open">) {
   const qc = useQueryClient();
   const [location, navigate] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
@@ -139,6 +136,10 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
         setStep(4);
         onSent?.(created);
       },
+      // The balance the flow read was out of date, so the pill catches up with the server's answer.
+      onError: (err) => {
+        if (isNoCredit(err)) qc.invalidateQueries({ queryKey: getGetCreditsQueryKey() });
+      },
     },
   });
 
@@ -159,7 +160,14 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
 
   const status = create.error?.status;
   const signedOut = !gift && ((isLoaded && !isSignedIn) || status === 401);
-  const zero = !gift && (enforced ?? creditsEnforced()) && available === 0;
+  const zero = !gift && available === 0;
+  // A gift the server refused for want of a credit keeps the server's own line once the balance catches up with it.
+  const noCredit = create.isError && isNoCredit(create.error);
+  const noCreditLine = noCredit ? refusalLine(create.error) : null;
+  const getCredits = () => {
+    onClose();
+    onGetCredits();
+  };
 
   const eyebrow = step < 4 && creditLine(available) ? `Gift a report · ${creditLine(available)}` : "Gift a report";
   const header = (title: string, progress: boolean) => (
@@ -196,24 +204,14 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
   }
 
   if (zero) {
-    // MB-6 provisional: where credits are enforced (ADR-138), a gift waits for a
-    // credit, and Get credits is the test checkout until real checkout exists.
+    // A gift holds a credit on every host (ADR-275), so it waits for one; the checkout comes back to this flow.
     return (
       <>
         {header("No credits left", false)}
-        <p className="text-sm leading-[1.5] text-muted-foreground">A gift uses one credit.</p>
-        {onGetCredits && (
-          <Button
-            size="lg"
-            className={cn(PRIMARY, "w-full")}
-            onClick={() => {
-              onClose();
-              onGetCredits();
-            }}
-          >
-            Get credits
-          </Button>
-        )}
+        <p className="text-sm leading-[1.5] text-muted-foreground">{noCreditLine ?? "A gift uses one credit."}</p>
+        <Button size="lg" className={cn(PRIMARY, "w-full")} onClick={getCredits}>
+          Get credits
+        </Button>
       </>
     );
   }
@@ -278,8 +276,6 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
   }
 
   if (step === 3) {
-    // With no credit to hold (production's soft pass, MB-6), the line says only how long the link lasts.
-    const holds = available === undefined || available > 0;
     const sendError =
       !create.isError || status === 401
         ? null
@@ -317,6 +313,10 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
             <div className="flex min-h-10 flex-1 items-center justify-center rounded-md border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.14)] px-4 font-label text-[13.5px] font-medium text-[#9FA8DA]">
               <StatusDots label="Sending" />
             </div>
+          ) : noCredit ? (
+            <Button type="button" size="lg" className={cn(PRIMARY, "flex-1")} onClick={getCredits}>
+              Get credits
+            </Button>
           ) : (
             <Button
               type="button"
@@ -331,9 +331,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName, enforced }: Omit<
           )}
         </div>
         <p className="text-xs leading-[1.45] text-muted-foreground">
-          {holds
-            ? `One credit is held for ${HOLD_DAYS} days. If ${firstName} doesn't claim it, it comes back to you.`
-            : `${firstName} has ${HOLD_DAYS} days to claim it.`}
+          {`One credit is held for ${HOLD_DAYS} days. If ${firstName} doesn't claim it, it comes back to you.`}
         </p>
       </>
     );

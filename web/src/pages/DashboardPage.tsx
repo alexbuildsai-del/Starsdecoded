@@ -11,9 +11,10 @@
  * without it whose own report is finished, their big cycles after the stories.
  */
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { AnimatePresence, animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
 import { Plus } from "lucide-react";
+import { useAuth } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCreditHistoryQueryKey,
@@ -28,7 +29,9 @@ import {
   type CreditHistoryItem,
   type Home,
   type HomePair,
+  type PriceItem,
 } from "@workspace/api-client-react";
+import type { BundleId } from "@workspace/commerce";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BundleList } from "@/components/BundleList";
 import { CompatibilityPicker } from "@/components/CompatibilityPicker";
@@ -53,12 +56,14 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useHome } from "@/hooks/useHome";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { creditsEnforced, pathHave } from "@/lib/credits-view";
+import { checkoutHref } from "@/lib/checkout-view";
+import { openFrom, pathHave, returnPath, signInFirst, withoutOpen, type AskingStep } from "@/lib/credits-view";
 import { quickLookFor } from "@/lib/home-view";
 import { nudgeFor, type Nudge as NudgeData } from "@/lib/nudges";
 import { CENTRE_ID, circlePoints, partnersOf } from "@/lib/orbit";
 import type { PairSelection } from "@/lib/pair-selection";
 import { usePageTitle } from "@/lib/page-title";
+import { usePrices } from "@/lib/prices";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { useShownZone } from "@/lib/reader-zone";
 import { first } from "@/lib/share-card";
@@ -220,18 +225,22 @@ function ViewSwitch({ view, onChange, ids }: { view: View; onChange: (view: View
 }
 
 interface StartPanelProps {
-  /** Zero credits where credits are enforced (ADR-138): the bundles and Get credits, else the reader's own report. */
+  /** No credit to use (ADR-275): the bundles and Get credits, else the reader's own report. */
   out: boolean;
   /** The balance is known, so the panel never offers one action and then the other. */
   settled: boolean;
   /** A claimed gift's suggestion of the reader's own report (ADR-139). */
   gift: NudgeData | null;
+  /** `usePrices().items`, so a live campaign shows on its row (reading 6). */
+  prices: readonly PriceItem[] | null;
+  /** Each bundle row's checkout, which comes back to the birth form for the reader's own report, as Get credits does. */
+  buy: (id: BundleId) => string;
   onOwnReport: () => void;
   onGetCredits: () => void;
 }
 
 /** Until the reader's own Personal report exists, the circle starts here (the approved mock's first state). */
-function StartPanel({ out, settled, gift, onOwnReport, onGetCredits }: StartPanelProps) {
+function StartPanel({ out, settled, gift, prices, buy, onOwnReport, onGetCredits }: StartPanelProps) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className={cn(PANEL, "grid gap-3.5 p-4")}>
@@ -248,7 +257,7 @@ function StartPanel({ out, settled, gift, onOwnReport, onGetCredits }: StartPane
       {settled &&
         (out ? (
           <>
-            <BundleList compact />
+            <BundleList compact prices={prices} buy={buy} />
             <Button onClick={onGetCredits} className="font-label">
               Get credits
             </Button>
@@ -459,9 +468,11 @@ function PhoneSheet({ open: shown, cardKey, label, closes, onClose, children }: 
 export default function DashboardPage() {
   usePageTitle("Dashboard");
   const [, navigate] = useLocation();
+  const search = useSearch();
+  const { isSignedIn } = useAuth();
   const phone = useIsMobile();
-  const enforced = creditsEnforced();
   const viewIds = useId();
+  const { items: prices } = usePrices();
 
   const homeQ = useHome();
   const reportsQ = useListReports({
@@ -485,9 +496,9 @@ export default function DashboardPage() {
   const loaded = !!home && Array.isArray(reportsQ.data) && Array.isArray(profilesQ.data);
   const failed = !loaded && (homeQ.isError || reportsQ.isError || profilesQ.isError);
 
-  // MB-6 provisional: zero reads Get credits only where credits are enforced (ADR-138); production's soft pass still writes.
-  const out = enforced && available !== undefined && available <= 0;
-  const settled = !enforced || available !== undefined;
+  // Zero means zero on every host (ADR-275); a balance still loading is neither.
+  const out = available !== undefined && available <= 0;
+  const settled = available !== undefined;
 
   const you = home?.you ?? null;
   const several = home?.several ?? false;
@@ -515,7 +526,7 @@ export default function DashboardPage() {
   const giftNudge = giftFrom && !you && !several && !out
     ? nudgeFor({ claimedGift: { giverName: giftFrom, hasOwnChart: false } })
     : null;
-  const circleNudge = nudgeFor({ alone, credits: enforced ? available : undefined });
+  const circleNudge = nudgeFor({ alone, credits: available });
 
   const [view, setView] = useState<View>("circle");
   const [selection, setSelection] = useState<{ id: string; giftId?: string } | null>(null);
@@ -528,8 +539,8 @@ export default function DashboardPage() {
 
   // A balance still loading is not zero, so the add point waits as Add someone rather than flashing Get credits.
   const points = useMemo(
-    () => (home ? circlePoints({ you: home.you, people: home.people, pairs: home.pairs, gifts, credits: available ?? 1, enforced }) : []),
-    [home, gifts, available, enforced],
+    () => (home ? circlePoints({ you: home.you, people: home.people, pairs: home.pairs, gifts, credits: available ?? 1 }) : []),
+    [home, gifts, available],
   );
 
   const ids = useMemo(
@@ -543,9 +554,15 @@ export default function DashboardPage() {
   const active = look || openGift ? (selection?.id ?? null) : null;
 
   const openCredits = useCallback(() => setCreditsOpen(true), []);
-  // Add someone hands itself to the credits sheet at zero, reading the balance as it opens; a checkout that
-  // just added one credit calls this before the page renders the new balance.
-  const openAdd = useCallback(() => setAddOpen(true), []);
+  // Each asking step's checkout comes back to that step (reading 2). Only an account buys (reading 1), so a reader
+  // without one signs in on the way, which a guarded route's own redirect would do without the checkout's query.
+  const buyHref = useCallback(
+    (item: BundleId | null, step: AskingStep) => signInFirst(checkoutHref(item, returnPath(step)), isSignedIn === false),
+    [isSignedIn],
+  );
+  const getCredits = useCallback((step: AskingStep) => navigate(buyHref(null, step)), [navigate, buyHref]);
+  // At zero Add someone has nothing to offer yet, so its door is the checkout that comes back to it.
+  const openAdd = useCallback(() => (out ? getCredits("add") : setAddOpen(true)), [out, getCredits]);
   const ownReport = useCallback(() => navigate("/chart?self=1"), [navigate]);
   const toView = useCallback((next: View) => {
     setSelection(null);
@@ -565,7 +582,7 @@ export default function DashboardPage() {
         }
         setSelection(null);
         if (several) toView("people");
-        else if (out) setCreditsOpen(true);
+        else if (out) getCredits("chart");
         else ownReport();
         return;
       }
@@ -579,7 +596,7 @@ export default function DashboardPage() {
       }
       setSelection({ id, giftId: tapped.giftId });
     },
-    [you, several, out, ownReport, openAdd, toView, points],
+    [you, several, out, getCredits, ownReport, openAdd, toView, points],
   );
 
   const closeCard = useCallback(() => {
@@ -594,6 +611,18 @@ export default function DashboardPage() {
     // A new object each press brings the picker back into view without choosing for the reader.
     setPreselect({});
   }, [toView]);
+
+  // A checkout comes back to the step that asked (reading 2): the sheet, the gift flow, Add someone, or the picker,
+  // whose pair the tab still remembers. The query goes as the step opens, so a reload or Back never opens it again.
+  const reopen = openFrom(search);
+  useEffect(() => {
+    if (!reopen) return;
+    navigate(withoutOpen(search), { replace: true });
+    if (reopen === "credits") setCreditsOpen(true);
+    else if (reopen === "gift") setGiftOpen(true);
+    else if (reopen === "add") setAddOpen(true);
+    else twoPeople();
+  }, [reopen, search, navigate, twoPeople]);
 
   let card: ReactNode = null;
   let cardLabel = "";
@@ -616,7 +645,17 @@ export default function DashboardPage() {
 
   const lead = !home ? null
     : several ? <SeveralPanel onPeople={() => toView("people")} />
-    : !you ? <StartPanel out={out} settled={settled} gift={giftNudge} onOwnReport={ownReport} onGetCredits={openCredits} />
+    : !you ? (
+      <StartPanel
+        out={out}
+        settled={settled}
+        gift={giftNudge}
+        prices={prices}
+        buy={(id) => buyHref(id, "chart")}
+        onOwnReport={ownReport}
+        onGetCredits={() => getCredits("chart")}
+      />
+    )
     : null;
 
   return (
@@ -718,8 +757,7 @@ export default function DashboardPage() {
                       reports={reports}
                       preselect={preselect}
                       openOnCreate={false}
-                      enforced={enforced}
-                      onGetCredits={openCredits}
+                      onGetCredits={() => getCredits("pair")}
                     />
                   </div>
                 </div>
@@ -757,17 +795,32 @@ export default function DashboardPage() {
         </PhoneSheet>
       )}
 
-      <CreditsSheet open={creditsOpen} onClose={() => setCreditsOpen(false)} onAddSomeone={openAdd} onGift={() => setGiftOpen(true)} />
+      <CreditsSheet
+        open={creditsOpen}
+        onClose={() => setCreditsOpen(false)}
+        onAddSomeone={openAdd}
+        onGift={() => setGiftOpen(true)}
+        prices={prices}
+        buy={(id) => buyHref(id, "credits")}
+      />
       <AddSomeoneSheet
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSomeoneYouKnow={() => navigate("/chart")}
         onGift={() => setGiftOpen(true)}
         onTwoPeople={twoPeople}
-        onGetCredits={openCredits}
+        onGetCredits={() => getCredits("add")}
       />
-      <GiftFlow open={giftOpen} onClose={() => setGiftOpen(false)} onGetCredits={openCredits} />
-      <PathSheet offer={path.offer} have={have} onClose={path.dismiss} onOwnChart={ownReport} onAddSomeone={openAdd} />
+      <GiftFlow open={giftOpen} onClose={() => setGiftOpen(false)} onGetCredits={() => getCredits("gift")} />
+      {/* The path after a bundle waits for any sheet a step or a checkout opened, so two never stack; its offer is held
+          until it shows (ADR-125). */}
+      <PathSheet
+        offer={creditsOpen || addOpen || giftOpen ? null : path.offer}
+        have={have}
+        onClose={path.dismiss}
+        onOwnChart={ownReport}
+        onAddSomeone={openAdd}
+      />
     </div>
   );
 }

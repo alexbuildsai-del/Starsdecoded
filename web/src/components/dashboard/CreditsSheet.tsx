@@ -1,29 +1,20 @@
 /**
  * The credits sheet (credit-loop, Credits you can see): what is left to use as
  * one count and its dots, the two ways to spend a credit, the bundles as the
- * site prices them (ADR-170, 172), and History behind a fold. It frames itself
- * like the other dashboard sheets, from the right on a desktop and from the
- * bottom on a phone.
+ * site prices them (ADR-170, 172), each one the way to its checkout, and
+ * History behind a fold. It frames itself like the other dashboard sheets,
+ * from the right on a desktop and from the bottom on a phone.
  */
-import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { useAuth } from "@clerk/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-import {
-  getGetCreditHistoryQueryKey,
-  getGetCreditsQueryKey,
-  useGetCreditHistory,
-  useGetCredits,
-  useTestCheckout,
-} from "@workspace/api-client-react";
+import { getGetCreditHistoryQueryKey, useGetCreditHistory, useGetCredits, type PriceItem } from "@workspace/api-client-react";
+import type { BundleId } from "@workspace/commerce";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BundleList } from "@/components/BundleList";
 import { StatusDots } from "@/components/StatusDots";
 import { CreditDots } from "@/components/dashboard/CreditPill";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { TEST_CHECKOUT, creditCount, creditsEnforced, historyLine } from "@/lib/credits-view";
-import { refusalLine } from "@/lib/refusals";
+import { creditCount, historyLine } from "@/lib/credits-view";
 import { cn } from "@/lib/utils";
 
 const EYEBROW = "font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]";
@@ -38,12 +29,14 @@ const OUTLINED = "border border-[rgba(92,107,192,.6)] text-[#9FA8DA] hover:borde
 export interface CreditsSheetProps {
   open: boolean;
   onClose: () => void;
-  /** Add someone's three choices. The sheet closes first, and a single credit just added comes straight here (acceptance 6). */
+  /** Add someone's three choices. The sheet closes first. */
   onAddSomeone: () => void;
   /** The gift flow. The sheet closes first. */
   onGift: () => void;
-  /** `creditsEnforced()` when left out. */
-  enforced?: boolean;
+  /** `usePrices().items`, so a live campaign shows on its row (reading 6). */
+  prices: readonly PriceItem[] | null;
+  /** Each bundle row's checkout, which comes back to this sheet (reading 2). */
+  buy: (id: BundleId) => string;
 }
 
 function day(iso: string): string {
@@ -115,45 +108,10 @@ function History() {
   );
 }
 
-export function CreditsSheet({ open, onClose, onAddSomeone, onGift, enforced }: CreditsSheetProps) {
+export function CreditsSheet({ open, onClose, onAddSomeone, onGift, prices, buy }: CreditsSheetProps) {
   const phone = useIsMobile();
-  const qc = useQueryClient();
-  const { isSignedIn } = useAuth();
-  const [location, navigate] = useLocation();
-  const [notice, setNotice] = useState<string | null>(null);
-  const live = enforced ?? creditsEnforced();
   const available = Math.max(0, useGetCredits().data?.available ?? 0);
   const zero = available === 0;
-
-  const checkout = useTestCheckout({
-    mutation: {
-      onSuccess: (counts, { data }) => {
-        qc.setQueryData(getGetCreditsQueryKey(), counts);
-        void qc.invalidateQueries({ queryKey: getGetCreditHistoryQueryKey() });
-        onClose();
-        // A bundle of 3 or more opens the path instead (`usePathOffer`, ADR-125).
-        if (data.count < 3) onAddSomeone();
-      },
-      onError: (err) => {
-        setNotice(
-          refusalLine(err) ??
-            (err.status === 401
-              ? "Sign in to get credits."
-              : err.status === 403
-                ? "Test credits aren't available here."
-                : "The credits weren't added. Try again in a moment."),
-        );
-      },
-    },
-  });
-  const { reset } = checkout;
-  const adding = checkout.isPending ? (checkout.variables?.data.count ?? null) : null;
-
-  useEffect(() => {
-    if (!open) return;
-    setNotice(null);
-    reset();
-  }, [open, reset]);
 
   const then = (next: () => void) => () => {
     onClose();
@@ -180,8 +138,8 @@ export function CreditsSheet({ open, onClose, onAddSomeone, onGift, enforced }: 
         {/* A balance above zero needs no line here: what a credit buys is said once, under the bundles (ADR-170). */}
         {zero && <p className="text-[13px] leading-relaxed text-muted-foreground">Your circle has room for more.</p>}
 
-        {/* The soft pass spends with no balance, so production keeps both doors at zero (ADR-138). */}
-        {(!zero || !live) && (
+        {/* With no credit both doors would only ask for one, so at zero the bundles are the way on (ADR-275). */}
+        {!zero && (
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={then(onAddSomeone)} className={cn(BUTTON, FILLED)}>
               Add someone
@@ -192,52 +150,10 @@ export function CreditsSheet({ open, onClose, onAddSomeone, onGift, enforced }: 
           </div>
         )}
 
-        <BundleList compact />
-
-        {/* MB-6 provisional: Get credits is the free test checkout until real checkout exists (ADR-138). */}
-        {live && (
-          <div className="grid gap-2.5">
-            <p className="text-[13px] text-[#AEB6C6]">Credits are free while we test.</p>
-            {isSignedIn === false ? (
-              <button
-                type="button"
-                onClick={then(() => navigate(`/sign-in?return_to=${encodeURIComponent(location)}`))}
-                className={cn(BUTTON, FILLED, "h-10 w-full text-[13.5px]")}
-              >
-                Sign in to get credits
-              </button>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                {TEST_CHECKOUT.map((count) =>
-                  adding === count ? (
-                    <span
-                      key={count}
-                      className={cn(BUTTON, "border border-[rgba(92,107,192,.35)] bg-[rgba(92,107,192,.1)] text-[#9FA8DA]")}
-                    >
-                      <StatusDots label="Adding" />
-                    </span>
-                  ) : (
-                    <button
-                      key={count}
-                      type="button"
-                      disabled={adding !== null}
-                      onClick={() => {
-                        setNotice(null);
-                        checkout.mutate({ data: { count } });
-                      }}
-                      className={cn(BUTTON, OUTLINED)}
-                    >
-                      Get {creditCount(count)}
-                    </button>
-                  ),
-                )}
-              </div>
-            )}
-            <p role="status" aria-live="polite" className="text-[13px] text-muted-foreground empty:hidden">
-              {notice}
-            </p>
-          </div>
-        )}
+        <div className="grid gap-2">
+          <BundleList compact prices={prices} buy={buy} />
+          <p className="text-xs leading-snug text-muted-foreground">Tap a bundle to buy it.</p>
+        </div>
 
         <History />
       </SheetContent>
