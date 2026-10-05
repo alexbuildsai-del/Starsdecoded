@@ -1,5 +1,12 @@
 import { useAuth } from "@clerk/react";
-import { getGetTimelineAccessQueryKey, useGetTimelineAccess, type TimelineAccess } from "@workspace/api-client-react";
+import {
+  getGetTimelineAccessQueryKey,
+  useGetTimelineAccess,
+  type TimelineAccess,
+  type TimelinePlan,
+} from "@workspace/api-client-react";
+import { resetDay } from "@/lib/ask-view";
+import type { DateOrder } from "@/lib/date-entry";
 
 /** Every Timeline door in the app reads this (ADR-262, 263); `loading` keeps a door from deciding before the answer is in. */
 export type TimelineAccessView = {
@@ -7,6 +14,8 @@ export type TimelineAccessView = {
   source: TimelineAccess["source"];
   hasPersonalReport: boolean;
   ask: TimelineAccess["ask"];
+  /** The live subscription, present only when the answer carries one (reading 7). */
+  plan?: TimelinePlan;
   loading: boolean;
 };
 
@@ -47,8 +56,8 @@ export function timelineAccessView(
   if (!reader.isLoaded) return { ...NO_TIMELINE, loading: true };
   if (!signedIn(reader)) return { ...NO_TIMELINE, loading: false };
   if (!answer) return { ...NO_TIMELINE, loading: pending };
-  const { access, source, hasPersonalReport, ask } = answer;
-  return { access, source, hasPersonalReport, ask, loading: false };
+  const { access, source, hasPersonalReport, ask, plan } = answer;
+  return { access, source, hasPersonalReport, ask, ...(plan ? { plan } : {}), loading: false };
 }
 
 /**
@@ -57,6 +66,24 @@ export function timelineAccessView(
  */
 export function timelineAccessFailed(reader: AccessReader, answer: TimelineAccess | undefined, failed: boolean): boolean {
   return signedIn(reader) && answer === undefined && failed;
+}
+
+export const ADMIN_PLAN_LINE = "Timeline, through admin access";
+export const PAST_DUE_LINE = "Your last payment didn't go through. Use Manage payment to fix it.";
+export const PORTAL_ERROR_LINE = "We couldn't open that. Try again in a minute.";
+
+/** The plan's name on the Account page; the admin's access is not a plan and keeps its own line. */
+export function planLine(source: TimelineAccess["source"], plan: Pick<TimelinePlan, "item"> | undefined): string {
+  if (source === "admin") return ADMIN_PLAN_LINE;
+  if (!plan) return "Timeline";
+  return plan.item === "timeline_year" ? "Timeline, yearly" : "Timeline, monthly";
+}
+
+/** "Renews on 1 November." or, once a cancel is set, "Ends on 1 November."; the days are the API's. */
+export function planDayLine(plan: Pick<TimelinePlan, "renewsOn" | "endsOn">, order: DateOrder): string | null {
+  if (plan.endsOn) return `Ends on ${resetDay(plan.endsOn, order)}.`;
+  if (plan.renewsOn) return `Renews on ${resetDay(plan.renewsOn, order)}.`;
+  return null;
 }
 
 /** What Timeline's own page does with the answer: wait, offer to read it again, send the reader to /timeline, or open. */

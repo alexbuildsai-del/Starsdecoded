@@ -1,23 +1,28 @@
 /**
  * The Account page (ADR-263; reading 28), at /dashboard/account from the account menu, for every signed-in reader:
- * what the account holds beside its reports, which today is Timeline. With access it says how the reader has it and
- * how much of Ask's month is used, with the day the count starts again; without, one line and the way to /timeline,
- * never a price. The controls to stop Timeline or change how it's paid come with billing, each with what it does
- * (ADR-264). Credits stay on the dashboard, about reports. Kept out of search as every app route is.
+ * what the account holds beside its reports, which today is Timeline. With access it says how the reader has it, the
+ * day it renews or ends and how much of Ask's month is used, with the day the count starts again, then Manage payment
+ * and Cancel Timeline, which both open Stripe's Portal (ADR-264, 277; reading 7). Without, the price and Start
+ * Timeline, which opens /checkout. Credits stay on the dashboard, about reports. Kept out of search as every app
+ * route is.
  */
 import { useEffect, useId } from "react";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetTimelineAccessQueryKey, type TimelineAccess } from "@workspace/api-client-react";
+import { getGetTimelineAccessQueryKey, useOpenBillingPortal } from "@workspace/api-client-react";
 import { AccountMenu } from "@/components/AccountMenu";
 import { StatusDots } from "@/components/StatusDots";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { resetDay } from "@/lib/ask-view";
 import type { DateOrder } from "@/lib/date-entry";
+import { checkoutHref } from "@/lib/checkout-view";
 import { usePageTitle } from "@/lib/page-title";
-import { useTimelineAccess, type TimelineAccessState } from "@/lib/timeline-access";
+import { START_TIMELINE, planPriceLine } from "@/lib/teaser-view";
+import {
+  PAST_DUE_LINE, PORTAL_ERROR_LINE, planDayLine, planLine, useTimelineAccess, type TimelineAccessState,
+} from "@/lib/timeline-access";
 
 // The dashboard's section eyebrow and Timeline's own button, so the page reads as part of the app beside them.
 const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-[#8E9BE0]";
@@ -27,9 +32,48 @@ const BUTTON =
 const LINK =
   "justify-self-start rounded text-sm text-[#9FA8DA] underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-// MB-197 provisional: the admin is access's one source until billing, which writes a subscription's own plan line.
-function planLine(source: TimelineAccess["source"]): string {
-  return source === "admin" ? "Timeline, through admin access" : "Timeline";
+const ACCOUNT = "/dashboard/account";
+const NEEDS_REPORT = "Timeline reads your own Personal report. Write yours first.";
+
+/** Manage payment and Cancel Timeline open the same Portal, where the reader does the rest; it returns here. */
+function PortalButtons({ canCancel }: { canCancel: boolean }) {
+  const portal = useOpenBillingPortal({
+    mutation: {
+      onSuccess: ({ url }) => window.location.assign(url),
+    },
+  });
+
+  // Back from the Portal through the browser's cache, this page comes back as it was left, with the buttons waiting.
+  const { reset } = portal;
+  useEffect(() => {
+    const back = (event: PageTransitionEvent) => {
+      if (event.persisted) reset();
+    };
+    window.addEventListener("pageshow", back);
+    return () => window.removeEventListener("pageshow", back);
+  }, [reset]);
+
+  const open = () => portal.mutate({ data: { returnTo: ACCOUNT } });
+  const busy = portal.isPending || portal.isSuccess;
+  return (
+    <>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={open} disabled={busy} className={`${BUTTON} disabled:opacity-60`}>
+          Manage payment
+        </button>
+        {canCancel ? (
+          <button type="button" onClick={open} disabled={busy} className={`${BUTTON} disabled:opacity-60`}>
+            Cancel Timeline
+          </button>
+        ) : null}
+      </div>
+      {portal.isError ? (
+        <p role="alert" className="text-sm leading-normal text-[#AEB6C6]">
+          {PORTAL_ERROR_LINE}
+        </p>
+      ) : null}
+    </>
+  );
 }
 
 function TimelinePlan({ state, order, onRetry }: { state: TimelineAccessState; order: DateOrder; onRetry: () => void }) {
@@ -54,16 +98,31 @@ function TimelinePlan({ state, order, onRetry }: { state: TimelineAccessState; o
     return (
       <>
         <p className={PLAN}>Your account doesn't have Timeline.</p>
+        <p className="text-sm leading-normal text-[#E8EBF2]">{planPriceLine()}</p>
+        {state.hasPersonalReport ? (
+          <Link href={checkoutHref("timeline_month", ACCOUNT)} className={BUTTON}>
+            {START_TIMELINE}
+          </Link>
+        ) : (
+          <p className="text-sm leading-normal text-[#AEB6C6]">{NEEDS_REPORT}</p>
+        )}
         <Link href="/timeline" className={LINK}>
           What Timeline does <span aria-hidden="true">›</span>
         </Link>
       </>
     );
   }
-  const { ask } = state;
+  const { ask, plan } = state;
+  const dayLine = plan ? planDayLine(plan, order) : null;
   return (
     <>
-      <p className={PLAN}>{planLine(state.source)}</p>
+      <p className={PLAN}>{planLine(state.source, plan)}</p>
+      {plan && state.source !== "admin" ? (
+        <div className="grid gap-0.5">
+          {dayLine ? <p className="text-sm leading-normal text-[#E8EBF2]">{dayLine}</p> : null}
+          {plan.status === "past_due" ? <p className="text-sm leading-normal text-[#AEB6C6]">{PAST_DUE_LINE}</p> : null}
+        </div>
+      ) : null}
       {ask ? (
         <div className="grid gap-0.5">
           <p className="text-sm leading-normal text-[#E8EBF2]">
@@ -75,6 +134,7 @@ function TimelinePlan({ state, order, onRetry }: { state: TimelineAccessState; o
       <Link href="/dashboard/timeline" className={BUTTON}>
         Open Timeline
       </Link>
+      {plan && state.source !== "admin" ? <PortalButtons canCancel={plan.endsOn === null} /> : null}
     </>
   );
 }

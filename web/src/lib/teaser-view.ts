@@ -3,8 +3,9 @@
  * finished sees their life's big cycles last on the dashboard, with no price. Each cycle is one of the four known ages,
  * the one under way or next, dated by the API from the stored birth (acceptance 1). Not now hides it in this browser;
  * it comes back once, when a big cycle that was a year or more away is under a year away, and a second Not now hides
- * it for good. Pure, so a node test pins both.
+ * it for good. It shows the price from the catalogue and Start Timeline (ADR-264, 277). Pure, so a node test pins both.
  */
+import { PLANS, formatEuro } from "@workspace/commerce";
 import type { Teaser, TeaserCycle } from "@workspace/api-client-react";
 import type { CycleView } from "@/lib/life-view";
 
@@ -21,6 +22,13 @@ export function teaserStatuses(cycles: readonly Pick<TeaserCycle, "on">[], today
   let behind = cycles.findIndex((cycle, i) => i > 0 && cycle.on < cycles[i - 1].on);
   if (behind < 0) behind = cycles.length > 0 && cycles[cycles.length - 1].on < today ? 0 : cycles.length;
   return cycles.map((cycle, i) => (i >= behind ? "past" : cycle.on > today ? "ahead" : "now"));
+}
+
+export const START_TIMELINE = "Start Timeline";
+
+/** "€9.99 a month or €69.99 a year", from the catalogue's plans so no price is typed here (R-6.3). */
+export function planPriceLine(): string {
+  return PLANS.map((plan) => `${formatEuro(plan.cents)} a ${plan.interval}`).join(" or ");
 }
 
 export const RING_LABEL = "at your Saturn return";
