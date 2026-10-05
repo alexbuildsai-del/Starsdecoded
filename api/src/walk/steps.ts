@@ -9,7 +9,8 @@
  * What the staging walk does with a step: `live` runs it on the live site; `stored` is a step that writes a report,
  * which a deploy's walk copies in from the seed and checks, and a Release's walk writes for real as the next seed
  * (reading 11); `local` skips it there, for the reason it gives. Credit counts differ by host, since staging's writes
- * are stored and Mira starts there with test credits, so a step asserts from the ledger it reads, never a typed count.
+ * are stored and Mira starts there with test credits, so a step names what changes and never a balance, and each walk
+ * checks the change against the ledger it reads.
  */
 
 export type StagingKind = "live" | "stored" | "local";
