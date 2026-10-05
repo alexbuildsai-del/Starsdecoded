@@ -154,8 +154,7 @@ prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels
   athena, night-angular, high-latitude, oprah-winfrey), compared with r06.
 
 ## Out of scope
-Stripe, live prices, pricing (ADR-230, 242, 264); the Monday letter; Chiron (MB-189); new bundle names; Gift from Ask; MB-216.
-
+Stripe, live prices, pricing (ADR-230, 242, 264); the Monday letter; Chiron (MB-189); new bundle names; Gift; MB-216.
 ## Acceptance criteria
 1. A new account's dashboard shows the circle and three bundle buttons only; tapping Single reaches the birth form with
    one test credit, on staging, in two taps.
