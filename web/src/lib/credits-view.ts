@@ -103,14 +103,18 @@ const HISTORY_FALLBACK: Record<CreditHistoryItem["kind"], (count: number) => str
   bought: (count) => `${creditCount(count)} added`,
   gift: () => "A gift",
   spent: () => "A report",
+  granted: () => "From Stars Decoded",
+  refunded: () => "Refunded",
 };
+
+const TAKES_AWAY: ReadonlySet<CreditHistoryItem["kind"]> = new Set(["spent", "refunded"]);
 
 /** The ledger sends a positive count and lets the kind carry the sign (reading 9). */
 export function historyLine(item: Pick<CreditHistoryItem, "kind" | "count" | "label" | "test">): HistoryLine {
   const count = whole(item.count);
   const text = item.label.trim() || HISTORY_FALLBACK[item.kind](count);
   return {
-    amount: `${item.kind === "spent" ? "−" : "+"}${count}`,
+    amount: `${TAKES_AWAY.has(item.kind) ? "−" : "+"}${count}`,
     text,
     // Reading 9 marks the test bundle's line only: off production every
     // credit is a test one, so a mark on each spend would say nothing. The

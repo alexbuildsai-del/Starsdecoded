@@ -173,6 +173,15 @@ describe("historyLine", () => {
       .toEqual({ amount: "−1", text: "Gift to Pierre", test: false });
   });
 
+  it("adds a grant and the yearly plan's credit, and takes a refund away (ADR-275, ADR-276)", () => {
+    expect(historyLine({ kind: "granted", count: 3, label: "From Stars Decoded", test: true }))
+      .toEqual({ amount: "+3", text: "From Stars Decoded", test: false });
+    expect(historyLine({ kind: "granted", count: 1, label: "With Timeline", test: false }))
+      .toEqual({ amount: "+1", text: "With Timeline", test: false });
+    expect(historyLine({ kind: "refunded", count: 2, label: "Refunded", test: false }))
+      .toEqual({ amount: "−2", text: "Refunded", test: false });
+  });
+
   it("marks a test bundle's line once, even when the label already says so (ADR-138)", () => {
     expect(historyLine({ kind: "bought", count: 5, label: "5 credits bought", test: true }).test).toBe(true);
     expect(historyLine({ kind: "bought", count: 5, label: "5 test credits", test: true }).test).toBe(false);
@@ -186,6 +195,8 @@ describe("historyLine", () => {
   it("still reads when the ledger sends no label", () => {
     expect(historyLine({ kind: "bought", count: 3, label: " ", test: true }).text).toBe("3 credits added");
     expect(historyLine({ kind: "spent", count: 1, label: "", test: false }).text).toBe("A report");
+    expect(historyLine({ kind: "granted", count: 3, label: "", test: true }).text).toBe("From Stars Decoded");
+    expect(historyLine({ kind: "refunded", count: 1, label: " ", test: false }).text).toBe("Refunded");
   });
 });
 

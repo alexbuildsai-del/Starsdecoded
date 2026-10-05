@@ -30,6 +30,8 @@ tags:
     description: Share my report, the reader's own Personal report read through a grant until its sharer stops (ADR-235)
   - name: credits
     description: One balance of credits, its History and the test checkout (ADR-129, ADR-138)
+  - name: checkout
+    description: Our /checkout page over Stripe's fields, the return's state and the Customer Portal (ADR-274, ADR-277)
   - name: waitlist
     description: The pre-launch list production collects until Stars Decoded opens
   - name: timeline
@@ -173,7 +175,7 @@ paths:
       operationId: createReport
       tags: [reports]
       summary: Create a new natal chart report
-      description: Accepts birth data, computes the natal chart, and starts AI interpretation
+      description: Accepts birth data, computes the natal chart, and starts AI interpretation; a credit is taken before anything is written, and with none it answers 402 (ADR-275).
       requestBody:
         required: true
         content:
@@ -195,6 +197,8 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "401":
           $ref: "#/components/responses/SignInRequired"
+        "402":
+          $ref: "#/components/responses/NoCredit"
         "429":
           $ref: "#/components/responses/RateLimited"
         "503":
@@ -337,10 +341,13 @@ paths:
       description: >
         Re-runs interpretation on the stored chart, free, for whoever may
         rewrite the report, as `canRegenerate` says (MB-169), and only where a
-        rewrite is wanted: a failed report (Try again, MB-137), an outdated one
-        (MB-170), or one written on an earlier prompt version. Its 429 is the
-        writing limit, or a second regenerate of the same report within a
-        minute, which sends Retry-After but no `retryAfterSeconds` in its body.
+        rewrite is wanted: a failed report (Try again), an outdated one
+        (MB-170), or one written on an earlier prompt version. Try again takes
+        no credit: a failed report keeps the one it took, and after its third
+        failure that credit is back in the balance and the report is final,
+        with no Try again (ADR-313). Its 429 is the writing limit, or a second
+        regenerate of the same report within a minute, which sends Retry-After
+        but no `retryAfterSeconds` in its body.
       parameters:
         - name: id
           in: path
@@ -371,7 +378,8 @@ paths:
             `in_progress`: the report is already being written. `up_to_date`:
             a finished report on the current prompt version, written for its
             profile's birth time, needs no rewrite ("This report is already up
-            to date"; MB-170).
+            to date"; MB-170). A final report, its credit back after its third
+            failure, has no Try again and answers 409 too (ADR-313).
           content:
             application/json:
               schema:
@@ -630,7 +638,9 @@ paths:
         Both reports must be complete and visible to the viewer. Reads their
         stored interpretations and cached charts; no birth data is read and
         nothing is regenerated (ADR-39). The report streams through
-        GET /reports/{id} and /reports/{id}/status like a natal report.
+        GET /reports/{id} and /reports/{id}/status like a natal report. A
+        credit is taken before anything is written, and with none it answers
+        402 (ADR-275).
       requestBody:
         required: true
         content:
@@ -658,6 +668,8 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "401":
           $ref: "#/components/responses/SignInRequired"
+        "402":
+          $ref: "#/components/responses/NoCredit"
         "429":
           $ref: "#/components/responses/RateLimited"
         "503":
@@ -940,7 +952,7 @@ paths:
       operationId: getCreditHistory
       tags: [credits]
       summary: What the viewer's credits did, newest first
-      description: History's lines, bought, a gift received and spent (ADR-129); a test bundle's line says so (ADR-138). Empty for anonymous users.
+      description: History's lines, bought, a gift received, granted, refunded and spent (ADR-129, ADR-275, ADR-276); a test bundle's line says so (ADR-138). Empty for anonymous users.
       responses:
         "200":
           description: History lines
@@ -990,6 +1002,146 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "429":
           $ref: "#/components/responses/RateLimited"
+
+  /checkout/options:
+    get:
+      operationId: getCheckoutOptions
+      tags: [checkout]
+      summary: What each item costs on this request, and whether checkout is ready
+      description: Every catalogue item at the price the server sets for this request, a live campaign's included, with Stripe's publishable key and whether checkout is ready; answers anyone and writes nothing (ADR-277, ADR-278, ADR-280).
+      parameters:
+        - name: c
+          in: query
+          required: false
+          schema:
+            type: string
+          description: A link-only campaign's slug, from the `?c=` its link carried and the tab kept; one that names no live campaign changes no price (ADR-278).
+      responses:
+        "200":
+          description: The prices, the key and whether checkout is ready (ADR-277, ADR-280)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutOptions"
+
+  /checkout:
+    post:
+      operationId: createCheckout
+      tags: [checkout]
+      summary: Start a Checkout Session for one item under our tick
+      description: Makes the purchase row with the tick's hash and time and a Checkout Session in Stripe's `elements` mode at the server's price, for the signed-in account's own Stripe Customer; nothing is granted here, only the webhook grants (ADR-274, ADR-275).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutBody"
+      responses:
+        "201":
+          description: The session our /checkout page mounts Stripe's fields on (ADR-274)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutStarted"
+        "400":
+          description: "`tick_required`: the box was not ticked (ADR-274); `bad_return`: `returnTo` is not on the list (reading 2); or a validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "`sign_in_required`: buying needs an account, on every host (reading 1)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "A plan only: `no_personal_report`, the reader has no finished Personal report of their own for Timeline to read; `already_subscribed`, they already have a live plan (ADR-277)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          description: "`checkout_unavailable`: Stripe isn't ready on this host, or on production the sale isn't ready (reading 8, MB-115)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /checkout/{purchaseId}:
+    get:
+      operationId: getCheckout
+      tags: [checkout]
+      summary: Where a purchase stands, for the page that waits for its credit
+      description: The purchase's state, item and return, read by the done page until the webhook grants it; only its buyer reads it (ADR-274, ADR-275).
+      parameters:
+        - name: purchaseId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The id POST /checkout answered (ADR-274).
+      responses:
+        "200":
+          description: The purchase's state (ADR-275)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutState"
+        "404":
+          description: No purchase with this id is the signed-in reader's, so a stranger learns nothing (ADR-274)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /billing/portal:
+    post:
+      operationId: openBillingPortal
+      tags: [checkout]
+      summary: Open Stripe's Customer Portal to manage or cancel Timeline
+      description: A Customer Portal session for the signed-in account's Stripe Customer, behind Manage payment and Cancel Timeline on the Account page (ADR-277).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenBillingPortalBody"
+      responses:
+        "200":
+          description: The Portal's address, opened at once (ADR-277)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingPortalOpened"
+        "400":
+          description: "`bad_return`: `returnTo` is not on the list (reading 2); or a validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "`sign_in_required`: the Portal belongs to an account (reading 1)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "`no_customer`: the account has never paid, so Stripe has nothing of theirs to manage (reading 1)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          description: "`checkout_unavailable`: Stripe isn't ready on this host (reading 8)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /invites:
     get:
@@ -1214,7 +1366,7 @@ paths:
       operationId: createGift
       tags: [gifts]
       summary: Gift a report
-      description: Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
+      description: Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275).
       requestBody:
         required: true
         content:
@@ -1240,6 +1392,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "402":
+          $ref: "#/components/responses/NoCredit"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -1530,13 +1684,13 @@ paths:
       summary: Whether the signed-in reader has Timeline (ADR-262)
       description: >
         The one access check's answer (ADR-262), for every signed-in reader:
-        today its one source is the signed-in admin, until billing adds an
-        active subscription (MB-197). It says too whether the reader has a
-        finished Personal report of their own, and with access Ask's use this
-        month (ADR-263).
+        its sources are the signed-in admin and a live Timeline plan
+        (ADR-277), whose item and dates `plan` carries. It says too whether
+        the reader has a finished Personal report of their own, and with
+        access Ask's use this month (ADR-263).
       responses:
         "200":
-          description: The reader's access, its source and Ask's count this month (ADR-262, ADR-263, MB-197)
+          description: The reader's access, its source, their plan and Ask's count this month (ADR-262, ADR-263, ADR-277)
           content:
             application/json:
               schema:
@@ -1788,8 +1942,8 @@ components:
     NoTimeline:
       description: >
         `no_timeline`: the reader does not have Timeline. One access check
-        answers it on every Timeline and Ask route (ADR-262); today its one
-        source is the signed-in admin (MB-197).
+        answers it on every Timeline and Ask route (ADR-262); its sources are
+        the signed-in admin and a live Timeline plan (ADR-277).
       content:
         application/json:
           schema:
@@ -1802,6 +1956,15 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+    NoCredit:
+      description: >
+        `no_credit`: the reader has no credit to take, so nothing was written
+        or sent, on every host (ADR-275). `message` is the line the page shows,
+        beside Get credits.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NoCredit"
 
   schemas:
     HealthStatus:
@@ -1877,6 +2040,18 @@ components:
           type: string
           description: The one line the page shows, so its words live in the API.
       required: [error, reason, message]
+
+    NoCredit:
+      type: object
+      description: The 402 body of a report or a gift asked for with no credit to take (ADR-275).
+      properties:
+        error:
+          type: string
+          enum: [no_credit]
+        message:
+          type: string
+          description: The one line the page shows, so its words live in the API.
+      required: [error, message]
 
     JoinWaitlistBody:
       type: object
@@ -2159,7 +2334,7 @@ components:
           nullable: true
         canRegenerate:
           type: boolean
-          description: The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last.
+          description: The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last.
         outdated:
           type: boolean
           description: A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170). Sent as on Report.
@@ -2667,7 +2842,7 @@ components:
           description: On a sharer's seat, Share yours back is offered, since the reader has a finished Personal report of their own not yet shared with them (ADR-235, MB-104).
         canRegenerate:
           type: boolean
-          description: The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-137, MB-169).
+          description: The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313).
         triad:
           type: object
           nullable: true
@@ -3040,7 +3215,8 @@ components:
           description: Overlay cards, the body that sits in the other chart's house.
         of:
           type: string
-          enum: [A, B]
+          enum: [A, B, none]
+          description: An overlay's owner, A or B; an aspect card stores none, as the pair's link schema asks of the model (B-15).
         house:
           type: integer
         reading:
@@ -3620,7 +3796,7 @@ components:
           description: First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).
         canRegenerate:
           type: boolean
-          description: The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169).
+          description: The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313).
         outdated:
           type: boolean
           description: A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170).
@@ -4131,7 +4307,7 @@ components:
           description: Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).
         creditHeld:
           type: boolean
-          description: True while one of the giver's credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).
+          description: True while one of the giver's credits is held for it (ADR-123); false once claimed or returned, or on a gift sent under the old soft pass, which held none (closed by ADR-275).
       required: [id, recipientName, email, note, sentAt, returnsAt, remindedAt, state, creditHeld]
 
     GiftCreated:
@@ -4315,18 +4491,19 @@ components:
 
     CreditHistoryItem:
       type: object
-      description: One line of History, bought, a gift received or spent (ADR-129).
+      description: One line of History, bought, a gift received, granted, refunded or spent (ADR-129, ADR-275, ADR-276).
       properties:
         kind:
           type: string
-          enum: [bought, gift, spent]
+          enum: [bought, gift, spent, granted, refunded]
+          description: "`granted` is credits Stars Decoded gave, a tester's grant or the yearly plan's credit (ADR-276, ADR-277); `refunded` is credits a refund or a dispute took back (ADR-275)."
         count:
           type: integer
-          description: Credits the line moves, a positive number; bought and gift add them, spent takes them away.
+          description: Credits the line moves, a positive number; bought, gift and granted add them, spent and refunded take them away.
         date: { type: string, description: "ISO-8601 timestamp of the line" }
         label:
           type: string
-          description: What the line reads, "A gift from {giver}" on a gift, the report's name when spent, "Gift to {name}" on the giver's side once claimed.
+          description: What the line reads, "A gift from {giver}" on a gift, the report's name when spent, "Gift to {name}" on the giver's side once claimed, "From Stars Decoded" on a grant, "With Timeline" on the yearly plan's credit, "Refunded" on a refund (reading 4).
         test:
           type: boolean
           description: A test bundle's line, which says so (ADR-138).
@@ -4340,6 +4517,143 @@ components:
           type: integer
           enum: [1, 3, 5]
       required: [count]
+
+    CatalogueItemId:
+      type: string
+      description: What the catalogue sells, the three bundles and Timeline's two plans; Single is solo here and single only as Stripe's lookup key (ADR-277).
+      enum: [solo, couple, family, timeline_month, timeline_year]
+
+    PriceItem:
+      type: object
+      description: One catalogue item at the price the server sets for this request (R-7.1, ADR-277, ADR-278).
+      properties:
+        id:
+          $ref: "#/components/schemas/CatalogueItemId"
+        kind:
+          type: string
+          enum: [bundle, plan]
+        name:
+          type: string
+          description: The catalogue's name, "Couple" or "Timeline" (ADR-277).
+        line:
+          type: string
+          nullable: true
+          description: The catalogue's line under a bundle's name, word for word; null on a plan, which has none (ADR-277).
+        credits:
+          type: integer
+          nullable: true
+          description: The credits a bundle adds; null on a plan (ADR-277).
+        interval:
+          type: string
+          enum: [month, year]
+          nullable: true
+          description: How often a plan renews; null on a bundle (ADR-277).
+        cents:
+          type: integer
+          description: What this request pays, in euro cents; a live campaign's price while one runs (ADR-278).
+        fullCents:
+          type: integer
+          description: The item's price without a campaign, struck through beside a campaign's price; never the Singles total, which the catalogue keeps (ADR-278, reading 6).
+        campaign:
+          description: The live campaign behind `cents`; null without one (ADR-278).
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+              description: The campaign's name, which Stripe's receipt also gives (ADR-278).
+            endsOn:
+              $ref: "#/components/schemas/CalendarDay"
+              description: Its last day, in Europe/Brussels, printed once as "until {last day}" (reading 5, reading 6).
+          required: [name, endsOn]
+      required: [id, kind, name, line, credits, interval, cents, fullCents, campaign]
+
+    CheckoutOptions:
+      type: object
+      description: What /checkout needs before Pay, every price for this request, Stripe's publishable key and whether checkout is ready (ADR-277, ADR-280).
+      properties:
+        publishableKey:
+          type: string
+          nullable: true
+          description: Stripe's publishable key for this host, served from Railway so every Stripe key has one home; null without one (ADR-280).
+        ready:
+          type: boolean
+          description: False while POST /checkout would answer 503, so the page says checkout isn't ready yet (reading 8, reading 14).
+        items:
+          type: array
+          description: Every catalogue item in its order, the three bundles then Timeline's two plans (ADR-277).
+          items:
+            $ref: "#/components/schemas/PriceItem"
+      required: [publishableKey, ready, items]
+
+    CreateCheckoutBody:
+      type: object
+      description: One item to buy, under our tick, and the step to go back to (ADR-274).
+      properties:
+        item:
+          $ref: "#/components/schemas/CatalogueItemId"
+        ticked:
+          type: boolean
+          description: The reader ticked the box, CHECKOUT_TICK or PLAN_TICK for a plan; false is 400 `tick_required` (ADR-274).
+        returnTo:
+          type: string
+          description: The step that asked, where the done page goes back to; one off the list `^/(chart|dashboard(/account)?(\?open=(credits|gift|add|pair))?|report/[0-9a-f-]{36})$` is 400 `bad_return`, so it is never an open redirect (reading 2).
+        campaign:
+          type: string
+          description: A link-only campaign's slug the tab kept; one that names no live campaign changes no price (ADR-278).
+      required: [item, ticked, returnTo]
+
+    CheckoutStarted:
+      type: object
+      description: The purchase POST /checkout made and the session our /checkout page mounts Stripe's fields on (ADR-274).
+      properties:
+        purchaseId:
+          type: string
+          description: The purchase row, which GET /checkout/{purchaseId} reads (ADR-274).
+        clientSecret:
+          type: string
+          description: The Checkout Session's client secret, which Stripe.js takes to mount the fields (ADR-274).
+        amountCents:
+          type: integer
+          description: What Pay charges, in euro cents, set by the server (R-7.1, ADR-274).
+      required: [purchaseId, clientSecret, amountCents]
+
+    CheckoutState:
+      type: object
+      description: Where a purchase stands, read by the page that waits for its credit (ADR-274, ADR-275).
+      properties:
+        status:
+          type: string
+          enum: [open, granted, failed, expired, refunded]
+          description: "`open` waits for the payment or the webhook; `granted` is in the balance, or the plan has started; `failed` and `expired` were never paid; `refunded` was taken back by a refund or a dispute (ADR-275)."
+        item:
+          $ref: "#/components/schemas/CatalogueItemId"
+        returnTo:
+          type: string
+          description: The step that asked, as POST /checkout kept it (reading 2).
+        credits:
+          type: integer
+          nullable: true
+          description: The credits the purchase adds, a bundle's count; null on a plan (ADR-275).
+      required: [status, item, returnTo, credits]
+
+    OpenBillingPortalBody:
+      type: object
+      description: Where Stripe's Customer Portal sends the reader back (ADR-277).
+      properties:
+        returnTo:
+          type: string
+          description: A page on the same list as checkout's returnTo, the Account page; one off it is 400 `bad_return` (reading 2).
+      required: [returnTo]
+
+    BillingPortalOpened:
+      type: object
+      description: A Customer Portal session to open at once (ADR-277).
+      properties:
+        url:
+          type: string
+          description: Stripe's address for the session.
+      required: [url]
 
     # A day is a string, never format: date, which the zod codegen's useDates would turn into a UTC Date and so lose
     # the reader's zone the day was read in.
@@ -4779,16 +5093,15 @@ components:
 
     TimelineAccess:
       type: object
-      description: The one access check's answer for the signed-in reader (ADR-262, MB-197).
+      description: The one access check's answer for the signed-in reader (ADR-262, ADR-277).
       properties:
         access:
           type: boolean
         source:
-          # MB-197 provisional: the admin is the one source until billing adds an active subscription.
           type: string
           enum: [admin, subscription]
           nullable: true
-          description: Where access comes from, the admin until billing adds a subscription; null without access (ADR-262, MB-197).
+          description: Where access comes from, the admin or a live Timeline plan; null without access (ADR-262, ADR-277).
         hasPersonalReport:
           type: boolean
           description: The reader has a finished Personal report of their own, whose chart Timeline reads (ADR-205).
@@ -4797,7 +5110,36 @@ components:
           anyOf:
             - $ref: "#/components/schemas/AskUsage"
             - type: "null"
+        plan:
+          description: The reader's live Timeline plan; null, or left out, when they have none (ADR-277).
+          anyOf:
+            - $ref: "#/components/schemas/TimelinePlan"
+            - type: "null"
       required: [access, source, hasPersonalReport, ask]
+
+    TimelinePlan:
+      type: object
+      description: A live Timeline plan, the subscription that gives access while Stripe calls it active, trialing or past due (ADR-277, reading 7).
+      properties:
+        item:
+          type: string
+          enum: [timeline_month, timeline_year]
+          description: Monthly or yearly, as the catalogue names the plan (ADR-277).
+        status:
+          type: string
+          enum: [active, trialing, past_due]
+          description: The subscription's status as Stripe names it; past_due while Stripe retries a payment that failed (reading 7).
+        renewsOn:
+          description: The day it renews, its period's end as a day in Europe/Brussels; null once it is set to end (reading 7).
+          anyOf:
+            - $ref: "#/components/schemas/CalendarDay"
+            - type: "null"
+        endsOn:
+          description: The day access ends after a cancel at the period's end, as a day in Europe/Brussels; null while it renews (reading 7).
+          anyOf:
+            - $ref: "#/components/schemas/CalendarDay"
+            - type: "null"
+      required: [item, status, renewsOn, endsOn]
 
     Week:
       type: object
