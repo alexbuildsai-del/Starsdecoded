@@ -5,6 +5,26 @@ import { cents, labApi, type Preflight, type ReleaseDetail, type ReleaseSummary 
 
 const short = (sha: string | null) => (sha ? sha.slice(0, 7) : "none");
 
+// The server's walk row says pass or fail; the preflight may spell it either way.
+function walkLine(walk: Preflight["qaWalk"]): string {
+  if (!walk) return "QA walk has not run yet.";
+  const when = walk.at.slice(0, 16).replace("T", " ");
+  switch (walk.status) {
+    case "pass":
+    case "passed":
+      return `QA walk passed, ${when}`;
+    case "fail":
+    case "failed":
+      return `QA walk failed at ${walk.step ?? "the start"}, ${when}`;
+    case "unseeded":
+      return "QA walk is waiting for the first Release to write its reports.";
+    case "unconfigured":
+      return `QA walk did not run, ${when}. This host has no browser.`;
+    default:
+      return "QA walk is running.";
+  }
+}
+
 /**
  * Release (ADR-86): preflight first, the two heads, the brain diff, the
  * estimate and which keys are present (never a value); then one button;
@@ -65,6 +85,8 @@ export function ReleaseView({ readOnly }: { readOnly: boolean }) {
       {pre && (
         <div className="rounded-lg border border-border/60 bg-card/40 p-3 flex flex-col gap-2">
           <p className="font-label text-xs tracking-wide text-primary">Preflight</p>
+          <p className={`text-xs ${pre.qaWalk && /^fail/.test(pre.qaWalk.status) ? "text-destructive" : "text-muted-foreground"}`}>{walkLine(pre.qaWalk)}</p>
+          {pre.stripeSync && <p className="text-xs text-destructive">Stripe sync: {pre.stripeSync}</p>}
           <p className="font-numeric text-xs">staging <span className="text-foreground">{short(pre.sha)}</span> · main <span className="text-foreground">{short(pre.mainHead)}</span> · production <span className="text-foreground">{short(pre.productionSha)}</span> · {pre.env}</p>
           <p className="text-xs text-muted-foreground">brain {pre.brainChanged ? <span className="text-foreground">changed</span> : "unchanged"}{pre.pairChanged ? ", the pair brain too" : ""}{pre.files.length ? `: ${pre.files.join(", ")}` : ""}</p>
           <p className="text-xs font-numeric">estimate about {cents(pre.estimateUsd)} · spent {cents(pre.spentUsd)} of {cents(pre.budgetUsd)}{pre.overBudget ? <span className="text-destructive"> · over budget</span> : ""}</p>

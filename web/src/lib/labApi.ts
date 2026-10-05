@@ -330,12 +330,14 @@ export interface Preflight {
   env: string;
   stagingOnly: boolean;
   problems: string[];
+  qaWalk: { status: string; step: string | null; at: string } | null;
+  stripeSync: string | null;
 }
 
 export type ReleaseStatus = "running" | "stopped" | "passed" | "failed" | "forwarded";
 
 export interface ReleaseStep {
-  name: "lab" | "gate" | "qa" | "forward";
+  name: "lab" | "gate" | "qa" | "walk" | "forward";
   status: "pending" | "running" | "passed" | "failed" | "skipped" | "stopped";
   detail: string | null;
   startedAt: string | null;
