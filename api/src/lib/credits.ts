@@ -382,7 +382,7 @@ function reportName(report: { names: string[]; pair: boolean }): string {
 }
 
 // A spend and the purchase it came from can carry the same instant; the spend reads above it.
-const RANK: Record<CreditHistoryItem["kind"], number> = { spent: 0, gift: 1, bought: 2 };
+const RANK: Record<CreditHistoryItem["kind"], number> = { spent: 0, refunded: 0, gift: 1, granted: 2, bought: 2 };
 
 /**
  * History's lines, newest first (reading 9): bought (+N; a test bundle says
