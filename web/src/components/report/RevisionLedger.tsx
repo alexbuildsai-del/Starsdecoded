@@ -28,7 +28,7 @@ export function rememberMarks(reportId: string, shown: boolean): void {
 /** The chapter each amended section belongs to, by number and name. */
 const CHAPTER_OF: Record<string, string> = {
   overview: "01 Overview", triad: "02 Chart", mind: "03 Mind", career: "04 Career", money: "05 Money",
-  relationships: "06 Relationships", family: "07 Family", superpowers: "08 Superpowers", discoveries: "09 Paradoxes", focus: "10 Closing",
+  relationships: "06 Relationships", family: "07 Family", superpowers: "08 Strengths", discoveries: "09 Paradoxes", focus: "10 Closing",
 };
 
 export function RevisionLedger({
@@ -67,7 +67,7 @@ export function RevisionLedger({
         </div>
       )}
       <div className="row mt-2">
-        <span>Before · <b>kept</b> · compare any time</span>
+        <span>Old version <b>saved</b> · compare any time</span>
       </div>
       <button type="button" className="toggle no-print" aria-pressed={shown} onClick={() => onToggle(!shown)}>
         <span aria-hidden className={`inline-block h-3 w-3 rounded-sm border border-brass ${shown ? "bg-brass" : ""}`} />

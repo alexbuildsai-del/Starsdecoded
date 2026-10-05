@@ -227,9 +227,9 @@ const BODIES: Record<OpenChapter, Body> = {
     s && (
       <>
         <Lede printed={r.take(s.headline)} />
-        <Block label="Where the weight sits" printed={r.take(s.concentration)} />
-        <Block label="How you run" printed={r.take(s.temperament)} />
-        <Block label="What stands out" printed={r.take(s.distinctive)} />
+        <Block label="What stands out" printed={r.take(s.concentration)} />
+        <Block label="How you get through your days" printed={r.take(s.temperament)} />
+        <Block label="What makes it unusual" printed={r.take(s.distinctive)} />
         <p className="border-l-2 border-[color:var(--accent)] pl-[18px] font-display text-[20px] leading-[1.5] text-[color:var(--paper)]">
           <Words printed={r.take(s.bridge)} />
         </p>
@@ -251,8 +251,8 @@ const BODIES: Record<OpenChapter, Body> = {
     if (!s) return null;
     const trio: { kicker: string; heading: ChecklistHeading; path: string; item: SuperpowerItem }[] = [
       { kicker: "Your superpower", heading: "How to use it", path: "superpower.actions", item: s.superpower },
-      { kicker: "The pattern you will always navigate", heading: "How to manage it", path: "chronicPattern.actions", item: s.chronicPattern },
-      { kicker: "Your growing edge", heading: "Practice this week", path: "growingEdge.actions", item: s.growingEdge },
+      { kicker: "A habit you'll always have to manage", heading: "How to manage it", path: "chronicPattern.actions", item: s.chronicPattern },
+      { kicker: "Where you can grow", heading: "Practice this week", path: "growingEdge.actions", item: s.growingEdge },
     ];
     const cards = trio.map((t) => ({ ...t, text: r.take(t.item.text), items: tryItems("superpowers", t.path, t.item.actions, r) }));
     return (
@@ -285,7 +285,7 @@ const BODIES: Record<OpenChapter, Body> = {
               <Words printed={p.tension} />
             </p>
             <p className="mt-1 font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[.18em] text-[color:color-mix(in_srgb,var(--accent)_70%,var(--paper))]">
-              A way through
+              What helps
             </p>
             <p className={PROSE}>
               <Words printed={p.invitation} />

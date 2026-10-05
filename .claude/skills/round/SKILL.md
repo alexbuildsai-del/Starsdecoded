@@ -17,6 +17,13 @@ redesign it.
 
 1. **Branch.** One branch per round, `round/RNN`, from `main`. All builders
    commit there. Never push to `main`.
+   - **Lessons first (ADR-265).** Before any dispatch, read `lessons.md` and
+     the plan's `Lessons read through` stamp. If the previous round has no
+     report, close it first. If the stamp is older than its close, re-read
+     the plan against the lines added since: a guard that fits a card goes
+     into its done-when, one that needs a card is a new card on Opus, and
+     both are deviations; commit the plan on `round/RNN` with the new stamp.
+     Each builder's brief then carries the lessons lines its card touches.
 2. **Dispatch.** One builder per task card, on the tier of its `Tier:` line
    (ADR-187): `opus` is `subagent_type` `builder` (Opus, max), `sonnet` is
    `builder-sonnet` (Sonnet, high), `haiku` is `builder-haiku` (Haiku,

@@ -47,7 +47,7 @@ describe("elementLead", () => {
   it("needs two clear, not just the most", () => {
     const r = elementLead({ fire: 4, earth: 3, air: 2, water: 1 });
     expect(r.lead).toBeNull();
-    expect(r.line).toBe("Spread across the four");
+    expect(r.line).toBe("Spread evenly across the four elements");
   });
 
   it("needs 40%, however clear the gap", () => {
@@ -65,12 +65,12 @@ describe("elementLead", () => {
 
   describe("the seven fixture charts, computed live, read as the artifact's table", () => {
     const cases: Array<[keyof typeof FIXTURES, string]> = [
-      ["charlotte", "Spread across the four"],
+      ["charlotte", "Spread evenly across the four elements"],
       ["beatrice", "Fire leads · 5 of 10"],
-      ["charles", "Spread across the four"],
+      ["charles", "Spread evenly across the four elements"],
       ["george", "Water leads · 6 of 10"],
       ["athena", "Water leads · 5 of 10"],
-      ["audrey-hepburn", "Spread across the four"],
+      ["audrey-hepburn", "Spread evenly across the four elements"],
       ["marie-curie-unknown", "Water leads · 6 of 10"],
     ];
 

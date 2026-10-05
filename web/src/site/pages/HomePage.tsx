@@ -11,6 +11,7 @@ import Hero from "../sections/Hero";
 import Inside from "../sections/Inside";
 import Method from "../sections/Method";
 import Pricing from "../sections/Pricing";
+import TimelineLine from "../sections/TimelineLine";
 import TwoCharts from "../sections/TwoCharts";
 import YourPeople from "../sections/YourPeople";
 
@@ -117,7 +118,7 @@ function Later({ ahead = "50%", children }: { ahead?: string; children: ReactNod
 
 /**
  * The sections stand in the locked order (landing-and-ai-search, scope 2 to 13), the two differences right after the
- * hero (ADR-173) and prices above the questions (ADR-118).
+ * hero (ADR-173), prices above the questions (ADR-118) and Timeline's one line between them (ADR-252).
  */
 export default function HomePage() {
   useEffect(() => {
@@ -149,6 +150,7 @@ export default function HomePage() {
         <BirthTime />
       </Later>
       <Pricing />
+      <TimelineLine />
       <Faq />
       <Dawn />
     </SiteLayout>

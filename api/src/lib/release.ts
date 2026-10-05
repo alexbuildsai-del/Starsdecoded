@@ -2,12 +2,13 @@
  * The release (ADR-86, R-4.4): one admin action on staging runs, in order,
  * the release lab when the brain changed since production's commit, the
  * gate, the QA agent, and the fast-forward of `production` with the token
- * Railway holds, then /sample's run on a branch of its own (ADR-247). Every
- * step is written to `lab_releases` as it ends, so a restart finds the
- * record and not a memory. Without the token the release stops at `passed`
- * and names MB-75; the Promote workflow then reads the public verdict
- * (MB-79). The pieces are injected so the whole flow is rehearsed in a test
- * with a stub lab, a stub verdict and a stub GitHub, no spend.
+ * Railway holds, then /sample's run and Mira's week on a branch of their own
+ * (ADR-247, ADR-250). Every step is written to `lab_releases` as it ends, so
+ * a restart finds the record and not a memory. Without the token the release
+ * stops at `passed` and names MB-75; the Promote workflow then reads the
+ * public verdict (MB-79). The pieces are injected so the whole flow is
+ * rehearsed in a test with a stub lab, a stub verdict, a stub GitHub and a
+ * stub week, no spend.
  */
 import { randomUUID } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
@@ -17,7 +18,7 @@ import { RELEASE_BRANCH, brainDiff, githubApi, type GithubApi } from "./github.j
 import { MATRIX_CHARTS, gateProblems } from "./labRules.js";
 import { budgetUsd, checkBudget, dbStore, monthStart } from "./labReplay.js";
 import { NATAL_ESTIMATE_USD, PAIR_ESTIMATE_USD, RELEASE_PAIR, dbReleaseStore, runReleaseLab, type ReleaseLabOutcome, type ReleaseLabStore } from "./releaseLab.js";
-import { pushSample } from "./sampleRun.js";
+import { liveMira, pushSample, type MiraSource } from "./sampleRun.js";
 import { findChromium } from "./qaAgent/browser.js";
 import { runQaAgent, type QaVerdict } from "./qaAgent/index.js";
 import { logger } from "./logger.js";
@@ -77,6 +78,9 @@ export interface ReleaseDeps {
   spentUsd: () => Promise<number>;
   env: NodeJS.ProcessEnv;
   webOrigin: string;
+  mira: MiraSource;
+  /** When production moves: Mira's week moves to the Monday after it. */
+  now: () => Date;
 }
 
 export function liveDeps(env: NodeJS.ProcessEnv = process.env): ReleaseDeps {
@@ -89,6 +93,8 @@ export function liveDeps(env: NodeJS.ProcessEnv = process.env): ReleaseDeps {
     spentUsd: () => dbStore.spentUsd(monthStart()),
     env,
     webOrigin: env.PUBLIC_APP_URL ?? "https://starsdecoded-staging.vercel.app",
+    mira: liveMira,
+    now: () => new Date(),
   };
 }
 
@@ -199,8 +205,9 @@ export async function reusableLab(deps: ReleaseDeps, row: LabRelease): Promise<{
  * The steps in order. A failed lab, a red gate or a QA sev-1 stops the
  * release as `failed`; a clean run fast-forwards when the token is there
  * and otherwise stops `passed`, naming MB-75. Once production has moved,
- * /sample's run is pushed, and its outcome, a skip included, is a line in
- * the forward step's detail, never a failed release (reading 14).
+ * /sample's run and Mira's week are pushed, and each one's outcome, a skip
+ * included, is a line in the forward step's detail, never a failed release
+ * (readings 14 and 22).
  */
 export async function runRelease(id: string, deps: ReleaseDeps, options: { seedFault?: boolean } = {}): Promise<LabRelease> {
   const row = await deps.store.get(id);
@@ -268,9 +275,10 @@ export async function runRelease(id: string, deps: ReleaseDeps, options: { seedF
 
   const token = deps.env.GITHUB_RELEASE_TOKEN;
   // The run this release's reports came from: its own lab's or the reused one's; with no lab there is no new run.
+  // Mira's week moves on every forwarded release, a lab or not.
   const sample = () => pushSample({
     releaseId: id, sha: row.sha, label: row.brainChanged ? labLabel : null, token,
-    github: deps.github, read: (from) => deps.labStore.sampleOutput(from),
+    github: deps.github, read: (from) => deps.labStore.sampleOutput(from), at: deps.now(), mira: deps.mira,
   });
   if (!token) {
     await stepDone(deps, id, steps, "forward", "stopped", `GITHUB_RELEASE_TOKEN is not on Railway staging (MB-75); dispatch Promote with this release id; ${await sample()}`);
@@ -282,12 +290,12 @@ export async function runRelease(id: string, deps: ReleaseDeps, options: { seedF
     await deps.github.fastForward(RELEASE_BRANCH, row.sha, token);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await stepDone(deps, id, steps, "forward", "failed", `${message}; /sample: skipped, production did not move`);
+    await stepDone(deps, id, steps, "forward", "failed", `${message}; /sample: skipped, production did not move; Mira's week: skipped, production did not move`);
     await deps.store.update(id, { status: "passed", error: message });
     return (await deps.store.get(id))!;
   }
   const moved = `production fast-forwarded to ${row.sha.slice(0, 7)}`;
-  // Production's move is recorded before /sample's push starts, so a slow GitHub or a restart cannot hide that it moved.
+  // Production's move is recorded before the sample branch's push starts, so a slow GitHub or a restart cannot hide that it moved.
   await stepDone(deps, id, steps, "forward", "passed", moved);
   await deps.store.update(id, { status: "forwarded" });
   await stepDone(deps, id, steps, "forward", "passed", `${moved}; ${await sample()}`);

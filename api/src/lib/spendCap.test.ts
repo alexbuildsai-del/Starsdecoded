@@ -1,7 +1,8 @@
 /**
  * The breaker without a database (MB-49): the cap's parsing, the gate below,
- * at and past the cap with an injected sum, the admin's notice and its
- * once-a-day rule, and the minute's cache. What the day's sum counts is
+ * at and past the cap with an injected sum, the line a report and Timeline
+ * each hear, the admin's notice and its once-a-day rule, and the minute's
+ * cache. What the day's sum counts is
  * spendLedger.test.ts's; the live query is proved on a scratch Postgres in
  * the round's walk (R13-08).
  */
@@ -12,8 +13,9 @@ import express from "express";
 // The pool connects lazily and nothing here queries it; the failure paths log on purpose.
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.LOG_LEVEL ??= "silent";
-const { PAUSED_LINE, cachedSpend, dailyCapUsd, pausedNotifier, spendGate, utcDay } = await import("./spendCap.js");
+const { PAUSED_LINE, PAUSED_LINES, TIMELINE_PAUSED_LINE, cachedSpend, dailyCapUsd, pausedNotifier, spendGate, utcDay } = await import("./spendCap.js");
 type GateDeps = import("./spendCap.js").GateDeps;
+type PausedFor = import("./spendCap.js").PausedFor;
 type PausedNotice = import("./spendCap.js").PausedNotice;
 type SendSpendPausedOptions = import("./mailer.js").SendSpendPausedOptions;
 
@@ -36,11 +38,11 @@ test("utcDay is the calendar day in UTC, whatever the hour", () => {
   assert.equal(utcDay(new Date("2026-10-01T23:30:00-02:00")), "2026-10-02");
 });
 
-async function gated(deps: GateDeps) {
+async function gated(deps: GateDeps, pausedFor?: PausedFor) {
   let handled = 0;
   const app = express();
   // The stub stands in for a writing route: reaching it is where a credit would move.
-  app.post("/reports", spendGate(deps), (_req, res) => {
+  app.post("/reports", spendGate(pausedFor, deps), (_req, res) => {
     handled += 1;
     res.status(201).json({ id: "r1" });
   });
@@ -137,6 +139,33 @@ test("the line: three short sentences, the credit named, no hour or day it could
   assert.doesNotMatch(PAUSED_LINE, /\btoday\b|\btomorrow\b|\bhours?\b|\d/i);
   const words = PAUSED_LINE.split(/\s+/).length;
   assert.ok(words >= 12 && words <= 18, `${words} words`);
+});
+
+test("Timeline's line: what can't happen now and what to do, naming no credit or report, and no hour or day", () => {
+  assert.equal(TIMELINE_PAUSED_LINE, "Timeline can't write anything new right now. Try again later.");
+  assert.deepEqual(PAUSED_LINES, { reports: PAUSED_LINE, timeline: TIMELINE_PAUSED_LINE });
+  assert.equal(TIMELINE_PAUSED_LINE.split(/(?<=\.) /).length, 2, "one idea a sentence");
+  assert.doesNotMatch(TIMELINE_PAUSED_LINE, /\bcredits?\b|\breports?\b/i, "Timeline spends no credit and writes no report");
+  assert.doesNotMatch(TIMELINE_PAUSED_LINE, /[—–;!]/);
+  assert.doesNotMatch(TIMELINE_PAUSED_LINE, /\btoday\b|\btomorrow\b|\bhours?\b|\bmidnight\b|\d/i);
+});
+
+test("the gate: a Timeline reading or an Ask message on a paused day hears Timeline's line, and below the cap its route runs", async () => {
+  for (const [spent, status, handled] of [[20, 503, 0], [19.99, 201, 1]] as const) {
+    const { deps, notices } = gateDeps(20, spent);
+    const app = await gated(deps, "timeline");
+    try {
+      const res = await app.post();
+      assert.equal(res.status, status, `spent ${spent}`);
+      assert.equal(app.handled(), handled);
+      if (status === 503) {
+        assert.deepEqual(res.body, { error: "paused", reason: "paused", message: TIMELINE_PAUSED_LINE });
+        assert.deepEqual(notices, [{ day: "2026-10-01", spentUsd: 20, capUsd: 20 }], "the same breaker, so the admin hears of it the same way");
+      }
+    } finally {
+      await app.close();
+    }
+  }
 });
 
 function notifier(admin: string | null, address: string | null | Error = "owner@example.com", sends = true) {
@@ -319,4 +348,61 @@ test("a read begun on yesterday is not served to today, and callers that arrive 
   reads[1].release(4);
   assert.equal(await today, 4);
   assert.deepEqual([await first, await second], [9, 9]);
+});
+
+test("the gate: with no line named it speaks of reports, and 'reports' named is the same gate; the two lines differ", async () => {
+  assert.notEqual(PAUSED_LINES.reports, PAUSED_LINES.timeline);
+  assert.deepEqual(Object.keys(PAUSED_LINES).sort(), ["reports", "timeline"]);
+  for (const pausedFor of [undefined, "reports"] as const) {
+    const { deps } = gateDeps(20, 25);
+    const app = await gated(deps, pausedFor);
+    try {
+      const res = await app.post();
+      assert.equal(res.status, 503);
+      assert.deepEqual(res.body, PAUSED_BODY, String(pausedFor));
+      assert.doesNotMatch(String((res.body as { message?: string }).message), /Timeline/);
+    } finally {
+      await app.close();
+    }
+  }
+});
+
+test("the gate for Timeline: a cap of 0 pauses it with nothing spent or read, and a sum that cannot be read lets it through", async () => {
+  for (const spent of [0, new Error("database down")]) {
+    const { deps, notices } = gateDeps(0, spent);
+    const app = await gated(deps, "timeline");
+    try {
+      const res = await app.post();
+      assert.equal(res.status, 503);
+      assert.deepEqual(res.body, { error: "paused", reason: "paused", message: TIMELINE_PAUSED_LINE });
+      assert.equal(app.handled(), 0);
+      assert.equal(notices.length, 1);
+    } finally {
+      await app.close();
+    }
+  }
+  const { deps, notices } = gateDeps(20, new Error("database down"));
+  const app = await gated(deps, "timeline");
+  try {
+    assert.equal((await app.post()).status, 201);
+    assert.equal(notices.length, 0);
+  } finally {
+    await app.close();
+  }
+});
+
+test("the gate for Timeline: the cap's last cent and its first, at and past it, on the same boundary as a report's", async () => {
+  for (const [spent, status] of [[19.99, 201], [19.999, 201], [20, 503], [20.01, 503]] as const) {
+    for (const pausedFor of ["reports", "timeline"] as const) {
+      const { deps } = gateDeps(20, spent);
+      const app = await gated(deps, pausedFor);
+      try {
+        const res = await app.post();
+        assert.equal(res.status, status, `${pausedFor} ${spent}`);
+        if (status === 503) assert.equal((res.body as { message?: string }).message, PAUSED_LINES[pausedFor]);
+      } finally {
+        await app.close();
+      }
+    }
+  }
 });

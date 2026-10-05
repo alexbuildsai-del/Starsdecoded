@@ -6,16 +6,19 @@ import { fileURLToPath } from "node:url";
 
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
 process.env.OPENAI_API_KEY ??= "test-key-never-sent";
+process.env.LOG_LEVEL ??= "silent";
 const { GetHomeResponse } = await import("@workspace/api-zod");
 const {
   CLOSING_FIRST_PRACTICE, PIN_LIMIT, buildHome, firstSentence, isItemKey, isPinKey, isWorkbookKey, linesOf, natalRowsOf,
-  pairListed, pairReportsOf, patchWorkbook, pinsOf, triadOf, workbookOf,
+  pairListed, pairReportsOf, patchWorkbook, pinsOf, timelinePartOf, timelineSlotOf, triadOf, workbookOf,
 } = await import("./home.js");
 const { chartForProfile } = await import("./profiles.js");
+const T = await import("./timeline.js");
 const { PAIR_PROMPT_VERSION } = await import("../prompts/pair/index.js");
 type NatalRow = import("./home.js").NatalRow;
 type PairRow = import("./home.js").PairRow;
 type Viewer = import("./access.js").Viewer;
+type ReaderChart = import("./timeline.js").ReaderChart;
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "charts");
 
@@ -615,4 +618,150 @@ test("triad: an end of the Moon's range on a cusp reads 0° of the sign it enter
   assert.deepEqual(triadOf(birth("charles", 50).chartData)?.moon.band, {
     from: { sign: "Taurus", degree: 0 }, to: { sign: "Taurus", degree: r2(charles.toDegree - 30) },
   });
+});
+
+/** Mira's own chart as Timeline reads it, computed here from her committed fixture (reading 2). */
+function miraReader(): ReaderChart {
+  const f = JSON.parse(readFileSync(join(FIXTURES, "..", "sample-people", "mira.json"), "utf8"));
+  const profile = {
+    id: "PMIRA", userId: "user_mira", sessionId: "s-mira", claimedByUserId: null, isSelf: true, claimedAsSelf: false,
+    birthDate: f.birthDate, birthTime: f.birthTime, birthTimeWindowMinutes: 0, latitude: f.latitude, longitude: f.longitude,
+    timezoneOffset: f.timezoneOffset, timezone: f.timezone, chartData: null,
+  };
+  const report = { id: "RMIRA", status: "complete", sessionId: "s-mira", createdAt: new Date("2026-09-01T09:00:00Z") };
+  return T.readerOf("user_mira", { report, profile }, chartForProfile(profile));
+}
+const MIRA = miraReader();
+/** 23:30 UTC on 5 October: already the 6th in Lisbon and Tokyo, still the 5th in Los Angeles. */
+const TONIGHT = new Date("2026-10-05T23:30:00Z");
+
+test("Timeline on the home: Your week with Timeline and a chart, the teaser without it for an owner of a finished Personal report, neither for anyone else (ADR-211, 212, 262; reading 26)", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const empty = buildHome(STRANGER, [], []);
+  assert.equal(timelineSlotOf(seated, { access: true, reader: MIRA }), "week");
+  assert.equal(timelineSlotOf(seated, { access: false, reader: MIRA }), "teaser");
+  assert.equal(timelineSlotOf(seated, { access: true, reader: null }), null, "a subscriber with no chart of their own to read");
+  assert.equal(timelineSlotOf(seated, { access: false, reader: null }), null, "no finished Personal report of their own");
+  assert.equal(timelineSlotOf(empty, { access: false, reader: MIRA }), null, "never on an empty dashboard");
+  assert.equal(timelineSlotOf(seated, null), null, "a session, or a read that failed");
+  const pairOnly = buildHome(GIVER, [], [pair("RP", family().marie, family().audrey)]);
+  assert.equal(timelineSlotOf(pairOnly, { access: false, reader: MIRA }), "teaser", "a pair alone is not an empty dashboard");
+});
+
+test("Your week: seven days from the reader's today in the zone they send, else their birth place's; the home still parses", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const tokyo = timelinePartOf(seated, { access: true, reader: MIRA }, { tz: "Asia/Tokyo", now: TONIGHT });
+  assert.deepEqual(Object.keys(tokyo), ["week"], "a subscriber sees no teaser");
+  assert.deepEqual(tokyo.week, T.weekView(MIRA, "Asia/Tokyo", TONIGHT));
+  assert.deepEqual(tokyo.week?.days.map((d) => d.date), ["2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12"]);
+  assert.equal(timelinePartOf(seated, { access: true, reader: MIRA }, { tz: "America/Los_Angeles", now: TONIGHT }).week?.days[0].date, "2026-10-05");
+  for (const tz of [undefined, null, "Not/AZone", "../etc"]) {
+    const week = timelinePartOf(seated, { access: true, reader: MIRA }, { tz, now: TONIGHT }).week;
+    assert.equal(week?.days[0].date, T.dayIn(TONIGHT, "Europe/Lisbon"), `${String(tz)}: Lisbon's day`);
+  }
+  const parsed = valid({ ...seated, ...tokyo });
+  assert.equal(parsed.week?.days.length, 7);
+  assert.equal(parsed.teaser, undefined);
+});
+
+test("the teaser: the Saturn ring with its age and the four big cycles soonest first, in the birth place's days whatever zone is sent; the home still parses", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const part = timelinePartOf(seated, { access: false, reader: MIRA }, { tz: "Asia/Tokyo", now: TONIGHT });
+  assert.deepEqual(Object.keys(part), ["teaser"], "no week without Timeline");
+  assert.deepEqual(part.teaser, T.teaserView(MIRA, TONIGHT));
+  const teaser = part.teaser!;
+  assert.equal(teaser.cycles.length, 4);
+  assert.ok(teaser.saturn.age >= 28 && teaser.saturn.age <= 30, `Saturn comes back near 29, here ${teaser.saturn.age}`);
+  const ahead = teaser.cycles.filter((c) => c.on >= T.dayIn(TONIGHT, "Europe/Lisbon")).map((c) => c.on);
+  assert.deepEqual(ahead, [...ahead].sort(), "those still to come, soonest first");
+  const parsed = valid({ ...seated, ...part });
+  assert.equal(parsed.week, undefined);
+  assert.equal(parsed.teaser?.cycles.length, 4);
+});
+
+test("neither: no week or teaser key at all, so every other home reads exactly as it did", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const empty = buildHome(STRANGER, [], []);
+  for (const timeline of [null, { access: false, reader: null }, { access: true, reader: null }]) {
+    assert.deepEqual(timelinePartOf(seated, timeline, { now: TONIGHT }), {}, JSON.stringify(timeline));
+  }
+  assert.deepEqual(timelinePartOf(empty, { access: false, reader: MIRA }, { now: TONIGHT }), {});
+  assert.deepEqual({ ...empty, ...timelinePartOf(empty, { access: false, reader: MIRA }) }, { you: null, several: false, people: [], pairs: [], practising: [] });
+});
+
+test("a chart the engine cannot read leaves the dashboard with neither section, not a failed home", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const unreadable = Object.defineProperty({}, "chartVersion", {
+    get() {
+      throw new Error("an unreadable chart");
+    },
+  }) as ReaderChart["chart"];
+  const broken: ReaderChart = { ...MIRA, chart: unreadable };
+  assert.deepEqual(timelinePartOf(seated, { access: true, reader: broken }, { now: TONIGHT }), {});
+  assert.deepEqual(timelinePartOf(seated, { access: false, reader: broken }, { now: TONIGHT }), {});
+});
+
+/** Mira's birth with the time not known: noon, within 12 hours, so the chart has no horizon (R-4.6). */
+function blindMira(): ReaderChart {
+  const f = JSON.parse(readFileSync(join(FIXTURES, "..", "sample-people", "mira.json"), "utf8"));
+  const profile = {
+    id: "PBLIND", userId: "user_blind", sessionId: "s-blind", claimedByUserId: null, isSelf: true, claimedAsSelf: false,
+    birthDate: f.birthDate, birthTime: "12:00", birthTimeWindowMinutes: 720, latitude: f.latitude, longitude: f.longitude,
+    timezoneOffset: f.timezoneOffset, timezone: f.timezone, chartData: null,
+  };
+  const report = { id: "RBLIND", status: "complete", sessionId: "s-blind", createdAt: new Date("2026-09-01T09:00:00Z") };
+  return T.readerOf("user_blind", { report, profile }, chartForProfile(profile));
+}
+
+test("Timeline on the home: every case of access, chart and dashboard gives Your week, the teaser or neither, and never both", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const empty = buildHome(STRANGER, [], []);
+  const blind = blindMira();
+  assert.equal(blind.blind, true);
+  const expected = (home: typeof seated, access: boolean | null, reader: ReaderChart | null): TimelineKeys => {
+    if (access === null || !reader) return [];
+    if (access) return ["week"];
+    return home === empty ? [] : ["teaser"];
+  };
+  type TimelineKeys = Array<"week" | "teaser">;
+  for (const home of [seated, empty]) {
+    for (const access of [true, false, null]) {
+      for (const reader of [MIRA, blind, null]) {
+        const timeline = access === null ? null : { access, reader };
+        const part = timelinePartOf(home, timeline, { now: TONIGHT });
+        assert.deepEqual(Object.keys(part), expected(home, access, reader), `${home === empty ? "empty" : "seated"} access ${String(access)} reader ${reader ? "yes" : "no"}`);
+      }
+    }
+  }
+});
+
+test("Timeline on the home: a chart with no birth time still gets a week without a horizon and a teaser of four cycles", () => {
+  const seated = buildHome(GIVER, family().natal, []);
+  const blind = blindMira();
+  const week = timelinePartOf(seated, { access: true, reader: blind }, { tz: "Europe/Lisbon", now: TONIGHT }).week;
+  assert.equal(week?.angles, null);
+  assert.equal(week?.days.length, 7);
+  assert.ok(week?.natal.every((point) => point.house === null), "no house without a horizon");
+  const teaser = timelinePartOf(seated, { access: false, reader: blind }, { now: TONIGHT }).teaser;
+  assert.equal(teaser?.cycles.length, 4);
+  valid({ ...seated, week });
+  valid({ ...seated, teaser });
+});
+
+// The same names are in web/src/lib/reader-zone.test.ts: what the web sends as `tz` must be what the server reads, and what the
+// web leaves out must be what the server would drop, since neither package can import the other.
+const ZONE_AGREEMENT = {
+  read: ["Europe/Lisbon", "Asia/Tokyo", "America/Argentina/Buenos_Aires", "Pacific/Kiritimati", "Etc/GMT+5", "UTC"],
+  dropped: ["Etc/Unknown", "Not/AZone", "", " ", "+05:30", "Europe/Lisbon ", "Europe/Lisbon;x", "a".repeat(64), "a".repeat(65), 42, null, undefined, {}],
+};
+
+test("the zone the web sends is one the server reads, whatever canonical name it gives it, and the ones the web leaves out the server drops", () => {
+  const instant = new Date("2026-10-05T23:30:00Z");
+  for (const tz of ZONE_AGREEMENT.read) {
+    // The runtime may answer an old alias by its canonical name (Buenos Aires), which is the same zone and the same day.
+    const read = T.validZone(tz);
+    assert.ok(read, String(tz));
+    assert.equal(T.dayIn(instant, read), T.dayIn(instant, tz), String(tz));
+  }
+  for (const tz of ZONE_AGREEMENT.dropped) assert.equal(T.validZone(tz), null, JSON.stringify(tz));
 });

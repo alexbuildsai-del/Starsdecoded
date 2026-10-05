@@ -38,8 +38,7 @@ export interface OrbitCentre {
 
 /**
  * What a screen reader hears when the orbit is someone else's, as on the
- * landing's sample account, where "you" is not the reader. Its centre keeps
- * R10's "At a glance" cue, since it opens R10's card (reading 2).
+ * landing's sample account, where "you" is not the reader.
  */
 export interface OrbitLabels {
   /** The orbit as a whole. */
@@ -101,8 +100,12 @@ const SIDES = [-1, 1] as const;
 
 /** `circlePoints` names the add point this way at zero credits where credits are enforced (ADR-138). */
 const OUT_OF_CREDITS = "GET CREDITS";
-/** The sample's centre opens R10's card, so it keeps R10's cue; the dashboard's centre opens a quick look and carries none (the approved mock). */
-const SAMPLE_CUE = "At a glance ›";
+/** Under the name on every centre with a report, so a tap reads as the door to its quick look (ADR-211). */
+const CUE = "At a glance ›";
+/** YOU, the name and the cue as the approved dashboard sets them on the plate: the name's middle stays put as a long one shrinks. */
+const YOU_Y = -14;
+const NAME_MID = 2;
+const CUE_Y = 27;
 /** A ghost seat is an invitation, not a person: quieter than the add point, as the approved mock draws it. */
 const GHOST_OPACITY = 0.6;
 
@@ -117,6 +120,7 @@ const BRASS = "#D4B06A";
 const MUTED = "#7E889A";
 const SERIF = "Newsreader, Georgia, serif";
 const GROTESK = "'Space Grotesk', ui-sans-serif, system-ui, sans-serif";
+const SANS = "Inter, ui-sans-serif, system-ui, sans-serif";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -226,9 +230,10 @@ function pointName(p: OrbitPoint, sharedPair = "you share a Compatibility report
   return [p.name, shared, p.writing ? "writing" : "", p.sharedPair ? sharedPair : ""].filter(Boolean).join(", ");
 }
 
+/** Its name holds the words the plate shows, the name and "At a glance", so a reader who speaks a control's label can say either. */
 function centreName(c: OrbitCentre): string {
   if (!c.hasReport) return "Get your Personal report";
-  const look = c.firstName.trim() ? `${c.firstName.trim()}, your quick look` : "Your quick look";
+  const look = c.firstName.trim() ? `${c.firstName.trim()}, your chart at a glance` : "Your chart at a glance";
   return c.writing ? `${look}. Writing your report` : look;
 }
 
@@ -440,7 +445,6 @@ export function Orbit({ centre, points, selectedId, partners, onSelect, labels }
         reduced={reduced}
         plate={`url(#${uid}-plate)`}
         label={labels?.centre}
-        cue={labels ? SAMPLE_CUE : null}
       />
       {points.map((p) => p.kind === "ghost" ? (
         <GhostMark key={p.id} point={p} opacity={opacityOf(p.id)} delay={reduced ? undefined : arriving.get(p.id)} onArrived={arrived} />
@@ -467,16 +471,13 @@ interface CentreProps {
   reduced: boolean;
   plate: string;
   label?: string;
-  /** The line under the name; null sets YOU and the name as one group on the plate's centre. */
-  cue: string | null;
 }
 
-function Centre({ centre, selected, reduced, plate, label, cue }: CentreProps) {
+function Centre({ centre, selected, reduced, plate, label }: CentreProps) {
   const name = centre.firstName.trim();
   const nameSize = centreNameSize(name);
-  // Without a cue, YOU and the name stand as one group on the plate's centre, the name's baseline under its cap height.
-  const youY = cue ? -PLATE * 0.34 : -9;
-  const nameY = cue ? round2(nameSize / 3) : round2(5 + 0.45 * nameSize);
+  // The baseline sits a third of the size under the name's middle, about half its cap height.
+  const nameY = round2(NAME_MID + nameSize / 3);
   return (
     <g
       data-orbit-id={CENTRE_ID}
@@ -508,11 +509,11 @@ function Centre({ centre, selected, reduced, plate, label, cue }: CentreProps) {
             )}
             <circle r={PLATE} fill={plate} fillOpacity={0.92} stroke={selected ? PAPER : "none"} strokeWidth={1.5} />
             <circle r={PLATE - 3} fill={GROUND} fillOpacity={selected ? 0.45 : 0.58} />
-            <text y={youY} textAnchor="middle" fontFamily={GROTESK} fontSize={8.5} fontWeight={500} letterSpacing={centre.writing ? 1.4 : 2} fill={BRASS} fillOpacity={0.9}>
+            <text y={YOU_Y} textAnchor="middle" fontFamily={GROTESK} fontSize={8.5} fontWeight={500} letterSpacing={centre.writing ? 1.4 : 2} fill={BRASS} fillOpacity={0.9}>
               {centre.writing ? "YOU · WRITING" : "YOU"}
             </text>
             <text y={nameY} textAnchor="middle" fontFamily={SERIF} fontSize={nameSize} fill="#F2F4F9">{name}</text>
-            {cue && <text y={PLATE * 0.5} textAnchor="middle" fontFamily={GROTESK} fontSize={9.5} letterSpacing={0.8} fill={INDIGO_LT}>{cue}</text>}
+            <text y={CUE_Y} textAnchor="middle" fontFamily={SANS} fontSize={10} fill={PAPER} fillOpacity={0.85}>{CUE}</text>
           </>
         ) : (
           <>

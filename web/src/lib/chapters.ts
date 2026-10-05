@@ -11,7 +11,7 @@ export const CHAPTERS = [
   { eyebrow: "Resources", title: "Money & Resources", section: "money" },
   { eyebrow: "Relationships", title: "Relationships & Intimacy", section: "relationships" },
   { eyebrow: "Roots", title: "Family & Roots", section: "family" },
-  { eyebrow: "Self-Knowledge", title: "Superpowers, Chronic Patterns & Growing Edges", section: "superpowers" },
+  { eyebrow: "Self-Knowledge", title: "Strengths, Habits & Where You Can Grow", section: "superpowers" },
   { eyebrow: "Paradoxes", title: "Key Paradoxes & Discoveries", section: "discoveries" },
   { eyebrow: "Closing", title: "Closing", section: "focus" },
 ] as const;

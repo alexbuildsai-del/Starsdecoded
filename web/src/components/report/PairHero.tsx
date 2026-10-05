@@ -3,19 +3,21 @@
  * the eyebrow "Compatibility report · {lens}": each person's name once,
  * heading its own column of three rows, Sun, Moon and rising with the natal
  * hero's renders, AND between; side by side from the measured width and
- * stacked on a phone; degree and sign on a phone, house and ruler from 640 px
- * up; the reader's own report on the left. A blind side reads "rising · not
- * drawn" and a Moon with a band shows its degree range. The cue sits clear of
- * the corners, which carry A's birth record on the left and B's on the right.
- * The hero keeps the starfield and blobs of its own sky and no gather; print
- * keeps the names over their rows and the corners and drops the sky. The
+ * stacked on a phone; sign and degrees on a phone, the house too from 640 px
+ * up; the reader's own report on the left. The rows are the one TriadRow
+ * everywhere prints: a blind side's Rising reads "Not drawn" and a Moon with a
+ * band shows its degree range. The cue sits clear of the corners, which carry
+ * A's birth record on the left and B's on the right. The hero keeps the
+ * starfield and blobs of its own sky and no gather; print keeps the names over
+ * their rows and the corners and drops the sky. The
  * ringed plate the hero drew until R09 is TriadPlate, kept for the dashboard
  * sky card (MB-86).
  */
 import { useEffect, useRef, useState } from "react";
-import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
+import { TriadRow } from "@/components/TriadRow";
+import { triadRowsOf, triadText } from "@/lib/triad-row";
 import { ReportSky } from "@/components/report/ReportSky";
-import { NOT_DRAWN, pairHeroLayout, pairStack, rowText, triadRows, type PairSide } from "@/components/report/pair-hero-layout";
+import { NOT_DRAWN, pairHeroLayout, pairStack, type PairSide } from "@/components/report/pair-hero-layout";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { lensInfo } from "@/lib/lenses";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -68,21 +70,11 @@ const NAME_CLASS = "font-display font-normal text-[clamp(28px,4.2vw,52px)] leadi
 /** One person's column: the name once, then the three rows at today's sizes. */
 function Column({ person, detail }: { person: PairPerson; detail: "degree" | "full" }) {
   const blind = !person.chartData.angles;
-  const rows = triadRows(person.chartData, detail);
+  const rows = triadRowsOf(person.chartData, { blind: NOT_DRAWN });
   return (
     <div className="grid gap-2 min-w-0 justify-items-center" data-side-blind={blind || undefined}>
       <p className={`${NAME_CLASS} text-center`} style={{ letterSpacing: "-0.02em" }}>{person.name}</p>
-      <dl className="rp-legend" style={{ width: "auto" }}>
-        {rows.map((row) => (
-          <div key={row.key} className="lr">
-            {row.key === "rising"
-              ? <span aria-hidden className="rp-ascdot" />
-              : <img src={row.key === "sun" ? SUN_HERO : PLANET_RENDERS[row.key]} alt="" width={22} height={22} />}
-            <dt className="k">{row.label}</dt>
-            <dd className={`v${row.blind ? " opacity-70" : ""}`}>{rowText(row)}</dd>
-          </div>
-        ))}
-      </dl>
+      <TriadRow rows={rows} compact={detail === "degree"} className="w-auto!" />
     </div>
   );
 }
@@ -206,7 +198,7 @@ export function PairHero({ a, b, lens, accent }: PairHeroProps) {
               <div key={p.name}>
                 <p className="font-display text-4xl">{p.name}</p>
                 <p className="font-numeric text-xs mt-3">
-                  {triadRows(p.chartData, "full").map((r) => `${r.label} ${r.blind ? NOT_DRAWN : r.value}`).join(" · ")}
+                  {triadRowsOf(p.chartData, { blind: NOT_DRAWN }).map((r) => `${r.label} ${triadText(r)}`).join(" · ")}
                 </p>
                 <p className="font-numeric text-xs mt-2">DOB · {dateText(p.birthDate)} · TOB · {timeOfBirthLabel({ birthTime: p.birthTime, birthTimeWindowMinutes: p.birthTimeWindowMinutes })}</p>
                 <p className="font-numeric text-xs mt-1">POB · {p.birthPlace} · {coordinate(p.latitude, "N", "S")} / {coordinate(p.longitude, "E", "W")}</p>

@@ -15,9 +15,9 @@
  * It is content only: the page frames it as the panel beside the circle on
  * desktop and as the bottom sheet on a phone, so one quick look serves both.
  * Key it by the person, so each one rises afresh. `rp-root` scopes the report's
- * tokens for the legend rows, which read as the report's own.
+ * tokens, so the triad row and the blocks read as the report's own.
  */
-import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "wouter";
 import { X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,7 +34,7 @@ import {
 } from "@workspace/api-client-react";
 import { SendDialog } from "@/components/SendDialog";
 import { StatusDots } from "@/components/StatusDots";
-import { legendParts } from "@/components/dashboard/CardSections";
+import { TriadRow } from "@/components/TriadRow";
 import { BlockFrame, BlockHeading, BlockLine, PairBlock } from "@/components/dashboard/PairBlock";
 import { ShareMySheet } from "@/components/dashboard/ShareMySheet";
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
@@ -45,12 +45,12 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import {
   OWN_LINES, SHARE_MINE, TRY_AGAIN, birthDateText, blindRisingText, failureLine, firstName, isFailed, offersShareBack, offersShareMine,
   offersTryAgain, quickLookDoors, shareControl, shareErrorLine, shareLine, shareName, shareStateText, shareTargetFor, sharedBackText,
-  triadLines, tryAgainErrorLine, withYouText, writingText,
-  type Door, type ShareTarget, type TriadLine,
+  tryAgainErrorLine, withYouText, writingText,
+  type Door, type ShareTarget,
 } from "@/lib/home-view";
-import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { refusalLine } from "@/lib/refusals";
 import { SHARE_LABELS, pairStoryText } from "@/lib/share-card";
+import { triadRowsOf } from "@/lib/triad-row";
 
 export interface QuickLookProps {
   person: HomePerson;
@@ -69,33 +69,6 @@ const WIDE = "w-full whitespace-normal px-4 text-center font-label text-[13.5px]
 // Sharing your own report keeps the indigo outline Share with wears on a report's own page (SendLine).
 const SHARE_OUTLINE = `${WIDE} text-[var(--indigo-lt)] [border-color:rgba(92,107,192,.6)]`;
 const ALERT = "text-sm leading-[1.45] text-[#E79AB2]";
-
-function TriadRows({ lines, name, self }: { lines: TriadLine[]; name: string; self: boolean }) {
-  return (
-    <dl className="rp-legend">
-      {lines.map((line) => (
-        <div key={line.key} className="lr">
-          {line.key === "rising"
-            ? <span aria-hidden className="rp-ascdot" />
-            : <img src={PLANET_RENDERS[line.key]} alt="" width={22} height={22} />}
-          <dt className="k">{line.label}</dt>
-          {line.text === null ? (
-            <dd className="v min-w-0 font-sans text-xs leading-[1.35] text-[var(--paper-dim)]">{blindRisingText(name, self)}</dd>
-          ) : (
-            <dd className="v min-w-0">
-              {legendParts(line.text).map((part, i) => (
-                <Fragment key={i}>
-                  {i > 0 && " "}
-                  <span className="inline-block max-w-full">{part}</span>
-                </Fragment>
-              ))}
-            </dd>
-          )}
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 function DoorView({ door, primary = false }: { door: Door; primary?: boolean }) {
   if (door.kind === "writing") {
@@ -258,7 +231,7 @@ export function QuickLook({ person, pair, self, onClose }: QuickLookProps) {
   const failed = isFailed(person.status);
   const look = { person, pair: self ? undefined : pair, self };
   const doors = quickLookDoors(look);
-  const triad = triadLines(person.triad);
+  const triad = triadRowsOf(person.triad, { blind: blindRisingText(person.name, self) });
   const share = shareTargetFor(look, { person: sendOf(person.reportId), pair: sendOf(look.pair?.reportId) });
   const control = share ? shareControl(share, person.name) : null;
   const story = look.pair ? pairStoryText(look.pair) : null;
@@ -289,7 +262,7 @@ export function QuickLook({ person, pair, self, onClose }: QuickLookProps) {
         </button>
       </header>
 
-      {triad.length > 0 && <TriadRows lines={triad} name={person.name} self={self} />}
+      <TriadRow rows={triad} />
 
       {failed ? (
         <>

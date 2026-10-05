@@ -7,16 +7,16 @@
  * true angles and the rising marker on the horizon (§9, ADR-49).
  */
 import { norm360, pointAt } from "@/components/chart/wheel-geometry";
-import { AngleGlyph, AngleGlyphShape } from "@/components/report/AngleGlyph";
+import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { CONJUNCTION_DEGREES, separation } from "@/components/report/hero-layout";
 import { CHAPTERS } from "@/lib/chapters";
-import { houseWithWord } from "@/lib/evidence-glossary";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { PERSONAL_REPORT } from "@/lib/product";
 import { clockWords } from "@/lib/date-entry";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { degreeLine } from "@/lib/sky-now";
-import type { ChartData, ChartPlanet } from "@/types/chart";
+import { triadRowsOf } from "@/lib/triad-row";
+import { TriadRow } from "@/components/TriadRow";
+import type { ChartData } from "@/types/chart";
 import { OPEN_CHAPTERS, SAMPLE, sampleChart } from "@/site/data/sample";
 import { formatUpdated, type PageEntry } from "@/site/site";
 
@@ -31,8 +31,6 @@ const SIZE = { sun: 48, moon: 34 } as const;
 
 const at2 = (n: number) => n.toFixed(2);
 const angleOf = (degree: number, frame: number) => 180 + norm360(degree - frame);
-
-const placed = (p: ChartPlanet) => `${degreeLine(p)}${p.house ? ` · ${houseWithWord(p.house)}` : ""}`;
 
 // A light never leaves its angle (§9): when the two meet, the Moon holds the ring and the Sun steps outside it (ADR-22);
 // a light that would sit on the rising marker steps inward along its own spoke instead.
@@ -56,11 +54,6 @@ function Opening({ chart }: { chart: ChartData }) {
   const asc = chart.angles?.ascendant;
   const frame = asc?.absoluteDegree ?? 0;
   const drawn = asc !== undefined;
-  const rows = [
-    { key: "sun", label: "Sun", value: placed(chart.planets.sun) },
-    { key: "moon", label: "Moon", value: placed(chart.planets.moon) },
-    ...(asc ? [{ key: "rising", label: "Rising", value: degreeLine(asc) }] : []),
-  ];
 
   return (
     <div className="w-full max-w-[300px] justify-self-end max-[1000px]:max-w-[280px] max-[1000px]:justify-self-start">
@@ -85,21 +78,7 @@ function Opening({ chart }: { chart: ChartData }) {
           {SAMPLE.name.split(" ")[0]}
         </text>
       </svg>
-      <dl className="mt-5 grid gap-2">
-        {rows.map((row) => (
-          <div key={row.key} className="flex min-w-0 items-center gap-2.5">
-            <dt className="flex w-[74px] flex-none items-center gap-2.5 font-label text-[9px] font-medium uppercase tracking-[.2em] text-[color:var(--sd-brass)]">
-              {row.key === "rising" ? (
-                <AngleGlyph angle="ascendant" size={20} className="h-5 w-5 flex-none" />
-              ) : (
-                <img src={PLANET_RENDERS[row.key]} alt="" width={20} height={20} className="h-5 w-5 flex-none" />
-              )}
-              {row.label}
-            </dt>
-            <dd className="m-0 min-w-0 font-numeric text-[12.5px] leading-[1.35] text-[color:var(--paper)]">{row.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <TriadRow rows={triadRowsOf(chart)} className="mt-5" />
     </div>
   );
 }

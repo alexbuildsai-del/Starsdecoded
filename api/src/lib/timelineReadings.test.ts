@@ -1,0 +1,492 @@
+/**
+ * Timeline's readings with the model stubbed (R16-24): what a reading builds on, and the report's call path with its
+ * retries, round alone, spend and failure log, with no database. The claims run on a scratch Postgres when
+ * WALK_DATABASE_URL names a bootstrapped one: one write across two opens, a stale basis written again, a write that
+ * died retried, a failure's line kept, the queue's soonest three and the statuses, and forgetting. Without one they
+ * skip, saying why. Every event is the engine's, computed from a committed fixture at run time.
+ */
+import { after, test } from "node:test";
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SCRATCH = process.env.WALK_DATABASE_URL;
+// Only a database handed over for this: without one the pool points nowhere and nothing here queries it.
+process.env.DATABASE_URL = SCRATCH ?? "postgres://test:test@127.0.0.1:1/never";
+process.env.OPENAI_API_KEY ??= "sk-dummy-never-sent";
+process.env.OPENAI_BASE_URL = "http://127.0.0.1:9/v1";
+process.env.LOG_LEVEL ??= "silent";
+
+const { installFakeModel, cannedNatalReplies, failureRows } = await import("./testModel.js");
+const { setSpendSink } = await import("./spendLedger.js");
+const { generateInterpretation, SectionError } = await import("./aiInterpretation.js");
+const { chartForProfile } = await import("./profiles.js");
+const { MODELS, effortFor } = await import("./models.js");
+const T = await import("./timeline.js");
+const R = await import("./timelineReadings.js");
+const { READING_KEY, checkReading } = await import("../prompts/timeline/index.js");
+const { buildBrief } = await import("../prompts/brief.js");
+const { blockValues } = await import("../prompts/data.js");
+const { ordinal } = await import("../prompts/vocabulary.js");
+const E = await import("@workspace/engine");
+
+type ReaderRow = import("./timeline.js").ReaderRow;
+type ReaderChart = import("./timeline.js").ReaderChart;
+type SkyEvent = import("@workspace/engine").SkyEvent;
+type ReadingOutput = import("../prompts/timeline/index.js").ReadingOutput;
+type FakeRequest = import("./testModel.js").FakeRequest;
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const CURIE = "fixtures/charts/marie-curie.json";
+const BLIND = "fixtures/charts/marie-curie-unknown.json";
+/** A reader alive today: Timeline reads no key long after its reader's birth, so Curie's opens are Mira's. */
+const MIRA = "fixtures/sample-people/mira.json";
+const FROM = new Date("2026-10-05T00:00:00Z");
+const TO = new Date("2027-04-05T00:00:00Z");
+
+interface Birth {
+  name: string;
+  birthDate: string;
+  birthTime: string;
+  birthTimeWindowMinutes?: number;
+  latitude: number;
+  longitude: number;
+  timezoneOffset: number;
+  timezone?: string;
+}
+
+const birthOf = (path: string): Birth => JSON.parse(readFileSync(join(ROOT, path), "utf8")) as Birth;
+
+function rowOf(path: string, ids: { userId: string; profileId: string; reportId: string; sessionId: string }): ReaderRow {
+  const f = birthOf(path);
+  return {
+    report: { id: ids.reportId, status: "complete", sessionId: ids.sessionId, createdAt: new Date("2026-09-01T10:00:00Z") },
+    profile: {
+      id: ids.profileId,
+      userId: ids.userId,
+      sessionId: ids.sessionId,
+      claimedByUserId: null,
+      isSelf: true,
+      claimedAsSelf: false,
+      birthDate: f.birthDate,
+      birthTime: f.birthTime,
+      birthTimeWindowMinutes: f.birthTimeWindowMinutes ?? 0,
+      latitude: f.latitude,
+      longitude: f.longitude,
+      timezoneOffset: f.timezoneOffset,
+      timezone: f.timezone ?? null,
+      chartData: null,
+    },
+  };
+}
+
+function readerOf(path: string, ids = { userId: "user_reader", profileId: "profile-1", reportId: "report-1", sessionId: "s-reader" }): ReaderChart {
+  const row = rowOf(path, ids);
+  return T.readerOf(ids.userId, row, chartForProfile(row.profile));
+}
+
+const curie = readerOf(CURIE);
+const blind = readerOf(BLIND);
+const mira = readerOf(MIRA);
+
+const readable = (reader: ReaderChart, from = FROM, to = TO) => E.skyEvents(reader.chart, from, to).filter(E.readsAs);
+const eventOf = (reader: ReaderChart, key: string, from = FROM, to = TO): SkyEvent => {
+  const event = readable(reader, from, to).find((e) => e.key === key);
+  assert.ok(event, `${key} is on the chart`);
+  return event;
+};
+const cycles = (reader: ReaderChart) => E.lifeCycles(E.natalLongitudes(reader.chart), reader.birth);
+
+const SATURN_SQUARE = "contact.saturn.square.ascendant.20260529";
+/** Saturn on Mira's Ascendant, her 1st house. */
+const SATURN_ON_ASC = "contact.saturn.conjunction.ascendant.20260530";
+
+/** Fits any event: no date, degree, life event or order, so only the call path decides what happens to it. */
+const CLEAN: ReadingOutput = {
+  line: "You think harder about what you take on and why.",
+  body: "Astrology reads this stretch as a time when the sky presses on a part of your chart you already know well. Your report describes how you work through things in depth before you commit. This time meets that habit. You may find that old plans feel heavier to carry. You may also find that the plans you still believe in feel clearer. Some days the pressure feels like a weight. Other days it feels like a firm hand on your back. People around you may see you as more serious than usual. You may feel the gap between how calm you look and how you feel inside.",
+};
+/** The same reading with an order at its end, which chk-46 blocks. */
+const ORDER: ReadingOutput = { ...CLEAN, body: `${CLEAN.body} Take your time with it.` };
+
+function houseCards(): { houses: { house: number; reading: string }[] } {
+  return {
+    houses: Array.from({ length: 12 }, (_, i) => ({
+      house: i + 1,
+      reading: `Card ${i + 1}. You set the tone in this part of your life before you speak. Behaviour check: see who follows your pace.`,
+    })),
+  };
+}
+
+const ref = (r: Record<string, unknown>) => ({ ref: r, label: "" });
+const claim = (quote: string, ...refs: Record<string, unknown>[]) => ({ quote, evidence: refs.map(ref) });
+
+const PLAN = "You like a plan that holds.";
+const LONG = `${Array(17).fill(PLAN).join(" ")} You finish what others drop. ${Array(17).fill(PLAN).join(" ")}`;
+
+/** A blind report whose claims cite the Sun twice in career and twice in money, and once in the overview. */
+function blindReport(): Record<string, unknown> {
+  const sun = { kind: "placement", body: "sun", sign: "scorpio", house: null };
+  const venus = { kind: "placement", body: "venus", sign: "scorpio", house: null };
+  const trine = { kind: "aspect", body1: "sun", body2: "uranus", type: "trine", orb: 1.3 };
+  return {
+    overview: { headline: "You go deep before you go wide.", claims: [claim("You go deep before you go wide.", sun)] },
+    career: {
+      vocationalPull: LONG,
+      howYouShowUp: "You keep your own pace at work. People learn to wait for it.",
+      claims: [claim("You finish what others drop.", trine), claim("People learn to wait for it.", venus), claim("You keep your own pace at work.", sun)],
+    },
+    money: {
+      relationshipToResources: "You save in quiet ways. You spend in loud ones.",
+      claims: [claim("You save in quiet ways.", sun), claim("You spend in loud ones.", sun)],
+    },
+  };
+}
+
+const fake = installFakeModel({ ...cannedNatalReplies({ drawn: true, sunSign: "scorpio", sunHouse: 11 }) });
+const asked: FakeRequest[] = [];
+
+/** Each reading call takes the next reply, the last one again once they run out. */
+function answer(...replies: ReadingOutput[]): void {
+  let n = 0;
+  asked.length = 0;
+  fake.replies.timeline_reading = (req: FakeRequest) => {
+    asked.push(req);
+    return replies[Math.min(n++, replies.length - 1)];
+  };
+}
+
+const spent: { kind: string; costUsd: number }[] = [];
+setSpendSink(async (entry) => {
+  spent.push({ kind: entry.kind, costUsd: entry.costUsd });
+});
+
+const userTurn = (req: FakeRequest) => req.messages.find((m) => m.role === "user")?.content ?? "";
+
+/** A stored report as a write reads it: the canned natal text, its claims on the reader's own Sun, and a card of its own for each house. */
+async function reportFor(reader: ReaderChart, name: string) {
+  const sun = reader.chart.planets.sun;
+  const sect = (reader.chart.sunAltitude ?? 0) > 0 ? "day" : "night";
+  Object.assign(fake.replies, cannedNatalReplies({ drawn: true, sunSign: sun.sign.toLowerCase(), sunHouse: sun.house, sect }));
+  return { ...(await generateInterpretation(reader.chart, name)), houses: houseCards() };
+}
+const curieReport = await reportFor(curie, "Marie Curie");
+const miraReport = await reportFor(mira, "Mira Costa");
+
+test("the reply every test writes passes the checks on any event, drawn or blind, and the order does not", () => {
+  assert.deepEqual([curie.blind, blind.blind], [false, true]);
+  for (const [reader, key] of [[curie, SATURN_SQUARE], [blind, "contact.mars.square.sun.20261024"]] as const) {
+    const input = { event: eventOf(reader, key), brief: buildBrief(reader.chart, "Marie Curie"), excerpts: [], name: "Marie Curie", blind: reader.blind };
+    assert.deepEqual(checkReading(CLEAN, input).checks.filter((c) => c.cls === "block"), [], key);
+    assert.deepEqual(checkReading(ORDER, input).checks.filter((c) => c.cls === "block").map((c) => c.rule), ["chk-46"], key);
+  }
+});
+
+test("drawn, a reading builds on the house card of the point it touches, cut to 120 words", () => {
+  const report = { houses: houseCards() };
+  const card = (n: number) => report.houses.houses[n - 1].reading;
+  const midheaven = "contact.jupiter.square.midheaven.20260925";
+  assert.deepEqual(R.passagesFor(eventOf(curie, SATURN_SQUARE), curie.chart, report), {
+    excerpts: [{ source: "Your 1st house card", text: card(1) }],
+    buildsOn: { kind: "house", house: 1 },
+  });
+  // The Midheaven's sign, Scorpio, is her 11th house.
+  assert.deepEqual(R.passagesFor(eventOf(curie, midheaven), curie.chart, report).buildsOn, { kind: "house", house: 11 });
+  const year = [new Date("2026-01-01T00:00:00Z"), new Date("2026-12-31T00:00:00Z")] as const;
+  const eclipse = eventOf(curie, "eclipse.sun.-.-.20260217", ...year);
+  assert.ok(eclipse.kind === "eclipse" && eclipse.near?.target === "jupiter");
+  assert.deepEqual(R.passagesFor(eclipse, curie.chart, report).buildsOn, { kind: "house", house: curie.chart.planets.jupiter.house });
+  const retrograde = eventOf(curie, "retrograde.venus.-.-.20261003");
+  assert.ok(retrograde.kind === "retrograde");
+  assert.deepEqual(R.passagesFor(retrograde, curie.chart, report).buildsOn, { kind: "house", house: retrograde.houses[0] }, "the house it turns back in");
+  for (const id of ["saturn-return", "node-return"] as const) {
+    const cycle = cycles(curie).find((c) => c.id === id)!;
+    const house = curie.chart.planets[cycle.body].house!;
+    assert.deepEqual(R.passagesFor(cycle, curie.chart, report), {
+      excerpts: [{ source: `Your ${ordinal(house)} house card`, text: card(house) }],
+      buildsOn: { kind: "house", house },
+    }, id);
+  }
+  const long = { houses: { houses: [{ house: 1, reading: `${PLAN} `.repeat(30).trim() }] } };
+  const [cut] = R.passagesFor(eventOf(curie, SATURN_SQUARE), curie.chart, long).excerpts;
+  assert.equal(cut.text.split(" ").length, 120);
+});
+
+test("blind, it builds on the chapter whose claims cite the point most, the earlier on a tie, its passages around the claims", () => {
+  const sunContact = eventOf(blind, "contact.mars.square.sun.20261024");
+  const out = R.passagesFor(sunContact, blind.chart, blindReport());
+  assert.deepEqual(out.buildsOn, { kind: "chapter", chapter: "career" }, "career and money cite the Sun twice each, and career comes first");
+  assert.deepEqual(out.excerpts.map((e) => e.source), ["Your Career & Calling chapter", "Your Career & Calling chapter"]);
+  const [around, short] = out.excerpts.map((e) => e.text);
+  assert.ok(around.includes("You finish what others drop."), "the cited sentence is in its passage");
+  assert.ok(around.split(" ").length <= 120);
+  assert.ok(around.startsWith(PLAN) && around.endsWith("holds."), "whole sentences, the paragraph's end kept");
+  assert.equal(short, "You keep your own pace at work. People learn to wait for it.");
+  const venusContact = eventOf(blind, "contact.jupiter.square.venus.20261112");
+  assert.deepEqual(R.passagesFor(venusContact, blind.chart, blindReport()).buildsOn, { kind: "chapter", chapter: "career" });
+  const jupiterContact = eventOf(blind, "contact.mars.opposition.jupiter.20261121");
+  assert.deepEqual(R.passagesFor(jupiterContact, blind.chart, blindReport()), { excerpts: [], buildsOn: null }, "no claim cites Jupiter");
+  assert.deepEqual(R.passagesFor(sunContact, blind.chart, null), { excerpts: [], buildsOn: null }, "no report text at all");
+});
+
+test("drawn with no house card in the report, as one written blind, it falls to the chapter", () => {
+  const sunContact = eventOf(curie, "contact.mars.square.sun.20261024");
+  assert.deepEqual(R.passagesFor(sunContact, curie.chart, blindReport()).buildsOn, { kind: "chapter", chapter: "career" });
+});
+
+test("a reading in one call: the house card in a quote block, the pinned model, the reader's spend under timeline, a pass in the log", async () => {
+  answer(CLEAN);
+  const logged = failureRows.length;
+  const charged = spent.length;
+  const reading = await R.writeReading(curie, SATURN_SQUARE, eventOf(curie, SATURN_SQUARE), { name: "Marie Curie", interpretation: curieReport });
+  assert.deepEqual([reading.key, reading.line, reading.body], [SATURN_SQUARE, CLEAN.line, CLEAN.body]);
+  assert.deepEqual(reading.buildsOn, { kind: "house", house: 1 });
+  assert.equal(asked.length, 1);
+  const req = asked[0] as FakeRequest & { model: string; reasoning_effort: string };
+  const model = MODELS.timelineReading;
+  assert.deepEqual([req.model, req.reasoning_effort, req.response_format.json_schema.name], [model, effortFor(model), "timeline_reading"]);
+  assert.ok(blockValues(userTurn(req), "quote").includes(curieReport.houses.houses[0].reading), "the 1st house card, in its block");
+  assert.deepEqual(spent.slice(charged).map((s) => s.kind), ["timeline"]);
+  const rows = failureRows.slice(logged);
+  assert.ok(rows.every((r) => r.kind === "timeline" && r.section === READING_KEY));
+  assert.deepEqual(rows.filter((r) => r.ruleId === "pass").map((r) => [r.attempt, r.final]), [[1, true]]);
+});
+
+test("a name the report repeats reaches the prompt in a block of its own, never inside the passage's (re-pin 6)", async () => {
+  answer(CLEAN);
+  const interpretation = { houses: { houses: [{ house: 1, reading: "Marie, you set the tone before you speak. Marie Curie leads by example." }] } };
+  await R.writeReading(curie, SATURN_SQUARE, eventOf(curie, SATURN_SQUARE), { name: "Marie Curie", interpretation });
+  const user = userTurn(asked[0]);
+  assert.deepEqual(blockValues(user, "quote"), [", you set the tone before you speak.", "leads by example."]);
+  assert.ok(blockValues(user, "name").includes("Marie") && blockValues(user, "name").includes("Marie Curie"));
+});
+
+test("a blocked attempt is logged with its rule, and the retry carries the error and the reply", async () => {
+  answer(ORDER, CLEAN);
+  const logged = failureRows.length;
+  const charged = spent.length;
+  const reading = await R.writeReading(curie, SATURN_SQUARE, eventOf(curie, SATURN_SQUARE), { name: "Marie Curie", interpretation: curieReport });
+  assert.equal(reading.body, CLEAN.body);
+  assert.equal(asked.length, 2);
+  const retry = userTurn(asked[1]);
+  assert.ok(retry.includes("EVERY ERROR SO FAR:\n1. body: tells the reader what to do"), "the error goes back with the retry");
+  assert.ok(retry.includes("Take your time with it."), "and so does the reply it was found in");
+  const rows = failureRows.slice(logged);
+  const blocked = rows.filter((r) => r.class === "block");
+  assert.deepEqual(blocked.map((r) => [r.kind, r.section, r.ruleId, r.attempt, r.final]), [["timeline", READING_KEY, "chk-46", 1, false]]);
+  assert.doesNotMatch(blocked[0].message, /Take your time/, "the log names the fault, never the words");
+  assert.deepEqual(rows.filter((r) => r.ruleId === "pass").map((r) => [r.attempt, r.writeId === blocked[0].writeId]), [[2, true]]);
+  assert.deepEqual(spent.slice(charged).map((s) => s.kind), ["timeline", "timeline"], "the rejected reply was billed too");
+});
+
+test("a reading that never passes: three attempts, one round alone that starts from every error, then it fails", async () => {
+  answer(ORDER);
+  const logged = failureRows.length;
+  const charged = spent.length;
+  await assert.rejects(
+    R.writeReading(curie, SATURN_SQUARE, eventOf(curie, SATURN_SQUARE), { name: "Marie Curie", interpretation: curieReport }),
+    (err: unknown) => err instanceof SectionError,
+  );
+  assert.equal(asked.length, 6);
+  const alone = userTurn(asked[3]);
+  assert.match(alone, /EVERY ERROR SO FAR:\n1\. [^\n]+\n2\. [^\n]+\n3\. [^\n]+\n/, "the round alone opens knowing all three");
+  assert.equal(spent.length - charged, 6);
+  const rows = failureRows.slice(logged).filter((r) => r.class === "block");
+  assert.deepEqual(rows.map((r) => r.ruleId), Array(6).fill("chk-46"));
+  assert.equal(new Set(rows.map((r) => r.writeId)).size, 2, "each round is a write of its own");
+  assert.deepEqual(rows.filter((r) => r.final).map((r) => r.attempt), [3, 3]);
+});
+
+test("a key nothing on the chart reads answers unknown, with no model call and no row", async () => {
+  answer(CLEAN);
+  const keys = [
+    "contact.saturn.conjunction.ascendant.19000101", "contact.saturn.square.moon.20260530", SATURN_SQUARE, "../../etc/passwd", "x".repeat(81),
+  ];
+  for (const key of keys) assert.deepEqual(await R.openReading(mira, key), { status: "unknown", reading: null, line: null }, key.slice(0, 40));
+  assert.deepEqual(await R.openReading(curie, SATURN_SQUARE), { status: "unknown", reading: null, line: null }, "long after the reader's birth");
+  assert.equal(asked.length, 0);
+});
+
+test("a paused day writes nothing: the queue asks the spend gate's rule before any row or call", async () => {
+  answer(CLEAN);
+  const before = process.env.DAILY_SPEND_CAP_USD;
+  process.env.DAILY_SPEND_CAP_USD = "0";
+  try {
+    assert.deepEqual(await R.queueReadings(mira, readable(mira).map((e) => e.key)), []);
+  } finally {
+    if (before === undefined) delete process.env.DAILY_SPEND_CAP_USD;
+    else process.env.DAILY_SPEND_CAP_USD = before;
+  }
+  assert.equal(asked.length, 0);
+});
+
+const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: readings are claimed and kept on a scratch Postgres";
+
+/** Each run's own rows, so a second run, or the walk on the same database, finds nothing of the first. */
+const run = randomUUID().slice(0, 8);
+const seeded: { userIds: string[]; profileIds: string[] } = { userIds: [], profileIds: [] };
+
+/** A reader of their own, with their profile and finished Personal report as rows, so no test sees another's readings. */
+async function seedReader(tag: string, path = MIRA): Promise<ReaderChart> {
+  const { db, profilesTable, reportsTable } = await import("@workspace/db");
+  const ids = { userId: `user_r1624_${run}_${tag}`, profileId: `r1624-${run}-${tag}-p`, reportId: `r1624-${run}-${tag}-r`, sessionId: `s-r1624-${run}-${tag}` };
+  const row = rowOf(path, ids);
+  const f = birthOf(path);
+  await db.insert(profilesTable).values({ ...row.profile, name: f.name, birthPlace: "Lisbon, Portugal", chartData: chartForProfile(row.profile) });
+  await db.insert(reportsTable).values({ id: ids.reportId, profileId: ids.profileId, sessionId: ids.sessionId, type: "natal", status: "complete", interpretation: miraReport });
+  seeded.userIds.push(ids.userId);
+  seeded.profileIds.push(ids.profileId);
+  return T.readerOf(ids.userId, row, chartForProfile(row.profile));
+}
+
+async function rowsFor(profileId: string) {
+  const { db, timelineReadingsTable: t } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+  return db.select().from(t).where(eq(t.profileId, profileId));
+}
+
+async function age(profileId: string, key: string, status: "writing" | "failed" | "ready", minutes: number): Promise<void> {
+  const { db, timelineReadingsTable: t } = await import("@workspace/db");
+  const { and, eq } = await import("drizzle-orm");
+  await db.update(t).set({ status, updatedAt: new Date(Date.now() - minutes * 60_000) }).where(and(eq(t.profileId, profileId), eq(t.eventKey, key)));
+}
+
+if (SCRATCH) {
+  after(async () => {
+    const { db, pool, profilesTable, reportsTable, timelineReadingsTable, askMessagesTable } = await import("@workspace/db");
+    const { inArray } = await import("drizzle-orm");
+    if (seeded.profileIds.length) {
+      await db.delete(timelineReadingsTable).where(inArray(timelineReadingsTable.profileId, seeded.profileIds));
+      await db.delete(reportsTable).where(inArray(reportsTable.profileId, seeded.profileIds));
+      await db.delete(profilesTable).where(inArray(profilesTable.id, seeded.profileIds));
+    }
+    if (seeded.userIds.length) await db.delete(askMessagesTable).where(inArray(askMessagesTable.userId, seeded.userIds));
+    await pool.end();
+  });
+}
+
+test("two opens at once write the reading once, and a third reads it back with no call", { skip: NO_DB }, async () => {
+  const reader = await seedReader("twice");
+  answer(CLEAN);
+  // Long enough that the second open's claim and read land while the first is still writing.
+  fake.delays.timeline_reading = 100;
+  let both: Awaited<ReturnType<typeof R.openReading>>[];
+  try {
+    both = await Promise.all([R.openReading(reader, SATURN_ON_ASC), R.openReading(reader, SATURN_ON_ASC)]);
+  } finally {
+    delete fake.delays.timeline_reading;
+  }
+  assert.equal(asked.length, 1, "one write");
+  assert.deepEqual(both.map((o) => o.status).sort(), ["ready", "writing"], "the second open finds it writing");
+  const ready = both.find((o) => o.status === "ready")!;
+  assert.deepEqual([ready.reading?.line, ready.reading?.body, ready.reading?.buildsOn, ready.line], [CLEAN.line, CLEAN.body, { kind: "house", house: 1 }, null]);
+  const again = await R.openReading(reader, SATURN_ON_ASC);
+  assert.equal(asked.length, 1, "kept, never written twice");
+  assert.deepEqual(again, ready);
+  const [row] = await rowsFor(reader.profileId);
+  assert.deepEqual([row.status, row.basis, row.model, row.userId], ["ready", reader.basis, MODELS.timelineReading, reader.userId]);
+  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC, "contact.mars.square.sun.20261024"], reader.basis), new Map([[SATURN_ON_ASC, { status: "ready", line: CLEAN.line }]]));
+});
+
+test("a reading whose basis moved is left out of the statuses, then written again on its next open", { skip: NO_DB }, async () => {
+  const reader = await seedReader("basis");
+  answer(CLEAN);
+  assert.equal((await R.openReading(reader, SATURN_ON_ASC)).status, "ready");
+  const moved: ReaderChart = { ...reader, basis: `${reader.basis}-moved` };
+  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC], moved.basis), new Map(), "its line may no longer be true");
+  answer({ ...CLEAN, line: "You weigh what you agreed to and what you still want." });
+  const rewritten = await R.openReading(moved, SATURN_ON_ASC);
+  assert.equal(asked.length, 1);
+  assert.deepEqual([rewritten.status, rewritten.reading?.line], ["ready", "You weigh what you agreed to and what you still want."]);
+  const rows = await rowsFor(reader.profileId);
+  assert.deepEqual(rows.map((r) => [r.basis, r.status]), [[moved.basis, "ready"]], "written again in place");
+});
+
+test("a write still marked writing answers writing under five minutes, and is written again past five", { skip: NO_DB }, async () => {
+  const reader = await seedReader("stale");
+  answer(CLEAN);
+  await R.openReading(reader, SATURN_ON_ASC);
+  await age(reader.profileId, SATURN_ON_ASC, "writing", 4);
+  answer(CLEAN);
+  assert.deepEqual(await R.openReading(reader, SATURN_ON_ASC), { status: "writing", reading: null, line: null });
+  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC]), new Map([[SATURN_ON_ASC, "writing"]]));
+  assert.equal(asked.length, 0);
+  await age(reader.profileId, SATURN_ON_ASC, "writing", R.WRITING_STALE_MS / 60_000 + 1);
+  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC]), new Map(), "a write that died is not shown as writing");
+  assert.equal((await R.openReading(reader, SATURN_ON_ASC)).status, "ready");
+  assert.equal(asked.length, 1);
+});
+
+test("an open that stops waiting answers writing, and the write lands on its own", { skip: NO_DB }, async () => {
+  const reader = await seedReader("late");
+  answer(CLEAN);
+  fake.delays.timeline_reading = 150;
+  try {
+    assert.deepEqual(await R.openReading(reader, SATURN_ON_ASC, { waitMs: 1 }), { status: "writing", reading: null, line: null });
+    let status: unknown;
+    for (let i = 0; i < 100 && status === undefined; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      status = (await R.readingStatuses(reader.profileId, [SATURN_ON_ASC])).get(SATURN_ON_ASC);
+      if (status === "writing") status = undefined;
+    }
+    assert.deepEqual(status, { status: "ready", line: CLEAN.line });
+  } finally {
+    delete fake.delays.timeline_reading;
+  }
+});
+
+test("a failed write keeps the sheet's line, the queue leaves it, and the reader's next open writes it again", { skip: NO_DB }, async () => {
+  const reader = await seedReader("failed");
+  answer(ORDER);
+  const failed = await R.openReading(reader, SATURN_ON_ASC);
+  assert.deepEqual(failed, { status: "failed", reading: null, line: R.READING_FAILED_LINE });
+  assert.equal(asked.length, 6, "three attempts and the round alone");
+  const [row] = await rowsFor(reader.profileId);
+  assert.deepEqual([row.status, (row.reading as { line: string }).line, (row.reading as { code: string }).code], ["failed", R.READING_FAILED_LINE, "quality"]);
+  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC], reader.basis), new Map([[SATURN_ON_ASC, { status: "failed", line: R.READING_FAILED_LINE }]]));
+  answer(CLEAN);
+  assert.deepEqual(await R.queueReadings(reader, [SATURN_ON_ASC]), [], "a failure waits for the reader's own open");
+  assert.equal(asked.length, 0);
+  const ready = await R.openReading(reader, SATURN_ON_ASC);
+  assert.deepEqual([ready.status, ready.reading?.body], ["ready", CLEAN.body]);
+});
+
+test("the queue writes at most three missing readings, soonest first, and never one it holds", { skip: NO_DB }, async () => {
+  const reader = await seedReader("queue");
+  const keys = readable(reader).map((e) => e.key);
+  const soonest = [...keys].sort((a, b) => a.slice(-8).localeCompare(b.slice(-8)) || a.localeCompare(b));
+  answer(CLEAN);
+  assert.deepEqual(await R.openReading(reader, soonest[1]).then((o) => o.status), "ready");
+  answer(CLEAN);
+  const first = await R.queueReadings(reader, [...keys].reverse());
+  assert.deepEqual(first, [soonest[0], soonest[2], soonest[3]], "the one already kept is skipped");
+  assert.equal(asked.length, 3);
+  const statuses = await R.readingStatuses(reader.profileId, keys, reader.basis);
+  assert.deepEqual([...statuses.keys()].sort(), [...soonest.slice(0, 4)].sort());
+  assert.ok([...statuses.values()].every((s) => typeof s === "object" && s.status === "ready"));
+  const second = await R.queueReadings(reader, keys, 2);
+  assert.deepEqual(second, soonest.slice(4, 6));
+  assert.deepEqual(await R.queueReadings(reader, ["contact.saturn.square.ascendant.19000101", "not a key"]), [], "a key nothing reads is never claimed");
+  assert.equal((await rowsFor(reader.profileId)).length, 6);
+});
+
+test("forgetTimeline removes a profile's readings and its reader's Ask thread, and nobody else's", { skip: NO_DB }, async () => {
+  const { db, askMessagesTable } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+  const gone = await seedReader("forget");
+  const kept = await seedReader("kept");
+  answer(CLEAN);
+  for (const reader of [gone, kept]) {
+    await R.openReading(reader, SATURN_ON_ASC);
+    await db.insert(askMessagesTable).values([
+      { id: randomUUID(), userId: reader.userId, role: "reader", body: { text: "When does this ease?" } },
+      { id: randomUUID(), userId: reader.userId, role: "ask", body: { text: "It eases in March.", cards: [], choices: [] } },
+    ]);
+  }
+  await R.forgetTimeline(gone.userId, gone.profileId);
+  const thread = async (userId: string) => db.select().from(askMessagesTable).where(eq(askMessagesTable.userId, userId));
+  assert.deepEqual([(await rowsFor(gone.profileId)).length, (await thread(gone.userId)).length], [0, 0]);
+  assert.deepEqual([(await rowsFor(kept.profileId)).length, (await thread(kept.userId)).length], [1, 2]);
+});

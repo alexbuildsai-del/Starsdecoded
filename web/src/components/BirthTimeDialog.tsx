@@ -76,7 +76,7 @@ export function BirthTimeDialog({ open, onClose, profile, onDone, title, descrip
         <DialogHeader>
           <DialogTitle className="font-display text-xl">{title ?? `${profile.name}'s birth time`}</DialogTitle>
           <DialogDescription>
-            {description ?? "The hour draws the horizon: the rising sign, the houses, day or night and the Lots. The report keeps every word it can and marks each change."}
+            {description ?? "Your birth time gives you your rising sign, your houses and day or night. The report keeps every word it can. We'll show you what changed."}
           </DialogDescription>
         </DialogHeader>
         <BirthTimeControl
@@ -95,12 +95,12 @@ export function BirthTimeDialog({ open, onClose, profile, onDone, title, descrip
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <p className="font-label text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            {free ? "Free. Every change is marked." : "Every change is marked."}
+            {free ? "Free. We'll show you what changed." : "We'll show you what changed."}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose} className="font-label">Not now</Button>
             <Button id={saveId} onClick={save} disabled={!value || unchanged || update.isPending} className="font-label">
-              {update.isPending ? "Saving…" : "Save and redraw"}
+              {update.isPending ? "Saving…" : "Save and update"}
             </Button>
           </div>
         </div>

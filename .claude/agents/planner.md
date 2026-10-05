@@ -12,8 +12,8 @@ Read, in this order and nothing more until a task needs it: `CLAUDE.md`,
 `docs/INDEX.md`, the locked specs named in your prompt (every file in
 `docs/specs/locked/` not yet covered by a round plan when none are named),
 every `docs/qa/` report newer than the last round, the latest round report in
-`docs/rounds/` (its Spend line lists the escalations), the Promoted rules in
-`docs/annex/lessons.md` (they bind the plan, ADR-195), and the Notion
+`docs/rounds/` (its Spend line lists the escalations), all of
+`docs/annex/lessons.md` (its Promoted rules bind the plan, ADR-195), and the Notion
 Mailbox (URL in CLAUDE.md) filtered to Status = open, plus any Owner comments
 on Mailbox or Decisions rows since the last round.
 
@@ -33,7 +33,10 @@ Then write `docs/rounds/RNN-plan.md` (NN = last round + 1) with:
 3. **Risks**: schema changes, new dependencies, anything user-visible without a
    locked spec, anything that changes report content (USER-FACING), and any
    card, or kind of card, escalated to Opus in two rounds running, named with
-   both rounds.
+   both rounds. Then **Lessons this plan guards**: each lessons line the cards
+   touch, with the card that guards it, and the stamp `Lessons read through
+   RNN`, the last round whose close wrote `lessons.md`. A plan written before
+   the last round closed says so; it is re-read before approval (ADR-265).
 4. **Questions raised**: for every consequential unknown, add a Mailbox row
    (Type, Priority, Recommendation, Default if silent) before the round starts.
    List open rows created more than 14 days ago at the top of the plan, oldest

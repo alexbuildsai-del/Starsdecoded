@@ -26,8 +26,8 @@ export const LENS_COPY: Record<Lens, { strap: string; lines: LensLines }> = {
     lines: [
       "How each of you shows love, and how each of you likes to get it",
       "Who pushes and who pulls back when you argue, and how you make up",
-      "Whose standards run the house, and who ends up doing the list",
-      "How each of you likes to rest: going out or staying in, planning or winging it",
+      "Who sets the rules at home, and who ends up doing the chores",
+      "How each of you likes to rest: going out or staying in, planning ahead or not",
       "What you want to build together, and how much time apart you each need",
     ],
   },
@@ -170,7 +170,7 @@ export default function TwoCharts() {
                 <p className="mt-3 max-w-[44em] text-[var(--paper-dim)]">
                   When you and someone close to you both have a {PERSONAL_REPORT}, you can get a {COMPATIBILITY_REPORT} about the two of
                   you. You choose who they are to you: your partner, your child, or a friend, relative or colleague. It looks at everyday
-                  life together, where you clash and what you can try, and it never gives you a score.
+                  life together, where you clash and what you can try. It never gives you a score.
                 </p>
               </>
             }

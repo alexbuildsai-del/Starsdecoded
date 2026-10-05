@@ -8,7 +8,7 @@ export function MethodologyBox({ meta, horizonLine }: { meta: Interpretation["me
   const alt = meta.sunAltitude;
   const sectLine = meta.sect && alt !== undefined
     ? `${meta.sect === "day" ? "Day" : "Night"} chart. The Sun's centre was ${Math.abs(alt).toFixed(1)}° ${alt > 0 ? "above" : "below"} the horizon at birth${meta.sectMarginal ? " (within 5°, marginal; the reading commits to " + meta.sect + ")" : ""}.`
-    : "Not decided: the birth time is not recorded, so the Sun's altitude at birth is not known and no sect is read.";
+    : "Without a birth time, we can't tell if you were born by day or night.";
   const orbs = Object.entries(meta.orbs ?? {}).map(([k, v]) => `${k} ${v}°`).join(", ");
   return (
     <div className="mx-auto max-w-2xl mt-6 rounded-xl border border-border/50 bg-card/30 px-5 py-4 text-left">

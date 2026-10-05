@@ -82,12 +82,21 @@ test("the GPT-6 writers keep ADR-74's press prices, provisional until MB-70 chec
   assert.equal(CATALOGUE["gpt-5.2"].checked, "2026-09-16");
 });
 
-test("production runs mix B (ADR-184): Sol on both foundations, the QA agent and the vocabulary, Luna on every other prose call", () => {
+test("production runs mix B (ADR-184): Sol on both foundations, the QA agent and the vocabulary, Luna on every other prose call but Ask's", () => {
   // No `scenes` job: p3 writes one fixed scene a chapter inside the chapter's own call (ADR-176).
-  assert.deepEqual(MODELS, { foundation: "gpt-6-sol", sections: "gpt-6-luna", synastry: "gpt-6-luna", vocabulary: "gpt-6-sol", qa: "gpt-6-sol", studyNotes: "gpt-6-luna" });
+  assert.deepEqual(MODELS, {
+    foundation: "gpt-6-sol", sections: "gpt-6-luna", synastry: "gpt-6-luna", vocabulary: "gpt-6-sol", qa: "gpt-6-sol", studyNotes: "gpt-6-luna",
+    timelineReading: "gpt-6-luna", ask: "gpt-5.2",
+  });
   assert.deepEqual(SECTION_MODELS, {});
   assert.equal(modelFor("natal:triad"), "gpt-6-luna");
   assert.equal(modelFor("houses"), "gpt-6-luna");
+});
+
+test("Timeline's jobs (MB-190): readings on Luna, both of Ask's calls on gpt-5.2, the model its cap was costed on", () => {
+  assert.equal(MODELS.timelineReading, "gpt-6-luna");
+  assert.equal(MODELS.ask, "gpt-5.2");
+  assert.equal(CATALOGUE[MODELS.ask].checked, "2026-09-16", "Ask's price is one checked on OpenAI's page");
 });
 
 test("every job runs at effort none, so no call gets thinking room and no estimate adds thinking", () => {

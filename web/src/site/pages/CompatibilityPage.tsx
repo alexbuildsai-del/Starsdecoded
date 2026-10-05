@@ -245,7 +245,7 @@ function HowToGetIt() {
           <Step
             n={1}
             title={`You each have a ${PERSONAL_REPORT}`}
-            text="Add theirs from your dashboard with their birth details. You can share it with them once it's written."
+            text="To add theirs, enter their birth details on your dashboard. You can share it with them once it's written."
           >
             <div ref={plates}>{PARENT && CHILD && <TwoPlates a={PARENT} b={CHILD} caption="Sample people" />}</div>
           </Step>
@@ -304,7 +304,7 @@ function HowToGetIt() {
           <Step
             n={3}
             title={`Read ${PAIR_CHAPTERS} chapters about everyday life`}
-            text={`${SCENE_CHAPTERS} of them play out one scene between you and end with something to try together. Pick a relationship in step 2 to see its chapters.`}
+            text={`${SCENE_CHAPTERS} of them show one everyday moment between you. Each ends with something to try together. Pick a relationship in step 2 to see its chapters.`}
           >
             {/* Every lens's chapters are in the HTML, so a crawler reads all three, not the one picked first. */}
             <div ref={titles}>

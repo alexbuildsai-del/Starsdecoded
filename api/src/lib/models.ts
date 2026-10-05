@@ -56,7 +56,8 @@ export function isModelId(id: string): id is ModelId {
 
 /**
  * Which model each job calls: the lab's mix B, Sol plans and Luna writes
- * (ADR-184). gpt-5.2 stays in the catalogue as the lab's control.
+ * (ADR-184). gpt-5.2 stays in the catalogue as the lab's control, and Ask's
+ * two calls run on it, as the timeline spec's cap was costed (MB-190).
  *
  * `foundation` reads the chart open-endedly and decides what the whole report
  * says, so it carries the most risk from a weaker model. `sections` write
@@ -75,6 +76,11 @@ export const MODELS = {
   qa: "gpt-6-sol",
   /** The prose study's optional notes, three lines a card, under a cent (ADR-88; MB-70 provisional price). */
   studyNotes: "gpt-6-luna",
+  // MB-190 provisional: readings on Luna like every other prose call (ADR-184), Ask on gpt-5.2 as its cap was costed.
+  /** One Timeline reading per event per reader, written once and stored (ADR-210). */
+  timelineReading: "gpt-6-luna",
+  /** Both of Ask's calls on a message, the plan and the answer (reading 12). */
+  ask: "gpt-5.2",
 } as const satisfies Record<string, ModelId>;
 
 /** The QA agent's model: `QA_AGENT_MODEL` when it names a catalogue id, else the pinned default. Never a model outside the catalogue. */

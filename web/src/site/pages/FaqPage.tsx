@@ -86,7 +86,7 @@ export default function FaqPage() {
           <Link className="sd-relcard" href="/method">
             <span className="sd-eyebrow">How it works</span>
             <b>How we make your report</b>
-            <span>From the positions of the planets to the last check</span>
+            <span>Each step, from working out your chart to the final check</span>
           </Link>
           <Link className="sd-relcard" href="/sky">
             <span className="sd-eyebrow">Free birth chart</span>

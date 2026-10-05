@@ -20,7 +20,7 @@ import type { FocusGroup, FocusSection } from "@/types/chart";
 
 // Practice is what a reader keeps working on, so its items are the ones that pin to the dashboard (ADR-174).
 const GROUPS: { key: "leanInto" | "notice" | "practice"; title: string; pinnable?: boolean }[] = [
-  { key: "leanInto", title: "Lean into" },
+  { key: "leanInto", title: "Do more of" },
   { key: "notice", title: "Notice" },
   { key: "practice", title: "Practice", pinnable: true },
 ];

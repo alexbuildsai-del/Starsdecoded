@@ -148,7 +148,7 @@ export function plateAnswer(plate: TimePlate, clock: Clock = 24): string {
     case "roughly":
       return `About ${clockWords(plate.value.birthTime, clock)}, give or take an hour`;
     case "unknown":
-      return "The report is written from the date alone.";
+      return "We write the report from your birth date.";
   }
 }
 
@@ -186,9 +186,9 @@ const COUNTS = ["no", "one", "two", "three", "four", "five", "six", "seven", "ei
  * a day's band is too short to show from under the Moon's own render.
  */
 export function plateLine(plate: TimePlate): string {
-  if (plate.mode === "unknown") return "There's no rising sign, and your Moon is somewhere in that range.";
+  if (plate.mode === "unknown") return "There's no rising sign. Your Moon is somewhere in the range above.";
   if (plate.said.status === "known") return "Your rising sign is shown.";
-  if (plate.said.status === "approximate") return "Your rising sign holds either way, so it's shown.";
+  if (plate.said.status === "approximate") return "Your rising sign is the same either way, so we show it.";
   const { ascendant, moonSign } = plate.chart.horizon;
   const signs = new Set(ascendant.values).size;
   const moon = moonSign.holds

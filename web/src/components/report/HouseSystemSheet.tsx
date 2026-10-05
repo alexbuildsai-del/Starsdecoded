@@ -2,8 +2,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 
 export const HOUSE_SYSTEM_PARAGRAPHS = [
   "A house system is the rule for dividing the sky into the twelve life areas. Your planets, signs, degrees and aspects are the same in every system. Only the house numbers change.",
-  "This report uses Whole Sign houses, the oldest system and the one used by the classical sources it is built on. Your rising sign is your 1st house, and each following sign is the next house. It works at every latitude and gives the same answer whether your recorded birth time is exact or rounded to the nearest quarter hour.",
-  "Most consumer sites use Placidus, which divides the sky by time rather than by sign. Its house boundaries move roughly one degree every four minutes of clock time, so a planet near a boundary can change house with a small error in birth time, and the system breaks down at high latitudes. It is not wrong. It is a different rule, and it will sometimes put a planet one house away from where you see it here.",
+  "This report uses Whole Sign houses. It is the oldest system, and the old books this report is built on use it. Your rising sign is your 1st house. Each sign after it is the next house. It works everywhere in the world. It gives the same answer whether your birth time is exact or rounded to the nearest quarter hour.",
+  "Most sites use Placidus. It divides the sky by time, not by sign. Its house lines move about one degree every four minutes. So a planet near a line can change house if your birth time is a little off. It also stops working near the poles. It is not wrong. It is a different rule. It will sometimes put a planet one house away from where you see it here.",
 ];
 
 /** A slide-over, not a panel sitting open in the middle of the reading. */

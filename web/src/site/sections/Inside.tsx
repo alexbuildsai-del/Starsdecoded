@@ -78,7 +78,7 @@ export default function Inside() {
           <p className="sd-eyebrow">Inside the report</p>
           <h2 className="sd-h2" id="sd-inside-h">Here's what your report covers</h2>
           <p className="sd-sub">
-            There are {CHAPTER_COUNT} chapters, starting with the big picture and ending with what to try next. In between
+            There are {CHAPTER_COUNT} chapters. They start with the big picture and end with what to try next. In between
             they cover how you think, work, handle money and love, and the habits that keep coming back.
           </p>
         </div>

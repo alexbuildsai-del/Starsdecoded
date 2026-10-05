@@ -6,9 +6,11 @@
  * rows' actions, the picker, the credits, gifts and history keep their own
  * routes (reading 4). The pieces only draw and call back; the page holds the
  * view, the selection and the sheets, so the circle, a quick look and a row
- * never disagree about a person.
+ * never disagree about a person. Timeline adds one section or the other
+ * (reading 26): Your week after Your circle for a subscriber, and for a reader
+ * without it whose own report is finished, their big cycles after the stories.
  */
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { AnimatePresence, animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
 import { Plus } from "lucide-react";
@@ -20,7 +22,6 @@ import {
   getListReportsQueryKey,
   useGetCreditHistory,
   useGetCredits,
-  useGetHome,
   useListGifts,
   useListProfiles,
   useListReports,
@@ -45,10 +46,12 @@ import { PeopleRows } from "@/components/dashboard/PeopleRows";
 import { Practising } from "@/components/dashboard/Practising";
 import { QuickLook } from "@/components/dashboard/QuickLook";
 import { Stories } from "@/components/dashboard/Stories";
+import { TimelineTeaser } from "@/components/dashboard/TimelineTeaser";
 import { WaitingGiftCard } from "@/components/dashboard/WaitingGiftCard";
 import { YourPairs } from "@/components/dashboard/YourPairs";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useHome } from "@/hooks/useHome";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { creditsEnforced, pathHave } from "@/lib/credits-view";
 import { quickLookFor } from "@/lib/home-view";
@@ -57,8 +60,15 @@ import { CENTRE_ID, circlePoints, partnersOf } from "@/lib/orbit";
 import type { PairSelection } from "@/lib/pair-selection";
 import { usePageTitle } from "@/lib/page-title";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
+import { useShownZone } from "@/lib/reader-zone";
 import { first } from "@/lib/share-card";
+import { useTimelineAccess } from "@/lib/timeline-access";
 import { cn } from "@/lib/utils";
+
+// Your week and Ask bring the dial, Timeline's pieces and the sky engine with them, so a reader without Timeline never
+// downloads them.
+const YourWeek = lazy(() => import("@/components/dashboard/YourWeek"));
+const AskLauncher = lazy(() => import("@/components/ask/AskLauncher"));
 
 /** The phone sheet's first stop, a share of the screen: the quick look's head and triad, with the circle above still in view to tap. */
 const PEEK = 0.45;
@@ -242,7 +252,7 @@ function StartPanel({ out, settled, gift, onOwnReport, onGetCredits }: StartPane
             <Button onClick={onGetCredits} className="font-label">
               Get credits
             </Button>
-            <p className="text-xs leading-snug text-[#9AA3B5]">You pay once, with no subscription.</p>
+            <p className="text-xs leading-snug text-[#9AA3B5]">You pay once for each report.</p>
           </>
         ) : (
           // MB-113 provisional: making a report says Write, as the birth form's own button does.
@@ -453,7 +463,7 @@ export default function DashboardPage() {
   const enforced = creditsEnforced();
   const viewIds = useId();
 
-  const homeQ = useGetHome({ query: { queryKey: getGetHomeQueryKey() } });
+  const homeQ = useHome();
   const reportsQ = useListReports({
     query: {
       queryKey: getListReportsQueryKey(),
@@ -484,6 +494,19 @@ export default function DashboardPage() {
   const people = useMemo(() => home?.people ?? [], [home]);
   const empty = !!home && !you && !several && people.length === 0 && home.pairs.length === 0;
   const alone = !!you && people.length === 0;
+  // One or the other, and the teaser never on an empty dashboard nor beside Your week (reading 26).
+  const week = home?.week ?? null;
+  const teaser = home && !week && !empty ? (home.teaser ?? null) : null;
+  // Both print the reader's days: with no zone from the browser, the birth place's, which the server reads them in.
+  const birthZone = you ? profiles.find((p) => p.id === you.profileId)?.timezone : undefined;
+  const zone = useShownZone(!!week, birthZone);
+
+  const { access } = useTimelineAccess();
+  // Once drawn, Ask stays: a chat open when access goes keeps its refusal on screen until the reader closes it.
+  const [asks, setAsks] = useState(false);
+  useEffect(() => {
+    if (access) setAsks(true);
+  }, [access]);
 
   const history = useGetCreditHistory({
     query: { queryKey: getGetCreditHistoryQueryKey(), enabled: loaded && !you && !several },
@@ -703,12 +726,30 @@ export default function DashboardPage() {
               )}
             </section>
 
+            {week && zone && (
+              <Suspense
+                fallback={
+                  <div className="grid min-h-[200px] place-items-center font-label text-sm text-muted-foreground">
+                    <StatusDots label="Loading your week" />
+                  </div>
+                }
+              >
+                <YourWeek week={week} zone={zone} />
+              </Suspense>
+            )}
             <Practising items={home.practising} />
             <YourPairs pairs={home.pairs} />
             <Stories pairs={home.pairs} />
+            {teaser && zone && <TimelineTeaser teaser={teaser} zone={zone} />}
           </div>
         )}
       </main>
+
+      {asks && (
+        <Suspense fallback={null}>
+          <AskLauncher />
+        </Suspense>
+      )}
 
       {phone && (
         <PhoneSheet open={!!card} cardKey={card ? active : null} label={cardLabel} closes={cardCloses} onClose={closeCard}>

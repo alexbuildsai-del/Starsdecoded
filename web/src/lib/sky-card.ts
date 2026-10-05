@@ -30,7 +30,7 @@ export function elementLead(elements: Record<ElementKey, number>): ElementLead {
   const [first, second] = sorted;
   const hasLead = total > 0 && elements[first] / total >= 0.4 && elements[first] - elements[second] >= 2;
   const lead = hasLead ? first : null;
-  const line = lead ? `${ELEMENT_NAME[lead]} leads · ${elements[lead]} of ${total}` : "Spread across the four";
+  const line = lead ? `${ELEMENT_NAME[lead]} leads · ${elements[lead]} of ${total}` : "Spread evenly across the four elements";
   const empty = ELEMENT_ORDER.filter((key) => elements[key] === 0);
   return { lead, line, empty };
 }

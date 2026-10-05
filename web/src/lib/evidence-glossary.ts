@@ -12,12 +12,12 @@ export const ORDINALS = [
 ] as const;
 
 export const HOUSE_NAMES = [
-  "Self & body", "Money & worth", "Mind & exchange", "Home & roots", "Play & creation",
+  "Self & body", "Money & worth", "Mind & talk", "Home & roots", "Play & creation",
   "Work & health", "Partnership", "Depth & shared money", "Belief & distance",
-  "Career & public role", "Friends & collective", "Solitude & the unseen",
+  "Career & public role", "Friends & groups", "Time alone & hidden things",
 ] as const;
 
-/** One word per house, the first word of each title (ADR-98): on the wheel, in the hero rows and after every house number the page prints. */
+/** One word per house, the first word of each title (ADR-98) except the 12th, whose title now opens "Time alone": the word stays "Solitude" so the 12th keeps one word on the wheel. */
 export const HOUSE_WORDS = [
   "Self", "Money", "Mind", "Home", "Play", "Work",
   "Partnership", "Depth", "Belief", "Career", "Friends", "Solitude",
@@ -49,7 +49,7 @@ export function withHouseWords(text: string): string {
 export const HOUSE_THEMES = [
   "Self, body, how you arrive",
   "Money, resources, what you value",
-  "Mind, siblings, the daily exchange",
+  "Mind, siblings, everyday talk",
   "Home, roots, the private self",
   "Play, creativity, romance, children",
   "Work, health, the daily craft",
@@ -57,8 +57,8 @@ export const HOUSE_THEMES = [
   "Shared money, depth, what you inherit",
   "Belief, distance, the bigger picture",
   "Career, public role, reputation",
-  "Friends, groups, collective aims",
-  "Solitude, the unseen, what runs underneath",
+  "Friends, groups, shared goals",
+  "Time alone, hidden things, what runs underneath",
 ] as const;
 
 const BODY_MEANINGS: Record<string, string> = {
@@ -81,31 +81,31 @@ const SIGN_MEANINGS: Record<string, string> = {
   aries: "acts first, fast and direct",
   taurus: "steady, sensory, slow to move",
   gemini: "curious, quick, wants variety",
-  cancer: "protective, tidal, home-minded",
+  cancer: "protective, moody, home-minded",
   leo: "warm, visible, wants to matter",
   virgo: "precise, useful, notices what is off",
   libra: "balancing, relational, keeps the peace",
   scorpio: "deep, private, all or nothing",
-  sagittarius: "roaming, meaning-hungry, blunt",
+  sagittarius: "roaming, looking for meaning, blunt",
   capricorn: "disciplined, ambitious, plays long",
-  aquarius: "systemic, detached, future-facing",
-  pisces: "permeable, imaginative, absorbs everything",
+  aquarius: "big-picture, detached, future-facing",
+  pisces: "sensitive, imaginative, absorbs everything",
 };
 
 const ASPECT_MEANINGS: Record<string, string> = {
-  conjunction: "Fused. The two work as one function, for better and worse.",
-  opposition: "A see-saw. You get pulled between two poles and have to hold both.",
+  conjunction: "Joined. The two work as one, for better and worse.",
+  opposition: "You get pulled two ways and need room for both.",
   trine: "Flows so easily it often goes unnoticed and undervalued.",
-  square: "Friction that forces development. It does not resolve, it matures.",
+  square: "Tension that pushes you to grow. It doesn't go away. It gets easier with time.",
   sextile: "Available, but only if you go and use it.",
 };
 
 const SECT_MEANINGS: Record<string, string> = {
   sect_light: "The light that leads the chart, set by whether the Sun was above the horizon.",
   benefic_of_sect: "The helpful planet best placed to actually help in a chart of this sect.",
-  benefic_out_of_sect: "The helpful planet working against the chart's grain, so its help arrives late.",
-  malefic_of_sect: "The hard planet, at least working with the chart's grain.",
-  malefic_out_of_sect: "The hard planet running against the grain. It costs more.",
+  benefic_out_of_sect: "The helpful planet out of step with your chart, so its help arrives late.",
+  malefic_of_sect: "The hard planet, at least in step with your chart.",
+  malefic_out_of_sect: "The hard planet, out of step with your chart. It costs more.",
 };
 
 const DIGNITY_MEANINGS: Record<string, string> = {
@@ -118,7 +118,7 @@ const DIGNITY_MEANINGS: Record<string, string> = {
 
 const ANGLE_MEANINGS: Record<string, string> = {
   ascendant: "The Ascendant is the degree of the zodiac rising on the eastern horizon at a moment of birth. It is the point the whole-sign houses are counted from, and it describes manner and approach rather than the work of a planet.",
-  midheaven: "The Midheaven is the highest point the ecliptic reaches at a moment of birth. It marks the top of the chart and stands for public direction and standing rather than for a body.",
+  midheaven: "The Midheaven is the highest point in the sky at your birth. It marks the top of the chart. It stands for your public direction and standing, not for a planet.",
 };
 
 function cap(s: string): string {
@@ -169,7 +169,7 @@ export function glossFor(ref: EvidenceRef): string {
         + `${dignity ? `, ${dignity}` : ""}.`;
     }
     case "lot":
-      return `The Lot of ${label(ref.lot)} is a computed point, not a body. Here it falls in `
+      return `The Lot of ${label(ref.lot)} is a calculated point, not a planet. Here it falls in `
         + `${label(ref.sign)}, the ${theHouse(ref.house)}.`;
     case "sect":
       return SECT_MEANINGS[str(ref.role)] ?? "";
@@ -199,7 +199,7 @@ export function glossFor(ref: EvidenceRef): string {
 export const NATAL_CHAPTER_OF: Record<string, string> = {
   overview: "Chart Overview", triad: "Core Triad", houses: "House by House", mind: "Mind & Communication",
   career: "Career & Calling", money: "Money & Resources", relationships: "Relationships & Intimacy", family: "Family & Roots",
-  superpowers: "Superpowers, Chronic Patterns & Growing Edges", discoveries: "Key Paradoxes & Discoveries", focus: "Closing",
+  superpowers: "Strengths, Habits & Where You Can Grow", discoveries: "Key Paradoxes & Discoveries", focus: "Closing",
 };
 
 /**

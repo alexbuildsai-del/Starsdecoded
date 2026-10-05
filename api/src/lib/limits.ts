@@ -26,6 +26,13 @@ export const LIMITS = {
   preview: { limit: 60, windowMs: MINUTE_MS, by: "address", counts: "work" },
   send: { limit: 10, windowMs: HOUR_MS, by: "account", counts: "success" },
   checkout: { limit: 10, windowMs: HOUR_MS, by: "session", counts: "success" },
+  // Only an account has Timeline (ADR-262), so these count by account. A minute stops a burst from spending the day's cap;
+  // Ask's month has its own cap besides (reading 13), and a reading counts only when its open starts a write.
+  ask: { limit: 6, windowMs: MINUTE_MS, by: "account", counts: "success" },
+  timelineReading: { limit: 20, windowMs: MINUTE_MS, by: "account", counts: "success" },
+  // Now and ahead's six months queue readings ahead (reading 7), so every read of it counts, whatever its range: a page
+  // switching ranges reads a few a minute, while a loop would set the queue writing with nothing to slow it (R-7.5).
+  timelineNow: { limit: 30, windowMs: MINUTE_MS, by: "account", counts: "success" },
 } as const satisfies Record<string, { limit: number; windowMs: number; by: CountedBy; counts: Counts }>;
 
 /** Whether an answer with this status cost anything, so whether its request keeps its count (reading 6). */
@@ -51,6 +58,9 @@ export const LIMIT_LINES: Record<LimitKind, string> = {
   preview: `We've had ${LIMITS.preview.limit} rising sign checks from your internet connection in the last minute. Try again in a minute.`,
   send: `You've sent ${LIMITS.send.limit} reports and gifts in the last hour. You can send the next one within the hour.`,
   checkout: `You've started checkout ${LIMITS.checkout.limit} times in the last hour. You can start it again within the hour.`,
+  ask: `You've sent Ask ${LIMITS.ask.limit} messages in the last minute. Try again in a minute.`,
+  timelineReading: `You've opened ${LIMITS.timelineReading.limit} new readings in the last minute. Try again in a minute.`,
+  timelineNow: `You've loaded your Timeline ${LIMITS.timelineNow.limit} times in the last minute. Try again in a minute.`,
 };
 
 type CallerKind = Exclude<LimitKind, "anonWrites">;
@@ -264,6 +274,9 @@ export interface Limits {
   previewLimit: RequestHandler[];
   sendLimit: RequestHandler[];
   checkoutLimit: RequestHandler[];
+  askLimit: RequestHandler[];
+  timelineReadingLimit: RequestHandler[];
+  timelineNowLimit: RequestHandler[];
 }
 
 /** Fresh counts on every call: the server keeps the one set below, and a test builds its own. */
@@ -276,7 +289,13 @@ export function buildLimits(): Limits {
     previewLimit: limitFor("preview"),
     sendLimit: limitFor("send"),
     checkoutLimit: limitFor("checkout"),
+    askLimit: limitFor("ask"),
+    timelineReadingLimit: limitFor("timelineReading"),
+    timelineNowLimit: limitFor("timelineNow"),
   };
 }
 
-export const { anonWriteLimit, generationLimits, geocodeLimit, previewLimit, sendLimit, checkoutLimit } = buildLimits();
+export const {
+  anonWriteLimit, generationLimits, geocodeLimit, previewLimit, sendLimit, checkoutLimit, askLimit, timelineReadingLimit,
+  timelineNowLimit,
+} = buildLimits();

@@ -253,11 +253,11 @@ export function pathView(added: number, balance: number, have: PathHave): PathVi
   return {
     eyebrow: before > 0 ? `${bundle} more added · a top-up` : `${creditCount(bundle)} added`,
     title: before > 0 ? `${creditCount(total)} to use` : named ?? "Here is one way to use them",
-    line: before > 0 ? `${before} left from before, ${bundle} just added: one balance.` : null,
+    line: before > 0 ? `${before} left from before, ${bundle} just added: all in one balance.` : null,
     steps,
     spare: spare === 0
       ? null
-      : spare === 1 ? "One credit stays for whoever comes next." : `${countWord(spare)} credits stay for whoever comes next.`,
+      : spare === 1 ? "One credit is left for someone else later." : `${countWord(spare)} credits are left for someone else later.`,
   };
 }
 

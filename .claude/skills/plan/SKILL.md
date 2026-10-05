@@ -17,9 +17,17 @@ parallelism: cards touch disjoint files wherever the work allows, and the
 plan marks which cards run together so the orchestrator dispatches them at
 once (R-0.6).
 
-When it returns, show the Owner the goals, the task-card list, the parallel
+When it returns, check its `Lessons read through RNN` stamp against the last
+round (ADR-265). If that round has no report yet, the plan cannot be approved:
+show it to the Owner as a draft and say it waits on that round's close. If the
+round has closed since the stamp, re-read the plan against the `lessons.md`
+lines added since, add each one its cards touch to Lessons this plan guards
+with the card that guards it, update the stamp and commit, before showing it.
+
+Then show the Owner the goals, the task-card list, the parallel
 groups with each card's tier beside it (opus, sonnet or haiku, from its
 `Tier:` line, ADR-187; the Owner may name another for any card, R-0.7) and any
 Mailbox rows it raised, then stop. The round does not start until the Owner
-approves. On approval ("go", "approved", "build it"), run the `round` skill
+approves a plan stamped through the last round. On approval ("go",
+"approved", "build it"), run the `round` skill
 for RNN at once in this session; never wait for a second instruction.

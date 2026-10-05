@@ -142,6 +142,10 @@
   /* Measured chart geometry, never a control. */
   --brass: 41 54% 62%;
 
+  /* Timeline's intense tone, the one token Timeline adds (ADR-207). A hex, not a triplet, because no Tailwind colour
+     reads it, and global, because the dial draws on the site, in the app and on the dashboard alike. */
+  --sd-rose: #C46B78;
+
   --shadow-2xs: 0px 1px 0px 0px rgba(0,0,0,.4);
   --shadow-xs: 0px 2px 4px 0px rgba(0,0,0,.35);
   --shadow-sm: 0px 2px 8px 0px rgba(0,0,0,.4), 0px 1px 2px -1px rgba(0,0,0,.3);
@@ -291,6 +295,13 @@
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
+
+  /* A time on Timeline is easy, mixed or intense, never a score (ADR-207). The class only sets --sd-tone, so it can sit on
+     a card or a planet's group and colour just the dot, bar or disc that reads the variable, never the words beside it.
+     Easy is the Closing's teal and mixed the grey both Timeline artifacts draw. */
+  .sd-tone-easy { --sd-tone: #3FA796; }
+  .sd-tone-mixed { --sd-tone: #AEB6C6; }
+  .sd-tone-intense { --sd-tone: var(--sd-rose); }
 
   .no-default-hover-elevate {}
   .no-default-active-elevate {}
