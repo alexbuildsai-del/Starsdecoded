@@ -1,14 +1,24 @@
 // Resend integration — every transactional email Stars Decoded sends: a
 // finished report shared with its subject, a reader's own Personal report
 // shared with someone, a Compatibility report shared or granted, a gift and
-// its reminder, the waitlist's confirmation, and the spend breaker's notice
-// to the admin. The first five are written in the giver's name. A written
+// its reminder, the receipt for a purchase, the waitlist's confirmation, and
+// the spend breaker's notice to the admin. The first five are written in the
+// giver's name. A written
 // report is shared and a
 // credit is given: none says "send" for a report, or "made" or "created"
 // (ADR-181; credit-loop.md "Two verbs", ADR-128, 135).
 // Credentials come straight from the environment (RESEND_API_KEY,
 // RESEND_FROM_EMAIL), so any host that can set env vars can send mail.
 import { Resend } from "resend";
+import {
+  CHECKOUT_TICK,
+  PLAN_TICK,
+  REFUND_RULES,
+  formatEuro,
+  itemById,
+  renewalLine,
+  type CatalogueItemId,
+} from "@workspace/commerce";
 import { readAppEnv, type AppEnv } from "./appEnv.js";
 import { logger } from "./logger.js";
 import { publicWebBase } from "./waitlist.js";
@@ -368,6 +378,96 @@ export function buildGiftReminderEmail(opts: SendGiftReminderOptions): EmailCont
 
 export async function sendGiftReminder(opts: SendGiftReminderOptions): Promise<boolean> {
   return deliver(opts.to, buildGiftReminderEmail(opts), "gift-reminder");
+}
+
+// ---- The receipt: our own, beside Stripe's, repeating what the buyer agreed to (Art. 8(7), ADR-143, 274) ----
+
+export interface SendReceiptEmailOptions {
+  to: string;
+  item: CatalogueItemId;
+  cents: number;
+  /** The campaign the price came from, when there was one. */
+  campaignName: string | null;
+  /** The tick the purchase was made under; left out, the item's own tick is read. */
+  tick?: string;
+  /** A plan's renewal line; left out, the plan's own is read, and a bundle has none. */
+  renewal?: string | null;
+  historyUrl: string;
+}
+
+function receiptRow(label: string, value: string): string {
+  return `<tr>
+    <td style="padding:6px 16px 6px 0;font-size:14px;color:#8B949E;vertical-align:top;">${label}</td>
+    <td style="padding:6px 0;font-size:14px;color:#E6EDF3;vertical-align:top;">${value}</td>
+  </tr>`;
+}
+
+function receiptHeading(label: string): string {
+  return `<p style="margin:0 0 8px;font-size:13px;letter-spacing:0.06em;color:#8B949E;text-transform:uppercase;">${label}</p>`;
+}
+
+export function buildReceiptEmail(opts: SendReceiptEmailOptions): EmailContent {
+  const { cents, campaignName, historyUrl } = opts;
+  const item = itemById(opts.item);
+  const plan = "interval" in item ? item : null;
+  const origin = publicWebBase();
+
+  const what = plan ? `${item.name}, paid each ${plan.interval}` : item.name;
+  const credits = plan
+    ? plan.creditsToGive > 0
+      ? `It comes with ${plan.creditsToGive} credit${plan.creditsToGive === 1 ? "" : "s"}.`
+      : null
+    : `${item.credits} credit${item.credits === 1 ? "" : "s"}`;
+  const paid = formatEuro(cents);
+  const tick = opts.tick ?? (plan ? PLAN_TICK : CHECKOUT_TICK);
+  const renewal = opts.renewal === undefined ? (plan ? renewalLine(plan) : null) : opts.renewal;
+  const stripeNote = "You will also get Stripe's receipt for this payment.";
+  const agreedTo = "What you agreed to";
+  const refunds = "If something goes wrong";
+
+  const subject = "Your receipt from Stars Decoded";
+  const rows =
+    receiptRow("You bought", escapeHtml(what)) +
+    (plan ? "" : receiptRow("Credits", escapeHtml(credits ?? ""))) +
+    (campaignName ? receiptRow("Offer", escapeHtml(campaignName)) : "") +
+    receiptRow("You paid", escapeHtml(paid));
+  const html = shell(
+    origin,
+    paddedSection(
+      `<p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#C9D1D9;">Thank you for your purchase. This is your receipt.</p>` +
+        `<table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">${rows}</table>` +
+        (plan && credits ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#8B949E;">${escapeHtml(credits)}</p>` : "") +
+        (renewal ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#C9D1D9;">${escapeHtml(renewal)}</p>` : "") +
+        receiptHeading(agreedTo) +
+        `<p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#C9D1D9;">${escapeHtml(tick)}</p>` +
+        receiptHeading(refunds) +
+        REFUND_RULES.map(
+          (rule) => `<p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#C9D1D9;">${escapeHtml(rule)}</p>`,
+        ).join("") +
+        `<p style="margin:16px 0 32px;font-size:13px;line-height:1.6;color:#8B949E;">${stripeNote}</p>` +
+        `<div style="text-align:center;">${ctaButton("See my History", historyUrl)}</div>`,
+    ),
+  );
+  const text = textShell(
+    [
+      `Thank you for your purchase. This is your receipt.`,
+      ``,
+      `You bought: ${what}`,
+      ...(plan ? [] : [`Credits: ${credits}`]),
+      ...(campaignName ? [`Offer: ${campaignName}`] : []),
+      `You paid: ${paid}`,
+      ``,
+    ]
+      .concat(plan && credits ? [credits, ``] : [])
+      .concat(renewal ? [renewal, ``] : [])
+      .concat([agreedTo, tick, ``, refunds, ...REFUND_RULES, ``, stripeNote, ``, `See my History:`, historyUrl]),
+  );
+  return { subject, html, text };
+}
+
+export async function sendReceiptEmail(opts: SendReceiptEmailOptions): Promise<boolean> {
+  // A buyer's address stays out of the logs, as the waitlist's does.
+  return deliver(opts.to, buildReceiptEmail(opts), "receipt-email", { logRecipient: false });
 }
 
 // The waitlist's double opt-in (ADR-145). It says what confirming does and the
