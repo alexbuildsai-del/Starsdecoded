@@ -12,6 +12,22 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # A throwaway Postgres for the buyer walk (ADR-266). Its password opens
+    # nothing outside this job, so it lives here rather than in a secret.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: walk
+          POSTGRES_PASSWORD: walk
+          POSTGRES_DB: walk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U walk -d walk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       # The whole history, so the secret scan can walk any PR or pushed range;
       # no token is left in .git/config for the install's scripts to read.
@@ -44,6 +60,24 @@ jobs:
       # e2e is excluded: Playwright needs a running site and a browser, so it
       # runs against a deployed preview instead.
       - run: pnpm -r --filter '!@workspace/e2e' --if-present run test
+
+      # The walk runs on the schema every deploy starts on, made the same way.
+      # The bootstrap's prompt step loads the model client, which will not
+      # start without a key; this one is sent nowhere.
+      - name: Bootstrap the walk's database
+        timeout-minutes: 5
+        env:
+          DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
+          OPENAI_API_KEY: sk-dummy-walk-never-sent
+        run: pnpm run db:bootstrap
+
+      # The Owner's critical flow with two accounts, end to end on that
+      # database, with no Clerk, no network and no OpenAI (ADR-266).
+      - name: Walk the buyer's flow
+        timeout-minutes: 5
+        env:
+          WALK_DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
+        run: pnpm --filter @workspace/api-server exec tsx src/walk/buyer.walk.ts
 
       - run: pnpm check:shipped
 
