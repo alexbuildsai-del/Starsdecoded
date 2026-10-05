@@ -489,6 +489,66 @@ test("the yearly plan gives one credit for each year paid, once each, and our re
   assert.ok(lines.every(([, count, label]) => count === 1 && label === "With Timeline"), JSON.stringify(lines));
 });
 
+test("a refund of a year's payment takes that year's credit back while it is unspent, and never a used one (ADR-277)", { skip: NO_DB }, async () => {
+  const { handleStripeEvent } = await import("./fulfilment.js");
+  const seen: string[] = [];
+  const refundOf = (intent: string, refunded = 6999) => {
+    const made = event("charge.refunded", {
+      id: `ch_${randomUUID()}`,
+      object: "charge",
+      amount: 6999,
+      amount_captured: 6999,
+      amount_refunded: refunded,
+      refunded: refunded >= 6999,
+      payment_intent: intent,
+      livemode: false,
+    });
+    seen.push(made.id);
+    return made;
+  };
+  const year = async (b: Awaited<ReturnType<typeof buyer>>, tag: string, purchaseId: string, reason: string, periodEnd: number) => {
+    const intent = `pi_r1712_${run}_${tag}`;
+    await apply(event("invoice.paid", invoice(`in_r1712_${run}_${tag}`, b.sub, b.customer, { reason, purchaseId, amountPaid: 6999, periodEnd, intent })));
+    return intent;
+  };
+  const creditOf = async (userId: string, purchaseId: string) =>
+    (await ledgerOf(userId)).bundles.filter((bundle) => bundle.purchaseId === purchaseId);
+  const statuses = async (userId: string) => (await ledgerOf(userId)).credits.map((c) => c.status);
+
+  // Unspent: the first year's refund takes its credit and the second year's stays; the second's refund then takes its own.
+  const b = await buyer("year-refund");
+  const purchaseId = await checkout(b.userId, "timeline_year");
+  const end = NOW + 365 * DAY;
+  await apply(event("customer.subscription.created", subscription(b.sub, b.customer, { item: "timeline_year", purchaseId, status: "incomplete", periodEnd: end })));
+  const first = await year(b, "yr1", purchaseId, "subscription_create", end);
+  const second = await year(b, "yr2", purchaseId, "subscription_cycle", end + 365 * DAY);
+  assert.deepEqual(await statuses(b.userId), ["available", "available"]);
+
+  const refund = refundOf(first);
+  assert.equal(await handleStripeEvent(refund), "processed");
+  assert.deepEqual((await statuses(b.userId)).sort(), ["available", "refunded"], "only the refunded year's credit goes");
+  assert.equal(await handleStripeEvent(refund), "duplicate");
+  assert.equal(await handleStripeEvent(refundOf(first)), "processed", "a second refund event for the same payment");
+  assert.deepEqual((await statuses(b.userId)).sort(), ["available", "refunded"], "and it goes once");
+  assert.equal(await handleStripeEvent(refundOf(second)), "processed");
+  assert.deepEqual(await statuses(b.userId), ["refunded", "refunded"]);
+  const { creditHistory } = await import("./credits.js");
+  assert.equal((await creditHistory(b.userId)).filter((line) => line.kind === "refunded").reduce((sum, line) => sum + line.count, 0), 2);
+
+  // Spent: a credit already used for a report, or given and claimed, stays with its holder.
+  const kept = await buyer("year-spent");
+  const keptPurchase = await checkout(kept.userId, "timeline_year");
+  await apply(event("customer.subscription.created", subscription(kept.sub, kept.customer, { item: "timeline_year", purchaseId: keptPurchase, status: "incomplete", periodEnd: end })));
+  const intent = await year(kept, "spent", keptPurchase, "subscription_create", end);
+  const { db, pool, creditsTable } = await pg();
+  const { eq } = await import("drizzle-orm");
+  await db.update(creditsTable).set({ status: "used" }).where(eq(creditsTable.userId, kept.userId));
+  assert.equal(await handleStripeEvent(refundOf(intent)), "processed");
+  assert.deepEqual(await statuses(kept.userId), ["used"], "a used credit stays used");
+  assert.equal((await creditOf(kept.userId, keptPurchase)).length, 1);
+  await pool.query("delete from stripe_events where id = any($1)", [seen]);
+});
+
 /** Stripe's invoice payments, from a local server the real client is pointed at; nothing leaves the machine. */
 async function invoicePayments(answer: (url: string) => [number, unknown]) {
   const asked: string[] = [];

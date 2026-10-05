@@ -502,3 +502,18 @@ test("db: a pair that fails gives its credit back at once and is final; its Dele
   assert.equal((await call(maker, "DELETE", `/reports/${pair.body.id}`)).status, 204);
   assert.deepEqual(await balanceOf(maker), { available: 1, used: 2 });
 });
+
+test("db: Regenerate of a finished report for an earlier version takes no credit, with none left in the balance (ADR-313)", { skip: NO_DB }, async () => {
+  const reader = await signIn("earlier", "solo");
+  const id = await written(reader, MIRA, true);
+  assert.deepEqual(await balanceOf(reader), { available: 0, used: 1 });
+  await q(`update reports set interpretation = jsonb_set(interpretation, '{meta}', '{"promptVersion": "an-earlier-version"}'::jsonb) where id = $1`, [id]);
+
+  fake.replies = textFor(MIRA);
+  const again = await call(reader, "POST", `/reports/${id}/regenerate`);
+  assert.equal(again.status, 202, JSON.stringify(again.body));
+  assert.equal(await settled(reader, id), "complete");
+  assert.deepEqual(await ledgerOf(reader), [["used", id]], "the one credit stays on this report, and nothing else was taken");
+  assert.deepEqual(await balanceOf(reader), { available: 0, used: 1 });
+  assert.deepEqual(await triesOf(id), [0, false]);
+});

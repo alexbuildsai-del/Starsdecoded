@@ -288,6 +288,19 @@ test("a purchase without its tick grants nothing, and the line names only the ev
   assert.deepEqual(line, ["error", { event: completed.id, type: "checkout.session.completed" }, "a paid checkout's purchase carries no tick, so nothing was granted"]);
 });
 
+test("a tick that is not the words' digest is no tick: nothing is granted, and the purchase stays open (ADR-274)", { skip: NO_DB }, async () => {
+  const h = harness();
+  for (const [name, tickHash] of [["short", "abc123"], ["upper", TICK.toUpperCase()], ["words", "I agree"]] as const) {
+    const mira = await buyer(`mira-bad-tick-${name}`);
+    const bought = await purchase(mira, { tickHash });
+    assert.equal(await h.handle(paid(bought)), "ignored", name);
+    assert.equal((await getCredits(mira)).available, 0, name);
+    assert.equal((await purchaseRow(bought.purchaseId)).status, "open", name);
+    assert.equal((await bundleOf(bought.purchaseId)).length, 0, name);
+  }
+  assert.equal(h.receipts.length, 0);
+});
+
 test("a session that matches no bundle purchase grants nothing: another's session, or a plan's", { skip: NO_DB }, async () => {
   const h = harness();
   const stranger = paid({ purchaseId: "none", sessionId: next("cs_test"), paymentIntent: next("pi") });
