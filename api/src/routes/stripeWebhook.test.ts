@@ -34,7 +34,7 @@ const { default: app, requestErrorHandler } = await import("../app.js");
 const { stripeWebhookRouter } = await import("./stripeWebhook.js");
 type WebhookDeps = import("./stripeWebhook.js").WebhookDeps;
 
-const SECRET = "whsec_r1711_test_signing_secret_never_used_elsewhere";
+const SECRET = "whsec_standin";
 const run = randomUUID().slice(0, 8);
 const EMAIL = `mira-${run}@example.com`;
 const NAME = "Mira Costa";
