@@ -7,7 +7,8 @@ merged into the rule it repeats.
 
 ## Took as proposed
 - **Keyless checks, narrowly scoped.** Playwright for axe on the public pages, no key, no sign-in (ADR-192, 2026-10-01).
-- **The default carries an ask.** "go", with MB-93, 128 and 129 at their defaults (R12): write each ask so silence is safe.
+- **The default carries an ask.** "go", with MB-93, 128 and 129 at their defaults (R12): write each ask so silence is safe;
+  "lock it" with Mixed's wording left at its default (review-05-10, 2026-10-05).
 - **Housekeeping on a yes.** The /round skill swap, a promise removed (Review 02/10); fifteen built-at-default rows closed in
   one line (sweep 03/10). Small, reversible operations need one line, not a question.
 
@@ -28,6 +29,14 @@ merged into the rule it repeats.
   (stripe-payments, 2026-10-04). Record such a cut as out of scope, never as a rule.
 - **One home for a service's keys.** He put Stripe's publishable key on Railway, where the plan said Vercel; the plan moved:
   every key of a service on Railway, the web given what it needs by the API (stripe-payments, 2026-10-04).
+- **Name it, never "things".** "I hate when we do things": say transits, cycles, items (review-05-10, 2026-10-05).
+- **Spans, not counts.** Week cells of day totals were "a clusterfuck of numbers"; one bar per transit across Monday to
+  Sunday, its start and end marked, was loved (review-05-10). Show how long something lasts, not how many.
+- **Prose is fixed in the prompt, not with a new test.** "I don't want to invent new tests"; a rule for a headline or a
+  1st-house line goes into the prompt's instruction (review-05-10, 2026-10-05).
+- **Reuse, never redesign what is approved.** The hero: "please don't make this different", only the value replaces the
+  sentence; Life's card is the Your cycles card; Did you know reuses the product's drawings and leaves the loading
+  progress alone; bundles keep their names (review-05-10). Keep what already looks great (Review 02/10).
 - **Don't redraw what was only misread.** The look-alike nodes stay; the answer was the explanation (Review 02/10).
 
 ## Asked for
@@ -46,6 +55,12 @@ merged into the rule it repeats.
 - **A promise needs its proof.** "You don't actually say what it gives you": every feature on a product page is a promise,
   why you'd care, and an example a reader can see; placements stay computed (timeline-page v3, 2026-10-03).
 - **No price before it's real.** "Keep it as coming soon": a price on the site waits for its launch (timeline-page, 03/10).
+- **Evidence before a claim.** "Are you sure? Can you give me an example": check a stored report or the engine before
+  saying what the product does; a wrong "it already explains retrograde" was caught (review-05-10, 2026-10-05).
+- **Astrology calls are ours.** "You are the specialist in astrology": propose which chapters explain what, for every
+  planet the chart shows, and why it matters (review-05-10). Known ideas (retrograde) may be explained; the method may not.
+- **A card reads top-down.** The idea, then "for you", then the value, then the date; the science behind an ⓘ; explicit
+  enough that Read more is not needed (review-05-10, Life).
 - **Keep what already looks great, and don't repeat a promise** across a page's sections (Review 02/10, 2026-10-02).
 
 ## Formats he likes
@@ -55,9 +70,14 @@ merged into the rule it repeats.
 - **Dashboards screen by screen.** He sets up Stripe from screenshots: name the option to pick on that screen and what the
   next one will ask, with exact values to paste (stripe-payments, 2026-10-04).
 
+- **Live mocks he can drag and watch** (the Life line, the rotating card), and a green box showing what changed after
+  each answer (review-05-10, 2026-10-05).
+- **A fixed small label over a title that finishes it**: "DID YOU KNOW" in brass, then "Why east is on the left?", no
+  dots, icons or X; its facts come from a log of what he asks explained (review-05-10, 2026-10-05).
 ## His own lines, verbatim
 - "Continue without this for now." 2026-09-27, `docs/rounds/R14-plan.md`: his name, address and accounts not yet supplied.
 - "Let's leave Stripe settings on the side, I will handle that in another round." 2026-09-30, `R11-plan.md`.
 - "go". R12's approval, with MB-93, 128 and 129 at their defaults (`docs/rounds/R12-report.md`, 2026-10-01).
 - "sol on the foundation, luna on everything else for the brain/prose". 2026-10-01, R12 plan; the gate still ran (ADR-184).
 - "two friends talking over coffee". 2026-10-01, the voice, verbatim in ADR-185 (R12 plan).
+- "Just add the bloody Gemini … degree, just like the moon and the sun has it." 2026-10-05 (review-05-10, the hero).
