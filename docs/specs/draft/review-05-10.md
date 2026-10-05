@@ -173,7 +173,7 @@ Stripe, live prices, pricing (ADR-230, 242, 264); the Monday letter; Chiron (MB-
     reader's credit count.
 
 ## Screens
-All on the artifact (version 4), Parts 1 to 10, one per section above; Part 9 is the Did you know card.
+All on the artifact (version 5), Parts 1 to 10, one per section above; Part 9 is the Did you know card.
 
 ## Open questions (each with its default)
 Answered: tone words with a legend; written a week ahead; the marked preview; no X; every R planet in House by House.
