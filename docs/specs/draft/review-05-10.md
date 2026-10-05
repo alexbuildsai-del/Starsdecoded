@@ -127,13 +127,13 @@ prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels
 - **One list in the code** (`web/src/lib/facts.ts`), each fact a short title and two or three plain sentences, with
   where the Owner asked it. Every "why is it like this?" the Owner asks in a review is added to it.
 - **One new component, the Did you know card** (rounds 4 to 7): "DID YOU KNOW" in small brass capitals, the same on
-  every fact, then a title that finishes it ("…why east is on the left?"), two or three sentences, a drawing on the
+  every fact, then a title that finishes it ("Why east is on the left?"), two or three sentences, a drawing on the
   right reused from what the product draws (no new drawings), and one bar per fact that fills like the home page's
   Claims (`Claims.tsx`): about 8 s, a fade, tap a bar to jump, hover pauses; no X. Under the report's opening screen
   and the set-up, whose progress does not change.
-- **The log so far**, with its drawing: "…planets can look like they go backwards?" (names retrograde and the R; the
-  Timeline dial's planet with its dashed ring and trail); "…why east is on the left?" (the report hero, Sun, Moon and
-  EAST · RISING); "…each house starts in a sign?" (the House by House wheel, one house lit); "…Saturn comes back every
+- **The log so far**, with its drawing: "Planets can look like they go backwards?" (names retrograde and the R; the
+  Timeline dial's planet with its dashed ring and trail); "Why east is on the left?" (the report hero, Sun, Moon and
+  EAST · RISING); "Each house starts in a sign?" (the House by House wheel, one house lit); "Saturn comes back every
   29½ years?" (Your cycles' ring, `AgeRing.tsx`). Words as on the artifact, Part 9.
 
 ### 10. Retrograde in the words (round 4)
