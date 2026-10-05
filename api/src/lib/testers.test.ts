@@ -9,6 +9,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import express from "express";
+import pinoHttp from "pino-http";
+import type { Logger } from "pino";
 
 const SCRATCH = process.env.WALK_DATABASE_URL;
 // Only a database handed over for this: without one the pool points nowhere, so a query past a refusal fails loudly.
@@ -20,7 +22,7 @@ const T = await import("./testers.js");
 const { creditHistory, getCredits } = await import("./credits.js");
 const { QA_PAIR } = await import("./qaPair.js");
 const { default: adminPaymentsRouter } = await import("../routes/adminPayments.js");
-const { createLogger, logger } = await import("./logger.js");
+const { createLogger, httpSerializers, logger } = await import("./logger.js");
 const { pool } = await import("@workspace/db");
 const { BUNDLES } = await import("@workspace/commerce");
 
@@ -41,16 +43,20 @@ test("a grant is a bundle's size, read from the catalogue, and nothing else is a
   assert.equal(L.badCount, "Grant 1, 3 or 5 credits.");
 });
 
-/** The Sales page's routes behind a stand-in for the session and sign-in, as app.ts stands them. */
-async function serve(t: TestContext, adminUserId: string | undefined) {
+/**
+ * The Sales page's routes behind a stand-in for the session and sign-in, as app.ts stands them. Given a logger, the
+ * request logger app.ts mounts writes to it, so a test can read each request's own lines.
+ */
+async function serve(t: TestContext, adminUserId: string | undefined, log?: Logger) {
   const before = process.env.ADMIN_USER_ID;
   if (adminUserId) process.env.ADMIN_USER_ID = adminUserId;
   else delete process.env.ADMIN_USER_ID;
   const app = express();
+  if (log) app.use(pinoHttp({ logger: log, serializers: httpSerializers }));
   app.use(express.json());
   app.use((req, _res, next) => {
     req.userId = req.header("x-user") || null;
-    req.log = logger;
+    if (!log) req.log = logger;
     next();
   });
   app.use(adminPaymentsRouter);
@@ -189,27 +195,36 @@ test("a grant is a test bundle from Stars Decoded with no purchase, in History a
 
 /**
  * What the shared logger writes while `t` runs, as production writes it: this file's logger is silent, so each call,
- * at any level, is written again through one with production's censoring.
+ * at any level, is written again through one with production's censoring, which `serve` hands the request logger too.
  */
-function loggedLines(t: TestContext): string[] {
+function loggedLines(t: TestContext): { lines: string[]; log: Logger } {
   const lines: string[] = [];
-  const written = createLogger({ NODE_ENV: "production", LOG_LEVEL: "trace" }, { write: (line: string) => void lines.push(line) });
+  const log = createLogger({ NODE_ENV: "production", LOG_LEVEL: "trace" }, { write: (line: string) => void lines.push(line) });
   for (const level of ["trace", "debug", "info", "warn", "error", "fatal"] as const) {
-    t.mock.method(logger, level, written[level].bind(written));
+    t.mock.method(logger, level, log[level].bind(log));
   }
-  return lines;
+  return { lines, log };
 }
 
-test("a grant's log line leads to its bundle and names no Clerk id or email, the admin's or the tester's (security scope 6)", { skip: NO_DB }, async (t) => {
-  const call = await serve(t, ADMIN);
+test("a tester's add, grant and removal log no Clerk id or email, their request lines included, and the grant's line leads to its bundle (security scope 6)", { skip: NO_DB }, async (t) => {
   const email = `Lou.${run}@Example.com`;
   const lou = await account("lou", email);
-  await call("POST", "/admin/testers", { email });
-  const lines = loggedLines(t);
+  const { lines, log } = loggedLines(t);
+  const call = await serve(t, ADMIN, log);
+  assert.equal((await call("POST", "/admin/testers", { email })).status, 201);
   assert.equal((await call("POST", `/admin/testers/${lou}/grant`, { count: 3 })).status, 200);
+  assert.equal((await call("DELETE", `/admin/testers/${lou}`)).status, 204);
+  // pino-http writes a request's line as its response finishes, which can land after the body has arrived.
+  const written = () => lines.map((line) => JSON.parse(line));
+  const requests = () => written().filter((line) => line.msg === "request completed");
+  for (let i = 0; i < 100 && requests().length < 3; i++) await new Promise((resolve) => setTimeout(resolve, 10));
 
+  assert.deepEqual(
+    requests().map((line) => `${line.req.method} ${line.req.url}`).sort(),
+    ["DELETE /admin/testers/:userId", "POST /admin/testers", "POST /admin/testers/:userId/grant"],
+  );
   const [bundle] = (await q("select id from bundles where user_id = $1", [lou])).rows;
-  const grant = lines.map((line) => JSON.parse(line)).find((line) => line.msg === "tester granted credits");
+  const grant = written().find((line) => line.msg === "tester granted credits");
   assert.deepEqual({ count: grant?.count, bundleId: grant?.bundleId }, { count: 3, bundleId: bundle?.id });
   const text = lines.join("").toLowerCase();
   for (const value of [ADMIN, lou, email]) assert.equal(text.includes(value.toLowerCase()), false, `${value} is in a log line`);
