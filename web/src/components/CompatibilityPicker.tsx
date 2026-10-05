@@ -21,7 +21,7 @@ import { StatusDots } from "@/components/StatusDots";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 import { HOW_OPTIONS, HOW_QUESTION, LENSES, PARENT_QUESTION, lensInfo } from "@/lib/lenses";
-import { refusalLine } from "@/lib/refusals";
+import { isNoCredit, refusalLine } from "@/lib/refusals";
 import {
   enterPreselect, forgetSelection, readSelection, reconcileSelection, rememberSelection, unpickable, type PairSelection,
 } from "@/lib/pair-selection";
@@ -35,9 +35,11 @@ export interface CompatibilityPickerProps {
   openOnCreate?: boolean;
   /** The pair being written, from the press until the list holds it, then null (ADR-130). */
   onGenerating?: (pair: Pick<PairSelection, "a" | "b"> | null) => void;
-  /** `creditsEnforced()` (ADR-138): at zero the button becomes Get credits. False keeps the soft pass. */
-  enforced?: boolean;
-  onGetCredits?: () => void;
+  /**
+   * At zero, or when the server finds no credit (402), the button is Get credits: a checkout that comes back to the
+   * picker with its pair kept (reading 2).
+   */
+  onGetCredits: () => void;
 }
 
 /** Outside the picker, so a render never remounts the select and drops the keyboard's place in it. */
@@ -67,7 +69,7 @@ function ReportSelect({ label, value, onChange, exclude, reports }: {
 }
 
 export function CompatibilityPicker({
-  reports: given, preselect = null, openOnCreate = true, onGenerating, enforced = false, onGetCredits,
+  reports: given, preselect = null, openOnCreate = true, onGenerating, onGetCredits,
 }: CompatibilityPickerProps) {
   const [, navigate] = useLocation();
   const client = useQueryClient();
@@ -75,8 +77,16 @@ export function CompatibilityPicker({
   const section = useRef<HTMLElement>(null);
   const listed = useListReports({ query: { queryKey: getListReportsQueryKey(), enabled: !given } });
   const credits = useGetCredits();
-  // On the hook, not the call: a call's callbacks are skipped once the viewer has left the page.
-  const create = useCreateCompatibilityReport({ mutation: { onSuccess: () => forgetSelection() } });
+  // On the hook, not the call: a call's callbacks are skipped once the viewer has left the page. A refusal for want of
+  // a credit keeps the pair remembered for the trip to checkout, and the balance catches up with the server's answer.
+  const create = useCreateCompatibilityReport({
+    mutation: {
+      onSuccess: () => forgetSelection(),
+      onError: (err) => {
+        if (isNoCredit(err)) void client.invalidateQueries({ queryKey: getGetCreditsQueryKey() });
+      },
+    },
+  });
   const loaded = useMemo(() => {
     const all = given ?? listed.data;
     return Array.isArray(all) ? all.filter((r) => r.kind === "natal") : undefined;
@@ -126,10 +136,9 @@ export function CompatibilityPicker({
   const [settling, setSettling] = useState(false);
   const busy = settling || create.isPending;
   const balance = credits.data?.available;
-  // MB-6 provisional: zero reads Get credits only where credits are enforced
-  // (ADR-138); elsewhere the soft pass still writes the report.
-  const outOfCredits = enforced && balance === 0;
-  const noCredit = !enforced && balance === 0;
+  // Zero means zero on every host (ADR-275); a refusal the stale balance missed asks for a credit the same way.
+  const refused = create.isError && isNoCredit(create.error);
+  const outOfCredits = balance === 0 || refused;
 
   function submit() {
     if (!ready || !lens || busy) return;
@@ -224,14 +233,11 @@ export function CompatibilityPicker({
         ) : outOfCredits ? (
           <>
             <Button variant="outline" onClick={onGetCredits} className="font-label [border-color:hsl(var(--primary)/0.6)] text-[#9FA8DA]">Get credits</Button>
-            <span className="text-xs text-muted-foreground">No credits left</span>
+            {/* After a refusal the server's own line below says so, once. */}
+            {!refused && <span className="text-xs text-muted-foreground">No credits left</span>}
           </>
         ) : (
           <Button disabled={!ready} onClick={submit} className="font-label">Write the report</Button>
-        )}
-        {noCredit && (
-          // MB-6 provisional: the no-credit state names itself and still runs on the soft pass until checkout exists.
-          <span className="text-xs text-muted-foreground">No credits yet. This report is free until prices are set.</span>
         )}
         {create.isError && (
           <span role="alert" className="text-xs text-destructive">

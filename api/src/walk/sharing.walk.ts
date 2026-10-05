@@ -410,8 +410,9 @@ try {
     assert.deepEqual(await shares(RECIPIENT), [[backId, "", "Marie", "active"]]);
   });
 
-  await step("a pair the recipient builds on the shared chart reads while the grant stands and offers no Send, so nothing claims the sharer's chart (ADR-235)", async () => {
+  await step("a pair the recipient builds on the shared chart reads while the grant stands and offers Send to its other person, the sharer, whose chart stays theirs (ADR-235, 285)", async () => {
     assert.equal((await call(STRANGER, "POST", "/compatibility", { reportAId: "RS", reportBId: "RR", lens: "people" })).status, 404);
+    await grantBundle(RECIPIENT.user, "solo", { test: true });
     const made = await call(RECIPIENT, "POST", "/compatibility", { reportAId: "RR", reportBId: "RS", lens: "people" });
     assert.equal(made.status, 201, JSON.stringify(made.body));
     pairId = made.body.id;
@@ -420,15 +421,21 @@ try {
     await q("update reports set status = 'complete', interpretation = $1, error_message = null, failure_code = null where id = $2", [JSON.stringify(PAIR_TEXT), pairId]);
 
     const listed = (await listReports(RECIPIENT)).get(pairId);
-    assert.deepEqual([listed.access, listed.send, listed.stoppedBy, listed.participants[1].sunSign], ["owner", null, null, marie.planets.sun.sign]);
+    assert.deepEqual(
+      [listed.access, listed.send, listed.stoppedBy, listed.participants[1].sunSign],
+      ["owner", { state: "can_send", firstName: "Marie", profileId: "PS", relationshipId: listed.send.relationshipId }, null, marie.planets.sun.sign],
+    );
     assert.equal((await call(RECIPIENT, "GET", `/reports/${pairId}`)).status, 200);
     assert.equal((await call(RECIPIENT, "GET", `/compatibility/${pairId}/summary`)).status, 200);
     const pair = (await readHome(RECIPIENT)).pairs.find((p) => p.reportId === pairId);
     assert.deepEqual([pair?.stoppedBy, pair?.strong, pair?.story?.headline], [null, PAIR_TEXT.twoCharts.strong, PAIR_TEXT.twoCharts.headline]);
 
     const mailsBefore = mails.length;
-    assert.equal((await call(RECIPIENT, "POST", `/compatibility/${pairId}/send`, { email: emailOf(SHARER) })).status, 403);
-    assert.equal(mails.length, mailsBefore);
+    const sent = await call(RECIPIENT, "POST", `/compatibility/${pairId}/send`, { email: emailOf(SHARER) });
+    assert.equal(sent.status, 201, JSON.stringify(sent.body));
+    assert.equal(sent.body.state, "invited");
+    assert.equal(mails.length, mailsBefore + 1);
+    assert.equal(mails.at(-1)!.to, emailOf(SHARER));
     assert.equal((await q("select claimed_by_user_id from profiles where id = 'PS'")).rows[0].claimed_by_user_id, null);
   });
 

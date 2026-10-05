@@ -13,7 +13,7 @@ import { CreateCompatibilityReportBody, GetCompatibilitySummaryParams } from "@w
 import type { NatalChartData } from "../lib/chartCalculation.js";
 import type { ReportInterpretation } from "../lib/aiInterpretation.js";
 import { generatePairInterpretation } from "../lib/pairInterpretation.js";
-import { consumeCredit } from "../lib/credits.js";
+import { noCredit, returnExpiredHolds, writeWithCredit } from "../lib/credits.js";
 import { natalReportAccess, pairReadable, type PairPerson } from "../lib/access.js";
 import { sharedProfileIds } from "../lib/shares.js";
 import { failReport, streamInto } from "./reports.js";
@@ -21,6 +21,7 @@ import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type ReportRow = typeof reportsTable.$inferSelect;
 type ProfileRow = typeof profilesTable.$inferSelect;
 type RelationshipRow = typeof relationshipsTable.$inferSelect;
@@ -47,8 +48,12 @@ async function readableNatal(
   return natalReportAccess(viewer, profile, report, shared.has(profile.id)) ? { report, profile } : null;
 }
 
-/** The viewer's relationship for this ordered pair of profiles, or a new one under the lens. */
+/**
+ * The viewer's relationship for this ordered pair of profiles, or a new one under the lens. It runs in the report's
+ * transaction, so a write refused for want of a credit leaves the pair's lens and roles as they were.
+ */
 async function relationshipFor(
+  tx: Tx,
   viewer: { userId: string | null; sessionId: string },
   profileAId: string,
   profileBId: string,
@@ -57,9 +62,9 @@ async function relationshipFor(
   parent: "A" | "B" | null,
 ): Promise<string> {
   const ownerWhere = viewer.userId ? eq(relationshipsTable.userId, viewer.userId) : eq(relationshipsTable.sessionId, viewer.sessionId);
-  const candidates = await db.select().from(relationshipsTable).where(ownerWhere);
+  const candidates = await tx.select().from(relationshipsTable).where(ownerWhere);
   if (candidates.length) {
-    const parts = await db.select().from(relationshipParticipantsTable)
+    const parts = await tx.select().from(relationshipParticipantsTable)
       .where(inArray(relationshipParticipantsTable.relationshipId, candidates.map((r) => r.id)));
     const byRel = new Map<string, string[]>();
     for (const p of parts) byRel.set(p.relationshipId, [...(byRel.get(p.relationshipId) ?? []), p.profileId]);
@@ -67,18 +72,18 @@ async function relationshipFor(
     for (const [id, ids] of byRel) {
       if (ids.length === 2 && [...ids].sort().join("|") === wanted) {
         // The lens and the roles are the report's; a re-run under another lens updates them.
-        await db.update(relationshipsTable).set({ type: lens, label: label ?? undefined, updatedAt: new Date() }).where(eq(relationshipsTable.id, id));
-        await db.update(relationshipParticipantsTable).set({ role: roleFor("A", lens, parent), position: "0" })
+        await tx.update(relationshipsTable).set({ type: lens, label: label ?? undefined, updatedAt: new Date() }).where(eq(relationshipsTable.id, id));
+        await tx.update(relationshipParticipantsTable).set({ role: roleFor("A", lens, parent), position: "0" })
           .where(and(eq(relationshipParticipantsTable.relationshipId, id), eq(relationshipParticipantsTable.profileId, profileAId)));
-        await db.update(relationshipParticipantsTable).set({ role: roleFor("B", lens, parent), position: "1" })
+        await tx.update(relationshipParticipantsTable).set({ role: roleFor("B", lens, parent), position: "1" })
           .where(and(eq(relationshipParticipantsTable.relationshipId, id), eq(relationshipParticipantsTable.profileId, profileBId)));
         return id;
       }
     }
   }
   const id = randomUUID();
-  await db.insert(relationshipsTable).values({ id, sessionId: viewer.sessionId, userId: viewer.userId ?? null, type: lens, label });
-  await db.insert(relationshipParticipantsTable).values([
+  await tx.insert(relationshipsTable).values({ id, sessionId: viewer.sessionId, userId: viewer.userId ?? null, type: lens, label });
+  await tx.insert(relationshipParticipantsTable).values([
     { id: randomUUID(), relationshipId: id, profileId: profileAId, role: roleFor("A", lens, parent), position: "0" },
     { id: randomUUID(), relationshipId: id, profileId: profileBId, role: roleFor("B", lens, parent), position: "1" },
   ]);
@@ -124,7 +129,9 @@ async function readablePair(
 
 // Write a compatibility report from two finished natal reports (ADR-39). No
 // birth data is read: both charts come from the profiles' caches and both
-// interpretations from the reports. Streams through the report routes.
+// interpretations from the reports. Streams through the report routes. One
+// credit is one report, whatever the report (ADR-42), taken before anything
+// is written (ADR-275).
 router.post("/compatibility", async (req, res) => {
   const parsed = CreateCompatibilityReportBody.safeParse(req.body);
   if (!parsed.success) {
@@ -138,6 +145,9 @@ router.post("/compatibility", async (req, res) => {
     return res.status(400).json({ error: "validation_error", message: "lens must be partners, parent_child or people" });
   }
   const viewer = { userId: req.userId, sessionId: req.sessionId };
+  const userId = req.userId;
+  // Credits are an account's, so a session never has one to take.
+  if (!userId) return res.status(402).json(noCredit("report"));
 
   try {
     const shared = await sharedProfileIds(viewer.userId);
@@ -154,22 +164,25 @@ router.post("/compatibility", async (req, res) => {
       return res.status(400).json({ error: "validation_error", message: "Pick two different people" });
     }
 
-    const relationshipId = await relationshipFor(viewer, a.profile.id, b.profile.id, lens, label ?? null, parent ?? null);
+    // A hold that lapsed is back in the balance before a credit is taken from it (reading 8); one the sweep missed waits
+    // for the next read, and the write goes on with what is there.
+    await returnExpiredHolds().catch((err: unknown) => req.log.warn({ err }, "gift holds were not settled"));
     const reportId = randomUUID();
-    await db.insert(reportsTable).values({
-      id: reportId,
-      profileId: a.profile.id,
-      sessionId: req.sessionId,
-      type: "compatibility",
-      relationshipId,
-      status: "interpreting",
-      computeData: { reportAId, reportBId, lens },
+    const made = await writeWithCredit(userId, reportId, async (tx) => {
+      const id = await relationshipFor(tx, viewer, a.profile.id, b.profile.id, lens, label ?? null, parent ?? null);
+      await tx.insert(reportsTable).values({
+        id: reportId,
+        profileId: a.profile.id,
+        sessionId: req.sessionId,
+        type: "compatibility",
+        relationshipId: id,
+        status: "interpreting",
+        computeData: { reportAId, reportBId, lens },
+      });
+      return id;
     });
-
-    // One credit is one report, whatever the report (ADR-42); soft until payments.
-    if (req.userId) {
-      consumeCredit(req.userId, reportId).catch((err) => req.log.error({ err, reportId }, "Failed to consume credit"));
-    }
+    if (!made) return res.status(402).json(noCredit("report"));
+    const relationshipId = made.value;
 
     const input = {
       lens,

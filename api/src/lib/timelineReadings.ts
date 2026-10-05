@@ -4,7 +4,8 @@
  * (ADR-84): strict output, every error carried into the retries and then into one round alone, each call on the day's
  * spend ledger (ADR-199) and each attempt's checks in the failure log (ADR-85). It builds on the reader's own report
  * (reading 10). A row is claimed before it is written, so two opens at once write it once; it is written again only
- * when its basis no longer matches (reading 8), when it failed, or when a write died with its process.
+ * when its basis no longer matches (reading 8), when it failed, or when a write died with its process. An account's
+ * opens start at most `NEW_READINGS_A_DAY` new writes a UTC day.
  */
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, lt, ne, or } from "drizzle-orm";
@@ -19,7 +20,7 @@ import { failureCodeOf, type FailureCode } from "./failureReasons.js";
 import { logger } from "./logger.js";
 import { MODELS } from "./models.js";
 import { resolveSection } from "./promptLoader.js";
-import { dailyCapUsd, spentTodayUsd } from "./spendCap.js";
+import { dailyCapUsd, spentTodayUsd, utcDay } from "./spendCap.js";
 import { eventByKey, type KeyedEvent, type ReaderChart, type ReadingState, type ReadingStatuses } from "./timeline.js";
 import { buildBrief } from "../prompts/brief.js";
 import { EvidenceRefSchema, softenQuote } from "../prompts/evidence.js";
@@ -33,12 +34,16 @@ type Opened = zc.infer<typeof OpenTimelineReadingResponse>;
 export type TimelineReading = NonNullable<Opened["reading"]>;
 export type BuildsOn = TimelineReading["buildsOn"];
 
-/** What opening a reading answers: the contract's three (200), or unknown for a key nothing on the reader's chart reads (404). */
+/**
+ * What opening a reading answers: the contract's three (200), unknown for a key nothing on the reader's chart reads
+ * (404), or capped once the account has started the day's new readings (429), with the seconds until the next day.
+ */
 export type OpenedReading =
   | { status: "ready"; reading: TimelineReading; line: null }
   | { status: "writing"; reading: null; line: null }
   | { status: "failed"; reading: null; line: string }
-  | { status: "unknown"; reading: null; line: null };
+  | { status: "unknown"; reading: null; line: null }
+  | { status: "capped"; reading: null; line: string; retryAfterSeconds: number };
 
 /** A row still writing after this long lost its process, so the next open or queue writes it again. */
 export const WRITING_STALE_MS = 5 * 60_000;
@@ -52,6 +57,12 @@ export const OPEN_WAIT_MS = 20_000;
 
 /** The sheet's line when a reading could not be written, as `failureReasons.ts` words a failure; the next open writes it again. */
 export const READING_FAILED_LINE = "We couldn't write this reading. Try again in a few minutes.";
+
+// MB-219 provisional: an account starts at most 40 new readings a UTC day.
+export const NEW_READINGS_A_DAY = 40;
+
+/** Timeline's line at the day's cap, through /ux-copy: a kept reading still opens, so it speaks only of new ones. */
+export const READINGS_CAP_LINE = "You've opened today's new readings. You can open more tomorrow.";
 
 /** The report's chapters with claims, in the page's order (ADR-46), each by the title the report page prints. */
 const CHAPTERS: ReadonlyArray<readonly [id: string, title: string]> = [
@@ -430,25 +441,68 @@ function within(work: Promise<OpenedReading>, ms: number): Promise<OpenedReading
 }
 
 /**
- * Opens the reading of an event or a cycle on the reader's own chart. A key `eventByKey` does not find, or one that gets
- * no reading, is unknown and writes nothing. A kept reading on the reader's basis answers at once, and so does one still
- * being written. Anything else is claimed and written: the open waits up to `waitMs` for it, then answers writing and
- * leaves it running. The spend gate stands in front of the route, so it is not asked here.
+ * Each account's new readings on the UTC day counted, kept in this process as the limits' counts are (ADR-199). Each
+ * is taken as its write is claimed, never read back from the rows: a row is written again in place, so the rows
+ * cannot say how many writes a day started.
  */
-export async function openReading(reader: ReaderChart, key: string, options: { waitMs?: number } = {}): Promise<OpenedReading> {
-  const keyed = eventByKey(reader, key);
+const started = { day: "", by: new Map<string, number>() };
+
+/** Takes one of the account's new readings for the day, before its claim, so two opens at once cannot pass the cap together. */
+function takeStart(userId: string, day: string): boolean {
+  if (started.day !== day) {
+    started.day = day;
+    started.by.clear();
+  }
+  const count = started.by.get(userId) ?? 0;
+  if (count >= NEW_READINGS_A_DAY) return false;
+  started.by.set(userId, count + 1);
+  return true;
+}
+
+function giveStartBack(userId: string, day: string): void {
+  const count = started.day === day ? started.by.get(userId) : undefined;
+  if (count === undefined) return;
+  if (count > 1) started.by.set(userId, count - 1);
+  else started.by.delete(userId);
+}
+
+function capped(now: Date): OpenedReading {
+  const tomorrow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  const retryAfterSeconds = Math.max(1, Math.ceil((tomorrow - now.getTime()) / 1000));
+  return { status: "capped", reading: null, line: READINGS_CAP_LINE, retryAfterSeconds };
+}
+
+/**
+ * Opens the reading of an event or a cycle on the reader's own chart. A key `eventByKey` does not find at `now`, or one
+ * that gets no reading, is unknown and writes nothing. A kept reading on the reader's basis answers at once, and so
+ * does one still being written, on any day. Anything else is a new write: refused once the account has started the
+ * day's (`NEW_READINGS_A_DAY`, on the UTC day of `now`), else claimed and written, the open waiting up to `waitMs` for
+ * it before it answers writing and leaves it running. How long a write has run is read on the clock its row was
+ * written by, never `now`. The spend gate stands in front of the route, so it is not asked here.
+ */
+export async function openReading(reader: ReaderChart, key: string, options: { waitMs?: number; now?: Date } = {}): Promise<OpenedReading> {
+  const now = options.now ?? new Date();
+  const keyed = eventByKey(reader, key, now);
   if (!keyed) return unknown();
   const [row] = await rowsOf(reader.profileId, [key]);
   const answer = row && row.basis === reader.basis ? answerOf(row, Date.now()) : null;
   if (answer) return answer;
   const unreadable = row && row.basis === reader.basis && row.status === "ready" ? row : undefined;
-  const claimed = await claim(reader, key, true, unreadable);
+  const day = utcDay(now);
+  if (!takeStart(reader.userId, day)) return capped(now);
+  let claimed: Claim | null = null;
+  try {
+    claimed = await claim(reader, key, true, unreadable);
+  } finally {
+    // Only a claim that lands starts a write: one another open took first, or one that threw, gives its count back.
+    if (!claimed) giveStartBack(reader.userId, day);
+  }
   if (!claimed) {
     // Another open took it between the read and the claim: it is writing, or already written.
-    const [now] = await rowsOf(reader.profileId, [key]);
-    if (!now || now.basis !== reader.basis) return writing();
-    if (now.status === "failed") return failed(failedLine(now));
-    return answerOf(now, Date.now()) ?? writing();
+    const [taken] = await rowsOf(reader.profileId, [key]);
+    if (!taken || taken.basis !== reader.basis) return writing();
+    if (taken.status === "failed") return failed(failedLine(taken));
+    return answerOf(taken, Date.now()) ?? writing();
   }
   const write = writeClaimed(reader, key, keyed, claimed);
   return (await within(write, options.waitMs ?? OPEN_WAIT_MS)) ?? writing();

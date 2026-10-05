@@ -30,6 +30,7 @@ const MILAN: GeocodeResult = {
 
 const KNOWN: BirthTimeAnswer = { mode: "known", time: "14:30", part: "afternoon", kind: "part" };
 const DRAFT: FormDraft = { birthDate: "1990-05-17", time: KNOWN, place: MILAN };
+const TAKEN = { ...DRAFT, name: "" };
 
 describe("the birth form's draft", () => {
   it("is written under the tab's one key and taken back whole, once", () => {
@@ -37,16 +38,41 @@ describe("the birth form's draft", () => {
     const store = memoryStore();
     saveFormDraft(DRAFT, store);
     expect(JSON.parse(store.raw() ?? "null")).toEqual(DRAFT);
-    expect(takeFormDraft(store)).toEqual(DRAFT);
+    expect(takeFormDraft(store)).toEqual(TAKEN);
     expect(store.raw()).toBeNull();
     expect(takeFormDraft(store)).toBeNull();
   });
 
-  it("writes the date, the time answer and the place, and nothing else a caller hands it", () => {
+  it("writes the name, the date, the time answer and the place, and nothing else a caller hands it", () => {
     const store = memoryStore();
     saveFormDraft({ ...DRAFT, name: "Ada", email: "ada@example.com" } as FormDraft, store);
-    expect(Object.keys(JSON.parse(store.raw() ?? "{}")).sort()).toEqual(["birthDate", "place", "time"]);
+    expect(Object.keys(JSON.parse(store.raw() ?? "{}")).sort()).toEqual(["birthDate", "name", "place", "time"]);
     expect(store.size()).toBe(1);
+  });
+
+  it("carries the name the form typed, and leaves it out when there is none", () => {
+    const store = memoryStore();
+    saveFormDraft({ ...DRAFT, name: "Ada Lovelace" }, store);
+    expect(takeFormDraft(store)).toEqual({ ...DRAFT, name: "Ada Lovelace" });
+    expect(store.raw()).toBeNull();
+    saveFormDraft({ ...DRAFT, name: "   " }, store);
+    expect(Object.keys(JSON.parse(store.raw() ?? "{}"))).not.toContain("name");
+    saveFormDraft(DRAFT, store);
+    expect(Object.keys(JSON.parse(store.raw() ?? "{}"))).not.toContain("name");
+  });
+
+  it("is deleted when the form reads it, a name and all", () => {
+    const store = memoryStore();
+    saveFormDraft({ ...DRAFT, name: "Ada" }, store);
+    expect(takeFormDraft(store)?.name).toBe("Ada");
+    expect(store.size()).toBe(0);
+  });
+
+  it("reads a name that is not text, or far too long, as the form's empty and a cap", () => {
+    const read = (name: unknown) => parseFormDraft(JSON.stringify({ ...DRAFT, name }))?.name;
+    expect(read(42)).toBe("");
+    expect(read(null)).toBe("");
+    expect(read("x".repeat(500))).toHaveLength(200);
   });
 
   it("carries every kind of time answer, and a date whose place is not chosen yet", () => {
@@ -59,7 +85,7 @@ describe("the birth form's draft", () => {
     for (const time of answers) {
       const store = memoryStore();
       saveFormDraft({ birthDate: "1929-05-04", time, place: null }, store);
-      expect(takeFormDraft(store)).toEqual({ birthDate: "1929-05-04", time, place: null });
+      expect(takeFormDraft(store)).toEqual({ name: "", birthDate: "1929-05-04", time, place: null });
     }
   });
 
@@ -75,16 +101,16 @@ describe("the birth form's draft", () => {
 
   it("reads a bad field as the form's empty and keeps the good ones", () => {
     const read = (over: Record<string, unknown>) => parseFormDraft(JSON.stringify({ ...DRAFT, ...over }));
-    expect(read({ birthDate: "17/05/1990" })).toEqual({ ...DRAFT, birthDate: "" });
+    expect(read({ birthDate: "17/05/1990" })).toEqual({ ...TAKEN, birthDate: "" });
     expect(read({ birthDate: "1990-02-31" })?.birthDate).toBe("");
     expect(read({ birthDate: 19900517 })?.birthDate).toBe("");
-    expect(read({ time: { mode: "sometime", time: "14:30" } })).toEqual({ ...DRAFT, time: DEFAULT_ANSWER });
+    expect(read({ time: { mode: "sometime", time: "14:30" } })).toEqual({ ...TAKEN, time: DEFAULT_ANSWER });
     expect(read({ time: "14:30" })?.time).toEqual(DEFAULT_ANSWER);
     expect(read({ time: { mode: "roughly", time: "25:00", part: "dusk", kind: "maybe" } })?.time).toEqual({
       mode: "roughly", time: "", part: "afternoon", kind: "part",
     });
-    expect(read({ place: "Milan" })).toEqual({ ...DRAFT, place: null });
-    expect(read({ birthDate: undefined, time: undefined, place: undefined })).toEqual({ birthDate: "", time: DEFAULT_ANSWER, place: null });
+    expect(read({ place: "Milan" })).toEqual({ ...TAKEN, place: null });
+    expect(read({ birthDate: undefined, time: undefined, place: undefined })).toEqual({ name: "", birthDate: "", time: DEFAULT_ANSWER, place: null });
   });
 
   it("uses a place whole or not at all", () => {
@@ -106,7 +132,7 @@ describe("the birth form's draft", () => {
     const place = (over: Record<string, unknown>) => parseFormDraft(JSON.stringify({ ...DRAFT, place: { ...MILAN, ...over } }))?.place;
     // A tab kept from before the zone came from our server: the longitude's hour and no zone, the guess MB-30 removed.
     const guessed = { name: "Ixelles, Brussels-Capital, Belgium", city: "Ixelles", region: "Brussels-Capital", country: "Belgium", latitude: 50.8333, longitude: 4.3667, timezoneOffset: 0, timezone: null, placeType: "municipality" };
-    expect(parseFormDraft(JSON.stringify({ ...DRAFT, place: guessed }))).toEqual({ ...DRAFT, place: null });
+    expect(parseFormDraft(JSON.stringify({ ...DRAFT, place: guessed }))).toEqual({ ...TAKEN, place: null });
     for (const timezone of [null, "", "Etc/GMT-1", "Mars/Olympus_Mons"]) expect(place({ timezone }), String(timezone)).toBeNull();
   });
 
@@ -126,7 +152,7 @@ describe("the birth form's draft", () => {
   it("is still read where it cannot be deleted", () => {
     const store = memoryStore(JSON.stringify(DRAFT));
     const stubborn: DraftStore = { ...store, removeItem: () => { throw new Error("SecurityError"); } };
-    expect(takeFormDraft(stubborn)).toEqual(DRAFT);
+    expect(takeFormDraft(stubborn)).toEqual(TAKEN);
   });
 });
 
@@ -150,6 +176,6 @@ describe("a draft's place at its limits", () => {
 
   it("drops only the place of an old tab's draft, so the date and the time answer still fill the form", () => {
     const old = JSON.stringify({ birthDate: "1929-05-04", time: KNOWN, place: { ...MILAN, timezone: null, timezoneOffset: 1 } });
-    expect(takeFormDraft(memoryStore(old))).toEqual({ birthDate: "1929-05-04", time: KNOWN, place: null });
+    expect(takeFormDraft(memoryStore(old))).toEqual({ name: "", birthDate: "1929-05-04", time: KNOWN, place: null });
   });
 });

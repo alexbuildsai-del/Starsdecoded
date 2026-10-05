@@ -5,8 +5,10 @@ import { clerkMiddleware } from "@clerk/express";
 import router from "./routes";
 import healthRouter from "./routes/health";
 import cspReportRouter from "./routes/cspReport";
+import stripeWebhookRouter from "./routes/stripeWebhook";
 import waitlistRouter from "./routes/waitlist";
 import geocodeRouter from "./routes/geocode";
+import qaRouter from "./routes/qa";
 import { geocodeLimit } from "./lib/limits";
 import { httpSerializers, logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
@@ -92,6 +94,11 @@ app.use("/api", healthRouter);
 // cookie. The route reads its own body, at most 8 kB, and counts only reports from a page of ours.
 app.use("/api", cspReportRouter);
 
+// Ahead of the origin guard, the parsers, the session and the prelaunch gate too (reading 13). Stripe posts with no
+// Origin and no cookie, and signs the raw bytes, which the route reads itself: behind the parsers they would be gone,
+// and behind the gate production's events would never land.
+app.use("/api", stripeWebhookRouter);
+
 // Ahead of the parsers, so a foreign page's write is refused before its body is read or a session is touched.
 app.use(originGuard());
 app.use(cookieParser());
@@ -103,6 +110,9 @@ app.use("/api", waitlistRouter);
 // no session; ahead of the prelaunch gate it is open to everyone, as the gate already lists it (ADR-246).
 app.get("/api/geocode", geocodeLimit);
 app.use("/api", geocodeRouter);
+// The staging walk's verdict, which the round's skills read with no account (ADR-279): ahead of the session it sets no
+// cookie, and ahead of the prelaunch gate production answers everyone the same 404.
+app.use("/api", qaRouter);
 app.use(sessionMiddleware);
 
 app.use(

@@ -111,7 +111,7 @@ export const GetHomeResponse = zod.object({
   "access": zod.enum(['owner', 'claimed', 'shared']).describe('The reader\'s standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139), shared is its subject\'s own Personal report read through their grant, the sharer\'s seat (ADR-235).'),
   "isSelf": zod.boolean().describe('The reader\'s own chart from their side, as ProfileSummary marks it (ADR-120).'),
   "shareBack": zod.boolean().optional().describe('On a sharer\'s seat, Share yours back is offered, since the reader has a finished Personal report of their own not yet shared with them (ADR-235, MB-104).'),
-  "canRegenerate": zod.boolean().optional().describe('The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-137, MB-169).'),
+  "canRegenerate": zod.boolean().optional().describe('The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313).'),
   "triad": zod.object({
   "sun": zod.object({
   "sign": zod.string(),
@@ -174,7 +174,7 @@ export const GetHomeResponse = zod.object({
   "access": zod.enum(['owner', 'claimed', 'shared']).describe('The reader\'s standing on the report: owner made it, claimed is its subject holding a sent report (ADR-139), shared is its subject\'s own Personal report read through their grant, the sharer\'s seat (ADR-235).'),
   "isSelf": zod.boolean().describe('The reader\'s own chart from their side, as ProfileSummary marks it (ADR-120).'),
   "shareBack": zod.boolean().optional().describe('On a sharer\'s seat, Share yours back is offered, since the reader has a finished Personal report of their own not yet shared with them (ADR-235, MB-104).'),
-  "canRegenerate": zod.boolean().optional().describe('The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-137, MB-169).'),
+  "canRegenerate": zod.boolean().optional().describe('The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313).'),
   "triad": zod.object({
   "sun": zod.object({
   "sign": zod.string(),
@@ -360,7 +360,7 @@ export const ListReportsResponse = zod.array(ListReportsResponseItem)
 
 
 /**
- * Accepts birth data, computes the natal chart, and starts AI interpretation
+ * Accepts birth data, computes the natal chart, and starts AI interpretation; a credit is taken before anything is written, and with none it answers 402 (ADR-275).
  * @summary Create a new natal chart report
  */
 export const createReportBodyNameRegExp = new RegExp('^(?=.*\\p{L})(?![ \\u3000])(?!.*[ \\u3000]$)[\\p{L}\\p{M} \\u3000\'’.·・\\u200C-]{1,60}$', 'u');
@@ -1533,7 +1533,7 @@ export const GetReportResponse = zod.object({
   "aspect": zod.string().optional(),
   "orb": zod.number().optional(),
   "planet": zod.string().optional().describe('Overlay cards, the body that sits in the other chart\'s house.'),
-  "of": zod.enum(['A', 'B']).optional(),
+  "of": zod.enum(['A', 'B', 'none']).optional().describe('An overlay\'s owner, A or B; an aspect card stores none, as the pair\'s link schema asks of the model (B-15).'),
   "house": zod.number().int().optional(),
   "reading": zod.string()
 }).describe('One generated link card, 40 to 70 words, ending on a behaviour check (ADR-43).'))
@@ -1560,7 +1560,7 @@ export const GetReportResponse = zod.object({
   "firstName": zod.string().describe('The name the control prints, "Send to {firstName}".')
 }).describe('Where Send to {firstName} stands, on a finished natal report about someone else or a pair the viewer is one of (ADR-120, ADR-133, ADR-139).'),zod.null()]).optional().describe('Send to {name} on this report; null where it is not offered (ADR-120, ADR-133).'),
   "giverName": zod.string().nullish().describe('First name of whoever sent this report to the viewer; null when the viewer made it (ADR-139).'),
-  "canRegenerate": zod.boolean().optional().describe('The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169).'),
+  "canRegenerate": zod.boolean().optional().describe('The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313).'),
   "outdated": zod.boolean().optional().describe('A complete natal report written for another birth time or horizon than its profile\'s now, which Regenerate rewrites free (MB-170).')
 })
 
@@ -1592,7 +1592,7 @@ export const GetReportStatusResponse = zod.object({
   "code": zod.enum(['provider_unreachable', 'provider_out_of_credit', 'quality', 'internal']),
   "line": zod.string().describe('The plain line the customer reads.')
 }).describe('Why a failed report failed, as the customer reads it. Null unless the status is failed.'),zod.null()]).optional(),
-  "canRegenerate": zod.boolean().optional().describe('The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last.'),
+  "canRegenerate": zod.boolean().optional().describe('The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last.'),
   "outdated": zod.boolean().optional().describe('A complete natal report written for another birth time or horizon than its profile\'s now, which Regenerate rewrites free (MB-170). Sent as on Report.'),
   "chartReady": zod.boolean().describe('The chart is stored, so the report page can open on the hero and the explorer.'),
   "provisional": zod.object({
@@ -2431,7 +2431,7 @@ export const GetReportStatusResponse = zod.object({
   "aspect": zod.string().optional(),
   "orb": zod.number().optional(),
   "planet": zod.string().optional().describe('Overlay cards, the body that sits in the other chart\'s house.'),
-  "of": zod.enum(['A', 'B']).optional(),
+  "of": zod.enum(['A', 'B', 'none']).optional().describe('An overlay\'s owner, A or B; an aspect card stores none, as the pair\'s link schema asks of the model (B-15).'),
   "house": zod.number().int().optional(),
   "reading": zod.string()
 }).describe('One generated link card, 40 to 70 words, ending on a behaviour check (ADR-43).'))
@@ -2459,7 +2459,7 @@ export const UpdateReportWorkbookResponse = zod.record(zod.string(), zod.string(
 
 
 /**
- * Re-runs interpretation on the stored chart, free, for whoever may rewrite the report, as `canRegenerate` says (MB-169), and only where a rewrite is wanted: a failed report (Try again, MB-137), an outdated one (MB-170), or one written on an earlier prompt version. Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
+ * Re-runs interpretation on the stored chart, free, for whoever may rewrite the report, as `canRegenerate` says (MB-169), and only where a rewrite is wanted: a failed report (Try again), an outdated one (MB-170), or one written on an earlier prompt version. Try again takes no credit: a failed report keeps the one it took, and after its third failure that credit is back in the balance and the report is final, with no Try again (ADR-313). Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
  * @summary Regenerate a report's interpretation
  */
 export const RegenerateReportParams = zod.object({
@@ -2704,7 +2704,7 @@ export const PreviewHorizonResponse = zod.object({
 
 
 /**
- * Both reports must be complete and visible to the viewer. Reads their stored interpretations and cached charts; no birth data is read and nothing is regenerated (ADR-39). The report streams through GET /reports/{id} and /reports/{id}/status like a natal report.
+ * Both reports must be complete and visible to the viewer. Reads their stored interpretations and cached charts; no birth data is read and nothing is regenerated (ADR-39). The report streams through GET /reports/{id} and /reports/{id}/status like a natal report. A credit is taken before anything is written, and with none it answers 402 (ADR-275).
  * @summary Write a compatibility report from two finished natal reports
  */
 export const CreateCompatibilityReportBody = zod.object({
@@ -2746,7 +2746,7 @@ export const GetCompatibilitySummaryResponse = zod.object({
 
 
 /**
- * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236).
+ * Only the maker, one of the pair's two, sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236). The other person may hold their own chart, shared with the maker; the link goes to the address the maker typed, and its claim hands that chart over to no one (ADR-285).
  * @summary Send a compatibility report to the other of its two people
  */
 export const SendCompatibilityParams = zod.object({
@@ -2995,37 +2995,95 @@ export const GetCreditsResponse = zod.object({
 
 
 /**
- * History's lines, bought, a gift received and spent (ADR-129); a test bundle's line says so (ADR-138). Empty for anonymous users.
+ * History's lines, bought, a gift received, granted, refunded and spent (ADR-129, ADR-275, ADR-276); a test bundle's line says so (ADR-138). Empty for anonymous users.
  * @summary What the viewer's credits did, newest first
  */
 export const GetCreditHistoryResponseItem = zod.object({
-  "kind": zod.enum(['bought', 'gift', 'spent']),
-  "count": zod.number().int().describe('Credits the line moves, a positive number; bought and gift add them, spent takes them away.'),
+  "kind": zod.enum(['bought', 'gift', 'spent', 'granted', 'refunded']).describe('`granted` is credits Stars Decoded gave, a tester\'s grant or the yearly plan\'s credit (ADR-276, ADR-277); `refunded` is credits a refund or a dispute took back (ADR-275).'),
+  "count": zod.number().int().describe('Credits the line moves, a positive number; bought, gift and granted add them, spent and refunded take them away.'),
   "date": zod.string().describe('ISO-8601 timestamp of the line'),
-  "label": zod.string().describe('What the line reads, "A gift from {giver}" on a gift, the report\'s name when spent, "Gift to {name}" on the giver\'s side once claimed.'),
+  "label": zod.string().describe('What the line reads, "A gift from {giver}" on a gift, the report\'s name when spent, "Gift to {name}" on the giver\'s side once claimed, "From Stars Decoded" on a grant, "With Timeline" on the yearly plan\'s credit, "Refunded" on a refund (reading 4).'),
   "test": zod.boolean().describe('A test bundle\'s line, which says so (ADR-138).')
-}).describe('One line of History, bought, a gift received or spent (ADR-129).')
+}).describe('One line of History, bought, a gift received, granted, refunded or spent (ADR-129, ADR-275, ADR-276).')
 export const GetCreditHistoryResponse = zod.array(GetCreditHistoryResponseItem)
 
 
 /**
- * Get credits off production, 1, 3 or 5 credits free for any signed-in user, marked as test credits (ADR-138). MB-6 provisional until checkout.
- * @summary Add a free test bundle of credits
+ * Every catalogue item at the price the server sets for this request, a live campaign's included, with Stripe's publishable key and whether checkout is ready; answers anyone and writes nothing (ADR-277, ADR-278, ADR-280).
+ * @summary What each item costs on this request, and whether checkout is ready
  */
-export const TestCheckoutBody = zod.object({
-  "count": zod.union([zod.literal(1),zod.literal(3),zod.literal(5)])
-}).describe('A test bundle of 1, 3 or 5 credits (ADR-138).')
+export const GetCheckoutOptionsQueryParams = zod.object({
+  "c": zod.coerce.string().optional().describe('A link-only campaign\'s slug, from the `?c=` its link carried and the tab kept; one that names no live campaign changes no price (ADR-278).')
+})
 
-export const TestCheckoutResponse = zod.object({
-  "available": zod.number().int(),
-  "used": zod.number().int(),
-  "held": zod.number().int().optional().describe('Credits held for waiting gifts, outside available until claimed or returned (ADR-123).'),
-  "lastBundle": zod.object({
-  "id": zod.string(),
-  "count": zod.number().int(),
-  "createdAt": zod.string()
-}).nullish().describe('The newest bundle, which the path after buying plans from; null before any (ADR-125).')
-}).describe('One credit kind (ADR-42). The typed breakdown went with it; the columns drop with payments (MB-57).')
+export const getCheckoutOptionsResponseItemsItemCampaignEndsOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetCheckoutOptionsResponse = zod.object({
+  "publishableKey": zod.string().nullable().describe('Stripe\'s publishable key for this host, served from Railway so every Stripe key has one home; null without one (ADR-280).'),
+  "ready": zod.boolean().describe('False while POST /checkout would answer 503, so the page says checkout isn\'t ready yet (reading 8, reading 14).'),
+  "items": zod.array(zod.object({
+  "id": zod.enum(['solo', 'couple', 'family', 'timeline_month', 'timeline_year']).describe('What the catalogue sells, the three bundles and Timeline\'s two plans; Single is solo here and single only as Stripe\'s lookup key (ADR-277).'),
+  "kind": zod.enum(['bundle', 'plan']),
+  "name": zod.string().describe('The catalogue\'s name, "Couple" or "Timeline" (ADR-277).'),
+  "line": zod.string().nullable().describe('The catalogue\'s line under a bundle\'s name, word for word; null on a plan, which has none (ADR-277).'),
+  "credits": zod.number().int().nullable().describe('The credits a bundle adds; null on a plan (ADR-277).'),
+  "interval": zod.union([zod.literal('month'),zod.literal('year'),zod.literal(null)]).nullable().describe('How often a plan renews; null on a bundle (ADR-277).'),
+  "cents": zod.number().int().describe('What this request pays, in euro cents; a live campaign\'s price while one runs (ADR-278).'),
+  "fullCents": zod.number().int().describe('The item\'s price without a campaign, struck through beside a campaign\'s price; never the Singles total, which the catalogue keeps (ADR-278, reading 6).'),
+  "campaign": zod.object({
+  "name": zod.string().describe('The campaign\'s name, which Stripe\'s receipt also gives (ADR-278).'),
+  "endsOn": zod.string().regex(getCheckoutOptionsResponseItemsItemCampaignEndsOnRegExp).describe('Its last day, in Europe/Brussels, printed once as "until {last day}" (reading 5, reading 6).')
+}).nullable().describe('The live campaign behind `cents`; null without one (ADR-278).')
+}).describe('One catalogue item at the price the server sets for this request (R-7.1, ADR-277, ADR-278).')).describe('Every catalogue item in its order, the three bundles then Timeline\'s two plans (ADR-277).')
+}).describe('What /checkout needs before Pay, every price for this request, Stripe\'s publishable key and whether checkout is ready (ADR-277, ADR-280).')
+
+
+/**
+ * Makes the purchase row with the tick's hash and time and a Checkout Session in Stripe's `elements` mode at the server's price, for the signed-in account's own Stripe Customer; nothing is granted here, only the webhook grants (ADR-274, ADR-275).
+ * @summary Start a Checkout Session for one item under our tick
+ */
+export const CreateCheckoutBody = zod.object({
+  "item": zod.enum(['solo', 'couple', 'family', 'timeline_month', 'timeline_year']).describe('What the catalogue sells, the three bundles and Timeline\'s two plans; Single is solo here and single only as Stripe\'s lookup key (ADR-277).'),
+  "ticked": zod.boolean().describe('The reader ticked the box, CHECKOUT_TICK or PLAN_TICK for a plan; false is 400 `tick_required` (ADR-274).'),
+  "returnTo": zod.string().describe('The step that asked, where the done page goes back to; one off the list `^/(chart|dashboard(/account)?(\\?open=(credits|gift|add|pair))?|report/[0-9a-f-]{36})$` is 400 `bad_return`, so it is never an open redirect (reading 2).'),
+  "campaign": zod.string().optional().describe('A link-only campaign\'s slug the tab kept; one that names no live campaign changes no price (ADR-278).')
+}).describe('One item to buy, under our tick, and the step to go back to (ADR-274).')
+
+export const CreateCheckoutResponse = zod.object({
+  "purchaseId": zod.string().describe('The purchase row, which GET /checkout/{purchaseId} reads (ADR-274).'),
+  "clientSecret": zod.string().describe('The Checkout Session\'s client secret, which Stripe.js takes to mount the fields (ADR-274).'),
+  "amountCents": zod.number().int().describe('What Pay charges, in euro cents, set by the server (R-7.1, ADR-274).')
+}).describe('The purchase POST /checkout made and the session our /checkout page mounts Stripe\'s fields on (ADR-274).')
+
+
+/**
+ * The purchase's state, item and return, read by the done page until the webhook grants it; only its buyer reads it (ADR-274, ADR-275).
+ * @summary Where a purchase stands, for the page that waits for its credit
+ */
+export const GetCheckoutParams = zod.object({
+  "purchaseId": zod.coerce.string().describe('The id POST /checkout answered (ADR-274).')
+})
+
+export const GetCheckoutResponse = zod.object({
+  "status": zod.enum(['open', 'granted', 'failed', 'expired', 'refunded']).describe('`open` waits for the payment or the webhook; `granted` is in the balance, or the plan has started; `failed` and `expired` were never paid; `refunded` was taken back by a refund or a dispute (ADR-275).'),
+  "item": zod.enum(['solo', 'couple', 'family', 'timeline_month', 'timeline_year']).describe('What the catalogue sells, the three bundles and Timeline\'s two plans; Single is solo here and single only as Stripe\'s lookup key (ADR-277).'),
+  "returnTo": zod.string().describe('The step that asked, as POST /checkout kept it (reading 2).'),
+  "credits": zod.number().int().nullable().describe('The credits the purchase adds, a bundle\'s count; null on a plan (ADR-275).')
+}).describe('Where a purchase stands, read by the page that waits for its credit (ADR-274, ADR-275).')
+
+
+/**
+ * A Customer Portal session for the signed-in account's Stripe Customer, behind Manage payment and Cancel Timeline on the Account page (ADR-277).
+ * @summary Open Stripe's Customer Portal to manage or cancel Timeline
+ */
+export const OpenBillingPortalBody = zod.object({
+  "returnTo": zod.string().describe('A page on the same list as checkout\'s returnTo, the Account page; one off it is 400 `bad_return` (reading 2).')
+}).describe('Where Stripe\'s Customer Portal sends the reader back (ADR-277).')
+
+export const OpenBillingPortalResponse = zod.object({
+  "url": zod.string().describe('Stripe\'s address for the session.')
+}).describe('A Customer Portal session to open at once (ADR-277).')
 
 
 /**
@@ -3104,7 +3162,7 @@ export const GetInviteResponse = zod.object({
 
 
 /**
- * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A pair sent to the other person on the chart they keep hands nothing over: it makes their side a participant and answers `profileId: null` (ADR-285). A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
  * @summary Claim an invite as the signed-in user
  */
 export const ClaimInviteParams = zod.object({
@@ -3112,7 +3170,7 @@ export const ClaimInviteParams = zod.object({
 })
 
 export const ClaimInviteResponse = zod.object({
-  "profileId": zod.string().nullable().describe('The chart a send hands over; null on a gift, which has no profile (ADR-139).'),
+  "profileId": zod.string().nullable().describe('The chart a send hands over; null on a gift, which has no profile (ADR-139), and null on a pair sent to the other person on the chart they keep, which hands nothing over (ADR-285).'),
   "relationshipId": zod.string().nullish(),
   "relationshipReportId": zod.string().nullish(),
   "redirectTo": zod.string().describe('Where the claim lands; a gift answers /dashboard (ADR-139).'),
@@ -3159,13 +3217,13 @@ export const ListGiftsResponseItem = zod.object({
   "returnsAt": zod.string().describe('When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123).'),
   "remindedAt": zod.string().nullable().describe('The last reminder; null before any'),
   "state": zod.enum(['waiting', 'claimed', 'returned']).describe('Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).'),
-  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).')
+  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or on a gift sent under the old soft pass, which held none (closed by ADR-275).')
 }).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).')
 export const ListGiftsResponse = zod.array(ListGiftsResponseItem)
 
 
 /**
- * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
+ * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275).
  * @summary Gift a report
  */
 export const createGiftBodyRecipientNameRegExp = new RegExp('^(?=.*\\p{L})(?![ \\u3000])(?!.*[ \\u3000]$)[\\p{L}\\p{M} \\u3000\'’.·・\\u200C-]{1,60}$', 'u');
@@ -3188,7 +3246,7 @@ export const CreateGiftResponse = zod.object({
   "returnsAt": zod.string().describe('When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123).'),
   "remindedAt": zod.string().nullable().describe('The last reminder; null before any'),
   "state": zod.enum(['waiting', 'claimed', 'returned']).describe('Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).'),
-  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).')
+  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or on a gift sent under the old soft pass, which held none (closed by ADR-275).')
 }).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).').and(zod.object({
   "claimUrl": zod.string().describe('The link to copy and send by hand when the email did not go.'),
   "emailDelivered": zod.boolean()
@@ -3227,7 +3285,7 @@ export const ChangeGiftAddressResponse = zod.object({
   "returnsAt": zod.string().describe('When the held credit returns if the gift is still unclaimed, 30 days after sentAt (ADR-123).'),
   "remindedAt": zod.string().nullable().describe('The last reminder; null before any'),
   "state": zod.enum(['waiting', 'claimed', 'returned']).describe('Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123).'),
-  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional).')
+  "creditHeld": zod.boolean().describe('True while one of the giver\'s credits is held for it (ADR-123); false once claimed or returned, or on a gift sent under the old soft pass, which held none (closed by ADR-275).')
 }).describe('A gift as its giver sees it, a held credit and a state, never anything the recipient makes (ADR-123, ADR-139).').and(zod.object({
   "claimUrl": zod.string().describe('The link to copy and send by hand when the email did not go.'),
   "emailDelivered": zod.boolean()
@@ -3332,7 +3390,7 @@ export const GeocodePlaceResponse = zod.object({
 
 
 /**
- * The one access check's answer (ADR-262), for every signed-in reader: today its one source is the signed-in admin, until billing adds an active subscription (MB-197). It says too whether the reader has a finished Personal report of their own, and with access Ask's use this month (ADR-263).
+ * The one access check's answer (ADR-262), for every signed-in reader: its sources are the signed-in admin and a live Timeline plan (ADR-277), whose item and dates `plan` carries. It says too whether the reader has a finished Personal report of their own, and with access Ask's use this month (ADR-263).
  * @summary Whether the signed-in reader has Timeline (ADR-262)
  */
 export const getTimelineAccessResponseAskOneUsedMin = 0;
@@ -3342,19 +3400,27 @@ export const getTimelineAccessResponseAskOneLeftMin = 0;
 export const getTimelineAccessResponseAskOneCapMin = 0;
 
 export const getTimelineAccessResponseAskOneResetsOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTimelineAccessResponsePlanOneRenewsOnOneRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTimelineAccessResponsePlanOneEndsOnOneRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 
 
 export const GetTimelineAccessResponse = zod.object({
   "access": zod.boolean(),
-  "source": zod.union([zod.literal('admin'),zod.literal('subscription'),zod.literal(null)]).nullable().describe('Where access comes from, the admin until billing adds a subscription; null without access (ADR-262, MB-197).'),
+  "source": zod.union([zod.literal('admin'),zod.literal('subscription'),zod.literal(null)]).nullable().describe('Where access comes from, the admin or a live Timeline plan; null without access (ADR-262, ADR-277).'),
   "hasPersonalReport": zod.boolean().describe('The reader has a finished Personal report of their own, whose chart Timeline reads (ADR-205).'),
   "ask": zod.union([zod.object({
   "used": zod.number().int().min(getTimelineAccessResponseAskOneUsedMin),
   "left": zod.number().int().min(getTimelineAccessResponseAskOneLeftMin),
   "cap": zod.number().int().min(getTimelineAccessResponseAskOneCapMin).describe('The month\'s cap, 50 (ADR-213).'),
   "resetsOn": zod.string().regex(getTimelineAccessResponseAskOneResetsOnRegExp).describe('The 1st of next month, UTC, when the count starts again (ADR-263).')
-}).describe('Ask\'s messages this UTC calendar month, a tapped choice included, shown always (ADR-263).'),zod.null()]).describe('Ask\'s use this month with access; null without (ADR-263).')
-}).describe('The one access check\'s answer for the signed-in reader (ADR-262, MB-197).')
+}).describe('Ask\'s messages this UTC calendar month, a tapped choice included, shown always (ADR-263).'),zod.null()]).describe('Ask\'s use this month with access; null without (ADR-263).'),
+  "plan": zod.union([zod.object({
+  "item": zod.enum(['timeline_month', 'timeline_year']).describe('Monthly or yearly, as the catalogue names the plan (ADR-277).'),
+  "status": zod.enum(['active', 'trialing', 'past_due']).describe('The subscription\'s status as Stripe names it; past_due while Stripe retries a payment that failed (reading 7).'),
+  "renewsOn": zod.union([zod.string().regex(getTimelineAccessResponsePlanOneRenewsOnOneRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),zod.null()]).describe('The day it renews, its period\'s end as a day in Europe/Brussels; null once it is set to end (reading 7).'),
+  "endsOn": zod.union([zod.string().regex(getTimelineAccessResponsePlanOneEndsOnOneRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),zod.null()]).describe('The day access ends after a cancel at the period\'s end, as a day in Europe/Brussels; null while it renews (reading 7).')
+}).describe('A live Timeline plan, the subscription that gives access while Stripe calls it active, trialing or past due (ADR-277, reading 7).'),zod.null()]).optional().describe('The reader\'s live Timeline plan; null, or left out, when they have none (ADR-277).')
+}).describe('The one access check\'s answer for the signed-in reader (ADR-262, ADR-277).')
 
 
 /**

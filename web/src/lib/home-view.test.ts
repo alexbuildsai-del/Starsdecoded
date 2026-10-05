@@ -375,7 +375,7 @@ describe("sharing your own report (ADR-235)", () => {
   });
 });
 
-describe("Try again (MB-137, reading 10)", () => {
+describe("Try again (ADR-313, reading 10)", () => {
   it("is offered on a failed report only where the reader may rewrite it", () => {
     expect(offersTryAgain({ status: "failed", canRegenerate: true })).toBe(true);
     expect(offersTryAgain({ status: "failed", canRegenerate: false })).toBe(false);
@@ -384,7 +384,7 @@ describe("Try again (MB-137, reading 10)", () => {
   });
 
   it("names its status and a refusal for the reader's own report or by first name", () => {
-    expect(TRY_AGAIN).toEqual({ label: "Try again", starting: "Starting" });
+    expect(TRY_AGAIN).toEqual({ label: "Try again", starting: "Starting", free: "It's free." });
     expect(tryAgainErrorLine("Beatrice Lund", true)).toBe("We couldn't start your report again. Try again in a minute.");
     expect(tryAgainErrorLine("Gus Olsen", false)).toBe("We couldn't start Gus's report again. Try again in a minute.");
   });

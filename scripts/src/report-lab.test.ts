@@ -154,6 +154,21 @@ test("Timeline's and Ask's rows: a line saying what rendered and the tokens' spa
   assert.match(familyLines("ask dry render against r06", "for 1 readers", "prompt", rows.slice(2))[0], /: 1 prompts for 1 readers; no prompt rendered, usage/);
 });
 
+import { spawnSync } from "node:child_process";
+import { REMOTE_RETIRED } from "./report-lab.js";
+
+test("--remote is retired: the script stops at once and points to the Lab page's Run the fixtures, before any chart is read", () => {
+  const here = dirname(fileURLToPath(import.meta.url));
+  // No key and no database: even a refusal that failed could not spend.
+  const run = spawnSync(process.execPath, ["--import", "tsx", join(here, "report-lab.ts"), "--remote", "https://starsdecoded-staging.vercel.app", "--all"], {
+    cwd: join(here, ".."), encoding: "utf8", env: { ...process.env, DATABASE_URL: "", OPENAI_API_KEY: "", AI_INTEGRATIONS_OPENAI_API_KEY: "" },
+  });
+  assert.equal(run.status, 1);
+  assert.ok(run.stderr.includes(REMOTE_RETIRED), run.stderr);
+  assert.match(REMOTE_RETIRED, /Lab page on staging \(Runs, Run the fixtures\)/);
+  assert.equal(run.stdout, "", "nothing measured, nothing written");
+});
+
 test("Ask's person for each natal fixture: the other side of a pair of two natal fixtures, under its lens, and never an injection or pair-only chart", () => {
   const natal = ["audrey-hepburn", "day-angular", "marie-curie", "marie-curie-unknown", "oprah-winfrey"];
   const partners = partnersOf([

@@ -154,7 +154,7 @@ let setupError: unknown = null;
 const fake = installFakeModel({ timeline_reading: READING });
 try {
   await q(
-    "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger, profile_shares, report_workbooks, generation_failures, timeline_readings, ask_messages cascade",
+    "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger, profile_shares, report_workbooks, generation_failures, timeline_readings, ask_messages, subscriptions cascade",
   );
   for (const who of [ADMIN, READER, EMPTY, SHARER, STRANGER]) {
     await q("insert into users (id, email) values ($1, $2)", [who.user, `${who.user!.replace(/^user_/, "")}@example.com`]);

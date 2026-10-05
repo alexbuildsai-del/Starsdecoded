@@ -9,7 +9,9 @@ import {
   getGetTimelineAccessQueryOptions,
   type TimelineAccess,
 } from "@workspace/api-client-react";
-import { timelineAccessQuery, timelineAccessView, type AccessReader } from "./timeline-access";
+import {
+  ADMIN_PLAN_LINE, planDayLine, planLine, timelineAccessQuery, timelineAccessView, type AccessReader,
+} from "./timeline-access";
 
 const LOADING: AccessReader = { isLoaded: false, isSignedIn: undefined, userId: undefined };
 const SIGNED_OUT: AccessReader = { isLoaded: true, isSignedIn: false, userId: null };
@@ -155,5 +157,30 @@ describe("what the doors are told", () => {
       ask: null,
       loading: false,
     });
+  });
+});
+
+describe("the plan on the Account page", () => {
+  const month = { item: "timeline_month", status: "active", renewsOn: "2026-11-01", endsOn: null } as const;
+  const ending = { item: "timeline_year", status: "active", renewsOn: null, endsOn: "2027-03-09" } as const;
+
+  it("passes a plan on only when the answer has one", () => {
+    const answer: TimelineAccess = { access: true, source: "subscription", hasPersonalReport: true, ask: null, plan: month };
+    expect(timelineAccessView(READER, answer, false)).toEqual({ ...answer, loading: false });
+    expect(timelineAccessView(READER, { ...answer, plan: null }, false)).not.toHaveProperty("plan");
+  });
+
+  it("names the plan by its interval, and keeps the admin's line", () => {
+    expect(planLine("subscription", month)).toBe("Timeline, monthly");
+    expect(planLine("subscription", ending)).toBe("Timeline, yearly");
+    expect(planLine("admin", undefined)).toBe(ADMIN_PLAN_LINE);
+    expect(ADMIN_PLAN_LINE).toBe("Timeline, through admin access");
+  });
+
+  it("says Renews on or Ends on, in the reader's date order", () => {
+    expect(planDayLine(month, "dmy")).toBe("Renews on 1\u00a0November.");
+    expect(planDayLine(month, "mdy")).toBe("Renews on November\u00a01.");
+    expect(planDayLine(ending, "dmy")).toBe("Ends on 9\u00a0March.");
+    expect(planDayLine({ renewsOn: null, endsOn: null }, "dmy")).toBeNull();
   });
 });

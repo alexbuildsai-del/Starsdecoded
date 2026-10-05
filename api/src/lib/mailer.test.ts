@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { CHECKOUT_TICK, PLAN_TICK, REFUND_RULES, BUNDLES, PLANS, formatEuro, renewalLine } from "@workspace/commerce";
 import { createLogger, logger } from "./logger.js";
 
 // Every email's images come from the configured web origin. The module that holds it imports the database package,
@@ -10,6 +12,7 @@ const {
   buildReportEmail,
   buildShareEmail,
   buildPairEmail,
+  buildReceiptEmail,
   buildGiftEmail,
   buildGiftReminderEmail,
   buildSpendPausedEmail,
@@ -17,6 +20,7 @@ const {
   sendReportEmail,
   sendShareEmail,
   sendPairEmail,
+  sendReceiptEmail,
   sendGiftEmail,
   sendGiftReminder,
   sendSpendPausedEmail,
@@ -386,9 +390,122 @@ test("send* functions resolve false without RESEND_API_KEY, never throw", async 
       }),
       false,
     );
+    assert.equal(
+      await sendReceiptEmail({
+        to: "x@example.com",
+        item: "solo",
+        cents: 2400,
+        campaignName: null,
+        historyUrl: "https://mystarsdecoded.com/dashboard?open=credits",
+      }),
+      false,
+    );
     assert.equal(await sendWaitlistConfirmEmail(confirmOpts), false);
     assert.equal(await sendSpendPausedEmail(pausedOpts), false);
   } finally {
     if (saved !== undefined) process.env.RESEND_API_KEY = saved;
   }
+});
+
+// What the HTML holds for a line of plain text: only the apostrophe and the ampersand show up in the receipt's words.
+function inHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/'/g, "&#39;");
+}
+
+const HISTORY_URL = "https://mystarsdecoded.com/dashboard?open=credits";
+
+test("buildReceiptEmail: a bundle's name, credits, amount, tick, the three refund rules and the History link", () => {
+  const family = BUNDLES.find((bundle) => bundle.id === "family")!;
+  const content = buildReceiptEmail({
+    to: "mira@example.com",
+    item: "family",
+    cents: family.cents,
+    campaignName: null,
+    historyUrl: HISTORY_URL,
+  });
+  assert.equal(content.subject, "Your receipt from Stars Decoded");
+  for (const body of [content.html, content.text]) {
+    assert.match(body, /5 credits/);
+    assert.ok(body.includes(formatEuro(family.cents)), "the amount is formatEuro's");
+    assert.doesNotMatch(body, /Offer/);
+    assert.doesNotMatch(body, /renews/i);
+  }
+  assert.match(content.html, /Family &amp; friends/);
+  assert.match(content.text, /You bought: Family & friends/);
+  assert.ok(content.text.includes(CHECKOUT_TICK));
+  assert.ok(content.html.includes(inHtml(CHECKOUT_TICK)));
+  assert.ok(!content.text.includes(PLAN_TICK));
+  for (const rule of REFUND_RULES) {
+    assert.ok(content.text.includes(rule), rule);
+    assert.ok(content.html.includes(inHtml(rule)), rule);
+  }
+  assert.match(content.html, /href="https:\/\/mystarsdecoded\.com\/dashboard\?open=credits"[^>]*>See my History<\/a>/);
+  assert.match(content.text, /\nSee my History:\nhttps:\/\/mystarsdecoded\.com\/dashboard\?open=credits$/m);
+  assert.match(content.html, /mark-email\.png/);
+  for (const body of allBodies(content)) {
+    assert.doesNotMatch(body, FORBIDDEN_VERBS);
+    assert.doesNotMatch(body, RETIRED);
+    assert.ok(!body.includes("mira@example.com"), "no address in the body");
+  }
+  const words = [content.subject, ...content.text.split("\n").slice(0, -1)].join("\n");
+  assert.doesNotMatch(words, /[—–;!]/);
+});
+
+test("buildReceiptEmail: a campaign's name shows, and the amount is the one paid", () => {
+  const couple = BUNDLES.find((bundle) => bundle.id === "couple")!;
+  const paid = couple.cents - 300;
+  const content = buildReceiptEmail({
+    to: "mira@example.com",
+    item: "couple",
+    cents: paid,
+    campaignName: "Autumn <deal>",
+    historyUrl: HISTORY_URL,
+  });
+  assert.match(content.html, /Autumn &lt;deal&gt;/);
+  assert.ok(!content.html.includes("<deal>"));
+  assert.match(content.text, /Offer: Autumn <deal>/);
+  assert.ok(content.text.includes(`You paid: ${formatEuro(paid)}`));
+  assert.ok(!content.text.includes(formatEuro(couple.cents)), "the full price is not on the receipt");
+});
+
+test("buildReceiptEmail: a plan reads its own tick and renewal, and the yearly credit", () => {
+  for (const plan of PLANS) {
+    const content = buildReceiptEmail({
+      to: "mira@example.com",
+      item: plan.id,
+      cents: plan.cents,
+      campaignName: null,
+      historyUrl: "https://mystarsdecoded.com/dashboard/account",
+    });
+    assert.match(content.text, new RegExp(`You bought: Timeline, paid each ${plan.interval}`));
+    assert.ok(content.text.includes(`You paid: ${formatEuro(plan.cents)}`));
+    assert.ok(content.text.includes(PLAN_TICK));
+    assert.ok(content.html.includes(inHtml(PLAN_TICK)));
+    assert.ok(!content.text.includes(CHECKOUT_TICK));
+    assert.ok(content.text.includes(renewalLine(plan)));
+    assert.ok(content.html.includes(inHtml(renewalLine(plan))));
+    assert.doesNotMatch(content.text, /Credits:/);
+    for (const rule of REFUND_RULES) assert.ok(content.text.includes(rule), rule);
+    assert.equal(/It comes with 1 credit\./.test(content.text), plan.creditsToGive === 1);
+  }
+});
+
+test("buildReceiptEmail: a tick or a renewal line the caller names is the one printed", () => {
+  const content = buildReceiptEmail({
+    to: "mira@example.com",
+    item: "timeline_month",
+    cents: 999,
+    campaignName: null,
+    tick: CHECKOUT_TICK,
+    renewal: null,
+    historyUrl: HISTORY_URL,
+  });
+  assert.ok(content.text.includes(CHECKOUT_TICK));
+  assert.doesNotMatch(content.text, /renews/i);
+});
+
+test("the mailer types no price: every amount on a receipt comes from formatEuro", () => {
+  const source = readFileSync(new URL("./mailer.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /€\s?\d/);
+  assert.doesNotMatch(source, /\b(2400|5400|7200|999|6999)\b/);
 });

@@ -1,5 +1,6 @@
+import { Fragment } from "react";
 import { LEGAL_IDENTITY } from "@workspace/commerce";
-import { BROWSER_KEYS, PROCESSORS, US_TRANSFER, whereLine, type Processor } from "@/lib/processors";
+import { BROWSER_KEYS, PAYMENTS, PROCESSORS, STRIPE_COOKIES, US_TRANSFER, whereLine, type Processor } from "@/lib/processors";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { CONTACT, LegalLayout, LegalSection, MailLink } from "./LegalLayout";
 
@@ -38,6 +39,7 @@ export default function PrivacyPage() {
           In this policy, “we” means {name}, a private individual based in {country} who trades as {tradingName}. We decide
           how your data is used, which makes us its controller under the GDPR.
         </p>
+        <p>{PAYMENTS.name} takes your payments. It also uses your payment details for its own needs, like stopping fraud.</p>
         {CONTACT ? (
           <p>
             Write to <MailLink address={CONTACT} /> with any question about your data.
@@ -58,6 +60,11 @@ export default function PrivacyPage() {
             add.
           </li>
           <li>The credits you buy and use.</li>
+          <li>
+            For each payment: what you bought, the price, when you ticked the box at checkout, and {PAYMENTS.name}'s
+            reference for the payment. We never see your card details.
+          </li>
+          <li>If you start Timeline: your plan, and when it renews or ends.</li>
         </ul>
         <p>We don't collect health data, and reports make no health, medical or clinical claims.</p>
       </LegalSection>
@@ -103,6 +110,26 @@ export default function PrivacyPage() {
         <p>The form answers the same way for every address, so nobody can use it to find out who's on the list.</p>
       </LegalSection>
 
+      <LegalSection id="payments" title="How you pay">
+        <p>
+          {PAYMENTS.name} takes the payments on our checkout page. You type your card details into {PAYMENTS.name}'s own
+          fields, so they go to {PAYMENTS.name} and never reach us.
+        </p>
+        <p>
+          We send {PAYMENTS.name} your email address and what you're buying. {PAYMENTS.name} tells us whether the payment
+          went through, and emails you its own receipt.
+        </p>
+        <p>
+          If you start Timeline, {PAYMENTS.name} also takes each renewal. Your Account page opens {PAYMENTS.name}'s own page,
+          where you can change your card or stop Timeline.
+        </p>
+        <p>
+          Our payments go through {PAYMENTS.company}, which is based in {PAYMENTS.country}, in the EU. {PAYMENTS.name} takes your
+          payment for us. It also uses your payment details for its own needs, like stopping fraud, as{" "}
+          <a href={PAYMENTS.policy}>{PAYMENTS.name}'s privacy policy</a> explains.
+        </p>
+      </LegalSection>
+
       <LegalSection id="processors" title="Who handles your data for us">
         <p>These companies run parts of {PRODUCT} for us.</p>
         <ProcessorList rows={servers} />
@@ -112,8 +139,8 @@ export default function PrivacyPage() {
       <LegalSection title="Why we can use your data">
         <ul className={LIST}>
           <li>
-            <b className="font-semibold text-[var(--paper)]">Charts, reports and your account:</b> to give you what you asked
-            for. The legal basis is our contract with you.
+            <b className="font-semibold text-[var(--paper)]">Charts, reports, payments and your account:</b> to give you
+            what you asked for. The legal basis is our contract with you.
           </li>
           <li>
             <b className="font-semibold text-[var(--paper)]">The waitlist email:</b> to tell you when we launch. The legal basis
@@ -133,7 +160,7 @@ export default function PrivacyPage() {
             unless another report uses them.
           </li>
           <li>Your account stays until you ask us to close it.</li>
-          <li>We keep a record of the credits you buy, without any birth details, for our accounts.</li>
+          <li>We keep a record of what you buy, without any birth details, for our accounts.</li>
           <li>
             A waitlist address you haven't confirmed goes after seven days. A confirmed one goes once we've emailed you that{" "}
             {PRODUCT} has launched.
@@ -176,6 +203,16 @@ export default function PrivacyPage() {
           Our own cookie, <code className="sd-mono text-[14px] text-[var(--paper)]">sd_session_id</code>, remembers which
           charts and reports are yours before you sign in. It lasts a year from your last visit. Clerk, our sign-in provider, sets its own cookies
           to know whether you're signed in.
+        </p>
+        <p>
+          On our checkout page, {PAYMENTS.name}'s payment fields set cookies of their own:{" "}
+          {STRIPE_COOKIES.map((cookie, i) => (
+            <Fragment key={cookie.name}>
+              {i === 0 ? "" : i === STRIPE_COOKIES.length - 1 ? " and " : ", "}
+              <code className="sd-mono text-[14px] text-[var(--paper)]">{cookie.name}</code> for {cookie.lasts}
+            </Fragment>
+          ))}
+          . {PAYMENTS.name} uses them to spot fraud.
         </p>
         <p>
           Some pages also keep a small note in your browser's storage, which stays on your device. Notes marked “This tab” go

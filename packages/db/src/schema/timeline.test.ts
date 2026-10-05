@@ -95,11 +95,13 @@ test("the schema index exports both tables, so the API and the push both see the
   assert.equal(schema.askMessagesTable, askMessagesTable);
 });
 
-test("no subscriptions table until billing: the admin is Timeline's one source (reading 3)", () => {
+test("billing brings the subscriptions table, Timeline's second source beside the admin, made with the payment tables (ADR-277)", () => {
   const tables = Object.values(schema).filter((v): v is PgTable => is(v, PgTable)).map((t) => getTableConfig(t).name);
   assert.ok(tables.includes("timeline_readings") && tables.includes("ask_messages"));
-  assert.deepEqual(tables.filter((name) => /subscri/i.test(name)), []);
+  assert.deepEqual(tables.filter((name) => /subscri/i.test(name)), ["subscriptions"]);
   assert.doesNotMatch(script, /CREATE TABLE IF NOT EXISTS \w*subscri/i);
+  const payments = readFileSync(fileURLToPath(new URL("../../scripts/migrate-add-payments.ts", import.meta.url)), "utf8");
+  assert.match(payments, /CREATE TABLE IF NOT EXISTS subscriptions \(/);
 });
 
 test("the failure log and the spend ledger take Timeline's and Ask's kinds as plain text, with no DDL", () => {

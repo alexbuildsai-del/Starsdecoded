@@ -53,8 +53,6 @@ export interface OrbitInput {
   reports: readonly OrbitReport[];
   gifts: readonly OrbitGift[];
   credits: number | Pick<CreditCounts, "available">;
-  /** `creditsEnforced()`: true on every host but production (ADR-138). */
-  enforced: boolean;
 }
 
 /** One person as `GET /home` lists them; only what the circle reads. */
@@ -77,8 +75,6 @@ export interface CircleInput {
   pairs: readonly CirclePair[];
   gifts: readonly OrbitGift[];
   credits: number | Pick<CreditCounts, "available">;
-  /** `creditsEnforced()`: true on every host but production (ADR-138). */
-  enforced: boolean;
 }
 
 export interface RingGap {
@@ -140,7 +136,7 @@ function readablePair(r: OrbitPair | CirclePair): PairIds | null {
  * `CIRCLE_SEATS`. An empty circle is four ghost seats and no add point: it
  * starts with the reader's own report, which the centre asks for.
  */
-export function circlePoints({ you, people, pairs, gifts, credits, enforced }: CircleInput): OrbitPoint[] {
+export function circlePoints({ you, people, pairs, gifts, credits }: CircleInput): OrbitPoint[] {
   const own = new Set<string>(people.filter((p) => p.isSelf).map((p) => p.profileId));
   if (you) own.add(you.profileId);
 
@@ -193,9 +189,8 @@ export function circlePoints({ you, people, pairs, gifts, credits, enforced }: C
   const points: OrbitPoint[] = [];
   if (!empty) {
     const balance = typeof credits === "number" ? credits : credits.available;
-    // MB-6 provisional: zero reads Get credits only where credits are enforced
-    // (ADR-138); production keeps the soft pass until checkout exists.
-    const out = enforced && balance <= 0;
+    // Zero means zero on every host (ADR-275), so with nothing to spend the point asks for a credit first.
+    const out = balance <= 0;
     points.push({
       id: ADD_ID,
       kind: "add",
@@ -237,7 +232,7 @@ function seatAccess(access: OrbitReport["access"]): CirclePerson["access"] | nul
  * that did not fail, since a failed retry must not hide one that still opens.
  * An older server sends no `access` and listed only the viewer's own reports.
  */
-export function orbitPoints({ profiles, reports, gifts, credits, enforced }: OrbitInput): OrbitPoint[] {
+export function orbitPoints({ profiles, reports, gifts, credits }: OrbitInput): OrbitPoint[] {
   const readable = new Map<string, OrbitReport>();
   for (const r of reports) {
     if (r.kind !== "natal" || !r.profileId || r.status === "failed" || !seatAccess(r.access)) continue;
@@ -262,7 +257,7 @@ export function orbitPoints({ profiles, reports, gifts, credits, enforced }: Orb
     return ids.length === 2 ? [{ a: { profileId: ids[0] }, b: { profileId: ids[1] }, status: r.status, stoppedBy: r.stoppedBy }] : [];
   });
 
-  return circlePoints({ you, people, pairs, gifts, credits, enforced });
+  return circlePoints({ you, people, pairs, gifts, credits });
 }
 
 /**

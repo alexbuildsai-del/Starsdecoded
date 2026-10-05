@@ -1,8 +1,8 @@
 /**
  * Your life's big cycles (ADR-212, 255, 262; reading 26): the last thing on the dashboard, after the stories, for a
  * reader without Timeline whose own Personal report is finished. The Saturn ring with the age of their first return,
- * the four big cycles soonest first as Life's compact cards, a link to /timeline and Not now, and no price before
- * billing (ADR-264). Every age and date is the API's, from the stored birth (acceptance 1). Not now is kept in this
+ * the four big cycles soonest first as Life's compact cards, the plans' price, Start Timeline to /checkout (ADR-264,
+ * 277), a link to /timeline and Not now. Every age and date is the API's, from the stored birth (acceptance 1). Not now is kept in this
  * browser (`teaser-view.ts`).
  */
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -11,7 +11,10 @@ import type { Teaser } from "@workspace/api-client-react";
 import { AgeRing } from "@/components/timeline/AgeRing";
 import { CycleCard } from "@/components/timeline/CycleCard";
 import { Button } from "@/components/ui/button";
-import { cameBack, keepNotNow, notNowPressed, readNotNow, teaserModel, teaserShows, type NotNow } from "@/lib/teaser-view";
+import { checkoutHref } from "@/lib/checkout-view";
+import {
+  START_TIMELINE, cameBack, keepNotNow, notNowPressed, planPriceLine, readNotNow, teaserModel, teaserShows, type NotNow,
+} from "@/lib/teaser-view";
 import { dayIn } from "@/lib/timeline-view";
 
 const HEADING = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[.18em] text-[#D4B06A]";
@@ -94,8 +97,12 @@ export function TimelineTeaser({ teaser, zone }: TimelineTeaserProps) {
           <p className="max-w-[62ch] text-sm leading-normal text-[#AEB6C6]">
             Timeline tells you what each one means for you. It also shows the sky moving across your chart each week.
           </p>
+          <p className="text-sm font-medium leading-normal text-[#E8EBF2]">{planPriceLine()}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Button asChild className="font-label">
+              <Link href={checkoutHref("timeline_month", "/dashboard")}>{START_TIMELINE}</Link>
+            </Button>
+            <Button asChild variant="outline" className="font-label">
               <Link href="/timeline">Read about Timeline</Link>
             </Button>
             <button

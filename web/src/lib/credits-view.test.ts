@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { BUNDLES, bundleById } from "@workspace/commerce";
+import type { PriceItem } from "@workspace/api-client-react";
+import { BUNDLES, bundleById, type BundleId } from "@workspace/commerce";
+import { RETURN_TO } from "./checkout-view";
+import type { DateOrder } from "./date-entry";
 import type { OrbitProfile, OrbitReport } from "./orbit";
 import {
-  PATH_SEEN_KEY, TEST_CHECKOUT, bundleRow, bundleRows, creditCount, creditDots, creditsEnforced, historyLine, markPathSeen,
-  pathDue, pathHave, pathSteps, pathView, readPathSeen, type PathHave, type PathSeenStore,
+  PATH_SEEN_KEY, REOPENS, bundleRow, bundleRows, creditCount, creditDots, historyLine, markPathSeen, openFrom, pathDue,
+  pathHave, pathSteps, pathView, readPathSeen, returnPath, signInFirst, withoutOpen, type PathHave, type PathSeenStore,
 } from "./credits-view";
 import * as view from "./credits-view";
 
@@ -23,15 +26,18 @@ function memoryStore(initial: Record<string, string> = {}): PathSeenStore & { da
   };
 }
 
-describe("creditsEnforced", () => {
-  it("is true on every host but production, which keeps the soft pass (ADR-138)", () => {
-    expect(creditsEnforced("development")).toBe(true);
-    expect(creditsEnforced("staging")).toBe(true);
-    expect(creditsEnforced("production")).toBe(false);
-  });
+/** The server's price for a bundle, as `GET /checkout/options` lists it. */
+function priced(id: BundleId, cents: number, campaign: PriceItem["campaign"] = null): PriceItem {
+  const bundle = bundleById(id);
+  return { id, kind: "bundle", name: bundle.name, line: bundle.line, credits: bundle.credits, interval: null, cents, fullCents: bundle.cents, campaign };
+}
 
-  it("reads the build's host when none is given; a test build is development", () => {
-    expect(creditsEnforced()).toBe(true);
+const AUTUMN = { name: "Autumn", endsOn: "2026-10-12" };
+
+describe("zero means zero (ADR-275, 276)", () => {
+  it("leaves no soft pass and no free test checkout for a surface to read", () => {
+    expect(Object.keys(view)).not.toContain("creditsEnforced");
+    expect(Object.keys(view)).not.toContain("TEST_CHECKOUT");
   });
 });
 
@@ -68,7 +74,7 @@ describe("bundleRows", () => {
         name: "Single",
         line: "1 credit · a Personal report or a Compatibility report",
         credits: 1,
-        count: "1 credit",
+        lead: null,
         either: true,
         mixes: [
           { text: "1 Personal report", kind: "personal" },
@@ -78,13 +84,14 @@ describe("bundleRows", () => {
         launch: false,
         singles: null,
         save: null,
+        campaign: null,
       },
       {
         id: "couple",
         name: "Couple",
         line: "3 credits · a report each and how you get along",
         credits: 3,
-        count: "3 credits, for example:",
+        lead: "For example:",
         either: false,
         mixes: [
           { text: "2 Personal reports", kind: "personal" },
@@ -94,13 +101,14 @@ describe("bundleRows", () => {
         launch: true,
         singles: "3 Singles €72",
         save: "you save €18",
+        campaign: null,
       },
       {
         id: "family",
         name: "Family & friends",
         line: "5 credits · for the people close to you",
         credits: 5,
-        count: "5 credits, for example:",
+        lead: "For example:",
         either: false,
         mixes: [
           { text: "3 Personal reports", kind: "personal" },
@@ -110,6 +118,7 @@ describe("bundleRows", () => {
         launch: true,
         singles: "5 Singles €120",
         save: "you save €48",
+        campaign: null,
       },
     ]);
   });
@@ -136,16 +145,99 @@ describe("bundleRows", () => {
 
   it("prints no end date and no earlier price (ADR-169)", () => {
     for (const row of bundleRows()) {
-      const words = [row.name, row.line, row.count, row.price, row.singles, row.save, ...row.mixes.map((mix) => mix.text)].join(" ");
+      const words = [row.name, row.line, row.lead, row.price, row.singles, row.save, ...row.mixes.map((mix) => mix.text)].join(" ");
       expect(words).not.toMatch(/\bwas\b|\buntil\b|\bends?\b|\boffer\b|\d{4}/i);
     }
   });
 });
 
-describe("TEST_CHECKOUT", () => {
-  it("still buys 1, 3 or 5 credits, one button per bundle (ADR-138)", () => {
-    expect(TEST_CHECKOUT).toEqual([1, 3, 5]);
-    expect(TEST_CHECKOUT).toEqual(BUNDLES.map((bundle) => bundle.credits));
+describe("each bundle says its credit count once (B-08)", () => {
+  it("counts the credits in the catalogue's line only, and leads the example mixes without a number", () => {
+    const campaigned = bundleRows([priced("couple", 4500, AUTUMN), priced("family", 6000, AUTUMN)]);
+    for (const row of [...bundleRows(), ...campaigned]) {
+      const words = [
+        row.name, row.line, row.lead, ...row.mixes.map((mix) => mix.text), row.price, row.singles, row.save,
+        row.campaign?.full, row.campaign?.until,
+      ].filter(Boolean).join(" | ");
+      expect(words.match(/\b\d+ credits?\b/g)).toEqual([creditCount(row.credits)]);
+    }
+    expect(bundleRows().map((row) => row.lead)).toEqual([null, "For example:", "For example:"]);
+  });
+});
+
+// MB-149 provisional: reading 6's campaign beside the launch price.
+describe("a live campaign on its row (reading 6)", () => {
+  it("takes the row's price, strikes the full price, says its last day once, and moves the Singles comparison aside", () => {
+    const rows = bundleRows([priced("solo", 2400), priced("couple", 4500, AUTUMN), priced("family", 7200)]);
+    expect(rows[1]).toMatchObject({
+      id: "couple", price: "€45", launch: false, singles: null, save: null, campaign: { full: "€54", until: "until 12\u00a0October" },
+    });
+    expect(rows[0]).toEqual(bundleRow(bundleById("solo")));
+    expect(rows[2]).toEqual(bundleRow(bundleById("family")));
+    const words = [rows[1].line, rows[1].lead, rows[1].price, rows[1].campaign?.full, rows[1].campaign?.until].join(" ");
+    expect(words.match(/until/g)).toHaveLength(1);
+    expect(words).not.toMatch(/\bwas\b|\bends?\b|days? left|\d{4}/i);
+  });
+
+  it("prints the last day as the calendar day itself, in the reader's order as checkout does (ADR-222)", () => {
+    const until = (endsOn: string, order: DateOrder = "dmy") =>
+      bundleRows([priced("couple", 4500, { name: "Autumn", endsOn })], order)[1].campaign?.until;
+    expect(until("2026-12-31")).toBe("until 31\u00a0December");
+    expect(until("2027-01-01")).toBe("until 1\u00a0January");
+    expect(until("2028-02-29")).toBe("until 29\u00a0February");
+    expect(until("2026-10-12", "mdy")).toBe("until October\u00a012");
+    expect(until("2026-10-12", "ymd")).toBe("until October\u00a012");
+  });
+
+  it("keeps the catalogue's row while the prices load, after a refusal, and for anything but a real day and a lower price", () => {
+    expect(bundleRows(null)).toEqual(bundleRows());
+    expect(bundleRows([])).toEqual(bundleRows());
+    const couple = bundleRow(bundleById("couple"));
+    for (const item of [
+      priced("couple", 4500),
+      priced("couple", 5400, AUTUMN),
+      priced("couple", 5600, AUTUMN),
+      priced("couple", 4500.5, AUTUMN),
+      priced("couple", -100, AUTUMN),
+      priced("couple", 4500, { name: "Autumn", endsOn: "2026-02-30" }),
+      priced("couple", 4500, { name: "Autumn", endsOn: "12/10/2026" }),
+      { ...priced("couple", 4500, AUTUMN), id: "timeline_year" as const },
+    ]) {
+      expect(bundleRows([item])[1]).toEqual(couple);
+    }
+  });
+});
+
+describe("the way to checkout and back (reading 2)", () => {
+  it("sends each asking step's checkout back to an address the server lets it return to (checkout's copy of its rule)", () => {
+    const steps = [...REOPENS, "chart"] as const;
+    expect(steps.map(returnPath)).toEqual([
+      "/dashboard?open=credits", "/dashboard?open=gift", "/dashboard?open=add", "/dashboard?open=pair", "/chart",
+    ]);
+    for (const step of steps) expect(returnPath(step)).toMatch(RETURN_TO);
+  });
+
+  it("reopens the step a checkout came back to, with or without the query's ?, and nothing else", () => {
+    for (const step of REOPENS) {
+      expect(openFrom(`?open=${step}`)).toBe(step);
+      expect(openFrom(`open=${step}`)).toBe(step);
+    }
+    for (const search of ["", "?open=", "?open=checkout", "?open=Credits", "c=waitlist"]) expect(openFrom(search)).toBeNull();
+  });
+
+  it("drops the step from the address once it opens, and keeps the rest, so a reload or Back never opens it twice", () => {
+    expect(withoutOpen("open=credits")).toBe("/dashboard");
+    expect(withoutOpen("?open=gift&c=waitlist")).toBe("/dashboard?c=waitlist");
+    expect(withoutOpen("")).toBe("/dashboard");
+    for (const step of REOPENS) expect(openFrom(withoutOpen(`open=${step}&c=waitlist`).split("?")[1] ?? "")).toBeNull();
+  });
+
+  it("signs a reader without an account in on the way and lands them on the same checkout (reading 1)", () => {
+    const checkout = "/checkout?item=couple&returnTo=%2Fdashboard%3Fopen%3Dcredits";
+    expect(signInFirst(checkout, false)).toBe(checkout);
+    const via = signInFirst(checkout, true);
+    expect(via.split("?")[0]).toBe("/sign-in");
+    expect(new URLSearchParams(via.slice(via.indexOf("?"))).get("return_to")).toBe(checkout);
   });
 });
 
@@ -173,6 +265,15 @@ describe("historyLine", () => {
       .toEqual({ amount: "−1", text: "Gift to Pierre", test: false });
   });
 
+  it("adds a grant and the yearly plan's credit, and takes a refund away (ADR-275, ADR-276)", () => {
+    expect(historyLine({ kind: "granted", count: 3, label: "From Stars Decoded", test: true }))
+      .toEqual({ amount: "+3", text: "From Stars Decoded", test: false });
+    expect(historyLine({ kind: "granted", count: 1, label: "With Timeline", test: false }))
+      .toEqual({ amount: "+1", text: "With Timeline", test: false });
+    expect(historyLine({ kind: "refunded", count: 2, label: "Refunded", test: false }))
+      .toEqual({ amount: "−2", text: "Refunded", test: false });
+  });
+
   it("marks a test bundle's line once, even when the label already says so (ADR-138)", () => {
     expect(historyLine({ kind: "bought", count: 5, label: "5 credits bought", test: true }).test).toBe(true);
     expect(historyLine({ kind: "bought", count: 5, label: "5 test credits", test: true }).test).toBe(false);
@@ -186,6 +287,8 @@ describe("historyLine", () => {
   it("still reads when the ledger sends no label", () => {
     expect(historyLine({ kind: "bought", count: 3, label: " ", test: true }).text).toBe("3 credits added");
     expect(historyLine({ kind: "spent", count: 1, label: "", test: false }).text).toBe("A report");
+    expect(historyLine({ kind: "granted", count: 3, label: "", test: true }).text).toBe("From Stars Decoded");
+    expect(historyLine({ kind: "refunded", count: 1, label: " ", test: false }).text).toBe("Refunded");
   });
 });
 

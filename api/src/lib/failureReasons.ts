@@ -1,7 +1,8 @@
 /**
  * Why a report failed, as a code the customer can read (ADR-84). The four
- * lines are the whole customer-facing vocabulary of failure; internal text
- * stays in `reports.error_message` and never reaches a response.
+ * lines, and the final line once a report will not be tried again, are the
+ * whole customer-facing vocabulary of failure; internal text stays in
+ * `reports.error_message` and never reaches a response.
  */
 import { OutOfCreditError, SectionError } from "./aiInterpretation.js";
 
@@ -16,15 +17,38 @@ export const FAILURE_LINES: Record<FailureCode, string> = {
   internal: "Something went wrong on our side. We've been alerted.",
 };
 
+/**
+ * A failed Personal report keeps the credit it took, so Try again is free, and
+ * the failure that brings its count to this gives the credit back (ADR-313).
+ * migrate-payments-columns.ts writes the same number on every report that
+ * failed before the rule, whose credit was already back.
+ */
+export const MAX_TRIES = 3;
+
+/** What a final report says in place of why it failed: there is no Try again, and the reader has lost nothing. */
+export const FINAL_LINE = "We couldn't write this report. Your credit is back in your balance.";
+
+/**
+ * A failed report we will not try again, its credit back in the balance of
+ * whoever paid for it (reading 16): a Personal report at its third failure, and
+ * a pair at its first, since a pair has no Try again. A row that carries no
+ * count has failed none.
+ */
+export function isFinal(report: { type: string; status: string; failedTries?: number }): boolean {
+  if (report.status !== "failed") return false;
+  return report.type !== "natal" || (report.failedTries ?? 0) >= MAX_TRIES;
+}
+
 export interface FailureReason {
   code: FailureCode;
   line: string;
 }
 
-export function failureReasonOf(code: string | null | undefined): FailureReason | null {
-  if (!code) return null;
-  const known = (FAILURE_CODES as readonly string[]).includes(code) ? (code as FailureCode) : "internal";
-  return { code: known, line: FAILURE_LINES[known] };
+/** A final report keeps its code for us, and tells the reader its credit is back rather than to try again. */
+export function failureReasonOf(code: string | null | undefined, final = false): FailureReason | null {
+  if (!code && !final) return null;
+  const known = code && (FAILURE_CODES as readonly string[]).includes(code) ? (code as FailureCode) : "internal";
+  return { code: known, line: final ? FINAL_LINE : FAILURE_LINES[known] };
 }
 
 /** An error that already knows its code: the generators throw one after the round alone fails. */

@@ -1,19 +1,36 @@
 /**
- * The Release rehearsal (acceptance 8): a stub lab and a stub QA verdict,
- * no spend. A seeded fault stops at the gate, a sev-1 stops at QA, a clean
- * run calls the mocked fast-forward; without the token it stops `passed`
- * and names MB-75; a non-staging environment is refused at preflight.
+ * The Release rehearsal (acceptance 8): a stub lab, a stub QA verdict and a
+ * stub walk, no spend. A seeded fault stops at the gate, a sev-1 stops at
+ * QA, a failed walk stops at the walk, a clean run calls the mocked
+ * fast-forward; without the token it stops `passed` and names MB-75; a
+ * non-staging environment is refused at preflight. The walk's free dry
+ * render runs for real, with a model client that fails if called.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
 process.env.OPENAI_API_KEY ??= "test-key-never-sent";
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
-const { preflight, runRelease, startRelease, estimateUsd } = await import("./release.js");
+// The dry render reads the prompts as shipped: no database here to hold an override.
+process.env.PROMPT_DEFAULTS_ONLY = "1";
+process.env.LOG_LEVEL ??= "silent";
+const { openai } = await import("@workspace/integrations-openai-ai-server");
+const modelCalls: unknown[] = [];
+(openai.chat.completions as unknown as { create: unknown }).create = async (req: unknown) => {
+  modelCalls.push(req);
+  throw new Error("the release rehearsal called the model");
+};
+const { preflight, runRelease, startRelease, estimateUsd, dryRenderWalk, walkOnce, WALK_ESTIMATE_USD } = await import("./release.js");
 const { MATRIX_CHARTS } = await import("./labRules.js");
 const { SECTION_IDS } = await import("../prompts/index.js");
+const { setFailureSink } = await import("./failureLog.js");
+const { lastSync, syncProductsOnStart } = await import("./stripeSync.js");
 type ReleaseDeps = import("./release.js").ReleaseDeps;
 type ReleaseStore = import("./release.js").ReleaseStore;
+type WalkDeps = import("./release.js").WalkDeps;
+type WalkVerdict = import("./release.js").WalkVerdict;
+type QaWalkRecord = import("./release.js").QaWalkRecord;
+type QaWalkRow = import("@workspace/db").QaWalkRow;
 type LabRelease = import("@workspace/db").LabRelease;
 type RunNumbers = import("./labRules.js").RunNumbers;
 type FileCommit = import("./github.js").FileCommit;
@@ -50,6 +67,54 @@ function memoryStore(): ReleaseStore & { rows: Map<string, LabRelease> } {
 const numbers = (label: string, words = 420): RunNumbers[] =>
   MATRIX_CHARTS.flatMap((fixture) => ["foundation", ...SECTION_IDS].map((section) => ({ fixture, label, section, words: section === "foundation" ? 0 : words, costUsd: 0.025, faults: [], status: "done" })));
 
+const PAIR = {
+  mira: { userId: "user_standin_mira", email: "qa-a+clerk_test@mystarsdecoded.com", name: "Mira Costa" },
+  idris: { userId: "user_standin_idris", email: "qa-b+clerk_test@mystarsdecoded.com", name: "Idris Costa" },
+};
+const STORED = new Set(["own-report", "idris-report", "pair"]);
+
+/** A Release's walk that passed: a live step, a stored step it wrote, and a step that stays local. */
+const PASSED: WalkVerdict = {
+  status: "pass",
+  steps: [
+    { id: "sign-in", label: "Mira arrives signed out, then signs in", status: "pass", ms: 800 },
+    { id: "own-report", label: "Mira writes her Personal report; a credit is taken before it's written", status: "pass", ms: 95_000 },
+    { id: "tomas-report", label: "Mira, out of credits, buys a Couple from the birth form and writes Tomás's Personal report", status: "local", ms: 0 },
+  ],
+  findings: [],
+};
+
+function memoryWalks(): QaWalkRecord & { rows: QaWalkRow[] } {
+  const rows: QaWalkRow[] = [];
+  return {
+    rows,
+    async latest() { return [...rows].sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())[0] ?? null; },
+    async walked(sha) { return rows.some((r) => r.sha === sha); },
+    async begin({ sha, mode, startedAt }, oncePerCommit) {
+      if (oncePerCommit && rows.some((r) => r.sha === sha)) return null;
+      const id = `walk-${rows.length + 1}`;
+      rows.push({ id, sha, mode, status: "running", steps: [], findings: [], startedAt, finishedAt: null });
+      return id;
+    },
+    async finish(id, verdict, at) { Object.assign(rows.find((r) => r.id === id)!, { status: verdict.status, steps: verdict.steps, findings: verdict.findings, finishedAt: at }); },
+    async settle() { return 0; },
+  };
+}
+
+/** The walk's seams as stand-ins that say what was asked of them; the seed keeps each stored step that passed. */
+function walkDeps(verdict: WalkVerdict = PASSED, calls: string[] = [], record = memoryWalks()): WalkDeps & { record: ReturnType<typeof memoryWalks> } {
+  return {
+    ensurePair: async () => { calls.push("ensure"); return PAIR; },
+    resetPair: async () => { calls.push("reset"); },
+    walk: async ({ mode }) => { calls.push(`walk ${mode}`); return verdict; },
+    storeSeed: async () => { calls.push("store the seed"); return verdict.steps.filter((s) => STORED.has(s.id) && s.status === "pass").length; },
+    dry: async () => { calls.push("dry render"); return []; },
+    record,
+    now: () => new Date(),
+    limitMs: 60_000,
+  };
+}
+
 function deps(over: Partial<ReleaseDeps> & { token?: string; forwarded?: string[]; qaStatus?: "pass" | "fail" | "unconfigured" } = {}): ReleaseDeps & { forwarded: string[]; pushed: Array<FileCommit & { token: string }> } {
   const forwarded = over.forwarded ?? [];
   const pushed: Array<FileCommit & { token: string }> = [];
@@ -77,6 +142,7 @@ function deps(over: Partial<ReleaseDeps> & { token?: string; forwarded?: string[
     webOrigin: "https://staging.test",
     mira: { week: async (monday) => miraText(monday), current: async () => null },
     now: () => FORWARDED_AT,
+    walk: walkDeps(),
     ...over,
   };
 }
@@ -98,12 +164,12 @@ test("preflight: heads, the brain diff, the estimate and which keys are present,
   await assert.rejects(() => startRelease(deps({ env: { APP_ENV: "production", RAILWAY_GIT_COMMIT_SHA: "abcdef1234567890" } })), /staging only/);
 });
 
-test("a clean run: lab, gate, QA, then the fast-forward with the token; the record holds every step", async () => {
+test("a clean run: lab, gate, QA, the walk, then the fast-forward with the token; the record holds every step", async () => {
   const d = deps({ token: "tok" });
   const done = await startRelease(d, { wait: true });
   assert.equal(done.status, "forwarded");
   const steps = done.steps as Array<{ name: string; status: string }>;
-  assert.deepEqual(steps.map((s) => [s.name, s.status]), [["lab", "passed"], ["gate", "passed"], ["qa", "passed"], ["forward", "passed"]]);
+  assert.deepEqual(steps.map((s) => [s.name, s.status]), [["lab", "passed"], ["gate", "passed"], ["qa", "passed"], ["walk", "passed"], ["forward", "passed"]]);
   assert.ok(d.forwarded.includes("abcdef1234567890:tok"));
   assert.equal((done.qa as { status: string }).status, "pass");
 });
@@ -115,7 +181,7 @@ test("a seeded fault stops at the gate; nothing is forwarded", async () => {
   const steps = done.steps as Array<{ name: string; status: string; detail: string | null }>;
   assert.equal(steps[1].status, "failed");
   assert.match(steps[1].detail ?? "", /new fault char:em-dash/);
-  assert.deepEqual(steps.slice(2).map((s) => s.status), ["skipped", "skipped"]);
+  assert.deepEqual(steps.slice(2).map((s) => s.status), ["skipped", "skipped", "skipped"]);
   assert.deepEqual(d.forwarded, []);
 });
 
@@ -131,10 +197,10 @@ test("without GITHUB_RELEASE_TOKEN a clean run stops passed and names MB-75; an 
   const d = deps({ qaStatus: "unconfigured" });
   const done = await startRelease(d, { wait: true });
   assert.equal(done.status, "passed");
-  const steps = done.steps as Array<{ name: string; status: string; detail: string | null }>;
-  assert.equal(steps[2].status, "skipped");
-  assert.equal(steps[3].status, "stopped");
-  assert.match(steps[3].detail ?? "", /MB-75/);
+  assert.equal(stepOf(done, "qa").status, "skipped");
+  assert.equal(stepOf(done, "walk").status, "passed");
+  assert.equal(stepOf(done, "forward").status, "stopped");
+  assert.match(stepOf(done, "forward").detail ?? "", /MB-75/);
   assert.deepEqual(d.forwarded, []);
 });
 
@@ -154,7 +220,7 @@ test("an unchanged brain skips the lab and the gate and still runs QA; a second 
   const done = await startRelease(d, { wait: true });
   void runRelease;
   const steps = done.steps as Array<{ name: string; status: string }>;
-  assert.deepEqual(steps.map((s) => s.status), ["skipped", "skipped", "passed", "passed"]);
+  assert.deepEqual(steps.map((s) => s.status), ["skipped", "skipped", "passed", "passed", "passed"]);
 });
 
 test("the gate weighs the run against what production runs: its release's lab, else r06, never a failed release", async () => {
@@ -201,11 +267,12 @@ test("a retry with the brain unchanged reuses the newest passed lab, writes no r
   }
 });
 
-test("the estimate before the button is what mix B costs: about 25 cents with both brains changed, 20 with the natal brain alone (MB-133)", () => {
-  assert.equal(estimateUsd(true, true).toFixed(4), "0.2476", "five natal reports at 3.1 cents, the pair at 4.3, QA's 5");
-  assert.equal(estimateUsd(true, false).toFixed(4), "0.2041");
-  assert.equal(estimateUsd(false, false), 0.05, "no lab: the QA reading alone");
-  assert.equal(estimateUsd(false, true), 0.05);
+test("the estimate before the button is what mix B costs, the walk's three reports always in it: about 35 cents with both brains changed, 31 with the natal brain alone (MB-133)", () => {
+  assert.equal(WALK_ESTIMATE_USD.toFixed(4), "0.1051", "Mira's and Idris's Personal reports at 3.1 cents, their parent and child report at 4.35");
+  assert.equal(estimateUsd(true, true).toFixed(4), "0.3527", "five natal reports at 3.1 cents, the pair at 4.3, QA's 5, the walk's 10.5");
+  assert.equal(estimateUsd(true, false).toFixed(4), "0.3092");
+  assert.equal(estimateUsd(false, false), 0.05 + WALK_ESTIMATE_USD, "no lab: the QA reading and the walk");
+  assert.equal(estimateUsd(false, true), estimateUsd(false, false));
 });
 
 test("a passing release pushes /sample's run from its lab and Mira's week as one commit on sample/<release-id> from the released commit; a line for each in forward's detail", async () => {
@@ -321,4 +388,140 @@ test("a failed lab, a red gate or a QA sev-1 pushes no /sample run and no week, 
   assert.equal(stepOf(red, "gate").status, "failed");
   assert.equal(gated.pushed.length, 0);
   assert.equal(gated.forwarded.length, 0);
+});
+
+const BRAIN_UNCHANGED: ReleaseDeps["github"] = {
+  branchHead: async (b) => (b === "main" ? "abcdef1234567890" : "0000000000000000"),
+  changedFiles: async () => ["web/src/App.tsx"],
+  fastForward: async () => undefined,
+  commitFile: async () => "c0ffee",
+};
+
+test("the walk runs after the QA agent: the free render first, then the pair made ready, reset and walked in release mode, and its reports kept as the seed", async () => {
+  const calls: string[] = [];
+  const walk = walkDeps(PASSED, calls);
+  const done = await startRelease(deps({ token: "tok", walk }), { wait: true });
+  assert.equal(done.status, "forwarded");
+  assert.deepEqual((done.steps as Step[]).map((s) => s.name), ["lab", "gate", "qa", "walk", "forward"]);
+  assert.deepEqual(calls, ["dry render", "ensure", "reset", "walk release", "store the seed"]);
+  assert.deepEqual([stepOf(done, "walk").status, stepOf(done, "walk").detail], ["passed", "2 steps passed; the seed kept 1 report(s)"]);
+  assert.deepEqual(walk.record.rows.map((r) => [r.sha, r.mode, r.status]), [["abcdef1234567890", "release", "pass"]]);
+  assert.deepEqual(modelCalls, []);
+});
+
+test("a failed walk fails the Release (ADR-272): nothing is forwarded, a failed write leaves a generation_failures row, and what it finished still becomes the seed", async () => {
+  const failures: Array<Record<string, unknown>> = [];
+  const restore = setFailureSink(async (rows) => {
+    for (const r of rows) failures.push({ kind: r.kind, section: r.section, ruleId: r.ruleId, class: r.class, message: r.message, final: r.final });
+  });
+  try {
+    const calls: string[] = [];
+    const failed: WalkVerdict = {
+      status: "fail",
+      steps: [
+        { id: "own-report", label: "Mira writes her Personal report; a credit is taken before it's written", status: "pass", ms: 90_000 },
+        { id: "idris-report", label: "Idris writes his Personal report with the gifted credit", status: "fail", reason: "the report failed after one try", ms: 120_000 },
+        { id: "share", label: "Mira shares her report with Idris; he reads it from the link", status: "not_run", ms: 0 },
+      ],
+      findings: [{ step: "idris-report", title: "Idris's report failed", detail: "It read failed after one try." }],
+    };
+    const d = deps({ token: "tok", walk: walkDeps(failed, calls) });
+    const done = await startRelease(d, { wait: true });
+    const line = "failed at Idris writes his Personal report with the gifted credit: the report failed after one try; the seed kept 1 report(s)";
+    assert.equal(done.status, "failed");
+    assert.deepEqual([stepOf(done, "walk").status, stepOf(done, "walk").detail, done.error], ["failed", line, line]);
+    assert.equal(stepOf(done, "forward").status, "skipped");
+    assert.deepEqual([d.forwarded, d.pushed], [[], []]);
+    assert.deepEqual(failures, [{ kind: "natal", section: "qa-walk:idris-report", ruleId: "qa-walk-write", class: "block", message: "the report failed after one try", final: true }]);
+    assert.ok(calls.includes("store the seed"));
+  } finally {
+    restore();
+  }
+});
+
+test("a prompt that won't render, or a walk the lab budget can't hold, fails the step before anything is written", async () => {
+  const calls: string[] = [];
+  const unrendered = { ...walkDeps(PASSED, calls), dry: async () => { calls.push("dry render"); return ["mira career: Unknown section natal:career"]; } };
+  const refused = await startRelease(deps({ token: "tok", walk: unrendered }), { wait: true });
+  assert.equal(refused.status, "failed");
+  assert.equal(stepOf(refused, "walk").detail, "nothing was written: 1 prompt(s) failed the free render, mira career: Unknown section natal:career");
+  assert.deepEqual(calls.splice(0), ["dry render"]);
+
+  // The lab's own spend lands between the preflight and the walk.
+  let asked = 0;
+  const spent = await startRelease(deps({ token: "tok", github: BRAIN_UNCHANGED, walk: walkDeps(PASSED, calls), spentUsd: async () => (++asked === 1 ? 1 : 14.99) }), { wait: true });
+  assert.equal(spent.status, "failed");
+  assert.match(stepOf(spent, "walk").detail ?? "", /^lab budget: \$14\.9900 spent this month plus about \$0\.1051 would pass \$15\.00/);
+  assert.deepEqual(calls, []);
+  assert.deepEqual(modelCalls, []);
+});
+
+test("a host with no browser skips the walk, as it skips the QA agent, and the Release goes on with the seed as it was", async () => {
+  const calls: string[] = [];
+  const none: WalkVerdict = { status: "unconfigured", steps: [], findings: [{ step: null, title: "No browser", detail: "Chromium is not on this host." }] };
+  const done = await startRelease(deps({ token: "tok", walk: walkDeps(none, calls) }), { wait: true });
+  assert.equal(done.status, "forwarded");
+  assert.deepEqual([stepOf(done, "walk").status, stepOf(done, "walk").detail], ["skipped", "No browser. Chromium is not on this host."]);
+  assert.ok(!calls.includes("store the seed"));
+});
+
+test("without a walk in its deps a run skips the step and names no walk, as a rehearsal built before the walk does", async () => {
+  const done = await startRelease(deps({ token: "tok", walk: undefined }), { wait: true });
+  assert.equal(done.status, "forwarded");
+  assert.deepEqual([stepOf(done, "walk").status, stepOf(done, "walk").detail], ["skipped", "this run has no staging walk"]);
+  assert.equal((await preflight(deps({ walk: undefined }))).qaWalk, null);
+});
+
+test("preflight carries the newest walk, a failed one by its step's label, and the start's sync problem only while there is one", async () => {
+  const record = memoryWalks();
+  const d = deps({ walk: walkDeps(PASSED, [], record) });
+  assert.equal((await preflight(d)).qaWalk, null, "no walk yet");
+
+  const began = new Date("2026-10-05T12:00:00.000Z");
+  const id = (await record.begin({ sha: "abcdef1234567890", mode: "deploy", startedAt: began }, false))!;
+  assert.deepEqual((await preflight(d)).qaWalk, { status: "running", step: null, at: "2026-10-05T12:00:00.000Z" }, "a running walk, by when it began");
+  await record.finish(id, {
+    status: "fail",
+    steps: [
+      { id: "gift", label: "Mira gifts Idris a report; the email goes out and a credit is held", status: "pass", ms: 4_000 },
+      { id: "gift-claimed", label: "Idris claims the gift from its link; the credit moves to him", status: "fail", reason: "the link said it was used", ms: 2_000 },
+    ],
+    findings: [],
+  }, new Date("2026-10-05T12:09:00.000Z"));
+  assert.deepEqual((await preflight(d)).qaWalk, { status: "fail", step: "Idris claims the gift from its link; the credit moves to him", at: "2026-10-05T12:09:00.000Z" });
+
+  for (const status of ["pass", "unseeded", "unconfigured"] as const) {
+    const later = (await record.begin({ sha: `${status}-sha`, mode: "deploy", startedAt: new Date(began.getTime() + 3_600_000 * (record.rows.length + 1)) }, false))!;
+    await record.finish(later, { status, steps: [], findings: [] }, new Date(began.getTime() + 3_600_000 * (record.rows.length + 1)));
+    const line = (await preflight(d)).qaWalk!;
+    assert.deepEqual([line.status, line.step], [status, null], status);
+  }
+
+  assert.equal(lastSync(), null);
+  assert.equal((await preflight(d)).stripeSync, null, "no sync has run in this process");
+  await syncProductsOnStart({ client: null, env: {} });
+  const pre = await preflight(d);
+  assert.equal(pre.stripeSync, lastSync()!.problem);
+  assert.match(pre.stripeSync ?? "", /^skipped, /);
+});
+
+test("the two walks take turns: a Release's walk waits for a deploy's to end before it resets the pair", async () => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  const calls: string[] = [];
+  const record = memoryWalks();
+  const deploy: WalkDeps = { ...walkDeps(PASSED, calls, record), walk: async ({ mode }) => { calls.push(`walk ${mode}`); await held; calls.push(`end ${mode}`); return PASSED; } };
+  const first = walkOnce("deploy", "1111111aaaaaaaaa", deploy);
+  const second = walkOnce("release", "2222222bbbbbbbbb", walkDeps(PASSED, calls, record));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.deepEqual(calls, ["ensure", "reset", "walk deploy"], "the Release's walk waits, its pair untouched");
+  release();
+  const [a, b] = await Promise.all([first, second]);
+  assert.deepEqual(calls, ["ensure", "reset", "walk deploy", "end deploy", "ensure", "reset", "walk release", "store the seed"]);
+  assert.deepEqual([a?.seed, b?.seed], [null, { kept: 1 }], "only a Release's walk keeps a seed");
+});
+
+test("the free dry render of the walk's three reports renders every prompt on the sample people's computed charts, and calls no model", async () => {
+  assert.deepEqual(await dryRenderWalk(), []);
+  assert.deepEqual(modelCalls, []);
 });

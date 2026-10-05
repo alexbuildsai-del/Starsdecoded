@@ -18,9 +18,13 @@ echo "==> 1/7 SQL migrations"
 # These run first. Drizzle's `push` cannot do this on its own, because column
 # rename detection prompts interactively while the legacy `reports` columns are
 # still present, and a deploy has no one to answer it. The waitlist's
-# confirmation columns (ADR-145) come last, here rather than from `push`, so
+# confirmation columns (ADR-145) come here rather than from `push`, so
 # the `launch-email-v1` rows are marked confirmed in the transaction that adds
 # confirmed_at: the API deletes an address left unconfirmed for seven days.
+# The payments columns come last (ADR-275 to 277, 313): `push` would stop to
+# ask before dropping credits.credit_type or putting a unique index over rows,
+# and the bundles and failed reports from before the round are marked in the
+# transaction that adds their column, so no later run marks a new one.
 pnpm --filter @workspace/db run migrate
 
 echo "==> 2/7 Schema push"
@@ -64,7 +68,8 @@ echo "==> 3e/7 Three lenses"
 pnpm --filter @workspace/db exec tsx scripts/migrate-remap-relationship-types.ts
 
 echo "==> 3f/7 One credit kind"
-# credits.credit_type becomes nullable with a default; nothing dropped (ADR-42, MB-57). Idempotent.
+# Made credits.credit_type nullable (ADR-42); step 1 now drops the column (MB-57, ADR-275), so this
+# finds nothing to do. Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-credit-type-nullable.ts
 
 echo "==> 3g/7 The lab tables"
@@ -109,6 +114,15 @@ echo "==> 3n/7 Timeline's readings and Ask's messages"
 # other finds no drift, and both exist before the API starts. No subscriptions table until
 # billing (ADR-262). Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-timeline.ts
+
+echo "==> 3o/7 The payment tables"
+# purchases, stripe_events, subscriptions, campaigns, testers and qa_walks: what checkout, the
+# webhook, Timeline's plan, the admin's Sales page and the staging walk write (ADR-274 to 279, 315).
+# The push above usually makes all six first. This step still runs because the push is only the
+# safety net (step 2): the script holds the six tables by the schema's own names, so whichever
+# makes them the other finds no drift, and all six exist before the API starts. The round's columns
+# on existing tables went in at step 1. Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-payments.ts
 
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from

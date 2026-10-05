@@ -7,7 +7,9 @@
  * door crossfades the screen out, under Reduce Motion too, then hands the
  * page back so it can unmount it, show the report at the top and run the
  * gather once. A failed report keeps the screen with its message, and "Try
- * again" only for a reader the server lets rewrite it (MB-169). A report in
+ * again", free, only for a reader the server lets rewrite it (MB-169); one we
+ * finally could not write shows its line that the credit is back and no
+ * button (ADR-313). A report in
  * revising is already readable and shows no screen.
  */
 import { useEffect, useRef, useState } from "react";
@@ -16,6 +18,7 @@ import type { Positions } from "@/lib/orrery";
 import type { Progress } from "@/lib/progress";
 import type { ChartData } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { TRY_AGAIN } from "@/lib/home-view";
 
 export const SELF_OPEN_HOLD_MS = 1200;
 /** The crossfade out, the one move the screen makes when it leaves. */
@@ -99,7 +102,8 @@ export function OpeningOverlay({ progress, provisional, chart, failureLine, onOp
             <p className="fail">{failureLine ?? INTERNAL_LINE}</p>
             {onRetry && (
               <div className="door">
-                <button type="button" onClick={onRetry} disabled={retrying}>{retrying ? "Starting…" : "Try again"}</button>
+                <button type="button" onClick={onRetry} disabled={retrying} aria-describedby="try-again-free">{retrying ? "Starting…" : TRY_AGAIN.label}</button>
+                <small id="try-again-free">{TRY_AGAIN.free}</small>
               </div>
             )}
           </>

@@ -27,14 +27,16 @@ import {
   openInvitesByRelationship,
   ownsProfile,
   ownsRelationship,
+  pairReadable,
   pairSendStateFor,
   viewerHasGrantOnRelationship,
+  type PairPerson,
   type Viewer,
 } from "../lib/access.js";
 import { firstNameOf, firstWord } from "../lib/names.js";
 import { sendPairEmail, sendReportEmail } from "../lib/mailer.js";
 import { moveHeldCredit } from "../lib/credits.js";
-import { grantShare, grantStands, shareBackOffered, sharerOf } from "../lib/shares.js";
+import { grantShare, grantStands, shareBackOffered, sharedProfileIds, sharerOf } from "../lib/shares.js";
 import { validationFailure } from "../lib/validation.js";
 import { publicWebBase } from "../lib/waitlist.js";
 
@@ -51,7 +53,7 @@ const FINISHED_STATUSES = ["complete", "revising"];
 
 class Refusal extends Error {
   constructor(
-    public readonly status: 404 | 409,
+    public readonly status: 403 | 404 | 409,
     public readonly code: string,
     message: string,
   ) {
@@ -167,6 +169,26 @@ async function pairSides(relationshipId: string): Promise<PairSide[]> {
     .where(eq(relationshipParticipantsTable.relationshipId, relationshipId))
     .orderBy(asc(relationshipParticipantsTable.position));
 }
+
+/** One side in the shape `pairReadable` takes, as reports.ts maps its own (not exported there, per R10-23). */
+function pairPerson({ rp, profile }: PairSide): PairPerson {
+  return { ...profile, profileId: profile.id, accessRole: rp.accessRole };
+}
+
+/**
+ * Why a pair's Send refuses, each by its real reason (ADR-285): only a maker who is not one of the two hears that,
+ * and one who is hears what stops them.
+ */
+export const PAIR_SEND_LINES = {
+  notMaker: "Only the person who had this report written can share it.",
+  notOneOfTwo: "You can share a Compatibility report only when you're one of the two.",
+  stopped: (name: string | null) =>
+    `${name ?? "The other person"} stopped sharing their Personal report with you, so you can't share this Compatibility report.`,
+  bothYours: "Both charts in this Compatibility report are in your account, so there's no one to share it with.",
+} as const;
+
+/** A pair's link opened by an account that is not the person in it, at the address its sender typed (ADR-285). */
+export const SOMEONE_ELSES_PAIR = "This Compatibility report is for someone else. Ask the person who sent it to check the address.";
 
 async function loadPair(reportId: string) {
   const [report] = await db
@@ -401,38 +423,39 @@ router.post("/compatibility/:id/send", async (req, res) => {
     if (!ownsRelationship(viewer, pair.relationship)) {
       // Someone it was sent to knows it exists, but it goes on only from its maker.
       if (await viewerHasGrantOnRelationship(viewer, pair.relationship.id)) {
-        return res.status(403).json({
-          error: "forbidden",
-          message: "Only the person who had this report written can share it.",
-        });
+        return res.status(403).json({ error: "forbidden", message: PAIR_SEND_LINES.notMaker });
       }
       return res.status(404).json({ error: "not_found", message: "Report not found" });
     }
 
     const relationshipId = pair.relationship.id;
-    const split = splitPair(viewer, await pairSides(relationshipId));
-    // The same state the report list shows, so the route refuses exactly what the page does not offer.
-    const send = split
-      ? pairSendStateFor(
-        viewer,
-        split.self.profile.id,
-        {
-          profileId: split.other.profile.id,
-          name: split.other.profile.name,
-          claimedByUserId: split.other.profile.claimedByUserId,
-          accessRole: split.other.rp.accessRole,
-          relationshipId,
-          // A chart shared with the maker is already its sharer's own, so no send may claim it from them (ADR-235).
-          userId: split.other.profile.userId,
-        },
-        (await openInvitesByRelationship([relationshipId])).get(relationshipId) ?? null,
-      )
-      : null;
-    if (!split || !send) {
-      return res.status(403).json({
-        error: "forbidden",
-        message: "You can share a Compatibility report only when you're one of the two.",
-      });
+    const sides = await pairSides(relationshipId);
+    const split = splitPair(viewer, sides);
+    if (!split) {
+      return res.status(403).json({ error: "forbidden", message: PAIR_SEND_LINES.notOneOfTwo });
+    }
+    // The list offers Send only on a pair its maker still reads, and a chart its other person keeps reads for the maker
+    // only through their grant (ADR-235), so the route refuses exactly what the page does not offer.
+    const reading = pairReadable(viewer, pair.relationship, sides.map(pairPerson), await sharedProfileIds(viewer.userId));
+    if (!reading.readable) {
+      return res.status(403).json({ error: "forbidden", message: PAIR_SEND_LINES.stopped(reading.stoppedBy) });
+    }
+    const send = pairSendStateFor(
+      viewer,
+      split.self.profile.id,
+      {
+        profileId: split.other.profile.id,
+        name: split.other.profile.name,
+        claimedByUserId: split.other.profile.claimedByUserId,
+        accessRole: split.other.rp.accessRole,
+        relationshipId,
+        userId: split.other.profile.userId,
+      },
+      (await openInvitesByRelationship([relationshipId])).get(relationshipId) ?? null,
+    );
+    // Readable and one of the two, the maker is stopped only when the other chart is one they claimed themselves.
+    if (!send) {
+      return res.status(403).json({ error: "forbidden", message: PAIR_SEND_LINES.bothYours });
     }
     if (!FINISHED_STATUSES.includes(pair.report.status)) {
       return res.status(400).json({
@@ -699,12 +722,96 @@ async function sendClaimBody(profileId: string, pairId: string | null, askSelf: 
 }
 
 /**
+ * The account that keeps the link's chart as its own when that is not the link's sender: the other of a pair's two,
+ * whose chart its maker reads only through their grant (ADR-285). Such a chart was never the sender's to hand over.
+ * A link made before a send needed an account names no sender, so it claims as it always has.
+ */
+async function keeperOf(inv: InviteToken, profileId: string): Promise<string | null> {
+  if (!inv.createdByUserId) return null;
+  const [chart] = await db
+    .select({ userId: profilesTable.userId, claimedByUserId: profilesTable.claimedByUserId })
+    .from(profilesTable)
+    .where(eq(profilesTable.id, profileId))
+    .limit(1);
+  if (!chart?.userId || chart.claimedByUserId || chart.userId === inv.createdByUserId) return null;
+  return chart.userId;
+}
+
+/** Nothing changed hands, so no chart rides on the answer and the claim page opens the pair at once (ADR-285). */
+async function heldPairBody(pairId: string) {
+  const relationshipReportId = await latestPairReportId(pairId);
+  return {
+    profileId: null,
+    relationshipId: pairId,
+    relationshipReportId,
+    redirectTo: relationshipReportId ? `/compatibility/${relationshipReportId}` : "/dashboard",
+    kind: "send" as const,
+    askSelf: false,
+  };
+}
+
+/**
+ * A pair sent to the other of its two on the chart they keep (ADR-285): the claim makes their side `participant` and
+ * hands nothing over, so the chart stays theirs and the maker still reads it only through their grant. Anyone else at
+ * the address the maker typed takes nothing, and a link whose pair it no longer grants answers as a revoked one.
+ */
+async function claimHeldPair(req: Request, inv: InviteToken, profileId: string, userId: string, keeper: string) {
+  const pairId = inv.relationshipId;
+  // Without a pair the link could only hand over a chart its sender does not hold, so it opens no more (R-3.6).
+  if (!pairId) throw new Refusal(404, "not_found", "Invite not found");
+  if (keeper !== userId) throw new Refusal(403, "wrong_person", SOMEONE_ELSES_PAIR);
+  if (inv.claimedAt) {
+    // Their reading stands until the maker's Stop sharing, which leaves this link spent.
+    if (await viewerHasGrantOnRelationship(viewerOf(req), pairId)) return heldPairBody(pairId);
+    throw new Refusal(404, "not_found", "Invite not found");
+  }
+  // MB-103 provisional: the claim grants the pair only as its maker, one of the two, sent it.
+  if (!(await makerSendsPairTo(pairId, profileId))) throw new Refusal(404, "not_found", "Invite not found");
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    // Read again under a lock in the claim's own transaction, so the grant never lands on a chart that changed hands.
+    const [kept] = await tx
+      .select({ id: profilesTable.id })
+      .from(profilesTable)
+      .where(and(eq(profilesTable.id, profileId), eq(profilesTable.userId, userId), isNull(profilesTable.claimedByUserId)))
+      .for("update");
+    if (!kept) throw new Refusal(404, "not_found", "Invite not found");
+    await tx
+      .update(relationshipParticipantsTable)
+      .set({ accessRole: "participant" })
+      .where(
+        and(
+          eq(relationshipParticipantsTable.relationshipId, pairId),
+          eq(relationshipParticipantsTable.profileId, profileId),
+        ),
+      );
+    const consumed = await tx
+      .update(inviteTokensTable)
+      .set({ claimedAt: now, claimedByUserId: userId })
+      .where(
+        and(
+          eq(inviteTokensTable.id, inv.id),
+          ...asRead(inv),
+          isNull(inviteTokensTable.claimedAt),
+          isNull(inviteTokensTable.revokedAt),
+        ),
+      )
+      .returning({ id: inviteTokensTable.id });
+    if (!consumed.length) throw await missedClaim(tx, inv);
+  });
+  return heldPairBody(pairId);
+}
+
+/**
  * A sent report becomes its subject's: theirs at once, or "Is this you?" first when
- * they already have a chart of their own (ADR-120, MB-81).
+ * they already have a chart of their own (ADR-120, MB-81). A pair sent on a chart its
+ * other person keeps hands nothing over (`claimHeldPair`).
  */
 async function claimSend(req: Request, inv: InviteToken, userId: string) {
   const profileId = inv.profileId;
   if (!profileId) throw new Refusal(404, "not_found", "Invite not found");
+  const keeper = await keeperOf(inv, profileId);
+  if (keeper) return claimHeldPair(req, inv, profileId, userId, keeper);
 
   if (inv.claimedAt) {
     // Their earlier claim already answered "Is this you?", and the pair's sender may have stopped sharing since.

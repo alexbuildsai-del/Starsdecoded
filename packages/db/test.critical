@@ -1,3 +1,4 @@
 src/bootstrap.test.ts
 src/schema/shares.test.ts
 src/schema/spendLedger.test.ts
+src/paymentsColumns.test.ts

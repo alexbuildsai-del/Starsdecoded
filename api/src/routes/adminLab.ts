@@ -18,6 +18,7 @@ import {
   BudgetError, REPLAY_SECTIONS, baseFromRows, budgetUsd, catalogueForPanel, dbStore, estimateReplayUsd, monthKey, monthStart, rowsOfRun, runReplayJob, startReplay,
 } from "../lib/labReplay.js";
 import { dryInjection, dryNatal, dryPair, type InjectionFixture, type InjectionRow } from "../lib/labDry.js";
+import { FixturesRefused, fixturesStatus, runFixtures } from "../lib/labFixtures.js";
 import { MATRIX_CHARTS } from "../lib/labRules.js";
 import { importLabel } from "../lib/labImport.js";
 import { failureCounts } from "../lib/failureLog.js";
@@ -377,6 +378,34 @@ router.post("/admin/lab/spot", async (req, res) => {
     const message = err instanceof Error ? err.message : "Failed to start the spot";
     req.log.warn({ err }, "spot refused");
     return res.status(/^no (run|report)|predates/.test(message) ? 404 : 400).json({ error: "spot_refused", message });
+  }
+});
+
+/** GET /fixtures : what Run the fixtures writes and costs, against the month's spend, with the run going or the last one. */
+router.get("/admin/lab/fixtures", async (req, res) => {
+  try {
+    return res.json(await fixturesStatus());
+  } catch (err) {
+    req.log.error({ err }, "lab fixtures status failed");
+    return res.status(500).json({ error: "internal_error", message: "Failed to price the fixtures" });
+  }
+});
+
+/**
+ * POST /fixtures : the release lab's five charts and their pair with no gate (B-30), on staging only, refused past the
+ * budget before any call. Answers 202 with the label; the reports are written in the background.
+ */
+router.post("/admin/lab/fixtures", async (req, res) => {
+  try {
+    const started = await runFixtures(req.labActor ?? null);
+    return res.status(202).json({
+      label: started.label, charts: started.charts, pair: started.pair, estimateUsd: started.estimateUsd, spentUsd: started.spentUsd, budgetUsd: started.budgetUsd,
+    });
+  } catch (err) {
+    if (err instanceof BudgetError) return res.status(409).json({ error: "lab_budget", message: err.message, spentUsd: err.spentUsd, budgetUsd: err.budgetUsd });
+    if (err instanceof FixturesRefused) return res.status(err.status).json({ error: "fixtures_refused", message: err.message });
+    req.log.error({ err }, "lab fixtures failed to start");
+    return res.status(500).json({ error: "internal_error", message: "Failed to start the fixtures" });
   }
 });
 

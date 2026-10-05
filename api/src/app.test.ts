@@ -289,3 +289,17 @@ test("a place search from a public page sets no cookie, still meets its limit by
   assert.equal(((await refused.json()) as { error: string }).error, "rate_limited");
   assert.equal((await search("203.0.113.8")).status, 200, "another address keeps its own count");
 });
+
+test("POST /api/checkout/test is gone: the free test checkout answers 404 with no grant, signed out or in, and each real path is still routed (ADR-276)", async (t) => {
+  const { base, close } = await serve();
+  t.after(close);
+
+  for (const headers of [{}, { authorization: "Bearer not-a-token" }] as Array<Record<string, string>>) {
+    const gone = await send(base, "POST", "/api/checkout/test", JSON.stringify({ count: 3 }), headers);
+    assert.equal(gone.status, 404);
+    assert.deepEqual(await gone.json(), { error: "not_found" });
+  }
+  // The real checkout is mounted: signed out it answers 401, so the 404 above is the old route's alone.
+  const real = await send(base, "POST", "/api/checkout", JSON.stringify({ item: "single", ticked: true, returnTo: "/chart" }));
+  assert.equal(real.status, 401);
+});

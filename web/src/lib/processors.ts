@@ -5,9 +5,10 @@ import { PREVIEW_KEY } from "@/lib/prelaunch";
 import { NOT_NOW_KEY } from "@/lib/teaser-view";
 
 /**
- * The privacy page's two lists (ADR-145): who handles a visitor's data for Stars Decoded, and what the browser keeps.
- * They live here rather than in the page so a test can hold them to the code: a storage key the web starts writing
- * fails the test until the page names it (MB-43's rule), and a service the site stops using can be dropped in one place.
+ * The privacy page's lists (ADR-145): who handles a visitor's data for Stars Decoded, who takes their payments, and what
+ * the browser keeps. They live here rather than in the page so a test can hold them to the code: a storage key the web
+ * starts writing fails the test until the page names it (MB-43's rule), and a service the site stops using can be
+ * dropped in one place.
  */
 
 export interface Processor {
@@ -27,7 +28,7 @@ export interface Processor {
 export const PROCESSORS: readonly Processor[] = [
   {
     name: "Supabase",
-    does: "holds our database: birth details and charts, reports, accounts, the people you share a report with or give a gift to, and the waitlist.",
+    does: "holds our database: birth details and charts, reports, accounts, what you buy, the people you share a report with or give a gift to, and the waitlist.",
     from: "server",
     region: null,
     country: "the United States",
@@ -62,7 +63,7 @@ export const PROCESSORS: readonly Processor[] = [
   },
   {
     name: "Resend",
-    does: "sends our emails, such as the link that confirms your place on the waitlist, or a report you share or a gift you give someone. It gets the address each email goes to.",
+    does: "sends our emails, such as the link that confirms your place on the waitlist, a receipt for what you buy, or a report you share or a gift you give someone. It gets the address each email goes to.",
     from: "server",
     region: "Resend's EU West region, in Ireland",
     country: "the United States",
@@ -88,6 +89,37 @@ export function whereLine(processor: Pick<Processor, "region" | "country">): str
   return null;
 }
 
+/** Who takes a buyer's payment on /checkout (ADR-274). */
+export interface PaymentProvider {
+  name: string;
+  /** The company an account in the EU has its contract with. */
+  company: string;
+  country: string;
+  policy: string;
+}
+
+// Stripe takes payments for us and also uses a buyer's payment details for its own needs, like stopping fraud, so it is
+// not only one of the companies that handle data for us and the page gives it a section of its own (QA-04 #2, R-3.5).
+export const PAYMENTS: PaymentProvider = {
+  name: "Stripe",
+  company: "Stripe Payments Europe",
+  country: "Ireland",
+  policy: "https://stripe.com/privacy",
+};
+
+export interface CheckoutCookie {
+  name: string;
+  /** Printed after "for". */
+  lasts: string;
+}
+
+// Stripe.js sets these on our own domain to spot fraud. The page ties them to the checkout page, which holds while
+// Stripe.js loads there alone; what it keeps inside its fields' frames sits on Stripe's domains, under its own policy.
+export const STRIPE_COOKIES: readonly CheckoutCookie[] = [
+  { name: "__stripe_mid", lasts: "a year" },
+  { name: "__stripe_sid", lasts: "30 minutes" },
+];
+
 export interface BrowserKey {
   /** As the page prints it; a trailing <…> stands for the part that changes. */
   name: string;
@@ -96,17 +128,23 @@ export interface BrowserKey {
   holds: string;
 }
 
-// The house deck's hint and the ledger's marks keep their keys inside their components, so those two are written out here.
+// The house deck's hint and the ledger's marks keep their keys inside their components, so those two are written out
+// here, as is the offer link's `sd.campaign`, which lib/prices.ts writes (R17-14); the test holds each name to the code.
 export const BROWSER_KEYS: readonly BrowserKey[] = [
   {
     name: FORM_DRAFT_KEY,
     store: "tab",
-    holds: "The birth details you typed to see your sky, carried through sign-in to the birth form so you don't type them twice. It's deleted as soon as the form reads it.",
+    holds: "The birth details you typed, and the name on the birth form, so you don't type them twice after you sign in or pay. They're deleted as soon as the birth form reads them.",
   },
   {
     name: SELECTION_KEY,
     store: "tab",
     holds: "The two reports and the choices you made for a Compatibility report, so they're still there if you leave the page and come back.",
+  },
+  {
+    name: "sd.campaign",
+    store: "tab",
+    holds: "Only when a link with an offer brought you: the offer's code, so this tab shows the offer's price, at checkout too.",
   },
   {
     name: PREVIEW_KEY,

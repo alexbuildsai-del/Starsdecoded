@@ -9,8 +9,9 @@
  * no rising text and no house readings, the call to action instead, and the
  * ledger above chapter 01 once a pass has run (ADR-35, ADR-37). A report
  * written before its birth time was last updated keeps its words and says so
- * there (MB-170); Try again and Regenerate show only where the server lets the
- * reader rewrite it (MB-169).
+ * there (MB-170); Try again, free, and Regenerate show only where the server lets the
+ * reader rewrite it (MB-169). A report we finally could not write has no Try
+ * again, and the generation screen says its credit is back (ADR-313).
  */
 import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
@@ -140,7 +141,8 @@ export default function ReportPage() {
     client.invalidateQueries({ queryKey: getGetReportQueryKey(id!) });
     client.invalidateQueries({ queryKey: getGetReportStatusQueryKey(id!) });
   }, [client, id]);
-  const regenerate = useRegenerateReport({ mutation: { onSuccess: refresh } });
+  // A 409 is a rewrite already under way, or a report that went final meanwhile (ADR-313): either way the page only has to catch up.
+  const regenerate = useRegenerateReport({ mutation: { onSuccess: refresh, onError: (err) => err.status === 409 && refresh() } });
 
   // The browser offers document.title as the print-to-PDF filename, so the
   // complete report's title is the filename we want to hand the buyer.
@@ -172,7 +174,7 @@ export default function ReportPage() {
   // The status route is fresher than the row while it polls, and a failure reaches it first.
   const offer = rewriteOffer({ status: live.status, canRegenerate: report.canRegenerate, outdated: report.outdated });
   const rewrite = () => regenerate.mutate({ id: id! });
-  const regenerateError = regenerate.isError
+  const regenerateError = regenerate.isError && regenerate.error.status !== 409
     ? refusalLine(regenerate.error) ?? "Could not start regeneration. Please try again in a minute."
     : null;
 

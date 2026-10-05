@@ -5,7 +5,8 @@
  * with {name} in view; Not me, Stop sharing and Delete report behind "⋯".
  * A report that could not be written keeps its row, which says why in its
  * coded line (ADR-84), opens nothing, and offers Try again where the reader may
- * run it again (MB-137). Not me on a report sent to the reader hands it back
+ * run it again, free (ADR-313); one the API finally could not write has no Try again and
+ * shows its line that the credit is back. Not me on a report sent to the reader hands it back
  * (ADR-236), and its writer's row then reads Handed back with Send again; a
  * send still waiting can go to a corrected address (ADR-237).
  * Who is listed and what a row shows come from GET /home; the share, the giver,
@@ -36,7 +37,7 @@ import { ListRow, MENU_DANGER, MenuItem, ROW_ACTION, ROW_DONE, ROW_STATUS } from
 import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useHome } from "@/hooks/useHome";
-import { birthDateText, failureLine, isFailed, ownIds } from "@/lib/home-view";
+import { TRY_AGAIN, birthDateText, failureLine, isFailed, ownIds } from "@/lib/home-view";
 import { initials } from "@/lib/orbit";
 import { HANDED_BACK, SEND_AGAIN, pairedWithReader, personRowView, sharedWaiting, signsLine, signsSpoken } from "@/lib/pair-row";
 import { refusalLine } from "@/lib/refusals";
@@ -88,9 +89,18 @@ function PersonRow(props: PersonRowProps) {
     ),
     isFailed(status) && <span key="failed" className={ROW_STATUS}>{failureLine(report)}</span>,
     view.retry && (
-      <button key="retry" type="button" onClick={() => onRetry(person.reportId)} disabled={retrying} className={ROW_ACTION}>
-        {retrying ? <StatusDots label="Starting" /> : "Try again"}
-      </button>
+      <span key="retry" className="inline-flex flex-col items-start gap-1">
+        <button
+          type="button"
+          onClick={() => onRetry(person.reportId)}
+          disabled={retrying}
+          aria-describedby={`free-${person.reportId}`}
+          className={ROW_ACTION}
+        >
+          {retrying ? <StatusDots label={TRY_AGAIN.starting} /> : TRY_AGAIN.label}
+        </button>
+        <span id={`free-${person.reportId}`} className={ROW_STATUS}>{TRY_AGAIN.free}</span>
+      </span>
     ),
     view.self && <span key="self" className={ROW_DONE}>This is me ✓</span>,
     view.mark && (

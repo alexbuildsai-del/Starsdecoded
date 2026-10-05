@@ -7,19 +7,18 @@ import {
   creditsTable,
   inviteTokensTable,
   profilesTable,
+  purchasesTable,
   relationshipsTable,
   reportsTable,
 } from "@workspace/db";
-import type { BundleKind } from "@workspace/db";
+import type { BundleKind, BundleSource } from "@workspace/db";
 import type { GetCreditHistoryResponseItem } from "@workspace/api-zod";
 import { logger } from "./logger.js";
 import { firstNameOf, firstWord } from "./names.js";
 
-/**
- * One credit is one report, whatever the report (ADR-42): a bundle is a
- * count. The typed columns still exist and are read nowhere; they drop with
- * the payments round (MB-57), which is also when the soft pass below ends.
- */
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** One credit is one report, whatever the report (ADR-42): a bundle is a count. */
 export const BUNDLE_DEFINITIONS: Record<BundleKind, number> = {
   solo: 1,
   couple: 3,
@@ -28,17 +27,40 @@ export const BUNDLE_DEFINITIONS: Record<BundleKind, number> = {
 
 /**
  * The bundle and its credits land together or not at all, so History never
- * shows a bundle short of its credits. `test` marks both as the free test
- * checkout's (ADR-138). Every call is a new bundle, as every purchase is; the
- * idempotency key arrives with the provider's event id (R-6.2, MB-6).
+ * shows a bundle short of its credits. `test` marks both as never revenue:
+ * Stripe's sandbox, or the free test checkout (ADR-276). A call that names no
+ * source reads as the bundles made before checkout did: the test checkout's
+ * "test", anyone else's "grant", so only a caller that says "purchase" counts
+ * as a sale. A purchase grants once (R-6.2): its bundle is unique, so a second
+ * call with the same purchaseId returns the first bundle and adds nothing.
+ * Every other call is a new bundle. Pass the caller's transaction to land the
+ * bundle with the caller's own writes.
  */
 export async function grantBundle(
   userId: string,
   bundleKind: BundleKind,
-  opts: { test?: boolean } = {},
+  opts: { test?: boolean; source?: BundleSource; purchaseId?: string } = {},
+  tx?: Tx,
 ): Promise<{ bundleId: string; credits: string[] }> {
+  if (!tx) return db.transaction((own) => grantBundle(userId, bundleKind, opts, own));
   const isTest = opts.test === true;
+  const source = opts.source ?? (isTest ? "test" : "grant");
+  const purchaseId = opts.purchaseId ?? null;
   const bundleId = randomUUID();
+
+  const [made] = await tx
+    .insert(bundlesTable)
+    .values({ id: bundleId, userId, bundleKind, isTest, source, purchaseId })
+    .onConflictDoNothing({ target: bundlesTable.purchaseId })
+    .returning({ id: bundlesTable.id });
+  if (!made && purchaseId) {
+    const [first] = await tx.select({ id: bundlesTable.id }).from(bundlesTable).where(eq(bundlesTable.purchaseId, purchaseId));
+    const kept = first
+      ? await tx.select({ id: creditsTable.id }).from(creditsTable).where(eq(creditsTable.bundleId, first.id))
+      : [];
+    return { bundleId: first?.id ?? bundleId, credits: kept.map((c) => c.id) };
+  }
+
   const creditRows = Array.from({ length: BUNDLE_DEFINITIONS[bundleKind] }, () => ({
     id: randomUUID(),
     userId,
@@ -47,13 +69,59 @@ export async function grantBundle(
     usedForReportId: null,
     isTest,
   }));
-
-  await db.transaction(async (tx) => {
-    await tx.insert(bundlesTable).values({ id: bundleId, userId, bundleKind, isTest });
-    await tx.insert(creditsTable).values(creditRows);
-  });
-
+  await tx.insert(creditsTable).values(creditRows);
   return { bundleId, credits: creditRows.map((c) => c.id) };
+}
+
+/**
+ * A refund or a dispute takes back up to `upTo` of a bundle's unused credits
+ * (reading 3, ADR-275): available first, then held, oldest first. A held
+ * credit's waiting gift is taken back in the same statement, so its link stops
+ * and no claim can take the credit after. Only credits still in the buyer's
+ * hands are unused: a used one stays used, and one a gift's recipient claimed
+ * is theirs, given like used. Taken credits read `refunded`. Returns how many
+ * it took.
+ */
+export async function takeBack(bundleId: string, upTo: number, tx: Pick<Tx, "execute"> = db): Promise<number> {
+  if (!Number.isSafeInteger(upTo) || upTo <= 0) return 0;
+  const now = new Date().toISOString();
+  const taken = await tx.execute<{ id: string }>(sql`
+    WITH waiting AS (
+      SELECT i.id, i.credit_id
+      FROM ${inviteTokensTable} i
+      JOIN ${creditsTable} c ON c.id = i.credit_id
+      WHERE c.bundle_id = ${bundleId}
+        AND c.status = 'held'
+        AND c.user_id = i.created_by_user_id
+        AND i.kind = 'gift'
+        AND i.claimed_at IS NULL
+      FOR UPDATE OF i
+    ),
+    pick AS (
+      SELECT c.id, c.status
+      FROM ${creditsTable} c
+      WHERE c.bundle_id = ${bundleId}
+        AND c.user_id = (SELECT b.user_id FROM ${bundlesTable} b WHERE b.id = ${bundleId})
+        AND (c.status = 'available' OR (c.status = 'held' AND c.id IN (SELECT credit_id FROM waiting)))
+      ORDER BY c.status = 'held', c.created_at, c.id
+      LIMIT ${upTo}
+      FOR UPDATE OF c
+    ),
+    stopped AS (
+      UPDATE ${inviteTokensTable} i
+      SET revoked_at = coalesce(i.revoked_at, ${now}::timestamp), credit_id = NULL
+      FROM waiting
+      WHERE i.id = waiting.id
+        AND waiting.credit_id IN (SELECT id FROM pick WHERE status = 'held')
+      RETURNING i.id
+    )
+    UPDATE ${creditsTable} c
+    SET status = 'refunded'
+    FROM pick
+    WHERE c.id = pick.id
+    RETURNING c.id
+  `);
+  return taken.rows.length;
 }
 
 export type CreditCounts = {
@@ -97,20 +165,42 @@ export async function getCredits(userId: string): Promise<CreditCounts> {
 }
 
 /**
- * Takes the oldest available credit for a report. Atomic via a CTE with
- * FOR UPDATE SKIP LOCKED, so two concurrent requests never claim the same
- * row. Nothing is sold yet, so a user with no credit passes with a warning;
- * the natal and the compatibility report run on the same footing until
- * payments (MB-6).
+ * The 402 a report or a gift answers when there is no credit to take, on every
+ * host (ADR-275). Each line speaks of the credit and of what it pays for.
  */
-export async function consumeCredit(userId: string, reportId: string): Promise<boolean> {
-  const rows = await db.execute<{ id: string }>(sql`
+export const NO_CREDIT_LINES = {
+  report: "You need a credit to write this report.",
+  gift: "You need a credit to give a report.",
+} as const;
+
+export function noCredit(what: keyof typeof NO_CREDIT_LINES): { error: "no_credit"; message: string } {
+  return { error: "no_credit", message: NO_CREDIT_LINES[what] };
+}
+
+/** Whether the reader has a credit to spend now. A held one is its gift's, so it does not count (ADR-123). */
+export async function hasCredit(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: creditsTable.id })
+    .from(creditsTable)
+    .where(and(eq(creditsTable.userId, userId), eq(creditsTable.status, "available")))
+    .limit(1);
+  return !!row;
+}
+
+/**
+ * Takes the reader's oldest available credit for a report, in the transaction
+ * that inserts the report, so neither stands without the other (ADR-275).
+ * FOR UPDATE SKIP LOCKED: two writes at once never take the same credit, and
+ * the one that finds none left takes nothing.
+ */
+export async function consumeCredit(userId: string, reportId: string, tx: Pick<Tx, "execute">): Promise<boolean> {
+  const rows = await tx.execute<{ id: string }>(sql`
     WITH cte AS (
       SELECT id
       FROM ${creditsTable}
       WHERE user_id = ${userId}
         AND status = 'available'
-      ORDER BY created_at ASC
+      ORDER BY created_at ASC, id ASC
       LIMIT 1
       FOR UPDATE SKIP LOCKED
     )
@@ -119,43 +209,65 @@ export async function consumeCredit(userId: string, reportId: string): Promise<b
     WHERE id IN (SELECT id FROM cte)
     RETURNING id
   `);
+  return rows.rows.length > 0;
+}
 
-  if (!rows.rows.length) {
-    // MB-6 provisional: the soft pass ends the day payments go live.
-    logger.warn({ userId, reportId }, "No available credit to consume — soft pass");
-    return false;
+/** Thrown inside a write's transaction when no credit was left to take, so the transaction leaves nothing behind. */
+class NoCreditLeft extends Error {}
+
+/**
+ * A report's rows and its credit in one transaction (ADR-275): `write` inserts
+ * the report, and its credit is taken for `reportId` before the commit. Null,
+ * with nothing written, when there was no credit to take. The caller starts
+ * writing the text only once this returns, so no model call runs for a report
+ * nobody paid for.
+ */
+export async function writeWithCredit<T>(
+  userId: string,
+  reportId: string,
+  write: (tx: Tx) => Promise<T>,
+): Promise<{ value: T } | null> {
+  try {
+    return await db.transaction(async (tx) => {
+      const value = await write(tx);
+      if (!(await consumeCredit(userId, reportId, tx))) throw new NoCreditLeft();
+      return { value };
+    });
+  } catch (err) {
+    if (err instanceof NoCreditLeft) return null;
+    throw err;
   }
-
-  return true;
 }
 
 /**
- * The credit a failed report used goes back to `available` (ADR-84).
- * Idempotent: a second call finds no used credit for the report and is a
- * no-op, so a retry of the failure path never refunds twice. Flips the
- * soft-pass ledger today; the payments round inherits the path (MB-6).
+ * The credit a report took goes back to `available` (ADR-313): at a Personal
+ * report's third failure, at a pair's first, and when a report that failed is
+ * deleted. Idempotent: a second call finds no used credit for the report, so
+ * no path gives one back twice, and a credit since spent on another report
+ * points at that one and stays where it is.
  */
-export async function refundCredit(reportId: string): Promise<boolean> {
-  const rows = await db.execute<{ id: string }>(sql`
+export async function refundCredit(reportId: string, tx: Pick<Tx, "execute"> = db): Promise<boolean> {
+  const rows = await tx.execute<{ id: string }>(sql`
     UPDATE ${creditsTable}
     SET status = 'available', used_for_report_id = NULL
     WHERE used_for_report_id = ${reportId}
       AND status = 'used'
     RETURNING id
   `);
-  if (rows.rows.length) logger.info({ reportId, credits: rows.rows.length }, "credit refunded for a failed report");
+  if (rows.rows.length) logger.info({ reportId, credits: rows.rows.length }, "a report's credit is back in the balance");
   return rows.rows.length > 0;
 }
 
 /**
  * Holds the giver's oldest available credit for a waiting gift and links it
  * to the gift in the same statement, so no credit is ever held for nothing
- * (ADR-123). Insert the gift first: its row is locked here, so a repeat or a
- * concurrent call returns the credit already held rather than holding a
- * second.
+ * (ADR-123). Insert the gift first, in the same transaction: its row is locked
+ * here, so a repeat or a concurrent call returns the credit already held
+ * rather than holding a second. Null when the giver has no credit to hold:
+ * the caller then sends nothing (ADR-275).
  */
-export async function holdCredit(userId: string, inviteId: string): Promise<string | null> {
-  const result = await db.execute<{ held_now: string | null; held_before: string | null; gift_found: boolean }>(sql`
+export async function holdCredit(userId: string, inviteId: string, tx: Pick<Tx, "execute"> = db): Promise<string | null> {
+  const result = await tx.execute<{ held_now: string | null; held_before: string | null; gift_found: boolean }>(sql`
     WITH gift AS (
       SELECT id, credit_id
       FROM ${inviteTokensTable}
@@ -198,15 +310,8 @@ export async function holdCredit(userId: string, inviteId: string): Promise<stri
 
   const row = result.rows[0];
   const creditId = row?.held_now ?? row?.held_before ?? null;
-  if (creditId) return creditId;
-  if (!row?.gift_found) {
-    logger.warn({ userId, inviteId }, "no waiting gift of this giver to hold a credit for");
-    return null;
-  }
-  // MB-6 provisional: with no credit to hold the gift still goes, as a report
-  // does under the soft pass, until checkout exists.
-  logger.warn({ userId, inviteId }, "no available credit to hold for a gift, soft pass");
-  return null;
+  if (!creditId && !row?.gift_found) logger.warn({ userId, inviteId }, "no waiting gift of this giver to hold a credit for");
+  return creditId;
 }
 
 /**
@@ -347,7 +452,10 @@ export type CreditHistoryItem = z.infer<typeof GetCreditHistoryResponseItem>;
  * afterwards can change the giver's line (ADR-139).
  */
 export type HistoryRow =
-  | { kind: "bundle"; at: Date; count: number; test: boolean }
+  // No source reads as a purchase, as every bundle did before sources.
+  | { kind: "bundle"; at: Date; count: number; test: boolean; source?: BundleSource }
+  // What refunds and disputes took back from one purchase, dated its first.
+  | { kind: "refunded"; at: Date; count: number; test: boolean }
   | {
       kind: "spent";
       grantedAt: Date;
@@ -360,8 +468,8 @@ export type HistoryRow =
       kind: "gift";
       side: "giver" | "recipient";
       claimedAt: Date | null;
-      // The credit that moved at the claim; null while none did: the soft pass
-      // held none, or the gift was taken back or expired.
+      // The credit that moved at the claim; null while none did: a gift sent
+      // before credits were hard held none, or the gift was taken back or expired.
       credit: { test: boolean } | null;
       // The recipient's name as the giver typed it, or the giver's first name.
       name: string | null;
@@ -382,20 +490,38 @@ function reportName(report: { names: string[]; pair: boolean }): string {
 }
 
 // A spend and the purchase it came from can carry the same instant; the spend reads above it.
-const RANK: Record<CreditHistoryItem["kind"], number> = { spent: 0, gift: 1, bought: 2 };
+const RANK: Record<CreditHistoryItem["kind"], number> = { spent: 0, refunded: 0, gift: 1, granted: 2, bought: 2 };
+
+// Credits Stars Decoded gave rather than sold (reading 4, ADR-276, 277).
+const GIVEN: Partial<Record<BundleSource, string>> = { grant: "From Stars Decoded", plan: "With Timeline" };
+
+function bundleLine(row: Extract<HistoryRow, { kind: "bundle" }>): CreditHistoryItem {
+  const date = row.at.toISOString();
+  const given = row.source ? GIVEN[row.source] : undefined;
+  if (given) return { kind: "granted", count: row.count, date, label: given, test: row.test };
+  const label = row.test ? plural(row.count, "test credit") : `${plural(row.count, "credit")} bought`;
+  return { kind: "bought", count: row.count, date, label, test: row.test };
+}
 
 /**
- * History's lines, newest first (reading 9): bought (+N; a test bundle says
- * so, ADR-138), a gift received (+1, "A gift from {giver}") and spent (−1, the
- * report's name, or "Gift to {name}" on the giver's side once claimed). A held
- * or returned credit makes no line: it never left the giver.
+ * History's lines, newest first (readings 4 and 9): bought (+N; a test or
+ * sandbox purchase says so, ADR-138), a grant (+N, "From Stars Decoded"), the
+ * yearly plan's credit (+1, "With Timeline"), a gift received (+1, "A gift
+ * from {giver}"), spent (−1, the report's name, or "Gift to {name}" on the
+ * giver's side once claimed) and refunded (−N, "Refunded"). A held or returned
+ * credit makes no line: it never left the giver.
  */
 export function historyLines(rows: HistoryRow[]): CreditHistoryItem[] {
   const lines: Array<{ at: Date; line: CreditHistoryItem }> = [];
   for (const row of rows) {
     if (row.kind === "bundle") {
-      const label = row.test ? plural(row.count, "test credit") : `${plural(row.count, "credit")} bought`;
-      lines.push({ at: row.at, line: { kind: "bought", count: row.count, date: row.at.toISOString(), label, test: row.test } });
+      lines.push({ at: row.at, line: bundleLine(row) });
+      continue;
+    }
+    if (row.kind === "refunded") {
+      if (row.count > 0) {
+        lines.push({ at: row.at, line: { kind: "refunded", count: row.count, date: row.at.toISOString(), label: "Refunded", test: row.test } });
+      }
       continue;
     }
     if (row.kind === "spent") {
@@ -418,12 +544,15 @@ export function historyLines(rows: HistoryRow[]): CreditHistoryItem[] {
     .map((l) => l.line);
 }
 
-/** The viewer's History (ADR-129): their bundles, their spends and the gifts on either side of them. */
+/**
+ * The viewer's History (ADR-129): their bundles, their spends, the gifts on
+ * either side of them, and what refunds took back from their purchases.
+ */
 export async function creditHistory(userId: string): Promise<CreditHistoryItem[]> {
   const pair = sql<boolean>`${reportsTable.relationshipId} is not null`;
-  const [bundles, spent, gifts] = await Promise.all([
+  const [bundles, spent, gifts, refunds] = await Promise.all([
     db
-      .select({ at: bundlesTable.createdAt, test: bundlesTable.isTest, count: count(creditsTable.id) })
+      .select({ at: bundlesTable.createdAt, test: bundlesTable.isTest, source: bundlesTable.source, count: count(creditsTable.id) })
       .from(bundlesTable)
       .leftJoin(creditsTable, eq(creditsTable.bundleId, bundlesTable.id))
       .where(eq(bundlesTable.userId, userId))
@@ -466,6 +595,19 @@ export async function creditHistory(userId: string): Promise<CreditHistoryItem[]
           or(eq(inviteTokensTable.createdByUserId, userId), eq(inviteTokensTable.claimedByUserId, userId)),
         ),
       ),
+    // A refund takes back only credits still in the buyer's hands, so each one taken is the viewer's own.
+    db
+      .select({
+        refundedAt: purchasesTable.refundedAt,
+        boughtAt: bundlesTable.createdAt,
+        test: bundlesTable.isTest,
+        count: count(creditsTable.id),
+      })
+      .from(creditsTable)
+      .innerJoin(bundlesTable, eq(bundlesTable.id, creditsTable.bundleId))
+      .leftJoin(purchasesTable, eq(purchasesTable.id, bundlesTable.purchaseId))
+      .where(and(eq(creditsTable.userId, userId), eq(creditsTable.status, "refunded")))
+      .groupBy(bundlesTable.id, purchasesTable.id),
   ]);
 
   // A name that cannot be found costs the line its name, never History itself.
@@ -475,7 +617,8 @@ export async function creditHistory(userId: string): Promise<CreditHistoryItem[]
   );
 
   const rows: HistoryRow[] = [];
-  for (const b of bundles) rows.push({ kind: "bundle", at: b.at, count: b.count, test: b.test });
+  for (const b of bundles) rows.push({ kind: "bundle", at: b.at, count: b.count, test: b.test, source: b.source });
+  for (const r of refunds) rows.push({ kind: "refunded", at: r.refundedAt ?? r.boughtAt, count: r.count, test: r.test });
   for (const s of spent) {
     rows.push({
       kind: "spent",

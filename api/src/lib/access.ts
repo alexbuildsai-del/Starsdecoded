@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, inArray, desc } from "drizzle-orm";
+import { and, eq, gt, isNull, inArray, desc, or } from "drizzle-orm";
 import type { z } from "zod";
 import {
   db,
@@ -196,14 +196,35 @@ export function sendStateFor(
 }
 
 /**
+ * The side of a pair a signed-in reader holds (ADR-285): the chart sent to
+ * them, once claimed, or their own, which they keep and no one claimed. Only a
+ * send to them turns a side `participant`, and the pair's Stop sharing or a
+ * hand-back turns it back, so a held side with that role is a pair sent to them.
+ */
+function holdsSide(viewer: Viewer, side: { userId: string | null; claimedByUserId: string | null }): boolean {
+  if (!viewer.userId) return false;
+  return side.claimedByUserId ? side.claimedByUserId === viewer.userId : side.userId === viewer.userId;
+}
+
+/** `holdsSide` for the lookups that find the pairs sent to a reader, so a list and a read never disagree. */
+function heldBy(userId: string) {
+  return or(
+    eq(profilesTable.claimedByUserId, userId),
+    and(isNull(profilesTable.claimedByUserId), eq(profilesTable.userId, userId)),
+  );
+}
+
+/**
  * Send to {B} on a pair (reading 11, ADR-133): from one of its two people to
- * the other. Someone who already holds their own profile is granted it at once
- * (MB-82); `joined` once their grant stands. The caller passes only a pair the
- * viewer made and can read; `other.relationshipId` fills the state's own, and
- * `pair`, when given, holds it back until the pair is complete, as for a natal
- * report. `other.userId`, when given, is the other profile's holder: one held
- * by another account and claimed by no one is a chart shared with the viewer,
- * already its sharer's own, which a send would claim from them (ADR-235).
+ * the other. Someone who claimed the chart sent to them is granted the pair at
+ * once (MB-82); `joined` once their grant stands. The caller passes only a pair
+ * the viewer made and can read; `other.relationshipId` fills the state's own,
+ * and `pair`, when given, holds it back until the pair is complete, as for a
+ * natal report. `other.userId`, when given, is the other profile's holder: one
+ * held by another account and claimed by no one reads for the viewer only
+ * through a grant, so it is that person's own chart, shared with the viewer.
+ * It goes as any send does, by a link to the address the viewer types, and its
+ * claim grants the pair and hands nothing over (ADR-285, amending ADR-235).
  */
 // MB-103 provisional
 export function pairSendStateFor(
@@ -223,18 +244,19 @@ export function pairSendStateFor(
   if (!viewer.userId || !selfProfileId || other.profileId === selfProfileId) return null;
   if (pair && pair.status !== "complete") return null;
   if (other.claimedByUserId === viewer.userId) return null;
-  if (other.userId && other.userId !== viewer.userId && !other.claimedByUserId) return null;
+  const keptByThem = !!other.userId && other.userId !== viewer.userId && !other.claimedByUserId;
   const state = other.claimedByUserId
     ? other.accessRole === "participant" ? "joined" : "can_grant"
-    : openInvite ? "sent" : "can_send";
+    : keptByThem && other.accessRole === "participant" ? "joined" : openInvite ? "sent" : "can_send";
   return { state, profileId: other.profileId, relationshipId: other.relationshipId ?? null, firstName: firstWord(other.name) };
 }
 
 /**
  * The pair reading. Its maker reads it only while they can still read both
  * people it was made from: when one of them stops sharing, it closes at once,
- * naming them, and nothing is deleted. The other of its two reads it while
- * its sender's grant stands. A pair neither readable nor closed with a name is
+ * naming them, and nothing is deleted. The other of its two reads it from the
+ * side they hold, the chart sent to them or their own, while its sender's
+ * grant stands (ADR-285). A pair neither readable nor closed with a name is
  * not the viewer's to list; a session's pair turns so once a person in it is
  * claimed, as its natal reports do. `shared` holds the profile ids granted to
  * the viewer (`sharedProfileIds`): a pair made from a chart shared with them
@@ -254,8 +276,7 @@ export function pairReadable(
     if (!withdrawn) return { readable: true, stoppedBy: null };
     return { readable: false, stoppedBy: firstWord(withdrawn.name) || null };
   }
-  const granted = !!viewer.userId
-    && participants.some((p) => p.claimedByUserId === viewer.userId && p.accessRole === "participant");
+  const granted = participants.some((p) => p.accessRole === "participant" && holdsSide(viewer, p));
   return { readable: granted, stoppedBy: null };
 }
 
@@ -362,8 +383,9 @@ export async function claimerNamesByProfile(
 
 /**
  * Resolves the set of relationship ids the viewer can read either as owner
- * or as a participant (their userId claimed at least one participant
- * profile). Empty array if viewer is anonymous.
+ * or as a participant: a side they hold (`holdsSide`) whose access_role a
+ * send's claim promoted to 'participant', rather than the default 'owner'
+ * every side starts with. Empty array if viewer is anonymous.
  */
 export async function viewerRelationshipIds(viewer: Viewer): Promise<{
   owned: Set<string>;
@@ -381,17 +403,13 @@ export async function viewerRelationshipIds(viewer: Viewer): Promise<{
 
   const participant = new Set<string>();
   if (viewer.userId) {
-    // A viewer participates in a relationship when there's a participant
-    // row whose linked profile they have claimed AND that row's access_role
-    // has been promoted to 'participant' via invite/claim (rather than the
-    // default 'owner' on the inviter's own row).
     const partRows = await db
       .select({ relationshipId: relationshipParticipantsTable.relationshipId })
       .from(relationshipParticipantsTable)
       .innerJoin(profilesTable, eq(relationshipParticipantsTable.profileId, profilesTable.id))
       .where(
         and(
-          eq(profilesTable.claimedByUserId, viewer.userId),
+          heldBy(viewer.userId),
           eq(relationshipParticipantsTable.accessRole, "participant"),
         ),
       );
@@ -402,8 +420,8 @@ export async function viewerRelationshipIds(viewer: Viewer): Promise<{
 
 /**
  * Returns true iff the viewer has been granted read access to the given
- * relationship via an accepted invite (their userId claimed a participant
- * profile whose access_role was promoted to 'participant').
+ * relationship via an accepted invite: a side they hold (`holdsSide`) whose
+ * access_role was promoted to 'participant'.
  */
 export async function viewerHasGrantOnRelationship(
   viewer: Viewer,
@@ -417,7 +435,7 @@ export async function viewerHasGrantOnRelationship(
     .where(
       and(
         eq(relationshipParticipantsTable.relationshipId, relationshipId),
-        eq(profilesTable.claimedByUserId, viewer.userId),
+        heldBy(viewer.userId),
         eq(relationshipParticipantsTable.accessRole, "participant"),
       ),
     )

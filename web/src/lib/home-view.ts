@@ -198,7 +198,10 @@ export function offersShareBack(look: QuickLookTarget): boolean {
   return !look.self && look.person.access === "shared" && look.person.shareBack === true;
 }
 
-/** Try again: a failed report the reader may rewrite, as its writer or its holder after a hand-over, never a shared reader (reading 10). */
+/**
+ * Try again: a failed report the reader may rewrite, as its writer or its holder after a hand-over, never a shared reader (reading 10).
+ * A report we finally could not write is final and comes with `canRegenerate` false, so it offers none (ADR-313).
+ */
 export function offersTryAgain(person: Pick<HomePerson, "status" | "canRegenerate">): boolean {
   return isFailed(person.status) && person.canRegenerate === true;
 }
@@ -274,8 +277,12 @@ export function shareStateText(share: Pick<Share, "state">): string {
   return share.state === "active" ? "Can read it" : "Waiting for them to sign in";
 }
 
-/** Try again's verb, and the status that stands in its place while the rewrite starts (ADR-130). */
-export const TRY_AGAIN = { label: "Try again", starting: "Starting" } as const;
+/**
+ * Try again's verb, the status that stands in its place while the rewrite starts
+ * (ADR-130), and the line under it that says it costs nothing: a failed report
+ * keeps the credit it took until its third failure (ADR-313).
+ */
+export const TRY_AGAIN = { label: "Try again", starting: "Starting", free: "It's free." } as const;
 
 /** A refusal the API gives no line of its own, said by whose report it is. */
 export function tryAgainErrorLine(name: string, self: boolean): string {

@@ -29,6 +29,7 @@ import {
   type ProfileHolders,
   type Viewer,
 } from "./access.js";
+import { isFinal } from "./failureReasons.js";
 import { logger } from "./logger.js";
 import { firstWord } from "./names.js";
 import { shareBackOffered, sharedProfileIds } from "./shares.js";
@@ -110,6 +111,8 @@ type HomeProfile = ProfileHolders & {
 export type NatalRow = {
   id: string;
   status: string;
+  /** Failures since it last took a credit or finished; the third makes a failed report final (ADR-313). None when absent. */
+  failedTries?: number;
   sessionId: string;
   createdAt: Date;
   interpretation: unknown;
@@ -168,7 +171,9 @@ function outranks(x: NatalRow, y: NatalRow): boolean {
  * person whose every report failed keeps theirs at the latest of them, so
  * their row and quick look say so rather than the person vanishing (ADR-84).
  * A sharer is seated only while their grant stands, so Stop sharing takes
- * them from the circle at once (ADR-235).
+ * them from the circle at once (ADR-235). A final report offers no Try again:
+ * its credit is back, and one more try would be a report nobody paid for
+ * (ADR-313).
  */
 function seatsOf(viewer: Viewer, natal: readonly NatalRow[], grants: Grants): Seat[] {
   const latest = new Map<string, Seat>();
@@ -182,7 +187,7 @@ function seatsOf(viewer: Viewer, natal: readonly NatalRow[], grants: Grants): Se
       access,
       isSelf: isSelfFor(viewer, row.profile),
       ...(access === "shared" ? { shareBack: grants.shareBack.has(row.profile.id) } : {}),
-      canRegenerate: mayRegenerate(viewer, row.profile, row),
+      canRegenerate: mayRegenerate(viewer, row.profile, row) && !isFinal({ type: "natal", status: row.status, failedTries: row.failedTries }),
     });
   }
   return [...latest.values()].sort((x, y) =>
@@ -472,6 +477,7 @@ export function natalRowsOf(viewer: Viewer, shared: ReadonlySet<string>) {
     .select({
       id: reportsTable.id,
       status: reportsTable.status,
+      failedTries: reportsTable.failedTries,
       sessionId: reportsTable.sessionId,
       createdAt: reportsTable.createdAt,
       interpretation: reportsTable.interpretation,

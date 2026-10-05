@@ -157,10 +157,10 @@ describe("the questions", () => {
     expect(questions.find((q) => q.name === "Do I pay once or every month?")?.acceptedAnswer.text).toContain(CREDIT_LINE);
   });
 
-  it("promise back only the credit a failed report used", () => {
+  it("say Try again is free and the credit comes back only if we still can't write it (ADR-313)", () => {
     const failed = answerTo("What if something goes wrong?");
-    expect(failed).toContain("the credit it used");
-    expect(failed).not.toMatch(/your credit (back|comes back)/i);
+    expect(failed).toContain("Try again is free");
+    expect(failed).toContain("If we still can't write it, its credit comes back to your balance.");
   });
 
   it("keep the house punctuation and call each report by its name", () => {

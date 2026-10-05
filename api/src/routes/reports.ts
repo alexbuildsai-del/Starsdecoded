@@ -46,8 +46,8 @@ import {
 import { sharedProfileIds } from "../lib/shares.js";
 import { firstNameOf } from "../lib/names.js";
 import { PIN_LIMIT, isWorkbookKey, pairListed, patchWorkbook, workbookOf, type Workbook, type WorkbookPatch } from "../lib/home.js";
-import { consumeCredit, refundCredit } from "../lib/credits.js";
-import { failureCodeOf, failureReasonOf } from "../lib/failureReasons.js";
+import { hasCredit, noCredit, refundCredit, returnExpiredHolds, writeWithCredit } from "../lib/credits.js";
+import { FINAL_LINE, failureCodeOf, failureReasonOf, isFinal } from "../lib/failureReasons.js";
 import { shouldDeleteProfile } from "../lib/deletion.js";
 import { logger } from "../lib/logger.js";
 import { forgetTimeline } from "../lib/timelineReadings.js";
@@ -173,18 +173,24 @@ type Rights = { send: boolean; delete: boolean; regenerate: boolean };
  * What a reader may do with a report beyond reading it. A grant reads and
  * nothing more (ADR-235). Send is a natal report's writer's, or a pair's
  * maker's while it reads; Delete is whoever holds a natal report or made a
- * pair, closed or not; a rewrite is `mayRegenerate`'s (reading 10).
+ * pair, closed or not; a rewrite is `mayRegenerate`'s (reading 10), and a
+ * final report has none, its credit already back (ADR-313).
  */
 export function rightsOf(
   viewer: Viewer,
-  found: { report: { type: string; sessionId: string }; profile: ProfileHolders; access: Access | null; maker: boolean },
+  found: {
+    report: { type: string; status: string; sessionId: string; failedTries?: number };
+    profile: ProfileHolders;
+    access: Access | null;
+    maker: boolean;
+  },
 ): Rights {
   const send = !!viewer.userId && found.access === "owner";
   if (found.report.type !== "natal") return { send, delete: found.maker, regenerate: false };
   return {
     send,
     delete: found.access === "owner" || found.access === "claimed",
-    regenerate: mayRegenerate(viewer, found.profile, found.report),
+    regenerate: mayRegenerate(viewer, found.profile, found.report) && !isFinal(found.report),
   };
 }
 
@@ -398,6 +404,7 @@ router.get("/reports", async (req, res) => {
         sessionId: reportsTable.sessionId,
         interpretation: reportsTable.interpretation,
         failureCode: reportsTable.failureCode,
+        failedTries: reportsTable.failedTries,
         createdAt: reportsTable.createdAt,
         profile: profilesTable,
       })
@@ -470,7 +477,7 @@ router.get("/reports", async (req, res) => {
         risingSign: string | null;
       }>,
       createdAt: r.createdAt.toISOString(),
-      failureReason: failureReasonOf(r.failureCode),
+      failureReason: failureReasonOf(r.failureCode, isFinal(r)),
       access: r.access,
       send: sendStateFor(viewer, r.profile, r, natalInvites.get(r.profile.id), handedBack.get(r.profile.id) ?? null),
       sharedBy: await nameOf(r.access === "shared" ? sharerIdOf(r.profile) : giverIdOf(viewer, r.profile)),
@@ -485,9 +492,11 @@ router.get("/reports", async (req, res) => {
       const synRows = await db
         .select({
           id: reportsTable.id,
+          type: reportsTable.type,
           status: reportsTable.status,
           interpretation: reportsTable.interpretation,
           failureCode: reportsTable.failureCode,
+          failedTries: reportsTable.failedTries,
           createdAt: reportsTable.createdAt,
           relationshipId: reportsTable.relationshipId,
           relType: relationshipsTable.type,
@@ -547,7 +556,7 @@ router.get("/reports", async (req, res) => {
           relationshipType: r.relType ?? null,
           participants,
           createdAt: r.createdAt.toISOString(),
-          failureReason: failureReasonOf(r.failureCode),
+          failureReason: failureReasonOf(r.failureCode, isFinal(r)),
           access: maker ? "owner" : "participant",
           send: maker && reading.readable ? pairSend(viewer, r, parts, r.relationshipId ? pairInvites.get(r.relationshipId) : undefined) : null,
           sharedBy: maker ? null : await nameOf(rel.userId),
@@ -577,41 +586,49 @@ router.get("/reports", async (req, res) => {
 });
 
 // Create a new natal report. Two-step pipeline: resolve-or-create the
-// profile (which caches its chart), then create the report referencing it.
+// profile (which caches its chart), then create the report referencing it,
+// with the credit it takes in the same transaction (ADR-275).
 router.post("/reports", async (req, res) => {
   const parsed = CreateReportBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json(validationFailure(parsed.error));
   }
+  const userId = req.userId;
+  // Credits are an account's, so a session never has one to take.
+  if (!userId) return res.status(402).json(noCredit("report"));
 
   const { name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset, timezone, birthTimeWindowMinutes, isForSelf } = parsed.data;
   const id = randomUUID();
 
   try {
+    // A hold that lapsed is back in the balance before a credit is taken from it (reading 8); one the sweep missed waits
+    // for the next read, and the write goes on with what is there.
+    await returnExpiredHolds().catch((err: unknown) => req.log.warn({ err }, "gift holds were not settled"));
+    // Resolving the profile can write, and it runs outside the report's transaction, so an empty balance is refused
+    // before it, with nothing stored.
+    if (!(await hasCredit(userId))) return res.status(402).json(noCredit("report"));
+
     const profile = await resolveOrCreateProfile(
       req.sessionId,
-      req.userId ?? null,
+      userId,
       { name, birthDate, birthTime, birthPlace, latitude, longitude, timezoneOffset, timezone, birthTimeWindowMinutes },
       isForSelf ?? false,
     );
 
-    await db.insert(reportsTable).values({
-      id,
-      profileId: profile.id,
-      sessionId: req.sessionId,
-      type: "natal",
-      // Chart is already cached on the profile, so we can skip "computing"
-      // and go straight to interpreting.
-      status: profile.chartData ? "interpreting" : "pending",
-      computeData: writtenForStamp(profile, 0),
-    });
-
-    // Soft-consume one credit for signed-in users. Non-blocking — missing credits are just logged.
-    if (req.userId) {
-      consumeCredit(req.userId, id).catch((err) => {
-        req.log.error({ err, id }, "Failed to consume credit");
+    const made = await writeWithCredit(userId, id, async (tx) => {
+      await tx.insert(reportsTable).values({
+        id,
+        profileId: profile.id,
+        sessionId: req.sessionId,
+        type: "natal",
+        // Chart is already cached on the profile, so we can skip "computing"
+        // and go straight to interpreting.
+        status: profile.chartData ? "interpreting" : "pending",
+        computeData: writtenForStamp(profile, 0),
       });
-    }
+    });
+    // Another write took the last credit after the check above.
+    if (!made) return res.status(402).json(noCredit("report"));
 
     // Fire-and-forget interpretation
     generateReport(id, profile.id, name, profile.chartData as NatalChartData | null).catch((err) => {
@@ -690,7 +707,7 @@ router.get("/reports/:id", async (req, res) => {
       workbook,
       // The internal message stays in the database; the customer reads the coded line (ADR-84).
       errorMessage: null,
-      failureReason: failureReasonOf(r.failureCode),
+      failureReason: failureReasonOf(r.failureCode, isFinal(r)),
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
       access,
@@ -728,7 +745,7 @@ router.get("/reports/:id/status", async (req, res) => {
       canRegenerate: rightsOf(req, found).regenerate,
       outdated: await outdatedOf(r, p),
       errorMessage: null,
-      failureReason: failureReasonOf(r.failureCode),
+      failureReason: failureReasonOf(r.failureCode, isFinal(r)),
       // The chart is what the page opens on, so the client stops waiting the
       // moment it exists rather than when the last section lands (ADR-25).
       chartReady: p.chartData != null,
@@ -868,16 +885,19 @@ const BEING_WRITTEN = new Set(["pending", "computing", "interpreting", "revising
 type Refusal = { status: 404 | 409; body: { error: string; message: string; status?: string } };
 
 /**
- * Why POST /reports/:id/regenerate refuses, or null when it runs, free as it
- * always has. Only whoever may rewrite the report (reading 10), and only where
- * a rewrite is wanted: a report that failed (Try again, MB-137), one written
- * for another birth time (reading 9, MB-170), or one written on an earlier
- * prompt version than the server writes now, which the page's earlier-version
- * screen asks to regenerate (MB-45). No other user regeneration exists (R-6.1).
+ * Why POST /reports/:id/regenerate refuses, or null when it runs, free: a
+ * rewrite never takes a credit. Only whoever may rewrite the report (reading
+ * 10), and only where a rewrite is wanted: a report that failed (Try again,
+ * which keeps the credit the report took, ADR-313), one written for another
+ * birth time (reading 9, MB-170), or one written on an earlier prompt version
+ * than the server writes now, which the page's earlier-version screen asks to
+ * regenerate (MB-45). A final report has its credit back, so it has no Try
+ * again; one more would be a report nobody paid for. No other user
+ * regeneration exists (R-6.1).
  */
 export function regenerateRefusal(
   viewer: Viewer,
-  report: { type: string; status: string; sessionId: string; interpretation: unknown },
+  report: { type: string; status: string; sessionId: string; interpretation: unknown; failedTries?: number },
   profile: ProfileHolders,
   outdated: boolean,
 ): Refusal | null {
@@ -887,6 +907,7 @@ export function regenerateRefusal(
   if (BEING_WRITTEN.has(report.status)) {
     return { status: 409, body: { error: "in_progress", message: "Report is already being generated", status: report.status } };
   }
+  if (isFinal(report)) return { status: 409, body: { error: "final", message: FINAL_LINE } };
   if (report.status === "failed" || outdated || writtenEarlier(report.interpretation)) return null;
   return { status: 409, body: { error: "up_to_date", message: "This report is already up to date" } };
 }
@@ -894,6 +915,24 @@ export function regenerateRefusal(
 /** Every version the page cannot render is earlier than the one written now, so the server needs no list of the page's. */
 function writtenEarlier(interpretation: unknown): boolean {
   return (interpretation as { meta?: { promptVersion?: unknown } } | null)?.meta?.promptVersion !== PROMPT_VERSION;
+}
+
+/**
+ * Deletes a report's row, first giving back the credit of one that has failed
+ * since it last took a credit or finished (ADR-313): a failed report, or one a
+ * free Try again is rewriting, so no one pays for a report we did not write.
+ * The row is locked first, so a failure landing at the same moment is either
+ * counted here or finds the row gone. A finished report's credit stays spent,
+ * and a final one's is back already.
+ */
+async function deleteReportRow(tx: Tx, reportId: string): Promise<void> {
+  const [row] = await tx
+    .select({ failedTries: reportsTable.failedTries })
+    .from(reportsTable)
+    .where(eq(reportsTable.id, reportId))
+    .for("update");
+  if (row && row.failedTries > 0) await refundCredit(reportId, tx);
+  await tx.delete(reportsTable).where(eq(reportsTable.id, reportId));
 }
 
 // Delete a report its holder deletes: a natal report by whoever wrote it or
@@ -915,7 +954,7 @@ router.delete("/reports/:id", async (req, res) => {
     }
     const { report: r, profile: p } = found;
     if (r.type === "compatibility") {
-      await db.delete(reportsTable).where(eq(reportsTable.id, r.id));
+      await db.transaction((tx) => deleteReportRow(tx, r.id));
       return res.status(204).end();
     }
 
@@ -937,7 +976,7 @@ router.delete("/reports/:id", async (req, res) => {
         .from(relationshipParticipantsTable)
         .where(eq(relationshipParticipantsTable.profileId, p.id));
 
-      await tx.delete(reportsTable).where(eq(reportsTable.id, r.id));
+      await deleteReportRow(tx, r.id);
       if (req.userId) {
         for (const ending of shareEndings(tx, p.id, req.userId, new Date())) await ending;
       }
@@ -1018,9 +1057,10 @@ router.post("/reports/:id/regenerate", async (req, res) => {
           onSection: streamInto(r.id),
           reportId: r.id,
         });
+        // Finished, so its count starts again: the credit it took has bought what it was taken for (reading 16).
         await db
           .update(reportsTable)
-          .set({ interpretation, status: "complete", updatedAt: new Date() })
+          .set({ interpretation, status: "complete", failedTries: 0, updatedAt: new Date() })
           .where(eq(reportsTable.id, r.id));
       } catch (err) {
         await failReport(r.id, err);
@@ -1109,19 +1149,39 @@ async function generateReport(
 }
 
 /**
- * A failed report stores its code beside the internal message, and the
- * credit it used goes back (ADR-84). Shared by the natal and the pair path.
+ * A failed report stores its code beside the internal message (ADR-84) and
+ * counts the failure (reading 16). A Personal report keeps the credit it took,
+ * so Try again is free; the failure that makes it final gives the credit back,
+ * once, and a pair, which has no Try again, gives it back at its first
+ * (ADR-313). The count and the credit move in one transaction, so a report is
+ * never final with its credit still spent. Shared by the natal and the pair
+ * path.
  */
 export async function failReport(id: string, err: unknown): Promise<void> {
   const message = err instanceof Error ? err.message : "Unknown error";
   const code = failureCodeOf(err);
-  await db
-    .update(reportsTable)
-    .set({ status: "failed", errorMessage: message, failureCode: code, updatedAt: new Date() })
-    .where(eq(reportsTable.id, id));
-  await refundCredit(id).catch((refundErr) => logger.error({ err: refundErr, id }, "refund after a failed report did not land"));
+  const now = new Date();
+  const outcome = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(reportsTable)
+      .set({
+        status: "failed",
+        errorMessage: message,
+        failureCode: code,
+        failedTries: sql`${reportsTable.failedTries} + 1`,
+        failedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(reportsTable.id, id))
+      .returning({ type: reportsTable.type, status: reportsTable.status, failedTries: reportsTable.failedTries });
+    // Deleted while it was being written, and a Delete settles its own credit.
+    if (!row) return null;
+    const final = isFinal(row);
+    const refunded = final ? await refundCredit(id, tx) : false;
+    return { tries: row.failedTries, final, refunded };
+  });
   // The message stays in the row: a refusal's is the model's own words, which can repeat the brief (ADR-201).
-  logger.warn({ id, code, section: failedSection(err) }, "report failed");
+  logger.warn({ id, code, section: failedSection(err), ...outcome }, "report failed");
 }
 
 /** A generator wraps the section's error in a ReportFailure, so the section is on the error or one cause down. */

@@ -111,9 +111,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   research that area. New tests only for a change to the flow, a bug that came back, or a fix the Owner asked for twice. No lint step; each preview runs Lighthouse, axe and the probe (ADR-192).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-10-04)
+## Current focus (2026-10-05)
 
-1. R16 (Timeline for the admin, `/timeline`, simple words, v11 and p6, the teaser, the Account page) on staging; production is R11 to R14.
-   Next: the staging report-lab campaign (chk-43 counts against r06), /qa, then a Release with the full lab when the Owner says promote.
-2. Before Timeline opens to subscribers: MB-198's spot, MB-219 and 220 (sentinel), MB-218's checks, billing with pricing (ADR-264).
+1. R17 (Stripe checkout in the sandbox, hard credits, a free Try again, the Sales page, Timeline's subscription, the staging walk
+   with Mira and Idris) on staging; production is R11 to R14. Next: /qa, the staging walk's first verdict, then the first Release
+   (it writes the QA pair's seed, about 10.5 ¢) when the Owner says promote. MB-232's KPI spec is R18.
+2. Before the first live sale: MB-228, 114 and 115. Before Timeline sells on production: B-03.
 3. Pricing and launch are never planned until the Owner asks (ADR-230, 242).

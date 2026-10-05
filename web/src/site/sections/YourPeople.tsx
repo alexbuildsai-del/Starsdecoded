@@ -53,7 +53,7 @@ const REPORTS: OrbitReport[] = [
 ];
 
 // The Add someone point is a control, and a sample card has none.
-const POINTS = orbitPoints({ profiles: PROFILES, reports: REPORTS, gifts: [], credits: 0, enforced: false }).filter((p) => p.kind === "person");
+const POINTS = orbitPoints({ profiles: PROFILES, reports: REPORTS, gifts: [], credits: 0 }).filter((p) => p.kind === "person");
 
 /** The circle is Mira's, so it speaks of her; its own words say "you" to the dashboard's reader. */
 const LABELS: OrbitLabels = {
