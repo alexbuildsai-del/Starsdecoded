@@ -5,8 +5,10 @@
  * question Ask does not take, an answer that never passed its checks, and the month's cap (reading 13, ADR-263).
  *
  * The thread keeps 31 days. A person card is kept as who and which day and computed again each time it is shown, and
- * a quote as which report and section, so neither shows once the reader can no longer read it (MB-191). Nothing the
- * reader types reaches a log line or a failure row (ADR-201): this file logs only an error's class.
+ * a quote as which report and section, so neither shows once the reader can no longer read it (MB-191). A reply keeps
+ * the reports and people it was written from, so its text goes too, from the thread and from what the model is sent
+ * again (B-02). Nothing the reader types reaches a log line or a failure row (ADR-201): this file logs only an error's
+ * class.
  */
 import { randomUUID } from "node:crypto";
 import { and, asc, count, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
@@ -101,6 +103,8 @@ export const ASK_EMPTY_LINE = "Type a question, or tap one of the choices.";
 export const ASK_CHOICE_GONE_LINE = "That choice isn't open any more. Type your question instead.";
 /** Said when the text is longer than the box takes. */
 export const ASK_TOO_LONG_LINE = `Keep your question to ${MESSAGE_MAX} characters or fewer.`;
+/** Shown in place of a reply written from a report or a person the reader can no longer read (R-3.6, B-02). */
+export const ASK_HIDDEN_LINE = "This answer was about someone who stopped sharing, so it's hidden.";
 
 /** The UTC month `now` falls in: its first instant, and the 1st of the next month, when the count starts again. */
 export function monthOf(now: Date): { start: Date; resetsOn: string } {
@@ -205,6 +209,29 @@ export interface Library {
   people: LibraryPerson[];
 }
 
+/**
+ * Every report the reader may open now, in any state and not only the newest, and everyone in a pair they read: a
+ * rewrite or a newer report leaves a reply standing, and a stop takes it away.
+ */
+interface Reach {
+  reports: ReadonlySet<string>;
+  profiles: ReadonlySet<string>;
+}
+
+/** The library and the reach from one read of the rows, so the two never disagree about a stop. */
+interface Readable {
+  library: Library;
+  reach: Reach;
+}
+
+/** The reports and people a reply was written from, kept with it so it can hide once the reader can no longer read one. */
+interface Sources {
+  reports: string[];
+  profiles: string[];
+}
+
+const NO_SOURCES: Sources = { reports: [], profiles: [] };
+
 /** A natal report Ask may read: finished, and readable by the reader through its profile or a standing grant. */
 export function natalReadable(viewer: Viewer, row: NatalRow, shared: ReadonlySet<string>): boolean {
   return FINISHED.includes(row.status) && natalReportAccess(viewer, row.profile, row, shared.has(row.profile.id)) !== null;
@@ -303,7 +330,25 @@ export function libraryOf(
   return { reports, people };
 }
 
-/** The same reach GET /reports and home's `natalRowsOf` have, finished reports only, without the report's text. */
+/** The reach over the rows the library is drawn from: the same access checks, without its rules on state and version. */
+function reachOf(viewer: Viewer, natal: readonly NatalRow[], pairs: readonly PairRow[], shared: ReadonlySet<string>): Reach {
+  const reports = new Set<string>();
+  const profiles = new Set<string>();
+  for (const row of natal) {
+    if (natalReportAccess(viewer, row.profile, row, shared.has(row.profile.id)) !== null) reports.add(row.reportId);
+  }
+  for (const row of pairs) {
+    if (row.parts.length !== 2 || !pairReadable(viewer, row.relationship, row.parts, shared).readable) continue;
+    reports.add(row.reportId);
+    for (const part of row.parts) profiles.add(part.profileId);
+  }
+  return { reports, profiles };
+}
+
+/**
+ * The same reach GET /reports and home's `natalRowsOf` have, in every state, without the report's text: the library
+ * keeps the finished ones, and the reach all of them, so a report being rewritten hides no reply.
+ */
 async function natalRowsFor(viewer: Viewer, shared: ReadonlySet<string>): Promise<NatalRow[]> {
   if (!viewer.userId) return [];
   const reach = or(
@@ -330,10 +375,11 @@ async function natalRowsFor(viewer: Viewer, shared: ReadonlySet<string>): Promis
     })
     .from(reportsTable)
     .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
-    .where(and(eq(reportsTable.type, "natal"), inArray(reportsTable.status, FINISHED), reach));
+    .where(and(eq(reportsTable.type, "natal"), reach));
   return rows;
 }
 
+/** The reader's pairs' reports in every state, for the same reason as `natalRowsFor`. */
 async function pairRowsFor(viewer: Viewer): Promise<PairRow[]> {
   const { owned, participant } = await viewerRelationshipIds(viewer);
   const ids = [...new Set([...owned, ...participant])];
@@ -354,7 +400,7 @@ async function pairRowsFor(viewer: Viewer): Promise<PairRow[]> {
       })
       .from(reportsTable)
       .innerJoin(relationshipsTable, eq(reportsTable.relationshipId, relationshipsTable.id))
-      .where(and(eq(reportsTable.type, "compatibility"), inArray(reportsTable.status, FINISHED), inArray(reportsTable.relationshipId, ids))),
+      .where(and(eq(reportsTable.type, "compatibility"), inArray(reportsTable.relationshipId, ids))),
     db
       .select({
         relationshipId: relationshipParticipantsTable.relationshipId,
@@ -392,13 +438,18 @@ async function pairRowsFor(viewer: Viewer): Promise<PairRow[]> {
 }
 
 /**
- * What the reader can read right now. The charts shared with them are fetched once here and passed to both checks,
+ * What the reader can read right now. The charts shared with them are fetched once here and passed to every check,
  * whose defaults deny a shared report (re-pin 9).
  */
-export async function readableLibrary(viewer: Viewer, ownProfileId: string | null): Promise<Library> {
+async function readableNow(viewer: Viewer, ownProfileId: string | null): Promise<Readable> {
   const shared = await sharedProfileIds(viewer.userId);
   const [natal, pairs] = await Promise.all([natalRowsFor(viewer, shared), pairRowsFor(viewer)]);
-  return libraryOf(viewer, natal, pairs, shared, ownProfileId);
+  return { library: libraryOf(viewer, natal, pairs, shared, ownProfileId), reach: reachOf(viewer, natal, pairs, shared) };
+}
+
+/** The library alone, as the plan and the tools are shown it. */
+export async function readableLibrary(viewer: Viewer, ownProfileId: string | null): Promise<Library> {
+  return (await readableNow(viewer, ownProfileId)).library;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -918,33 +969,61 @@ const StoredChoiceSchema = z.discriminatedUnion("kind", [
 const ReaderBodySchema = z.object({ text: z.string(), choice: StoredChoiceSchema.optional() });
 const SAID = ["answer", "ask_back", "harm", "off_topic", "fallback"] as const;
 type Said = (typeof SAID)[number];
-const AskBodySchema = z.object({ said: z.enum(SAID), text: z.string(), cards: z.array(z.unknown()), choices: z.array(z.unknown()) });
+const SourcesSchema = z.object({ reports: z.array(z.string()), profiles: z.array(z.string()) });
+const AskBodySchema = z.object({
+  said: z.enum(SAID), text: z.string(), cards: z.array(z.unknown()), choices: z.array(z.unknown()), sources: SourcesSchema.optional(),
+});
 const QuoteRefSchema = z.object({ kind: z.literal("quote"), reportId: z.string(), section: z.string() });
 const PersonRefSchema = z.object({ kind: z.literal("person"), profileId: z.string(), date: Day, zone: z.string() });
+const CardSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("quote"), reportId: z.string() }),
+  z.object({ kind: z.literal("person"), profileId: z.string() }),
+]);
 /** A kept day, window or cycle card read back through the contract, which turns its dates back into dates. */
 const CardSchema = GetAskThreadResponse.shape.messages.element.shape.cards.element;
 
 type ReaderBody = z.infer<typeof ReaderBodySchema>;
+type KeptAskBody = z.infer<typeof AskBodySchema>;
 interface AskBody {
   said: Said;
   text: string;
   cards: StoredCard[];
   choices: StoredChoice[];
+  sources: Sources;
+}
+
+/** What a kept reply rests on: its own list, or for one kept before replies had a list, the quotes and people it shows. */
+function sourcesOf(body: KeptAskBody): Sources {
+  if (body.sources) return body.sources;
+  const sources: Sources = { reports: [], profiles: [] };
+  for (const card of body.cards) {
+    const ref = CardSourceSchema.safeParse(card);
+    if (ref.success && ref.data.kind === "quote") sources.reports.push(ref.data.reportId);
+    if (ref.success && ref.data.kind === "person") sources.profiles.push(ref.data.profileId);
+  }
+  return sources;
+}
+
+/** A reply stands only while the reader can still read every report and person it was written from (R-3.6). */
+function readsAll(sources: Sources, reach: Reach): boolean {
+  return sources.reports.every((id) => reach.reports.has(id)) && sources.profiles.every((id) => reach.profiles.has(id));
 }
 
 /** What a read shares, so a thread of many cards loads the library once and each quoted report's text once. */
 interface ReadScope {
   viewer: Viewer;
   library: Library;
+  reach: Reach;
   thisYear: number;
   interpretation: (reportId: string) => Promise<unknown>;
 }
 
-function readScope(viewer: Viewer, library: Library, now: Date): ReadScope {
+function readScope(viewer: Viewer, { library, reach }: Readable, now: Date): ReadScope {
   const texts = new Map<string, Promise<unknown>>();
   return {
     viewer,
     library,
+    reach,
     thisYear: now.getUTCFullYear(),
     interpretation: (reportId) => {
       let text = texts.get(reportId);
@@ -997,6 +1076,9 @@ async function messageOf(row: Pick<AskMessageRow, "id" | "role" | "body" | "crea
   }
   const body = AskBodySchema.safeParse(row.body);
   if (!body.success) return null;
+  if (!readsAll(sourcesOf(body.data), read.reach)) {
+    return { id: row.id, role: "ask", text: ASK_HIDDEN_LINE, cards: [], choices: [], createdAt: row.createdAt };
+  }
   const cards = (await Promise.all(body.data.cards.map((card) => shownCard(card, read)))).filter((c): c is AskCard => c !== null);
   const choices = body.data.choices.flatMap((choice) => {
     const parsed = StoredChoiceSchema.safeParse(choice);
@@ -1016,7 +1098,8 @@ async function rowsOf(userId: string) {
 
 /**
  * The reader's thread from the last 31 days, oldest first, with this month's count (ADR-263). Every quote and person
- * card is read again against what the reader can read now, and goes when they no longer can (MB-191).
+ * card is read again against what the reader can read now, and goes when they no longer can (MB-191); a reply written
+ * from a report or a person they can no longer read shows the fixed line instead, and the count stays as it was (B-02).
  */
 export async function askThread(viewer: Viewer, options: AskOptions = {}): Promise<AskThread> {
   const now = options.now ?? new Date();
@@ -1024,7 +1107,7 @@ export async function askThread(viewer: Viewer, options: AskOptions = {}): Promi
   if (!userId) return { messages: [], usage: usageFrom(0, now) };
   await forgetOld(userId, now);
   const [rows, own] = await Promise.all([rowsOf(userId), ownChartOf(userId)]);
-  const read = readScope(viewer, await readableLibrary(viewer, own?.profileId ?? null), now);
+  const read = readScope(viewer, await readableNow(viewer, own?.profileId ?? null), now);
   const messages = (await Promise.all(rows.map((row) => messageOf(row, read)))).filter((m): m is AskMessage => m !== null);
   return { messages, usage: await askUsage(viewer, now) };
 }
@@ -1054,13 +1137,24 @@ async function lastChoices(userId: string): Promise<StoredChoice[]> {
   });
 }
 
-function turnOf(row: { role: string; body: unknown }): AskTurn | null {
-  const text = (row.body as { text?: unknown } | null)?.text;
-  return typeof text === "string" && (row.role === "reader" || row.role === "ask") ? { role: row.role, text } : null;
+/** A kept message as the model reads it again, with what a reply was written from. */
+interface Turn {
+  turn: AskTurn;
+  sources: Sources;
+}
+
+/** A row the thread cannot read goes back to the model no more than it shows. */
+function turnOf(row: { role: string; body: unknown }): Turn | null {
+  if (row.role === "reader") {
+    const body = ReaderBodySchema.safeParse(row.body);
+    return body.success ? { turn: { role: "reader", text: body.data.text }, sources: NO_SOURCES } : null;
+  }
+  const body = row.role === "ask" ? AskBodySchema.safeParse(row.body) : null;
+  return body?.success ? { turn: { role: "ask", text: body.data.text }, sources: sourcesOf(body.data) } : null;
 }
 
 /** The conversation before this message, oldest first, only as much of it as the plan reads. */
-async function recentTurns(userId: string): Promise<AskTurn[]> {
+async function recentTurns(userId: string): Promise<Turn[]> {
   const rows = await db
     .select({ role: askMessagesTable.role, body: askMessagesTable.body })
     .from(askMessagesTable)
@@ -1068,6 +1162,25 @@ async function recentTurns(userId: string): Promise<AskTurn[]> {
     .orderBy(desc(askMessagesTable.createdAt), desc(askMessagesTable.id))
     .limit(HISTORY_SENT);
   return rows.reverse().flatMap((row) => turnOf(row) ?? []);
+}
+
+/** The conversation as the model is sent it: a reply the thread hides stays out of it, its text in no prompt (B-02). */
+function historyFrom(turns: readonly Turn[], reach: Reach): AskTurn[] {
+  return turns.filter((t) => readsAll(t.sources, reach)).map((t) => t.turn);
+}
+
+/**
+ * What an answer was written from: every card its call was given, shown or not, since the text may use any of them.
+ * The reader's own report is left out, as their own chart is: no one else's stop can take it away.
+ */
+function sourcesFrom(computed: readonly Computed[], library: Library): Sources {
+  const reports = new Set<string>();
+  const profiles = new Set<string>();
+  for (const { stored } of computed) {
+    if (stored.kind === "quote" && !library.reports.some((r) => r.reportId === stored.reportId && r.own)) reports.add(stored.reportId);
+    if (stored.kind === "person") profiles.add(stored.profileId);
+  }
+  return { reports: [...reports], profiles: [...profiles] };
 }
 
 function askReportOf(report: LibraryReport): AskReport {
@@ -1079,13 +1192,14 @@ function askPersonOf(person: LibraryPerson): AskPerson {
 }
 
 /** The plan's context, holding only what is still readable in `fresh`, under the short ids the plan was shown. */
-function stillReadable(context: AskContext, library: Library, fresh: Library): AskContext {
-  const kept = (reportId: string) => fresh.reports.some((r) => r.reportId === reportId);
+function stillReadable(context: AskContext, library: Library, fresh: Readable, turns: readonly Turn[]): AskContext {
+  const kept = (reportId: string) => fresh.library.reports.some((r) => r.reportId === reportId);
   const reports = library.reports.filter((r) => kept(r.reportId));
-  const people = library.people.filter((p) => fresh.people.some((f) => f.profileId === p.profileId));
+  const people = library.people.filter((p) => fresh.library.people.some((f) => f.profileId === p.profileId));
   const from = context.fromReport ? library.reports.find((r) => r.id === context.fromReport) : undefined;
   return {
     ...context,
+    history: historyFrom(turns, fresh.reach),
     reports: reports.map(askReportOf),
     people: people.map(askPersonOf),
     fromReport: from && kept(from.reportId) ? from.id : null,
@@ -1097,12 +1211,15 @@ interface Reply {
   text: string;
   cards: StoredCard[];
   choices: StoredChoice[];
+  sources: Sources;
 }
 
-const fixedReply = (said: Said, text: string): Reply => ({ said, text, cards: [], choices: [] });
+const fixedReply = (said: Said, text: string): Reply => ({ said, text, cards: [], choices: [], sources: NO_SOURCES });
 
 /** Ask's reply to one message: the plan, then a fixed line, the question back, or the tools and the answer. */
-async function replyTo(viewer: Viewer, reader: ReaderChart, context: AskContext, library: Library, zone: string, now: Date): Promise<Reply> {
+async function replyTo(
+  viewer: Viewer, reader: ReaderChart, context: AskContext, library: Library, turns: readonly Turn[], zone: string, now: Date,
+): Promise<Reply> {
   const frame: CallFrame = { writeId: randomUUID(), name: context.name, names: namesIn(context) };
   const plan = await askCall(askPlanPrompt(context, await resolveSection(ASK_KEYS.plan)), frame, planChecks);
   if (!plan) return fixedReply("fallback", FALLBACK_LINE);
@@ -1117,17 +1234,17 @@ async function replyTo(viewer: Viewer, reader: ReaderChart, context: AskContext,
         const stored = storedChoiceOf(choice, library, reader);
         if (stored && !choices.some((c) => sameChoice(c, stored))) choices.push(stored);
       }
-      return plan.question ? { said: "ask_back", text: plan.question, cards: [], choices } : fixedReply("fallback", FALLBACK_LINE);
+      return plan.question ? { said: "ask_back", text: plan.question, cards: [], choices, sources: NO_SOURCES } : fixedReply("fallback", FALLBACK_LINE);
     }
     case "answer": {
       // Read again as the tools run: Stop sharing during the plan call closes what it closed (R-3.6).
-      const fresh = await readableLibrary(viewer, reader.profileId);
-      const computed = await runTools(plan.tools, { viewer, reader, zone, now, library, fresh });
-      const input: AskAnswerInput = { ...stillReadable(context, library, fresh), brief: buildBrief(reader.chart, context.name), cards: computed.map((c) => c.prompt) };
+      const fresh = await readableNow(viewer, reader.profileId);
+      const computed = await runTools(plan.tools, { viewer, reader, zone, now, library, fresh: fresh.library });
+      const input: AskAnswerInput = { ...stillReadable(context, library, fresh, turns), brief: buildBrief(reader.chart, context.name), cards: computed.map((c) => c.prompt) };
       const answer = await askCall<AskAnswer>(askAnswerPrompt(input, await resolveSection(ASK_KEYS.answer)), { ...frame, names: namesIn(input) }, (o) => checkAskAnswer(o, input));
       if (!answer?.text.trim()) return fixedReply("fallback", FALLBACK_LINE);
       const cards = answer.cards.flatMap((id) => computed.filter((c) => c.prompt.id === id).map((c) => c.stored));
-      return { said: "answer", text: answer.text, cards, choices: [] };
+      return { said: "answer", text: answer.text, cards, choices: [], sources: sourcesFrom(computed, fresh.library) };
     }
   }
 }
@@ -1154,7 +1271,8 @@ export async function sendAsk(viewer: Viewer, body: SendAskBody, options: AskOpt
   const reader = await readerChart(viewer);
   if (!reader) return { kind: "no_personal_report" };
   await forgetOld(userId, now);
-  const [history, library] = await Promise.all([recentTurns(userId), readableLibrary(viewer, reader.profileId)]);
+  const [turns, readable] = await Promise.all([recentTurns(userId), readableNow(viewer, reader.profileId)]);
+  const { library } = readable;
   const zone = validZone(options.tz) ?? reader.zone;
   const today = dayIn(now, zone);
 
@@ -1175,7 +1293,7 @@ export async function sendAsk(viewer: Viewer, body: SendAskBody, options: AskOpt
   const context: AskContext = {
     message: planChoice ? "" : text,
     tapped: planChoice,
-    history,
+    history: historyFrom(turns, readable.reach),
     today,
     name,
     blind: reader.blind,
@@ -1185,14 +1303,14 @@ export async function sendAsk(viewer: Viewer, body: SendAskBody, options: AskOpt
   };
   let reply: Reply;
   try {
-    reply = await replyTo(viewer, reader, context, library, zone, now);
+    reply = await replyTo(viewer, reader, context, library, turns, zone, now);
   } catch (err) {
     logger.warn({ failure: (err as Error)?.name ?? "Error" }, "ask: a reply could not be made; the reader gets the fallback line");
     reply = fixedReply("fallback", FALLBACK_LINE);
   }
   // When the reply was made, and never before the reader's message, so the thread's order never rests on a tie.
   const at = new Date(Math.max(options.now ? 0 : Date.now(), now.getTime() + 1));
-  const stored: AskBody = { said: reply.said, text: reply.text, cards: reply.cards, choices: reply.choices };
+  const stored: AskBody = { said: reply.said, text: reply.text, cards: reply.cards, choices: reply.choices, sources: reply.sources };
   await db.insert(askMessagesTable).values({ id: randomUUID(), userId, role: "ask", body: stored, createdAt: at });
   return { kind: "thread", thread: await askThread(viewer, { now: at }) };
 }
