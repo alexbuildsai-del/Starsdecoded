@@ -2,7 +2,9 @@
  * The sample account the landing's orbit and plates are drawn on (ADR-112):
  * invented people, labelled as samples wherever they are shown, whose charts
  * the engine computes from their birth data (R-3.1). Nobody here is real, and
- * the report lab never reads their fixtures.
+ * the report lab never reads their fixtures. Mira and Idris are also staging's
+ * two test accounts: each Release writes their reports there, kept as the next
+ * walks' seed, and no public page shows them (ADR-314, 315).
  */
 import type { ChartData, Lens } from "@/types/chart";
 import { chartOf, type Birth } from "@/site/lib/chart";
