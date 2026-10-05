@@ -52,6 +52,10 @@ Open Mailbox rows, ids and links only (R-12.7). Kept current by every session th
 - MB-191 https://app.notion.com/p/3eefefe7493181da8feedb50233dc9c6
 - MB-193 https://app.notion.com/p/3eefefe7493181819339d9205fba797c
 - MB-215 https://app.notion.com/p/3effefe7493181ff9609ffecbe99463f
+- MB-225 https://app.notion.com/p/3f0fefe7493181898b92da25fe707f2a
+- MB-227 https://app.notion.com/p/3f0fefe7493181b1bb50e644ea207157
+- MB-228 https://app.notion.com/p/3f0fefe7493181958e8bfd0d011d4120
+- MB-232 https://app.notion.com/p/3f0fefe749318169953ced2f4aee9abe
 
 Private, Owner Claude (security, details in Notion only; done before Timeline opens to subscribers):
 
