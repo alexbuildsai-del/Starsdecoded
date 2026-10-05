@@ -372,15 +372,76 @@ test("Ask's, the readings' and Now and ahead's lines: a minute's window the page
   }
 });
 
-test("checkout: 10 an hour per session, as the table counts it", async () => {
+test("checkout: 10 an hour per account, whichever browser starts it, so a fresh session never starts the count again (R13-08)", async () => {
   const app = await serve(buildLimits().checkoutLimit);
   try {
-    await passes(10, () => app.hit({ user: "u1", session: "s1" }));
-    await refused(app.hit({ user: "u1", session: "s1" }), "checkout");
-    assert.equal((await app.hit({ user: "u1", session: "s2" })).status, 201);
+    await passes(5, () => app.hit({ user: "u1", session: "s1" }));
+    await passes(5, () => app.hit({ user: "u1", session: "s2" }));
+    await refused(app.hit({ user: "u1", session: "s3" }), "checkout");
+    assert.equal((await app.hit({ user: "u2", session: "s3" })).status, 201, "another account keeps its own count");
+    assert.equal(LIMITS.checkout.by, "account");
   } finally {
     await app.close();
   }
+});
+
+test("the billing page: 10 an hour per account in any browser, its own line, and a count apart from checkout's", async () => {
+  const limits = buildLimits();
+  const buying = await serve(limits.checkoutLimit);
+  const billing = await serve(limits.portalLimit);
+  try {
+    await passes(LIMITS.checkout.limit, () => buying.hit({ user: "u1" }));
+    await refused(buying.hit({ user: "u1" }), "checkout");
+    await passes(5, () => billing.hit({ user: "u1", session: "s1" }));
+    await passes(5, () => billing.hit({ user: "u1", session: "s2" }));
+    await refused(billing.hit({ user: "u1", session: "s3" }), "portal");
+    assert.equal(
+      LIMIT_LINES.portal,
+      "You've opened your billing page 10 times in the last hour. You can open it again within the hour.",
+    );
+  } finally {
+    await Promise.all([buying.close(), billing.close()]);
+  }
+});
+
+test("buying and the billing page as routes/index.ts stands them: signed out hears 401 and is never counted, and an account's 11th hears 429 before its route runs", async (t) => {
+  const { buying, billing } = await import("../routes/index.js");
+  const { BUY_SIGN_IN_LINE, PORTAL_SIGN_IN_LINE } = await import("../routes/payments.js");
+  const app = express();
+  app.use((req, _res, next) => {
+    req.userId = req.header("x-user") || null;
+    req.sessionId = "s-buyer";
+    next();
+  });
+  let reached = 0;
+  const started: RequestHandler = (_req, res) => void (reached++, res.status(201).json({}));
+  app.post("/api/checkout", buying, started);
+  app.post("/api/billing/portal", billing, started);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    return new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const post = async (path: string, user?: string): Promise<Answer> => {
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (user) headers["x-user"] = user;
+    const res = await fetch(`${base}${path}`, { method: "POST", headers, body: "{}" });
+    return { status: res.status, retryAfter: res.headers.get("retry-after"), body: await res.json() };
+  };
+
+  for (const [path, line, kind] of [
+    ["/api/checkout", BUY_SIGN_IN_LINE, "checkout"],
+    ["/api/billing/portal", PORTAL_SIGN_IN_LINE, "portal"],
+  ] as const) {
+    for (let i = 0; i < LIMITS[kind].limit + 5; i++) {
+      assert.deepEqual(await post(path), { status: 401, retryAfter: null, body: { error: "sign_in_required", message: line } });
+    }
+    await passes(LIMITS[kind].limit, () => post(path, "user_buyer"));
+    await refused(post(path, "user_buyer"), kind);
+  }
+  assert.equal(reached, LIMITS.checkout.limit + LIMITS.portal.limit, "no refusal reached the route");
 });
 
 test("each kind has its own line: what happened with the number its limit counts, then when, and never the time left", () => {
