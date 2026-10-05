@@ -126,12 +126,13 @@ prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels
 ### 9. Facts you asked about (round 3)
 - **One list in the code** (`web/src/lib/facts.ts`), each fact a short title and two or three plain sentences, with
   where the Owner asked it. Every "why is it like this?" the Owner asks in a review is added to it.
-- **One new component, the Did you know card** (rounds 4, 5): "Did you know?" in brass, the topic as title
-  ("Retrograde"), two or three sentences, one bar per fact that fills like the home page's Claims (`Claims.tsx`), about
-  8 s a fact, a fade between, tap a bar to jump, hover pauses; no icon, no X. Under the report's opening screen and the
-  set-up, whose progress does not change. Where an R shows, it holds the retrograde fact.
-- **The log so far**: Retrograde (note 11); Why east is on the left (round 3); A house's planet (note 18); Cycles and
-  ages (note 7). Words as on the artifact, Part 9.
+- **One new component, the Did you know card** (rounds 4 to 6): the title is the whole question ("Did you know why
+  east is on the left?"), two or three sentences, a small drawing on the right of where to look on the chart, and one
+  bar per fact that fills like the home page's Claims (`Claims.tsx`): about 8 s a fact, a fade, tap a bar to jump,
+  hover pauses; no icon, no X. Under the report's opening screen and the set-up, whose progress does not change.
+- **The log so far**: "Did you know planets can look like they go backwards?" (names retrograde and the R; a loop);
+  "…why east is on the left?" (a simple hero: Sun, Moon, Rising at EAST); "…each house starts in a sign?" (a house
+  wedge and its planet); "…Saturn comes back every 29½ years?" (a ring). Words as on the artifact, Part 9.
 
 ### 10. Retrograde in the words (round 4)
 - **Rule 1** (`prompts/system.ts:25`) gains named exceptions: "Never explain the method, except these ideas, which you
@@ -173,7 +174,7 @@ Stripe, live prices, pricing (ADR-230, 242, 264); the Monday letter; Chiron (MB-
     reader's credit count.
 
 ## Screens
-All on the artifact (version 5), Parts 1 to 10, one per section above; Part 9 is the Did you know card.
+All on the artifact (version 6), Parts 1 to 10, one per section above; Part 9 is the Did you know card.
 
 ## Open questions (each with its default)
 Answered: tone words with a legend; written a week ahead; the marked preview; no X; every R planet in House by House.
