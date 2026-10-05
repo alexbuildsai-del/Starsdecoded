@@ -1,7 +1,7 @@
 # Report loading story: draft spec
 
-Ideation 2026-10-05 with the Owner. Status: **draft**, waiting on three questions.
-Artifact: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw
+Ideation 2026-10-05 with the Owner. Status: **draft v2**, waiting on three questions.
+Artifact: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw (version 2)
 
 The Owner wants the Personal report's loading screen to tell, step by step, how a chart is made:
 - the place and date put you on the Earth;
@@ -10,159 +10,194 @@ The Owner wants the Personal report's loading screen to tell, step by step, how 
 - the houses go on the ring;
 - the chart is built while the report writes.
 
-Timeline's setup after paying gets the same idea, reworked: the natal chart is already drawn, and six months
-of transits run around it. Both animations are filmed for TikTok and Instagram reels. The Timeline part is
-item 4 of the Owner's Notion note "Review 05/10" (https://app.notion.com/p/3f0fefe74931801bbafdcf8563255c33).
+Timeline's setup screen gets the same idea. The same wheel and house words then run through the explainer
+film on the site and the reels.
+
+v2 lines this up with two other sessions:
+- **Review 05/10.** Locked 2026-10-05 as ADR-297 to 312: `docs/specs/locked/review-05-10.md`, on branch
+  `claude/cool-sagan-xu2iyz`, not yet on `main`.
+- **Reading the sky.** The explainer film, draft v3, on branch `claude/reading-the-sky-video`, with chapter 1 built.
+
+The Owner on v1: "I really love the outline of the earth and how you take these visuals that we already have and
+then you're repurposing them". He wants the house keywords and pairs "for the loading animation, for the reels,
+for the product and everywhere", and an explainer with "press play" on the website.
 
 ## What the session found
-- **Today's screen.** `OpeningOverlay` over `Orrery` (canvas, `web/src/lib/orrery.ts`), from ADR-47 and 59:
-  - eleven rings at mean daily motion, a 1.4 s settle onto the chart, then a turn at 1.5°/s forever;
+- **Today's screen.** `OpeningOverlay` over `Orrery` (ADR-47, 59):
+  - eleven rings at mean daily motion, a 1.4 s settle, then a turn at 1.5°/s forever;
   - one percentage and five labels (`web/src/lib/progress.ts`);
   - no houses, no sign band and no aspect lines.
-- **The door.** Start reading needs real progress ≥ 67 and both Overview and House by House landed. At 100% the
-  page opens itself after 1.2 s.
-- **Timing.** The chart is a local engine call stored in milliseconds, before any writing. Then:
-  - one foundation call runs alone, about 30% of wall time (`report-cost-and-latency.md`);
-  - the sections then run in parallel and land in any order;
-  - the client polls `GET /reports/:id/status` every 2 s.
-  The only measured wall time is R02's, 50 to 116 s. It needs a fresh measure.
-- **A bug the animation needs fixed.** `useLiveReport` never refetches the report when `chartReady` flips. A first
-  GET that lands before the chart is stored leaves the overlay with no chart until the report completes.
-- **Pieces to build on.**
-  - `HorizonWheel`: first light, rewind, and the `lit` layers `signs|houses|horizon|bodies`.
-  - The hour slider on `LearnBirthTimePage`, which turns the Ascendant through a day.
-  - The browser engine in `web/src/site/lib/sky.ts`.
-  - R16's `Dial` with `framesFor`. It already draws track rings, brass contact lines (solid for a conjunction,
-    dashed otherwise), a dashed light-indigo ring on a retrograde, worded houses and Play.
-- **Timeline today.**
-  - Readings are written when first opened: `openReading` waits 20 s, and the queue writes at most 3 contacts per
-    call. Life's cycle readings are never queued.
-  - The page shows "Loading your Timeline" with dots.
-  - There is no setup step after paying; checkout (stripe-payments) is locked, not built.
-- **Video.** The marketing kit renders stills only, and video "waits for the report rework" (marketing SKILL).
-  HyperFrames is vendored and switched off. Chromium and FFmpeg are on the box.
+- **The door.** Start reading needs real ≥ 67 with Overview and House by House landed; at 100% the page opens
+  itself after 1.2 s.
+- **Timing.** The chart is a local engine call, stored before any writing. The foundation call takes about 30% of
+  wall time, then the sections run in parallel and land in any order, and the client polls `/status` every 2 s.
+  R02 measured 50 to 116 s in all.
+- **A bug the animation needs fixed.** `useLiveReport` never refetches the report when `chartReady` flips.
+- **Review 05/10 already locks Timeline's setup** (§5): "the Timeline dial draws (chart, rings, planets placed one
+  by one, then they move and the gold lines to the chart form). Six steps tick as their readings land: chart,
+  planets, this week, this month, the next six months, life cycles birth to 90."
+  - Everything is written at setup.
+  - Past about a minute: "Almost there. You can start reading this week now."
+  - The next six months play once on the next visit: "Your next six months are ready, <from> to <to>".
+  - Retrograde shows as an R on the dial.
+  - "Retrogrades count as transits."
+  - A Did you know card sits under the report's opening screen and the setup, "whose progress does not change".
+- **Words in use.** Review 05/10 writes "transits" for Timeline ("5 transits this week") and "cycles" for Life.
+  "Transit" appears nowhere in shipped copy yet; "moment" appears once (`FiveThings.tsx:165`).
+- **Reading the sky** (16:9, about 5:14, three chapters, HyperFrames, Kokoro voice, burned-in captions):
+  - chapter 1, "The real sky", is built (1:33);
+  - its storyboard gives each house an object over the product word, and six opposite pairs;
+  - its draft keeps those for marketing only.
+- **Pieces to build on.** `HorizonWheel` (first light, rewind, `lit` layers), the browser engine in
+  `web/src/site/lib/sky.ts`, R16's `Dial` with `framesFor`, and `/method`'s step 1, "We work out your chart".
+- **Research.** What other apps call these: not verified. This session's network blocks the sites (researcher and
+  verifier, 0 of 14 claims checked). Nothing waits on it: Review 05/10 already chose the words.
 
 ## Scope
 
 ### 1 · Personal report: six steps (screen 1)
-Steps 1 to 5 play once, about 25 s, while the foundation pass runs. Step 6 follows the real writing.
-Each step shows one short title, one plain sentence, and its numbers in mono.
-
+Steps 1 to 5 play once, about 29 s, inside the foundation pass. Step 6 follows the real writing. Each step shows
+one short title, one plain sentence, and its numbers in mono.
 1. **Where you were born.** An orthographic globe with Natural Earth's 110m coastline (public domain) turns to the
-   birthplace, and a brass point lands on it. Shown: latitude, longitude and the place name.
-2. **The sky on your birth day.** The Earth shrinks to a dot at the centre ("you"), and the zodiac ring draws.
-   Each body runs on its own ring at its mean daily motion, as today's orrery does, and stops on its computed
-   degree. A date counter runs up to the birth date.
-3. **Where each planet stood, and how they face each other.** The rings fold onto the chart ring, crowding
-   inward (R-3.1). Names appear, then the aspect lines draw, closest orb first. The closest pair is named.
-4. **Your birth time sets the horizon.** This is the one big moment. The horizon line draws. A clock runs from
-   midnight to the birth time, and the sky turns under the line on the engine's real Ascendant through that day.
-   The Ascendant and Midheaven lock in brass (the R03 marker), and the half below the horizon darkens.
-5. **Your twelve houses.** The whole-sign houses fill the band one by one from house 1, each with its word
-   (`HOUSE_WORDS`, ADR-98).
-6. **Now writing your report.** The chart holds still: the forever turn of ADR-59 ends here.
-   - The ten chapters tick as they land.
-   - As a chapter lands, the wheel lights for a moment the placements its evidence cites. This comes from the
-     claims the chapter already has, never from a fixed table.
-   - Start reading keeps its rule: 67% and the two chapters.
-   - Progress stays real, one percentage, and is never a count.
-- **No birth time.** Step 4 reads "No birth time, so no horizon" and draws the Moon as its day's arc (ADR-33).
-  Step 5 reads "Houses need a birth time". Nothing else is drawn for those steps.
-- **Reduced motion.** The finished chart at first paint, with the six steps as a still list (title and sentence).
-- **Pacing.** The story never waits on the network: the chart is computed in the browser from the profile, as the
-  public sky pages already do. The stored chart is still the one the report uses.
-  - If the report is fast, step 6 starts as soon as step 5 ends.
-  - If steps 1 to 5 are still running at 67%, Start reading shows at once over them.
-- **One component.** `web/src/components/report/BuildStory.tsx` grows out of `HorizonWheel` and replaces `Orrery`
-  in `OpeningOverlay`. It is drawn by a pure `frameAt(t, chart, progress)`, so the same time gives the same frame.
-- **The fix.** The report query refetches when `chartReady` turns true.
+   birthplace, and a brass point lands on it. Shown: latitude, longitude and the place.
+2. **The sky on your birth day.** The Earth shrinks to a dot ("you") and the zodiac ring draws. Each body runs on
+   its own ring at its mean daily motion and stops on its computed degree. A date counter runs to the birth date.
+3. **Where each planet stood, and how they face each other.** The rings fold onto the chart ring, crowding inward
+   (R-3.1). Names appear, then the aspect lines draw, closest orb first, and the closest pair is named.
+4. **Your birth time sets the horizon.** This is the one big moment. The horizon draws. A clock runs from
+   midnight to the birth time while the sky turns under the line on the engine's Ascendant for that day. The
+   Ascendant and Midheaven lock in brass, and the half below the horizon darkens.
+5. **Your twelve houses, then the six pairs.** The whole-sign houses fill from house 1, each with its object, word
+   and covers line (§3). Then the six pairs draw across the centre, each with its caption.
+6. **Now writing your report.**
+   - The chart holds still: ADR-59's forever turn ends.
+   - As each chapter lands, the wheel lights for a moment the placements its evidence cites.
+   - The progress is unchanged: one percentage and one label, never a count.
+   - The Did you know card (Review 05/10 §9) sits under it.
+   - Start reading keeps its rule.
+- **No birth time.**
+  - Step 4 reads "No birth time, so no horizon", and the Moon is drawn as its day's arc (ADR-33).
+  - Step 5 reads "Houses need a birth time".
+- **Reduced motion.** The finished chart at first paint, with the six steps as a still list.
+- **Pacing.**
+  - The browser computes the chart from the profile, as the public sky pages do, so the story never waits on
+    the network.
+  - Start reading shows at 67% whatever is playing.
+- **One component.** `web/src/components/report/BuildStory.tsx`, grown from `HorizonWheel`, drawn by a pure
+  `frameAt(t, chart, progress)`. It replaces `Orrery` in `OpeningOverlay`. The fix: refetch when `chartReady` turns true.
 
-### 2 · Timeline: setup after paying, four steps (screen 2)
-Shown the first time a subscriber opens Timeline (today, the admin as its one subscriber), while the writing runs:
-1. **Your chart, from your report.** The stored natal chart comes in whole. Nothing is drawn again.
-2. **The sky today, around you.** Track rings draw one planet at a time, Saturn and Jupiter first (the Owner's
-   note), then the rest. Each planet sits at today's position.
-3. **Your next six months.** The date runs forward over the dial's frames (`framesFor`, 182 days). Three things
-   use the dial's existing look:
-   - a brass line joins a planet to the natal point it touches;
-   - that point's house lights up;
-   - a dashed ring marks a retrograde.
-   A counter reads "N moments found".
-4. **Moments found, readings written.** The doctrine's events that get a reading (`readsAs`), headlined in the
-   engine's plain words. Each ticks when written, along with this week, this month and Life's cycles.
-- **Writing up front** (Q1, the Owner's note). On first setup the server writes every reading Timeline will show:
-  - the contacts and retrogrades for six months;
-  - the week and the month;
-  - every Life cycle.
-  Spend goes through the spend cap and ledger as today. The page opens when the writing is done, or earlier on
-  "Open Timeline" once this week is written.
-- **After six months.** A short version runs steps 3 and 4 for the next six months, reading "Working out your next
-  six months".
-- Builds on `Dial`; no second look for tracks, lines or retrogrades.
+### 2 · Timeline setup: Review 05/10 §5, drawn (screen 2)
+One screen under "Setting up Timeline", on the R16 dial:
+1. Your chart comes in whole; nothing is drawn again.
+2. The tracks draw and the planets land one by one, Saturn and Jupiter first, at today's positions.
+3. The date runs through six months. A gold line joins a planet to the point it touches, and that house lights.
+   A retrograde planet carries its R and dashed ring. The count reads "N transits".
+4. "Almost there. You can start reading this week now." Then "Your Timeline is ready" and Open Timeline.
+- The six ticks follow the readings as they land, as locked: chart, planets, this week, this month, the next six
+  months (with the transit count), life cycles birth to 90 (with the cycle count). Mira: 16 transits, 42 cycles.
+- The six-month replay is the same drawing, from step 3.
 
-### 3 · Reels (screen 3, Q2 and Q3)
-- `pnpm brand:reel <personal|timeline> <person|date>` opens the component in a film route and steps `frameAt` at
-  30 fps. Playwright captures each frame, and FFmpeg joins them into a 1080 × 1920 MP4 with the captions burned in.
-- The film route is built only by the script and is never in the shipped app.
-- Two reels, about 27 s and 30 s, each ending on one still card: the finished chart, "Stars Decoded" and the address.
-- Our own recorder, not HyperFrames: one source for the app and the reel, with no new vendor.
-- Every reel goes through `/marketing` for the Owner's yes before it is posted.
+### 3 · One house set, everywhere (Q1)
+- **One table in the code** (`web/src/lib/houses.ts`, absorbing `HOUSE_WORDS` and `HOUSE_THEMES`) holds, per house:
+  - the word, unchanged;
+  - the object (from Reading the sky);
+  - the covers line;
+  - its pair.
+- **Covers lines** become the film's simpler ones. The 5th says "love" in place of "romance" (the Owner's Review
+  05/10 note). The before and after is on the artifact.
+- **The pairs:** 1–7 me · the other person, 2–8 mine · shared, 3–9 everyday · big picture, 4–10 private · public,
+  5–11 my joy · our hopes, 6–12 doing · resting. 3–9 replaces the film's "near · far", after the Owner found "far"
+  meant nothing.
+- **Objects** are line drawings in the houses' light indigo; brass stays measured geometry (§9). Twelve drawings,
+  made once, used by the app and the film.
+- **Where it shows:**
+  - the loading story, step 5;
+  - the reels and the explainer;
+  - `/learn/houses`, as a pairs section and an object column;
+  - each House by House card, as one line: "Opposite: 7th, Partnership. Me · the other person."
+- **The report's prose is not edited by hand.** The writer is given the covers lines through the doctrine, and the
+  dry lab runs.
+
+### 4 · Words: transits and cycles
+- **Transit:** a planet touching a point of your chart for a while; a retrograde counts. Used in the week, the six
+  months and the setup.
+- **Cycle:** a slow planet coming back round. Used in Life.
+- **Reading:** what we write about one transit or one cycle.
+- Never "moments", "things" or "events" in copy. `FiveThings.tsx:165`'s "Every moment read" becomes "Every transit
+  read".
+
+### 5 · The explainer on the site (Q2)
+- `/method` step 1, "We work out your chart", shows Reading the sky as a still with a play button.
+- It plays only when tapped, with the voice and burned-in captions: 16:9 on a computer, the 9:16 cut on a phone.
+- One self-hosted file per chapter, so no third-party player and no cookie. Chapter 1 now; 2 and 3 when built.
+- The CSP gains `media-src 'self'`.
+- Reading the sky's chapter 2 adopts §3's covers lines, pairs and objects.
+
+### 6 · Reels (Q3)
+- Two 9:16 reels, about 30 s each, from the same scenes, rendered in HyperFrames like the film.
+- `frameAt` is driven per frame, so the app, the film and the reels draw one wheel.
+- Each reel ends on one still card: the finished chart, "Stars Decoded" and the address.
+- Every reel goes through `/marketing` for the Owner's yes.
 
 ## Out of scope
-- The compatibility report's loading screen. It keeps the orrery on person A's chart for now; two charts on one
-  plate stay barred (ADR-97).
-- Sound in the reels.
-- Paid ads built from the reels.
-- The Life cycles wave and the other Review 05/10 items.
-- Stripe's checkout itself. The Timeline setup starts wherever access starts.
+- The compatibility report's loading screen, which keeps the orrery for now (ADR-97 bars two charts on one plate).
+- Music, and paid ads built from the reels.
+- Reading the sky's chapters 2 and 3 themselves; they stay with that spec.
+- Stripe's checkout. The setup starts wherever Timeline access starts.
 
 ## Acceptance criteria
-1. On a phone, a new Personal report plays steps 1 to 5 in about 25 s. It then holds still on the chart from the
-   same engine (same degrees as the report's hero, to 0.01°) and ticks chapters as `/status` reports them.
+1. A new Personal report plays steps 1 to 5 in about 29 s on a phone, then holds the chart at the engine's degrees
+   (equal to the hero's to 0.01°) while `/status` drives the progress.
 2. Mira's globe centres on 38.72° N, 9.14° W, and her horizon step ends on Rising 12°07′ Aries.
-3. Start reading appears at real ≥ 67 with Overview and House by House landed, whatever step is playing. At 100%
-   the page opens itself after 1.2 s.
-4. A blind chart draws no horizon, angle or house. Steps 4 and 5 show their one line, and the Moon is an arc.
-5. Reduced motion shows the complete chart and the step list at first paint, with no movement.
-6. After the fix, a report whose first GET lands before the chart is stored shows the chart within one poll.
-7. Timeline's first setup lists exactly the events `readsAs` keeps for the range, with the engine's headlines.
-   Every reading, the week, the month and every Life cycle is stored before the page counts the setup done.
-8. `pnpm brand:reel personal mira` writes a 1080 × 1920, 30 fps MP4. Two runs give identical frames.
-9. Words pass `/ux-copy` (simple words), and the screens pass `/web-taste` at 390, 768 and 1440 px.
-10. The buyer walk still passes. It changes only if the overlay's way in changes, which it must not.
+3. Start reading appears at real ≥ 67 with Overview and House by House landed, whatever step is playing.
+4. A blind chart draws no horizon, angle or house; steps 4 and 5 show their one line, and the Moon is an arc.
+5. Reduced motion: the complete chart and the step list at first paint, no movement.
+6. A first GET that lands before the chart is stored shows the chart within one poll.
+7. The Timeline setup's counts equal the engine's: `readsAs` events for the range, and `lifeCycles` to 90.
+8. One `houses.ts` feeds the story, `/learn/houses`, House by House and the film's data. No other copy of the house
+   words is left in `web/`.
+9. "transit" and "cycle" are the only names for these in copy; a grep finds no "moment" or "things".
+10. `/method` plays chapter 1 only on a tap, with captions. The CSP holds, and Lighthouse and axe pass.
+11. Words pass `/ux-copy`, and screens pass `/web-taste` at 390, 768 and 1440 px. The buyer walk still passes.
 
 ## Screens
-The artifact: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw
-- Screen 1: the Personal player, with the Known / Not known toggle.
-- Screen 2: the Timeline player.
-- Screen 3: both reels as storyboards.
-- Then the before-and-after table, the rules and the questions.
-Every frame is drawn from Mira's chart (synthetic, `fixtures/sample-people/mira.json`), computed by
-`@workspace/engine`. Her sky runs from 5 Oct 2026 to 5 Apr 2027: 12 contacts and 4 retrogrades read, and 2
-eclipses not near her points.
+The artifact, version 2: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw
+- The Personal player, with the Known / Not known toggle.
+- The Timeline setup player.
+- The house set: the pairs, a still, and the covers before and after.
+- Transits and cycles.
+- The explainer on /method.
+- The reel storyboards, the before-and-after table, the rules and the questions.
+All frames are drawn from Mira's chart (synthetic), computed by `@workspace/engine`.
 
 ## Open questions (each with its default)
-1. **Timeline writes everything before the page opens?** Recommended: yes, as the Owner's note asks.
-   Default: yes, under the spend cap.
-2. **Whose chart do the reels show?** Recommended: the sample people, labelled, and public dates. A customer's
-   chart only with their written yes. Default: samples and public dates only.
-3. **When do the reels start?** Recommended: the round that builds the animation builds `brand:reel`, and the first
-   two reels go through `/marketing` for the Owner's yes. Default: built in that round, posted only after a yes.
+1. **The house set everywhere, the report's House by House included, with the simpler covers lines?**
+   Recommended: yes. Default: yes.
+2. **Where does the explainer play?** Recommended: `/method` step 1, tap to play. Default: that.
+3. **Whose chart do the reels show?** Recommended: the sample people (labelled) and public dates; a customer's
+   chart only with their written yes. Default: that.
 
 ## Decided by Claude (rules answer them)
-- The chart holds still once built, ending ADR-59's forever turn. Rule: web-taste, "loops that never stop".
-- Steps 1 to 5 last about 25 s, inside the foundation pass. Rule: progress is real, and the door is never delayed.
-- Our own recorder, not HyperFrames. Rule: one look per kind of thing; the reel is the product's own component.
-- Each chapter lights what its evidence cites, never a fixed table. Rule: R-3.1, the picture is the chart.
+- The chart holds still once built (web-taste: no loop that never stops).
+- Steps 1 to 5 last about 29 s and never hold back the door (progress is real).
+- The report's progress stays one percentage and one label; the chapter-tick list of v1 is dropped (ADR-47, never a
+  count). Lighting the cited placements carries "built one by one".
+- Reels render in HyperFrames, as Reading the sky does: one toolchain, no second recorder.
+- Objects are drawn in light indigo, not brass (§9).
+- "transits" and "cycles", as Review 05/10 already writes them.
+- 3–9 is "everyday · big picture" (the Owner's "far" note).
+- Each chapter lights what its evidence cites, never a fixed table (R-3.1).
 
 ## Decisions to record
-- The Personal report's loading screen tells how the chart is made, in six steps: place, sky, planets and lines,
-  the time and horizon, houses, writing. It replaces the orrery, amending ADR-47 and 59; the door's rule is kept.
-- Once built, the chart on that screen holds still. ADR-59's constant turn ends.
+- The Personal loading screen tells how the chart is made, in six steps, replacing the orrery (amends ADR-47, 59). It
+  holds still once built; progress, the door and the Did you know card are kept.
 - A blind chart's story skips the horizon and houses with one line each (ADR-33 holds).
 - `useLiveReport` refetches the report when `chartReady` turns true.
-- Timeline gets a setup step the first time a subscriber opens it, and a short one every six months. It runs on
-  the R16 dial, starting from the stored natal chart.
-- Timeline writes all its readings, the week, the month and Life's cycles at setup (pending Q1).
-- Reels are filmed from the product's own component by `pnpm brand:reel`, at 1080 × 1920 and 30 fps, and posted
-  only after the Owner's yes (pending Q2 and Q3).
+- Review 05/10's setup screen is drawn as screen 2, on the R16 dial.
+- One house set (word, object, covers, pair) in `houses.ts` is used across the app, the site, the film and the
+  reels; the covers lines are simplified and the 5th says "love". This supersedes Reading the sky's
+  "marketing only" line (pending Q1).
+- Transit and cycle are the product's words for these; never moments, things or events.
+- Reading the sky plays on `/method` step 1, self-hosted, on a tap (pending Q2).
+- Reels come from the same scenes in HyperFrames and are posted only after the Owner's yes (pending Q3).
+- At this lock, Review 05/10's lock (branch `claude/cool-sagan-xu2iyz`) merges to `main` with it.
