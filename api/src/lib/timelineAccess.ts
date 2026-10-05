@@ -1,8 +1,9 @@
 import type { RequestHandler } from "express";
 import type { Viewer } from "./access.js";
 import { labActor } from "./labGuard.js";
+import { activeSubscription } from "./subscriptions.js";
 
-/** Where a reader's Timeline comes from (ADR-262): the admin until billing, then an active subscription (ADR-264). */
+/** Where a reader's Timeline comes from (ADR-262): the signed-in admin, or a live subscription (ADR-264). */
 export type TimelineSource = "admin" | "subscription";
 
 /**
@@ -16,9 +17,10 @@ export type AccessSource = {
 
 /** The first source that gives the viewer Timeline is the one reported, so the order here is the precedence. */
 export const ACCESS_SOURCES: readonly AccessSource[] = [
-  // MB-197 provisional: until billing adds an active subscription as a second entry (ADR-264, R-6.2: it mirrors Stripe's
-  // webhooks, so no table exists before them), the signed-in admin is Timeline's one subscriber, on every host (ADR-262).
+  // The signed-in admin has Timeline on every host (ADR-262), and is asked first, so the admin's answer reads no table.
   { source: "admin", grants: (userId, env) => labActor({ userId }, env) !== null },
+  // A plan as Stripe's webhooks last left it: active, trialing or past due, or set to end and not yet ended (reading 7).
+  { source: "subscription", grants: async (userId) => (await activeSubscription(userId)) !== null },
 ];
 
 export type TimelineAccessAnswer = { access: boolean; source: TimelineSource | null };

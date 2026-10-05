@@ -12,6 +12,7 @@ import {
 import type { Viewer } from "../lib/access.js";
 import { askUsage, type AskUsage } from "../lib/ask.js";
 import { ownChartOf } from "../lib/shares.js";
+import { livePlan, type LivePlan } from "../lib/subscriptions.js";
 import { lifeView, nowView, readerChart, type ReaderChart, type ReadingState, type ReadingStatuses, type TimelineNow } from "../lib/timeline.js";
 import { requireTimelineAccess, timelineAccess, type TimelineAccessAnswer } from "../lib/timelineAccess.js";
 import { openReading, queueReadings, readingStatuses } from "../lib/timelineReadings.js";
@@ -31,15 +32,22 @@ export const NO_PERSONAL_REPORT = { error: "no_personal_report", message: NO_PER
 const NO_READINGS: ReadingStatuses = new Map();
 
 /**
- * The access answer for a signed-in reader (ADR-262, 263): Ask's count only with access, and whether their own Personal
- * report is finished, as `ownChartOf` reads it.
+ * The access answer for a signed-in reader (ADR-262, 263, 277): Ask's count only with access, whether their own
+ * Personal report is finished, as `ownChartOf` reads it, and their live plan when they have one.
  */
-export function accessAnswer(answer: TimelineAccessAnswer, own: { finished: boolean } | null, ask: AskUsage | null): TimelineAccess {
+export function accessAnswer(
+  answer: TimelineAccessAnswer,
+  own: { finished: boolean } | null,
+  ask: AskUsage | null,
+  plan: LivePlan | null = null,
+): TimelineAccess {
   return {
     access: answer.access,
     source: answer.access ? answer.source : null,
     hasPersonalReport: own?.finished === true,
     ask: answer.access ? ask : null,
+    // Left out with none, so a reader without a plan gets the answer they got before plans were sold.
+    ...(plan ? { plan } : {}),
   };
 }
 
@@ -102,8 +110,12 @@ router.get("/timeline/access", async (req, res) => {
   if (!userId) return res.status(401).json({ error: "sign_in_required", message: TIMELINE_SIGN_IN_LINE });
   try {
     const answer = await timelineAccess(viewer);
-    const [own, ask] = await Promise.all([ownChartOf(userId), answer.access ? askUsage(viewer) : null]);
-    return res.json(accessAnswer(answer, own, ask));
+    const [own, ask, plan] = await Promise.all([
+      ownChartOf(userId),
+      answer.access ? askUsage(viewer) : null,
+      livePlan(userId),
+    ]);
+    return res.json(accessAnswer(answer, own, ask, plan));
   } catch (err) {
     req.log.error({ err }, "Failed to read Timeline access");
     return res.status(500).json({ error: "internal_error", message: "Failed to read Timeline access" });
