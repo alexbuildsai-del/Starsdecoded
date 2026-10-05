@@ -59,7 +59,7 @@ export default function Pricing() {
           <p className="sd-sub">You pay once for each report.</p>
         </div>
         <div className="max-w-[620px]">
-          <BundleList />
+          <BundleList prices={items} />
           <div className="mt-6 flex">
             <ReportCta source="pricing" className="sd-btn" />
           </div>

@@ -26,7 +26,7 @@ export function teaserStatuses(cycles: readonly Pick<TeaserCycle, "on">[], today
 
 export const START_TIMELINE = "Start Timeline";
 
-/** "€9.99 a month or €69.99 a year", from the catalogue's plans so no price is typed here (R-6.3). */
+/** Both plans' prices on one line, from the catalogue's plans so no price is typed here (R-6.3). */
 export function planPriceLine(): string {
   return PLANS.map((plan) => `${formatEuro(plan.cents)} a ${plan.interval}`).join(" or ");
 }
