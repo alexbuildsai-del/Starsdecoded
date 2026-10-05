@@ -35,3 +35,5 @@ src/routes/payments.test.ts
 src/routes/stripeWebhook.test.ts
 src/routes/qa.test.ts
 src/walk/steps.test.ts
+src/lib/qaWalk/qaWalk.test.ts
+src/lib/timelineReadings.test.ts
