@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Document | Masterfile — single source of alignment |
-| Version | 0.31 (2026-10-05) |
+| Version | 0.32 (2026-10-05) |
 | Owner | Alex ("Owner" throughout) |
 | Readers | Claude Code orchestrators, planners, builders, QA |
 | Authority | This file wins over every other document except rows in the Notion **Decisions** database dated after it |
@@ -16,9 +16,9 @@
 
 This file is the constitution. Orchestrators and planners read it in full once per session. Builders read §0 plus the sections their task card names. QA reads §0, §2 and §11.3.
 
-- **R-0.1** Alignment beats output. If this file and your task conflict, stop and raise it (§12). If this file is silent and the choice is consequential, recommend and log a Mailbox row. Never silently invent a product decision.
+- **R-0.1** Alignment beats output. If this file and your task conflict, stop and raise it (§12). If this file is silent and the choice is consequential, decide it or raise it as R-12.3 says. Never silently invent a product decision; a decision Claude takes is a Decisions row marked `Decided by: Claude`.
 - **R-0.2** Token discipline is a feature. Follow §13. Never paste this file into other documents; cite section numbers ("per §4.2").
-- **R-0.3** Anything in the Decisions database with Status `locked` is settled. Do not re-litigate. Anything open in the Mailbox is open: do not build on it without a decision or an explicit `MB-NN provisional` tag.
+- **R-0.3** Anything in the Decisions database with Status `locked` is settled. Do not re-litigate. Anything open in the Mailbox waits on the Owner: do not build on it without a decision or an explicit `MB-NN provisional` tag.
 - **R-0.4** The product is **Stars Decoded**. "Astra" is the inherited Replit name; never add a new use of it.
 - **R-0.5** Every reply to the Owner opens with `Alex, ` alone on its first line, before any other text, in every session, until the Owner says to stop. Standing instruction from the Owner (2026-09-16); commit messages and repository files are not replies and stay unprefixed.
 - **R-0.6** Delegate without being asked. When a task splits into independent parts, needs a broad search, or a long read whose conclusion is all that matters, spawn subagents (the `.claude/agents/` roles, Explore, general-purpose) in parallel and keep the conclusion. A single lookup or a one-file edit stays in the main loop. The Owner never has to request this.
@@ -189,6 +189,7 @@ Starsdecoded/
   MASTERFILE.md             this file
   docs/
     INDEX.md                ≤ 60 lines: map of everything below, regenerated each round
+    backlog.md              Claude's own work list, B-NN lines, and the open Mailbox ids (R-12.3, R-12.7)
     specs/locked/           frozen outputs of ideation sessions
     specs/draft/            in-progress ideation
     rounds/                 RNN-plan.md and RNN-report.md
@@ -201,7 +202,7 @@ Starsdecoded/
   web/ api/ packages/ scripts/ e2e/ fixtures/
 Notion / STARS DECODED
   Decisions                 ADR log, one row per decision, never edited, only superseded
-  Mailbox                   open topics: decision | gap | todo | idea, each with a recommendation and a default
+  Mailbox                   the Owner's open questions only, each with a recommendation and a default (R-12.3)
   GTM, Prompt rework, product log   research and history; the masterfile summarises, never duplicates
 ```
 
@@ -235,9 +236,11 @@ The Owner's only operational duty is to test the website and say whether it look
 
 - **R-12.1** Ask with a recommendation. Never an open question. Format: context (one or two lines) → recommendation with reasoning → what happens if unanswered. At most three questions per session with the Owner, highest stakes first.
 - **R-12.2** Instinct triggers, raise a check when: a task contradicts a locked decision; a choice affects what a buyer pays, sees or has stored about them; two specs conflict; you are about to add a dependency, change the schema, change report content, or ship anything user-visible not covered by a spec.
-- **R-12.3** Mailbox. Uncertainties that do not block work go to the Notion Mailbox so nothing is forgotten. Each row: Type, Priority, Raised by, Recommendation, Default if silent. A row's age is its Created time; the planner lists open rows older than 14 days at the top of the plan, oldest first (ADR-186).
+- **R-12.3** Three homes, nothing else (Owner, 2026-10-05). **Claude's backlog** is `docs/backlog.md`: work Claude does without a product choice (bugs, cleanup, tests, CI, copy that follows the voice chart, a builder's leftover), one line each with a `B-NN` id; Claude adds, does and deletes lines without asking. **The Decisions log** takes every consequential choice. Claude decides one itself when a rule here, a locked decision or `docs/annex/owner-playbook.md` points to the answer and none of these is at stake (what a buyer pays, sees promised or has stored about them; report direction; brand and look; pricing and launch; legal; a credential): the row says `Decided by: Claude` and the rule it followed. **The Mailbox** holds only what the Owner must decide, at most ten open rows (Owner = Alex), each with Type, Priority, Recommendation, Default if silent; an eleventh means Claude decides the least important one. A row's age is its Created time; the planner lists open rows older than 14 days at the top of the plan, oldest first (ADR-186). A security weakness too sensitive for the public repo is a Mailbox row with Owner = Claude, which the Owner's view hides.
 - **R-12.5** Operations belong to Claude. Merging, watching CI and deploys, and fixing a red branch, pull request or pipeline are the orchestrator's job, raised to the Owner only when a fix needs a decision or a credential. The Owner is never asked to run a command, merge, or read a log.
 - **R-12.4** Provisional building. If work must proceed on an open topic, build the recommended option behind the smallest seam and tag it `// MB-NN provisional` so it is findable when decided.
+- **R-12.6** Telling the Owner. Every session that decided or raised something ends its reply with two short lists: *Decided by me* (each with its ADR) and *Needs you* (each with its MB), then the two Notion views: Claude decided (https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835?v=3f0fefe7493181108ec1000c2c7263a0, unticked rows only; he ticks Alex checked once read, silence keeps the decision) and Needs Alex (https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d?v=3f0fefe749318130b9b5000c1a67f5bd). When he overrules one, the new row supersedes it and the playbook gains the rule his reason teaches.
+- **R-12.7** Notion on the free plan. Never query a database (`notion-query-data-sources` is a Business feature here). Read a known page with fetch, find one by keyword search, and write rows with create and update. The open Mailbox rows are found from the *Waiting on Alex* list at the end of `docs/backlog.md` (ids and links only, no titles: the repo is public), kept current by every session that opens or closes one.
 
 ## 13 · Token and code budgets
 
@@ -251,13 +254,13 @@ The Owner's only operational duty is to test the website and say whether it look
 | Round report / QA report | 60 / 80 lines |
 | Agent definition | 50 lines |
 
-- **R-13.1** Comments explain why, never what. No banner comments, no JSDoc on internal functions, no commented-out code, no TODO without an `MB-NN` ref. Names do the documenting.
+- **R-13.1** Comments explain why, never what. No banner comments, no JSDoc on internal functions, no commented-out code, no TODO without an `MB-NN` or `B-NN` ref. Names do the documenting.
 - **R-13.2** No generated prose in the repo: no per-package READMEs beyond one line and a pointer, no CHANGELOG (round reports and the bible release log are the record), no restating specs in code.
 - **R-13.3** Builders do not re-read files quoted in their card and do not open `docs/annex/` unless the card names a file. Every round report carries a Spend line: subagent tokens per tier, cards per tier, escalations (ADR-189).
 
 ## 14 · Open topics
 
-The live list is the Notion Mailbox. As of this version the blocking rows are: the false Swiss Ephemeris string, the "AI trained on Jungian astrology" claim, the promised-but-missing delete, the missing legal pages, and landing the prompt-library rework (PR #6). Pricing and launch is locked (ADR-142 to 149): the launch runs to 100 customers and its gate decides the company. Everything else is tagged `launch` or `later` with a recommendation and a default.
+The Owner's open questions are the Notion Mailbox, Claude's own work is `docs/backlog.md` (R-12.3). When this section was first written the blocking rows were: the false Swiss Ephemeris string, the "AI trained on Jungian astrology" claim, the promised-but-missing delete, the missing legal pages, and landing the prompt-library rework (PR #6). Pricing and launch is locked (ADR-142 to 149): the launch runs to 100 customers and its gate decides the company. Everything else is tagged `launch` or `later` with a recommendation and a default.
 
 ## 15 · Decision log
 

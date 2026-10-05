@@ -45,6 +45,6 @@ you tried. The orchestrator re-dispatches a Sonnet or Haiku card once on Opus
 with it (ADR-188); do not make a third attempt yourself.
 
 Code rules (MASTERFILE §13.2): comments say why, never what; no banner
-comments, no commented-out code, no TODO without an `MB-NN` ref; a change built
+comments, no commented-out code, no TODO without an `MB-NN` or `B-NN` ref; a change built
 on an open Mailbox topic carries `// MB-NN provisional` at the seam. Never
 introduce a new use of the name "Astra". Never commit a secret.

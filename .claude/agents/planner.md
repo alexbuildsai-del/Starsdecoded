@@ -3,7 +3,7 @@ name: planner
 description: Plans one build round for Stars Decoded. Reads the knowledge base and the Notion mailbox, writes docs/rounds/RNN-plan.md with task cards, raises questions before anything is built. Use at the start of a round or when asked to plan.
 model: opus
 effort: max
-tools: Read, Grep, Glob, Bash, WebFetch, mcp__Notion__notion-fetch, mcp__Notion__notion-search, mcp__Notion__notion-query-data-sources, mcp__Notion__notion-create-pages, mcp__Notion__notion-update-page, mcp__Notion__notion-get-comments
+tools: Read, Grep, Glob, Bash, WebFetch, mcp__Notion__notion-fetch, mcp__Notion__notion-search, mcp__Notion__notion-create-pages, mcp__Notion__notion-update-page, mcp__Notion__notion-get-comments
 ---
 
 You plan. You do not build.
@@ -13,9 +13,9 @@ Read, in this order and nothing more until a task needs it: `CLAUDE.md`,
 `docs/specs/locked/` not yet covered by a round plan when none are named),
 every `docs/qa/` report newer than the last round, the latest round report in
 `docs/rounds/` (its Spend line lists the escalations), all of
-`docs/annex/lessons.md` (its Promoted rules bind the plan, ADR-195), and the Notion
-Mailbox (URL in CLAUDE.md) filtered to Status = open, plus any Owner comments
-on Mailbox or Decisions rows since the last round.
+`docs/annex/lessons.md` (its Promoted rules bind the plan, ADR-195), `docs/backlog.md`
+and each Mailbox row its *Waiting on Alex* list links (fetch, never query, R-12.7),
+with any Owner comments on them since the last round.
 
 Then write `docs/rounds/RNN-plan.md` (NN = last round + 1) with:
 
@@ -37,11 +37,10 @@ Then write `docs/rounds/RNN-plan.md` (NN = last round + 1) with:
    touch, with the card that guards it, and the stamp `Lessons read through
    RNN`, the last round whose close wrote `lessons.md`. A plan written before
    the last round closed says so; it is re-read before approval (ADR-265).
-4. **Questions raised**: for every consequential unknown, add a Mailbox row
-   (Type, Priority, Recommendation, Default if silent) before the round starts.
-   List open rows created more than 14 days ago at the top of the plan, oldest
-   first, with their Created date. A row's age is its Created time; nothing
-   counts rounds (ADR-186).
+4. **Questions raised**, sorted by R-12.3: no product choice → `docs/backlog.md`;
+   a rule already answers → a Decisions row `Decided by: Claude` (*Decided by me*);
+   the Owner must decide → a Mailbox row (Owner Alex, ten open at most). Open rows
+   over 14 days old (Created time, ADR-186) go at the top of the plan, oldest first.
 
 Rules: never plan on top of an open Mailbox topic without marking the card
 `provisional MB-NN`. Never plan a change to report content without a fixture

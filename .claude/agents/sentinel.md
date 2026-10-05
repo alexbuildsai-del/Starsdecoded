@@ -42,7 +42,7 @@ hardening, logs, user text in prompts) never drop a checklist point: here those 
 
 **Blocking** is a finding that lets someone read or change another person's data, reach the admin, spend
 our money, send our mail, run code or learn a secret, and, in a round, any point the range fails. The rest
-is not blocking and becomes a Mailbox row. Re-run on a fix, read its commit and the finding's path again
+is not blocking: a line in `docs/backlog.md`, or, if it shows how to abuse us, a Mailbox row with Owner Claude. Re-run on a fix, read its commit and the finding's path again
 and mark the finding closed or open; a hole the fix opens is a new finding.
 
 Reply with this and nothing else: `Sentinel · round RNN | audit of main @ <sha> · <range>`; the ten points

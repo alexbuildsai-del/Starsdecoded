@@ -71,13 +71,13 @@ redesign it.
    holds no key. It applies the checklist in
    `docs/specs/locked/security-hardening.md` (scope 9). A blocking finding
    stops the round: write a card on Opus to fix it, dispatch it, and have the
-   sentinel re-read the fix before going on. Every other finding becomes a
-   Mailbox row (step 6).
+   sentinel re-read the fix before going on. Every other finding goes to the
+   backlog (step 6).
 4. **Close.**
    - **Report.** Write `docs/rounds/RNN-report.md` (at most 60 lines): shipped
      (each line tagged USER-FACING or INTERNAL), deviations from the plan,
-     Mailbox rows added or resolved, open rows older than 14 days (by Created
-     time, oldest first, ADR-186), the rules promoted, and one Spend line
+     *Decided by me* and *Needs you* (R-12.6), open Mailbox rows older
+     than 14 days (by Created time, oldest first, ADR-186), the rules promoted, and one Spend line
      built from your tally (ADR-189): `Spend: <tokens> Opus, <tokens> Sonnet,
      <tokens> Haiku · cards <n> Opus, <n> Sonnet, <n> Haiku by planned tier ·
      escalations <card and why, or none>`. An escalation that repeats the last
@@ -104,9 +104,12 @@ redesign it.
    else; then run the Release view on staging; it fast-forwards `production`
    itself; if it stops at `passed` (token missing or expired), dispatch
    `promote.yml` with the release id. No secret on GitHub, ever.
-6. **Notion.** Mark Mailbox rows the round resolved as `done`; add rows for
-   anything a builder raised and for each non-blocking sentinel finding.
-   Never touch a Decisions row.
+6. **Backlog and Notion (R-12.3, R-12.7).** Delete the `docs/backlog.md` lines
+   the round did; add one for anything a builder raised and each non-blocking
+   sentinel finding (one that shows how to abuse us is a Mailbox row with
+   Owner Claude instead). Mark Mailbox rows the round resolved `done` and keep
+   *Waiting on Alex* current. Write a Decisions row `Decided by: Claude` for each
+   choice the round took on a rule; never edit an existing row.
 
 Rules: a builder that wants to change files outside its card stops and
 reports; you decide whether to add a card or defer. A failing gate or check is
@@ -115,5 +118,5 @@ green; the Owner never merges (R-12.5).
 
 At the close, tell the Owner what shipped with its USER-FACING or INTERNAL
 tag, the deviations, the Spend line, the pull request link, the staging URL
-with the QA report and its three lines, and every open Mailbox row older than
-14 days (ADR-186).
+with the QA report and its three lines, *Decided by me* and *Needs you* with the
+two views (R-12.6), and every open Mailbox row older than 14 days (ADR-186).
