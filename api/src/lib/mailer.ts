@@ -413,11 +413,9 @@ export function buildReceiptEmail(opts: SendReceiptEmailOptions): EmailContent {
   const origin = publicWebBase();
 
   const what = plan ? `${item.name}, paid each ${plan.interval}` : item.name;
-  const credits = plan
-    ? plan.creditsToGive > 0
-      ? `It comes with ${plan.creditsToGive} credit${plan.creditsToGive === 1 ? "" : "s"}.`
-      : null
-    : `${item.credits} credit${item.credits === 1 ? "" : "s"}`;
+  const count = plan ? plan.creditsToGive : "credits" in item ? item.credits : 0;
+  const counted = `${count} credit${count === 1 ? "" : "s"}`;
+  const credits = plan ? (count > 0 ? `It comes with ${counted}.` : null) : counted;
   const paid = formatEuro(cents);
   const tick = opts.tick ?? (plan ? PLAN_TICK : CHECKOUT_TICK);
   const renewal = opts.renewal === undefined ? (plan ? renewalLine(plan) : null) : opts.renewal;
