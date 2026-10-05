@@ -1,7 +1,7 @@
 # Report loading story: draft spec
 
-Ideation 2026-10-05 with the Owner. Status: **draft v2**, waiting on three questions.
-Artifact: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw (version 2)
+Ideation 2026-10-05 with the Owner. Status: **draft v3**, waiting on three questions.
+Artifact: https://claude.ai/artifact/H9Qv2gid87pBnDA6x18jsw (version 3)
 
 The Owner wants the Personal report's loading screen to tell, step by step, how a chart is made:
 - the place and date put you on the Earth;
@@ -20,28 +20,23 @@ v2 lines this up with two other sessions:
 
 The Owner on v1: "I really love the outline of the earth and how you take these visuals that we already have and
 then you're repurposing them". He wants the house keywords and pairs "for the loading animation, for the reels,
-for the product and everywhere", and an explainer with "press play" on the website.
+for the product and everywhere", and an explainer with "press play" on the website. On v2: the houses then pairs
+went "a bit too fast… it's okay to spend the time on it"; "instead [of] did you know, I would show these pairs"
+while the report writes; and the Timeline's jump from the planets to the six months was "a bit less seamless".
 
 ## What the session found
-- **Today's screen.** `OpeningOverlay` over `Orrery` (ADR-47, 59):
-  - eleven rings at mean daily motion, a 1.4 s settle, then a turn at 1.5°/s forever;
-  - one percentage and five labels (`web/src/lib/progress.ts`);
-  - no houses, no sign band and no aspect lines.
-- **The door.** Start reading needs real ≥ 67 with Overview and House by House landed; at 100% the page opens
-  itself after 1.2 s.
-- **Timing.** The chart is a local engine call, stored before any writing. The foundation call takes about 30% of
-  wall time, then the sections run in parallel and land in any order, and the client polls `/status` every 2 s.
-  R02 measured 50 to 116 s in all.
+- **Today's screen.** `OpeningOverlay` over `Orrery` (ADR-47, 59): eleven rings at mean daily motion, a 1.4 s
+  settle, then a turn at 1.5°/s forever; one percentage and five labels (`progress.ts`); no houses, signs or aspects.
+- **The door.** Real ≥ 67 with Overview and House by House landed; at 100% the page opens itself after 1.2 s.
+- **Timing.** The chart is stored before any writing. The foundation call takes about 30% of wall time, then the
+  sections land in any order; the client polls `/status` every 2 s. R02 measured 50 to 116 s in all.
 - **A bug the animation needs fixed.** `useLiveReport` never refetches the report when `chartReady` flips.
 - **Review 05/10 already locks Timeline's setup** (§5): "the Timeline dial draws (chart, rings, planets placed one
   by one, then they move and the gold lines to the chart form). Six steps tick as their readings land: chart,
-  planets, this week, this month, the next six months, life cycles birth to 90."
-  - Everything is written at setup.
-  - Past about a minute: "Almost there. You can start reading this week now."
-  - The next six months play once on the next visit: "Your next six months are ready, <from> to <to>".
-  - Retrograde shows as an R on the dial.
-  - "Retrogrades count as transits."
-  - A Did you know card sits under the report's opening screen and the setup, "whose progress does not change".
+  planets, this week, this month, the next six months, life cycles birth to 90." Everything is written at setup;
+  past about a minute, "Almost there. You can start reading this week now."; the next six months replay once,
+  "Your next six months are ready, <from> to <to>". Retrograde is an R on the dial, and retrogrades count as
+  transits. A Did you know card sits under the report's opening screen and the setup.
 - **Words in use.** Review 05/10 writes "transits" for Timeline ("5 transits this week") and "cycles" for Life.
   "Transit" appears nowhere in shipped copy yet; "moment" appears once (`FiveThings.tsx:165`).
 - **Reading the sky** (16:9, about 5:14, three chapters, HyperFrames, Kokoro voice, burned-in captions):
@@ -56,7 +51,7 @@ for the product and everywhere", and an explainer with "press play" on the websi
 ## Scope
 
 ### 1 · Personal report: six steps (screen 1)
-Steps 1 to 5 play once, about 29 s, inside the foundation pass. Step 6 follows the real writing. Each step shows
+Steps 1 to 5 play once, about 31 s, inside the foundation pass. Step 6 follows the real writing. Each step shows
 one short title, one plain sentence, and its numbers in mono.
 1. **Where you were born.** An orthographic globe with Natural Earth's 110m coastline (public domain) turns to the
    birthplace, and a brass point lands on it. Shown: latitude, longitude and the place.
@@ -67,13 +62,15 @@ one short title, one plain sentence, and its numbers in mono.
 4. **Your birth time sets the horizon.** This is the one big moment. The horizon draws. A clock runs from
    midnight to the birth time while the sky turns under the line on the engine's Ascendant for that day. The
    Ascendant and Midheaven lock in brass, and the half below the horizon darkens.
-5. **Your twelve houses, then the six pairs.** The whole-sign houses fill from house 1, each with its object, word
-   and covers line (§3). Then the six pairs draw across the centre, each with its caption.
+5. **Your twelve houses.** The whole-sign houses fill from house 1, about 0.8 s each, each with its object, word
+   and covers line (§3).
 6. **Now writing your report.**
    - The chart holds still: ADR-59's forever turn ends.
-   - As each chapter lands, the wheel lights for a moment the placements its evidence cites.
+   - **The six pairs**, in place of the Did you know card (the Owner, amending Review 05/10 §9 for this screen). They
+     draw across the wheel one at a time, about 6 s each, with both houses lit and their objects, words and caption.
+     Then "Six pairs, and you know all twelve." and all six held. No loop.
+   - A blind chart has no houses, so it shows the Did you know card instead.
    - The progress is unchanged: one percentage and one label, never a count.
-   - The Did you know card (Review 05/10 §9) sits under it.
    - Start reading keeps its rule.
 - **No birth time.**
   - Step 4 reads "No birth time, so no horizon", and the Moon is drawn as its day's arc (ADR-33).
@@ -89,13 +86,15 @@ one short title, one plain sentence, and its numbers in mono.
 ### 2 · Timeline setup: Review 05/10 §5, drawn (screen 2)
 One screen under "Setting up Timeline", on the R16 dial:
 1. Your chart comes in whole; nothing is drawn again.
-2. The tracks draw and the planets land one by one, Saturn and Jupiter first, at today's positions.
-3. The date runs through six months. A gold line joins a planet to the point it touches, and that house lights.
+2. The tracks draw and the planets land one by one, Saturn and Jupiter first, at today's positions, then hold for
+   a moment.
+3. With no cut, the date eases into its run from where the planets landed, and out of it at the end. Gold lines grow
+   from planet to point; houses and the count fade in. The date runs through six months. A gold line joins a planet to the point it touches, and that house lights.
    A retrograde planet carries its R and dashed ring. The count reads "N transits".
 4. "Almost there. You can start reading this week now." Then "Your Timeline is ready" and Open Timeline.
 - The six ticks follow the readings as they land, as locked: chart, planets, this week, this month, the next six
   months (with the transit count), life cycles birth to 90 (with the cycle count). Mira: 16 transits, 42 cycles.
-- The six-month replay is the same drawing, from step 3.
+- The six-month replay is the same drawing, from step 3. The Did you know card stays under this screen (Review 05/10).
 
 ### 3 · One house set, everywhere (Q1)
 - **One table in the code** (`web/src/lib/houses.ts`, absorbing `HOUSE_WORDS` and `HOUSE_THEMES`) holds, per house:
@@ -111,7 +110,7 @@ One screen under "Setting up Timeline", on the R16 dial:
 - **Objects** are line drawings in the houses' light indigo; brass stays measured geometry (§9). Twelve drawings,
   made once, used by the app and the film.
 - **Where it shows:**
-  - the loading story, step 5;
+  - the loading story, steps 5 (the houses) and 6 (the pairs);
   - the reels and the explainer;
   - `/learn/houses`, as a pairs section and an object column;
   - each House by House card, as one line: "Opposite: 7th, Partnership. Me · the other person."
@@ -146,7 +145,7 @@ One screen under "Setting up Timeline", on the R16 dial:
 - Stripe's checkout. The setup starts wherever Timeline access starts.
 
 ## Acceptance criteria
-1. A new Personal report plays steps 1 to 5 in about 29 s on a phone, then holds the chart at the engine's degrees
+1. A new Personal report plays steps 1 to 5 in about 31 s on a phone, then holds the chart at the engine's degrees
    (equal to the hero's to 0.01°) while `/status` drives the progress.
 2. Mira's globe centres on 38.72° N, 9.14° W, and her horizon step ends on Rising 12°07′ Aries.
 3. Start reading appears at real ≥ 67 with Overview and House by House landed, whatever step is playing.
@@ -175,9 +174,9 @@ the before and after, the rules and the questions. All frames are drawn from Mir
 
 ## Decided by Claude (rules answer them)
 - The chart holds still once built (web-taste: no loop that never stops).
-- Steps 1 to 5 last about 29 s and never hold back the door (progress is real).
-- The report's progress stays one percentage and one label; the chapter-tick list of v1 is dropped (ADR-47, never a
-  count). Lighting the cited placements carries "built one by one".
+- Steps 1 to 5 last about 31 s and never hold back the door (progress is real).
+- The report's progress stays one percentage and one label; v1's chapter list is dropped (ADR-47, never a count).
+- The chapter lighting of v2 is dropped too: the pairs are step 6's one focal point (web-taste).
 - Reels render in HyperFrames, as Reading the sky does: one toolchain, no second recorder.
 - Objects are drawn in light indigo, not brass (§9).
 - "transits" and "cycles", as Review 05/10 already writes them.
@@ -186,7 +185,9 @@ the before and after, the rules and the questions. All frames are drawn from Mir
 
 ## Decisions to record
 - The Personal loading screen tells how the chart is made, in six steps, replacing the orrery (amends ADR-47, 59). It
-  holds still once built; progress, the door and the Did you know card are kept.
+  holds still once built; progress and the door are kept.
+- While the report writes, the six house pairs show in place of the Did you know card; a blind chart keeps the card.
+  Amends Review 05/10's Did you know decision for this screen only.
 - A blind chart's story skips the horizon and houses with one line each (ADR-33 holds).
 - `useLiveReport` refetches the report when `chartReady` turns true.
 - Review 05/10's setup screen is drawn as screen 2, on the R16 dial.
