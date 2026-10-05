@@ -2,8 +2,9 @@
  * Timeline's readings with the model stubbed (R16-24): what a reading builds on, and the report's call path with its
  * retries, round alone, spend and failure log, with no database. The claims run on a scratch Postgres when
  * WALK_DATABASE_URL names a bootstrapped one: one write across two opens, a stale basis written again, a write that
- * died retried, a failure's line kept, the queue's soonest three and the statuses, and forgetting. Without one they
- * skip, saying why. Every event is the engine's, computed from a committed fixture at run time.
+ * died retried, a failure's line kept, the queue's soonest three and the statuses, an account's new readings a day,
+ * and forgetting. Without one they skip, saying why. Every event is the engine's, computed from a committed fixture at
+ * run time.
  */
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -470,6 +471,45 @@ test("the queue writes at most three missing readings, soonest first, and never 
   assert.deepEqual(second, soonest.slice(4, 6));
   assert.deepEqual(await R.queueReadings(reader, ["contact.saturn.square.ascendant.19000101", "not a key"]), [], "a key nothing reads is never claimed");
   assert.equal((await rowsFor(reader.profileId)).length, 6);
+});
+
+test("an account's new readings a UTC day: the 40th writes, the 41st is refused with Timeline's line and no row, a kept one still opens, and the next day writes again (MB-219)", { skip: NO_DB }, async () => {
+  const reader = await seedReader("daily");
+  const keys = cycles(reader).map((c) => c.key);
+  assert.ok(keys.length > R.NEW_READINGS_A_DAY, `${keys.length} cycles to open`);
+  const noon = new Date("2026-10-05T12:00:00Z");
+  const opens = (key: string, now = noon) => R.openReading(reader, key, { now });
+  answer(CLEAN);
+  for (const key of keys.slice(0, R.NEW_READINGS_A_DAY - 1)) assert.equal((await opens(key)).status, "ready", key);
+
+  // Neither a kept reading nor a key the app cannot show takes one of the day's.
+  assert.equal((await opens(keys[0])).status, "ready");
+  const DAY_MS = 86_400_000;
+  const startOf = (e: SkyEvent) => (e.kind === "contact" ? e.window.start : e.kind === "retrograde" ? e.start : e.eclipse.at).getTime();
+  const yearOut = readable(reader, new Date(noon.getTime() + 365 * DAY_MS), new Date(noon.getTime() + 395 * DAY_MS))
+    .find((e) => startOf(e) >= noon.getTime() + 365 * DAY_MS);
+  assert.ok(yearOut, "a real event on her chart a year out");
+  assert.deepEqual(await opens(yearOut.key), { status: "unknown", reading: null, line: null }, "a key a year out");
+  assert.equal(asked.length, R.NEW_READINGS_A_DAY - 1);
+
+  assert.equal((await opens(keys[R.NEW_READINGS_A_DAY - 1])).status, "ready", "the 40th");
+  assert.equal(asked.length, R.NEW_READINGS_A_DAY);
+  const refused = await opens(keys[R.NEW_READINGS_A_DAY]);
+  assert.deepEqual(refused, { status: "capped", reading: null, line: R.READINGS_CAP_LINE, retryAfterSeconds: 12 * 3600 }, "the 41st waits for UTC midnight");
+  assert.equal(R.READINGS_CAP_LINE, "You've opened today's new readings. You can open more tomorrow.");
+  assert.equal(asked.length, R.NEW_READINGS_A_DAY, "it calls no model");
+  assert.equal((await rowsFor(reader.profileId)).length, R.NEW_READINGS_A_DAY, "and claims no row");
+
+  const kept = await opens(keys[0]);
+  assert.deepEqual([kept.status, kept.reading?.line], ["ready", CLEAN.line], "a kept reading opens on a capped day");
+  // Writing a failed one again is a new write, so it waits for tomorrow too, and its row stays as it was.
+  await age(reader.profileId, keys[1], "failed", 1);
+  assert.equal((await opens(keys[1])).status, "capped");
+  assert.equal((await rowsFor(reader.profileId)).find((r) => r.eventKey === keys[1])?.status, "failed");
+  assert.equal(asked.length, R.NEW_READINGS_A_DAY);
+
+  assert.equal((await opens(keys[R.NEW_READINGS_A_DAY], new Date("2026-10-06T00:00:00Z"))).status, "ready", "a new UTC day counts again");
+  assert.equal(asked.length, R.NEW_READINGS_A_DAY + 1);
 });
 
 test("forgetTimeline removes a profile's readings and its reader's Ask thread, and nobody else's", { skip: NO_DB }, async () => {
