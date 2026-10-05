@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "test": "node ../scripts/test-critical.mjs",
+    "test:deep": "node --import tsx --test 'src/**/*.test.ts'",
     "walk": "tsx ./src/walk/loop.walk.ts && tsx ./src/walk/sharing.walk.ts && tsx ./src/walk/timeline.walk.ts"
   },
   "dependencies": {

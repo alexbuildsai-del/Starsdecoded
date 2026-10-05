@@ -7,7 +7,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "test": "node ../../scripts/test-critical.mjs",
+    "test:deep": "node --import tsx --test 'src/**/*.test.ts'",
     "chiron:table": "tsx scripts/chiron-horizons.ts"
   },
   "dependencies": {
