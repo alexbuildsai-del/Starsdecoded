@@ -14,8 +14,10 @@
  * table is skipped: the push creates it with these columns and no rows.
  *
  * Each backfill runs in the transaction that adds its column, and only then,
- * so it touches only rows from before this round: an old test-checkout bundle
- * reads source 'test', and a report that failed under the old rule, its credit
+ * so it touches only rows from before this round. No checkout existed before
+ * it: an old bundle from the test checkout reads source 'test', and every
+ * other old bundle was the admin's grant, so it reads 'grant' and History
+ * never calls it bought. A report that failed under the old rule, its credit
  * already back, reads failed_tries 3, which is final (ADR-313). A later run
  * finds the columns and leaves every row as it is, so a sandbox purchase or a
  * report failing for the first time is never marked. One transaction holds
@@ -67,10 +69,13 @@ async function main() {
       if (await tableExists(client, "bundles")) {
         const hadSource = await columnExists(client, "bundles", "source");
         await client.query(`ALTER TABLE bundles ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'purchase'`);
-        // Without is_test no test checkout ever ran here, so every bundle is a purchase.
-        if (!hadSource && (await columnExists(client, "bundles", "is_test"))) {
-          const marked = await client.query(`UPDATE bundles SET source = 'test' WHERE is_test`);
-          console.log(`Marked ${marked.rowCount ?? 0} test-checkout bundles source 'test'.`);
+        if (!hadSource) {
+          // Without is_test no test checkout ever ran here, so every old bundle was the admin's grant.
+          const fromTestCheckout = await columnExists(client, "bundles", "is_test");
+          const marked = await client.query(
+            `UPDATE bundles SET source = ${fromTestCheckout ? "CASE WHEN is_test THEN 'test' ELSE 'grant' END" : "'grant'"}`,
+          );
+          console.log(`Marked ${marked.rowCount ?? 0} bundles from before this round: the test checkout's 'test', the rest 'grant'.`);
         }
         await client.query(`ALTER TABLE bundles ADD COLUMN IF NOT EXISTS purchase_id text`);
         await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS bundles_purchase_id_idx ON bundles (purchase_id)`);

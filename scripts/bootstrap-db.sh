@@ -23,8 +23,8 @@ echo "==> 1/7 SQL migrations"
 # confirmed_at: the API deletes an address left unconfirmed for seven days.
 # The payments columns come last (ADR-275 to 277, 313): `push` would stop to
 # ask before dropping credits.credit_type or putting a unique index over rows,
-# and an old test bundle and a report that failed before the round are marked
-# in the transaction that adds their column, so no later run marks a new one.
+# and the bundles and failed reports from before the round are marked in the
+# transaction that adds their column, so no later run marks a new one.
 pnpm --filter @workspace/db run migrate
 
 echo "==> 2/7 Schema push"

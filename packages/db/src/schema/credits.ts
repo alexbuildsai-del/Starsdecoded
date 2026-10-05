@@ -26,7 +26,8 @@ export const bundlesTable = pgTable(
     // free test checkout. source says which, so a grant is never read as a sale.
     isTest: boolean("is_test").notNull().default(false),
     // "test" is a bundle from the free test checkout before it went (ADR-276);
-    // "plan" the yearly plan's credit to give (ADR-277).
+    // "plan" the yearly plan's credit to give (ADR-277). No checkout existed
+    // before this round, so every older bundle reads "test" or "grant".
     source: text("source", { enum: BUNDLE_SOURCES }).notNull().default("purchase"),
     // Unique, so one purchase grants one bundle however often Stripe sends its event (R-6.2).
     purchaseId: text("purchase_id"),
