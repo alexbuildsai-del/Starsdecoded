@@ -706,9 +706,10 @@ paths:
       tags: [compatibility]
       summary: Send a compatibility report to the other of its two people
       description: >
-        Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139):
+        Only the maker, one of the pair's two, sends it, and the send is their consent (ADR-133, ADR-139):
         someone already on Stars Decoded reads it at once, anyone else is invited at `email`
-        (MB-82, ADR-236).
+        (MB-82, ADR-236). The other person may hold their own chart, shared with the maker; the link
+        goes to the address the maker typed, and its claim hands that chart over to no one (ADR-285).
       parameters:
         - name: id
           in: path
@@ -735,7 +736,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The viewer is not one of the pair's two (ADR-133)
+          description: >
+            Refused, and the message says which reason: the viewer read the report but did not have it
+            written, is not one of the pair's two, no longer reads it because the other person stopped
+            sharing their Personal report, or holds both charts, so there is no one to send it to
+            (ADR-133, ADR-285)
           content:
             application/json:
               schema:
@@ -962,46 +967,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CreditHistoryItem"
-
-  /checkout/test:
-    post:
-      operationId: testCheckout
-      tags: [credits]
-      summary: Add a free test bundle of credits
-      description: Get credits off production, 1, 3 or 5 credits free for any signed-in user, marked as test credits (ADR-138). MB-6 provisional until checkout.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TestCheckoutBody"
-      responses:
-        "201":
-          description: The counts with the bundle added
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CreditCounts"
-        "400":
-          description: A count other than 1, 3 or 5
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Signed out
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: On production, where only a real checkout adds credits (ADR-138)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "429":
-          $ref: "#/components/responses/RateLimited"
 
   /checkout/options:
     get:
@@ -1261,7 +1226,9 @@ paths:
       description: >
         Requires Clerk authentication. A send marks the token claimed, sets
         profile.claimed_by_user_id, and adds the user as a participant on the
-        related relationship. A gift moves its held credit into the claimer's
+        related relationship. A pair sent to the other person on the chart they
+        keep hands nothing over: it makes their side a participant and answers
+        `profileId: null` (ADR-285). A gift moves its held credit into the claimer's
         balance and answers `redirectTo: /dashboard`; it puts no one on an
         orbit (ADR-139). A share writes a grant to read the sharer's own
         Personal report, never a hand-over, and answers `shareBack` (ADR-235).
@@ -1280,6 +1247,12 @@ paths:
                 $ref: "#/components/schemas/InviteClaimResponse"
         "401":
           description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: A pair's link opened by an account that is not the person in it; the error is `wrong_person` (ADR-285)
           content:
             application/json:
               schema:
@@ -4270,7 +4243,7 @@ components:
         profileId:
           type: string
           nullable: true
-          description: The chart a send hands over; null on a gift, which has no profile (ADR-139).
+          description: The chart a send hands over; null on a gift, which has no profile (ADR-139), and null on a pair sent to the other person on the chart they keep, which hands nothing over (ADR-285).
         relationshipId: { type: string, nullable: true }
         relationshipReportId: { type: string, nullable: true }
         redirectTo:
@@ -4508,15 +4481,6 @@ components:
           type: boolean
           description: A test bundle's line, which says so (ADR-138).
       required: [kind, count, date, label, test]
-
-    TestCheckoutBody:
-      type: object
-      description: A test bundle of 1, 3 or 5 credits (ADR-138).
-      properties:
-        count:
-          type: integer
-          enum: [1, 3, 5]
-      required: [count]
 
     CatalogueItemId:
       type: string

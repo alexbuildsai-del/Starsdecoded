@@ -91,7 +91,6 @@ import type {
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
-  TestCheckoutBody,
   TimelineAccess,
   TimelineLife,
   TimelineNow,
@@ -1793,7 +1792,7 @@ export const getSendCompatibilityUrl = (id: string,) => {
 }
 
 /**
- * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236).
+ * Only the maker, one of the pair's two, sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236). The other person may hold their own chart, shared with the maker; the link goes to the address the maker typed, and its claim hands that chart over to no one (ADR-285).
  * @summary Send a compatibility report to the other of its two people
  */
 export const sendCompatibility = async (id: string,
@@ -2614,95 +2613,6 @@ export function useGetCreditHistory<TData = Awaited<ReturnType<typeof getCreditH
 
 
 
-export const getTestCheckoutUrl = () => {
-
-
-
-
-  return `/api/checkout/test`
-}
-
-/**
- * Get credits off production, 1, 3 or 5 credits free for any signed-in user, marked as test credits (ADR-138). MB-6 provisional until checkout.
- * @summary Add a free test bundle of credits
- */
-export const testCheckout = async (testCheckoutBody: TestCheckoutBody, options?: Parameters<typeof customFetch>[1]): Promise<CreditCounts> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<CreditCounts>(getTestCheckoutUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(testCheckoutBody)
-  }
-);}
-
-
-
-
-
-export const getTestCheckoutMutationKey = () => ['testCheckout'] as const;
-
-export const getTestCheckoutMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext> => {
-
-const mutationKey = getTestCheckoutMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testCheckout>>, TestCheckoutMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  testCheckout(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type TestCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof testCheckout>>>
-    export type TestCheckoutMutationBody = BodyType<TestCheckoutBody>
-    export type TestCheckoutMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
-    export type TestCheckoutMutationVariables = {data: BodyType<TestCheckoutBody>}
-
-    /**
- * @summary Add a free test bundle of credits
- */
-export const useTestCheckout = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof testCheckout>>,
-        TError,
-        TestCheckoutMutationVariables,
-        TContext
-      > => {
-      return useMutation(getTestCheckoutMutationOptions(options));
-    }
-
 export const getGetCheckoutOptionsUrl = (params?: GetCheckoutOptionsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -3314,7 +3224,7 @@ export const getClaimInviteUrl = (token: string,) => {
 }
 
 /**
- * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A pair sent to the other person on the chart they keep hands nothing over: it makes their side a participant and answers `profileId: null` (ADR-285). A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
  * @summary Claim an invite as the signed-in user
  */
 export const claimInvite = async (token: string, options?: Parameters<typeof customFetch>[1]): Promise<InviteClaimResponse> => {

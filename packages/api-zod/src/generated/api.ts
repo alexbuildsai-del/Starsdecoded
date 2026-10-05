@@ -2746,7 +2746,7 @@ export const GetCompatibilitySummaryResponse = zod.object({
 
 
 /**
- * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236).
+ * Only the maker, one of the pair's two, sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236). The other person may hold their own chart, shared with the maker; the link goes to the address the maker typed, and its claim hands that chart over to no one (ADR-285).
  * @summary Send a compatibility report to the other of its two people
  */
 export const SendCompatibilityParams = zod.object({
@@ -3009,26 +3009,6 @@ export const GetCreditHistoryResponse = zod.array(GetCreditHistoryResponseItem)
 
 
 /**
- * Get credits off production, 1, 3 or 5 credits free for any signed-in user, marked as test credits (ADR-138). MB-6 provisional until checkout.
- * @summary Add a free test bundle of credits
- */
-export const TestCheckoutBody = zod.object({
-  "count": zod.union([zod.literal(1),zod.literal(3),zod.literal(5)])
-}).describe('A test bundle of 1, 3 or 5 credits (ADR-138).')
-
-export const TestCheckoutResponse = zod.object({
-  "available": zod.number().int(),
-  "used": zod.number().int(),
-  "held": zod.number().int().optional().describe('Credits held for waiting gifts, outside available until claimed or returned (ADR-123).'),
-  "lastBundle": zod.object({
-  "id": zod.string(),
-  "count": zod.number().int(),
-  "createdAt": zod.string()
-}).nullish().describe('The newest bundle, which the path after buying plans from; null before any (ADR-125).')
-}).describe('One credit kind (ADR-42). The typed breakdown went with it; the columns drop with payments (MB-57).')
-
-
-/**
  * Every catalogue item at the price the server sets for this request, a live campaign's included, with Stripe's publishable key and whether checkout is ready; answers anyone and writes nothing (ADR-277, ADR-278, ADR-280).
  * @summary What each item costs on this request, and whether checkout is ready
  */
@@ -3182,7 +3162,7 @@ export const GetInviteResponse = zod.object({
 
 
 /**
- * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A pair sent to the other person on the chart they keep hands nothing over: it makes their side a participant and answers `profileId: null` (ADR-285). A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
  * @summary Claim an invite as the signed-in user
  */
 export const ClaimInviteParams = zod.object({
@@ -3190,7 +3170,7 @@ export const ClaimInviteParams = zod.object({
 })
 
 export const ClaimInviteResponse = zod.object({
-  "profileId": zod.string().nullable().describe('The chart a send hands over; null on a gift, which has no profile (ADR-139).'),
+  "profileId": zod.string().nullable().describe('The chart a send hands over; null on a gift, which has no profile (ADR-139), and null on a pair sent to the other person on the chart they keep, which hands nothing over (ADR-285).'),
   "relationshipId": zod.string().nullish(),
   "relationshipReportId": zod.string().nullish(),
   "redirectTo": zod.string().describe('Where the claim lands; a gift answers /dashboard (ADR-139).'),

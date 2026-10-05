@@ -6,7 +6,6 @@ import sharesRouter from "./shares";
 import giftsRouter from "./gifts";
 import adminPromptsRouter from "./adminPrompts";
 import creditsRouter from "./credits";
-import checkoutRouter from "./checkout";
 import horizonRouter from "./horizon";
 import compatibilityRouter from "./compatibility";
 import adminLabRouter from "./adminLab";
@@ -51,7 +50,6 @@ router.post("/gifts/:id/remind", sendLimit);
 // A new address gets a new email, so Change address counts with the sends too (ADR-237).
 router.post("/invites/:id/change-address", sendLimit);
 router.post("/gifts/:id/change-address", sendLimit);
-router.post("/checkout/test", checkoutLimit);
 // Starting a Checkout Session and opening Stripe's billing page each call Stripe. Both belong to an account on every
 // host (reading 1), so a signed-out request hears 401 before it is counted, and each count is the account's (R13-08).
 export const buying = [signedInToBuy, ...checkoutLimit];
@@ -89,7 +87,6 @@ router.use(askRouter);
 router.use(giftsRouter);
 router.use(adminPromptsRouter);
 router.use(creditsRouter);
-router.use(checkoutRouter);
 router.use(paymentsRouter);
 router.use(horizonRouter);
 router.use(compatibilityRouter);

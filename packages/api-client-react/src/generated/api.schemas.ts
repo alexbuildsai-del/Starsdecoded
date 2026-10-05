@@ -2279,7 +2279,7 @@ export const InviteClaimResponseKind = {
 
 export interface InviteClaimResponse {
   /**
-     * The chart a send hands over; null on a gift, which has no profile (ADR-139).
+     * The chart a send hands over; null on a gift, which has no profile (ADR-139), and null on a pair sent to the other person on the chart they keep, which hands nothing over (ADR-285).
      * @nullable
      */
   profileId: string | null;
@@ -2509,22 +2509,6 @@ export interface CreditHistoryItem {
   label: string;
   /** A test bundle's line, which says so (ADR-138). */
   test: boolean;
-}
-
-export type TestCheckoutBodyCount = typeof TestCheckoutBodyCount[keyof typeof TestCheckoutBodyCount];
-
-
-export const TestCheckoutBodyCount = {
-  NUMBER_1: 1,
-  NUMBER_3: 3,
-  NUMBER_5: 5,
-} as const;
-
-/**
- * A test bundle of 1, 3 or 5 credits (ADR-138).
- */
-export interface TestCheckoutBody {
-  count: TestCheckoutBodyCount;
 }
 
 /**
