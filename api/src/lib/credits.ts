@@ -468,8 +468,8 @@ export type HistoryRow =
       kind: "gift";
       side: "giver" | "recipient";
       claimedAt: Date | null;
-      // The credit that moved at the claim; null while none did: the soft pass
-      // held none, or the gift was taken back or expired.
+      // The credit that moved at the claim; null while none did: a gift sent
+      // before credits were hard held none, or the gift was taken back or expired.
       credit: { test: boolean } | null;
       // The recipient's name as the giver typed it, or the giver's first name.
       name: string | null;
