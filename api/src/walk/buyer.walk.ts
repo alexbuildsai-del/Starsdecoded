@@ -1,8 +1,8 @@
 // The buyer walk (ADR-273): the Owner's critical flow with three accounts, end to end on a scratch Postgres. Mira buys
 // test credits, writes her Personal report and gifts one to her parent Idris; Idris claims it and writes one; the two
-// share their reports both ways, and Mira writes a parent and child report for them, which she can't share with Idris
-// yet (MB-223). Then Mira writes her partner Tomás's Personal report and a partners report, sends Tomás both, and Tomás
-// claims and reads them. Timeline stays the admin's until billing (MB-197).
+// share their reports both ways, and Mira writes a parent and child report for them and shares it with Idris, who claims
+// it from its link and reads it (ADR-285). Then Mira writes her partner Tomás's Personal report and a partners report,
+// sends Tomás both, and Tomás claims and reads them. Timeline stays the admin's until billing (MB-197).
 // No Clerk, no network, no OpenAI. A header stands where the sign-in is, mail goes to a local stub, and the model client
 // is pointed at a local stand-in that answers each call with canned text that passes the checks, so every report goes
 // through the real routes and is written as it is on staging. The people are the site's sample people
@@ -119,7 +119,7 @@ const { pool } = await import("@workspace/db");
 const zod = await import("@workspace/api-zod");
 const { chartForProfile } = await import("../lib/profiles.js");
 const { PROMPT_VERSION } = await import("../lib/aiInterpretation.js");
-const { PAIR_PROMPT_VERSION } = await import("../prompts/pair/index.js");
+const { PAIR_PROMPT_VERSION, pairChapterId } = await import("../prompts/pair/index.js");
 const { buildPairBrief } = await import("../lib/pairBrief.js");
 const { NO_TIMELINE_LINE } = await import("../lib/timelineAccess.js");
 const { logger } = await import("../lib/logger.js");
@@ -170,15 +170,6 @@ const creditRow = async (id: string) =>
 const creditFor = async (reportId: string) =>
   (await q("select status, user_id from credits where used_for_report_id = $1", [reportId])).rows;
 
-// A pair's aspect card stores `of: "none"`, as the pair's link schema asks of the model, where the contract's PairLink
-// lists only A and B; with that one field set aside, every report read here is held to the contract.
-// MB-224 provisional
-function asContracted<T>(body: T): T {
-  const copy = structuredClone(body) as { interpretation?: { links?: { links?: Array<{ of?: string }> } } | null };
-  for (const card of copy.interpretation?.links?.links ?? []) if (card.of === "none") delete card.of;
-  return copy as T;
-}
-
 function onOurWeb(m: Mail) {
   const urls = [...`${m.html}\n${m.text}`.matchAll(/https?:\/\/[^\s"'<>]+/g)].map((u) => u[0]);
   assert.ok(urls.length > 0, m.subject);
@@ -210,7 +201,7 @@ async function listReports(who: Viewer) {
 async function readReport(who: Viewer, id: string) {
   const r = await call(who, "GET", `/reports/${id}`);
   assert.equal(r.status, 200, `${who.user} reading ${id}: ${r.status} ${JSON.stringify(r.body)}`);
-  zod.GetReportResponse.parse(asContracted(r.body));
+  zod.GetReportResponse.parse(r.body);
   return r.body;
 }
 async function gifts(who: Viewer) {
@@ -254,7 +245,7 @@ async function written(who: Viewer, reportId: string): Promise<void> {
     const r = await call(who, "GET", `/reports/${reportId}/status`);
     assert.equal(r.status, 200, `the status of ${reportId}: ${r.status} ${JSON.stringify(r.body)}`);
     if (r.body.status === "complete") {
-      zod.GetReportStatusResponse.parse(asContracted(r.body));
+      zod.GetReportStatusResponse.parse(r.body);
       const sections = Object.entries(r.body.sections as Record<string, string>);
       assert.ok(sections.length > 0 && sections.every(([, s]) => s === "done"), `sections: ${JSON.stringify(r.body.sections)}`);
       return;
@@ -373,6 +364,7 @@ try {
   let giftCreditId = "";
   let giftToken = "";
   let idrisPairId = "";
+  let idrisPairRelationshipId = "";
   let tomasProfileId = "";
   let tomasReportId = "";
   let tomasPairId = "";
@@ -546,6 +538,7 @@ try {
     assert.equal(made.status, 201, JSON.stringify(made.body));
     zod.CreateCompatibilityReportResponse.parse(made.body);
     idrisPairId = made.body.id;
+    idrisPairRelationshipId = made.body.relationshipId;
     await written(MIRA, idrisPairId);
 
     const read = await readReport(MIRA, idrisPairId);
@@ -569,20 +562,78 @@ try {
     assert.deepEqual((await history(MIRA))[0], ["spent", 1, "Mira Costa & Idris Costa"]);
   });
 
-  // MB-223 provisional: the Owner's flow sends the pair to Idris here, and Idris claims it and reads it. Today a pair
-  // made on a chart only shared with its maker offers no Send, since a send would claim the sharer's chart from its
-  // holder (ADR-235, which the sharing walk proves), so this step proves the refusal. It becomes the send and the claim
-  // once that rule changes.
-  await step("Mira can't yet share the pair report with Idris (MB-223)", async () => {
-    assert.equal((await listReports(MIRA)).get(idrisPairId).send, null);
-    const mailsBefore = mails.length;
-    const sent = await call(MIRA, "POST", `/compatibility/${idrisPairId}/send`, { email: IDRIS_EMAIL });
-    assert.deepEqual([sent.status, sent.body.error], [403, "forbidden"], JSON.stringify(sent.body));
-    assert.equal(mails.length, mailsBefore);
+  // Idris's chart is his own, which Mira reads through his share, so the pair goes to him as any send does and its claim
+  // hands nothing over (ADR-285).
+  await step("Mira shares the parent and child report with Idris; he claims it from the email's link, reads it and does its exercises", async () => {
+    const offered = { state: "can_send", profileId: idrisProfileId, relationshipId: idrisPairRelationshipId, firstName: "Idris" };
+    assert.deepEqual((await listReports(MIRA)).get(idrisPairId).send, offered);
+    assert.deepEqual((await readReport(MIRA, idrisPairId)).send, offered);
     assert.equal((await call(IDRIS, "GET", `/reports/${idrisPairId}`)).status, 404);
     assert.equal((await call(IDRIS, "GET", `/compatibility/${idrisPairId}/summary`)).status, 404);
     assert.ok(!(await listReports(IDRIS)).has(idrisPairId));
     assert.deepEqual((await readHome(IDRIS)).pairs, []);
+
+    // The link goes only to the address Mira types, never one read off Idris's account (R15-18's lesson).
+    const mailsBefore = mails.length;
+    const unaddressed = await call(MIRA, "POST", `/compatibility/${idrisPairId}/send`, {});
+    assert.deepEqual([unaddressed.status, unaddressed.body.error, unaddressed.body.message], [400, "validation_error", "Add Idris's email to share it."]);
+    assert.equal(mails.length, mailsBefore);
+    const sent = await call(MIRA, "POST", `/compatibility/${idrisPairId}/send`, { email: IDRIS_EMAIL });
+    assert.equal(sent.status, 201, JSON.stringify(sent.body));
+    zod.SendCompatibilityResponse.parse(sent.body);
+    const invite = sent.body.invite;
+    assert.deepEqual(
+      [sent.body.state, invite?.email, invite?.profileId, invite?.relationshipId, invite?.emailDelivered],
+      ["invited", IDRIS_EMAIL, idrisProfileId, idrisPairRelationshipId, true],
+    );
+    const mail = mails.at(-1)!;
+    assert.deepEqual([mails.length - mailsBefore, mail.to, mail.subject], [1, IDRIS_EMAIL, "Mira shared a Compatibility report with you"]);
+    assert.ok(mail.text.includes("Mira & Idris"), `the pair email does not name the two: ${mail.text}`);
+    onOurWeb(mail);
+    const token = tokenOf(mail);
+    assert.equal(invite?.claimUrl, claimUrlOf(token));
+    assert.equal((await listReports(MIRA)).get(idrisPairId).send.state, "sent");
+
+    const opened = await preview(IDRIS, token);
+    assert.deepEqual([opened.kind, opened.inviterName, opened.relationshipId, opened.relationshipReportId], ["send", "Mira", idrisPairRelationshipId, idrisPairId]);
+    // Nothing changes hands, so no chart rides on the answer and the claim lands on the pair.
+    const landed = {
+      profileId: null, relationshipId: idrisPairRelationshipId, relationshipReportId: idrisPairId, redirectTo: `/compatibility/${idrisPairId}`, kind: "send", askSelf: false,
+    };
+    assert.deepEqual(await claim(IDRIS, token), landed);
+    assert.deepEqual(
+      (await q("select user_id, claimed_by_user_id, is_self, claimed_as_self from profiles where id = $1", [idrisProfileId])).rows,
+      [{ user_id: IDRIS.user, claimed_by_user_id: null, is_self: true, claimed_as_self: false }],
+    );
+    assert.equal((await readReport(IDRIS, idrisReportId)).access, "owner");
+    const hisForMira = await readReport(MIRA, idrisReportId);
+    assert.deepEqual([hisForMira.access, hisForMira.giverName], ["shared", "Idris"]);
+
+    const pair = await readReport(IDRIS, idrisPairId);
+    assert.deepEqual([pair.access, pair.giverName, pair.status, pair.send, pair.canRegenerate], ["participant", "Mira", "complete", null, false]);
+    assert.deepEqual(pair.participants.map((p: any) => [p.name, p.isSelf]), [["Mira Costa", false], ["Idris Costa", true]]);
+    assert.deepEqual(pair.interpretation, (await readReport(MIRA, idrisPairId)).interpretation, "the pair Idris reads is not the pair Mira wrote");
+    assert.equal((await call(IDRIS, "GET", `/compatibility/${idrisPairId}/summary`)).status, 200);
+    const listed = (await listReports(IDRIS)).get(idrisPairId);
+    assert.deepEqual([listed?.access, listed?.sharedBy, listed?.send], ["participant", "Mira", null]);
+    assert.deepEqual((await readHome(IDRIS)).pairs.map((p) => [p.reportId, p.stoppedBy]), [[idrisPairId, null]]);
+    assert.equal((await listReports(MIRA)).get(idrisPairId).send.state, "joined");
+    // He reads it as any reader it was sent to does: only Mira, who made it, can share it on.
+    const onward = await call(IDRIS, "POST", `/compatibility/${idrisPairId}/send`, { email: MIRA_EMAIL });
+    assert.deepEqual([onward.status, onward.body.message], [403, "Only the person who had this report written can share it."]);
+
+    // His ticks and pins are his own (ADR-239): his home lists what he pinned, and Mira's report shows none of it.
+    const exercise = `${pairChapterId("parent_child", 2)}.nextTime.items.0`;
+    const at = "2026-10-05T09:00:00.000Z";
+    const ticked = await call(IDRIS, "PATCH", `/reports/${idrisPairId}/workbook`, { [exercise]: at, [`pin.${exercise}`]: at });
+    assert.equal(ticked.status, 200, JSON.stringify(ticked.body));
+    assert.deepEqual((await readReport(IDRIS, idrisPairId)).workbook, { [exercise]: at, [`pin.${exercise}`]: at });
+    assert.deepEqual((await readReport(MIRA, idrisPairId)).workbook, {});
+    const practice = (await readHome(IDRIS)).practising.find((p) => p.reportId === idrisPairId);
+    assert.deepEqual([practice?.key, practice?.kind, practice?.pinned, practice?.ticked], [exercise, "compatibility", true, true]);
+    assert.ok(!(await readHome(MIRA)).practising.some((p) => p.reportId === idrisPairId), "Idris's pin shows on Mira's home");
+
+    assert.deepEqual(await claim(IDRIS, token), landed, "a second claim of the link lands elsewhere");
   });
 
   await step("Mira writes her partner Tomás's Personal report on her own credit", async () => {

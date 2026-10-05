@@ -297,14 +297,25 @@ test("pair on a shared chart: a grant opens only the chart it names, never a pai
   assert.equal(pairReadable(READER_SESSION, sessionRel, [sessionOwn, samPart], SAM_SHARED).readable, false);
 });
 
-test("pair send on a shared chart: none to its sharer, who holds it already; a claimed holder is granted as before", () => {
+test("pair send on a shared chart: to the sharer who keeps it, by a link, then sent, then joined; never granted at once (ADR-285)", () => {
   const toSam = { profileId: "p-sam", name: "Sam Okafor", claimedByUserId: null, accessRole: "owner", relationshipId: "rel-rs", userId: SHARER.userId };
-  assert.equal(pairSendStateFor(READER, "p-rita", toSam, null, { status: "complete" }), null);
-  assert.equal(pairSendStateFor(READER, "p-rita", { ...toSam, userId: READER.userId }, null, { status: "complete" })?.state, "can_send");
-  assert.equal(
-    pairSendStateFor(READER, "p-rita", { ...toSam, userId: GIVER.userId, claimedByUserId: SHARER.userId }, null, { status: "complete" })?.state,
-    "can_grant",
-  );
+  const complete = { status: "complete" };
+  assert.deepEqual(pairSendStateFor(READER, "p-rita", toSam, null, complete), {
+    state: "can_send", profileId: "p-sam", relationshipId: "rel-rs", firstName: "Sam",
+  });
+  assert.equal(pairSendStateFor(READER, "p-rita", toSam, "sam@example.com", complete)?.state, "sent");
+  assert.equal(pairSendStateFor(READER, "p-rita", { ...toSam, accessRole: "participant" }, null, complete)?.state, "joined");
+  assert.equal(pairSendStateFor(READER, "p-rita", { ...toSam, accessRole: "participant" }, "sam@example.com", complete)?.state, "joined");
+  assert.equal(pairSendStateFor(READER, "p-rita", toSam, null, { status: "interpreting" }), null);
+  assert.equal(pairSendStateFor(READER_SESSION, "p-rita", toSam, null, complete), null);
+});
+
+test("pair send: a chart its writer still holds is sent by a link, and a claimed one is granted at once, as before (MB-82)", () => {
+  const complete = { status: "complete" };
+  const written = { profileId: "p-sam", name: "Sam Okafor", claimedByUserId: null, accessRole: "owner", relationshipId: "rel-rs", userId: READER.userId };
+  assert.equal(pairSendStateFor(READER, "p-rita", written, null, complete)?.state, "can_send");
+  assert.equal(pairSendStateFor(READER, "p-rita", { ...written, userId: GIVER.userId, claimedByUserId: SHARER.userId }, null, complete)?.state, "can_grant");
+  assert.equal(pairSendStateFor(READER, "p-rita", { ...written, claimedByUserId: SHARER.userId, accessRole: "participant" }, null, complete)?.state, "joined");
 });
 
 test("a first name is the name's first word, cut as the orbit cuts it", () => {
@@ -403,4 +414,31 @@ test("pair on a shared chart: a grant held for the other person's profile opens 
   const sessionOwn = { ...ritaOwn, userId: null };
   assert.deepEqual(pairReadable(READER_SESSION, sessionRel, [sessionOwn, samPart], SAM_SHARED), { readable: false, stoppedBy: "Sam" });
   assert.deepEqual(pairReadable(READER_SESSION, sessionRel, [sessionOwn, samPart], new Set()), { readable: false, stoppedBy: "Sam" });
+});
+
+// ADR-285: Rita made a pair of herself and Sam from Sam's own chart, which he shared with her, and sent it to him.
+const samJoined = { ...samPart, accessRole: "participant" };
+
+test("pair sent to the sharer who keeps his chart: he reads it from his own side once he claims it, until her Stop sharing (ADR-285)", () => {
+  assert.deepEqual(pairReadable(SHARER, READER_REL, [ritaOwn, samPart]), SHUT, "not before his claim");
+  assert.deepEqual(pairReadable(SHARER, READER_REL, [ritaOwn, samJoined]), OPEN);
+  assert.deepEqual(pairReadable(SHARER, READER_REL, [samJoined, ritaOwn]), OPEN);
+  // The pair's Stop sharing turns his side back to `owner`, and nothing of hers is his to read after it.
+  assert.deepEqual(pairReadable(SHARER, READER_REL, [ritaOwn, { ...samJoined, accessRole: "owner" }]), SHUT);
+});
+
+test("pair sent to the sharer who keeps his chart: its maker still reads it only through his grant; his own Stop sharing closes hers, not his", () => {
+  assert.deepEqual(pairReadable(READER, READER_REL, [ritaOwn, samJoined], SAM_SHARED), OPEN);
+  assert.deepEqual(pairReadable(READER, READER_REL, [ritaOwn, samJoined], new Set()), { readable: false, stoppedBy: "Sam" });
+  assert.deepEqual(pairReadable(SHARER, READER_REL, [ritaOwn, samJoined], new Set()), OPEN, "she sent him the pair, and only she stops it");
+});
+
+test("pair: a side opens it only to whoever holds it, never to a stranger, an account on its cookie, a session or a chart's writer once its subject claimed it", () => {
+  for (const viewer of [STRANGER, GIVER, ON_SAMS_COOKIE, SAMS_SESSION]) {
+    assert.deepEqual(pairReadable(viewer, READER_REL, [ritaOwn, samJoined], SAM_SHARED), SHUT, viewer.userId ?? viewer.sessionId);
+  }
+  // June claimed the chart Sam wrote of her and shared it with Rita: her side is hers, so it never opens the pair to Sam.
+  const juneJoined = { profileId: "p-june", name: "June Park", userId: SHARER.userId, sessionId: SHARER.sessionId, claimedByUserId: SUBJECT.userId, accessRole: "participant" };
+  assert.deepEqual(pairReadable(SUBJECT, READER_REL, [ritaOwn, juneJoined]), OPEN);
+  assert.deepEqual(pairReadable(SHARER, READER_REL, [ritaOwn, juneJoined]), SHUT);
 });
