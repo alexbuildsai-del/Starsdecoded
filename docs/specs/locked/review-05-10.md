@@ -2,7 +2,7 @@
 
 Ideation 2026-10-05 with the Owner from the Notion page "Review 05/10": 20 notes on staging after R16, plus a 21st
 in chat (no Cancel on the Account page). Artifact: https://claude.ai/artifact/TraYGaLqhLE1kx2cQBPzyc.
-Status: **draft**. Touches `timeline` and `timeline-page` (cards, week, Life, readings, setup), `review-01-10`
+Status: **locked** 2026-10-05, ADR-297 to 312. Touches `timeline` and `timeline-page` (cards, week, Life, readings, setup), `review-01-10`
 (the empty dashboard, pins), `natal-report-pass-two` and R16-33 (the hero), `credit-loop` (the bundles) and Ask.
 **Brain:** `prompts/timeline/reading.ts`, `sections/*`, `system.ts` (rule 1), `vocabulary.ts`, `brief.ts`, `ask/*`, pair
 prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels). Dry lab, then a spot run.
@@ -35,7 +35,7 @@ prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels
 - **Dates always carry the year** on every Timeline card (drops `nearDate`'s rule of hiding it).
 - **The reading's prompt gets each stretch** (`spansOf`) with its dates, so its dates agree with the card.
 - **Tone words (Q1, answered)**: Heavy · Mixed · Light, with a three-line legend wherever the tone colours show:
-  "Heavy: asks more of you. Mixed: has its ups and downs. Light: goes your way." (Q5) `tone.ts`'s table stays (MB-188).
+  "Heavy: asks more of you. Mixed: has its ups and downs. Light: goes your way." `tone.ts`'s table stays (MB-188).
 - **Headlines agree with tone, by hand, no new test** (the Owner: "I don't want to invent new tests"): the `HEADLINES`
   rows for Light pairings are read and rewritten where they name only a strain ("More sensitive than usual" becomes
   "Softer, more open feelings"). The reading prompt gains: "On a Light time, say how it helps. On a Heavy time, say
@@ -175,17 +175,17 @@ Stripe, live prices, pricing (ADR-230, 242, 264); the Monday letter; Chiron (MB-
     reader's credit count.
 
 ## Screens
-The artifact (version 7), Parts 1 to 10, one per section; Part 9 is the Did you know card.
+The artifact (version 8), Parts 1 to 10, one per section; Part 9 is the Did you know card.
 ## Open questions (each with its default)
-Answered: tone words with a legend; written a week ahead; the marked preview; no X; every R planet in House by House.
-5. Mixed in the legend: **"has its ups and downs"** (default), or "a bit of both", or "easier days and harder ones".
+None open. Answered: tone words with a legend, Mixed "has its ups and downs" (the default, on lock); written a week
+ahead; the marked preview; no X; every R planet in House by House.
 
 ## Decisions to record
 - The empty dashboard shows the circle and the bundles as buttons; no sample practice item. Supersedes part of review-01-10.
 - Ask and Your week need Timeline access and a finished own Personal report.
 - Timeline's week is Monday to Sunday, drawn as one row and bar per transit; day cells and tone dots go; no "things".
 - Every Timeline date carries its year; a reading gets each close stretch.
-- Tone words Heavy · Mixed · Light with a legend; Light headlines rewritten by hand; prose fixes go in prompts, not tests.
+- Tone words Heavy · Mixed · Light with a legend (Mixed: "has its ups and downs"); Light headlines rewritten by hand; prose fixes go in prompts, not tests.
 - Timeline readings are all written at setup from the engine's list; the next six months are written a week ahead.
 - Life: a draggable time line; the card under it is the Your cycles card, ordered what, for you, meaning, look-back, ⓘ science.
 - Look-backs only to the past; past cycles short; before 16, child's house words; nodes reversed stated in the facts.
