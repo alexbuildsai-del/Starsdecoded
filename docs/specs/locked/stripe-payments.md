@@ -1,13 +1,10 @@
 # Stripe payments
 
-Ideation 2026-10-04 with the Owner ("ok lets work on the stripe integration"; "subscription and
-also branded checkout pls"; testers get free credits and the full flow; a second QA account for
-invite and claim); 2026-10-04 later: "four products" saved in Stripe, campaigns with promotional
-pricing, where testers are managed, the seller address edited later. Artifact: https://claude.ai/artifact/Yamws6GPDB5jKvdk8U8rp2. Status: **draft, answered**.
-
-Builds on `pricing-and-launch.md` (locked 2026-09-27, ADR-142 to 149), whose checkout rules stand
-except where this draft says it supersedes them; the catalogue as built (Couple €54, ADR-168);
-Timeline's Billing section (`timeline.md`, on `claude/youthful-gauss-7snkqd`); MB-115, MB-119, MB-114.
+Ideation 2026-10-04 with the Owner: Stripe for the reports and Timeline, a checkout in our look, four
+saved products, campaigns, testers, automatic QA. Artifact: https://claude.ai/artifact/Yamws6GPDB5jKvdk8U8rp2.
+Status: **locked 2026-10-05**. Builds on `pricing-and-launch.md` (ADR-142 to 149, standing except where
+superseded here), the catalogue as built (Couple €54, ADR-168), `timeline.md` as R16 built it
+(ADR-262 to 264); MB-114, 115, 119, 197.
 
 ## Where the code stands (audit 2026-10-04)
 Built: the catalogue, `LEGAL_IDENTITY` (address null), the tick, refund rules, legal pages, the ledger,
@@ -80,11 +77,13 @@ write, `holdCredit` lets gifts out with none); `express.json` and the prelaunch 
   at €9.99 until you cancel."); one Stripe Customer per account, created on first purchase.
 - `subscriptions` mirrors `customer.subscription.created|updated|deleted`, `invoice.paid` and
   `invoice.payment_failed` (status, plan, period end, cancel at period end).
-- Manage and cancel through Stripe's Customer Portal, reached from the account menu (two clicks).
+- Manage and cancel through Stripe's Customer Portal, from R16's Account page (two clicks).
 - The yearly plan's credit to give: granted on each `invoice.paid` for the year, taken back if that
   payment is refunded while unspent (Timeline spec).
-- Nothing outside the admin and testers can start a plan until `TIMELINE` is on; launch sells the
-  two reports. Timeline's offer screen, Your week and Ask stay in Timeline's round.
+- No switch (ADR-262, as R16 built it): an active row in `subscriptions` becomes the second entry
+  in `ACCESS_SOURCES` (`timelineAccess.ts`, closing MB-197); Start Timeline on R16's offer opens
+  `/checkout`. Staging sells it in the sandbox now; production sells it when the launch gate lifts,
+  and `/timeline` shows its price from then (no price before it's real).
 
 ### Testers and the full flow
 - Admin **Testers** view at `/admin/testers` (staging and production, each its own list; the
@@ -125,8 +124,7 @@ write, `holdCredit` lets gifts out with none); `express.json` and the prelaunch 
   the version staging's webhook destination was created with (2026-10-04), so payloads match the types.
 
 ## Out of scope
-- Timeline's pages (R16 builds them; this round wires its Start Timeline to `/checkout` and re-reads
-  R16's files), campaigns on Timeline, a typed promotion-code box, a custom Checkout domain, Managed Payments
+- Timeline's pages (R16 built them; this round wires Start Timeline to `/checkout`), campaigns on Timeline, a typed promotion-code box, a custom Checkout domain, Managed Payments
   (Stripe as seller of record: 3.5% plus fees, eligibility for a Belgian individual unconfirmed),
   a second currency, invoices for businesses, `LAUNCHED = true` (a Release after this ships).
 - Stripe Tax stays off until the Owner confirms a VAT registration (MB-114); the seam takes
@@ -147,7 +145,7 @@ write, `holdCredit` lets gifts out with none); `express.json` and the prelaunch 
    its dates only; a link-only one only for visitors with its link; Stripe's receipt names it; a 30%
    or Single campaign, or a second on the same product, is refused.
 9. A monthly and a yearly plan can be started in sandbox by a tester, renewed with Stripe's test
-   clock, cancelled in the Portal; `subscriptions` follows each step; a non-tester cannot start one.
+   clock, cancelled in the Portal; `subscriptions` follows each step and `timelineAccess` with it.
 10. After a staging deploy, with no one's hand, the QA pair exists, the walk completes purchase,
    Send, Gift, claim, refund and a plan's cycle, and `/api/qa/latest` shows the verdict for that commit.
 11. No Stripe key in the repo or GitHub; `pnpm check:shipped`, gitleaks, typecheck, both builds,
@@ -179,7 +177,7 @@ source and changelog on GitHub, the clerk-docs source repo, and the Stripe plugi
 guide. The round's first card re-checks each Stripe fact (lookup keys, Coupons on `elements`
 sessions included) in Stripe's docs before code.
 
-## Decisions to record
+## Decisions recorded (ADR-274 to 282, in this order)
 1. **Our own checkout page** on a Checkout Session in `elements` mode, styled from our tokens, with
    our own required tick stored on the purchase (supersedes the terms-box part of ADR-143).
 2. **The webhook alone grants**, once per session, and refunds and disputes take back unused credits;
@@ -187,12 +185,12 @@ sessions included) in Stripe's docs before code.
 3. **The free test checkout is deleted**; staging pays in Stripe's sandbox, testers get admin grants
    on both hosts, excluded from revenue (supersedes ADR-138).
 4. **Four products saved in Stripe** by a sync from the catalogue, found by lookup key; Timeline
-   is the fourth, with its Portal and a mirrored `subscriptions` table, sold only when `TIMELINE`
-   is on (supersedes MB-119's `price_data`).
+   is the fourth, with its Portal and a mirrored `subscriptions` table that is Timeline's second
+   access source, no switch (ADR-262, 264; supersedes MB-119's `price_data`).
 5. **Campaigns from the admin**, stored per environment, sent to Stripe as coupons, by date or
    link, under ADR-146's rules (amends ADR-146's home in the catalogue).
-6. **Automatic QA on staging**: a server-made QA pair, signed in with Clerk Testing Tokens on
-   Railway, walked after every deploy, verdict public at `/api/qa/latest` for sessions to read.
+6. **Automatic QA on staging** (extends ADR-272, 273): a server-made QA pair, signed in with Clerk
+   Testing Tokens on Railway, walked after every deploy with the payment steps, verdict at `/api/qa/latest`.
 7. **Every Stripe key on Railway** (restricted secret key, publishable key served by the API,
    webhook secret), none on Vercel or GitHub.
 8. **Campaign rules**: 25% at most, one per product, never Single, Couple and Family alone or
