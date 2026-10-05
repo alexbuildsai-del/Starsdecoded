@@ -1,8 +1,10 @@
 /**
  * One credit is one report (ADR-42): credits.credit_type is read nowhere from
- * R05 on. It becomes nullable with a default so new rows need not name a
- * kind; nothing is dropped and no row is touched. The column and the typed
- * bundles go with the payments round (MB-57).
+ * R05 on. It became nullable with a default so new rows need not name a kind.
+ * The payments round drops the column in step 1 of the bootstrap
+ * (migrate-payments-columns.ts; MB-57, ADR-275), so by this step it is gone and
+ * this finds nothing to do; it still relaxes the column on a database that
+ * step has not reached.
  *
  * Run with: tsx packages/db/scripts/migrate-credit-type-nullable.ts
  *
@@ -34,7 +36,7 @@ async function main() {
   const client = await pool.connect();
   try {
     if (!(await tableExists(client, "credits")) || !(await columnExists(client, "credits", "credit_type"))) {
-      console.log("credits.credit_type does not exist yet — drizzle push creates it nullable.");
+      console.log("credits.credit_type is not there (step 1 drops it) — nothing to do.");
       return;
     }
     await client.query(`ALTER TABLE credits ALTER COLUMN credit_type DROP NOT NULL`);
