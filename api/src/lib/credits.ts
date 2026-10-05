@@ -165,20 +165,42 @@ export async function getCredits(userId: string): Promise<CreditCounts> {
 }
 
 /**
- * Takes the oldest available credit for a report. Atomic via a CTE with
- * FOR UPDATE SKIP LOCKED, so two concurrent requests never claim the same
- * row. Nothing is sold yet, so a user with no credit passes with a warning;
- * the natal and the compatibility report run on the same footing until
- * payments (MB-6).
+ * The 402 a report or a gift answers when there is no credit to take, on every
+ * host (ADR-275). Each line speaks of the credit and of what it pays for.
  */
-export async function consumeCredit(userId: string, reportId: string): Promise<boolean> {
-  const rows = await db.execute<{ id: string }>(sql`
+export const NO_CREDIT_LINES = {
+  report: "You need a credit to write this report.",
+  gift: "You need a credit to give a report.",
+} as const;
+
+export function noCredit(what: keyof typeof NO_CREDIT_LINES): { error: "no_credit"; message: string } {
+  return { error: "no_credit", message: NO_CREDIT_LINES[what] };
+}
+
+/** Whether the reader has a credit to spend now. A held one is its gift's, so it does not count (ADR-123). */
+export async function hasCredit(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: creditsTable.id })
+    .from(creditsTable)
+    .where(and(eq(creditsTable.userId, userId), eq(creditsTable.status, "available")))
+    .limit(1);
+  return !!row;
+}
+
+/**
+ * Takes the reader's oldest available credit for a report, in the transaction
+ * that inserts the report, so neither stands without the other (ADR-275).
+ * FOR UPDATE SKIP LOCKED: two writes at once never take the same credit, and
+ * the one that finds none left takes nothing.
+ */
+export async function consumeCredit(userId: string, reportId: string, tx: Pick<Tx, "execute">): Promise<boolean> {
+  const rows = await tx.execute<{ id: string }>(sql`
     WITH cte AS (
       SELECT id
       FROM ${creditsTable}
       WHERE user_id = ${userId}
         AND status = 'available'
-      ORDER BY created_at ASC
+      ORDER BY created_at ASC, id ASC
       LIMIT 1
       FOR UPDATE SKIP LOCKED
     )
@@ -187,43 +209,65 @@ export async function consumeCredit(userId: string, reportId: string): Promise<b
     WHERE id IN (SELECT id FROM cte)
     RETURNING id
   `);
+  return rows.rows.length > 0;
+}
 
-  if (!rows.rows.length) {
-    // MB-6 provisional: the soft pass ends the day payments go live.
-    logger.warn({ userId, reportId }, "No available credit to consume — soft pass");
-    return false;
+/** Thrown inside a write's transaction when no credit was left to take, so the transaction leaves nothing behind. */
+class NoCreditLeft extends Error {}
+
+/**
+ * A report's rows and its credit in one transaction (ADR-275): `write` inserts
+ * the report, and its credit is taken for `reportId` before the commit. Null,
+ * with nothing written, when there was no credit to take. The caller starts
+ * writing the text only once this returns, so no model call runs for a report
+ * nobody paid for.
+ */
+export async function writeWithCredit<T>(
+  userId: string,
+  reportId: string,
+  write: (tx: Tx) => Promise<T>,
+): Promise<{ value: T } | null> {
+  try {
+    return await db.transaction(async (tx) => {
+      const value = await write(tx);
+      if (!(await consumeCredit(userId, reportId, tx))) throw new NoCreditLeft();
+      return { value };
+    });
+  } catch (err) {
+    if (err instanceof NoCreditLeft) return null;
+    throw err;
   }
-
-  return true;
 }
 
 /**
- * The credit a failed report used goes back to `available` (ADR-84).
- * Idempotent: a second call finds no used credit for the report and is a
- * no-op, so a retry of the failure path never refunds twice. Flips the
- * soft-pass ledger today; the payments round inherits the path (MB-6).
+ * The credit a report took goes back to `available` (ADR-313): at a Personal
+ * report's third failure, at a pair's first, and when a report that failed is
+ * deleted. Idempotent: a second call finds no used credit for the report, so
+ * no path gives one back twice, and a credit since spent on another report
+ * points at that one and stays where it is.
  */
-export async function refundCredit(reportId: string): Promise<boolean> {
-  const rows = await db.execute<{ id: string }>(sql`
+export async function refundCredit(reportId: string, tx: Pick<Tx, "execute"> = db): Promise<boolean> {
+  const rows = await tx.execute<{ id: string }>(sql`
     UPDATE ${creditsTable}
     SET status = 'available', used_for_report_id = NULL
     WHERE used_for_report_id = ${reportId}
       AND status = 'used'
     RETURNING id
   `);
-  if (rows.rows.length) logger.info({ reportId, credits: rows.rows.length }, "credit refunded for a failed report");
+  if (rows.rows.length) logger.info({ reportId, credits: rows.rows.length }, "a report's credit is back in the balance");
   return rows.rows.length > 0;
 }
 
 /**
  * Holds the giver's oldest available credit for a waiting gift and links it
  * to the gift in the same statement, so no credit is ever held for nothing
- * (ADR-123). Insert the gift first: its row is locked here, so a repeat or a
- * concurrent call returns the credit already held rather than holding a
- * second.
+ * (ADR-123). Insert the gift first, in the same transaction: its row is locked
+ * here, so a repeat or a concurrent call returns the credit already held
+ * rather than holding a second. Null when the giver has no credit to hold:
+ * the caller then sends nothing (ADR-275).
  */
-export async function holdCredit(userId: string, inviteId: string): Promise<string | null> {
-  const result = await db.execute<{ held_now: string | null; held_before: string | null; gift_found: boolean }>(sql`
+export async function holdCredit(userId: string, inviteId: string, tx: Pick<Tx, "execute"> = db): Promise<string | null> {
+  const result = await tx.execute<{ held_now: string | null; held_before: string | null; gift_found: boolean }>(sql`
     WITH gift AS (
       SELECT id, credit_id
       FROM ${inviteTokensTable}
@@ -266,15 +310,8 @@ export async function holdCredit(userId: string, inviteId: string): Promise<stri
 
   const row = result.rows[0];
   const creditId = row?.held_now ?? row?.held_before ?? null;
-  if (creditId) return creditId;
-  if (!row?.gift_found) {
-    logger.warn({ userId, inviteId }, "no waiting gift of this giver to hold a credit for");
-    return null;
-  }
-  // MB-6 provisional: with no credit to hold the gift still goes, as a report
-  // does under the soft pass, until checkout exists.
-  logger.warn({ userId, inviteId }, "no available credit to hold for a gift, soft pass");
-  return null;
+  if (!creditId && !row?.gift_found) logger.warn({ userId, inviteId }, "no waiting gift of this giver to hold a credit for");
+  return creditId;
 }
 
 /**
