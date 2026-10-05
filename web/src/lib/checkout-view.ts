@@ -113,7 +113,7 @@ export interface CheckoutItemView {
   campaign: { name: string; endsOn: string } | null;
   credits: number | null;
   tick: string;
-  /** MB-225 provisional: the plan's line under Pay, as plain text beside its box. */
+  /** The plan's line under Pay, as plain text beside its box. */
   renewal: string | null;
 }
 
@@ -125,6 +125,7 @@ export function checkoutItem(id: CatalogueItemId, priced?: PriceItem | null): Ch
   const fullCents = fromServer?.fullCents ?? row.cents;
   const campaign = fromServer?.campaign && cents < fullCents ? fromServer.campaign : null;
   if ("interval" in row) {
+    // MB-225 provisional: the plan's own box, and its renewal line as plain text under Pay, wait on the Owner's answer.
     return {
       id,
       plan: true,
@@ -154,7 +155,7 @@ export function checkoutItem(id: CatalogueItemId, priced?: PriceItem | null): Ch
   };
 }
 
-/** Reading 6: the campaign's name and its last day, said once. */
+// MB-149 provisional: reading 6's campaign beside the full price, its name and last day said once.
 export function campaignLine(campaign: { name: string; endsOn: string }, order: DateOrder): string {
   return `${campaign.name} · until ${resetDay(campaign.endsOn, order)}`;
 }

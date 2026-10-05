@@ -207,6 +207,7 @@ export default function CheckoutPage() {
   const { user } = useUser();
   const tickId = useId();
   const radios = useId();
+  const itemId = useId();
 
   const { item: asked, returnTo } = useMemo(() => checkoutQuery(search), [search]);
   const choices = useMemo(() => checkoutChoices(asked), [asked]);
@@ -364,6 +365,11 @@ export default function CheckoutPage() {
     };
   });
 
+  // A refusal of the session itself takes focus to its line too, so the reader hears why the fields didn't open.
+  useEffect(() => {
+    if (startError) requestAnimationFrame(() => errorLine.current?.focus());
+  }, [startError]);
+
   const onTick = (on: boolean) => {
     setTicked(on);
     setPayError(null);
@@ -384,9 +390,11 @@ export default function CheckoutPage() {
         </header>
 
         {views.length === 1 ? (
-          <section aria-label={view.name} className="grid gap-1.5 rounded-[10px] border border-[#242C3B] bg-[#11161F] p-4">
+          <section aria-labelledby={itemId} className="grid gap-1.5 rounded-[10px] border border-[#242C3B] bg-[#11161F] p-4">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-display text-base font-normal leading-tight text-[#E8EBF2]">{view.name}</h2>
+              <h2 id={itemId} className="font-display text-base font-normal leading-tight text-[#E8EBF2]">
+                {view.name}
+              </h2>
               <Price view={view} />
             </div>
             <p className={MUTED}>{view.line}</p>

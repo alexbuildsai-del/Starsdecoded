@@ -37,32 +37,35 @@ const BUTTON =
 
 /** A slow read of the new balance doesn't hold the reader here: the step that asked reads it again as it opens. */
 const REFRESH_MS = 3_000;
-/** How long the step that asked may take to draw its heading, its sheet's when it reopens one. */
+/** How long the step that asked may take to draw its page. */
 const HEADING_MS = 5_000;
+/** Time for the step to settle first: a sheet it reopens takes focus inside itself, the picker focuses its own section. */
+const SETTLE_MS = 300;
 
 /**
- * The step that asked opens with focus on its heading: a sheet's title when the address reopens one, else the page's
- * own. The page that waited is gone by then, so its heading is passed over.
+ * The step that asked opens with focus on its heading (R14-12): the title of a sheet it reopened, or the page's own
+ * heading when nothing on it took focus. A step that put focus somewhere of its own, as the picker does, keeps it. The
+ * page that waited is passed over, in case it is still on its way out.
  */
-function landOnHeading(returnTo: string): void {
-  const sheet = returnTo.includes("?open=");
+function landOnHeading(): void {
   const until = Date.now() + HEADING_MS;
   const look = () => {
-    const late = Date.now() >= until;
-    const heading =
-      (sheet ? document.querySelector<HTMLElement>('[role="dialog"] h2') : null) ??
-      (!sheet || late ? document.querySelector<HTMLElement>("h1:not([data-checkout-done])") : null);
-    if (!heading) {
-      if (!late) window.setTimeout(look, 100);
+    const page = document.querySelector<HTMLElement>("h1:not([data-checkout-done])");
+    if (!page) {
+      if (Date.now() < until) window.setTimeout(look, 100);
       return;
     }
-    // Two frames on, a sheet has already moved focus inside itself, so this lands after it rather than before.
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        if (!heading.isConnected) return;
-        if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
-        heading.focus();
-      }),
+    window.setTimeout(
+      () =>
+        requestAnimationFrame(() => {
+          const active = document.activeElement;
+          const sheet = active instanceof HTMLElement ? active.closest<HTMLElement>('[role="dialog"]') : null;
+          const heading = sheet ? sheet.querySelector<HTMLElement>("h2") : !active || active === document.body ? page : null;
+          if (!heading?.isConnected) return;
+          if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
+          heading.focus();
+        }),
+      SETTLE_MS,
     );
   };
   window.setTimeout(look, 0);
@@ -144,7 +147,7 @@ export default function CheckoutDonePage() {
       if (gone) return;
       // In place of this page, so Back from the step that asked doesn't land here and leave again.
       navigate(target, { replace: true });
-      landOnHeading(target);
+      landOnHeading();
     });
     return () => {
       gone = true;
