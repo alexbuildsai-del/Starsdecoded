@@ -1,7 +1,8 @@
 /**
- * History's lines without a database (reading 9): which rows make a line,
- * what each line reads, and the order. The guarded updates run against a
- * scratch Postgres in the round's walk (R10-22).
+ * History's lines without a database (readings 4 and 9): which rows make a
+ * line, what each line reads, and the order. The guarded updates run against a
+ * scratch Postgres in the round's walk (R10-22), and a refund's take-back in
+ * fulfilment.test.ts.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -28,6 +29,43 @@ test("bought: a bundle is one line, its count bought", () => {
     { kind: "bought", count: 3, date: "2026-09-26T10:00:00.000Z", label: "3 credits bought", test: false },
   ]);
   assert.equal(historyLines([{ kind: "bundle", at: GRANTED, count: 1, test: false }])[0].label, "1 credit bought");
+});
+
+test("bought: a purchase reads as bought, a sandbox one and the old test checkout's as test credits (reading 4)", () => {
+  const lines = historyLines([
+    { kind: "bundle", at: GRANTED, count: 5, test: false, source: "purchase" },
+    { kind: "bundle", at: GRANTED, count: 3, test: true, source: "purchase" },
+    { kind: "bundle", at: GRANTED, count: 1, test: true, source: "test" },
+  ]);
+  assert.deepEqual(lines.map((l) => [l.kind, l.label]), [
+    ["bought", "5 credits bought"],
+    ["bought", "3 test credits"],
+    ["bought", "1 test credit"],
+  ]);
+});
+
+test("granted: a grant reads From Stars Decoded and the yearly plan's credit With Timeline, each adding (reading 4)", () => {
+  const lines = historyLines([
+    { kind: "bundle", at: GRANTED, count: 3, test: false, source: "grant" },
+    { kind: "bundle", at: at("2026-10-02T10:00:00Z"), count: 1, test: true, source: "plan" },
+  ]);
+  assert.deepEqual(lines, [
+    { kind: "granted", count: 1, date: "2026-10-02T10:00:00.000Z", label: "With Timeline", test: true },
+    { kind: "granted", count: 3, date: "2026-09-26T10:00:00.000Z", label: "From Stars Decoded", test: false },
+  ]);
+});
+
+test("refunded: what refunds took back from a purchase is one line, Refunded, its count positive, dated the first", () => {
+  const refundedAt = at("2026-09-30T09:00:00Z");
+  const lines = historyLines([
+    { kind: "bundle", at: GRANTED, count: 5, test: false, source: "purchase" },
+    { kind: "refunded", at: refundedAt, count: 3, test: false },
+    { kind: "refunded", at: refundedAt, count: 0, test: false },
+  ]);
+  assert.deepEqual(lines, [
+    { kind: "refunded", count: 3, date: "2026-09-30T09:00:00.000Z", label: "Refunded", test: false },
+    { kind: "bought", count: 5, date: "2026-09-26T10:00:00.000Z", label: "5 credits bought", test: false },
+  ]);
 });
 
 test("test: a test bundle says so and is marked, and so is a spend of one of its credits (ADR-138)", () => {

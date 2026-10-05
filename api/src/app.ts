@@ -5,6 +5,7 @@ import { clerkMiddleware } from "@clerk/express";
 import router from "./routes";
 import healthRouter from "./routes/health";
 import cspReportRouter from "./routes/cspReport";
+import stripeWebhookRouter from "./routes/stripeWebhook";
 import waitlistRouter from "./routes/waitlist";
 import geocodeRouter from "./routes/geocode";
 import { geocodeLimit } from "./lib/limits";
@@ -91,6 +92,11 @@ app.use("/api", healthRouter);
 // Ahead of the origin guard and the session (ADR-198): a browser posts its CSP report with no Origin, or `null`, and no
 // cookie. The route reads its own body, at most 8 kB, and counts only reports from a page of ours.
 app.use("/api", cspReportRouter);
+
+// Ahead of the origin guard, the parsers, the session and the prelaunch gate too (reading 13). Stripe posts with no
+// Origin and no cookie, and signs the raw bytes, which the route reads itself: behind the parsers they would be gone,
+// and behind the gate production's events would never land.
+app.use("/api", stripeWebhookRouter);
 
 // Ahead of the parsers, so a foreign page's write is refused before its body is read or a session is touched.
 app.use(originGuard());
