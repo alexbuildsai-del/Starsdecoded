@@ -188,6 +188,7 @@ export const CHECKOUT_LINES = {
   chooseBundle: "Pick a bundle",
   choosePlan: "Pick a plan",
   tickFirst: "Tick the box above to see the ways to pay.",
+  waysToPay: "Ways to pay",
   orCard: "or pay by card",
   paying: "Paying",
   foot: "Card details go to Stripe, never to us.",
@@ -195,23 +196,29 @@ export const CHECKOUT_LINES = {
   terms: "Terms",
   newTab: "(opens in a new tab)",
   loading: "Loading the payment form",
-  notReady: "Checkout isn't open yet. Try again in a few minutes.",
+  optionsFailed: "We couldn't load checkout.",
+  notReady: "Checkout isn't open right now. Try again later.",
   stripeFailed: "The payment form didn't load. Check your connection, then try again.",
   tryAgain: "Try again",
   tooMany: "That's a lot of tries. Wait a minute, then try again.",
   noPersonalReport: "Timeline reads your own Personal report. Write yours first.",
-  alreadySubscribed: "You already have Timeline. Your Account page shows your plan.",
+  alreadySubscribed: "You already have Timeline. You can manage it on your Account page.",
   failed: "We couldn't start the payment. Try again in a minute.",
   payFailed: "The payment didn't go through. Try again, or use another card.",
 } as const;
 
-/** The refusals POST /checkout may give, in the page's words when the API sends none of its own. */
+/** The page's words for a refusal that came without the API's own line, a dropped call's among them. */
 export function startRefusal(status: number | undefined, code: string | undefined): string {
   if (status === 503 || code === "checkout_unavailable") return CHECKOUT_LINES.notReady;
   if (status === 429) return CHECKOUT_LINES.tooMany;
   if (code === "no_personal_report") return CHECKOUT_LINES.noPersonalReport;
   if (code === "already_subscribed") return CHECKOUT_LINES.alreadySubscribed;
   return CHECKOUT_LINES.failed;
+}
+
+/** A plan's two refusals and a refused body stand as they are; a limit, a pause or a dropped call may pass. */
+export function startRetries(status: number | undefined, code: string | undefined): boolean {
+  return status !== 400 && status !== 409 && code !== "no_personal_report" && code !== "already_subscribed";
 }
 
 /** R16-24: the done page stops waiting after this long, says so and gives the way back. */
@@ -261,9 +268,12 @@ export function doneView(
     case "waiting":
       return {
         title: "Confirming your payment",
-        body: plan
-          ? `This takes a few seconds. Then Timeline starts and we take you back to ${step}.`
-          : `This takes a few seconds. Then we add ${what} and take you back to ${step}.`,
+        // Until the first answer the page knows neither the item nor the step, so it names neither.
+        body: !state
+          ? "This takes a few seconds."
+          : plan
+            ? `This takes a few seconds. Then Timeline starts and we take you back to ${step}.`
+            : `This takes a few seconds. Then we add ${what} and take you back to ${step}.`,
         status: "Confirming",
         back: null,
         retry: null,
@@ -280,8 +290,8 @@ export function doneView(
       return {
         title: "Your payment is still being confirmed",
         body: plan
-          ? "It can take a few minutes. Timeline starts on its own once it's done."
-          : `It can take a few minutes. ${what.charAt(0).toUpperCase()}${what.slice(1)} show up on their own once it's done.`,
+          ? "It can take a few minutes. Timeline starts on its own once it's confirmed."
+          : `It can take a few minutes. ${what.charAt(0).toUpperCase()}${what.slice(1)} show up on their own once it's confirmed.`,
         status: null,
         back: backLabel(returnTo),
         retry: null,
@@ -297,14 +307,14 @@ export function doneView(
     case "refunded":
       return {
         title: "This payment was refunded",
-        body: plan ? "Timeline isn't running on it." : "Its credits aren't in your balance.",
+        body: plan ? "Your Account page shows your plan." : "Its credits aren't in your balance.",
         status: null,
         back: backLabel(returnTo),
         retry: null,
       };
     case "missing":
       return {
-        title: "We can't find that payment",
+        title: "We couldn't find this payment",
         body: "Your dashboard shows your credits.",
         status: null,
         back: backLabel(DEFAULT_RETURN),

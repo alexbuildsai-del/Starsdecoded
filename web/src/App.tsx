@@ -5,6 +5,7 @@ import {
   Redirect,
   Router as WouterRouter,
   useLocation,
+  useSearch,
 } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
@@ -35,6 +36,10 @@ const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
 const importAdminLab = () => import("@/pages/AdminLabPage");
 const importClaim = () => import("@/pages/ClaimPage");
 const importAdminWaitlist = () => import("@/pages/AdminWaitlistPage");
+const importAdminSales = () => import("@/pages/AdminSalesPage");
+// Lazy, so Stripe.js reaches a visitor only on /checkout.
+const importCheckout = () => import("@/pages/CheckoutPage");
+const importCheckoutDone = () => import("@/pages/CheckoutDonePage");
 
 const BirthFormPage = lazy(importBirthForm);
 const ReportPage = lazy(importReport);
@@ -46,6 +51,9 @@ const AdminPromptsPage = lazy(importAdminPrompts);
 const AdminLabPage = lazy(importAdminLab);
 const ClaimPage = lazy(importClaim);
 const AdminWaitlistPage = lazy(importAdminWaitlist);
+const AdminSalesPage = lazy(importAdminSales);
+const CheckoutPage = lazy(importCheckout);
+const CheckoutDonePage = lazy(importCheckoutDone);
 
 const SITE_PAGES = new Map(PUBLIC_ROUTES.map((route) => [route.path, lazy(route.load)]));
 const SiteWaitlistPage = lazy(() => import("@/site/pages/WaitlistPage"));
@@ -188,12 +196,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
   const clerkStalled = useClerkStalled();
   const [location, navigate] = useLocation();
+  // wouter's location is the path alone, and /checkout's item and step, or the done page's purchase, live in the query.
+  const search = useSearch();
+  const back = search ? `${location}?${search}` : location;
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      navigate(`/sign-in?return_to=${encodeURIComponent(location)}`, { replace: true });
+      navigate(`/sign-in?return_to=${encodeURIComponent(back)}`, { replace: true });
     }
-  }, [isLoaded, isSignedIn, location, navigate]);
+  }, [isLoaded, isSignedIn, back, navigate]);
 
   if (!isLoaded) return clerkStalled ? <ClerkStalledPage /> : <LoadingState />;
   if (!isSignedIn) return null;
@@ -337,6 +348,16 @@ function Routes({ first }: { first?: FirstPage }) {
         <AppRoute path="/claim">
           <ClaimPage />
         </AppRoute>
+        <AppRoute path="/checkout/done">
+          <RequireAuth>
+            <CheckoutDonePage />
+          </RequireAuth>
+        </AppRoute>
+        <AppRoute path="/checkout">
+          <RequireAuth>
+            <CheckoutPage />
+          </RequireAuth>
+        </AppRoute>
         <AppRoute path="/admin/prompts">
           <AdminPromptsPage />
         </AppRoute>
@@ -345,6 +366,9 @@ function Routes({ first }: { first?: FirstPage }) {
         </AppRoute>
         <AppRoute path="/admin/waitlist">
           <AdminWaitlistPage />
+        </AppRoute>
+        <AppRoute path="/admin/sales">
+          <AdminSalesPage />
         </AppRoute>
         <Route path="/admin">{() => <Redirect to="/admin/waitlist" />}</Route>
         <Route path="/login">{() => <Redirect to="/sign-in" />}</Route>

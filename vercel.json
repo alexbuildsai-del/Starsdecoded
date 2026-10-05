@@ -21,16 +21,17 @@
       "source": "/api/(.*)",
       "destination": "https://workspaceapi-server-production-18dd.up.railway.app/api/$1"
     },
-    { "source": "/(sign-in|sign-up|chart|report|generating|dashboard|people|login)(/.*)?", "destination": "/app" },
+    { "source": "/(sign-in|sign-up|chart|report|generating|dashboard|people|login|checkout)(/.*)?", "destination": "/app" },
     { "source": "/compatibility/(.+)", "destination": "/app" },
     { "source": "/claim(.*)", "destination": "/app" },
     { "source": "/admin(.*)", "destination": "/app" }
   ],
   "headers": [
     {
-      "source": "/(sign-in|sign-up|chart|report|generating|dashboard|people|login)(/.*)?",
+      "source": "/(sign-in|sign-up|chart|report|generating|dashboard|people|login|checkout)(/.*)?",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     },
+    { "source": "/fonts/(.*)", "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }] },
     { "source": "/compatibility/(.+)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
     { "source": "/claim(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
     { "source": "/admin(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
