@@ -13,8 +13,8 @@
 // reader's ticks from their own workbook (ADR-239), and has a birth-time
 // change pass the newest of seven reports alone (MB-170); sharing.walk.ts
 // walks the rest of sharing.
-// MB-49 provisional: the ledger this proves is the soft-pass one `consumeCredit`
-// still runs, so this file's checks retire with that pass, not before it.
+// R17-23: credits are hard (ADR-275), so every write here that spends one is
+// given one first, and the free test checkout is gone (ADR-276).
 //
 // `pnpm --filter @workspace/api-server run walk` runs this, then
 // sharing.walk.ts, against `WALK_DATABASE_URL`; without it, it skips. Run
@@ -668,7 +668,7 @@ try {
     assert.equal(await pairOf(CLAIMER, "RC", "RW"), "400 not_ready", "any reader picks it");
   });
 
-  let giftNoCredit = "";
+  let giftPlain = "";
   let giftWithCredit = "";
   let giftWithCreditCreditId = "";
   let giftSecondToken = "";
@@ -691,30 +691,40 @@ try {
     }
   });
 
-  await step("gifts: the soft pass sends a gift with no credit to hold, its email and copy link on our web app whatever host the request names", async () => {
+  await step("gifts: with no credit a gift answers 402 no_credit, writes nothing and sends no email (ADR-275)", async () => {
+    const mailsBefore = mails.length;
+    const refused = await call(GIFT_GIVER, "POST", "/gifts", { recipientName: "Pierre", email: "pierre@example.com" });
+    assert.equal(refused.status, 402);
+    assert.deepEqual(refused.body, { error: "no_credit", message: "You need a credit to give a report." });
+    assert.equal(mails.length, mailsBefore);
+    assert.equal((await listGifts(GIFT_GIVER)).length, 0);
+    assert.equal((await q("select 1 from invite_tokens where kind = 'gift'")).rowCount, 0);
+  });
+
+  await step("gifts: a gift holds a credit, its email and copy link on our web app whatever host the request names", async () => {
+    await grantBundle(GIFT_GIVER.user, "couple", { test: true });
     const g1 = await call(GIFT_GIVER, "POST", "/gifts", { recipientName: "Pierre", email: "Pierre@Example.com", note: "  For your birthday  " }, FORGED_HOST);
     assert.equal(g1.status, 201);
     assert.ok(g1.body.claimUrl.startsWith(`${OUR_PAGE}/claim?token=`), g1.body.claimUrl);
     onOurWeb(mails.at(-1)!);
     assert.equal(g1.body.state, "waiting");
-    assert.equal(g1.body.creditHeld, false);
+    assert.equal(g1.body.creditHeld, true);
     assert.equal(g1.body.recipientName, "Pierre");
     assert.equal(g1.body.email, "pierre@example.com");
     assert.equal(g1.body.note, "For your birthday");
     assert.equal(new Date(g1.body.returnsAt).getTime() - new Date(g1.body.sentAt).getTime(), 30 * 86400000);
     assert.equal(g1.body.remindedAt, null);
-    giftNoCredit = g1.body.id;
+    giftPlain = g1.body.id;
 
-    const r1 = await row(giftNoCredit);
+    const r1 = await row(giftPlain);
     assert.equal(r1.kind, "gift");
     assert.equal(r1.profile_id, null);
-    assert.equal(r1.credit_id, null);
+    assert.equal((await creditRow(r1.credit_id)).status, "held");
     assert.equal(r1.email_delivered, true);
     assert.equal(mails.at(-1)!.to, "pierre@example.com");
   });
 
-  await step("gifts: a credit is held and the balance reflects it", async () => {
-    await grantBundle(GIFT_GIVER.user, "couple");
+  await step("gifts: a second credit is held and the balance reflects both", async () => {
     const g2 = await call(GIFT_GIVER, "POST", "/gifts", { recipientName: "Beatrice", email: "gift-beatrice@example.com" });
     assert.equal(g2.status, 201);
     assert.equal(g2.body.creditHeld, true);
@@ -724,13 +734,13 @@ try {
 
     assert.equal((await creditRow(giftWithCreditCreditId)).status, "held");
     const credits = await getCredits(GIFT_GIVER.user);
-    assert.deepEqual([credits.available, credits.held], [2, 1]);
+    assert.deepEqual([credits.available, credits.held], [1, 2]);
   });
 
   await step("gifts: the list is newest first and only the giver's", async () => {
     const list = await listGifts(GIFT_GIVER);
-    assert.deepEqual(list.map((g) => g.id), [giftWithCredit, giftNoCredit]);
-    assert.deepEqual(list.map((g) => g.creditHeld), [true, false]);
+    assert.deepEqual(list.map((g) => g.id), [giftWithCredit, giftPlain]);
+    assert.deepEqual(list.map((g) => g.creditHeld), [true, true]);
     assert.deepEqual(await listGifts(GIFT_RECIPIENT), []);
   });
 
@@ -762,18 +772,18 @@ try {
   });
 
   await step("gifts: a reminder whose email fails leaves the old link standing", async () => {
-    const before = await row(giftNoCredit);
+    const before = await row(giftPlain);
     failMail = true;
-    const failed = await call(GIFT_GIVER, "POST", `/gifts/${giftNoCredit}/remind`);
+    const failed = await call(GIFT_GIVER, "POST", `/gifts/${giftPlain}/remind`);
     failMail = false;
     assert.equal(failed.status, 502);
-    const after = await row(giftNoCredit);
+    const after = await row(giftPlain);
     assert.equal(after.token_hash, before.token_hash);
     assert.equal(after.reminded_at, null);
 
     const [x, y] = await Promise.all([
-      call(GIFT_GIVER, "POST", `/gifts/${giftNoCredit}/remind`),
-      call(GIFT_GIVER, "POST", `/gifts/${giftNoCredit}/remind`),
+      call(GIFT_GIVER, "POST", `/gifts/${giftPlain}/remind`),
+      call(GIFT_GIVER, "POST", `/gifts/${giftPlain}/remind`),
     ]);
     assert.deepEqual([x.status, y.status].sort(), [204, 429]);
   });
@@ -788,7 +798,7 @@ try {
     assert.equal((await call(GIFT_GIVER, "POST", `/gifts/${giftWithCredit}/remind`)).status, 404);
     assert.equal((await call(ANON, "GET", `/invites/${encodeURIComponent(giftSecondToken)}`)).status, 404);
     const credits = await getCredits(GIFT_GIVER.user);
-    assert.deepEqual([credits.available, credits.held], [3, 0]);
+    assert.deepEqual([credits.available, credits.held], [2, 1]);
   });
 
   await step("gifts: claimed moves the credit to the recipient, the giver sees only claimed", async () => {
@@ -860,48 +870,46 @@ try {
     assert.doesNotMatch(all, /days?Left|remaining|countdown|timer|secondsLeft/i);
   });
 
-  await step("checkout/test: 401 signed out, 403 on production, is_test rows and credits", async () => {
-    assert.equal((await call(ANON, "POST", "/checkout/test", { count: 3 })).status, 401);
-
+  await step("checkout/test: the free test checkout is gone, so it answers 404 signed out, signed in and as production, and grants nothing (ADR-276)", async () => {
     const before = process.env.APP_ENV;
-    process.env.APP_ENV = "production";
-    assert.equal((await call(CHECKOUT_USER, "POST", "/checkout/test", { count: 3 })).status, 403);
-    if (before === undefined) delete process.env.APP_ENV;
-    else process.env.APP_ENV = before;
+    try {
+      for (const env of [undefined, "production"]) {
+        if (env === undefined) delete process.env.APP_ENV;
+        else process.env.APP_ENV = env;
+        for (const who of [ANON, CHECKOUT_USER]) {
+          const gone = await call(who, "POST", "/checkout/test", { count: 3 });
+          assert.equal(gone.status, 404, `${who.user ?? "signed out"} on ${env ?? "staging"}`);
+        }
+      }
+    } finally {
+      if (before === undefined) delete process.env.APP_ENV;
+      else process.env.APP_ENV = before;
+    }
 
-    const ok = await call(CHECKOUT_USER, "POST", "/checkout/test", { count: 3 });
-    assert.equal(ok.status, 201);
-    assert.equal(ok.body.available, 3);
-
-    const bundleTest = await q("select is_test from bundles where user_id = $1", [CHECKOUT_USER.user]);
-    assert.ok(bundleTest.rows.length > 0 && bundleTest.rows.every((r: { is_test: boolean }) => r.is_test === true));
-    const creditsTest = await q("select is_test from credits where user_id = $1", [CHECKOUT_USER.user]);
-    assert.equal(creditsTest.rows.length, 3);
-    assert.ok(creditsTest.rows.every((r: { is_test: boolean }) => r.is_test === true));
-
-    const c = await call(CHECKOUT_USER, "GET", "/credits");
-    assert.equal(c.body.available, 3);
-    assert.equal(c.body.held, 0);
-    assert.equal(c.body.lastBundle.count, 3);
-
-    const h = await call(CHECKOUT_USER, "GET", "/credits/history");
-    assert.equal(h.body[0].kind, "bought");
-    assert.match(h.body[0].label, /test credit/);
-
+    assert.equal((await q("select 1 from bundles where user_id = $1", [CHECKOUT_USER.user])).rowCount, 0);
+    assert.equal((await q("select 1 from credits where user_id = $1", [CHECKOUT_USER.user])).rowCount, 0);
+    assert.deepEqual((await call(CHECKOUT_USER, "GET", "/credits")).body, { available: 0, used: 0, held: 0, lastBundle: null });
+    assert.deepEqual((await call(CHECKOUT_USER, "GET", "/credits/history")).body, []);
     assert.deepEqual((await call(ANON, "GET", "/credits")).body, { available: 0, used: 0, held: 0, lastBundle: null });
     assert.deepEqual((await call(ANON, "GET", "/credits/history")).body, []);
   });
 
-  await step("limits: the 11th checkout in an hour answers 429 with Retry-After and its line, and grants nothing (ADR-199)", async () => {
-    for (let i = 1; i <= 10; i++) {
-      assert.equal((await call(LIMITED, "POST", "/checkout/test", { count: 1 })).status, 201, `checkout ${i}`);
+  await step("limits: the 11th send in an hour answers 429 with Retry-After and its line, and holds nothing (ADR-199)", async () => {
+    // The checkout's own count is proved where Stripe is stood in for; a gift is the send this walk can make with no Stripe.
+    await grantBundle(LIMITED.user, "family", { test: true });
+    await grantBundle(LIMITED.user, "family", { test: true });
+    await grantBundle(LIMITED.user, "solo", { test: true });
+    const names = ["Ana", "Bo", "Cy", "Di", "Ed", "Flo", "Gus", "Hal", "Ivy", "Jo", "Kai"];
+    for (let i = 0; i < LIMITS.send.limit; i++) {
+      assert.equal((await call(LIMITED, "POST", "/gifts", { recipientName: names[i], email: `limited-${i + 1}@example.com` })).status, 201, `send ${i + 1}`);
     }
-    const eleventh = await call(LIMITED, "POST", "/checkout/test", { count: 1 });
+    const eleventh = await call(LIMITED, "POST", "/gifts", { recipientName: names[10], email: "limited-11@example.com" });
     assert.equal(eleventh.status, 429);
     const wait = Number(eleventh.headers.get("retry-after"));
     assert.ok(Number.isInteger(wait) && wait > 0 && wait <= 3600, `Retry-After: ${wait}`);
-    assert.deepEqual(eleventh.body, { error: "rate_limited", message: LIMIT_LINES.checkout, retryAfterSeconds: wait });
-    assert.equal((await call(LIMITED, "GET", "/credits")).body.available, 10);
+    assert.deepEqual(eleventh.body, { error: "rate_limited", message: LIMIT_LINES.send, retryAfterSeconds: wait });
+    const credits = await getCredits(LIMITED.user);
+    assert.deepEqual([credits.available, credits.held], [1, LIMITS.send.limit]);
   });
 
   await step("MB-170: a birth-time change over seven complete reports passes the newest alone on one write and leaves the six older outdated, stamped or not, so the refusal naming 6 reports no longer fires; once the hour's writes are spent, a change hears 429 before any pass and saves no time (ADR-199)", async () => {
