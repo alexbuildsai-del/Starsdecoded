@@ -144,7 +144,8 @@ export async function addTester(email: string, by: string): Promise<Tester> {
 
 /**
  * Gives a tester 1, 3 or 5 credits: a test bundle with source `grant` and no purchase row, so it is never revenue
- * (ADR-276). The QA pair is refused: staging sets their credits before each walk.
+ * (ADR-276). The QA pair is refused: staging sets their credits before each walk. `by` is kept nowhere: the guard lets
+ * only ADMIN_USER_ID in, so it can only ever name the admin.
  */
 export async function grantTester(userId: string, count: GrantCount, by: string): Promise<Tester> {
   if (!isGrantCount(count)) throw new TesterRefused(400, "bad_count", TESTER_LINES.badCount);
@@ -152,8 +153,9 @@ export async function grantTester(userId: string, count: GrantCount, by: string)
   if (!row) throw new TesterRefused(404, "not_tester", TESTER_LINES.grantNotTester);
   if (isQaPair(row)) throw new TesterRefused(409, "qa_pair", TESTER_LINES.qaChange);
   const { bundleId } = await grantBundle(userId, grantKind(count), { test: true, source: "grant" });
-  // No column holds who granted a bundle, so the log keeps it.
-  logger.info({ userId, by, count, bundleId }, "tester granted credits");
+  // The admin's Clerk id stays out (security scope 6), and the tester's is censored by its key: the bundle's id leads
+  // to the grant and its account for anyone who can read the database.
+  logger.info({ userId, count, bundleId }, "tester granted credits");
   return testerWithCounts(row);
 }
 

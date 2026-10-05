@@ -20,7 +20,7 @@ const T = await import("./testers.js");
 const { creditHistory, getCredits } = await import("./credits.js");
 const { QA_PAIR } = await import("./qaPair.js");
 const { default: adminPaymentsRouter } = await import("../routes/adminPayments.js");
-const { logger } = await import("./logger.js");
+const { createLogger, logger } = await import("./logger.js");
 const { pool } = await import("@workspace/db");
 const { BUNDLES } = await import("@workspace/commerce");
 
@@ -185,6 +185,34 @@ test("a grant is a test bundle from Stars Decoded with no purchase, in History a
     status: 404, body: { error: "not_tester", message: L.grantNotTester },
   });
   assert.deepEqual(await bundlesOf(stranger), [], "an account that isn't a tester gets nothing");
+});
+
+/**
+ * What the shared logger writes while `t` runs, as production writes it: this file's logger is silent, so each call,
+ * at any level, is written again through one with production's censoring.
+ */
+function loggedLines(t: TestContext): string[] {
+  const lines: string[] = [];
+  const written = createLogger({ NODE_ENV: "production", LOG_LEVEL: "trace" }, { write: (line: string) => void lines.push(line) });
+  for (const level of ["trace", "debug", "info", "warn", "error", "fatal"] as const) {
+    t.mock.method(logger, level, written[level].bind(written));
+  }
+  return lines;
+}
+
+test("a grant's log line leads to its bundle and names no Clerk id or email, the admin's or the tester's (security scope 6)", { skip: NO_DB }, async (t) => {
+  const call = await serve(t, ADMIN);
+  const email = `Lou.${run}@Example.com`;
+  const lou = await account("lou", email);
+  await call("POST", "/admin/testers", { email });
+  const lines = loggedLines(t);
+  assert.equal((await call("POST", `/admin/testers/${lou}/grant`, { count: 3 })).status, 200);
+
+  const [bundle] = (await q("select id from bundles where user_id = $1", [lou])).rows;
+  const grant = lines.map((line) => JSON.parse(line)).find((line) => line.msg === "tester granted credits");
+  assert.deepEqual({ count: grant?.count, bundleId: grant?.bundleId }, { count: 3, bundleId: bundle?.id });
+  const text = lines.join("").toLowerCase();
+  for (const value of [ADMIN, lou, email]) assert.equal(text.includes(value.toLowerCase()), false, `${value} is in a log line`);
 });
 
 test("removing a tester takes the mark away and leaves the credits they were given", { skip: NO_DB }, async (t) => {
