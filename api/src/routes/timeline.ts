@@ -2,7 +2,8 @@
  * Timeline's routes (ADR-207, 209, 210, 262): whether the reader has it, Now and ahead, Life, and each reading. Every
  * route but the access answer stands behind the one access check and reads the reader's own chart with a finished
  * Personal report (reading 2). routes/index.ts stands Now and ahead's count ahead of it, and a reading's count and the
- * breaker, with Timeline's own pause line, ahead of its open.
+ * breaker, with Timeline's own pause line, ahead of its open. A new reading once the account has started the day's is
+ * 429, with Timeline's own line too.
  */
 import { Router, type Request, type RequestHandler, type Response } from "express";
 import type { z } from "zod";
@@ -15,7 +16,7 @@ import { ownChartOf } from "../lib/shares.js";
 import { livePlan, type LivePlan } from "../lib/subscriptions.js";
 import { lifeView, nowView, readerChart, type ReaderChart, type ReadingState, type ReadingStatuses, type TimelineNow } from "../lib/timeline.js";
 import { requireTimelineAccess, timelineAccess, type TimelineAccessAnswer } from "../lib/timelineAccess.js";
-import { openReading, queueReadings, readingStatuses } from "../lib/timelineReadings.js";
+import { openReading, queueReadings, readingStatuses, type OpenedReading } from "../lib/timelineReadings.js";
 import { validationFailure } from "../lib/validation.js";
 
 type TimelineAccess = z.infer<typeof GetTimelineAccessResponse>;
@@ -24,10 +25,15 @@ type TimelineAccess = z.infer<typeof GetTimelineAccessResponse>;
 export const TIMELINE_SIGN_IN_LINE = "Sign in to use Timeline.";
 /** The 409 of Now and ahead, Life and Ask; the app shows its own screen for it. */
 export const NO_PERSONAL_REPORT_LINE = "Timeline reads the chart in your own Personal report. You don't have a finished one yet.";
-/** A reading's 404: a key nothing on the reader's chart carries, one that gets no reading, or no chart to read. */
+/**
+ * A reading's 404: a key nothing on the reader's chart carries, a sky event outside the days the app shows, one that
+ * gets no reading, or no chart to read.
+ */
 export const NO_READING_LINE = "We couldn't find this reading.";
 
 export const NO_PERSONAL_REPORT = { error: "no_personal_report", message: NO_PERSONAL_REPORT_LINE } as const;
+
+const NOT_FOUND = { error: "not_found", message: NO_READING_LINE } as const;
 
 const NO_READINGS: ReadingStatuses = new Map();
 
@@ -67,6 +73,23 @@ export function toQueue(view: Pick<TimelineNow, "events">): string[] {
   return view.events.filter((event) => event.kind === "contact" && event.reading === "none").map((event) => event.key);
 }
 
+/**
+ * What an open answers: the reading as it stands (200), no such reading (404), or the day's cap on new readings (429)
+ * in the contract's limit body, with Retry-After carrying its wait as every limit's 429 does.
+ */
+export function readingAnswerOf(opened: OpenedReading): { status: 200 | 404 | 429; body: unknown; retryAfter: number | null } {
+  switch (opened.status) {
+    case "unknown":
+      return { status: 404, body: NOT_FOUND, retryAfter: null };
+    case "capped": {
+      const { line: message, retryAfterSeconds } = opened;
+      return { status: 429, body: { error: "rate_limited", message, retryAfterSeconds }, retryAfter: retryAfterSeconds };
+    }
+    default:
+      return { status: 200, body: opened, retryAfter: null };
+  }
+}
+
 const viewerOf = (req: Request): Viewer => ({ userId: req.userId ?? null, sessionId: req.sessionId });
 
 const readers = new WeakMap<Request, Promise<ReaderChart | null>>();
@@ -100,7 +123,7 @@ export const startsAReading: RequestHandler = async (req, _res, next) => {
   }
 };
 
-const noReading = (res: Response) => res.status(404).json({ error: "not_found", message: NO_READING_LINE });
+const noReading = (res: Response) => res.status(404).json(NOT_FOUND);
 
 const router = Router();
 
@@ -166,9 +189,9 @@ router.post("/timeline/readings/:key", requireTimelineAccess, async (req, res) =
   try {
     const reader = await readerFor(req);
     if (!reader) return noReading(res);
-    const opened = await openReading(reader, key);
-    if (opened.status === "unknown") return noReading(res);
-    return res.json(opened);
+    const { status, body, retryAfter } = readingAnswerOf(await openReading(reader, key));
+    if (retryAfter !== null) res.set("Retry-After", String(retryAfter));
+    return res.status(status).json(body);
   } catch (err) {
     req.log.error({ err }, "Failed to open a Timeline reading");
     return res.status(500).json({ error: "internal_error", message: "Failed to open the reading" });

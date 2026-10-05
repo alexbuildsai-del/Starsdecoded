@@ -591,6 +591,22 @@ export type KeyedEvent =
 
 const SKY_KEY = /^(contact|retrograde|eclipse)\.[a-z_]+\.(?:[a-z]+|-)\.(?:[a-z]+|-)\.(\d{4})(\d{2})(\d{2})$/;
 const CYCLE_KEY = /^cycle\.[a-z-]+\.\d{8}$/;
+// Only an event the app can show needs a reading, so a sky event's key opens one on the six-month view's days or the
+// 31 before them.
+const OPENS_DAYS_BACK = 31;
+const OPENS_DAYS_AHEAD = RANGE_DAYS["six-months"];
+
+/**
+ * Whether the event touches those days, read as whole UTC days around today's so that the six-month view in any
+ * reader's zone falls inside them. A contact counts by its whole window: a long one opens while the view shows it,
+ * wherever its key's day falls.
+ */
+function opensNow(view: TimelineEvent, now: Date): boolean {
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const first = today - OPENS_DAYS_BACK * DAY_MS;
+  const after = today + (OPENS_DAYS_AHEAD + 1) * DAY_MS;
+  return view.end.getTime() >= first && view.start.getTime() < after;
+}
 
 /** The UTC day a key names, when the calendar has it. */
 function keyDay(y: string, m: string, d: string): string | null {
@@ -601,8 +617,9 @@ function keyDay(y: string, m: string, d: string): string | null {
 
 /**
  * The event or life cycle a key names on the reader's own chart, computed afresh (reading 5): a sky event from the
- * key's UTC day, where its window is exact, starts, turns or peaks, and a cycle from Life. Null for a key nothing on
- * the chart carries, and for an event that gets no reading (reading 7), so neither is ever written.
+ * key's UTC day, where its window is exact, starts, turns or peaks, while the app can show it (`opensNow`), and any
+ * cycle from Life. Null for a key nothing on the chart carries, for a sky event outside those days, and for an event
+ * that gets no reading (reading 7), so none of them is ever written.
  */
 export function eventByKey(reader: ReaderChart, key: string, now: Date = new Date()): KeyedEvent | null {
   if (typeof key !== "string" || key.length > 80) return null;
@@ -621,7 +638,8 @@ export function eventByKey(reader: ReaderChart, key: string, now: Date = new Dat
   const sky = skyOf(reader.chart, "UTC", day, 1);
   const i = sky.events.findIndex((event) => event.key === key);
   if (i < 0 || !readsAs(sky.events[i])) return null;
-  return { kind: "sky", event: sky.events[i], view: eventView(sky.events[i], sky.spans[i], sky.points[i], NO_READINGS, now) };
+  const view = eventView(sky.events[i], sky.spans[i], sky.points[i], NO_READINGS, now);
+  return opensNow(view, now) ? { kind: "sky", event: sky.events[i], view } : null;
 }
 
 /** The columns the reader is found by: one of their own chart's Personal reports, with that chart's profile. */
