@@ -6,14 +6,13 @@ scope 12, ADR-195). Rules, not a diary: at most 60 lines, each rule dated or tie
 merged into the rule it repeats.
 
 ## Took as proposed
-- **Keyless checks, narrowly scoped.** Playwright for axe on the public pages, no key, no sign-in (agent-roster; ADR-192).
 - **The default carries an ask.** "go", with MB-93, 128 and 129 at their defaults (R12); "lock it" with Mixed's wording
   left at its default (review-05-10, 2026-10-05). Write each ask so that silence is safe.
-- **Housekeeping on a yes.** Small, reversible operations need one line, not a question (Review 02/10; sweep 03/10).
+- **Housekeeping on a yes; keyless checks.** Small, reversible operations need one line, not a question (sweep 03/10);
+  a check runs with no key and no sign-in (ADR-192).
 
 ## Changed, and why
-- **No hotfix.** Staging has no real visitors and production is the waitlist, so fixes wait for a round, a QA, then a
-  Release (security-hardening, 2026-10-01; ADR-204).
+- **No hotfix.** Fixes wait for a round, a QA, then a Release (security-hardening, 2026-10-01; ADR-204).
 - **He orders the rounds.** Pricing "whenever I say" (sweep 03/10). Never slot pricing in between rounds; read the latest
   Decisions rows before reading his words about rounds (ADR-254, a misread).
 - **Less text, simple words, everywhere.** One annotated line, not three quote cards (Review 02/10); the fewest examples,
@@ -26,15 +25,13 @@ merged into the rule it repeats.
 - **Reuse, never redesign what is approved.** The hero: "please don't make this different", only the value replaces the
   sentence; Life's card is the Your cycles card; Did you know reuses the product's drawings and leaves the loading
   progress alone; bundles keep their names (review-05-10). Keep what already looks great (Review 02/10).
-- **Speed of entry beats pickers.** One typed date field, not three boxes (Review 02/10).
 - **Ship it as normal, not behind a flag.** A subscriber gets it all, everyone else a teaser (timeline; ADR-262 to 264).
-- **The real fix, never a fallback.** A stopgap read as "a workaround" (Review 02/10): propose the proper fix alone.
-- **A visual that says what we sell beats the safest layout** (share-cover, 2026-10-03).
-- **Don't redraw what was only misread.** The look-alike nodes stay; the answer was the explanation (Review 02/10).
+- **The real fix, never a fallback** ("a workaround", Review 02/10); one typed date field beats pickers (Review 02/10); a
+  visual that says what we sell beats the safest layout (share-cover); what was only misread gets an explanation, not a redraw.
 
 ## Asked for
-- **Opus for orchestrating, planning and research**, with the verifier on any claim that feeds a decision (ADR-137, R-0.7).
-- **A process that learns.** This file after every ideation, `lessons.md` after every round (ADR-195).
+- **Opus for orchestrating, planning and research**, the verifier on any claim that feeds a decision (ADR-137, R-0.7);
+  this file after every ideation, `lessons.md` after every round (ADR-195).
 - **Fewer questions, each with a default.** At most three, each with a recommendation and what silence means (R-12.1).
   Read the day's locks on every branch first: never re-ask what one settled (release-one-findings, 2026-10-03).
 - **What only he holds, he supplies or defers.** "Continue without this for now" (2026-09-27): build the rest behind
@@ -47,20 +44,17 @@ merged into the rule it repeats.
 - **A card reads top-down.** The idea, then "for you", then the value, then the date; the science behind an ⓘ; explicit
   enough that Read more is not needed (review-05-10, Life).
 - **A promise needs its proof.** Every feature on a product page is a promise, why you'd care and a visible example
-  (timeline-page v3, 2026-10-03). Start from visuals an earlier ideation already drew.
-- **No price before it's real.** "Keep it as coming soon" (timeline-page, 2026-10-03).
-- **Keep a log of what he asks to have explained.** It feeds the Did you know card (review-05-10, 2026-10-05).
+  (timeline-page v3, 2026-10-03). Start from visuals an earlier ideation already drew. No price before it's real.
 
 ## Formats he likes
 - **An HTML artifact before any question or lock**, phone first, 390 px before desktop (§11.1, §9, ADR-171); live mocks
   he can drag and watch (the Life line, the rotating card) and a green box showing what changed after each answer.
-- **The workbook card** (moment, chart, check, something to try), also as a post (home-report-section, 2026-10-03).
-- **Before and after tables** for any wording change: "I really like your before and after" (2026-10-03).
+- **The workbook card** (moment, chart, check, something to try), also as a post (home-report-section); **before and
+  after tables** for any wording change: "I really like your before and after" (2026-10-03).
 - **A fixed small label over a title that finishes it**: "DID YOU KNOW" in brass, then "Why east is on the left?", no
-  leading dots, no icons, no close button (review-05-10, 2026-10-05).
+  dots, icons or X; its facts come from a log of what he asks explained (review-05-10, 2026-10-05).
 
 ## His own lines, verbatim
-- "Continue without this for now." 2026-09-27 (`R14-plan.md`). "go". R12's approval (`R12-report.md`).
-- "sol on the foundation, luna on everything else for the brain/prose". 2026-10-01 (ADR-184).
-- "two friends talking over coffee". 2026-10-01 (ADR-185).
+- "Continue without this for now." 2026-09-27 (`R14-plan.md`). "go". R12's approval (`R12-report.md`). "two friends
+  talking over coffee" (ADR-185). "sol on the foundation, luna on everything else for the brain/prose" (ADR-184).
 - "Just add the bloody Gemini … degree, just like the moon and the sun has it." 2026-10-05 (review-05-10, the hero).
