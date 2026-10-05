@@ -1,4 +1,4 @@
-// The buyer walk (ADR-266): the Owner's critical flow with two accounts, end to end on a scratch Postgres. Ana buys
+// The buyer walk (ADR-273): the Owner's critical flow with two accounts, end to end on a scratch Postgres. Ana buys
 // test credits, writes her Personal report and gifts one to her mother Rosa; Rosa claims it and writes hers; the two
 // share their reports both ways, and Ana writes a parent and child report for them. Timeline stays the admin's until
 // billing (MB-197).

@@ -40,7 +40,7 @@ redesign it.
      failure, or a question its card, §0 and named files cannot answer, goes
      once more to `builder` (Opus) with its card and its report attached. Any
      other stop, and a stop by the retry itself, is yours (see the Rules).
-   - **Tester (ADR-266).** Once, after the last group, and only when a card
+   - **Tester (ADR-273).** Once, after the last group, and only when a card
      changed a step of the buyer flow or a bug came back (a lessons cause seen
      twice, or a fix the Owner has asked for twice): spawn `tester` (Sonnet,
      high) with the base commit and that reason. It updates the buyer walk and

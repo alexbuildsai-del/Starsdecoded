@@ -47,7 +47,7 @@ pnpm run db:bootstrap                 # idempotent; Railway runs it at start
 pnpm report:lab --render|--compare|--dry --base r06   # free: stored runs re-read, every prompt rendered; the levels: /report-lab
 ```
 
-Gate before any pull request: typecheck, both builds, the critical tests and the buyer walk (ADR-266), `check:shipped`, audit,
+Gate before any pull request: typecheck, both builds, the critical tests and the buyer walk (ADR-273), `check:shipped`, audit,
 `db:bootstrap` clean when the schema changed, the sentinel, site checks and smoke on the Vercel preview. Never skip or disable a
 check. The lab runs from the admin panel: dry at every brain change, spot and reading on demand, the full lab plus QA in Release.
 
@@ -106,7 +106,7 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   outside the catalogue does not compile. A check blocks only when the text would be wrong
   for the reader (ADR-81); every check that fires is a `generation_failures` row (*Failures* tab).
 - Real chart data only. Fixtures hold birth data; charts are computed at run time. Never fabricate a placement, even in a demo.
-- **Tests guard the buyer's flow** (ADR-266): CI runs typecheck, builds, each package's `test.critical`, the two-account buyer walk,
+- **Tests guard the buyer's flow** (ADR-273): CI runs typecheck, builds, each package's `test.critical`, the two-account buyer walk,
   `check:shipped`, audit and gitleaks. Other tests are the archive (`docs/annex/test-archive.md`): kept, not run, read only to
   research that area. New tests only for a change to the flow, a bug that came back, or a fix the Owner asked for twice. No lint step; each preview runs Lighthouse, axe and the probe (ADR-192).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.

@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 
 You write tests. You never change the code under test.
 
-Tests guard the buyer's flow (ADR-266): the buyer signs in, buys credits,
+Tests guard the buyer's flow (ADR-273): the buyer signs in, buys credits,
 writes her report and gifts her mom; mom claims, makes an account and writes
 hers; the buyer shares hers, mom shares back, the buyer makes the pair report
 and sends it; then Timeline. `api/src/walk/buyer.walk.ts` walks it with two

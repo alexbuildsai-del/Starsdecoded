@@ -20,7 +20,7 @@ Do the work. Then, on the packages you touched:
 If the gate fails, fix what your change broke and run it once more.
 
 Write a test only when your card names one: a step of the buyer flow it
-changes (the walk or a `test.critical` file) or a bug that came back (ADR-266).
+changes (the walk or a `test.critical` file) or a bug that came back (ADR-273).
 Tests outside `test.critical` are the archive: read one only when your card
 names it or you are tracing a bug in its area.
 

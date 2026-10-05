@@ -26,7 +26,7 @@ Then write `docs/rounds/RNN-plan.md` (NN = last round + 1) with:
    files touched, masterfile and spec section refs, done-when. The tier comes
    from the rubric in `docs/specs/locked/agent-roster.md` scope 1; unsure is
    Opus. A done-when names a test only for a step of the buyer flow the card
-   changes or a bug that came back (ADR-266); otherwise typecheck and the
+   changes or a bug that came back (ADR-273); otherwise typecheck and the
    critical tier. Cut cards so they touch disjoint files wherever the work
    allows and list the parallel groups explicitly; the orchestrator dispatches
    a group in one message. A card never mixes prompt changes with UI changes.
