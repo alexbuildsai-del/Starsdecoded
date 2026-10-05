@@ -1,29 +1,51 @@
 /**
  * The release (ADR-86, R-4.4): one admin action on staging runs, in order,
  * the release lab when the brain changed since production's commit, the
- * gate, the QA agent, and the fast-forward of `production` with the token
- * Railway holds, then /sample's run and Mira's week on a branch of their own
- * (ADR-247, ADR-250). Every step is written to `lab_releases` as it ends, so
- * a restart finds the record and not a memory. Without the token the release
- * stops at `passed` and names MB-75; the Promote workflow then reads the
- * public verdict (MB-79). The pieces are injected so the whole flow is
- * rehearsed in a test with a stub lab, a stub verdict, a stub GitHub and a
- * stub week, no spend.
+ * gate, the QA agent, the staging walk as the QA pair (ADR-315), and the
+ * fast-forward of `production` with the token Railway holds, then /sample's
+ * run and Mira's week on a branch of their own (ADR-247, ADR-250). Every
+ * step is written to `lab_releases` as it ends, so a restart finds the
+ * record and not a memory. Without the token the release stops at `passed`
+ * and names MB-75; the Promote workflow then reads the public verdict
+ * (MB-79). The pieces are injected so the whole flow is rehearsed in a test
+ * with a stub lab, a stub verdict, a stub walk, a stub GitHub and a stub
+ * week, no spend. The walk's runner and its `qa_walks` record live here too,
+ * since the deploy trigger in routes/qa.ts walks with the same ones.
  */
 import { randomUUID } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
-import { db, labReleasesTable, type InsertLabRelease, type LabRelease } from "@workspace/db";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { and, desc, eq, lt, sql } from "drizzle-orm";
+import {
+  db,
+  labReleasesTable,
+  qaWalksTable,
+  type GenerationFailureKind,
+  type InsertLabRelease,
+  type LabRelease,
+  type QaWalkMode,
+  type QaWalkRow,
+  type QaWalkStatus,
+} from "@workspace/db";
 import { readAppEnv, readCommitSha } from "./appEnv.js";
+import type { ReportInterpretation } from "./aiInterpretation.js";
+import { recordChecks } from "./failureLog.js";
 import { RELEASE_BRANCH, brainDiff, githubApi, type GithubApi } from "./github.js";
+import { dryNatal, dryPair } from "./labDry.js";
 import { MATRIX_CHARTS, gateProblems } from "./labRules.js";
 import { budgetUsd, checkBudget, dbStore, monthStart } from "./labReplay.js";
-import { NATAL_ESTIMATE_USD, PAIR_ESTIMATE_USD, RELEASE_PAIR, dbReleaseStore, runReleaseLab, type ReleaseLabOutcome, type ReleaseLabStore } from "./releaseLab.js";
+import {
+  NATAL_ESTIMATE_USD, PAIR_ESTIMATE_USD, RELEASE_PAIR, chartOf, dbReleaseStore, fixturesDir, runReleaseLab,
+  type ChartFixture, type ReleaseLabOutcome, type ReleaseLabStore,
+} from "./releaseLab.js";
 import { liveMira, pushSample, type MiraSource } from "./sampleRun.js";
+import { ensureQaPair, resetQaPair, storeQaSeed, type QaPair, type SeedStep } from "./qaPair.js";
+import { lastSync } from "./stripeSync.js";
 import { findChromium } from "./qaAgent/browser.js";
 import { runQaAgent, type QaVerdict } from "./qaAgent/index.js";
 import { logger } from "./logger.js";
 
-export type StepName = "lab" | "gate" | "qa" | "forward";
+export type StepName = "lab" | "gate" | "qa" | "walk" | "forward";
 export type StepStatus = "pending" | "running" | "passed" | "failed" | "skipped" | "stopped";
 
 export interface ReleaseStep {
@@ -51,6 +73,10 @@ export interface Preflight {
   env: string;
   stagingOnly: boolean;
   problems: string[];
+  /** The newest staging walk: its status, the label of the step it failed at, and when it ended, or began while it runs. */
+  qaWalk: { status: QaWalkStatus; step: string | null; at: string } | null;
+  /** The start's product sync, only while it holds a problem (reading 14). */
+  stripeSync: string | null;
 }
 
 export interface ReleaseStore {
@@ -69,6 +95,232 @@ export const dbReleaseRecordStore: ReleaseStore = {
   async running() { const [r] = await db.select().from(labReleasesTable).where(eq(labReleasesTable.status, "running")).limit(1); return r ?? null; },
 };
 
+const messageOf = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+
+/** What a walk answers, the staging walk's pinned shape: steps in the list's order, and what it found. */
+export type WalkStepStatus = "pass" | "fail" | "stored" | "local" | "not_run";
+
+export interface WalkStep {
+  id: string;
+  label: string;
+  status: WalkStepStatus;
+  reason?: string;
+  ms: number;
+}
+
+export interface WalkFinding {
+  /** Null for what stopped the walk outside any one step. */
+  step: string | null;
+  title: string;
+  detail: string;
+}
+
+export interface WalkVerdict {
+  status: QaWalkStatus;
+  steps: WalkStep[];
+  findings: WalkFinding[];
+}
+
+/** One row a walk (ADR-279): the deploy trigger, the Release and /api/qa/latest all go through it. */
+export interface QaWalkRecord {
+  /** The newest walk, finished or still running. */
+  latest(): Promise<QaWalkRow | null>;
+  /** Whether this commit has a walk already, of either mode. */
+  walked(sha: string): Promise<boolean>;
+  /** The new running row's id; with `oncePerCommit`, null when the commit has one already. */
+  begin(walk: { sha: string; mode: QaWalkMode; startedAt: Date }, oncePerCommit: boolean): Promise<string | null>;
+  finish(id: string, verdict: WalkVerdict, at: Date): Promise<void>;
+  /** Every row still running that began before `before` was cut off by a restart: settled failed. Answers how many. */
+  settle(before: Date, at: Date): Promise<number>;
+}
+
+export const CUT_OFF: WalkFinding = { step: null, title: "The walk did not finish", detail: "The server restarted while it was running." };
+
+export const dbQaWalkRecord: QaWalkRecord = {
+  async latest() {
+    const [row] = await db.select().from(qaWalksTable).orderBy(desc(qaWalksTable.startedAt)).limit(1);
+    return row ?? null;
+  },
+  async walked(sha) {
+    const [row] = await db.select({ id: qaWalksTable.id }).from(qaWalksTable).where(eq(qaWalksTable.sha, sha)).limit(1);
+    return Boolean(row);
+  },
+  async begin({ sha, mode, startedAt }, oncePerCommit) {
+    const row = { id: randomUUID(), sha, mode, status: "running" as const, steps: [], findings: [], startedAt };
+    if (!oncePerCommit) {
+      await db.insert(qaWalksTable).values(row);
+      return row.id;
+    }
+    return db.transaction(async (tx) => {
+      // A redeploy of one commit starts beside the process it replaces, so the two take turns here and one walks it.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`qa-walk:${sha}`}, 0))`);
+      const [seen] = await tx.select({ id: qaWalksTable.id }).from(qaWalksTable).where(eq(qaWalksTable.sha, sha)).limit(1);
+      if (seen) return null;
+      await tx.insert(qaWalksTable).values(row);
+      return row.id;
+    });
+  },
+  async finish(id, verdict, at) {
+    // A walk that ended can't still be running; a row left so would never settle once its process lives on.
+    const status = verdict.status === "running" ? "fail" : verdict.status;
+    await db.update(qaWalksTable).set({ status, steps: verdict.steps, findings: verdict.findings, finishedAt: at }).where(eq(qaWalksTable.id, id));
+  },
+  async settle(before, at) {
+    const settled = await db
+      .update(qaWalksTable)
+      .set({ status: "fail", findings: [CUT_OFF], finishedAt: at })
+      .where(and(eq(qaWalksTable.status, "running"), lt(qaWalksTable.startedAt, before)))
+      .returning({ id: qaWalksTable.id });
+    return settled.length;
+  },
+};
+
+/** Mira's and Idris's Personal reports and their parent and child report, one try each: about ten and a half cents. */
+export const WALK_ESTIMATE_USD = 2 * NATAL_ESTIMATE_USD + PAIR_ESTIMATE_USD;
+
+/** Far longer than a walk takes: past it the walk is stopped, so neither a Release nor a row waits on it for good. */
+export const WALK_LIMIT_MS = 60 * 60_000;
+
+export interface WalkDeps {
+  ensurePair: () => Promise<QaPair>;
+  resetPair: (pair: QaPair) => Promise<void>;
+  /** The walk itself, the one part that drives a browser. */
+  walk: (input: { mode: QaWalkMode; signal?: AbortSignal }) => Promise<WalkVerdict>;
+  storeSeed: (pair: QaPair) => Promise<number>;
+  /** A line for each prompt of a Release walk's three reports that failed to render; none when every one did. */
+  dry: () => Promise<string[]>;
+  record: QaWalkRecord;
+  now: () => Date;
+  limitMs: number;
+}
+
+const NO_TEXT_YET = {} as ReportInterpretation;
+
+/**
+ * The free dry render before a Release's walk spends (ADR-76): every prompt of Mira's, Idris's and their parent and
+ * child report, on charts computed from the sample people's birth data (R-3.1), rendered as the engine would send it
+ * and never sent. No Personal report exists before the walk writes it, so the pair renders over the charts alone, which
+ * is where a template or a schema breaks. Answers a line for each prompt that failed.
+ */
+export async function dryRenderWalk(): Promise<string[]> {
+  const dir = fixturesDir();
+  if (!dir) return ["no fixtures directory beside the process"];
+  const person = (id: string) => JSON.parse(readFileSync(join(dir, "sample-people", `${id}.json`), "utf8")) as ChartFixture;
+  const [mira, idris] = [person("mira"), person("idris")];
+  const [miraChart, idrisChart] = [chartOf(mira), chartOf(idris)];
+  const rows = [
+    ...(await dryNatal({ fixture: "mira", chart: miraChart, subjectName: mira.name, foundation: undefined, shapes: {} })),
+    ...(await dryNatal({ fixture: "idris", chart: idrisChart, subjectName: idris.name, foundation: undefined, shapes: {} })),
+    ...(await dryPair("mira-idris", {
+      lens: "parent_child",
+      // Mira is A and the child, Idris B and the parent, as qaPair.ts seeds the pair.
+      parent: "B",
+      a: { name: mira.name, birthDate: mira.birthDate, chart: miraChart, interpretation: NO_TEXT_YET },
+      b: { name: idris.name, birthDate: idris.birthDate, chart: idrisChart, interpretation: NO_TEXT_YET },
+    })),
+  ];
+  return rows.filter((r) => r.error || !r.schemaOk).map((r) => `${r.fixture} ${r.section}: ${r.error ?? "its schema is not strict"}`);
+}
+
+export function liveWalkDeps(): WalkDeps {
+  return {
+    ensurePair: ensureQaPair,
+    resetPair: resetQaPair,
+    // Loaded as a walk starts, so the browser's and Clerk's testing kits stay out of every start and test that never walks.
+    walk: async (input) => (await import("./qaWalk/index.js")).runQaWalk(input),
+    storeSeed: storeQaSeed,
+    dry: dryRenderWalk,
+    record: dbQaWalkRecord,
+    now: () => new Date(),
+    limitMs: WALK_LIMIT_MS,
+  };
+}
+
+// Both walks reset the same two accounts first, so in one process they take turns: a Release's walk waits for a
+// deploy's to end, and a deploy's for a Release's.
+let turn: Promise<unknown> = Promise.resolve();
+
+function inTurn<T>(task: () => Promise<T>): Promise<T> {
+  const run = turn.then(task);
+  turn = run.catch(() => undefined);
+  return run;
+}
+
+function stopped(title: string, detail: string): WalkVerdict {
+  return { status: "fail", steps: [], findings: [{ step: null, title, detail }] };
+}
+
+async function limited(deps: WalkDeps, mode: QaWalkMode): Promise<WalkVerdict> {
+  const stop = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<WalkVerdict>((resolve) => {
+    timer = setTimeout(() => {
+      stop.abort();
+      resolve(stopped("The walk took too long", `It ran for over ${Math.round(deps.limitMs / 60_000)} minutes and was stopped.`));
+    }, deps.limitMs);
+  });
+  try {
+    return await Promise.race([
+      deps.walk({ mode, signal: stop.signal }).catch((err: unknown) => stopped("The walk stopped with an error", messageOf(err))),
+      late,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** A Release walk's writes are its stored steps (reading 11); each that failed is a row on the Failures tab (ADR-81). */
+const WRITE_KINDS = new Map<string, GenerationFailureKind>([
+  ["own-report", "natal"],
+  ["idris-report", "natal"],
+  ["pair", "pair"],
+] satisfies Array<[SeedStep, GenerationFailureKind]>);
+
+async function recordFailedWrites(walkId: string, verdict: WalkVerdict): Promise<void> {
+  for (const step of verdict.steps) {
+    const kind = WRITE_KINDS.get(step.id);
+    if (!kind || step.status !== "fail") continue;
+    await recordChecks({
+      kind, section: `qa-walk:${step.id}`, model: "qa-walk", writeId: walkId, reportId: null, attempt: 1, final: true,
+      checks: [{ rule: "qa-walk-write", cls: "block", message: step.reason ?? `${step.label} failed` }],
+    });
+  }
+}
+
+export interface WalkRun {
+  id: string;
+  verdict: WalkVerdict;
+  /** A Release's walk only: how many of its reports the seed kept, or why it kept none. */
+  seed: { kept: number } | { error: string } | null;
+}
+
+/**
+ * One walk from the pair's reset state, its row written as it starts and its verdict as it ends. A Release's walk then
+ * keeps each report it finished as the seed and leaves a failure row for each write that failed; a deploy's walk stores
+ * and writes nothing (ADR-315). Answers null when `oncePerCommit` finds the commit walked already.
+ */
+export function walkOnce(mode: QaWalkMode, sha: string, deps: WalkDeps, options: { oncePerCommit?: boolean } = {}): Promise<WalkRun | null> {
+  return inTurn(async () => {
+    const id = await deps.record.begin({ sha, mode, startedAt: deps.now() }, options.oncePerCommit ?? false);
+    if (!id) return null;
+    let pair: QaPair;
+    try {
+      pair = await deps.ensurePair();
+      await deps.resetPair(pair);
+    } catch (err) {
+      const verdict = stopped("The QA accounts could not be set up", messageOf(err));
+      await deps.record.finish(id, verdict, deps.now());
+      return { id, verdict, seed: null };
+    }
+    const verdict = await limited(deps, mode);
+    await deps.record.finish(id, verdict, deps.now());
+    if (mode !== "release" || verdict.status === "unconfigured") return { id, verdict, seed: null };
+    const seed = await deps.storeSeed(pair).then((kept) => ({ kept }), (err: unknown) => ({ error: messageOf(err) }));
+    await recordFailedWrites(id, verdict);
+    return { id, verdict, seed };
+  });
+}
+
 export interface ReleaseDeps {
   github: GithubApi;
   lab: (input: { label: string; withPair: boolean; signal?: AbortSignal }) => Promise<ReleaseLabOutcome>;
@@ -81,6 +333,8 @@ export interface ReleaseDeps {
   mira: MiraSource;
   /** When production moves: Mira's week moves to the Monday after it. */
   now: () => Date;
+  /** The staging walk (ADR-315). Without it the walk step is skipped and the preflight names no walk. */
+  walk?: WalkDeps;
 }
 
 export function liveDeps(env: NodeJS.ProcessEnv = process.env): ReleaseDeps {
@@ -95,18 +349,30 @@ export function liveDeps(env: NodeJS.ProcessEnv = process.env): ReleaseDeps {
     webOrigin: env.PUBLIC_APP_URL ?? "https://starsdecoded-staging.vercel.app",
     mira: liveMira,
     now: () => new Date(),
+    walk: liveWalkDeps(),
   };
 }
 
-export const STEPS: StepName[] = ["lab", "gate", "qa", "forward"];
+export const STEPS: StepName[] = ["lab", "gate", "qa", "walk", "forward"];
 
 function freshSteps(): ReleaseStep[] {
   return STEPS.map((name) => ({ name, status: "pending", detail: null, startedAt: null, endedAt: null }));
 }
 
-/** The estimate the Release view shows before the button: the lab's price when the brain changed, the QA reading's few cents always. */
+/**
+ * The estimate the Release view shows before the button: the lab's price when the brain changed, and always the QA
+ * reading's few cents and the walk's three reports.
+ */
 export function estimateUsd(brainChanged: boolean, pairChanged: boolean): number {
-  return (brainChanged ? MATRIX_CHARTS.length * NATAL_ESTIMATE_USD + (pairChanged ? PAIR_ESTIMATE_USD : 0) : 0) + 0.05;
+  return (brainChanged ? MATRIX_CHARTS.length * NATAL_ESTIMATE_USD + (pairChanged ? PAIR_ESTIMATE_USD : 0) : 0) + 0.05 + WALK_ESTIMATE_USD;
+}
+
+/** A failed walk names the step it failed at by the step list's label, which the Release view prints as it is. */
+function walkLine(row: QaWalkRow | null): Preflight["qaWalk"] {
+  if (!row) return null;
+  const steps = Array.isArray(row.steps) ? (row.steps as WalkStep[]) : [];
+  const failed = row.status === "fail" ? steps.find((s) => s.status === "fail") : undefined;
+  return { status: row.status, step: failed?.label ?? null, at: (row.finishedAt ?? row.startedAt).toISOString() };
 }
 
 export async function preflight(deps: ReleaseDeps): Promise<Preflight> {
@@ -133,11 +399,19 @@ export async function preflight(deps: ReleaseDeps): Promise<Preflight> {
   if (sha && mainHead && sha !== mainHead) problems.push(`staging runs ${sha.slice(0, 7)} but main is at ${mainHead.slice(0, 7)}; wait for the deploy`);
   if (appEnv !== "staging") problems.push(`releases start from staging only; this is ${appEnv}`);
   if (spentUsd + estimate > budget) problems.push(`the lab budget would be passed: $${spentUsd.toFixed(2)} spent plus about $${estimate.toFixed(2)} over $${budget.toFixed(2)}`);
+  // The line informs and never blocks, so a walk the database can't read is no line rather than no preflight.
+  const qaWalk = deps.walk
+    ? await deps.walk.record.latest().then(walkLine, (err: unknown) => {
+        logger.warn({ err }, "release preflight: the last QA walk could not be read");
+        return null;
+      })
+    : null;
   return {
     sha, mainHead, productionSha, brainChanged, pairChanged, files: diff.files, estimateUsd: estimate, spentUsd, budgetUsd: budget,
     overBudget: spentUsd + estimate > budget,
     keys: { openai: Boolean(env.OPENAI_API_KEY || env.AI_INTEGRATIONS_OPENAI_API_KEY), githubReleaseToken: Boolean(env.GITHUB_RELEASE_TOKEN), browser: findChromium(env) !== null },
     env: appEnv, stagingOnly: appEnv === "staging", problems,
+    qaWalk, stripeSync: lastSync()?.problem ?? null,
   };
 }
 
@@ -201,13 +475,48 @@ export async function reusableLab(deps: ReleaseDeps, row: LabRelease): Promise<{
   return { label, sha: earlier.sha, withPair };
 }
 
+interface WalkStepOutcome {
+  status: "passed" | "skipped" | "failed";
+  detail: string;
+}
+
+function failedAt(verdict: WalkVerdict): string {
+  const step = verdict.steps.find((s) => s.status === "fail");
+  if (step) return `failed at ${step.label}${step.reason ? `: ${step.reason}` : ""}`;
+  const found = verdict.findings[0];
+  return found ? `${found.title}. ${found.detail}` : `the walk answered ${verdict.status}`;
+}
+
 /**
- * The steps in order. A failed lab, a red gate or a QA sev-1 stops the
- * release as `failed`; a clean run fast-forwards when the token is there
- * and otherwise stops `passed`, naming MB-75. Once production has moved,
- * /sample's run and Mira's week are pushed, and each one's outcome, a skip
- * included, is a line in the forward step's detail, never a failed release
- * (readings 14 and 22).
+ * The Release's walk (ADR-315): inside the lab budget and after the free dry render, the walk writes the three reports
+ * for real, one try each, and the reports it finished become the seed. Only a pass passes; a host with no browser skips
+ * the step, as it skips the QA agent's.
+ */
+async function releaseWalk(deps: ReleaseDeps, walk: WalkDeps, sha: string): Promise<WalkStepOutcome> {
+  checkBudget(await deps.spentUsd(), WALK_ESTIMATE_USD, budgetUsd(deps.env));
+  const unrendered = await walk.dry();
+  if (unrendered.length) {
+    return { status: "failed", detail: `nothing was written: ${unrendered.length} prompt(s) failed the free render, ${unrendered.slice(0, 3).join("; ")}` };
+  }
+  const run = await walkOnce("release", sha, walk);
+  if (!run) return { status: "failed", detail: "the walk did not start" };
+  const { verdict, seed } = run;
+  const kept = !seed ? "" : "kept" in seed ? `; the seed kept ${seed.kept} report(s)` : `; the seed was not kept: ${seed.error}`;
+  if (verdict.status === "pass") return { status: "passed", detail: `${verdict.steps.filter((s) => s.status === "pass").length} steps passed${kept}` };
+  if (verdict.status === "unconfigured") {
+    const why = verdict.findings[0];
+    return { status: "skipped", detail: why ? `${why.title}. ${why.detail}` : "no browser on this host" };
+  }
+  return { status: "failed", detail: `${failedAt(verdict)}${kept}` };
+}
+
+/**
+ * The steps in order. A failed lab, a red gate, a QA sev-1 or a failed
+ * walk stops the release as `failed` (ADR-272); a clean run fast-forwards
+ * when the token is there and otherwise stops `passed`, naming MB-75. Once
+ * production has moved, /sample's run and Mira's week are pushed, and each
+ * one's outcome, a skip included, is a line in the forward step's detail,
+ * never a failed release (readings 14 and 22).
  */
 export async function runRelease(id: string, deps: ReleaseDeps, options: { seedFault?: boolean } = {}): Promise<LabRelease> {
   const row = await deps.store.get(id);
@@ -272,6 +581,20 @@ export async function runRelease(id: string, deps: ReleaseDeps, options: { seedF
   await deps.store.update(id, { qa: verdict as unknown as object });
   if (verdict.status === "fail") return fail("qa", `${verdict.findings.filter((f) => f.sev === 1).length} sev-1 finding(s): ${verdict.findings.filter((f) => f.sev === 1).map((f) => f.title).join("; ")}`);
   await stepDone(deps, id, steps, "qa", verdict.status === "unconfigured" ? "skipped" : "passed", verdict.status === "unconfigured" ? (verdict.reason ?? "unconfigured") : `${verdict.findings.length} finding(s), none sev-1, $${verdict.costUsd.toFixed(4)}`);
+
+  if (!deps.walk) {
+    await stepDone(deps, id, steps, "walk", "skipped", "this run has no staging walk");
+  } else {
+    await stepStart(deps, id, steps, "walk");
+    let walked: WalkStepOutcome;
+    try {
+      walked = await releaseWalk(deps, deps.walk, row.sha);
+    } catch (err) {
+      walked = { status: "failed", detail: messageOf(err) };
+    }
+    if (walked.status === "failed") return fail("walk", walked.detail);
+    await stepDone(deps, id, steps, "walk", walked.status, walked.detail);
+  }
 
   const token = deps.env.GITHUB_RELEASE_TOKEN;
   // The run this release's reports came from: its own lab's or the reused one's; with no lab there is no new run.

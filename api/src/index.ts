@@ -3,6 +3,7 @@ import { indexNowOnStart } from "./lib/indexNow";
 import { logger } from "./lib/logger";
 import { repairStalePromptOverrides } from "./lib/promptLoader";
 import { syncProductsOnStart } from "./lib/stripeSync";
+import { qaAfterDeploy } from "./routes/qa";
 
 // Railway injects PORT; 8080 keeps local runs and the e2e suite working
 // without one being set.
@@ -36,5 +37,11 @@ app.listen(port, (err) => {
   // (ADR-315): a Stripe that is slow or down leaves checkout not ready until the next start, never the API down.
   syncProductsOnStart().catch((err) => {
     logger.warn({ err }, "syncProductsOnStart failed");
+  });
+
+  // Staging's walk of the buyer's flow, on the same footing (ADR-315): it waits for the web to serve this commit, then
+  // walks at no cost, so a slow site or a broken walk is a verdict, never a held or failed start.
+  qaAfterDeploy().catch((err) => {
+    logger.warn({ err }, "qaAfterDeploy failed");
   });
 });

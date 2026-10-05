@@ -8,6 +8,7 @@ import cspReportRouter from "./routes/cspReport";
 import stripeWebhookRouter from "./routes/stripeWebhook";
 import waitlistRouter from "./routes/waitlist";
 import geocodeRouter from "./routes/geocode";
+import qaRouter from "./routes/qa";
 import { geocodeLimit } from "./lib/limits";
 import { httpSerializers, logger } from "./lib/logger";
 import { sessionMiddleware } from "./middlewares/session";
@@ -109,6 +110,9 @@ app.use("/api", waitlistRouter);
 // no session; ahead of the prelaunch gate it is open to everyone, as the gate already lists it (ADR-246).
 app.get("/api/geocode", geocodeLimit);
 app.use("/api", geocodeRouter);
+// The staging walk's verdict, which the round's skills read with no account (ADR-279): ahead of the session it sets no
+// cookie, and ahead of the prelaunch gate production answers everyone the same 404.
+app.use("/api", qaRouter);
 app.use(sessionMiddleware);
 
 app.use(
