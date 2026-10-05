@@ -4,10 +4,9 @@ Ideation 2026-10-05 with the Owner from the Notion page "Review 05/10": 20 notes
 in chat (no Cancel on the Account page). Artifact: https://claude.ai/artifact/TraYGaLqhLE1kx2cQBPzyc.
 Status: **draft**. Touches `timeline` and `timeline-page` (cards, week, Life, readings, setup), `review-01-10`
 (the empty dashboard, pins), `natal-report-pass-two` and R16-33 (the hero), `credit-loop` (the bundles) and Ask.
-**Brain:** `prompts/timeline/reading.ts`, `prompts/sections/houses.ts`, `prompts/system.ts` (rule 1),
-`prompts/ask/*`, `packages/engine` (`tone.ts` words, `plainWords.ts` headlines, `cycles.ts` labels). Dry lab in the round.
-**Phone first**: every screen at 390 px before desktop. Every date and age on the artifact is computed from the
-Owner's chart (23 Aug 1995, 23:45, Košice) on Monday 5 Oct 2026.
+**Brain:** `prompts/timeline/reading.ts`, `sections/*`, `system.ts` (rule 1), `vocabulary.ts`, `brief.ts`, `ask/*`, pair
+prompts, `packages/engine` (`tone.ts` words, `plainWords.ts`, `cycles.ts` labels). Dry lab, then a spot run.
+**Phone first.** Every date and age on the artifact is the engine's, for the Owner's chart, on Monday 5 Oct 2026.
 
 ## Scope
 
@@ -51,9 +50,8 @@ Owner's chart (23 Aug 1995, 23:45, Košice) on Monday 5 Oct 2026.
   the day it starts or ends. Rows: changes this week first, then Heavy, Mixed, Light.
 - **Sentence** above it: "5 transits this week. 4 last all week. Short-fuse days ends on Tuesday." (count, then
   what changes, by name). A tapped row opens its line, its facts and "Read more in Timeline".
-- Retrogrades count as transits here like contacts (today's dots count contacts only).
 - On a desktop the dial with Play stays beside the picture; on a phone the picture comes first, the dial under it.
-- Timeline's Week view opens with the same picture.
+  Retrogrades count as transits. Timeline's Week view opens with the same picture.
 
 ### 4. Life and cycles (notes 6, 7, 9, 10)
 - **Drag through time**: the Today line on the waves graph is a handle; dragging it, or a slider under the graph,
@@ -99,7 +97,7 @@ Owner's chart (23 Aug 1995, 23:45, Košice) on Monday 5 Oct 2026.
   retrograde when you were born."); the Timeline set-up screen; Your week under the dial when a planet in view is
   retrograde; the Timeline app's dial legend; /timeline under Mira's dial.
 - The brain marks retrograde planets in the brief and defines the word, but the prose never says it (the r06 sample,
-  three retrograde planets: 0 uses; rule 1 keeps method out). No prompt change: the UI line is the explanation.
+  three retrograde planets: 0 uses; rule 1 keeps method out). §10 brings it into the words.
 
 ### 7. The Personal report (notes 13, 14, 15, 17, 18)
 - **Hero (bug)**: the hero's look does not change. Under "EAST · RISING" the line "drawn facing south, so east is on
@@ -120,8 +118,7 @@ Owner's chart (23 Aug 1995, 23:45, Košice) on Monday 5 Oct 2026.
   line: "No planets here · <Sign> starts this house · its planet, <Ruler>, is in your <Nth>".
 
 ### 8. Ask (note 16)
-- **Named partner with a pair**: the plan quotes that Compatibility report's matching section first.
-- **Named person with no pair**: after the answer, one card, once per person per conversation: "See <Name>'s side
+- **Named partner with a pair**: the plan quotes that pair report's matching section first. **No pair**: after the answer, one card, once per person per conversation: "See <Name>'s side
   too", one reason, then the credits: "You have 5 credits. This uses 1." and "Write it"; at zero, "You have no credits
   left. One credit writes it." and "Get a credit". No price, no second ask.
 - **Examples**: every idea Ask offers carries one everyday example, framed as an option ("for example"). No orders
@@ -130,10 +127,28 @@ Owner's chart (23 Aug 1995, 23:45, Košice) on Monday 5 Oct 2026.
 ### 9. Facts you asked about (round 3)
 - **One list in the code** (`web/src/lib/facts.ts`), each fact a short title and two or three plain sentences, with
   where the Owner asked it. Every "why is it like this?" the Owner asks in a review is added to it.
-- **Shown one at a time, about 10 s each, on the loading screens**: the report's opening screen and the Timeline
-  set-up. The retrograde fact also stays wherever an R shows (§6).
+- **One new component, the Did you know card** (round 4): a small square topic mark, "Did you know?" in brass, a short
+  title, two or three sentences, "N of M". No X, no "Got it". It sits under the report's opening screen and the
+  Timeline set-up, whose progress does not change, one fact at a time, fading on about every 10 s. Where an R shows,
+  it holds the retrograde fact and stays.
 - **The log so far**: Retrograde (note 11); Why east is on the left (round 3); A house's planet (note 18); Cycles and
   ages (note 7). Words as on the artifact, Part 9.
+
+### 10. Retrograde in the words (round 4)
+- **Rule 1** (`prompts/system.ts:25`) gains named exceptions: "Never explain the method, except these ideas, which you
+  may name and explain once in plain words where they first matter: retrograde, the rising sign, a house's planet, a
+  return. Aspect names, dignity and sect stay out." The ruler clause of §7 becomes one of these.
+- **One definition** shared by the writer (`vocabulary.ts` retrograde, rewritten in simple words), Ask and the page:
+  "From Earth, the planet looked like it moved backwards. What it stands for tends to go inward first: thought over,
+  done in private, slower to show."
+- **Personal report (Q6)**: Mercury, Venus, Mars retrograde get one paragraph in the chapter they lead (How you think,
+  How you love, Career) and a line on their house card; Jupiter and Saturn a line on the card; Uranus, Neptune, Pluto
+  only the R line. The brief tags each retrograde planet with that weight and chapter.
+- **Compatibility report**: one sentence where a lens reads a retrograde planet of either person, on how it plays
+  between them. **Timeline**: retrograde cards show the R and "Mercury retrograde · about 3 weeks" above the headline;
+  the reading says how long from the engine's stations and how often it comes round. **Ask**: may explain it.
+- Brain change: the dry lab, then a spot run on the fixtures with a retrograde Mercury, Venus or Mars (audrey-hepburn,
+  athena, night-angular, high-latitude), compared with r06.
 
 ## Out of scope
 Stripe, prices on the live site, any pricing work (ADR-230, 242, 264). The Monday letter. Chiron in Timeline (MB-189).
@@ -157,17 +172,13 @@ New bundle names. Gift from Ask. The slow-planet Horizons table (MB-216).
     reader's credit count.
 
 ## Screens
-All on the artifact (version 2): Part 1 (empty dashboard, Account preview), Part 2 (card, legend, words), Part 3 (the
-week picture, tappable), Part 4 (the life graph with its drag line and the cycle card), Part 5 (the set-up, playable),
-Part 6 (the retrograde line with and without an X, and where it shows), Part 7 (hero wheel, pins, before and after),
-Part 8 (Ask with and without credits).
+All on the artifact (version 4), Parts 1 to 10, one per section above; Part 9 is the Did you know card.
 
 ## Open questions (each with its default)
-1. Tone words: answered, Heavy · Mixed · Light with a legend.
-2. Six-month refresh: written a week ahead, the drawing plays once (default; the Owner did not object).
-3. Account before billing: answered, a marked preview.
-4. The retrograde line: answered, always open, no X.
+Answered: 1 Heavy · Mixed · Light with a legend; 2 written a week ahead (default, no objection); 3 the marked
+preview; 4 the retrograde line always open, no X.
 5. Mixed in the legend: **"has its ups and downs"** (default), or "a bit of both", or "easier days and harder ones".
+6. Retrograde in the Personal report: **by weight** (default), or Mercury, Venus and Mars only, or every planet.
 
 ## Decisions to record
 - The empty dashboard shows the circle and the bundles as buttons; no sample practice item. Supersedes part of review-01-10.
@@ -179,7 +190,10 @@ Part 8 (Ask with and without credits).
 - Life: a draggable time line; the card under it is the Your cycles card, ordered what, for you, meaning, look-back, ⓘ science.
 - Look-backs only to the past; past cycles short; before 16, child's house words; nodes reversed stated in the facts.
 - Retrograde is marked R on the dial and explained in one always-open line wherever an R shows; no X.
-- A facts log in the code holds every fact the Owner asked to explain; the loading screens show them in turn.
+- A facts log in the code holds every fact the Owner asked to explain; a new Did you know card shows them in turn
+  under the loading screens' unchanged progress.
+- Rule 1 names the ideas the writer may explain (retrograde, rising sign, a house's planet, a return); retrograde
+  enters the Personal and Compatibility reports, Timeline and Ask, weighted per Q6.
 - The hero keeps its look; under EAST · RISING the Ascendant's value replaces the "drawn facing south" sentence.
 - Every tick-box item can be pinned, three per report; filled yellow when pinned, outline when not.
 - The report shows its date; report rule 1 allows one clause naming why a ruler belongs to a house.
