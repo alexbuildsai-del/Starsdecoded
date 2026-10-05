@@ -275,6 +275,46 @@ export interface ImportResult {
   failed: Array<{ fixture: string; error: string }>;
 }
 
+/** Run the fixtures (B-30): the release lab's five charts and their pair, written on staging with no gate. */
+export interface FixturesRunning {
+  label: string;
+  startedAt: string;
+  /** Run keys already stored, in the order they landed. */
+  landed: string[];
+}
+
+export interface FixturesOutcome {
+  label: string;
+  natalRunKeys: string[];
+  pairRunKey: string | null;
+  costUsd: number;
+  failed: Array<{ fixture: string; error: string }>;
+  startedAt: string;
+  endedAt: string;
+}
+
+export interface FixturesStatus {
+  charts: string[];
+  pair: string;
+  estimateUsd: number;
+  spentUsd: number;
+  budgetUsd: number;
+  overBudget: boolean;
+  env: string;
+  stagingOnly: boolean;
+  running: FixturesRunning | null;
+  last: FixturesOutcome | null;
+}
+
+export interface FixturesStarted {
+  label: string;
+  charts: string[];
+  pair: string;
+  estimateUsd: number;
+  spentUsd: number;
+  budgetUsd: number;
+}
+
 export interface Preflight {
   sha: string | null;
   mainHead: string | null;
@@ -406,6 +446,8 @@ export const labApi = {
   replay: (runKey: string) => call<ReplayStatus>(`/replay/${encodeURIComponent(runKey)}`),
   dry: (base: string, pair?: string, lens?: string) => call<DryResponse>(`/dry?base=${encodeURIComponent(base)}${pair ? `&pair=${encodeURIComponent(pair)}` : ""}${lens ? `&lens=${encodeURIComponent(lens)}` : ""}`),
   importRuns: (labels: string[]) => call<{ results: ImportResult[] }>("/runs/import", { method: "POST", body: JSON.stringify({ labels }) }),
+  fixtures: () => call<FixturesStatus>("/fixtures"),
+  runFixtures: () => call<FixturesStarted>("/fixtures", { method: "POST", body: "{}" }),
   preflight: () => callAdmin<Preflight>("/release/preflight"),
   startRelease: (seedFault = false) => callAdmin<{ id: string; sha: string; status: ReleaseStatus }>("/release", { method: "POST", body: JSON.stringify({ seedFault }) }),
   releases: () => callAdmin<{ releases: ReleaseSummary[] }>("/release"),

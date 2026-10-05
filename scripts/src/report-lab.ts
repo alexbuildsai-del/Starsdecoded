@@ -7,31 +7,26 @@
  *   pnpm report:lab --compare baseline latest
  *   pnpm report:lab --render                  # read the newest run, no API call
  *   pnpm report:lab --render marie-curie.staging
- *   pnpm report:lab --remote https://starsdecoded-staging.vercel.app --all
  *   pnpm report:lab --render --all --label staging     (rewrite .md/.html from stored .json)
  *   pnpm report:lab --pass                                # blind marie-curie-unknown, then the horizon pass
  *   pnpm report:lab --pair curie-winfrey --lens people    # one compatibility report, measured
  *   pnpm report:lab --pair                                # the campaign: three lenses, then one parent-and-child run per band
- *
- * Remote, the natal and the pair campaigns are separate runs: dispatch one, then the other, never both in one go. They write as
- * an anonymous visitor and meet the same limits (6 an hour per session, 20 a day per IP, ADR-199), so the pair campaign keeps to
- * three sessions of 5, 6 and 5 writes and stops at the first 429, printing the API's line and Retry-After.
  *
  * Level 0 of the lab runs here, in process, with no network and no key (ADR-86):
  *   pnpm report:lab --dry --base r06                               # every natal prompt for the base's stored charts, tokens, schema
  *   pnpm report:lab --dry --base r06 --pair curie-winfrey [--lens parent_child]   # plus every pair prompt for one pair
  * Either renders Timeline's readings and Ask for every natal fixture next, then prints the injection table and exits 1
  * if a hostile name got out of its data block (security scope 8). --render renders both families for the run it reads.
- * Spot, the release lab, the gate and the import of stored runs live in the admin Lab page on staging; GitHub holds no secret.
+ * Spot, the fixtures, the release lab, the gate and the import of stored runs live in the admin Lab page on staging;
+ * GitHub holds no secret.
  *
  * Requires DATABASE_URL (the meaning library and prompt overrides both live in
  * Postgres) and OPENAI_API_KEY. Each run costs one full report's worth of AI
  * calls per chart.
  *
- * --remote needs neither: it generates each report through a deployed API as
- * an anonymous visitor would and measures what comes back, so the measurement
- * covers the engine, prompts and overrides that deployment actually runs.
- * The Report lab workflow runs it against staging.
+ * --remote is refused: it wrote through staging's API as a signed-out visitor,
+ * which hard credits ended, so staging's runs are written by Run the fixtures
+ * on the Lab page instead (B-30, ADR-290).
  */
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -86,7 +81,7 @@ const PAIR_TOTAL: [number, number] = [1900, 2500];
 import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/usage.js";
 /** The rules are the engine's, shared with the lab routes, so the panel and this trail cannot disagree on a fault. */
 import {
-  BANNED_CHARS, MATRIX_CHARTS, METHOD_TALK, REPORT_TOTAL, blindFlags, faultsOf, isOutOfCreditMessage,
+  BANNED_CHARS, MATRIX_CHARTS, METHOD_TALK, REPORT_TOTAL, blindFlags, faultsOf,
   measureReport, proseOf, reportBand, words, type SectionMeasure,
 } from "../../api/src/lib/labRules.js";
 export { blindFlags };
@@ -367,72 +362,6 @@ async function runOne(name: string, label: string): Promise<SectionRow[]> {
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
 
   return report(name, label, fixture, chart, interpretation, elapsed);
-}
-
-/**
- * The same run through a deployed API. The first response sets the anonymous
- * session cookie, which every later call must carry to own the report.
- */
-async function runOneRemote(name: string, label: string, base: string): Promise<SectionRow[]> {
-  const fixture = loadFixture(name);
-  console.log(`\n=== ${fixture.name} (${name}) via ${base} ===`);
-
-  let cookie = "";
-  const call = async (path: string, init?: RequestInit) => {
-    const res = await fetch(`${base}/api${path}`, {
-      ...init,
-      headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}), ...(init?.headers ?? {}) },
-    });
-    const set = res.headers.get("set-cookie");
-    if (set && !cookie) cookie = set.split(";")[0];
-    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!res.ok) throw new Error(`${path}: ${res.status} ${JSON.stringify(body)}`);
-    return body;
-  };
-
-  const started = Date.now();
-  const created = await call("/reports", {
-    method: "POST",
-    body: JSON.stringify({
-      name: fixture.name,
-      birthDate: fixture.birthDate,
-      birthTime: fixture.birthTime,
-      birthPlace: `lab fixture ${name}`,
-      latitude: fixture.latitude,
-      longitude: fixture.longitude,
-      timezoneOffset: fixture.timezoneOffset,
-      ...(fixture.timezone ? { timezone: fixture.timezone } : {}),
-      birthTimeWindowMinutes: fixture.birthTimeWindowMinutes ?? 0,
-    }),
-  });
-  const id = created.id as string;
-
-  // Generation runs on the server, so a failed poll (a Railway 502, a dropped
-  // connection) says nothing about the report: keep polling until the deadline.
-  const deadline = Date.now() + 15 * 60 * 1000;
-  let last = "";
-  for (;;) {
-    try {
-      const status = await call(`/reports/${id}/status`);
-      last = String(status.status);
-      if (status.status === "complete") break;
-      if (status.status === "failed") throw new Error(`report ${id} failed: ${JSON.stringify(status.failureReason ?? status.errorMessage ?? null)}`);
-    } catch (err) {
-      if (err instanceof Error && err.message.startsWith(`report ${id} failed`)) throw err;
-      console.log(`poll error, retrying: ${err instanceof Error ? err.message : err}`);
-    }
-    if (Date.now() > deadline) throw new Error(`report ${id} still ${last || "unanswered"} after 15 minutes`);
-    await new Promise((r) => setTimeout(r, 5000));
-  }
-  const elapsed = ((Date.now() - started) / 1000).toFixed(1);
-
-  const full = await call(`/reports/${id}`);
-  const interpretation = full.interpretation as Record<string, unknown>;
-  const chart = full.chartData as NatalChartData;
-  if (!interpretation || !chart) throw new Error(`report ${id} came back without interpretation or chart`);
-
-  const rows = report(name, label, fixture, chart, interpretation, elapsed);
-  return rows;
 }
 
 function report(
@@ -732,90 +661,6 @@ async function runPassLocal(label: string): Promise<void> {
   reportPass(before, after);
 }
 
-async function runPassRemote(label: string, base: string): Promise<void> {
-  const blindFixture = loadFixture("marie-curie-unknown");
-  const { call, cookieJar } = remoteClient(base);
-  console.log(`\n=== ${blindFixture.name} (marie-curie-unknown) via ${base}, blind ===`);
-  const created = await call("/reports", { method: "POST", body: JSON.stringify({
-    name: blindFixture.name, birthDate: blindFixture.birthDate, birthTime: blindFixture.birthTime,
-    birthPlace: "lab fixture marie-curie-unknown", latitude: blindFixture.latitude, longitude: blindFixture.longitude,
-    timezoneOffset: blindFixture.timezoneOffset, birthTimeWindowMinutes: 720,
-  }) });
-  const id = created.id as string;
-  const started = Date.now();
-  await pollUntil(call, id, ["complete"]);
-  const full = await call(`/reports/${id}`);
-  const before = full.interpretation as Record<string, unknown>;
-  report("marie-curie-unknown", label, blindFixture, full.chartData as NatalChartData, before, ((Date.now() - started) / 1000).toFixed(1));
-
-  const list = (await call("/reports")) as unknown as Array<{ id: string; profileId: string | null }>;
-  const profileId = list.find((r) => r.id === id)?.profileId;
-  if (!profileId) throw new Error("the created report is not in the viewer's list");
-  const passStarted = Date.now();
-  await call(`/profiles/${profileId}/birth-time`, { method: "PATCH", body: JSON.stringify({ birthTime: "12:00", birthTimeWindowMinutes: 0 }) });
-  await pollUntil(call, id, ["complete"], "revising");
-  const passed = await call(`/reports/${id}`);
-  const after = passed.interpretation as Record<string, unknown>;
-  if (passed.errorMessage) throw new Error(`the pass failed: ${passed.errorMessage}`);
-  console.log(`\n=== ${blindFixture.name} (marie-curie-unknown), passed in ${((Date.now() - passStarted) / 1000).toFixed(1)}s ===`);
-  report("marie-curie-passed", label, { ...blindFixture, birthTimeWindowMinutes: 0 }, passed.chartData as NatalChartData, after, "n/a");
-  reportPass(before, after);
-  void cookieJar;
-}
-
-/** A remote session: the first response sets the anonymous cookie every later call carries. */
-/** A 429 from the writing limits (ADR-199): carries the API's line and Retry-After so a campaign can stop on it instead of retrying. */
-class RateLimitedError extends Error {
-  readonly line: string;
-  constructor(path: string, body: Record<string, unknown>, readonly retryAfter: string | null) {
-    super(`${path}: 429 ${JSON.stringify(body)}`);
-    this.line = typeof body.message === "string" ? body.message : JSON.stringify(body);
-  }
-  describe(): string {
-    return `${this.line} (Retry-After: ${this.retryAfter ? `${this.retryAfter}s` : "not sent"})`;
-  }
-}
-
-function remoteClient(base: string) {
-  const jar = { cookie: "" };
-  const call = async (path: string, init?: RequestInit): Promise<Record<string, unknown>> => {
-    const res = await fetch(`${base}/api${path}`, {
-      ...init,
-      headers: { "content-type": "application/json", ...(jar.cookie ? { cookie: jar.cookie } : {}), ...(init?.headers ?? {}) },
-    });
-    const set = res.headers.get("set-cookie");
-    if (set && !jar.cookie) jar.cookie = set.split(";")[0];
-    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    if (res.status === 429) throw new RateLimitedError(path, body, res.headers.get("retry-after"));
-    if (!res.ok) throw new Error(`${path}: ${res.status} ${JSON.stringify(body)}`);
-    return body;
-  };
-  return { call, cookieJar: jar };
-}
-
-/** Poll a report until it reaches one of the given statuses; a failed poll says nothing about the report. */
-async function pollUntil(call: (path: string) => Promise<Record<string, unknown>>, id: string, done: string[], mustSee?: string): Promise<void> {
-  const deadline = Date.now() + 15 * 60 * 1000;
-  let seen = !mustSee;
-  let last = "";
-  for (;;) {
-    try {
-      const status = await call(`/reports/${id}/status`);
-      last = String(status.status);
-      if (mustSee && last === mustSee) seen = true;
-      if (seen && done.includes(last)) break;
-      // The status route keeps the internal message private (ADR-84); the coded reason is what it shares.
-      if (last === "failed") throw new Error(`report ${id} failed: ${JSON.stringify(status.failureReason ?? status.errorMessage ?? null)}`);
-    } catch (err) {
-      if (err instanceof RateLimitedError) throw err;
-      if (err instanceof Error && err.message.startsWith(`report ${id} failed`)) throw err;
-      console.log(`poll error, retrying: ${err instanceof Error ? err.message : err}`);
-    }
-    if (Date.now() > deadline) throw new Error(`report ${id} still ${last || "unanswered"} after 15 minutes`);
-    await new Promise((r) => setTimeout(r, 5000));
-  }
-}
-
 // ---------------------------------------------------------------------------
 // The compatibility report (ADR-63): one pair fixture under one lens, or the
 // campaign: the three lenses on curie-winfrey and the parent-and-child lens
@@ -1040,90 +885,27 @@ async function runPairLocal(name: string, lensFlag: string | undefined, label: s
   reportPair(name, lens, label, pair, out, ((Date.now() - started) / 1000).toFixed(1));
 }
 
-/**
- * One anonymous visitor on a deployed API. Writing is limited to 6 an hour per
- * session (ADR-199), so a natal report made for one pair is reused by the next
- * pair in the same session instead of written again.
- */
-function pairSession(base: string) {
-  const { call } = remoteClient(base);
-  const natalIds = new Map<string, string>();
-  const natal = async (fixtureName: string): Promise<string> => {
-    const known = natalIds.get(fixtureName);
-    if (known) return known;
-    const f = loadFixture(fixtureName);
-    const created = await call("/reports", { method: "POST", body: JSON.stringify({
-      name: f.name, birthDate: f.birthDate, birthTime: f.birthTime, birthPlace: `lab fixture ${fixtureName}`,
-      latitude: f.latitude, longitude: f.longitude, timezoneOffset: f.timezoneOffset, ...(f.timezone ? { timezone: f.timezone } : {}),
-      birthTimeWindowMinutes: f.birthTimeWindowMinutes ?? 0,
-    }) });
-    const id = created.id as string;
-    natalIds.set(fixtureName, id);
-    return id;
-  };
-  return { call, natal };
-}
-
-async function runPairRemote(name: string, lensFlag: string | undefined, label: string, base: string, session = pairSession(base)): Promise<void> {
-  const pair = loadPair(name);
-  const { lens, parent, label: how } = pairInput(pair, lensFlag);
-  const { call, natal } = session;
-  console.log(`\n=== ${pair.name} (${name}), ${lens} via ${base}: two natal reports first ===`);
-  // Created one after the other: the first response sets the session cookie,
-  // and a second report created before it lands belongs to another visitor.
-  const a = await natal(pair.a);
-  const b = await natal(pair.b);
-  await Promise.all([pollUntil(call, a, ["complete"]), pollUntil(call, b, ["complete"])]);
-  const started = Date.now();
-  const created = await call("/compatibility", { method: "POST", body: JSON.stringify({ reportAId: a, reportBId: b, lens, ...(parent ? { parent } : {}), ...(how ? { label: how } : {}) }) });
-  const id = created.id as string;
-  await pollUntil(call, id, ["complete"]);
-  const full = await call(`/reports/${id}`);
-  console.log(`\n=== ${pair.name} (${name}), ${lens} ===`);
-  reportPair(name, lens, label, pair, full.interpretation as Record<string, unknown>, ((Date.now() - started) / 1000).toFixed(1));
-}
-
-/**
- * The campaign: the three lenses on curie-winfrey, then the parent-and-child lens once per band.
- * Remote, it writes 16 times in three sessions, each inside the 6 an hour per session (ADR-199):
- * 2 natal + 3 lenses; then 4 natal + 2 pairs; then 3 natal + 2 pairs (william is written again, in a new session).
- * Every run runs even when one fails, except a 429, which stops the campaign.
- */
-const PAIR_SESSIONS: Array<Array<{ pair: string; lens?: string }>> = [
-  [{ pair: "curie-winfrey", lens: "partners" }, { pair: "curie-winfrey", lens: "parent_child" }, { pair: "curie-winfrey", lens: "people" }],
-  [{ pair: "beatrice-athena" }, { pair: "william-charlotte" }],
-  [{ pair: "william-george" }, { pair: "charles-william" }],
+/** The campaign: the three lenses on curie-winfrey, then the parent-and-child lens once per band. Every run runs even when one fails. */
+const PAIR_RUNS: Array<{ pair: string; lens?: string }> = [
+  { pair: "curie-winfrey", lens: "partners" }, { pair: "curie-winfrey", lens: "parent_child" }, { pair: "curie-winfrey", lens: "people" },
+  { pair: "beatrice-athena" }, { pair: "william-charlotte" }, { pair: "william-george" }, { pair: "charles-william" },
 ];
 
-async function runPairCampaign(label: string, base: string | undefined): Promise<void> {
+async function runPairCampaign(label: string): Promise<void> {
   const failed: string[] = [];
-  const total = PAIR_SESSIONS.flat().length;
-  let stopped: RateLimitedError | null = null;
-  let done = 0;
-  for (const runs of PAIR_SESSIONS) {
-    const session = base ? pairSession(base) : undefined;
-    for (const run of runs) {
-      const tag = `${run.pair}${run.lens ? ` ${run.lens}` : ""}`;
-      try {
-        if (base) await runPairRemote(run.pair, run.lens, label, base, session);
-        else await runPairLocal(run.pair, run.lens, label);
-        done++;
-      } catch (err) {
-        if (err instanceof RateLimitedError) { stopped = err; break; }
-        console.log(`FAILED ${tag}: ${err instanceof Error ? err.message : err}`);
-        failed.push(tag);
-      }
+  for (const run of PAIR_RUNS) {
+    const tag = `${run.pair}${run.lens ? ` ${run.lens}` : ""}`;
+    try {
+      await runPairLocal(run.pair, run.lens, label);
+    } catch (err) {
+      console.log(`FAILED ${tag}: ${err instanceof Error ? err.message : err}`);
+      failed.push(tag);
     }
-    if (stopped) break;
   }
-  if (stopped) {
-    console.log(`\nSTOPPED by the API's limit, no retry: ${stopped.describe()}`);
-    throw new Error(`pair campaign stopped at the limit after ${done} of ${total} runs: ${stopped.describe()}`);
-  }
+  const total = PAIR_RUNS.length;
   console.log(`\n=== pair campaign: ${total - failed.length} of ${total} runs complete, ${failed.length} failed${failed.length ? `: ${failed.join(", ")}` : ""} ===`);
   if (failed.length) throw new Error(`${failed.length} of ${total} pair runs failed: ${failed.join(", ")}`);
 }
-
 
 // ---------------------------------------------------------------------------
 // Stored run files: their shape, and the dry render that reads them (ADR-86).
@@ -1384,7 +1166,12 @@ async function dryInjectionTable(base: string, standIn: { name: string; file: Ru
   console.log(`injection clean: ${rows.length} prompts, every hostile name inside its data block only`);
 }
 
+/** What --remote answers now: it wrote through staging's API as a signed-out visitor, which hard credits ended (B-30, ADR-290). */
+export const REMOTE_RETIRED = "--remote is gone: reports need credits now. Run the fixtures from the Lab page on staging (Runs, Run the fixtures).";
+
 async function main() {
+  // Before any other flag is read, so an old command never falls through to a local run that spends.
+  if (flag("remote")) throw new Error(REMOTE_RETIRED);
   if (flag("list")) {
     console.log(listFixtures().join("\n"));
     return;
@@ -1439,37 +1226,10 @@ async function main() {
     return;
   }
 
-  const remote = opt("remote");
   // --pair alone, or --pair all, is the campaign; --pair <fixture> [--lens <lens>] is one run.
   const pairName = flag("pair") ? (opt("pair") ?? "all") : undefined;
   const pairFixture = pairName !== undefined && pairName !== "all" && !pairName.startsWith("--") ? pairName : null;
   const lensFlag = opt("lens") === "all" ? undefined : opt("lens");
-  if (remote !== undefined) {
-    if (!/^https?:\/\//.test(remote)) throw new Error(`--remote needs a web origin, got "${remote}"`);
-    const base = remote.replace(/\/+$/, "");
-    if (flag("pass")) { await runPassRemote(label, base); return; }
-    if (pairName !== undefined) {
-      if (pairFixture) await runPairRemote(pairFixture, lensFlag, label, base);
-      else await runPairCampaign(label, base);
-      return;
-    }
-    // Every fixture runs even when one fails: a measurement with four charts
-    // and one named failure is worth more than a stop at the first.
-    const failed: string[] = [];
-    for (const name of names) {
-      try {
-        await runOneRemote(name, label, base);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.log(`FAILED ${name}: ${message}`);
-        failed.push(name);
-        // A key with no credits fails every chart the same way; one named failure says more than five (ADR-77).
-        if (isOutOfCreditMessage(message)) { console.log(`out of credit on ${name}: the campaign stops here.`); break; }
-      }
-    }
-    if (failed.length) throw new Error(`${failed.length} of ${names.length} fixtures failed: ${failed.join(", ")}`);
-    return;
-  }
 
   if (!process.env.DATABASE_URL) {
     throw new Error(
@@ -1490,7 +1250,7 @@ async function main() {
     await runPassLocal(label);
   } else if (pairName !== undefined) {
     if (pairFixture) await runPairLocal(pairFixture, lensFlag, label);
-    else await runPairCampaign(label, undefined);
+    else await runPairCampaign(label);
   } else {
     for (const name of names) {
       await runOne(name, label);

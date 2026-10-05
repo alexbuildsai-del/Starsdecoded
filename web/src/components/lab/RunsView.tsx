@@ -1,7 +1,83 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cents, labApi, type CompareResponse, type LabRunRow } from "@/lib/labApi";
+import { LabApiError, cents, labApi, type CompareResponse, type FixturesStatus, type LabRunRow } from "@/lib/labApi";
+
+/**
+ * Run the fixtures (B-30, ADR-290), the one button on Runs that spends: the release lab's charts and their pair,
+ * written fresh on staging, with the price on screen before the press. While they write, the list reloads each time
+ * a report lands, so its numbers can be read before the run ends.
+ */
+function FixturesRun({ onLanded }: { onLanded: () => void }) {
+  const [status, setStatus] = useState<FixturesStatus | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const seen = useRef<string | null>(null);
+  const landed = useRef(onLanded);
+  landed.current = onLanded;
+
+  const refresh = useCallback(async () => {
+    const next = await labApi.fixtures();
+    setStatus(next);
+    const mark = next.running ? `${next.running.label}:${next.running.landed.length}` : next.last ? `${next.last.label}:done` : "";
+    if (seen.current !== null && mark !== seen.current) landed.current();
+    seen.current = mark;
+  }, []);
+
+  useEffect(() => { refresh().catch((e: Error) => setError(e.message)); }, [refresh]);
+
+  const writing = Boolean(status?.running);
+  useEffect(() => {
+    if (!writing) return;
+    const timer = window.setInterval(() => { refresh().catch((e: Error) => setError(e.message)); }, 5000);
+    return () => window.clearInterval(timer);
+  }, [writing, refresh]);
+
+  const run = async () => {
+    setStarting(true);
+    setError(null);
+    try {
+      await labApi.runFixtures();
+    } catch (e) {
+      setError(e instanceof LabApiError && e.code === "lab_budget" ? `Refused: ${e.message}` : (e as Error).message);
+    } finally {
+      await refresh().catch(() => undefined);
+      setStarting(false);
+    }
+  };
+
+  if (!status) return error ? <p className="text-xs text-destructive">Fixtures: {error}</p> : null;
+  const total = status.charts.length + 1;
+  const last = status.last;
+  const written = last ? last.natalRunKeys.length + (last.pairRunKey ? 1 : 0) : 0;
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 p-3 flex flex-col gap-2">
+      <p className="font-label text-xs tracking-wide text-primary">Fixtures · the {status.charts.length} charts and their pair, written fresh</p>
+      <p className="text-xs text-muted-foreground">This doesn't release anything. Each run shows in the list below once it's written.</p>
+      <div className="flex items-center gap-3 flex-wrap">
+        <Button size="sm" disabled={starting || writing || !status.stagingOnly || status.overBudget} onClick={run}>
+          {starting ? "Starting" : "Run the fixtures"}
+        </Button>
+        <p className={`text-xs font-numeric ${status.overBudget ? "text-destructive" : "text-muted-foreground"}`}>
+          about {cents(status.estimateUsd)} · spent {cents(status.spentUsd)} of {cents(status.budgetUsd)}{status.overBudget ? " · over budget, refused" : ""}
+        </p>
+      </div>
+      {!status.stagingOnly && <p className="text-xs text-muted-foreground">Runs on staging only.</p>}
+      {status.running && (
+        <p role="status" className="text-xs font-numeric flex items-center gap-1.5">
+          <Loader2 className="h-3 w-3 animate-spin text-primary" aria-hidden="true" /> Writing {status.running.label}: {status.running.landed.length} of {total} done
+        </p>
+      )}
+      {!status.running && last && (
+        <p role="status" className={`text-xs font-numeric ${last.failed.length ? "text-destructive" : "text-muted-foreground"}`}>
+          {last.label}: {written === total ? `all ${total}` : `${written} of ${total}`} written, {cents(last.costUsd)}
+          {last.failed.length ? `. Failed: ${last.failed.map((f) => `${f.fixture} (${f.error.slice(0, 80)})`).join(", ")}` : ""}
+        </p>
+      )}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
 
 /**
  * Runs: every stored run by fixture and label, per-section words, cost,
@@ -65,6 +141,7 @@ export function RunsView() {
 
   return (
     <div className="flex flex-col gap-6">
+      <FixturesRun onLanded={() => { void load(); }} />
       <div className="flex items-end gap-2 flex-wrap">
         <label className="text-xs font-label text-muted-foreground flex flex-col gap-1">
           Compare
