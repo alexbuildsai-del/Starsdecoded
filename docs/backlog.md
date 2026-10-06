@@ -34,6 +34,8 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-27 · /sample refreshes from the next passing Release; check the old tie line is gone · was MB-182
 - B-28 · Remove each `// MB-NN provisional` seam whose row is no longer open (seams for 39 rows in `api`, `web`, `packages` today; fetch each row first) · sweep 05/10
 - B-29 · R15 and R16 small follow-ups (libraries, query counts, leak table, release retry; R16 leftovers) · was MB-209, MB-222
+- B-40 · `HARD_PAIRS` in `api/src/lib/synastryCompute.ts` holds saturn-pluto, venus-saturn, venus-pluto unsorted, so `pairKey` never matches them; sort the keys, with a dry lab run · compat-loading ideation 06/10
+- B-41 · `computeCrossAspects` uses the noon Moon for a chart with no birth time; keep a Moon link only when its whole day span holds the aspect, with a dry lab run · compat-loading ideation 06/10
 
 ## Waiting on Alex
 
