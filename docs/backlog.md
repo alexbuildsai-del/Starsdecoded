@@ -58,6 +58,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-55 · Deleting a Timeline subscriber's Personal report: the dialog says Timeline stops opening and keeps renewing, with Cancel's link · QA-06 #10
 - B-56 · /checkout lists Bancontact, MB WAY, Satispay, Amazon Pay, EPS under "or pay by card", and the country defaults to the US; match the list and the buyer · QA-06 #12
 - B-57 · Account names where to delete your data (the dashboard's Delete) · QA-06 #15
+- B-58 · The report status route's `provisional` bodies (`provisionalFor`, `api/src/routes/reports.ts`, `openapi.yaml`) are read only by the orrery; once R18-27 removes it, drop them, their test and the codegen output · R18 plan
 
 ## Waiting on Alex
 
@@ -71,7 +72,6 @@ Open Mailbox rows, ids and links only (R-12.7). Kept current by every session th
 - MB-191 https://app.notion.com/p/3eefefe7493181da8feedb50233dc9c6
 - MB-193 https://app.notion.com/p/3eefefe7493181819339d9205fba797c
 - MB-215 https://app.notion.com/p/3effefe7493181ff9609ffecbe99463f
-- MB-225 https://app.notion.com/p/3f0fefe7493181898b92da25fe707f2a
 - MB-227 https://app.notion.com/p/3f0fefe7493181b1bb50e644ea207157
 - MB-228 https://app.notion.com/p/3f0fefe7493181958e8bfd0d011d4120
 - MB-232 https://app.notion.com/p/3f0fefe749318169953ced2f4aee9abe
