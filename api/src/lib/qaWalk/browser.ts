@@ -7,6 +7,9 @@
  * A door in each context stops any request to a route that writes a report or a reading unless the walk asked for that
  * one call itself (reading 17), so no page the walk opens can spend on its own.
  */
+import { readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Browser, Frame, Page } from "playwright-core";
 import type { CatalogueItemId } from "@workspace/commerce";
 import type { QaWalkMode } from "@workspace/db";
@@ -157,12 +160,52 @@ function messageOf(err: unknown): string {
 
 type ClerkHelpers = (typeof import("@clerk/testing/playwright"))["clerk"];
 
+/** The container's memory in MB from its cgroup (v2, then v1), as a crash leaves it: a page killed for memory says nothing. */
+function memoryNote(): string {
+  const mb = (...files: string[]): string => {
+    for (const file of files) {
+      try {
+        const raw = readFileSync(`/sys/fs/cgroup/${file}`, "utf8").trim();
+        if (raw === "max" || Number(raw) > 2 ** 60) return "no limit";
+        return `${Math.round(Number(raw) / 1048576)} MB`;
+      } catch {
+        // The next layout's file, if any.
+      }
+    }
+    return "unknown";
+  };
+  const now = mb("memory.current", "memory/memory.usage_in_bytes");
+  const peak = mb("memory.peak", "memory/memory.max_usage_in_bytes");
+  const limit = mb("memory.max", "memory/memory.limit_in_bytes");
+  return `memory ${now}, peak ${peak}, limit ${limit}`;
+}
+
+/** Why a page crashed, as far as Chromium's log and the container show (the staging walk, 2026-10-06). */
+function crashNote(logFile: string): string {
+  let lines: string[] = [];
+  try {
+    lines = readFileSync(logFile, "utf8").split("\n").filter((line) => /:(ERROR|FATAL):/.test(line) && !line.includes(":ERROR:dbus/"));
+  } catch {
+    // No log: the note gives the memory alone.
+  }
+  const telling = lines.filter((line) => /FATAL|signal|crash|memory|oom|check failed/i.test(line));
+  const last = (telling.length > 0 ? telling : lines).slice(-2).map((line) => line.replace(/^\[[^\]]*:(ERROR|FATAL):/, "$1 "));
+  return `${memoryNote()}; Chromium logged ${last.length > 0 ? last.join(" / ") : "nothing"}`;
+}
+
 class ChromiumPage implements WalkPage {
+  private crashed = false;
+
   constructor(
     private readonly page: Page,
     private readonly origin: string,
     private readonly clerk: ClerkHelpers,
-  ) {}
+    private readonly logFile: string,
+  ) {
+    page.on("crash", () => {
+      this.crashed = true;
+    });
+  }
 
   private url(path: string): string {
     return `${this.origin}${path}`;
@@ -300,6 +343,15 @@ class ChromiumPage implements WalkPage {
   }
 
   async pay(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string> {
+    try {
+      return await this.payOnce(item, returnTo, door);
+    } catch (err) {
+      if (!this.crashed) throw err;
+      throw new Error(`the page crashed in checkout: ${crashNote(this.logFile)}`);
+    }
+  }
+
+  private async payOnce(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string> {
     if (door) {
       await this.goto(door.path);
       const scope = door.inDialog ? this.page.getByRole("dialog") : this.page;
@@ -371,12 +423,15 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
       // lapsed; .env files are never read on Railway, where the keys live.
       forgetTestingToken();
       let browser: Browser | null = null;
+      // Chromium and its pages write here, read only for the reason a crashed page gives.
+      const logFile = join(tmpdir(), `qa-walk-chromium-${process.pid}-${Date.now()}.log`);
       try {
         await testing.clerkSetup({ publishableKey: options.clerk.publishableKey, secretKey: options.clerk.secretKey, dotenv: false });
         const opened = await chromium.launch({
           executablePath: options.executablePath,
           headless: true,
-          args: ["--no-sandbox", "--disable-dev-shm-usage"],
+          // The Railway image has no GPU, and the page that crashed there held Stripe's frames (2026-10-06).
+          args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--enable-logging", `--log-file=${logFile}`, "--log-level=2"],
         });
         browser = opened;
         const pageFor = async (): Promise<ChromiumPage> => {
@@ -391,7 +446,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           );
           const page = await context.newPage();
           page.setDefaultTimeout(SHOWN_MS);
-          return new ChromiumPage(page, origin, testing.clerk);
+          return new ChromiumPage(page, origin, testing.clerk, logFile);
         };
         const mira = await pageFor();
         const idris = await pageFor();
@@ -400,12 +455,14 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
             await opened.close();
           } finally {
             forgetTestingToken();
+            rmSync(logFile, { force: true });
           }
         };
         return { mira, idris, close };
       } catch (err) {
         await browser?.close().catch(() => undefined);
         forgetTestingToken();
+        rmSync(logFile, { force: true });
         throw err;
       }
     },
