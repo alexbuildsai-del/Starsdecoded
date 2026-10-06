@@ -17,32 +17,35 @@ does not re-open it; it writes the six launch-day lines and asks only how they s
   (2026-10-06 14:23 UTC) options answer `ready: true` and the deploy walk's `buy` step passed
   (tick, Family & friends, 5 credits). The badge text in a failure reason is left as is.
 
-### Credit line · "You pay once for each report" is wrong (Owner, 2026-10-06)
-Credits are bought, often in a bundle, so the line misleads. Not tied to launch; ships next round.
+### Credit line · the Owner's wording, no prices in the FAQ (Owner, 2026-10-06)
+"You pay once for each report" is wrong: credits are bought, often in a bundle. The Owner's line:
+"You pay for credits. 1 credit = 1 report of any kind." No prices in the FAQ: a discount changes
+them and the FAQ would be wrong. Prices show only where they are read live from the catalogue,
+campaigns included (`usePrices`: home Prices, checkout, the credit sheet). Not tied to launch.
 
 | Where | Today | Proposed |
 |---|---|---|
-| Home Prices, `Pricing.tsx:59` | You pay once for each report. | You pay once for credits. {CREDIT_LINE} |
-| Dashboard, `DashboardPage.tsx:264` | You pay once for each report. | You pay once for credits. {CREDIT_LINE} |
-| /faq, `faq.ts:148` | Once for each report. Timeline, coming after launch, will be our one subscription. {CREDIT_LINE} Credits cost {creditPrices()}, VAT included. | You pay once for credits, not every month. {CREDIT_LINE} Credits cost {creditPrices()}, VAT included. Timeline, coming after launch, will be our one subscription. |
+| `CREDIT_LINE`, `catalogue.ts:67` (BundleList, CreditPill, faq) | 1 credit = 1 report of either kind. | 1 credit = 1 report of any kind. |
+| Home Prices, `Pricing.tsx:59` | You pay once for each report. | You pay for credits. {CREDIT_LINE} |
+| Dashboard, `DashboardPage.tsx:264` | You pay once for each report. | You pay for credits. {CREDIT_LINE} |
+| /faq, `faq.ts:148` | Once for each report. Timeline, coming after launch, will be our one subscription. {CREDIT_LINE} Credits cost {creditPrices()}, VAT included. | You pay for credits. {CREDIT_LINE} Timeline, coming after launch, will be our one subscription. |
 
-`CREDIT_LINE` is "1 credit = 1 report of either kind." (`packages/commerce/src/catalogue.ts:67`).
-The /faq answer's first sentences were the Owner's (ADR-253); this replaces them on his word.
+`creditPrices()` in `faq.ts` goes with its last use. The /faq answer's first sentences were the
+Owner's (ADR-253); this replaces them on his word.
 
 ### B-41 · the six launch-day lines, written now
-Prices come from `planPriceLine()` (catalogue, R-6.3), never typed.
+The price shows only in the plan card, read live; never typed (R-6.3), never in the FAQ.
 
 | Where | Today | Launch day |
 |---|---|---|
 | Home, `TimelineLine.tsx:98` | Coming soon · Timeline | Timeline |
 | /timeline eyebrow, `site.ts:111` | Coming soon · Timeline | Timeline |
 | /timeline hero, `Hero.tsx:61` | Timeline opens after launch. You'll need a {Personal natal report}. | You'll need a {Personal natal report}. |
-| /timeline plan card, `WhatYouGet.tsx:42` | Coming soon | {planPriceLine()} |
+| /timeline plan card, `WhatYouGet.tsx:42` | Coming soon | both plans' live prices (`usePrices`, campaigns included) |
 | /faq, `faq.ts:148` | … Timeline, coming after launch, will be our one subscription. | … Timeline is our one subscription. |
-| /timeline FAQ, `faq.ts:163` | … and Ask. It opens after launch. The price comes later. | … and Ask. It costs {planPriceLine()}. |
+| /timeline FAQ, `faq.ts:163` | … and Ask. It opens after launch. The price comes later. | … and Ask. |
 
-- The price shows once in the page body (the card) and once in the FAQ; the hero adds none
-  (playbook, "no promise twice").
+- No price in the FAQ or the hero; the plan card is the one place.
 - llms.txt and JSON-LD follow on their own (lede unchanged; FAQPage built from `faq.ts`).
 - The stale comments "no price until billing exists" (`site.ts:107`, `TimelineLine.tsx:88`,
   `WhatYouGet.tsx:2-3`) are reworded to "no price until launch (ADR-343)" in the same change.
@@ -56,11 +59,11 @@ Prices come from `planPriceLine()` (catalogue, R-6.3), never typed.
 - Any change to the staging walk or the STAGING badge (B-40 closed).
 
 ## Acceptance criteria
-1. Home Prices, the dashboard and /faq no longer say "You pay once for each report" or "Once for
-   each report"; they read as the credit-line table, prices from the catalogue.
+1. Home Prices, the dashboard and /faq read as the credit-line table; the credit line says "any
+   kind" everywhere; no FAQ answer names a price.
 2. Before launch, the six Timeline lines read as today on staging and production.
 3. With `LAUNCHED = true` (checked in a local build, not shipped), the six read as the launch-day
-   column, the price from the catalogue; no "after launch", "coming soon" or "price comes later"
+   column, the plan card's price live from the catalogue; no "after launch", "coming soon" or "price comes later"
    is left on home, /timeline, /faq or llms.txt.
 4. Typecheck, both builds, the critical tests and `check:shipped` pass.
 
@@ -77,8 +80,10 @@ beside /timeline on launch day, and the six-line table.
 ## Decisions to record
 - B-40 closed with nothing to build: the untickable box was checkout being closed (QA-05 #1), fixed
   in staging's setup; the walk passed `buy` on f5c2195 (Decided by Alex, 2026-10-06).
-- "You pay once for each report" is replaced in three places by the credit-line table, next round,
-  not tied to launch (Decided by Alex, wording by Claude, 2026-10-06).
-- B-41 (Decided by Claude, under ADR-343): the six launch-day lines as in the table; the price from
-  `planPriceLine()`, shown in the plan card and the FAQ only.
+- The credit line is "You pay for credits. 1 credit = 1 report of any kind." on home, the dashboard
+  and /faq, and `CREDIT_LINE` says "any kind" (Decided by Alex, 2026-10-06).
+- No price in any FAQ answer; prices show only where read live from the catalogue, so a discount
+  never leaves a page wrong (Decided by Alex, 2026-10-06).
+- B-41 (Decided by Claude, under ADR-343): the six launch-day lines as in the table; Timeline's
+  price only in the plan card, read live.
 - B-41 (pending Owner, Q1): the lines switch on `LAUNCHED`.
