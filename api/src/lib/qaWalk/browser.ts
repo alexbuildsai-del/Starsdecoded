@@ -430,8 +430,19 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
         const opened = await chromium.launch({
           executablePath: options.executablePath,
           headless: true,
-          // The Railway image has no GPU, and the page that crashed there held Stripe's frames (2026-10-06).
-          args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--enable-logging", `--log-file=${logFile}`, "--log-level=2"],
+          // The Railway container has about 1 GB, and a page with Stripe's frames, each in a process of its own, ran it
+          // out (peak 954 of 954 MB, 2026-10-06): the frames share their page's process, and nothing runs in the back.
+          args: [
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-site-isolation-trials",
+            "--disable-features=site-per-process,IsolateOrigins",
+            "--disable-background-networking",
+            "--enable-logging",
+            `--log-file=${logFile}`,
+            "--log-level=2",
+          ],
         });
         browser = opened;
         const pageFor = async (): Promise<ChromiumPage> => {
