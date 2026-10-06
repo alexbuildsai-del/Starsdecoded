@@ -591,30 +591,14 @@ const WALK: Record<StepId, Step> = {
     assert.deepEqual(await gifts(MIRA), [[giftId, "Idris", IDRIS_EMAIL, "waiting", true]]);
   },
 
-  "no-credit": async () => {
-    await signIn(IDRIS, IDRIS_EMAIL);
-    assert.deepEqual(await credits(IDRIS), NO_CREDITS);
-    // The gift waits for his claim, so his balance has nothing in it yet and Write is refused before a word is asked of
-    // the model or a row is made (reading 17).
-    replies = {};
-    const callsBefore = modelCalls.length;
-    const asked = await call(IDRIS, "POST", "/reports", birthForm(IDRIS_BIRTH, "Cardiff", true));
-    assert.deepEqual([asked.status, asked.body], [402, NO_CREDIT_TO_WRITE]);
-    assert.equal(modelCalls.length, callsBefore);
-    assert.equal(await keptFor(IDRIS), 0);
-    assert.deepEqual(await credits(IDRIS), NO_CREDITS);
-    assert.deepEqual((await call(IDRIS, "GET", "/profiles")).body, []);
-    // Get credits opens /checkout, whose bundles and Pay are there for him.
-    const options = await checkoutOptions(IDRIS);
-    assert.equal(options.ready, true);
-    assert.deepEqual(options.items.filter((i) => i.kind === "bundle").map((i) => i.id), ["solo", "couple", "family"]);
-  },
-
   "gift-claimed": async () => {
     const opened = await preview(IDRIS_SIGNED_OUT, giftToken);
     assert.deepEqual([opened.kind, opened.inviterName, opened.recipientName, opened.note, opened.alreadyClaimed], ["gift", "Mira", "Idris", GIFT_NOTE, false]);
     assert.equal((await call(IDRIS_SIGNED_OUT, "POST", claimPath(giftToken))).status, 401);
 
+    // He signs in from the email's link, and his balance holds nothing until the claim.
+    await signIn(IDRIS, IDRIS_EMAIL);
+    assert.deepEqual(await credits(IDRIS), NO_CREDITS);
     const claimed = await claim(IDRIS, giftToken);
     assert.deepEqual([claimed.kind, claimed.redirectTo], ["gift", "/dashboard"]);
 
@@ -643,6 +627,25 @@ const WALK: Record<StepId, Step> = {
     assert.deepEqual(unanswered, []);
     assert.deepEqual((await readHome(IDRIS)).you?.reportId, idrisReportId);
     assert.deepEqual(await history(IDRIS), [["spent", 1, "Idris Costa"], ["gift", 1, "A gift from Mira"]]);
+  },
+
+  "no-credit": async () => {
+    assert.deepEqual(await credits(IDRIS), { available: 0, used: 1, held: 0 });
+    // His gifted credit wrote his report, so asking for another is refused before a word is asked of the model or a row
+    // is made (reading 17).
+    replies = {};
+    const callsBefore = modelCalls.length;
+    const [keptBefore, profilesBefore] = [await keptFor(IDRIS), (await call(IDRIS, "GET", "/profiles")).body];
+    const asked = await call(IDRIS, "POST", "/reports", birthForm(MIRA_BIRTH, "Lisbon", false));
+    assert.deepEqual([asked.status, asked.body], [402, NO_CREDIT_TO_WRITE]);
+    assert.equal(modelCalls.length, callsBefore);
+    assert.equal(await keptFor(IDRIS), keptBefore);
+    assert.deepEqual(await credits(IDRIS), { available: 0, used: 1, held: 0 });
+    assert.deepEqual((await call(IDRIS, "GET", "/profiles")).body, profilesBefore);
+    // Get credits opens /checkout, whose bundles and Pay are there for him.
+    const options = await checkoutOptions(IDRIS);
+    assert.equal(options.ready, true);
+    assert.deepEqual(options.items.filter((i) => i.kind === "bundle").map((i) => i.id), ["solo", "couple", "family"]);
   },
 
   share: async () => {

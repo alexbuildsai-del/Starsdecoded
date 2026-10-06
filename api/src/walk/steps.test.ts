@@ -20,7 +20,7 @@ const everyStoredStepHasASeed: Same<StoredStepId, SeedStep> = true;
 test("the ids are unique and in the order the Owner walks them", () => {
   assert.equal(new Set(STEP_IDS).size, STEP_IDS.length);
   assert.deepEqual(STEP_IDS, [
-    "sign-in", "buy", "own-report", "gift", "no-credit", "gift-claimed", "idris-report", "share", "share-back", "pair",
+    "sign-in", "buy", "own-report", "gift", "gift-claimed", "idris-report", "no-credit", "share", "share-back", "pair",
     "pair-shared", "refund", "tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline",
   ]);
   for (const step of STEPS) assert.ok(step.label.trim().length > 0, `${step.id} has no label`);
@@ -75,7 +75,8 @@ test("a map that lacks a step, or has one the list doesn't, is refused with both
 
 test("with no seed yet, a deploy's walk runs steps 1, 2, 4 to 6 and 12, and the rest of staging's wait with the seed", () => {
   const ready = STAGING_STEP_IDS.filter((id) => seedsFor(id).length === 0);
-  assert.deepEqual(ready, ["sign-in", "buy", "gift", "no-credit", "gift-claimed", "refund"]);
+  assert.deepEqual(ready, ["sign-in", "buy", "gift", "gift-claimed", "refund"]);
+  assert.deepEqual(seedsFor("no-credit"), ["idris-report"]);
   assert.deepEqual(seedsFor("own-report"), ["own-report"]);
   assert.deepEqual(seedsFor("share"), ["own-report"]);
   assert.deepEqual(seedsFor("share-back"), ["idris-report"]);
