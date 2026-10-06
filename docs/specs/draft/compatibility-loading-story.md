@@ -13,30 +13,27 @@ opens this screen.
 
 ## Scope
 
-Five steps on `/compatibility/:id` while the report writes, one label and one plain sentence each,
-one percentage, eased from one scene to the next, held still at the end:
+Second draft, after the Owner: the first gave the report away ("step 5 is the report's wow
+moment"), so nothing on this screen says what anything means; only facts: places, dates, signs,
+elements, houses with their word and object. Four directions in the artifact's player:
 
-1. **Your two charts** (0–5 s): both plates from /compatibility come in whole and turn until each
-   rising sign sits on one brass horizon (ADR-113, 320); names, Sun, Moon, Rising and the birth
-   record under each.
-2. **What you have in common** (5–17 s): one match every 4 s, the same element lit violet on both
-   plates at once: Sun, Moon, Rising, Venus, Mars like for like, and Sun with Moon both ways;
-   three at most.
-3. **Where you're different** (17–29 s): like for like in different elements, two at most, then
-   an element one person fills with three or more planets and the other leaves empty.
-4. **In each other's houses** (29–45 s): a Sun or Moon of one lit on its plate, the house it
-   falls in lit on the other, its word, object and covers line written under (ADR-321), from the
-   pair brief's notable overlays. With a missing birth time: one line, "No birth time, so no
-   houses", 6 s.
-5. **What comes easily, and what takes work** (45–81 s): one link every 6 s, its two bodies lit
-   on their own plates and the ledger's glyph drawn into "Comes naturally" or "Challenge"
-   between them (ADR-101); three of each in the brief's order. Ends on "Six places your charts
-   meet. Your report says what each one means." and holds still.
+- **A** · the two charts on one horizon, then, slowly (2 matches × 7 s each), "Looking at what
+  you share", "Looking at where you differ", "Looking at each other's houses".
+- **B** · the Personal story's globe turns to both birthplaces ("502 km apart"), the Earth
+  shrinks, the sky on the first birthday draws, settles on that person's plate, and a sky runs on
+  to the second birthday ("born 1 year, 5 months and 12 days later") and settles on the other
+  plate; the horizon draws across both. The circles never touch (ADR-97, see question 2).
+- **C** · houses 1 to 12 light together on both plates, 5.5 s each, word, object, each person's
+  sign and planets; signs instead of houses without a birth time.
+- **B then C** (recommended): B's opening, then C fills the writing time.
 
-Every match, house and link is computed from the two charts with the engine and the pair brief's
-own functions (`computeCrossAspects`, `computeOverlays`, `notableOverlays`); nothing is typed.
-The door at 67% and the opening 1.2 s after 100% stay (ADR-47, 59). Reduced motion shows each
-step complete and still.
+Every direction ends still under "Now writing your report"; Start reading at 67% and the page
+opens itself at 100% as today (ADR-47, 59). All data from the engine: the two stored charts,
+`longitudeAt` for the sky between births, `notableOverlays` for houses.
+
+**No extra wait.** Measured in Node 22: one pair's matches and overlays 0.047 ms (1,000 runs);
+the sky between two births, 264 days every second day, about 35 ms. Both charts are stored; the
+report writes on the server meanwhile; the animation adds nothing to the wait.
 
 ## Out of scope
 
@@ -45,13 +42,11 @@ step complete and still.
 
 ## Acceptance criteria
 
+- No word on the screen interprets ("easy", "tension", "comes naturally", "challenge" never appear).
 - No line or shape joins one chart to the other; two charts never share a plate (ADR-97).
-- A pair with a missing birth time draws that plate without a horizon or houses and skips step 4
-  in one line; a Moon with no birth time takes part only when its whole span sits in one sign.
-- The story stops after step 5; the percentage is the report's writing progress, never a rating.
-- At 390 px both plates fit side by side with no sideways scroll; the lit house is written out
-  under them.
-- The buyer walk's pair step reaches this screen from the picker.
+- A missing birth time: that plate has no horizon or houses; C reads signs.
+- The story holds still once played; the percentage is writing progress, never a rating.
+- At 390 px no sideways scroll; reduced motion shows the last frame, still.
 
 ## Screens
 
@@ -60,14 +55,14 @@ table, the rules kept and the choices made.
 
 ## Open questions
 
-1. Each match on screen: 4 s, and 6 s per link? Recommended yes. Default: yes.
-2. /compatibility and a reel from the same scenes later? Recommended yes, after the app ships.
-   Default: the app only for now.
+1. Which direction? Recommended B then C. Default: B then C.
+2. B shows one sky moving between the two birthdays before each settles on its own plate. Does
+   that keep ADR-97 ("nothing draws two charts on one plate")? Recommended: yes, it's one sky at
+   one moment and the circles never touch. Default: yes; if no, A then C.
 
 ## Decisions to record
 
-- D1 · The Compatibility loading screen is five steps: two charts on one horizon, in common,
-  different, each other's houses, easy and hard links, held still (Claude, from the Owner).
-- D2 · Matches light both plates at once; the only link drawn is the ledger's glyph between them.
-- D3 · All twelve house words stay on each plate, quiet, the lit one written out under (ADR-98).
-- D4 · Timing 4 s a match, 6 s a link (Q1).
+- D1 · The Compatibility loading screen shows facts only, never what they mean (Owner).
+- D2 · Direction (Q1); one sky between the two births read within ADR-97 (Q2).
+- D3 · Matches light both plates at once; nothing joins the two charts.
+- D4 · All twelve house words stay on each plate, quiet, the lit one written out under (ADR-98).
