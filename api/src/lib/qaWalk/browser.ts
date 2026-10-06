@@ -184,7 +184,10 @@ function memoryNote(): string {
 function crashNote(logFile: string): string {
   let lines: string[] = [];
   try {
-    lines = readFileSync(logFile, "utf8").split("\n").filter((line) => /:(ERROR|FATAL):/.test(line) && !line.includes(":ERROR:dbus/"));
+    // D-Bus and Google's push service fail on every server start and say nothing about a crash.
+    lines = readFileSync(logFile, "utf8")
+      .split("\n")
+      .filter((line) => /:(ERROR|FATAL):/.test(line) && !/:ERROR:(dbus|google_apis\/gcm)\//.test(line));
   } catch {
     // No log: the note gives the memory alone.
   }
