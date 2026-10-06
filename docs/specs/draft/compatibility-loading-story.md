@@ -46,6 +46,13 @@ counter ("Step 3 of 6") in one fixed place, the title under it, the subtitle und
 stage in one fixed box, the percentage and the door in one fixed place. The Owner will plan all
 three loading reworks in one round.
 
+The grid, as % of the frame's height, the same on phone (360×740) and desktop (1000×600): step
+counter 5–8 · title, two lines at most, 8–16 · subtitle, two lines at most, 16–22 · stage (globe,
+plates, dial) 24–66 · detail (places and dates, the house being read, ticks) 68–84 · percentage
+and label 86–90 · door 91–97. Each part starts in its own slot whatever the one above holds.
+Steps (third pass): where you were each born 0–9 s · the first sky 9–13 · the second sky fades in
+13–20 · two charts side by side 20–26 · reading your houses 26–96 (5.5 s a house) · writing.
+
 ## Out of scope
 
 - The compatibility hero (ADR-70, 99), the report's chapters, the score rule (none).
