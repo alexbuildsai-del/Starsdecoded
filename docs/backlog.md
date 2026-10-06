@@ -44,8 +44,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-36 · Comments left on the soft pass or old rules: `requireAccount.ts`, `prelaunch.ts`, `limits.ts` (anonWrites), `Orbit.tsx`, `nudges.ts`, `pair-selection.ts` (MB-6), `ClaimPage.tsx`, `pair-row.ts` (MB-137); `aiInterpretation.ts` with a dry lab run · R17
 - B-38 · `/ux-copy`'s voice-chart example still says a failed report's credit comes back · R17-08
 - B-39 · A deploy's walk resets the QA pair twice (R17-25's walk and R17-26's trigger); keep one · R17-26
-- B-40 · The staging walk's reason text picks up the page's STAGING badge; read the line, not the page · QA-05 #4
-- B-41 · Launch day, with the change that turns Timeline on: the six "after launch" lines (`faq.ts`, `site.ts`, timeline `Hero`, `WhatYouGet`, `TimelineLine`) to the present tense; nothing before · QA-05 #5, Decisions 2026-10-06
+- B-41 · Build `walk-line-and-timeline-launch` (locked, ADR-352 to 356): the credit line now; Timeline's six launch-day lines behind `LAUNCHED` · QA-05 #5
 - B-42 · Refund rule 2 (`REFUND_RULES[1]`, `commerce/src/terms.ts`; /refunds and the receipt) and /method step 04 add "For a Compatibility report, the credit comes back at once." · QA-05 #7, Decisions 2026-10-06
 - B-44 · /privacy's cookie line names Stripe's two fraud cookies itself instead of "only the ones Stars Decoded needs"; no banner (`PrivacyPage.tsx`) · QA-05 #6, Decisions 2026-10-06
 - B-47 · Sign-in by emailed code loses `return_to` at `/sign-in/factor-one` and lands on home; keep it across Clerk's steps (`getReturnTo()`, `App.tsx`; `SignUpPage` too) · QA-06 #1

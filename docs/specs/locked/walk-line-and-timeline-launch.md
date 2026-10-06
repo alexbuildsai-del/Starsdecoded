@@ -1,11 +1,11 @@
 # Walk line and Timeline's launch lines (B-40, B-41)
 
-Ideation 2026-10-06, from QA-05 #4 and #5. Status: **draft, version 2** after the Owner's two answers; one question open.
+Ideation 2026-10-06, from QA-05 #4 and #5. Status: **locked** 2026-10-06 (ADR-352 to 356).
 Artifact: https://claude.ai/artifact/FUBb3QehCcrkBzxN6deA8W
 
 B-41's direction was settled by the Owner earlier the same day (ADR-343): the "after launch" lines
 stay until launch, and six lines change together in the change that turns Timeline on. This spec
-does not re-open it; it writes the six launch-day lines and asks only how they switch.
+does not re-open it; it writes the six launch-day lines and how they switch.
 
 ## Scope
 
@@ -49,7 +49,8 @@ The price shows only in the plan card, read live; never typed (R-6.3), never in 
 - llms.txt and JSON-LD follow on their own (lede unchanged; FAQPage built from `faq.ts`).
 - The stale comments "no price until billing exists" (`site.ts:107`, `TimelineLine.tsx:88`,
   `WhatYouGet.tsx:2-3`) are reworded to "no price until launch (ADR-343)" in the same change.
-- How the lines switch: open question 1 (default: on `LAUNCHED`).
+- Both versions live in code, switched by `LAUNCHED` (`packages/launch`): setting it swaps all six
+  with no edit on the day; pages are prerendered at build and launch is the flag plus a Release.
 
 ## Out of scope
 - Terms, Refunds, Privacy: already present tense, accepted by ADR-343.
@@ -68,22 +69,17 @@ The price shows only in the plan card, read live; never typed (R-6.3), never in 
 4. Typecheck, both builds, the critical tests and `check:shipped` pass.
 
 ## Screens
-See the artifact (version 2): B-40's cause and its fix, the credit-line table, /timeline today
+See the artifact (version 4): B-40's cause and its fix, the credit-line table, /timeline today
 beside /timeline on launch day, and the six-line table.
 
 ## Open questions
-1. **How do the six lines switch?** Recommended and the default: both versions in code, switched
-   by `LAUNCHED` (`packages/launch`), so setting it swaps all six with no edit on the day. Pages are
-   prerendered at build, and launch is the flag plus a Release, so the build carries them. The
-   other choice: hand-edit on launch day from the table above.
+None. Q1 (how the six lines switch) took its default, `LAUNCHED`, with "lock it".
 
-## Decisions to record
-- B-40 closed with nothing to build: the untickable box was checkout being closed (QA-05 #1), fixed
-  in staging's setup; the walk passed `buy` on f5c2195 (Decided by Alex, 2026-10-06).
-- The credit line is "You pay for credits. 1 credit = 1 report of any kind." on home, the dashboard
-  and /faq, and `CREDIT_LINE` says "any kind" (Decided by Alex, 2026-10-06).
-- No price in any FAQ answer; prices show only where read live from the catalogue, so a discount
-  never leaves a page wrong (Decided by Alex, 2026-10-06).
-- B-41 (Decided by Claude, under ADR-343): the six launch-day lines as in the table; Timeline's
-  price only in the plan card, read live.
-- B-41 (pending Owner, Q1): the lines switch on `LAUNCHED`.
+## Decisions recorded
+- ADR-352 · B-40 closes with nothing to build: the untickable box was checkout being closed (QA-05 #1),
+  fixed in staging's setup; the walk passed `buy` on f5c2195 (Alex).
+- ADR-353 · "You pay for credits. 1 credit = 1 report of any kind." on home, the dashboard and /faq;
+  `CREDIT_LINE` says "any kind" (Alex; supersedes ADR-253 in part).
+- ADR-354 · No price in any FAQ answer; prices only where read live, campaigns included (Alex).
+- ADR-355 · Timeline's six launch-day lines as in the table; its price only in the plan card (Claude).
+- ADR-356 · The six lines switch on `LAUNCHED` (Alex, the default).
