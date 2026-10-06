@@ -32,6 +32,7 @@ import {
   type Report,
 } from "@workspace/db";
 import { readAppEnv } from "./appEnv.js";
+import { consumeCredit } from "./credits.js";
 import type { NatalChartData } from "./chartCalculation.js";
 
 /** The locked `+clerk_test` addresses (stripe-payments, Automatic QA), with the sample people's names and birth towns. */
@@ -351,6 +352,11 @@ function birthOf(role: QaRole): SampleBirth {
   throw new Error(`no ${PEOPLE}/${role}.json beside the process`);
 }
 
+/** The credit the copied report's write would have taken, in the copy's transaction, so neither stands alone. */
+async function takeTheWritesCredit(tx: Parameters<typeof consumeCredit>[2], userId: string, reportId: string, what: string): Promise<void> {
+  if (!(await consumeCredit(userId, reportId, tx))) throw new Error(`no credit was left to copy ${what} with`);
+}
+
 async function placeNatal(step: "own-report" | "idris-report", pair: QaPair, seed: { output: unknown; chart: unknown }): Promise<string> {
   const role: QaRole = step === "own-report" ? "mira" : "idris";
   const member = pair[role];
@@ -392,6 +398,7 @@ async function placeNatal(step: "own-report" | "idris-report", pair: QaPair, see
       // Stamped as routes/reports.ts stamps a write, so a later birth-time change finds the copy as it would the report (reading 9).
       computeData: { writtenFor: { birthTime: birth.birthTime, birthTimeWindowMinutes: windowMinutes, passes: 0 } },
     });
+    await takeTheWritesCredit(tx, member.userId, reportId, `${member.name}'s Personal report`);
   });
   return reportId;
 }
@@ -421,6 +428,7 @@ async function placePair(pair: QaPair, seed: { output: unknown }): Promise<strin
       interpretation: seed.output as object,
       computeData: { reportAId: a.reportId, reportBId: b.reportId, lens: PAIR_LENS },
     });
+    await takeTheWritesCredit(tx, pair.mira.userId, reportId, "the pair");
   });
   return reportId;
 }
@@ -428,7 +436,8 @@ async function placePair(pair: QaPair, seed: { output: unknown }): Promise<strin
 /**
  * Copies a stored step's seed into its account, as the step would have written it, and answers the report's id, or
  * null when no Release has stored that report yet. The pair goes over Mira's own chart and Idris's own, so their
- * Personal reports come first. A copy is not a write, so it takes no credit; each step reads the ledger it finds.
+ * Personal reports come first. A copy takes the credit the write would, so a deploy's balances follow the Owner's
+ * path as a Release's do: Idris is out of credits once his report is in (2026-10-06).
  */
 export async function placeSeed(pair: QaPair, step: SeedStep): Promise<string | null> {
   stagingOnly("placing the seed");

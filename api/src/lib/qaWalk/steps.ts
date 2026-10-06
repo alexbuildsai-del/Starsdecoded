@@ -250,9 +250,10 @@ async function hiddenFrom(walk: Walk, who: Actor, id: string, what: string): Pro
   expectStatus(await walk.call(who, "GET", `/api/reports/${id}`), 404, what);
 }
 
-async function noReports(walk: Walk, who: Actor, what: string): Promise<void> {
+async function reportCount(walk: Walk, who: Actor, what: string): Promise<number> {
   const body = expectStatus(await walk.call(who, "GET", "/api/reports"), 200, what);
-  if (!Array.isArray(body) || body.length > 0) throw new Error(`${what}: the list holds ${Array.isArray(body) ? body.length : "no list of"} reports`);
+  if (!Array.isArray(body)) throw new Error(`${what}: the answer holds no list of reports`);
+  return body.length;
 }
 
 /** The token a claim link carries; it is used, never written down. */
@@ -378,7 +379,7 @@ export const STAGING_STEPS: StagingSteps = {
       // The reset's state (reading 10): Mira's test credits, no report, an empty dashboard.
       const balance = await credits(walk, mira);
       same("Mira's balance after the reset", balance, { available: QA_CREDITS.mira, used: 0, held: 0 });
-      await noReports(walk, mira, "Mira's reports after the reset");
+      same("Mira's reports after the reset", await reportCount(walk, mira, "Mira's reports after the reset"), 0);
       same("Mira's own chart after the reset", (await homeOf(walk, mira)).you ?? null, null);
       // The reset's top-up is a bundle of several credits, so the dashboard alone would open its path over everything;
       // the credits sheet holds the path back and shows the balance as she reads it.
@@ -438,31 +439,14 @@ export const STAGING_STEPS: StagingSteps = {
     },
   },
 
-  "no-credit": {
-    async run(walk) {
-      const { idris } = walk;
-      await signIn(walk, idris);
-      const balance = await credits(walk, idris);
-      // Reading 17: the one write a deploy's walk asks for, and only once the balance reads 0, so the 402 answers
-      // before anything is written.
-      if (balance.available !== 0 || balance.held !== 0) {
-        throw new Error(`Idris holds ${balance.available} credits and ${balance.held} held, so the walk won't ask to write`);
-      }
-      const asked = await walk.write(idris, "/api/reports", ownBirthForm("idris"));
-      const refusal = fieldsOf<{ error: string; message: string }>(expectStatus(asked, 402, "Idris's write with no credit"), "the 402");
-      same("the 402", refusal.error, "no_credit");
-      if (typeof refusal.message !== "string" || !refusal.message.trim()) throw new Error("the 402 carries no line for the reader");
-      await noReports(walk, idris, "Idris's reports after the 402");
-      same("Idris's balance after the 402", await credits(walk, idris), balance);
-      await idris.page.screen("/dashboard", { control: "Get credits" });
-    },
-  },
-
   "gift-claimed": {
     async run(walk) {
       const { mira, idris } = walk;
       const link = need(walk.kept.giftLink, "the gift's link");
+      // He signs in from the email's link, and his balance holds nothing until the claim.
+      await signIn(walk, idris);
       const [hers, his] = [await credits(walk, mira), await credits(walk, idris)];
+      same("Idris's balance before the claim", his, { available: 0, used: 0, held: 0 });
       const claimed = await claimLink(walk, idris, link, "gift");
       same("the gift's claim", claimed.redirectTo, "/dashboard");
       const hisNow = await credits(walk, idris);
@@ -479,6 +463,26 @@ export const STAGING_STEPS: StagingSteps = {
     write: (walk) => writeOwnReport(walk, walk.idris),
     async check(walk, reportId) {
       walk.kept.idrisReport = await checkOwnReport(walk, walk.idris, reportId);
+    },
+  },
+
+  "no-credit": {
+    async run(walk) {
+      const { idris } = walk;
+      const balance = await credits(walk, idris);
+      // Reading 17: the one write a deploy's walk asks for, and only once his report has taken the gift's credit, so
+      // the 402 answers before anything is written.
+      if (balance.available !== 0 || balance.held !== 0) {
+        throw new Error(`Idris holds ${balance.available} credits and ${balance.held} held, so the walk won't ask to write`);
+      }
+      const before = await reportCount(walk, idris, "Idris's reports before the 402");
+      const asked = await walk.write(idris, "/api/reports", { ...ownBirthForm("mira"), isForSelf: false });
+      const refusal = fieldsOf<{ error: string; message: string }>(expectStatus(asked, 402, "Idris's write with no credit"), "the 402");
+      same("the 402", refusal.error, "no_credit");
+      if (typeof refusal.message !== "string" || !refusal.message.trim()) throw new Error("the 402 carries no line for the reader");
+      same("Idris's reports after the 402", await reportCount(walk, idris, "Idris's reports after the 402"), before);
+      same("Idris's balance after the 402", await credits(walk, idris), balance);
+      await idris.page.screen("/dashboard", { control: "Get credits" });
     },
   },
 

@@ -49,23 +49,25 @@ export const STEPS = [
   },
   {
     id: "gift",
-    label: "Mira gifts Idris a report; the email goes out and a credit is held",
-    staging: "live",
-  },
-  {
-    id: "no-credit",
-    label: "Idris signs in with no credit and asks to write: 402 no_credit and Get credits",
+    label: "Mira gifts Idris a report; the email with its link goes to Idris and a credit is held",
     staging: "live",
   },
   {
     id: "gift-claimed",
-    label: "Idris claims the gift from its link; the credit moves to him",
+    label: "Idris opens the email's link, signs in and claims the gift; the credit moves to him",
     staging: "live",
   },
   {
     id: "idris-report",
     label: "Idris writes his Personal report with the gifted credit",
     staging: "stored",
+  },
+  {
+    // His credit is gone only once his report has taken it, so on staging the step waits with that report's seed.
+    id: "no-credit",
+    label: "Idris, his credit used, asks for another report: 402 no_credit and Get credits",
+    staging: "live",
+    reads: ["idris-report"],
   },
   {
     id: "share",

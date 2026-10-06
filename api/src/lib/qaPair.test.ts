@@ -334,7 +334,7 @@ test("with no seed, each stored step's place answers null and store keeps nothin
   assert.deepEqual(modelCalls, []);
 });
 
-test("a Release's three reports become the seed with no cost of their own, and go back in after a reset, the pair over Idris's own chart; the model is never called", { skip: NO_DB }, async () => {
+test("a Release's three reports become the seed with no cost of their own, and go back in after a reset, each copy taking its write's credit, the pair over Idris's own chart; the model is never called", { skip: NO_DB }, async () => {
   const [mira, idris] = ids;
   const miraOwn = await ownReport(mira, "mira", "Lisbon");
   const idrisOwn = await ownReport(idris, "idris", "Cardiff");
@@ -382,6 +382,9 @@ test("a Release's three reports become the seed with no cost of their own, and g
   assert.equal(isOutdated(asRead, { birthTime: placed.birth_time, birthTimeWindowMinutes: placed.birth_time_window_minutes, chartData: placed.chart_data }, []), false);
   await assert.rejects(Q.placeSeed(pair, "own-report"), /already in place/);
 
+  // Each copy takes the credit its write would; Idris has none until the walk's gift reaches him.
+  await assert.rejects(Q.placeSeed(pair, "idris-report"), /no credit was left/);
+  const [giftCredit] = await bundle(idris, "test", 1);
   const idrisId = await Q.placeSeed(pair, "idris-report");
   assert.ok(idrisId);
   const [idrisPlaced] = (await q("select p.user_id, p.is_self, p.name, p.birth_place, r.interpretation from reports r join profiles p on p.id = r.profile_id where r.id = $1", [idrisId])).rows;
@@ -400,8 +403,14 @@ test("a Release's three reports become the seed with no cost of their own, and g
   assert.deepEqual(parts, [{ profile_id: miraProfile, role: "child", position: "0" }, { profile_id: idrisProfile, role: "parent", position: "1" }]);
   await assert.rejects(Q.placeSeed(pair, "pair"), /already holds the pair/);
 
-  // A copy is not a write: the ledger stands as the reset left it.
-  assert.deepEqual(await ledger(), TOPPED_UP(mira));
+  // A copy takes the credit its write would, and nothing more: Mira's own and the pair's, Idris's gift.
+  const taken = (await q("select user_id, used_for_report_id from credits where status = 'used' and user_id = any($1)", [ids])).rows;
+  assert.deepEqual(
+    taken.map((row) => [row.user_id, row.used_for_report_id]).sort(),
+    [[mira, miraId], [mira, pairId], [idris, idrisId]].sort(),
+  );
+  assert.equal((await q("select used_for_report_id from credits where id = $1", [giftCredit])).rows[0].used_for_report_id, idrisId);
+  assert.equal((await q("select count(*)::int as n from credits where user_id = $1 and status = 'available'", [mira])).rows[0].n, 18);
   assert.deepEqual(clerkCalls, []);
   assert.deepEqual(modelCalls, []);
 });
