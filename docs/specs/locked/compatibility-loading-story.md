@@ -1,6 +1,6 @@
-# Compatibility loading story — draft
+# Compatibility loading story
 
-Status: draft, third pass, 2026-10-06; the Owner chose B then C ("so beautiful"). Artifact: https://claude.ai/artifact/VNdob5xAziDJDZ6HX6KkLf
+Status: locked 2026-10-06 (ADR-347 to 351), unplanned; the Owner chose B then C ("so beautiful"). Artifact: https://claude.ai/artifact/VNdob5xAziDJDZ6HX6KkLf
 Follows `report-loading-story.md` (ADR-316 to 325), which left this screen out of scope.
 
 ## Why
@@ -74,13 +74,14 @@ table, the rules kept and the choices made.
 
 ## Open questions
 
-1. None left on direction (B then C, the Owner). Lock when the Owner says so.
+None.
 
-## Decisions to record
+## Decisions
 
-- D1 · The Compatibility loading screen shows facts only, never what they mean (Owner).
-- D2 · B then C: places, then each birthday's sky fading in on its own plate, then houses side by
-  side, then writing (Owner).
-- D5 · One layout grid for all three loading screens, the same on every device (Owner).
-- D3 · Matches light both plates at once; nothing joins the two charts.
-- D4 · All twelve house words stay on each plate, quiet, the lit one written out under (ADR-98).
+- ADR-347 · The Compatibility loading screen shows facts only, never what they mean (Owner).
+- ADR-348 · B then C: places, then each birthday's sky fading in on its own plate, then houses side
+  by side, then writing (Owner).
+- ADR-349 · Matches light both plates at once; nothing joins the two charts.
+- ADR-350 · All twelve house words stay on each plate, quiet, the lit one written out under (ADR-98).
+- ADR-351 · One layout grid for all three loading screens, the same on every device (Owner);
+  amends ADR-316 to 325 and ADR-320 for the grid only.
