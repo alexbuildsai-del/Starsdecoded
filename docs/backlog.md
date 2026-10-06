@@ -62,6 +62,10 @@ Open Mailbox rows, ids and links only (R-12.7). Kept current by every session th
 - B-37 · Check on staging: Stripe's cookies' host and `__stripe_sid`'s life; `adaptive_pricing` off on an elements session; Inter's weight in Appearance · R17-08, 10, 14
 - B-38 · `/ux-copy`'s voice-chart example still says a failed report's credit comes back · R17-08
 - B-39 · A deploy's walk resets the QA pair twice (R17-25's walk and R17-26's trigger); keep one · R17-26
+- B-40 · The staging walk's reason text picks up the page's STAGING badge; read the line, not the page · QA-05 #4
+- B-41 · One story for Timeline before launch: /faq "coming after launch", /timeline, home and llms.txt against the Terms and the teaser · QA-05 #5
+- B-42 · Refunds and Terms add "For a Compatibility report, the credit comes back at once.", as the FAQ says · QA-05 #7
+- B-43 · /admin/waitlist shows the same "Sign-in couldn't load" line as /admin/sales when Clerk doesn't load · QA-05 #8
 
 Private, Owner Claude (security, details in Notion only; done before Timeline opens to subscribers):
 

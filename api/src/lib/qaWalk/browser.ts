@@ -7,6 +7,9 @@
  * A door in each context stops any request to a route that writes a report or a reading unless the walk asked for that
  * one call itself (reading 17), so no page the walk opens can spend on its own.
  */
+import { readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Browser, Frame, Page } from "playwright-core";
 import type { CatalogueItemId } from "@workspace/commerce";
 import type { QaWalkMode } from "@workspace/db";
@@ -156,6 +159,65 @@ function messageOf(err: unknown): string {
 }
 
 type ClerkHelpers = (typeof import("@clerk/testing/playwright"))["clerk"];
+
+/** The container's memory in MB from its cgroup (v2, then v1), as a crash leaves it: a page killed for memory says nothing. */
+function memoryNote(): string {
+  const mb = (...files: string[]): string => {
+    for (const file of files) {
+      try {
+        const raw = readFileSync(`/sys/fs/cgroup/${file}`, "utf8").trim();
+        if (raw === "max" || Number(raw) > 2 ** 60) return "no limit";
+        return `${Math.round(Number(raw) / 1048576)} MB`;
+      } catch {
+        // The next layout's file, if any.
+      }
+    }
+    return "unknown";
+  };
+  const now = mb("memory.current", "memory/memory.usage_in_bytes");
+  const peak = mb("memory.peak", "memory/memory.max_usage_in_bytes");
+  const limit = mb("memory.max", "memory/memory.limit_in_bytes");
+  return `memory ${now}, peak ${peak}, limit ${limit}`;
+}
+
+/** Why a page crashed, as far as Chromium's log and the container show (the staging walk, 2026-10-06). */
+function crashNote(logFile: string): string {
+  let lines: string[] = [];
+  try {
+    // D-Bus and Google's push service fail on every server start and say nothing about a crash.
+    lines = readFileSync(logFile, "utf8")
+      .split("\n")
+      .filter((line) => /:(ERROR|FATAL):/.test(line) && !/:ERROR:(dbus|google_apis\/gcm)\//.test(line));
+  } catch {
+    // No log: the note gives the memory alone.
+  }
+  const telling = lines.filter((line) => /FATAL|signal|crash|memory|oom|check failed/i.test(line));
+  const last = (telling.length > 0 ? telling : lines).slice(-2).map((line) => line.replace(/^\[[^\]]*:(ERROR|FATAL):/, "$1 "));
+  return `${memoryNote()}; Chromium logged ${last.length > 0 ? last.join(" / ") : "nothing"}`;
+}
+
+/** A page whose every call, when the page crashes under it, says so with the note, whichever call it was. */
+function noting(page: Page, inner: WalkPage, logFile: string): WalkPage {
+  let crashed = false;
+  page.on("crash", () => {
+    crashed = true;
+  });
+  const noted = async <T>(during: string, call: () => Promise<T>): Promise<T> => {
+    try {
+      return await call();
+    } catch (err) {
+      // The error can land before the crash event does, so its own words count too.
+      if (!crashed && !/crashed/i.test(messageOf(err))) throw err;
+      throw new Error(`the page crashed ${during}: ${crashNote(logFile)}`);
+    }
+  };
+  return {
+    signIn: (email) => noted("signing in", () => inner.signIn(email)),
+    api: (method, path, body) => noted("in a call to the API", () => inner.api(method, path, body)),
+    screen: (path, shows) => noted("on a screen", () => inner.screen(path, shows)),
+    pay: (item, returnTo, door) => noted("in checkout", () => inner.pay(item, returnTo, door)),
+  };
+}
 
 class ChromiumPage implements WalkPage {
   constructor(
@@ -371,15 +433,29 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
       // lapsed; .env files are never read on Railway, where the keys live.
       forgetTestingToken();
       let browser: Browser | null = null;
+      // Chromium and its pages write here, read only for the reason a crashed page gives.
+      const logFile = join(tmpdir(), `qa-walk-chromium-${process.pid}-${Date.now()}.log`);
       try {
         await testing.clerkSetup({ publishableKey: options.clerk.publishableKey, secretKey: options.clerk.secretKey, dotenv: false });
         const opened = await chromium.launch({
           executablePath: options.executablePath,
           headless: true,
-          args: ["--no-sandbox", "--disable-dev-shm-usage"],
+          // The Railway container has about 1 GB, and a page with Stripe's frames, each in a process of its own, ran it
+          // out (peak 954 of 954 MB, 2026-10-06): the frames share their page's process, and nothing runs in the back.
+          args: [
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-site-isolation-trials",
+            "--disable-features=site-per-process,IsolateOrigins",
+            "--disable-background-networking",
+            "--enable-logging",
+            `--log-file=${logFile}`,
+            "--log-level=2",
+          ],
         });
         browser = opened;
-        const pageFor = async (): Promise<ChromiumPage> => {
+        const pageFor = async (): Promise<WalkPage> => {
           const context = await opened.newContext({ viewport: VIEWPORT, locale: "en-GB", timezoneId: "Europe/Brussels" });
           await context.route(
             (url) => url.origin === origin && url.pathname.startsWith("/api/"),
@@ -391,7 +467,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           );
           const page = await context.newPage();
           page.setDefaultTimeout(SHOWN_MS);
-          return new ChromiumPage(page, origin, testing.clerk);
+          return noting(page, new ChromiumPage(page, origin, testing.clerk), logFile);
         };
         const mira = await pageFor();
         const idris = await pageFor();
@@ -400,12 +476,14 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
             await opened.close();
           } finally {
             forgetTestingToken();
+            rmSync(logFile, { force: true });
           }
         };
         return { mira, idris, close };
       } catch (err) {
         await browser?.close().catch(() => undefined);
         forgetTestingToken();
+        rmSync(logFile, { force: true });
         throw err;
       }
     },
