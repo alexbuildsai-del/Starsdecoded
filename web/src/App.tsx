@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, type ComponentType, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import {
   Switch,
   Route,
@@ -190,10 +190,40 @@ function SignUpPage() {
   );
 }
 
+// Auth rides on Clerk's short-lived session cookie, and the API reads a request with an expired one as the anonymous
+// browser session: a page that asked before the token was refreshed showed only this browser's reports and no Timeline.
+function useFreshSession(): boolean {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const [fresh, setFresh] = useState(false);
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    let live = true;
+    void getToken()
+      .catch(() => null)
+      .then(() => {
+        if (live) setFresh(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, [isLoaded, isSignedIn, getToken]);
+  return isLoaded && (!isSignedIn || fresh);
+}
+
+// A page open to anonymous visitors that still shows a signed-in reader their whole account from the first request.
+// A blocked Clerk keeps the anonymous page rather than a wait that never ends.
+function ClerkReady({ children }: { children: ReactNode }) {
+  const ready = useFreshSession();
+  const clerkStalled = useClerkStalled();
+  if (!ready && !clerkStalled) return <LoadingState />;
+  return <>{children}</>;
+}
+
 // Guards a route behind Clerk auth. Signed-out visitors are redirected to
 // /sign-in with the full current path (including query string) as return_to.
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
+  const ready = useFreshSession();
   const clerkStalled = useClerkStalled();
   const [location, navigate] = useLocation();
   // wouter's location is the path alone, and /checkout's item and step, or the done page's purchase, live in the query.
@@ -208,6 +238,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
   if (!isLoaded) return clerkStalled ? <ClerkStalledPage /> : <LoadingState />;
   if (!isSignedIn) return null;
+  if (!ready) return <LoadingState />;
   return <>{children}</>;
 }
 
@@ -325,10 +356,14 @@ function Routes({ first }: { first?: FirstPage }) {
         {/* One page: a report is read while it is written (ADR-48), so the old waiting room redirects. */}
         <Route path="/generating/:id">{(params) => <Redirect to={`/report/${params.id}`} />}</Route>
         <AppRoute path="/report/:id">
-          <ReportPage />
+          <ClerkReady>
+            <ReportPage />
+          </ClerkReady>
         </AppRoute>
         <AppRoute path="/compatibility/:id">
-          <CompatibilityReportPage />
+          <ClerkReady>
+            <CompatibilityReportPage />
+          </ClerkReady>
         </AppRoute>
         {/* Access is known only for a signed-in reader, so a signed-out one signs in first and then gets the page or /timeline (reading 1). */}
         <AppRoute path="/dashboard/timeline">
@@ -342,7 +377,9 @@ function Routes({ first }: { first?: FirstPage }) {
           </RequireAuth>
         </AppRoute>
         <AppRoute path="/dashboard">
-          <DashboardPage />
+          <ClerkReady>
+            <DashboardPage />
+          </ClerkReady>
         </AppRoute>
         <Route path="/people">{() => <Redirect to="/dashboard" />}</Route>
         <AppRoute path="/claim">
