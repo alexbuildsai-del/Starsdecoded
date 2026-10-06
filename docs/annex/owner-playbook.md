@@ -28,8 +28,8 @@ merged into the rule it repeats.
 - **Reuse what we already draw; never redesign what is approved.** "I really love the outline of the earth and how you
   take these visuals that we already have and… repurpose them… let's reuse it everywhere" (report-loading-story). The
   hero: "please don't make this different"; Life's card is the Your cycles card (review-05-10). Keep what looks great.
-- **Ship it as normal, no flag** (ADR-262 to 264); **a visual that says what we sell beats the safest layout**: the centred
-  cover was "nice" but "not wow" (share-cover); the real fix, never a fallback. **Out of scope is not "never"** (stripe-payments).
+- **Ship it as normal, no flag** (ADR-262 to 264); **a visual that says what we sell beats the safest layout** ("nice" but
+  "not wow", share-cover); the real fix, never a fallback; **out of scope is not "never"** (stripe-payments).
 
 ## Asked for
 - **Opus for orchestrating, planning and research**, the verifier on any claim that feeds a decision (ADR-137, R-0.7);
@@ -41,19 +41,19 @@ merged into the rule it repeats.
   holds he supplies or defers: build behind marked seams, never hold the round (R-12.4; one dated checklist).
 - **Testing is ours, never his** (2026-10-04): a walk after each deploy. **No secret on GitHub, ever** (2026-09-25).
 - **Think as the buyer, then decide**: options side by side with each side's view; he took gifting's B (2026-10-06).
-- **Evidence before a claim.** "Are you sure? Can you give me an example": check a stored report or the engine before
-  saying what the product does (review-05-10, 2026-10-05).
+- **Evidence before a claim; the cause, not the message.** "Are you sure? Can you give me an example" (review-05-10). A
+  finding is traced to what broke: rewording B-40's error "makes no sense… fix the root cause" (walk-line, 2026-10-06).
+- **Words that can't go stale.** No price in the FAQ, "they might change after a discount"; a price shows only where read
+  live, never before it's real; no promise twice. Test a line against every way to buy: "you pay for credits" (walk-line).
 - **Astrology calls are ours.** "You are the specialist in astrology": propose which chapters explain what, and why
   (review-05-10). Known ideas (retrograde) may be explained; the method may not.
-- **A card reads top-down** (the idea, "for you", the value, the date; science behind an ⓘ). **A promise needs its
-  proof**: why you'd care and a visible example (timeline-page v3). No price before it's real; no promise twice.
+- **A card reads top-down** (idea, "for you", value, date; science behind an ⓘ); **a promise needs its proof** (timeline-page v3).
 
 ## Formats he likes
 - **An HTML artifact before any question or lock**, phone first, 390 px (§11.1, ADR-171): live players and clickable
   flows he can scrub (the Life line, Your first steps, the loading story's A/B/C), one grid on phone and desktop, what changed shown.
-- **The workbook card**, also as a post; **before and after tables** for wording; dashboards screen by screen with
-  exact values to paste (stripe-payments).
-- **A fixed small label over a title that finishes it**: "DID YOU KNOW", then "Why east is on the left?" (review-05-10).
+- **The workbook card**, also as a post; **before and after tables** for wording; dashboards with exact values to paste
+  (stripe-payments); **a small label over a title that finishes it** ("DID YOU KNOW", review-05-10).
 
 ## His own lines, verbatim
 - "Continue without this for now." (R14) · "go" (R12) · "two friends talking over coffee" (ADR-185) · "lock it" (10-05)
