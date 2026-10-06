@@ -14,7 +14,20 @@
       "Read(./**/.env.staging)"
     ]
   },
+  "autoCompactWindow": 500000,
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'The conversation was just compacted. If this session is an ideation, re-read its draft spec in docs/specs/draft/ and its artifact before you reply: the file is the record, the summary is not.'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Read|Grep|Bash|mcp__github__push_files|mcp__github__create_or_update_file|mcp__github__delete_file",
