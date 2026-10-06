@@ -193,19 +193,35 @@ function crashNote(logFile: string): string {
   return `${memoryNote()}; Chromium logged ${last.length > 0 ? last.join(" / ") : "nothing"}`;
 }
 
-class ChromiumPage implements WalkPage {
-  private crashed = false;
+/** A page whose every call, when the page crashes under it, says so with the note, whichever call it was. */
+function noting(page: Page, inner: WalkPage, logFile: string): WalkPage {
+  let crashed = false;
+  page.on("crash", () => {
+    crashed = true;
+  });
+  const noted = async <T>(during: string, call: () => Promise<T>): Promise<T> => {
+    try {
+      return await call();
+    } catch (err) {
+      // The error can land before the crash event does, so its own words count too.
+      if (!crashed && !/crashed/i.test(messageOf(err))) throw err;
+      throw new Error(`the page crashed ${during}: ${crashNote(logFile)}`);
+    }
+  };
+  return {
+    signIn: (email) => noted("signing in", () => inner.signIn(email)),
+    api: (method, path, body) => noted("in a call to the API", () => inner.api(method, path, body)),
+    screen: (path, shows) => noted("on a screen", () => inner.screen(path, shows)),
+    pay: (item, returnTo, door) => noted("in checkout", () => inner.pay(item, returnTo, door)),
+  };
+}
 
+class ChromiumPage implements WalkPage {
   constructor(
     private readonly page: Page,
     private readonly origin: string,
     private readonly clerk: ClerkHelpers,
-    private readonly logFile: string,
-  ) {
-    page.on("crash", () => {
-      this.crashed = true;
-    });
-  }
+  ) {}
 
   private url(path: string): string {
     return `${this.origin}${path}`;
@@ -343,15 +359,6 @@ class ChromiumPage implements WalkPage {
   }
 
   async pay(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string> {
-    try {
-      return await this.payOnce(item, returnTo, door);
-    } catch (err) {
-      if (!this.crashed) throw err;
-      throw new Error(`the page crashed in checkout: ${crashNote(this.logFile)}`);
-    }
-  }
-
-  private async payOnce(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string> {
     if (door) {
       await this.goto(door.path);
       const scope = door.inDialog ? this.page.getByRole("dialog") : this.page;
@@ -445,7 +452,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           ],
         });
         browser = opened;
-        const pageFor = async (): Promise<ChromiumPage> => {
+        const pageFor = async (): Promise<WalkPage> => {
           const context = await opened.newContext({ viewport: VIEWPORT, locale: "en-GB", timezoneId: "Europe/Brussels" });
           await context.route(
             (url) => url.origin === origin && url.pathname.startsWith("/api/"),
@@ -457,7 +464,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           );
           const page = await context.newPage();
           page.setDefaultTimeout(SHOWN_MS);
-          return new ChromiumPage(page, origin, testing.clerk, logFile);
+          return noting(page, new ChromiumPage(page, origin, testing.clerk), logFile);
         };
         const mira = await pageFor();
         const idris = await pageFor();
