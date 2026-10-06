@@ -1,7 +1,7 @@
 # Sharing and your circle — draft
 
-Status: draft, second pass, 2026-10-06, from the Owner's staging walk after R17. Artifact:
-https://claude.ai/artifact/3NgoY1o1CG4wk38WKwtc41 (version 2). The Compatibility loading screen
+Status: draft, third pass, 2026-10-06, from the Owner's staging walk after R17. Artifact:
+https://claude.ai/artifact/3NgoY1o1CG4wk38WKwtc41 (version 3). The Compatibility loading screen
 is its own draft, `compatibility-loading-story.md`.
 
 ## Why
@@ -28,18 +28,20 @@ The dashboard that showed two reports until a press is a bug, fixed outside this
    reference: roles and "Anyone with the link". Every report uses it: your own (any email,
    ADR-235), someone's you made (that person only, ADR-181), a pair (its other person, MB-82).
 2. **Your first steps.** A card in the dashboard's idle panel, kept until the first Compatibility
-   report is made, with Hide; it replaces `PathSheet`'s one-time sheet. A progress bar and four
-   steps, one button at a time: 1 Your Personal report · 2 Add someone (make their report with
-   their birth details, or give them a credit) · 3 Share it with {name} (a gift: "Waiting for
-   {name}" until they share back) · 4 You & {name}, your Compatibility report.
+   report is made, with Hide; it replaces `PathSheet`'s one-time sheet. A progress bar, one button
+   at a time: 1 Your Personal report · 2 Add someone, which opens today's `AddSomeoneSheet`
+   unchanged (Someone you know → birth form → loading screen; Gift a report → `GiftFlow`) · 3
+   Share it with {name} (a gift: done once sent, nothing waits) · 4 either You & {name}, your
+   Compatibility report (for a gift, once they share back), or Add someone else, back to step 2.
 3. **Share back on a gift.** The claim page asks "Share your report with {giver} when it's
    ready?" with Yes and Not now, nothing pre-picked (R-3.6). Yes writes the grant when their
    report is finished; Not now leaves the offer on their quick look of the giver.
 4. **Make a report.** The idle card gets two buttons: "Your Personal report" (main) until the
    reader has one, then "Personal report · For someone", and Compatibility (main from then on).
-5. **The quick look is about the person.** Name, date, triad as today, one main button (Make You
-   & {name} · 1 credit, or Open You & {name}), Open {name}'s report, and one closing line on what
-   they can read with Sharing, which opens the Share window. No story, no button stack.
+5. **The quick look keeps everything it shows today** (name, birth date, `TriadRow`, the With you
+   block and `PairBlock`); only its buttons change: the main button makes You & {name} · 1 credit
+   when that pair is missing (Open Compatibility report otherwise), then {name}'s report, then one
+   closing line on what they can read with Share, which opens the Share window. Share story goes.
 6. **The picker as a pop-up.** `CompatibilityPicker` opens in a dialog or sheet from the card,
    the tab's "+ New Compatibility report" or a quick look (both people picked). Make it opens
    `/compatibility/:id` on its loading screen (`openOnCreate`), changing ADR-131's reading 6.
@@ -69,8 +71,10 @@ The dashboard that showed two reports until a press is a bug, fixed outside this
 - Sharing your own report and someone's report open the same window; no right-side drawer remains.
 - After Share the new person is at the top marked Invited; Cancel invite and Remove access take
   them off the list without a reload; states come from `GET /home`.
-- A new buyer sees Your first steps at 0 of 4; each finished step ticks without a reload; road A
-  and road B both reach step 4; the card goes after step 4.
+- A new buyer sees Your first steps at 0 of 4; step 2 opens the Add someone sheet; each finished
+  step ticks without a reload; both roads reach step 4's either/or; Add someone else returns to
+  step 2; the card goes after the first pair.
+- The quick look's header, date, triad and pair block render exactly as before; only buttons differ.
 - A gift recipient sees the share-back question on claiming; with Yes, the giver can read their
   report once it's done; with Not now, nothing is shared.
 - Make it in the picker opens the report's loading screen.
@@ -101,11 +105,12 @@ Material side sheet ("not recommended for narrow screens"); Apple HIG Collaborat
 
 - D1 · One Share window for every report, centred dialog on desktop, bottom sheet on a phone,
   built on the Owner's reference dialog without roles or link access (Claude, from the Owner).
-- D2 · Your first steps: a card with a progress bar and four steps until the first pair (Q3).
+- D2 · Your first steps: a card with a progress bar; step 2 opens the Add someone sheet; step 4 is
+  You & {name} or Add someone else, looping to step 2; until the first pair (Q3, Owner).
 - D3 · Share back asked at a gift claim, Yes or Not now (Q2; amends ADR-139's "no one in anyone's
   circle" only by the recipient's own yes).
 - D4 · The idle card's Make a report: Your Personal report until you have one, then For someone.
-- D5 · The quick look: one main button and one sharing line (Owner).
+- D5 · The quick look stays as it is; only its buttons change (Owner).
 - D6 · The picker as a pop-up; Make it opens the loading screen (amends ADR-131 reading 6).
 - D7 · Compatibility rows: one state chip, ⋯ for Share and Delete.
 - D8 · No stories on the dashboard; the pair's story card at the end of its report (Owner).
