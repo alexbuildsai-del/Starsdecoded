@@ -50,8 +50,9 @@ The grid, as % of the frame's height, the same on phone (360×740) and desktop (
 counter 5–8 · title, two lines at most, 8–16 · subtitle, two lines at most, 16–22 · stage (globe,
 plates, dial) 24–66 · detail (places and dates, the house being read, ticks) 68–84 · percentage
 and label 86–90 · door 91–97. Each part starts in its own slot whatever the one above holds.
-Steps (third pass): where you were each born 0–9 s · the first sky 9–13 · the second sky fades in
-13–20 · two charts side by side 20–26 · reading your houses 26–96 (5.5 s a house) · writing.
+Steps (third pass): where you were each born 0–13 s (the Owner: slightly longer) · the first sky
+13–17 · the second sky fades in 17–24 · two charts side by side 24–30 · reading your houses 30–96
+(5.5 s a house) · writing.
 
 ## Out of scope
 
