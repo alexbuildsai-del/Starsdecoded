@@ -47,9 +47,10 @@ open questions, and every new decision the session produced listed under
 
 Write the draft as soon as the artifact is up, then update it after every
 answer the Owner gives, so the file always holds what is decided and what is
-still open. Long ideations get compacted, and the summary drops detail; the
-file does not. After a compaction, re-read the draft and the artifact before
-you reply.
+still open. Commit and push it to the session branch each time, so it outlives
+the session even if the Owner never says lock. Long ideations get compacted,
+and the summary drops detail; the file does not. After a compaction, re-read
+the draft and the artifact before you reply.
 
 At the close, once the Owner has answered and the draft is final, add what the
 session taught to `docs/annex/owner-playbook.md` (ADR-195), the one file you

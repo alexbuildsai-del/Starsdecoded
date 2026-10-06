@@ -4,7 +4,8 @@ description: Lock a Stars Decoded draft spec. Moves docs/specs/draft/<slug>.md t
 ---
 
 The slug is the text after the command. With none, take the draft spec this
-session ideated; if there is none, ask.
+session ideated; if there is none, ask. Work from the draft file, not the
+conversation: after a compaction the file is the record.
 
 1. Move `docs/specs/draft/<slug>.md` to `docs/specs/locked/<slug>.md`. Trim to
    200 lines; anything longer moves to `docs/annex/<slug>-annex.md` with a
