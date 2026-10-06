@@ -30,16 +30,16 @@ and `docs/specs/locked/natal-report-ui.md`, the Observatory direction every page
   always carries its tick box, whether it's a Practice item, a pair's "Try together" or a
   pinned item on the dashboard; evidence always looks like the report's evidence. A mock
   never invents a second look for something the product already draws.
-- **Buttons in a group match** (the Owner, 2026-10-06: "ridiculous"). Buttons that sit
-  together share one width and one height, stacked full width on a phone; the main one
-  differs by colour only, never by size. A status line sits apart as text, not as a
-  small button beside a big one.
+- **Buttons by weight** (the Owner, 2026-10-06). Actions of the same weight share one
+  width and height (on a phone, stacked full width); the main one differs by colour only.
+  A secondary action, like Share, is a small text button on its own line beside its
+  status. Never a small boxed button under a big one ("ridiculous").
 - **One register, two tempos.** Marketing uses the product's look, not a campaign
   look. Reading pages are slow and airy; dashboards and admin are dense.
 
 **Generic patterns to avoid.** Gradient text; glass cards everywhere; purple blobs;
 sparkles, crystal balls, tarot or glowing zodiac wheels as decoration; glyph soup;
-cards inside cards; a big button over small ones; everything centred; icons in coloured squares; a badge on every
+cards inside cards; a small boxed button under a big one; everything centred; icons in coloured squares; a badge on every
 line; text over busy backgrounds or faded text behind content; loops that never stop;
 scroll-jacking; fake counters, logos, reviews or testimonials; typed numbers where
 code should supply them.

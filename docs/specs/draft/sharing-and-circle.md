@@ -1,7 +1,7 @@
 # Sharing and your circle — draft
 
-Status: draft, fourth pass, 2026-10-06, from the Owner's staging walk after R17. Artifact:
-https://claude.ai/artifact/3NgoY1o1CG4wk38WKwtc41 (version 4). The Compatibility loading screen
+Status: draft, fifth pass, 2026-10-06, from the Owner's staging walk after R17. Artifact:
+https://claude.ai/artifact/3NgoY1o1CG4wk38WKwtc41 (version 5). The Compatibility loading screen
 is its own draft, `compatibility-loading-story.md`.
 
 ## Why
@@ -44,9 +44,9 @@ The dashboard that showed two reports until a press is a bug, fixed outside this
    "Two people together" in `AddSomeoneSheet`, show only when the reader can read two finished
    Personal reports (their own and one more, made or shared).
 5. **The quick look keeps everything it shows today** (name, birth date, `TriadRow`, the With you
-   block and `PairBlock`); only its buttons change, all one width and height, stacked: Make You & {name} · 1 credit (or Open
-   Compatibility report), Open {name}'s report, Share your report with {name} (the Share window),
-   then a text line on what they can read. Share story goes.
+   block and `PairBlock`); only its buttons change: two main actions of one width and height, Make You & {name} · 1 credit
+   (or Open Compatibility report) and Open {name}'s report; then a line on what they can read with
+   a small text Share, which opens the Share window. Share story goes.
 6. **The picker as a pop-up.** `CompatibilityPicker` opens in a dialog or sheet from the card,
    the tab's "+ New Compatibility report" or a quick look (both people picked). Make it opens
    `/compatibility/:id` on its loading screen (`openOnCreate`), changing ADR-131's reading 6.
@@ -83,7 +83,7 @@ The dashboard that showed two reports until a press is a bug, fixed outside this
 - The gift flow asks about sharing the giver's report; the claim asks about sharing back; each Yes
   is a grant, each Not now shares nothing; with both, either side can open the picker for the pair.
 - "Two people together" and Compatibility are absent until two Personal reports are readable.
-- Buttons in one group share width and height (`/web-taste`).
+- Equal actions share width and height; Share is a text button (`/web-taste`).
 - Make it in the picker opens the report's loading screen.
 - No "Share story" anywhere on the dashboard; one state chip per Compatibility row.
 - The buyer walk passes with the new steps; words pass `/ux-copy`.
@@ -104,8 +104,7 @@ Material side sheet ("not recommended for narrow screens"); Apple HIG Collaborat
 ## Open questions
 
 1. Ship the sign-in fix to staging now, on its own? Recommended yes. Default: with the next round.
-2. When gifting, ask "Share your report with them too?", and ask the recipient to share back?
-   Recommended yes to both (option B). Default: option B.
+2. ~~Gifting and sharing~~: answered by the Owner, option B (2026-10-06).
 3. Your first steps stays until step 4, with Hide, replacing the one-time sheet? Recommended yes.
    Default: yes.
 
@@ -115,10 +114,12 @@ Material side sheet ("not recommended for narrow screens"); Apple HIG Collaborat
   built on the Owner's reference dialog without roles or link access (Claude, from the Owner).
 - D2 · Your first steps: a card with a progress bar; step 2 opens the Add someone sheet; step 4 is
   You & {name} or Add someone else, looping to step 2; until the first pair (Q3, Owner).
-- D3 · Around a gift, each side is asked once about their own report, Yes or Not now (Q2; amends
-  ADR-139 only by each person's own yes).
+- D3 · Around a gift, each side is asked once about their own report, Yes or Not now; when the
+  giver shared, the claim reads "{giver} shared their report with you. Share yours back?" (Owner,
+  option B; amends ADR-139 only by each person's own yes).
 - D13 · Compatibility and Two people together need two readable Personal reports (Owner).
-- D14 · Buttons in one group share width and height (Owner, now in `/web-taste`).
+- D14 · Buttons by weight: equal actions share width and height, a secondary one is a small text
+  button (Owner, now in `/web-taste`).
 - D4 · The idle card's Make a report: Your Personal report until you have one, then For someone.
 - D5 · The quick look stays as it is; only its buttons change (Owner).
 - D6 · The picker as a pop-up; Make it opens the loading screen (amends ADR-131 reading 6).
