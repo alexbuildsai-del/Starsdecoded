@@ -1,6 +1,6 @@
-# Sharing and your circle — draft
+# Sharing and your circle
 
-Status: draft, fifth pass, 2026-10-06, from the Owner's staging walk after R17. Artifact:
+Status: locked 2026-10-06 (ADR-329 to 342), from the Owner's staging walk after R17. Artifact:
 https://claude.ai/artifact/3NgoY1o1CG4wk38WKwtc41 (version 5). The Compatibility loading screen
 is its own draft, `compatibility-loading-story.md`.
 
@@ -101,31 +101,25 @@ Material side sheet ("not recommended for narrow screens"); Apple HIG Collaborat
 (people first, one plain line on access; remove one person; pending and accepted apart); MDN
 `navigator.share()` (only from a tap). Dropped: browser-version claims.
 
-## Open questions
+## Answered
 
-1. Ship the sign-in fix to staging now, on its own? Recommended yes. Default: with the next round.
-2. ~~Gifting and sharing~~: answered by the Owner, option B (2026-10-06).
-3. Your first steps stays until step 4, with Hide, replacing the one-time sheet? Recommended yes.
-   Default: yes.
+1. The sign-in fix ships on its own, now (the Owner, 2026-10-06).
+2. Gifting: option B (the Owner).
+3. Your first steps stays until the first pair, with Hide (default, the Owner's "lock it").
 
-## Decisions to record
+## Decisions (Notion)
 
-- D1 · One Share window for every report, centred dialog on desktop, bottom sheet on a phone,
-  built on the Owner's reference dialog without roles or link access (Claude, from the Owner).
-- D2 · Your first steps: a card with a progress bar; step 2 opens the Add someone sheet; step 4 is
-  You & {name} or Add someone else, looping to step 2; until the first pair (Q3, Owner).
-- D3 · Around a gift, each side is asked once about their own report, Yes or Not now; when the
-  giver shared, the claim reads "{giver} shared their report with you. Share yours back?" (Owner,
-  option B; amends ADR-139 only by each person's own yes).
-- D13 · Compatibility and Two people together need two readable Personal reports (Owner).
-- D14 · Buttons by weight: equal actions share width and height, a secondary one is a small text
-  button (Owner, now in `/web-taste`).
-- D4 · The idle card's Make a report: Your Personal report until you have one, then For someone.
-- D5 · The quick look stays as it is; only its buttons change (Owner).
-- D6 · The picker as a pop-up; Make it opens the loading screen (amends ADR-131 reading 6).
-- D7 · Compatibility rows: one state chip, ⋯ for Share and Delete.
-- D8 · No stories on the dashboard; the pair's story card at the end of its report (Owner).
-- D9 · The violet ring marks anyone in a pair you can open (Claude).
-- D10 · The birth form warns on your own birth details (Claude).
-- D11 · `GET /home` carries share and first-steps state (Claude).
-- D12 · Both roads to the first pair and share back join the buyer walk (Owner).
+- ADR-329 · One Share window, dialog on desktop, sheet on a phone, the reference dialog's shape.
+- ADR-330 · Your first steps: the card, the Add someone step, the either/or loop; replaces PathSheet.
+- ADR-331 · Around a gift each side is asked once about their own report (amends ADR-139 in part).
+- ADR-332 · Compatibility and Two people together need two readable Personal reports.
+- ADR-333 · Buttons by weight (`/web-taste`).
+- ADR-334 · Make a report: Your Personal report, then Personal report · For someone.
+- ADR-335 · The quick look keeps all it shows; only buttons change (amends ADR-174's buttons).
+- ADR-336 · The picker as a pop-up; Make it opens the loading screen (supersedes ADR-131 reading 6).
+- ADR-337 · Compatibility rows: one state chip, ⋯ for Share and Delete.
+- ADR-338 · No stories on the dashboard; the pair's story card at its report's end (amends ADR-175).
+- ADR-339 · The violet ring marks anyone in a pair the reader can open (Claude).
+- ADR-340 · The birth form warns on the reader's own birth details (Claude).
+- ADR-341 · `GET /home` carries share and first-steps state (Claude).
+- ADR-342 · Both roads and both share questions join the buyer walk.

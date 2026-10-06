@@ -1,6 +1,6 @@
 # Compatibility loading story — draft
 
-Status: draft, 2026-10-06. Artifact: https://claude.ai/artifact/VNdob5xAziDJDZ6HX6KkLf
+Status: draft, third pass, 2026-10-06; the Owner chose B then C ("so beautiful"). Artifact: https://claude.ai/artifact/VNdob5xAziDJDZ6HX6KkLf
 Follows `report-loading-story.md` (ADR-316 to 325), which left this screen out of scope.
 
 ## Why
@@ -35,6 +35,17 @@ opens itself at 100% as today (ADR-47, 59). All data from the engine: the two st
 the sky between two births, 264 days every second day, about 35 ms. Both charts are stored; the
 report writes on the server meanwhile; the animation adds nothing to the wait.
 
+**The Owner's notes on B then C.** The second sky does not run from one birthday to the other: it
+fades in on its own plate. Then the two charts side by side, the houses read side by side (C),
+then writing.
+
+**One layout grid for every loading screen** (the Owner, 2026-10-06; amends the locked
+`report-loading-story.md`, ADR-316 to 325, and Timeline's setup, ADR-320). The Personal report,
+Timeline's setup and the Compatibility report use one grid, the same on every device: the step
+counter ("Step 3 of 6") in one fixed place, the title under it, the subtitle under that, the
+stage in one fixed box, the percentage and the door in one fixed place. The Owner will plan all
+three loading reworks in one round.
+
 ## Out of scope
 
 - The compatibility hero (ADR-70, 99), the report's chapters, the score rule (none).
@@ -55,14 +66,13 @@ table, the rules kept and the choices made.
 
 ## Open questions
 
-1. Which direction? Recommended B then C. Default: B then C.
-2. B shows one sky moving between the two birthdays before each settles on its own plate. Does
-   that keep ADR-97 ("nothing draws two charts on one plate")? Recommended: yes, it's one sky at
-   one moment and the circles never touch. Default: yes; if no, A then C.
+1. None left on direction (B then C, the Owner). Lock when the Owner says so.
 
 ## Decisions to record
 
 - D1 · The Compatibility loading screen shows facts only, never what they mean (Owner).
-- D2 · Direction (Q1); one sky between the two births read within ADR-97 (Q2).
+- D2 · B then C: places, then each birthday's sky fading in on its own plate, then houses side by
+  side, then writing (Owner).
+- D5 · One layout grid for all three loading screens, the same on every device (Owner).
 - D3 · Matches light both plates at once; nothing joins the two charts.
 - D4 · All twelve house words stay on each plate, quiet, the lit one written out under (ADR-98).
