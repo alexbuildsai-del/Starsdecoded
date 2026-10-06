@@ -51,7 +51,7 @@ const WEB = "https://starsdecoded-staging.vercel.app";
 const DAY = 86_400_000;
 const LOCAL = ["tomas-report", "tomas-pair", "tomas-sends", "tomas-claims"];
 const STORED = ["own-report", "idris-report", "pair"];
-const SEED_READERS = ["share", "share-back", "pair-shared", "timeline"];
+const SEED_READERS = ["no-credit", "share", "share-back", "pair-shared", "timeline"];
 // Clerk's ids are long, so the walk's findings are pinned against ids shaped as Clerk makes them.
 const PAIR: QaPair = {
   mira: { userId: "user_2mGqYxQaWalkMira01", email: QA_PAIR.mira.email, name: QA_PAIR.mira.name },
@@ -111,7 +111,7 @@ class FakeSite {
     return report;
   }
 
-  private spend(role: Role, what: string): boolean {
+  spend(role: Role, what: string): boolean {
     const me = this.balance[role];
     if (me.available <= 0) return false;
     me.available -= 1;
@@ -368,10 +368,10 @@ function fakePair(site: FakeSite, seeded: boolean, log: string[]): QaPairDoors {
     async place(_pair, step) {
       log.push(`place ${step}`);
       if (!seeded) return null;
-      // A copy is not a write, so it takes no credit (R17-09).
-      if (step === "own-report") return site.addReport("mira", "natal").id;
-      if (step === "idris-report") return site.addReport("idris", "natal").id;
-      return site.addReport("mira", "compatibility").id;
+      // A copy takes the credit its write would, as placeSeed does (2026-10-06).
+      const role = step === "idris-report" ? "idris" : "mira";
+      if (!site.spend(role, step === "pair" ? "Mira Costa & Idris Costa" : PAIR[role].name)) throw new Error(`no credit was left to copy ${step} with`);
+      return site.addReport(role, step === "pair" ? "compatibility" : "natal").id;
     },
   };
 }
@@ -416,7 +416,8 @@ test("a deploy's walk on a stored seed runs the list in its order: the live step
   }
   // Reading 17: one write, Idris's, at a zero balance, answered by the 402; no pair is written and no Timeline page opens.
   assert.deepEqual(site.paid, ["idris POST /api/reports"]);
-  assert.deepEqual(site.balance.idris, { available: 1, used: 0, held: 0 });
+  // His copied report took the gifted credit, so the 402 met an empty balance.
+  assert.deepEqual(site.balance.idris, { available: 0, used: 1, held: 0 });
   assert.deepEqual(log.filter((line) => line.startsWith("place")), ["place own-report", "place idris-report", "place pair"]);
   // The refund took the five unused credits back; the plan opened, renewed a year on, and closed at the end it was set to.
   assert.equal(site.purchases.size, 2);
@@ -433,14 +434,15 @@ test("with no seed yet, the stored steps and every step that reads their reports
   assert.equal(verdict.status, "unseeded");
   assert.deepEqual(verdict.findings, []);
   const status = statusOf(verdict);
-  for (const id of ["sign-in", "buy", "gift", "no-credit", "gift-claimed", "refund"]) assert.equal(status[id], "pass", id);
+  for (const id of ["sign-in", "buy", "gift", "gift-claimed", "refund"]) assert.equal(status[id], "pass", id);
   for (const id of [...STORED, ...SEED_READERS]) {
     assert.equal(status[id], "not_run", id);
     assert.equal(verdict.steps.find((step) => step.id === id)?.reason, W.WAITING_LINE, id);
   }
   // The pair is never asked for once the reports it goes over are missing.
   assert.deepEqual(log.filter((line) => line.startsWith("place")), ["place own-report", "place idris-report"]);
-  assert.deepEqual(site.paid, ["idris POST /api/reports"]);
+  // Idris still holds the gift with no report to spend it, so the 402 waits too and the walk asks to write nothing.
+  assert.deepEqual(site.paid, []);
   assert.ok(log.includes("delete clock_test_1"));
   assert.deepEqual(modelCalls, []);
 });
