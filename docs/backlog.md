@@ -34,8 +34,31 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-27 · /sample refreshes from the next passing Release; check the old tie line is gone · was MB-182
 - B-28 · Remove each `// MB-NN provisional` seam whose row is no longer open (seams for 39 rows in `api`, `web`, `packages` today; fetch each row first) · sweep 05/10
 - B-29 · R15 and R16 small follow-ups (libraries, query counts, leak table, release retry; R16 leftovers) · was MB-209, MB-222
-- B-40 · `HARD_PAIRS` in `api/src/lib/synastryCompute.ts` holds saturn-pluto, venus-saturn, venus-pluto unsorted, so `pairKey` never matches them; sort the keys, with a dry lab run · compat-loading ideation 06/10
-- B-41 · `computeCrossAspects` uses the noon Moon for a chart with no birth time; keep a Moon link only when its whole day span holds the aspect, with a dry lab run · compat-loading ideation 06/10
+- B-45 · `HARD_PAIRS` in `api/src/lib/synastryCompute.ts` holds saturn-pluto, venus-saturn, venus-pluto unsorted, so `pairKey` never matches them; sort the keys, with a dry lab run · compat-loading ideation 06/10
+- B-46 · `computeCrossAspects` uses the noon Moon for a chart with no birth time; keep a Moon link only when its whole day span holds the aspect, with a dry lab run · compat-loading ideation 06/10
+- B-31 · /round and /qa read `/api/qa/latest` after each merge (a skill line; a running /round can't edit its own skill) · was MB-230, R17
+- B-32 · The Stop sharing dialog names that Ask answers built on that report get hidden (ADR-182) · R17-20
+- B-33 · `web/src/types/chart.ts` hand-types `PairLink.of` as A or B; take the generated type with `none` · R17-01
+- B-34 · Two Timeline checkouts opened at once and both paid make two subscriptions; refuse or cancel the second (QA-06 #4: both tabs still reach Stripe's fields) · R17-10, 12
+- B-35 · A finished report regenerated, then failing three times, gives its credit back: check its old version isn't still readable · R17 tester
+- B-36 · Comments left on the soft pass or old rules: `requireAccount.ts`, `prelaunch.ts`, `limits.ts` (anonWrites), `Orbit.tsx`, `nudges.ts`, `pair-selection.ts` (MB-6), `ClaimPage.tsx`, `pair-row.ts` (MB-137); `aiInterpretation.ts` with a dry lab run · R17
+- B-38 · `/ux-copy`'s voice-chart example still says a failed report's credit comes back · R17-08
+- B-39 · A deploy's walk resets the QA pair twice (R17-25's walk and R17-26's trigger); keep one · R17-26
+- B-40 · The staging walk's reason text picks up the page's STAGING badge; read the line, not the page · QA-05 #4
+- B-41 · Launch day, with the change that turns Timeline on: the six "after launch" lines (`faq.ts`, `site.ts`, timeline `Hero`, `WhatYouGet`, `TimelineLine`) to the present tense; nothing before · QA-05 #5, Decisions 2026-10-06
+- B-42 · Refund rule 2 (`REFUND_RULES[1]`, `commerce/src/terms.ts`; /refunds and the receipt) and /method step 04 add "For a Compatibility report, the credit comes back at once." · QA-05 #7, Decisions 2026-10-06
+- B-44 · /privacy's cookie line names Stripe's two fraud cookies itself instead of "only the ones Stars Decoded needs"; no banner (`PrivacyPage.tsx`) · QA-05 #6, Decisions 2026-10-06
+- B-47 · Sign-in by emailed code loses `return_to` at `/sign-in/factor-one` and lands on home; keep it across Clerk's steps (`getReturnTo()`, `App.tsx`; `SignUpPage` too) · QA-06 #1
+- B-48 · Each deploy, `/api/*` answers 502 for about a minute (a paid buyer's done page among them): a Railway healthcheck and overlap, and the done page waits past a 502 · QA-06 #2
+- B-49 · Stripe Link's "Save my information" box is ticked by default and blocks Pay without a phone; turn Link off in the Payment Element · QA-06 #3
+- B-50 · /claim signed out offers a gift already claimed; say "Already claimed" before sign-in · QA-06 #5
+- B-51 · Wrong account on a claim: name who is signed in, offer Sign out, no Try again that repeats the 403 · QA-06 #6
+- B-52 · The share dialog's `failureLine` hides the API's 400 line ("That's your own email…") · QA-06 #7
+- B-53 · /admin/prompts and /admin/report-lab say "Access Denied … ADMIN_USER_ID"; use Sales' line · QA-06 #8
+- B-54 · 390 px on staging: the STAGING badge covers the credits count · QA-06 #9
+- B-55 · Deleting a Timeline subscriber's Personal report: the dialog says Timeline stops opening and keeps renewing, with Cancel's link · QA-06 #10
+- B-56 · /checkout lists Bancontact, MB WAY, Satispay, Amazon Pay, EPS under "or pay by card", and the country defaults to the US; match the list and the buyer · QA-06 #12
+- B-57 · Account names where to delete your data (the dashboard's Delete) · QA-06 #15
 
 ## Waiting on Alex
 
@@ -53,20 +76,6 @@ Open Mailbox rows, ids and links only (R-12.7). Kept current by every session th
 - MB-227 https://app.notion.com/p/3f0fefe7493181b1bb50e644ea207157
 - MB-228 https://app.notion.com/p/3f0fefe7493181958e8bfd0d011d4120
 - MB-232 https://app.notion.com/p/3f0fefe749318169953ced2f4aee9abe
-- B-31 · /round and /qa read `/api/qa/latest` after each merge (a skill line; a running /round can't edit its own skill) · was MB-230, R17
-- B-32 · The Stop sharing dialog names that Ask answers built on that report get hidden (ADR-182) · R17-20
-- B-33 · `web/src/types/chart.ts` hand-types `PairLink.of` as A or B; take the generated type with `none` · R17-01
-- B-34 · Two Timeline checkouts opened at once and both paid make two subscriptions; refuse or cancel the second · R17-10, 12
-- B-35 · A finished report regenerated, then failing three times, gives its credit back: check its old version isn't still readable · R17 tester
-- B-36 · Comments left on the soft pass or old rules: `requireAccount.ts`, `prelaunch.ts`, `limits.ts` (anonWrites), `Orbit.tsx`, `nudges.ts`, `pair-selection.ts` (MB-6), `ClaimPage.tsx`, `pair-row.ts` (MB-137); `aiInterpretation.ts` with a dry lab run · R17
-- B-37 · Check on staging: Stripe's cookies' host and `__stripe_sid`'s life; `adaptive_pricing` off on an elements session; Inter's weight in Appearance · R17-08, 10, 14
-- B-38 · `/ux-copy`'s voice-chart example still says a failed report's credit comes back · R17-08
-- B-39 · A deploy's walk resets the QA pair twice (R17-25's walk and R17-26's trigger); keep one · R17-26
-- B-40 · The staging walk's reason text picks up the page's STAGING badge; read the line, not the page · QA-05 #4
-- B-41 · Launch day, with the change that turns Timeline on: the six "after launch" lines (`faq.ts`, `site.ts`, timeline `Hero`, `WhatYouGet`, `TimelineLine`) to the present tense; nothing before · QA-05 #5, Decisions 2026-10-06
-- B-42 · Refund rule 2 (`REFUND_RULES[1]`, `commerce/src/terms.ts`; /refunds and the receipt) and /method step 04 add "For a Compatibility report, the credit comes back at once." · QA-05 #7, Decisions 2026-10-06
-- B-43 · /admin/waitlist shows the same "Sign-in couldn't load" line as /admin/sales when Clerk doesn't load · QA-05 #8
-- B-44 · /privacy's cookie line names Stripe's two fraud cookies itself instead of "only the ones Stars Decoded needs"; no banner (`PrivacyPage.tsx`) · QA-05 #6, Decisions 2026-10-06
 
 Private, Owner Claude (security, details in Notion only; done before Timeline opens to subscribers):
 
