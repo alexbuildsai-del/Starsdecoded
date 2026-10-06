@@ -45,6 +45,12 @@ scope, out of scope, acceptance criteria, screens (linked to the artifact),
 open questions, and every new decision the session produced listed under
 "Decisions to record".
 
+Write the draft as soon as the artifact is up, then update it after every
+answer the Owner gives, so the file always holds what is decided and what is
+still open. Long ideations get compacted, and the summary drops detail; the
+file does not. After a compaction, re-read the draft and the artifact before
+you reply.
+
 At the close, once the Owner has answered and the draft is final, add what the
 session taught to `docs/annex/owner-playbook.md` (ADR-195), the one file you
 edit besides the draft: the recommendations they took as they were, what they
