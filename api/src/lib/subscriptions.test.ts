@@ -772,7 +772,7 @@ test("a plan with no row counts as kept only for a day after its grant: granted 
   const stand = await secondPlanStripe(known);
   t.after(stand.close);
 
-  // Paid and granted with no row, as a reset that takes the row and keeps the purchase leaves it, then dated back.
+  // Paid and granted with no row, whether still to land or gone from under its purchase, then dated back.
   const grantedWithNoRow = async (b: Awaited<ReturnType<typeof buyer>>, tag: string, agoMs: number) => {
     const purchaseId = await checkout(b.userId, "timeline_year");
     const first = invoice(`in_r1829_${run}_${tag}_1`, b.sub, b.customer, { purchaseId, amountPaid: 6999, intent: `pi_r1829_${run}_${tag}_1` });

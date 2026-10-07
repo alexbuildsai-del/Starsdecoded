@@ -37,6 +37,7 @@ const { chartForProfile } = await import("./profiles.js");
 const { natalReportAccess } = await import("./access.js");
 const { isOutdated } = await import("../routes/reports.js");
 const { pool } = await import("@workspace/db");
+const { activeSubscription, applySubscriptionEvent } = await import("./subscriptions.js");
 
 type QaPair = import("./qaPair.js").QaPair;
 type QaClerk = import("./qaPair.js").QaClerk;
@@ -287,6 +288,12 @@ async function leaveAWalk(): Promise<string[]> {
   await q(`insert into report_workbooks (report_id, reader, workbook) values ($1, $2, '{"focus:leanInto:0": "2026-10-05"}')`, [miraOwn.reportId, idris]);
   await q("update credits set status = 'refunded' where id = any($1)", [[bought[3], bought[4]]]);
   await q("insert into subscriptions (id, user_id, customer_id, item, status, is_test) values ($1, $2, $3, 'timeline_year', 'active', true)", [`sub_${run}`, mira, customer.mira]);
+  // Granted within the day, so a reset that took the plan's row would leave this purchase reading as a plan still kept.
+  await q(
+    `insert into purchases (id, user_id, kind, item, cents, full_cents, stripe_session_id, stripe_subscription, tick_hash, ticked_at, return_to, status, is_test, granted_at)
+     values ($1, $2, 'plan', 'timeline_year', 6999, 6999, $3, $4, 'tick', now(), '/dashboard/account', 'granted', true, now())`,
+    [randomUUID(), mira, `cs_test_${run}_plan`, `sub_${run}`],
+  );
   await bundle(mira, "plan", 1);
   await bundle(idris, "grant", 3);
   await q("insert into timeline_readings (id, user_id, profile_id, event_key, basis, status) values ($1, $2, $3, 'saturn-asc', 'b', 'ready')", [randomUUID(), mira, miraOwn.profileId]);
@@ -328,7 +335,7 @@ const TOPPED_UP = (mira: string) => ({
   bundles: [{ user_id: mira, source: "test", is_test: true, n: 20 }],
 });
 
-test("reset deletes what a walk left and forgets both Stripe customers; Mira holds 20 test credits and Idris none", { skip: NO_DB }, async () => {
+test("reset deletes what a walk left, ends its plan and forgets both Stripe customers; Mira holds 20 test credits and Idris none, and the next walk's plan is kept", { skip: NO_DB }, async () => {
   await q("insert into users (id, email) values ($1, 'bystander@example.com')", [BYSTANDER]);
   const theirs = await ownReport(BYSTANDER, "tomas", "Madrid");
   await bundle(BYSTANDER, "purchase", 3);
@@ -338,16 +345,53 @@ test("reset deletes what a walk left and forgets both Stripe customers; Mira hol
   const reportIds = await leaveAWalk();
   await Q.resetQaPair(pair);
 
-  assert.deepEqual(await leftovers(reportIds), { profiles: 0, reports: 0, pairs: 0, invites: 0, shares: 0, workbooks: 0, plans: 0, readings: 0, asks: 0 });
+  assert.deepEqual(await leftovers(reportIds), { profiles: 0, reports: 0, pairs: 0, invites: 0, shares: 0, workbooks: 0, plans: 1, readings: 0, asks: 0 });
+  // The plan's row stays beside its purchase, ended, and the read every plan check uses finds no plan for either.
+  assert.deepEqual(
+    (await q("select id, status, cancel_at_period_end, current_period_end <= now() as ended from subscriptions where user_id = any($1)", [ids])).rows,
+    [{ id: `sub_${run}`, status: "canceled", cancel_at_period_end: true, ended: true }],
+  );
+  assert.deepEqual([await activeSubscription(ids[0]), await activeSubscription(ids[1])], [null, null], "no live plan after a reset");
   assert.deepEqual(await ledger(), TOPPED_UP(ids[0]));
   // A customer can't leave its test clock, so the next walk makes a fresh one on a fresh clock.
   assert.deepEqual((await q("select id, stripe_customer_id from users where id = any($1) order by email", [ids])).rows, [
     { id: ids[0], stripe_customer_id: null },
     { id: ids[1], stripe_customer_id: null },
   ]);
-  assert.equal((await q("select count(*)::int as n from purchases where user_id = $1", [ids[0]])).rows[0].n, 1, "a payment's record stays");
+  assert.equal((await q("select count(*)::int as n from purchases where user_id = $1", [ids[0]])).rows[0].n, 2, "every payment's record stays");
   assert.deepEqual((await accountRows()).testers, made.testers);
   assert.deepEqual(await bystanderRows(), bystander);
+
+  // The next walk's plan, on a fresh customer, within the day: its first payment keeps it. Judged a second plan, it would
+  // throw here, since there is no Stripe to cancel it with.
+  const next = randomUUID();
+  await q("update users set stripe_customer_id = $2 where id = $1", [ids[0], `cus_${run}_next`]);
+  await q(
+    `insert into purchases (id, user_id, kind, item, cents, full_cents, stripe_session_id, tick_hash, ticked_at, return_to, status, is_test)
+     values ($1, $2, 'plan', 'timeline_year', 6999, 6999, $3, 'tick', now(), '/dashboard/account', 'open', true)`,
+    [next, ids[0], `cs_test_${run}_next`],
+  );
+  const firstPayment = {
+    id: `evt_${run}_next`,
+    object: "event",
+    type: "invoice.paid",
+    livemode: false,
+    data: {
+      object: {
+        id: `in_${run}_next`,
+        object: "invoice",
+        customer: `cus_${run}_next`,
+        customer_email: null,
+        billing_reason: "subscription_create",
+        amount_paid: 6999,
+        livemode: false,
+        lines: { object: "list", data: [] },
+        parent: { subscription_details: { subscription: `sub_${run}_next`, metadata: { purchase_id: next } } },
+      },
+    },
+  } as unknown as Parameters<typeof applySubscriptionEvent>[0];
+  assert.equal(await applySubscriptionEvent(firstPayment, { client: null, sendReceipt: async () => true, setUp: async () => {} }), "processed");
+  assert.equal((await q("select status from purchases where id = $1", [next])).rows[0].status, "granted", "kept, not a second plan");
 
   // Topped up to 20, never by 20.
   await Q.resetQaPair(pair);

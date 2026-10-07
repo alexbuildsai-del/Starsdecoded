@@ -1808,6 +1808,8 @@ paths:
           $ref: "#/components/responses/NoTimeline"
         "409":
           $ref: "#/components/responses/NoPersonalReport"
+        "429":
+          $ref: "#/components/responses/RateLimited"
     post:
       operationId: startTimelineSetup
       tags: [timeline]
@@ -1836,6 +1838,8 @@ paths:
           $ref: "#/components/responses/NoTimeline"
         "409":
           $ref: "#/components/responses/NoPersonalReport"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /timeline/setup/replay-seen:
     post:
@@ -1858,6 +1862,8 @@ paths:
           $ref: "#/components/responses/NoTimeline"
         "409":
           $ref: "#/components/responses/NoPersonalReport"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /ask:
     # MB-191 provisional: the thread keeps 31 days, a person as who and which day, and goes with the Personal report.

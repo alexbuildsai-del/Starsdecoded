@@ -321,8 +321,8 @@ async function grantIn(tx: Tx, purchaseId: string, item: PlanId, paid: PaidBy, n
 /**
  * Whether the account keeps a plan other than this subscription (ADR-359): one a paid purchase of the account stands
  * on, which has not ended. One whose row hasn't landed yet counts, since its first payment went through. That row
- * lands within minutes, while a purchase outlives a row taken from under it, as the staging walk's reset takes its
- * plan's, so a purchase with no row counts only for a day after its grant.
+ * lands within minutes, and a purchase can outlive its row, so a purchase with no row counts only for a day after its
+ * grant.
  */
 async function keepsAnotherPlan(tx: Tx, userId: string, subscriptionId: string, now: Date): Promise<boolean> {
   const grantedSince = new Date(now.getTime() - NO_ROW_COUNTS_MS);

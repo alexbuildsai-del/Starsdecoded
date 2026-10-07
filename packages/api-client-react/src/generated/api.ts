@@ -4570,7 +4570,7 @@ export const getGetTimelineSetupQueryKey = (params?: GetTimelineSetupParams,) =>
     }
 
 
-export const getGetTimelineSetupQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineSetup>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>>(params?: GetTimelineSetupParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetTimelineSetupQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineSetup>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>>(params?: GetTimelineSetupParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4589,14 +4589,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetTimelineSetupQueryResult = NonNullable<Awaited<ReturnType<typeof getTimelineSetup>>>
-export type GetTimelineSetupQueryError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>
+export type GetTimelineSetupQueryError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>
 
 
 /**
  * @summary Where the reader's Timeline setup stands (ADR-302, ADR-362)
  */
 
-export function useGetTimelineSetup<TData = Awaited<ReturnType<typeof getTimelineSetup>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>>(
+export function useGetTimelineSetup<TData = Awaited<ReturnType<typeof getTimelineSetup>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>>(
  params?: GetTimelineSetupParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -4650,7 +4650,7 @@ export const startTimelineSetup = async (params?: StartTimelineSetupParams, opti
 
 export const getStartTimelineSetupMutationKey = () => ['startTimelineSetup'] as const;
 
-export const getStartTimelineSetupMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>,
+export const getStartTimelineSetupMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext> => {
 
@@ -4679,13 +4679,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type StartTimelineSetupMutationResult = NonNullable<Awaited<ReturnType<typeof startTimelineSetup>>>
 
-    export type StartTimelineSetupMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>
+    export type StartTimelineSetupMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>
     export type StartTimelineSetupMutationVariables = {params?: StartTimelineSetupParams}
 
     /**
  * @summary Start the reader's Timeline setup if it has not started (ADR-362)
  */
-export const useStartTimelineSetup = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>,
+export const useStartTimelineSetup = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof startTimelineSetup>>,
@@ -4725,7 +4725,7 @@ export const markTimelineReplaySeen = async ( options?: Parameters<typeof custom
 
 export const getMarkTimelineReplaySeenMutationKey = () => ['markTimelineReplaySeen'] as const;
 
-export const getMarkTimelineReplaySeenMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>,
+export const getMarkTimelineReplaySeenMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext> => {
 
@@ -4754,13 +4754,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type MarkTimelineReplaySeenMutationResult = NonNullable<Awaited<ReturnType<typeof markTimelineReplaySeen>>>
 
-    export type MarkTimelineReplaySeenMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>
+    export type MarkTimelineReplaySeenMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>
 
 
     /**
  * @summary The reader has seen their next six months drawn (ADR-302)
  */
-export const useMarkTimelineReplaySeen = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>,
+export const useMarkTimelineReplaySeen = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof markTimelineReplaySeen>>,

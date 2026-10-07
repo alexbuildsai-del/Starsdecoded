@@ -204,13 +204,15 @@ async function confirmPair(pair: QaPair): Promise<string[]> {
 
 /**
  * Puts both accounts back at the walk's start: what either one made goes (invites and gifts, shares, reports and
- * pairs, credits and grants, Timeline's plan), then Mira holds 20 test credits and Idris none. A customer can't leave
- * a Stripe test clock and goes when its clock does, so each account's customer is forgotten and the next walk makes a
- * fresh one. Purchases stay, as a payment's record stays when an account goes, so a late webhook still finds its row.
+ * pairs, credits and grants) and Timeline's plan ends, then Mira holds 20 test credits and Idris none. A customer can't
+ * leave a Stripe test clock and goes when its clock does, so each account's customer is forgotten and the next walk
+ * makes a fresh one. Purchases stay, as a payment's record stays when an account goes, so a late webhook still finds
+ * its row.
  */
 export async function resetQaPair(pair: QaPair): Promise<void> {
   stagingOnly("resetting the pair");
   const ids = await confirmPair(pair);
+  const endedAt = new Date();
   await db.transaction(async (tx) => {
     const profileIds = (await tx.select({ id: profilesTable.id }).from(profilesTable).where(inArray(profilesTable.userId, ids))).map((p) => p.id);
     const relationshipIds = (await tx.select({ id: relationshipsTable.id }).from(relationshipsTable).where(inArray(relationshipsTable.userId, ids))).map(
@@ -229,7 +231,18 @@ export async function resetQaPair(pair: QaPair): Promise<void> {
     await tx.delete(askMessagesTable).where(inArray(askMessagesTable.userId, ids));
     await tx.delete(creditsTable).where(inArray(creditsTable.userId, ids));
     await tx.delete(bundlesTable).where(inArray(bundlesTable.userId, ids));
-    await tx.delete(subscriptionsTable).where(inArray(subscriptionsTable.userId, ids));
+    // The plan's row is ended, not deleted. Its purchase stays, and a plan purchase with no row reads as a plan still kept
+    // for a day after its grant (subscriptions.ts), which would make the next walk's plan a second one, cancelled at once.
+    // An ended row never moves again, whatever Stripe sends for it later.
+    await tx
+      .update(subscriptionsTable)
+      .set({
+        status: "canceled",
+        cancelAtPeriodEnd: true,
+        currentPeriodEnd: sql`least(${subscriptionsTable.currentPeriodEnd}, ${endedAt.toISOString()}::timestamptz)`,
+        updatedAt: endedAt,
+      })
+      .where(inArray(subscriptionsTable.userId, ids));
     await tx.update(usersTable).set({ stripeCustomerId: null, updatedAt: new Date() }).where(inArray(usersTable.id, ids));
     for (const role of QA_ROLES) {
       const count = QA_CREDITS[role];

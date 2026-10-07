@@ -1,10 +1,10 @@
 /**
  * Timeline's routes (ADR-207, 209, 210, 262, 362): whether the reader has it, its setup, Now and ahead, Life, and each
  * reading. Every route but the access answer stands behind the one access check and reads the reader's own chart with
- * a finished Personal report (reading 2). routes/index.ts stands Now and ahead's count ahead of it, and a reading's
- * count and the breaker, with Timeline's own pause line, ahead of its open. A new reading once the account has started
- * the day's is 429, with Timeline's own line too. The views write nothing: a subscriber's readings are written at
- * setup, from the engine's own list (reading 11).
+ * a finished Personal report (reading 2). routes/index.ts stands Now and ahead's count ahead of it, one count its
+ * three setup routes share ahead of them, and a reading's count and the breaker, with Timeline's own pause line, ahead
+ * of its open. A new reading once the account has started the day's is 429, with Timeline's own line too. The views
+ * write nothing: a subscriber's readings are written at setup, from the engine's own list (reading 11).
  */
 import { Router, type Request, type RequestHandler, type Response } from "express";
 import type { z } from "zod";
