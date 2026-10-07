@@ -59,9 +59,8 @@ router.post("/billing/portal", billing);
 // A new Timeline reading and an Ask message each call the model, so each meets its own count and the breaker, whose line
 // is Timeline's: neither spends a credit. Both stand after the access check: a reader without Timeline hears 403 before
 // anything is counted (ADR-262). An open whose reading is kept or being written skips both, since the sheet asks again
-// every few seconds while one is written and a kept reading opens on a paused day. Now and ahead's six months queue
-// readings (reading 7), so it has a count of its own; it meets no breaker, since the queue waits behind one itself and
-// the view still answers on a paused day.
+// every few seconds while one is written and a kept reading opens on a paused day. Now and ahead's six months keep a
+// count of their own and meet no breaker: the view writes nothing (setup's jobs write, ADR-362) and answers on a paused day.
 export const openingReading = [requireTimelineAccess, startsAReading, ...timelineReadingLimit, spendGate("timeline")];
 export const asking = [requireTimelineAccess, ...askLimit, spendGate("timeline")];
 export const nowAndAhead = [requireTimelineAccess, ...timelineNowLimit];

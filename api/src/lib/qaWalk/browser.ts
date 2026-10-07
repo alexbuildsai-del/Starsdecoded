@@ -86,7 +86,7 @@ const PAID: ReadonlyArray<{ method: string | null; path: RegExp; route: PaidRout
   { method: "POST", path: /^\/api\/reports\/[^/]+\/regenerate$/, route: "POST /api/reports/:id/regenerate" },
   { method: "PATCH", path: /^\/api\/profiles\/[^/]+\/birth-time$/, route: "PATCH /api/profiles/:id/birth-time" },
   { method: "POST", path: /^\/api\/ask$/, route: "POST /api/ask" },
-  // A Timeline page reads the six months ahead, which queues paid readings, so the walk reads access alone.
+  // Timeline's setup and its readings write paid text, so the walk reads access alone (ADR-315).
   { method: null, path: /^\/api\/timeline\/(?!access$)/, route: "/api/timeline/*" },
 ];
 

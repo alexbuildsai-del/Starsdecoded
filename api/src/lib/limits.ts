@@ -34,8 +34,8 @@ export const LIMITS = {
   // Ask's month has its own cap besides (reading 13), and a reading counts only when its open starts a write.
   ask: { limit: 6, windowMs: MINUTE_MS, by: "account", counts: "success" },
   timelineReading: { limit: 20, windowMs: MINUTE_MS, by: "account", counts: "success" },
-  // Now and ahead's six months queue readings ahead (reading 7), so every read of it counts, whatever its range: a page
-  // switching ranges reads a few a minute, while a loop would set the queue writing with nothing to slow it (R-7.5).
+  // Every read of Now and ahead's six months counts, whatever its range: a page switching ranges reads a few a minute,
+  // and each read works the sky out again, so a loop still needs something to slow it (R-7.5).
   timelineNow: { limit: 30, windowMs: MINUTE_MS, by: "account", counts: "success" },
 } as const satisfies Record<string, { limit: number; windowMs: number; by: CountedBy; counts: Counts }>;
 
