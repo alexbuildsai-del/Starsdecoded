@@ -7,17 +7,20 @@
  * Bodies are their renders, never glyphs, sitting at their true degrees on their own tracks, so crowding never moves
  * one (§9). The colours are the tokens' own values, since the dial draws on the site, in the app and on the dashboard,
  * outside any one token scope.
+ *
+ * Timeline's setup screen hands it a `stage` (ADR-320): the same dial drawn in by the setup's script, a picture with
+ * no slider and no Play, whose planets glide between days while the date runs.
  */
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { PLANET_LABELS } from "@/types/chart";
 import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
-import { arcLabelPath, norm360 } from "@/components/chart/wheel-geometry";
+import { arcLabelPath, norm360, wedgePath } from "@/components/chart/wheel-geometry";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import {
-  DIAL, bandSegments, beatMs, clampDay, dialAngle, dialAt, frameText, keyDay, leavesTrail, playStart, playStep, trackRadii,
-  trailPath, type DialAngles, type DialFrame, type DialPoint,
+  DIAL, bandSegments, beatMs, bodiesAt, clampDay, contactKey, dialAngle, dialAt, frameText, keyDay, leavesTrail, playStart,
+  playStep, trackRadii, trailPath, type DialAngles, type DialFrame, type DialPoint, type DialStage,
 } from "@/lib/dial";
 
 export type DialTrail = "played" | "range";
@@ -39,6 +42,8 @@ export interface DialProps {
   label?: string;
   /** Beside Play: the date the dial shows, as the page words it. */
   children?: ReactNode;
+  /** Timeline's setup: how far each part has been drawn in; `day` gives way to its own. */
+  stage?: DialStage;
 }
 
 const GROUND = "#0D1117";
@@ -46,6 +51,14 @@ const RAISED = "#171D29";
 const LINE = "#242C3B";
 const PAPER = "#E8EBF2";
 const GREY = "#AEB6C6";
+// A house a setup's gold line reaches fills with the houses' own indigo, as both loading stories light one.
+const INDIGO = "#5C6BC0";
+const LIT_FILL = 0.23;
+// The setup's chart settles from this much larger as it comes in.
+const CHART_SETTLE = 0.25;
+// While the setup's date runs, each planet that can touch the chart drags this many days of its path behind it, as the
+// setup player draws it, so the run reads as motion and not as a jump.
+const STAGE_TRAIL_DAYS = 48;
 const MUTED = "#7E889A";
 const FAINT = "#6E7789";
 const BRASS = "hsl(var(--brass))";
@@ -72,15 +85,16 @@ const FOCUS_RING = {
 // Below this many pixels a word on the dial is a smudge, so a small dial draws the sky alone.
 const DETAIL_PX = 160;
 
-export function Dial({ points, angles, frames, day, onDay, playable, trail, size, label = "Your chart", children }: DialProps) {
+export function Dial({ points, angles, frames, day, onDay, playable, trail, size, label = "Your chart", children, stage }: DialProps) {
   const uid = `dial${useId().replace(/[^\w-]/g, "")}`;
   const { order } = useEntryFormat();
   const reduced = useReducedMotion();
 
   const last = Math.max(0, frames.length - 1);
-  const at = clampDay(day, last);
+  const at = clampDay(stage ? stage.at : day, last);
   const frame = frames[at];
-  const moving = frames.length > 1;
+  // A staged dial is the setup's picture, played by its script, so it is never a slider.
+  const moving = frames.length > 1 && !stage;
   const east = angles?.ascendant ?? 0;
   const detailed = size === undefined || size >= DETAIL_PX;
 
@@ -129,18 +143,15 @@ export function Dial({ points, angles, frames, day, onDay, playable, trail, size
   const bodiesKey = frames[0]?.bodies.map((b) => b.body).join(",") ?? "";
   const radii = useMemo(() => trackRadii(bodiesKey.split(",")), [bodiesKey]);
   const hasHorizon = angles !== null;
+  const stroke = detailed ? 1 : 5;
+  const segments = useMemo(() => bandSegments(hasHorizon ? east : null), [hasHorizon, east]);
 
-  // Everything that stays put while the dial plays: drawn once per chart, not once per day.
-  const ground = useMemo(() => {
-    const segments = bandSegments(hasHorizon ? east : null);
-    const stroke = detailed ? 1 : 5;
+  // Everything inside the tracks that stays put while the dial plays: drawn once per chart, not once per day.
+  const band = useMemo(() => {
     const rise = dialAt(east, DIAL.bandInner, east);
     const set = dialAt(east + 180, DIAL.bandInner, east);
     return (
-      <g>
-        {Object.entries(radii).map(([body, r]) => (
-          <circle key={body} cx={DIAL.centre} cy={DIAL.centre} r={r} fill="none" stroke={LINE} strokeOpacity={0.85} strokeWidth={stroke} />
-        ))}
+      <>
         <circle cx={DIAL.centre} cy={DIAL.centre} r={DIAL.bandOuter} fill={GROUND} stroke={LINE} strokeWidth={stroke * 1.2} />
         <circle cx={DIAL.centre} cy={DIAL.centre} r={DIAL.bandInner} fill="none" stroke={LINE} strokeWidth={stroke * 1.2} />
         {segments.map((s) => {
@@ -162,11 +173,24 @@ export function Dial({ points, angles, frames, day, onDay, playable, trail, size
           );
         })}
         {hasHorizon && <line x1={rise.x} y1={rise.y} x2={set.x} y2={set.y} stroke={PAPER} strokeOpacity={0.35} strokeWidth={stroke} />}
-      </g>
+      </>
     );
-  }, [radii, east, hasHorizon, detailed, uid]);
+  }, [segments, east, hasHorizon, detailed, uid, stroke]);
 
-  const touched = new Set<string>(frame?.contacts.map((c) => c.target) ?? []);
+  const ground = useMemo(() => (
+    <g>
+      {Object.entries(radii).map(([body, r]) => (
+        <circle key={body} cx={DIAL.centre} cy={DIAL.centre} r={r} fill="none" stroke={LINE} strokeOpacity={0.85} strokeWidth={stroke} />
+      ))}
+      {band}
+    </g>
+  ), [radii, band, stroke]);
+
+  // Staged, the planets glide between days while the date runs; otherwise they stand on the day shown.
+  const shownBodies = stage ? bodiesAt(frames, stage.at) : frame?.bodies ?? [];
+  const grownOf = (c: DialFrame["contacts"][number]): number => (stage ? stage.lines.get(contactKey(c)) ?? 0 : 1);
+  // A point is reached once its gold line has grown all the way to it.
+  const touched = new Set<string>(frame?.contacts.filter((c) => grownOf(c) >= 1).map((c) => c.target) ?? []);
   const targetLon = (target: string): number | undefined => {
     if (target === "ascendant") return angles?.ascendant;
     if (target === "midheaven") return angles?.midheaven;
@@ -176,39 +200,39 @@ export function Dial({ points, angles, frames, day, onDay, playable, trail, size
   const trailTo = trail === "range" ? last : trail === "played" ? at : -1;
   const text = frameText(frame, order);
 
-  const drawing = (
+  const trails = (from: number, to: number) => Object.entries(radii).filter(([body]) => leavesTrail(body)).map(([body, r]) => {
+    const d = trailPath(frames, body, r, east, from, to);
+    return d ? (
+      <path
+        key={`t-${body}`} d={d} fill="none" stroke={GREY} strokeOpacity={0.35} strokeWidth={detailed ? 5 : 9}
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+    ) : null;
+  });
+
+  const contacts = frame?.contacts.map((c) => {
+    const grown = grownOf(c);
+    const place = shownBodies.find((b) => b.body === c.body);
+    const r = radii[c.body];
+    const lon = targetLon(c.target);
+    if (grown <= 0 || !place || r === undefined || lon === undefined) return null;
+    const from = dialAt(place.lon, r - disc, east);
+    const to = dialAt(lon, DIAL.point, east);
+    // A line still growing ends part of the way from its planet to the point.
+    const end = grown >= 1 ? to : { x: from.x + (to.x - from.x) * grown, y: from.y + (to.y - from.y) * grown };
+    return (
+      <line
+        key={`c-${c.body}-${c.aspect}-${c.target}`}
+        x1={from.x} y1={from.y} x2={end.x} y2={end.y}
+        stroke={BRASS} strokeWidth={detailed ? 1.8 : 4}
+        // A conjunction is a planet on the point itself, so only its line is solid.
+        strokeDasharray={c.aspect === "conjunction" ? undefined : "5 4"}
+      />
+    );
+  });
+
+  const natal = (
     <>
-      {moving && <circle cx={DIAL.centre} cy={DIAL.centre} r={DIAL.ring} {...FOCUS_RING} />}
-      {ground}
-
-      {trailTo > 0 && Object.entries(radii).filter(([body]) => leavesTrail(body)).map(([body, r]) => {
-        const d = trailPath(frames, body, r, east, 0, trailTo);
-        return d ? (
-          <path
-            key={`t-${body}`} d={d} fill="none" stroke={GREY} strokeOpacity={0.35} strokeWidth={detailed ? 5 : 9}
-            strokeLinecap="round" strokeLinejoin="round"
-          />
-        ) : null;
-      })}
-
-      {frame?.contacts.map((c) => {
-        const place = frame.bodies.find((b) => b.body === c.body);
-        const r = radii[c.body];
-        const lon = targetLon(c.target);
-        if (!place || r === undefined || lon === undefined) return null;
-        const from = dialAt(place.lon, r - disc, east);
-        const to = dialAt(lon, DIAL.point, east);
-        return (
-          <line
-            key={`c-${c.body}-${c.aspect}-${c.target}`}
-            x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-            stroke={BRASS} strokeWidth={detailed ? 1.8 : 4}
-            // A conjunction is a planet on the point itself, so only its line is solid.
-            strokeDasharray={c.aspect === "conjunction" ? undefined : "5 4"}
-          />
-        );
-      })}
-
       {points.filter((p) => !ANGLE_KEYS.has(p.body)).map((p) => {
         const hit = touched.has(p.body);
         const q = dialAt(p.lon, DIAL.point, east);
@@ -248,39 +272,103 @@ export function Dial({ points, angles, frames, day, onDay, playable, trail, size
           </g>
         );
       })}
-
-      {frame?.bodies.map((b) => {
-        const r = radii[b.body];
-        if (r === undefined) return null;
-        const q = dialAt(b.lon, r, east);
-        const src = detailed ? PLANET_RENDERS[b.body] : undefined;
-        const half = DIAL.render / 2;
-        return (
-          <g
-            key={`b-${b.body}`} data-body={b.body} data-tone={b.tone ?? "none"} data-retrograde={b.retrograde || undefined}
-            className={b.tone ? `sd-tone-${b.tone}` : undefined}
-          >
-            <circle
-              cx={q.x} cy={q.y} r={disc}
-              fill={b.tone ? "var(--sd-tone)" : detailed ? RAISED : MUTED}
-              stroke={b.retrograde ? RETRO : GROUND}
-              strokeWidth={b.retrograde ? 1.6 : 2}
-              strokeDasharray={b.retrograde ? "2.5 2" : undefined}
-            />
-            {b.retrograde && detailed && (
-              <text
-                x={q.x + disc * 0.85} y={q.y - disc * 0.45} fontFamily="IBM Plex Mono, monospace" fontSize={14} fontWeight={600}
-                fill={RETRO_R} stroke={GROUND} strokeWidth={3} paintOrder="stroke" data-retrograde-mark
-              >
-                R
-              </text>
-            )}
-            {src && <image href={src} x={q.x - half} y={q.y - half} width={DIAL.render} height={DIAL.render} preserveAspectRatio="xMidYMid meet" />}
-          </g>
-        );
-      })}
     </>
   );
+
+  const planets = shownBodies.map((b) => {
+    const r = radii[b.body];
+    const shown = stage ? stage.bodies[b.body] ?? 0 : 1;
+    if (r === undefined || shown <= 0) return null;
+    const q = dialAt(b.lon, r, east);
+    const src = detailed ? PLANET_RENDERS[b.body] : undefined;
+    const half = DIAL.render / 2;
+    return (
+      <g
+        key={`b-${b.body}`} data-body={b.body} data-tone={b.tone ?? "none"} data-retrograde={b.retrograde || undefined}
+        className={b.tone ? `sd-tone-${b.tone}` : undefined} opacity={stage && shown < 1 ? shown : undefined}
+      >
+        <circle
+          cx={q.x} cy={q.y} r={disc}
+          fill={b.tone ? "var(--sd-tone)" : detailed ? RAISED : MUTED}
+          stroke={b.retrograde ? RETRO : GROUND}
+          strokeWidth={b.retrograde ? 1.6 : 2}
+          strokeDasharray={b.retrograde ? "2.5 2" : undefined}
+        />
+        {b.retrograde && detailed && (
+          <text
+            x={q.x + disc * 0.85} y={q.y - disc * 0.45} fontFamily="IBM Plex Mono, monospace" fontSize={14} fontWeight={600}
+            fill={RETRO_R} stroke={GROUND} strokeWidth={3} paintOrder="stroke" data-retrograde-mark
+          >
+            R
+          </text>
+        )}
+        {src && <image href={src} x={q.x - half} y={q.y - half} width={DIAL.render} height={DIAL.render} preserveAspectRatio="xMidYMid meet" />}
+      </g>
+    );
+  });
+
+  let drawing: ReactNode;
+  if (stage) {
+    // The chart comes in whole, settling from a little larger; nothing in it is drawn again.
+    const settle = 1 + CHART_SETTLE * (1 - stage.chart);
+    const chartIn = {
+      opacity: stage.chart < 1 ? stage.chart : undefined,
+      transform: settle === 1 ? undefined : `translate(${DIAL.centre} ${DIAL.centre}) scale(${settle}) translate(${-DIAL.centre} ${-DIAL.centre})`,
+    };
+    const day = clampDay(stage.at, last);
+    drawing = (
+      <>
+        <g {...chartIn}>
+          {band}
+          {hasHorizon && segments.map((s, i) => {
+            const on = stage.houses.get(i + 1) ?? 0;
+            if (on <= 0) return null;
+            const a0 = dialAngle(s.from, east);
+            return (
+              <g key={`h${s.from}`} data-lit={i + 1}>
+                <path
+                  d={wedgePath(DIAL.centre, DIAL.centre, DIAL.bandOuter, DIAL.bandInner, a0 + 0.6, a0 + 29.4)}
+                  fill={INDIGO} fillOpacity={LIT_FILL * on}
+                />
+                {detailed && (
+                  <text fontFamily="Space Grotesk, sans-serif" fontSize={9} letterSpacing={0.4} fill={PAPER} opacity={on} dominantBaseline="middle">
+                    <textPath href={`#${uid}-b${s.from}`} startOffset="50%" textAnchor="middle">{s.label}</textPath>
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </g>
+        {Object.entries(radii).map(([body, r]) => {
+          const drawn = stage.tracks[body] ?? 0;
+          if (drawn <= 0) return null;
+          // A track draws round from its start as a dash its own length, uncovered a little more each moment.
+          const round = 2 * Math.PI * r;
+          return (
+            <circle
+              key={`k-${body}`} cx={DIAL.centre} cy={DIAL.centre} r={r} fill="none" stroke={LINE} strokeOpacity={0.85} strokeWidth={stroke}
+              strokeDasharray={drawn < 1 ? round : undefined} strokeDashoffset={drawn < 1 ? round * (1 - drawn) : undefined}
+            />
+          );
+        })}
+        {day > 0 && trails(day - STAGE_TRAIL_DAYS, day)}
+        {contacts}
+        <g {...chartIn}>{natal}</g>
+        {planets}
+      </>
+    );
+  } else {
+    drawing = (
+      <>
+        {moving && <circle cx={DIAL.centre} cy={DIAL.centre} r={DIAL.ring} {...FOCUS_RING} />}
+        {ground}
+        {trailTo > 0 && trails(0, trailTo)}
+        {contacts}
+        {natal}
+        {planets}
+      </>
+    );
+  }
 
   const box = `${-DIAL.pad} ${-DIAL.pad} ${DIAL.size + 2 * DIAL.pad} ${DIAL.size + 2 * DIAL.pad}`;
   const fixed = size === undefined ? undefined : { width: size, height: size };

@@ -175,6 +175,50 @@ export function anyRetrograde(frames: readonly DialFrame[]): boolean {
   return frames.some((f) => f.bodies.some((b) => b.retrograde));
 }
 
+/** One contact's name across days, so its gold line can be followed from one frame to the next. */
+export function contactKey(contact: Pick<DialFrame["contacts"][number], "body" | "aspect" | "target">): string {
+  return `${contact.body}.${contact.aspect}.${contact.target}`;
+}
+
+/**
+ * Timeline's setup draws the dial in (report-loading-story §2, ADR-320): how far each part has come at one moment of
+ * the setup's script. The places stay the frames', so the drawing is still the engine's.
+ */
+export interface DialStage {
+  /** The chart, 0 to 1: it comes in whole, settling from a little larger. */
+  chart: number;
+  /** Each track's share drawn, 0 to 1, by its body; a track not named is not drawn yet. */
+  tracks: Readonly<Partial<Record<string, number>>>;
+  /** Each planet's opacity as it lands on its track; a planet not named has not landed. */
+  bodies: Readonly<Partial<Record<string, number>>>;
+  /** The day shown, an index into the frames, between two days while the date runs so the planets glide. */
+  at: number;
+  /** How far each gold line has grown from its planet to the point it touches, by `contactKey`. */
+  lines: ReadonlyMap<string, number>;
+  /** How lit each house is, 1 to 12, as the lines to its points grow. */
+  houses: ReadonlyMap<number, number>;
+}
+
+/**
+ * Each body between two days, the shorter way round, so the date can run smoothly across frames a day apart. Whether
+ * it goes backwards, and its tone, are the nearer day's.
+ */
+export function bodiesAt(frames: readonly DialFrame[], at: number): DialFrame["bodies"] {
+  const last = frames.length - 1;
+  if (last < 0) return [];
+  const x = Number.isFinite(at) ? Math.min(Math.max(0, at), last) : 0;
+  const lo = Math.floor(x);
+  const hi = Math.min(lo + 1, last);
+  const p = x - lo;
+  const near = frames[p < 0.5 ? lo : hi].bodies;
+  return frames[lo].bodies.map((b, i) => {
+    const to = frames[hi].bodies[i];
+    const shown = near[i]?.body === b.body ? near[i] : b;
+    const lon = to?.body === b.body ? norm360(b.lon + arc(to.lon, b.lon) * p) : b.lon;
+    return { ...shown, lon: r2(lon) };
+  });
+}
+
 /** The plate's units: a 500 square, the focus ring just outside it. */
 export const DIAL = {
   size: 500,

@@ -1,9 +1,10 @@
 /**
  * /checkout/done (stripe-payments, Checkout; ADR-274, 275): where Pay, or the bank a payment went through, sends the
  * reader. Only the webhook grants (R-6.2), so the page asks GET /checkout/{id} until the purchase is granted, reads the
- * credits and the home answer again, and opens the step that asked with focus on its heading (R14-12). After 60 s it
- * stops asking, says the payment is still being confirmed and gives the way back (R16-24); after 120 s when the API
- * failed to answer meanwhile, as it can while a deploy hands over (B-48).
+ * credits and the home answer again, and opens the step that asked with focus on its heading (R14-12). A Timeline plan
+ * opens Timeline instead, where its setup screen shows while the readings payment started are written (ADR-362, reading
+ * 8). After 60 s it stops asking, says the payment is still being confirmed and gives the way back (R16-24); after 120 s
+ * when the API failed to answer meanwhile, as it can while a deploy hands over (B-48).
  */
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -14,6 +15,7 @@ import {
   getGetCreditsQueryKey,
   getGetHomeQueryKey,
   getGetTimelineAccessQueryKey,
+  getGetTimelineSetupQueryOptions,
   type CheckoutState,
 } from "@workspace/api-client-react";
 import { StatusDots } from "@/components/StatusDots";
@@ -30,6 +32,8 @@ import {
   isPlanId,
 } from "@/lib/checkout-view";
 import { usePageTitle } from "@/lib/page-title";
+import { sentZone } from "@/lib/reader-zone";
+import { TIMELINE_APP, setupParams } from "@/lib/timeline-setup";
 
 const EYEBROW = "font-label text-[11px] font-medium uppercase leading-none tracking-[.14em] text-[#9AA3B5]";
 const MUTED = "text-[13.5px] leading-snug text-[#AEB6C6]";
@@ -152,28 +156,35 @@ export default function CheckoutDonePage() {
   const phase = donePhase(state, { missing, elapsedMs: late ? WAIT_MS : 0 });
   const view = doneView(phase, state);
   const target = state && RETURN_TO.test(state.returnTo) ? state.returnTo : DEFAULT_RETURN;
+  // A plan, once granted, opens Timeline, where its setup screen shows (reading 8); every way back is the step's.
+  const granted = state && isPlanId(state.item) ? TIMELINE_APP : target;
 
   useEffect(() => {
     if (phase !== "granted" || !state) return;
     let gone = false;
+    const plan = isPlanId(state.item);
     const keys = [
       getGetCreditsQueryKey(),
       getGetHomeQueryKey(),
       getGetCreditHistoryQueryKey(),
-      ...(isPlanId(state.item) ? [getGetTimelineAccessQueryKey()] : []),
+      ...(plan ? [getGetTimelineAccessQueryKey()] : []),
     ];
-    const refreshed = Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey, refetchType: "all" })));
+    const refreshed = Promise.all([
+      ...keys.map((queryKey) => client.invalidateQueries({ queryKey, refetchType: "all" })),
+      // The setup, read ahead, so the screen shows the moment Timeline opens rather than after a read of its own.
+      ...(plan ? [client.prefetchQuery(getGetTimelineSetupQueryOptions(setupParams(sentZone())))] : []),
+    ]);
     const waited = new Promise((done) => setTimeout(done, REFRESH_MS));
     void Promise.race([refreshed, waited]).then(() => {
       if (gone) return;
       // In place of this page, so Back from the step that asked doesn't land here and leave again.
-      navigate(target, { replace: true });
+      navigate(granted, { replace: true });
       landOnHeading();
     });
     return () => {
       gone = true;
     };
-  }, [phase, state, target, client, navigate]);
+  }, [phase, state, granted, client, navigate]);
 
   const backTo = phase === "missing" ? DEFAULT_RETURN : target;
 
