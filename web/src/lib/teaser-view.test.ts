@@ -12,7 +12,7 @@ import {
 import type { Teaser } from "@workspace/api-client-react";
 import { cycleAges, cycleChip, cycleDates } from "./life-view";
 import {
-  NOT_NOW_KEY, NOW_TITLE, PAST_TITLE, RING_LABEL, cameBack, keepNotNow, notNowPressed, parseNotNow, readNotNow, serializeNotNow,
+  NOT_NOW_KEY, NOW_TITLE, PAST_TITLE, RING_LABEL, START_TIMELINE, cameBack, planPriceLine, keepNotNow, notNowPressed, parseNotNow, readNotNow, serializeNotNow,
   teaserModel, teaserShows, teaserStatuses, yearsOn, type NotNow, type NotNowStore,
 } from "./teaser-view";
 import { dayIn } from "./timeline-view";
@@ -122,6 +122,13 @@ describe("what the teaser prints", () => {
     expect(teaserStatuses(all.cycles, day("2081-01-01"))).toEqual(["past", "past", "past", "past"]);
     expect(teaserModel(all, day("2081-01-01")).title).toBe(PAST_TITLE);
     expect(chips(all, "2081-01-01")).toEqual(["Behind you", "Behind you", "Behind you", "Behind you"]);
+  });
+});
+
+describe("what the teaser sells", () => {
+  it("names both plans at the catalogue's price, the month first, and the button that starts one", () => {
+    expect(planPriceLine()).toBe("€9.99 a month or €69.99 a year");
+    expect(START_TIMELINE).toBe("Start Timeline");
   });
 });
 

@@ -43,6 +43,9 @@ export interface IndexNowDeps {
   attempted: Set<string>;
 }
 
+/** What waiting on a web host needs, swapped in tests so nothing is fetched and no one sleeps. */
+export type WebWaitDeps = Pick<IndexNowDeps, "fetcher" | "sleep" | "now">;
+
 export type IndexNowOutcome =
   | { kind: "skipped"; reason: string }
   | { kind: "sent"; commit: string; urls: number; status: number }
@@ -80,8 +83,8 @@ export function payload(key: string, urlList: string[]) {
 
 const short = (commit: string) => commit.slice(0, 7);
 
-async function read(deps: IndexNowDeps, path: string, what: string): Promise<string> {
-  const res = await deps.fetcher(`${SITE_ORIGIN}${path}`, {
+async function read(deps: WebWaitDeps, path: string, what: string, origin = SITE_ORIGIN): Promise<string> {
+  const res = await deps.fetcher(`${origin}${path}`, {
     headers: READ_HEADERS,
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
@@ -90,18 +93,18 @@ async function read(deps: IndexNowDeps, path: string, what: string): Promise<str
 }
 
 /** A home page that cannot be read yet says nothing about the release, so the wait goes on rather than fails. */
-async function liveCommit(deps: IndexNowDeps): Promise<string | null> {
+async function liveCommit(deps: WebWaitDeps, origin: string): Promise<string | null> {
   try {
-    return commitOf(await read(deps, "/", "the home page"));
+    return commitOf(await read(deps, "/", "the home page", origin));
   } catch {
     return null;
   }
 }
 
-async function untilLive(deps: IndexNowDeps, commit: string): Promise<{ live: boolean; seen: string | null }> {
+async function untilLive(deps: WebWaitDeps, origin: string, commit: string): Promise<{ live: boolean; seen: string | null }> {
   const deadline = deps.now() + GIVE_UP_MS;
   for (;;) {
-    const seen = await liveCommit(deps);
+    const seen = await liveCommit(deps, origin);
     if (seen && seen.toLowerCase() === commit.toLowerCase()) return { live: true, seen };
     const left = deadline - deps.now();
     if (left <= 0) return { live: false, seen };
@@ -115,7 +118,7 @@ async function announce(deps: IndexNowDeps): Promise<IndexNowOutcome> {
   if (deps.attempted.has(commit)) return { kind: "skipped", reason: `already asked for ${short(commit)}` };
   deps.attempted.add(commit);
   try {
-    const { live, seen } = await untilLive(deps, commit);
+    const { live, seen } = await untilLive(deps, SITE_ORIGIN, commit);
     if (!live) return { kind: "gave_up", commit, seen };
     const urls = sitemapUrls(await read(deps, "/sitemap.xml", "the sitemap"));
     if (urls.length === 0) throw new Error("the sitemap lists no pages");
@@ -172,6 +175,18 @@ function liveDeps(): IndexNowDeps {
     log: (level, line) => logger[level](line),
     attempted,
   };
+}
+
+/**
+ * The same wait on any web host of ours: staging's walk starts only once the site it walks serves this commit
+ * (ADR-315). Answers whether it did within GIVE_UP_MS and the commit the home page last showed; it never rejects.
+ */
+export async function untilWebServes(
+  origin: string,
+  commit: string,
+  over: Partial<WebWaitDeps> = {},
+): Promise<{ live: boolean; seen: string | null }> {
+  return untilLive({ ...liveDeps(), ...over }, origin.replace(/\/+$/, ""), commit);
 }
 
 /**

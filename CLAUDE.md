@@ -24,10 +24,10 @@ dated after it. Prompts are never edited outside their source of truth.
 
 ## Notion (kept current in the same session that changes the product)
 
-- Decisions (ADR log, never edited, only superseded):
-  https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835
-- Mailbox (open topics, each with a recommendation and a default):
-  https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d
+- Three homes (R-12.3): `docs/backlog.md` is Claude's own work; Decisions (never edited, only superseded,
+  `Decided by` Alex or Claude) https://app.notion.com/p/89a14ed191cf4915826efe406bc9f835; Mailbox, only what
+  the Owner decides, ten open at most, https://app.notion.com/p/7522fd3c9fd9450094cfdebabd205d3d. Never query
+  a Notion database (R-12.7). A session that decided or raised something ends with *Decided by me* and *Needs you* (R-12.6).
 - Product log, GTM and prompt research live under the STARS DECODED page.
 - The bible (browsable product reference, republish to the same URL):
   https://claude.ai/code/artifact/7bd58e7a-995a-442e-94ea-7293d7ee3fd2
@@ -53,7 +53,7 @@ check. The lab runs from the admin panel: dry at every brain change, spot and re
 
 ## Process
 
-`/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock <slug>` → locked spec + Decisions rows · `/plan <slugs>`
+`/ideate <topic>` → draft spec + rendered HTML artifact, always · `/lock <slug>` → locked spec + Decisions rows, merged to `main` the same session · `/plan <slugs>`
 → parallel-grouped plan, and on the Owner's approval `/round RNN` starts at once → branch `round/RNN`, builders, gate, report, PR · `/qa <url>` · `/report-lab` · `/mailbox` · `/ux-copy` for words, `/web-taste` for pages, `/marketing` for social posts. MASTERFILE §11.
 
 The Owner tests the website and says yes or no. Everything else is ours:
@@ -71,7 +71,7 @@ spec 200 · round or QA report 60 / 80 · agent file 50. Over budget: ten-line
 abstract in place, body to `docs/annex/`.
 
 Code: comments say why, never what; no banners, no commented-out code, no TODO
-without an `MB-NN` ref; `// MB-NN provisional` at any seam built on an open
+without an `MB-NN` or `B-NN` ref; `// MB-NN provisional` at any seam built on an open
 topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 ## Things a session should know
@@ -97,8 +97,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step of
   the start command (its preDeployCommand hook never ran here); one that cannot
   run twice breaks the deploy.
-- **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`,
-  `traditional.ts`, `packages/engine/` (the chart calculation). Touch it and the dry lab runs in the round; spot
+- **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`, `traditional.ts`,
+  `chartCalculation.ts`, `packages/engine/`, the pair's `pairInterpretation.ts`, `pairBrief.ts`, `synastryCompute.ts`, `overlays.ts`. Touch it and the dry lab runs in the round; spot
   on demand from the Lab page; the Release view runs the full lab, the gate and the QA agent,
   then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway staging (placed 2026-09-30;
   if it expires the release stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
@@ -111,9 +111,10 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   research that area. New tests only for a change to the flow, a bug that came back, or a fix the Owner asked for twice. No lint step; each preview runs Lighthouse, axe and the probe (ADR-192).
 - Anonymous sessions come first; Clerk sign-in claims what the session made. `ADMIN_USER_ID` gates the admin.
 
-## Current focus (2026-10-04)
+## Current focus (2026-10-07)
 
-1. R16 (Timeline for the admin, `/timeline`, simple words, v11 and p6, the teaser, the Account page) on staging; production is R11 to R14.
-   Next: the staging report-lab campaign (chk-43 counts against r06), /qa, then a Release with the full lab when the Owner says promote.
-2. Before Timeline opens to subscribers: MB-198's spot, MB-219 and 220 (sentinel), MB-218's checks, billing with pricing (ADR-264).
+1. R18 (the sev-2 fixes, the loading stories, the job queue, Timeline written at setup, deploys without a gap) on staging;
+   production is R11 to R14. Next: /qa on staging, the Owner's look, then the first Release when the Owner says promote.
+   R19 next: B-50 to 52, 57, 32, 33, MB-212 and 214, MB-232's KPI spec, MB-234.
+2. Before the first live sale: MB-228, 114 and 115. Before Timeline sells on production: B-03.
 3. Pricing and launch are never planned until the Owner asks (ADR-230, 242).

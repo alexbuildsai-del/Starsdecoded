@@ -32,7 +32,7 @@ test("brainDiff: the brain paths and the pair brain within them", () => {
   assert.equal(natal.pairChanged, false);
   assert.deepEqual(natal.files, ["api/src/prompts/system.ts", "api/src/lib/models.ts"]);
   assert.equal(brainDiff(["api/src/prompts/pair/shapes.ts"]).pairChanged, true);
-  assert.equal(brainDiff(["api/src/lib/pairBrief.ts"]).brainChanged, false, "the pair brief is the pair brain, not the natal brain");
+  assert.equal(brainDiff(["api/src/lib/pairBrief.ts"]).brainChanged, true, "the pair brief is the brain too: the Release runs its lab only when the brain changed");
   assert.equal(brainDiff(["api/src/lib/pairBrief.ts"]).pairChanged, true);
 });
 

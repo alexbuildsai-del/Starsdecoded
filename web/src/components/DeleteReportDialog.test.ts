@@ -4,8 +4,17 @@
  * people are the fixtures' names and birth dates with no triad: the choice reads none, and no placement is typed in.
  */
 import { describe, expect, it } from "vitest";
-import type { Home, HomePerson, Share } from "@workspace/api-client-react";
-import { ENDS_SHARING_LINE, deleteLine, endsSharing } from "./DeleteReportDialog";
+import type { Home, HomePerson, Share, TimelineAccess } from "@workspace/api-client-react";
+import {
+  CANCEL_LINK_TEXT,
+  ENDS_SHARING_LINE,
+  PLAN_ENDS_LINE,
+  PLAN_RENEWS_LINE,
+  TIMELINE_STOPS_LINE,
+  deleteLine,
+  endsSharing,
+  timelineNote,
+} from "./DeleteReportDialog";
 
 const person = (profileId: string, name: string, birthDate: string, over: Partial<HomePerson> = {}): HomePerson => ({
   profileId,
@@ -75,6 +84,42 @@ describe("the dialog's words", () => {
 
   it("keep the house rules: plain sentences under 25 words, no dash, semicolon or exclamation", () => {
     for (const sentence of deleteLine(true).split(/(?<=\.) /)) {
+      expect(sentence.split(" ").length, sentence).toBeLessThanOrEqual(25);
+      expect(sentence, sentence).not.toMatch(/[—–;!]/);
+    }
+  });
+});
+
+const PLAN: NonNullable<TimelineAccess["plan"]> = { item: "timeline_month", status: "active", renewsOn: "2026-11-06", endsOn: null };
+const SUBSCRIBER = { access: true, source: "subscription", plan: PLAN } as const;
+
+describe("Delete report for a reader with a live Timeline plan", () => {
+  it("says Timeline stops opening and the plan keeps renewing, with Cancel's link, on their own report", () => {
+    expect(timelineNote(HOME, SUBSCRIBER, BEATRICE.reportId)).toEqual({
+      text: `${TIMELINE_STOPS_LINE} ${PLAN_RENEWS_LINE}`,
+      cancel: true,
+    });
+    expect(CANCEL_LINK_TEXT).toBe("Cancel on the Account page");
+  });
+
+  it("says the plan still ends on its set day, with no Cancel link, once a cancel is set", () => {
+    const ending = { ...SUBSCRIBER, plan: { ...PLAN, renewsOn: null, endsOn: "2026-11-06" } };
+    expect(timelineNote(HOME, ending, BEATRICE.reportId)).toEqual({
+      text: `${TIMELINE_STOPS_LINE} ${PLAN_ENDS_LINE}`,
+      cancel: false,
+    });
+  });
+
+  it("says nothing of Timeline without a plan, for the admin's access, or on anyone else's report", () => {
+    expect(timelineNote(HOME, { access: false, source: null }, BEATRICE.reportId)).toBeNull();
+    expect(timelineNote(HOME, { access: true, source: "admin" }, BEATRICE.reportId)).toBeNull();
+    expect(timelineNote(HOME, SUBSCRIBER, WILLIAM.reportId)).toBeNull();
+    expect(timelineNote(HOME, SUBSCRIBER, "r-pair")).toBeNull();
+    expect(timelineNote(undefined, SUBSCRIBER, BEATRICE.reportId)).toBeNull();
+  });
+
+  it("keeps the house rules: plain sentences under 25 words, no dash, semicolon or exclamation", () => {
+    for (const sentence of [TIMELINE_STOPS_LINE, PLAN_RENEWS_LINE, PLAN_ENDS_LINE]) {
       expect(sentence.split(" ").length, sentence).toBeLessThanOrEqual(25);
       expect(sentence, sentence).not.toMatch(/[—–;!]/);
     }

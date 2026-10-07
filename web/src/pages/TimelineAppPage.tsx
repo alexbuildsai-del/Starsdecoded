@@ -2,10 +2,11 @@
  * Timeline in the app (ADR-207, 209, 262; readings 1 to 4): the reader's own Timeline on one page at
  * /dashboard/timeline, Now and ahead then Life (a two-way switch on a phone), each event and cycle read on tap, and
  * Ask in the corner. Access is one check (ADR-262): a reader known not to have Timeline is sent to /timeline, the
- * product page, while a read that failed sends nobody anywhere. The app's shell keeps it out of search (`vercel.json`
- * and app.html's noindex), as every app route.
+ * product page, while a read that failed sends nobody anywhere. While the setup writes, or once when the next six months
+ * are ready, the page is the setup screen until the reader goes in (ADR-362; readings 8 and 9). The app's shell keeps
+ * it out of search (`vercel.json` and app.html's noindex), as every app route.
  */
-import { useCallback, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Link, Redirect } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,6 +17,7 @@ import { AskLauncher } from "@/components/ask/AskLauncher";
 import { Life } from "@/components/timeline/Life";
 import { NowAhead } from "@/components/timeline/NowAhead";
 import { ReadingSheet, type ReadingTarget } from "@/components/timeline/ReadingSheet";
+import { TimelineSetup, useTimelineSetupGate } from "@/components/timeline/TimelineSetup";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useHome } from "@/hooks/useHome";
 import { usePageTitle } from "@/lib/page-title";
@@ -134,6 +136,22 @@ export function TimelineAppPage() {
   const shown = useShownZone(opened);
   const today = useMemo(() => (shown ? dayIn(new Date(), shown) : null), [shown]);
 
+  const gate = useTimelineSetupGate(opened && access.hasPersonalReport && !missing, zone);
+  const setupShown = gate.view === "setup" || gate.view === "replay";
+  // Going in from the setup screen lands on Timeline's own heading at the top, as a page that opened would.
+  const pageHeading = useRef<HTMLHeadingElement>(null);
+  const wasSetup = useRef(false);
+  useEffect(() => {
+    if (setupShown) {
+      wasSetup.current = true;
+      return;
+    }
+    if (gate.view !== "timeline" || !wasSetup.current) return;
+    wasSetup.current = false;
+    window.scrollTo(0, 0);
+    pageHeading.current?.focus({ preventScroll: true });
+  }, [setupShown, gate.view]);
+
   const onNoReport = useCallback(() => setMissing(true), []);
   // Access that went while the page was open is read again, and a no sends the reader to /timeline like any other.
   const onNoAccess = useCallback(() => {
@@ -162,7 +180,7 @@ export function TimelineAppPage() {
       : { id: ids[id].panel, "aria-labelledby": heading };
 
   let body;
-  if (door === "wait") {
+  if (door === "wait" || (door === "open" && access.hasPersonalReport && !missing && gate.view === "wait")) {
     body = (
       <div className="grid min-h-[360px] place-items-center font-label text-sm text-muted-foreground">
         <StatusDots label="Loading your Timeline" />
@@ -179,6 +197,17 @@ export function TimelineAppPage() {
     );
   } else if (missing || !access.hasPersonalReport) {
     body = <NoReport />;
+  } else if (setupShown && gate.setup) {
+    body = (
+      <TimelineSetup
+        setup={gate.setup}
+        screen={gate.view === "replay" ? "replay" : "setup"}
+        week={home.data?.week}
+        reportId={reportId}
+        onIn={gate.goIn}
+        onSeen={gate.seen}
+      />
+    );
   } else {
     body = (
       <div className="mt-5 grid gap-6 md:mt-8 md:gap-14">
@@ -220,15 +249,23 @@ export function TimelineAppPage() {
         </div>
       </nav>
 
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-[74px] sm:px-6 sm:pt-20">
-        <header className="grid gap-1">
-          <h1 className="font-display text-[30px] font-normal leading-[1.15] tracking-[-0.01em]">Timeline</h1>
-          <p className="text-[13px] leading-snug text-[#9AA3B5]">{LEDE}</p>
+      {/* The heading stays one element whichever the page shows, so focus a step gave it survives the switch. */}
+      <main className={setupShown ? "pt-14" : "mx-auto max-w-6xl px-4 pb-28 pt-[74px] sm:px-6 sm:pt-20"}>
+        <header className={setupShown ? "sr-only" : "grid gap-1"}>
+          <h1
+            ref={pageHeading}
+            tabIndex={-1}
+            className="font-display text-[30px] font-normal leading-[1.15] tracking-[-0.01em] focus:outline-none"
+          >
+            Timeline
+          </h1>
+          {setupShown ? null : <p className="text-[13px] leading-snug text-[#9AA3B5]">{LEDE}</p>}
         </header>
         {body}
       </main>
 
-      {opened ? <AskLauncher /> : null}
+      {/* Ask stays out of the setup screen, whose door sits where its button would. */}
+      {opened && !setupShown ? <AskLauncher /> : null}
       <ReadingSheet
         eventKey={reading?.key ?? null}
         open={sheetOpen}
@@ -236,6 +273,7 @@ export function TimelineAppPage() {
         headline={reading?.headline}
         status={reading?.status}
         reportId={reportId}
+        setUp={gate.setUp}
       />
     </div>
   );

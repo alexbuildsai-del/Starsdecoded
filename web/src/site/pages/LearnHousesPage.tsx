@@ -1,15 +1,19 @@
 /**
  * What are whole-sign houses? (annex /learn/whole-sign-houses): the answer in
  * the page's first sentence, then the system on a bare ring the reader turns,
- * the sample's own houses on the same ring, the twelve houses, and whole sign
- * against Placidus. Every sign on the page comes from the zodiac's order or
- * her computed chart (R-3.1). Whole sign is the product's only house system
- * (R-4.2), and its history is Brennan's, never a claim that it is more accurate.
+ * the sample's own houses on the same ring, the twelve houses with their
+ * objects, the six pairs, and whole sign against Placidus. Every sign on the
+ * page comes from the zodiac's order or her computed chart (R-3.1), and every
+ * house's word, object, covers line and pair from the one house set (ADR-321).
+ * Whole sign is the product's only house system (R-4.2), and its history is
+ * Brennan's, never a claim that it is more accurate.
  */
 import { useId, useState } from "react";
 import { Link } from "wouter";
+import { HouseObject } from "@/components/chart/HouseObject";
 import { SIGN_ORDER } from "@/components/chart/wheel-geometry";
-import { HOUSE_THEMES, HOUSE_WORDS, ORDINALS } from "@/lib/evidence-glossary";
+import { ORDINALS } from "@/lib/evidence-glossary";
+import { HOUSES, HOUSE_WORDS, PAIRS } from "@/lib/houses";
 import { PRODUCT } from "@/lib/product";
 import { SiteLayout } from "../SiteLayout";
 import { HouseRing } from "../components/HouseRing";
@@ -38,6 +42,12 @@ const TH_COL =
 const TD = "border-b border-[var(--line-soft)] px-4 py-[11px] align-middle text-[color:var(--paper-dim)] max-[760px]:px-3";
 const TH_ROW =
   "w-[24%] border-b border-[var(--line-soft)] px-4 py-3 text-left align-middle [font:500_10.5px/1.3_var(--f-label)] uppercase tracking-[.14em] text-[color:var(--sd-muted)] max-[760px]:px-3";
+/** On a phone the pair's own words take a line of their own under its houses. */
+const PAIR_ROW =
+  "grid grid-cols-[112px_200px_minmax(0,1fr)] items-baseline gap-x-6 gap-y-1.5 border-b border-[var(--line-soft)] py-4 last:border-b-0 max-[760px]:grid-cols-[96px_minmax(0,1fr)] max-[760px]:gap-x-3";
+
+/** A covers line or a pair's words opening a cell or a row of their own, in sentence case; the words are the house set's. */
+const sentenceCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 function SignPicker({ rising, onPick }: { rising: number; onPick: (sign: number) => void }) {
   const group = useId();
@@ -138,15 +148,20 @@ export default function LearnHousesPage() {
             <h2 id="houses-h" className="sd-h2">
               The twelve houses
             </h2>
-            <p className="sd-sub">Each house is one part of life. These are the names our reports use.</p>
+            <p className="sd-sub">
+              Each house is one part of life. These are the names our reports use. The object beside each one helps you picture it.
+            </p>
           </div>
           <div className={TABLE_WRAP}>
             <table className={TABLE}>
-              <caption className="sr-only">The twelve whole-sign houses, each with its name and what it covers</caption>
+              <caption className="sr-only">The twelve whole-sign houses, each with its object, its name and what it covers</caption>
               <thead>
                 <tr>
                   <th scope="col" className={TH_COL}>
                     House
+                  </th>
+                  <th scope="col" className={`${TH_COL} max-[760px]:hidden`}>
+                    Object
                   </th>
                   <th scope="col" className={TH_COL}>
                     Name
@@ -157,18 +172,57 @@ export default function LearnHousesPage() {
                 </tr>
               </thead>
               <tbody>
-                {HOUSE_WORDS.map((word, i) => (
-                  <tr key={word}>
+                {HOUSES.map((house) => (
+                  <tr key={house.n}>
                     <th scope="row" className={`${TD} sd-mono w-16 text-left text-[12px] font-medium text-[color:var(--sd-brass)]`}>
-                      {ORDINALS[i]}
+                      {ORDINALS[house.n - 1]}
+                      {/* Four columns leave a phone too little room for the covers line, so there the object sits under its number. */}
+                      <HouseObject house={house.n} size={28} className="mt-2 hidden max-[760px]:block" />
                     </th>
-                    <td className={`${TD} w-[180px] [font:400_19px/1.2_var(--f-display)] text-[color:var(--paper)] max-[760px]:w-auto`}>{word}</td>
-                    <td className={TD}>{HOUSE_THEMES[i]}</td>
+                    <td className={`${TD} w-[168px] py-2 max-[760px]:hidden`}>
+                      <span className="flex items-center gap-3">
+                        <HouseObject house={house.n} className="shrink-0" />
+                        {house.object}
+                      </span>
+                    </td>
+                    <td className={`${TD} w-[180px] [font:400_19px/1.2_var(--f-display)] text-[color:var(--paper)] max-[760px]:w-auto`}>
+                      {house.word}
+                    </td>
+                    <td className={TD}>{sentenceCase(house.covers)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <section className="sd-pg-sec sd-sec-b sd-line" aria-labelledby="pairs-h">
+        <div className="sd-wrap">
+          <div className="sd-shead">
+            <h2 id="pairs-h" className="sd-h2">
+              The six house pairs
+            </h2>
+            <p className="sd-sub">
+              Each house sits across the wheel from another house. Together they make a pair. Learn the six pairs and you know all
+              twelve houses.
+            </p>
+          </div>
+          <ul className="m-0 grid max-w-[760px] list-none p-0">
+            {PAIRS.map(([n, side, oppositeSide]) => (
+              <li key={n} className={PAIR_ROW}>
+                <span className="sd-mono text-[12px] font-medium text-[color:var(--sd-brass)]">
+                  {ORDINALS[n - 1]} and {ORDINALS[n + 5]}
+                </span>
+                <span className="[font:500_11px/1.4_var(--f-label)] uppercase tracking-[.14em] text-[color:var(--indigo-lt)]">
+                  {HOUSE_WORDS[n - 1]} · {HOUSE_WORDS[n + 5]}
+                </span>
+                <span className="[font:400_21px/1.3_var(--f-display)] text-[color:var(--paper)] max-[760px]:col-span-2">
+                  {sentenceCase(`${side} · ${oppositeSide}`)}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 

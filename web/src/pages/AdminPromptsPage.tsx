@@ -1,7 +1,7 @@
 import { PERSONAL_REPORT } from "@/lib/product";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { useUser } from "@clerk/react";
+import { useClerk, useUser } from "@clerk/react";
 import {
   ChevronDown,
   ChevronUp,
@@ -377,6 +377,7 @@ export default function AdminPromptsPage() {
 
   const [, navigate] = useLocation();
   const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const clerkStalled = useClerkStalled();
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -437,11 +438,9 @@ export default function AdminPromptsPage() {
       <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <h1 className="font-display text-2xl mb-2">Access Denied</h1>
-          <p className="text-sm text-muted-foreground mb-6">
-            Your account does not have admin access. Set the <code className="font-numeric">ADMIN_USER_ID</code> env var to your Clerk user ID to enable this panel.
-          </p>
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+          <h1 className="font-display text-2xl mb-2">This page is for the Stars Decoded team</h1>
+          <p className="text-sm text-muted-foreground mb-6">You're signed in with an account that isn't the admin's. Sign out and sign in with the admin account.</p>
+          <Button variant="outline" onClick={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/prompts` })}>Sign out</Button>
         </div>
       </div>
     );

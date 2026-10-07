@@ -17,6 +17,11 @@ Target: the URL you are given (staging after a round, a Vercel preview, or
 only; the fixtures under `fixtures/charts/` are the reference people, less the three `inject-*` ones. Never
 invent placements.
 
+You are handed the staging walk's verdict (`/api/qa/latest`), its pictures
+and the hosts this session cannot reach. Read them first. A step behind an
+unreachable host is read from the walk and listed as "not reachable from this
+session"; it is never played around and never filed as a product finding.
+
 Play each persona end to end:
 - **Buyer** — lands, understands the method claim, enters birth data, waits,
   reads the whole report. Does every claim on the landing page match what the

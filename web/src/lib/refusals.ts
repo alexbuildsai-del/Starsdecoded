@@ -1,6 +1,6 @@
 /**
- * The API's refusals as one plain line (ADR-140, 199, 202; security-hardening Screens): a limit reached (429), a pause
- * (503) and a sign-in required (401, production only), shown where each form already shows its errors. The words live in the API's `message`; the page adds only the
+ * The API's refusals as one plain line (ADR-140, 199, 202, 275; security-hardening Screens): a limit reached (429), a pause
+ * (503), a sign-in required (401, production only) and no credit to take (402), shown where each form already shows its errors. The words live in the API's `message`; the page adds only the
  * reader's own clock, which the server cannot know.
  */
 
@@ -21,6 +21,11 @@ function secondsOf(error: unknown, body: Refusal): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+/** A report asked for with no credit to take (ADR-275): the form keeps what was typed and offers Get credits. */
+export function isNoCredit(error: unknown): boolean {
+  return bodyOf(error)?.error === "no_credit";
+}
+
 /** The hour the limit opens again, in the reader's own time, rounded up to the minute so it is never early. */
 export function openingTime(seconds: number, now: Date = new Date()): string {
   const opens = new Date(Math.ceil((now.getTime() + seconds * 1000) / 60_000) * 60_000);
@@ -35,7 +40,7 @@ export function openingTime(seconds: number, now: Date = new Date()): string {
 export function refusalLine(error: unknown, now: Date = new Date()): string | null {
   const body = bodyOf(error);
   if (!body || typeof body.message !== "string" || !body.message) return null;
-  if (body.error === "paused" || body.error === "sign_in_required") return body.message;
+  if (body.error === "paused" || body.error === "sign_in_required" || body.error === "no_credit") return body.message;
   if (body.error !== "rate_limited") return null;
   const seconds = secondsOf(error, body);
   const split = WINDOWS.exec(body.message);

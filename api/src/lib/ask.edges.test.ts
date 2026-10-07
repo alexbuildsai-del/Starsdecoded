@@ -1,9 +1,9 @@
 /**
  * Ask at its edges (R16-25; ADR-201, 213, 235, 263; readings 12 to 16): the month's cap at its boundaries, what a tool
- * refuses when the plan names what the reader cannot read, a share stopped in the middle of a call, the 31 days a thread
- * is kept, and that nothing the reader typed reaches a log line, a failure row or the spend ledger. `ask.test.ts` has
- * the access cases; the cases here need no database until a part says so, and the rest run on a scratch Postgres when
- * WALK_DATABASE_URL names a bootstrapped one and skip, saying why, without it.
+ * refuses when the plan names what the reader cannot read, a share stopped in the middle of a call, an answer a stop took
+ * away (B-02), the 31 days a thread is kept, and that nothing the reader typed reaches a log line, a failure row or the
+ * spend ledger. `ask.test.ts` has the access cases; the cases here need no database until a part says so, and the rest
+ * run on a scratch Postgres when WALK_DATABASE_URL names a bootstrapped one and skip, saying why, without it.
  */
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -156,9 +156,12 @@ test("a pair someone else made opens to the person it was sent to, and to no oth
   const stranger = { userId: "user_x", sessionId: "s-x" };
   const closed = A.libraryOf(ME, [], [pairOf("rel-x", [part(SENDER), part(TOMAS)], { relationship: { id: "rel-x", type: "partners", ...stranger } })], NONE, OWN.id);
   assert.deepEqual([closed.reports, closed.people], [[], []]);
-  // A participant row without the claim is not the reader's either.
-  const unclaimed = A.libraryOf(ME, [], [pairOf("rel-u", [part(SENDER), part(OWN, "participant")], { relationship: { id: "rel-u", type: "partners", ...theirs } })], NONE, OWN.id);
+  // A participant row on a chart sent to the reader and not yet claimed is not theirs; on the chart they keep, it is (ADR-285).
+  const waiting = holder("p-waiting", "Ana Lima", { userId: SENDER.userId, sessionId: SENDER.sessionId });
+  const unclaimed = A.libraryOf(ME, [], [pairOf("rel-u", [part(SENDER), part(waiting, "participant")], { relationship: { id: "rel-u", type: "partners", ...theirs } })], NONE, OWN.id);
   assert.deepEqual(unclaimed.reports, []);
+  const kept = A.libraryOf(ME, [], [pairOf("rel-k", [part(SENDER), part(OWN, "participant")], { relationship: { id: "rel-k", type: "partners", ...theirs } })], NONE, OWN.id);
+  assert.deepEqual(ids(kept), ["r-rel-k"]);
 });
 
 test("a grant never opens a pair its sharer made: the sharer's own pair stays shut to the reader", () => {
@@ -636,6 +639,100 @@ test("db, a choice naming someone whose pair has since closed is refused as clos
   } finally {
     fake.restore();
   }
+});
+
+test("db, a stop hides each answer written from what it took: the fixed line, its words sent to no model, the count as it was (B-02)", { skip: NO_DB }, async () => {
+  const { revokeShare } = await import("./shares.js");
+  await fresh();
+  const lib = await A.readableLibrary(READER, P.reader);
+  const own = lib.reports.find((r) => r.reportId === R.reader)!;
+  const shared = lib.reports.find((r) => r.reportId === R.shared)!;
+  const george = lib.people.find((p) => p.profileId === P.closer)!;
+  assert.ok(own && shared && george);
+  const mark = { own: `Own${run}Mk`, shared: `Shared${run}Mk`, george: `Day${run}Mk` };
+  const turns = [
+    { text: "What does my report say?", tools: [{ tool: "quote", report: own.id, section: "overview" }], answer: { text: `Your report says you take your time before you decide. ${mark.own}.`, cards: ["c1"] } },
+    // Its card is not shown, but the text was written from it all the same.
+    { text: "What does the other report say?", tools: [{ tool: "quote", report: shared.id, section: "overview" }], answer: { text: `That report says she takes her time before she decides. ${mark.shared}.`, cards: [] } },
+    { text: "How was that day for him?", tools: [{ tool: "person", person: george.id, date: "2026-10-20" }], answer: { text: `The card below shows that day for him. ${mark.george}.`, cards: ["c1"] } },
+    { text: "What else should I know?", tools: [], answer: { text: "Your report says you take your time before you decide.", cards: [] } },
+  ];
+  let turn = 0;
+  const sent: string[] = [];
+  const fake = installFakeModel({
+    ask_plan: (req: { messages: Array<{ content: string }> }) => (sent.push(JSON.stringify(req.messages)), planOf({ intent: "answer", tools: turns[turn].tools })),
+    ask_answer: (req: { messages: Array<{ content: string }> }) => (sent.push(JSON.stringify(req.messages)), turns[turn].answer),
+  });
+  try {
+    let thread: Awaited<ReturnType<typeof A.askThread>> | null = null;
+    for (turn = 0; turn < 3; turn++) {
+      const result = await A.sendAsk(READER, { text: turns[turn].text }, { now: at(turn * MIN) });
+      assert.ok(result.kind === "thread");
+      thread = result.thread;
+    }
+    const answers = (t: typeof thread) => t!.messages.filter((m) => m.role === "ask");
+    assert.deepEqual(answers(thread).map((m) => m.text), turns.slice(0, 3).map((t) => t.answer.text), "each answer shows while what it was written from reads");
+    const used = thread!.usage.used;
+    assert.equal(used, 3);
+
+    assert.equal(await revokeShare(grant.shared, SHARER.userId as string), true);
+    assert.equal(await revokeShare(grant.closer, CLOSING.userId as string), true);
+    const read = await A.askThread(READER, { now: at(4 * MIN) });
+    assert.deepEqual(answers(read).map((m) => m.text), [turns[0].answer.text, A.ASK_HIDDEN_LINE, A.ASK_HIDDEN_LINE]);
+    assert.deepEqual(answers(read).map((m) => [m.cards.length, m.choices.length]), [[1, 0], [0, 0], [0, 0]], "the reader's own report keeps its card");
+    assert.deepEqual(read.messages.filter((m) => m.role === "reader").map((m) => m.text), turns.slice(0, 3).map((t) => t.text), "the reader's own messages stay");
+    assert.equal(read.usage.used, used, "hiding takes nothing off the month's count");
+
+    sent.length = 0;
+    turn = 3;
+    const next = await A.sendAsk(READER, { text: turns[3].text }, { now: at(5 * MIN) });
+    assert.ok(next.kind === "thread");
+    assert.deepEqual(fake.calls.slice(-2), ["ask_plan", "ask_answer"]);
+    const prompts = sent.join("\n");
+    assert.ok(prompts.includes(mark.own), "the answer still standing goes back with the conversation");
+    assert.ok(!prompts.includes(mark.shared) && !prompts.includes(mark.george), "no word of a hidden answer reaches the model");
+    assert.equal(next.thread.usage.used, used + 1, "the new message counts, and only it");
+  } finally {
+    fake.restore();
+  }
+});
+
+test("db, a stop in the middle of a call keeps an answer it took out of the answer call, though the plan was sent it (B-02)", { skip: NO_DB }, async () => {
+  const { revokeShare } = await import("./shares.js");
+  await fresh();
+  const lib = await A.readableLibrary(READER, P.reader);
+  const shared = lib.reports.find((r) => r.reportId === R.shared)!;
+  const mark = `Mid${run}Mk`;
+  const first = installFakeModel({
+    ask_plan: planOf({ intent: "answer", tools: [{ tool: "quote", report: shared.id, section: "overview" }] }),
+    ask_answer: { text: `That report says she takes her time before she decides. ${mark}.`, cards: ["c1"] },
+  });
+  try {
+    assert.equal((await A.sendAsk(READER, { text: "What does the other report say?" }, { now: NOW })).kind, "thread");
+  } finally {
+    first.restore();
+  }
+  const prompts = { plan: "", answer: "" };
+  const second = installFakeModel({
+    ask_plan: (req: { messages: Array<{ content: string }> }) => ((prompts.plan = JSON.stringify(req.messages)), planOf({ intent: "answer" })),
+    ask_answer: (req: { messages: Array<{ content: string }> }) => ((prompts.answer = JSON.stringify(req.messages)), { text: "Your report says you take your time before you decide.", cards: [] }),
+  });
+  second.delays.ask_plan = 200;
+  // The share stops once the plan call is under way: its prompt is made, and the tools and the answer call are still to come.
+  const stopped = (async () => {
+    for (let i = 0; i < 1000 && !second.calls.includes("ask_plan"); i++) await new Promise((resolve) => setTimeout(resolve, 2));
+    await revokeShare(grant.shared, SHARER.userId as string);
+  })();
+  try {
+    const result = await A.sendAsk(READER, { text: "And what else?" }, { now: at(MIN) });
+    await stopped;
+    assert.ok(result.kind === "thread");
+    assert.equal(result.thread.messages[1].text, A.ASK_HIDDEN_LINE);
+  } finally {
+    second.restore();
+  }
+  assert.ok(prompts.plan.includes(mark), "the plan call began while the grant stood, so it was sent the answer");
+  assert.ok(prompts.answer && !prompts.answer.includes(mark), "the answer call came after the stop, and was not");
 });
 
 test("db, a report page's report is read while the reader can read it and not after Stop sharing", { skip: NO_DB }, async () => {

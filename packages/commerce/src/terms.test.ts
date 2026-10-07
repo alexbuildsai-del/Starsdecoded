@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CHECKOUT_TICK, REFUND_RULES } from "./terms";
+import { CHECKOUT_TICK, PLAN_TICK, REFUND_RULES } from "./terms";
 
 test("terms: the checkout tick is R-6.6's sentence, byte for byte", () => {
   assert.equal(
@@ -22,6 +22,22 @@ test("terms: the first rule keeps the 14 days, the second the automatic return, 
   assert.match(REFUND_RULES[0], /14 days/);
   assert.match(REFUND_RULES[0], /haven't used/);
   assert.match(REFUND_RULES[1], /fails/);
-  assert.match(REFUND_RULES[1], /automatically/);
+  assert.match(REFUND_RULES[1], /Try again is free/);
+  assert.match(REFUND_RULES[1], /comes back to your balance/);
   assert.match(REFUND_RULES[2], /may refund anyone/);
+});
+
+test("terms: the second refund rule says Try again is free, the credit comes back if the report still fails (ADR-313) and at once for a pair (B-42)", () => {
+  assert.equal(
+    REFUND_RULES[1],
+    "If a report fails, Try again is free. If we still can't write it, its credit comes back to your balance. For a Compatibility report, the credit comes back at once.",
+  );
+});
+
+test("terms: the plan's tick is the Owner's sentence, plain ASCII (MB-225 decided, ADR-361)", () => {
+  assert.equal(
+    PLAN_TICK,
+    "Start Timeline as soon as I pay. I give up my right to cancel a month or year once it has started.",
+  );
+  assert.match(PLAN_TICK, /^[\x20-\x7e]+$/);
 });

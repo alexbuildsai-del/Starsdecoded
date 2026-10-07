@@ -91,7 +91,10 @@ function outcomeLine(outcome: Outcome, name: string): string {
   return `The email did not go through. Copy this link and send it to ${name} yourself. They sign in with ${outcome.email} to open it.`;
 }
 
-function failureLine(code: string | undefined, name: string, askedEmail: boolean): string {
+/** A 403 carries the API's own reason (ADR-285); a network or server failure has none, so it keeps the generic line. */
+function failureLine(error: { status?: number; data: { error?: string; message?: string } | null }, name: string, askedEmail: boolean): string {
+  const code = error.data?.error;
+  if (error.status === 403 && error.data?.message) return error.data.message;
   if (code === "already_claimed") return `${name} already has it.`;
   if (code === "not_ready") return "You can share it once it is finished.";
   if (code === "validation_error" && askedEmail) return "That email address did not work. Check it and try again.";
@@ -150,7 +153,7 @@ function SendBody({ target, onClose }: { target: SendTarget; onClose: () => void
   let error: string | null = null;
   if (change.error) error = refusalLine(change.error) ?? changeFailureLine(change.error);
   else if (gone && !outcome) error = NOT_WAITING;
-  else if (failure) error = refusalLine(failure) ?? failureLine(failure.data?.error, name, askEmail);
+  else if (failure) error = refusalLine(failure) ?? failureLine(failure, name, askEmail);
   const addressRefused = askEmail && (failure ?? change.error)?.data?.error === "validation_error";
 
   function edit(value: string) {

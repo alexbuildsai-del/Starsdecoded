@@ -1,10 +1,22 @@
-import { lazy, Suspense, useEffect, useRef, type ComponentType, type ReactNode } from "react";
+import {
+  createContext,
+  lazy,
+  Suspense,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import {
   Switch,
   Route,
   Redirect,
   Router as WouterRouter,
   useLocation,
+  useSearch,
 } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
@@ -23,6 +35,7 @@ import { APP_ENV } from "@/lib/appEnv";
 import { OPEN_BEFORE_LAUNCH, PRELAUNCH, PrelaunchViewProvider, useMounted, usePrelaunchView } from "@/lib/prelaunch";
 import { usePageTitle } from "@/lib/page-title";
 import { forgetSelection } from "@/lib/pair-selection";
+import { keepReturnTo, returnPathFor, takeReturnTo } from "@/lib/return-to";
 import { PUBLIC_ROUTES } from "@/site/routes";
 
 const importBirthForm = () => import("@/pages/BirthFormPage");
@@ -35,6 +48,10 @@ const importAdminPrompts = () => import("@/pages/AdminPromptsPage");
 const importAdminLab = () => import("@/pages/AdminLabPage");
 const importClaim = () => import("@/pages/ClaimPage");
 const importAdminWaitlist = () => import("@/pages/AdminWaitlistPage");
+const importAdminSales = () => import("@/pages/AdminSalesPage");
+// Lazy, so Stripe.js reaches a visitor only on /checkout.
+const importCheckout = () => import("@/pages/CheckoutPage");
+const importCheckoutDone = () => import("@/pages/CheckoutDonePage");
 
 const BirthFormPage = lazy(importBirthForm);
 const ReportPage = lazy(importReport);
@@ -46,6 +63,9 @@ const AdminPromptsPage = lazy(importAdminPrompts);
 const AdminLabPage = lazy(importAdminLab);
 const ClaimPage = lazy(importClaim);
 const AdminWaitlistPage = lazy(importAdminWaitlist);
+const AdminSalesPage = lazy(importAdminSales);
+const CheckoutPage = lazy(importCheckout);
+const CheckoutDonePage = lazy(importCheckoutDone);
 
 const SITE_PAGES = new Map(PUBLIC_ROUTES.map((route) => [route.path, lazy(route.load)]));
 const SiteWaitlistPage = lazy(() => import("@/site/pages/WaitlistPage"));
@@ -56,9 +76,17 @@ export interface FirstPage {
   Page: ComponentType;
 }
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
-});
+function newQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
+  });
+}
+
+/**
+ * The shell's and the public pages' client, kept for the page's life so nothing on them is drawn again when the
+ * viewer changes; ViewerScope has it ask again then. The app's pages each get their viewer's own.
+ */
+const siteQueryClient = newQueryClient();
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -138,16 +166,21 @@ const clerkAppearance = {
   },
 };
 
-function getReturnTo(): string {
-  if (typeof window === "undefined") return "/";
-  const params = new URLSearchParams(window.location.search);
-  const ret = params.get("return_to");
-  return ret && ret.startsWith("/") ? ret : "/";
+/**
+ * Where this sign-in lands (reading 1). Clerk's later steps drop return_to from the address while the page stays
+ * mounted, so the page keeps it for the tab and reads it back from there. It reads the raw address because useSearch()
+ * decodes it once and return_to holds an encoded path; calling useSearch() still draws the page again at each step.
+ */
+function useReturnTo(): string {
+  useSearch();
+  const search = window.location.search;
+  useEffect(() => keepReturnTo(search), [search]);
+  return returnPathFor(search);
 }
 
 function SignInPage() {
   usePageTitle("Sign in");
-  const ret = getReturnTo();
+  const ret = useReturnTo();
   const fullRet = `${basePath}${ret === "/" ? "" : ret}` || "/";
   return (
     <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10 bg-stars">
@@ -166,7 +199,7 @@ function SignInPage() {
 
 function SignUpPage() {
   usePageTitle("Create account");
-  const ret = getReturnTo();
+  const ret = useReturnTo();
   const fullRet = `${basePath}${ret === "/" ? "" : ret}` || "/";
   return (
     <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10 bg-stars">
@@ -182,44 +215,122 @@ function SignUpPage() {
   );
 }
 
+/** Who the app's pages ask as, with their own query client (reading 2). */
+interface Viewer {
+  /** Clerk has loaded and, for an account, refreshed its session, so a request goes out as this viewer. */
+  ready: boolean;
+  client: QueryClient;
+  /** Counts the tab's clients, so a page that asked with the last one starts over with the next. */
+  generation: number;
+}
+
+const ViewerContext = createContext<Viewer | null>(null);
+
+function useViewer(): Viewer {
+  const viewer = useContext(ViewerContext);
+  if (!viewer) throw new Error("useViewer needs ViewerScope above it");
+  return viewer;
+}
+
+/**
+ * One query client per viewer (reading 2), so no answer cached for one viewer reaches another. The viewer is the
+ * browser's anonymous session until Clerk loads, and stays so if Clerk never does (useClerkStalled). An account becomes
+ * the viewer once its session is refreshed: auth rides on Clerk's short-lived session cookie, and the API reads a
+ * request with an expired one as the anonymous session, so a page that asked sooner showed only this browser's reports.
+ * While Clerk moves between sessions, whoever was looking still is. It wraps rather than sits beside the routes, for
+ * WithSiblings' reason.
+ */
+function ViewerScope({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn, userId, sessionId, getToken } = useAuth();
+  const { addListener } = useClerk();
+  const site = useQueryClient();
+  const [refreshed, setRefreshed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !sessionId) return;
+    let live = true;
+    void getToken()
+      .catch(() => null)
+      .then(() => {
+        if (live) setRefreshed(sessionId);
+      });
+    return () => {
+      live = false;
+    };
+  }, [isLoaded, isSignedIn, sessionId, getToken]);
+
+  const settled = !isLoaded ? undefined : !isSignedIn || !userId ? null : refreshed === sessionId ? userId : undefined;
+  const [held, setHeld] = useState(() => ({ id: null as string | null, client: newQueryClient(), generation: 0 }));
+  if (settled !== undefined && settled !== held.id) {
+    setHeld({ id: settled, client: newQueryClient(), generation: held.generation + 1 });
+  }
+
+  // The site's client holds only the prices and the admin check, which is keyed by account. It asks both again as the
+  // new viewer and shows what it had meanwhile, so the gate and the price rows are not drawn again from nothing.
+  const asked = useRef(held.id);
+  useEffect(() => {
+    if (asked.current === held.id) return;
+    asked.current = held.id;
+    void site.invalidateQueries();
+  }, [held.id, site]);
+
+  // At Clerk's own event, so the pair the picker remembered is gone before the next account's pages draw: they may not
+  // see its reports. A sign-in from an anonymous session keeps it, since it claims that session's reports.
+  const account = useRef<string | null | undefined>(undefined);
+  useEffect(
+    () =>
+      addListener(({ user }) => {
+        const id = user?.id ?? null;
+        if (account.current && account.current !== id) forgetSelection();
+        account.current = id;
+      }),
+    [addListener],
+  );
+
+  const ready = settled !== undefined && settled === held.id;
+  const viewer = useMemo(() => ({ ready, client: held.client, generation: held.generation }), [ready, held]);
+  return <ViewerContext.Provider value={viewer}>{children}</ViewerContext.Provider>;
+}
+
+/** An app page asks with its viewer's own client, and starts over when the viewer changes. */
+function ViewerQueries({ children }: { children: ReactNode }) {
+  const { client, generation } = useViewer();
+  return (
+    <QueryClientProvider key={generation} client={client}>
+      {children}
+    </QueryClientProvider>
+  );
+}
+
+// A page open to anonymous visitors that still shows a signed-in reader their whole account from the first request.
+// A blocked Clerk keeps the anonymous page rather than a wait that never ends.
+function ClerkReady({ children }: { children: ReactNode }) {
+  const { ready } = useViewer();
+  const clerkStalled = useClerkStalled();
+  if (!ready && !clerkStalled) return <LoadingState />;
+  return <>{children}</>;
+}
+
 // Guards a route behind Clerk auth. Signed-out visitors are redirected to
 // /sign-in with the full current path (including query string) as return_to.
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
+  const { ready } = useViewer();
   const clerkStalled = useClerkStalled();
   const [location, navigate] = useLocation();
+  // wouter's location is the path alone, and /checkout's item and step, or the done page's purchase, live in the query.
+  const search = useSearch();
+  const back = search ? `${location}?${search}` : location;
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      navigate(`/sign-in?return_to=${encodeURIComponent(location)}`, { replace: true });
+      navigate(`/sign-in?return_to=${encodeURIComponent(back)}`, { replace: true });
     }
-  }, [isLoaded, isSignedIn, location, navigate]);
+  }, [isLoaded, isSignedIn, back, navigate]);
 
   if (!isLoaded) return clerkStalled ? <ClerkStalledPage /> : <LoadingState />;
   if (!isSignedIn) return null;
+  if (!ready) return <LoadingState />;
   return <>{children}</>;
-}
-
-// When the signed-in user changes, blow away cached queries so the dashboard
-// doesn't briefly show the previous account's reports, and forget the pair the
-// picker remembered, whose reports the next account may not see. It wraps
-// rather than sits beside the routes, for WithSiblings' reason.
-function ClerkQueryCacheInvalidator({ children }: { children: ReactNode }) {
-  const { addListener } = useClerk();
-  const qc = useQueryClient();
-  const prev = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
-    return addListener(({ user }) => {
-      const id = user?.id ?? null;
-      if (prev.current !== undefined && prev.current !== id) {
-        qc.clear();
-        // A sign-in from an anonymous session keeps the pair: it claims that session's reports.
-        if (prev.current !== null) forgetSelection();
-      }
-      prev.current = id;
-    });
-  }, [addListener, qc]);
-  return children;
 }
 
 function prefetchRoutes() {
@@ -286,7 +397,9 @@ function AppGate({ children }: { children: ReactNode }) {
 function AppRoute({ children, ...route }: { path: string; children: ReactNode }) {
   return (
     <Route {...route}>
-      <AppGate>{children}</AppGate>
+      <AppGate>
+        <ViewerQueries>{children}</ViewerQueries>
+      </AppGate>
     </Route>
   );
 }
@@ -314,10 +427,14 @@ function Routes({ first }: { first?: FirstPage }) {
         {/* One page: a report is read while it is written (ADR-48), so the old waiting room redirects. */}
         <Route path="/generating/:id">{(params) => <Redirect to={`/report/${params.id}`} />}</Route>
         <AppRoute path="/report/:id">
-          <ReportPage />
+          <ClerkReady>
+            <ReportPage />
+          </ClerkReady>
         </AppRoute>
         <AppRoute path="/compatibility/:id">
-          <CompatibilityReportPage />
+          <ClerkReady>
+            <CompatibilityReportPage />
+          </ClerkReady>
         </AppRoute>
         {/* Access is known only for a signed-in reader, so a signed-out one signs in first and then gets the page or /timeline (reading 1). */}
         <AppRoute path="/dashboard/timeline">
@@ -331,11 +448,23 @@ function Routes({ first }: { first?: FirstPage }) {
           </RequireAuth>
         </AppRoute>
         <AppRoute path="/dashboard">
-          <DashboardPage />
+          <ClerkReady>
+            <DashboardPage />
+          </ClerkReady>
         </AppRoute>
         <Route path="/people">{() => <Redirect to="/dashboard" />}</Route>
         <AppRoute path="/claim">
           <ClaimPage />
+        </AppRoute>
+        <AppRoute path="/checkout/done">
+          <RequireAuth>
+            <CheckoutDonePage />
+          </RequireAuth>
+        </AppRoute>
+        <AppRoute path="/checkout">
+          <RequireAuth>
+            <CheckoutPage />
+          </RequireAuth>
         </AppRoute>
         <AppRoute path="/admin/prompts">
           <AdminPromptsPage />
@@ -345,6 +474,9 @@ function Routes({ first }: { first?: FirstPage }) {
         </AppRoute>
         <AppRoute path="/admin/waitlist">
           <AdminWaitlistPage />
+        </AppRoute>
+        <AppRoute path="/admin/sales">
+          <AdminSalesPage />
         </AppRoute>
         <Route path="/admin">{() => <Redirect to="/admin/waitlist" />}</Route>
         <Route path="/login">{() => <Redirect to="/sign-in" />}</Route>
@@ -360,8 +492,15 @@ function AdminRibbon() {
   return PRELAUNCH && isAdmin ? <PrelaunchRibbon /> : null;
 }
 
+/** The sign-in and sign-up pages, Clerk's later steps among them. */
+const SIGN_IN_PAGES = /^\/sign-(?:in|up)(?:\/|$)/;
+
 function ClerkRoutedProvider({ first }: { first?: FirstPage }) {
   const [location, setLocation] = useLocation();
+  // A kept sign-in path is used once (reading 1): the first page past the sign-in lets it go.
+  useEffect(() => {
+    if (!SIGN_IN_PAGES.test(location)) takeReturnTo();
+  }, [location]);
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
@@ -385,7 +524,7 @@ function ClerkRoutedProvider({ first }: { first?: FirstPage }) {
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
-      <ClerkQueryCacheInvalidator>
+      <ViewerScope>
         <PrelaunchViewProvider>
           <WithSiblings siblings={<AdminRibbon />}>
             {/* The outer boundary sits above the router and never sees a navigation; this one resets on each, by prop rather than key, so no page or Clerk sign-in step remounts. */}
@@ -394,7 +533,7 @@ function ClerkRoutedProvider({ first }: { first?: FirstPage }) {
             </ErrorBoundary>
           </WithSiblings>
         </PrelaunchViewProvider>
-      </ClerkQueryCacheInvalidator>
+      </ViewerScope>
     </ClerkProvider>
   );
 }
@@ -402,7 +541,7 @@ function ClerkRoutedProvider({ first }: { first?: FirstPage }) {
 function App({ first }: { first?: FirstPage }) {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={siteQueryClient}>
         <TooltipProvider>
           <WithSiblings
             siblings={

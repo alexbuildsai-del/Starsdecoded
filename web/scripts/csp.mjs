@@ -26,10 +26,19 @@ const ENDPOINTS_VALUE = `${REPORTS.group}="${REPORTS.path}"`;
 const CLERK = "https://well-dory-9343.clerk.accounts.dev";
 /** Clerk's bot check on sign-up is Cloudflare Turnstile, a script that opens a frame. */
 const CHALLENGE = "https://challenges.cloudflare.com";
+/**
+ * /checkout's Stripe.js, which Stripe requires from its own host, and the frames it draws the fields and wallets in
+ * (ADR-274); Stripe's CSP guide lists its subdomains beside it.
+ */
+const STRIPE_JS = ["https://js.stripe.com", "https://*.js.stripe.com"];
+/** A card's 3D Secure check and other confirmations open in a frame from here. */
+const STRIPE_HOOKS = "https://hooks.stripe.com";
+/** Stripe.js calls Stripe's API from our page, and sends its fraud signals to m.stripe.network. */
+const STRIPE_CONNECT = ["https://api.stripe.com", "https://m.stripe.network"];
 
 const POLICY = {
   "default-src": ["'self'"],
-  "script-src": ["'self'", CLERK, CHALLENGE],
+  "script-src": ["'self'", CLERK, CHALLENGE, ...STRIPE_JS],
   // Clerk writes style elements at run time, and the prerendered pages carry style attributes.
   "style-src": ["'self'", "'unsafe-inline'"],
   "img-src": ["'self'", "data:", "blob:", "https://img.clerk.com"],
@@ -39,8 +48,9 @@ const POLICY = {
     CLERK,
     // A development instance, which staging's key names, sends Clerk its telemetry; a production instance sends none.
     "https://clerk-telemetry.com",
+    ...STRIPE_CONNECT,
   ],
-  "frame-src": [CHALLENGE],
+  "frame-src": [CHALLENGE, ...STRIPE_JS, STRIPE_HOOKS],
   // Clerk runs its session timers in a worker it builds from a blob.
   "worker-src": ["'self'", "blob:"],
   "frame-ancestors": ["'none'"],

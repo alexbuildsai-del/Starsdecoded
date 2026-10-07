@@ -10,7 +10,7 @@ import {
   type ListGiftsResponseItem,
 } from "@workspace/api-zod";
 import { mintInviteToken } from "../lib/inviteToken.js";
-import { holdCredit, returnExpiredHolds, returnHeldCredit } from "../lib/credits.js";
+import { holdCredit, noCredit, returnExpiredHolds, returnHeldCredit } from "../lib/credits.js";
 import { sendGiftEmail, sendGiftReminder } from "../lib/mailer.js";
 import { firstNameOf } from "../lib/names.js";
 import { publicWebBase } from "../lib/waitlist.js";
@@ -79,10 +79,25 @@ async function ownGift(userId: string, id: string): Promise<InviteToken | null> 
   return row ?? null;
 }
 
-// A gift that never went out leaves nothing behind: no waiting point on the orbit, no credit held.
-async function discard(giftId: string): Promise<void> {
-  await returnHeldCredit(giftId);
-  await db.delete(inviteTokensTable).where(eq(inviteTokensTable.id, giftId));
+/** Thrown inside a gift's transaction when there is no credit to hold, so the gift is never written. */
+class NothingToHold extends Error {}
+
+/**
+ * The gift and the credit it holds land together or not at all (ADR-275): with
+ * no credit to hold, null, and nothing is written, so there is no waiting
+ * point on the orbit and nothing to send.
+ */
+async function giftHoldingCredit(userId: string, values: typeof inviteTokensTable.$inferInsert): Promise<InviteToken | null> {
+  try {
+    return await db.transaction(async (tx) => {
+      const [row] = await tx.insert(inviteTokensTable).values(values).returning();
+      if (!(await holdCredit(userId, row.id, tx))) throw new NothingToHold();
+      return row;
+    });
+  } catch (err) {
+    if (err instanceof NothingToHold) return null;
+    throw err;
+  }
 }
 
 function notFound(res: Response) {
@@ -158,32 +173,20 @@ router.post("/gifts", async (req, res) => {
     const { token, tokenHash } = mintInviteToken();
     const sentAt = new Date();
     const claimUrl = claimUrlFor(token);
-    const [row] = await db
-      .insert(inviteTokensTable)
-      .values({
-        id: randomUUID(),
-        tokenHash,
-        email,
-        kind: "gift",
-        profileId: null,
-        recipientName,
-        note,
-        createdByUserId: userId,
-        createdBySessionId: req.sessionId,
-        expiresAt: new Date(sentAt.getTime() + GIFT_TTL_MS),
-        createdAt: sentAt,
-      })
-      .returning();
-
-    let creditId: string | null;
-    try {
-      // MB-6 provisional: null under the soft pass (holdCredit logs it), and the gift still goes
-      // with creditHeld false until checkout exists; the web keeps the zero state (ADR-138).
-      creditId = await holdCredit(userId, row.id);
-    } catch (err) {
-      await discard(row.id);
-      throw err;
-    }
+    const row = await giftHoldingCredit(userId, {
+      id: randomUUID(),
+      tokenHash,
+      email,
+      kind: "gift",
+      profileId: null,
+      recipientName,
+      note,
+      createdByUserId: userId,
+      createdBySessionId: req.sessionId,
+      expiresAt: new Date(sentAt.getTime() + GIFT_TTL_MS),
+      createdAt: sentAt,
+    });
+    if (!row) return res.status(402).json(noCredit("gift"));
 
     const emailDelivered = await mailed(
       sendGiftEmail({ to: email, giverFirstName, recipientFirstName: recipientName, note, claimUrl }),
@@ -203,7 +206,7 @@ router.post("/gifts", async (req, res) => {
 
     // ADR-123: the raw token lives in this one response only, to the giver who just made
     // it; GET /gifts stores only its hash, so a later list can never rebuild the link.
-    return res.status(201).json({ ...toGift(row, creditId ? "held" : null, new Date()), claimUrl, emailDelivered });
+    return res.status(201).json({ ...toGift(row, "held", new Date()), claimUrl, emailDelivered });
   } catch (err) {
     req.log.error({ err }, "Failed to create a gift");
     return res

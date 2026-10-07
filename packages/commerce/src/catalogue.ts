@@ -6,6 +6,8 @@ export type BundleId = "solo" | "couple" | "family";
 
 export interface Bundle {
   id: BundleId;
+  /** Stripe finds the product's price by this key, never by an id we would have to store (ADR-277). */
+  lookupKey: "single" | "couple" | "family";
   name: string;
   line: string;
   credits: 1 | 3 | 5;
@@ -31,6 +33,7 @@ function withSinglesTotal(row: Omit<Bundle, "fullCents">): Bundle {
 export const BUNDLES: readonly Bundle[] = [
   withSinglesTotal({
     id: "solo",
+    lookupKey: "single",
     name: "Single",
     line: "1 credit · a Personal report or a Compatibility report",
     credits: 1,
@@ -40,6 +43,7 @@ export const BUNDLES: readonly Bundle[] = [
   }),
   withSinglesTotal({
     id: "couple",
+    lookupKey: "couple",
     name: "Couple",
     line: "3 credits · a report each and how you get along",
     credits: 3,
@@ -49,6 +53,7 @@ export const BUNDLES: readonly Bundle[] = [
   }),
   withSinglesTotal({
     id: "family",
+    lookupKey: "family",
     name: "Family & friends",
     line: "5 credits · for the people close to you",
     credits: 5,
@@ -59,13 +64,49 @@ export const BUNDLES: readonly Bundle[] = [
 ];
 
 /** Said wherever a price or a balance shows, so nobody has to ask what a credit buys (ADR-170, R-6.4). */
-export const CREDIT_LINE = "1 credit = 1 report of either kind.";
+export const CREDIT_LINE = "1 credit = 1 report of any kind.";
 
 export function bundleById(id: BundleId): Bundle {
   const bundle = BUNDLES.find((row) => row.id === id);
   if (!bundle) throw new Error(`No bundle has the id ${String(id)}`);
   return bundle;
 }
+
+export type PlanId = "timeline_month" | "timeline_year";
+
+export interface Plan {
+  id: PlanId;
+  /** Equal to `id`, so Stripe's key and ours cannot differ. */
+  lookupKey: PlanId;
+  name: "Timeline";
+  interval: "month" | "year";
+  /** Euro cents, VAT included. Typed here and nowhere else (R-6.3). */
+  cents: number;
+  /** The yearly plan opens with one credit to give away; the monthly plan has none (ADR-277). */
+  creditsToGive: 0 | 1;
+}
+
+export const PLANS: readonly Plan[] = [
+  { id: "timeline_month", lookupKey: "timeline_month", name: "Timeline", interval: "month", cents: 999, creditsToGive: 0 },
+  { id: "timeline_year", lookupKey: "timeline_year", name: "Timeline", interval: "year", cents: 6999, creditsToGive: 1 },
+];
+
+export type CatalogueItemId = BundleId | PlanId;
+
+export function itemById(id: CatalogueItemId): Bundle | Plan {
+  const plan = PLANS.find((row) => row.id === id);
+  return plan ?? bundleById(id as BundleId);
+}
+
+export function renewalLine(plan: Plan): string {
+  return `It renews each ${plan.interval}. You can stop it any time on your Account page.`;
+}
+
+/** Only the multi-credit bundles take a campaign price; Single and the plans never do (MB-149). */
+export const CAMPAIGN_ITEMS: readonly BundleId[] = ["couple", "family"];
+
+/** A campaign price may sit at most this far under the full price (MB-149). */
+export const MAX_CAMPAIGN_OFF = 0.25;
 
 /**
  * Built by hand rather than with Intl so the server's HTML and the browser's agree to the

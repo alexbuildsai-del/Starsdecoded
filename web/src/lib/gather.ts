@@ -6,7 +6,7 @@
  * frame is arithmetic on the plan and the ring as it is now, so a resize
  * re-projects the ring without re-seeding the field or clearing the gather.
  */
-import { easeInOutCubic } from "@/lib/orrery";
+import { easeInOutCubic } from "@/lib/easing";
 
 export const GATHER_SECONDS = 1.6;
 export const GATHER_SHARE = 0.7;

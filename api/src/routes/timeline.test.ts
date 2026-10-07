@@ -1,7 +1,8 @@
 /**
  * Timeline's and Ask's routes through the real router, in process (MB-49): the access answer, the one access check in
  * front of every other route, Now and ahead's count, a reading's count and the breaker that an open writing nothing
- * skips, Timeline's own pause line, Ask's answers, GET /home's week or teaser, and deleting one's own Personal report.
+ * skips, Timeline's own pause line, an account's new readings a day, Ask's answers, GET /home's week or teaser, and
+ * deleting one's own Personal report.
  * The decisions run with no database; the routes' reads run on a scratch Postgres when WALK_DATABASE_URL names a
  * bootstrapped one, and skip, saying why, without it. The model is the test stub, so nothing here calls a real one.
  */
@@ -35,11 +36,13 @@ const { installFakeModel } = await import("../lib/testModel.js");
 const { setSpendSink } = await import("../lib/spendLedger.js");
 const { logger } = await import("../lib/logger.js");
 const { LIMITS, LIMIT_LINES } = await import("../lib/limits.js");
-const { PAUSED_LINE, TIMELINE_PAUSED_LINE } = await import("../lib/spendCap.js");
+const { PAUSED_LINE, TIMELINE_PAUSED_LINE, utcDay } = await import("../lib/spendCap.js");
 const { NO_TIMELINE_LINE } = await import("../lib/timelineAccess.js");
 const { ASK_CHOICE_GONE_LINE, ASK_EMPTY_LINE, monthOf } = await import("../lib/ask.js");
 const { chartForProfile } = await import("../lib/profiles.js");
 const T = await import("../lib/timeline.js");
+const RD = await import("../lib/timelineReadings.js");
+const E = await import("@workspace/engine");
 const { capLine } = await import("../prompts/ask/index.js");
 const Z = await import("@workspace/api-zod");
 const { default: router, asking, nowAndAhead, openingReading } = await import("./index.js");
@@ -48,6 +51,7 @@ const AK = await import("./ask.js");
 
 type ReaderChart = import("../lib/timeline.js").ReaderChart;
 type ReadingState = import("../lib/timeline.js").ReadingState;
+type SkyEvent = import("@workspace/engine").SkyEvent;
 type FakeRequest = import("../lib/testModel.js").FakeRequest;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -178,19 +182,23 @@ test("a reading's key as the views mint it, and which opens start a write: none 
   for (const [state, writes] of states) assert.equal(TL.writesOnOpen(state), writes, JSON.stringify(state));
 });
 
-test("the six-month queue gets the contacts with no reading yet, never another kind, nor one kept, writing or failed (reading 7)", () => {
-  const now = new Date("2026-10-05T12:00:00Z");
-  const bare = T.nowView(MIRA, "six-months", "Europe/Lisbon", new Map(), now);
-  const contacts = bare.events.filter((e) => e.kind === "contact").map((e) => e.key);
-  assert.ok(contacts.length > 3, `Mira's six months hold ${contacts.length} contacts`);
-  assert.deepEqual(TL.toQueue(bare), contacts);
-  const [ready, writing, failed] = contacts;
-  const statuses = new Map<string, ReadingState>([
-    [ready, { status: "ready", line: CLEAN.line }],
-    [writing, "writing"],
-    [failed, { status: "failed", line: "We couldn't write this reading. Try again in a few minutes." }],
-  ]);
-  assert.deepEqual(TL.toQueue(T.nowView(MIRA, "six-months", "Europe/Lisbon", statuses, now)), contacts.slice(3));
+test("an open's answer: a reading as it stands is 200, none 404, and the day's cap 429 in a limit's body with its wait for Retry-After (MB-219)", () => {
+  const reading = { key: SATURN_ON_ASC, line: CLEAN.line, body: CLEAN.body, buildsOn: { kind: "house" as const, house: 1 }, writtenAt: new Date("2026-10-05T09:00:00Z") };
+  for (const opened of [
+    { status: "ready" as const, reading, line: null },
+    { status: "writing" as const, reading: null, line: null },
+    { status: "failed" as const, reading: null, line: RD.READING_FAILED_LINE },
+  ]) {
+    assert.deepEqual(TL.readingAnswerOf(opened), { status: 200, body: opened, retryAfter: null }, opened.status);
+    Z.OpenTimelineReadingResponse.parse(opened);
+  }
+  assert.deepEqual(TL.readingAnswerOf({ status: "unknown", reading: null, line: null }), {
+    status: 404, body: { error: "not_found", message: TL.NO_READING_LINE }, retryAfter: null,
+  });
+  assert.deepEqual(TL.readingAnswerOf({ status: "capped", reading: null, line: RD.READINGS_CAP_LINE, retryAfterSeconds: 3600 }), {
+    status: 429, body: { error: "rate_limited", message: RD.READINGS_CAP_LINE, retryAfterSeconds: 3600 }, retryAfter: 3600,
+  });
+  assert.notEqual(RD.READINGS_CAP_LINE, LIMIT_LINES.timelineReading, "the day's line, never the minute's");
 });
 
 test("Ask's answers: the thread 200, the month's cap 429 with its day, a body Ask cannot take 400, no chart to read 409", () => {
@@ -295,7 +303,7 @@ test("Now and ahead's chain as routes/index.ts stands it: the access check, then
     await close();
   });
   process.env.ADMIN_USER_ID = looker;
-  // A paused day: the six months' queue waits behind the breaker itself, so the view still answers.
+  // A paused day: the view writes nothing, so it meets no breaker and still answers.
   process.env.DAILY_SPEND_CAP_USD = "0";
   const get = (who: string, range: string) => fetched(base, "GET", `/timeline/now?range=${range}`, who);
   for (let i = 0; i <= LIMITS.timelineNow.limit; i++) assert.equal((await get(user("chain-now-other"), "week")).status, 403, `try ${i + 1}`);
@@ -349,18 +357,19 @@ const LIMITER = user("limiter");
 const LOOKER = user("looker");
 const ASKER = user("asker");
 const CAPPED = user("capped");
+const DAILY = user("daily");
 const DELETER = user("deleter");
 const GIVER = user("giver");
 const SUBJECT = user("subject");
 const P = {
   admin: id("p-admin"), adminOther: id("p-admin-other"), owner: id("p-owner"), limiter: id("p-limiter"), asker: id("p-asker"),
-  capped: id("p-capped"), deleter: id("p-deleter"), given: id("p-given"), looker: id("p-looker"),
+  capped: id("p-capped"), daily: id("p-daily"), deleter: id("p-deleter"), given: id("p-given"), looker: id("p-looker"),
 };
 const R = {
   admin: id("r-admin"), adminOther: id("r-admin-other"), owner: id("r-owner"), limiter: id("r-limiter"), asker: id("r-asker"),
-  capped: id("r-capped"), deleter: id("r-deleter"), given: id("r-given"), looker: id("r-looker"),
+  capped: id("r-capped"), daily: id("r-daily"), deleter: id("r-deleter"), given: id("r-given"), looker: id("r-looker"),
 };
-const USERS = [ADMIN, OWNER, NOBODY, LIMITER, LOOKER, ASKER, CAPPED, DELETER, GIVER, SUBJECT];
+const USERS = [ADMIN, OWNER, NOBODY, LIMITER, LOOKER, ASKER, CAPPED, DAILY, DELETER, GIVER, SUBJECT];
 
 /** A Personal report's text as a reading reads it: a card for each house. */
 const REPORT_TEXT = {
@@ -387,6 +396,7 @@ function seed(): Promise<void> {
       profile(P.looker, LOOKER, { isSelf: true }),
       profile(P.asker, ASKER, { isSelf: true }),
       profile(P.capped, CAPPED, { isSelf: true }),
+      profile(P.daily, DAILY, { isSelf: true }),
       profile(P.deleter, DELETER, { isSelf: true }),
       // Written by the giver and claimed by its subject as their own (ADR-139).
       profile(P.given, GIVER, { claimedByUserId: SUBJECT, claimedAsSelf: true }),
@@ -402,6 +412,7 @@ function seed(): Promise<void> {
       report(R.looker, P.looker, LOOKER),
       report(R.asker, P.asker, ASKER),
       report(R.capped, P.capped, CAPPED),
+      report(R.daily, P.daily, DAILY),
       report(R.deleter, P.deleter, DELETER),
       report(R.given, P.given, GIVER),
     ]);
@@ -433,18 +444,6 @@ async function keep(userId: string, profileId: string, keys: string[], messages:
     await db.insert(askMessagesTable).values(Array.from({ length: messages }, (_, i) => ({ id: randomUUID(), userId, role: "reader" as const, body: { text: `Earlier ${i}` } })));
   }
 }
-
-/** Until the queue's writes have landed: at least `count` rows on the profile, none still writing. */
-async function settled(profileId: string, count: number) {
-  for (let i = 0; i < 400; i++) {
-    const rows = await rowsFor(profileId);
-    if (rows.length >= count && rows.every((r) => r.status !== "writing")) return rows;
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  throw new Error(`the queue left ${profileId}'s readings writing`);
-}
-
-const byDay = (a: string, b: string) => a.slice(-8).localeCompare(b.slice(-8)) || a.localeCompare(b);
 
 /** The reader's day in a zone, read on both sides of a call, so a midnight passing during it is no failure. */
 async function dayAround<V>(zone: string, during: () => Promise<V>): Promise<{ days: string[]; value: V }> {
@@ -480,7 +479,7 @@ test("db, the access answer: every signed-in reader, whether they have Timeline 
   }
 });
 
-test("db, Now and ahead: each range in the zone sent, else the birth place's; six months queues the contacts' readings, soonest three, and a card then carries its reading's line", { skip: NO_DB }, async () => {
+test("db, Now and ahead: each range in the zone sent, else the birth place's; no range queues or writes a reading (reading 11), and a card opened carries its reading's line", { skip: NO_DB }, async () => {
   await seed();
   const week = await call("GET", "/timeline/now?range=week&tz=Asia/Tokyo", ADMIN);
   assert.equal(week.status, 200);
@@ -488,25 +487,27 @@ test("db, Now and ahead: each range in the zone sent, else the birth place's; si
   assert.deepEqual([tokyo.range, tokyo.zone, tokyo.days.length], ["week", "Asia/Tokyo", 7]);
   const month = Z.GetTimelineNowResponse.parse((await call("GET", "/timeline/now?range=month&tz=Not/AZone", ADMIN)).body);
   assert.deepEqual([month.zone, month.days.length], ["Europe/Lisbon", 30]);
-  assert.equal((await rowsFor(P.admin)).length, 0, "a week and a month queue nothing");
 
   const before = calls("timeline_reading");
   const six = Z.GetTimelineNowResponse.parse((await call("GET", "/timeline/now?range=six-months", ADMIN)).body);
   assert.equal(six.days.length, 182);
-  const soonest = TL.toQueue(six).sort(byDay).slice(0, 3);
-  assert.equal(soonest.length, 3);
-  const rows = await settled(P.admin, 3);
-  assert.deepEqual(rows.map((r) => r.eventKey).sort(), [...soonest].sort());
-  assert.ok(rows.every((r) => r.status === "ready"));
-  assert.equal(calls("timeline_reading") - before, 3);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal((await rowsFor(P.admin)).length, 0, "no range queues a reading");
+  assert.equal(calls("timeline_reading") - before, 0);
 
-  const again = Z.GetTimelineNowResponse.parse((await call("GET", "/timeline/now?range=six-months", ADMIN)).body);
-  for (const key of soonest) {
-    const event = again.events.find((e) => e.key === key);
-    assert.deepEqual([event?.reading, event?.line], ["ready", CLEAN.line], key);
+  // A contact that gets no reading shows none too, and its open is a 404 that writes nothing.
+  let opened: string | null = null;
+  for (const e of six.events.filter((e) => e.kind === "contact" && e.reading === "none")) {
+    if ((await open(ADMIN, e.key)).status === 200) {
+      opened = e.key;
+      break;
+    }
   }
-  // That read queued the next three; they land before anything else is counted.
-  await settled(P.admin, Math.min(6, TL.toQueue(six).length));
+  assert.ok(opened, "a contact with a reading to write");
+  assert.equal(calls("timeline_reading") - before, 1, "the open writes it");
+  const again = Z.GetTimelineNowResponse.parse((await call("GET", "/timeline/now?range=six-months", ADMIN)).body);
+  const event = again.events.find((e) => e.key === opened);
+  assert.deepEqual([event?.reading, event?.line], ["ready", CLEAN.line]);
 });
 
 test("db, Life: every cycle with its reading's state, and a reading opened twice is written once; a key nothing on the chart carries is 404 and writes nothing", { skip: NO_DB }, async () => {
@@ -565,6 +566,42 @@ test("db, a reading's count: 20 new ones a minute, then its line; opening one ke
   await db.update(tr).set({ status: "writing", reading: null, updatedAt: new Date() }).where(and(eq(tr.profileId, P.limiter), eq(tr.eventKey, writing)));
   const asked = await open(LIMITER, writing);
   assert.deepEqual([asked.status, asked.body], [200, { status: "writing", reading: null, line: null }], "the sheet asking again while it is written");
+});
+
+test("db, an account's new readings a UTC day through the router: past 40 the next is 429 with Timeline's line and the wait to midnight, and gives the minute's count back; a kept one opens; a key a year out is 404 (MB-219)", { skip: NO_DB }, async (t) => {
+  await seed();
+  process.env.ADMIN_USER_ID = DAILY;
+  t.after(() => {
+    process.env.ADMIN_USER_ID = ADMIN;
+  });
+  const day = utcDay();
+  const reader = await T.readerChart({ userId: DAILY, sessionId: `s-${DAILY}` });
+  assert.ok(reader);
+  const keys = T.lifeView(reader, null, new Map()).cycles.map((c) => c.key);
+  // The day's 40 open in process: through the router, the minute's count would stop them at 20.
+  for (const key of keys.slice(0, RD.NEW_READINGS_A_DAY)) assert.equal((await RD.openReading(reader, key)).status, "ready", key);
+  const before = calls("timeline_reading");
+  // Each refusal gives its count back, so a minute's worth and one more all hear the day's line, never the minute's.
+  for (let i = 0; i <= LIMITS.timelineReading.limit; i++) {
+    const refused = await open(DAILY, keys[RD.NEW_READINGS_A_DAY]);
+    if (utcDay() !== day) return t.skip("UTC midnight passed during the test, so the day's count started again");
+    assert.equal(refused.status, 429, `try ${i + 1}`);
+    assert.deepEqual(refused.body, { error: "rate_limited", message: RD.READINGS_CAP_LINE, retryAfterSeconds: Number(refused.retryAfter) }, `try ${i + 1}`);
+    assert.ok(refused.body.retryAfterSeconds > 0 && refused.body.retryAfterSeconds <= 86_400);
+  }
+  assert.equal(calls("timeline_reading"), before);
+  assert.ok(!(await rowsFor(P.daily)).some((r) => r.eventKey === keys[RD.NEW_READINGS_A_DAY]), "no row for a refused one");
+
+  const kept = await open(DAILY, keys[0]);
+  assert.deepEqual([kept.status, kept.body.status, kept.body.reading?.line], [200, "ready", CLEAN.line], "a kept reading opens on a capped day");
+  const DAY_MS = 86_400_000;
+  const startOf = (e: SkyEvent) => (e.kind === "contact" ? e.window.start : e.kind === "retrograde" ? e.start : e.eclipse.at).getTime();
+  const yearAhead = Date.now() + 365 * DAY_MS;
+  const yearOut = E.skyEvents(reader.chart, new Date(yearAhead), new Date(yearAhead + 30 * DAY_MS)).filter(E.readsAs).find((e) => startOf(e) >= yearAhead);
+  assert.ok(yearOut, "a real event on her chart a year out");
+  const far = await open(DAILY, yearOut.key);
+  assert.deepEqual([far.status, far.body], [404, { error: "not_found", message: TL.NO_READING_LINE }], "a key a year out");
+  assert.equal(calls("timeline_reading"), before);
 });
 
 test("db, Now and ahead's count through the router: 30 reads a minute, then its line; a range it does not know gives its count back, and Life, which writes nothing, has none", { skip: NO_DB }, async (t) => {

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
-import { BUNDLES, CHECKOUT_TICK, LEGAL_IDENTITY } from "@workspace/commerce";
+import { BUNDLES, CHECKOUT_TICK, LEGAL_IDENTITY, PLANS, PLAN_TICK, type Plan } from "@workspace/commerce";
+import { PAYMENTS } from "@/lib/processors";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { CONTACT, LegalLayout, LegalSection, MailLink } from "./LegalLayout";
 
@@ -9,8 +10,13 @@ function orList(items: readonly (string | number)[]): string {
   return words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} or ${words[words.length - 1]}`;
 }
 
+const PAYMENT_OF: Record<Plan["interval"], string> = { month: "monthly", year: "yearly" };
+
+const credits = (count: number) => `${count} ${count === 1 ? "credit" : "credits"}`;
+
 export default function TermsPage() {
   const { name, tradingName, country } = LEGAL_IDENTITY;
+  const giving = PLANS.filter((plan) => plan.creditsToGive > 0);
 
   return (
     <LegalLayout path="/terms">
@@ -31,21 +37,26 @@ export default function TermsPage() {
           {PRODUCT} works out a birth chart from the birth details you enter and writes a report from it. Each report is
           digital content, written for you when you use a credit on it.
         </p>
+        <p>Timeline shows when the planets reach the points in your own chart, and what that means for you.</p>
       </LegalSection>
 
       <LegalSection title="What a report is and isn't">
         <p>
-          The report describes patterns, tendencies and growth edges. It does not predict events, name dates, promise
-          outcomes or invoke fate. It is not medical, psychological or financial advice and is not a diagnosis of anything.
-          Use it as one lens on yourself, not as an instruction.
+          A report describes how you tend to think, work and love, and gives you things to try. It does not predict events,
+          put dates on your life, promise outcomes or talk about fate. It is not medical, psychological or financial advice
+          and is not a diagnosis of anything. Use it as one lens on yourself, not as an instruction.
         </p>
+        <p>The same goes for Timeline. The only dates it shows are for the sky, like your Saturn return.</p>
       </LegalSection>
 
       <LegalSection id="credits" title="Credits and prices">
         <p>
           You buy credits in bundles of {orList(BUNDLES.map((bundle) => bundle.credits))}. Each report, a {PERSONAL_REPORT} or
-          a {COMPATIBILITY_REPORT}, uses one credit. Prices are in euros, include VAT and are shown before you pay. There's no
-          subscription.
+          a {COMPATIBILITY_REPORT}, uses one credit. Prices are in euros, include VAT and are shown before you pay.
+        </p>
+        <p>
+          You pay on our own checkout page. {PAYMENTS.name} takes the payment, so your card details go to {PAYMENTS.name} and
+          never reach us.
         </p>
         <p>When you buy credits, you tick a box that says: “{CHECKOUT_TICK}”</p>
         <p>
@@ -56,6 +67,28 @@ export default function TermsPage() {
         <p>So within 14 days of buying, you can get a refund for any credit you haven't used, but not for one you've used.</p>
         <p>
           <Link href="/refunds">When we refund you</Link>
+        </p>
+      </LegalSection>
+
+      <LegalSection id="timeline" title="Timeline">
+        <p>
+          Timeline is our one subscription, for people with their own {PERSONAL_REPORT}. You pay for it{" "}
+          {orList(PLANS.map((plan) => `each ${plan.interval}`))}, through {PAYMENTS.name} on our checkout page. Its price is
+          in euros, includes VAT and is shown before you pay.
+        </p>
+        {giving.map((plan) => (
+          <p key={plan.id}>
+            Each {PAYMENT_OF[plan.interval]} payment also adds {credits(plan.creditsToGive)} to your balance.
+          </p>
+        ))}
+        <p>
+          Timeline renews until you stop it. You can stop it any time on your Account page. It then stays on until the end
+          of the {orList(PLANS.map((plan) => plan.interval))} you've paid for.
+        </p>
+        <p>When you start Timeline, you tick a box that says: “{PLAN_TICK}”</p>
+        <p>That right is the 14 days EU law usually gives you to cancel an online purchase.</p>
+        <p>
+          <Link href="/refunds#timeline">How refunds work for Timeline</Link>
         </p>
       </LegalSection>
 
@@ -97,7 +130,8 @@ export default function TermsPage() {
 
       <LegalSection title="Liability and law">
         <p>
-          We provide each report as it is. As far as the law allows, we're not liable for decisions you make because of it.
+          We provide our reports and Timeline as they are. As far as the law allows, we're not liable for decisions you make
+          because of them.
         </p>
         <p>
           These terms are governed by the law of {country}. If you live elsewhere in the EU, you keep the protection your own

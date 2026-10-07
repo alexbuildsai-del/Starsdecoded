@@ -7,7 +7,7 @@
  */
 import { CREDIT_LINE } from "@workspace/commerce";
 import { useGetCredits } from "@workspace/api-client-react";
-import { creditDots, creditsEnforced } from "@/lib/credits-view";
+import { creditDots } from "@/lib/credits-view";
 import { cn } from "@/lib/utils";
 
 const PRESS = "active:scale-[.97] motion-reduce:transition-none motion-reduce:active:scale-100";
@@ -78,17 +78,13 @@ export function CreditDots({ count, className }: CreditDotsProps) {
 export interface CreditRowProps {
   /** Opens the credits sheet, from Get more or, at zero, Get credits. */
   onGetCredits: () => void;
-  /** `creditsEnforced()` when left out. */
-  enforced?: boolean;
   className?: string;
 }
 
 /** The panel's credit row and the reader's own card's credit slot (annex, Credits). */
-export function CreditRow({ onGetCredits, enforced, className }: CreditRowProps) {
+export function CreditRow({ onGetCredits, className }: CreditRowProps) {
   const available = useGetCredits().data?.available;
   if (available === undefined) return null;
-  // MB-6 provisional: production's soft pass has no Get credits to offer (ADR-138).
-  const live = enforced ?? creditsEnforced();
   const count = Math.max(0, available);
   const zero = count === 0;
   return (
@@ -108,20 +104,18 @@ export function CreditRow({ onGetCredits, enforced, className }: CreditRowProps)
         </p>
         <p className="text-xs leading-snug text-muted-foreground">{CREDIT_LINE}</p>
       </div>
-      {live && (
-        <button
-          type="button"
-          onClick={onGetCredits}
-          className={cn(
-            "inline-flex h-[30px] shrink-0 items-center rounded-md px-[11px] font-label text-xs font-medium transition duration-200",
-            PRESS,
-            FOCUS,
-            zero ? "bg-primary text-white hover:brightness-110" : "border border-border text-foreground hover:border-[#9FA8DA]/55",
-          )}
-        >
-          {zero ? "Get credits" : "Get more"}
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onGetCredits}
+        className={cn(
+          "inline-flex h-[30px] shrink-0 items-center rounded-md px-[11px] font-label text-xs font-medium transition duration-200",
+          PRESS,
+          FOCUS,
+          zero ? "bg-primary text-white hover:brightness-110" : "border border-border text-foreground hover:border-[#9FA8DA]/55",
+        )}
+      >
+        {zero ? "Get credits" : "Get more"}
+      </button>
     </div>
   );
 }

@@ -5,7 +5,7 @@
 ## Refs
 
 - Round plan / spec: <!-- docs/rounds/RNN-plan.md or docs/specs/locked/<slug>.md -->
-- Mailbox rows raised or resolved: <!-- MB-NN … -->
+- Mailbox rows raised or resolved, backlog lines done, decisions taken: <!-- MB-NN, B-NN, ADR-NN … -->
 - Provisional seams: <!-- MB-NN … or none -->
 
 ## Gate
@@ -18,5 +18,5 @@
 - [ ] Report lab run against fixtures (required when `api/src/lib/` or prompts changed) — paste the measurement
 - [ ] Smoke-tested on the Vercel preview, and the security probe (web half) green on it
 - [ ] Site checks (Lighthouse and axe) green on the Vercel preview, no budget loosened
-- [ ] Sentinel read `main...round/RNN` with no blocking finding open; the rest are Mailbox rows (MB-NN …)
+- [ ] Sentinel read `main...round/RNN` with no blocking finding open; the rest are backlog lines or private Mailbox rows (B-NN, MB-NN …)
 - [ ] No new use of the name "Astra"; no secret in the diff

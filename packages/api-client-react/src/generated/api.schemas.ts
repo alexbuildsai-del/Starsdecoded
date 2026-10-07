@@ -90,6 +90,22 @@ export interface Paused {
   message: string;
 }
 
+export type NoCreditError = typeof NoCreditError[keyof typeof NoCreditError];
+
+
+export const NoCreditError = {
+  no_credit: 'no_credit',
+} as const;
+
+/**
+ * The 402 body of a report or a gift asked for with no credit to take (ADR-275).
+ */
+export interface NoCredit {
+  error: NoCreditError;
+  /** The one line the page shows, so its words live in the API. */
+  message: string;
+}
+
 /**
  * The consent wording shown beside the form, stored with the address. launch-email-v2 is the double opt-in wording (ADR-145).
  */
@@ -677,12 +693,16 @@ export const PairLinkKind = {
   overlay: 'overlay',
 } as const;
 
+/**
+ * An overlay's owner, A or B; an aspect card stores none, as the pair's link schema asks of the model (B-15).
+ */
 export type PairLinkOf = typeof PairLinkOf[keyof typeof PairLinkOf];
 
 
 export const PairLinkOf = {
   A: 'A',
   B: 'B',
+  none: 'none',
 } as const;
 
 /**
@@ -696,6 +716,7 @@ export interface PairLink {
   orb?: number;
   /** Overlay cards, the body that sits in the other chart's house. */
   planet?: string;
+  /** An overlay's owner, A or B; an aspect card stores none, as the pair's link schema asks of the model (B-15). */
   of?: PairLinkOf;
   house?: number;
   reading: string;
@@ -952,7 +973,7 @@ export interface ReportStatus {
      */
   errorMessage?: string | null;
   failureReason?: FailureReason | null;
-  /** The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last. */
+  /** The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313). Sent as on Report, so the page offers a rewrite from whichever of the two reads it fetched last. */
   canRegenerate?: boolean;
   /** A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170). Sent as on Report. */
   outdated?: boolean;
@@ -1257,7 +1278,7 @@ export interface HomePerson {
   isSelf: boolean;
   /** On a sharer's seat, Share yours back is offered, since the reader has a finished Personal report of their own not yet shared with them (ADR-235, MB-104). */
   shareBack?: boolean;
-  /** The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-137, MB-169). */
+  /** The reader may run Try again or Regenerate on this report, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313). */
   canRegenerate?: boolean;
   /**
      * Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).
@@ -1701,7 +1722,7 @@ export interface Report {
      * @nullable
      */
   giverName?: string | null;
-  /** The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). */
+  /** The viewer may run Try again or Regenerate here, its writer or its holder after a hand-over, never a shared reader (MB-169). Try again is free; a final report, its credit back after its third failure, has none, so this is false (ADR-313). */
   canRegenerate?: boolean;
   /** A complete natal report written for another birth time or horizon than its profile's now, which Regenerate rewrites free (MB-170). */
   outdated?: boolean;
@@ -2258,7 +2279,7 @@ export const InviteClaimResponseKind = {
 
 export interface InviteClaimResponse {
   /**
-     * The chart a send hands over; null on a gift, which has no profile (ADR-139).
+     * The chart a send hands over; null on a gift, which has no profile (ADR-139), and null on a pair sent to the other person on the chart they keep, which hands nothing over (ADR-285).
      * @nullable
      */
   profileId: string | null;
@@ -2308,7 +2329,7 @@ export interface Gift {
   remindedAt: string | null;
   /** Waiting until claimed; returned once taken back or unclaimed at returnsAt (ADR-123). */
   state: GiftState;
-  /** True while one of the giver's credits is held for it (ADR-123); false once claimed or returned, or when the soft pass held none (MB-6 provisional). */
+  /** True while one of the giver's credits is held for it (ADR-123); false once claimed or returned, or on a gift sent under the old soft pass, which held none (closed by ADR-275). */
   creditHeld: boolean;
 }
 
@@ -2460,6 +2481,9 @@ export interface CreditCounts {
   lastBundle?: CreditCountsLastBundle;
 }
 
+/**
+ * `granted` is credits Stars Decoded gave, a tester's grant or the yearly plan's credit (ADR-276, ADR-277); `refunded` is credits a refund or a dispute took back (ADR-275).
+ */
 export type CreditHistoryItemKind = typeof CreditHistoryItemKind[keyof typeof CreditHistoryItemKind];
 
 
@@ -2467,37 +2491,189 @@ export const CreditHistoryItemKind = {
   bought: 'bought',
   gift: 'gift',
   spent: 'spent',
+  granted: 'granted',
+  refunded: 'refunded',
 } as const;
 
 /**
- * One line of History, bought, a gift received or spent (ADR-129).
+ * One line of History, bought, a gift received, granted, refunded or spent (ADR-129, ADR-275, ADR-276).
  */
 export interface CreditHistoryItem {
+  /** `granted` is credits Stars Decoded gave, a tester's grant or the yearly plan's credit (ADR-276, ADR-277); `refunded` is credits a refund or a dispute took back (ADR-275). */
   kind: CreditHistoryItemKind;
-  /** Credits the line moves, a positive number; bought and gift add them, spent takes them away. */
+  /** Credits the line moves, a positive number; bought, gift and granted add them, spent and refunded take them away. */
   count: number;
   /** ISO-8601 timestamp of the line */
   date: string;
-  /** What the line reads, "A gift from {giver}" on a gift, the report's name when spent, "Gift to {name}" on the giver's side once claimed. */
+  /** What the line reads, "A gift from {giver}" on a gift, the report's name when spent, "Gift to {name}" on the giver's side once claimed, "From Stars Decoded" on a grant, "With Timeline" on the yearly plan's credit, "Refunded" on a refund (reading 4). */
   label: string;
   /** A test bundle's line, which says so (ADR-138). */
   test: boolean;
 }
 
-export type TestCheckoutBodyCount = typeof TestCheckoutBodyCount[keyof typeof TestCheckoutBodyCount];
+/**
+ * What the catalogue sells, the three bundles and Timeline's two plans; Single is solo here and single only as Stripe's lookup key (ADR-277).
+ */
+export type CatalogueItemId = typeof CatalogueItemId[keyof typeof CatalogueItemId];
 
 
-export const TestCheckoutBodyCount = {
-  NUMBER_1: 1,
-  NUMBER_3: 3,
-  NUMBER_5: 5,
+export const CatalogueItemId = {
+  solo: 'solo',
+  couple: 'couple',
+  family: 'family',
+  timeline_month: 'timeline_month',
+  timeline_year: 'timeline_year',
+} as const;
+
+export type PriceItemKind = typeof PriceItemKind[keyof typeof PriceItemKind];
+
+
+export const PriceItemKind = {
+  bundle: 'bundle',
+  plan: 'plan',
 } as const;
 
 /**
- * A test bundle of 1, 3 or 5 credits (ADR-138).
+ * How often a plan renews; null on a bundle (ADR-277).
+ * @nullable
  */
-export interface TestCheckoutBody {
-  count: TestCheckoutBodyCount;
+export type PriceItemInterval = typeof PriceItemInterval[keyof typeof PriceItemInterval] | null;
+
+
+export const PriceItemInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+/**
+ * The live campaign behind `cents`; null without one (ADR-278).
+ * @nullable
+ */
+export type PriceItemCampaign = {
+  /** The campaign's name, which Stripe's receipt also gives (ADR-278). */
+  name: string;
+  /** Its last day, in Europe/Brussels, printed once as "until {last day}" (reading 5, reading 6). */
+  endsOn: CalendarDay;
+} | null;
+
+/**
+ * One catalogue item at the price the server sets for this request (R-7.1, ADR-277, ADR-278).
+ */
+export interface PriceItem {
+  id: CatalogueItemId;
+  kind: PriceItemKind;
+  /** The catalogue's name, "Couple" or "Timeline" (ADR-277). */
+  name: string;
+  /**
+     * The catalogue's line under a bundle's name, word for word; null on a plan, which has none (ADR-277).
+     * @nullable
+     */
+  line: string | null;
+  /**
+     * The credits a bundle adds; null on a plan (ADR-277).
+     * @nullable
+     */
+  credits: number | null;
+  /**
+     * How often a plan renews; null on a bundle (ADR-277).
+     * @nullable
+     */
+  interval: PriceItemInterval;
+  /** What this request pays, in euro cents; a live campaign's price while one runs (ADR-278). */
+  cents: number;
+  /** The item's price without a campaign, struck through beside a campaign's price; never the Singles total, which the catalogue keeps (ADR-278, reading 6). */
+  fullCents: number;
+  /**
+     * The live campaign behind `cents`; null without one (ADR-278).
+     * @nullable
+     */
+  campaign: PriceItemCampaign;
+}
+
+/**
+ * What /checkout needs before Pay, every price for this request, Stripe's publishable key and whether checkout is ready (ADR-277, ADR-280).
+ */
+export interface CheckoutOptions {
+  /**
+     * Stripe's publishable key for this host, served from Railway so every Stripe key has one home; null without one (ADR-280).
+     * @nullable
+     */
+  publishableKey: string | null;
+  /** False while POST /checkout would answer 503, so the page says checkout isn't ready yet (reading 8, reading 14). */
+  ready: boolean;
+  /** Every catalogue item in its order, the three bundles then Timeline's two plans (ADR-277). */
+  items: PriceItem[];
+}
+
+/**
+ * One item to buy, under our tick, and the step to go back to (ADR-274).
+ */
+export interface CreateCheckoutBody {
+  item: CatalogueItemId;
+  /** The reader ticked the box, CHECKOUT_TICK or PLAN_TICK for a plan; false is 400 `tick_required` (ADR-274). */
+  ticked: boolean;
+  /** The step that asked, where the done page goes back to; one off the list `^/(chart|dashboard(/account)?(\?open=(credits|gift|add|pair))?|report/[0-9a-f-]{36})$` is 400 `bad_return`, so it is never an open redirect (reading 2). */
+  returnTo: string;
+  /** A link-only campaign's slug the tab kept; one that names no live campaign changes no price (ADR-278). */
+  campaign?: string;
+}
+
+/**
+ * The purchase POST /checkout made and the session our /checkout page mounts Stripe's fields on (ADR-274).
+ */
+export interface CheckoutStarted {
+  /** The purchase row, which GET /checkout/{purchaseId} reads (ADR-274). */
+  purchaseId: string;
+  /** The Checkout Session's client secret, which Stripe.js takes to mount the fields (ADR-274). */
+  clientSecret: string;
+  /** What Pay charges, in euro cents, set by the server (R-7.1, ADR-274). */
+  amountCents: number;
+}
+
+/**
+ * `open` waits for the payment or the webhook; `granted` is in the balance, or the plan has started; `failed` and `expired` were never paid; `refunded` was taken back by a refund or a dispute (ADR-275).
+ */
+export type CheckoutStateStatus = typeof CheckoutStateStatus[keyof typeof CheckoutStateStatus];
+
+
+export const CheckoutStateStatus = {
+  open: 'open',
+  granted: 'granted',
+  failed: 'failed',
+  expired: 'expired',
+  refunded: 'refunded',
+} as const;
+
+/**
+ * Where a purchase stands, read by the page that waits for its credit (ADR-274, ADR-275).
+ */
+export interface CheckoutState {
+  /** `open` waits for the payment or the webhook; `granted` is in the balance, or the plan has started; `failed` and `expired` were never paid; `refunded` was taken back by a refund or a dispute (ADR-275). */
+  status: CheckoutStateStatus;
+  item: CatalogueItemId;
+  /** The step that asked, as POST /checkout kept it (reading 2). */
+  returnTo: string;
+  /**
+     * The credits the purchase adds, a bundle's count; null on a plan (ADR-275).
+     * @nullable
+     */
+  credits: number | null;
+}
+
+/**
+ * Where Stripe's Customer Portal sends the reader back (ADR-277).
+ */
+export interface OpenBillingPortalBody {
+  /** A page on the same list as checkout's returnTo, the Account page; one off it is 400 `bad_return` (reading 2). */
+  returnTo: string;
+}
+
+/**
+ * A Customer Portal session to open at once (ADR-277).
+ */
+export interface BillingPortalOpened {
+  /** Stripe's address for the session. */
+  url: string;
 }
 
 /**
@@ -2729,7 +2905,7 @@ export interface AskUsage {
 }
 
 /**
- * Where access comes from, the admin until billing adds a subscription; null without access (ADR-262, MB-197).
+ * Where access comes from, the admin or a live Timeline plan; null without access (ADR-262, ADR-277).
  * @nullable
  */
 export type TimelineAccessSource = typeof TimelineAccessSource[keyof typeof TimelineAccessSource] | null;
@@ -2741,12 +2917,49 @@ export const TimelineAccessSource = {
 } as const;
 
 /**
- * The one access check's answer for the signed-in reader (ADR-262, MB-197).
+ * Monthly or yearly, as the catalogue names the plan (ADR-277).
+ */
+export type TimelinePlanItem = typeof TimelinePlanItem[keyof typeof TimelinePlanItem];
+
+
+export const TimelinePlanItem = {
+  timeline_month: 'timeline_month',
+  timeline_year: 'timeline_year',
+} as const;
+
+/**
+ * The subscription's status as Stripe names it; past_due while Stripe retries a payment that failed (reading 7).
+ */
+export type TimelinePlanStatus = typeof TimelinePlanStatus[keyof typeof TimelinePlanStatus];
+
+
+export const TimelinePlanStatus = {
+  active: 'active',
+  trialing: 'trialing',
+  past_due: 'past_due',
+} as const;
+
+/**
+ * A live Timeline plan, the subscription that gives access while Stripe calls it active, trialing or past due (ADR-277, reading 7).
+ */
+export interface TimelinePlan {
+  /** Monthly or yearly, as the catalogue names the plan (ADR-277). */
+  item: TimelinePlanItem;
+  /** The subscription's status as Stripe names it; past_due while Stripe retries a payment that failed (reading 7). */
+  status: TimelinePlanStatus;
+  /** The day it renews, its period's end as a day in Europe/Brussels; null once it is set to end (reading 7). */
+  renewsOn: CalendarDay | null;
+  /** The day access ends after a cancel at the period's end, as a day in Europe/Brussels; null while it renews (reading 7). */
+  endsOn: CalendarDay | null;
+}
+
+/**
+ * The one access check's answer for the signed-in reader (ADR-262, ADR-277).
  */
 export interface TimelineAccess {
   access: boolean;
   /**
-     * Where access comes from, the admin until billing adds a subscription; null without access (ADR-262, MB-197).
+     * Where access comes from, the admin or a live Timeline plan; null without access (ADR-262, ADR-277).
      * @nullable
      */
   source: TimelineAccessSource;
@@ -2754,6 +2967,73 @@ export interface TimelineAccess {
   hasPersonalReport: boolean;
   /** Ask's use this month with access; null without (ADR-263). */
   ask: AskUsage | null;
+  /** The reader's live Timeline plan; null, or left out, when they have none (ADR-277). */
+  plan?: TimelinePlan | null;
+}
+
+/**
+ * The reader's chart and the planets, done once setup starts; this week, Monday to Sunday; this month, the 30 days from that Monday; the six months, every reading from that Monday to `to`; the life cycles, birth to 90 (ADR-302).
+ */
+export type TimelineSetupStepId = typeof TimelineSetupStepId[keyof typeof TimelineSetupStepId];
+
+
+export const TimelineSetupStepId = {
+  chart: 'chart',
+  planets: 'planets',
+  week: 'week',
+  month: 'month',
+  months: 'months',
+  cycles: 'cycles',
+} as const;
+
+/**
+ * One of setup's six ticks, in order (ADR-302).
+ */
+export interface TimelineSetupStep {
+  /** The reader's chart and the planets, done once setup starts; this week, Monday to Sunday; this month, the 30 days from that Monday; the six months, every reading from that Monday to `to`; the life cycles, birth to 90 (ADR-302). */
+  id: TimelineSetupStepId;
+  /** Every reading of the step has landed, written or failed; a failed one is written when it is opened. */
+  done: boolean;
+  /**
+     * How many readings the step writes, the engine's count; null for the chart and the planets, which write none.
+     * @minimum 0
+     * @nullable
+     */
+  count: number | null;
+}
+
+/**
+ * The next six months, written ahead, to be drawn once (ADR-302).
+ */
+export interface TimelineSetupReplay {
+  /** Their first day, the reader's. */
+  from: CalendarDay;
+  /** Their last day, the reader's. */
+  to: CalendarDay;
+}
+
+export type TimelineSetupState = typeof TimelineSetupState[keyof typeof TimelineSetupState];
+
+
+export const TimelineSetupState = {
+  none: 'none',
+  writing: 'writing',
+  ready: 'ready',
+} as const;
+
+/**
+ * A subscriber's Timeline setup (ADR-302, ADR-362): none before it starts, and again once its six months are over or its chart was replaced; writing while its readings land; ready once all have, and it stays ready while the next six months are written ahead.
+ */
+export interface TimelineSetup {
+  state: TimelineSetupState;
+  /** The first day written ahead, a Monday, the reader's; null before setup starts. */
+  from: CalendarDay | null;
+  /** The last day written ahead, the reader's; null before setup starts. */
+  to: CalendarDay | null;
+  /** The six steps, in order, with the engine's counts. */
+  steps: TimelineSetupStep[];
+  /** The next six months, from the first day after the turn until marked seen; null otherwise. */
+  replay: TimelineSetupReplay | null;
 }
 
 export type AskDayCardKind = typeof AskDayCardKind[keyof typeof AskDayCardKind];
@@ -2970,7 +3250,7 @@ export type RateLimitedResponse = RateLimited;
 export type PausedResponse = Paused;
 
 /**
- * `no_timeline`: the reader does not have Timeline. One access check answers it on every Timeline and Ask route (ADR-262); today its one source is the signed-in admin (MB-197).
+ * `no_timeline`: the reader does not have Timeline. One access check answers it on every Timeline and Ask route (ADR-262); its sources are the signed-in admin and a live Timeline plan (ADR-277).
  */
 export type NoTimelineResponse = NoTimeline;
 
@@ -2978,6 +3258,11 @@ export type NoTimelineResponse = NoTimeline;
  * `no_personal_report`: the reader has no finished Personal report of their own, and Timeline reads that report's chart (ADR-205, ADR-209).
  */
 export type NoPersonalReportResponse = ErrorResponse;
+
+/**
+ * `no_credit`: the reader has no credit to take, so nothing was written or sent, on every host (ADR-275). `message` is the line the page shows, beside Get credits.
+ */
+export type NoCreditResponse = NoCredit;
 
 /**
  * Shared-secret admin key. May also be passed as `?key=`.
@@ -3015,6 +3300,13 @@ export type GetSynastryReportStatusParams = {
 token?: string;
 };
 
+export type GetCheckoutOptionsParams = {
+/**
+ * A link-only campaign's slug, from the `?c=` its link carried and the tab kept; one that names no live campaign changes no price (ADR-278).
+ */
+c?: string;
+};
+
 export type ListInvitesParams = {
 /**
  * Filter invites to those belonging to this profile
@@ -3042,6 +3334,20 @@ tz?: ReaderZoneParameter;
 };
 
 export type GetTimelineLifeParams = {
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
+};
+
+export type GetTimelineSetupParams = {
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
+};
+
+export type StartTimelineSetupParams = {
 /**
  * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
  */

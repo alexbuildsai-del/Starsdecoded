@@ -1,8 +1,9 @@
 /**
  * Timeline's server views. Every date and degree in them is checked against the engine computed here on its own
- * (acceptance 1's server half), a chart without a birth time has no angle, house or Moon contact (acceptance 3), and a
- * quiet week has nothing in it. The reader's own chart is found on a scratch Postgres when WALK_DATABASE_URL names a
- * bootstrapped one, and that test skips, saying why, without it.
+ * (acceptance 1's server half), a chart without a birth time has no angle, house or Moon contact (acceptance 3), a
+ * quiet week has nothing in it, and a key names a sky event only while the app can show it. The reader's own chart is
+ * found on a scratch Postgres when WALK_DATABASE_URL names a bootstrapped one, and that test skips, saying why,
+ * without it.
  */
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -470,6 +471,37 @@ test("every key a view shows names its event again, and a key nothing carries na
   ]) {
     assert.equal(T.eventByKey(reader, key, NOW), null, key);
   }
+});
+
+test("a sky event's key opens only while the app can show it, in whole UTC days from 31 back to 182 ahead, and every Life cycle opens (MB-219)", () => {
+  const reader = readerFrom(MIRA);
+  const dayOf = (at: number) => Math.floor(at / DAY_MS);
+  const noonOf = (day: number) => new Date(day * DAY_MS + DAY_MS / 2);
+  const today = dayOf(ms(NOW));
+  // A real event on her chart a year out: the engine finds it, and no view of today could show it.
+  const yearOut = E.skyEvents(reader.chart, noonOf(today + 365), noonOf(today + 395))
+    .filter(E.readsAs)
+    .find((event) => dayOf(momentsOf(event)[0]) >= today + 365);
+  assert.ok(yearOut, "an event that starts a year out");
+  assert.equal(T.eventByKey(reader, yearOut.key, NOW), null, "a key a year out names no reading");
+  const starts = dayOf(momentsOf(yearOut)[0]);
+  const ends = dayOf(momentsOf(yearOut).at(-1)!);
+  assert.ok(T.eventByKey(reader, yearOut.key, noonOf(starts - 182)), "it opens from the 182nd day before it starts");
+  assert.equal(T.eventByKey(reader, yearOut.key, noonOf(starts - 183)), null, "and not the 183rd");
+  assert.ok(T.eventByKey(reader, yearOut.key, noonOf(ends + 31)), "it still opens 31 days after it ends");
+  assert.equal(T.eventByKey(reader, yearOut.key, noonOf(ends + 32)), null, "and not 32");
+
+  // A contact counts by its whole window: one the six months show opens wherever its key's day falls.
+  const keyDay = (key: string) => dayOf(Date.parse(`${key.slice(-8, -4)}-${key.slice(-4, -2)}-${key.slice(-2)}T00:00:00Z`));
+  const far = T.nowView(reader, "six-months", null, new Map(), NOW).events
+    .filter((e) => e.kind === "contact" && (keyDay(e.key) < today - 31 || keyDay(e.key) > today + 182));
+  assert.ok(far.some((e) => keyDay(e.key) < today - 31) && far.some((e) => keyDay(e.key) > today + 182), far.map((e) => e.key).join(", "));
+  for (const event of far) assert.ok(T.eventByKey(reader, event.key, NOW), event.key);
+
+  // Life shows every cycle from birth to 90, so each opens on any day, the past ones too.
+  const life = T.lifeView(reader, null, new Map(), NOW);
+  assert.ok(life.cycles.some((c) => c.past) && life.cycles.some((c) => !c.past));
+  for (const cycle of life.cycles) assert.ok(T.eventByKey(reader, cycle.key, NOW), cycle.key);
 });
 
 test("the reader is the newest finished Personal report of their own chart that they can read", () => {

@@ -10,8 +10,8 @@ what it says they would pick, and skip any question it already answers,
 saying which rule you followed.
 
 Then read `CLAUDE.md`, `docs/INDEX.md`, `MASTERFILE.md` sections the topic
-touches, and any `docs/specs/draft/` file for the same topic. Check the Notion
-Mailbox for open rows on it.
+touches, and any `docs/specs/draft/` file for the same topic. Check `docs/backlog.md`
+and the Mailbox rows its *Waiting on Alex* list links for this topic.
 
 Outside evidence (a price, a vendor's limit, a standard, what a competitor
 does) goes to the `researcher` agent, on Opus, not into your own searching
@@ -44,6 +44,13 @@ Output exactly one file, `docs/specs/draft/<slug>.md`, at most 200 lines, with:
 scope, out of scope, acceptance criteria, screens (linked to the artifact),
 open questions, and every new decision the session produced listed under
 "Decisions to record".
+
+Write the draft as soon as the artifact is up, then update it after every
+answer the Owner gives, so the file always holds what is decided and what is
+still open. Commit and push it to the session branch each time, so it outlives
+the session even if the Owner never says lock. Long ideations get compacted,
+and the summary drops detail; the file does not. After a compaction, re-read
+the draft and the artifact before you reply.
 
 At the close, once the Owner has answered and the draft is final, add what the
 session taught to `docs/annex/owner-playbook.md` (ADR-195), the one file you

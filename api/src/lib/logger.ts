@@ -150,11 +150,14 @@ const TOKEN_ROUTES = [/^(\/api\/invites\/)[^/]+/i];
 // A segment shaped like a minted token (base64url pieces joined by dots: an invite's nonce and signature, a JWT) is one
 // wherever it stands, so a mistyped or future route cannot log it either.
 const TOKEN_SEGMENT = /(?<=\/)[\w-]{16,}(?:\.[\w-]{16,})+(?=\/|$)/g;
+// A Clerk id names its account (security scope 6), and the Sales page's tester routes carry one in the path, so a
+// segment shaped like one is named by its parameter wherever it stands, as a token is.
+const CLERK_SEGMENT = /(?<=\/)user_\w+(?=\/|$)/g;
 
 export function logPath(url: string | undefined): string | undefined {
   if (url === undefined) return undefined;
   const path = TOKEN_ROUTES.reduce((p, route) => p.replace(route, "$1:token"), url.split(/[?#]/, 1)[0]);
-  return path.replace(TOKEN_SEGMENT, ":token");
+  return path.replace(TOKEN_SEGMENT, ":token").replace(CLERK_SEGMENT, ":userId");
 }
 
 /**

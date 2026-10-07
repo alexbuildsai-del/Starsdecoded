@@ -77,7 +77,7 @@ describe("the finder's answer is the engine's, from midday on the birth date", (
         expect(cycle.today, what).toBe(TODAY);
         const same = engine.filter((c) => c.id === truth.id);
         expect(cycle.ages, what).toEqual(same.map((c) => c.age));
-        const before = same[same.indexOf(truth) - 1];
+        const before = same.slice(0, same.indexOf(truth)).filter((c) => utcDay(c.window.exact[0] ?? c.window.start) < TODAY).pop();
         expect(cycle.last, what).toEqual(before ? { on: utcDay(before.window.exact[0] ?? before.window.start), age: before.age } : null);
         const body = KNOWN_AGES.find((age) => age.id === truth.id)!.body;
         expect(Math.abs(cycle.progress! - roundProgress(body, natal[body]!, NOW)), what).toBeLessThanOrEqual(0.0005);

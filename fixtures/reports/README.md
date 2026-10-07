@@ -25,13 +25,8 @@ render something immediately. It goes stale: `--render` prints its
 
 ## Getting the current set
 
-Every Report lab workflow run replaces the `report-lab/<label>` branch with all
-five fixtures. Pull them in:
+The Report lab workflow is gone (B-30). **Run the fixtures** on the admin Lab
+page writes the five charts and their pair on staging, and each run shows in the
+Lab page's list; `--render` and `--compare` read stored runs for free.
 
-```sh
-git fetch origin report-lab/staging
-git checkout origin/report-lab/staging -- fixtures/reports/
-```
 
-They land beside the committed reference, and `--render` with no argument picks
-whichever was generated most recently. Those files are not committed to `main`.

@@ -22,11 +22,16 @@ import type {
 import type {
   AskCap,
   AskThread,
+  BillingPortalOpened,
   BirthTimeUpdateResponse,
   ChangeAddressBody,
+  CheckoutOptions,
+  CheckoutStarted,
+  CheckoutState,
   CompatibilityCreateResponse,
   CompatibilitySummary,
   ConfirmWaitlistBody,
+  CreateCheckoutBody,
   CreateCompatibilityBody,
   CreateGiftBody,
   CreateInviteBody,
@@ -41,11 +46,13 @@ import type {
   GeocodePlaceParams,
   GeocodeSearchResponse,
   GetAskThreadParams,
+  GetCheckoutOptionsParams,
   GetHomeParams,
   GetSynastryReportParams,
   GetSynastryReportStatusParams,
   GetTimelineLifeParams,
   GetTimelineNowParams,
+  GetTimelineSetupParams,
   Gift,
   GiftCreated,
   HandBackResponse,
@@ -59,8 +66,10 @@ import type {
   InviteSummary,
   JoinWaitlistBody,
   ListInvitesParams,
+  NoCreditResponse,
   NoPersonalReportResponse,
   NoTimelineResponse,
+  OpenBillingPortalBody,
   OpenedReading,
   PairSendResult,
   PausedResponse,
@@ -80,13 +89,14 @@ import type {
   ShareBackBody,
   ShareCreated,
   SignInRequiredResponse,
+  StartTimelineSetupParams,
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
-  TestCheckoutBody,
   TimelineAccess,
   TimelineLife,
   TimelineNow,
+  TimelineSetup,
   UpdateBirthTimeBody,
   UpdateProfileBody,
   WaitlistConfirmed,
@@ -550,7 +560,7 @@ export const getCreateReportUrl = () => {
 }
 
 /**
- * Accepts birth data, computes the natal chart, and starts AI interpretation
+ * Accepts birth data, computes the natal chart, and starts AI interpretation; a credit is taken before anything is written, and with none it answers 402 (ADR-275).
  * @summary Create a new natal chart report
  */
 export const createReport = async (createReportBody: CreateReportBody, options?: Parameters<typeof customFetch>[1]): Promise<ReportSummary> => {
@@ -584,7 +594,7 @@ return customFetch<ReportSummary>(getCreateReportUrl(),
 
 export const getCreateReportMutationKey = () => ['createReport'] as const;
 
-export const getCreateReportMutationOptions = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
+export const getCreateReportMutationOptions = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | NoCreditResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,CreateReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,CreateReportMutationVariables, TContext> => {
 
@@ -613,13 +623,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateReportMutationResult = NonNullable<Awaited<ReturnType<typeof createReport>>>
     export type CreateReportMutationBody = BodyType<CreateReportBody>
-    export type CreateReportMutationError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>
+    export type CreateReportMutationError = ErrorType<ErrorResponse | SignInRequiredResponse | NoCreditResponse | RateLimitedResponse | PausedResponse>
     export type CreateReportMutationVariables = {data: BodyType<CreateReportBody>}
 
     /**
  * @summary Create a new natal chart report
  */
-export const useCreateReport = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
+export const useCreateReport = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | NoCreditResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,CreateReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createReport>>,
@@ -960,7 +970,7 @@ export const getRegenerateReportUrl = (id: string,) => {
 }
 
 /**
- * Re-runs interpretation on the stored chart, free, for whoever may rewrite the report, as `canRegenerate` says (MB-169), and only where a rewrite is wanted: a failed report (Try again, MB-137), an outdated one (MB-170), or one written on an earlier prompt version. Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
+ * Re-runs interpretation on the stored chart, free, for whoever may rewrite the report, as `canRegenerate` says (MB-169), and only where a rewrite is wanted: a failed report (Try again), an outdated one (MB-170), or one written on an earlier prompt version. Try again takes no credit: a failed report keeps the one it took, and after its third failure that credit is back in the balance and the report is final, with no Try again (ADR-313). Its 429 is the writing limit, or a second regenerate of the same report within a minute, which sends Retry-After but no `retryAfterSeconds` in its body.
  * @summary Regenerate a report's interpretation
  */
 export const regenerateReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<RegenerateReport202> => {
@@ -1619,7 +1629,7 @@ export const getCreateCompatibilityReportUrl = () => {
 }
 
 /**
- * Both reports must be complete and visible to the viewer. Reads their stored interpretations and cached charts; no birth data is read and nothing is regenerated (ADR-39). The report streams through GET /reports/{id} and /reports/{id}/status like a natal report.
+ * Both reports must be complete and visible to the viewer. Reads their stored interpretations and cached charts; no birth data is read and nothing is regenerated (ADR-39). The report streams through GET /reports/{id} and /reports/{id}/status like a natal report. A credit is taken before anything is written, and with none it answers 402 (ADR-275).
  * @summary Write a compatibility report from two finished natal reports
  */
 export const createCompatibilityReport = async (createCompatibilityBody: CreateCompatibilityBody, options?: Parameters<typeof customFetch>[1]): Promise<CompatibilityCreateResponse> => {
@@ -1653,7 +1663,7 @@ return customFetch<CompatibilityCreateResponse>(getCreateCompatibilityReportUrl(
 
 export const getCreateCompatibilityReportMutationKey = () => ['createCompatibilityReport'] as const;
 
-export const getCreateCompatibilityReportMutationOptions = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
+export const getCreateCompatibilityReportMutationOptions = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | NoCreditResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext> => {
 
@@ -1682,13 +1692,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateCompatibilityReportMutationResult = NonNullable<Awaited<ReturnType<typeof createCompatibilityReport>>>
     export type CreateCompatibilityReportMutationBody = BodyType<CreateCompatibilityBody>
-    export type CreateCompatibilityReportMutationError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>
+    export type CreateCompatibilityReportMutationError = ErrorType<ErrorResponse | SignInRequiredResponse | NoCreditResponse | RateLimitedResponse | PausedResponse>
     export type CreateCompatibilityReportMutationVariables = {data: BodyType<CreateCompatibilityBody>}
 
     /**
  * @summary Write a compatibility report from two finished natal reports
  */
-export const useCreateCompatibilityReport = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | RateLimitedResponse | PausedResponse>,
+export const useCreateCompatibilityReport = <TError = ErrorType<ErrorResponse | SignInRequiredResponse | NoCreditResponse | RateLimitedResponse | PausedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompatibilityReport>>, TError,CreateCompatibilityReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createCompatibilityReport>>,
@@ -1785,7 +1795,7 @@ export const getSendCompatibilityUrl = (id: string,) => {
 }
 
 /**
- * Only one of the pair's two sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236).
+ * Only the maker, one of the pair's two, sends it, and the send is their consent (ADR-133, ADR-139): someone already on Stars Decoded reads it at once, anyone else is invited at `email` (MB-82, ADR-236). The other person may hold their own chart, shared with the maker; the link goes to the address the maker typed, and its claim hands that chart over to no one (ADR-285).
  * @summary Send a compatibility report to the other of its two people
  */
 export const sendCompatibility = async (id: string,
@@ -2537,7 +2547,7 @@ export const getGetCreditHistoryUrl = () => {
 }
 
 /**
- * History's lines, bought, a gift received and spent (ADR-129); a test bundle's line says so (ADR-138). Empty for anonymous users.
+ * History's lines, bought, a gift received, granted, refunded and spent (ADR-129, ADR-275, ADR-276); a test bundle's line says so (ADR-138). Empty for anonymous users.
  * @summary What the viewer's credits did, newest first
  */
 export const getCreditHistory = async ( options?: Parameters<typeof customFetch>[1]): Promise<CreditHistoryItem[]> => {
@@ -2606,19 +2616,104 @@ export function useGetCreditHistory<TData = Awaited<ReturnType<typeof getCreditH
 
 
 
-export const getTestCheckoutUrl = () => {
+export const getGetCheckoutOptionsUrl = (params?: GetCheckoutOptionsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/checkout/test`
+  return stringifiedParams.length > 0 ? `/api/checkout/options?${stringifiedParams}` : `/api/checkout/options`
 }
 
 /**
- * Get credits off production, 1, 3 or 5 credits free for any signed-in user, marked as test credits (ADR-138). MB-6 provisional until checkout.
- * @summary Add a free test bundle of credits
+ * Every catalogue item at the price the server sets for this request, a live campaign's included, with Stripe's publishable key and whether checkout is ready; answers anyone and writes nothing (ADR-277, ADR-278, ADR-280).
+ * @summary What each item costs on this request, and whether checkout is ready
  */
-export const testCheckout = async (testCheckoutBody: TestCheckoutBody, options?: Parameters<typeof customFetch>[1]): Promise<CreditCounts> => {
+export const getCheckoutOptions = async (params?: GetCheckoutOptionsParams, options?: Parameters<typeof customFetch>[1]): Promise<CheckoutOptions> => {
+
+  return customFetch<CheckoutOptions>(getGetCheckoutOptionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCheckoutOptionsQueryKey = (params?: GetCheckoutOptionsParams,) => {
+    return [
+    `/api/checkout/options`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetCheckoutOptionsQueryOptions = <TData = Awaited<ReturnType<typeof getCheckoutOptions>>, TError = ErrorType<unknown>>(params?: GetCheckoutOptionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCheckoutOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCheckoutOptionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCheckoutOptions>>> = ({ signal }) => getCheckoutOptions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCheckoutOptions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCheckoutOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getCheckoutOptions>>>
+export type GetCheckoutOptionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary What each item costs on this request, and whether checkout is ready
+ */
+
+export function useGetCheckoutOptions<TData = Awaited<ReturnType<typeof getCheckoutOptions>>, TError = ErrorType<unknown>>(
+ params?: GetCheckoutOptionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCheckoutOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCheckoutOptionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCheckoutUrl = () => {
+
+
+
+
+  return `/api/checkout`
+}
+
+/**
+ * Makes the purchase row with the tick's hash and time and a Checkout Session in Stripe's `elements` mode at the server's price, for the signed-in account's own Stripe Customer; nothing is granted here, only the webhook grants (ADR-274, ADR-275).
+ * @summary Start a Checkout Session for one item under our tick
+ */
+export const createCheckout = async (createCheckoutBody: CreateCheckoutBody, options?: Parameters<typeof customFetch>[1]): Promise<CheckoutStarted> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -2634,12 +2729,12 @@ export const testCheckout = async (testCheckoutBody: TestCheckoutBody, options?:
     }
     return headers;
   };
-return customFetch<CreditCounts>(getTestCheckoutUrl(),
+return customFetch<CheckoutStarted>(getCreateCheckoutUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(testCheckoutBody)
+    body: JSON.stringify(createCheckoutBody)
   }
 );}
 
@@ -2647,13 +2742,13 @@ return customFetch<CreditCounts>(getTestCheckoutUrl(),
 
 
 
-export const getTestCheckoutMutationKey = () => ['testCheckout'] as const;
+export const getCreateCheckoutMutationKey = () => ['createCheckout'] as const;
 
-export const getTestCheckoutMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext> => {
+export const getCreateCheckoutMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,CreateCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,CreateCheckoutMutationVariables, TContext> => {
 
-const mutationKey = getTestCheckoutMutationKey();
+const mutationKey = getCreateCheckoutMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2663,10 +2758,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testCheckout>>, TestCheckoutMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCheckout>>, CreateCheckoutMutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  testCheckout(data,requestOptions)
+          return  createCheckout(data,requestOptions)
         }
 
 
@@ -2676,23 +2771,190 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type TestCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof testCheckout>>>
-    export type TestCheckoutMutationBody = BodyType<TestCheckoutBody>
-    export type TestCheckoutMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
-    export type TestCheckoutMutationVariables = {data: BodyType<TestCheckoutBody>}
+    export type CreateCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createCheckout>>>
+    export type CreateCheckoutMutationBody = BodyType<CreateCheckoutBody>
+    export type CreateCheckoutMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
+    export type CreateCheckoutMutationVariables = {data: BodyType<CreateCheckoutBody>}
 
     /**
- * @summary Add a free test bundle of credits
+ * @summary Start a Checkout Session for one item under our tick
  */
-export const useTestCheckout = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testCheckout>>, TError,TestCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useCreateCheckout = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,CreateCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof testCheckout>>,
+        Awaited<ReturnType<typeof createCheckout>>,
         TError,
-        TestCheckoutMutationVariables,
+        CreateCheckoutMutationVariables,
         TContext
       > => {
-      return useMutation(getTestCheckoutMutationOptions(options));
+      return useMutation(getCreateCheckoutMutationOptions(options));
+    }
+
+export const getGetCheckoutUrl = (purchaseId: string,) => {
+
+
+
+
+  return `/api/checkout/${purchaseId}`
+}
+
+/**
+ * The purchase's state, item and return, read by the done page until the webhook grants it; only its buyer reads it (ADR-274, ADR-275).
+ * @summary Where a purchase stands, for the page that waits for its credit
+ */
+export const getCheckout = async (purchaseId: string, options?: Parameters<typeof customFetch>[1]): Promise<CheckoutState> => {
+
+  return customFetch<CheckoutState>(getGetCheckoutUrl(purchaseId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCheckoutQueryKey = (purchaseId: string,) => {
+    return [
+    `/api/checkout/${purchaseId}`
+    ] as const;
+    }
+
+
+export const getGetCheckoutQueryOptions = <TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ErrorResponse>>(purchaseId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCheckoutQueryKey(purchaseId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCheckout>>> = ({ signal }) => getCheckout(purchaseId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: purchaseId !== null && purchaseId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCheckoutQueryResult = NonNullable<Awaited<ReturnType<typeof getCheckout>>>
+export type GetCheckoutQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Where a purchase stands, for the page that waits for its credit
+ */
+
+export function useGetCheckout<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ErrorResponse>>(
+ purchaseId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCheckoutQueryOptions(purchaseId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getOpenBillingPortalUrl = () => {
+
+
+
+
+  return `/api/billing/portal`
+}
+
+/**
+ * A Customer Portal session for the signed-in account's Stripe Customer, behind Manage payment and Cancel Timeline on the Account page (ADR-277).
+ * @summary Open Stripe's Customer Portal to manage or cancel Timeline
+ */
+export const openBillingPortal = async (openBillingPortalBody: OpenBillingPortalBody, options?: Parameters<typeof customFetch>[1]): Promise<BillingPortalOpened> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<BillingPortalOpened>(getOpenBillingPortalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(openBillingPortalBody)
+  }
+);}
+
+
+
+
+
+export const getOpenBillingPortalMutationKey = () => ['openBillingPortal'] as const;
+
+export const getOpenBillingPortalMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openBillingPortal>>, TError,OpenBillingPortalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openBillingPortal>>, TError,OpenBillingPortalMutationVariables, TContext> => {
+
+const mutationKey = getOpenBillingPortalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openBillingPortal>>, OpenBillingPortalMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  openBillingPortal(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenBillingPortalMutationResult = NonNullable<Awaited<ReturnType<typeof openBillingPortal>>>
+    export type OpenBillingPortalMutationBody = BodyType<OpenBillingPortalBody>
+    export type OpenBillingPortalMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
+    export type OpenBillingPortalMutationVariables = {data: BodyType<OpenBillingPortalBody>}
+
+    /**
+ * @summary Open Stripe's Customer Portal to manage or cancel Timeline
+ */
+export const useOpenBillingPortal = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openBillingPortal>>, TError,OpenBillingPortalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof openBillingPortal>>,
+        TError,
+        OpenBillingPortalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getOpenBillingPortalMutationOptions(options));
     }
 
 export const getListInvitesUrl = (params: ListInvitesParams,) => {
@@ -2965,7 +3227,7 @@ export const getClaimInviteUrl = (token: string,) => {
 }
 
 /**
- * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A pair sent to the other person on the chart they keep hands nothing over: it makes their side a participant and answers `profileId: null` (ADR-285). A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
  * @summary Claim an invite as the signed-in user
  */
 export const claimInvite = async (token: string, options?: Parameters<typeof customFetch>[1]): Promise<InviteClaimResponse> => {
@@ -3208,7 +3470,7 @@ export const getCreateGiftUrl = () => {
 }
 
 /**
- * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139).
+ * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275).
  * @summary Gift a report
  */
 export const createGift = async (createGiftBody: CreateGiftBody, options?: Parameters<typeof customFetch>[1]): Promise<GiftCreated> => {
@@ -3242,7 +3504,7 @@ return customFetch<GiftCreated>(getCreateGiftUrl(),
 
 export const getCreateGiftMutationKey = () => ['createGift'] as const;
 
-export const getCreateGiftMutationOptions = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+export const getCreateGiftMutationOptions = <TError = ErrorType<ErrorResponse | NoCreditResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext> => {
 
@@ -3271,13 +3533,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateGiftMutationResult = NonNullable<Awaited<ReturnType<typeof createGift>>>
     export type CreateGiftMutationBody = BodyType<CreateGiftBody>
-    export type CreateGiftMutationError = ErrorType<ErrorResponse | RateLimitedResponse>
+    export type CreateGiftMutationError = ErrorType<ErrorResponse | NoCreditResponse | RateLimitedResponse>
     export type CreateGiftMutationVariables = {data: BodyType<CreateGiftBody>}
 
     /**
  * @summary Gift a report
  */
-export const useCreateGift = <TError = ErrorType<ErrorResponse | RateLimitedResponse>,
+export const useCreateGift = <TError = ErrorType<ErrorResponse | NoCreditResponse | RateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGift>>, TError,CreateGiftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createGift>>,
@@ -3953,7 +4215,7 @@ export const getGetTimelineAccessUrl = () => {
 }
 
 /**
- * The one access check's answer (ADR-262), for every signed-in reader: today its one source is the signed-in admin, until billing adds an active subscription (MB-197). It says too whether the reader has a finished Personal report of their own, and with access Ask's use this month (ADR-263).
+ * The one access check's answer (ADR-262), for every signed-in reader: its sources are the signed-in admin and a live Timeline plan (ADR-277), whose item and dates `plan` carries. It says too whether the reader has a finished Personal report of their own, and with access Ask's use this month (ADR-263).
  * @summary Whether the signed-in reader has Timeline (ADR-262)
  */
 export const getTimelineAccess = async ( options?: Parameters<typeof customFetch>[1]): Promise<TimelineAccess> => {
@@ -4038,7 +4300,7 @@ export const getGetTimelineNowUrl = (params: GetTimelineNowParams,) => {
 }
 
 /**
- * A week, a month or six months from today in the reader's days (ADR-207): the natal points and angles the dial draws, each day's tones, every event in the range with its whole window and plain words, and what starts, peaks or eases next. Every date and degree is the engine's. The six-month range queues the readings of contacts entering it, at most three a call (ADR-210).
+ * A week, a month or six months from today in the reader's days (ADR-207): the natal points and angles the dial draws, each day's tones, every event in the range with its whole window and plain words, and what starts, peaks or eases next. Every date and degree is the engine's. It queues nothing: a subscriber's readings are written at setup (ADR-302, ADR-362).
  * @summary Now and ahead, the sky on the reader's own chart from today (ADR-207)
  */
 export const getTimelineNow = async (params: GetTimelineNowParams, options?: Parameters<typeof customFetch>[1]): Promise<TimelineNow> => {
@@ -4265,6 +4527,248 @@ export const useOpenTimelineReading = <TError = ErrorType<NoTimelineResponse | E
         TContext
       > => {
       return useMutation(getOpenTimelineReadingMutationOptions(options));
+    }
+
+export const getGetTimelineSetupUrl = (params?: GetTimelineSetupParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/timeline/setup?${stringifiedParams}` : `/api/timeline/setup`
+}
+
+/**
+ * Setup writes every reading of the six months from the Monday of the reader's week, and every life cycle, from the engine's own list for their chart (ADR-302). It starts when the subscriber's payment clears, or when their own Personal report finishes if that comes later (ADR-362). Its six steps tick as their readings land. `replay` is the next six months, written a week before the last ones end, from the first day after that turn until the reader has seen them drawn.
+ * @summary Where the reader's Timeline setup stands (ADR-302, ADR-362)
+ */
+export const getTimelineSetup = async (params?: GetTimelineSetupParams, options?: Parameters<typeof customFetch>[1]): Promise<TimelineSetup> => {
+
+  return customFetch<TimelineSetup>(getGetTimelineSetupUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTimelineSetupQueryKey = (params?: GetTimelineSetupParams,) => {
+    return [
+    `/api/timeline/setup`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetTimelineSetupQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineSetup>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>>(params?: GetTimelineSetupParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTimelineSetupQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTimelineSetup>>> = ({ signal }) => getTimelineSetup(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTimelineSetupQueryResult = NonNullable<Awaited<ReturnType<typeof getTimelineSetup>>>
+export type GetTimelineSetupQueryError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>
+
+
+/**
+ * @summary Where the reader's Timeline setup stands (ADR-302, ADR-362)
+ */
+
+export function useGetTimelineSetup<TData = Awaited<ReturnType<typeof getTimelineSetup>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>>(
+ params?: GetTimelineSetupParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTimelineSetupQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStartTimelineSetupUrl = (params?: StartTimelineSetupParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/timeline/setup?${stringifiedParams}` : `/api/timeline/setup`
+}
+
+/**
+ * A catch-up only: payment clearing starts setup on its own (ADR-362). Safe to send again: a setup that has started is answered as it stands, and nothing is queued twice. Every reading it queues comes from the engine's list for the reader's chart, never from the request.
+ * @summary Start the reader's Timeline setup if it has not started (ADR-362)
+ */
+export const startTimelineSetup = async (params?: StartTimelineSetupParams, options?: Parameters<typeof customFetch>[1]): Promise<TimelineSetup> => {
+
+  return customFetch<TimelineSetup>(getStartTimelineSetupUrl(params),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getStartTimelineSetupMutationKey = () => ['startTimelineSetup'] as const;
+
+export const getStartTimelineSetupMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext> => {
+
+const mutationKey = getStartTimelineSetupMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startTimelineSetup>>, StartTimelineSetupMutationVariables> = (props) => {
+          const {params} = props ?? {};
+
+          return  startTimelineSetup(params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartTimelineSetupMutationResult = NonNullable<Awaited<ReturnType<typeof startTimelineSetup>>>
+
+    export type StartTimelineSetupMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>
+    export type StartTimelineSetupMutationVariables = {params?: StartTimelineSetupParams}
+
+    /**
+ * @summary Start the reader's Timeline setup if it has not started (ADR-362)
+ */
+export const useStartTimelineSetup = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startTimelineSetup>>,
+        TError,
+        StartTimelineSetupMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartTimelineSetupMutationOptions(options));
+    }
+
+export const getMarkTimelineReplaySeenUrl = () => {
+
+
+
+
+  return `/api/timeline/setup/replay-seen`
+}
+
+/**
+ * Marks the setup's `replay` seen, so the drawing plays once. Safe to send again.
+ * @summary The reader has seen their next six months drawn (ADR-302)
+ */
+export const markTimelineReplaySeen = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getMarkTimelineReplaySeenUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkTimelineReplaySeenMutationKey = () => ['markTimelineReplaySeen'] as const;
+
+export const getMarkTimelineReplaySeenMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext> => {
+
+const mutationKey = getMarkTimelineReplaySeenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markTimelineReplaySeen>>, void> = () => {
+
+
+          return  markTimelineReplaySeen(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkTimelineReplaySeenMutationResult = NonNullable<Awaited<ReturnType<typeof markTimelineReplaySeen>>>
+
+    export type MarkTimelineReplaySeenMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>
+
+
+    /**
+ * @summary The reader has seen their next six months drawn (ADR-302)
+ */
+export const useMarkTimelineReplaySeen = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse | RateLimitedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markTimelineReplaySeen>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMarkTimelineReplaySeenMutationOptions(options));
     }
 
 export const getGetAskThreadUrl = (params?: GetAskThreadParams,) => {

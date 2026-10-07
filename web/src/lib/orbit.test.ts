@@ -35,7 +35,7 @@ const homePair = (a: string, b: string, over: Partial<CirclePair> = {}): CircleP
   a: { profileId: a }, b: { profileId: b }, status: "complete", stoppedBy: null, ...over,
 });
 const YOU = { profileId: "me" };
-const circle = (over: Partial<CircleInput> = {}) => circlePoints({ you: null, people: [], pairs: [], gifts: [], credits: 2, enforced: true, ...over });
+const circle = (over: Partial<CircleInput> = {}) => circlePoints({ you: null, people: [], pairs: [], gifts: [], credits: 2, ...over });
 
 describe("who is on the circle", () => {
   it("starts empty with four ghost seats and no add point, since the circle starts with the reader's own report", () => {
@@ -154,12 +154,12 @@ describe("who is on the circle", () => {
     expect(ids(circle({ gifts: [gift("g1", "Pierre", "claimed")] }))).toEqual(["ghost:0", "ghost:1", "ghost:2", "ghost:3"]);
   });
 
-  it("reads GET CREDITS at zero where credits are enforced, and ADD SOMEONE on production's soft pass", () => {
+  it("reads GET CREDITS at zero on every host, and ADD SOMEONE once there is a credit to spend (ADR-275)", () => {
     const counts: CreditCounts = { available: 0, used: 3 };
     const add = (over: Partial<CircleInput>) => circle({ you: YOU, ...over }).find((p) => p.kind === "add");
     expect(add({ credits: 0 })).toMatchObject({ name: "Get credits", initials: "+", label: "GET CREDITS" });
     expect(add({ credits: counts })?.label).toBe("GET CREDITS");
-    expect(add({ credits: 0, enforced: false })?.label).toBe("ADD SOMEONE");
+    expect(add({ credits: -1 })?.label).toBe("GET CREDITS");
     expect(add({ credits: { ...counts, available: 1 } })?.label).toBe("ADD SOMEONE");
   });
 
@@ -190,7 +190,7 @@ const pair = (id: string, a: string, b: string, over: Partial<OrbitReport> = {})
   participants: [{ id: a, name: a }, { id: b, name: b }], createdAt: AT, access: "owner", ...over,
 });
 
-const orbit = (over: Partial<OrbitInput> = {}) => orbitPoints({ profiles: [], reports: [], gifts: [], credits: 2, enforced: true, ...over });
+const orbit = (over: Partial<OrbitInput> = {}) => orbitPoints({ profiles: [], reports: [], gifts: [], credits: 2, ...over });
 
 // The reader with their own chart written: the centre, never a point.
 const ME = profile("me", "Alex Moreau", { isSelf: true });
@@ -279,7 +279,6 @@ describe("the sample orbit, from a profile list and its reports", () => {
       profiles: [profile("mira", "Mira Sample", { isSelf: true }), profile("tomas", "Tomas Sample"), profile("noor", "Noor Sample")],
       reports: [natal("n-tomas", "tomas"), natal("n-noor", "noor"), pair("c1", "mira", "tomas")],
       credits: 0,
-      enforced: false,
     });
     expect(persons(sample).map((p) => [p.id, p.sharedPair])).toEqual([["tomas", true], ["noor", false]]);
   });

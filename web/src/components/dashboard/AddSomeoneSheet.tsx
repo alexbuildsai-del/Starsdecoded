@@ -2,14 +2,15 @@
  * Add someone (ADR-122): "Who is it for?" with the credit named, and exactly
  * three choices. Each choice is a callback, because the birth form, the gift
  * flow and the picker live elsewhere and the sheets never import one another;
- * the page closes this sheet and opens the next thing.
+ * the page closes this sheet and opens the next thing. With no credit it asks
+ * for one first, and its checkout comes back here (reading 2).
  */
-import { useEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Mail, Plus } from "lucide-react";
 import { useGetCredits } from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { creditsEnforced } from "@/lib/credits-view";
 import { cn } from "@/lib/utils";
 
 export interface AddSomeoneSheetProps {
@@ -21,10 +22,8 @@ export interface AddSomeoneSheetProps {
   onGift: () => void;
   /** Two people together: the picker. */
   onTwoPeople: () => void;
-  /** Opened with no credits where credits are enforced, the sheet closes and calls this instead. */
+  /** Get credits, when the sheet is open with none: a checkout that comes back to this sheet. */
   onGetCredits: () => void;
-  /** `creditsEnforced()` when left out. */
-  enforced?: boolean;
 }
 
 /** What a choice draws on; with no balance there is nothing to name. */
@@ -91,33 +90,13 @@ function PairMark() {
   );
 }
 
-export function AddSomeoneSheet({
-  open,
-  onClose,
-  onSomeoneYouKnow,
-  onGift,
-  onTwoPeople,
-  onGetCredits,
-  enforced,
-}: AddSomeoneSheetProps) {
+export function AddSomeoneSheet({ open, onClose, onSomeoneYouKnow, onGift, onTwoPeople, onGetCredits }: AddSomeoneSheetProps) {
   const phone = useIsMobile();
   const credits = useGetCredits();
   const available = credits.data?.available;
-  // A balance still loading is not zero: the choices show rather than a wrong hand-over.
-  const atZero = (enforced ?? creditsEnforced()) && available === 0;
-
-  const latest = useRef({ onClose, onGetCredits });
-  useEffect(() => {
-    latest.current = { onClose, onGetCredits };
-  });
-  useEffect(() => {
-    if (!open || !atZero) return;
-    // MB-6 provisional: at zero where credits are enforced (ADR-138), Add someone
-    // is the credits sheet, whose Get credits is the test checkout until real
-    // checkout exists; production's soft pass never reaches this.
-    latest.current.onClose();
-    latest.current.onGetCredits();
-  }, [open, atZero]);
+  // A balance still loading is not zero. At zero (ADR-275) the sheet asks for a credit rather than leaving by itself,
+  // since a checkout still being confirmed may have just brought the reader back here.
+  const atZero = available !== undefined && available <= 0;
 
   const line = creditLine(available);
   const choose = (next: () => void) => () => {
@@ -126,7 +105,7 @@ export function AddSomeoneSheet({
   };
 
   return (
-    <Sheet open={open && !atZero} onOpenChange={(next) => !next && onClose()}>
+    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent
         side={phone ? "bottom" : "right"}
         className={cn(
@@ -139,33 +118,42 @@ export function AddSomeoneSheet({
             {line ? `Add someone · ${line}` : "Add someone"}
           </SheetDescription>
           <SheetTitle className="font-display text-2xl font-normal leading-[1.1] tracking-[-0.02em]">
-            Who is it for?
+            {atZero ? "No credits left" : "Who is it for?"}
           </SheetTitle>
         </SheetHeader>
-        <div className="grid gap-2.5">
-          <Choice
-            tone="indigo"
-            icon={<Plus className="h-4 w-4" />}
-            title="Someone you know"
-            detail="You enter their birth details. Share the report with them when it's written."
-            onSelect={choose(onSomeoneYouKnow)}
-          />
-          {/* ADR-139: a gift is a credit, and what its recipient writes reaches the giver only if they share it. */}
-          <Choice
-            tone="gift"
-            icon={<Mail className="h-4 w-4" />}
-            title="Gift a report"
-            detail="We email them a credit with your note. What they write is theirs."
-            onSelect={choose(onGift)}
-          />
-          <Choice
-            tone="pair"
-            icon={<PairMark />}
-            title="Two people together"
-            detail="A Compatibility report on how two people get along."
-            onSelect={choose(onTwoPeople)}
-          />
-        </div>
+        {atZero ? (
+          <>
+            <p className="text-sm leading-[1.5] text-muted-foreground">Adding someone uses one credit.</p>
+            <Button size="lg" className="min-h-10 w-full font-label text-[13.5px]" onClick={choose(onGetCredits)}>
+              Get credits
+            </Button>
+          </>
+        ) : (
+          <div className="grid gap-2.5">
+            <Choice
+              tone="indigo"
+              icon={<Plus className="h-4 w-4" />}
+              title="Someone you know"
+              detail="You enter their birth details. Share the report with them when it's written."
+              onSelect={choose(onSomeoneYouKnow)}
+            />
+            {/* ADR-139: a gift is a credit, and what its recipient writes reaches the giver only if they share it. */}
+            <Choice
+              tone="gift"
+              icon={<Mail className="h-4 w-4" />}
+              title="Gift a report"
+              detail="We email them a credit with your note. What they write is theirs."
+              onSelect={choose(onGift)}
+            />
+            <Choice
+              tone="pair"
+              icon={<PairMark />}
+              title="Two people together"
+              detail="A Compatibility report on how two people get along."
+              onSelect={choose(onTwoPeople)}
+            />
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

@@ -27,10 +27,10 @@ names it or you are tracing a bug in its area.
 Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller
 outside your files is named in your report, never left on the old shape (lessons, promoted R14).
 
-Commit on the round branch with a message that says what changed and why,
-one commit per card unless the card says otherwise. Commit with a pathspec
-naming only your card's files (`git commit -- <paths>`); files another builder
-staged are not yours (lessons, promoted early R15).
+Commit on the round branch with a message that says what changed and why, one commit per card unless the card says
+otherwise. Commit with a pathspec naming only your card's files (`git commit -- <paths>`); files another builder staged
+are not yours (lessons, promoted early R15). Never pkill or killall a shared process (vite, node, vitest): stop only the
+PID you started (lessons, promoted early R18).
 
 Stop and report to the orchestrator instead of guessing when:
 - the card needs a file it does not list, a new dependency, a schema change,
@@ -45,6 +45,6 @@ you tried. The orchestrator re-dispatches a Sonnet or Haiku card once on Opus
 with it (ADR-188); do not make a third attempt yourself.
 
 Code rules (MASTERFILE §13.2): comments say why, never what; no banner
-comments, no commented-out code, no TODO without an `MB-NN` ref; a change built
+comments, no commented-out code, no TODO without an `MB-NN` or `B-NN` ref; a change built
 on an open Mailbox topic carries `// MB-NN provisional` at the seam. Never
-introduce a new use of the name "Astra". Never commit a secret.
+introduce a new use of the name "Astra". Never commit a secret. A new log line or route path carries ids, types and counts, never a Clerk id, an email or a name the logger's redaction doesn't name (lessons, promoted R17).

@@ -25,14 +25,22 @@ export const LIMITS = {
   // The preview calls no model, so it is held to the geocoder's pace rather than to writing's (ADR-231, MB-146).
   preview: { limit: 60, windowMs: MINUTE_MS, by: "address", counts: "work" },
   send: { limit: 10, windowMs: HOUR_MS, by: "account", counts: "success" },
-  checkout: { limit: 10, windowMs: HOUR_MS, by: "session", counts: "success" },
+  // Buying needs an account on every host (reading 1), so checkout counts the account in every browser it uses: a
+  // fresh session or a dropped cookie never starts its count again (R13-08).
+  checkout: { limit: 10, windowMs: HOUR_MS, by: "account", counts: "success" },
+  // Stripe's billing page for a subscriber, counted apart so a reader past checkout's limit can still stop Timeline.
+  portal: { limit: 10, windowMs: HOUR_MS, by: "account", counts: "success" },
   // Only an account has Timeline (ADR-262), so these count by account. A minute stops a burst from spending the day's cap;
   // Ask's month has its own cap besides (reading 13), and a reading counts only when its open starts a write.
   ask: { limit: 6, windowMs: MINUTE_MS, by: "account", counts: "success" },
   timelineReading: { limit: 20, windowMs: MINUTE_MS, by: "account", counts: "success" },
-  // Now and ahead's six months queue readings ahead (reading 7), so every read of it counts, whatever its range: a page
-  // switching ranges reads a few a minute, while a loop would set the queue writing with nothing to slow it (R-7.5).
+  // Every read of Now and ahead's six months counts, whatever its range: a page switching ranges reads a few a minute,
+  // and each read works the sky out again, so a loop still needs something to slow it (R-7.5).
   timelineNow: { limit: 30, windowMs: MINUTE_MS, by: "account", counts: "success" },
+  // Each read of setup works the six months' sky out again, so a loop needs slowing too (R-7.5). Its screen reads it every
+  // 3 seconds while the readings are written (SETUP_POLL_MS in the web), 20 a minute, and starts it and marks it seen once
+  // each, so 30 leaves the screen room.
+  timelineSetup: { limit: 30, windowMs: MINUTE_MS, by: "account", counts: "success" },
 } as const satisfies Record<string, { limit: number; windowMs: number; by: CountedBy; counts: Counts }>;
 
 /** Whether an answer with this status cost anything, so whether its request keeps its count (reading 6). */
@@ -58,9 +66,11 @@ export const LIMIT_LINES: Record<LimitKind, string> = {
   preview: `We've had ${LIMITS.preview.limit} rising sign checks from your internet connection in the last minute. Try again in a minute.`,
   send: `You've sent ${LIMITS.send.limit} reports and gifts in the last hour. You can send the next one within the hour.`,
   checkout: `You've started checkout ${LIMITS.checkout.limit} times in the last hour. You can start it again within the hour.`,
+  portal: `You've opened your billing page ${LIMITS.portal.limit} times in the last hour. You can open it again within the hour.`,
   ask: `You've sent Ask ${LIMITS.ask.limit} messages in the last minute. Try again in a minute.`,
   timelineReading: `You've opened ${LIMITS.timelineReading.limit} new readings in the last minute. Try again in a minute.`,
   timelineNow: `You've loaded your Timeline ${LIMITS.timelineNow.limit} times in the last minute. Try again in a minute.`,
+  timelineSetup: `You've loaded your Timeline setup ${LIMITS.timelineSetup.limit} times in the last minute. Try again in a minute.`,
 };
 
 type CallerKind = Exclude<LimitKind, "anonWrites">;
@@ -274,9 +284,11 @@ export interface Limits {
   previewLimit: RequestHandler[];
   sendLimit: RequestHandler[];
   checkoutLimit: RequestHandler[];
+  portalLimit: RequestHandler[];
   askLimit: RequestHandler[];
   timelineReadingLimit: RequestHandler[];
   timelineNowLimit: RequestHandler[];
+  timelineSetupLimit: RequestHandler[];
 }
 
 /** Fresh counts on every call: the server keeps the one set below, and a test builds its own. */
@@ -289,13 +301,15 @@ export function buildLimits(): Limits {
     previewLimit: limitFor("preview"),
     sendLimit: limitFor("send"),
     checkoutLimit: limitFor("checkout"),
+    portalLimit: limitFor("portal"),
     askLimit: limitFor("ask"),
     timelineReadingLimit: limitFor("timelineReading"),
     timelineNowLimit: limitFor("timelineNow"),
+    timelineSetupLimit: limitFor("timelineSetup"),
   };
 }
 
 export const {
-  anonWriteLimit, generationLimits, geocodeLimit, previewLimit, sendLimit, checkoutLimit, askLimit, timelineReadingLimit,
-  timelineNowLimit,
+  anonWriteLimit, generationLimits, geocodeLimit, previewLimit, sendLimit, checkoutLimit, portalLimit, askLimit,
+  timelineReadingLimit, timelineNowLimit, timelineSetupLimit,
 } = buildLimits();

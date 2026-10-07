@@ -4,6 +4,7 @@ import { EPHEMERIS } from "@workspace/engine";
 import { Mark } from "@/components/Mark";
 import { usePageTitle } from "@/lib/page-title";
 import { PRODUCT } from "@/lib/product";
+import { keepCampaign } from "@/lib/prices";
 import { ReportCta, SignInCta } from "./cta";
 import { WaitlistDialogProvider } from "./WaitlistDialog";
 import { FOOTER, NAV, formatUpdated, updatedLabel, type PageEntry, type PagePath } from "./site";
@@ -182,6 +183,10 @@ export function SiteLayout({
   head?: ReactNode;
 }) {
   usePageTitle(page.title, { raw: true });
+  // A link with an offer's code opens on any public page; the tab keeps the code for the price rows and for checkout.
+  useEffect(() => {
+    keepCampaign(window.location.search);
+  }, []);
   // The home page's head is its hero, the first of its sections.
   const shownHead = head !== undefined ? head : page.kind === "home" ? null : <PageHead page={page} />;
 

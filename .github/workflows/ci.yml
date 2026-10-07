@@ -57,10 +57,6 @@ jobs:
       - run: pnpm run build:web
       - run: pnpm run build:api
 
-      # e2e is excluded: Playwright needs a running site and a browser, so it
-      # runs against a deployed preview instead.
-      - run: pnpm -r --filter '!@workspace/e2e' --if-present run test
-
       # The walk runs on the schema every deploy starts on, made the same way.
       # The bootstrap's prompt step loads the model client, which will not
       # start without a key; this one is sent nowhere.
@@ -70,6 +66,16 @@ jobs:
           DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
           OPENAI_API_KEY: sk-dummy-walk-never-sent
         run: pnpm run db:bootstrap
+
+      # The critical tier's database parts skip without a database, so it gets the walk's, bootstrapped
+      # above: the tests read WALK_DATABASE_URL, the app code under them DATABASE_URL.
+      # e2e is excluded: Playwright needs a running site and a browser, so it
+      # runs against a deployed preview instead.
+      - name: Test the critical tier
+        env:
+          DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
+          WALK_DATABASE_URL: postgres://walk:walk@127.0.0.1:5432/walk
+        run: pnpm -r --filter '!@workspace/e2e' --if-present run test
 
       # The Owner's critical flow with the site's sample people, end to end on that
       # database, with no Clerk, no network and no OpenAI (ADR-273).

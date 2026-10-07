@@ -239,7 +239,16 @@ test("a value that is not an error reaches the err key as it is, and an address 
   assert.equal(nul.err, null);
 });
 
-test("only a token's shape or an invite route changes a path: each piece must be 16 characters, and a trailing slash or a bare route is left", () => {
+test("a Clerk id in a path is named by its parameter wherever it stands, on the request line too, and only a whole segment shaped like one is (security scope 6)", () => {
+  assert.equal(logPath(`/api/admin/testers/${CLERK_ID}/grant`), "/api/admin/testers/:userId/grant");
+  assert.equal(logPath(`/api/admin/testers/${CLERK_ID}/?by=${CLERK_ID}`), "/api/admin/testers/:userId/");
+  assert.equal(logPath("/api/admin/testers/user_tess_1a2b3c4d/grant"), "/api/admin/testers/:userId/grant", "an id made by hand, as the tests and walks make them");
+  assert.equal(logPath(`/api/x/${CLERK_ID}/y/${CLERK_ID}`), "/api/x/:userId/y/:userId");
+  for (const kept of ["/api/admin/testers", "/api/users_x", "/api/a_user_b", "/api/user_", "/api/user-2abc", "/api/xuser_2abc"]) assert.equal(logPath(kept), kept);
+  assert.deepEqual(httpSerializers.req({ id: "req-1", method: "DELETE", url: `/api/admin/testers/${CLERK_ID}` }), { id: "req-1", method: "DELETE", url: "/api/admin/testers/:userId" });
+});
+
+test("only a token's shape, a Clerk id's or an invite route changes a path: each piece must be 16 characters, and a trailing slash or a bare route is left", () => {
   const piece = (n: number) => "a".repeat(n);
   assert.equal(logPath(`/x/${piece(16)}.${piece(16)}`), "/x/:token", "16 and 16 is a token");
   assert.equal(logPath(`/x/${piece(15)}.${piece(16)}`), `/x/${piece(15)}.${piece(16)}`, "15 and 16 is not");

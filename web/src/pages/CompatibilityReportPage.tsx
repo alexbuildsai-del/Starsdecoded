@@ -6,8 +6,9 @@
  * is a challenge beside the links they rest on, the share card and Where your
  * charts meet; chapters 02 to 06 are the lens's workbook chapters, one scene
  * each, 02 introducing them; 07 is the practice. Streams behind the same door
- * as the natal page, n = 8. No number, rating, percentage or bar anywhere, on
- * screen or in the PDF. No dawn, no gather.
+ * as the natal page, n = 8, while the opening screen plays the pair's story
+ * from the two stored charts (ADR-347 to 351). No number, rating, percentage
+ * or bar describes the pair, on screen or in the PDF. No dawn, no gather.
  */
 import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
@@ -24,8 +25,9 @@ import { ChapterRail } from "@/components/report/ChapterRail";
 import { ChapterSkeleton } from "@/components/report/ChapterSkeleton";
 import { ChartsMeet } from "@/components/report/LinkCard";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
-import { OpeningOverlay } from "@/components/report/OpeningOverlay";
+import { OpeningOverlay, plainSlots } from "@/components/report/OpeningOverlay";
 import { PairHero, type PairPerson } from "@/components/report/PairHero";
+import { PairStory } from "@/components/report/PairStory";
 import { ReportSky } from "@/components/report/ReportSky";
 import { LensChapterBlock, PractiseBlock, ScenesIntro, first } from "@/components/report/PairSections";
 import { ShareCard } from "@/components/report/ShareCard";
@@ -109,12 +111,13 @@ export default function CompatibilityReportPage() {
   const failed = report.status === "failed" && !interpretation;
   const accent = active < 0 ? OPENING_ACCENT : chapterAccent(active + 1);
   const onHero = active < 0;
+  const showOverlay = !open || failed;
 
   if (!ready) {
     return (
       <div className="rp-root min-h-screen" style={{ "--accent": OPENING_ACCENT } as CSSProperties}>
         <ReportSky accent={OPENING_ACCENT} opening />
-        <OpeningOverlay progress={progress} provisional={null} chart={chartA} failureLine={live.failureReason?.line ?? null} onOpen={setOpen} />
+        <OpeningOverlay progress={progress} failureLine={live.failureReason?.line ?? null} onOpen={setOpen} slots={plainSlots(progress)} />
       </div>
     );
   }
@@ -158,11 +161,15 @@ export default function CompatibilityReportPage() {
     <div className="rp-root min-h-screen" style={{ "--accent": accent } as CSSProperties}>
       <ReportSky accent={accent} opening={onHero} />
 
-      {(!open || failed) && (
-        <OpeningOverlay progress={progress} provisional={null} chart={chartA} failureLine={live.failureReason?.line ?? null} onOpen={setOpen} />
+      {showOverlay && (
+        <PairStory a={person(a, chartA)} b={person(b, chartB)} progress={progress}>
+          {(slots) => (
+            <OpeningOverlay progress={progress} failureLine={live.failureReason?.line ?? null} onOpen={setOpen} slots={slots} />
+          )}
+        </PairStory>
       )}
 
-      <nav
+      {!showOverlay && <nav
         className={`fixed top-0 inset-x-0 z-50 border-b no-print transition-colors duration-500 ${
           onHero ? "border-transparent bg-transparent" : "border-border/40 bg-background/90 backdrop-blur-md"
         }`}
@@ -180,7 +187,7 @@ export default function CompatibilityReportPage() {
             <AccountMenu />
           </div>
         </div>
-      </nav>
+      </nav>}
 
       <PairHero a={person(a, chartA)} b={person(b, chartB)} lens={lens} accent={OPENING_ACCENT} />
 

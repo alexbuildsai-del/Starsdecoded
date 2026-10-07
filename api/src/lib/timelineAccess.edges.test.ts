@@ -8,18 +8,29 @@ import type { AddressInfo } from "node:net";
 import express, { type RequestHandler } from "express";
 import type { AccessSource } from "./timelineAccess.js";
 
-// `@workspace/db` throws on import without a DATABASE_URL, so every answer below is proof that no table is read (reading 3).
-delete process.env.DATABASE_URL;
+// A subscription is a table read, so the pool points at a closed port and every answer below that reads one fails; each
+// test passes an admin-only list or takes the real subscription source out of the route's (reading 3).
+process.env.DATABASE_URL = "postgres://test:test@127.0.0.1:1/never";
+process.env.LOG_LEVEL ??= "silent";
 const { ACCESS_SOURCES, NO_TIMELINE_LINE, requireTimelineAccess, timelineAccess } = await import("./timelineAccess.js");
+const ADMIN_ONLY = ACCESS_SOURCES.filter(({ source }) => source === "admin");
 
 const NONE = { access: false, source: null };
+
+// The route reads ACCESS_SOURCES itself, so its tests swap the real subscription source out and put it back.
+function adminOnlyRoute(t: { after: (fn: () => void) => void }) {
+  const sources = ACCESS_SOURCES as AccessSource[];
+  const removed = sources.filter(({ source }) => source === "subscription");
+  for (const gone of removed) sources.splice(sources.indexOf(gone), 1);
+  t.after(() => sources.push(...removed));
+}
 const ADMIN = { userId: "user_admin", sessionId: "s-admin" };
 const READER = { userId: "user_reader", sessionId: "s-reader" };
 
 test("a blank ADMIN_USER_ID gives no signed-in reader access, whatever blank it is", async () => {
   for (const blank of ["", " ", "   ", "\t", "\n"]) {
     for (const viewer of [ADMIN, READER, { userId: "user_x", sessionId: "s" }]) {
-      assert.deepEqual(await timelineAccess(viewer, { ADMIN_USER_ID: blank }), NONE, JSON.stringify(blank));
+      assert.deepEqual(await timelineAccess(viewer, { ADMIN_USER_ID: blank }, ADMIN_ONLY), NONE, JSON.stringify(blank));
     }
   }
 });
@@ -27,16 +38,16 @@ test("a blank ADMIN_USER_ID gives no signed-in reader access, whatever blank it 
 test("the admin is matched exactly: no case folding, no trimming, no prefix", async () => {
   const env = { ADMIN_USER_ID: "user_admin" };
   for (const userId of ["USER_ADMIN", "User_Admin", " user_admin", "user_admin ", "user_admin2", "user_admi", "user_admin\n"]) {
-    assert.deepEqual(await timelineAccess({ userId, sessionId: "s" }, env), NONE, JSON.stringify(userId));
+    assert.deepEqual(await timelineAccess({ userId, sessionId: "s" }, env, ADMIN_ONLY), NONE, JSON.stringify(userId));
   }
-  assert.deepEqual(await timelineAccess(ADMIN, { ADMIN_USER_ID: " user_admin " }), NONE, "a padded env value is not the id either");
+  assert.deepEqual(await timelineAccess(ADMIN, { ADMIN_USER_ID: " user_admin " }, ADMIN_ONLY), NONE, "a padded env value is not the id either");
 });
 
 test("only the account is asked about: a session id that equals the admin's id opens nothing", async () => {
   const env = { ADMIN_USER_ID: "user_admin" };
-  assert.deepEqual(await timelineAccess({ userId: null, sessionId: "user_admin" }, env), NONE);
-  assert.deepEqual(await timelineAccess({ userId: undefined as unknown as null, sessionId: "user_admin" }, env), NONE);
-  assert.deepEqual(await timelineAccess({ userId: "", sessionId: "user_admin" }, env), NONE);
+  assert.deepEqual(await timelineAccess({ userId: null, sessionId: "user_admin" }, env, ADMIN_ONLY), NONE);
+  assert.deepEqual(await timelineAccess({ userId: undefined as unknown as null, sessionId: "user_admin" }, env, ADMIN_ONLY), NONE);
+  assert.deepEqual(await timelineAccess({ userId: "", sessionId: "user_admin" }, env, ADMIN_ONLY), NONE);
 });
 
 test("a source is never asked about a signed-out viewer, an empty id included", async () => {
@@ -87,8 +98,8 @@ test("a source that throws fails the answer wherever it stands, and an earlier y
   };
   const later: AccessSource = { source: "subscription", grants: async () => true };
   await assert.rejects(timelineAccess(READER, { ADMIN_USER_ID: "user_admin" }, [boom, later]), /sync failure/, "a thrown source is not skipped for the next one that says yes");
-  await assert.rejects(timelineAccess(READER, { ADMIN_USER_ID: "user_admin" }, [...ACCESS_SOURCES, boom]), /sync failure/);
-  assert.deepEqual(await timelineAccess(ADMIN, { ADMIN_USER_ID: "user_admin" }, [...ACCESS_SOURCES, boom]), { access: true, source: "admin" });
+  await assert.rejects(timelineAccess(READER, { ADMIN_USER_ID: "user_admin" }, [...ADMIN_ONLY, boom]), /sync failure/);
+  assert.deepEqual(await timelineAccess(ADMIN, { ADMIN_USER_ID: "user_admin" }, [...ADMIN_ONLY, boom]), { access: true, source: "admin" });
   assert.deepEqual(await timelineAccess(READER, {}, [boom]).catch(() => "rejected"), "rejected");
   assert.deepEqual(await timelineAccess({ userId: null, sessionId: "s" }, {}, [boom]), NONE, "a signed-out viewer never reaches the broken source");
 });
@@ -137,6 +148,7 @@ test("requireTimelineAccess fails closed when a source throws: the route is neve
     if (saved === undefined) delete process.env.ADMIN_USER_ID;
     else process.env.ADMIN_USER_ID = saved;
   });
+  adminOnlyRoute(t);
   process.env.ADMIN_USER_ID = "user_admin";
   sources.unshift(broken);
 
@@ -163,6 +175,7 @@ test("requireTimelineAccess honours a second source and sends no other header or
     if (saved === undefined) delete process.env.ADMIN_USER_ID;
     else process.env.ADMIN_USER_ID = saved;
   });
+  adminOnlyRoute(t);
   process.env.ADMIN_USER_ID = "user_admin";
   sources.push(second);
 

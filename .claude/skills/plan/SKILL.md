@@ -11,8 +11,8 @@ id.
 Spawn the `planner` agent with those slugs: Agent tool, `subagent_type`
 `planner`. If that type is not registered in this session, spawn
 `general-purpose` on Opus with the full text of `.claude/agents/planner.md`
-as its brief; the outcome is the same. It reads the knowledge base and the
-Notion Mailbox and writes `docs/rounds/RNN-plan.md`. It plans for
+as its brief; the outcome is the same. It reads the knowledge base, `docs/backlog.md` and the
+open Mailbox rows it lists, and writes `docs/rounds/RNN-plan.md`. It plans for
 parallelism: cards touch disjoint files wherever the work allows, and the
 plan marks which cards run together so the orchestrator dispatches them at
 once (R-0.6).
@@ -26,8 +26,8 @@ with the card that guards it, update the stamp and commit, before showing it.
 
 Then show the Owner the goals, the task-card list, the parallel
 groups with each card's tier beside it (opus, sonnet or haiku, from its
-`Tier:` line, ADR-187; the Owner may name another for any card, R-0.7) and any
-Mailbox rows it raised, then stop. The round does not start until the Owner
+`Tier:` line, ADR-187; the Owner may name another for any card, R-0.7) the decisions it
+took (*Decided by me*) and any Mailbox rows it raised (*Needs you*), then stop. The round does not start until the Owner
 approves a plan stamped through the last round. On approval ("go",
 "approved", "build it"), run the `round` skill
 for RNN at once in this session; never wait for a second instruction.

@@ -24,6 +24,13 @@ export const reportsTable = pgTable(
     errorMessage: text("error_message"),
     /** Why a failed report failed, as the customer reads it: provider_unreachable, provider_out_of_credit, quality, internal (ADR-84). */
     failureCode: text("failure_code"),
+    /**
+     * Failures since the report last took a credit or finished. A failed report keeps its credit for a free
+     * Try again, and the third failure gives it back and makes the report final (ADR-313).
+     */
+    failedTries: integer("failed_tries").notNull().default(0),
+    /** When the last of those failures happened. */
+    failedAt: timestamp("failed_at", { withTimezone: true }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

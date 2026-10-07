@@ -10,7 +10,9 @@ import {
   getListSharesQueryKey,
   type Home,
   type Share,
+  type TimelineAccess,
 } from "@workspace/api-client-react";
+import { Link } from "wouter";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useHome } from "@/hooks/useHome";
 import { ownIds } from "@/lib/home-view";
+import { useTimelineAccess } from "@/lib/timeline-access";
 
 export const ENDS_SHARING_LINE = "Anyone you shared it with can no longer read it.";
 
@@ -37,10 +40,34 @@ export const ENDS_SHARING_LINE = "Anyone you shared it with can no longer read i
  * known to be empty.
  */
 export function endsSharing(home: Pick<Home, "you" | "people"> | null | undefined, shares: Share[] | null | undefined, reportId: string): boolean {
+  if (!isOwnReport(home, reportId)) return false;
+  return !Array.isArray(shares) || shares.length > 0;
+}
+
+function isOwnReport(home: Pick<Home, "you" | "people"> | null | undefined, reportId: string): boolean {
   if (!home) return false;
   const person = [...(home.you ? [home.you] : []), ...home.people].find((p) => p.reportId === reportId);
-  if (!person || !ownIds(home).has(person.profileId)) return false;
-  return !Array.isArray(shares) || shares.length > 0;
+  return Boolean(person) && ownIds(home).has(person!.profileId);
+}
+
+export const TIMELINE_STOPS_LINE = "Timeline stops opening, because it reads your own Personal report.";
+export const PLAN_RENEWS_LINE = "Your plan keeps renewing until you cancel it.";
+export const PLAN_ENDS_LINE = "Your plan still ends on the day it was set to end.";
+export const CANCEL_LINK_TEXT = "Cancel on the Account page";
+export const ACCOUNT_PATH = "/dashboard/account";
+
+/**
+ * What the delete does to Timeline, for a reader with a live plan deleting their own report (ADR-262, 264): the plan
+ * does not follow the report, so the dialog says both. The Cancel link shows only while the plan renews.
+ */
+export function timelineNote(
+  home: Pick<Home, "you" | "people"> | null | undefined,
+  access: Pick<TimelineAccess, "access" | "source" | "plan">,
+  reportId: string,
+): { text: string; cancel: boolean } | null {
+  if (!access.access || access.source !== "subscription" || !isOwnReport(home, reportId)) return null;
+  const ending = Boolean(access.plan?.endsOn);
+  return { text: `${TIMELINE_STOPS_LINE} ${ending ? PLAN_ENDS_LINE : PLAN_RENEWS_LINE}`, cancel: !ending };
 }
 
 export function deleteLine(sharing: boolean): string {
@@ -72,6 +99,9 @@ export function DeleteReportDialog({
   // The copies the page and the quick look hold: a delete's dialog asks the server for neither.
   const home = useHome({ enabled: false }).data;
   const shares = useListShares({ query: { queryKey: getListSharesQueryKey(), enabled: false } }).data;
+  // Read once per user and held, and the Dashboard has read it already, so this asks the server for nothing new.
+  const timeline = useTimelineAccess();
+  const note = handsOver ? null : timelineNote(home, timeline, reportId);
 
   const deleteReport = useDeleteReport({
     mutation: {
@@ -121,6 +151,20 @@ export function DeleteReportDialog({
             {handsOver
               ? `It stays with ${personName}, who owns it now. You won't be able to read it again.`
               : deleteLine(endsSharing(home, shares, reportId))}
+            {note && (
+              <span className="mt-2 block" data-testid="delete-timeline-note">
+                {note.text}
+                {note.cancel && (
+                  <>
+                    {" "}
+                    <Link href={ACCOUNT_PATH} className="text-foreground underline underline-offset-2" onClick={() => setOpen(false)}>
+                      {CANCEL_LINK_TEXT}
+                    </Link>
+                    .
+                  </>
+                )}
+              </span>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

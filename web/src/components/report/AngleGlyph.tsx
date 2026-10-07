@@ -6,6 +6,14 @@
  */
 export type AngleKey = "ascendant" | "midheaven";
 
+/**
+ * The ring's radius for the glyph in a box of `size` px, so the tick, which runs 1.85 radii out from the centre
+ * and ends in a round cap, stays inside the box: at 22 px the old 0.3 share cut it off.
+ */
+export function angleGlyphRadius(size: number, strokeWidth = 1.5): number {
+  return (size / 2 - strokeWidth / 2) / 1.85;
+}
+
 /** SVG degrees, clockwise from +x: east is on the left of every plate, the Midheaven above. */
 export const TICK_DIRECTION: Record<AngleKey, number> = { ascendant: 180, midheaven: 270 };
 
@@ -38,7 +46,7 @@ export function AngleGlyphShape({ x, y, r, direction, stroke, fill = "none", str
 
 export interface AngleGlyphProps {
   angle: AngleKey;
-  /** Box size in pixels; the ring fills a little over half of it so the tick has room. */
+  /** Box size in pixels; the ring is sized so the tick, ends and all, stays inside it. */
   size?: number;
   className?: string;
 }
@@ -51,7 +59,7 @@ export function AngleGlyph({ angle, size = 36, className }: AngleGlyphProps) {
       width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden className={className}
       data-angle={angle}
     >
-      <AngleGlyphShape x={c} y={c} r={size * 0.3} direction={TICK_DIRECTION[angle]} stroke="hsl(var(--brass))" strokeWidth={1.5} />
+      <AngleGlyphShape x={c} y={c} r={angleGlyphRadius(size, 1.5)} direction={TICK_DIRECTION[angle]} stroke="hsl(var(--brass))" strokeWidth={1.5} />
     </svg>
   );
 }

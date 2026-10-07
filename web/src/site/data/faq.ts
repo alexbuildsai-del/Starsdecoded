@@ -5,7 +5,8 @@
  * without the page around it. /compatibility asks none of its own: its three moved here (ADR-180). Timeline's six are
  * /timeline's alone (`TIMELINE_FAQ`).
  */
-import { BUNDLES, CREDIT_LINE, formatEuro } from "@workspace/commerce";
+import { CREDIT_LINE } from "@workspace/commerce";
+import { LAUNCHED } from "@workspace/launch";
 import { CHAPTERS } from "@/lib/chapters";
 import { lensInfo } from "@/lib/lenses";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
@@ -27,12 +28,6 @@ export interface FaqGroup {
 
 // Keyed by the registry's length, so adding or cutting a chapter fails the typecheck here instead of leaving the answer wrong.
 const CHAPTER_COUNT: Record<typeof CHAPTERS.length, string> = { 10: "ten" };
-
-/** Each bundle's price and credits from the one catalogue (R-6.3), so no answer types a price. */
-function creditPrices(): string {
-  const each = BUNDLES.map((bundle) => `${formatEuro(bundle.cents)} for ${bundle.credits}`);
-  return each.length > 1 ? `${each.slice(0, -1).join(", ")} or ${each[each.length - 1]}` : each[0];
-}
 
 const whatIs: FaqItem = {
   q: `What is a ${PERSONAL_REPORT}?`,
@@ -142,25 +137,26 @@ const deleting: FaqItem = {
   home: true,
 };
 
-// Its first two sentences are the Owner's, approved word for word with Timeline's page (ADR-253).
+// The Owner's words (ADR-353), and no price: a campaign changes them, and prices show only where they are read live (ADR-354).
+// Timeline's sentence changes on launch day with the five lines beside it (ADR-355, 356).
 const payOnce: FaqItem = {
   q: "Do I pay once or every month?",
-  a: `Once for each report. Timeline, coming after launch, will be our one subscription. ${CREDIT_LINE} Credits cost ${creditPrices()}, VAT included.`,
+  a: `You pay for credits. ${CREDIT_LINE} ${LAUNCHED ? "Timeline is our one subscription." : "Timeline, coming after launch, will be our one subscription."}`,
   home: false,
 };
 
+// ADR-313: a failed report keeps its credit, so Try again is free and only a final failure gives it back. A
+// Compatibility report has no Try again, so its failure gives the credit back at once.
 const goesWrong: FaqItem = {
   q: "What if something goes wrong?",
-  // MB-91 provisional: the soft pass writes some reports on no credit, so until credits go hard (R12) the answer
-  // gives back only the credit a report used, as the refund rule words it (R-6.6).
-  a: "If your report can't be finished, we tell you what happened and give back the credit it used, so you can try again.",
+  a: `If your report fails, we tell you what happened, and Try again is free. If we still can't write it, its credit comes back to your balance. For a ${COMPATIBILITY_REPORT}, the credit comes back at once.`,
   home: false,
   link: "/refunds",
 };
 
 const whatTimeline: FaqItem = {
   q: "What is Timeline?",
-  a: `Timeline is ${PRODUCT}'s one subscription, for people with a ${PERSONAL_REPORT}. It shows the sky moving across your own chart. You get your life's big cycles, what's happening for you now and next with a reading for each, and Ask. It opens after launch. The price comes later.`,
+  a: `Timeline is ${PRODUCT}'s one subscription, for people with a ${PERSONAL_REPORT}. It shows the sky moving across your own chart. You get your life's big cycles, what's happening for you now and next with a reading for each, and Ask.${LAUNCHED ? "" : " It opens after launch. The price comes later."}`,
   home: false,
 };
 

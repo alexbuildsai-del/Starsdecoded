@@ -159,7 +159,7 @@ test("the detector names each retired name however it is cased or broken across 
   for (const line of [
     "Personal report",
     "A Personal report and a Compatibility report",
-    "1 credit = 1 report of either kind.",
+    "1 credit = 1 report of any kind.",
     "a Personal report or a Compatibility report",
     "Add someone to your circle",
     "Add the people you care about",

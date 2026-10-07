@@ -9,8 +9,9 @@
  * no rising text and no house readings, the call to action instead, and the
  * ledger above chapter 01 once a pass has run (ADR-35, ADR-37). A report
  * written before its birth time was last updated keeps its words and says so
- * there (MB-170); Try again and Regenerate show only where the server lets the
- * reader rewrite it (MB-169).
+ * there (MB-170); Try again, free, and Regenerate show only where the server lets the
+ * reader rewrite it (MB-169). A report we finally could not write has no Try
+ * again, and the generation screen says its credit is back (ADR-313).
  */
 import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
@@ -45,7 +46,8 @@ import { HouseDeck } from "@/components/report/HouseDeck";
 import { BalanceRail } from "@/components/report/BalanceRail";
 import { DawnClosing } from "@/components/report/DawnClosing";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
-import { OpeningOverlay } from "@/components/report/OpeningOverlay";
+import { OpeningOverlay, plainSlots } from "@/components/report/OpeningOverlay";
+import { useBuildStory } from "@/components/report/BuildStory";
 import { RevisionLedger, marksShown, rememberMarks } from "@/components/report/RevisionLedger";
 import { RevisionProvider, revisionSet } from "@/components/report/RevisedText";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
@@ -135,12 +137,14 @@ export default function ReportPage() {
   const live = useLiveReport(id!);
   const { report, sections, workbook, writing, revising, open, setOpen, progress, horizonPass } = live;
   const interpretation = live.interpretation as Interpretation | null;
+  const story = useBuildStory(report, live.chartReady, progress);
 
   const refresh = useCallback(() => {
     client.invalidateQueries({ queryKey: getGetReportQueryKey(id!) });
     client.invalidateQueries({ queryKey: getGetReportStatusQueryKey(id!) });
   }, [client, id]);
-  const regenerate = useRegenerateReport({ mutation: { onSuccess: refresh } });
+  // A 409 is a rewrite already under way, or a report that went final meanwhile (ADR-313): either way the page only has to catch up.
+  const regenerate = useRegenerateReport({ mutation: { onSuccess: refresh, onError: (err) => err.status === 409 && refresh() } });
 
   // The browser offers document.title as the print-to-PDF filename, so the
   // complete report's title is the filename we want to hand the buyer.
@@ -172,7 +176,7 @@ export default function ReportPage() {
   // The status route is fresher than the row while it polls, and a failure reaches it first.
   const offer = rewriteOffer({ status: live.status, canRegenerate: report.canRegenerate, outdated: report.outdated });
   const rewrite = () => regenerate.mutate({ id: id! });
-  const regenerateError = regenerate.isError
+  const regenerateError = regenerate.isError && regenerate.error.status !== 409
     ? refusalLine(regenerate.error) ?? "Could not start regeneration. Please try again in a minute."
     : null;
 
@@ -214,12 +218,11 @@ export default function ReportPage() {
         <ReportSky accent={OPENING_ACCENT} opening />
         <OpeningOverlay
           progress={progress}
-          provisional={live.provisional}
-          chart={chartData}
           failureLine={live.failureReason?.line ?? null}
           onOpen={setOpen}
           onRetry={offer.tryAgain ? rewrite : undefined}
           retrying={regenerate.isPending}
+          slots={story ?? plainSlots(progress)}
         />
       </div>
     );
@@ -252,12 +255,11 @@ export default function ReportPage() {
       {showOverlay && (
         <OpeningOverlay
           progress={progress}
-          provisional={live.provisional}
-          chart={chartData}
           failureLine={live.failureReason?.line ?? null}
           onOpen={setOpen}
           onRetry={offer.tryAgain ? rewrite : undefined}
           retrying={regenerate.isPending}
+          slots={story ?? plainSlots(progress)}
         />
       )}
 
@@ -272,12 +274,13 @@ export default function ReportPage() {
         chartData={chartData}
         meta={interpretation.meta}
         onAddBirthTime={report.profileId ? openTime : undefined}
+        writtenOn={report.createdAt}
         accent={OPENING_ACCENT}
         gather={open}
       />
 
-      {/* Chrome sits on the opening plate without a ground, and takes one once the reading starts. */}
-      <nav
+      {/* The opening screen draws its own grid to the top edge, so the chrome waits for the door and then takes a ground once the reading starts. */}
+      {!showOverlay && <nav
         className={`fixed top-0 inset-x-0 z-50 border-b no-print transition-colors duration-500 ${
           onHero ? "border-transparent bg-transparent" : "border-border/40 bg-background/90 backdrop-blur-md"
         }`}
@@ -299,7 +302,7 @@ export default function ReportPage() {
             <AccountMenu />
           </div>
         </div>
-      </nav>
+      </nav>}
 
       <ChapterRail
         chapters={rail}

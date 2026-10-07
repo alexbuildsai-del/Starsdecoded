@@ -1,8 +1,29 @@
-import { test } from "node:test";
+/**
+ * The report routes' pure parts without a database. On a scratch Postgres, when WALK_DATABASE_URL names a
+ * bootstrapped one, the writes on hard credits through the routes themselves (ADR-275, 313; reading 16): a 402 with
+ * nothing written, two writes racing for one credit, a failed report's free Try again, the third failure, Delete and a
+ * failed pair each giving the credit back once. They skip, saying why, without one. The model is an in-process stand-in.
+ */
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import type { AddressInfo } from "node:net";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import express, { type RequestHandler } from "express";
 
+const SCRATCH = process.env.WALK_DATABASE_URL;
+// Only a database handed over for this: without one the pool points nowhere and nothing queries it.
+process.env.DATABASE_URL = SCRATCH ?? "postgres://test:test@127.0.0.1:1/never";
 process.env.OPENAI_API_KEY ??= "test-key-never-sent";
-process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/never";
+// A call that ever got past the stand-in would meet a closed port, never the network.
+process.env.OPENAI_BASE_URL = "http://127.0.0.1:9/v1";
+process.env.LOG_LEVEL ??= "silent";
+// No first name is asked of Clerk and no mail can leave, whatever the shell holds.
+delete process.env.CLERK_SECRET_KEY;
+delete process.env.RESEND_API_KEY;
+const { cannedNatalReplies, installFakeModel } = await import("../lib/testModel.js");
 const { provisionalFor, sectionIdsFor } = await import("./reports.js");
 
 test("status: a chartless report carries thirteen provisional bodies and no angles, at offset zero", () => {
@@ -169,6 +190,20 @@ test("who rewrites: the writer and the holder after a hand-over; never a shared 
   assert.equal(canRegenerate(READER, ownChart, "shared"), false);
 });
 
+test("a final report has no Try again: regenerate answers 409 with the final line, and canRegenerate is false while Delete stays (ADR-313)", async () => {
+  const { regenerateRefusal, rightsOf } = await import("./reports.js");
+  const { FINAL_LINE, MAX_TRIES } = await import("../lib/failureReasons.js");
+  const failedAfter = (failedTries: number) => ({ ...natalOn("failed"), failedTries });
+  assert.equal(regenerateRefusal(WRITER, failedAfter(MAX_TRIES - 1), ownChart, false), null, "the second failure keeps Try again");
+  assert.deepEqual(regenerateRefusal(WRITER, failedAfter(MAX_TRIES), ownChart, false), { status: 409, body: { error: "final", message: FINAL_LINE } });
+  assert.equal(regenerateRefusal(READER, failedAfter(MAX_TRIES), ownChart, true)?.status, 404, "still only for whoever may rewrite it");
+  const rights = (report: ReturnType<typeof natalOn> & { failedTries: number }) =>
+    rightsOf(WRITER, { report, profile: ownChart, access: "owner", maker: false });
+  assert.equal(rights(failedAfter(MAX_TRIES - 1)).regenerate, true);
+  assert.deepEqual(rights(failedAfter(MAX_TRIES)), { send: true, delete: true, regenerate: false });
+  assert.equal(rights({ ...natalOn("complete"), failedTries: 0 }).regenerate, true);
+});
+
 test("regenerate runs on a failed, an outdated or an earlier-version report: a finished one that is current is refused, one being written answers in_progress (R-6.1, reading 9, MB-45, MB-137)", async () => {
   const { regenerateRefusal } = await import("./reports.js");
   assert.equal(regenerateRefusal(WRITER, natalOn("complete"), ownChart, true), null, "Regenerate on an outdated report");
@@ -216,4 +251,269 @@ test("deleting your Personal report ends your sharing of that chart at once, gra
     'update "invite_tokens" set "expires_at" = $1, "revoked_at" = $2 where ("invite_tokens"."profile_id" = $3 and "invite_tokens"."kind" = $4 and "invite_tokens"."created_by_user_id" = $5 and "invite_tokens"."revoked_at" is null)',
   );
   assert.deepEqual(links.params, [now.toISOString(), now.toISOString(), "p-sharer", "share", WRITER.userId]);
+});
+
+// The writes on hard credits, through the routes on a scratch Postgres.
+const { setSpendSink } = await import("../lib/spendLedger.js");
+const { logger } = await import("../lib/logger.js");
+const { chartForProfile } = await import("../lib/profiles.js");
+const { getCredits, grantBundle } = await import("../lib/credits.js");
+const { FAILURE_LINES, FINAL_LINE } = await import("../lib/failureReasons.js");
+const { default: reportsRouter, failReport } = await import("./reports.js");
+const { default: compatibilityRouter } = await import("./compatibility.js");
+const { default: giftsRouter } = await import("./gifts.js");
+const { default: homeRouter } = await import("./home.js");
+
+const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: the writes run on a scratch Postgres";
+const NO_CREDIT_TO_WRITE = { error: "no_credit", message: "You need a credit to write this report." };
+const NO_CREDIT_TO_GIVE = { error: "no_credit", message: "You need a credit to give a report." };
+
+// Each step sets the replies the next report is written from; a step that leaves none fails every call.
+const fake = installFakeModel({});
+// The day's ledger is the breaker's, which other tests read, so these writes leave it as they found it.
+setSpendSink(async () => {});
+
+const viewer: RequestHandler = (req, _res, next) => {
+  req.userId = req.header("x-user") || null;
+  req.sessionId = req.header("x-session") || "s-none";
+  req.log = logger;
+  next();
+};
+const app = express();
+app.use(express.json());
+app.use(viewer);
+app.use("/api", reportsRouter, compatibilityRouter, giftsRouter, homeRouter);
+const server = app.listen(0, "127.0.0.1");
+await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
+
+/** Each run's own rows, so a second run, or another test on the same database, finds nothing of this one. */
+const run = randomUUID().slice(0, 8);
+const mine = (tag: string) => `r1721-${run}-${tag}`;
+
+after(async () => {
+  server.closeAllConnections();
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  const { pool } = await import("@workspace/db");
+  if (SCRATCH) {
+    const like = `%r1721-${run}-%`;
+    await pool.query("delete from relationships where user_id like $1", [like]);
+    // A profile takes its reports along, and an account its bundles and credits.
+    await pool.query("delete from profiles where user_id like $1 or session_id like $1", [like]);
+    await pool.query("delete from invite_tokens where created_by_user_id like $1", [like]);
+    await pool.query("delete from users where id like $1", [like]);
+  }
+  await pool.end();
+});
+
+type Who = { user: string | null; session: string };
+
+async function call(who: Who, method: string, path: string, body?: unknown) {
+  const headers: Record<string, string> = { "x-session": who.session, "content-type": "application/json" };
+  if (who.user) headers["x-user"] = who.user;
+  const res = await fetch(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const text = await res.text();
+  return { status: res.status, body: text ? JSON.parse(text) : null };
+}
+
+const q = async (text: string, params: unknown[]) => (await (await import("@workspace/db")).pool.query(text, params)).rows;
+
+/** A signed-in reader with the credits a bundle grants, as a tester's grant gives them. */
+async function signIn(tag: string, ...bundles: Array<"solo" | "couple">): Promise<Who & { user: string }> {
+  const who = { user: `user_${mine(tag)}`, session: `s-${mine(tag)}` };
+  await q("insert into users (id, email) values ($1, $2)", [who.user, `${tag}-${run}@example.com`]);
+  for (const bundle of bundles) await grantBundle(who.user, bundle, { test: true });
+  return who;
+}
+
+type Person = { name: string; birthDate: string; birthTime: string; latitude: number; longitude: number; timezoneOffset: number; timezone: string };
+const PEOPLE = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "sample-people");
+const person = (id: string): Person => JSON.parse(readFileSync(join(PEOPLE, `${id}.json`), "utf8"));
+const MIRA = person("mira");
+const IDRIS = person("idris");
+const TOMAS = person("tomas");
+
+/** What the birth form posts: the reader's own chart, or someone they add. */
+function form(p: Person, isForSelf: boolean) {
+  return {
+    name: p.name, birthDate: p.birthDate, birthTime: p.birthTime, birthTimeWindowMinutes: 0, birthPlace: "Lisbon",
+    latitude: p.latitude, longitude: p.longitude, timezoneOffset: p.timezoneOffset, timezone: p.timezone, isForSelf,
+  };
+}
+
+/** Canned text whose claims cite the Sun where the engine puts it, with the chart's own sect, so the checks pass it. */
+function textFor(p: Person): Record<string, unknown> {
+  const chart = chartForProfile({ ...p, birthTimeWindowMinutes: 0 });
+  const sun = chart.planets.sun;
+  return cannedNatalReplies({ drawn: true, sunSign: sun.sign.toLowerCase(), sunHouse: sun.house, sect: (chart.sunAltitude ?? 0) > 0 ? "day" : "night" });
+}
+
+/** A report is written after its route answers, so a step waits on its status as the page does, and leaves none writing. */
+async function settled(who: Who, reportId: string): Promise<string> {
+  const end = Date.now() + 20_000;
+  for (;;) {
+    const r = await call(who, "GET", `/reports/${reportId}/status`);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    if (r.body.status === "complete" || r.body.status === "failed") return r.body.status;
+    if (Date.now() > end) throw new Error(`${reportId} was still ${r.body.status} after 20 s`);
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+}
+
+async function written(who: Who & { user: string }, p: Person, isForSelf: boolean): Promise<string> {
+  fake.replies = textFor(p);
+  const made = await call(who, "POST", "/reports", form(p, isForSelf));
+  assert.equal(made.status, 201, JSON.stringify(made.body));
+  assert.equal(await settled(who, made.body.id), "complete");
+  return made.body.id;
+}
+
+/** Writes a report every call of which fails, and waits for the failure to land. */
+async function failedOnce(who: Who & { user: string }, p: Person, isForSelf: boolean): Promise<string> {
+  fake.replies = {};
+  const made = await call(who, "POST", "/reports", form(p, isForSelf));
+  assert.equal(made.status, 201, JSON.stringify(made.body));
+  assert.equal(await settled(who, made.body.id), "failed");
+  return made.body.id;
+}
+
+const ledgerOf = async (who: { user: string }) =>
+  (await q("select status, used_for_report_id from credits where user_id = $1 order by created_at, id", [who.user])).map((c) => [c.status, c.used_for_report_id]);
+const balanceOf = async (who: { user: string }) => {
+  const c = await getCredits(who.user);
+  return { available: c.available, used: c.used };
+};
+const triesOf = async (reportId: string) =>
+  (await q("select failed_tries, failed_at from reports where id = $1", [reportId])).map((r) => [r.failed_tries, r.failed_at !== null])[0];
+const countOf = async (sql: string, param: string) => Number((await q(sql, [param]))[0].n);
+
+test("db: with no credit a Personal report, a pair and a gift each answer 402 with their own line, and nothing is written (ADR-275)", { skip: NO_DB }, async () => {
+  const reader = await signIn("zero", "solo", "solo");
+  const a = await written(reader, MIRA, true);
+  const b = await written(reader, IDRIS, false);
+  assert.deepEqual(await balanceOf(reader), { available: 0, used: 2 });
+
+  const report = await call(reader, "POST", "/reports", form(TOMAS, false));
+  assert.deepEqual([report.status, report.body], [402, NO_CREDIT_TO_WRITE]);
+  const pair = await call(reader, "POST", "/compatibility", { reportAId: a, reportBId: b, lens: "partners" });
+  assert.deepEqual([pair.status, pair.body], [402, NO_CREDIT_TO_WRITE]);
+  const gift = await call(reader, "POST", "/gifts", { recipientName: "Pierre", email: "pierre@example.com" });
+  assert.deepEqual([gift.status, gift.body], [402, NO_CREDIT_TO_GIVE]);
+
+  assert.equal(await countOf("select count(*) as n from profiles where user_id = $1", reader.user), 2, "no profile for the refused write");
+  assert.equal(await countOf("select count(*) as n from reports where session_id = $1", reader.session), 2);
+  assert.equal(await countOf("select count(*) as n from relationships where user_id = $1", reader.user), 0, "no pair made for the refused one");
+  assert.equal(await countOf("select count(*) as n from invite_tokens where created_by_user_id = $1", reader.user), 0, "no gift to send");
+  assert.deepEqual(await balanceOf(reader), { available: 0, used: 2 });
+
+  // A session holds no credit, so a signed-out write hears the same, where the host lets it ask at all.
+  const signedOut = { user: null, session: `s-${mine("signed-out")}` };
+  const anon = await call(signedOut, "POST", "/reports", form(MIRA, true));
+  assert.deepEqual([anon.status, anon.body], [402, NO_CREDIT_TO_WRITE]);
+  assert.equal(await countOf("select count(*) as n from profiles where session_id = $1", signedOut.session), 0);
+});
+
+test("db: two writes racing for one credit: one is written, the other answers 402 and takes nothing (ADR-275)", { skip: NO_DB }, async () => {
+  const racer = await signIn("race", "solo");
+  fake.replies = textFor(IDRIS);
+  const [x, y] = await Promise.all([1, 2].map(() => call(racer, "POST", "/reports", form(IDRIS, false))));
+  assert.deepEqual([x.status, y.status].sort(), [201, 402]);
+  const [won, lost] = x.status === 201 ? [x, y] : [y, x];
+  assert.deepEqual(lost.body, NO_CREDIT_TO_WRITE);
+  assert.equal(await settled(racer, won.body.id), "complete");
+  assert.deepEqual(await ledgerOf(racer), [["used", won.body.id]]);
+  assert.deepEqual((await q("select id from reports where session_id = $1", [racer.session])).map((r) => r.id), [won.body.id]);
+});
+
+test("db: a failed Personal report keeps its credit, Try again is free, and its finish spends that one credit (ADR-313, reading 16)", { skip: NO_DB }, async () => {
+  const reader = await signIn("retry", "solo");
+  const id = await failedOnce(reader, MIRA, true);
+  assert.deepEqual(await ledgerOf(reader), [["used", id]], "the credit stays on the report");
+  assert.deepEqual(await triesOf(id), [1, true]);
+  const failed = await call(reader, "GET", `/reports/${id}`);
+  assert.equal(failed.body.canRegenerate, true);
+  assert.equal(failed.body.failureReason.line, FAILURE_LINES[failed.body.failureReason.code as keyof typeof FAILURE_LINES]);
+  assert.equal((await call(reader, "GET", "/home")).body.you.canRegenerate, true);
+
+  fake.replies = textFor(MIRA);
+  const again = await call(reader, "POST", `/reports/${id}/regenerate`);
+  assert.equal(again.status, 202, JSON.stringify(again.body));
+  assert.equal(await settled(reader, id), "complete");
+  assert.deepEqual(await ledgerOf(reader), [["used", id]], "one credit, spent once");
+  assert.deepEqual(await triesOf(id), [0, true], "finished, so its count starts again");
+});
+
+test("db: the third failure gives the credit back once and makes the report final, with its line and no Try again (ADR-313)", { skip: NO_DB }, async () => {
+  const reader = await signIn("final", "solo");
+  const id = await failedOnce(reader, MIRA, true);
+  const again = await call(reader, "POST", `/reports/${id}/regenerate`);
+  assert.equal(again.status, 202, JSON.stringify(again.body));
+  assert.equal(await settled(reader, id), "failed");
+  assert.deepEqual([await triesOf(id), await ledgerOf(reader)], [[2, true], [["used", id]]], "two failures, the credit still on it");
+
+  // A second Try again within the minute meets the cooldown (ADR-199), so the third failure lands as its write's would.
+  await failReport(id, new Error("the third try failed"));
+  assert.deepEqual(await triesOf(id), [3, true]);
+  assert.deepEqual(await ledgerOf(reader), [["available", null]], "the credit is back in the balance");
+
+  const read = await call(reader, "GET", `/reports/${id}`);
+  assert.deepEqual([read.body.status, read.body.canRegenerate, read.body.failureReason.line], ["failed", false, FINAL_LINE]);
+  const status = await call(reader, "GET", `/reports/${id}/status`);
+  assert.deepEqual([status.body.canRegenerate, status.body.failureReason.line], [false, FINAL_LINE]);
+  const listed = (await call(reader, "GET", "/reports")).body.find((r: { id: string }) => r.id === id);
+  assert.equal(listed.failureReason.line, FINAL_LINE);
+  const home = (await call(reader, "GET", "/home")).body;
+  assert.deepEqual([home.you.reportId, home.you.status, home.you.canRegenerate], [id, "failed", false]);
+  const refused = await call(reader, "POST", `/reports/${id}/regenerate`);
+  assert.deepEqual([refused.status, refused.body], [409, { error: "final", message: FINAL_LINE }]);
+
+  // Once: the credit back pays for the next report, and a stray failure of the final one leaves it there.
+  const next = await written(reader, IDRIS, false);
+  await failReport(id, new Error("a stray failure"));
+  assert.deepEqual(await ledgerOf(reader), [["used", next]]);
+});
+
+test("db: Delete gives a failed report's credit back first, once; a finished report's stays spent (ADR-313)", { skip: NO_DB }, async () => {
+  const reader = await signIn("delete", "solo", "solo");
+  const failed = await failedOnce(reader, MIRA, true);
+  assert.deepEqual(await balanceOf(reader), { available: 1, used: 1 });
+  assert.equal((await call(reader, "DELETE", `/reports/${failed}`)).status, 204);
+  assert.deepEqual(await balanceOf(reader), { available: 2, used: 0 }, "its credit is back");
+  assert.equal((await call(reader, "DELETE", `/reports/${failed}`)).status, 404);
+  assert.deepEqual(await balanceOf(reader), { available: 2, used: 0 }, "and back once");
+
+  const finished = await written(reader, IDRIS, false);
+  assert.equal((await call(reader, "DELETE", `/reports/${finished}`)).status, 204);
+  assert.deepEqual(await balanceOf(reader), { available: 1, used: 1 }, "a finished report was paid for");
+});
+
+test("db: a pair that fails gives its credit back at once and is final; its Delete gives nothing more (ADR-313)", { skip: NO_DB }, async () => {
+  const maker = await signIn("pair", "couple");
+  const a = await written(maker, MIRA, true);
+  const b = await written(maker, IDRIS, false);
+  fake.replies = {};
+  const pair = await call(maker, "POST", "/compatibility", { reportAId: a, reportBId: b, lens: "partners" });
+  assert.equal(pair.status, 201, JSON.stringify(pair.body));
+  assert.equal(await settled(maker, pair.body.id), "failed");
+  assert.deepEqual(await balanceOf(maker), { available: 1, used: 2 }, "a pair has no Try again, so its credit is back at once");
+  assert.deepEqual(await triesOf(pair.body.id), [1, true]);
+  const read = await call(maker, "GET", `/reports/${pair.body.id}`);
+  assert.deepEqual([read.body.canRegenerate, read.body.failureReason.line], [false, FINAL_LINE]);
+  assert.equal((await call(maker, "DELETE", `/reports/${pair.body.id}`)).status, 204);
+  assert.deepEqual(await balanceOf(maker), { available: 1, used: 2 });
+});
+
+test("db: Regenerate of a finished report for an earlier version takes no credit, with none left in the balance (ADR-313)", { skip: NO_DB }, async () => {
+  const reader = await signIn("earlier", "solo");
+  const id = await written(reader, MIRA, true);
+  assert.deepEqual(await balanceOf(reader), { available: 0, used: 1 });
+  await q(`update reports set interpretation = jsonb_set(interpretation, '{meta}', '{"promptVersion": "an-earlier-version"}'::jsonb) where id = $1`, [id]);
+
+  fake.replies = textFor(MIRA);
+  const again = await call(reader, "POST", `/reports/${id}/regenerate`);
+  assert.equal(again.status, 202, JSON.stringify(again.body));
+  assert.equal(await settled(reader, id), "complete");
+  assert.deepEqual(await ledgerOf(reader), [["used", id]], "the one credit stays on this report, and nothing else was taken");
+  assert.deepEqual(await balanceOf(reader), { available: 0, used: 1 });
+  assert.deepEqual(await triesOf(id), [0, false]);
 });

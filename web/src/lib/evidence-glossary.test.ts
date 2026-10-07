@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { HOUSE_NAMES, HOUSE_WORDS, glossFor, houseWithWord, houseWord, sourceLines, withHouseWords } from "./evidence-glossary";
+import { HOUSE_NAMES, HOUSE_THEMES, HOUSE_WORDS, glossFor, houseWithWord, houseWord, sourceLines, withHouseWords } from "./evidence-glossary";
+import * as houses from "./houses";
 import { whySentence } from "@/components/report/Checklist";
+
+describe("the house set's names, read from here (ADR-321)", () => {
+  it("are the house set's own arrays, so an import from either file prints the same words", () => {
+    expect(HOUSE_WORDS).toBe(houses.HOUSE_WORDS);
+    expect(HOUSE_THEMES).toBe(houses.HOUSE_COVERS);
+  });
+
+  it("print the covers line wherever an evidence line names a house", () => {
+    expect(glossFor({ kind: "placement", body: "sun", sign: "pisces", house: 12 }))
+      .toBe("Identity, and what you are for. Pisces sensitive, imaginative, absorbs everything. The 12th (rest, time alone, what goes on out of sight).");
+    expect(glossFor({ kind: "lot", lot: "fortune", sign: "leo", house: 5 }))
+      .toBe("The Lot of Fortune is a calculated point, not a planet. Here it falls in Leo, the 5th (fun, making things, love, children).");
+    expect(glossFor({ kind: "cross", planet: "venus", house: 7 }))
+      .toBe("Attraction, taste, what draws you in. It falls in the other person's 7th (partners and the people you face one to one).");
+  });
+});
 
 describe("one word per house (ADR-98)", () => {
   it("is the first word of each house title", () => {
@@ -28,7 +45,7 @@ describe("one word per house (ADR-98)", () => {
 
   it("carries the word in the ruler gloss", () => {
     expect(glossFor({ kind: "ruler", house: 10, ruler: "venus", rulerSign: "scorpio", rulerHouse: 11, dignity: "detriment" }))
-      .toBe("The 10th (career, public role, reputation) answers to Venus, which sits in Scorpio in the 11th (friends), out of place, working hard for uneven results.");
+      .toBe("The 10th (your work and what you're known for) answers to Venus, which sits in Scorpio in the 11th (friends), out of place, working hard for uneven results.");
   });
 });
 

@@ -10,7 +10,7 @@ import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { CHAPTERS } from "@/lib/chapters";
 import { clockWords } from "@/lib/date-entry";
-import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
+import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { SiteLayout } from "../SiteLayout";
 import { ReferenceCheck } from "../components/ReferenceCheck";
 import { SAMPLE, sampleChart } from "../data/sample";
@@ -159,8 +159,11 @@ function Steps() {
               We check every claim in your report against your chart, using code. If one doesn't match, we rewrite that
               sentence or take it out before you see it.
             </p>
-            {/* MB-91 provisional: the soft pass writes some reports on no credit, so this holds for every failed report only once credits go hard (R12). */}
-            <p className={PROSE}>If a chapter still fails the check, you get your credit back and we tell you what went wrong.</p>
+            {/* ADR-313: a failed report keeps its credit, so Try again is free and only a final failure gives it back. */}
+            <p className={PROSE}>
+              If a chapter still fails the check, we tell you what went wrong. Try again is free. If we still can't write
+              your report, its credit comes back to your balance. For a {COMPATIBILITY_REPORT}, the credit comes back at once.
+            </p>
           </Step>
         </ol>
 

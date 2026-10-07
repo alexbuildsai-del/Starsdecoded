@@ -8,7 +8,10 @@
  *      console.log(calculateNatalChart("1999-08-11","12:10",51.5074,-0.1278,1))'
  */
 import { describe, expect, it } from "vitest";
-import { CONJUNCTION_DEGREES, OUTSIDE_STEP, PHONE, layoutHero, moonArc, overlaps, phoneStack, separation } from "./hero-layout";
+import {
+  CONJUNCTION_DEGREES, OUTSIDE_STEP, PHONE, ascendantValue, layoutHero, moonArc, overlaps, phoneStack, separation, shortDate, writtenOnText,
+} from "./hero-layout";
+import { angleGlyphRadius } from "./AngleGlyph";
 import { pointAt, theta } from "@/components/chart/wheel-geometry";
 
 const PLATE = { cx: 500, cy: 330, ringRadius: 200, labelWidth: 176, labelHeight: 30 };
@@ -184,5 +187,49 @@ describe("the phone stack", () => {
     expect(s.ring).toBeLessThan(390 * PHONE.ringShare);
     expect(s.ring).toBeGreaterThan(150);
     expect(s.clearance).toBeGreaterThanOrEqual(PHONE.clearance);
+  });
+});
+
+describe("the Ascendant's value", () => {
+  it("reads as the Sun's and Moon's values do, sign first, with the 1st house and its word", () => {
+    expect(ascendantValue({ sign: "Gemini", degree: 19.07 })).toBe("Gemini 19.07° · 1st (self)");
+    expect(ascendantValue({ sign: "Aries", degree: 0.5 })).toBe("Aries 0.50° · 1st (self)");
+  });
+
+  it("prints nothing on a chart with no birth time", () => {
+    expect(ascendantValue(null)).toBeNull();
+    expect(ascendantValue(undefined)).toBeNull();
+  });
+});
+
+describe("the report's date", () => {
+  it("says Written on, then the day in short form", () => {
+    expect(writtenOnText("2026-10-05T12:00:00")).toBe("Written on 5 Oct 2026");
+    expect(shortDate(new Date(2026, 8, 12, 12))).toBe("12 Sep 2026");
+  });
+
+  it("prints nothing without a date or with one that is not a date", () => {
+    expect(writtenOnText(null)).toBeNull();
+    expect(writtenOnText(undefined)).toBeNull();
+    expect(writtenOnText("")).toBeNull();
+    expect(writtenOnText("not a date")).toBeNull();
+  });
+
+  it("makes the phone's name taller by its line and still holds the clearance", () => {
+    const plain = phoneStack({ viewportWidth: 390, viewportHeight: 844, nameLines: 1, nameSize: 44 });
+    const dated = phoneStack({ viewportWidth: 390, viewportHeight: 844, nameLines: 1, nameSize: 44, dated: true });
+    expect(dated.name).toBe(plain.name + PHONE.nameGap + PHONE.written);
+    expect(dated.clearance).toBeGreaterThanOrEqual(PHONE.clearance);
+  });
+});
+
+describe("the angle glyph", () => {
+  it("keeps the tick, round cap and all, inside its box at 22 px and at every size the report uses", () => {
+    for (const size of [16, 22, 36]) {
+      const r = angleGlyphRadius(size, 1.5);
+      const tickEnd = size / 2 - r * 1.85;
+      expect(tickEnd, `${size} px`).toBeGreaterThanOrEqual(0.75 - 1e-9);
+      expect(r).toBeGreaterThan(3);
+    }
   });
 });

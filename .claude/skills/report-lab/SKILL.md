@@ -8,13 +8,13 @@ charts are about **$1.40**. Never generate a report to look at one.
 `pnpm report:lab --render` re-reads the newest stored run for free, `--compare`
 re-measures stored runs for free, and the Lab page shows every run's numbers.
 Spend is capped at `LAB_BUDGET_USD` ($15 a month, ADR-77): the spot, the
-sessions, the release lab and the study notes refuse beyond it, and every
-campaign stops at the first out-of-credit 429.
+sessions, the release lab, the fixtures and the study notes refuse beyond it.
 
 **No secret on GitHub, ever (ADR-86).** The key lives on Railway; every level
 that spends runs from the admin panel on staging behind the Clerk admin gate.
-GitHub workflows build, test and smoke; `report-lab.yml` keeps only the
-anonymous natal, pass and pair campaigns, which use no secret.
+GitHub workflows build, test and smoke. The anonymous campaigns and
+`report-lab.yml` are gone (B-30): credits are hard, so **Run the fixtures** on
+the Lab page's *Runs* writes the five charts and their pair fresh (about 20 ¢).
 
 ## The levels (ADR-76, ADR-86)
 
