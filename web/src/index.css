@@ -567,8 +567,31 @@
   .rp-open .door button:hover, .rp-open .door button:focus-visible { background: var(--indigo); outline: none; }
   .rp-open .door small { font-size: 12.5px; color: var(--paper-dim); }
   .rp-open .fail { font-size: 14px; color: var(--paper-dim); text-align: center; max-width: 44ch; }
+  /* --- the loading grid (ADR-351): every slot at its share of the frame's height, the same on every device --- */
+  .rp-open.rp-grid { display: block; padding: 0; }
+  .lf-wrap { height: 100%; display: flex; flex-direction: column; align-items: center; }
+  .lf { position: relative; flex: 1 1 0; min-height: 0; width: 100%; max-width: 1000px; container-type: size; overflow-x: clip; padding: 0 16px; }
+  .lf > * { position: absolute; left: 16px; right: 16px; margin: 0; text-align: center; min-width: 0; }
+  .lf-counter { top: 5%; height: 3%; display: flex; align-items: center; justify-content: center; font-family: var(--label); font-size: min(11px, 2.2cqh);
+    letter-spacing: .24em; text-transform: uppercase; color: hsl(var(--brass)); white-space: nowrap; overflow: hidden; }
+  .lf-title { top: 8%; height: 8%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-family: var(--serif); font-weight: 400;
+    font-size: min(26px, 3.4cqh); line-height: 1.15; color: var(--paper); overflow: hidden; }
+  .lf-title, .lf-subtitle { overflow-wrap: anywhere; }
+  .lf-subtitle { top: 16%; height: 6%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: min(15px, 2.2cqh); line-height: 1.3;
+    color: var(--paper-dim); overflow: hidden; }
+  .lf-stage { top: 24%; height: 42%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .lf-stage > * { max-width: 100%; max-height: 100%; }
+  .lf-stage > svg { width: 100%; height: 100%; }
+  .lf-detail { top: 68%; height: 16%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow: hidden;
+    font-size: 14px; color: var(--paper-dim); }
+  .lf-pct { top: 86%; height: 4%; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; overflow: hidden; }
+  .lf-pct .pct { font-size: min(18px, 3.4cqh); }
+  .lf-pct .lab { font-size: 10px; letter-spacing: .2em; }
+  .lf-door { top: 91%; height: 6%; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; column-gap: 14px; row-gap: 4px; overflow: visible; animation: rp-rise .7s var(--ease) both; }
+  .lf-door .door { display: contents; animation: none; }
+  .lf-door .door small { align-self: center; }
   @keyframes rp-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .rp-open { transition: none; } .rp-open .door { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .rp-open { transition: none; } .rp-open .door, .lf-door { animation: none; } }
 
   /* --- the marks of a horizon pass: a revised sentence and an added paragraph (ADR-35) --- */
   .rp-rev { background: none; color: inherit; border-bottom: 1.5px solid var(--sky); cursor: pointer; padding: 0; font: inherit; text-align: inherit; }
