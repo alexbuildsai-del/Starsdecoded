@@ -49,7 +49,7 @@ in the dial's range is retrograde, and the nodes never trigger it; the Ascendant
 MB-228 gained two Railway checks for production (no volume; empty Custom Start Command). Your look: `docs/annex/R18-words.md`, before and after.
 
 ## Spend
-Spend: 5.29M Opus (18 Opus cards with both fixes, three researchers, the sentinel twice), 1.32M Sonnet (11 cards, the verifier, the
+Spend: 5.08M Opus (18 Opus cards with both fixes, three researchers, the sentinel twice), 1.32M Sonnet (11 cards, the verifier, the
 tester, the words list), 0 Haiku · cards 16 Opus, 11 Sonnet, 0 Haiku by planned tier, plus R18-28 and R18-29 (Opus) · escalations none · lab 0 ¢.
 
 **Lessons.** Promoted early: a builder's `pkill vite` stopped others' servers → builder.md. Seen again: the caller rule (R18-15, 24, 25, each named in
