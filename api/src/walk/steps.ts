@@ -28,6 +28,8 @@ interface Listed {
 }
 
 const TOMAS_IS_LOCAL = "Tomás has no account on staging, where the QA pair is Mira and Idris; his steps run in CI (ADR-314).";
+const SETUP_IS_LOCAL =
+  "Setup writes paid readings and a deploy spends nothing, so the QA pair's setup never starts on staging; it runs in CI (ADR-315).";
 
 export const STEPS = [
   {
@@ -126,9 +128,23 @@ export const STEPS = [
   {
     // Timeline needs the reader's own finished Personal report (reading 1), so the plan waits with Mira's.
     id: "timeline",
-    label: "Mira starts Timeline yearly: it opens with 1 credit to give, renews a year on, and closes at the end of the period she cancels; Idris keeps the teaser",
+    label: "Mira starts Timeline yearly: it opens with 1 credit to give and renews a year on",
     staging: "live",
     how: "a test clock; access and the Account page, no Timeline page",
+    reads: ["own-report"],
+  },
+  {
+    id: "timeline-setup",
+    label: "Mira's first payment sets Timeline up: each reading the engine lists for her chart is written once, and opening one then writes nothing",
+    staging: "local",
+    reason: SETUP_IS_LOCAL,
+  },
+  {
+    // Once closed, Timeline is offered to her again because her own report is finished, so this waits with Mira's too.
+    id: "timeline-ends",
+    label: "Mira cancels Timeline: it stays to the end of the year she paid for, then closes; Idris keeps the teaser",
+    staging: "live",
+    how: "the same test clock; access and the Account page",
     reads: ["own-report"],
   },
 ] as const satisfies readonly Listed[];

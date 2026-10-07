@@ -4,11 +4,13 @@
 // ways, and Mira writes a parent and child report and shares it with Idris, who claims it from its link (ADR-285).
 // Stripe refunds the Family & friends purchase, so Mira, out of credits, buys a Couple from the birth form, writes her
 // partner Tomás's Personal report and a partners report, and sends Tomás both. Last, she starts Timeline yearly: it
-// opens, renews a year on, and closes at the end of the period she cancels.
+// opens and renews a year on; its first payment sets it up, so each reading the engine lists for her chart is written
+// once and opening one then writes nothing (ADR-302, 362); and it closes at the end of the period she cancels.
 // No Clerk, no network, no OpenAI and no Stripe. A header stands where the sign-in is, mail goes to a local stub, the
 // model client is pointed at a local stand-in that answers each call with canned text that passes the checks, and
-// Stripe is a local stand-in (testStripe.ts) whose events reach the real webhook signed as Stripe signs them. So every
-// payment, grant and report goes through the real routes and is written as it is on staging. The people are the site's
+// Stripe is a local stand-in (testStripe.ts) whose events reach the real webhook signed as Stripe signs them. The job
+// queue the API's worker runs in the background runs here in-process (drainJobs). So every payment, grant, report and
+// reading goes through the real routes and is written as it is on staging. The people are the site's
 // sample people (fixtures/sample-people/, web/src/site/data/people.ts), so the walk and the site share them; their
 // charts are computed from those birth data at run time.
 //
@@ -44,6 +46,7 @@ import { fileURLToPath } from "node:url";
 import type { AddressInfo } from "node:net";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { BUNDLES, CHECKOUT_TICK, PLAN_TICK, PLANS, bundleById, formatEuro, renewalLine, type CatalogueItemId } from "@workspace/commerce";
+import { lifeCycles, natalLongitudes, readsAs, skyEvents } from "@workspace/engine";
 import { STEPS, STEP_IDS, mapProblem, type ListedStep, type StepId } from "./steps.js";
 import { startTestStripe, type Json, type StripeEvent } from "./testStripe.js";
 
@@ -140,6 +143,8 @@ const { PROMPT_VERSION } = await import("../lib/aiInterpretation.js");
 const { PAIR_PROMPT_VERSION, pairChapterId } = await import("../prompts/pair/index.js");
 const { buildPairBrief } = await import("../lib/pairBrief.js");
 const { NO_TIMELINE_LINE } = await import("../lib/timelineAccess.js");
+const { dayIn, dayStart } = await import("../lib/timeline.js");
+const { drainJobs } = await import("../lib/jobs.js");
 const { syncProductsOnStart } = await import("../lib/stripeSync.js");
 const { logger } = await import("../lib/logger.js");
 const { apiHeaders, originGuard, webOrigins } = await import("../middlewares/origin.js");
@@ -186,6 +191,13 @@ async function call(who: Viewer, method: string, path: string, body?: unknown) {
 
 const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [] };
 const NO_CREDITS = { available: 0, used: 0, held: 0 };
+// No plan, and a finished Personal report of one's own (reading 1): Mira before Timeline and after it, Idris always.
+const TIMELINE_CLOSED = { access: false, source: null, hasPersonalReport: true, ask: null };
+// What a reading says: no date, degree, life event or order, so it fits each event the setup writes.
+const READING = {
+  line: "You think harder about what you take on and why.",
+  body: "Astrology reads this stretch as a time when the sky presses on a part of your chart you already know well. Your report describes how you work through things in depth before you commit. This time meets that habit. You may find that old plans feel heavier to carry. You may also find that the plans you still believe in feel clearer. Some days the pressure feels like a weight. Other days it feels like a firm hand on your back. People around you may see you as more serious than usual. You may feel the gap between how calm you look and how you feel inside.",
+};
 // ADR-275: with no credit, Write is refused before anything is written, with a line of its own.
 const NO_CREDIT_TO_WRITE = { error: "no_credit", message: "You need a credit to write this report." };
 const RECEIPT_SUBJECT = "Your receipt from Stars Decoded";
@@ -284,6 +296,60 @@ async function timelineAccess(who: Viewer) {
 }
 async function customerOf(who: Viewer): Promise<string | null> {
   return (await q("select stripe_customer_id from users where id = $1", [who.user])).rows[0]?.stripe_customer_id ?? null;
+}
+async function timelineSetup(who: Viewer, zone: string) {
+  const r = await call(who, "GET", `/timeline/setup?tz=${encodeURIComponent(zone)}`);
+  assert.equal(r.status, 200, `${who.user}: ${r.status} ${JSON.stringify(r.body)}`);
+  return zod.GetTimelineSetupResponse.parse(r.body);
+}
+
+/** A plan's period end, which since the basil API sits on its one item. */
+const periodEnd = (sub: Json) => Number(((sub.items as { data: Json[] }).data[0]).current_period_end);
+
+function addDays(day: string, n: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** The Monday on or before a day: a reader's week runs Monday to Sunday. */
+function mondayOf(day: string): string {
+  return addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
+}
+
+/**
+ * What the engine lists for a chart from a Monday in the reader's days (reading 8), worked out here rather than by the
+ * setup: the sky events that get a reading over this week's 7 days, the month's 30 and the six months' 182, and every
+ * life cycle to 90.
+ */
+function engineReadings(chart: Chart, zone: string, from: string) {
+  const start = dayStart(from, zone);
+  const readingsOver = (days: number) => {
+    const end = new Date(dayStart(addDays(from, days), zone).getTime() - 1);
+    return new Set(skyEvents(chart, start, end).filter(readsAs).map((event) => event.key));
+  };
+  const cycles = lifeCycles(natalLongitudes(chart), new Date(chart.datetimeUtc)).map((cycle) => cycle.key);
+  return { week: readingsOver(7), month: readingsOver(30), months: readingsOver(182), cycles };
+}
+
+/** Jobs still to write a reading: any kind but the next six months', which waits for its week. */
+async function readingJobsLeft(): Promise<number> {
+  return Number((await q("select count(*) as n from jobs where kind <> 'timeline.ahead' and status in ('queued', 'running')")).rows[0].n);
+}
+
+/**
+ * The API's worker writes a setup's readings in the background; here the queue runs in-process until none is left to
+ * write. Setup queues them a millisecond apart, so a run that begins before the last is due runs again.
+ */
+async function drained(): Promise<number> {
+  const end = Date.now() + 30_000;
+  let ran = 0;
+  for (;;) {
+    ran += await drainJobs();
+    const left = await readingJobsLeft();
+    if (left === 0) return ran;
+    if (Date.now() > end) throw new Error(`${left} readings were still waiting after 30 s; calls with no text: ${unanswered.join(", ") || "none"}`);
+    await sleep(50);
+  }
 }
 
 /** Pay pressed with the box ticked: the purchase checkout made, and the session Stripe holds for it. */
@@ -464,6 +530,7 @@ let tomasPairRelationshipId = "";
 let reportToken = "";
 let pairToken = "";
 let familyPurchaseId = "";
+let timelinePlan = "";
 
 const WALK: Record<StepId, Step> = {
   "sign-in": async () => {
@@ -961,8 +1028,7 @@ const WALK: Record<StepId, Step> = {
   },
 
   timeline: async () => {
-    const closed = { access: false, source: null, hasPersonalReport: true, ask: null };
-    assert.deepEqual(await timelineAccess(MIRA), closed);
+    assert.deepEqual(await timelineAccess(MIRA), TIMELINE_CLOSED);
     assert.ok(((await readHome(MIRA)).teaser?.cycles.length ?? 0) > 0, "Mira's home has no teaser to start Timeline from");
 
     // Start Timeline on the teaser: the plan's own box, and the yearly price.
@@ -976,8 +1042,7 @@ const WALK: Record<StepId, Step> = {
     // Stripe makes the subscription and pays its first invoice, whose payment the webhook reads from Stripe.
     const paid = testStripe.pay(String(started.session.id));
     const subscription = paid.subscription as Json;
-    const subscriptionId = String(subscription.id);
-    const periodEnd = (sub: Json) => Number(((sub.items as { data: Json[] }).data[0]).current_period_end);
+    timelinePlan = String(subscription.id);
     await delivered(testStripe.event("customer.subscription.created", subscription));
     await delivered(testStripe.event("invoice.paid", paid.invoice as Json));
     await delivered(testStripe.event("checkout.session.completed", paid.session));
@@ -1015,7 +1080,7 @@ const WALK: Record<StepId, Step> = {
     assert.deepEqual([portalCall?.params.customer, portalCall?.params.return_url], [await customerOf(MIRA), `${OUR_PAGE}${ACCOUNT_PAGE}`]);
 
     // A year on, Stripe renews it: the year is paid, and with it another credit to give; our receipt was the first one's.
-    const renewed = testStripe.renew(subscriptionId);
+    const renewed = testStripe.renew(timelinePlan);
     await delivered(testStripe.event("invoice.paid", renewed.invoice));
     await delivered(testStripe.event("customer.subscription.updated", renewed.subscription));
     assert.ok(periodEnd(renewed.subscription) > periodEnd(subscription));
@@ -1023,16 +1088,93 @@ const WALK: Record<StepId, Step> = {
     assert.deepEqual(await credits(MIRA), { available: 3, used: 4, held: 0 });
     assert.deepEqual((await history(MIRA)).slice(0, 2), [["granted", 1, "With Timeline"], ["granted", 1, "With Timeline"]]);
     assert.equal(receipts().length, 3);
+  },
 
+  // The webhook started the setup as it kept the first payment (ADR-362). The screen she lands on reads it, the queue
+  // writes it, and every list is held against the engine's own for her chart, worked out here (reading 8).
+  "timeline-setup": async () => {
+    const zone = MIRA_BIRTH.timezone;
+    const from = mondayOf(dayIn(new Date(), zone));
+    const to = addDays(from, 181);
+    const engine = engineReadings(miraChart, zone, from);
+    const all = new Set([...engine.week, ...engine.month, ...engine.months, ...engine.cycles]);
+    const counts = [
+      ["chart", null], ["planets", null], ["week", engine.week.size], ["month", engine.month.size], ["months", engine.months.size],
+      ["cycles", engine.cycles.length],
+    ];
+
+    // Writing: the chart and the planets tick at once, and each step counts what the engine lists for its days.
+    const writing = await timelineSetup(MIRA, zone);
+    assert.deepEqual([writing.state, writing.from, writing.to, writing.replay], ["writing", from, to, null]);
+    assert.deepEqual(writing.steps.map((step) => [step.id, step.count]), counts);
+    assert.deepEqual(writing.steps.slice(0, 2).map((step) => step.done), [true, true]);
+    // One job a reading, nothing written yet, and the next six months' job a week before these end (reading 9).
+    const queued = (await q(
+      "select payload->>'key' as key from jobs where kind = 'timeline.reading' and status = 'queued' and payload->>'profileId' = $1",
+      [miraProfileId],
+    )).rows.map((row) => String(row.key));
+    assert.deepEqual(queued.sort(), [...all].sort());
+    assert.equal((await q("select count(*)::int as n from timeline_readings where profile_id = $1", [miraProfileId])).rows[0].n, 0);
+    const ahead = (await q("select run_at from jobs where kind = 'timeline.ahead' and payload->>'userId' = $1", [MIRA.user])).rows;
+    assert.deepEqual(ahead.map((row) => (row.run_at as Date).getTime()), [dayStart(addDays(to, -7), zone).getTime()]);
+    // The screen's catch-up finds it started and queues nothing twice.
+    const caughtUp = await call(MIRA, "POST", `/timeline/setup?tz=${encodeURIComponent(zone)}`);
+    assert.equal(caughtUp.status, 202, JSON.stringify(caughtUp.body));
+    assert.deepEqual(zod.StartTimelineSetupResponse.parse(caughtUp.body), writing);
+    assert.equal(await readingJobsLeft(), all.size);
+
+    replies = { timeline_reading: READING };
+    const callsBefore = modelCalls.length;
+    assert.equal(await drained(), all.size, "one job ran for each reading");
+    assert.equal(modelCalls.length - callsBefore, all.size, "each reading was written once");
+    assert.deepEqual(unanswered, []);
+    const kept = (await q("select event_key, status from timeline_readings where profile_id = $1", [miraProfileId])).rows;
+    assert.deepEqual(kept.map((row) => String(row.event_key)).sort(), [...all].sort());
+    assert.deepEqual(kept.filter((row) => row.status !== "ready").map((row) => row.event_key), []);
+    const ready = await timelineSetup(MIRA, zone);
+    assert.deepEqual([ready.state, ready.from, ready.to, ready.replay], ["ready", from, to, null]);
+    assert.deepEqual(ready.steps.map((step) => [step.id, step.count]), counts);
+    assert.deepEqual(ready.steps.filter((step) => !step.done).map((step) => step.id), []);
+
+    // Once it is set up, an open writes nothing and waits for nothing (reading 11): her week's cards and Life's carry
+    // their kept lines, and each card opens on its kept reading without a call to the model.
+    replies = {};
+    const callsAfter = modelCalls.length;
+    const week = await call(MIRA, "GET", `/timeline/now?range=week&tz=${encodeURIComponent(zone)}`);
+    assert.equal(week.status, 200, JSON.stringify(week.body));
+    const events = zod.GetTimelineNowResponse.parse(week.body).events;
+    for (const event of events) {
+      assert.deepEqual([event.reading, event.line], all.has(event.key) ? ["ready", READING.line] : ["none", null], event.key);
+    }
+    const life = await call(MIRA, "GET", `/timeline/life?tz=${encodeURIComponent(zone)}`);
+    assert.equal(life.status, 200, JSON.stringify(life.body));
+    const cycles = zod.GetTimelineLifeResponse.parse(life.body).cycles;
+    assert.deepEqual(cycles.map((cycle) => cycle.key).sort(), [...engine.cycles].sort());
+    assert.deepEqual(cycles.filter((cycle) => cycle.reading !== "ready").map((cycle) => cycle.key), []);
+    const cards = [...events.filter((event) => event.reading === "ready").map((event) => event.key), cycles[0].key];
+    for (const key of cards) {
+      const opened = await call(MIRA, "POST", `/timeline/readings/${encodeURIComponent(key)}`, {});
+      assert.equal(opened.status, 200, `${key}: ${JSON.stringify(opened.body)}`);
+      const card = zod.OpenTimelineReadingResponse.parse(opened.body);
+      assert.deepEqual([card.status, card.reading?.key, card.reading?.line], ["ready", key, READING.line], key);
+    }
+    assert.equal(modelCalls.length, callsAfter, `opening ${cards.length} cards called the model`);
+    assert.equal(await readingJobsLeft(), 0, "an open queued a reading");
+  },
+
+  "timeline-ends": async () => {
+    const renewing = (await timelineAccess(MIRA)).plan;
     // She cancels in the Portal: Timeline stays to the end of the year she paid for, then closes.
-    await delivered(testStripe.event("customer.subscription.updated", testStripe.cancelAtPeriodEnd(subscriptionId)));
+    const cancelled = testStripe.cancelAtPeriodEnd(timelinePlan);
+    await delivered(testStripe.event("customer.subscription.updated", cancelled));
     const ending = await timelineAccess(MIRA);
     assert.deepEqual(
       [ending.access, ending.plan],
-      [true, { item: "timeline_year", status: "active", renewsOn: null, endsOn: brusselsDay(periodEnd(renewed.subscription)) }],
+      [true, { item: "timeline_year", status: "active", renewsOn: null, endsOn: brusselsDay(periodEnd(cancelled)) }],
     );
-    await delivered(testStripe.event("customer.subscription.deleted", testStripe.end(subscriptionId)));
-    assert.deepEqual(await timelineAccess(MIRA), closed);
+    assert.equal(ending.plan?.endsOn, renewing?.renewsOn, "it ends on the day it would have renewed");
+    await delivered(testStripe.event("customer.subscription.deleted", testStripe.end(timelinePlan)));
+    assert.deepEqual(await timelineAccess(MIRA), TIMELINE_CLOSED);
     const shut = await call(MIRA, "GET", "/timeline/now?range=week");
     assert.deepEqual([shut.status, shut.body.error, shut.body.message], [403, "no_timeline", NO_TIMELINE_LINE]);
     const after = await readHome(MIRA);
@@ -1040,7 +1182,7 @@ const WALK: Record<StepId, Step> = {
     assert.deepEqual(await credits(MIRA), { available: 3, used: 4, held: 0 });
 
     // Idris never started it: his home keeps the teaser, and he has nothing at Stripe to manage.
-    assert.deepEqual(await timelineAccess(IDRIS), closed);
+    assert.deepEqual(await timelineAccess(IDRIS), TIMELINE_CLOSED);
     const his = await call(IDRIS, "GET", "/timeline/now?range=week");
     assert.deepEqual([his.status, his.body.error, his.body.message], [403, "no_timeline", NO_TIMELINE_LINE]);
     const idrisHome = await readHome(IDRIS);
@@ -1061,7 +1203,7 @@ const walkStarted = Date.now();
 let setupError: unknown = null;
 try {
   await q(
-    "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger, profile_shares, report_workbooks, generation_failures, timeline_readings, ask_messages, purchases, stripe_events, subscriptions, campaigns, testers, qa_walks cascade",
+    "truncate table users, profiles, reports, relationships, relationship_participants, invite_tokens, bundles, credits, report_revisions, spend_ledger, profile_shares, report_workbooks, generation_failures, timeline_readings, timeline_setups, jobs, ask_messages, purchases, stripe_events, subscriptions, campaigns, testers, qa_walks cascade",
   );
   // As each start does, after its listen (reading 14): checkout says it isn't ready until the sync has found the catalogue.
   const synced = await syncProductsOnStart();

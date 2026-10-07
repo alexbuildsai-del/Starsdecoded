@@ -38,3 +38,4 @@ src/routes/qa.test.ts
 src/walk/steps.test.ts
 src/lib/qaWalk/qaWalk.test.ts
 src/lib/timelineReadings.test.ts
+src/lib/timelineSetup.test.ts

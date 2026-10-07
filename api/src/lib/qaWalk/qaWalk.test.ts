@@ -63,9 +63,9 @@ type Role = "mira" | "idris";
 const STAGING = { APP_ENV: "staging" } as NodeJS.ProcessEnv;
 const WEB = "https://starsdecoded-staging.vercel.app";
 const DAY = 86_400_000;
-const LOCAL = ["tomas-report", "tomas-pair", "tomas-sends", "tomas-claims"];
+const LOCAL = ["tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline-setup"];
 const STORED = ["own-report", "idris-report", "pair"];
-const SEED_READERS = ["no-credit", "share", "share-back", "pair-shared", "timeline"];
+const SEED_READERS = ["no-credit", "share", "share-back", "pair-shared", "timeline", "timeline-ends"];
 // Clerk's ids are long, so the walk's findings are pinned against ids shaped as Clerk makes them.
 const PAIR: QaPair = {
   mira: { userId: "user_2mGqYxQaWalkMira01", email: QA_PAIR.mira.email, name: QA_PAIR.mira.name },
@@ -567,7 +567,7 @@ test("a deploy's walk on a stored seed runs the list in its order: the live step
   for (const step of verdict.steps) {
     const want = LOCAL.includes(step.id) ? "local" : STORED.includes(step.id) ? "stored" : "pass";
     assert.equal(step.status, want, step.id);
-    if (want === "local") assert.ok(step.reason?.includes("Tomás"), step.id);
+    if (want === "local") assert.match(step.reason ?? "", step.id === "timeline-setup" ? /paid readings/ : /Tomás/, step.id);
   }
   // Reading 17: one write, Idris's, at a zero balance, answered by the 402; no pair is written and no Timeline page opens.
   assert.deepEqual(site.paid, ["idris POST /api/reports"]);
@@ -690,7 +690,7 @@ test("a page that asks on its own for a route that writes or reads ahead is stop
 });
 
 test("each step that ran leaves one picture with reading 14's masks, at a phone's size, of the tab whose screen it read, kept under the walk its line names", async () => {
-  const { verdict, camera, shots } = await walk("deploy", { seeded: true });
+  const { verdict, camera, shots, site } = await walk("deploy", { seeded: true });
   assert.equal(verdict.status, "pass");
   const ran = verdict.steps.filter((step) => step.status !== "local" && step.status !== "not_run").map((step) => step.id);
   assert.deepEqual(ran, STEPS.filter((step) => !LOCAL.includes(step.id)).map((step) => step.id));
@@ -716,11 +716,12 @@ test("each step that ran leaves one picture with reading 14's masks, at a phone'
     assert.deepEqual(camera.resized[role], Array.from({ length: pictures }, () => ["390×844", "1280×900"]).flat(), role);
   }
   // The tab whose screen the step read: Idris's own at the gift's claim and the 402, Mira's as she reads his report, and
-  // Mira's Account page in Timeline though Idris is asked after it.
+  // Mira's Account page as Timeline starts and again as it ends, though Idris is asked after it.
   assert.deepEqual(
-    ["gift", "gift-claimed", "no-credit", "share", "share-back", "timeline"].map((id) => shots.tabOf(id)),
-    ["mira", "idris", "idris", "idris", "mira", "mira"],
+    ["gift", "gift-claimed", "no-credit", "share", "share-back", "timeline", "timeline-ends"].map((id) => shots.tabOf(id)),
+    ["mira", "idris", "idris", "idris", "mira", "mira", "mira"],
   );
+  assert.equal(site.screens.at(-1), 'mira /dashboard/account {"control":"Start Timeline"}', "once Timeline closes, her Account page offers it again");
   assert.deepEqual(modelCalls, []);
 });
 
@@ -730,7 +731,7 @@ test("a failed step is pictured and the steps after it aren't, and the next walk
   assert.equal(first.verdict.status, "pass");
   const firstId = first.verdict.steps[0].shot;
   assert.ok(firstId);
-  assert.equal(shots.rows.get("timeline")?.walkId, firstId);
+  assert.equal(shots.rows.get("timeline-ends")?.walkId, firstId);
 
   const site = new FakeSite();
   site.fail = { method: "POST", path: "/api/gifts", status: 500, body: { error: "internal_error" } };
