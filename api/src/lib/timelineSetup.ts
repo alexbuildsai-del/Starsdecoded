@@ -1,11 +1,12 @@
 /**
- * Timeline written at setup (ADR-302, 362; readings 8, 9, 11). Setup starts the moment a subscriber's payment clears,
+ * Timeline written at setup (ADR-302, 362; readings 8 to 11). Setup starts the moment a subscriber's payment clears,
  * or when their own Personal report finishes if it comes later, and never for the staging walk's QA pair, since a
- * deploy spends nothing (ADR-315). It queues one job per reading the engine lists for the reader's chart: the six
- * months from the Monday of their week, this week's first, then the month's, then the rest, then every life cycle
- * from birth to 90. One more job, a week before those six months end, writes the next six while the reader still has
- * Timeline. Every key comes from the engine's list, never from a browser (R13-10), and a paused day's writes wait for
- * the next (ADR-199).
+ * deploy spends nothing (ADR-315). It queues one job per reading the engine lists for the reader's chart: from the
+ * Monday of their week to the last day a card can open, six months on from today, this week's first, then the month's,
+ * then the rest, then every life cycle from birth to 90. One more job, a week before those end, writes the next six
+ * months while the reader still has Timeline. The reader's own open of the setup queues one refresh per kept reading
+ * gone stale (reading 10); a start or a deploy queues none. Every key comes from the engine's list, never from a
+ * browser (R13-10), and a paused day's writes wait for the next (ADR-199).
  *
  * A job's payload holds ids only, and no line here carries a payload or a Clerk id.
  */
@@ -20,11 +21,13 @@ import { logger } from "./logger.js";
 import { QA_PAIR } from "./qaPair.js";
 import { activeSubscription } from "./subscriptions.js";
 import {
-  dayIn, dayStart, lifeView, nowView, readerChart, validZone,
+  RANGE_DAYS, dayIn, dayStart, lifeView, nowView, readerChart, validZone,
   type ReaderChart, type ReadingState, type ReadingStatuses, type TimelineRange,
 } from "./timeline.js";
 import { timelineAccess } from "./timelineAccess.js";
-import { codeOf, readingJobKey, readingStatuses, readingsQueued, writeQueuedReading } from "./timelineReadings.js";
+import {
+  codeOf, readingJobKey, readingStatuses, readingsQueued, refreshJobKey, refreshReading, staleReadings, writeQueuedReading,
+} from "./timelineReadings.js";
 
 export type TimelineSetup = z.infer<typeof GetTimelineSetupResponse>;
 type SetupStep = TimelineSetup["steps"][number];
@@ -35,6 +38,8 @@ export const SETUP_STEPS: readonly StepId[] = ["chart", "planets", "week", "mont
 
 /** The next six months are written this many days before the last ones end (reading 9). */
 export const AHEAD_DAYS = 7;
+
+const SIX_MONTHS = RANGE_DAYS["six-months"];
 
 const NO_READINGS: ReadingStatuses = new Map();
 const QA_EMAILS: ReadonlySet<string> = new Set(Object.values(QA_PAIR).map((member) => member.email.toLowerCase()));
@@ -70,27 +75,48 @@ function byDay(a: string, b: string): number {
  * a range rebuilt from instants (R16-01's lesson). An event that gets no reading shows none whatever its key is told
  * (reading 7), so the view drawn again with every key told writing names exactly the events that read.
  */
-function readable(reader: ReaderChart, range: TimelineRange, zone: string, from: string): { keys: string[]; to: string } {
+function readable(reader: ReaderChart, range: TimelineRange, zone: string, from: string): string[] {
   const at = dayStart(from, zone);
   const listed = nowView(reader, range, zone, NO_READINGS, at);
   const told: ReadingStatuses = new Map(listed.events.map((event): [string, ReadingState] => [event.key, "writing"]));
   const keys = nowView(reader, range, zone, told, at).events.filter((event) => event.reading === "writing").map((event) => event.key);
-  return { keys: keys.sort(byDay), to: listed.to };
+  return keys.sort(byDay);
 }
 
 /**
- * A setup's readings from the Monday `from` (reading 8): this week, Monday to Sunday; the month, Now and ahead's 30
- * days from that Monday; the six months, its 182, so `to` is the six-month view's own last day; and every life cycle
- * from birth to 90, as Life lists them.
+ * The keys of the readings from `from` to `to`, six months to a year apart: the six-month view's from `from` and the
+ * one that ends on `to`, which meet, so each day's events are a view's own.
  */
-export function planOf(reader: ReaderChart, zone: string, from: string): SetupPlan {
-  const months = readable(reader, "six-months", zone, from);
+function readableOver(reader: ReaderChart, zone: string, from: string, to: string): string[] {
+  const keys = new Set(readable(reader, "six-months", zone, from));
+  const last = addDays(to, 1 - SIX_MONTHS);
+  if (last > from) for (const key of readable(reader, "six-months", zone, last)) keys.add(key);
+  return [...keys].sort(byDay);
+}
+
+/**
+ * Where readings written on `today` from `from` stop: six months on from `from`, or the last day a card can open, six
+ * months on from today (`eventByKey`), if that is later. So the six-month view, which runs from today, lists no reading
+ * a setup has not written.
+ */
+export function stretchEnd(from: string, today: string): string {
+  const sixMonths = addDays(from, SIX_MONTHS - 1);
+  const opens = addDays(today, SIX_MONTHS);
+  return opens > sixMonths ? opens : sixMonths;
+}
+
+/**
+ * A setup's readings from the Monday `from` to `to` (reading 8): this week, Monday to Sunday; the month, Now and ahead's
+ * 30 days from that Monday; the six months, every day to `to`, by default the six-month view's own last day from that
+ * Monday; and every life cycle from birth to 90, as Life lists them.
+ */
+export function planOf(reader: ReaderChart, zone: string, from: string, to: string = addDays(from, SIX_MONTHS - 1)): SetupPlan {
   return {
     from,
-    to: months.to,
-    week: readable(reader, "week", zone, from).keys,
-    month: readable(reader, "month", zone, from).keys,
-    months: months.keys,
+    to,
+    week: readable(reader, "week", zone, from),
+    month: readable(reader, "month", zone, from),
+    months: readableOver(reader, zone, from, to),
     cycles: lifeView(reader, zone, NO_READINGS).cycles.map((cycle) => cycle.key),
   };
 }
@@ -118,6 +144,25 @@ async function queueWrites(profileId: string, keys: readonly string[]): Promise<
     if (id) queued += 1;
   }
   return queued;
+}
+
+/**
+ * The reader's open (reading 10): one refresh for each of the setup's kept readings gone stale, this week's first, so
+ * each is written again in the background while its kept text answers. Never for the QA pair, whose walk runs at every
+ * deploy and a deploy spends nothing (ADR-315). A key a refresh already holds is skipped by its dedupe key. Never
+ * rejects, so the setup still answers.
+ */
+async function queueRefreshes(reader: ReaderChart, keys: readonly string[]): Promise<void> {
+  try {
+    const stale = await staleReadings(reader, keys);
+    if (stale.length === 0 || (await isQaAccount(reader.userId))) return;
+    const first = Date.now();
+    for (const [i, key] of stale.entries()) {
+      await enqueue("timeline.refresh", { profileId: reader.profileId, key }, { runAt: new Date(first + i), dedupeKey: refreshJobKey(reader.profileId, key) });
+    }
+  } catch (err) {
+    logger.warn({ code: codeOf(err) }, "Timeline's stale readings were not queued at an open");
+  }
 }
 
 /** The account's one next-six-months job, due a week before `to` ends in the birth place's days, as the job reads them. */
@@ -163,18 +208,23 @@ function notStarted(): TimelineSetup {
 }
 
 /**
- * The setup as GET /timeline/setup answers it, in the zone sent, else the birth place's. While it writes, a step is
- * done once each of its readings has landed or no job is left to land it, so a step never waits on a key no job holds,
- * whatever zone it is read in; a setup whose readings have all landed is ready for good, and keeps its next six
- * months' job queued. One that no longer stands, its six months over or its chart replaced, reads as none, and the
- * catch-up starts it afresh. `replay` shows from the first day of the next six months until it is marked seen.
+ * The setup as GET /timeline/setup answers it, in the zone sent, else the birth place's: the reader's open, so the
+ * setup's kept readings gone stale are queued to be written again (reading 10). While it writes, a step is done once
+ * each of its readings has landed or no job is left to land it, so a step never waits on a key no job holds, whatever
+ * zone it is read in; a setup whose readings have all landed is ready for good, and keeps its next six months' job
+ * queued. One that no longer stands, its six months over or its chart replaced, reads as none, and the catch-up starts
+ * it afresh. `replay` shows from the first day of the next six months until it is marked seen.
  */
-export async function setupState(reader: ReaderChart, zone?: string | null): Promise<TimelineSetup> {
+export function setupState(reader: ReaderChart, zone?: string | null): Promise<TimelineSetup> {
+  return stateOf(reader, zone, true);
+}
+
+async function stateOf(reader: ReaderChart, zone: string | null | undefined, opened: boolean): Promise<TimelineSetup> {
   const tz = validZone(zone) ?? reader.zone;
   const row = await setupRow(reader.userId);
   const today = dayIn(new Date(), tz);
   if (!row || !stands(row, reader, today)) return notStarted();
-  const plan = planOf(reader, tz, row.fromDay);
+  const plan = planOf(reader, tz, row.fromDay, row.toDay);
   let state: TimelineSetup["state"] = row.state;
   let landed = (_key: string): boolean => true;
   if (row.state === "ready") {
@@ -204,26 +254,29 @@ export async function setupState(reader: ReaderChart, zone?: string | null): Pro
   const replay = row.replayFrom && row.replayTo && !row.replaySeenAt && today >= row.replayFrom
     ? { from: row.replayFrom, to: row.replayTo }
     : null;
+  if (opened) await queueRefreshes(reader, writeOrder(plan));
   return { state, from: row.fromDay, to: row.toDay, steps, replay };
 }
 
 /**
- * Starts the reader's setup, once (reading 8): the six months from the Monday of their week in the zone, `to` the
- * six-month view's own last day, and every life cycle. A setup that stands is answered as it is, its next six months'
- * job queued again should a plan that lapsed have dropped it; one that no longer stands starts afresh. Never for the
- * QA pair. The jobs go in before the row, so a setup that reads as started always has its jobs; two starts at once
- * queue each job once, and one row stands.
+ * Starts the reader's setup, once (reading 8): from the Monday of their week in the zone to `stretchEnd`, so every
+ * reading the six-month view lists from today, and every life cycle. A setup that stands is answered as it is, its next
+ * six months' job queued again should a plan that lapsed have dropped it; one that no longer stands starts afresh.
+ * Never for the QA pair. A start queues no refresh: a kept reading gone stale waits for the reader's own open (reading
+ * 10). The jobs go in before the row, so a setup that reads as started always has its jobs; two starts at once queue
+ * each job once, and one row stands.
  */
 export async function startSetup(reader: ReaderChart, zone?: string | null): Promise<TimelineSetup> {
   const tz = validZone(zone) ?? reader.zone;
-  if (await isQaAccount(reader.userId)) return setupState(reader, tz);
+  if (await isQaAccount(reader.userId)) return stateOf(reader, tz, false);
   const today = dayIn(new Date(), tz);
   const row = await setupRow(reader.userId);
   if (row && stands(row, reader, today)) {
     await armAhead(reader.userId, row.toDay, reader.zone);
-    return setupState(reader, tz);
+    return stateOf(reader, tz, false);
   }
-  const plan = planOf(reader, tz, mondayOf(today));
+  const from = mondayOf(today);
+  const plan = planOf(reader, tz, from, stretchEnd(from, today));
   await queueWrites(reader.profileId, writeOrder(plan));
   await armAhead(reader.userId, plan.to, reader.zone);
   const now = new Date();
@@ -251,7 +304,7 @@ export async function startSetup(reader: ReaderChart, zone?: string | null): Pro
   } else {
     await db.insert(timelineSetupsTable).values({ userId: reader.userId, ...started }).onConflictDoNothing({ target: timelineSetupsTable.userId });
   }
-  return setupState(reader, tz);
+  return stateOf(reader, tz, false);
 }
 
 /** The next six months have been drawn for the reader, so they are not drawn again. */
@@ -338,10 +391,10 @@ export const readingJob: JobHandler = async (payload) => {
 };
 
 /**
- * `timeline.ahead { userId }` (reading 9): a week before the six months written end, with Timeline still open to the
- * reader, it queues the next six months' readings, moves the setup on to them and sets them to be drawn once, then
- * waits for the week before those end. Without access it writes nothing and stops; a new payment, or a visit once
- * access is back, queues it again.
+ * `timeline.ahead { userId }` (reading 9): a week before the readings written end, with Timeline still open to the
+ * reader, it queues the next six months' readings, to `stretchEnd` should it run late, moves the setup on to them and
+ * sets them to be drawn once, then waits for the week before those end. Without access it writes nothing and stops; a
+ * new payment, or a visit once access is back, queues it again.
  */
 export const aheadJob: JobHandler = async (payload) => {
   const userId = idIn(payload.userId);
@@ -354,13 +407,29 @@ export const aheadJob: JobHandler = async (payload) => {
   if (Date.now() < due.getTime()) return { retryAt: due };
   if (!(await timelineAccess({ userId, sessionId: "" })).access) return;
   const from = addDays(row.toDay, 1);
-  const next = readable(reader, "six-months", reader.zone, from);
-  const statuses = await readingStatuses(reader.profileId, next.keys, reader.basis);
-  await queueWrites(reader.profileId, next.keys.filter((key) => !landedIn(statuses.get(key))));
+  const to = stretchEnd(from, dayIn(new Date(), reader.zone));
+  const keys = readableOver(reader, reader.zone, from, to);
+  const statuses = await readingStatuses(reader.profileId, keys, reader.basis);
+  await queueWrites(reader.profileId, keys.filter((key) => !landedIn(statuses.get(key))));
   const now = new Date();
   await db
     .update(timelineSetupsTable)
-    .set({ fromDay: from, toDay: next.to, replayFrom: from, replayTo: next.to, replaySeenAt: null, updatedAt: now })
+    .set({ fromDay: from, toDay: to, replayFrom: from, replayTo: to, replaySeenAt: null, updatedAt: now })
     .where(and(eq(timelineSetupsTable.userId, userId), eq(timelineSetupsTable.toDay, row.toDay)));
-  return { retryAt: dayStart(addDays(next.to, -AHEAD_DAYS), reader.zone) };
+  return { retryAt: dayStart(addDays(to, -AHEAD_DAYS), reader.zone) };
+};
+
+/**
+ * `timeline.refresh { profileId, key }` (reading 10): a kept reading the reader's open found gone stale, written again
+ * in place when what it is written from moved, moved onto the new basis when it did not. Idempotent by its key, since
+ * a reading on the reader's basis is left as it is; its reader is found again from the profile, so a report deleted
+ * meanwhile writes nothing. A paused day waits for the next.
+ */
+export const refreshJob: JobHandler = async (payload) => {
+  const profileId = idIn(payload.profileId);
+  const key = idIn(payload.key);
+  if (!profileId || !key) return;
+  const reader = await readerOfProfile(profileId);
+  if (!reader) return;
+  return (await refreshReading(reader, key)).status === "paused" ? { retryAt: nextUtcMidnight() } : undefined;
 };

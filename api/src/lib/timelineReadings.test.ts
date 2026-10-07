@@ -1,8 +1,8 @@
 /**
  * Timeline's readings with the model stubbed (R16-24): what a reading builds on, and the report's call path with its
  * retries, round alone, spend and failure log, with no database. The claims run on a scratch Postgres when
- * WALK_DATABASE_URL names a bootstrapped one: one write across two opens, a stale basis written again, a write that
- * died retried, a failure's line kept, a setup job's write and the statuses, an account's new readings a day, and
+ * WALK_DATABASE_URL names a bootstrapped one: one write across two opens, a stale reading's kept text answering, a write
+ * that died retried, a failure's line kept, a setup job's write and the statuses, an account's new readings a day, and
  * forgetting. Without one they skip, saying why. Every event is the engine's, computed from a committed fixture at
  * run time.
  */
@@ -374,22 +374,25 @@ test("two opens at once write the reading once, and a third reads it back with n
   assert.equal(asked.length, 1, "kept, never written twice");
   assert.deepEqual(again, ready);
   const [row] = await rowsFor(reader.profileId);
-  assert.deepEqual([row.status, row.basis, row.model, row.userId], ["ready", reader.basis, MODELS.timelineReading, reader.userId]);
+  assert.deepEqual([row.status, row.model, row.userId], ["ready", MODELS.timelineReading, reader.userId]);
+  assert.ok(row.basis.startsWith(`${reader.basis}|`) && row.basis.length > reader.basis.length + 1, "the reader's basis with their report's version (reading 10)");
   assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC, "contact.mars.square.sun.20261024"], reader.basis), new Map([[SATURN_ON_ASC, { status: "ready", line: CLEAN.line }]]));
 });
 
-test("a reading whose basis moved is left out of the statuses, then written again on its next open", { skip: NO_DB }, async () => {
+test("a reading whose basis moved still answers its kept text, in the statuses and on its open, and neither an open nor a setup job writes it again (reading 10)", { skip: NO_DB }, async () => {
   const reader = await seedReader("basis");
   answer(CLEAN);
   assert.equal((await R.openReading(reader, SATURN_ON_ASC)).status, "ready");
+  const [before] = await rowsFor(reader.profileId);
   const moved: ReaderChart = { ...reader, basis: `${reader.basis}-moved` };
-  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC], moved.basis), new Map(), "its line may no longer be true");
   answer({ ...CLEAN, line: "You weigh what you agreed to and what you still want." });
-  const rewritten = await R.openReading(moved, SATURN_ON_ASC);
-  assert.equal(asked.length, 1);
-  assert.deepEqual([rewritten.status, rewritten.reading?.line], ["ready", "You weigh what you agreed to and what you still want."]);
+  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC], moved.basis), new Map([[SATURN_ON_ASC, { status: "ready", line: CLEAN.line }]]), "its kept line shows meanwhile");
+  const kept = await R.openReading(moved, SATURN_ON_ASC);
+  assert.deepEqual([kept.status, kept.reading?.line], ["ready", CLEAN.line], "its open answers the kept text");
+  assert.deepEqual(await R.writeQueuedReading(moved, SATURN_ON_ASC), { status: "kept" }, "a start writes nothing again");
+  assert.equal(asked.length, 0, "nobody waits on a call: only a refresh the reader's open queued writes it again");
   const rows = await rowsFor(reader.profileId);
-  assert.deepEqual(rows.map((r) => [r.basis, r.status]), [[moved.basis, "ready"]], "written again in place");
+  assert.deepEqual(rows.map((r) => [r.basis, r.status]), [[before.basis, "ready"]], "kept as it was");
 });
 
 test("a write still marked writing answers writing under five minutes, and is written again past five", { skip: NO_DB }, async () => {

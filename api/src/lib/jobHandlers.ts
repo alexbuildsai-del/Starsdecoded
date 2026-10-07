@@ -12,5 +12,6 @@ export function jobHandlers(): Partial<Record<JobKind, JobHandler>> {
   return {
     "timeline.reading": async (payload, ctx) => (await import("./timelineSetup.js")).readingJob(payload, ctx),
     "timeline.ahead": async (payload, ctx) => (await import("./timelineSetup.js")).aheadJob(payload, ctx),
+    "timeline.refresh": async (payload, ctx) => (await import("./timelineSetup.js")).refreshJob(payload, ctx),
   };
 }

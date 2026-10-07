@@ -3,12 +3,14 @@
  * from the engine's own list, one job each (ADR-302, 362); one no job holds is written the first time it is opened.
  * A reading goes through the report's own call path (ADR-84): strict output, every error carried into the retries and
  * then into one round alone, each call on the day's spend ledger (ADR-199) and each attempt's checks in the failure
- * log (ADR-85). It builds on the reader's own report (reading 10). A row is claimed before it is written, so an open
- * and a job at once write it once; it is written again only when its basis no longer matches (reading 8), when it
- * failed, or when a write died with its process. An account's opens start at most `NEW_READINGS_A_DAY` new writes a
- * UTC day; setup's writes stand under the spend cap alone (ADR-327, 362).
+ * log (ADR-85). It builds on the reader's own report. A row is claimed before it is written, so an open and a job at
+ * once write it once; a failed reading, or a write that died with its process, is written again. A kept reading is
+ * kept on a basis, the reader's chart and prompt version with their report's version (reading 10): once a new birth
+ * time, prompt version or rewritten report moves it, the reader's own open queues one refresh, which writes it again
+ * in place only if what it is written from moved, and the kept text answers until then (ADR-362). An account's opens
+ * start at most `NEW_READINGS_A_DAY` new writes a UTC day; setup's writes stand under the spend cap alone (ADR-327).
  */
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { and, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import type { z as zc } from "zod";
@@ -29,8 +31,8 @@ import { buildBrief } from "../prompts/brief.js";
 import { EvidenceRefSchema, softenQuote } from "../prompts/evidence.js";
 import { ordinal } from "../prompts/vocabulary.js";
 import {
-  EXCERPTS_MAX, EXCERPT_WORDS, READING_KEY, READING_MAX_TOKENS, ReadingSchema, checkReading, isCycle, readingPrompt,
-  type Excerpt, type ReadingEvent, type ReadingInput, type ReadingOutput,
+  EXCERPTS_MAX, EXCERPT_WORDS, READING_KEY, READING_MAX_TOKENS, ReadingSchema, TIMELINE_PROMPT_VERSION, checkReading, eventFacts,
+  isCycle, readingPrompt, type Excerpt, type ReadingEvent, type ReadingInput, type ReadingOutput,
 } from "../prompts/timeline/index.js";
 
 type Opened = zc.infer<typeof OpenTimelineReadingResponse>;
@@ -280,14 +282,58 @@ export async function writeReading(reader: ReaderChart, key: string, event: Read
   return { key, line: result.data.line, body: result.data.body, buildsOn, writtenAt: new Date() };
 }
 
+/** The brief's decimals: every degree and orb it prints. */
+const DECIMALS = /\d+\.\d+/g;
+
+/**
+ * A value with its keys in one order at every depth. A chart read back from its jsonb column has Postgres's key order,
+ * not the engine's, and the brief words a tie in key order, so one chart would otherwise digest two ways.
+ */
+function canonical<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(canonical) as T;
+  if (value === null || typeof value !== "object" || value instanceof Date) return value;
+  const fields = value as Record<string, unknown>;
+  return Object.fromEntries(Object.keys(fields).sort().map((key) => [key, canonical(fields[key])])) as T;
+}
+
+/**
+ * What a reading is written from, as one digest (reading 10): the prompt family's version, THE EVENT's facts, the
+ * chart brief and the report passages it builds on, as `writeReading` hands them over. The brief counts by its words,
+ * its degrees and orbs aside: a reading may name no degree THE EVENT does not list (checks.ts), so a birth time that
+ * moves the chart a little touches only the readings whose own facts it moves.
+ */
+function inputsOf(reader: ReaderChart, event: ReadingEvent, report: ReaderReport): string {
+  const chart = canonical(reader.chart);
+  const brief = buildBrief(chart, report.name);
+  const blind = reader.blind || brief.horizon === "unknown";
+  const { excerpts } = passagesFor(event, chart, report.interpretation);
+  const inputs = [TIMELINE_PROMPT_VERSION, blind, eventFacts(event, brief.chart, blind).lines, brief.text.replace(DECIMALS, "#"), excerpts];
+  return createHash("sha256").update(JSON.stringify(inputs)).digest("hex").slice(0, 32);
+}
+
 const BuildsOnSchema = z.union([
   z.object({ kind: z.literal("house"), house: z.number().int().min(1).max(12) }),
   z.object({ kind: z.literal("chapter"), chapter: z.string() }),
   z.null(),
 ]);
 
-/** A reading as its row keeps it; the key is the row's. */
-const KeptSchema = z.object({ line: z.string(), body: z.string(), buildsOn: BuildsOnSchema, writtenAt: z.string() });
+/**
+ * A reading as its row keeps it; the key is the row's. `of` is what it was written from (`inputsOf`), absent on one
+ * kept before readings carried it. `tried` is the basis a refresh failed to write it on and the UTC day it failed, so
+ * a setup screen read every few seconds does not pay for the same failure again that day.
+ */
+const KeptSchema = z.object({
+  line: z.string(),
+  body: z.string(),
+  buildsOn: BuildsOnSchema,
+  writtenAt: z.string(),
+  of: z.string().optional(),
+  tried: z.object({ basis: z.string(), on: z.string() }).optional(),
+});
+
+function keptOf(reading: TimelineReading, of: string): z.infer<typeof KeptSchema> {
+  return { line: reading.line, body: reading.body, buildsOn: reading.buildsOn, writtenAt: reading.writtenAt.toISOString(), of };
+}
 
 const FailedSchema = z.object({ line: z.string() });
 
@@ -318,6 +364,12 @@ async function rowsOf(profileId: string, keys: readonly string[]): Promise<Readi
 const staleAt = (now: number): number => now - WRITING_STALE_MS;
 const isStale = (row: ReadingRow, now: number): boolean => row.status === "writing" && row.updatedAt.getTime() < staleAt(now);
 
+/** A kept reading's basis follows the reader's with `|` and its report's version (`keptBasis`). */
+const BASIS_SEP = "|";
+
+/** Whether a row was written on the reader's basis, their chart and prompt version, whatever its report's version. */
+const onBasis = (row: ReadingRow, basis: string): boolean => row.basis.split(BASIS_SEP)[0] === basis;
+
 function keptReading(row: ReadingRow): TimelineReading | null {
   const kept = KeptSchema.safeParse(row.reading);
   if (!kept.success) return null;
@@ -334,14 +386,16 @@ const writing = (): OpenedReading => ({ status: "writing", reading: null, line: 
 const unknown = (): OpenedReading => ({ status: "unknown", reading: null, line: null });
 const failed = (line: string): OpenedReading => ({ status: "failed", reading: null, line });
 
-/** What a row on the reader's basis answers an open, or null when the open should write it again. */
-function answerOf(row: ReadingRow, now: number): OpenedReading | null {
+/**
+ * What a row answers an open, or null when the open should write it: a kept reading on any basis, since one gone stale
+ * answers until its refresh lands (reading 10), and a write on the reader's basis still going.
+ */
+function answerOf(row: ReadingRow, basis: string, now: number): OpenedReading | null {
   if (row.status === "ready") {
     const reading = keptReading(row);
     return reading ? { status: "ready", reading, line: null } : null;
   }
-  if (row.status === "writing") return isStale(row, now) ? null : writing();
-  return null;
+  return row.status === "writing" && onBasis(row, basis) && !isStale(row, now) ? writing() : null;
 }
 
 interface Claim {
@@ -351,9 +405,10 @@ interface Claim {
 }
 
 /**
- * Takes the row for writing, atomically: a new row, or one whose basis moved, whose write died, or, for the reader's
- * own open, one that failed or whose kept reading no longer parses. Postgres rechecks the condition on a row another claim just took, so of two claims at
- * once exactly one wins.
+ * Takes the row for writing, atomically: a new row, a write that died, a failed or unfinished write on another basis,
+ * or, for the reader's own open, one that failed or whose kept reading no longer parses. A kept reading is never taken,
+ * since one gone stale is written again by its refresh, in place (reading 10). Postgres rechecks the condition on a row
+ * another claim just took, so of two claims at once exactly one wins.
  */
 async function claim(reader: ReaderChart, key: string, retryFailed: boolean, unreadable?: ReadingRow): Promise<Claim | null> {
   const t = timelineReadingsTable;
@@ -372,7 +427,7 @@ async function claim(reader: ReaderChart, key: string, retryFailed: boolean, unr
       eq(t.profileId, reader.profileId),
       eq(t.eventKey, key),
       or(
-        ne(t.basis, reader.basis),
+        and(ne(t.status, "ready"), sql`split_part(${t.basis}, ${BASIS_SEP}, 1) <> ${reader.basis}`),
         and(eq(t.status, "writing"), lt(t.updatedAt, new Date(staleAt(at.getTime())))),
         retryFailed ? eq(t.status, "failed") : undefined,
         // A kept reading that no longer parses is as good as none; the mark on it keeps two opens from both retaking it.
@@ -383,40 +438,71 @@ async function claim(reader: ReaderChart, key: string, retryFailed: boolean, unr
   return taken ? { id: taken.id, at } : null;
 }
 
-async function keep(claimed: Claim, status: "ready" | "failed", reading: object): Promise<boolean> {
+/** Keeps what came of a claimed write, on the basis given, else the one it was claimed on. */
+async function keep(claimed: Claim, status: "ready" | "failed", reading: object, basis?: string): Promise<boolean> {
   const t = timelineReadingsTable;
   const done = await db
     .update(t)
-    .set({ status, reading, updatedAt: new Date() })
+    .set({ status, reading, updatedAt: new Date(), ...(basis === undefined ? {} : { basis }) })
     .where(and(eq(t.id, claimed.id), eq(t.status, "writing"), eq(t.updatedAt, claimed.at)))
     .returning({ id: t.id });
   return done.length > 0;
 }
 
-async function reportOf(reader: ReaderChart): Promise<ReaderReport | null> {
+/**
+ * A Personal report's version (reading 10): a digest of its stored text, which every write of it, a horizon pass's
+ * included, moves. A report being amended reads `revising` while its text still moves.
+ */
+const REPORT_VERSION = sql<string | null>`left(md5(${reportsTable.interpretation}::text), 16)`;
+
+interface VersionedReport {
+  version: string;
+  status: string;
+}
+
+/** The basis a reading is kept on (reading 10): the reader's, their chart and prompt version, with their report's version. */
+function keptBasis(reader: ReaderChart, report: VersionedReport): string {
+  return `${reader.basis}${BASIS_SEP}${report.version}`;
+}
+
+const readerReport = (reader: ReaderChart) => and(eq(reportsTable.id, reader.reportId), eq(reportsTable.profileId, reader.profileId));
+
+async function reportOf(reader: ReaderChart): Promise<(ReaderReport & VersionedReport & { updatedAt: Date }) | null> {
   const [row] = await db
-    .select({ name: profilesTable.name, interpretation: reportsTable.interpretation })
+    .select({
+      name: profilesTable.name, interpretation: reportsTable.interpretation, status: reportsTable.status, version: REPORT_VERSION,
+      updatedAt: reportsTable.updatedAt,
+    })
     .from(reportsTable)
     .innerJoin(profilesTable, eq(reportsTable.profileId, profilesTable.id))
-    .where(and(eq(reportsTable.id, reader.reportId), eq(reportsTable.profileId, reader.profileId)))
+    .where(readerReport(reader))
     .limit(1);
-  return row ?? null;
+  return row ? { ...row, version: row.version ?? "" } : null;
+}
+
+async function reportVersionOf(reader: ReaderChart): Promise<VersionedReport | null> {
+  const [row] = await db.select({ status: reportsTable.status, version: REPORT_VERSION }).from(reportsTable).where(readerReport(reader)).limit(1);
+  return row ? { status: row.status, version: row.version ?? "" } : null;
 }
 
 /**
  * Writes a claimed reading and keeps what came of it. Never rejects, so an open may stop waiting and a queue may leave
- * it running. A write that fails keeps the sheet's line on its row. Nothing the reader's report or the model wrote
- * reaches the log, only the failure's code (R-3.5).
+ * it running. A reading is kept with what it was written from, on the basis its report gives; a write that fails keeps
+ * the sheet's line on its row. Nothing the reader's report or the model wrote reaches the log, only the failure's code
+ * (R-3.5).
  */
 async function writeClaimed(reader: ReaderChart, key: string, keyed: KeyedEvent, claimed: Claim): Promise<OpenedReading> {
   let outcome: OpenedReading;
   let stored: object;
+  let basis: string | undefined;
   try {
     const report = await reportOf(reader);
     if (!report) throw new Error("the reader's Personal report is gone");
-    const reading = await writeReading(reader, key, eventOf(keyed), report);
+    const event = eventOf(keyed);
+    const reading = await writeReading(reader, key, event, report);
     outcome = { status: "ready", reading, line: null };
-    stored = { line: reading.line, body: reading.body, buildsOn: reading.buildsOn, writtenAt: reading.writtenAt.toISOString() };
+    stored = keptOf(reading, inputsOf(reader, event, report));
+    basis = keptBasis(reader, report);
   } catch (err) {
     const code: FailureCode = failureCodeOf(err);
     logger.warn({ key, code }, "a Timeline reading failed");
@@ -424,7 +510,7 @@ async function writeClaimed(reader: ReaderChart, key: string, keyed: KeyedEvent,
     stored = { code, line: READING_FAILED_LINE };
   }
   try {
-    if (!(await keep(claimed, outcome.status === "ready" ? "ready" : "failed", stored))) {
+    if (!(await keep(claimed, outcome.status === "ready" ? "ready" : "failed", stored, basis))) {
       logger.info({ key }, "a Timeline reading was claimed again or forgotten while it was written; its row is left as it is");
     }
   } catch (err) {
@@ -480,24 +566,25 @@ function capped(now: Date): OpenedReading {
 
 /**
  * Opens the reading of an event or a cycle on the reader's own chart. A key `eventByKey` does not find at `now`, or one
- * that gets no reading, is unknown and writes nothing. A kept reading on the reader's basis answers at once, and so
- * does one still being written, on any day, and one a setup job is on its way to write (reading 11). Anything else is
- * a new write: refused once the account has started the day's (`NEW_READINGS_A_DAY`, on the UTC day of `now`), else
- * claimed and written, the open waiting up to `waitMs` for it before it answers writing and leaves it running. How
- * long a write has run is read on the clock its row was written by, never `now`. The spend gate stands in front of the
- * route, so it is not asked here.
+ * that gets no reading, is unknown and writes nothing. A kept reading answers at once, on any day and on any basis: one
+ * gone stale answers until the refresh the reader's open queued lands (reading 10). So does a write still going on the
+ * reader's basis, and one a setup job is on its way to write (reading 11). Anything else is a new write: refused once
+ * the account has started the day's (`NEW_READINGS_A_DAY`, on the UTC day of `now`), else claimed and written, the open
+ * waiting up to `waitMs` for it before it answers writing and leaves it running. How long a write has run is read on
+ * the clock its row was written by, never `now`. The spend gate stands in front of the route, so it is not asked here.
  */
 export async function openReading(reader: ReaderChart, key: string, options: { waitMs?: number; now?: Date } = {}): Promise<OpenedReading> {
   const now = options.now ?? new Date();
   const keyed = eventByKey(reader, key, now);
   if (!keyed) return unknown();
   const [row] = await rowsOf(reader.profileId, [key]);
-  const answer = row && row.basis === reader.basis ? answerOf(row, Date.now()) : null;
+  const answer = row ? answerOf(row, reader.basis, Date.now()) : null;
   if (answer) return answer;
   // A failed reading is written again by the reader's own open, set up or not; the job would leave it as it is.
-  const failedHere = row !== undefined && row.basis === reader.basis && row.status === "failed";
+  const failedHere = row?.status === "failed" && onBasis(row, reader.basis);
   if (!failedHere && (await readingsQueued(reader.profileId, [key])).has(key)) return writing();
-  const unreadable = row && row.basis === reader.basis && row.status === "ready" ? row : undefined;
+  // A kept row that answered nothing above no longer parses.
+  const unreadable = row?.status === "ready" ? row : undefined;
   const day = utcDay(now);
   if (!takeStart(reader.userId, day)) return capped(now);
   let claimed: Claim | null = null;
@@ -510,9 +597,9 @@ export async function openReading(reader: ReaderChart, key: string, options: { w
   if (!claimed) {
     // Another open took it between the read and the claim: it is writing, or already written.
     const [taken] = await rowsOf(reader.profileId, [key]);
-    if (!taken || taken.basis !== reader.basis) return writing();
-    if (taken.status === "failed") return failed(failedLine(taken));
-    return answerOf(taken, Date.now()) ?? writing();
+    const settled = taken ? answerOf(taken, reader.basis, Date.now()) : null;
+    if (settled) return settled;
+    return taken?.status === "failed" && onBasis(taken, reader.basis) ? failed(failedLine(taken)) : writing();
   }
   const write = writeClaimed(reader, key, keyed, claimed);
   return (await within(write, options.waitMs ?? OPEN_WAIT_MS)) ?? writing();
@@ -520,17 +607,19 @@ export async function openReading(reader: ReaderChart, key: string, options: { w
 
 /**
  * Each key's reading as the views print it (R16-23's `ReadingStatuses`): ready with its own line, writing, or failed
- * with the sheet's line; a key with no row, or a write that died, is absent. Given the reader's basis, a reading kept
- * on another is absent too: its line may no longer be true, and its next open writes it again (reading 8).
+ * with the sheet's line; a key with no row, or a write that died, is absent. A kept reading shows on any basis, since
+ * one gone stale answers until its refresh lands (reading 10). Given the reader's basis, a write or a failure on another
+ * is absent: the next open or job writes it again.
  */
 export async function readingStatuses(profileId: string, keys: readonly string[], basis?: string): Promise<ReadingStatuses> {
   const statuses = new Map<string, ReadingState>();
   const now = Date.now();
   for (const row of await rowsOf(profileId, [...new Set(keys)])) {
-    if (basis !== undefined && row.basis !== basis) continue;
     if (row.status === "ready") {
       const reading = keptReading(row);
       if (reading) statuses.set(row.eventKey, { status: "ready", line: reading.line });
+    } else if (basis !== undefined && !onBasis(row, basis)) {
+      continue;
     } else if (row.status === "writing") {
       if (!isStale(row, now)) statuses.set(row.eventKey, "writing");
     } else if (row.status === "failed") {
@@ -612,21 +701,23 @@ function heldUntil(row: ReadingRow): QueuedWrite {
 /**
  * Writes one reading for a setup job (ADR-302, 362), from a key the engine listed for the reader's chart, so no key a
  * browser sends reaches it. Its event is the one the key names on its own day, so the next six months, which the app
- * shows only once they come, are written a week ahead (reading 9). Missing is no row, a row on another basis, an
- * unreadable kept one, or a write that died; a failed reading waits for the reader's own open, and a kept one stays.
- * Behind the spend gate's rule, asked only once a write is due, and outside the day's cap on an account's opens.
+ * shows only once they come, are written a week ahead (reading 9). Missing is no row, an unreadable kept one, a write
+ * that died, or a failed or unfinished write on another basis. A failed reading on the reader's basis waits for their
+ * own open, and a kept one stays even gone stale: only a refresh the reader's own open queued writes it again, so a
+ * start writes nothing again (reading 10). Behind the spend gate's rule, asked only once a write is due, and outside the
+ * day's cap on an account's opens.
  */
 export async function writeQueuedReading(reader: ReaderChart, key: string): Promise<QueuedWrite> {
   const keyed = eventByKey(reader, key, keyedAt(key));
   if (!keyed) return { status: "unknown" };
   const [row] = await rowsOf(reader.profileId, [key]);
-  if (row && row.basis === reader.basis) {
-    if (row.status === "failed" || (row.status === "ready" && keptReading(row))) return { status: "kept" };
+  if (row?.status === "ready" && keptReading(row)) return { status: "kept" };
+  if (row && onBasis(row, reader.basis)) {
+    if (row.status === "failed") return { status: "kept" };
     if (row.status === "writing" && !isStale(row, Date.now())) return heldUntil(row);
   }
   if (!(await spendAllows())) return { status: "paused" };
-  const unreadable = row && row.basis === reader.basis && row.status === "ready" ? row : undefined;
-  const claimed = await claim(reader, key, false, unreadable);
+  const claimed = await claim(reader, key, false, row?.status === "ready" ? row : undefined);
   if (!claimed) {
     // An open took it between the read and the claim: it is being written, or already is.
     const [taken] = await rowsOf(reader.profileId, [key]);
@@ -634,6 +725,89 @@ export async function writeQueuedReading(reader: ReaderChart, key: string): Prom
   }
   await writeClaimed(reader, key, keyed, claimed);
   return { status: "written" };
+}
+
+/** A refresh job's dedupe key: the kind first, as a setup job's is. */
+export function refreshJobKey(profileId: string, key: string): string {
+  return `timeline.refresh:${profileId}:${key}`;
+}
+
+/**
+ * Of the keys, in their order, those whose kept reading has gone stale (reading 10): kept on a basis other than the
+ * reader's with their report's version now, and not one a refresh failed to write on that basis the same UTC day as
+ * `now`. None while the report is being amended, its text still moving; the next open after that finds them.
+ */
+export async function staleReadings(reader: ReaderChart, keys: readonly string[], now: Date = new Date()): Promise<string[]> {
+  const report = await reportVersionOf(reader);
+  if (!report || report.status !== "complete") return [];
+  const basis = keptBasis(reader, report);
+  const day = utcDay(now);
+  const unique = [...new Set(keys)];
+  const stale = new Set<string>();
+  for (const row of await rowsOf(reader.profileId, unique)) {
+    const kept = row.status === "ready" && row.basis !== basis ? KeptSchema.safeParse(row.reading) : null;
+    if (kept?.success && !(kept.data.tried?.basis === basis && kept.data.tried.on === day)) stale.add(row.eventKey);
+  }
+  return unique.filter((key) => stale.has(key));
+}
+
+/** What a refresh came to: written again, moved onto the new basis as it stood, left as it is, or a paused day. */
+export type Refreshed = { status: "rewritten" | "rebased" | "left" | "paused" };
+
+/** A kept reading put back on its row on a new basis, only while the row is as the refresh read it. */
+async function rekeep(row: ReadingRow, basis: string, reading: object, model?: string): Promise<boolean> {
+  const t = timelineReadingsTable;
+  const done = await db
+    .update(t)
+    .set({ basis, reading, updatedAt: new Date(), ...(model === undefined ? {} : { model }) })
+    .where(and(eq(t.id, row.id), eq(t.status, "ready"), eq(t.basis, row.basis)))
+    .returning({ id: t.id });
+  return done.length > 0;
+}
+
+/**
+ * A refresh job's write (reading 10). A kept reading gone stale is written again in place, its kept text answering
+ * until the new one lands, and only if what it is written from moved (`inputsOf`); one whose facts, chart words and
+ * passages are as they were moves onto the new basis with no call. One kept before readings carried that digest moves
+ * over when its chart and prompt are the reader's and their report has not been written since it was, since then it
+ * was written from the report as it stands. Anything else is left as it is: a reading on the reader's basis, a row
+ * with no kept text, which the reader's own open writes, and one whose report is being amended, which their next open
+ * queues again. Behind the spend gate's rule; a write that fails keeps the kept text, marked so no open queues it
+ * again before the next UTC day (`staleReadings`).
+ */
+export async function refreshReading(reader: ReaderChart, key: string): Promise<Refreshed> {
+  const left: Refreshed = { status: "left" };
+  const keyed = eventByKey(reader, key, keyedAt(key));
+  if (!keyed) return left;
+  const [row] = await rowsOf(reader.profileId, [key]);
+  const kept = row?.status === "ready" ? KeptSchema.safeParse(row.reading) : null;
+  if (!row || !kept?.success) return left;
+  const report = await reportOf(reader);
+  if (!report || report.status !== "complete") return left;
+  const basis = keptBasis(reader, report);
+  if (row.basis === basis) return left;
+  const event = eventOf(keyed);
+  const of = inputsOf(reader, event, report);
+  const unmoved = kept.data.of === undefined
+    ? onBasis(row, reader.basis) && report.updatedAt.getTime() <= Date.parse(kept.data.writtenAt)
+    : kept.data.of === of;
+  if (unmoved) {
+    await rekeep(row, basis, { ...kept.data, of, tried: undefined });
+    return { status: "rebased" };
+  }
+  if (!(await spendAllows())) return { status: "paused" };
+  let reading: TimelineReading;
+  try {
+    reading = await writeReading(reader, key, event, report);
+  } catch (err) {
+    logger.warn({ key, code: failureCodeOf(err) }, "a stale Timeline reading could not be written again; its kept text stays");
+    await rekeep(row, row.basis, { ...kept.data, tried: { basis, on: utcDay(new Date()) } });
+    return left;
+  }
+  if (!(await rekeep(row, basis, keptOf(reading, of), MODELS.timelineReading))) {
+    logger.info({ key }, "a stale Timeline reading changed while it was written again; its row is left as it is");
+  }
+  return { status: "rewritten" };
 }
 
 // MB-191 provisional: a reader's readings and their Ask thread are kept with their Personal report, and go with it.

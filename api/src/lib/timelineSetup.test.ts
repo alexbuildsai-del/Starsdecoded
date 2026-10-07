@@ -1,10 +1,11 @@
 /**
- * Timeline written at setup (ADR-302, 362; readings 8, 9, 11) with the model stubbed. A setup's plan from the engine's
- * own lists runs with no database. On a scratch Postgres named by WALK_DATABASE_URL: a test webhook turning access on
- * queues the setup once and a replay or the QA pair's queues nothing, a payment before the report starts it when the
- * report finishes, the three routes as the contract pins them, a paused day's writes wait for the next, a card opened
- * once setup is ready writes nothing, one setup per account, the next six months' job, and forgetting. Without one
- * those skip, saying why.
+ * Timeline written at setup (ADR-302, 362; readings 8 to 11) with the model stubbed. A setup's plan from the
+ * engine's own lists, and its stretch to the last day a card can open, run with no database. On a scratch Postgres named
+ * by WALK_DATABASE_URL: a test webhook turning access on queues the setup once and a replay or the QA pair's queues
+ * nothing, a payment before the report starts it when the report finishes, the three routes as the contract pins them,
+ * a paused day's writes wait for the next, a card opened once setup is ready writes nothing, one setup per account, the
+ * next six months' job, readings a new birth time or prompt version left stale written again from the reader's open
+ * alone, and forgetting. Without one those skip, saying why.
  *
  * The queue is one table every test file on the database shares, and a drain takes any due job of its kinds, so this
  * file keeps its jobs, and its testers, whose QA marks other files read, in a schema of its own, dropped after.
@@ -40,7 +41,7 @@ delete process.env.CLERK_SECRET_KEY;
 delete process.env.RESEND_API_KEY;
 
 const D = await import("@workspace/db");
-const { and, asc, eq } = await import("drizzle-orm");
+const { and, asc, eq, ne } = await import("drizzle-orm");
 const { PLAN_TICK } = await import("@workspace/commerce");
 const { installFakeModel } = await import("./testModel.js");
 const { setSpendSink } = await import("./spendLedger.js");
@@ -48,6 +49,8 @@ const { logger } = await import("./logger.js");
 const { chartForProfile } = await import("./profiles.js");
 const { TIMELINE_PAUSED_LINE } = await import("./spendCap.js");
 const { QA_PAIR } = await import("./qaPair.js");
+const { buildBrief } = await import("../prompts/brief.js");
+const { TIMELINE_PROMPT_VERSION, eventFacts } = await import("../prompts/timeline/index.js");
 const J = await import("./jobs.js");
 const T = await import("./timeline.js");
 const R = await import("./timelineReadings.js");
@@ -58,6 +61,7 @@ const Z = await import("@workspace/api-zod");
 const { default: router } = await import("../routes/index.js");
 
 type ReaderChart = import("./timeline.js").ReaderChart;
+type ReadingState = import("./timeline.js").ReadingState;
 
 const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: setup queues its readings on a scratch Postgres";
 
@@ -87,6 +91,8 @@ const CLEAN = {
   body: "Astrology reads this stretch as a time when the sky presses on a part of your chart you already know well. Your report describes how you work through things in depth before you commit. This time meets that habit. You may find that old plans feel heavier to carry. You may also find that the plans you still believe in feel clearer. Some days the pressure feels like a weight. Other days it feels like a firm hand on your back. People around you may see you as more serious than usual. You may feel the gap between how calm you look and how you feel inside.",
 };
 const fake = installFakeModel({ timeline_reading: CLEAN });
+/** Another reply that fits any event, so a reading written again shows. */
+const REWRITE = { line: "You take stock of what you carry and keep what still fits.", body: CLEAN.body };
 setSpendSink(async () => {});
 const readingCalls = () => fake.calls.filter((name) => name === "timeline_reading").length;
 
@@ -104,6 +110,20 @@ function addDays(day: string, n: number): string {
 
 const byDay = (a: string, b: string) => a.slice(-8).localeCompare(b.slice(-8)) || a.localeCompare(b);
 const today = () => T.dayIn(new Date(), ZONE);
+
+/** A start's plan today: from this week's Monday to the last day a card can open. */
+function startPlan(reader: ReaderChart) {
+  const from = S.mondayOf(today());
+  return S.planOf(reader, ZONE, from, S.stretchEnd(from, today()));
+}
+
+/** The keys of the readings the six-month view lists from a day: an event that gets no reading names none (reading 7). */
+function listed(reader: ReaderChart, day: string): string[] {
+  const at = T.dayStart(day, ZONE);
+  const events = T.nowView(reader, "six-months", ZONE, new Map(), at).events;
+  const told = new Map<string, ReadingState>(events.map((event) => [event.key, "writing"]));
+  return T.nowView(reader, "six-months", ZONE, told, at).events.filter((event) => event.reading === "writing").map((event) => event.key);
+}
 
 test("a setup's plan: this week from its Monday, the month's 30 days and the six months' 182, each the events of its days that read, soonest first, then every life cycle to 90", () => {
   assert.deepEqual(["2026-10-05", "2026-10-07", "2026-10-11", "2027-01-01"].map(S.mondayOf), ["2026-10-05", "2026-10-05", "2026-10-05", "2026-12-28"]);
@@ -128,6 +148,26 @@ test("a setup's plan: this week from its Monday, the month's 30 days and the six
   assert.deepEqual(order, [...plan.week, ...monthNew, ...monthsNew, ...plan.cycles], "this week's first, then the month's, the rest, then the cycles");
   assert.equal(new Set(order).size, order.length, "each reading once");
   assert.deepEqual(S.SETUP_STEPS, ["chart", "planets", "week", "month", "months", "cycles"]);
+});
+
+test("a start writes to the last day a card can open, six months on from its own day, so on any day of its week the six-month view lists nothing it left unwritten; the next six months' job keeps to it", () => {
+  const mira = fixtureReader();
+  const monday = S.mondayOf(today());
+  for (let d = 0; d < 7; d += 1) {
+    const day = addDays(monday, d);
+    const to = S.stretchEnd(monday, day);
+    assert.equal(to, addDays(day, 182), `${day}: the view's last day and the day after it, when a card still opens`);
+    const plan = S.planOf(mira, ZONE, monday, to);
+    assert.deepEqual([plan.from, plan.to], [monday, to]);
+    const end = new Date(T.dayStart(addDays(to, 1), ZONE).getTime() - 1);
+    const reads = E.skyEvents(mira.chart, T.dayStart(monday, ZONE), end).filter(E.readsAs).map((event) => event.key);
+    assert.deepEqual([...plan.months].sort(), [...new Set(reads)].sort(), `${day}: the events of every day to the end that read`);
+    const written = new Set(S.writeOrder(plan));
+    assert.deepEqual(listed(mira, day).filter((key) => !written.has(key)), [], `${day}: the view lists only what the start writes`);
+    assert.equal(S.stretchEnd(addDays(to, 1), addDays(to, -S.AHEAD_DAYS)), addDays(to, 182), "the next job, on its day, writes six months on");
+    assert.equal(S.stretchEnd(addDays(to, 1), addDays(to, 3)), addDays(to, 185), "and run late, to the last day a card can open");
+  }
+  assert.equal(S.stretchEnd(monday, addDays(monday, -40)), addDays(monday, 181), "never short of six months from its Monday");
 });
 
 const run = randomUUID().slice(0, 8);
@@ -197,6 +237,7 @@ async function jobsOf(ids: Seeded) {
   return {
     reading: rows.filter((job) => job.kind === "timeline.reading" && job.payload.profileId === ids.profileId),
     ahead: rows.filter((job) => job.kind === "timeline.ahead" && job.payload.userId === ids.userId),
+    refresh: rows.filter((job) => job.kind === "timeline.refresh" && job.payload.profileId === ids.profileId),
   };
 }
 
@@ -212,6 +253,49 @@ async function setupOf(ids: Seeded) {
 
 async function rowsOf(ids: Seeded) {
   return D.db.select().from(D.timelineReadingsTable).where(eq(D.timelineReadingsTable.profileId, ids.profileId));
+}
+
+const keptLine = (row: { reading: unknown } | undefined) => (row?.reading as { line?: string } | null | undefined)?.line;
+
+/** A clock time some minutes on, as a profile keeps it. */
+function minutesOn(time: string, minutes: number): string {
+  const [h, m] = time.split(":").map(Number);
+  return new Date(Date.UTC(2000, 0, 1, h, m + minutes)).toISOString().slice(11, 16);
+}
+
+/**
+ * What a reader's readings are written from, worked out here as the prompt is handed it: the chart's words with their
+ * degrees aside, and each reading's own event facts and report passages.
+ */
+function writtenFrom(reader: ReaderChart): { words: string; reading: (key: string) => string } {
+  const brief = buildBrief(reader.chart, "Mira Costa");
+  const blind = reader.blind || brief.horizon === "unknown";
+  return {
+    words: brief.text.replace(/\d+\.\d+/g, "#"),
+    reading: (key) => {
+      const keyed = T.eventByKey(reader, key, new Date(`${key.slice(-8, -4)}-${key.slice(-4, -2)}-${key.slice(-2)}T00:00:00Z`));
+      assert.ok(keyed, key);
+      const event = keyed.kind === "sky" ? keyed.event : keyed.cycle;
+      return JSON.stringify([eventFacts(event, brief.chart, blind).lines, R.passagesFor(event, reader.chart, REPORT_TEXT).excerpts]);
+    },
+  };
+}
+
+/** The reader's open of Timeline, as the screen makes it. */
+async function openSetup(ids: Seeded) {
+  const opened = await call("GET", `/timeline/setup?tz=${ZONE}`, ids.userId);
+  assert.equal(opened.status, 200, JSON.stringify(opened.body));
+  return Z.GetTimelineSetupResponse.parse(opened.body);
+}
+
+/** A setup started and written, then opened once: ready, its readings kept on the reader's basis. */
+async function setUp(ids: Seeded): Promise<ReaderChart> {
+  await clearJobs();
+  const reader = await readerOf(ids);
+  await S.startSetup(reader, ZONE);
+  await J.drainJobs();
+  assert.equal((await openSetup(ids)).state, "ready");
+  return reader;
 }
 
 /** The purchase POST /checkout makes for the monthly plan before the browser pays (purchases.ts). */
@@ -305,7 +389,7 @@ test("db, a test webhook turning access on queues the setup once; a replayed eve
   const payer = await seedAccount("payer");
   const paid = firstPayment(payer, await checkout(payer));
   assert.equal(await SUB.applySubscriptionEvent(paid, WEBHOOK), "processed");
-  const plan = S.planOf(await readerOf(payer), ZONE, S.mondayOf(today()));
+  const plan = startPlan(await readerOf(payer));
   const queued = await jobsOf(payer);
   assert.deepEqual(queued.reading.map((job) => job.payload.key), S.writeOrder(plan), "the engine's list, in its order");
   assert.ok(queued.reading.every((job) => job.dedupeKey === R.readingJobKey(payer.profileId, String(job.payload.key))));
@@ -337,7 +421,7 @@ test("db, a payment before the Personal report queues nothing; setup starts when
   await subscribe(early, "active");
   await finishReport(early);
   await S.setupAfterReport(early.reportId);
-  const plan = S.planOf(await readerOf(early), ZONE, S.mondayOf(today()));
+  const plan = startPlan(await readerOf(early));
   assert.deepEqual((await jobsOf(early)).reading.map((job) => job.payload.key), S.writeOrder(plan));
   assert.equal((await setupOf(early))?.state, "writing");
   await S.setupAfterReport(early.reportId);
@@ -379,7 +463,7 @@ test("db, the three routes as pinned: 401, 403 and 409 as Now and ahead refuses;
   const browserKey = "contact.mars.square.sun.20261024";
   const started = await call("POST", `/timeline/setup?tz=${ZONE}&key=${browserKey}`, reader.userId, { keys: [browserKey] });
   assert.equal(started.status, 202);
-  const plan = S.planOf(await readerOf(reader), ZONE, S.mondayOf(today()));
+  const plan = startPlan(await readerOf(reader));
   const counts = { week: plan.week.length, month: plan.month.length, months: plan.months.length, cycles: plan.cycles.length };
   const writing = Z.StartTimelineSetupResponse.parse(started.body);
   assert.deepEqual([writing.state, writing.from, writing.to, writing.replay], ["writing", plan.from, plan.to, null]);
@@ -439,7 +523,7 @@ test("db, one setup per account: two starts at once queue each reading once and 
   const reader = await readerOf(both);
   const [a, b] = await Promise.all([S.startSetup(reader, ZONE), S.startSetup(reader, ZONE)]);
   assert.deepEqual([a.state, b.state], ["writing", "writing"]);
-  const plan = S.planOf(reader, ZONE, S.mondayOf(today()));
+  const plan = startPlan(reader);
   const queued = await jobsOf(both);
   assert.deepEqual([queued.reading.length, queued.ahead.length], [S.writeOrder(plan).length, 1]);
   assert.equal(new Set(queued.reading.map((job) => job.dedupeKey)).size, queued.reading.length);
@@ -464,7 +548,7 @@ test("db, a setup made for a chart the reader no longer reads stands for nothing
   assert.equal(read.state, "none", "never ready on readings no job will write");
   const restarted = await call("POST", `/timeline/setup?tz=${ZONE}`, moved.userId);
   assert.deepEqual([restarted.status, restarted.body.state], [202, "writing"]);
-  const plan = S.planOf(reader, ZONE, S.mondayOf(today()));
+  const plan = startPlan(reader);
   assert.deepEqual((await jobsOf(fresh)).reading.map((job) => job.payload.key), S.writeOrder(plan));
   assert.equal((await setupOf(moved))?.reportId, fresh.reportId);
 });
@@ -514,6 +598,146 @@ test("db, the next six months: written a week before the last end, the setup mov
   const jobsBefore = (await jobsOf(ahead)).reading.length;
   assert.equal(await S.aheadJob({ userId: ahead.userId }, ctx), undefined);
   assert.deepEqual([(await jobsOf(ahead)).reading.length, (await setupOf(ahead))?.toDay], [jobsBefore, end], "without Timeline it writes nothing");
+});
+
+test("db, a new birth time: the readings it left stale show their kept text, the reader's open queues each once, and only those it touches are written again; a start queues nothing, nor a second open", { skip: NO_DB }, async () => {
+  const ids = await seedAccount("birth-time", { subscribed: true });
+  const before = await setUp(ids);
+  const setup = await setupOf(ids);
+  assert.ok(setup);
+  const [version] = (await D.pool.query("select left(md5(interpretation::text), 16) as v from reports where id = $1", [ids.reportId])).rows;
+  const kept = new Map((await rowsOf(ids)).map((row) => [row.eventKey, row.basis]));
+  assert.ok(kept.size > 0 && [...kept.values()].every((basis) => basis === `${before.basis}|${version.v}`), "each kept on the reader's basis with their report's version");
+  assert.equal((await jobsOf(ids)).refresh.length, 0, "an open after a fresh setup queues nothing");
+
+  // A birth time some minutes on, saved as PATCH /profiles/:id/birth-time saves it, that leaves the chart's words as they
+  // were: found by what each reading is written from, on the chart as Timeline reads it back.
+  const was = writtenFrom(before);
+  let found: { moved: ReaderChart; persisting: string[]; touched: string[] } | null = null;
+  for (let minutes = 1; minutes <= 30 && !found; minutes += 1) {
+    const birthTime = minutesOn(BIRTH.birthTime, minutes);
+    await D.db.update(D.profilesTable)
+      .set({ birthTime, chartData: chartForProfile({ ...BIRTH, birthTime }) as unknown as object })
+      .where(eq(D.profilesTable.id, ids.profileId));
+    const moved = await readerOf(ids);
+    const now = writtenFrom(moved);
+    if (now.words !== was.words) continue;
+    const persisting = S.writeOrder(S.planOf(moved, ZONE, setup.fromDay, setup.toDay)).filter((key) => kept.has(key));
+    const touched = persisting.filter((key) => now.reading(key) !== was.reading(key));
+    if (touched.length > 0 && touched.length < persisting.length) found = { moved, persisting, touched };
+  }
+  assert.ok(found, "a birth time a few minutes on that touches some readings and not others");
+  const { moved, persisting, touched } = found;
+  assert.notEqual(moved.basis, before.basis);
+  // Its horizon pass holds the report while it writes.
+  await D.db.update(D.reportsTable).set({ status: "revising" }).where(eq(D.reportsTable.id, ids.reportId));
+  const callsBefore = readingCalls();
+
+  const six = await call("GET", `/timeline/now?range=six-months&tz=${ZONE}`, ids.userId);
+  assert.equal(six.status, 200);
+  const shown = Z.GetTimelineNowResponse.parse(six.body).events.filter((event) => persisting.includes(event.key));
+  assert.ok(shown.length > 0 && shown.every((event) => event.reading === "ready" && event.line === CLEAN.line), "the views show each kept line meanwhile");
+  const card = await open(ids.userId, touched[0]);
+  assert.deepEqual([card.status, card.body.status, card.body.reading?.line], [200, "ready", CLEAN.line], "and its card opens on the kept text");
+
+  await openSetup(ids);
+  assert.equal((await jobsOf(ids)).refresh.length, 0, "nothing while the report is amended, its text still moving");
+  await D.db.update(D.reportsTable).set({ status: "complete" }).where(eq(D.reportsTable.id, ids.reportId));
+  assert.equal((await call("POST", `/timeline/setup?tz=${ZONE}`, ids.userId)).status, 202);
+  assert.equal((await jobsOf(ids)).refresh.length, 0, "a start queues nothing");
+
+  assert.equal((await openSetup(ids)).state, "ready");
+  const queued = (await jobsOf(ids)).refresh;
+  assert.deepEqual(queued.map((job) => job.payload.key), persisting, "each kept reading the chart still has, once, this week's first");
+  assert.ok(queued.every((job) => job.status === "queued" && job.dedupeKey === R.refreshJobKey(ids.profileId, String(job.payload.key))));
+  await openSetup(ids);
+  assert.equal((await jobsOf(ids)).refresh.length, queued.length, "a second open queues nothing more");
+  assert.equal(readingCalls() - callsBefore, 0, "and no open writes");
+
+  fake.replies.timeline_reading = REWRITE;
+  try {
+    assert.equal(await J.drainJobs(), queued.length);
+  } finally {
+    fake.replies.timeline_reading = CLEAN;
+  }
+  assert.equal(readingCalls() - callsBefore, touched.length, "only the readings the new time touches are written again");
+  const rows = new Map((await rowsOf(ids)).map((row) => [row.eventKey, row]));
+  assert.deepEqual(persisting.filter((key) => keptLine(rows.get(key)) === REWRITE.line), touched);
+  assert.ok(persisting.every((key) => rows.get(key)?.basis === `${moved.basis}|${version.v}`), "each on the new basis, written again or moved over free");
+  const gone = [...kept.keys()].filter((key) => !persisting.includes(key));
+  assert.ok(gone.every((key) => rows.get(key)?.basis === kept.get(key) && keptLine(rows.get(key)) === CLEAN.line), "a reading the chart no longer has is left as it was");
+  await openSetup(ids);
+  assert.equal((await jobsOf(ids)).refresh.length, queued.length, "nothing stale is left to queue");
+});
+
+test("db, a new Timeline prompt version: the reader's open queues each kept reading once and each is written again once, its kept text answering meanwhile; a start queues nothing, nor a second open, and a rewrite that fails keeps its text until the next day's open", { skip: NO_DB }, async () => {
+  const ids = await seedAccount("prompt", { subscribed: true });
+  const reader = await setUp(ids);
+  const setup = await setupOf(ids);
+  assert.ok(setup);
+  assert.equal((await jobsOf(ids)).refresh.length, 0, "an open after a fresh setup queues nothing");
+
+  // Each reading as the version before left it: its basis names that version, and what it was written from moved with it.
+  const current = `:${TIMELINE_PROMPT_VERSION}|`;
+  for (const row of await rowsOf(ids)) {
+    assert.ok(row.basis.includes(current), row.eventKey);
+    await D.db.update(D.timelineReadingsTable)
+      .set({ basis: row.basis.replace(current, ":t0|"), reading: { ...(row.reading as object), of: "written-on-t0" } })
+      .where(eq(D.timelineReadingsTable.id, row.id));
+  }
+  const order = S.writeOrder(S.planOf(reader, ZONE, setup.fromDay, setup.toDay));
+  const callsBefore = readingCalls();
+  const card = await open(ids.userId, order[0]);
+  assert.deepEqual([card.status, card.body.status, card.body.reading?.line], [200, "ready", CLEAN.line], "the kept text answers meanwhile");
+  assert.equal((await call("POST", `/timeline/setup?tz=${ZONE}`, ids.userId)).status, 202);
+  assert.equal((await jobsOf(ids)).refresh.length, 0, "a start queues nothing");
+
+  await openSetup(ids);
+  const queued = (await jobsOf(ids)).refresh;
+  assert.deepEqual(queued.map((job) => job.payload.key), order, "every kept reading, once, this week's first");
+  await openSetup(ids);
+  assert.equal((await jobsOf(ids)).refresh.length, queued.length, "a second open queues nothing more");
+  assert.equal(readingCalls() - callsBefore, 0);
+
+  // The first rewrite fails: the reading keeps its text, marked so no open that day pays for it again.
+  const [failing] = queued;
+  const later = new Date(Date.now() + 3_600_000);
+  await D.db.update(D.jobsTable).set({ runAt: later }).where(and(eq(D.jobsTable.kind, "timeline.refresh"), ne(D.jobsTable.id, failing.id)));
+  fake.failOn = "timeline_reading";
+  try {
+    assert.equal(await J.drainJobs(), 1);
+  } finally {
+    fake.failOn = null;
+  }
+  const failedCalls = readingCalls() - callsBefore;
+  const [kept] = (await rowsOf(ids)).filter((row) => row.eventKey === failing.payload.key);
+  assert.deepEqual([kept.status, kept.basis.includes(":t0|"), keptLine(kept)], ["ready", true, CLEAN.line], "a rewrite that fails keeps the kept text");
+
+  fake.replies.timeline_reading = REWRITE;
+  try {
+    await D.db.update(D.jobsTable).set({ runAt: new Date() }).where(and(eq(D.jobsTable.kind, "timeline.refresh"), eq(D.jobsTable.status, "queued")));
+    assert.equal(await J.drainJobs(), queued.length - 1);
+    assert.equal(readingCalls() - callsBefore - failedCalls, queued.length - 1, "the rest each written again once");
+    await openSetup(ids);
+    assert.equal((await jobsOf(ids)).refresh.length, queued.length, "an open the same day queues nothing more, the failed one included");
+
+    const marked = kept.reading as { tried?: { basis: string; on: string } };
+    assert.ok(marked.tried, "the failure is marked with its basis and its day");
+    await D.db.update(D.timelineReadingsTable)
+      .set({ reading: { ...marked, tried: { ...marked.tried, on: addDays(marked.tried.on, -1) } } })
+      .where(eq(D.timelineReadingsTable.id, kept.id));
+    await openSetup(ids);
+    const again = (await jobsOf(ids)).refresh.filter((job) => job.status === "queued");
+    assert.deepEqual(again.map((job) => job.payload.key), [failing.payload.key], "the next day's open queues it once more");
+    assert.equal(await J.drainJobs(), 1);
+  } finally {
+    fake.replies.timeline_reading = CLEAN;
+  }
+  const rows = await rowsOf(ids);
+  assert.ok(rows.every((row) => keptLine(row) === REWRITE.line && row.basis.startsWith(`${reader.basis}|`)), "every reading written again on this version");
+  assert.equal(readingCalls() - callsBefore - failedCalls, queued.length, "each once");
+  await openSetup(ids);
+  assert.equal((await jobsOf(ids)).refresh.filter((job) => job.status === "queued").length, 0, "nothing more to queue");
 });
 
 test("db, forgetting the reader's Timeline takes their setup and the jobs still waiting to write for them, and nobody else's", { skip: NO_DB }, async () => {
