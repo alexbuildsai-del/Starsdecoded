@@ -20,7 +20,8 @@ export function StagingRibbon() {
 
   // On a phone the public site's sticky nav and its Get my report sit at the top, so the badge goes to the bottom there
   // and in the preview, whose longer line has no room in a top bar. An app screen keeps it at the top, clear of its own
-  // bottom controls (ADR-59).
+  // bottom controls (ADR-59). Its own app header fills the whole width at 390 px, with the credits pill at the right, so
+  // there the badge is a thin strip on the screen's top edge, above the header's controls (QA-06 #9).
   const atBottom = preview || isPublicPath(location);
 
   return (
@@ -29,7 +30,7 @@ export function StagingRibbon() {
         "pointer-events-none fixed bottom-3 left-3 z-[60] flex items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1 font-label text-[10px] tracking-[0.2em] uppercase text-amber-200 backdrop-blur-sm",
         atBottom
           ? "max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:left-1/2 max-sm:-translate-x-1/2"
-          : "max-sm:bottom-auto max-sm:left-1/2 max-sm:top-4 max-sm:-translate-x-1/2",
+          : "max-sm:bottom-auto max-sm:left-1/2 max-sm:top-0 max-sm:-translate-x-1/2 max-sm:rounded-t-none max-sm:border-t-0 max-sm:py-px max-sm:text-[9px] max-sm:leading-none",
       )}
     >
       <span role="status">{preview ? "Staging · Prelaunch preview" : "Staging"}</span>
