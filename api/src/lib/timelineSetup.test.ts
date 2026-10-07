@@ -518,6 +518,32 @@ test("db, the three routes as pinned: 401, 403 and 409 as Now and ahead refuses;
   assert.equal((await setupOf(reader))?.replaySeenAt, null);
 });
 
+test("db, a reading that failed is written again by the reader's open, whatever job a setup holds for it; one still to be written waits for its job (reading 11)", { skip: NO_DB }, async () => {
+  await clearJobs();
+  const ids = await seedAccount("failed-open", { subscribed: true });
+  const reader = await readerOf(ids);
+  const [failedKey, waitingKey] = S.writeOrder(startPlan(reader));
+  // The reading's first write failed before the setup began, so its row says so.
+  fake.failOn = "timeline_reading";
+  try {
+    const first = await open(ids.userId, failedKey);
+    assert.deepEqual([first.status, first.body.status], [200, "failed"]);
+  } finally {
+    fake.failOn = null;
+  }
+  assert.deepEqual((await rowsOf(ids)).map((row) => row.status), ["failed"]);
+  await S.startSetup(reader, ZONE);
+  const queued = (await jobsOf(ids)).reading.map((job) => job.payload.key);
+  assert.ok(queued.includes(failedKey) && queued.includes(waitingKey), "the setup holds a job for each");
+
+  const before = readingCalls();
+  const waiting = await open(ids.userId, waitingKey);
+  assert.deepEqual([waiting.status, waiting.body.status, readingCalls() - before], [200, "writing", 0], "a reading its job is to write waits for it");
+  const again = await open(ids.userId, failedKey);
+  assert.deepEqual([again.status, again.body.status, again.body.reading?.line, readingCalls() - before], [200, "ready", CLEAN.line, 1], "a failed one is written by the open");
+  assert.equal((await rowsOf(ids)).find((row) => row.eventKey === failedKey)?.status, "ready");
+});
+
 test("db, one setup per account: two starts at once queue each reading once and keep one row", { skip: NO_DB }, async () => {
   const both = await seedAccount("both", { subscribed: true });
   const reader = await readerOf(both);

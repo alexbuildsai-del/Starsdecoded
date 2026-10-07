@@ -198,6 +198,10 @@ const READING = {
   line: "You think harder about what you take on and why.",
   body: "Astrology reads this stretch as a time when the sky presses on a part of your chart you already know well. Your report describes how you work through things in depth before you commit. This time meets that habit. You may find that old plans feel heavier to carry. You may also find that the plans you still believe in feel clearer. Some days the pressure feels like a weight. Other days it feels like a firm hand on your back. People around you may see you as more serious than usual. You may feel the gap between how calm you look and how you feel inside.",
 };
+// A reading written again after a new prompt version: another line that fits each event.
+const REWRITE = { line: "You take stock of what you carry and keep what still fits.", body: READING.body };
+// The setup before it starts: six steps, none done, no count.
+const STEPS_NOT_STARTED = ["chart", "planets", "week", "month", "months", "cycles"].map((id) => [id, false, null]);
 // ADR-275: with no credit, Write is refused before anything is written, with a line of its own.
 const NO_CREDIT_TO_WRITE = { error: "no_credit", message: "You need a credit to write this report." };
 const RECEIPT_SUBJECT = "Your receipt from Stars Decoded";
@@ -1031,6 +1035,13 @@ const WALK: Record<StepId, Step> = {
   timeline: async () => {
     assert.deepEqual(await timelineAccess(MIRA), TIMELINE_CLOSED);
     assert.ok(((await readHome(MIRA)).teaser?.cycles.length ?? 0) > 0, "Mira's home has no teaser to start Timeline from");
+    // Without the plan the setup is shut as the views are: signed out 401, no plan 403, and nothing queued by asking.
+    for (const [method, path] of [["GET", "/timeline/setup"], ["POST", "/timeline/setup"]] as const) {
+      assert.equal((await call(MIRA_SIGNED_OUT, method, path)).status, 401, `${method} ${path} signed out`);
+      const shut = await call(MIRA, method, path);
+      assert.deepEqual([shut.status, shut.body.error, shut.body.message], [403, "no_timeline", NO_TIMELINE_LINE], `${method} ${path}`);
+    }
+    assert.equal((await q("select count(*)::int as n from jobs where kind like 'timeline.%'")).rows[0].n, 0);
 
     // Start Timeline on the teaser: the plan's own box, and the yearly price.
     await unticked(MIRA, "timeline_year", TEASER);
@@ -1119,6 +1130,15 @@ const WALK: Record<StepId, Step> = {
     assert.equal((await q("select count(*)::int as n from timeline_readings where profile_id = $1", [miraProfileId])).rows[0].n, 0);
     const ahead = (await q("select run_at from jobs where kind = 'timeline.ahead' and payload->>'userId' = $1", [MIRA.user])).rows;
     assert.deepEqual(ahead.map((row) => (row.run_at as Date).getTime()), [dayStart(addDays(to, -7), zone).getTime()]);
+    // A payment whose webhook missed leaves no setup: the screen reads none, and its catch-up starts it, once (ADR-362).
+    await q("delete from timeline_setups where user_id = $1", [MIRA.user]);
+    const missed = await timelineSetup(MIRA, zone);
+    assert.deepEqual([missed.state, missed.from, missed.to, missed.replay], ["none", null, null, null]);
+    assert.deepEqual(missed.steps.map((step) => [step.id, step.done, step.count]), STEPS_NOT_STARTED);
+    const started = await call(MIRA, "POST", `/timeline/setup?tz=${encodeURIComponent(zone)}`);
+    assert.equal(started.status, 202, JSON.stringify(started.body));
+    assert.deepEqual(zod.StartTimelineSetupResponse.parse(started.body), writing);
+    assert.equal(await readingJobsLeft(), all.size, "the catch-up queued no reading twice");
     // The screen's catch-up finds it started and queues nothing twice.
     const caughtUp = await call(MIRA, "POST", `/timeline/setup?tz=${encodeURIComponent(zone)}`);
     assert.equal(caughtUp.status, 202, JSON.stringify(caughtUp.body));
@@ -1162,6 +1182,31 @@ const WALK: Record<StepId, Step> = {
     }
     assert.equal(modelCalls.length, callsAfter, `opening ${cards.length} cards called the model`);
     assert.equal(await readingJobsLeft(), 0, "an open queued a reading");
+
+    // A new prompt version leaves every kept reading stale (reading 10): a card opened meanwhile answers its kept text and
+    // writes nothing, her open of Timeline queues one refresh each, once, and the queue writes each again once.
+    await q(
+      "update timeline_readings set basis = 'before|' || basis, reading = jsonb_set(reading, '{of}', '\"before\"') where profile_id = $1",
+      [miraProfileId],
+    );
+    const stale = await call(MIRA, "POST", `/timeline/readings/${encodeURIComponent(cards[0])}`, {});
+    assert.equal(stale.status, 200, JSON.stringify(stale.body));
+    assert.deepEqual([stale.body.status, stale.body.reading?.line], ["ready", READING.line], "the kept text answers meanwhile");
+    assert.equal(modelCalls.length, callsAfter, "a stale card's open called the model");
+    assert.equal(await readingJobsLeft(), 0, "a card's open queued a refresh");
+    const refreshJobs = async () => Number((await q("select count(*) as n from jobs where kind = 'timeline.refresh' and status = 'queued'")).rows[0].n);
+    assert.equal((await timelineSetup(MIRA, zone)).state, "ready", "stale readings leave a setup ready");
+    assert.equal(await refreshJobs(), all.size, "her open queued one refresh for each kept reading");
+    await timelineSetup(MIRA, zone);
+    assert.equal(await refreshJobs(), all.size, "a second open queued none more");
+    replies = { timeline_reading: REWRITE };
+    assert.equal(await drained(), all.size, "one refresh ran for each reading");
+    assert.equal(modelCalls.length - callsAfter, all.size, "each reading was written again once");
+    const rewritten = (await q("select basis, reading->>'line' as line from timeline_readings where profile_id = $1", [miraProfileId])).rows;
+    assert.deepEqual([rewritten.length, rewritten.filter((row) => row.line !== REWRITE.line || String(row.basis).startsWith("before|"))], [all.size, []]);
+    await timelineSetup(MIRA, zone);
+    assert.equal(await refreshJobs(), 0, "nothing stale is left to queue");
+    replies = {};
   },
 
   "timeline-ends": async () => {
