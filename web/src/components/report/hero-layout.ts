@@ -234,12 +234,12 @@ export function phoneStack(input: PhoneStackInput): PhoneStack {
 }
 
 /**
- * The Ascendant as the Descendant beside it is written, degrees first: "19.07° Gemini · 1st (self)". The Rising begins the
+ * The Ascendant as the hero's Sun and Moon values are written (`triadText`): "Gemini 19.07° · 1st (self)". The Rising begins the
  * 1st house in a whole-sign chart, so the house needs no input. Null on a chart with no birth time, which has no horizon.
  */
 export function ascendantValue(asc: { sign: string; degree: number } | null | undefined): string | null {
   if (!asc || !Number.isFinite(asc.degree)) return null;
-  return `${asc.degree.toFixed(2)}° ${asc.sign} · ${houseWithWord(1)}`;
+  return `${asc.sign} ${asc.degree.toFixed(2)}° · ${houseWithWord(1)}`;
 }
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

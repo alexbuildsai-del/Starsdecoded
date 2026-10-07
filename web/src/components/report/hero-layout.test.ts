@@ -191,9 +191,9 @@ describe("the phone stack", () => {
 });
 
 describe("the Ascendant's value", () => {
-  it("reads as the Sun's and Moon's values do, degrees first, with the 1st house and its word", () => {
-    expect(ascendantValue({ sign: "Gemini", degree: 19.07 })).toBe("19.07° Gemini · 1st (self)");
-    expect(ascendantValue({ sign: "Aries", degree: 0.5 })).toBe("0.50° Aries · 1st (self)");
+  it("reads as the Sun's and Moon's values do, sign first, with the 1st house and its word", () => {
+    expect(ascendantValue({ sign: "Gemini", degree: 19.07 })).toBe("Gemini 19.07° · 1st (self)");
+    expect(ascendantValue({ sign: "Aries", degree: 0.5 })).toBe("Aries 0.50° · 1st (self)");
   });
 
   it("prints nothing on a chart with no birth time", () => {
