@@ -74,6 +74,7 @@ Open Mailbox rows, ids and links only (R-12.7). Kept current by every session th
 - MB-227 https://app.notion.com/p/3f0fefe7493181b1bb50e644ea207157
 - MB-228 https://app.notion.com/p/3f0fefe7493181958e8bfd0d011d4120
 - MB-232 https://app.notion.com/p/3f0fefe749318169953ced2f4aee9abe
+- MB-235 https://app.notion.com/p/3f2fefe749318108bfe0c17365632444
 
 Private, Owner Claude (security, details in Notion only; done before Timeline opens to subscribers):
 
@@ -82,6 +83,6 @@ Private, Owner Claude (security, details in Notion only; done before Timeline op
 - MB-212 https://app.notion.com/p/3eefefe7493181249240f5c8c8f52875
 - MB-213 https://app.notion.com/p/3eefefe7493181328321dcbe281e8a16
 - MB-214 https://app.notion.com/p/3effefe7493181fa9c85ccda47f5f310
-- MB-233 https://app.notion.com/p/3f0fefe749318172a5c2df7fa8111c21
+- MB-234 https://app.notion.com/p/3f2fefe74931815c91dde645a2a88772
 
 Parked until the Owner starts pricing (ADR-296): MB-115, 120, 149.
