@@ -5,8 +5,8 @@
  * grants, once Stripe says the payment went through (ADR-275, R-6.2).
  */
 import { createHash, randomUUID } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
-import type Stripe from "stripe";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
+import Stripe from "stripe";
 import type { z } from "zod";
 import type {
   CreateCheckoutBody,
@@ -83,7 +83,7 @@ function catalogueItem(id: string): Bundle | Plan | null {
   return CATALOGUE.find((item) => item.id === id) ?? null;
 }
 
-/** The box the page shows for an item: a plan starts at once, so it carries Timeline's own words (R-6.6, MB-225). */
+/** The box the page shows for an item: a plan starts at once, so it carries Timeline's own words (R-6.6, ADR-361). */
 export function tickFor(item: Bundle | Plan): string {
   return isPlan(item) ? PLAN_TICK : CHECKOUT_TICK;
 }
@@ -95,6 +95,12 @@ export interface RequestPrice {
 }
 
 export type Readiness = { ok: true; reason: null } | { ok: false; reason: string };
+
+/** A plan checkout of the account that Stripe may still take a payment on. */
+export interface OpenCheckout {
+  purchaseId: string;
+  sessionId: string;
+}
 
 /**
  * Whether POST /checkout may start a session on this host: Stripe's three keys, the start's sync done without a
@@ -136,6 +142,10 @@ export interface CheckoutDeps {
   keepCustomer: (userId: string, email: string | null, customerId: string) => Promise<string>;
   savePurchase: (row: InsertPurchaseRow) => Promise<void>;
   purchase: (userId: string, purchaseId: string) => Promise<PurchaseRow | null>;
+  /** The account's plan purchases still open with a session, the ones a newer plan checkout closes (ADR-359). */
+  openPlanCheckouts: (userId: string) => Promise<OpenCheckout[]>;
+  /** An open purchase whose session Stripe has just expired, moved as `checkout.session.expired` would move it. */
+  expirePurchase: (purchaseId: string) => Promise<void>;
   /** The web's origin, for where Stripe sends a reader back. */
   webBase: string;
 }
@@ -189,6 +199,29 @@ async function purchaseOf(userId: string, purchaseId: string): Promise<PurchaseR
   return row ?? null;
 }
 
+async function openPlanCheckoutsOf(userId: string): Promise<OpenCheckout[]> {
+  const rows = await db
+    .select({ purchaseId: purchasesTable.id, sessionId: purchasesTable.stripeSessionId })
+    .from(purchasesTable)
+    .where(
+      and(
+        eq(purchasesTable.userId, userId),
+        eq(purchasesTable.kind, "plan"),
+        eq(purchasesTable.status, "open"),
+        isNotNull(purchasesTable.stripeSessionId),
+      ),
+    );
+  return rows.flatMap(({ purchaseId, sessionId }) => (sessionId ? [{ purchaseId, sessionId }] : []));
+}
+
+// Only an open purchase moves, so one a payment reached first stays as it is.
+async function expirePurchaseRow(purchaseId: string): Promise<void> {
+  await db
+    .update(purchasesTable)
+    .set({ status: "expired", updatedAt: new Date() })
+    .where(and(eq(purchasesTable.id, purchaseId), eq(purchasesTable.status, "open")));
+}
+
 function liveDeps(env: NodeJS.ProcessEnv): CheckoutDeps {
   const client = stripe(env);
   return {
@@ -207,6 +240,8 @@ function liveDeps(env: NodeJS.ProcessEnv): CheckoutDeps {
     keepCustomer: keepCustomerId,
     savePurchase: savePurchaseRow,
     purchase: purchaseOf,
+    openPlanCheckouts: openPlanCheckoutsOf,
+    expirePurchase: expirePurchaseRow,
     webBase: publicWebBase(env),
   };
 }
@@ -280,7 +315,7 @@ export function doneUrl(webBase: string, purchaseId: string): string {
 
 /**
  * The Checkout Session behind Pay (ADR-274): Stripe's fields on our page, the line found by its lookup key, a campaign's
- * coupon as the one discount, and the payment methods the Dashboard turns on, so no `payment_method_types`.
+ * coupon as the one discount, and the payment methods the Dashboard turns on, Link aside, so no `payment_method_types`.
  */
 export function sessionParams(input: SessionInput): Stripe.Checkout.SessionCreateParams {
   const plan = isPlan(input.item);
@@ -297,6 +332,9 @@ export function sessionParams(input: SessionInput): Stripe.Checkout.SessionCreat
     automatic_tax: { enabled: AUTOMATIC_TAX },
     // The charge is in the euros the page and the receipt show; a second currency is out of the spec's scope.
     adaptive_pricing: { enabled: false },
+    // ADR-346: Link's box came ticked and wanted a phone number before Pay. The methods list can't name Link, so it
+    // goes here and the Dashboard keeps choosing every other method.
+    wallet_options: { link: { display: "never" } },
     return_url: doneUrl(input.webBase, input.purchaseId),
     client_reference_id: input.purchaseId,
     metadata: tagged,
@@ -311,6 +349,23 @@ export type CheckoutOutcome =
   | { kind: "no_personal_report" }
   | { kind: "already_subscribed" }
   | { kind: "unavailable"; reason: string };
+
+/**
+ * One Timeline plan per account (ADR-359): a plan checkout first expires the account's other plan checkouts still open,
+ * so an older tab can no longer pay for a second plan. Stripe expires only an open session and refuses any other, so a
+ * session paid or closed since is left to its own events.
+ */
+async function closeOpenPlanCheckouts(userId: string, client: Stripe, deps: CheckoutDeps): Promise<void> {
+  for (const open of await deps.openPlanCheckouts(userId)) {
+    try {
+      await client.checkout.sessions.expire(open.sessionId);
+    } catch (err) {
+      if (err instanceof Stripe.errors.StripeInvalidRequestError) continue;
+      throw err;
+    }
+    await deps.expirePurchase(open.purchaseId);
+  }
+}
 
 /** One line for the log: a lookup of our own Price or coupon sends Stripe nothing of the buyer's, so its words can go. */
 function describe(err: unknown): string {
@@ -358,6 +413,7 @@ export async function startCheckout(
   if (!priceId) return { kind: "unavailable", reason: `no Price on sale answers ${item.lookupKey}` };
 
   const customerId = await customerFor(buyer.userId, deps);
+  if (isPlan(item)) await closeOpenPlanCheckouts(buyer.userId, client, deps);
   const purchaseId = randomUUID();
   const session = await client.checkout.sessions.create(
     sessionParams({ item, priceId, couponId, customerId, purchaseId, webBase: deps.webBase }),
