@@ -1,6 +1,6 @@
-# Explain it like a friend (draft)
+# Explain it like a friend
 
-Status: draft, ideation 2026-10-07. Artifact: https://claude.ai/artifact/URGEFLx2S8KHTe2WrPV3XD
+Status: locked 2026-10-07. Artifact: https://claude.ai/artifact/URGEFLx2S8KHTe2WrPV3XD
 Brain change. Extends Review 05/10 §7 and §10 (ADR-297 to 312) and ADR-104; supersedes rule 1's "never explain the method".
 
 ## Why
@@ -121,7 +121,7 @@ each explained the first time; only The Inner Cosmos is the voice model.
 
 Answered 2026-10-07: Did you know, at most one per chapter; no hand-written chapter before lock. None open.
 
-## Decisions to record
+## Decisions recorded (ADR-369 to 382, in this order)
 
 - Rule 1 becomes "Name it, say it plain, show it in a day"; naming a placement is allowed when the plain meaning and a
   daily example follow (Decided by Alex, 2026-10-07). Supersedes rule 1 of ADR-104 and widens ADR-297 to 312's list.
