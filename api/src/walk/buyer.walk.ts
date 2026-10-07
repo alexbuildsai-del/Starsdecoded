@@ -318,17 +318,18 @@ function mondayOf(day: string): string {
 
 /**
  * What the engine lists for a chart from a Monday in the reader's days (reading 8), worked out here rather than by the
- * setup: the sky events that get a reading over this week's 7 days, the month's 30 and the six months' 182, and every
- * life cycle to 90.
+ * setup: the sky events that get a reading over this week's 7 days, the month's 30 and the six months to `to`, which is
+ * today plus 182 days, as the setup's own stretch ends, and every life cycle to 90.
  */
-function engineReadings(chart: Chart, zone: string, from: string) {
+function engineReadings(chart: Chart, zone: string, from: string, to: string) {
+  const months = (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000 + 1;
   const start = dayStart(from, zone);
   const readingsOver = (days: number) => {
     const end = new Date(dayStart(addDays(from, days), zone).getTime() - 1);
     return new Set(skyEvents(chart, start, end).filter(readsAs).map((event) => event.key));
   };
   const cycles = lifeCycles(natalLongitudes(chart), new Date(chart.datetimeUtc)).map((cycle) => cycle.key);
-  return { week: readingsOver(7), month: readingsOver(30), months: readingsOver(182), cycles };
+  return { week: readingsOver(7), month: readingsOver(30), months: readingsOver(months), cycles };
 }
 
 /** Jobs still to write a reading: any kind but the next six months', which waits for its week. */
@@ -1094,9 +1095,10 @@ const WALK: Record<StepId, Step> = {
   // writes it, and every list is held against the engine's own for her chart, worked out here (reading 8).
   "timeline-setup": async () => {
     const zone = MIRA_BIRTH.timezone;
-    const from = mondayOf(dayIn(new Date(), zone));
-    const to = addDays(from, 181);
-    const engine = engineReadings(miraChart, zone, from);
+    const today = dayIn(new Date(), zone);
+    const from = mondayOf(today);
+    const to = addDays(today, 182);
+    const engine = engineReadings(miraChart, zone, from, to);
     const all = new Set([...engine.week, ...engine.month, ...engine.months, ...engine.cycles]);
     const counts = [
       ["chart", null], ["planets", null], ["week", engine.week.size], ["month", engine.month.size], ["months", engine.months.size],
