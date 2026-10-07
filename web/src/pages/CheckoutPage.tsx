@@ -25,6 +25,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import {
   CHECKOUT_LINES,
+  afterPaying,
   backLabel,
   campaignLine,
   checkoutChoices,
@@ -37,7 +38,6 @@ import {
   replacedCheckout,
   startRefusal,
   startRetries,
-  stepName,
   type CheckoutItemView,
 } from "@/lib/checkout-view";
 import { usePageTitle } from "@/lib/page-title";
@@ -189,10 +189,11 @@ function CampaignLine({ view }: { view: CheckoutItemView }) {
   ) : null;
 }
 
-function BackLine({ returnTo }: { returnTo: string }) {
+function BackLine({ returnTo, plan }: { returnTo: string; plan: boolean }) {
+  const next = afterPaying(returnTo, plan);
   return (
     <p className={MUTED}>
-      VAT included · then back to <span className="text-[#E8EBF2]">{stepName(returnTo)}</span>
+      {next.lead} <span className="text-[#E8EBF2]">{next.to}</span>
     </p>
   );
 }
@@ -423,7 +424,7 @@ export default function CheckoutPage() {
             </div>
             <p className={MUTED}>{view.line}</p>
             <CampaignLine view={view} />
-            <BackLine returnTo={returnTo} />
+            <BackLine returnTo={returnTo} plan={view.plan} />
           </section>
         ) : (
           <fieldset className="grid gap-2" disabled={paying || replaced}>
@@ -458,7 +459,7 @@ export default function CheckoutPage() {
                 )}
               </label>
             ))}
-            <BackLine returnTo={returnTo} />
+            <BackLine returnTo={returnTo} plan={view.plan} />
           </fieldset>
         )}
 

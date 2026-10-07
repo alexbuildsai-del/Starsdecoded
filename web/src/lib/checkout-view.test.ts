@@ -8,6 +8,7 @@ import {
   RETURN_TO,
   SESSION_DAY_MS,
   WAIT_MS,
+  afterPaying,
   backLabel,
   backLine,
   campaignLine,
@@ -151,15 +152,18 @@ describe("the item's lines", () => {
     expect(payLabel(999)).toBe("Pay €9.99");
   });
 
-  it("names the step that asked as the reader saw it", () => {
+  it("names the step that asked as the reader saw it, and Timeline for a plan", () => {
     expect(
       ["/chart", "/dashboard", "/dashboard?open=credits", "/dashboard?open=gift", "/dashboard?open=add", "/dashboard?open=pair",
         "/dashboard/account", "/report/0b8f2d4e-1c3a-4e5f-9a7b-2c4d6e8f0a1b"].map(stepName),
     ).toEqual([
       "your birth details", "your dashboard", "your credits", "your gift", "Add someone", "your pair", "your account", "your report",
     ]);
-    expect(backLine("/dashboard?open=pair")).toBe("VAT included · then back to your pair");
+    expect(backLine("/dashboard?open=pair", false)).toBe("VAT included · then back to your pair");
     expect(backLabel("/chart")).toBe("Back to your birth details");
+    // A plan's checkout lands on Timeline, so its line names Timeline, highlighted as a step's name is.
+    expect(backLine("/dashboard/account", true)).toBe("VAT included · then on to Timeline");
+    expect(afterPaying("/dashboard/account", true).to).toBe("Timeline");
   });
 
   it("says each refusal in its own words, and offers Try again only where trying again can help", () => {
@@ -226,7 +230,7 @@ describe("the page that waits for the credit", () => {
     expect(donePhase(null, { missing: true, elapsedMs: 0 })).toBe("missing");
   });
 
-  it("says what happens next while it waits, and goes back by itself once the credits are in", () => {
+  it("says what happens next while it waits, and goes back by itself once the credits are in, or on to Timeline for a plan", () => {
     expect(doneView("waiting", bought)).toEqual({
       title: "Confirming your payment",
       body: "This takes a few seconds. Then we add your 3 credits and take you back to your pair.",
@@ -236,10 +240,14 @@ describe("the page that waits for the credit", () => {
     });
     expect(doneView("waiting", null).body).toBe("This takes a few seconds.");
     expect(doneView("granted", bought)).toMatchObject({ title: "3 credits added", body: "Taking you back to your pair.", back: null });
-    expect(doneView("waiting", { item: "timeline_year", returnTo: "/dashboard", credits: null }).body).toBe(
-      "This takes a few seconds. Then Timeline starts and we take you back to your dashboard.",
+    expect(doneView("waiting", { item: "timeline_year", returnTo: "/dashboard/account", credits: null }).body).toBe(
+      "This takes a few seconds. Then Timeline starts and we take you to it.",
     );
-    expect(doneView("granted", { item: "timeline_month", returnTo: "/dashboard", credits: null }).title).toBe("Timeline started");
+    expect(doneView("granted", { item: "timeline_month", returnTo: "/dashboard/account", credits: null })).toMatchObject({
+      title: "Timeline started",
+      body: "Taking you to Timeline.",
+      back: null,
+    });
   });
 
   it("after the wait, says the payment is still being confirmed and gives the way back", () => {

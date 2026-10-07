@@ -14,8 +14,8 @@
 import { readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Browser, Frame, Page } from "playwright-core";
-import type { CatalogueItemId } from "@workspace/commerce";
+import type { Browser, Frame, Page, Route } from "playwright-core";
+import { PLANS, type CatalogueItemId } from "@workspace/commerce";
 import type { QaWalkMode } from "@workspace/db";
 
 export interface ApiAnswer {
@@ -47,7 +47,10 @@ export interface WalkPage {
   api(method: string, path: string, body?: unknown): Promise<ApiAnswer>;
   /** Opens a screen, or reads the one open when the path is null, and waits until it shows what it should. */
   screen(path: string | null, shows: Shown): Promise<void>;
-  /** Pays for one item on /checkout with the test card and answers the purchase the page that waits for it names. */
+  /**
+   * Pays for one item on /checkout with the test card and answers the purchase the page that waits for it names. The
+   * tab ends on the step that asked; a plan's gets there by way of Timeline's setup, where its checkout lands.
+   */
   pay(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string>;
 }
 
@@ -86,8 +89,9 @@ const PAID: ReadonlyArray<{ method: string | null; path: RegExp; route: PaidRout
   { method: "POST", path: /^\/api\/reports\/[^/]+\/regenerate$/, route: "POST /api/reports/:id/regenerate" },
   { method: "PATCH", path: /^\/api\/profiles\/[^/]+\/birth-time$/, route: "PATCH /api/profiles/:id/birth-time" },
   { method: "POST", path: /^\/api\/ask$/, route: "POST /api/ask" },
-  // Timeline's setup and its readings write paid text, so the walk reads access alone (ADR-315).
-  { method: null, path: /^\/api\/timeline\/(?!access$)/, route: "/api/timeline/*" },
+  // Timeline's readings write paid text, so the walk stays out of Timeline's views, where readings open. Access goes
+  // through, as do the setup's read and start: the QA pair's setup never starts, so they write nothing (ADR-315).
+  { method: null, path: /^\/api\/timeline\/(?!(access|setup)$)/, route: "/api/timeline/*" },
 ];
 
 /** The paid route a request would reach, by the route's name with no id in it, or null for one that spends nothing. */
@@ -147,6 +151,10 @@ const FIELDS_MS = 60_000;
 const PAID_MS = 90_000;
 // The page that waits gives up after a minute (R16-24), so a grant later than that never brings the reader back.
 const BACK_MS = 75_000;
+
+// A plan's checkout lands on Timeline in the app, where its setup screen shows (reading 8).
+const TIMELINE_APP = "/dashboard/timeline";
+const SETUP_PATH = "/api/timeline/setup";
 
 /** Reading 14: a phone's screen, small enough to keep one a step in the database and read at a glance. */
 const PICTURE = { width: 390, height: 844, quality: 60 };
@@ -397,52 +405,89 @@ export class ChromiumPage implements WalkPage {
   }
 
   async pay(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string> {
-    if (door) {
-      await this.goto(door.path);
-      const scope = door.inDialog ? this.page.getByRole("dialog") : this.page;
-      await scope.getByRole("link", { name: door.link, exact: true }).first().click({ timeout: SHOWN_MS });
-      await this.page.waitForURL((url) => url.pathname === "/checkout", { timeout: NAV_MS });
-      const asked = new URL(this.page.url()).searchParams;
-      if (asked.get("item") !== item || asked.get("returnTo") !== returnTo) {
-        throw new Error("the link opened checkout for another item or another step to come back to");
+    const plan = PLANS.some((row) => row.id === item);
+    const release = plan ? await this.holdSetupStart() : null;
+    try {
+      if (door) {
+        await this.goto(door.path);
+        const scope = door.inDialog ? this.page.getByRole("dialog") : this.page;
+        await scope.getByRole("link", { name: door.link, exact: true }).first().click({ timeout: SHOWN_MS });
+        await this.page.waitForURL((url) => url.pathname === "/checkout", { timeout: NAV_MS });
+        const asked = new URL(this.page.url()).searchParams;
+        if (asked.get("item") !== item || asked.get("returnTo") !== returnTo) {
+          throw new Error("the link opened checkout for another item or another step to come back to");
+        }
+      } else {
+        await this.goto(`/checkout?${new URLSearchParams({ item, returnTo }).toString()}`);
       }
-    } else {
-      await this.goto(`/checkout?${new URLSearchParams({ item, returnTo }).toString()}`);
-    }
-    // The box first: POST /checkout refuses without it, and Stripe's fields need the session it makes (ADR-274).
-    try {
-      await this.page.getByRole("checkbox").first().check({ timeout: SHOWN_MS });
-    } catch {
-      const said = (await this.page.getByRole("status").allInnerTexts().catch(() => [] as string[])).join(" ").trim() || (await this.alertText());
-      throw new Error(said ? `checkout wouldn't take the tick: ${said}` : "checkout wouldn't take the tick");
-    }
-    const frame = await this.cardFrame();
-    await this.type(frame, NUMBER, TEST_CARD.number);
-    await this.type(frame, EXPIRY, expiry(new Date()));
-    await this.type(frame, CVC, TEST_CARD.cvc);
-    // The fields of a euro session aren't written down: a country and a postal code go in only where the frame asks
-    // for them (Round start 4c).
-    const country = frame.locator(COUNTRY).first();
-    if (await country.isVisible().catch(() => false)) await country.selectOption(TEST_CARD.country).catch(() => undefined);
-    if (await frame.locator(POSTAL).first().isVisible().catch(() => false)) await this.type(frame, POSTAL, TEST_CARD.postal);
+      // The box first: POST /checkout refuses without it, and Stripe's fields need the session it makes (ADR-274).
+      try {
+        await this.page.getByRole("checkbox").first().check({ timeout: SHOWN_MS });
+      } catch {
+        const said = (await this.page.getByRole("status").allInnerTexts().catch(() => [] as string[])).join(" ").trim() || (await this.alertText());
+        throw new Error(said ? `checkout wouldn't take the tick: ${said}` : "checkout wouldn't take the tick");
+      }
+      const frame = await this.cardFrame();
+      await this.type(frame, NUMBER, TEST_CARD.number);
+      await this.type(frame, EXPIRY, expiry(new Date()));
+      await this.type(frame, CVC, TEST_CARD.cvc);
+      // The fields of a euro session aren't written down: a country and a postal code go in only where the frame asks
+      // for them (Round start 4c).
+      const country = frame.locator(COUNTRY).first();
+      if (await country.isVisible().catch(() => false)) await country.selectOption(TEST_CARD.country).catch(() => undefined);
+      if (await frame.locator(POSTAL).first().isVisible().catch(() => false)) await this.type(frame, POSTAL, TEST_CARD.postal);
 
-    await this.page.getByRole("button", { name: /^Pay\b/ }).click({ timeout: FIELDS_MS });
-    try {
-      await this.page.waitForURL((url) => url.pathname === "/checkout/done", { timeout: PAID_MS });
-    } catch {
-      const said = await this.alertText();
-      throw new Error(said ? `the payment didn't go through: ${said}` : "Pay never reached the page that waits for the credit");
+      await this.page.getByRole("button", { name: /^Pay\b/ }).click({ timeout: FIELDS_MS });
+      try {
+        await this.page.waitForURL((url) => url.pathname === "/checkout/done", { timeout: PAID_MS });
+      } catch {
+        const said = await this.alertText();
+        throw new Error(said ? `the payment didn't go through: ${said}` : "Pay never reached the page that waits for the credit");
+      }
+      const purchase = new URL(this.page.url()).searchParams.get("purchase");
+      if (!purchase) throw new Error("the page that waits for the credit names no purchase");
+      // Only the webhook grants. Once it has, the page goes back to the step that asked (reading 2), or for a plan on to
+      // Timeline's setup screen (reading 8).
+      const landing = plan ? TIMELINE_APP : new URL(returnTo, this.origin).pathname;
+      try {
+        await this.page.waitForURL((url) => url.pathname === landing, { timeout: BACK_MS });
+      } catch {
+        throw new Error(
+          plan
+            ? "the payment wasn't confirmed in time, so the page never opened Timeline"
+            : "the payment wasn't confirmed in time, so the page never went back to the step that asked",
+        );
+      }
+      // The walk goes no further than Timeline's setup: every pay ends on the step that asked, and the held start goes
+      // with the page.
+      if (plan) await this.backTo(returnTo);
+      return purchase;
+    } finally {
+      await release?.();
     }
-    const purchase = new URL(this.page.url()).searchParams.get("purchase");
-    if (!purchase) throw new Error("the page that waits for the credit names no purchase");
-    // Only the webhook grants, and the page goes back to the step that asked once it has (reading 2).
-    const back = new URL(returnTo, this.origin).pathname;
+  }
+
+  /**
+   * Holds the page's start of Timeline's setup unanswered, so a page that lands on Timeline goes no further than its
+   * setup: the QA pair's setup never starts, so an answered start reads none and Timeline opens its views, whose reads
+   * the door refuses. The setup's read goes on to the door as any call does. Answers the release.
+   */
+  private async holdSetupStart(): Promise<() => Promise<void>> {
+    const setup = (url: URL) => url.origin === this.origin && url.pathname === SETUP_PATH;
+    // A route left unanswered keeps its request waiting until the page that made it is gone.
+    const hold = (route: Route) => (route.request().method() === "POST" ? undefined : route.fallback().catch(() => undefined));
+    await this.page.route(setup, hold);
+    return () => this.page.unroute(setup, hold).catch(() => undefined);
+  }
+
+  /** A page that loads afresh has Clerk sign the reader in again before the walk's next call can go out as them. */
+  private async backTo(returnTo: string): Promise<void> {
+    await this.goto(returnTo);
     try {
-      await this.page.waitForURL((url) => url.pathname === back, { timeout: BACK_MS });
+      await this.page.waitForFunction(() => Boolean((globalThis as { Clerk?: { user?: unknown } }).Clerk?.user), undefined, { timeout: SHOWN_MS });
     } catch {
-      throw new Error("the payment wasn't confirmed in time, so the page never went back to the step that asked");
+      throw new Error("Clerk never signed the page in again on the step that asked");
     }
-    return purchase;
   }
 
   /**

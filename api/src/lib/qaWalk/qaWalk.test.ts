@@ -758,8 +758,11 @@ test("the door: a deploy's walk writes once, at the 402, and nothing else that s
   assert.equal(paidRoute("PATCH", "/api/profiles/0a1b/birth-time"), "PATCH /api/profiles/:id/birth-time");
   assert.equal(paidRoute("POST", "/api/ask"), "POST /api/ask");
   assert.equal(paidRoute("GET", "/api/timeline/now?range=six-months"), "/api/timeline/*");
+  assert.equal(paidRoute("GET", "/api/timeline/life?tz=Europe%2FBrussels"), "/api/timeline/*");
   assert.equal(paidRoute("POST", "/api/timeline/readings/contact:x"), "/api/timeline/*");
-  for (const [method, path] of [["GET", "/api/timeline/access"], ["GET", "/api/ask"], ["POST", "/api/gifts"], ["GET", "/api/reports/0a1b"], ["POST", "/api/compatibility/0a1b/send"]]) {
+  assert.equal(paidRoute("POST", "/api/timeline/setup/replay-seen"), "/api/timeline/*");
+  // A plan's checkout lands on Timeline's setup, whose read and start never write for the QA pair.
+  for (const [method, path] of [["GET", "/api/timeline/access"], ["GET", "/api/timeline/setup?tz=Europe%2FBrussels"], ["POST", "/api/timeline/setup"], ["GET", "/api/ask"], ["POST", "/api/gifts"], ["GET", "/api/reports/0a1b"], ["POST", "/api/compatibility/0a1b/send"]]) {
     assert.equal(paidRoute(method, path), null, `${method} ${path}`);
   }
 

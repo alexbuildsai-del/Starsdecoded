@@ -175,8 +175,19 @@ export function stepName(returnTo: string): string {
   return STEPS.find(([path]) => path.test(returnTo))?.[1] ?? "your dashboard";
 }
 
-export function backLine(returnTo: string): string {
-  return `VAT included · then back to ${stepName(returnTo)}`;
+/**
+ * Where checkout says a reader goes once paid, before the name it highlights: on to Timeline for a plan, whose checkout
+ * lands there (reading 8), else back to the step that asked.
+ */
+export function afterPaying(returnTo: string, plan: boolean): { lead: string; to: string } {
+  return plan
+    ? { lead: "VAT included · then on to", to: "Timeline" }
+    : { lead: "VAT included · then back to", to: stepName(returnTo) };
+}
+
+export function backLine(returnTo: string, plan: boolean): string {
+  const next = afterPaying(returnTo, plan);
+  return `${next.lead} ${next.to}`;
 }
 
 export function backLabel(returnTo: string): string {
@@ -269,7 +280,7 @@ export interface DoneView {
   body: string | null;
   /** The status the page shows with its three dots while it waits; null once it stops. */
   status: string | null;
-  /** Back to the step that asked, unless the page is about to take the reader there. */
+  /** Back to the step that asked, unless the page is about to take the reader on by itself. */
   back: string | null;
   /** Checkout again for the same item and step, when the payment never went through. */
   retry: string | null;
@@ -291,7 +302,7 @@ export function doneView(
         body: !state
           ? "This takes a few seconds."
           : plan
-            ? `This takes a few seconds. Then Timeline starts and we take you back to ${step}.`
+            ? "This takes a few seconds. Then Timeline starts and we take you to it."
             : `This takes a few seconds. Then we add ${what} and take you back to ${step}.`,
         status: "Confirming",
         back: null,
@@ -300,7 +311,8 @@ export function doneView(
     case "granted":
       return {
         title: plan ? "Timeline started" : state?.credits ? `${creditCount(state.credits)} added` : "Credits added",
-        body: `Taking you back to ${step}.`,
+        // A plan's page opens Timeline, where its setup screen shows (reading 8), not the step that asked.
+        body: plan ? "Taking you to Timeline." : `Taking you back to ${step}.`,
         status: null,
         back: null,
         retry: null,
