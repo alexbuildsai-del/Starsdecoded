@@ -25,7 +25,7 @@ export default function RefundsPage() {
         </p>
       </LegalSection>
 
-      {/* MB-225 provisional: what Refunds says of Timeline follows the plan's box, which waits on the Owner's answer. */}
+      {/* MB-225 decided, ADR-361: what Refunds says of Timeline follows the plan's box as R17 built it. */}
       <LegalSection id="timeline" title="Timeline">
         <p>When you start Timeline, you tick a box that says: “{PLAN_TICK}”</p>
         <p>

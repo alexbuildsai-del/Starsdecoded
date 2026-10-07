@@ -10,7 +10,7 @@ import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { chapterAccent } from "@/lib/chapter-accent";
 import { CHAPTERS } from "@/lib/chapters";
 import { clockWords } from "@/lib/date-entry";
-import { PERSONAL_REPORT, PRODUCT } from "@/lib/product";
+import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { SiteLayout } from "../SiteLayout";
 import { ReferenceCheck } from "../components/ReferenceCheck";
 import { SAMPLE, sampleChart } from "../data/sample";
@@ -162,7 +162,7 @@ function Steps() {
             {/* ADR-313: a failed report keeps its credit, so Try again is free and only a final failure gives it back. */}
             <p className={PROSE}>
               If a chapter still fails the check, we tell you what went wrong. Try again is free. If we still can't write
-              your report, its credit comes back to your balance.
+              your report, its credit comes back to your balance. For a {COMPATIBILITY_REPORT}, the credit comes back at once.
             </p>
           </Step>
         </ol>

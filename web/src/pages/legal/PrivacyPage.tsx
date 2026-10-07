@@ -196,8 +196,8 @@ export default function PrivacyPage() {
 
       <LegalSection id="cookies" title="Cookies and your browser">
         <p>
-          We don't use analytics, advertising or tracking tools. The only cookies are the ones {PRODUCT} needs to work, so
-          there's no cookie banner.
+          We don't use analytics, advertising or tracking tools, so there's no cookie banner. The cookies we do use are
+          below.
         </p>
         <p>
           Our own cookie, <code className="sd-mono text-[14px] text-[var(--paper)]">sd_session_id</code>, remembers which
