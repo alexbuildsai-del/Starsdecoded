@@ -47,6 +47,12 @@ on paper; empty 9th, Venus uneasy in Aries in the 3rd, big ideas come from every
    opens on the reader's life ("A long trip may change you less than a good chat"), then the reason. Never one fixed
    opener ("Your 9th house is empty. That's…"). A comfort word is always explained: why a planet is at ease or uneasy
    in a sign (Venus's home is Libra, take turns, take your time; Aries opposite, go first, go fast).
+0c. **Four things to know, before House by House** (Owner, 2026-10-07: "explain it before the person actually reads
+   it"): a short primer at the head of House by House, before the first card. (1) Houses start at the rising sign.
+   (2) Each house is one part of life. (3) Every house has a planet in charge, even an empty one. (4) Every planet has a
+   home sign and is least at ease in the opposite sign, with the seven-planet table (home, least at ease, why in one
+   line). The house cards then never stop to explain. Later the same four ideas become a scene in the method page's
+   "Reading the sky" film and an Explained post, same words everywhere (out of scope here).
 1. **Rule 1 rewritten** (`api/src/prompts/system.ts`): "Name it, say it plain, show it in a day." Any placement, house,
    ruler, aspect or idea (retrograde, rising sign, a return) may be named once where it first matters, followed by its
    plain meaning in the next sentence, then a real moment from the reader's life. Sentences about astrology as a subject
@@ -129,6 +135,7 @@ Answered 2026-10-07: Did you know, at most one per chapter; no hand-written chap
 - Did you know cards for traditions we don't read by, one per chapter at most (Decided by Alex; count by Claude).
 - Timeline reads retrogrades and slow planets by house, and computes shadow dates (Decided by Claude, astrology call).
 - Chiron is read in the Personal report, by house (Decided by Claude).
+- A four-idea primer opens House by House, home and opposite signs included (Decided by Alex, 2026-10-07).
 - Did you know is worded as tradition, never fact (Decided by Alex, 2026-10-07).
 - Scene pool rotated per chart, a warn check for reused scenes; creators' text never enters a prompt (Decided by Claude).
 - The Owner keeps sending creator videos; each is doctrine-checked, then filed as a Did you know or an Explained post
