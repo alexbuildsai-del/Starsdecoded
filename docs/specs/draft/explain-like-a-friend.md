@@ -43,6 +43,10 @@ on paper; empty 9th, Venus uneasy in Aries in the 3rd, big ideas come from every
 0. **Crisp line first** (Owner: "lead with Capricorn is the one that would skip the small talk, then explain it deeper"):
    every idea opens with the one line you'd repeat to a friend. `vocabulary.ts` gets, per sign, planet and house, a crisp
    line and a scene in her style; this comes before any rule change.
+0b. **Life first, astrology as the "because"** (Owner, 2026-10-07: "why do you always have to say that?"): a paragraph
+   opens on the reader's life ("A long trip may change you less than a good chat"), then the reason. Never one fixed
+   opener ("Your 9th house is empty. That's…"). A comfort word is always explained: why a planet is at ease or uneasy
+   in a sign (Venus's home is Libra, take turns, take your time; Aries opposite, go first, go fast).
 1. **Rule 1 rewritten** (`api/src/prompts/system.ts`): "Name it, say it plain, show it in a day." Any placement, house,
    ruler, aspect or idea (retrograde, rising sign, a return) may be named once where it first matters, followed by its
    plain meaning in the next sentence, then a real moment from the reader's life. Sentences about astrology as a subject
@@ -66,7 +70,10 @@ on paper; empty 9th, Venus uneasy in Aries in the 3rd, big ideas come from every
    in Timeline, Mercury signs at a party, a retrograde at birth), a small card outside the prose, "some astrologers say",
    then what it could mean for this chart. At most one per chapter (Owner, 2026-10-07). Always worded as a tradition,
    never as a fact (Owner: "make it sound like it's not a fact, but it's often said this way"): "is often read as",
-   "old astrology tends to", "many people find". The shadow needs shadow dates in the engine.
+   "old astrology tends to", "many people find". Tradition-worded but never watered down (Owner: "it doesn't even say
+   that the Sun is the relationship to your father and what you need to learn"): say what the tradition reads, what it
+   could mean here, and the lesson. Our own pictures, never hers (shadow: missing your exit and passing the same petrol
+   station three times, not her outfit). The shadow needs shadow dates in the engine.
 10. **No repeats** (Owner: "if we say what to write, it's gonna just write that all the time"): a pool of several
    scenes per sign, planet and house (party, group chat, work meeting, family dinner, first date), a few picked per
    chart, never the whole list; a warn-class check for a scene reused word for word. Her whole profile (114 videos,
