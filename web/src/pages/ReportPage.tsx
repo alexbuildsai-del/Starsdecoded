@@ -47,6 +47,7 @@ import { BalanceRail } from "@/components/report/BalanceRail";
 import { DawnClosing } from "@/components/report/DawnClosing";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
 import { OpeningOverlay } from "@/components/report/OpeningOverlay";
+import { useBuildStory } from "@/components/report/BuildStory";
 import { RevisionLedger, marksShown, rememberMarks } from "@/components/report/RevisionLedger";
 import { RevisionProvider, revisionSet } from "@/components/report/RevisedText";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
@@ -136,6 +137,7 @@ export default function ReportPage() {
   const live = useLiveReport(id!);
   const { report, sections, workbook, writing, revising, open, setOpen, progress, horizonPass } = live;
   const interpretation = live.interpretation as Interpretation | null;
+  const story = useBuildStory(report, live.chartReady, progress);
 
   const refresh = useCallback(() => {
     client.invalidateQueries({ queryKey: getGetReportQueryKey(id!) });
@@ -222,6 +224,7 @@ export default function ReportPage() {
           onOpen={setOpen}
           onRetry={offer.tryAgain ? rewrite : undefined}
           retrying={regenerate.isPending}
+          slots={story}
         />
       </div>
     );
@@ -260,6 +263,7 @@ export default function ReportPage() {
           onOpen={setOpen}
           onRetry={offer.tryAgain ? rewrite : undefined}
           retrying={regenerate.isPending}
+          slots={story}
         />
       )}
 
@@ -274,6 +278,7 @@ export default function ReportPage() {
         chartData={chartData}
         meta={interpretation.meta}
         onAddBirthTime={report.profileId ? openTime : undefined}
+        writtenOn={report.createdAt}
         accent={OPENING_ACCENT}
         gather={open}
       />
