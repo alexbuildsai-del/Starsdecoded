@@ -77,7 +77,7 @@ on paper; empty 9th, Venus uneasy in Aries in the 3rd, big ideas come from every
    once per report. Saturn and Jupiter get the same crisp treatment: used everywhere today, never said
    plainly (Audrey: "you can carry a frightening amount alone" with no Saturn behind it).
 11. **Chiron gets a sentence**: read by house, the sore spot then the gift, in possibility words.
-12. **Posts**: new Content board pillar **Explained**, ten ideas added as Idea (done 2026-10-07).
+12. **Posts**: new Content board pillar **Explained**, 23 ideas added as Idea (done 2026-10-07).
 
 ## Out of scope
 
