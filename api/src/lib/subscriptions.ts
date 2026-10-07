@@ -36,6 +36,8 @@ const ENDED = ["canceled", "incomplete_expired"];
 // A plan the account keeps reads live, or still incomplete when its first payment landed before the event saying so.
 const KEPT_STATUSES = [...LIVE_STATUSES, "incomplete"];
 
+const NO_ROW_COUNTS_MS = 24 * 60 * 60 * 1000;
+
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 // The checkout tags the subscription with the purchase it made (purchases.ts), and every invoice carries the tag.
@@ -318,9 +320,12 @@ async function grantIn(tx: Tx, purchaseId: string, item: PlanId, paid: PaidBy, n
 
 /**
  * Whether the account keeps a plan other than this subscription (ADR-359): one a paid purchase of the account stands
- * on, which has not ended. One whose row hasn't landed yet counts, since its first payment went through.
+ * on, which has not ended. One whose row hasn't landed yet counts, since its first payment went through. That row
+ * lands within minutes, while a purchase outlives a row taken from under it, as the staging walk's reset takes its
+ * plan's, so a purchase with no row counts only for a day after its grant.
  */
 async function keepsAnotherPlan(tx: Tx, userId: string, subscriptionId: string, now: Date): Promise<boolean> {
+  const grantedSince = new Date(now.getTime() - NO_ROW_COUNTS_MS);
   const [other] = await tx
     .select({ id: purchasesTable.id })
     .from(purchasesTable)
@@ -333,7 +338,7 @@ async function keepsAnotherPlan(tx: Tx, userId: string, subscriptionId: string, 
         isNotNull(purchasesTable.stripeSubscription),
         ne(purchasesTable.stripeSubscription, subscriptionId),
         or(
-          isNull(subscriptionsTable.id),
+          and(isNull(subscriptionsTable.id), gt(purchasesTable.grantedAt, grantedSince)),
           and(
             inArray(subscriptionsTable.status, KEPT_STATUSES),
             or(

@@ -765,6 +765,46 @@ test("B-34: two first payments that land at once, before Stripe's subscription e
   assert.deepEqual(await timelineAccess(b.viewer, {}), SUBSCRIBED);
 });
 
+test("a plan with no row counts as kept only for a day after its grant: granted two days ago, a new plan's first payment is kept; granted a minute ago, while its row may still land, the new one is a second", { skip: NO_DB }, async (t) => {
+  const { db, purchasesTable } = await pg();
+  const { eq } = await import("drizzle-orm");
+  const known = new Map<string, { customer: string; item: PlanId; purchaseId: string }>();
+  const stand = await secondPlanStripe(known);
+  t.after(stand.close);
+
+  // Paid and granted with no row, as a reset that takes the row and keeps the purchase leaves it, then dated back.
+  const grantedWithNoRow = async (b: Awaited<ReturnType<typeof buyer>>, tag: string, agoMs: number) => {
+    const purchaseId = await checkout(b.userId, "timeline_year");
+    const first = invoice(`in_r1829_${run}_${tag}_1`, b.sub, b.customer, { purchaseId, amountPaid: 6999, intent: `pi_r1829_${run}_${tag}_1` });
+    await apply(event("invoice.paid", first));
+    await db.update(purchasesTable).set({ grantedAt: new Date(Date.now() - agoMs) }).where(eq(purchasesTable.id, purchaseId));
+    assert.deepEqual([(await purchasesOf(b.userId))[0]?.status, await rowOf(b.sub)], ["granted", null]);
+  };
+  const nextPlan = async (b: Awaited<ReturnType<typeof buyer>>, tag: string) => {
+    const purchaseId = await checkout(b.userId, "timeline_year");
+    const sub = `${b.sub}_next`;
+    known.set(sub, { customer: b.customer, item: "timeline_year", purchaseId });
+    await apply(event("customer.subscription.created", subscription(sub, b.customer, { item: "timeline_year", purchaseId, status: "incomplete" })));
+    const paid = invoice(`in_r1829_${run}_${tag}_2`, sub, b.customer, { purchaseId, amountPaid: 6999, intent: `pi_r1829_${run}_${tag}_2` });
+    await apply(event("invoice.paid", paid), { client: stand.client });
+    return { purchase: (await purchasesOf(b.userId)).find((p) => p.id === purchaseId), row: await rowOf(sub) };
+  };
+
+  const old = await buyer("row-gone");
+  await grantedWithNoRow(old, "old", 2 * DAY * 1000);
+  const kept = await nextPlan(old, "old");
+  assert.deepEqual([kept.purchase?.status, kept.row?.status], ["granted", "active"], "the old plan keeps nothing, so the new one is kept");
+  assert.deepEqual(await timelineAccess(old.viewer, {}), SUBSCRIBED);
+
+  const recent = await buyer("row-landing");
+  await grantedWithNoRow(recent, "minute", 60_000);
+  const second = await nextPlan(recent, "minute");
+  assert.deepEqual([second.purchase?.status, second.row?.status], ["open", "canceled"], "the plan whose row is still to land is kept, so the new one is a second");
+
+  assert.deepEqual(stand.cancels, [`${recent.sub}_next`]);
+  assert.deepEqual(stand.refunds.map((refund) => refund.intent), [`pi_r1829_${run}_minute_2`]);
+});
+
 test("an event for an account, a plan or a subscription that isn't ours writes nothing", { skip: NO_DB }, async () => {
   const stranger = `sub_r1712_${run}_stranger`;
   assert.equal(await apply(event("customer.subscription.created", subscription(stranger, `cus_r1712_${run}_nobody`))), "ignored");

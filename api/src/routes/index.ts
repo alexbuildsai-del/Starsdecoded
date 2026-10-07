@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type RequestHandler } from "express";
 import reportsRouter from "./reports";
 import profilesRouter from "./profiles";
 import invitesRouter from "./invites";
@@ -19,7 +19,7 @@ import paymentsRouter, { signedInForPortal, signedInToBuy } from "./payments";
 import adminPaymentsRouter from "./adminPayments";
 import {
   anonWriteLimit, askLimit, checkoutLimit, generationLimits, portalLimit, previewLimit, sendLimit, timelineNowLimit,
-  timelineReadingLimit,
+  timelineReadingLimit, timelineSetupLimit,
 } from "../lib/limits";
 import { spendGate } from "../lib/spendCap";
 import { requireTimelineAccess } from "../lib/timelineAccess";
@@ -67,6 +67,14 @@ export const nowAndAhead = [requireTimelineAccess, ...timelineNowLimit];
 router.post("/timeline/readings/:key", openingReading);
 router.post("/ask", asking);
 router.get("/timeline/now", nowAndAhead);
+// Setup's three routes share a count of their own, after the access check as Now and ahead's is: its screen reads it every
+// few seconds while the readings are written, and each read works the six months out again. Setup answers a signed-out
+// request 401 itself, ahead of its access check (timeline.ts, as the contract pins), so one goes on to it uncounted.
+const signedOutGoesOn: RequestHandler = (req, _res, next) => (req.userId ? next() : next("route"));
+export const settingUp = [signedOutGoesOn, requireTimelineAccess, ...timelineSetupLimit];
+router.get("/timeline/setup", settingUp);
+router.post("/timeline/setup", settingUp);
+router.post("/timeline/setup/replay-seen", settingUp);
 
 // The legacy pair report gave way to Compatibility (MB-58). Its routes read a pair past `pairReadable`, so after Stop
 // sharing they still named the other person and showed their placements. They answer 410, so an old client learns the
