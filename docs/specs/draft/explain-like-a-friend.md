@@ -28,12 +28,21 @@ way of saying things, never a claim our doctrine doesn't hold. Dropped: "natural
 Neptune, 11th = Uranus), event predictions (ending a relationship, children under a Jupiter transit), Sun = father and
 Moon = mother, shadow periods, Chiron by sign, "any planet in the 1st complicates you".
 
-**Empty houses, reconciled** (v12 vs `vocabulary.ts` `empty_house` and DOCTRINE): an empty house is not easy or hard by
-default. It runs on the planet that rules its sign. A strong ruler means effort there pays off without much fuss; a
-struggling ruler means the work shows up where that planet sits.
+**Two columns, not one** (Owner, 2026-10-07: "I wouldn't say same"): "true by our doctrine" is not "said by our report".
+Mercury at a party is true but our report says it long and general; Chiron is true and our report says nothing (Audrey:
+Chiron in the 4th, zero sentences); retrograde, zero of three. Root cause: `vocabulary.ts` meanings read like a textbook,
+and the writer can only be as crisp as what it is fed.
+
+**Empty houses, in plain words** (Owner: "this doesn't tell me anything"): every house has a planet in charge. Ask (1) is
+that planet comfortable in its sign, like a guest in a house they like or can't stand, and (2) which part of life it sits
+in; that is where the empty house's story happens. Audrey: empty 8th, Mercury at home in Gemini, joint money goes smoothly
+on paper; empty 9th, Venus uneasy in Aries in the 3rd, big ideas come from everyday talk, not a course.
 
 ## Scope
 
+0. **Crisp line first** (Owner: "lead with Capricorn is the one that would skip the small talk, then explain it deeper"):
+   every idea opens with the one line you'd repeat to a friend. `vocabulary.ts` gets, per sign, planet and house, a crisp
+   line and a scene in her style; this comes before any rule change.
 1. **Rule 1 rewritten** (`api/src/prompts/system.ts`): "Name it, say it plain, show it in a day." Any placement, house,
    ruler, aspect or idea (retrograde, rising sign, a return) may be named once where it first matters, followed by its
    plain meaning in the next sentence, then a real moment from the reader's life. Sentences about astrology as a subject
@@ -49,12 +58,20 @@ struggling ruler means the work shows up where that planet sits.
 6. **Same rule everywhere**: Personal report, Compatibility (pair rule-8 checks `chk-20`, 21a, 21b, 24 relaxed to match),
    Timeline, Ask (already does this, `ask/index.ts:46`).
 7. **Lab rules**: `METHOD_TALK` (`api/src/lib/labRules.ts`) pruned to talk with no reader in it.
-8. **Posts**: new Content board pillar **Explained**, ten ideas added as Idea (done 2026-10-07).
+8. **Possibilities, not forecasts** (Owner: "we just talk in possibilities"): could, might, you may notice, a good time
+   to. Never will, is going to, very likely, or a named event as the outcome (break-up, job loss, pregnancy). Always end
+   on something to do. Timeline reads a slow planet or retrograde by the house it moves through (her core move), which
+   widens `packages/engine/src/doctrine.ts` (today: contacts to natal points only).
+9. **Did you know cards**: ideas we don't read the chart by (Sun = father and Moon = mother in Family, Mercury's shadow
+   in Timeline, Mercury signs at a party, a retrograde at birth), a small card outside the prose, "some astrologers say",
+   then what it could mean for this chart. At most one per chapter (default). The shadow needs shadow dates in the engine.
+10. **Chiron gets a sentence**: read by house, the sore spot then the gift, in possibility words.
+11. **Posts**: new Content board pillar **Explained**, ten ideas added as Idea (done 2026-10-07).
 
 ## Out of scope
 
 - New astrology the engine doesn't compute (shadow periods, Saturn retrograde in Timeline, parent significators).
-- Any prediction. The report still describes how you work.
+- Forecasts stated as fact. Possibilities in soft words are in scope (above).
 - Copying her lines. We learn the pattern; every sentence is ours.
 - A new check that blocks. Warn only, per ADR-81.
 
@@ -75,9 +92,12 @@ retrograde Venus, Venus square Mars).
 
 ## Open questions (each with its default)
 
-1. **Names per paragraph**: at most one, the rest about the reader. Default: this.
-2. **Aspect names**: all five may be named, each explained the first time. Default: this.
-3. **Other creators**: only The Inner Cosmos is the voice model; others give topics, checked against doctrine. Default: this.
+Taken at their defaults (no objection, 2026-10-07): at most one named placement per paragraph; all five aspect names,
+each explained the first time; only The Inner Cosmos is the voice model.
+
+1. **Did you know**: at most one per chapter, only where it says something about this chart. Default: this.
+2. **Feel it first**: Claude hand-writes Audrey's whole Mind chapter in the new style, read next to today's, then it
+   becomes a model example. Default: this.
 
 ## Decisions to record
 
@@ -87,3 +107,9 @@ retrograde Venus, Venus square Mars).
 - Every claim from outside sources passes the doctrine check before it reaches a prompt or a post (Decided by Alex).
 - Empty houses read through the ruler's strength (Decided by Claude, doctrine reconciliation).
 - New Content pillar Explained (Decided by Alex, 2026-10-07).
+- Possibilities in soft words are allowed; forecasts stated as fact are not. Rewords MASTERFILE V1's "predictions"
+  exclusion (Decided by Alex, 2026-10-07).
+- Crisp line first, then deeper; `vocabulary.ts` rewritten with a crisp line and a scene each (Decided by Alex).
+- Did you know cards for traditions we don't read by, one per chapter at most (Decided by Alex; count by Claude).
+- Timeline reads retrogrades and slow planets by house, and computes shadow dates (Decided by Claude, astrology call).
+- Chiron is read in the Personal report, by house (Decided by Claude).
