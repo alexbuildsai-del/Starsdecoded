@@ -12,9 +12,10 @@ import { StatusDots } from "@/components/StatusDots";
 import { ContactCard } from "@/components/timeline/ContactCard";
 import { Dial } from "@/components/timeline/Dial";
 import { MixBar } from "@/components/timeline/MixBar";
+import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import type { ReadingTarget } from "@/components/timeline/ReadingSheet";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { DIAL_ORDER, framesFor, type DialFrame } from "@/lib/dial";
+import { DIAL_ORDER, anyRetrograde, framesFor, type DialFrame } from "@/lib/dial";
 import {
   BLIND_FIX, BLIND_LINE, QUIET_DAY, RANGES, comingUpTitle, contactOf, nothingNext, nowDay, nowModel, rangeAhead, rangeSpan,
   type EventCard, type NowDay,
@@ -282,6 +283,7 @@ export function NowAhead({ zone, onOpen, onNoReport, onNoAccess, reportId }: Now
             </Dial>
           </div>
           <DialKey range={now.range} />
+          {anyRetrograde(frames) ? <RetrogradeLine /> : null}
         </div>
 
         <div className="grid content-start gap-5">

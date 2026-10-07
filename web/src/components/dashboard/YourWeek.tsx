@@ -13,8 +13,9 @@ import { StatusDots } from "@/components/StatusDots";
 import { ContactCard } from "@/components/timeline/ContactCard";
 import { DayCells } from "@/components/timeline/DayCells";
 import { Dial } from "@/components/timeline/Dial";
+import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { DIAL_ORDER, framesFor, type DialFrame } from "@/lib/dial";
+import { DIAL_ORDER, anyRetrograde, framesFor, type DialFrame } from "@/lib/dial";
 import { QUIET_DAY, RANGES } from "@/lib/now-ahead";
 import { cn } from "@/lib/utils";
 import { dialWhen, loadLine, moreLine, nowSource, weekModel, weekSource } from "@/lib/week-view";
@@ -123,6 +124,7 @@ export function YourWeek({ week, zone }: YourWeekProps) {
               <RangeSwitch range={range} onChange={setRange} />
             </Dial>
           </div>
+          {anyRetrograde(frames) ? <RetrogradeLine className="w-full max-w-[300px]" /> : null}
           <p className="flex min-h-[22px] w-full max-w-[300px] flex-wrap items-center gap-x-2.5 gap-y-1">
             <span className="font-numeric text-[12.5px] text-[#AEB6C6]">{dialWhen(frames[day]?.date ?? shown.from, shown.from, order)}</span>
             {day > 0 ? (

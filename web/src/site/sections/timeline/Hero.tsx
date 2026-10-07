@@ -9,8 +9,9 @@ import type { Tone } from "@workspace/engine";
 import { LAUNCHED } from "@workspace/launch";
 import { ToneWord } from "@/components/timeline/ContactCard";
 import { Dial } from "@/components/timeline/Dial";
+import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { dayWords, type DialFrame } from "@/lib/dial";
+import { anyRetrograde, dayWords, type DialFrame } from "@/lib/dial";
 import { PERSONAL_REPORT } from "@/lib/product";
 import { ReportCta } from "@/site/cta";
 import { MIRA, MIRA_WEEK, pairOf } from "@/site/data/timeline/mira";
@@ -81,6 +82,7 @@ export default function Hero() {
               <span className="text-xs text-[color:var(--sd-muted)]">Mira's chart · the next six months</span>
             </p>
           </Dial>
+          {anyRetrograde(MIRA.frames) ? <RetrogradeLine /> : null}
           {/* Room for three lines and the count, so nothing under the dial moves while it plays. */}
           <div className="grid min-h-[6.75rem] content-start gap-2">
             {lines.length > 0 ? (

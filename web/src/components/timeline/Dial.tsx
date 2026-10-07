@@ -51,6 +51,8 @@ const FAINT = "#6E7789";
 const BRASS = "hsl(var(--brass))";
 // A retrograde's dashed ring, in the light indigo both Timeline artifacts give it.
 const RETRO = "#9FA8DA";
+// The R beside it, in the rose the explaining line's badge uses, so the two read as one mark.
+const RETRO_R = "#E3A3AD";
 
 // An angle is drawn from `angles` as the R03 marker (ADR-49), never as a natal point's dot, whatever `points` carries.
 const ANGLE_KEYS = new Set(["ascendant", "midheaven", "descendant", "ic"]);
@@ -265,6 +267,14 @@ export function Dial({ points, angles, frames, day, onDay, playable, trail, size
               strokeWidth={b.retrograde ? 1.6 : 2}
               strokeDasharray={b.retrograde ? "2.5 2" : undefined}
             />
+            {b.retrograde && detailed && (
+              <text
+                x={q.x + disc * 0.85} y={q.y - disc * 0.45} fontFamily="IBM Plex Mono, monospace" fontSize={14} fontWeight={600}
+                fill={RETRO_R} stroke={GROUND} strokeWidth={3} paintOrder="stroke" data-retrograde-mark
+              >
+                R
+              </text>
+            )}
             {src && <image href={src} x={q.x - half} y={q.y - half} width={DIAL.render} height={DIAL.render} preserveAspectRatio="xMidYMid meet" />}
           </g>
         );

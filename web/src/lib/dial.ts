@@ -170,6 +170,11 @@ export function framesFor(
   });
 }
 
+/** Whether any planet goes backwards on a day of these frames, which is when the R shows and its line is worth the room. */
+export function anyRetrograde(frames: readonly DialFrame[]): boolean {
+  return frames.some((f) => f.bodies.some((b) => b.retrograde));
+}
+
 /** The plate's units: a 500 square, the focus ring just outside it. */
 export const DIAL = {
   size: 500,
