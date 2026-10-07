@@ -34,31 +34,29 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-27 · /sample refreshes from the next passing Release; check the old tie line is gone · was MB-182
 - B-28 · Remove each `// MB-NN provisional` seam whose row is no longer open (seams for 39 rows in `api`, `web`, `packages` today; fetch each row first) · sweep 05/10
 - B-29 · R15 and R16 small follow-ups (libraries, query counts, leak table, release retry; R16 leftovers) · was MB-209, MB-222
-- B-45 · `HARD_PAIRS` in `api/src/lib/synastryCompute.ts` holds saturn-pluto, venus-saturn, venus-pluto unsorted, so `pairKey` never matches them; sort the keys, with a dry lab run · compat-loading ideation 06/10
-- B-46 · `computeCrossAspects` uses the noon Moon for a chart with no birth time; keep a Moon link only when its whole day span holds the aspect, with a dry lab run · compat-loading ideation 06/10
-- B-31 · /round and /qa read `/api/qa/latest` after each merge (a skill line; a running /round can't edit its own skill) · was MB-230, R17
+- B-31 · /round reads `/api/qa/latest` after each merge (a skill line; a running /round can't edit its own skill; /qa's half done in R18) · was MB-230, R17
 - B-32 · The Stop sharing dialog names that Ask answers built on that report get hidden (ADR-182) · R17-20
 - B-33 · `web/src/types/chart.ts` hand-types `PairLink.of` as A or B; take the generated type with `none` · R17-01
-- B-34 · Two Timeline checkouts opened at once and both paid make two subscriptions; refuse or cancel the second (QA-06 #4: both tabs still reach Stripe's fields) · R17-10, 12
 - B-35 · A finished report regenerated, then failing three times, gives its credit back: check its old version isn't still readable · R17 tester
 - B-36 · Comments left on the soft pass or old rules: `requireAccount.ts`, `prelaunch.ts`, `limits.ts` (anonWrites), `Orbit.tsx`, `nudges.ts`, `pair-selection.ts` (MB-6), `ClaimPage.tsx`, `pair-row.ts` (MB-137); `aiInterpretation.ts` with a dry lab run · R17
-- B-38 · `/ux-copy`'s voice-chart example still says a failed report's credit comes back · R17-08
-- B-39 · A deploy's walk resets the QA pair twice (R17-25's walk and R17-26's trigger); keep one · R17-26
-- B-41 · Build `walk-line-and-timeline-launch` (locked, ADR-352 to 356): the credit line now; Timeline's six launch-day lines behind `LAUNCHED` · QA-05 #5
-- B-42 · Refund rule 2 (`REFUND_RULES[1]`, `commerce/src/terms.ts`; /refunds and the receipt) and /method step 04 add "For a Compatibility report, the credit comes back at once." · QA-05 #7, Decisions 2026-10-06
-- B-44 · /privacy's cookie line names Stripe's two fraud cookies itself instead of "only the ones Stars Decoded needs"; no banner (`PrivacyPage.tsx`) · QA-05 #6, Decisions 2026-10-06
-- B-47 · Sign-in by emailed code loses `return_to` at `/sign-in/factor-one` and lands on home; keep it across Clerk's steps (`getReturnTo()`, `App.tsx`; `SignUpPage` too) · QA-06 #1
-- B-48 · Each deploy, `/api/*` answers 502 for about a minute (a paid buyer's done page among them): a Railway healthcheck and overlap, and the done page waits past a 502 · QA-06 #2
-- B-49 · Stripe Link's "Save my information" box is ticked by default and blocks Pay without a phone; turn Link off in the Payment Element · QA-06 #3
 - B-50 · /claim signed out offers a gift already claimed; say "Already claimed" before sign-in · QA-06 #5
 - B-51 · Wrong account on a claim: name who is signed in, offer Sign out, no Try again that repeats the 403 · QA-06 #6
 - B-52 · The share dialog's `failureLine` hides the API's 400 line ("That's your own email…") · QA-06 #7
-- B-53 · /admin/prompts and /admin/report-lab say "Access Denied … ADMIN_USER_ID"; use Sales' line · QA-06 #8
-- B-54 · 390 px on staging: the STAGING badge covers the credits count · QA-06 #9
-- B-55 · Deleting a Timeline subscriber's Personal report: the dialog says Timeline stops opening and keeps renewing, with Cancel's link · QA-06 #10
-- B-56 · /checkout lists Bancontact, MB WAY, Satispay, Amazon Pay, EPS under "or pay by card", and the country defaults to the US; match the list and the buyer · QA-06 #12
+- B-56 · /checkout's country still defaults from the IP: set it from the buyer's time zone, which needs a zone-to-country source · QA-06 #12, R18-01
 - B-57 · Account names where to delete your data (the dashboard's Delete) · QA-06 #15
 - B-58 · The report status route's `provisional` bodies (`provisionalFor`, `api/src/routes/reports.ts`, `openapi.yaml`) are read only by the orrery; once R18-27 removes it, drop them, their test and the codegen output · R18 plan
+- B-59 · Dial: a retrograde ring with a size-scaled stroke and a focus prop; NatalWheel's small mode with a stronger lit house · R18-08
+- B-60 · `.claude/skills/round/SKILL.md` brain list misses the pair files and `chartCalculation.ts` (match `BRAIN_PATHS` in `github.ts`) · R18-13
+- B-61 · Clerk ids still passed to log lines: `names.ts:30`, `adminPrompts.ts:60`, `testers.ts:158`, `credits.ts:313` (redacted, but the rule says none) · R18 close
+- B-62 · Hero on a phone: a Moon near the Ascendant covers the start of "EAST · RISING" (audrey-hepburn) · R18-10
+- B-63 · `RetrogradeLine` hard-codes dark colours and is faint in print · R18-20
+- B-64 · Did you know is too tall for the loading grid's detail slot at 390 px; a compact card lets chart and card show together · R18-08
+- B-65 · Personal story step 5: the 7th house's PARTNERSHIP label runs into LIBRA at the right edge · R18-10
+- B-66 · Archive `timelineReadings.edges.test.ts` tests at ~355 and ~488 check the old setup rule · R18-25
+- B-67 · `prompts/brief.ts` words an element tie by key order ("air and fire" vs "fire and air" for the same chart); sort it, with a dry lab run · R18-25
+- B-68 · A new birth time gives some events a new key; queue their readings at the open instead of writing them on open (with a guard for keys that never land) · R18-25
+- B-69 · The QA walk's guard names `/api/timeline/*` when a failed setup read sends the page to Timeline's views; name the setup read · R18-28
+- B-70 · Hard-pair weighting: a hard-pair conjunction weighs -0.3 and can drop out of the twelve (Charles-William Venus-Saturn 0.9°); with R20's brain pass and a dry lab run · R18-13
 
 ## Waiting on Alex
 

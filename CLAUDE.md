@@ -97,8 +97,8 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
   wired into `scripts/bootstrap-db.sh`, which Railway runs as the first step of
   the start command (its preDeployCommand hook never ran here); one that cannot
   run twice breaks the deploy.
-- **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`,
-  `traditional.ts`, `packages/engine/` (the chart calculation). Touch it and the dry lab runs in the round; spot
+- **The brain** decides the words: `api/src/prompts/`, `models.ts`, `aiInterpretation.ts`, `traditional.ts`,
+  `chartCalculation.ts`, `packages/engine/`, the pair's `pairInterpretation.ts`, `pairBrief.ts`, `synastryCompute.ts`, `overlays.ts`. Touch it and the dry lab runs in the round; spot
   on demand from the Lab page; the Release view runs the full lab, the gate and the QA agent,
   then fast-forwards `production` with `GITHUB_RELEASE_TOKEN` on Railway staging (placed 2026-09-30;
   if it expires the release stops at `passed` and `promote.yml` takes the release id). `LAB_BUDGET_USD` caps spend
