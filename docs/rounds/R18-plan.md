@@ -71,7 +71,7 @@ lines in the same files. R19 is sharing and the circle with the rest of Review 0
   R18-13. (2) Review 05/10 §1's bundle tap names `POST /checkout/test`, deleted in R17 (ADR-276, MASTERFILE §6): R19 reads it as
   `/checkout` in the sandbox, returning to the birth form. (3) `auth.ts`'s claim logs a Clerk id when the email fetch fails (the
   promoted log rule): R18-02. (4) The 40-a-day cap counts the reader's opens; setup's writes come from the engine's list under the
-  spend cap instead (ADR-358). (5) `no-chiron.test.ts` (critical) and `gather.ts` import the orrery: R18-27. (6) `prompts.test.ts`
+  spend cap instead (ADR-362). (5) `no-chiron.test.ts` (critical) and `gather.ts` import the orrery: R18-27. (6) `prompts.test.ts`
   reads `HOUSE_WORDS` out of `evidence-glossary.ts` by pattern: R18-13 points it at `houses.ts`. (7) `stripe-payments` keeps the
   Dashboard's methods ("no `payment_method_types`"), so B-56 is the line above them and the country, not the list; Link goes by
   ADR-346. (8) Reading the sky's chapter 1 has no rendered file in the repo and HyperFrames is not here: the explainer and the reels
@@ -86,8 +86,10 @@ lines in the same files. R19 is sharing and the circle with the rest of Review 0
    plates and no overlay is read (the artifact; ADR-97, 349, 350). A plate with no birth time reads signs.
 4. **The Personal story** computes the chart in the browser from the report's birth fields (`chartOf`), so it never waits on the
    network, and holds the stored chart once `chartReady` (ADR-319); both are the engine's, so the degrees equal the hero's.
-5. **Timeline's setup** (Review 05/10 §5 drawn as report-loading-story §2) starts at the subscriber's first open of Timeline, never
-   from the webhook or a deploy (ADR-358): the staging walk buys Timeline and opens no Timeline page (ADR-315).
+5. **Timeline's setup** (Review 05/10 §5 drawn as report-loading-story §2) starts the moment payment clears: the subscription
+   webhook that grants access queues it (ADR-362, superseding ADR-358). The buyer comes back from Stripe to the setup screen, which
+   plays while the readings write. No own Personal report yet: setup starts when that report finishes. The staging walk's QA buyer
+   is the one exception (ADR-315: a deploy spends nothing).
 6. **MB-225 is decided** (ADR-361): the box and the line as R17 built them; the `// MB-225 provisional` seams go.
 7. **The house set's covers lines** reach the page now (House by House, /learn/houses, the evidence lines) and the writer in R20,
    through the doctrine, with its dry lab (report-loading-story §3).
@@ -100,8 +102,8 @@ lines in the same files. R19 is sharing and the circle with the rest of Review 0
    the first group, as its default says.
 2. **Three loading screens on one grid** (ADR-351): the Personal report's five steps (ADR-316 to 319), the Compatibility report's B
    then C (ADR-347 to 350) and Timeline's setup screen (ADR-320), with the Did you know card (Review 05/10 §9).
-3. **Timeline written at setup** (Review 05/10 §5, ADR-302): a Postgres job queue (ADR-357), setup from the reader's own open
-   (ADR-358), the next six months a week ahead with their replay, stale readings rewritten in the background, the buyer walk's new
+3. **Timeline written at setup** (Review 05/10 §5, ADR-302): a Postgres job queue (ADR-357), setup queued when payment clears
+   (ADR-362), the next six months a week ahead with their replay, stale readings rewritten in the background, the buyer walk's new
    step; R on the dial with its one line (§6).
 4. **One house set, and the launch lines:** `houses.ts` with its objects, covers and pairs (ADR-321) on /learn/houses and House by
    House (opposite, R and the quiet house's line); `walk-line-and-timeline-launch` (ADR-352 to 356); B-42, B-44 and B-38.
@@ -148,15 +150,16 @@ lines in the same files. R19 is sharing and the circle with the rest of Review 0
    as "not yet" and waits up to 120 s before its line.
 7. **The job queue** (ADR-357): as pinned; handlers idempotent by their dedupe key; a job the spend breaker pauses moves to the next
    UTC midnight; done rows kept 7 days; the worker never holds the start.
-8. **Setup** (ADR-302, 358): only `POST /timeline/setup` starts it, sent by the Timeline page on its first open with access and an own
-   report. `from` is the Monday of the reader's week in their zone, `to` six months on. It writes the events GET /timeline/now's
+8. **Setup** (ADR-302, 362): `startSetup` runs from `applySubscriptionEvent` when access turns on, or when the subscriber's own
+   Personal report finishes if it came later; never for the QA pair. `POST /timeline/setup` stays as an idempotent catch-up only.
+   The Timeline purchase's done page sends the buyer to `/timeline`, where the setup screen shows. `from` is the Monday of the reader's week in their zone, `to` six months on. It writes the events GET /timeline/now's
    six-month view lists that `readsAs` accepts, this week's first, then the month's, the rest, then `lifeCycles` from birth to 90.
    Chart and planets tick at once. "Almost there. You can start reading this week now." shows once 60 s have passed and the week is
    written. A reading that fails keeps the engine's headline and line and writes on Read more, as today.
 9. **The next six months:** one `timeline.ahead` job at `to − 7 days`; with access still on, it writes the next stretch, moves `to`
    and sets the replay; the next visit plays the drawing from step 3 once with "Your next six months are ready, <from> to <to>", then
    marks it seen. Without access it writes nothing.
-10. **Stale readings** (ADR-358): a reading's basis gains the Personal report's version; at the reader's open, readings whose birth
+10. **Stale readings** (ADR-362): a reading's basis gains the Personal report's version; at the reader's open, readings whose birth
     time, Timeline prompt version or report version moved are queued once each, and the kept text answers meanwhile. A start or a
     deploy queues nothing.
 11. **Opens:** GET /timeline/now queues nothing (`queueReadings` goes). Before setup a card still writes on its open (the 40-a-day cap,
@@ -464,13 +467,13 @@ without horizon or houses and C reads signs; no sideways scroll at 390 px; reduc
 
 ### R18-18 — Timeline written at setup: the server (INTERNAL) — Review 05/10 §5
 Tier: opus — paid writes on a reader's behalf, only from the engine's list and under the spend cap
-Objective: a subscriber's first open of Timeline starts its setup, jobs write every reading of the six months and every life cycle
-(ADR-302, 358), and opening a card afterwards writes nothing.
-Files: new `api/src/lib/timelineSetup.ts` (+ `timelineSetup.test.ts`); `api/src/lib/jobHandlers.ts`; `api/src/routes/timeline.ts`;
-`api/src/lib/timelineReadings.ts`; `packages/api-spec/openapi.yaml`; the generated client and zod (codegen).
-Refs: review-05-10 §5, acceptance 7; report-loading-story acceptance 7; ADR-199, 302, 327, 357, 358; readings 8, 9, 11; the pinned
-contract; R13-10, R16-01, R16-29 lessons; the promoted rules.
+Objective: payment clearing starts the subscriber's setup, jobs write every reading of the six months and every life cycle
+(ADR-302, 362), and opening a card afterwards writes nothing.
+Files: new `timelineSetup.ts` (+ test), `jobHandlers.ts`, `subscriptions.ts` (`applySubscriptionEvent`), the report-finished hook,
+`timelineReadings.ts` (all `api/src/lib/`); `api/src/routes/timeline.ts`; `openapi.yaml` and codegen.
+Refs: review-05-10 §5, acc. 7; report-loading-story acc. 7; ADR-199, 302, 327, 357, 362; readings 8, 9, 11; the pinned contract; lessons.
 Done when:
+- A test webhook turning access on queues the setup once (a replayed event queues nothing); the QA pair queues nothing.
 - The three routes as pinned: a start is idempotent and queues `timeline.reading` for reading 8's list in its order plus one
   `timeline.ahead`; GET answers the six steps with counts; no key the browser sends queues a write; a paused day waits for the next
   (`TIMELINE_PAUSED_LINE` where a line shows); GET /timeline/now queues nothing (`queueReadings` and `// MB-219 provisional` go).
@@ -539,13 +542,14 @@ production, writes nothing and logs the step id only; tests on a stubbed page: t
 
 ### R18-24 — Setting up Timeline: the screen (USER-FACING) — Review 05/10 §5, report-loading-story §2
 Tier: opus — a new screen with a drawn sequence, live counts and a once-only replay
-Objective: the subscriber's first open of Timeline shows one setup screen on the R16 dial in the grid, ticking as the readings land,
-and lets them in once this week is written.
+Objective: back from Stripe, the buyer lands on one setup screen on the R16 dial in the grid, ticking as the readings land (setup
+already started at payment, ADR-362), and is let in once this week is written.
 Files: new `web/src/components/timeline/TimelineSetup.tsx`; new `web/src/lib/timeline-setup.ts`; `web/src/pages/TimelineAppPage.tsx`;
+`web/src/pages/CheckoutDonePage.tsx` (a Timeline purchase returns to `/timeline`);
 `web/src/lib/dial.ts`, `web/src/components/timeline/Dial.tsx` (the setup's drawing).
-Refs: review-05-10 §5; report-loading-story §2 (ADR-320); ADR-351, 358; readings 8, 9; the setup player (Round start 4); R14-12.
+Refs: review-05-10 §5; report-loading-story §2 (ADR-320); ADR-351, 362; readings 8, 9; the setup player (Round start 4); R14-12.
 Done when:
-- With access and an own report, `state: none` posts the start and shows the screen: the chart whole; tracks drawn and planets landing
+- Back from a Timeline checkout, the screen shows at once and reads the running setup (`state: none` posts the catch-up start): the chart whole; tracks drawn and planets landing
   one by one, Saturn and Jupiter first, at today's positions; then with no cut the date runs six months while gold lines grow to the
   points they touch and those houses light, R on retrograde planets, "N transits"; six ticks with the server's counts.
 - Reading 8's "Almost there" with a way in; at ready "Your Timeline is ready" and Open Timeline, focused; a `replay` plays from step 3
@@ -555,9 +559,9 @@ Done when:
 ### R18-25 — Readings kept current, in the background (INTERNAL) — Review 05/10 §5
 Tier: opus — paid rewrites: only what changed, only from the reader's own open
 Objective: a reading made stale by a new birth time, a new Timeline prompt version or a rewritten Personal report is rewritten at the
-reader's next open, its kept text shown meanwhile (ADR-358).
+reader's next open, its kept text shown meanwhile, so nobody waits (ADR-362).
 Files: `api/src/lib/timelineSetup.ts` (+ `timelineSetup.test.ts`); `api/src/lib/timelineReadings.ts`; `api/src/lib/jobHandlers.ts`.
-Refs: review-05-10 §5 (what can change a written reading); ADR-315, 358; reading 10; R16-24's lesson.
+Refs: review-05-10 §5 (what can change a written reading); ADR-315, 362; reading 10; R16-24's lesson.
 Done when: a reading's basis gains the Personal report's version; at GET /timeline/setup the stale readings queue `timeline.refresh`
 once each and the open answers the kept text; nothing queues at a start or a deploy; tests on the stubbed model: a new birth time
 rewrites only the readings it touches, a prompt bump rewrites each once, a second open queues nothing more; the critical tier green.
@@ -568,7 +572,7 @@ Objective: the shared step list gains Timeline's setup, so CI proves a subscribe
 writes nothing.
 Files: `api/src/walk/steps.ts` (+ `steps.test.ts`); `api/src/walk/buyer.walk.ts`; `api/src/lib/qaWalk/steps.ts`, `qaWalk.test.ts`;
 `api/test.critical`.
-Refs: the shared step list (R17); ADR-273, 302, 315, 358; R18-18's routes; review-05-10 acceptance 7.
+Refs: the shared step list (R17); ADR-273, 302, 315, 362; R18-18's routes; review-05-10 acceptance 7.
 Done when: `timeline`'s cancel becomes a step of its own, `timeline-ends` (live on staging), with `timeline-setup` between them (local
 on staging: it writes paid readings, ADR-315), in both maps; on the stubbed model with `drainJobs` the setup's counts equal the
 engine's, then opening a card makes no model call; "buyer walk: 19/19 steps passed" on a scratch Postgres after `db:bootstrap`;
@@ -607,13 +611,13 @@ chart has and invents none); a grep finds no importer of the orrery; typecheck a
 1. Through the merge's deploy, `/api/healthz` polled every second answers without a 502 (B-48), or the report says what research found.
 2. The deploy's walk at 0 ¢: each step that ran has its picture; `timeline-setup` reads local.
 3. The Owner's look: a new Personal report's five steps on a phone; a Compatibility report's B then C; Timeline's setup from the
-   admin's own first open on staging (about €0.07); a hard reload of `/dashboard` after 60 s idle shows the admin's own data; sign-in
+   admin's own Timeline purchase on staging (about €0.07); a hard reload of `/dashboard` after 60 s idle shows the admin's own data; sign-in
    by emailed code from Get my report lands back on the birth form.
 
 ## Production after the round
 Nothing sells. The next Release runs the full lab with its pair (R18-13 moved the brain lists and changed the pair's input), the gate,
 the QA agent and the walk (the seed, about 10.5 ¢). On production the app stays behind the waitlist (ADR-167); the job worker runs on
-both hosts; the admin's own first open of Timeline there writes his readings (about €0.07). B-34 is fixed before Timeline sells on
+both hosts; an admin Timeline purchase there writes his readings (about €0.07). B-34 is fixed before Timeline sells on
 production; B-03 is still due before it does.
 
 ## Owner prerequisites (none blocks the build)
@@ -625,7 +629,7 @@ production; B-03 is still due before it does.
 |---|---|---|
 | The dry lab and `--render` | in the round | 0 ¢ |
 | A staging deploy's walk | every deploy | 0 ¢ (no setup starts) |
-| A Timeline setup: the six months and every life cycle | a subscriber's first open (on staging: the admin, a tester) | €0.07 (Review 05/10 §5, Luna's listed price) |
+| A Timeline setup: the six months and every life cycle | when a subscriber's payment clears (on staging: the admin, a tester; never the walk's QA pair) | €0.07 (Review 05/10 §5, Luna's listed price) |
 | The next Release: the lab with its pair, and the walk's seed | when the Owner says promote | about 20 ¢ + 10.5 ¢ |
 
 A setup and its rewrites count against the daily spend cap (ADR-199); the lab against `LAB_BUDGET_USD` (ADR-77). Nothing retries on
@@ -643,8 +647,8 @@ its own past `max_attempts`.
 4. **User-visible without locked words:** the replaced checkout tab's line and the methods' line (R18-01), the done page's longer wait
    (R18-03), the cookie line (R18-06), the delete dialog's Timeline line and the admin refusal (R18-22), the setup's "N transits" and
    the replay line's dates (R18-24). Each through `/ux-copy`; the close lists them before and after for the Owner.
-5. **Spend:** none in the session; on staging and production a subscriber's first open writes their Timeline (about €0.07) and a stale
-   reading's rewrite costs one reading; a deploy writes nothing (ADR-315, 358).
+5. **Spend:** none in the session; on staging and production a subscriber's cleared payment writes their Timeline (about €0.07) and a stale
+   reading's rewrite costs one reading; a deploy writes nothing (ADR-315, 362).
 6. **Security:** ids-only job payloads and logs, writes only from the engine's list (R18-12, 18); `return_to` same-origin only and the
    claim limited to the session's unclaimed rows (R18-02); the pictures route, read-only, masked, staging only (R18-23); MB-233
    (R18-04); a Clerk id out of a log line (R18-02). The sentinel's list is After the builders 5.
@@ -694,9 +698,9 @@ line was added after R17's. This plan was written after R17 closed.
 
 ## Questions raised (Notion, 2026-10-06, sorted by R-12.3)
 - **Decided by me** (Decisions, `Decided by: Claude`): ADR-357, Timeline's readings are written by one Postgres jobs table worked
-  inside the API, no queue service or package; ADR-358, setup and rewrites start only from the reader's own open of Timeline, never
-  from the webhook or a deploy; ADR-359, one Timeline plan per account (B-34); ADR-360, the staging walk's pictures, public on staging,
-  masked.
+  inside the API, no queue service or package; ADR-362 (supersedes ADR-358), setup starts when payment clears and the buyer returns to the
+  setup screen; stale rewrites queue at the reader's open with the kept text shown; never the QA pair, never a deploy; ADR-359, one Timeline plan per account (B-34); ADR-360, the staging walk's pictures, served by a staging-only URL with no sign-in, never
+  committed to GitHub, of the walk's made-up people, inputs masked.
 - **The Owner's answer, recorded:** MB-225 "ok" (2026-10-06) → ADR-361 (`Decided by: Alex`); MB-225 decided, out of *Waiting on Alex*.
 - **Needs you (Mailbox):** MB-227 (the four hosts QA can't reach; a note added, with its default) and MB-232 (no longer R18; its
   default now says /ideate next, planned with R19).
