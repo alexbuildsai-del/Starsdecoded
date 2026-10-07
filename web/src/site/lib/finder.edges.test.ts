@@ -63,7 +63,9 @@ describe("the shape every answer keeps", () => {
         expect(new Set(of.map((c) => c.age)).size, `${birth} ${id}: an age once`).toBe(of.length);
         of.forEach((cycle, i) => {
           expect(cycle.ages).toEqual(of.map((c) => c.age));
-          expect(cycle.last).toEqual(i === 0 ? null : { on: expect.stringMatching(DAY), age: of[i - 1].age });
+          const before = of.slice(0, i).filter((c) => (c.exact[0] ?? c.start) < TODAY).pop();
+          expect(cycle.last).toEqual(before ? { on: expect.stringMatching(DAY), age: before.age } : null);
+          if (cycle.last) expect(cycle.last.on < TODAY).toBe(true);
         });
       }
     }
