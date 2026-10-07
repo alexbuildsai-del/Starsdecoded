@@ -58,6 +58,16 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-69 · The QA walk's guard names `/api/timeline/*` when a failed setup read sends the page to Timeline's views; name the setup read · R18-28
 - B-70 · Hard-pair weighting: a hard-pair conjunction weighs -0.3 and can drop out of the twelve (Charles-William Venus-Saturn 0.9°); with R20's brain pass and a dry lab run · R18-13
 - B-71 · The done page's plan redirect sits inline in `CheckoutDonePage.tsx`; move it into `checkout-view.ts` so the critical tier pins it; `steps.ts`'s `timeline-setup` label also covers the stale refresh now · R18 tester
+- B-72 · Staging deploys still answer 502 on `/api/*` for about 45 s (two deploys measured 2026-10-07, after R18-03); finish once MB-228's dashboard answer is in (a volume, Teardown overlap 0, or no health check) · R18 staging confirmation
+- B-73 · The retrograde line says "for a few weeks" and "Earth is passing it": true for Mercury and Venus only (Saturn 137 days, Neptune 158, Jupiter 70 to 121); fix `RetrogradeLine`, House by House and the Did you know card · QA-07 #2
+- B-74 · /qa has no account it can open by hand on staging, and its host check names `challenges.cloudflare.com` while Turnstile loads `brunhild.challenges.cloudflare.com`; give /qa its own account and check the real host · QA-07 #1
+- B-75 · The loading stories' chart labels print at 6.5 to 7.5 px and overlap · QA-07 #3
+- B-76 · Did you know on a report with no birth time shows the rising sign and houses facts, drawn on Mira's chart (`DidYouKnow.tsx` `mira ?? chart`) · QA-07 #4
+- B-77 · Did you know titles: "Why is east on the left?", and statements end in a full stop · QA-07 #5
+- B-78 · `/faq` "Do I pay once or every month?" no longer answers once or monthly in its first sentence · QA-07 #6
+- B-79 · Get my report from the free chart lands on "Welcome back" sign-in and loses the typed birth data · QA-07 #7
+- B-80 · A dead report link spins about 7 s and calls the API five times before "Report not found."; answer a 404 once · QA-07 #8
+- B-81 · `/sample` chapter 9 still has "Home as destiny, love as friction" and two more fate lines; refresh /sample from the next passing Release or rewrite · QA-07 #9, QA-06 #14
 
 ## Waiting on Alex
 
