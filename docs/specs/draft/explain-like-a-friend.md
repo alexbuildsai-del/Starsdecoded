@@ -64,9 +64,17 @@ on paper; empty 9th, Venus uneasy in Aries in the 3rd, big ideas come from every
    widens `packages/engine/src/doctrine.ts` (today: contacts to natal points only).
 9. **Did you know cards**: ideas we don't read the chart by (Sun = father and Moon = mother in Family, Mercury's shadow
    in Timeline, Mercury signs at a party, a retrograde at birth), a small card outside the prose, "some astrologers say",
-   then what it could mean for this chart. At most one per chapter (default). The shadow needs shadow dates in the engine.
-10. **Chiron gets a sentence**: read by house, the sore spot then the gift, in possibility words.
-11. **Posts**: new Content board pillar **Explained**, ten ideas added as Idea (done 2026-10-07).
+   then what it could mean for this chart. At most one per chapter (Owner, 2026-10-07). Always worded as a tradition,
+   never as a fact (Owner: "make it sound like it's not a fact, but it's often said this way"): "is often read as",
+   "old astrology tends to", "many people find". The shadow needs shadow dates in the engine.
+10. **No repeats** (Owner: "if we say what to write, it's gonna just write that all the time"): a pool of several
+   scenes per sign, planet and house (party, group chat, work meeting, family dinner, first date), a few picked per
+   chart, never the whole list; a warn-class check for a scene reused word for word. Her whole profile (114 videos,
+   transcribed 2026-10-07) is studied for scene types and planet framings, kept out of the repo (her text, public repo);
+   her lines never enter a prompt. Saturn and Jupiter get the same crisp treatment: used everywhere today, never said
+   plainly (Audrey: "you can carry a frightening amount alone" with no Saturn behind it).
+11. **Chiron gets a sentence**: read by house, the sore spot then the gift, in possibility words.
+12. **Posts**: new Content board pillar **Explained**, ten ideas added as Idea (done 2026-10-07).
 
 ## Out of scope
 
@@ -95,9 +103,7 @@ retrograde Venus, Venus square Mars).
 Taken at their defaults (no objection, 2026-10-07): at most one named placement per paragraph; all five aspect names,
 each explained the first time; only The Inner Cosmos is the voice model.
 
-1. **Did you know**: at most one per chapter, only where it says something about this chart. Default: this.
-2. **Feel it first**: Claude hand-writes Audrey's whole Mind chapter in the new style, read next to today's, then it
-   becomes a model example. Default: this.
+Answered 2026-10-07: Did you know, at most one per chapter; no hand-written chapter before lock. None open.
 
 ## Decisions to record
 
@@ -113,3 +119,7 @@ each explained the first time; only The Inner Cosmos is the voice model.
 - Did you know cards for traditions we don't read by, one per chapter at most (Decided by Alex; count by Claude).
 - Timeline reads retrogrades and slow planets by house, and computes shadow dates (Decided by Claude, astrology call).
 - Chiron is read in the Personal report, by house (Decided by Claude).
+- Did you know is worded as tradition, never fact (Decided by Alex, 2026-10-07).
+- Scene pool rotated per chart, a warn check for reused scenes; creators' text never enters a prompt (Decided by Claude).
+- The Owner keeps sending creator videos; each is doctrine-checked, then filed as a Did you know or an Explained post
+  (Decided by Alex, 2026-10-07).
