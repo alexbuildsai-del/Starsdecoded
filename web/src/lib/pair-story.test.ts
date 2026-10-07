@@ -42,6 +42,7 @@ const progress = (over: Partial<Progress> = {}): Progress => ({
 const WRITING = progress();
 const DOOR = progress({ real: 70, shown: 70, next: 80, door: true });
 const DONE = progress({ real: 100, shown: 100, label: "Ready", next: 100, door: true, complete: true });
+const FAILED = progress({ failed: true });
 
 const TIMES = Array.from({ length: 401 }, (_, i) => i * 0.25);
 const VIEWS: readonly PairView[] = ["phone", "desktop"];
@@ -147,6 +148,7 @@ describe("the step table", () => {
     expect(still.stage.plates.flatMap((p) => p.sectors).some((s) => s.lit)).toBe(false);
     expect(at(PAIR_STILL_S, KNOWN, DOOR).caption.subtitle).toBe("The first chapters are in. You can start reading now.");
     expect(at(PAIR_STILL_S, KNOWN, DONE).caption).toMatchObject({ title: "Your report is ready", subtitle: "Opening it now." });
+    expect(at(PAIR_STILL_S, KNOWN, FAILED).caption).toMatchObject({ title: "Your two charts, side by side", subtitle: null });
   });
 });
 
@@ -181,7 +183,7 @@ describe.each(ALL)("$name on the $view view", ({ input, view, frames }) => {
   });
 
   it("says nothing about what the charts mean, anywhere in a line", () => {
-    const writing = [WRITING, DOOR, DONE].map((p) => pairFrameAt(PAIR_STILL_S, input, p, view));
+    const writing = [WRITING, DOOR, DONE, FAILED].map((p) => pairFrameAt(PAIR_STILL_S, input, p, view));
     const lines = [...frames, ...writing].flatMap((f) => wordsOf(f));
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.filter((line) => interpreting(line).length > 0)).toEqual([]);

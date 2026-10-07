@@ -539,6 +539,8 @@ function stepWords(step: number, pair: Pair, progress: Progress): { title: strin
     }
     default:
       if (progress.complete) return { title: "Your report is ready", subtitle: "Opening it now." };
+      // A failed report is not writing, so the held frame stops saying it is; the overlay puts the failure under it.
+      if (progress.failed) return { title: "Your two charts, side by side", subtitle: null };
       return {
         title: "Now writing your report",
         subtitle: progress.door ? "The first chapters are in. You can start reading now." : "It opens here when it's ready.",
