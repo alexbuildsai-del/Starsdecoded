@@ -6,8 +6,9 @@
  * is a challenge beside the links they rest on, the share card and Where your
  * charts meet; chapters 02 to 06 are the lens's workbook chapters, one scene
  * each, 02 introducing them; 07 is the practice. Streams behind the same door
- * as the natal page, n = 8. No number, rating, percentage or bar anywhere, on
- * screen or in the PDF. No dawn, no gather.
+ * as the natal page, n = 8, while the opening screen plays the pair's story
+ * from the two stored charts (ADR-347 to 351). No number, rating, percentage
+ * or bar describes the pair, on screen or in the PDF. No dawn, no gather.
  */
 import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams, useLocation } from "wouter";
@@ -26,6 +27,7 @@ import { ChartsMeet } from "@/components/report/LinkCard";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
 import { OpeningOverlay } from "@/components/report/OpeningOverlay";
 import { PairHero, type PairPerson } from "@/components/report/PairHero";
+import { PairStory } from "@/components/report/PairStory";
 import { ReportSky } from "@/components/report/ReportSky";
 import { LensChapterBlock, PractiseBlock, ScenesIntro, first } from "@/components/report/PairSections";
 import { ShareCard } from "@/components/report/ShareCard";
@@ -159,7 +161,11 @@ export default function CompatibilityReportPage() {
       <ReportSky accent={accent} opening={onHero} />
 
       {(!open || failed) && (
-        <OpeningOverlay progress={progress} provisional={null} chart={chartA} failureLine={live.failureReason?.line ?? null} onOpen={setOpen} />
+        <PairStory a={person(a, chartA)} b={person(b, chartB)} progress={progress}>
+          {(slots) => (
+            <OpeningOverlay progress={progress} provisional={null} chart={chartA} failureLine={live.failureReason?.line ?? null} onOpen={setOpen} slots={slots} />
+          )}
+        </PairStory>
       )}
 
       <nav

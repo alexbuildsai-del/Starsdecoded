@@ -517,7 +517,7 @@ function stepWords(step: number, pair: Pair, progress: Progress): { title: strin
     case 2: {
       const title = `The sky when ${younger.name} was born`;
       if (!older.day || !younger.day) return { title, subtitle: null };
-      return { title, subtitle: pair.gap ? `${younger.name} was born ${pair.gap} later.` : `${younger.name} was born the same day.` };
+      return { title, subtitle: pair.gap ? `${younger.name} was born ${pair.gap} later.` : "You were both born on the same day." };
     }
     case 3: {
       const title = "Your two charts, side by side";
@@ -543,7 +543,8 @@ function stepWords(step: number, pair: Pair, progress: Progress): { title: strin
       if (progress.failed) return { title: "Your two charts, side by side", subtitle: null };
       return {
         title: "Now writing your report",
-        subtitle: progress.door ? "The first chapters are in. You can start reading now." : "It opens here when it's ready.",
+        // The screen's own Start reading button sits under it, so the line says why the door opened and no more.
+        subtitle: progress.door ? "The first chapters are in." : "It opens here when it's ready.",
       };
   }
 }

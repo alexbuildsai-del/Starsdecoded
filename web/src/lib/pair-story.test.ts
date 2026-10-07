@@ -146,7 +146,7 @@ describe("the step table", () => {
     expect(still.caption).toMatchObject({ title: "Now writing your report", subtitle: "It opens here when it's ready.", opacity: 1 });
     expect(still.detail).toBeNull();
     expect(still.stage.plates.flatMap((p) => p.sectors).some((s) => s.lit)).toBe(false);
-    expect(at(PAIR_STILL_S, KNOWN, DOOR).caption.subtitle).toBe("The first chapters are in. You can start reading now.");
+    expect(at(PAIR_STILL_S, KNOWN, DOOR).caption.subtitle).toBe("The first chapters are in.");
     expect(at(PAIR_STILL_S, KNOWN, DONE).caption).toMatchObject({ title: "Your report is ready", subtitle: "Opening it now." });
     expect(at(PAIR_STILL_S, KNOWN, FAILED).caption).toMatchObject({ title: "Your two charts, side by side", subtitle: null });
   });
@@ -272,7 +272,7 @@ describe("the facts for Mira and Tomás", () => {
     const twins: PairInput = { a: twin, b: MIRA, names: ["Ana Costa", mira.name] };
     expect(at(5, twins).caption.subtitle).toBe("You were both born in Lisbon.");
     expect(at(15, twins).caption.title).toBe("The sky when Mira was born");
-    expect(at(20, twins).caption).toMatchObject({ title: "The sky when Ana was born", subtitle: "Ana was born the same day." });
+    expect(at(20, twins).caption).toMatchObject({ title: "The sky when Ana was born", subtitle: "You were both born on the same day." });
     expect(at(10.5, twins).detail).toMatchObject({ lines: [{ role: "place" }, { role: "place" }] });
   });
 
