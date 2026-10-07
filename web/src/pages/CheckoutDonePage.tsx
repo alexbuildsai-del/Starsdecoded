@@ -2,7 +2,8 @@
  * /checkout/done (stripe-payments, Checkout; ADR-274, 275): where Pay, or the bank a payment went through, sends the
  * reader. Only the webhook grants (R-6.2), so the page asks GET /checkout/{id} until the purchase is granted, reads the
  * credits and the home answer again, and opens the step that asked with focus on its heading (R14-12). After 60 s it
- * stops asking, says the payment is still being confirmed and gives the way back (R16-24).
+ * stops asking, says the payment is still being confirmed and gives the way back (R16-24); after 120 s when the API
+ * failed to answer meanwhile, as it can while a deploy hands over (B-48).
  */
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -41,6 +42,19 @@ const REFRESH_MS = 3_000;
 const HEADING_MS = 5_000;
 /** Time for the step to settle first: a sheet it reopens takes focus inside itself, the picker focuses its own section. */
 const SETTLE_MS = 300;
+/**
+ * The wait in all once the API has failed to answer (B-48): a deploy left every /api call at 502 for about a minute
+ * (QA-06 #2), and a grant made before it still has to reach the reader once the API is back.
+ */
+const GAP_WAIT_MS = 120_000;
+/** A read that hangs is no answer too: it is dropped after this long, so the next one can go out. */
+const ASK_MS = 10_000;
+
+/** How a deploy's gap reaches the page: the host's 502, 503 or 504, or no answer at all. A 500 is the API answering. */
+function apiAway(error: unknown): boolean {
+  const status = (error as { status?: unknown } | null)?.status;
+  return typeof status !== "number" || status === 502 || status === 503 || status === 504;
+}
 
 /**
  * The step that asked opens with focus on its heading (R14-12): the title of a sheet it reopened, or the page's own
@@ -94,16 +108,21 @@ export default function CheckoutDonePage() {
     if (!purchaseId) return;
     let gone = false;
     let expired = false;
+    let away = false;
     let next: ReturnType<typeof setTimeout> | undefined;
-    const stop = setTimeout(() => {
+    const giveUp = () => {
       expired = true;
       clearTimeout(next);
       setLate(true);
+    };
+    let stop = setTimeout(() => {
+      if (away) stop = setTimeout(giveUp, GAP_WAIT_MS - WAIT_MS);
+      else giveUp();
     }, WAIT_MS);
     // A read still on its way when the wait ends is taken all the same: a grant that lands then still carries on.
     const ask = async () => {
       try {
-        const now = await getCheckout(purchaseId);
+        const now = await getCheckout(purchaseId, { signal: AbortSignal.timeout(ASK_MS) });
         if (gone) return;
         setState(now);
         if (now.status !== "open") {
@@ -117,6 +136,8 @@ export default function CheckoutDonePage() {
           setMissing(true);
           return;
         }
+        // Any other failure is "not yet"; one that says the API is away also lengthens the wait.
+        if (apiAway(error)) away = true;
       }
       if (!expired) next = setTimeout(() => void ask(), POLL_MS);
     };
