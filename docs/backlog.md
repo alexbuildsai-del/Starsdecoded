@@ -57,6 +57,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-68 · A new birth time gives some events a new key; queue their readings at the open instead of writing them on open (with a guard for keys that never land) · R18-25
 - B-69 · The QA walk's guard names `/api/timeline/*` when a failed setup read sends the page to Timeline's views; name the setup read · R18-28
 - B-70 · Hard-pair weighting: a hard-pair conjunction weighs -0.3 and can drop out of the twelve (Charles-William Venus-Saturn 0.9°); with R20's brain pass and a dry lab run · R18-13
+- B-71 · The done page's plan redirect sits inline in `CheckoutDonePage.tsx`; move it into `checkout-view.ts` so the critical tier pins it; `steps.ts`'s `timeline-setup` label also covers the stale refresh now · R18 tester
 
 ## Waiting on Alex
 
