@@ -7,8 +7,10 @@ import { describe, expect, it } from "vitest";
 import { houseSign } from "@/components/chart/wheel-geometry";
 import { SAMPLE, sampleChart } from "@/site/data/sample";
 import {
-  HOUSE_NUMBERS, houseLine, houseName, keyStep, nearestCard, splitReading, stepHouse, tickState,
+  HOUSE_NUMBERS, chartGoesBackwards, goesBackwards, houseLine, houseName, keyStep, nearestCard, oppositeLine, quietLine,
+  signRuler, splitReading, stepHouse, tickState,
 } from "./house-deck";
+import { houseOccupants } from "./house-occupants";
 
 const READINGS = SAMPLE.run.houses?.houses ?? [];
 const reading = (house: number) => READINGS.find((r) => r.house === house)?.reading ?? "";
@@ -132,5 +134,54 @@ describe("first sentence", () => {
     expect(splitReading("You give it 2.5 hours. Then you stop.").lead).toBe("You give it 2.5 hours.");
     expect(splitReading("You left the U.S. early and kept going. Then you stopped.").lead).toBe("You left the U.S. early and kept going.");
     expect(splitReading(`**${reading(4)}**`).lead.startsWith("Sun, Jupiter, and the North Node")).toBe(true);
+  });
+});
+
+describe("opposite house", () => {
+  it("names the house across, its word and the pair from this house's side", () => {
+    expect(oppositeLine(1)).toBe("Opposite: 7th, Partnership. Me · the other person.");
+    expect(oppositeLine(7)).toBe("Opposite: 1st, Self. The other person · me.");
+    expect(oppositeLine(3)).toBe("Opposite: 9th, Belief. Everyday · big picture.");
+    expect(oppositeLine(9)).toBe("Opposite: 3rd, Mind. Big picture · everyday.");
+    expect(oppositeLine(12)).toBe("Opposite: 6th, Work. Resting · doing.");
+  });
+
+  it("gives every house a line that ends in a full stop and names the house six on", () => {
+    for (const h of HOUSE_NUMBERS) {
+      const line = oppositeLine(h);
+      expect(line.startsWith("Opposite: ")).toBe(true);
+      expect(line.endsWith(".")).toBe(true);
+      expect(oppositeLine(h <= 6 ? h + 6 : h - 6)).not.toBe(line);
+    }
+  });
+});
+
+describe("a quiet house, on Audrey Hepburn's chart", () => {
+  const chart = sampleChart();
+  const quiet = HOUSE_NUMBERS.filter((h) => houseOccupants(chart, h).length === 0);
+  const lines = quiet.map((h) => quietLine(signOf(h), signRuler(chart, signOf(h))));
+
+  it("names its sign and where that sign's planet stands", () => {
+    expect(quiet).toEqual([8, 9]);
+    expect(lines).toEqual([
+      "No planets here · Virgo starts this house · its planet, Mercury, is in your 5th",
+      "No planets here · Libra starts this house · its planet, Venus, is in your 3rd",
+    ]);
+  });
+
+  it("keeps the first half when the chart does not place the planet", () => {
+    expect(quietLine("Leo", null)).toBe("No planets here · Leo starts this house");
+  });
+});
+
+describe("the R line", () => {
+  it("fires for the three planets her chart turns backwards and never for the nodes", () => {
+    const chart = sampleChart();
+    const back = Object.entries(chart.planets).filter(([k, p]) => goesBackwards(k, p.retrograde)).map(([k]) => k);
+    expect(back).toEqual(["venus", "saturn", "neptune"]);
+    expect(chartGoesBackwards(chart)).toBe(true);
+    expect(goesBackwards("north_node", true)).toBe(false);
+    expect(goesBackwards("mars", false)).toBe(false);
+    expect(goesBackwards("mars", undefined)).toBe(false);
   });
 });

@@ -6,7 +6,10 @@
  * a report and the deck on /sample read the same houses the same way.
  */
 import { HOUSE_WORDS, ORDINALS } from "@/lib/evidence-glossary";
+import { HOUSES } from "@/lib/houses";
+import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { plainProse } from "@/lib/plain-prose";
+import { PLANET_LABELS, type ChartData } from "@/types/chart";
 
 export const HOUSE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
@@ -59,6 +62,48 @@ export function houseName(house: number): string {
 /** The pinned bar's line: "4th house · Home · Taurus". */
 export function houseLine(house: number, sign: string): string {
   return `${houseName(house)} · ${sign}`;
+}
+
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** "Opposite: 7th, Partnership. Me · the other person." (report-loading-story §3); the pair reads from this house's side. */
+export function oppositeLine(house: number): string {
+  const h = HOUSES[house - 1];
+  const across = HOUSES[h.opposite - 1];
+  return `Opposite: ${ORDINALS[across.n - 1]}, ${across.word}. ${capital(h.pair[0])} · ${h.pair[1]}.`;
+}
+
+/** A planet that rides a sign's house: its label and the house the chart puts it in. */
+export interface SignRuler {
+  label: string;
+  house: number;
+}
+
+/** The planet that goes with a sign, and the house the chart puts it in; null when the chart does not place it. */
+export function signRuler(chart: ChartData, sign: string): SignRuler | null {
+  const key = TRADITIONAL_RULER[sign];
+  const planet = key ? chart.planets[key] : undefined;
+  if (!key || !planet || !planet.house) return null;
+  return { label: PLANET_LABELS[key] ?? key, house: planet.house };
+}
+
+/** A house nobody stands in keeps one small line: its sign, and where the sign's planet is (review-05-10 §7). */
+export function quietLine(sign: string, ruler: SignRuler | null): string {
+  const start = `No planets here · ${sign} starts this house`;
+  return ruler ? `${start} · its planet, ${ruler.label}, is in your ${ORDINALS[ruler.house - 1]}` : start;
+}
+
+// The mean nodes are always marked R, which says nothing about the sky that day, so only a body that really turned counts.
+const ALWAYS_R = ["north_node", "south_node"];
+
+/** True for a planet or Chiron the chart marks retrograde; false for the nodes. */
+export function goesBackwards(key: string, retrograde: boolean | undefined): boolean {
+  return retrograde === true && !ALWAYS_R.includes(key);
+}
+
+/** Whether any body in the chart looks like it moves backwards, so the full chart carries the R line. */
+export function chartGoesBackwards(chart: ChartData): boolean {
+  return Object.entries(chart.planets).some(([key, p]) => goesBackwards(key, p.retrograde));
 }
 
 export interface ReadingParts {
