@@ -25,7 +25,7 @@ import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { TriadRow } from "@/components/TriadRow";
 import { triadRowsOf, triadText } from "@/lib/triad-row";
 import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
-import { PHONE, layoutHero, moonArc, phoneStack, type Rect } from "@/components/report/hero-layout";
+import { PHONE, ascendantValue, layoutHero, moonArc, phoneStack, writtenOnText, type Rect } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { Mark } from "@/components/Mark";
@@ -136,6 +136,11 @@ function ScrollCue({ flow, reduced, cueRef }: { flow?: boolean; reduced: boolean
   );
 }
 
+/** Under the name, in the legend's small grey: it fades with the plate, as the name does. */
+function WrittenOn({ text }: { text: string }) {
+  return <p className="m-0 font-numeric text-[11px] tracking-[0.04em] text-[rgba(232,235,242,.62)]">{text}</p>;
+}
+
 export interface ReportHeroProps {
   name: string;
   birthDate: string;
@@ -149,13 +154,15 @@ export interface ReportHeroProps {
   meta: Interpretation["meta"];
   /** Opens the three-way birth time control; the blind hero's third legend line. */
   onAddBirthTime?: () => void;
+  /** When the report was written (its `createdAt`); the hero says so under the plate. */
+  writtenOn?: string | null;
   /** The hero's own sky takes the opening accent; once the door is taken the stars gather onto the ring (ADR-59). */
   accent: string;
   gather: boolean;
 }
 
 export function ReportHero({
-  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, accent, gather,
+  name, birthDate, birthTime, birthTimeWindowMinutes = 0, birthPlace, latitude, longitude, chartData, meta, onAddBirthTime, writtenOn, accent, gather,
 }: ReportHeroProps) {
   const tier = useTier();
   const narrow = tier !== "wide";
@@ -272,7 +279,9 @@ export function ReportHero({
 
   const { lines: nameRows, size: nameSize } = nameLines(name, narrow);
   // The name has already broken to its lines from its length; only the viewport's height can now cost the ring.
-  const stack = phone ? phoneStack({ viewportWidth: viewport.width, viewportHeight: viewport.height, nameLines: nameRows.length, nameSize }) : null;
+  const written = writtenOnText(writtenOn);
+  const stack = phone ? phoneStack({ viewportWidth: viewport.width, viewportHeight: viewport.height, nameLines: nameRows.length, nameSize, dated: written !== null }) : null;
+  const ascText = ascendantValue(asc);
 
   // What a label may not cover: the name plate at the centre and the two
   // horizon labels. Measured in plate units, like everything else here.
@@ -357,6 +366,14 @@ export function ReportHero({
             {blind ? null : narrow ? (
               <>
                 <Label x={east.x} y={east.y + (phone ? 26 : 30)} anchor={east.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>EAST · RISING</Label>
+                {ascText && (
+                  <text
+                    x={east.x.toFixed(1)} y={(east.y + (phone ? 46 : 54)).toFixed(1)} textAnchor={east.x < cx ? "start" : "end"}
+                    fontFamily="IBM Plex Mono, monospace" fontSize={phone ? 15 : 16} fill="rgba(232,235,242,.62)"
+                  >
+                    {ascText}
+                  </text>
+                )}
                 <Label x={west.x} y={west.y + (phone ? 26 : 30)} anchor={west.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>WEST · SETTING</Label>
               </>
             ) : (
@@ -364,9 +381,9 @@ export function ReportHero({
                 <Label x={east.x - 6} y={east.y + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
                 <text
                   x={(east.x - 6).toFixed(1)} y={(east.y + 44).toFixed(1)} textAnchor="end"
-                  fontFamily="IBM Plex Mono, monospace" fontSize={11} fill="rgba(232,235,242,.5)"
+                  fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
                 >
-                  drawn facing south, so east is on your left
+                  {ascText}
                 </text>
                 <Label x={west.x + 6} y={west.y + 26} anchor="start" size={11} fill={SKY_DIM}>WEST · SETTING</Label>
                 <text
@@ -441,6 +458,7 @@ export function ReportHero({
               ))}
             </h1>
           </div>
+          {written && <WrittenOn text={written} />}
         </div>
         )}
         </div>
@@ -454,6 +472,7 @@ export function ReportHero({
                 <span key={i} className="block">{line}</span>
               ))}
             </h1>
+            {written && <WrittenOn text={written} />}
           </div>
         )}
 
@@ -500,6 +519,7 @@ export function ReportHero({
           <p className="font-numeric text-xs mt-3">
             DOB · {dobText} · TOB · {tob} · POB · {birthPlace}
           </p>
+          {written && <p className="font-numeric text-xs mt-1">{written}</p>}
           <p className="font-numeric text-xs mt-1">
             {legend.map((row) => `${row.label} ${row.at === null ? "needs a birth time" : triadText(row)}`).join(" · ")}
           </p>

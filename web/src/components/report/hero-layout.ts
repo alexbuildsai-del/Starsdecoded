@@ -9,6 +9,7 @@
  * its own spoke, so two discs never overlap and neither is moved off its angle.
  */
 import { norm360, pointAt, theta, type Point } from "@/components/chart/wheel-geometry";
+import { houseWithWord } from "@/lib/evidence-glossary";
 
 export const CONJUNCTION_DEGREES = 12;
 /** How far outside the ring the Sun steps when the two lights are together. */
@@ -177,6 +178,8 @@ export const PHONE = {
   cue: 92,
   /** The stem ends at the cue's bottom padding. */
   cuePad: 4,
+  /** "Written on 5 Oct 2026", one line in 11 px type with its leading. */
+  written: 16,
   /** The corner text's two lines and the hud's padding, up from the viewport's bottom. */
   hudBand: 40,
   clearance: 24,
@@ -189,6 +192,8 @@ export interface PhoneStackInput {
   viewportHeight: number;
   nameLines: number;
   nameSize: number;
+  /** A "Written on" line sits under the name. */
+  dated?: boolean;
 }
 
 export interface PhoneStack {
@@ -213,7 +218,8 @@ export interface PhoneStack {
  * which has already broken to its lines from its length alone.
  */
 export function phoneStack(input: PhoneStackInput): PhoneStack {
-  const name = PHONE.eyebrow + PHONE.nameGap + input.nameLines * input.nameSize * PHONE.nameLineHeight;
+  const name = PHONE.eyebrow + PHONE.nameGap + input.nameLines * input.nameSize * PHONE.nameLineHeight
+    + (input.dated ? PHONE.nameGap + PHONE.written : 0);
   const legend = PHONE.legendRows * PHONE.legendRow + (PHONE.legendRows - 1) * PHONE.legendGap;
   const cue = PHONE.cue;
   const hudTop = input.viewportHeight - PHONE.hudBand;
@@ -225,4 +231,29 @@ export function phoneStack(input: PhoneStackInput): PhoneStack {
   const ring = svg * PHONE.ringOfSvg;
   const stemBottom = top + svg + rest - PHONE.cuePad;
   return { order: ["ring", "name", "legend", "cue"], svg, ring, name, legend, cue, stemBottom, hudTop, clearance: hudTop - stemBottom };
+}
+
+/**
+ * The Ascendant as the Descendant beside it is written, degrees first: "19.07° Gemini · 1st (self)". The Rising begins the
+ * 1st house in a whole-sign chart, so the house needs no input. Null on a chart with no birth time, which has no horizon.
+ */
+export function ascendantValue(asc: { sign: string; degree: number } | null | undefined): string | null {
+  if (!asc || !Number.isFinite(asc.degree)) return null;
+  return `${asc.degree.toFixed(2)}° ${asc.sign} · ${houseWithWord(1)}`;
+}
+
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "5 Oct 2026" in the reader's own day, built by hand because en-GB spells September "Sept" in newer engines. */
+export function shortDate(when: string | Date | null | undefined): string | null {
+  if (when === null || when === undefined || when === "") return null;
+  const d = when instanceof Date ? when : new Date(when);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** "Written on 5 Oct 2026", or null when the report has no date to give. */
+export function writtenOnText(when: string | Date | null | undefined): string | null {
+  const day = shortDate(when);
+  return day ? `Written on ${day}` : null;
 }
