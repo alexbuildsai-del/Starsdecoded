@@ -358,7 +358,8 @@ export function lifeModel(life: TimelineLife, today: string, zone: string, order
 
   const views: CycleView[] = life.cycles.map((cycle) => {
     const same = byId.get(cycle.id) ?? [cycle];
-    const before = same[same.indexOf(cycle) - 1];
+    // A look-back names an occurrence that has happened, so an earlier cycle still to come is skipped (review 05/10 §4).
+    const before = same.slice(0, same.indexOf(cycle)).reverse().find((c) => day(anchorOf(c)) < today);
     return {
       key: cycle.key,
       id: cycle.id,

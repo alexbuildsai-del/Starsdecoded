@@ -31,7 +31,8 @@ export function findCycles(birthDate: string, today: string, now: Date = new Dat
   );
   return cycles.map((cycle) => {
     const same = cycles.filter((other) => other.id === cycle.id);
-    const before = same[same.indexOf(cycle) - 1];
+    // A look-back names an occurrence that has happened, so an earlier cycle still to come is skipped (review 05/10 §4).
+    const before = same.slice(0, same.indexOf(cycle)).reverse().find((c) => utcDay(c.window.exact[0] ?? c.window.start) < today);
     return {
       key: cycle.key,
       id: cycle.id,
