@@ -155,27 +155,36 @@ describe.each(ALL)("$name on the $view view", ({ input, view, frames }) => {
     expect(frames.every((f) => f.stage.w === PAIR_STAGE[view].w && f.stage.h === PAIR_STAGE[view].h)).toBe(true);
   });
 
+  // About two hundred thousand points are checked per view, so the faults are gathered and asserted once.
   it("never joins the two plates: no plate shared, no mark of one inside the other, one horizon through both", () => {
-    for (const f of frames) {
+    const joins: string[] = [];
+    frames.forEach((f, k) => {
+      const when = `${TIMES[k]} s`;
       // The stage holds plates, one horizon, the point on it, the globe and text: there is no kind of mark that links.
-      expect(Object.keys(f.stage).sort()).toEqual(["centre", "globe", "h", "horizon", "plates", "texts", "w"]);
+      const kinds = Object.keys(f.stage).sort().join(" ");
+      if (kinds !== "centre globe h horizon plates texts w") joins.push(`${when}: the stage holds ${kinds}`);
       const plates = f.stage.plates;
-      expect(new Set(plates.map((p) => p.person)).size).toBe(plates.length);
+      if (new Set(plates.map((p) => p.person)).size !== plates.length) joins.push(`${when}: one person has two plates`);
       for (const p of plates) {
         for (const q of plates) {
           if (p === q) continue;
-          expect(Math.hypot(p.cx - q.cx, p.cy - q.cy)).toBeGreaterThan(p.r + q.r);
-          for (const [x, y] of pointsOf(p)) expect(Math.hypot(x - q.cx, y - q.cy)).toBeGreaterThan(q.r);
+          if (Math.hypot(p.cx - q.cx, p.cy - q.cy) <= p.r + q.r) joins.push(`${when}: the plates touch`);
+          const inside = pointsOf(p).filter(([x, y]) => Math.hypot(x - q.cx, y - q.cy) <= q.r).length;
+          if (inside > 0) joins.push(`${when}: ${inside} of plate ${p.person}'s points inside plate ${q.person}`);
         }
       }
-      if (f.stage.horizon) for (const p of plates) expect(p.cy).toBe(f.stage.horizon.y);
-      if (f.stage.globe) expect(plates.length).toBeLessThanOrEqual(1);
-    }
+      const horizon = f.stage.horizon;
+      if (horizon && plates.some((p) => p.cy !== horizon.y)) joins.push(`${when}: a plate off the horizon`);
+      if (f.stage.globe && plates.length > 1) joins.push(`${when}: the globe over two plates`);
+    });
+    expect(joins).toEqual([]);
   });
 
   it("says nothing about what the charts mean, anywhere in a line", () => {
     const writing = [WRITING, DOOR, DONE].map((p) => pairFrameAt(PAIR_STILL_S, input, p, view));
-    for (const line of [...frames, ...writing].flatMap((f) => wordsOf(f))) expect(interpreting(line)).toEqual([]);
+    const lines = [...frames, ...writing].flatMap((f) => wordsOf(f));
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.filter((line) => interpreting(line).length > 0)).toEqual([]);
   });
 
   it("draws a plate with no birth time without horizon or house", () => {
