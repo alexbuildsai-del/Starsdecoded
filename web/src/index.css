@@ -553,12 +553,10 @@
   @keyframes rp-breath { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .rp-skel { animation: none; } .rp-skel i::after { animation: none; display: none; } }
 
-  /* --- the opening overlay: the orrery, one percentage, one label, the door (ADR-47) --- */
+  /* --- the opening overlay: the story, one percentage, one label, the door (ADR-47) --- */
   .rp-open { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 3.5rem 16px 24px;
     background: rgba(6,8,12,.55); transition: opacity .35s var(--ease), visibility .35s; }
   .rp-open.away { opacity: 0; visibility: hidden; pointer-events: none; }
-  .rp-open .plate { display: grid; justify-items: center; gap: 18px; width: min(560px, 92vw); }
-  .rp-open .plate > svg { display: block; width: 100%; height: auto; max-height: 62svh; }
   .rp-open .pct { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 28px; color: var(--paper); line-height: 1; }
   .rp-open .lab { font-family: var(--label); font-size: 10.5px; letter-spacing: .28em; text-transform: uppercase; color: var(--sky); opacity: .85; }
   .rp-open .door { display: grid; justify-items: center; gap: 8px; margin-top: 4px; animation: rp-rise .7s var(--ease) both; }
@@ -590,6 +588,8 @@
   .lf-door { top: 91%; height: 6%; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; column-gap: 14px; row-gap: 4px; overflow: visible; animation: rp-rise .7s var(--ease) both; }
   .lf-door .door { display: contents; animation: none; }
   .lf-door .door small { align-self: center; }
+  /* Under the button the small line needs about 22px more than the door's share holds, so a short narrow frame drops it. */
+  @container (max-width: 560px) and (max-height: 760px) { .lf-door .door small { display: none; } }
   @keyframes rp-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .rp-open { transition: none; } .rp-open .door, .lf-door { animation: none; } }
 

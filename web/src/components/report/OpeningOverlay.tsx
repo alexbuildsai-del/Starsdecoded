@@ -1,9 +1,9 @@
 /**
  * The generation screen is its own screen (ADR-47, ADR-59): while the report
  * is not open, `/report/:id` renders it full-bleed, the document scroll is
- * locked on the root and focus stays inside. The orrery, one percentage, one
- * of five labels, and once the door opens "Start reading" over one line with
- * no numbers. At 100% the page opens itself after a 1.2 s hold. Taking the
+ * locked on the root and focus stays inside. The story on the shared grid, one
+ * percentage, one of five labels, and once the door opens "Start reading" over
+ * one line with no numbers. At 100% the page opens itself after a 1.2 s hold. Taking the
  * door crossfades the screen out, under Reduce Motion too, then hands the
  * page back so it can unmount it, show the report at the top and run the
  * gather once. A failed report keeps the screen with its message, and "Try
@@ -13,11 +13,8 @@
  * revising is already readable and shows no screen.
  */
 import { useEffect, useRef, useState } from "react";
-import { Orrery } from "@/components/report/Orrery";
 import { LoadingFrame, type LoadingSlots } from "@/components/loading/LoadingFrame";
-import type { Positions } from "@/lib/orrery";
 import type { Progress } from "@/lib/progress";
-import type { ChartData } from "@/types/chart";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { TRY_AGAIN } from "@/lib/home-view";
 
@@ -27,25 +24,35 @@ export const CROSSFADE_MS = 350;
 
 export interface OpeningOverlayProps {
   progress: Progress;
-  provisional: Positions | null;
-  chart: ChartData | null;
   /** The coded line a failed report shows (ADR-84); the internal message never reaches the page. */
   failureLine?: string | null;
   onOpen: () => void;
   /** Try again. Left out where the reader may not rewrite the report, a shared reader say, so no button leads to a refusal. */
   onRetry?: () => void;
   retrying?: boolean;
-  /** The story on the shared grid (ADR-351). Without it the orrery stays until R18-27 makes it required. */
-  slots?: LoadingSlots;
+  /** The story on the shared grid (ADR-351). */
+  slots: LoadingSlots;
 }
 
 /** The `internal` line of the failure vocabulary, the fallback when a failed report carries no code yet. */
 export const INTERNAL_LINE = "Something went wrong on our side. We've been alerted.";
 
+/**
+ * The grid's slots when the story cannot be told yet, a chart missing: a still frame with the words the writing
+ * step uses, so the percentage, the label and the door keep their places.
+ */
+export function plainSlots(progress: Progress): LoadingSlots {
+  return {
+    title: progress.complete ? "Your report is ready" : "Now writing your report",
+    subtitle: progress.complete ? "Opening it now." : progress.door ? "The first chapters are in." : "It opens here when it's ready.",
+    stage: null,
+  };
+}
+
 /** The hero's ground, so the screen is a page of its own and not a veil over one. */
 const GROUND = "radial-gradient(120% 92% at 50% 38%, #141B28 0%, #0B0E14 56%, #06080C 100%)";
 
-export function OpeningOverlay({ progress, provisional, chart, failureLine, onOpen, onRetry, retrying, slots }: OpeningOverlayProps) {
+export function OpeningOverlay({ progress, failureLine, onOpen, onRetry, retrying, slots }: OpeningOverlayProps) {
   const [away, setAway] = useState(false);
   const reduced = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -97,7 +104,7 @@ export function OpeningOverlay({ progress, provisional, chart, failureLine, onOp
   const openDoor = progress.door && (
     <div className="door">
       <button type="button" onClick={leave}>Start reading →</button>
-      <small>We'll finish the last chapters while you read.</small>
+      {!progress.complete && <small>We'll finish the last chapters while you read.</small>}
     </div>
   );
 
@@ -105,41 +112,23 @@ export function OpeningOverlay({ progress, provisional, chart, failureLine, onOp
     <div
       ref={rootRef}
       tabIndex={-1}
-      className={`rp-open no-print${slots ? " rp-grid" : ""}${away ? " away" : ""}`}
+      className={`rp-open rp-grid no-print${away ? " away" : ""}`}
       style={{ background: GROUND, transition: reduced ? `opacity ${CROSSFADE_MS}ms linear, visibility ${CROSSFADE_MS}ms` : undefined }}
       role="dialog"
       aria-modal="true"
       aria-label="Your report is being written"
     >
-      {slots ? (
-        <LoadingFrame
-          {...slots}
-          detail={progress.failed ? <p className="fail">{failureLine ?? INTERNAL_LINE}</p> : slots.detail}
-          pct={progress.failed ? undefined : (
-            <>
-              <span className="pct" aria-live="polite">{Math.floor(progress.shown)}%</span>
-              <span className="lab">{progress.label}</span>
-            </>
-          )}
-          door={progress.failed ? retry : openDoor}
-        />
-      ) : (
-        <div className="plate">
-          <Orrery provisional={provisional} chart={chart} progress={progress.shown} />
-          {progress.failed ? (
-            <>
-              <p className="fail">{failureLine ?? INTERNAL_LINE}</p>
-              {retry}
-            </>
-          ) : (
-            <>
-              <p className="pct" aria-live="polite">{Math.floor(progress.shown)}%</p>
-              <p className="lab">{progress.label}</p>
-              {openDoor}
-            </>
-          )}
-        </div>
-      )}
+      <LoadingFrame
+        {...slots}
+        detail={progress.failed ? <p className="fail">{failureLine ?? INTERNAL_LINE}</p> : slots.detail}
+        pct={progress.failed ? undefined : (
+          <>
+            <span className="pct" aria-live="polite">{Math.floor(progress.shown)}%</span>
+            <span className="lab">{progress.label}</span>
+          </>
+        )}
+        door={progress.failed ? retry : openDoor}
+      />
     </div>
   );
 }
