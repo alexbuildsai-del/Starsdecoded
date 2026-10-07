@@ -2,6 +2,7 @@ import { PATH_SEEN_KEY } from "@/lib/credits-view";
 import { FORM_DRAFT_KEY } from "@/lib/form-draft";
 import { SELECTION_KEY } from "@/lib/pair-selection";
 import { PREVIEW_KEY } from "@/lib/prelaunch";
+import { RETURN_TO_KEY } from "@/lib/return-to";
 import { NOT_NOW_KEY } from "@/lib/teaser-view";
 
 /**
@@ -135,6 +136,11 @@ export const BROWSER_KEYS: readonly BrowserKey[] = [
     name: FORM_DRAFT_KEY,
     store: "tab",
     holds: "The birth details you typed, and the name on the birth form, so you don't type them twice after you sign in or pay. They're deleted as soon as the birth form reads them.",
+  },
+  {
+    name: RETURN_TO_KEY,
+    store: "tab",
+    holds: "The page to take you to after you sign in. It's deleted as soon as you leave the sign-in pages.",
   },
   {
     name: SELECTION_KEY,

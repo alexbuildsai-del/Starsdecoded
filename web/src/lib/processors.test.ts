@@ -17,7 +17,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 // Every quoted key under the app's `sd.` prefix; a key built per report ends at its dot, as `sd.marks.${id}` does.
-const KEY = /["'`](sd\.[a-z]+(?:\.[a-z]+)*\.?)/g;
+const KEY = /["'`](sd\.[a-z_]+(?:\.[a-z_]+)*\.?)/g;
 
 function keysWritten(): string[] {
   const found = new Set<string>();
