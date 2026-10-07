@@ -1,0 +1,89 @@
+# Explain it like a friend (draft)
+
+Status: draft, ideation 2026-10-07. Artifact: https://claude.ai/artifact/URGEFLx2S8KHTe2WrPV3XD
+Brain change. Extends Review 05/10 §7 and §10 (ADR-297 to 312) and ADR-104; supersedes rule 1's "never explain the method".
+
+## Why
+
+The Owner studied @the_innercosmos on TikTok (10 videos, plus @moscowmuse.astro on empty houses and @gldnhny on Jupiter)
+and wants the report and posts to explain the way she does: "so easy to understand… straight to the point… very
+practical, real life examples." Our report hides the astrology instead: rules 1, 3 and 8 ban naming a placement in prose.
+Owner, 2026-10-07: "We should never ban, but we should try to make things simpler… If the level of quality and the
+examples from daily life… is just like she does it, I don't care that you mention the word trine."
+
+## Her four moves (the pattern we adopt)
+
+1. **Name it**: one placement, house or ruler. "Look at your 6th house."
+2. **Say it plain**: one sentence. "It's the architecture of your day-to-day life."
+3. **Show it in a day**: a scene the reader can check. "You probably hated group projects."
+4. **One thing to do**: "Be honest with yourself."
+
+Also: a house is read with its sign, the planets in it and its ruler; one everyday picture per idea (retrograde as going
+home to change an outfit); the gift after the hard part; one label at a time on screen.
+
+## Doctrine check (every claim, 52 total)
+
+About 21 match, 18 match with a condition our doctrine adds, 8 don't, 5 are outside what we compute or use. We take her
+way of saying things, never a claim our doctrine doesn't hold. Dropped: "natural house" rulers (10th = Saturn, 12th =
+Neptune, 11th = Uranus), event predictions (ending a relationship, children under a Jupiter transit), Sun = father and
+Moon = mother, shadow periods, Chiron by sign, "any planet in the 1st complicates you".
+
+**Empty houses, reconciled** (v12 vs `vocabulary.ts` `empty_house` and DOCTRINE): an empty house is not easy or hard by
+default. It runs on the planet that rules its sign. A strong ruler means effort there pays off without much fuss; a
+struggling ruler means the work shows up where that planet sits.
+
+## Scope
+
+1. **Rule 1 rewritten** (`api/src/prompts/system.ts`): "Name it, say it plain, show it in a day." Any placement, house,
+   ruler, aspect or idea (retrograde, rising sign, a return) may be named once where it first matters, followed by its
+   plain meaning in the next sentence, then a real moment from the reader's life. Sentences about astrology as a subject
+   with no reader in them stay out ("in traditional practice", "astrologically").
+2. **Rules 3 and 8**: a name may sit inside a sentence, never as a heading, never alone on a line. Evidence under every
+   claim stays. Sentence limits stay (15 words on average, none over 25).
+3. **Technical terms become plain ideas**: dignity and sect words are never written (domicile, exaltation, detriment,
+   fall, peregrine, sect, cadent, succedent, angular). The idea is said plainly: "in its own sign", "less at ease here".
+4. **Taught by good examples** (Owner: "I would rather give good examples"): 8 to 10 short model passages in the four
+   moves, on real fixture charts, rotated per call so no single model is copied (MB-92's lesson).
+5. **Vocabulary**: `vocabulary.ts` short lines (house cards) rewritten in her plain style; `empty_house` gets the
+   reconciled rule; `retrograde` gets the plain picture.
+6. **Same rule everywhere**: Personal report, Compatibility (pair rule-8 checks `chk-20`, 21a, 21b, 24 relaxed to match),
+   Timeline, Ask (already does this, `ask/index.ts:46`).
+7. **Lab rules**: `METHOD_TALK` (`api/src/lib/labRules.ts`) pruned to talk with no reader in it.
+8. **Posts**: new Content board pillar **Explained**, ten ideas added as Idea (done 2026-10-07).
+
+## Out of scope
+
+- New astrology the engine doesn't compute (shadow periods, Saturn retrograde in Timeline, parent significators).
+- Any prediction. The report still describes how you work.
+- Copying her lines. We learn the pattern; every sentence is ours.
+- A new check that blocks. Warn only, per ADR-81.
+
+## Acceptance
+
+1. On the dry lab render, every chapter names at most one placement per paragraph (Q1 default), each followed by a plain
+   sentence and a reader behaviour.
+2. No dignity or sect term appears in any prose field; a warn-class check logs any that do.
+3. Every retrograde planet in the chart is named and explained once (Review 05/10 §10 holds).
+4. An empty house reads through its ruler's strength, never "easy" or "quiet" alone.
+5. The spot run on audrey-hepburn and two other fixtures reads at grade 6 to 8, no sentence over 25 words.
+6. `PROMPT_VERSION` bumps; pair, Ask and Timeline versions bump where their prompts change.
+
+## Screens
+
+No UI change. Before and after on Audrey Hepburn's computed chart: see the artifact (empty 8th, Mars in the 6th,
+retrograde Venus, Venus square Mars).
+
+## Open questions (each with its default)
+
+1. **Names per paragraph**: at most one, the rest about the reader. Default: this.
+2. **Aspect names**: all five may be named, each explained the first time. Default: this.
+3. **Other creators**: only The Inner Cosmos is the voice model; others give topics, checked against doctrine. Default: this.
+
+## Decisions to record
+
+- Rule 1 becomes "Name it, say it plain, show it in a day"; naming a placement is allowed when the plain meaning and a
+  daily example follow (Decided by Alex, 2026-10-07). Supersedes rule 1 of ADR-104 and widens ADR-297 to 312's list.
+- Dignity and sect words stay out of prose, said as plain ideas (Decided by Claude, from the Owner's 2026-10-07 words).
+- Every claim from outside sources passes the doctrine check before it reaches a prompt or a post (Decided by Alex).
+- Empty houses read through the ruler's strength (Decided by Claude, doctrine reconciliation).
+- New Content pillar Explained (Decided by Alex, 2026-10-07).
