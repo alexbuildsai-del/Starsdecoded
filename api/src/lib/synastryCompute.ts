@@ -1,6 +1,6 @@
 // Pure synastry compute. Takes two natal charts and produces deterministic
 // cross-aspect, scoring, and theme data. No AI calls live in this module.
-import type { NatalChartData } from "./chartCalculation.js";
+import { hasHorizon, type NatalChartData } from "./chartCalculation.js";
 
 export type AspectType =
   | "conjunction"
@@ -59,20 +59,50 @@ const ASPECT_VALENCE: Record<AspectType, number> = {
   opposition: -0.9,
 };
 
-// "Hard" pairs that turn conjunctions intense rather than purely sweet.
-const HARD_PAIRS = new Set([
-  "mars-saturn",
-  "mars-pluto",
-  "saturn-pluto",
-  "saturn-uranus",
-  "moon-saturn",
-  "moon-pluto",
-  "venus-saturn",
-  "venus-pluto",
-]);
+// "Hard" pairs that turn conjunctions intense rather than purely sweet. Keyed
+// through pairKey, as every lookup is, so a pair matches in either order (B-45).
+const HARD_PAIRS = new Set(
+  [
+    ["mars", "saturn"],
+    ["mars", "pluto"],
+    ["saturn", "pluto"],
+    ["saturn", "uranus"],
+    ["moon", "saturn"],
+    ["moon", "pluto"],
+    ["venus", "saturn"],
+    ["venus", "pluto"],
+  ].map(([a, b]) => pairKey(a, b)),
+);
 
 function pairKey(a: string, b: string): string {
   return [a, b].sort().join("-");
+}
+
+// The step calcAspects samples a swept band at, so both read an arc alike.
+const ARC_STEP = 0.5;
+
+/**
+ * Where a body may have stood. A chart with no horizon carries its Moon's arc
+ * across the birth-time band, which with no birth time is the whole birth day
+ * (ADR-33): the Moon moves 12 to 15 degrees in a day, so the noon Moon can make
+ * an aspect the real hour never did (B-46). Null when that arc is missing: the
+ * Moon is left out rather than placed at noon.
+ */
+function placesOf(chart: NatalChartData, planet: Planet): number[] | null {
+  const p = chart.planets[planet];
+  if (!p) return null;
+  if (planet !== "moon" || hasHorizon(chart)) return [p.absoluteDegree];
+  if (!p.band) return null;
+  const { fromDegree, toDegree } = p.band;
+  const span = (((toDegree - fromDegree) % 360) + 360) % 360;
+  const arc = span > 180 ? span - 360 : span;
+  const n = Math.max(1, Math.ceil(Math.abs(arc) / ARC_STEP));
+  return Array.from({ length: n + 1 }, (_, k) => fromDegree + (arc * k) / n);
+}
+
+function holdsAcross(atA: number[], atB: number[], type: AspectType): boolean {
+  const { angle, orb } = ASPECT_ANGLES.find((c) => c.type === type)!;
+  return atA.every((a) => atB.every((b) => Math.abs(diff(a, b) - angle) <= orb));
 }
 
 export interface CrossAspect {
@@ -150,10 +180,12 @@ export function computeCrossAspects(
   const out: CrossAspect[] = [];
   for (const pa of CROSS_PLANETS) {
     const da = chartA.planets[pa];
-    if (!da) continue;
+    const atA = placesOf(chartA, pa);
+    if (!da || !atA) continue;
     for (const pb of CROSS_PLANETS) {
       const db = chartB.planets[pb];
-      if (!db) continue;
+      const atB = placesOf(chartB, pb);
+      if (!db || !atB) continue;
       const sep = diff(da.absoluteDegree, db.absoluteDegree);
       let matched: { type: AspectType; orb: number } | null = null;
       for (const cand of ASPECT_ANGLES) {
@@ -163,6 +195,10 @@ export function computeCrossAspects(
         }
       }
       if (!matched) continue;
+      // Whether the aspect is there reads every place a body may have stood;
+      // its orb stays the centre's, as every position of a chart with no
+      // birth time is the one at 12:00 local.
+      if (!holdsAcross(atA, atB, matched.type)) continue;
 
       const valence = ASPECT_VALENCE[matched.type];
       const planetWeight = (PLANET_WEIGHTS[pa] + PLANET_WEIGHTS[pb]) / 2;

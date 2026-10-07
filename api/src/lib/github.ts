@@ -10,10 +10,20 @@
 export const REPO = "alexbuildsai-del/Starsdecoded";
 const API = "https://api.github.com";
 
-/** The brain: what decides the words (R-4.4). */
-export const BRAIN_PATHS = ["api/src/prompts/", "api/src/lib/models.ts", "api/src/lib/aiInterpretation.ts", "api/src/lib/traditional.ts", "api/src/lib/chartCalculation.ts", "packages/engine/"];
+/**
+ * The brain: what decides the words (R-4.4). The pair's files are in it too, since the Release runs its lab only
+ * when the brain changed: a pair brain file left out would ship its change untested.
+ */
+export const BRAIN_PATHS = [
+  "api/src/prompts/", "api/src/lib/models.ts", "api/src/lib/aiInterpretation.ts", "api/src/lib/traditional.ts",
+  "api/src/lib/chartCalculation.ts", "packages/engine/",
+  "api/src/lib/pairInterpretation.ts", "api/src/lib/pairBrief.ts", "api/src/lib/synastryCompute.ts", "api/src/lib/overlays.ts",
+];
 /** The pair brain: a change here adds one pair to the release lab. */
-export const PAIR_BRAIN_PATHS = ["api/src/prompts/pair/", "api/src/lib/pairInterpretation.ts", "api/src/lib/pairBrief.ts"];
+export const PAIR_BRAIN_PATHS = [
+  "api/src/prompts/pair/", "api/src/lib/pairInterpretation.ts", "api/src/lib/pairBrief.ts",
+  "api/src/lib/synastryCompute.ts", "api/src/lib/overlays.ts",
+];
 
 /** GitHub's compare API lists at most this many files, with no further page; a full list may be missing the brain. */
 export const COMPARE_FILE_CAP = 300;
