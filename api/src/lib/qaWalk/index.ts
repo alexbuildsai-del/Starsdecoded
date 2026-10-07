@@ -13,8 +13,12 @@
  * The verdict lists every step of the list with how it went, and findings that carry no email, token, link or Clerk
  * id, since /api/qa/latest shows them to anyone (R14-14). No Chromium on the image is `unconfigured`, never a crash.
  * Staging only: the walk refuses anywhere else, on APP_ENV alone and never on a request (R13-08).
+ *
+ * Each step that ran leaves one masked picture of the tab it read last in qa_shots, in place of the last walk's, and
+ * its line in the verdict names the walk the picture was kept under, so /api/qa/latest lists it in `shots` (ADR-360).
  */
-import { and, eq, sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import { and, eq, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import {
   db,
@@ -22,6 +26,7 @@ import {
   creditsTable,
   inviteTokensTable,
   purchasesTable,
+  qaShotsTable,
   testersTable,
   usersTable,
   type QaWalkMode,
@@ -57,6 +62,11 @@ export interface QaWalkStep {
   status: QaWalkStepStatus;
   reason?: string;
   ms: number;
+  /**
+   * The walk this step's picture is kept under in qa_shots, once kept. Never public: the verdict's `shots` name these
+   * steps, and the pictures route serves a step's picture only while its row still carries this walk.
+   */
+  shot?: string;
 }
 
 export interface QaWalkFinding {
@@ -84,12 +94,19 @@ export interface QaPairDoors {
   place(pair: QaPair, step: StoredStepId): Promise<string | null>;
 }
 
+/** Where the walk keeps its pictures (ADR-360). */
+export interface WalkShots {
+  /** Keeps this step's picture in place of any other, and drops every picture another walk left. */
+  keep(step: StagingStepId, walkId: string, jpeg: Buffer, takenAt: Date): Promise<void>;
+}
+
 export interface QaWalkDeps {
   env: NodeJS.ProcessEnv;
   browser: WalkBrowser | Unconfigured;
   stripe: WalkStripe | Unconfigured;
   ledger: WalkLedger;
   pair: QaPairDoors;
+  shots: WalkShots;
   times: WalkTimes;
   sleep(ms: number): Promise<void>;
 }
@@ -275,6 +292,22 @@ export const dbWalkLedger: WalkLedger = {
   },
 };
 
+export const dbWalkShots: WalkShots = {
+  async keep(step, walkId, jpeg, takenAt) {
+    // Pictures of the live site stay on staging, as the walk does (ADR-360).
+    const appEnv = readAppEnv();
+    if (appEnv !== "staging") throw new Error(`the walk's pictures are kept on staging alone, so they are refused on ${appEnv}`);
+    // The first picture a walk keeps clears the last walk's, so the table never holds two walks, even one cut short.
+    await db.transaction(async (tx) => {
+      await tx.delete(qaShotsTable).where(ne(qaShotsTable.walkId, walkId));
+      await tx
+        .insert(qaShotsTable)
+        .values({ step, walkId, jpeg, takenAt })
+        .onConflictDoUpdate({ target: qaShotsTable.step, set: { walkId, jpeg, takenAt } });
+    });
+  },
+};
+
 /** Chromium on the image and Clerk's two keys, or why the walk can't run here. */
 export function liveWalkBrowser(env: NodeJS.ProcessEnv = process.env): WalkBrowser | Unconfigured {
   const executablePath = findChromium(env);
@@ -362,6 +395,7 @@ export async function runQaWalk(input: QaWalkInput): Promise<QaWalkVerdict> {
     stripe,
     ledger: over.ledger ?? dbWalkLedger,
     pair: over.pair ?? LIVE_PAIR,
+    shots: over.shots ?? dbWalkShots,
     times,
     sleep,
     until,
@@ -375,6 +409,7 @@ interface WalkRun {
   stripe: WalkStripe;
   ledger: WalkLedger;
   pair: QaPairDoors;
+  shots: WalkShots;
   times: WalkTimes;
   sleep(ms: number): Promise<void>;
   until: Until;
@@ -387,9 +422,32 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
   const kept: Kept = {};
   // The step a note belongs to.
   let current: StepId | null = WHOLE_WALK;
+  // Every picture is kept under this walk alone, so no other walk's picture is ever served beside this verdict.
+  const walkId = randomUUID();
+  // A step is pictured on the tab whose screen it read last, since that screen is what it checked; one that read none,
+  // on the tab it last called from, else on Mira's, whose flow the walk follows.
+  let lastTab: { shown: QaRole | null; called: QaRole | null } = { shown: null, called: null };
 
   const walkOf = (pair: QaPair, session: WalkSession): Walk => {
-    const actor = (role: QaRole, page: WalkPage): Actor => ({ role, ...pair[role], page });
+    const watched = (role: QaRole, page: WalkPage): WalkPage => ({
+      signIn: (email) => {
+        lastTab.shown = role;
+        return page.signIn(email);
+      },
+      api: (method, path, body) => {
+        lastTab.called = role;
+        return page.api(method, path, body);
+      },
+      screen: (path, shows) => {
+        lastTab.shown = role;
+        return page.screen(path, shows);
+      },
+      pay: (item, returnTo, door) => {
+        lastTab.shown = role;
+        return page.pay(item, returnTo, door);
+      },
+    });
+    const actor = (role: QaRole, page: WalkPage): Actor => ({ role, ...pair[role], page: watched(role, page) });
     return {
       mode: run.mode,
       mira: actor("mira", session.mira),
@@ -436,6 +494,17 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
     return "stored";
   };
 
+  /** A picture that can't be taken or kept fails nothing: the step's status stands on the step alone. */
+  const pictured = async (id: StagingStepId, tabs: WalkSession, who: QaRole): Promise<boolean> => {
+    try {
+      await run.shots.keep(id, walkId, await tabs.picture(who), new Date());
+      return true;
+    } catch {
+      logger.warn({ step: id }, "staging walk: the step's picture wasn't kept");
+      return false;
+    }
+  };
+
   let pair: QaPair | null = null;
   let hold: QaPairHold | null = null;
   let session: WalkSession | null = null;
@@ -449,7 +518,8 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
   }
 
   try {
-    const walk = pair && session ? walkOf(pair, session) : null;
+    const tabs = session;
+    const walk = pair && tabs ? walkOf(pair, tabs) : null;
     const waiting = new Set<StoredStepId>();
     let stopped = false;
     for (const listed of STEPS) {
@@ -463,7 +533,7 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
         continue;
       }
       const id: StagingStepId = listed.id;
-      if (!walk || !pair || !hold) {
+      if (!walk || !pair || !hold || !tabs) {
         // The pair or the browser couldn't be made ready, so the walk stops at its first step.
         const finding = findingOf(id, startError, "the walk couldn't start");
         steps.push({ ...base, status: "fail", reason: lineOf(finding), ms: 0 });
@@ -476,6 +546,7 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
         continue;
       }
       current = id;
+      lastTab = { shown: null, called: null };
       const started = Date.now();
       const refusedBefore = guard.refused.length;
       try {
@@ -499,7 +570,12 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
         stopped = true;
       }
       const last = steps[steps.length - 1];
-      logger.info({ step: id, status: last.status, ms: last.ms }, "staging walk step");
+      // A step that waited for its seed never ran, and a stopped walk ends without one more call to the browser. The
+      // picture is taken once the step is judged, so it changes no verdict; the door still stops whatever it sets off.
+      if (last.status !== "not_run" && !run.signal?.aborted && (await pictured(id, tabs, lastTab.shown ?? lastTab.called ?? "mira"))) {
+        last.shot = walkId;
+      }
+      logger.info({ step: id, status: last.status, ms: last.ms, shot: last.shot !== undefined }, "staging walk step");
     }
   } finally {
     current = WHOLE_WALK;

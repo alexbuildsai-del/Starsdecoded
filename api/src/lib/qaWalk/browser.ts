@@ -7,6 +7,9 @@
  *
  * A door in each context stops any request to a route that writes a report or a reading unless the walk asked for that
  * one call itself (reading 17), so no page the walk opens can spend on its own.
+ *
+ * After each step the walk takes one picture of a tab (ADR-360, reading 14): a phone's screen, JPEG at quality 60, with
+ * every place to type and every frame masked, so /qa can read a step it can't play.
  */
 import { readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -51,6 +54,8 @@ export interface WalkPage {
 export interface WalkSession {
   mira: WalkPage;
   idris: WalkPage;
+  /** The walk's own picture of one reader's tab as it stands; a step never takes one. */
+  picture(who: "mira" | "idris"): Promise<Buffer>;
   close(): Promise<void>;
 }
 
@@ -142,6 +147,18 @@ const FIELDS_MS = 60_000;
 const PAID_MS = 90_000;
 // The page that waits gives up after a minute (R16-24), so a grant later than that never brings the reader back.
 const BACK_MS = 75_000;
+
+/** Reading 14: a phone's screen, small enough to keep one a step in the database and read at a glance. */
+const PICTURE = { width: 390, height: 844, quality: 60 };
+const PICTURE_MS = 15_000;
+// A layout that follows the width redraws on the resize's next frames, so the picture waits that long for it.
+const SETTLE_MS = 300;
+
+/**
+ * What every picture covers (reading 14): each place a reader types, and every frame. None of our pages draws a frame
+ * of its own, so the frames are Stripe's fields and Clerk's checks, and nothing they hold is pictured.
+ */
+const MASKED = ["input", "textarea", "[contenteditable]", "iframe"] as const;
 
 /** Stripe's test card, always approved (stripe-payments, Testers). A country and a postal code go in only if asked. */
 const TEST_CARD = { number: "4242 4242 4242 4242", cvc: "123", country: "PT", postal: "1000-001" };
@@ -427,6 +444,26 @@ export class ChromiumPage implements WalkPage {
     }
     return purchase;
   }
+
+  /**
+   * This tab as a phone shows it, masked (reading 14). The tab goes back to its own size after, whatever happened, so
+   * the steps that follow read the layout they were written for.
+   */
+  async picture(): Promise<Buffer> {
+    const own = this.page.viewportSize() ?? VIEWPORT;
+    await this.page.setViewportSize({ width: PICTURE.width, height: PICTURE.height });
+    try {
+      await this.page.waitForTimeout(SETTLE_MS);
+      return await this.page.screenshot({
+        type: "jpeg",
+        quality: PICTURE.quality,
+        mask: MASKED.map((selector) => this.page.locator(selector)),
+        timeout: PICTURE_MS,
+      });
+    } finally {
+      await this.page.setViewportSize(own).catch(() => undefined);
+    }
+  }
 }
 
 export interface ChromiumWalkOptions {
@@ -474,7 +511,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           ],
         });
         browser = opened;
-        const pageFor = async (): Promise<WalkPage> => {
+        const tabFor = async (): Promise<{ tab: ChromiumPage; page: WalkPage }> => {
           const context = await opened.newContext({ viewport: VIEWPORT, locale: "en-GB", timezoneId: "Europe/Brussels" });
           await context.route(
             (url) => url.origin === origin && url.pathname.startsWith("/api/"),
@@ -486,10 +523,11 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           );
           const page = await context.newPage();
           page.setDefaultTimeout(SHOWN_MS);
-          return noting(page, new ChromiumPage(page, origin, signInWith, tickets), logFile);
+          const tab = new ChromiumPage(page, origin, signInWith, tickets);
+          return { tab, page: noting(page, tab, logFile) };
         };
-        const mira = await pageFor();
-        const idris = await pageFor();
+        const mira = await tabFor();
+        const idris = await tabFor();
         const close = async () => {
           try {
             await opened.close();
@@ -498,7 +536,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
             rmSync(logFile, { force: true });
           }
         };
-        return { mira, idris, close };
+        return { mira: mira.page, idris: idris.page, picture: (who) => (who === "mira" ? mira : idris).tab.picture(), close };
       } catch (err) {
         await browser?.close().catch(() => undefined);
         forgetTestingToken();

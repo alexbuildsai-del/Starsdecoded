@@ -6,9 +6,12 @@
  * findings with no email, token, link or Clerk id (R14-14), the door in front of every write, no Chromium as
  * `unconfigured`, and the walk refused off staging. The pair: the walk resets nothing itself (walkOnce does, B-39),
  * signs each reader in with a ticket made for their account alone after both bans lift, and bans both again whatever
- * happened; a page hands Clerk's helper that ticket and nothing else. Nothing here opens a browser or reaches Clerk or
- * Stripe. The lockfile's additions for @clerk/testing are pinned too, and on a scratch Postgres named by
- * WALK_DATABASE_URL the ledger's own reads and writes; without one that test skips, saying why.
+ * happened; a page hands Clerk's helper that ticket and nothing else. The pictures (ADR-360): each step that ran leaves
+ * one, taken by ChromiumPage itself on a stubbed page with reading 14's masks, of the tab whose screen it read, kept
+ * under its walk, and the next walk's replace them. Nothing here opens a browser or reaches Clerk or Stripe, and no
+ * picture reaches the database: qa.test.ts alone writes qa_shots. The lockfile's additions for @clerk/testing are
+ * pinned too, and on a scratch Postgres named by WALK_DATABASE_URL the ledger's own reads and writes; without one that
+ * test skips, saying why.
  */
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -54,6 +57,7 @@ type QaPair = import("../qaPair.js").QaPair;
 type QaClerk = import("../qaPair.js").QaClerk;
 type QaWalkVerdict = import("./index.js").QaWalkVerdict;
 type QaPairDoors = import("./index.js").QaPairDoors;
+type WalkShots = import("./index.js").WalkShots;
 type Role = "mira" | "idris";
 
 const STAGING = { APP_ENV: "staging" } as NodeJS.ProcessEnv;
@@ -274,7 +278,67 @@ class FakeSite {
   }
 }
 
-function fakeBrowser(site: FakeSite, opened: Guard[] = []): WalkBrowser {
+const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+type Size = { width: number; height: number };
+const sizeOf = (size: Size) => `${size.width}×${size.height}`;
+
+interface Taken {
+  role: Role;
+  /** The tab's size as the picture was taken. */
+  size: string;
+  type?: string;
+  quality?: number;
+  masks: string[];
+  fullPage?: boolean;
+}
+
+/** Each reader's tab as ChromiumPage's own picture() meets Playwright's page: a size, locators and a screenshot it records. */
+class Camera {
+  readonly taken: Taken[] = [];
+  readonly size: Record<Role, Size> = { mira: { width: 1280, height: 900 }, idris: { width: 1280, height: 900 } };
+  /** Every size each tab was set to, in order. */
+  readonly resized: Record<Role, string[]> = { mira: [], idris: [] };
+
+  tab(role: Role): InstanceType<typeof ChromiumPage> {
+    const page = {
+      viewportSize: () => this.size[role],
+      setViewportSize: async (size: Size) => {
+        this.size[role] = size;
+        this.resized[role].push(sizeOf(size));
+      },
+      waitForTimeout: async () => undefined,
+      locator: (selector: string) => ({ selector }),
+      screenshot: async (options: { type?: string; quality?: number; mask?: Array<{ selector: string }>; fullPage?: boolean }) => {
+        const masks = (options.mask ?? []).map((mask) => mask.selector);
+        this.taken.push({ role, size: sizeOf(this.size[role]), type: options.type, quality: options.quality, masks, fullPage: options.fullPage });
+        return Buffer.concat([JPEG, Buffer.from(role)]);
+      },
+    };
+    const never = async (): Promise<never> => {
+      throw new Error("a picture signs no one in");
+    };
+    return new ChromiumPage(page as unknown as ConstructorParameters<typeof ChromiumPage>[0], WEB, never, never);
+  }
+}
+
+/** qa_shots as dbWalkShots keeps it: one picture a step, and a walk's first picture clears every other walk's. */
+class FakeShots implements WalkShots {
+  readonly rows = new Map<string, { walkId: string; jpeg: Buffer }>();
+  readonly kept: Array<{ step: string; walkId: string }> = [];
+
+  async keep(step: string, walkId: string, jpeg: Buffer): Promise<void> {
+    for (const [at, row] of this.rows) if (row.walkId !== walkId) this.rows.delete(at);
+    this.rows.set(step, { walkId, jpeg });
+    this.kept.push({ step, walkId });
+  }
+
+  /** Whose tab a kept picture is of, as the camera wrote it. */
+  tabOf(step: string): string | undefined {
+    return this.rows.get(step)?.jpeg.subarray(JPEG.length).toString();
+  }
+}
+
+function fakeBrowser(site: FakeSite, opened: Guard[] = [], camera = new Camera()): WalkBrowser {
   const page = (role: Role, guard: Guard, tickets: SignInTickets): WalkPage => ({
     async signIn(email) {
       assert.equal(email, PAIR[role].email);
@@ -300,7 +364,13 @@ function fakeBrowser(site: FakeSite, opened: Guard[] = []): WalkBrowser {
   return {
     async open(guard, tickets) {
       opened.push(guard);
-      return { mira: page("mira", guard, tickets), idris: page("idris", guard, tickets), close: async () => undefined };
+      const tabs = { mira: camera.tab("mira"), idris: camera.tab("idris") };
+      return {
+        mira: page("mira", guard, tickets),
+        idris: page("idris", guard, tickets),
+        picture: (who) => tabs[who].picture(),
+        close: async () => undefined,
+      };
     },
   };
 }
@@ -440,6 +510,9 @@ interface Walked {
   clerk: ReturnType<typeof fakeClerk>;
   /** What the hold kept for the seed: each stored step and the report its write answered. */
   wrote: Array<[string, string]>;
+  /** Every picture the stubbed tabs took, unless the test brought its own browser. */
+  camera: Camera;
+  shots: FakeShots;
 }
 
 interface WalkOptions {
@@ -449,12 +522,16 @@ interface WalkOptions {
   browser?: WalkBrowser;
   /** Set on the stubbed Clerk before the walk starts. */
   refuse?: { ban?: string; unban?: string };
+  /** One store across walks, as qa_shots is. */
+  shots?: FakeShots;
 }
 
 async function walk(mode: "deploy" | "release", options: WalkOptions = {}): Promise<Walked> {
   const site = options.site ?? new FakeSite();
   const log: string[] = [];
   const wrote: Array<[string, string]> = [];
+  const camera = new Camera();
+  const shots = options.shots ?? new FakeShots();
   const clerk = fakeClerk(log);
   Object.assign(clerk.refuse, options.refuse);
   const restore = Q.setQaClerk(clerk.clerk);
@@ -464,15 +541,16 @@ async function walk(mode: "deploy" | "release", options: WalkOptions = {}): Prom
       signal: options.signal,
       deps: {
         env: STAGING,
-        browser: options.browser ?? fakeBrowser(site),
+        browser: options.browser ?? fakeBrowser(site, [], camera),
         stripe: fakeStripe(site, log),
         ledger: fakeLedger(site, log),
         pair: fakePair(site, options.seeded ?? true, log, wrote),
+        shots,
         times: TIMES,
         sleep: async () => undefined,
       },
     });
-    return { verdict, site, log, clerk, wrote };
+    return { verdict, site, log, clerk, wrote, camera, shots };
   } finally {
     restore();
   }
@@ -611,6 +689,66 @@ test("a page that asks on its own for a route that writes or reads ahead is stop
   assert.deepEqual(bannedNow(clerk), BOTH);
 });
 
+test("each step that ran leaves one picture with reading 14's masks, at a phone's size, of the tab whose screen it read, kept under the walk its line names", async () => {
+  const { verdict, camera, shots } = await walk("deploy", { seeded: true });
+  assert.equal(verdict.status, "pass");
+  const ran = verdict.steps.filter((step) => step.status !== "local" && step.status !== "not_run").map((step) => step.id);
+  assert.deepEqual(ran, STEPS.filter((step) => !LOCAL.includes(step.id)).map((step) => step.id));
+  // One picture a step that ran, in the list's order, each under this walk; a local step has none.
+  assert.deepEqual(shots.kept.map((shot) => shot.step), ran);
+  const walkIds = [...new Set(shots.kept.map((shot) => shot.walkId))];
+  assert.equal(walkIds.length, 1);
+  for (const step of verdict.steps) assert.equal(step.shot, ran.includes(step.id) ? walkIds[0] : undefined, step.id);
+
+  // Every picture: a JPEG at quality 60 of a 390 × 844 screen, the screen alone, with every input, textarea, editable
+  // area and frame masked (Stripe's fields and Clerk's checks are frames).
+  assert.equal(camera.taken.length, ran.length);
+  for (const [n, taken] of camera.taken.entries()) {
+    assert.deepEqual(
+      { type: taken.type, quality: taken.quality, size: taken.size, masks: taken.masks, fullPage: taken.fullPage },
+      { type: "jpeg", quality: 60, size: "390×844", masks: ["input", "textarea", "[contenteditable]", "iframe"], fullPage: undefined },
+      `picture ${n + 1}`,
+    );
+  }
+  // Each tab goes back to its own size after every picture, so the next step reads the layout it was written for.
+  for (const role of ["mira", "idris"] as const) {
+    const pictures = camera.taken.filter((taken) => taken.role === role).length;
+    assert.deepEqual(camera.resized[role], Array.from({ length: pictures }, () => ["390×844", "1280×900"]).flat(), role);
+  }
+  // The tab whose screen the step read: Idris's own at the gift's claim and the 402, Mira's as she reads his report, and
+  // Mira's Account page in Timeline though Idris is asked after it.
+  assert.deepEqual(
+    ["gift", "gift-claimed", "no-credit", "share", "share-back", "timeline"].map((id) => shots.tabOf(id)),
+    ["mira", "idris", "idris", "idris", "mira", "mira"],
+  );
+  assert.deepEqual(modelCalls, []);
+});
+
+test("a failed step is pictured and the steps after it aren't, and the next walk's pictures replace the last walk's, so only the newest walk is kept", async () => {
+  const shots = new FakeShots();
+  const first = await walk("deploy", { shots });
+  assert.equal(first.verdict.status, "pass");
+  const firstId = first.verdict.steps[0].shot;
+  assert.ok(firstId);
+  assert.equal(shots.rows.get("timeline")?.walkId, firstId);
+
+  const site = new FakeSite();
+  site.fail = { method: "POST", path: "/api/gifts", status: 500, body: { error: "internal_error" } };
+  const second = await walk("deploy", { site, shots });
+  assert.equal(second.verdict.status, "fail");
+  const secondId = second.verdict.steps[0].shot;
+  assert.ok(secondId && secondId !== firstId, "each walk keeps its pictures under an id of its own");
+  // The gift failed and still left its picture; nothing after it ran, so nothing after it was pictured.
+  assert.deepEqual(
+    second.verdict.steps.filter((step) => step.shot !== undefined).map((step) => [step.id, step.status, step.shot]),
+    [["sign-in", "pass", secondId], ["buy", "pass", secondId], ["own-report", "stored", secondId], ["gift", "fail", secondId]],
+  );
+  assert.equal(second.camera.taken.length, 4);
+  // Only the newest walk's pictures are kept: the first walk's of the later steps went with its first one replaced.
+  assert.deepEqual([...shots.rows.keys()].sort(), ["buy", "gift", "own-report", "sign-in"]);
+  for (const [step, row] of shots.rows) assert.equal(row.walkId, secondId, step);
+});
+
 test("the door: a deploy's walk writes once, at the 402, and nothing else that spends gets through on either walk", () => {
   assert.equal(paidRoute("POST", "/api/reports"), "POST /api/reports");
   assert.equal(paidRoute("post", "/API/Reports/"), "POST /api/reports");
@@ -688,6 +826,7 @@ test("a pair that can't be made ready fails the first step, and a stopped walk s
         },
         place: async () => null,
       },
+      shots: new FakeShots(),
       times: TIMES,
       sleep: async () => undefined,
     },
