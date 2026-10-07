@@ -5,7 +5,11 @@
  * evidence card can say what a verified reference means without inventing an
  * interpretation the report did not make.
  */
+import { HOUSE_COVERS, HOUSE_WORDS } from "@/lib/houses";
 import type { EvidenceRef } from "@/types/chart";
+
+// The house set moved to houses.ts (ADR-321); both names stay importable from here, so every older import holds.
+export { HOUSE_WORDS, HOUSE_COVERS as HOUSE_THEMES };
 
 export const ORDINALS = [
   "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th",
@@ -15,12 +19,6 @@ export const HOUSE_NAMES = [
   "Self & body", "Money & worth", "Mind & talk", "Home & roots", "Play & creation",
   "Work & health", "Partnership", "Depth & shared money", "Belief & distance",
   "Career & public role", "Friends & groups", "Time alone & hidden things",
-] as const;
-
-/** One word per house, the first word of each title (ADR-98) except the 12th, whose title now opens "Time alone": the word stays "Solitude" so the 12th keeps one word on the wheel. */
-export const HOUSE_WORDS = [
-  "Self", "Money", "Mind", "Home", "Play", "Work",
-  "Partnership", "Depth", "Belief", "Career", "Friends", "Solitude",
 ] as const;
 
 /** The house's word in lower case, "" outside 1 to 12. */
@@ -45,21 +43,6 @@ export function withHouseWords(text: string): string {
     return after.startsWith(` (${word})`) ? match : `${match} (${word})`;
   });
 }
-
-export const HOUSE_THEMES = [
-  "Self, body, how you arrive",
-  "Money, resources, what you value",
-  "Mind, siblings, everyday talk",
-  "Home, roots, the private self",
-  "Play, creativity, romance, children",
-  "Work, health, the daily craft",
-  "Partnership, and the other person",
-  "Shared money, depth, what you inherit",
-  "Belief, distance, the bigger picture",
-  "Career, public role, reputation",
-  "Friends, groups, shared goals",
-  "Time alone, hidden things, what runs underneath",
-] as const;
 
 const BODY_MEANINGS: Record<string, string> = {
   sun: "identity, and what you are for",
@@ -139,7 +122,7 @@ function houseIndex(v: unknown): number {
 
 function theHouse(v: unknown): string {
   const i = houseIndex(v);
-  return i < 0 ? "that house" : `${ORDINALS[i]} (${HOUSE_THEMES[i].toLowerCase()})`;
+  return i < 0 ? "that house" : `${ORDINALS[i]} (${HOUSE_COVERS[i]})`;
 }
 
 /** One line of plain English for a verified reference. Never about this reader. */
