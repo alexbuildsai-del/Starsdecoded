@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, date, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const TIMELINE_READING_STATUSES = ["writing", "ready", "failed"] as const;
 export type TimelineReadingStatus = (typeof TIMELINE_READING_STATUSES)[number];
@@ -68,3 +68,36 @@ export const askMessagesTable = pgTable(
 
 export type AskMessageRow = typeof askMessagesTable.$inferSelect;
 export type InsertAskMessageRow = typeof askMessagesTable.$inferInsert;
+
+export const TIMELINE_SETUP_STATES = ["writing", "ready"] as const;
+export type TimelineSetupState = (typeof TIMELINE_SETUP_STATES)[number];
+
+/**
+ * A subscriber's Timeline setup (ADR-302, 362): the six months written ahead,
+ * from_day to to_day, from the Personal report it read. One row per account.
+ * The days are the reader's own, so they are dates, not instants. replay_from
+ * and replay_to are the next six months once written, until the reader has
+ * seen them drawn (replay_seen_at).
+ *
+ * No reference to users or reports, as with timeline_readings: the API removes
+ * the row with the reader's Timeline.
+ *
+ * Every name is the one migrate-add-jobs.ts uses, so whichever of that script
+ * and the schema push makes the table, the other finds no drift.
+ */
+export const timelineSetupsTable = pgTable("timeline_setups", {
+  userId: text("user_id").primaryKey(),
+  reportId: text("report_id").notNull(),
+  fromDay: date("from_day").notNull(),
+  toDay: date("to_day").notNull(),
+  state: text("state", { enum: TIMELINE_SETUP_STATES }).notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  readyAt: timestamp("ready_at", { withTimezone: true }),
+  replayFrom: date("replay_from"),
+  replayTo: date("replay_to"),
+  replaySeenAt: timestamp("replay_seen_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type TimelineSetupRow = typeof timelineSetupsTable.$inferSelect;
+export type InsertTimelineSetupRow = typeof timelineSetupsTable.$inferInsert;
