@@ -4,7 +4,8 @@
  * sets a plan's state first: the row is only ever what Stripe last said (R-6.2). A plan's first paid invoice grants the
  * purchase its checkout made and sends our receipt; each paid year of the yearly plan is a purchase and one credit to
  * give (ADR-277), which a refund of that payment takes back while it is unspent (fulfilment.ts finds it by its payment).
- * An account keeps one plan: a second one's first payment cancels it at once and refunds it in full (ADR-359).
+ * An account keeps one plan: a second one's first payment cancels it at once and refunds it in full (ADR-359). The
+ * first payment of the plan the account keeps starts Timeline's setup (ADR-362).
  */
 import { randomUUID } from "node:crypto";
 import { and, eq, gt, inArray, isNotNull, isNull, ne, notInArray, or, sql, type SQL } from "drizzle-orm";
@@ -52,6 +53,8 @@ export interface SubscriptionDeps {
   client: Stripe | null;
   sendReceipt: (opts: SendReceiptEmailOptions) => Promise<boolean>;
   now: () => Date;
+  /** Starts the account's Timeline setup once its plan's first payment is kept (ADR-362). */
+  setUp: (userId: string) => Promise<void>;
 }
 
 function depsWith(over: Partial<SubscriptionDeps>): SubscriptionDeps {
@@ -59,6 +62,8 @@ function depsWith(over: Partial<SubscriptionDeps>): SubscriptionDeps {
     client: over.client === undefined ? stripe() : over.client,
     sendReceipt: over.sendReceipt ?? sendReceiptEmail,
     now: over.now ?? (() => new Date()),
+    // Loaded when a payment needs it: setup reads this module's plans, and its writes bring the model's client.
+    setUp: over.setUp ?? (async (userId) => (await import("./timelineSetup.js")).setupAtPayment(userId)),
   };
 }
 
@@ -463,6 +468,19 @@ async function sendPlanReceipt(
   }
 }
 
+/**
+ * Timeline's setup, the moment the payment that turns access on is kept (ADR-362). A setup that fails to start costs
+ * the buyer nothing they paid for, and the screen's catch-up starts it, so it never fails the event; setup logs its
+ * own failure's code.
+ */
+async function startTimelineSetup(event: InvoiceEvent, userId: string, deps: SubscriptionDeps): Promise<void> {
+  try {
+    await deps.setUp(userId);
+  } catch {
+    logger.warn({ event: event.id, type: event.type }, "Timeline's setup did not start at a plan's first payment");
+  }
+}
+
 async function invoicePaid(event: InvoiceEvent, deps: SubscriptionDeps): Promise<SubscriptionOutcome> {
   const invoice = event.data.object;
   const sub = subscriptionOf(invoice);
@@ -489,7 +507,11 @@ async function invoicePaid(event: InvoiceEvent, deps: SubscriptionDeps): Promise
     const decided = await grantFirstPayment(userId, grantable.checkout.id, grantable.item, paid, now);
     if (decided.kind === "second") return replaceSecondPlan(event, userId, grantable.checkout, grantable.item, paid, deps);
     if (row) await markPaid(sub.id, invoice, now);
-    if (decided.granted) await sendPlanReceipt(event, decided.granted, grantable.item, deps);
+    // Only the delivery that grants gets the purchase back, so a replayed event sends nothing and queues nothing.
+    if (decided.granted) {
+      await sendPlanReceipt(event, decided.granted, grantable.item, deps);
+      await startTimelineSetup(event, userId, deps);
+    }
     return "processed";
   }
 

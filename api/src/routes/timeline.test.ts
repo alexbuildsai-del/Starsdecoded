@@ -201,21 +201,6 @@ test("an open's answer: a reading as it stands is 200, none 404, and the day's c
   assert.notEqual(RD.READINGS_CAP_LINE, LIMIT_LINES.timelineReading, "the day's line, never the minute's");
 });
 
-test("the six-month queue gets the contacts with no reading yet, never another kind, nor one kept, writing or failed (reading 7)", () => {
-  const now = new Date("2026-10-05T12:00:00Z");
-  const bare = T.nowView(MIRA, "six-months", "Europe/Lisbon", new Map(), now);
-  const contacts = bare.events.filter((e) => e.kind === "contact").map((e) => e.key);
-  assert.ok(contacts.length > 3, `Mira's six months hold ${contacts.length} contacts`);
-  assert.deepEqual(TL.toQueue(bare), contacts);
-  const [ready, writing, failed] = contacts;
-  const statuses = new Map<string, ReadingState>([
-    [ready, { status: "ready", line: CLEAN.line }],
-    [writing, "writing"],
-    [failed, { status: "failed", line: "We couldn't write this reading. Try again in a few minutes." }],
-  ]);
-  assert.deepEqual(TL.toQueue(T.nowView(MIRA, "six-months", "Europe/Lisbon", statuses, now)), contacts.slice(3));
-});
-
 test("Ask's answers: the thread 200, the month's cap 429 with its day, a body Ask cannot take 400, no chart to read 409", () => {
   const thread = { messages: [], usage: { used: 1, left: 49, cap: 50, resetsOn: "2026-11-01" } };
   const cap = { error: "ask_cap" as const, message: capLine("2026-11-01"), resetsOn: "2026-11-01" };
@@ -318,7 +303,7 @@ test("Now and ahead's chain as routes/index.ts stands it: the access check, then
     await close();
   });
   process.env.ADMIN_USER_ID = looker;
-  // A paused day: the six months' queue waits behind the breaker itself, so the view still answers.
+  // A paused day: the view writes nothing, so it meets no breaker and still answers.
   process.env.DAILY_SPEND_CAP_USD = "0";
   const get = (who: string, range: string) => fetched(base, "GET", `/timeline/now?range=${range}`, who);
   for (let i = 0; i <= LIMITS.timelineNow.limit; i++) assert.equal((await get(user("chain-now-other"), "week")).status, 403, `try ${i + 1}`);
@@ -460,18 +445,6 @@ async function keep(userId: string, profileId: string, keys: string[], messages:
   }
 }
 
-/** Until the queue's writes have landed: at least `count` rows on the profile, none still writing. */
-async function settled(profileId: string, count: number) {
-  for (let i = 0; i < 400; i++) {
-    const rows = await rowsFor(profileId);
-    if (rows.length >= count && rows.every((r) => r.status !== "writing")) return rows;
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  throw new Error(`the queue left ${profileId}'s readings writing`);
-}
-
-const byDay = (a: string, b: string) => a.slice(-8).localeCompare(b.slice(-8)) || a.localeCompare(b);
-
 /** The reader's day in a zone, read on both sides of a call, so a midnight passing during it is no failure. */
 async function dayAround<V>(zone: string, during: () => Promise<V>): Promise<{ days: string[]; value: V }> {
   const before = T.dayIn(new Date(), zone);
@@ -506,7 +479,7 @@ test("db, the access answer: every signed-in reader, whether they have Timeline 
   }
 });
 
-test("db, Now and ahead: each range in the zone sent, else the birth place's; six months queues the contacts' readings, soonest three, and a card then carries its reading's line", { skip: NO_DB }, async () => {
+test("db, Now and ahead: each range in the zone sent, else the birth place's; no range queues or writes a reading (reading 11), and a card opened carries its reading's line", { skip: NO_DB }, async () => {
   await seed();
   const week = await call("GET", "/timeline/now?range=week&tz=Asia/Tokyo", ADMIN);
   assert.equal(week.status, 200);
@@ -514,25 +487,27 @@ test("db, Now and ahead: each range in the zone sent, else the birth place's; si
   assert.deepEqual([tokyo.range, tokyo.zone, tokyo.days.length], ["week", "Asia/Tokyo", 7]);
   const month = Z.GetTimelineNowResponse.parse((await call("GET", "/timeline/now?range=month&tz=Not/AZone", ADMIN)).body);
   assert.deepEqual([month.zone, month.days.length], ["Europe/Lisbon", 30]);
-  assert.equal((await rowsFor(P.admin)).length, 0, "a week and a month queue nothing");
 
   const before = calls("timeline_reading");
   const six = Z.GetTimelineNowResponse.parse((await call("GET", "/timeline/now?range=six-months", ADMIN)).body);
   assert.equal(six.days.length, 182);
-  const soonest = TL.toQueue(six).sort(byDay).slice(0, 3);
-  assert.equal(soonest.length, 3);
-  const rows = await settled(P.admin, 3);
-  assert.deepEqual(rows.map((r) => r.eventKey).sort(), [...soonest].sort());
-  assert.ok(rows.every((r) => r.status === "ready"));
-  assert.equal(calls("timeline_reading") - before, 3);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal((await rowsFor(P.admin)).length, 0, "no range queues a reading");
+  assert.equal(calls("timeline_reading") - before, 0);
 
-  const again = Z.GetTimelineNowResponse.parse((await call("GET", "/timeline/now?range=six-months", ADMIN)).body);
-  for (const key of soonest) {
-    const event = again.events.find((e) => e.key === key);
-    assert.deepEqual([event?.reading, event?.line], ["ready", CLEAN.line], key);
+  // A contact that gets no reading shows none too, and its open is a 404 that writes nothing.
+  let opened: string | null = null;
+  for (const e of six.events.filter((e) => e.kind === "contact" && e.reading === "none")) {
+    if ((await open(ADMIN, e.key)).status === 200) {
+      opened = e.key;
+      break;
+    }
   }
-  // That read queued the next three; they land before anything else is counted.
-  await settled(P.admin, Math.min(6, TL.toQueue(six).length));
+  assert.ok(opened, "a contact with a reading to write");
+  assert.equal(calls("timeline_reading") - before, 1, "the open writes it");
+  const again = Z.GetTimelineNowResponse.parse((await call("GET", "/timeline/now?range=six-months", ADMIN)).body);
+  const event = again.events.find((e) => e.key === opened);
+  assert.deepEqual([event?.reading, event?.line], ["ready", CLEAN.line]);
 });
 
 test("db, Life: every cycle with its reading's state, and a reading opened twice is written once; a key nothing on the chart carries is 404 and writes nothing", { skip: NO_DB }, async () => {

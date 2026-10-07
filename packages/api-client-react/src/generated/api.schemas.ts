@@ -2971,6 +2971,71 @@ export interface TimelineAccess {
   plan?: TimelinePlan | null;
 }
 
+/**
+ * The reader's chart and the planets, done once setup starts; this week, Monday to Sunday; this month, the 30 days from that Monday; the six months, every reading from that Monday to `to`; the life cycles, birth to 90 (ADR-302).
+ */
+export type TimelineSetupStepId = typeof TimelineSetupStepId[keyof typeof TimelineSetupStepId];
+
+
+export const TimelineSetupStepId = {
+  chart: 'chart',
+  planets: 'planets',
+  week: 'week',
+  month: 'month',
+  months: 'months',
+  cycles: 'cycles',
+} as const;
+
+/**
+ * One of setup's six ticks, in order (ADR-302).
+ */
+export interface TimelineSetupStep {
+  /** The reader's chart and the planets, done once setup starts; this week, Monday to Sunday; this month, the 30 days from that Monday; the six months, every reading from that Monday to `to`; the life cycles, birth to 90 (ADR-302). */
+  id: TimelineSetupStepId;
+  /** Every reading of the step has landed, written or failed; a failed one is written when it is opened. */
+  done: boolean;
+  /**
+     * How many readings the step writes, the engine's count; null for the chart and the planets, which write none.
+     * @minimum 0
+     * @nullable
+     */
+  count: number | null;
+}
+
+/**
+ * The next six months, written ahead, to be drawn once (ADR-302).
+ */
+export interface TimelineSetupReplay {
+  /** Their first day, the reader's. */
+  from: CalendarDay;
+  /** Their last day, the reader's. */
+  to: CalendarDay;
+}
+
+export type TimelineSetupState = typeof TimelineSetupState[keyof typeof TimelineSetupState];
+
+
+export const TimelineSetupState = {
+  none: 'none',
+  writing: 'writing',
+  ready: 'ready',
+} as const;
+
+/**
+ * A subscriber's Timeline setup (ADR-302, ADR-362): none before it starts, and again once its six months are over or its chart was replaced; writing while its readings land; ready once all have, and it stays ready while the next six months are written ahead.
+ */
+export interface TimelineSetup {
+  state: TimelineSetupState;
+  /** The first day written ahead, a Monday, the reader's; null before setup starts. */
+  from: CalendarDay | null;
+  /** The last day written ahead, the reader's; null before setup starts. */
+  to: CalendarDay | null;
+  /** The six steps, in order, with the engine's counts. */
+  steps: TimelineSetupStep[];
+  /** The next six months, from the first day after the turn until marked seen; null otherwise. */
+  replay: TimelineSetupReplay | null;
+}
+
 export type AskDayCardKind = typeof AskDayCardKind[keyof typeof AskDayCardKind];
 
 
@@ -3269,6 +3334,20 @@ tz?: ReaderZoneParameter;
 };
 
 export type GetTimelineLifeParams = {
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
+};
+
+export type GetTimelineSetupParams = {
+/**
+ * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
+ */
+tz?: ReaderZoneParameter;
+};
+
+export type StartTimelineSetupParams = {
 /**
  * The reader's IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place's zone (ADR-207, ADR-211).
  */

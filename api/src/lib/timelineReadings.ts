@@ -1,17 +1,20 @@
 /**
- * Timeline's readings (ADR-210): one per event or life cycle per reader, written the first time it is opened or when
- * its event enters the six-month view (reading 7), then kept. A reading goes through the report's own call path
- * (ADR-84): strict output, every error carried into the retries and then into one round alone, each call on the day's
- * spend ledger (ADR-199) and each attempt's checks in the failure log (ADR-85). It builds on the reader's own report
- * (reading 10). A row is claimed before it is written, so two opens at once write it once; it is written again only
- * when its basis no longer matches (reading 8), when it failed, or when a write died with its process. An account's
- * opens start at most `NEW_READINGS_A_DAY` new writes a UTC day.
+ * Timeline's readings (ADR-210): one per event or life cycle per reader, then kept. A subscriber's setup writes them
+ * from the engine's own list, one job each (ADR-302, 362); one no job holds is written the first time it is opened.
+ * A reading goes through the report's own call path (ADR-84): strict output, every error carried into the retries and
+ * then into one round alone, each call on the day's spend ledger (ADR-199) and each attempt's checks in the failure
+ * log (ADR-85). It builds on the reader's own report (reading 10). A row is claimed before it is written, so an open
+ * and a job at once write it once; it is written again only when its basis no longer matches (reading 8), when it
+ * failed, or when a write died with its process. An account's opens start at most `NEW_READINGS_A_DAY` new writes a
+ * UTC day; setup's writes stand under the spend cap alone (ADR-327, 362).
  */
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray, lt, ne, or } from "drizzle-orm";
+import { and, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import type { z as zc } from "zod";
-import { askMessagesTable, db, profilesTable, reportsTable, timelineReadingsTable } from "@workspace/db";
+import {
+  askMessagesTable, db, jobsTable, profilesTable, reportsTable, timelineReadingsTable, timelineSetupsTable,
+} from "@workspace/db";
 import type { OpenTimelineReadingResponse } from "@workspace/api-zod";
 import { hasHorizon, type NatalChartData } from "@workspace/engine";
 import { SectionError, callStructured, type Carry, type SectionResult } from "./aiInterpretation.js";
@@ -58,7 +61,10 @@ export const OPEN_WAIT_MS = 20_000;
 /** The sheet's line when a reading could not be written, as `failureReasons.ts` words a failure; the next open writes it again. */
 export const READING_FAILED_LINE = "We couldn't write this reading. Try again in a few minutes.";
 
-// MB-219 provisional: an account starts at most 40 new readings a UTC day.
+/**
+ * New readings an account's own opens may start a UTC day (ADR-327): a cap on what a browser can ask for, so setup's
+ * writes, which come from the engine's list, never count against it.
+ */
 export const NEW_READINGS_A_DAY = 40;
 
 /** Timeline's line at the day's cap, through /ux-copy: a kept reading still opens, so it speaks only of new ones. */
@@ -475,10 +481,11 @@ function capped(now: Date): OpenedReading {
 /**
  * Opens the reading of an event or a cycle on the reader's own chart. A key `eventByKey` does not find at `now`, or one
  * that gets no reading, is unknown and writes nothing. A kept reading on the reader's basis answers at once, and so
- * does one still being written, on any day. Anything else is a new write: refused once the account has started the
- * day's (`NEW_READINGS_A_DAY`, on the UTC day of `now`), else claimed and written, the open waiting up to `waitMs` for
- * it before it answers writing and leaves it running. How long a write has run is read on the clock its row was
- * written by, never `now`. The spend gate stands in front of the route, so it is not asked here.
+ * does one still being written, on any day, and one a setup job is on its way to write (reading 11). Anything else is
+ * a new write: refused once the account has started the day's (`NEW_READINGS_A_DAY`, on the UTC day of `now`), else
+ * claimed and written, the open waiting up to `waitMs` for it before it answers writing and leaves it running. How
+ * long a write has run is read on the clock its row was written by, never `now`. The spend gate stands in front of the
+ * route, so it is not asked here.
  */
 export async function openReading(reader: ReaderChart, key: string, options: { waitMs?: number; now?: Date } = {}): Promise<OpenedReading> {
   const now = options.now ?? new Date();
@@ -487,6 +494,9 @@ export async function openReading(reader: ReaderChart, key: string, options: { w
   const [row] = await rowsOf(reader.profileId, [key]);
   const answer = row && row.basis === reader.basis ? answerOf(row, Date.now()) : null;
   if (answer) return answer;
+  // A failed reading is written again by the reader's own open, set up or not; the job would leave it as it is.
+  const failedHere = row !== undefined && row.basis === reader.basis && row.status === "failed";
+  if (!failedHere && (await readingsQueued(reader.profileId, [key])).has(key)) return writing();
   const unreadable = row && row.basis === reader.basis && row.status === "ready" ? row : undefined;
   const day = utcDay(now);
   if (!takeStart(reader.userId, day)) return capped(now);
@@ -534,67 +544,115 @@ export async function readingStatuses(profileId: string, keys: readonly string[]
  * The spend gate's own rule (ADR-199) for writes no route stands in front of: none at a cap of 0 or once today's
  * spend reaches the cap, and, as the gate does, a sum that cannot be read lets the write go to the database it needs.
  */
-async function spendAllows(): Promise<boolean> {
+export async function spendAllows(): Promise<boolean> {
   const capUsd = dailyCapUsd();
   if (!(capUsd > 0)) return false;
   try {
     return (await spentTodayUsd()) < capUsd;
   } catch (err) {
-    logger.warn({ err }, "today's spend could not be read; queued Timeline readings go ahead as the spend gate's requests do");
+    logger.warn({ code: codeOf(err) }, "today's spend could not be read; Timeline's setup writes go ahead as the spend gate's requests do");
     return true;
   }
 }
 
-/** A key's day is its last eight digits, so the soonest sorts first whatever its kind. */
-function byDay(a: string, b: string): number {
-  return a.slice(-8).localeCompare(b.slice(-8)) || a.localeCompare(b);
+/**
+ * A failure's code, never its message, which can carry what a row holds: the first `code` down its causes, since
+ * Drizzle wraps Postgres' own, else the error's class, else "error".
+ */
+export function codeOf(err: unknown): string {
+  let at: unknown = err;
+  for (let depth = 0; at !== null && typeof at === "object" && depth < 4; depth += 1) {
+    const code = (at as { code?: unknown }).code;
+    if (typeof code === "string" && /^[\w.:-]{1,64}$/.test(code)) return code;
+    at = (at as { cause?: unknown }).cause;
+  }
+  const name = (err as { name?: unknown } | null)?.name;
+  return typeof name === "string" && /^\w{1,64}$/.test(name) ? name : "error";
+}
+
+/** A setup job's dedupe key: the kind first, since one key space serves every kind (jobs.ts). */
+export function readingJobKey(profileId: string, key: string): string {
+  return `timeline.reading:${profileId}:${key}`;
+}
+
+/** Which of the keys a setup job is still to write for the profile: queued, waiting for its day, or running. */
+export async function readingsQueued(profileId: string, keys: readonly string[]): Promise<Set<string>> {
+  const wanted = [...new Set(keys)];
+  if (!wanted.length) return new Set();
+  const prefix = readingJobKey(profileId, "");
+  const rows = await db
+    .select({ dedupeKey: jobsTable.dedupeKey })
+    .from(jobsTable)
+    .where(and(
+      eq(jobsTable.kind, "timeline.reading"),
+      inArray(jobsTable.status, ["queued", "running"]),
+      inArray(jobsTable.dedupeKey, wanted.map((key) => readingJobKey(profileId, key))),
+    ));
+  return new Set(rows.map((row) => (row.dedupeKey ?? "").slice(prefix.length)));
+}
+
+/** The instant a key names, its UTC day, at which the event it names is one the app shows (`eventByKey`). */
+function keyedAt(key: string): Date {
+  const day = /(\d{4})(\d{2})(\d{2})$/.exec(key);
+  return day ? new Date(Date.UTC(Number(day[1]), Number(day[2]) - 1, Number(day[3]))) : new Date();
 }
 
 /**
- * Writes the readings of the events entering the six-month view (reading 7): at most `max` missing ones, soonest
- * first, behind the spend gate, so a paused day writes nothing. Missing is no row, a row on another basis, or a write
- * that died; a reading that failed waits for the reader's own open. Resolves with the keys it wrote, or tried to, once
- * each is kept. It never rejects, so a route can leave it running and answer at once.
+ * What a setup job's write came to: written, kept as it stands, a key that names no reading, a paused day, or a row
+ * another write holds until `until`, when a write that died with its process may be taken over.
  */
-export async function queueReadings(reader: ReaderChart, keys: readonly string[], max = 3): Promise<string[]> {
-  try {
-    const wanted = [...new Set(keys)].filter((key) => typeof key === "string" && key.length > 0 && key.length <= 80);
-    if (!wanted.length || !(max > 0) || !(await spendAllows())) return [];
-    const now = Date.now();
-    const held = new Map((await rowsOf(reader.profileId, wanted)).map((row) => [row.eventKey, row]));
-    const missing = wanted
-      .filter((key) => {
-        const row = held.get(key);
-        return !row || row.basis !== reader.basis || isStale(row, now);
-      })
-      .sort(byDay);
-    const queued: string[] = [];
-    const writes: Promise<OpenedReading>[] = [];
-    for (const key of missing) {
-      if (queued.length >= max) break;
-      const keyed = eventByKey(reader, key);
-      if (!keyed) continue;
-      const claimed = await claim(reader, key, false);
-      if (!claimed) continue;
-      queued.push(key);
-      writes.push(writeClaimed(reader, key, keyed, claimed));
-    }
-    await Promise.all(writes);
-    return queued;
-  } catch (err) {
-    logger.error({ err }, "Timeline readings could not be queued");
-    return [];
+export type QueuedWrite =
+  | { status: "written" | "kept" | "unknown" | "paused" }
+  | { status: "held"; until: Date };
+
+function heldUntil(row: ReadingRow): QueuedWrite {
+  return { status: "held", until: new Date(row.updatedAt.getTime() + WRITING_STALE_MS) };
+}
+
+/**
+ * Writes one reading for a setup job (ADR-302, 362), from a key the engine listed for the reader's chart, so no key a
+ * browser sends reaches it. Its event is the one the key names on its own day, so the next six months, which the app
+ * shows only once they come, are written a week ahead (reading 9). Missing is no row, a row on another basis, an
+ * unreadable kept one, or a write that died; a failed reading waits for the reader's own open, and a kept one stays.
+ * Behind the spend gate's rule, asked only once a write is due, and outside the day's cap on an account's opens.
+ */
+export async function writeQueuedReading(reader: ReaderChart, key: string): Promise<QueuedWrite> {
+  const keyed = eventByKey(reader, key, keyedAt(key));
+  if (!keyed) return { status: "unknown" };
+  const [row] = await rowsOf(reader.profileId, [key]);
+  if (row && row.basis === reader.basis) {
+    if (row.status === "failed" || (row.status === "ready" && keptReading(row))) return { status: "kept" };
+    if (row.status === "writing" && !isStale(row, Date.now())) return heldUntil(row);
   }
+  if (!(await spendAllows())) return { status: "paused" };
+  const unreadable = row && row.basis === reader.basis && row.status === "ready" ? row : undefined;
+  const claimed = await claim(reader, key, false, unreadable);
+  if (!claimed) {
+    // An open took it between the read and the claim: it is being written, or already is.
+    const [taken] = await rowsOf(reader.profileId, [key]);
+    return taken && taken.status === "writing" ? heldUntil(taken) : { status: "kept" };
+  }
+  await writeClaimed(reader, key, keyed, claimed);
+  return { status: "written" };
 }
 
 // MB-191 provisional: a reader's readings and their Ask thread are kept with their Personal report, and go with it.
 /**
- * Removes a profile's readings and its reader's Ask thread, together. No foreign key does it (`timeline.ts` in the
- * schema), so the route that deletes the reader's own Personal report calls this after its own transaction.
+ * Removes a profile's readings and its reader's Ask thread, together, with the reader's setup and the jobs still
+ * waiting to write for them, so no queued write lands for a report that is gone. No foreign key does it (`timeline.ts`
+ * in the schema), so the route that deletes the reader's own Personal report calls this after its own transaction.
  */
 export async function forgetTimeline(userId: string, profileId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.delete(timelineReadingsTable).where(eq(timelineReadingsTable.profileId, profileId));
     await tx.delete(askMessagesTable).where(eq(askMessagesTable.userId, userId));
+    await tx.delete(timelineSetupsTable).where(eq(timelineSetupsTable.userId, userId));
+    await tx.delete(jobsTable).where(and(
+      eq(jobsTable.status, "queued"),
+      or(
+        and(inArray(jobsTable.kind, ["timeline.reading", "timeline.refresh"]), sql`${jobsTable.payload}->>'profileId' = ${profileId}`),
+        and(eq(jobsTable.kind, "timeline.ahead"), sql`${jobsTable.payload}->>'userId' = ${userId}`),
+      ),
+    ));
   });
 }

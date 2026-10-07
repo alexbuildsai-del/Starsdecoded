@@ -3424,7 +3424,7 @@ export const GetTimelineAccessResponse = zod.object({
 
 
 /**
- * A week, a month or six months from today in the reader's days (ADR-207): the natal points and angles the dial draws, each day's tones, every event in the range with its whole window and plain words, and what starts, peaks or eases next. Every date and degree is the engine's. The six-month range queues the readings of contacts entering it, at most three a call (ADR-210).
+ * A week, a month or six months from today in the reader's days (ADR-207): the natal points and angles the dial draws, each day's tones, every event in the range with its whole window and plain words, and what starts, peaks or eases next. Every date and degree is the engine's. It queues nothing: a subscriber's readings are written at setup (ADR-302, ADR-362).
  * @summary Now and ahead, the sky on the reader's own chart from today (ADR-207)
  */
 export const GetTimelineNowQueryParams = zod.object({
@@ -3564,6 +3564,77 @@ export const OpenTimelineReadingResponse = zod.object({
 }).describe('The reading of an event or a life cycle, written once for the reader and kept (ADR-210, MB-191).'),zod.null()]).describe('The reading when ready; null otherwise.'),
   "line": zod.string().nullable().describe('The line the sheet shows when it failed; null otherwise.')
 }).describe('What opening a reading answers, ready with it, writing while it is written, or failed with its line (ADR-210, MB-191).')
+
+
+/**
+ * Setup writes every reading of the six months from the Monday of the reader's week, and every life cycle, from the engine's own list for their chart (ADR-302). It starts when the subscriber's payment clears, or when their own Personal report finishes if that comes later (ADR-362). Its six steps tick as their readings land. `replay` is the next six months, written a week before the last ones end, from the first day after that turn until the reader has seen them drawn.
+ * @summary Where the reader's Timeline setup stands (ADR-302, ADR-362)
+ */
+export const GetTimelineSetupQueryParams = zod.object({
+  "tz": zod.coerce.string().optional().describe('The reader\'s IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place\'s zone (ADR-207, ADR-211).')
+})
+
+export const getTimelineSetupResponseFromOneRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTimelineSetupResponseToOneRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTimelineSetupResponseStepsItemCountMin = 0;
+
+export const getTimelineSetupResponseReplayOneFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTimelineSetupResponseReplayOneToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetTimelineSetupResponse = zod.object({
+  "state": zod.enum(['none', 'writing', 'ready']),
+  "from": zod.union([zod.string().regex(getTimelineSetupResponseFromOneRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),zod.null()]).describe('The first day written ahead, a Monday, the reader\'s; null before setup starts.'),
+  "to": zod.union([zod.string().regex(getTimelineSetupResponseToOneRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),zod.null()]).describe('The last day written ahead, the reader\'s; null before setup starts.'),
+  "steps": zod.array(zod.object({
+  "id": zod.enum(['chart', 'planets', 'week', 'month', 'months', 'cycles']).describe('The reader\'s chart and the planets, done once setup starts; this week, Monday to Sunday; this month, the 30 days from that Monday; the six months, every reading from that Monday to `to`; the life cycles, birth to 90 (ADR-302).'),
+  "done": zod.boolean().describe('Every reading of the step has landed, written or failed; a failed one is written when it is opened.'),
+  "count": zod.number().int().min(getTimelineSetupResponseStepsItemCountMin).nullable().describe('How many readings the step writes, the engine\'s count; null for the chart and the planets, which write none.')
+}).describe('One of setup\'s six ticks, in order (ADR-302).')).describe('The six steps, in order, with the engine\'s counts.'),
+  "replay": zod.union([zod.object({
+  "from": zod.string().regex(getTimelineSetupResponseReplayOneFromRegExp).describe('Their first day, the reader\'s.'),
+  "to": zod.string().regex(getTimelineSetupResponseReplayOneToRegExp).describe('Their last day, the reader\'s.')
+}).describe('The next six months, written ahead, to be drawn once (ADR-302).'),zod.null()]).describe('The next six months, from the first day after the turn until marked seen; null otherwise.')
+}).describe('A subscriber\'s Timeline setup (ADR-302, ADR-362): none before it starts, and again once its six months are over or its chart was replaced; writing while its readings land; ready once all have, and it stays ready while the next six months are written ahead.')
+
+
+/**
+ * A catch-up only: payment clearing starts setup on its own (ADR-362). Safe to send again: a setup that has started is answered as it stands, and nothing is queued twice. Every reading it queues comes from the engine's list for the reader's chart, never from the request.
+ * @summary Start the reader's Timeline setup if it has not started (ADR-362)
+ */
+export const StartTimelineSetupQueryParams = zod.object({
+  "tz": zod.coerce.string().optional().describe('The reader\'s IANA time zone as their browser names it, the zone their days are read in; one the server cannot read falls back to the birth place\'s zone (ADR-207, ADR-211).')
+})
+
+export const startTimelineSetupResponseFromOneRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const startTimelineSetupResponseToOneRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const startTimelineSetupResponseStepsItemCountMin = 0;
+
+export const startTimelineSetupResponseReplayOneFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const startTimelineSetupResponseReplayOneToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const StartTimelineSetupResponse = zod.object({
+  "state": zod.enum(['none', 'writing', 'ready']),
+  "from": zod.union([zod.string().regex(startTimelineSetupResponseFromOneRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),zod.null()]).describe('The first day written ahead, a Monday, the reader\'s; null before setup starts.'),
+  "to": zod.union([zod.string().regex(startTimelineSetupResponseToOneRegExp).describe('A calendar day, YYYY-MM-DD, never a clock time; each field says whose day it is (ADR-207).'),zod.null()]).describe('The last day written ahead, the reader\'s; null before setup starts.'),
+  "steps": zod.array(zod.object({
+  "id": zod.enum(['chart', 'planets', 'week', 'month', 'months', 'cycles']).describe('The reader\'s chart and the planets, done once setup starts; this week, Monday to Sunday; this month, the 30 days from that Monday; the six months, every reading from that Monday to `to`; the life cycles, birth to 90 (ADR-302).'),
+  "done": zod.boolean().describe('Every reading of the step has landed, written or failed; a failed one is written when it is opened.'),
+  "count": zod.number().int().min(startTimelineSetupResponseStepsItemCountMin).nullable().describe('How many readings the step writes, the engine\'s count; null for the chart and the planets, which write none.')
+}).describe('One of setup\'s six ticks, in order (ADR-302).')).describe('The six steps, in order, with the engine\'s counts.'),
+  "replay": zod.union([zod.object({
+  "from": zod.string().regex(startTimelineSetupResponseReplayOneFromRegExp).describe('Their first day, the reader\'s.'),
+  "to": zod.string().regex(startTimelineSetupResponseReplayOneToRegExp).describe('Their last day, the reader\'s.')
+}).describe('The next six months, written ahead, to be drawn once (ADR-302).'),zod.null()]).describe('The next six months, from the first day after the turn until marked seen; null otherwise.')
+}).describe('A subscriber\'s Timeline setup (ADR-302, ADR-362): none before it starts, and again once its six months are over or its chart was replaced; writing while its readings land; ready once all have, and it stays ready while the next six months are written ahead.')
+
+
+/**
+ * Marks the setup's `replay` seen, so the drawing plays once. Safe to send again.
+ * @summary The reader has seen their next six months drawn (ADR-302)
+ */
+export const MarkTimelineReplaySeenResponse = zod.void()
 
 
 /**

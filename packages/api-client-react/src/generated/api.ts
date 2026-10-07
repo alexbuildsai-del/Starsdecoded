@@ -52,6 +52,7 @@ import type {
   GetSynastryReportStatusParams,
   GetTimelineLifeParams,
   GetTimelineNowParams,
+  GetTimelineSetupParams,
   Gift,
   GiftCreated,
   HandBackResponse,
@@ -88,12 +89,14 @@ import type {
   ShareBackBody,
   ShareCreated,
   SignInRequiredResponse,
+  StartTimelineSetupParams,
   SynastryCreateResponse,
   SynastryReport,
   SynastryStatus,
   TimelineAccess,
   TimelineLife,
   TimelineNow,
+  TimelineSetup,
   UpdateBirthTimeBody,
   UpdateProfileBody,
   WaitlistConfirmed,
@@ -4297,7 +4300,7 @@ export const getGetTimelineNowUrl = (params: GetTimelineNowParams,) => {
 }
 
 /**
- * A week, a month or six months from today in the reader's days (ADR-207): the natal points and angles the dial draws, each day's tones, every event in the range with its whole window and plain words, and what starts, peaks or eases next. Every date and degree is the engine's. The six-month range queues the readings of contacts entering it, at most three a call (ADR-210).
+ * A week, a month or six months from today in the reader's days (ADR-207): the natal points and angles the dial draws, each day's tones, every event in the range with its whole window and plain words, and what starts, peaks or eases next. Every date and degree is the engine's. It queues nothing: a subscriber's readings are written at setup (ADR-302, ADR-362).
  * @summary Now and ahead, the sky on the reader's own chart from today (ADR-207)
  */
 export const getTimelineNow = async (params: GetTimelineNowParams, options?: Parameters<typeof customFetch>[1]): Promise<TimelineNow> => {
@@ -4524,6 +4527,248 @@ export const useOpenTimelineReading = <TError = ErrorType<NoTimelineResponse | E
         TContext
       > => {
       return useMutation(getOpenTimelineReadingMutationOptions(options));
+    }
+
+export const getGetTimelineSetupUrl = (params?: GetTimelineSetupParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/timeline/setup?${stringifiedParams}` : `/api/timeline/setup`
+}
+
+/**
+ * Setup writes every reading of the six months from the Monday of the reader's week, and every life cycle, from the engine's own list for their chart (ADR-302). It starts when the subscriber's payment clears, or when their own Personal report finishes if that comes later (ADR-362). Its six steps tick as their readings land. `replay` is the next six months, written a week before the last ones end, from the first day after that turn until the reader has seen them drawn.
+ * @summary Where the reader's Timeline setup stands (ADR-302, ADR-362)
+ */
+export const getTimelineSetup = async (params?: GetTimelineSetupParams, options?: Parameters<typeof customFetch>[1]): Promise<TimelineSetup> => {
+
+  return customFetch<TimelineSetup>(getGetTimelineSetupUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTimelineSetupQueryKey = (params?: GetTimelineSetupParams,) => {
+    return [
+    `/api/timeline/setup`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetTimelineSetupQueryOptions = <TData = Awaited<ReturnType<typeof getTimelineSetup>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>>(params?: GetTimelineSetupParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTimelineSetupQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTimelineSetup>>> = ({ signal }) => getTimelineSetup(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTimelineSetupQueryResult = NonNullable<Awaited<ReturnType<typeof getTimelineSetup>>>
+export type GetTimelineSetupQueryError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>
+
+
+/**
+ * @summary Where the reader's Timeline setup stands (ADR-302, ADR-362)
+ */
+
+export function useGetTimelineSetup<TData = Awaited<ReturnType<typeof getTimelineSetup>>, TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>>(
+ params?: GetTimelineSetupParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTimelineSetup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTimelineSetupQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStartTimelineSetupUrl = (params?: StartTimelineSetupParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/timeline/setup?${stringifiedParams}` : `/api/timeline/setup`
+}
+
+/**
+ * A catch-up only: payment clearing starts setup on its own (ADR-362). Safe to send again: a setup that has started is answered as it stands, and nothing is queued twice. Every reading it queues comes from the engine's list for the reader's chart, never from the request.
+ * @summary Start the reader's Timeline setup if it has not started (ADR-362)
+ */
+export const startTimelineSetup = async (params?: StartTimelineSetupParams, options?: Parameters<typeof customFetch>[1]): Promise<TimelineSetup> => {
+
+  return customFetch<TimelineSetup>(getStartTimelineSetupUrl(params),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getStartTimelineSetupMutationKey = () => ['startTimelineSetup'] as const;
+
+export const getStartTimelineSetupMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext> => {
+
+const mutationKey = getStartTimelineSetupMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startTimelineSetup>>, StartTimelineSetupMutationVariables> = (props) => {
+          const {params} = props ?? {};
+
+          return  startTimelineSetup(params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartTimelineSetupMutationResult = NonNullable<Awaited<ReturnType<typeof startTimelineSetup>>>
+
+    export type StartTimelineSetupMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>
+    export type StartTimelineSetupMutationVariables = {params?: StartTimelineSetupParams}
+
+    /**
+ * @summary Start the reader's Timeline setup if it has not started (ADR-362)
+ */
+export const useStartTimelineSetup = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startTimelineSetup>>, TError,StartTimelineSetupMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startTimelineSetup>>,
+        TError,
+        StartTimelineSetupMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartTimelineSetupMutationOptions(options));
+    }
+
+export const getMarkTimelineReplaySeenUrl = () => {
+
+
+
+
+  return `/api/timeline/setup/replay-seen`
+}
+
+/**
+ * Marks the setup's `replay` seen, so the drawing plays once. Safe to send again.
+ * @summary The reader has seen their next six months drawn (ADR-302)
+ */
+export const markTimelineReplaySeen = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getMarkTimelineReplaySeenUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkTimelineReplaySeenMutationKey = () => ['markTimelineReplaySeen'] as const;
+
+export const getMarkTimelineReplaySeenMutationOptions = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext> => {
+
+const mutationKey = getMarkTimelineReplaySeenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markTimelineReplaySeen>>, void> = () => {
+
+
+          return  markTimelineReplaySeen(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkTimelineReplaySeenMutationResult = NonNullable<Awaited<ReturnType<typeof markTimelineReplaySeen>>>
+
+    export type MarkTimelineReplaySeenMutationError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>
+
+
+    /**
+ * @summary The reader has seen their next six months drawn (ADR-302)
+ */
+export const useMarkTimelineReplaySeen = <TError = ErrorType<ErrorResponse | NoTimelineResponse | NoPersonalReportResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markTimelineReplaySeen>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markTimelineReplaySeen>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMarkTimelineReplaySeenMutationOptions(options));
     }
 
 export const getGetAskThreadUrl = (params?: GetAskThreadParams,) => {
