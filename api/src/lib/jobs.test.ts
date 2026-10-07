@@ -1,20 +1,35 @@
 /**
- * The job queue (ADR-357, reading 7) on a scratch Postgres named by WALK_DATABASE_URL, after db:bootstrap: two workers
- * never take one job, a key queued twice runs once, a job another worker holds is skipped, an expired lease is taken
- * again (R16-24's lesson) and one on its last attempt fails with a code, a failure backs off from 30 s doubling to an
- * hour and stops at max_attempts, a wait asked for gives its attempt back, stopWorker waits and then hands back what's
- * left, done rows go after 7 days, and no line carries a payload. Without a database these skip, saying why. Every
- * handler here is a stand-in; nothing reaches a model.
+ * The job queue (ADR-357, reading 7) on a scratch Postgres named by WALK_DATABASE_URL: two workers never take one job,
+ * a key queued twice runs once, a job another worker holds is skipped, an expired lease is taken again (R16-24's
+ * lesson) and one on its last attempt fails with a code, a failure backs off from 30 s doubling to an hour and stops at
+ * max_attempts, a wait asked for gives its attempt back, stopWorker waits and then hands back what's left, done rows go
+ * after 7 days, and no line carries a payload. Without a database these skip, saying why. Every handler here is a
+ * stand-in; nothing reaches a model.
+ *
+ * The queue is one table that every test file on the database shares, and a worker takes any due job of its kinds, so
+ * this file works in a schema of its own, made by migrate-add-jobs.ts and dropped after: no other file's job is taken
+ * here, and none of these there.
  */
-import { after, test } from "node:test";
+import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
 
 const SCRATCH = process.env.WALK_DATABASE_URL;
+const SCHEMA = `jobs_test_${randomUUID().slice(0, 8)}`;
+const SCRIPT = fileURLToPath(new URL("../../../packages/db/scripts/migrate-add-jobs.ts", import.meta.url));
+
+function inSchema(url: string): string {
+  const at = new URL(url);
+  at.searchParams.set("options", `-c search_path=${SCHEMA}`);
+  return at.toString();
+}
+
 // Only a database handed over for this: without one the pool points at a closed port, so a read there fails at once.
-process.env.DATABASE_URL = SCRATCH ?? "postgres://test:test@127.0.0.1:1/never";
+process.env.DATABASE_URL = SCRATCH ? inSchema(SCRATCH) : "postgres://test:test@127.0.0.1:1/never";
 process.env.LOG_LEVEL ??= "silent";
 
 const { db, pool } = await import("@workspace/db");
@@ -22,7 +37,7 @@ const { logger } = await import("./logger.js");
 const J = await import("./jobs.js");
 type JobPayload = import("./jobs.js").JobPayload;
 
-const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: the queue runs on a scratch Postgres after db:bootstrap";
+const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: the queue runs on a scratch Postgres";
 
 // Every payload carries this, so a line that printed one would show it.
 const SECRET = "p-secret";
@@ -37,8 +52,16 @@ for (const level of ["debug", "info", "warn", "error"]) {
   };
 }
 
+before(async () => {
+  if (!SCRATCH) return;
+  await pool.query(`CREATE SCHEMA ${SCHEMA}`);
+  const made = spawnSync(process.execPath, ["--import", "tsx", SCRIPT], { encoding: "utf8" });
+  assert.equal(made.status, 0, made.stderr);
+});
+
 after(async () => {
   await J.stopWorker(0);
+  if (SCRATCH) await pool.query(`DROP SCHEMA IF EXISTS ${SCHEMA} CASCADE`);
   await pool.end();
 });
 
