@@ -6,6 +6,10 @@
  * seed the last Release kept, or waits for the first with every step that reads it (reading 11). So a deploy spends
  * nothing: its one call to a route that writes is Idris's at a zero balance, which the 402 answers (reading 17).
  *
+ * The pair is put back at the walk's start by walkOnce (release.ts), once a walk, so the walk resets nothing itself
+ * (B-39). It holds both accounts open for as long as it runs, signs each in with a sign-in token made for that account
+ * alone, and bans both again as it ends, whatever happened (qaPair.ts).
+ *
  * The verdict lists every step of the list with how it went, and findings that carry no email, token, link or Clerk
  * id, since /api/qa/latest shows them to anyone (R14-14). No Chromium on the image is `unconfigured`, never a crash.
  * Staging only: the walk refuses anywhere else, on APP_ENV alone and never on a request (R13-08).
@@ -27,10 +31,10 @@ import { STAGING_STEP_IDS, STEPS, mapProblem, seedsFor, type StagingStepId, type
 import { readAppEnv } from "../appEnv.js";
 import { logger } from "../logger.js";
 import { findChromium } from "../qaAgent/browser.js";
-import { ensureQaPair, placeSeed, resetQaPair, type QaPair, type QaRole } from "../qaPair.js";
+import { QA_PAIR, ensureQaPair, openQaPair, placeSeed, type QaPair, type QaPairHold, type QaRole } from "../qaPair.js";
 import { stripe as stripeFor } from "../stripe.js";
 import { publicWebBase } from "../waitlist.js";
-import { SpendGuard, chromiumWalkBrowser, type WalkBrowser, type WalkPage, type WalkSession } from "./browser.js";
+import { SpendGuard, chromiumWalkBrowser, type SignInTickets, type WalkBrowser, type WalkPage, type WalkSession } from "./browser.js";
 import {
   STAGING_STEPS,
   isStored,
@@ -75,7 +79,8 @@ export interface Unconfigured {
 
 export interface QaPairDoors {
   ensure(): Promise<QaPair>;
-  reset(pair: QaPair): Promise<void>;
+  /** Opens both accounts for this walk; the hold makes their sign-in tokens and bans them again at the end. */
+  open(pair: QaPair): Promise<QaPairHold>;
   place(pair: QaPair, step: StoredStepId): Promise<string | null>;
 }
 
@@ -280,7 +285,18 @@ export function liveWalkBrowser(env: NodeJS.ProcessEnv = process.env): WalkBrows
   return chromiumWalkBrowser({ executablePath, webOrigin: publicWebBase(env), clerk: { publishableKey, secretKey } });
 }
 
-const LIVE_PAIR: QaPairDoors = { ensure: ensureQaPair, reset: resetQaPair, place: placeSeed };
+const LIVE_PAIR: QaPairDoors = { ensure: ensureQaPair, open: openQaPair, place: placeSeed };
+
+const ROLES = Object.keys(QA_PAIR) as QaRole[];
+
+/** The browser's sign-in tokens: each for the account at the address a step signs in as, and only for the pair's two. */
+function ticketsOf(pair: QaPair, hold: QaPairHold): SignInTickets {
+  return async (email) => {
+    const role = ROLES.find((r) => pair[r].email === email);
+    if (!role) throw new Error("only the QA pair signs in on a walk");
+    return hold.ticket(role);
+  };
+}
 
 /** Every step's status and reason when nothing ran, for a walk that couldn't start. */
 function nothingRan(reason: string): QaWalkStep[] {
@@ -316,15 +332,15 @@ function unconfiguredVerdict(reason: string): QaWalkVerdict {
 }
 
 /**
- * Walks the list once. Mira and Idris are found or made, and put back at the walk's start, before the browser opens;
- * the first step that fails stops the rest, which read `not_run`; the clock is deleted and the browser closed whatever
- * happened. Only a Release's walk writes a report.
+ * Walks the list once. Mira and Idris are found and held open before the browser opens; the first step that fails stops
+ * the rest, which read `not_run`; the pair is banned again, the clock deleted and the browser closed whatever happened.
+ * Only a Release's walk writes a report, and its hold keeps each one's id for the seed.
  */
 export async function runQaWalk(input: QaWalkInput): Promise<QaWalkVerdict> {
   const over = input.deps ?? {};
   const env = over.env ?? process.env;
   const appEnv = readAppEnv(env);
-  if (appEnv !== "staging") throw new Error(`the staging walk pays, resets accounts and writes, so it is refused on ${appEnv}`);
+  if (appEnv !== "staging") throw new Error(`the staging walk pays, signs the QA pair in and writes, so it is refused on ${appEnv}`);
 
   const times = over.times ?? LIVE_TIMES;
   const sleep = over.sleep ?? sleepFor;
@@ -402,14 +418,16 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
     };
   };
 
-  const runStep = async (id: StagingStepId, walk: Walk, pair: QaPair): Promise<"pass" | "stored" | "waiting"> => {
+  const runStep = async (id: StagingStepId, walk: Walk, pair: QaPair, hold: QaPairHold): Promise<"pass" | "stored" | "waiting"> => {
     const entry = STAGING_STEPS[id];
     if (!isStored(entry)) {
       await entry.run(walk);
       return "pass";
     }
     if (run.mode === "release") {
-      await entry.check(walk, await entry.write(walk));
+      const written = await entry.write(walk);
+      hold.wrote(id as StoredStepId, written);
+      await entry.check(walk, written);
       return "pass";
     }
     const placed = await run.pair.place(pair, id as StoredStepId);
@@ -419,12 +437,13 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
   };
 
   let pair: QaPair | null = null;
+  let hold: QaPairHold | null = null;
   let session: WalkSession | null = null;
   let startError: unknown = null;
   try {
     pair = await run.pair.ensure();
-    await run.pair.reset(pair);
-    session = await run.browser.open(guard);
+    hold = await run.pair.open(pair);
+    session = await run.browser.open(guard, ticketsOf(pair, hold));
   } catch (err) {
     startError = err;
   }
@@ -444,7 +463,7 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
         continue;
       }
       const id: StagingStepId = listed.id;
-      if (!walk || !pair) {
+      if (!walk || !pair || !hold) {
         // The pair or the browser couldn't be made ready, so the walk stops at its first step.
         const finding = findingOf(id, startError, "the walk couldn't start");
         steps.push({ ...base, status: "fail", reason: lineOf(finding), ms: 0 });
@@ -461,7 +480,7 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
       const refusedBefore = guard.refused.length;
       try {
         if (run.signal?.aborted) throw new Error(STOPPED_LINE);
-        const outcome = await runStep(id, walk, pair);
+        const outcome = await runStep(id, walk, pair, hold);
         const refused = [...new Set(guard.refused.slice(refusedBefore))];
         if (refused.length > 0) throw new Error(`the page asked for ${refused.join(", ")}, which a walk never lets through`);
         const ms = Date.now() - started;
@@ -484,6 +503,15 @@ async function walkTheList(run: WalkRun): Promise<QaWalkVerdict> {
     }
   } finally {
     current = WHOLE_WALK;
+    // First, so nothing after it can keep the pair open: Stripe's clean-up and the browser's close can be slow.
+    if (hold) {
+      try {
+        await hold.close();
+      } catch (err) {
+        logger.warn("staging walk: the QA pair was not banned again");
+        findings.push(findingOf(WHOLE_WALK, err, "a call to Clerk failed as the walk ended"));
+      }
+    }
     const clock = kept.clock;
     if (clock) {
       try {

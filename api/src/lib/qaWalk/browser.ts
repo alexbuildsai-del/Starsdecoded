@@ -1,8 +1,9 @@
 /**
  * The staging walk's browser (ADR-279, 315): headless Chromium through playwright-core, found as the QA agent finds it,
- * with a context each for Mira and Idris, so each keeps a session of their own. Each signs in with Clerk's Testing
- * Tokens, calls the live API from their signed-in page through the web's own /api as the app's own calls go, opens a
- * screen and reads it once, and pays on /checkout in Stripe's fields with the test card.
+ * with a context each for Mira and Idris, so each keeps a session of their own. Each signs in with a one-time sign-in
+ * token the walk makes for their account, past Clerk's bot check with its Testing Token, calls the live API from their
+ * signed-in page through the web's own /api as the app's own calls go, opens a screen and reads it once, and pays on
+ * /checkout in Stripe's fields with the test card.
  *
  * A door in each context stops any request to a route that writes a report or a reading unless the walk asked for that
  * one call itself (reading 17), so no page the walk opens can spend on its own.
@@ -34,7 +35,10 @@ export interface PayDoor {
 
 /** One signed-in reader's tab, as a step uses it. */
 export interface WalkPage {
-  /** Signs in with a Testing Token, from a public page first, as Clerk's helper needs (Round start 4f). */
+  /**
+   * Signs in as the account at this address with a sign-in token, from a public page first, as Clerk's helper needs
+   * (Round start 4f).
+   */
   signIn(email: string): Promise<void>;
   /** A call to the live API from this page, with the page's own session. */
   api(method: string, path: string, body?: unknown): Promise<ApiAnswer>;
@@ -50,8 +54,14 @@ export interface WalkSession {
   close(): Promise<void>;
 }
 
+/** A one-time sign-in token for the account at this address, asked for as that reader signs in. */
+export type SignInTickets = (email: string) => Promise<string>;
+
+/** The one way a page signs in: the ticket a sign-in token carries, and no other strategy Clerk's helper knows. */
+export type TicketSignIn = (opts: { page: Page; signInParams: { strategy: "ticket"; ticket: string } }) => Promise<void>;
+
 export interface WalkBrowser {
-  open(guard: SpendGuard): Promise<WalkSession>;
+  open(guard: SpendGuard, tickets: SignInTickets): Promise<WalkSession>;
 }
 
 export type PaidRoute =
@@ -158,8 +168,6 @@ function messageOf(err: unknown): string {
   return err instanceof Error ? err.message.split("\n")[0] : String(err);
 }
 
-type ClerkHelpers = (typeof import("@clerk/testing/playwright"))["clerk"];
-
 /** The container's memory in MB from its cgroup (v2, then v1), as a crash leaves it: a page killed for memory says nothing. */
 function memoryNote(): string {
   const mb = (...files: string[]): string => {
@@ -219,11 +227,13 @@ function noting(page: Page, inner: WalkPage, logFile: string): WalkPage {
   };
 }
 
-class ChromiumPage implements WalkPage {
+/** Exported so a test can sign a stand-in page in without Chromium. */
+export class ChromiumPage implements WalkPage {
   constructor(
     private readonly page: Page,
     private readonly origin: string,
-    private readonly clerk: ClerkHelpers,
+    private readonly signInWith: TicketSignIn,
+    private readonly tickets: SignInTickets,
   ) {}
 
   private url(path: string): string {
@@ -260,7 +270,15 @@ class ChromiumPage implements WalkPage {
 
   async signIn(email: string): Promise<void> {
     await this.goto("/");
-    await this.clerk.signIn({ page: this.page, emailAddress: email });
+    // Asked for only now, as the page is ready to use it, so a token's short life is never spent on the steps before.
+    const ticket = await this.tickets(email);
+    await this.signInWith({ page: this.page, signInParams: { strategy: "ticket", ticket } });
+    // Clerk's helper waits for the account only when it makes the token itself, so the walk waits here before any call.
+    try {
+      await this.page.waitForFunction(() => Boolean((globalThis as { Clerk?: { user?: unknown } }).Clerk?.user), undefined, { timeout: SHOWN_MS });
+    } catch {
+      throw new Error("Clerk never signed the page in with the walk's sign-in token");
+    }
   }
 
   async api(method: string, path: string, body?: unknown): Promise<ApiAnswer> {
@@ -423,12 +441,13 @@ function forgetTestingToken(): void {
   delete process.env.CLERK_FAPI;
 }
 
-/** The live browser: Chromium on the Railway image, signed in through Clerk's Testing Tokens. */
+/** The live browser: Chromium on the Railway image, each page signed in with the walk's sign-in tokens. */
 export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
   const origin = new URL(options.webOrigin).origin;
   return {
-    async open(guard) {
+    async open(guard, tickets) {
       const [{ chromium }, testing] = await Promise.all([import("playwright-core"), import("@clerk/testing/playwright")]);
+      const signInWith: TicketSignIn = (opts) => testing.clerk.signIn(opts);
       // clerkSetup asks Clerk for a testing token only when none is set, so one kept from an earlier walk could have
       // lapsed; .env files are never read on Railway, where the keys live.
       forgetTestingToken();
@@ -467,7 +486,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           );
           const page = await context.newPage();
           page.setDefaultTimeout(SHOWN_MS);
-          return noting(page, new ChromiumPage(page, origin, testing.clerk), logFile);
+          return noting(page, new ChromiumPage(page, origin, signInWith, tickets), logFile);
         };
         const mira = await pageFor();
         const idris = await pageFor();

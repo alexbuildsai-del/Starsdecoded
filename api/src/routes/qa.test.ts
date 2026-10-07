@@ -4,8 +4,9 @@
  * writes, and the verdict answers 404. On a scratch Postgres named by WALK_DATABASE_URL: once the web serves the
  * commit, the pair is made ready, reset and walked in deploy mode, one row a commit; a walk a restart cut off is
  * settled at the next start; a site that never shows the commit is a failed row; nothing rejects; GET /api/qa/latest
- * answers the newest verdict ahead of the session, with what is private masked. Without a database those skip, saying
- * why. The pair and the browser are stand-ins at the walk's seams: qaPair.test.ts makes and resets the real pair on the
+ * answers the newest verdict ahead of the session, with what is private masked; and the walk itself, run under the
+ * trigger, resets nothing, so a deploy's walk resets the pair once (B-39). Without a database those skip, saying why.
+ * The pair and the browser are stand-ins at the walk's seams: qaPair.test.ts makes and resets the real pair on the
  * same database at the same time, where one account alone holds each part, and the walk's own tests drive its page.
  */
 import { after, before, test } from "node:test";
@@ -45,6 +46,7 @@ type WalkDeps = import("../lib/release.js").WalkDeps;
 type WalkVerdict = import("../lib/release.js").WalkVerdict;
 type QaWalkRecord = import("../lib/release.js").QaWalkRecord;
 type QaDeployDeps = import("./qa.js").QaDeployDeps;
+type WalkStripe = import("../lib/qaWalk/steps.js").WalkStripe;
 
 const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: the walk's rows are written and read on a scratch Postgres";
 
@@ -217,6 +219,55 @@ test("after a deploy, once the web serves the commit, the pair is made ready, re
   assert.equal(calls.length, 3, "a restart of the same commit walks nothing");
   assert.equal(fetched.length, 1, "and waits on nothing");
   assert.equal((await rowsOf(commit)).length, 1);
+  assert.deepEqual(modelCalls, []);
+});
+
+test("a deploy's walk resets the pair once: the trigger puts it back at the walk's start, and the walk itself only holds it", { skip: NO_DB }, async () => {
+  const { runQaWalk } = await import("../lib/qaWalk/index.js");
+  const commit = sha();
+  const never = async (): Promise<never> => {
+    throw new Error("Stripe is never reached once the browser fails");
+  };
+  const noStripe: WalkStripe = { makeClock: never, makeCustomer: never, advance: never, deleteClock: never, refund: never, subscriptionOf: never, cancelAtPeriodEnd: never };
+  const { calls, walk } = standIns({
+    walk: (input) =>
+      runQaWalk({
+        ...input,
+        deps: {
+          env: { APP_ENV: "staging" },
+          browser: {
+            open: async () => {
+              calls.push("walk: browser");
+              throw new Error("no browser in this test");
+            },
+          },
+          stripe: noStripe,
+          pair: {
+            ensure: async () => {
+              calls.push("walk: ensure");
+              return PAIR;
+            },
+            open: async () => {
+              calls.push("walk: open");
+              return {
+                ticket: never,
+                wrote: () => undefined,
+                close: async () => {
+                  calls.push("walk: close");
+                },
+              };
+            },
+            place: async () => null,
+          },
+        },
+      }),
+  });
+
+  const outcome = await qaAfterDeploy({ env: staging(commit), walk, webServes: webServing(commit), log: quiet });
+  assert.deepEqual(outcome, { kind: "walked", commit, status: "fail" });
+  assert.deepEqual(calls, ["ensure", "reset Mira Costa, Idris Costa", "walk: ensure", "walk: open", "walk: browser", "walk: close"]);
+  const [row] = await rowsOf(commit);
+  assert.match(row.steps.find((step: { id: string }) => step.id === "sign-in")?.reason ?? "", /no browser in this test/);
   assert.deepEqual(modelCalls, []);
 });
 

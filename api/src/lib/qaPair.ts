@@ -4,6 +4,9 @@
  * walk writes their three reports for real, and those become the seed a deploy's walk copies back in, so a deploy
  * reads real reports and spends nothing (ADR-315). Nothing here calls a model.
  *
+ * Both stay banned in Clerk outside a walk. A walk opens them for as long as it runs and signs them in only with the
+ * sign-in tokens its hold makes, and each start bans them again unless a walk here holds them.
+ *
  * Staging only (reading 10): every function refuses anywhere else, on APP_ENV alone and never on a request (R13-08),
  * so production can't make, top up, reset or seed them.
  */
@@ -33,6 +36,7 @@ import {
 } from "@workspace/db";
 import { readAppEnv } from "./appEnv.js";
 import { consumeCredit } from "./credits.js";
+import { logger } from "./logger.js";
 import type { NatalChartData } from "./chartCalculation.js";
 
 /** The locked `+clerk_test` addresses (stripe-payments, Automatic QA), with the sample people's names and birth towns. */
@@ -84,7 +88,12 @@ function stagingOnly(what: string): void {
 export interface QaClerk {
   /** The Clerk id holding this address, or null when there is none. */
   find(email: string): Promise<string | null>;
+  /** Makes the account already banned, so only a walk ever opens it. */
   create(person: { email: string; firstName: string; lastName: string }): Promise<string>;
+  ban(userId: string): Promise<void>;
+  unban(userId: string): Promise<void>;
+  /** A one-time sign-in token for the account, good for this many seconds. */
+  signInToken(userId: string, seconds: number): Promise<string>;
 }
 
 const liveClerk: QaClerk = {
@@ -96,8 +105,21 @@ const liveClerk: QaClerk = {
   async create({ email, firstName, lastName }) {
     const { clerkClient } = await import("@clerk/express");
     // The walk signs in with a sign-in token, never a password, and the instance may require one (Round start 4f).
-    const user = await clerkClient.users.createUser({ emailAddress: [email], firstName, lastName, skipPasswordRequirement: true });
+    const user = await clerkClient.users.createUser({ emailAddress: [email], firstName, lastName, skipPasswordRequirement: true, banned: true });
     return user.id;
+  },
+  async ban(userId) {
+    const { clerkClient } = await import("@clerk/express");
+    await clerkClient.users.banUser(userId);
+  },
+  async unban(userId) {
+    const { clerkClient } = await import("@clerk/express");
+    await clerkClient.users.unbanUser(userId);
+  },
+  async signInToken(userId, seconds) {
+    const { clerkClient } = await import("@clerk/express");
+    const { token } = await clerkClient.signInTokens.createSignInToken({ userId, expiresInSeconds: seconds });
+    return token;
   },
 };
 
@@ -224,6 +246,112 @@ export async function resetQaPair(pair: QaPair): Promise<void> {
   });
 }
 
+/** Made as the reader signs in and used at once, so two minutes is room enough. */
+const TICKET_SECONDS = 120;
+
+/** Walks in this process holding the pair open; a start bans neither while one does. */
+let walksOpen = 0;
+
+/** The newest walk's own reports, by the stored step whose write answered each: the only ones storeQaSeed may keep. */
+let newestWalkWrote = new Map<SeedStep, string>();
+
+/** What one walk holds while it runs. */
+export interface QaPairHold {
+  /** A one-time sign-in token for one of the two, made only while the walk holds them. */
+  ticket(role: QaRole): Promise<string>;
+  /** A stored step's report, as its own write answered it. */
+  wrote(step: SeedStep, reportId: string): void;
+  /**
+   * Bans both again, even while another walk here holds them: a walk that outlived its limit can't leave them open for
+   * one that came after. A second call does nothing.
+   */
+  close(): Promise<void>;
+}
+
+function messageOf(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/** One call per account, so a refusal never leaves the other undone; then any that failed is thrown, with Clerk's words. */
+async function eachAccount(userIds: string[], call: (userId: string) => Promise<void>): Promise<void> {
+  const failed = (await Promise.allSettled(userIds.map((userId) => call(userId)))).filter((r): r is PromiseRejectedResult => r.status === "rejected");
+  if (failed.length) throw new Error(`Clerk failed ${failed.length} of ${userIds.length} calls: ${messageOf(failed[0].reason)}`);
+}
+
+/**
+ * Opens both accounts for one walk: their bans lift before the hold makes any sign-in token, and its close bans them
+ * again. An open that fails part way bans both again before it throws, so a walk never leaves one open behind it.
+ */
+export async function openQaPair(pair: QaPair): Promise<QaPairHold> {
+  stagingOnly("opening the pair");
+  // Asked of Clerk, not of the pair handed in: only the accounts holding the locked addresses ever open.
+  const held = await Promise.all(QA_ROLES.map((role) => clerk.find(QA_PAIR[role].email)));
+  if (pair.mira.userId === pair.idris.userId || QA_ROLES.some((role, i) => held[i] !== pair[role].userId)) {
+    throw new Error("these accounts are not the QA pair ensureQaPair marked");
+  }
+  const ids = QA_ROLES.map((role) => pair[role].userId);
+  walksOpen += 1;
+  const wrote = new Map<SeedStep, string>();
+  newestWalkWrote = wrote;
+  let holding = true;
+  const hold: QaPairHold = {
+    async ticket(role) {
+      if (!holding) throw new Error("the walk has let the pair go, so no sign-in token is made");
+      try {
+        return await clerk.signInToken(pair[role].userId, TICKET_SECONDS);
+      } catch (err) {
+        throw new Error(`Clerk made no sign-in token: ${messageOf(err)}`);
+      }
+    },
+    wrote(step, reportId) {
+      wrote.set(step, reportId);
+    },
+    async close() {
+      if (!holding) return;
+      holding = false;
+      walksOpen -= 1;
+      await eachAccount(ids, (userId) => clerk.ban(userId));
+    },
+  };
+  try {
+    await eachAccount(ids, (userId) => clerk.unban(userId));
+  } catch (err) {
+    await hold.close().catch(() => undefined);
+    throw err;
+  }
+  return hold;
+}
+
+/** A Clerk error's HTTP status, the one part of it a log line may carry. */
+function statusOf(err: unknown): number | null {
+  const status = (err as { status?: unknown } | null)?.status;
+  return typeof status === "number" ? status : null;
+}
+
+/**
+ * Bans both accounts as the API starts, unless a walk here holds them. A walk lives in the process that runs it, and a
+ * restart cuts it off (routes/qa.ts settles its row as failed), so a walk a restart ended never banned them itself.
+ * Off staging it asks nothing; on staging an address Clerk holds no account for is skipped. It never throws: a Clerk
+ * that is slow or down is a warn line, never a held or failed start.
+ */
+export async function banQaPairUnlessWalking(): Promise<void> {
+  try {
+    if (readAppEnv() !== "staging" || walksOpen > 0) return;
+    const found = await Promise.all(QA_ROLES.map((role) => clerk.find(QA_PAIR[role].email)));
+    const ids = found.filter((id): id is string => id !== null);
+    // A walk may have opened them while Clerk looked them up; its own close bans them.
+    if (ids.length === 0 || walksOpen > 0) return;
+    const failed = (await Promise.allSettled(ids.map((userId) => clerk.ban(userId)))).filter((r): r is PromiseRejectedResult => r.status === "rejected");
+    if (failed.length) {
+      logger.warn({ accounts: ids.length, failed: failed.length, status: statusOf(failed[0].reason) }, "QA pair: not banned at the start");
+    } else {
+      logger.info({ accounts: ids.length }, "QA pair: banned at the start");
+    }
+  } catch (err) {
+    logger.warn({ status: statusOf(err) }, "QA pair: not banned at the start, Clerk couldn't find the accounts");
+  }
+}
+
 interface OwnReport {
   profileId: string;
   reportId: string;
@@ -232,8 +360,11 @@ interface OwnReport {
   interpretation: unknown;
 }
 
-/** The account's own finished Personal report, the one the own-report and idris-report steps write. */
-async function ownReport(userId: string): Promise<OwnReport | null> {
+/**
+ * The account's own finished Personal report, the one the own-report and idris-report steps write: the newest, or the
+ * one named, if it still is.
+ */
+async function ownReport(userId: string, reportId?: string): Promise<OwnReport | null> {
   const [row] = await db
     .select({ profile: profilesTable, report: reportsTable })
     .from(reportsTable)
@@ -245,6 +376,7 @@ async function ownReport(userId: string): Promise<OwnReport | null> {
         isNull(profilesTable.claimedByUserId),
         eq(reportsTable.type, "natal"),
         eq(reportsTable.status, "complete"),
+        reportId === undefined ? undefined : eq(reportsTable.id, reportId),
       ),
     )
     .orderBy(desc(reportsTable.createdAt))
@@ -300,18 +432,30 @@ function seedRow(step: SeedStep, output: unknown, chart: unknown, subjectName: s
 }
 
 /**
- * Keeps each report a Release's walk finished as the new seed, one `whole` row per report: the text entire and the
- * chart and name it was written for. A report the walk didn't finish leaves its old seed. Answers how many it kept.
+ * Keeps each report the newest walk here wrote as the new seed, one `whole` row per report: the text entire and the
+ * chart and name it was written for. Only a report a stored step's own write answered is kept, and only while it is
+ * still that account's own finished report; a report the walk didn't finish leaves its old seed. A walk's reports are
+ * taken once. Answers how many it kept.
  */
 export async function storeQaSeed(pair: QaPair): Promise<number> {
   stagingOnly("storing the seed");
+  // Taken before any check can throw, so a store that fails leaves no ids behind for the next Release to keep.
+  const wrote = newestWalkWrote;
+  newestWalkWrote = new Map();
   await confirmPair(pair);
+  const written = (step: "own-report" | "idris-report", userId: string) => {
+    const reportId = wrote.get(step);
+    return reportId ? ownReport(userId, reportId) : Promise.resolve(null);
+  };
   const rows: InsertLabRun[] = [];
-  const [mira, idris] = await Promise.all([ownReport(pair.mira.userId), ownReport(pair.idris.userId)]);
+  const [mira, idris] = await Promise.all([written("own-report", pair.mira.userId), written("idris-report", pair.idris.userId)]);
   if (mira) rows.push(seedRow("own-report", mira.interpretation, mira.chart, mira.name));
   if (idris) rows.push(seedRow("idris-report", idris.interpretation, idris.chart, idris.name));
-  if (mira && idris) {
-    const finished = (await pairsOver(pair.mira.userId, mira.profileId, idris.profileId)).find((r) => r.status === "complete" && r.interpretation);
+  const pairId = wrote.get("pair");
+  if (mira && idris && pairId) {
+    const finished = (await pairsOver(pair.mira.userId, mira.profileId, idris.profileId)).find(
+      (r) => r.id === pairId && r.status === "complete" && r.interpretation,
+    );
     if (finished) rows.push(seedRow("pair", finished.interpretation, null, `${mira.name} & ${idris.name}`));
   }
   if (!rows.length) return 0;

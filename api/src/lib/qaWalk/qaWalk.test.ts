@@ -1,11 +1,14 @@
 /**
- * The staging walk (R17-25) on a stubbed page and a stubbed Stripe, with a model client that fails if called. Pinned: the
- * list walked in its order with the local steps named, a deploy's walk on a stored seed and with none (reading 11), its
- * one write at Idris's zero balance (reading 17), a Release's walk writing each stored step once, a failure stopping
- * the rest, findings with no email, token, link or Clerk id (R14-14), the door in front of every write, no Chromium as
- * `unconfigured`, and the walk refused off staging. Nothing here opens a browser or reaches Clerk or Stripe. The
- * lockfile's additions for @clerk/testing are pinned too, and on a scratch Postgres named by WALK_DATABASE_URL the
- * ledger's own reads and writes; without one that test skips, saying why.
+ * The staging walk (R17-25) on a stubbed page, a stubbed Stripe and a stubbed Clerk under the pair's real hold, with a
+ * model client that fails if called. Pinned: the list walked in its order with the local steps named, a deploy's walk
+ * on a stored seed and with none (reading 11), its one write at Idris's zero balance (reading 17), a Release's walk
+ * writing each stored step once and its hold keeping those reports alone for the seed, a failure stopping the rest,
+ * findings with no email, token, link or Clerk id (R14-14), the door in front of every write, no Chromium as
+ * `unconfigured`, and the walk refused off staging. The pair: the walk resets nothing itself (walkOnce does, B-39),
+ * signs each reader in with a ticket made for their account alone after both bans lift, and bans both again whatever
+ * happened; a page hands Clerk's helper that ticket and nothing else. Nothing here opens a browser or reaches Clerk or
+ * Stripe. The lockfile's additions for @clerk/testing are pinned too, and on a scratch Postgres named by
+ * WALK_DATABASE_URL the ledger's own reads and writes; without one that test skips, saying why.
  */
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -21,6 +24,9 @@ process.env.OPENAI_API_KEY ??= "sk-dummy-never-sent";
 // Nothing listens there, so even a call that slipped past the stub below would reach no one.
 process.env.OPENAI_BASE_URL = "http://127.0.0.1:9/v1";
 process.env.LOG_LEVEL ??= "silent";
+// The pair's hold is qaPair.ts's own, which reads the host's APP_ENV; the walk itself reads the env each test hands it.
+delete process.env.RAILWAY_ENVIRONMENT_NAME;
+process.env.APP_ENV = "staging";
 
 const { openai } = await import("@workspace/integrations-openai-ai-server");
 const modelCalls: unknown[] = [];
@@ -30,18 +36,22 @@ const modelCalls: unknown[] = [];
 };
 
 const W = await import("./index.js");
-const { SpendGuard, paidRoute } = await import("./browser.js");
+const { ChromiumPage, SpendGuard, paidRoute } = await import("./browser.js");
 const { STEPS } = await import("../../walk/steps.js");
-const { QA_PAIR } = await import("../qaPair.js");
+const Q = await import("../qaPair.js");
+const { QA_PAIR } = Q;
 const { pool } = await import("@workspace/db");
 
 type ApiAnswer = import("./browser.js").ApiAnswer;
 type WalkBrowser = import("./browser.js").WalkBrowser;
 type WalkPage = import("./browser.js").WalkPage;
+type SignInTickets = import("./browser.js").SignInTickets;
+type TicketSignIn = import("./browser.js").TicketSignIn;
 type Guard = InstanceType<typeof SpendGuard>;
 type WalkStripe = import("./steps.js").WalkStripe;
 type WalkLedger = import("./steps.js").WalkLedger;
 type QaPair = import("../qaPair.js").QaPair;
+type QaClerk = import("../qaPair.js").QaClerk;
 type QaWalkVerdict = import("./index.js").QaWalkVerdict;
 type QaPairDoors = import("./index.js").QaPairDoors;
 type Role = "mira" | "idris";
@@ -265,9 +275,12 @@ class FakeSite {
 }
 
 function fakeBrowser(site: FakeSite, opened: Guard[] = []): WalkBrowser {
-  const page = (role: Role, guard: Guard): WalkPage => ({
+  const page = (role: Role, guard: Guard, tickets: SignInTickets): WalkPage => ({
     async signIn(email) {
       assert.equal(email, PAIR[role].email);
+      // Only a ticket made for this reader's own account signs them in.
+      const ticket = await tickets(email);
+      if (!new RegExp(`^ticket-${role}-\\d+$`).test(ticket)) throw new Error(`${role} was handed another account's ticket`);
       site.signedIn[role] = true;
     },
     async api(method, path, body) {
@@ -285,12 +298,48 @@ function fakeBrowser(site: FakeSite, opened: Guard[] = []): WalkBrowser {
     },
   });
   return {
-    async open(guard) {
+    async open(guard, tickets) {
       opened.push(guard);
-      return { mira: page("mira", guard), idris: page("idris", guard), close: async () => undefined };
+      return { mira: page("mira", guard, tickets), idris: page("idris", guard, tickets), close: async () => undefined };
     },
   };
 }
+
+/** Clerk as the pair's hold meets it, both accounts banned between walks, as a start leaves them. */
+function fakeClerk(log: string[]) {
+  const roleOf = (userId: string) => (userId === PAIR.mira.userId ? "mira" : userId === PAIR.idris.userId ? "idris" : "someone else");
+  const banned = new Set([PAIR.mira.userId, PAIR.idris.userId]);
+  const refuse: { ban?: string; unban?: string } = {};
+  let tokens = 0;
+  const clerk: QaClerk = {
+    async find(email) {
+      return email === PAIR.mira.email ? PAIR.mira.userId : email === PAIR.idris.email ? PAIR.idris.userId : null;
+    },
+    async create() {
+      throw new Error("the walk's ensure is a stand-in, so no account is made here");
+    },
+    async ban(userId) {
+      log.push(`ban ${roleOf(userId)}`);
+      if (refuse.ban === userId) throw new Error(`Clerk answered 503 for ${userId}`);
+      banned.add(userId);
+    },
+    async unban(userId) {
+      log.push(`unban ${roleOf(userId)}`);
+      if (refuse.unban === userId) throw new Error(`Clerk answered 503 for ${userId}`);
+      banned.delete(userId);
+    },
+    async signInToken(userId) {
+      log.push(`token ${roleOf(userId)}`);
+      if (banned.has(userId)) throw new Error("a sign-in token for a banned account");
+      tokens += 1;
+      return `ticket-${roleOf(userId)}-${tokens}`;
+    },
+  };
+  return { clerk, banned, refuse };
+}
+
+const BOTH = [PAIR.idris.userId, PAIR.mira.userId].sort();
+const bannedNow = (clerk: ReturnType<typeof fakeClerk>) => [...clerk.banned].sort();
 
 function fakeStripe(site: FakeSite, log: string[]): WalkStripe {
   return {
@@ -356,14 +405,22 @@ function fakeLedger(site: FakeSite, log: string[]): WalkLedger {
   };
 }
 
-function fakePair(site: FakeSite, seeded: boolean, log: string[]): QaPairDoors {
+/** The pair's doors: ensure and place stand in for the database, and the hold is qaPair.ts's own over the stubbed Clerk. */
+function fakePair(site: FakeSite, seeded: boolean, log: string[], wrote: Array<[string, string]> = []): QaPairDoors {
   return {
     async ensure() {
       log.push("ensure");
       return PAIR;
     },
-    async reset() {
-      log.push("reset");
+    async open(pair) {
+      const hold = await Q.openQaPair(pair);
+      return {
+        ...hold,
+        wrote(step, reportId) {
+          wrote.push([step, reportId]);
+          hold.wrote(step, reportId);
+        },
+      };
     },
     async place(_pair, step) {
       log.push(`place ${step}`);
@@ -380,31 +437,51 @@ interface Walked {
   verdict: QaWalkVerdict;
   site: FakeSite;
   log: string[];
+  clerk: ReturnType<typeof fakeClerk>;
+  /** What the hold kept for the seed: each stored step and the report its write answered. */
+  wrote: Array<[string, string]>;
 }
 
-async function walk(mode: "deploy" | "release", options: { seeded?: boolean; site?: FakeSite; signal?: AbortSignal } = {}): Promise<Walked> {
+interface WalkOptions {
+  seeded?: boolean;
+  site?: FakeSite;
+  signal?: AbortSignal;
+  browser?: WalkBrowser;
+  /** Set on the stubbed Clerk before the walk starts. */
+  refuse?: { ban?: string; unban?: string };
+}
+
+async function walk(mode: "deploy" | "release", options: WalkOptions = {}): Promise<Walked> {
   const site = options.site ?? new FakeSite();
   const log: string[] = [];
-  const verdict = await W.runQaWalk({
-    mode,
-    signal: options.signal,
-    deps: {
-      env: STAGING,
-      browser: fakeBrowser(site),
-      stripe: fakeStripe(site, log),
-      ledger: fakeLedger(site, log),
-      pair: fakePair(site, options.seeded ?? true, log),
-      times: TIMES,
-      sleep: async () => undefined,
-    },
-  });
-  return { verdict, site, log };
+  const wrote: Array<[string, string]> = [];
+  const clerk = fakeClerk(log);
+  Object.assign(clerk.refuse, options.refuse);
+  const restore = Q.setQaClerk(clerk.clerk);
+  try {
+    const verdict = await W.runQaWalk({
+      mode,
+      signal: options.signal,
+      deps: {
+        env: STAGING,
+        browser: options.browser ?? fakeBrowser(site),
+        stripe: fakeStripe(site, log),
+        ledger: fakeLedger(site, log),
+        pair: fakePair(site, options.seeded ?? true, log, wrote),
+        times: TIMES,
+        sleep: async () => undefined,
+      },
+    });
+    return { verdict, site, log, clerk, wrote };
+  } finally {
+    restore();
+  }
 }
 
 const statusOf = (verdict: QaWalkVerdict) => Object.fromEntries(verdict.steps.map((step) => [step.id, step.status]));
 
 test("a deploy's walk on a stored seed runs the list in its order: the live steps pass, the stored ones are the seed's", async () => {
-  const { verdict, site, log } = await walk("deploy", { seeded: true });
+  const { verdict, site, log, clerk, wrote } = await walk("deploy", { seeded: true });
   assert.deepEqual(verdict.findings, []);
   assert.equal(verdict.status, "pass");
   assert.deepEqual(verdict.steps.map((step) => step.id), STEPS.map((step) => step.id));
@@ -422,15 +499,21 @@ test("a deploy's walk on a stored seed runs the list in its order: the live step
   // The refund took the five unused credits back; the plan opened, renewed a year on, and closed at the end it was set to.
   assert.equal(site.purchases.size, 2);
   assert.equal(site.plan, null);
+  // walkOnce put the pair back at the walk's start, so the walk resets nothing (B-39). Both bans lift before the first
+  // token, each reader's token is made as they sign in, and both are banned again before the clock goes.
   assert.deepEqual(log.filter((line) => !line.startsWith("place")), [
-    "ensure", "reset", "make clock", "make customer on clock_test_1", `use cus_test_1 for ${PAIR.mira.userId}`,
-    "refund", "advance", "cancel", "advance", "delete clock_test_1", `forget cus_test_1 for ${PAIR.mira.userId}`,
+    "ensure", "unban mira", "unban idris", "token mira",
+    "make clock", "make customer on clock_test_1", `use cus_test_1 for ${PAIR.mira.userId}`,
+    "token idris", "refund", "advance", "cancel", "advance",
+    "ban mira", "ban idris", "delete clock_test_1", `forget cus_test_1 for ${PAIR.mira.userId}`,
   ]);
+  assert.deepEqual(bannedNow(clerk), BOTH);
+  assert.deepEqual(wrote, [], "a deploy's walk writes nothing, so its hold keeps nothing for the seed");
   assert.deepEqual(modelCalls, []);
 });
 
 test("with no seed yet, the stored steps and every step that reads their reports wait for the first Release", async () => {
-  const { verdict, site, log } = await walk("deploy", { seeded: false });
+  const { verdict, site, log, clerk } = await walk("deploy", { seeded: false });
   assert.equal(verdict.status, "unseeded");
   assert.deepEqual(verdict.findings, []);
   const status = statusOf(verdict);
@@ -444,11 +527,12 @@ test("with no seed yet, the stored steps and every step that reads their reports
   // Idris still holds the gift with no report to spend it, so the 402 waits too and the walk asks to write nothing.
   assert.deepEqual(site.paid, []);
   assert.ok(log.includes("delete clock_test_1"));
+  assert.deepEqual(bannedNow(clerk), BOTH);
   assert.deepEqual(modelCalls, []);
 });
 
-test("a Release's walk writes each stored step once, for real, and never copies a seed", async () => {
-  const { verdict, site, log } = await walk("release");
+test("a Release's walk writes each stored step once, for real, never copies a seed, and its hold keeps those three reports alone for the seed", async () => {
+  const { verdict, site, log, clerk, wrote } = await walk("release");
   assert.deepEqual(verdict.findings, []);
   assert.equal(verdict.status, "pass");
   for (const id of STORED) assert.equal(statusOf(verdict)[id], "pass", id);
@@ -456,6 +540,12 @@ test("a Release's walk writes each stored step once, for real, and never copies 
   assert.equal(log.some((line) => line.startsWith("place")), false);
   // Mira's own report and the pair took two of her credits; Idris's took the gifted one.
   assert.deepEqual([site.balance.mira.used, site.balance.idris], [2, { available: 0, used: 1, held: 0 }]);
+  // Each the report its step's own write answered: storeQaSeed keeps these and no other.
+  const reports = [...site.reports.values()];
+  const natalOf = (role: Role) => reports.find((report) => report.owner === role && report.type === "natal")?.id;
+  assert.equal(reports.length, 3);
+  assert.deepEqual(wrote, [["own-report", natalOf("mira")], ["idris-report", natalOf("idris")], ["pair", reports.find((report) => report.type === "compatibility")?.id]]);
+  assert.deepEqual(bannedNow(clerk), BOTH);
 });
 
 test("the first step that fails stops the rest, and its finding holds no email, token, link or Clerk id", async () => {
@@ -472,7 +562,7 @@ test("the first step that fails stops the rest, and its finding holds no email, 
         "with eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyXzIifQ.c2lnbmF0dXJlLXNpZ25hdHVyZQ and sk_test_51NfakeKeyForTheWalk",
     },
   };
-  const { verdict, log } = await walk("deploy", { site });
+  const { verdict, log, clerk } = await walk("deploy", { site });
   assert.equal(verdict.status, "fail");
   const status = statusOf(verdict);
   assert.deepEqual([status["sign-in"], status.buy, status["own-report"], status.gift], ["pass", "pass", "stored", "fail"]);
@@ -485,6 +575,9 @@ test("the first step that fails stops the rest, and its finding holds no email, 
   assert.equal(site.signedIn.idris, false);
   assert.deepEqual(site.paid, []);
   assert.ok(log.includes("delete clock_test_1"));
+  // No token was made for him, and both are banned again all the same.
+  assert.deepEqual(log.filter((line) => /^(unban|token|ban) /.test(line)), ["unban mira", "unban idris", "token mira", "ban mira", "ban idris"]);
+  assert.deepEqual(bannedNow(clerk), BOTH);
 
   const said = JSON.stringify(verdict);
   for (const leak of [/@/, /https?:/, /user_[A-Za-z0-9]{6}/, /eyJ/, /sk_test_/, /a1B2c3D4/, /q7R8s9T0/, /mystarsdecoded/]) {
@@ -509,12 +602,13 @@ test("an email that wasn't delivered is a finding on its step, and the walk stil
 test("a page that asks on its own for a route that writes or reads ahead is stopped, and its step fails", async () => {
   const site = new FakeSite();
   site.pageAsks = { role: "idris", screen: /^\/report\//, method: "GET", path: "/api/timeline/now?range=six-months" };
-  const { verdict } = await walk("deploy", { site });
+  const { verdict, clerk } = await walk("deploy", { site });
   assert.equal(verdict.status, "fail");
   // Idris's first report screen is his own, in the idris-report step.
   assert.equal(statusOf(verdict)["idris-report"], "fail");
   assert.match(verdict.findings[0].detail, /asked for \/api\/timeline\/\*, which a walk never lets through/);
   assert.equal(statusOf(verdict).share, "not_run");
+  assert.deepEqual(bannedNow(clerk), BOTH);
 });
 
 test("the door: a deploy's walk writes once, at the 402, and nothing else that spends gets through on either walk", () => {
@@ -563,7 +657,7 @@ test("no Chromium is unconfigured: nothing is asked of the pair, Stripe or the b
       env: STAGING,
       browser: absent,
       stripe: fakeStripe(new FakeSite(), asked),
-      pair: { ensure: refuse("ensure"), reset: refuse("reset"), place: refuse("place") },
+      pair: { ensure: refuse("ensure"), open: refuse("open"), place: refuse("place") },
     },
   });
   assert.equal(verdict.status, "unconfigured");
@@ -588,7 +682,10 @@ test("a pair that can't be made ready fails the first step, and a stopped walk s
         ensure: async () => {
           throw new Error(`Clerk refused ${PAIR.mira.email}`);
         },
-        reset: async () => undefined,
+        // Nothing found means nothing to open, and so nothing to ban again.
+        open: async () => {
+          throw new Error("a pair that was never found was opened");
+        },
         place: async () => null,
       },
       times: TIMES,
@@ -603,10 +700,11 @@ test("a pair that can't be made ready fails the first step, and a stopped walk s
 
   const stop = new AbortController();
   stop.abort();
-  const { verdict: stopped } = await walk("deploy", { signal: stop.signal });
+  const { verdict: stopped, clerk } = await walk("deploy", { signal: stop.signal });
   assert.equal(stopped.status, "fail");
   assert.equal(statusOf(stopped)["sign-in"], "fail");
   assert.match(stopped.findings[0].detail, /stopped before it finished/);
+  assert.deepEqual(bannedNow(clerk), BOTH);
 });
 
 test("the walk refuses off staging before it asks anyone anything", async () => {
@@ -618,13 +716,111 @@ test("the walk refuses off staging before it asks anyone anything", async () => 
         deps: {
           env: env as NodeJS.ProcessEnv,
           browser: { open: async () => { asked.push("browser"); throw new Error("opened"); } },
-          pair: { ensure: async () => { asked.push("ensure"); return PAIR; }, reset: async () => undefined, place: async () => null },
+          pair: {
+            ensure: async () => { asked.push("ensure"); return PAIR; },
+            open: async () => { asked.push("open"); throw new Error("opened"); },
+            place: async () => null,
+          },
         },
       }),
       /refused on (production|development)/,
     );
     assert.deepEqual(asked, []);
   }
+});
+
+test("both accounts are banned again after a walk whose browser never opened, and after an open Clerk refused part way", async () => {
+  const crashed: WalkBrowser = {
+    open: async () => {
+      throw new Error("Chromium crashed as it started");
+    },
+  };
+  const noBrowser = await walk("deploy", { browser: crashed });
+  assert.equal(noBrowser.verdict.status, "fail");
+  assert.match(noBrowser.verdict.steps.find((step) => step.id === "sign-in")?.reason ?? "", /Chromium crashed/);
+  assert.deepEqual(noBrowser.log, ["ensure", "unban mira", "unban idris", "ban mira", "ban idris"]);
+  assert.deepEqual(bannedNow(noBrowser.clerk), BOTH);
+
+  // Mira's ban lifted and Idris's didn't: no token is made, the browser never opens, and Mira is banned again.
+  const opened: Guard[] = [];
+  const site = new FakeSite();
+  const halfOpen = await walk("deploy", { site, browser: fakeBrowser(site, opened), refuse: { unban: PAIR.idris.userId } });
+  assert.equal(halfOpen.verdict.status, "fail");
+  assert.equal(statusOf(halfOpen.verdict)["sign-in"], "fail");
+  assert.equal(opened.length, 0);
+  assert.deepEqual(halfOpen.log, ["ensure", "unban mira", "unban idris", "ban mira", "ban idris"]);
+  assert.deepEqual(bannedNow(halfOpen.clerk), BOTH);
+  assert.doesNotMatch(JSON.stringify(halfOpen.verdict), /user_[A-Za-z0-9]{6}/);
+});
+
+test("a ban Clerk refuses as the walk ends is a finding that names no account, and the walk's status still stands on its steps", async () => {
+  const { verdict, log, clerk } = await walk("deploy", { refuse: { ban: PAIR.mira.userId } });
+  assert.equal(verdict.status, "pass");
+  assert.deepEqual(verdict.findings.map((finding) => [finding.step, finding.title]), [[null, "Clerk failed 1 of 2 calls"]]);
+  assert.doesNotMatch(JSON.stringify(verdict), /user_[A-Za-z0-9]{6}|@/);
+  // Idris is banned all the same, and the clock still goes after.
+  assert.deepEqual(bannedNow(clerk), [PAIR.idris.userId]);
+  assert.ok(log.indexOf("delete clock_test_1") > log.indexOf("ban idris"));
+});
+
+test("the browser's sign-in tokens are made for the pair's two addresses alone", async () => {
+  const site = new FakeSite();
+  const asked: string[] = [];
+  const strict: WalkBrowser = {
+    async open(guard, tickets) {
+      for (const email of ["someone@example.com", PAIR.mira.email.toUpperCase()]) {
+        await tickets(email).then(
+          () => asked.push(`made for ${email}`),
+          (err: Error) => asked.push(err.message),
+        );
+      }
+      return fakeBrowser(site).open(guard, tickets);
+    },
+  };
+  const { verdict, log } = await walk("deploy", { site, browser: strict });
+  assert.equal(verdict.status, "pass");
+  assert.deepEqual(asked, ["only the QA pair signs in on a walk", "only the QA pair signs in on a walk"]);
+  assert.deepEqual(log.filter((line) => line.startsWith("token")), ["token mira", "token idris"]);
+});
+
+test("a page signs in with the ticket the walk made for that address, once it stands on the site, and hands Clerk's helper nothing else", async () => {
+  const done: string[] = [];
+  const stub = {
+    async goto(url: string) {
+      done.push(`open ${url}`);
+      return null;
+    },
+    async waitForFunction() {
+      done.push("wait for the account");
+      return null;
+    },
+  };
+  const page = stub as unknown as ConstructorParameters<typeof ChromiumPage>[0];
+  const handed: unknown[] = [];
+  const signInWith: TicketSignIn = async (opts) => {
+    done.push("sign in");
+    handed.push(opts);
+  };
+  const tickets: SignInTickets = async (email) => {
+    done.push(`ticket for ${email}`);
+    return "ticket-mira-1";
+  };
+  await new ChromiumPage(page, WEB, signInWith, tickets).signIn(PAIR.mira.email);
+  assert.deepEqual(done, [`open ${WEB}/`, `ticket for ${PAIR.mira.email}`, "sign in", "wait for the account"]);
+  // The ticket strategy and its ticket, and nothing else.
+  assert.deepEqual(handed, [{ page, signInParams: { strategy: "ticket", ticket: "ticket-mira-1" } }]);
+
+  // No ticket, no sign-in: Clerk's helper is never asked.
+  const noTicket = new ChromiumPage(page, WEB, signInWith, async () => {
+    throw new Error("the walk has let the pair go, so no sign-in token is made");
+  });
+  await assert.rejects(noTicket.signIn(PAIR.mira.email), /let the pair go/);
+  assert.equal(handed.length, 1);
+
+  // A page Clerk never signs in fails its step in plain words.
+  const neverIn = { ...stub, waitForFunction: async () => { throw new Error("page.waitForFunction: Timeout 30000ms exceeded."); } };
+  const stuck = new ChromiumPage(neverIn as unknown as typeof page, WEB, signInWith, tickets);
+  await assert.rejects(stuck.signIn(PAIR.mira.email), /Clerk never signed the page in with the walk's sign-in token/);
 });
 
 test("findings are cleaned by the value wherever it sits, never by the key it came under", () => {
