@@ -71,7 +71,10 @@ on paper; empty 9th, Venus uneasy in Aries in the 3rd, big ideas come from every
    scenes per sign, planet and house (party, group chat, work meeting, family dinner, first date), a few picked per
    chart, never the whole list; a warn-class check for a scene reused word for word. Her whole profile (114 videos,
    transcribed 2026-10-07) is studied for scene types and planet framings, kept out of the repo (her text, public repo);
-   her lines never enter a prompt. Saturn and Jupiter get the same crisp treatment: used everywhere today, never said
+   her lines never enter a prompt. Study: `docs/annex/explain-voice-study.md` (24 scene types, a crisp line and scene
+   per planet, sign and house, her 45 observations sorted 16 true, 15 tradition-only, 14 off-doctrine, five writer
+   rules). The house picks the scene's setting; one small object or number per scene; party and group project at most
+   once per report. Saturn and Jupiter get the same crisp treatment: used everywhere today, never said
    plainly (Audrey: "you can carry a frightening amount alone" with no Saturn behind it).
 11. **Chiron gets a sentence**: read by house, the sore spot then the gift, in possibility words.
 12. **Posts**: new Content board pillar **Explained**, ten ideas added as Idea (done 2026-10-07).
