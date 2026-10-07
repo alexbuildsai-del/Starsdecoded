@@ -6,6 +6,7 @@ import {
   CHECKOUT_LINES,
   DEFAULT_RETURN,
   RETURN_TO,
+  SESSION_DAY_MS,
   WAIT_MS,
   backLabel,
   backLine,
@@ -19,6 +20,7 @@ import {
   doneHref,
   doneView,
   payLabel,
+  replacedCheckout,
   startRefusal,
   startRetries,
   stepName,
@@ -169,6 +171,36 @@ describe("the item's lines", () => {
     expect([503, 429, 500, undefined].map((status) => startRetries(status, undefined))).toEqual([true, true, true, true]);
     expect(startRetries(409, "already_subscribed")).toBe(false);
     expect(startRetries(400, "bad_return")).toBe(false);
+  });
+});
+
+describe("the lines around Stripe's fields (B-34, B-56)", () => {
+  it("names what the Payment Element lists under the wallets: other ways to pay, never the card alone", () => {
+    expect(CHECKOUT_LINES.orAnotherWay).toBe("or pay another way");
+    expect(Object.values(CHECKOUT_LINES)).not.toContain("or pay by card");
+  });
+
+  it("tells a tab a newer checkout replaced, in checkout's own words, and gives the way on", () => {
+    expect([CHECKOUT_LINES.replaced, CHECKOUT_LINES.startAgain]).toEqual([
+      "A newer checkout replaced this one.",
+      "Start checkout again",
+    ]);
+    // R16-29: the line speaks of checkout, never of credits or a report.
+    expect(CHECKOUT_LINES.replaced).toMatch(/\bcheckout\b/);
+    expect(`${CHECKOUT_LINES.replaced} ${CHECKOUT_LINES.startAgain}`).not.toMatch(/credit|report|[—;!]/);
+    expect(checkoutHref("timeline_month", "/dashboard/account")).toBe("/checkout?item=timeline_month&returnTo=%2Fdashboard%2Faccount");
+  });
+
+  it("reads a failed payment as replaced only for a plan whose purchase the server reads expired within the session's day", () => {
+    const young = 5 * 60_000;
+    expect(replacedCheckout("timeline_month", { status: "expired" }, young)).toBe(true);
+    expect(replacedCheckout("timeline_year", { status: "expired" }, SESSION_DAY_MS - 1)).toBe(true);
+    expect(replacedCheckout("timeline_month", { status: "expired" }, SESSION_DAY_MS), "Stripe's own day ran out").toBe(false);
+    expect(replacedCheckout("couple", { status: "expired" }, young), "a bundle is never replaced").toBe(false);
+    for (const status of ["open", "failed", "granted", "refunded"] as const) {
+      expect(replacedCheckout("timeline_month", { status }, young), status).toBe(false);
+    }
+    expect(replacedCheckout("timeline_month", null, young), "a purchase the page couldn't read").toBe(false);
   });
 });
 

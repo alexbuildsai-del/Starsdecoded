@@ -18,7 +18,7 @@ import type {
   StripeCheckoutPaymentElementOptions,
   StripeExpressCheckoutElementConfirmEvent,
 } from "@stripe/stripe-js";
-import { useCreateCheckout, type CheckoutStarted } from "@workspace/api-client-react";
+import { getCheckout, useCreateCheckout, type CheckoutStarted } from "@workspace/api-client-react";
 import type { CatalogueItemId } from "@workspace/commerce";
 import { StatusDots } from "@/components/StatusDots";
 import { Wordmark } from "@/components/Wordmark";
@@ -28,10 +28,13 @@ import {
   backLabel,
   campaignLine,
   checkoutChoices,
+  checkoutHref,
   checkoutItem,
   checkoutQuery,
   doneHref,
+  isPlanId,
   payLabel,
+  replacedCheckout,
   startRefusal,
   startRetries,
   stepName,
@@ -107,17 +110,18 @@ function interFonts(): CustomFontSource[] {
   ];
 }
 
+// ADR-346: Link is off here as on the session, so no button or box of Link's asks for a phone number before Pay.
 const EXPRESS: StripeCheckoutExpressCheckoutElementOptions = {
   buttonHeight: 44,
   buttonTheme: { applePay: "black", googlePay: "black" },
   buttonType: undefined,
   layout: { maxColumns: 2, maxRows: 1, overflow: "auto" },
-  paymentMethodOrder: ["apple_pay", "google_pay", "link"],
-  paymentMethods: { applePay: "auto", googlePay: "auto", link: "auto", amazonPay: "never", paypal: "never", klarna: "never" },
+  paymentMethodOrder: ["apple_pay", "google_pay"],
+  paymentMethods: { applePay: "auto", googlePay: "auto", link: "never", amazonPay: "never", paypal: "never", klarna: "never" },
 };
 
 // The wallets have their buttons above, so the card form doesn't offer them twice.
-const PAYMENT: StripeCheckoutPaymentElementOptions = { wallets: { applePay: "never", googlePay: "never" } };
+const PAYMENT: StripeCheckoutPaymentElementOptions = { wallets: { applePay: "never", googlePay: "never", link: "never" } };
 
 const stripes = new Map<string, Promise<Stripe | null>>();
 
@@ -132,7 +136,7 @@ function stripeFor(key: string): Promise<Stripe | null> {
 }
 
 function hasWallet(methods: AvailablePaymentMethods | undefined): boolean {
-  return Boolean(methods && (methods.applePay || methods.googlePay || methods.link));
+  return Boolean(methods && (methods.applePay || methods.googlePay));
 }
 
 interface StartError {
@@ -198,6 +202,15 @@ type Fields = "idle" | "loading" | "ready" | "failed";
 interface Session {
   item: CatalogueItemId;
   started: CheckoutStarted;
+  /** When it reached the page, so a session past Stripe's day is never read as replaced. */
+  at: number;
+}
+
+/** Whether a newer plan checkout closed this session, as the server has its purchase (ADR-359). */
+async function wasReplaced(session: Session): Promise<boolean> {
+  if (!isPlanId(session.item)) return false;
+  const state = await getCheckout(session.started.purchaseId).catch(() => null);
+  return replacedCheckout(session.item, state, Date.now() - session.at);
 }
 
 export default function CheckoutPage() {
@@ -229,6 +242,7 @@ export default function CheckoutPage() {
   const [startError, setStartError] = useState<StartError | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [replaced, setReplaced] = useState(false);
 
   // Read by Stripe's callbacks and by a session that lands late, which must see the page as it is by then.
   const latest = useRef({ selected, ticked });
@@ -256,7 +270,7 @@ export default function CheckoutPage() {
         onSuccess: (started) => {
           // A session made for an item the reader has since changed is left to expire on its own.
           if (latest.current.selected !== item) return;
-          setSession({ item, started });
+          setSession({ item, started, at: Date.now() });
           // The session's amount is the server's word on this request, so a price that moved since the page loaded is read again.
           if (started.amountCents !== expected) void refetch();
         },
@@ -321,6 +335,7 @@ export default function CheckoutPage() {
   }, [clientSecret, publishableKey]);
 
   const errorLine = useRef<HTMLParagraphElement>(null);
+  const newerCheckout = useRef<HTMLAnchorElement>(null);
   const payingNow = useRef(false);
   const accountEmail = user?.primaryEmailAddress?.emailAddress ?? null;
 
@@ -330,6 +345,15 @@ export default function CheckoutPage() {
     setPaying(false);
     setPayError(line);
     requestAnimationFrame(() => errorLine.current?.focus());
+  };
+
+  // R14-12: a checkout a newer one replaced can't be paid, so focus goes to the way on, not to Pay.
+  const failOrReplaced = async (session: Session, line: string) => {
+    if (!(await wasReplaced(session))) return fail(line);
+    payingNow.current = false;
+    setPaying(false);
+    setReplaced(true);
+    requestAnimationFrame(() => newerCheckout.current?.focus());
   };
 
   useLayoutEffect(() => {
@@ -347,7 +371,7 @@ export default function CheckoutPage() {
           const loaded = await pending;
           if (loaded.type === "error") {
             express?.paymentFailed({ reason: "fail" });
-            return fail(loaded.error.message || CHECKOUT_LINES.payFailed);
+            return await failOrReplaced(here, loaded.error.message || CHECKOUT_LINES.payFailed);
           }
           const result = await loaded.actions.confirm({
             redirect: "if_required",
@@ -355,11 +379,11 @@ export default function CheckoutPage() {
             // The session's Customer carries the account's email; this covers a session that came without it.
             ...(!sessionEmail && accountEmail ? { email: accountEmail } : {}),
           });
-          if (result.type === "error") return fail(result.error.message || CHECKOUT_LINES.payFailed);
+          if (result.type === "error") return await failOrReplaced(here, result.error.message || CHECKOUT_LINES.payFailed);
           // In place of this page: Back from the step that asked never reopens a paid checkout.
           navigate(doneHref(here.started.purchaseId), { replace: true });
         } catch {
-          fail(CHECKOUT_LINES.payFailed);
+          await failOrReplaced(here, CHECKOUT_LINES.payFailed);
         }
       })();
     };
@@ -377,7 +401,7 @@ export default function CheckoutPage() {
   };
 
   const amountCents = here ? here.started.amountCents : view.cents;
-  const canPay = ticked && here !== null && fields === "ready" && !paying;
+  const canPay = ticked && here !== null && fields === "ready" && !paying && !replaced;
   const waiting = ticked && !here && !startError && (starting || options.isPending);
   const lineNow = payError ?? startError?.line ?? null;
 
@@ -402,7 +426,7 @@ export default function CheckoutPage() {
             <BackLine returnTo={returnTo} />
           </section>
         ) : (
-          <fieldset className="grid gap-2" disabled={paying}>
+          <fieldset className="grid gap-2" disabled={paying || replaced}>
             <legend className="sr-only">{view.plan ? CHECKOUT_LINES.choosePlan : CHECKOUT_LINES.chooseBundle}</legend>
             {views.map((one) => (
               <label
@@ -508,12 +532,12 @@ export default function CheckoutPage() {
                 </button>
               </p>
             )}
-            {/* Unticked, the wallets go with Pay: a wallet's own sheet would otherwise pay without the box. */}
-            <div ref={expressBox} className={cn((!ticked || wallets === false) && "hidden")} />
-            {ticked && wallets === true && fields === "ready" && (
+            {/* Unticked or replaced, the wallets go with Pay: a wallet's own sheet would otherwise pay without the box. */}
+            <div ref={expressBox} className={cn((!ticked || wallets === false || replaced) && "hidden")} />
+            {ticked && wallets === true && fields === "ready" && !replaced && (
               <p className="flex items-center gap-3 text-xs text-[#9AA3B5]">
                 <span aria-hidden className="h-px flex-1 bg-[#242C3B]" />
-                {CHECKOUT_LINES.orCard}
+                {CHECKOUT_LINES.orAnotherWay}
                 <span aria-hidden className="h-px flex-1 bg-[#242C3B]" />
               </p>
             )}
@@ -535,11 +559,20 @@ export default function CheckoutPage() {
           >
             {paying ? <StatusDots label={CHECKOUT_LINES.paying} /> : payLabel(amountCents)}
           </button>
-          {/* MB-225 provisional: the plan renews, said as plain text under Pay beside its box. */}
+          {/* MB-225 decided, ADR-361: the plan renews, said as plain text under Pay beside its box. */}
           {view.renewal && <p className={MUTED}>{view.renewal}</p>}
           <p ref={errorLine} tabIndex={-1} role="alert" className="text-[13.5px] leading-snug text-[#E8EBF2] empty:hidden focus:outline-none">
             {lineNow}
           </p>
+          {replaced && here && (
+            <p role="alert" className="text-[13.5px] leading-snug text-[#E8EBF2]">
+              {CHECKOUT_LINES.replaced}{" "}
+              {/* A whole new page, so the new checkout starts unticked under its own box. */}
+              <a ref={newerCheckout} href={checkoutHref(here.item, returnTo)} className={LINK}>
+                {CHECKOUT_LINES.startAgain}
+              </a>
+            </p>
+          )}
           {startError?.retry && !paying && (
             <p>
               <button type="button" onClick={() => setStartError(null)} className={cn(LINK, "text-[13px]")}>

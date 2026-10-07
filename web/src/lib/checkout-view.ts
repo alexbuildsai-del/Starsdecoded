@@ -125,7 +125,7 @@ export function checkoutItem(id: CatalogueItemId, priced?: PriceItem | null): Ch
   const fullCents = fromServer?.fullCents ?? row.cents;
   const campaign = fromServer?.campaign && cents < fullCents ? fromServer.campaign : null;
   if ("interval" in row) {
-    // MB-225 provisional: the plan's own box, and its renewal line as plain text under Pay, wait on the Owner's answer.
+    // MB-225 decided, ADR-361: the plan's own box, and its renewal line as plain text under Pay, as R17 built them.
     return {
       id,
       plan: true,
@@ -190,7 +190,8 @@ export const CHECKOUT_LINES = {
   choosePlan: "Pick a plan",
   tickFirst: "Tick the box above to see the ways to pay.",
   waysToPay: "Ways to pay",
-  orCard: "or pay by card",
+  // Under it the Dashboard's methods: the card and whatever else it turns on, so the line names no one method.
+  orAnotherWay: "or pay another way",
   paying: "Paying",
   foot: "Card details go to Stripe, never to us.",
   refunds: "Refunds",
@@ -206,7 +207,24 @@ export const CHECKOUT_LINES = {
   alreadySubscribed: "You already have Timeline. You can manage it on your Account page.",
   failed: "We couldn't start the payment. Try again in a minute.",
   payFailed: "The payment didn't go through. Try again, or use another card.",
+  replaced: "A newer checkout replaced this one.",
+  startAgain: "Start checkout again",
 } as const;
+
+/** Stripe closes a session a day after it opens, so a plan's that closed sooner was closed by a newer one. */
+export const SESSION_DAY_MS = 24 * 60 * 60_000;
+
+/**
+ * Whether a payment that failed was on a checkout a newer one replaced (ADR-359): only a plan's is, and the server
+ * then reads its purchase expired within the day its session lasts.
+ */
+export function replacedCheckout(
+  item: CatalogueItemId,
+  state: Pick<CheckoutState, "status"> | null | undefined,
+  ageMs: number,
+): boolean {
+  return isPlanId(item) && state?.status === "expired" && ageMs < SESSION_DAY_MS;
+}
 
 /** The page's words for a refusal that came without the API's own line, a dropped call's among them. */
 export function startRefusal(status: number | undefined, code: string | undefined): string {
