@@ -272,6 +272,22 @@ test("brainDiff: the pair brain is a change that adds one pair to the lab, and t
   assert.ok(BRAIN_PATHS.includes("packages/engine/"));
 });
 
+test("the brain lists, pinned: the pair's compute is the brain and the pair brain, so a change to it runs the Release's lab with its pair", () => {
+  assert.deepEqual(BRAIN_PATHS, [
+    "api/src/prompts/", "api/src/lib/models.ts", "api/src/lib/aiInterpretation.ts", "api/src/lib/traditional.ts",
+    "api/src/lib/chartCalculation.ts", "packages/engine/",
+    "api/src/lib/pairInterpretation.ts", "api/src/lib/pairBrief.ts", "api/src/lib/synastryCompute.ts", "api/src/lib/overlays.ts",
+  ]);
+  assert.deepEqual(PAIR_BRAIN_PATHS, [
+    "api/src/prompts/pair/", "api/src/lib/pairInterpretation.ts", "api/src/lib/pairBrief.ts",
+    "api/src/lib/synastryCompute.ts", "api/src/lib/overlays.ts",
+  ]);
+  // release.ts runs the lab only when the brain changed, so a pair path outside the brain would add its pair to no lab.
+  for (const path of [...PAIR_BRAIN_PATHS.filter((p) => !p.endsWith("/")), "api/src/prompts/pair/index.ts"]) {
+    assert.deepEqual(brainDiff([path]), { brainChanged: true, pairChanged: true, files: [path] }, path);
+  }
+});
+
 test("changedFiles: an empty diff is a list of nothing, not an unknown one; one file under the cap is the list", async () => {
   const listing = (files: unknown) => githubApi((async () => new Response(JSON.stringify({ files }), { status: 200 })) as unknown as typeof fetch);
   assert.deepEqual(await listing([]).changedFiles("abc", "def"), []);

@@ -221,7 +221,7 @@ function mondayCards(week: MiraWeekFile, order: DateOrder): ContactView[] {
 function cycleViews(cycles: readonly MiraWeekCycle[], rounds: readonly { id: CycleId; progress: number }[], today: Day): CycleView[] {
   return cycles.map((c) => {
     const same = cycles.filter((o) => o.id === c.id);
-    const before = same.filter((o) => cycleDay(o) < cycleDay(c)).pop();
+    const before = same.filter((o) => cycleDay(o) < cycleDay(c) && cycleDay(o) < today).pop();
     return {
       key: c.key, id: c.id, name: c.name, word: c.word, age: c.age, exact: c.exact, start: c.start, end: c.end, repeats: c.repeats,
       today, progress: rounds.find((r) => r.id === c.id)?.progress ?? null,

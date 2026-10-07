@@ -124,6 +124,15 @@ echo "==> 3o/7 The payment tables"
 # on existing tables went in at step 1. Idempotent.
 pnpm --filter @workspace/db exec tsx scripts/migrate-add-payments.ts
 
+echo "==> 3p/7 The job queue, Timeline's setup and the walk's pictures"
+# jobs, timeline_setups and qa_shots: the queue the API's worker takes jobs from (ADR-357), each
+# subscriber's Timeline setup (ADR-302, 362) and the staging walk's pictures (ADR-360). The push above
+# usually makes all three first. This step still runs because the push is only the safety net (step 2)
+# and the worker reads jobs as soon as the API starts: the script holds the three tables by the
+# schema's own names, so whichever makes them the other finds no drift, and all three exist before the
+# API starts. No existing table changes, so step 1 has nothing new. Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-jobs.ts
+
 echo "==> 4/7 Drop dead V1 prompt overrides"
 # Removes prompt_templates rows for the natal keys deleted from
 # promptDefaults.ts. Idempotent.

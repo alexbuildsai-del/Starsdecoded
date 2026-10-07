@@ -1,7 +1,7 @@
 /**
  * Timeline's readings at their edges (R16-24; ADR-84, 85, 199, 210; readings 7, 8, 10): what a reading builds on when
- * the report is thin or odd, a write that races another or outlives its row, a stale basis rewritten, the queue's order
- * and limits at the spend gate, a failed row's line, what a failure may put in a log, and what forgetting removes.
+ * the report is thin or odd, a write that races another or outlives its row, a stale basis rewritten, a setup job's
+ * write at the spend gate, a failed row's line, what a failure may put in a log, and what forgetting removes.
  * `timelineReadings.test.ts` has the main cases. The parts that need rows run on a scratch Postgres when
  * WALK_DATABASE_URL names a bootstrapped one and skip, saying why, without it.
  */
@@ -199,17 +199,14 @@ test("a model that cannot be reached is not a lost attempt: the write rejects wi
   }
 });
 
-// --- the queue's limits, before any row ------------------------------------------------------------------------------
+// --- a setup job's write, before any row ------------------------------------------------------------------------------
 
-test("the queue writes nothing for no keys, a limit of 0 or less, or keys no row could hold", async () => {
+test("a setup job's write names no reading for a key no row could hold, before any row or call", async () => {
   answer(CLEAN);
   const mira = readerOf(MIRA);
-  const key = readable(mira)[0].key;
-  assert.deepEqual(await R.queueReadings(mira, []), []);
-  assert.deepEqual(await R.queueReadings(mira, [key], 0), []);
-  assert.deepEqual(await R.queueReadings(mira, [key], -1), []);
-  assert.deepEqual(await R.queueReadings(mira, [key], Number.NaN), []);
-  assert.deepEqual(await R.queueReadings(mira, ["", "x".repeat(81), 7 as unknown as string, null as unknown as string]), []);
+  for (const key of ["", "x".repeat(81), 7 as unknown as string, null as unknown as string]) {
+    assert.deepEqual(await R.writeQueuedReading(mira, key), { status: "unknown" }, String(key).slice(0, 10));
+  }
   assert.equal(asked.length, 0);
 });
 
@@ -266,7 +263,7 @@ if (SCRATCH) {
   });
 }
 
-/** The reader's events in the order the queue writes them: soonest day first, the key breaking a tie. */
+/** The reader's events soonest day first, the key breaking a tie, as a setup orders them. */
 const soonest = (reader: ReaderChart): string[] =>
   readable(reader).map((e) => e.key).sort((a, b) => a.slice(-8).localeCompare(b.slice(-8)) || a.localeCompare(b));
 
@@ -281,17 +278,17 @@ test("the spend gate's last allowed write and first refused one: spent equal to 
   await db.insert(spendLedgerTable).values({ day, kind: "timeline", costUsd: 5, calls: 1 }).onConflictDoUpdate({ target: [spendLedgerTable.day, spendLedgerTable.kind], set: { costUsd: 5 } });
   const prior = process.env.DAILY_SPEND_CAP_USD;
   try {
-    // The gate reads today's sum at most once a minute; asking it the same way means the cap and the queue see one figure.
+    // The gate reads today's sum at most once a minute; asking it the same way means the cap and the write see one figure.
     const spent = await spentTodayUsd();
     assert.ok(spent >= 5);
     const key = soonest(reader)[0];
     answer(CLEAN);
     process.env.DAILY_SPEND_CAP_USD = String(spent);
-    assert.deepEqual(await R.queueReadings(reader, [key]), [], "spent equals the cap: paused");
+    assert.deepEqual(await R.writeQueuedReading(reader, key), { status: "paused" }, "spent equals the cap: paused");
     assert.equal(asked.length, 0);
     assert.deepEqual(await rowsFor(reader.profileId), [], "and no row is claimed behind a paused day");
     process.env.DAILY_SPEND_CAP_USD = String(spent + 0.000001);
-    assert.deepEqual(await R.queueReadings(reader, [key]), [key], "one millionth of a dollar under the cap writes");
+    assert.deepEqual(await R.writeQueuedReading(reader, key), { status: "written" }, "one millionth of a dollar under the cap writes");
     assert.equal(asked.length, 1);
   } finally {
     if (prior === undefined) delete process.env.DAILY_SPEND_CAP_USD;
@@ -317,13 +314,13 @@ test("five opens at once write the reading once: one is ready, the rest are told
   assert.equal((await rowsFor(reader.profileId)).length, 1);
 });
 
-test("an open and the queue on the same key at once write it once, whichever claims first", { skip: NO_DB }, async () => {
+test("an open and a setup job's write on the same key at once write it once, whichever claims first", { skip: NO_DB }, async () => {
   const reader = await seedReader("race");
   const key = soonest(reader)[0];
   answer(CLEAN);
   fake.delays.timeline_reading = 100;
   try {
-    await Promise.all([R.openReading(reader, key), R.queueReadings(reader, [key])]);
+    await Promise.all([R.openReading(reader, key), R.writeQueuedReading(reader, key)]);
   } finally {
     delete fake.delays.timeline_reading;
   }
@@ -332,36 +329,30 @@ test("an open and the queue on the same key at once write it once, whichever cla
   assert.deepEqual([row.status, row.eventKey], ["ready", key]);
 });
 
-test("two queues at once over the same keys write each key once and between them no more than their limits", { skip: NO_DB }, async () => {
+test("two setup writes at once on the same keys write each key once: one writes, the other finds it held or kept", { skip: NO_DB }, async () => {
   const reader = await seedReader("twoqueues");
-  const keys = soonest(reader).slice(0, 5);
+  const keys = soonest(reader).slice(0, 3);
   answer(CLEAN);
   fake.delays.timeline_reading = 60;
   let both;
   try {
-    both = await Promise.all([R.queueReadings(reader, keys), R.queueReadings(reader, keys)]);
+    const writes = () => Promise.all(keys.map((key) => R.writeQueuedReading(reader, key)));
+    both = await Promise.all([writes(), writes()]);
   } finally {
     delete fake.delays.timeline_reading;
   }
   const [a, b] = both;
-  assert.ok(a.length <= 3 && b.length <= 3);
-  assert.deepEqual(a.filter((k) => b.includes(k)), [], "no key is claimed by both");
-  assert.equal(asked.length, a.length + b.length);
-  assert.equal((await rowsFor(reader.profileId)).length, a.length + b.length);
+  for (const [i, key] of keys.entries()) {
+    assert.deepEqual([a[i].status, b[i].status].filter((status) => status === "written"), ["written"], key);
+    assert.ok([a[i].status, b[i].status].every((status) => ["written", "held", "kept"].includes(status)), key);
+  }
+  assert.equal(asked.length, keys.length);
+  assert.equal((await rowsFor(reader.profileId)).length, keys.length);
+  assert.deepEqual(await R.writeQueuedReading(reader, keys[0]), { status: "kept" }, "the same key again, once kept, is left as it is");
+  assert.equal(asked.length, keys.length);
 });
 
-test("a bad key in front of good ones costs the queue nothing: it is skipped and the limit is still met", { skip: NO_DB }, async () => {
-  const reader = await seedReader("skipbad");
-  const good = soonest(reader).slice(0, 4);
-  answer(CLEAN);
-  // 19000101 sorts before every real day, so the queue meets it first.
-  const done = await R.queueReadings(reader, ["contact.saturn.square.ascendant.19000101", "contact.sun.-.-.-.bad", ...good]);
-  assert.deepEqual(done, good.slice(0, 3));
-  assert.equal(asked.length, 3);
-  assert.deepEqual(await R.queueReadings(reader, [good[0], good[0], good[0]]), [], "the same key three times is one key, already kept");
-});
-
-test("a reading kept on an old basis is written again by the queue, on the new one; one on the right basis is left alone", { skip: NO_DB }, async () => {
+test("a reading kept on an old basis is written again by a setup job, on the new one; one on the right basis is left alone", { skip: NO_DB }, async () => {
   const reader = await seedReader("qbasis");
   const [k0, k1] = soonest(reader);
   answer(CLEAN);
@@ -369,18 +360,19 @@ test("a reading kept on an old basis is written again by the queue, on the new o
   await R.openReading(reader, k1);
   const moved: ReaderChart = { ...reader, basis: `${reader.basis}-moved` };
   answer(ONE);
-  assert.deepEqual(await R.queueReadings(moved, [k0, k1]), [k0, k1], "both were written on another basis");
+  const rewrite = async () => [(await R.writeQueuedReading(moved, k0)).status, (await R.writeQueuedReading(moved, k1)).status];
+  assert.deepEqual(await rewrite(), ["written", "written"], "both were written on another basis");
   assert.equal(asked.length, 2);
   assert.deepEqual((await rowsFor(reader.profileId)).map((r) => r.basis), [moved.basis, moved.basis]);
   answer(TWO);
-  assert.deepEqual(await R.queueReadings(moved, [k0, k1]), []);
+  assert.deepEqual(await rewrite(), ["kept", "kept"]);
   assert.equal(asked.length, 0);
   const statuses = await R.readingStatuses(reader.profileId, [k0, k1], moved.basis);
   assert.deepEqual([...statuses.values()], [{ status: "ready", line: ONE.line }, { status: "ready", line: ONE.line }]);
   assert.deepEqual(await R.readingStatuses(reader.profileId, [k0, k1], reader.basis), new Map(), "nothing is shown on the basis it left");
 });
 
-test("the queue writes a write that died and leaves one still being written, one that failed and one that is kept", { skip: NO_DB }, async () => {
+test("a setup job writes a write that died and leaves one still being written, one that failed and one that is kept", { skip: NO_DB }, async () => {
   const reader = await seedReader("qstates");
   const [kept, fresh, died, failed] = soonest(reader);
   answer(CLEAN);
@@ -389,7 +381,9 @@ test("the queue writes a write that died and leaves one still being written, one
   await age(reader.profileId, died, "writing", 6);
   await age(reader.profileId, failed, "failed", 1);
   answer(ONE);
-  assert.deepEqual(await R.queueReadings(reader, [kept, fresh, died, failed]), [died]);
+  const outcomes = [];
+  for (const key of [kept, fresh, died, failed]) outcomes.push((await R.writeQueuedReading(reader, key)).status);
+  assert.deepEqual(outcomes, ["kept", "held", "written", "kept"]);
   assert.equal(asked.length, 1);
   const rows = new Map((await rowsFor(reader.profileId)).map((r) => [r.eventKey, r.status]));
   assert.deepEqual([rows.get(kept), rows.get(fresh), rows.get(died), rows.get(failed)], ["ready", "writing", "ready", "failed"]);
@@ -400,13 +394,13 @@ test("the queue writes a write that died and leaves one still being written, one
   assert.deepEqual(await R.readingStatuses(reader.profileId, [fresh]), new Map());
 });
 
-test("a key nothing on the chart reads leaves no row, however it is opened or queued", { skip: NO_DB }, async () => {
+test("a key nothing on the chart reads leaves no row, however it is opened or written", { skip: NO_DB }, async () => {
   const reader = await seedReader("norow");
   answer(CLEAN);
   const keys = ["contact.saturn.conjunction.ascendant.19000101", "contact.saturn.square.moon.20260530", "../../etc/passwd", "x".repeat(81), "cycle.saturn-return.19000101"];
   for (const key of keys) {
     assert.equal((await R.openReading(reader, key)).status, "unknown", key.slice(0, 30));
-    assert.deepEqual(await R.queueReadings(reader, [key]), [], key.slice(0, 30));
+    assert.deepEqual(await R.writeQueuedReading(reader, key), { status: "unknown" }, key.slice(0, 30));
   }
   assert.deepEqual(await rowsFor(reader.profileId), []);
   assert.equal(asked.length, 0);

@@ -2,6 +2,7 @@ src/app.test.ts
 src/middlewares/origin.test.ts
 src/middlewares/requireAccount.test.ts
 src/middlewares/session.test.ts
+src/middlewares/auth.test.ts
 src/lib/logger.test.ts
 src/lib/failureLog.test.ts
 src/lib/limits.test.ts
@@ -37,3 +38,4 @@ src/routes/qa.test.ts
 src/walk/steps.test.ts
 src/lib/qaWalk/qaWalk.test.ts
 src/lib/timelineReadings.test.ts
+src/lib/timelineSetup.test.ts

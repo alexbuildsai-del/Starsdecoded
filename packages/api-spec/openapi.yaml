@@ -1685,8 +1685,8 @@ paths:
         the natal points and angles the dial draws, each day's tones, every
         event in the range with its whole window and plain words, and what
         starts, peaks or eases next. Every date and degree is the engine's.
-        The six-month range queues the readings of contacts entering it, at
-        most three a call (ADR-210).
+        It queues nothing: a subscriber's readings are written at setup
+        (ADR-302, ADR-362).
       parameters:
         - name: range
           in: query
@@ -1775,6 +1775,95 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "503":
           $ref: "#/components/responses/Paused"
+
+  /timeline/setup:
+    get:
+      operationId: getTimelineSetup
+      tags: [timeline]
+      summary: Where the reader's Timeline setup stands (ADR-302, ADR-362)
+      description: >
+        Setup writes every reading of the six months from the Monday of the
+        reader's week, and every life cycle, from the engine's own list for
+        their chart (ADR-302). It starts when the subscriber's payment clears,
+        or when their own Personal report finishes if that comes later
+        (ADR-362). Its six steps tick as their readings land. `replay` is the
+        next six months, written a week before the last ones end, from the
+        first day after that turn until the reader has seen them drawn.
+      parameters:
+        - $ref: "#/components/parameters/ReaderZone"
+      responses:
+        "200":
+          description: The setup as it stands, `none` before it starts (ADR-302, ADR-362)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineSetup"
+        "401":
+          description: "`sign_in_required`: no one is signed in, and Timeline belongs to an account (ADR-262)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/NoTimeline"
+        "409":
+          $ref: "#/components/responses/NoPersonalReport"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    post:
+      operationId: startTimelineSetup
+      tags: [timeline]
+      summary: Start the reader's Timeline setup if it has not started (ADR-362)
+      description: >
+        A catch-up only: payment clearing starts setup on its own (ADR-362).
+        Safe to send again: a setup that has started is answered as it
+        stands, and nothing is queued twice. Every reading it queues comes from
+        the engine's list for the reader's chart, never from the request.
+      parameters:
+        - $ref: "#/components/parameters/ReaderZone"
+      responses:
+        "202":
+          description: The setup as it stands once started (ADR-302, ADR-362)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineSetup"
+        "401":
+          description: "`sign_in_required`: no one is signed in, and Timeline belongs to an account (ADR-262)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/NoTimeline"
+        "409":
+          $ref: "#/components/responses/NoPersonalReport"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /timeline/setup/replay-seen:
+    post:
+      operationId: markTimelineReplaySeen
+      tags: [timeline]
+      summary: The reader has seen their next six months drawn (ADR-302)
+      description: >
+        Marks the setup's `replay` seen, so the drawing plays once. Safe to
+        send again.
+      responses:
+        "204":
+          description: Marked, or there was nothing to mark
+        "401":
+          description: "`sign_in_required`: no one is signed in, and Timeline belongs to an account (ADR-262)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/NoTimeline"
+        "409":
+          $ref: "#/components/responses/NoPersonalReport"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /ask:
     # MB-191 provisional: the thread keeps 31 days, a person as who and which day, and goes with the Personal report.
@@ -5104,6 +5193,73 @@ components:
             - $ref: "#/components/schemas/CalendarDay"
             - type: "null"
       required: [item, status, renewsOn, endsOn]
+
+    TimelineSetupStep:
+      type: object
+      description: One of setup's six ticks, in order (ADR-302).
+      properties:
+        id:
+          type: string
+          enum: [chart, planets, week, month, months, cycles]
+          description: >-
+            The reader's chart and the planets, done once setup starts; this
+            week, Monday to Sunday; this month, the 30 days from that Monday;
+            the six months, every reading from that Monday to `to`; the life
+            cycles, birth to 90 (ADR-302).
+        done:
+          type: boolean
+          description: Every reading of the step has landed, written or failed; a failed one is written when it is opened.
+        count:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: How many readings the step writes, the engine's count; null for the chart and the planets, which write none.
+      required: [id, done, count]
+
+    TimelineSetupReplay:
+      type: object
+      description: The next six months, written ahead, to be drawn once (ADR-302).
+      properties:
+        from:
+          $ref: "#/components/schemas/CalendarDay"
+          description: Their first day, the reader's.
+        to:
+          $ref: "#/components/schemas/CalendarDay"
+          description: Their last day, the reader's.
+      required: [from, to]
+
+    TimelineSetup:
+      type: object
+      description: >-
+        A subscriber's Timeline setup (ADR-302, ADR-362): none before it starts,
+        and again once its six months are over or its chart was replaced;
+        writing while its readings land; ready once all have, and it stays ready
+        while the next six months are written ahead.
+      properties:
+        state:
+          type: string
+          enum: [none, writing, ready]
+        from:
+          description: The first day written ahead, a Monday, the reader's; null before setup starts.
+          anyOf:
+            - $ref: "#/components/schemas/CalendarDay"
+            - type: "null"
+        to:
+          description: The last day written ahead, the reader's; null before setup starts.
+          anyOf:
+            - $ref: "#/components/schemas/CalendarDay"
+            - type: "null"
+        steps:
+          type: array
+          description: The six steps, in order, with the engine's counts.
+          items:
+            $ref: "#/components/schemas/TimelineSetupStep"
+        replay:
+          description: The next six months, from the first day after the turn until marked seen; null otherwise.
+          anyOf:
+            - $ref: "#/components/schemas/TimelineSetupReplay"
+            - type: "null"
+      required: [state, from, to, steps, replay]
 
     Week:
       type: object

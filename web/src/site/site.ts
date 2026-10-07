@@ -1,4 +1,5 @@
 import { LEGAL_IDENTITY, waitlistReady } from "@workspace/commerce";
+import { LAUNCHED } from "@workspace/launch";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 
 export const SITE = { origin: "https://mystarsdecoded.com", name: PRODUCT } as const;
@@ -53,7 +54,7 @@ export const PAGES: readonly PageEntry[] = [
     h1: "Find out what your birth chart says about you",
     // MB-160 provisional: "every claim", the same idea in the FAQ and /method's step 3.
     lede: `${PRODUCT} works out where the planets were when you were born. Then it writes you a report about how you think, work and love. Every claim in it shows which part of your chart it comes from.`,
-    updated: "2026-10-04",
+    updated: "2026-10-07",
     kind: "home",
     schema: ["WebPage"],
     sitemap: true,
@@ -88,7 +89,7 @@ export const PAGES: readonly PageEntry[] = [
     eyebrow: "How it works",
     h1: "How we make your report",
     lede: `${PRODUCT} works out your birth chart from where the planets really were. It notes what stands out. It writes your report from those notes. Then it checks every claim against your chart before you see it.`,
-    updated: "2026-10-05",
+    updated: "2026-10-07",
     kind: "page",
     schema: ["Article"],
     sitemap: true,
@@ -104,14 +105,15 @@ export const PAGES: readonly PageEntry[] = [
     schema: ["WebPage"],
     sitemap: true,
   },
-  // Live before Timeline is (ADR-249), so it says "Coming soon" and names no price until billing exists (ADR-255, 264).
+  // Live before Timeline is (ADR-249), so it says "Coming soon" and names no price until launch (ADR-343); on launch day the
+  // eyebrow and five more lines change with `LAUNCHED` (ADR-355, 356).
   {
     path: "/timeline",
     title: titled("Timeline"),
-    eyebrow: "Coming soon · Timeline",
+    eyebrow: LAUNCHED ? "Timeline" : "Coming soon · Timeline",
     h1: "Your chart, with the sky moving across it",
     lede: `Timeline is ${PRODUCT}'s one subscription, for people with a ${PERSONAL_REPORT}. It shows when the planets reach the points in your own chart, what that means for you in plain words, and how long it lasts, from the big cycles of your life to this week.`,
-    updated: "2026-10-04",
+    updated: "2026-10-07",
     kind: "page",
     schema: ["WebPage", "FAQPage"],
     sitemap: true,
@@ -122,7 +124,7 @@ export const PAGES: readonly PageEntry[] = [
     eyebrow: "Whole-sign houses",
     h1: "What are whole-sign houses?",
     lede: "Whole-sign houses split your birth chart into twelve houses, one for each zodiac sign. The first house is the sign that was rising in the east when you were born. It's the oldest way to divide a chart. Every house is the same size, wherever you were born.",
-    updated: "2026-10-04",
+    updated: "2026-10-07",
     kind: "learn",
     schema: ["Article"],
     sitemap: true,
@@ -146,7 +148,7 @@ export const PAGES: readonly PageEntry[] = [
     eyebrow: "FAQ",
     h1: "Questions people ask",
     lede: `Short answers about ${PRODUCT}: the reports, your birth details, privacy and paying.`,
-    updated: "2026-10-05",
+    updated: "2026-10-07",
     kind: "faq",
     schema: ["FAQPage"],
     sitemap: true,
@@ -169,7 +171,7 @@ export const PAGES: readonly PageEntry[] = [
     eyebrow: "Legal",
     h1: "Privacy policy",
     lede: `This policy says what ${PRODUCT} keeps about you, why, who handles it for us and how to have it deleted.`,
-    updated: "2026-10-05",
+    updated: "2026-10-07",
     kind: "legal",
     schema: ["WebPage"],
     sitemap: true,
@@ -191,7 +193,7 @@ export const PAGES: readonly PageEntry[] = [
     eyebrow: "Legal",
     h1: "Refunds",
     lede: `This page sets out when ${PRODUCT} refunds you and when a credit comes back to your balance.`,
-    updated: "2026-10-05",
+    updated: "2026-10-07",
     kind: "legal",
     schema: ["WebPage"],
     sitemap: true,

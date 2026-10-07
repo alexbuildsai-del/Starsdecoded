@@ -64,7 +64,7 @@ export const BUNDLES: readonly Bundle[] = [
 ];
 
 /** Said wherever a price or a balance shows, so nobody has to ask what a credit buys (ADR-170, R-6.4). */
-export const CREDIT_LINE = "1 credit = 1 report of either kind.";
+export const CREDIT_LINE = "1 credit = 1 report of any kind.";
 
 export function bundleById(id: BundleId): Bundle {
   const bundle = BUNDLES.find((row) => row.id === id);

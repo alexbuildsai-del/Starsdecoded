@@ -12,9 +12,10 @@ import { StatusDots } from "@/components/StatusDots";
 import { ContactCard } from "@/components/timeline/ContactCard";
 import { Dial } from "@/components/timeline/Dial";
 import { MixBar } from "@/components/timeline/MixBar";
+import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import type { ReadingTarget } from "@/components/timeline/ReadingSheet";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { DIAL_ORDER, framesFor, type DialFrame } from "@/lib/dial";
+import { DIAL_ORDER, anyRetrograde, framesFor, type DialFrame } from "@/lib/dial";
 import {
   BLIND_FIX, BLIND_LINE, QUIET_DAY, RANGES, comingUpTitle, contactOf, nothingNext, nowDay, nowModel, rangeAhead, rangeSpan,
   type EventCard, type NowDay,
@@ -25,7 +26,7 @@ import { cn } from "@/lib/utils";
 const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-[#9FA8DA]";
 const QUIET = "text-[13.5px] leading-normal text-[#AEB6C6]";
 const TRY = "inline-flex min-h-10 items-center rounded-[10px] border border-[#242C3B] bg-[#171D29] px-4 font-label text-sm font-medium text-[#E8EBF2] transition-colors hover:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-// The sky on a chart moves slowly and the six-month read queues readings (ADR-210), so a tab coming back soon does not ask again.
+// The sky on a chart moves slowly, so a tab coming back soon does not ask again.
 const STALE_MS = 5 * 60_000;
 
 function statusOf(error: unknown): number | undefined {
@@ -282,6 +283,7 @@ export function NowAhead({ zone, onOpen, onNoReport, onNoAccess, reportId }: Now
             </Dial>
           </div>
           <DialKey range={now.range} />
+          {anyRetrograde(frames) ? <RetrogradeLine /> : null}
         </div>
 
         <div className="grid content-start gap-5">

@@ -13,8 +13,9 @@ import { StatusDots } from "@/components/StatusDots";
 import { ContactCard } from "@/components/timeline/ContactCard";
 import { DayCells } from "@/components/timeline/DayCells";
 import { Dial } from "@/components/timeline/Dial";
+import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
-import { DIAL_ORDER, framesFor, type DialFrame } from "@/lib/dial";
+import { DIAL_ORDER, anyRetrograde, framesFor, type DialFrame } from "@/lib/dial";
 import { QUIET_DAY, RANGES } from "@/lib/now-ahead";
 import { cn } from "@/lib/utils";
 import { dialWhen, loadLine, moreLine, nowSource, weekModel, weekSource } from "@/lib/week-view";
@@ -23,7 +24,7 @@ const HEADING = "font-label text-[11px] font-medium uppercase leading-[1.4] trac
 const LABEL = "font-label text-[10.5px] font-medium uppercase leading-snug tracking-[.16em] text-[#9AA3B5]";
 const TEXT_BUTTON =
   "inline-flex min-h-8 items-center rounded px-1 text-[12.5px] text-[#9FA8DA] transition-colors hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]";
-// The sky on a chart moves slowly and the six-month read queues readings (ADR-210), as Timeline's own page reads it.
+// The sky on a chart moves slowly, as Timeline's own page reads it.
 const STALE_MS = 5 * 60_000;
 
 /** Week · Month · 6 months, pressed buttons as Now and ahead has them, narrow enough to sit beside Play under a 300 px dial. */
@@ -123,6 +124,7 @@ export function YourWeek({ week, zone }: YourWeekProps) {
               <RangeSwitch range={range} onChange={setRange} />
             </Dial>
           </div>
+          {anyRetrograde(frames) ? <RetrogradeLine className="w-full max-w-[300px]" /> : null}
           <p className="flex min-h-[22px] w-full max-w-[300px] flex-wrap items-center gap-x-2.5 gap-y-1">
             <span className="font-numeric text-[12.5px] text-[#AEB6C6]">{dialWhen(frames[day]?.date ?? shown.from, shown.from, order)}</span>
             {day > 0 ? (

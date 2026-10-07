@@ -73,8 +73,8 @@ Say what it is, what it won't do, and what happens when something fails.
 Do:
 - "No predictions"
 - "The meanings come from astrology, which science doesn't back."
-- "If a chapter still can't pass, you get your credit back and we tell you what went
-  wrong."
+- "If a chapter still can't pass, we tell you what went wrong. Try again is free. If we
+  still can't write your report, its credit comes back to your balance."
 
 Don't:
 - "Scientifically proven insights."

@@ -598,7 +598,7 @@ export const STAGING_STEPS: StagingSteps = {
 
   timeline: {
     async run(walk) {
-      const { mira, idris } = walk;
+      const { mira } = walk;
       const clock = need(walk.kept.clock, "the walk's test clock");
       const customer = need(clock.customer, "the test clock's customer");
       const closed = await accessOf(walk, mira);
@@ -642,17 +642,37 @@ export const STAGING_STEPS: StagingSteps = {
         (now) => now.available === given.available + YEARLY.creditsToGive,
         walk.times.webhook,
       );
+    },
+  },
+
+  "timeline-ends": {
+    // The plan she cancels is the one the Timeline step started and renewed on the walk's clock.
+    after: ["timeline"],
+    async run(walk) {
+      const { mira, idris } = walk;
+      const clock = need(walk.kept.clock, "the walk's test clock");
+      const customer = need(clock.customer, "the test clock's customer");
+      const plan = need(await walk.stripe.subscriptionOf(customer), "the plan in Stripe");
+      const renewsOn = need((await accessOf(walk, mira)).plan?.renewsOn, "the renewed plan's day");
 
       await walk.stripe.cancelAtPeriodEnd(plan.id);
       await walk.until(
         "the cancel to reach the plan",
         () => accessOf(walk, mira),
-        (now) => now.access && now.plan?.renewsOn === null && now.plan?.endsOn === nextEnd,
+        (now) => now.access && now.plan?.renewsOn === null && now.plan?.endsOn === renewsOn,
         walk.times.webhook,
       );
       const ending = need(await walk.stripe.subscriptionOf(customer), "the plan in Stripe");
       await walk.stripe.advance(clock.id, new Date(ending.periodEnd.getTime() + PAST_PERIOD_MS));
-      await walk.until("Timeline to close at the period's end", () => accessOf(walk, mira), (now) => !now.access && !now.plan, walk.times.webhook);
+      const closed = await walk.until(
+        "Timeline to close at the period's end",
+        () => accessOf(walk, mira),
+        (now) => !now.access && !now.plan,
+        walk.times.webhook,
+      );
+      // Closed, her Account page offers Timeline again, which her own finished report allows (reading 1).
+      same("Mira's Timeline once it closes", closed.hasPersonalReport, true);
+      await mira.page.screen(ACCOUNT, { control: "Start Timeline" });
 
       // Idris never had a plan: his door stays shut, and his own report keeps the teaser on his dashboard.
       same("Idris's Timeline", (await accessOf(walk, idris)).access, false);

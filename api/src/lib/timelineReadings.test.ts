@@ -1,9 +1,9 @@
 /**
  * Timeline's readings with the model stubbed (R16-24): what a reading builds on, and the report's call path with its
  * retries, round alone, spend and failure log, with no database. The claims run on a scratch Postgres when
- * WALK_DATABASE_URL names a bootstrapped one: one write across two opens, a stale basis written again, a write that
- * died retried, a failure's line kept, the queue's soonest three and the statuses, an account's new readings a day,
- * and forgetting. Without one they skip, saying why. Every event is the engine's, computed from a committed fixture at
+ * WALK_DATABASE_URL names a bootstrapped one: one write across two opens, a stale reading's kept text answering, a write
+ * that died retried, a failure's line kept, a setup job's write and the statuses, an account's new readings a day, and
+ * forgetting. Without one they skip, saying why. Every event is the engine's, computed from a committed fixture at
  * run time.
  */
 import { after, test } from "node:test";
@@ -310,19 +310,6 @@ test("a key nothing on the chart reads answers unknown, with no model call and n
   assert.equal(asked.length, 0);
 });
 
-test("a paused day writes nothing: the queue asks the spend gate's rule before any row or call", async () => {
-  answer(CLEAN);
-  const before = process.env.DAILY_SPEND_CAP_USD;
-  process.env.DAILY_SPEND_CAP_USD = "0";
-  try {
-    assert.deepEqual(await R.queueReadings(mira, readable(mira).map((e) => e.key)), []);
-  } finally {
-    if (before === undefined) delete process.env.DAILY_SPEND_CAP_USD;
-    else process.env.DAILY_SPEND_CAP_USD = before;
-  }
-  assert.equal(asked.length, 0);
-});
-
 const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: readings are claimed and kept on a scratch Postgres";
 
 /** Each run's own rows, so a second run, or the walk on the same database, finds nothing of the first. */
@@ -387,22 +374,25 @@ test("two opens at once write the reading once, and a third reads it back with n
   assert.equal(asked.length, 1, "kept, never written twice");
   assert.deepEqual(again, ready);
   const [row] = await rowsFor(reader.profileId);
-  assert.deepEqual([row.status, row.basis, row.model, row.userId], ["ready", reader.basis, MODELS.timelineReading, reader.userId]);
+  assert.deepEqual([row.status, row.model, row.userId], ["ready", MODELS.timelineReading, reader.userId]);
+  assert.ok(row.basis.startsWith(`${reader.basis}|`) && row.basis.length > reader.basis.length + 1, "the reader's basis with their report's version (reading 10)");
   assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC, "contact.mars.square.sun.20261024"], reader.basis), new Map([[SATURN_ON_ASC, { status: "ready", line: CLEAN.line }]]));
 });
 
-test("a reading whose basis moved is left out of the statuses, then written again on its next open", { skip: NO_DB }, async () => {
+test("a reading whose basis moved still answers its kept text, in the statuses and on its open, and neither an open nor a setup job writes it again (reading 10)", { skip: NO_DB }, async () => {
   const reader = await seedReader("basis");
   answer(CLEAN);
   assert.equal((await R.openReading(reader, SATURN_ON_ASC)).status, "ready");
+  const [before] = await rowsFor(reader.profileId);
   const moved: ReaderChart = { ...reader, basis: `${reader.basis}-moved` };
-  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC], moved.basis), new Map(), "its line may no longer be true");
   answer({ ...CLEAN, line: "You weigh what you agreed to and what you still want." });
-  const rewritten = await R.openReading(moved, SATURN_ON_ASC);
-  assert.equal(asked.length, 1);
-  assert.deepEqual([rewritten.status, rewritten.reading?.line], ["ready", "You weigh what you agreed to and what you still want."]);
+  assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC], moved.basis), new Map([[SATURN_ON_ASC, { status: "ready", line: CLEAN.line }]]), "its kept line shows meanwhile");
+  const kept = await R.openReading(moved, SATURN_ON_ASC);
+  assert.deepEqual([kept.status, kept.reading?.line], ["ready", CLEAN.line], "its open answers the kept text");
+  assert.deepEqual(await R.writeQueuedReading(moved, SATURN_ON_ASC), { status: "kept" }, "a start writes nothing again");
+  assert.equal(asked.length, 0, "nobody waits on a call: only a refresh the reader's open queued writes it again");
   const rows = await rowsFor(reader.profileId);
-  assert.deepEqual(rows.map((r) => [r.basis, r.status]), [[moved.basis, "ready"]], "written again in place");
+  assert.deepEqual(rows.map((r) => [r.basis, r.status]), [[before.basis, "ready"]], "kept as it was");
 });
 
 test("a write still marked writing answers writing under five minutes, and is written again past five", { skip: NO_DB }, async () => {
@@ -438,7 +428,7 @@ test("an open that stops waiting answers writing, and the write lands on its own
   }
 });
 
-test("a failed write keeps the sheet's line, the queue leaves it, and the reader's next open writes it again", { skip: NO_DB }, async () => {
+test("a failed write keeps the sheet's line, a setup job leaves it, and the reader's next open writes it again", { skip: NO_DB }, async () => {
   const reader = await seedReader("failed");
   answer(ORDER);
   const failed = await R.openReading(reader, SATURN_ON_ASC);
@@ -448,32 +438,67 @@ test("a failed write keeps the sheet's line, the queue leaves it, and the reader
   assert.deepEqual([row.status, (row.reading as { line: string }).line, (row.reading as { code: string }).code], ["failed", R.READING_FAILED_LINE, "quality"]);
   assert.deepEqual(await R.readingStatuses(reader.profileId, [SATURN_ON_ASC], reader.basis), new Map([[SATURN_ON_ASC, { status: "failed", line: R.READING_FAILED_LINE }]]));
   answer(CLEAN);
-  assert.deepEqual(await R.queueReadings(reader, [SATURN_ON_ASC]), [], "a failure waits for the reader's own open");
+  assert.deepEqual(await R.writeQueuedReading(reader, SATURN_ON_ASC), { status: "kept" }, "a failure waits for the reader's own open");
   assert.equal(asked.length, 0);
   const ready = await R.openReading(reader, SATURN_ON_ASC);
   assert.deepEqual([ready.status, ready.reading?.body], ["ready", CLEAN.body]);
 });
 
-test("the queue writes at most three missing readings, soonest first, and never one it holds", { skip: NO_DB }, async () => {
+test("a setup job's write: a missing reading written once, a kept one left, a key that names nothing never claimed, and a paused day writes nothing", { skip: NO_DB }, async () => {
   const reader = await seedReader("queue");
-  const keys = readable(reader).map((e) => e.key);
-  const soonest = [...keys].sort((a, b) => a.slice(-8).localeCompare(b.slice(-8)) || a.localeCompare(b));
+  const [first, second] = readable(reader).map((e) => e.key).sort((a, b) => a.slice(-8).localeCompare(b.slice(-8)) || a.localeCompare(b));
   answer(CLEAN);
-  assert.deepEqual(await R.openReading(reader, soonest[1]).then((o) => o.status), "ready");
+  assert.equal((await R.openReading(reader, second)).status, "ready");
   answer(CLEAN);
-  const first = await R.queueReadings(reader, [...keys].reverse());
-  assert.deepEqual(first, [soonest[0], soonest[2], soonest[3]], "the one already kept is skipped");
-  assert.equal(asked.length, 3);
-  const statuses = await R.readingStatuses(reader.profileId, keys, reader.basis);
-  assert.deepEqual([...statuses.keys()].sort(), [...soonest.slice(0, 4)].sort());
-  assert.ok([...statuses.values()].every((s) => typeof s === "object" && s.status === "ready"));
-  const second = await R.queueReadings(reader, keys, 2);
-  assert.deepEqual(second, soonest.slice(4, 6));
-  assert.deepEqual(await R.queueReadings(reader, ["contact.saturn.square.ascendant.19000101", "not a key"]), [], "a key nothing reads is never claimed");
-  assert.equal((await rowsFor(reader.profileId)).length, 6);
+  assert.deepEqual(await R.writeQueuedReading(reader, second), { status: "kept" }, "the one already kept is left as it is");
+  assert.equal(asked.length, 0);
+  const before = process.env.DAILY_SPEND_CAP_USD;
+  process.env.DAILY_SPEND_CAP_USD = "0";
+  try {
+    assert.deepEqual(await R.writeQueuedReading(reader, first), { status: "paused" }, "the spend gate's rule, before any row or call");
+  } finally {
+    if (before === undefined) delete process.env.DAILY_SPEND_CAP_USD;
+    else process.env.DAILY_SPEND_CAP_USD = before;
+  }
+  assert.equal(asked.length, 0);
+  assert.equal((await rowsFor(reader.profileId)).length, 1);
+  assert.deepEqual(await R.writeQueuedReading(reader, first), { status: "written" });
+  assert.equal(asked.length, 1);
+  assert.deepEqual(await R.readingStatuses(reader.profileId, [first], reader.basis), new Map([[first, { status: "ready", line: CLEAN.line }]]));
+  for (const key of ["contact.saturn.square.ascendant.19000101", "not a key"]) {
+    assert.deepEqual(await R.writeQueuedReading(reader, key), { status: "unknown" }, key);
+  }
+  assert.equal((await rowsFor(reader.profileId)).length, 2);
+  await age(reader.profileId, first, "writing", 4);
+  const held = await R.writeQueuedReading(reader, first);
+  assert.equal(held.status, "held", "a write still going is looked at again once it could have died");
+  if (held.status === "held") assert.ok(Math.abs(held.until.getTime() - (Date.now() + 60_000)) < 5_000);
+  assert.equal(asked.length, 1);
 });
 
-test("an account's new readings a UTC day: the 40th writes, the 41st is refused with Timeline's line and no row, a kept one still opens, and the next day writes again (MB-219)", { skip: NO_DB }, async () => {
+test("an open of a reading a setup job is still to write answers writing at once and writes nothing", { skip: NO_DB }, async () => {
+  const { db, jobsTable } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+  const reader = await seedReader("held");
+  answer(CLEAN);
+  // A day out, so no worker on this database takes it while the open looks.
+  const [job] = await db.insert(jobsTable).values({
+    id: randomUUID(), kind: "timeline.reading", payload: { profileId: reader.profileId, key: SATURN_ON_ASC },
+    dedupeKey: R.readingJobKey(reader.profileId, SATURN_ON_ASC), status: "queued", runAt: new Date(Date.now() + 86_400_000),
+  }).returning({ id: jobsTable.id });
+  try {
+    assert.deepEqual(await R.readingsQueued(reader.profileId, [SATURN_ON_ASC, "contact.mars.square.sun.20261024"]), new Set([SATURN_ON_ASC]));
+    assert.deepEqual(await R.openReading(reader, SATURN_ON_ASC), { status: "writing", reading: null, line: null });
+    assert.equal(asked.length, 0);
+    assert.deepEqual(await rowsFor(reader.profileId), []);
+  } finally {
+    await db.delete(jobsTable).where(eq(jobsTable.id, job.id));
+  }
+  assert.equal((await R.openReading(reader, SATURN_ON_ASC)).status, "ready", "once no job holds it, the open writes it");
+  assert.equal(asked.length, 1);
+});
+
+test("an account's new readings a UTC day: the 40th writes, the 41st is refused with Timeline's line and no row, a kept one still opens, and the next day writes again (ADR-327)", { skip: NO_DB }, async () => {
   const reader = await seedReader("daily");
   const keys = cycles(reader).map((c) => c.key);
   assert.ok(keys.length > R.NEW_READINGS_A_DAY, `${keys.length} cycles to open`);

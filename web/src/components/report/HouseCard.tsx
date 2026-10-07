@@ -12,7 +12,8 @@ import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { hintFor } from "@/lib/birth-record-hints";
 import { HOUSE_NAMES, ORDINALS, houseWord } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
-import { splitReading } from "@/lib/house-deck";
+import { goesBackwards, oppositeLine, splitReading } from "@/lib/house-deck";
+import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import { AngleGlyph, type AngleKey } from "@/components/report/AngleGlyph";
 import type { Occupant } from "@/lib/house-occupants";
 import { PLANET_LABELS, type ChartData } from "@/types/chart";
@@ -59,6 +60,8 @@ export interface HouseCardProps {
   occupants: Occupant[];
   /** The chart ruler, on the 1st house's card only; the triad rows no longer print it. */
   ruler?: ChartRuler | null;
+  /** A house with no one in it: the small line that says whose it is (`quietLine`). */
+  quiet?: string | null;
   /** The house's reading as the report stored it; absent while the section is still being written. */
   reading?: string;
   /** The whole text at once, for the desktop card: no Read the rest. */
@@ -68,11 +71,12 @@ export interface HouseCardProps {
   className?: string;
 }
 
-export function HouseCard({ house, sign, occupants, ruler, reading, whole = false, lit = true, className = "" }: HouseCardProps) {
+export function HouseCard({ house, sign, occupants, ruler, quiet, reading, whole = false, lit = true, className = "" }: HouseCardProps) {
   const [open, setOpen] = useState(false);
   const restId = useId();
   const parts = reading ? splitReading(reading) : null;
   const i = house - 1;
+  const backwards = occupants.some((o) => goesBackwards(o.key, o.retrograde));
 
   return (
     <article
@@ -94,11 +98,16 @@ export function HouseCard({ house, sign, occupants, ruler, reading, whole = fals
       <h3 className={`font-display font-normal leading-[1.15] text-[color:var(--paper)] print:text-black ${whole ? "text-[28px]" : "text-[22px]"}`}>
         {HOUSE_NAMES[i]}
       </h3>
+      <p className="-mt-1 font-numeric text-[12.5px] leading-[1.45] text-[color:var(--paper-dim)] print:text-black">{oppositeLine(house)}</p>
+      {quiet && (
+        <p className="-mt-1 font-numeric text-[12.5px] leading-[1.45] text-[color:var(--paper-dim)] print:text-black">{quiet}</p>
+      )}
       {ruler && (
         <p className="-mt-1 font-numeric text-[12.5px] leading-[1.45] text-[color:var(--paper-dim)] print:text-black">
           {`${ruler.label} is your chart ruler, the planet that goes with your rising sign. It stands in ${ruler.sign}, in the ${ORDINALS[ruler.house - 1]} house (${houseWord(ruler.house)}).`}
         </p>
       )}
+      {backwards && <RetrogradeLine />}
       {parts ? (
         <>
           <p className={`font-display leading-[1.45] text-[color:var(--paper)] print:text-black ${whole ? "text-[20px]" : "text-[17px]"}`}>

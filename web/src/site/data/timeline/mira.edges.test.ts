@@ -214,12 +214,15 @@ describe("the page's frames, days and cards come from the file in the spec's ord
     expect(MIRA.finder.cycles.every((c) => c.today === WEEK)).toBe(true);
   });
 
-  it("looks back from each repeating cycle to the one before it of its own kind, and from the first to none", () => {
+  it("looks back from each repeating cycle to the latest one of its own kind before her week, and from the first to none", () => {
     for (const id of ["saturn-return", "jupiter-return", "node-return"] as const) {
       const same = MIRA.cycles.filter((c) => c.id === id);
       expect(same.length, id).toBeGreaterThan(1);
       expect(same[0].last, id).toBeNull();
-      same.slice(1).forEach((c, i) => expect(c.last, c.key).toEqual({ on: same[i].exact[0] ?? same[i].start, age: same[i].age }));
+      same.slice(1).forEach((c, i) => {
+        const before = same.slice(0, i + 1).filter((o) => (o.exact[0] ?? o.start) < WEEK).pop();
+        expect(c.last, c.key).toEqual(before ? { on: before.exact[0] ?? before.start, age: before.age } : null);
+      });
       expect(same.every((c) => c.ages!.join() === same.map((o) => o.age).join()), id).toBe(true);
     }
     for (const c of MIRA.cycles.filter((x) => x.id === "uranus-opposition")) expect(c.repeats).toBe(false);

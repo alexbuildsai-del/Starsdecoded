@@ -606,6 +606,205 @@ test("an invoice's payment is read from Stripe when the payload leaves it out, b
   assert.equal((await ledgerOf(b.userId)).bundles.length, 1);
 });
 
+/**
+ * Stripe's cancel and refund for B-34, from a local server the real client is pointed at. A refund under a key it has
+ * seen answers that refund again, as Stripe does for a day; `forget()` drops the keys, as a day later, so a payment
+ * refunded already answers `charge_already_refunded`.
+ */
+async function secondPlanStripe(subs: Map<string, { customer: string; item: PlanId; purchaseId: string }>) {
+  const cancels: string[] = [];
+  const refunds: Array<{ intent: string; amount: string | undefined; key: string | undefined }> = [];
+  const byKey = new Map<string, unknown>();
+  const refunded = new Set<string>();
+  const server = createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      const send = (status: number, body: unknown) => {
+        res.writeHead(status, { "content-type": "application/json" });
+        res.end(JSON.stringify(body));
+      };
+      const cancelling = /^\/v1\/subscriptions\/([^/?]+)$/.exec(req.url ?? "");
+      if (req.method === "DELETE" && cancelling) {
+        const id = decodeURIComponent(cancelling[1]);
+        const sub = subs.get(id);
+        if (!sub) return send(404, { error: { type: "invalid_request_error", code: "resource_missing", message: "No such subscription" } });
+        cancels.push(id);
+        return send(200, subscription(id, sub.customer, { item: sub.item, purchaseId: sub.purchaseId, status: "canceled" }));
+      }
+      if (req.method === "POST" && req.url === "/v1/refunds") {
+        const form = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
+        const intent = form.get("payment_intent") ?? "";
+        const header = req.headers["idempotency-key"];
+        const key = Array.isArray(header) ? header[0] : header;
+        if (key && byKey.has(key)) return send(200, byKey.get(key));
+        if (refunded.has(intent)) {
+          return send(400, { error: { type: "invalid_request_error", code: "charge_already_refunded", message: "Charge has already been refunded." } });
+        }
+        const refund = { id: `re_${refunds.length + 1}`, object: "refund", payment_intent: intent, status: "succeeded" };
+        refunds.push({ intent, amount: form.get("amount") ?? undefined, key });
+        refunded.add(intent);
+        if (key) byKey.set(key, refund);
+        return send(200, refund);
+      }
+      send(404, { error: { type: "invalid_request_error", message: `no route for ${req.method} ${req.url}` } });
+    });
+  });
+  server.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  const port = (server.address() as AddressInfo).port;
+  const client = stripe({ APP_ENV: "staging", STRIPE_SECRET_KEY: `sk_test_r1801${run}`, STRIPE_API_BASE: `http://127.0.0.1:${port}` });
+  assert.ok(client, "the stand-in client is made");
+  const close = () => {
+    server.closeAllConnections();
+    return new Promise<void>((resolve) => server.close(() => resolve()));
+  };
+  return { client, cancels, refunds, forget: () => byKey.clear(), close };
+}
+
+test("B-34: a second plan's first payment cancels it at once and refunds it in full; the first stays, access unchanged, and a replay repeats nothing", { skip: NO_DB }, async (t) => {
+  const { handleStripeEvent } = await import("./fulfilment.js");
+  const { checkoutState } = await import("./purchases.js");
+  const b = await buyer("second-plan");
+  const firstSub = b.sub;
+  const secondSub = `${b.sub}_2`;
+  const firstPurchase = await checkout(b.userId, "timeline_month");
+  const secondPurchase = await checkout(b.userId, "timeline_year");
+  const stand = await secondPlanStripe(new Map([[secondSub, { customer: b.customer, item: "timeline_year", purchaseId: secondPurchase }]]));
+  t.after(stand.close);
+  const end = NOW + 30 * DAY;
+
+  await apply(event("customer.subscription.created", subscription(firstSub, b.customer, { status: "incomplete", purchaseId: firstPurchase, periodEnd: end })));
+  await apply(event("customer.subscription.created", subscription(secondSub, b.customer, { item: "timeline_year", status: "incomplete", purchaseId: secondPurchase })));
+  await apply(event("invoice.paid", invoice(`in_r1801_${run}_1`, firstSub, b.customer, { purchaseId: firstPurchase, intent: `pi_r1801_${run}_1`, periodEnd: end })), { client: stand.client });
+  const second = event(
+    "invoice.paid",
+    invoice(`in_r1801_${run}_2`, secondSub, b.customer, { purchaseId: secondPurchase, amountPaid: 6999, intent: `pi_r1801_${run}_2` }),
+  );
+  assert.equal(await apply(second, { client: stand.client }), "processed");
+
+  assert.deepEqual(stand.cancels, [secondSub], "the second, at once");
+  assert.deepEqual(stand.refunds, [{ intent: `pi_r1801_${run}_2`, amount: undefined, key: `sd-second-plan-pi_r1801_${run}_2` }], "its payment, in full");
+  assert.deepEqual([(await rowOf(firstSub))?.status, (await rowOf(secondSub))?.status], ["active", "canceled"]);
+  const kept = await purchasesOf(b.userId);
+  const [first, next] = [firstPurchase, secondPurchase].map((id) => kept.find((p) => p.id === id));
+  assert.equal(first?.status, "granted");
+  assert.deepEqual(
+    next && [next.status, next.grantedAt, next.stripeSubscription, next.stripeInvoice, next.stripePaymentIntent],
+    ["open", null, secondSub, `in_r1801_${run}_2`, `pi_r1801_${run}_2`],
+    "nothing of the second is granted, and its refund will find it by its payment",
+  );
+  assert.equal((await ledgerOf(b.userId)).bundles.length, 0, "no yearly credit came with the second");
+  assert.equal(receiptsTo(b.email).length, 1, "our receipt went with the first alone");
+  assert.deepEqual(await timelineAccess(b.viewer, {}), SUBSCRIBED);
+  assert.deepEqual(await S.livePlan(b.userId), { item: "timeline_month", status: "active", renewsOn: S.brusselsDay(new Date(end * 1000)), endsOn: null });
+
+  // The same event again within the day, then a day later when Stripe has forgotten the key.
+  assert.equal(await apply(second, { client: stand.client }), "processed");
+  stand.forget();
+  assert.equal(await apply(second, { client: stand.client }), "processed");
+  assert.equal(stand.cancels.length, 1, "a replay finds the second ended and cancels nothing");
+  assert.equal(stand.refunds.length, 1, "nor refunds it twice");
+  // Stripe's own events for the second land after: they never make it live again.
+  await apply(event("customer.subscription.updated", subscription(secondSub, b.customer, { item: "timeline_year", purchaseId: secondPurchase })));
+  assert.equal((await rowOf(secondSub))?.status, "canceled");
+  assert.deepEqual(await S.livePlan(b.userId), { item: "timeline_month", status: "active", renewsOn: S.brusselsDay(new Date(end * 1000)), endsOn: null });
+
+  // The refund's own event: the page that waited on the second reads it refunded.
+  const refundEvent = event("charge.refunded", {
+    id: `ch_r1801_${run}_2`,
+    object: "charge",
+    amount: 6999,
+    amount_captured: 6999,
+    amount_refunded: 6999,
+    refunded: true,
+    payment_intent: `pi_r1801_${run}_2`,
+    livemode: false,
+  });
+  t.after(async () => {
+    const { pool } = await pg();
+    await pool.query("delete from stripe_events where id = $1", [refundEvent.id]);
+  });
+  assert.equal(await handleStripeEvent(refundEvent), "processed");
+  assert.equal((await checkoutState(b.viewer, secondPurchase))?.status, "refunded");
+  assert.equal((await checkoutState(b.viewer, firstPurchase))?.status, "granted");
+});
+
+test("B-34: two first payments that land at once, before Stripe's subscription events, keep exactly one plan", { skip: NO_DB }, async (t) => {
+  const b = await buyer("two-at-once");
+  const subs = [b.sub, `${b.sub}_2`];
+  const purchases = [await checkout(b.userId, "timeline_month"), await checkout(b.userId, "timeline_month")];
+  const stand = await secondPlanStripe(
+    new Map(subs.map((id, at) => [id, { customer: b.customer, item: "timeline_month" as const, purchaseId: purchases[at] }])),
+  );
+  t.after(stand.close);
+  const paid = subs.map((id, at) =>
+    event("invoice.paid", invoice(`in_r1801_${run}_once${at}`, id, b.customer, { purchaseId: purchases[at], intent: `pi_r1801_${run}_once${at}` })),
+  );
+
+  // Enough idle connections for both, so neither waits on a new one and the two run side by side.
+  const { pool } = await pg();
+  await Promise.all([0, 1, 2, 3].map(() => pool.query("select pg_sleep(0.02)")));
+  await Promise.all(paid.map((one) => apply(one, { client: stand.client })));
+  const rows = await purchasesOf(b.userId);
+  const granted = rows.filter((p) => p.status === "granted");
+  assert.equal(granted.length, 1, "one plan is kept");
+  const keptAt = purchases.indexOf(granted[0].id);
+  const goneAt = 1 - keptAt;
+  assert.deepEqual(stand.cancels, [subs[goneAt]]);
+  assert.deepEqual(stand.refunds.map((r) => r.intent), [`pi_r1801_${run}_once${goneAt}`]);
+  assert.equal(receiptsTo(b.email).length, 1);
+  assert.equal(await rowOf(subs[keptAt]), null, "the kept plan's row waits for Stripe's own event");
+  assert.equal((await rowOf(subs[goneAt]))?.status, "canceled", "the second's is written from the cancel");
+
+  // Stripe's own events land late: the kept plan's row comes with them, and the second stays cancelled.
+  for (const id of subs) await apply(event("customer.subscription.created", subscription(id, b.customer, { status: "incomplete" })));
+  await apply(event("customer.subscription.updated", subscription(subs[goneAt], b.customer, {})));
+  await apply(event("customer.subscription.updated", subscription(subs[keptAt], b.customer, {})));
+  assert.deepEqual([(await rowOf(subs[keptAt]))?.status, (await rowOf(subs[goneAt]))?.status], ["active", "canceled"]);
+  assert.deepEqual(await timelineAccess(b.viewer, {}), SUBSCRIBED);
+});
+
+test("a plan with no row counts as kept only for a day after its grant: granted two days ago, a new plan's first payment is kept; granted a minute ago, while its row may still land, the new one is a second", { skip: NO_DB }, async (t) => {
+  const { db, purchasesTable } = await pg();
+  const { eq } = await import("drizzle-orm");
+  const known = new Map<string, { customer: string; item: PlanId; purchaseId: string }>();
+  const stand = await secondPlanStripe(known);
+  t.after(stand.close);
+
+  // Paid and granted with no row, whether still to land or gone from under its purchase, then dated back.
+  const grantedWithNoRow = async (b: Awaited<ReturnType<typeof buyer>>, tag: string, agoMs: number) => {
+    const purchaseId = await checkout(b.userId, "timeline_year");
+    const first = invoice(`in_r1829_${run}_${tag}_1`, b.sub, b.customer, { purchaseId, amountPaid: 6999, intent: `pi_r1829_${run}_${tag}_1` });
+    await apply(event("invoice.paid", first));
+    await db.update(purchasesTable).set({ grantedAt: new Date(Date.now() - agoMs) }).where(eq(purchasesTable.id, purchaseId));
+    assert.deepEqual([(await purchasesOf(b.userId))[0]?.status, await rowOf(b.sub)], ["granted", null]);
+  };
+  const nextPlan = async (b: Awaited<ReturnType<typeof buyer>>, tag: string) => {
+    const purchaseId = await checkout(b.userId, "timeline_year");
+    const sub = `${b.sub}_next`;
+    known.set(sub, { customer: b.customer, item: "timeline_year", purchaseId });
+    await apply(event("customer.subscription.created", subscription(sub, b.customer, { item: "timeline_year", purchaseId, status: "incomplete" })));
+    const paid = invoice(`in_r1829_${run}_${tag}_2`, sub, b.customer, { purchaseId, amountPaid: 6999, intent: `pi_r1829_${run}_${tag}_2` });
+    await apply(event("invoice.paid", paid), { client: stand.client });
+    return { purchase: (await purchasesOf(b.userId)).find((p) => p.id === purchaseId), row: await rowOf(sub) };
+  };
+
+  const old = await buyer("row-gone");
+  await grantedWithNoRow(old, "old", 2 * DAY * 1000);
+  const kept = await nextPlan(old, "old");
+  assert.deepEqual([kept.purchase?.status, kept.row?.status], ["granted", "active"], "the old plan keeps nothing, so the new one is kept");
+  assert.deepEqual(await timelineAccess(old.viewer, {}), SUBSCRIBED);
+
+  const recent = await buyer("row-landing");
+  await grantedWithNoRow(recent, "minute", 60_000);
+  const second = await nextPlan(recent, "minute");
+  assert.deepEqual([second.purchase?.status, second.row?.status], ["open", "canceled"], "the plan whose row is still to land is kept, so the new one is a second");
+
+  assert.deepEqual(stand.cancels, [`${recent.sub}_next`]);
+  assert.deepEqual(stand.refunds.map((refund) => refund.intent), [`pi_r1829_${run}_minute_2`]);
+});
+
 test("an event for an account, a plan or a subscription that isn't ours writes nothing", { skip: NO_DB }, async () => {
   const stranger = `sub_r1712_${run}_stranger`;
   assert.equal(await apply(event("customer.subscription.created", subscription(stranger, `cus_r1712_${run}_nobody`))), "ignored");

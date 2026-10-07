@@ -162,7 +162,7 @@ function Readings({ mira }: { mira: Mira }) {
     <ThingCard
       id="five-readings"
       name="Readings"
-      promise="Every moment read against your own report"
+      promise="Every transit read against your own report"
       why={`Your ${PERSONAL_REPORT} already describes you. Each reading starts from what your report says, then explains what this time means for you. It links back to that part of your report.`}
       sees="What Mira reads"
       mark={SAMPLE_WORDS}

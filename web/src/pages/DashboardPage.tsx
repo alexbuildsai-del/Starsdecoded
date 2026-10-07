@@ -31,7 +31,7 @@ import {
   type HomePair,
   type PriceItem,
 } from "@workspace/api-client-react";
-import type { BundleId } from "@workspace/commerce";
+import { CREDIT_LINE, type BundleId } from "@workspace/commerce";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BundleList } from "@/components/BundleList";
 import { CompatibilityPicker } from "@/components/CompatibilityPicker";
@@ -261,7 +261,7 @@ function StartPanel({ out, settled, gift, prices, buy, onOwnReport, onGetCredits
             <Button onClick={onGetCredits} className="font-label">
               Get credits
             </Button>
-            <p className="text-xs leading-snug text-[#9AA3B5]">You pay once for each report.</p>
+            <p className="text-xs leading-snug text-[#9AA3B5]">You pay for credits. {CREDIT_LINE}</p>
           </>
         ) : (
           // MB-113 provisional: making a report says Write, as the birth form's own button does.

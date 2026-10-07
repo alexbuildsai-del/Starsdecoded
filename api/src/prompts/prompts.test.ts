@@ -443,10 +443,11 @@ test("floors: superpowers' parts can reach 600, at 130 to 150 words of text and 
 });
 
 // MB-87: the word the page prints beside every house number (ADR-98) opens each house's short, which the
-// planet rows and the Midheaven's line a report stores are built from.
+// planet rows and the Midheaven's line a report stores are built from. The web keeps its one house set in
+// houses.ts (ADR-321).
 test("vocabulary: each house's short opens with the page's word, the web's own list", () => {
-  const glossary = readFileSync(new URL("../../../web/src/lib/evidence-glossary.ts", import.meta.url), "utf8");
-  const web = [...glossary.match(/export const HOUSE_WORDS = \[([^\]]+)\]/)![1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  const houses = readFileSync(new URL("../../../web/src/lib/houses.ts", import.meta.url), "utf8");
+  const web = [...houses.match(/export const HOUSE_WORDS = \[([^\]]+)\]/)![1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual([...HOUSE_WORDS], web);
   for (let h = 1; h <= 12; h++) {
     const short = HOUSE[h].short;

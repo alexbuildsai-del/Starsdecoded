@@ -24,6 +24,8 @@ type CheckoutDeps = import("./purchases.js").CheckoutDeps;
 type CheckoutBody = import("./purchases.js").CheckoutBody;
 type InsertPurchaseRow = import("@workspace/db").InsertPurchaseRow;
 type PurchaseRow = import("@workspace/db").PurchaseRow;
+type PurchaseStatus = import("@workspace/db").PurchaseStatus;
+type CatalogueItemId = import("@workspace/commerce").CatalogueItemId;
 
 type Json = Record<string, unknown>;
 
@@ -73,6 +75,8 @@ interface StandIn {
   base: string;
   calls: Call[];
   customers: Map<string, Json>;
+  /** Every Checkout Session made or seeded, by id; `refuse` answers its expire with that status instead. */
+  sessions: Map<string, Json>;
   /** What each Price and coupon charges, as the sync would have left them. */
   amounts: Map<string, number>;
   off: Map<string, number>;
@@ -86,6 +90,7 @@ const one = (value: unknown, at = "0"): Json => (isJson(value) && isJson(value[a
 async function standIn(): Promise<StandIn> {
   const calls: Call[] = [];
   const customers = new Map<string, Json>();
+  const sessions = new Map<string, Json>();
   const byKey = new Map<string, Json>();
   const amounts = new Map<string, number>();
   const off = new Map<string, number>();
@@ -95,6 +100,7 @@ async function standIn(): Promise<StandIn> {
     base: "",
     calls,
     customers,
+    sessions,
     amounts,
     off,
     drift: 0,
@@ -102,6 +108,19 @@ async function standIn(): Promise<StandIn> {
   };
 
   const answer = (call: Call): [number, unknown] => {
+    const expiring = /^\/v1\/checkout\/sessions\/([^/]+)\/expire$/.exec(call.path);
+    if (call.method === "POST" && expiring) {
+      const session = sessions.get(decodeURIComponent(expiring[1]));
+      if (!session) return [404, { error: { type: "invalid_request_error", code: "resource_missing", message: "No such checkout.session" } }];
+      if (typeof session.refuse === "number") {
+        return [session.refuse, { error: { type: "invalid_request_error", message: "The key may not expire sessions" } }];
+      }
+      if (session.status !== "open") {
+        return [400, { error: { type: "invalid_request_error", message: 'Only Checkout Sessions with a status in ["open"] can be expired.' } }];
+      }
+      session.status = "expired";
+      return [200, session];
+    }
     if (call.method === "POST" && call.path === "/v1/customers") {
       const kept = call.idempotencyKey ? byKey.get(call.idempotencyKey) : undefined;
       if (kept) return [200, kept];
@@ -117,26 +136,25 @@ async function standIn(): Promise<StandIn> {
       const coupon = one(call.params.discounts).coupon;
       const total = unit - (coupon === undefined ? 0 : (off.get(String(coupon)) ?? 0)) + world.drift;
       const id = nextId("cs_test");
-      return [
-        200,
-        {
-          id,
-          object: "checkout.session",
-          amount_subtotal: unit,
-          amount_total: total,
-          client_reference_id: call.params.client_reference_id ?? null,
-          client_secret: `${id}_secret_standin`,
-          currency: "eur",
-          customer: call.params.customer ?? null,
-          livemode: false,
-          metadata: call.params.metadata ?? {},
-          mode: call.params.mode,
-          payment_intent: null,
-          payment_status: "unpaid",
-          status: "open",
-          ui_mode: call.params.ui_mode,
-        },
-      ];
+      const session: Json = {
+        id,
+        object: "checkout.session",
+        amount_subtotal: unit,
+        amount_total: total,
+        client_reference_id: call.params.client_reference_id ?? null,
+        client_secret: `${id}_secret_standin`,
+        currency: "eur",
+        customer: call.params.customer ?? null,
+        livemode: false,
+        metadata: call.params.metadata ?? {},
+        mode: call.params.mode,
+        payment_intent: null,
+        payment_status: "unpaid",
+        status: "open",
+        ui_mode: call.params.ui_mode,
+      };
+      sessions.set(id, session);
+      return [200, session];
     }
     if (call.method === "POST" && call.path === "/v1/billing_portal/sessions") {
       const id = nextId("bps");
@@ -278,6 +296,17 @@ function depsFor(world: StandIn, rows: Ledger, over: Partial<CheckoutDeps> = {})
       const row = rows.purchases.find((candidate) => candidate.id === id && candidate.userId === userId);
       return row ? asRow(row) : null;
     },
+    openPlanCheckouts: async (userId) =>
+      rows.purchases.flatMap((row) =>
+        row.userId === userId && row.kind === "plan" && row.status === "open" && row.stripeSessionId
+          ? [{ purchaseId: row.id, sessionId: row.stripeSessionId }]
+          : [],
+      ),
+    expirePurchase: async (purchaseId) => {
+      rows.purchases = rows.purchases.map((row) =>
+        row.id === purchaseId && row.status === "open" ? { ...row, status: "expired" as const } : row,
+      );
+    },
     webBase: STAGING_WEB,
     ...over,
   };
@@ -331,7 +360,7 @@ test("the tick: its words hashed with sha256 as hex, each box its own, and a pla
   for (const plan of PLANS) assert.equal(P.tickFor(plan), PLAN_TICK, plan.id);
 });
 
-test("the session's body: Stripe's fields on our page, the Price by its key, a campaign's one coupon, no promotion codes, no payment method list, no tax, the done page", () => {
+test("the session's body: Stripe's fields on our page, the Price by its key, a campaign's one coupon, no promotion codes, no payment method list, Link off, no tax, the done page", () => {
   const purchaseId = randomUUID();
   const couple = P.sessionParams({
     item: bundleById("couple"),
@@ -349,6 +378,7 @@ test("the session's body: Stripe's fields on our page, the Price by its key, a c
     discounts: [{ coupon: "sd_coupon" }],
     automatic_tax: { enabled: false },
     adaptive_pricing: { enabled: false },
+    wallet_options: { link: { display: "never" } },
     return_url: `${STAGING_WEB}/checkout/done?purchase=${purchaseId}`,
     client_reference_id: purchaseId,
     metadata: { purchase_id: purchaseId },
@@ -367,6 +397,8 @@ test("the session's body: Stripe's fields on our page, the Price by its key, a c
   for (const params of [couple, year]) {
     assert.equal("allow_promotion_codes" in params, false, "Stripe refuses a discount beside it, and the price is ours");
     assert.equal("payment_method_types" in params, false, "the Dashboard turns the methods on");
+    assert.equal("excluded_payment_method_types" in params, false, "its list has no Link, and every other method stays the Dashboard's");
+    assert.deepEqual(params.wallet_options, { link: { display: "never" } }, "Link's box goes (ADR-346)");
     assert.equal("success_url" in params || "cancel_url" in params, false, "elements mode takes neither");
   }
   assert.equal("discounts" in year, false);
@@ -437,6 +469,7 @@ test("a bundle at its full price: the session as Stripe received it, and the row
       line_items: { "0": { price: "price_family", quantity: "1" } },
       automatic_tax: { enabled: "false" },
       adaptive_pricing: { enabled: "false" },
+      wallet_options: { link: { display: "never" } },
       return_url: `${STAGING_WEB}/checkout/done?purchase=${purchaseId}`,
       client_reference_id: purchaseId,
       metadata: { purchase_id: purchaseId },
@@ -533,6 +566,86 @@ test("a plan: a subscription under Timeline's own tick, the line by the plan's k
       P.tickHashOf(PLAN_TICK),
       "/dashboard/account",
     ]);
+  } finally {
+    await world.close();
+  }
+});
+
+/** A purchase an earlier checkout left, with its session as Stripe holds it. */
+function seed(world: StandIn, rows: Ledger, id: string, userId: string, item: CatalogueItemId, session: { id: string; status: string; refuse?: number } | null, status: PurchaseStatus = "open") {
+  if (session) world.sessions.set(session.id, { object: "checkout.session", ...session });
+  rows.purchases.push({
+    id,
+    userId,
+    kind: item.startsWith("timeline") ? "plan" : "bundle",
+    item,
+    cents: itemById(item).cents,
+    fullCents: itemById(item).cents,
+    stripeSessionId: session?.id ?? null,
+    tickHash: P.tickHashOf(item.startsWith("timeline") ? PLAN_TICK : CHECKOUT_TICK),
+    tickedAt: NOW,
+    returnTo: "/dashboard/account",
+    status,
+    isTest: true,
+  });
+}
+
+const PLAN_BODY: CheckoutBody = { item: "timeline_month", ticked: true, returnTo: "/dashboard/account" };
+const checkoutCalls = (world: StandIn, from = 0) =>
+  world.calls.slice(from).filter((call) => call.path.startsWith("/v1/checkout/sessions")).map((call) => call.path);
+const statusOf = (rows: Ledger, id: string) => rows.purchases.find((row) => row.id === id)?.status;
+
+test("B-34: a plan checkout first expires the account's other plan checkouts still open; one paid since, a bundle's and another account's stay", async () => {
+  const world = await standIn();
+  const rows = ledger();
+  try {
+    seed(world, rows, "p-older-tab", MIRA.userId, "timeline_month", { id: "cs_older_tab", status: "open" });
+    seed(world, rows, "p-paid-tab", MIRA.userId, "timeline_year", { id: "cs_paid_tab", status: "complete" });
+    seed(world, rows, "p-bundle-tab", MIRA.userId, "couple", { id: "cs_bundle_tab", status: "open" });
+    seed(world, rows, "p-closed", MIRA.userId, "timeline_month", { id: "cs_closed", status: "expired" }, "expired");
+    seed(world, rows, "p-idris-tab", IDRIS.userId, "timeline_month", { id: "cs_idris_tab", status: "open" });
+
+    const outcome = await P.startCheckout(MIRA, PLAN_BODY, depsFor(world, rows));
+    assert.equal(outcome.kind, "started");
+    if (outcome.kind !== "started") return;
+    assert.deepEqual(
+      checkoutCalls(world),
+      ["/v1/checkout/sessions/cs_older_tab/expire", "/v1/checkout/sessions/cs_paid_tab/expire", "/v1/checkout/sessions"],
+      "every open plan session is asked to expire before the new one is made",
+    );
+    assert.deepEqual(
+      ["p-older-tab", "p-paid-tab", "p-bundle-tab", "p-closed", "p-idris-tab", outcome.started.purchaseId].map((id) => statusOf(rows, id)),
+      ["expired", "open", "open", "expired", "open", "open"],
+      "Stripe refused the paid one, which its own events settle",
+    );
+    assert.deepEqual(
+      ["cs_older_tab", "cs_paid_tab", "cs_bundle_tab", "cs_idris_tab"].map((id) => world.sessions.get(id)?.status),
+      ["expired", "complete", "open", "open"],
+    );
+
+    const calls = world.calls.length;
+    const bundle = await P.startCheckout(MIRA, { item: "couple", ticked: true, returnTo: "/dashboard?open=credits" }, depsFor(world, rows));
+    assert.equal(bundle.kind, "started");
+    assert.deepEqual(checkoutCalls(world, calls), ["/v1/checkout/sessions"], "a bundle closes nothing");
+
+    const again = await P.startCheckout(MIRA, { ...PLAN_BODY, item: "timeline_year" }, depsFor(world, rows));
+    assert.equal(again.kind, "started");
+    if (again.kind !== "started") return;
+    assert.equal(statusOf(rows, outcome.started.purchaseId), "expired", "the newest plan checkout replaces the one before it");
+    assert.equal(statusOf(rows, again.started.purchaseId), "open");
+  } finally {
+    await world.close();
+  }
+});
+
+test("B-34: an expire Stripe refuses for any other reason stops the plan checkout before its session or its row", async () => {
+  const world = await standIn();
+  const rows = ledger();
+  try {
+    seed(world, rows, "p-locked", MIRA.userId, "timeline_year", { id: "cs_locked", status: "open", refuse: 403 });
+    await assert.rejects(P.startCheckout(MIRA, PLAN_BODY, depsFor(world, rows)), { type: "StripePermissionError" });
+    assert.deepEqual(checkoutCalls(world), ["/v1/checkout/sessions/cs_locked/expire"], "no session is made");
+    assert.deepEqual(rows.purchases.map((row) => [row.id, row.status]), [["p-locked", "open"]]);
   } finally {
     await world.close();
   }
@@ -805,4 +918,45 @@ test("on a scratch Postgres: one Customer stored per account, the purchase row a
   assert.equal(await P.checkoutState(other, outcome.started.purchaseId, live), null);
   const plan = await P.startCheckout(buyer, { item: "timeline_month", ticked: true, returnTo: "/dashboard" }, live);
   assert.deepEqual(plan, { kind: "no_personal_report" }, "Timeline's own rule: no finished Personal report of their own");
+});
+
+test("on a scratch Postgres: a second plan checkout expires the first's session and its row; the page reads it expired, and a bundle's stays open", { skip: SCRATCH ? false : "WALK_DATABASE_URL names no bootstrapped scratch Postgres" }, async (t) => {
+  const { db, purchasesTable, usersTable } = await import("@workspace/db");
+  const { eq, inArray } = await import("drizzle-orm");
+  const world = await standIn();
+  const buyer = { userId: `user_r18_01_${randomUUID()}`, sessionId: `s-${randomUUID()}` };
+  t.after(async () => {
+    await db.delete(purchasesTable).where(eq(purchasesTable.userId, buyer.userId));
+    await db.delete(usersTable).where(eq(usersTable.id, buyer.userId));
+    await world.close();
+  });
+  const env = envFor(world);
+  for (const item of [...BUNDLES, ...PLANS]) world.amounts.set(PRICE_ID[item.lookupKey], item.cents);
+  const live: Partial<CheckoutDeps> = {
+    env,
+    client: stripe(env),
+    ready: () => ({ ok: true, reason: null }),
+    priceIdFor: async (key) => PRICE_ID[key] ?? null,
+    clerkEmail: async () => null,
+    hasPersonalReport: async () => true,
+  };
+
+  const bundle = await P.startCheckout(buyer, { item: "couple", ticked: true, returnTo: "/chart" }, live);
+  const older = await P.startCheckout(buyer, PLAN_BODY, live);
+  const newer = await P.startCheckout(buyer, { ...PLAN_BODY, item: "timeline_year" }, live);
+  assert.ok(bundle.kind === "started" && older.kind === "started" && newer.kind === "started");
+  const ids = [bundle.started.purchaseId, older.started.purchaseId, newer.started.purchaseId];
+  const rows = await db.select().from(purchasesTable).where(inArray(purchasesTable.id, ids));
+  assert.deepEqual(
+    ids.map((id) => rows.find((row) => row.id === id)?.status),
+    ["open", "expired", "open"],
+  );
+  const olderSession = rows.find((row) => row.id === older.started.purchaseId)?.stripeSessionId ?? "";
+  assert.equal(world.sessions.get(olderSession)?.status, "expired");
+  assert.deepEqual(
+    checkoutCalls(world).filter((path) => path.endsWith("/expire")),
+    [`/v1/checkout/sessions/${olderSession}/expire`],
+    "only the plan's older session",
+  );
+  assert.equal((await P.checkoutState(buyer, older.started.purchaseId, live))?.status, "expired", "what the older tab reads");
 });

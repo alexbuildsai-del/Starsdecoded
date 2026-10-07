@@ -1,22 +1,27 @@
 /**
- * Timeline's routes (ADR-207, 209, 210, 262): whether the reader has it, Now and ahead, Life, and each reading. Every
- * route but the access answer stands behind the one access check and reads the reader's own chart with a finished
- * Personal report (reading 2). routes/index.ts stands Now and ahead's count ahead of it, and a reading's count and the
- * breaker, with Timeline's own pause line, ahead of its open. A new reading once the account has started the day's is
- * 429, with Timeline's own line too.
+ * Timeline's routes (ADR-207, 209, 210, 262, 362): whether the reader has it, its setup, Now and ahead, Life, and each
+ * reading. Every route but the access answer stands behind the one access check and reads the reader's own chart with
+ * a finished Personal report (reading 2). routes/index.ts stands Now and ahead's count ahead of it, one count its
+ * three setup routes share ahead of them, and a reading's count and the breaker, with Timeline's own pause line, ahead
+ * of its open. A new reading once the account has started the day's is 429, with Timeline's own line too. The views
+ * write nothing: a subscriber's readings are written at setup, from the engine's own list (reading 11).
  */
 import { Router, type Request, type RequestHandler, type Response } from "express";
 import type { z } from "zod";
 import {
-  GetTimelineLifeQueryParams, GetTimelineNowQueryParams, OpenTimelineReadingParams, type GetTimelineAccessResponse,
+  GetTimelineLifeQueryParams, GetTimelineNowQueryParams, GetTimelineSetupQueryParams, OpenTimelineReadingParams,
+  StartTimelineSetupQueryParams, type GetTimelineAccessResponse,
 } from "@workspace/api-zod";
 import type { Viewer } from "../lib/access.js";
 import { askUsage, type AskUsage } from "../lib/ask.js";
 import { ownChartOf } from "../lib/shares.js";
 import { livePlan, type LivePlan } from "../lib/subscriptions.js";
-import { lifeView, nowView, readerChart, type ReaderChart, type ReadingState, type ReadingStatuses, type TimelineNow } from "../lib/timeline.js";
+import { lifeView, nowView, readerChart, type ReaderChart, type ReadingState, type ReadingStatuses } from "../lib/timeline.js";
 import { requireTimelineAccess, timelineAccess, type TimelineAccessAnswer } from "../lib/timelineAccess.js";
-import { openReading, queueReadings, readingStatuses, type OpenedReading } from "../lib/timelineReadings.js";
+import {
+  codeOf, openReading, readingStatuses, readingsQueued, spendAllows, type OpenedReading,
+} from "../lib/timelineReadings.js";
+import { markReplaySeen, setupState, startSetup } from "../lib/timelineSetup.js";
 import { validationFailure } from "../lib/validation.js";
 
 type TimelineAccess = z.infer<typeof GetTimelineAccessResponse>;
@@ -68,11 +73,6 @@ export function writesOnOpen(state: ReadingState | undefined): boolean {
   return status !== "ready" && status !== "writing";
 }
 
-/** The contacts in the six-month view with no reading yet, which the queue writes ahead, three at most (reading 7). */
-export function toQueue(view: Pick<TimelineNow, "events">): string[] {
-  return view.events.filter((event) => event.kind === "contact" && event.reading === "none").map((event) => event.key);
-}
-
 /**
  * What an open answers: the reading as it stands (200), no such reading (404), or the day's cap on new readings (429)
  * in the contract's limit body, with Retry-After carrying its wait as every limit's 429 does.
@@ -107,8 +107,9 @@ function readerFor(req: Request): Promise<ReaderChart | null> {
 /**
  * Ahead of a reading's count and the breaker in routes/index.ts. An open whose reading is kept or still being written
  * starts no write, so it skips both: the sheet asks again every few seconds while a reading is written, and a kept one
- * opens on a paused day. A key not shaped as one, or a reader with no chart, skips them too, on its way to the route's
- * 404. An open whose state cannot be read meets both, as a write would.
+ * opens on a paused day. So does one a setup job is still to write, unless the day is paused: then it meets the
+ * breaker, whose line says why it waits (reading 11). A key not shaped as one, or a reader with no chart, skips them
+ * too, on its way to the route's 404. An open whose state cannot be read meets both, as a write would.
  */
 export const startsAReading: RequestHandler = async (req, _res, next) => {
   try {
@@ -117,13 +118,25 @@ export const startsAReading: RequestHandler = async (req, _res, next) => {
     const reader = await readerFor(req);
     if (!reader) return next("route");
     const state = (await readingStatuses(reader.profileId, [key], reader.basis)).get(key);
-    return writesOnOpen(state) ? next() : next("route");
+    if (!writesOnOpen(state)) return next("route");
+    // A failed reading is written again by this open, whatever a job holds.
+    const failed = typeof state === "object" && state.status === "failed";
+    if (!failed && (await readingsQueued(reader.profileId, [key])).has(key)) {
+      return (await spendAllows()) ? next("route") : next();
+    }
+    return next();
   } catch {
     return next();
   }
 };
 
 const noReading = (res: Response) => res.status(404).json(NOT_FOUND);
+
+/** Setup's 401, ahead of the access check: Timeline belongs to an account (ADR-262), as the access answer says. */
+const signedIn: RequestHandler = (req, res, next) => {
+  if (req.userId) return next();
+  res.status(401).json({ error: "sign_in_required", message: TIMELINE_SIGN_IN_LINE });
+};
 
 const router = Router();
 
@@ -155,13 +168,46 @@ router.get("/timeline/now", requireTimelineAccess, async (req, res) => {
     const now = new Date();
     // The view names its own keys; drawn again with their readings it takes about a millisecond.
     const keys = nowView(reader, range, tz, NO_READINGS, now).events.map((event) => event.key);
-    const view = nowView(reader, range, tz, await readingStatuses(reader.profileId, keys, reader.basis), now);
-    // The queue never rejects, so the view answers at once and the readings land on their own (reading 7).
-    if (range === "six-months") void queueReadings(reader, toQueue(view));
-    return res.json(view);
+    return res.json(nowView(reader, range, tz, await readingStatuses(reader.profileId, keys, reader.basis), now));
   } catch (err) {
     req.log.error({ err }, "Failed to read Now and ahead");
     return res.status(500).json({ error: "internal_error", message: "Failed to read Now and ahead" });
+  }
+});
+
+// A zone the server cannot read falls back to the birth place's, as the contract says, so a query never refuses.
+router.get("/timeline/setup", signedIn, requireTimelineAccess, async (req, res) => {
+  try {
+    const reader = await readerFor(req);
+    if (!reader) return res.status(409).json(NO_PERSONAL_REPORT);
+    return res.json(await setupState(reader, GetTimelineSetupQueryParams.safeParse(req.query).data?.tz));
+  } catch (err) {
+    req.log.error({ code: codeOf(err) }, "Failed to read Timeline's setup");
+    return res.status(500).json({ error: "internal_error", message: "Failed to read Timeline's setup" });
+  }
+});
+
+// The catch-up (ADR-362): payment starts setup on its own, and every key it queues is the engine's, never the request's.
+router.post("/timeline/setup", signedIn, requireTimelineAccess, async (req, res) => {
+  try {
+    const reader = await readerFor(req);
+    if (!reader) return res.status(409).json(NO_PERSONAL_REPORT);
+    return res.status(202).json(await startSetup(reader, StartTimelineSetupQueryParams.safeParse(req.query).data?.tz));
+  } catch (err) {
+    req.log.error({ code: codeOf(err) }, "Failed to start Timeline's setup");
+    return res.status(500).json({ error: "internal_error", message: "Failed to start Timeline's setup" });
+  }
+});
+
+router.post("/timeline/setup/replay-seen", signedIn, requireTimelineAccess, async (req, res) => {
+  try {
+    const reader = await readerFor(req);
+    if (!reader) return res.status(409).json(NO_PERSONAL_REPORT);
+    await markReplaySeen(reader.userId);
+    return res.status(204).end();
+  } catch (err) {
+    req.log.error({ code: codeOf(err) }, "Failed to mark Timeline's next six months seen");
+    return res.status(500).json({ error: "internal_error", message: "Failed to mark the next six months seen" });
   }
 });
 

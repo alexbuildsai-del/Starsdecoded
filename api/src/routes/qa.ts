@@ -2,15 +2,18 @@
  * The staging walk after each deploy, and its public verdict (ADR-279, 315). Once the web serves this commit, the QA
  * pair is made ready, reset and walked in `deploy` mode, which copies the seed in and writes nothing (readings 11, 17):
  * one walk a commit. GET /api/qa/latest answers the newest verdict with nothing private in it, for the round's skills
- * to read (B-31). Staging only: anywhere else nothing walks and the route answers 404. No route starts a walk (ADR-315).
+ * to read (B-31), and GET /api/qa/latest/shots/{step} the picture that walk kept of a step (ADR-360). Staging only:
+ * anywhere else nothing walks and both routes answer 404. No route starts a walk (ADR-315).
  */
+import { and, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
-import type { QaWalkRow, QaWalkStatus } from "@workspace/db";
+import { db, qaShotsTable, type QaWalkRow, type QaWalkStatus } from "@workspace/db";
 import { readAppEnv, readCommitSha } from "../lib/appEnv.js";
 import { GIVE_UP_MS, untilWebServes } from "../lib/indexNow.js";
 import { dbQaWalkRecord, liveWalkDeps, walkOnce, type WalkDeps } from "../lib/release.js";
 import { logger } from "../lib/logger.js";
 import { publicWebBase } from "../lib/waitlist.js";
+import { STAGING_STEP_IDS } from "../walk/steps.js";
 
 /** A walk still running from before this process started was cut off by the restart that started this one. */
 const BOOTED_AT = new Date();
@@ -110,6 +113,17 @@ const text = (value: unknown): string | null => (typeof value === "string" ? mas
 const entries = (value: unknown): Record<string, unknown>[] =>
   Array.isArray(value) ? value.filter((v): v is Record<string, unknown> => Boolean(v) && typeof v === "object") : [];
 
+// Only a step the staging walk runs can have a picture, so any other name is turned away before a row is read and never
+// reaches a log line.
+const PICTURED: ReadonlySet<string> = new Set(STAGING_STEP_IDS);
+
+/** Each step of the verdict whose picture was kept, with the walk it was kept under (qaWalk/index.ts, `shot`). */
+function shotsOf(row: QaWalkRow): Array<{ step: string; walkId: string }> {
+  return entries(row.steps).flatMap((s) =>
+    typeof s.id === "string" && PICTURED.has(s.id) && typeof s.shot === "string" ? [{ step: s.id, walkId: s.shot }] : [],
+  );
+}
+
 /** The verdict's own fields and no others, so a field the walk adds later is never public before someone chooses it. */
 function publicVerdict(row: QaWalkRow) {
   return {
@@ -126,7 +140,18 @@ function publicVerdict(row: QaWalkRow) {
       ms: typeof s.ms === "number" && Number.isFinite(s.ms) ? s.ms : null,
     })),
     findings: entries(row.findings).map((f) => ({ step: text(f.step), title: text(f.title), detail: text(f.detail) })),
+    shots: shotsOf(row).map((shot) => shot.step),
   };
+}
+
+/** The step's picture while it is still the one its walk kept; a newer walk's first picture clears it. */
+async function pictureOf(step: string, walkId: string): Promise<Buffer | null> {
+  const [shot] = await db
+    .select({ jpeg: qaShotsTable.jpeg })
+    .from(qaShotsTable)
+    .where(and(eq(qaShotsTable.step, step), eq(qaShotsTable.walkId, walkId)))
+    .limit(1);
+  return shot?.jpeg ?? null;
 }
 
 // Mounted in app.ts ahead of the session: the skills read it with no account, and it reads one row and writes none.
@@ -141,6 +166,25 @@ router.get("/qa/latest", async (req, res) => {
     return res.json(publicVerdict(row));
   } catch (err) {
     req.log.error({ err }, "qa walk verdict failed");
+    return res.status(500).json({ error: "internal_error" });
+  }
+});
+
+// Read with no account, as the verdict is: it reads two rows and writes none (R13-10's lesson), and its one line names
+// the step alone.
+router.get("/qa/latest/shots/:step", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (readAppEnv() !== "staging") return res.status(404).json({ error: "not_found" });
+  const { step } = req.params;
+  if (!PICTURED.has(step)) return res.status(404).json({ error: "not_found" });
+  try {
+    const row = await dbQaWalkRecord.latest();
+    const shot = row ? shotsOf(row).find((s) => s.step === step) : undefined;
+    const jpeg = shot ? await pictureOf(step, shot.walkId) : null;
+    if (!jpeg) return res.status(404).json({ error: "not_found" });
+    return res.type("image/jpeg").send(jpeg);
+  } catch {
+    logger.error({ step }, "qa walk picture failed");
     return res.status(500).json({ error: "internal_error" });
   }
 });

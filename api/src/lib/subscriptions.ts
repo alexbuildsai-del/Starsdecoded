@@ -4,10 +4,12 @@
  * sets a plan's state first: the row is only ever what Stripe last said (R-6.2). A plan's first paid invoice grants the
  * purchase its checkout made and sends our receipt; each paid year of the yearly plan is a purchase and one credit to
  * give (ADR-277), which a refund of that payment takes back while it is unspent (fulfilment.ts finds it by its payment).
+ * An account keeps one plan: a second one's first payment cancels it at once and refunds it in full (ADR-359). The
+ * first payment of the plan the account keeps starts Timeline's setup (ADR-362).
  */
 import { randomUUID } from "node:crypto";
-import { and, eq, gt, inArray, isNotNull, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
-import type Stripe from "stripe";
+import { and, eq, gt, inArray, isNotNull, isNull, ne, notInArray, or, sql, type SQL } from "drizzle-orm";
+import Stripe from "stripe";
 import {
   db,
   purchasesTable,
@@ -31,6 +33,13 @@ export type LiveStatus = (typeof LIVE_STATUSES)[number];
 // Stripe never moves a subscription out of these, so an event that lands after one is older than the row.
 const ENDED = ["canceled", "incomplete_expired"];
 
+// A plan the account keeps reads live, or still incomplete when its first payment landed before the event saying so.
+const KEPT_STATUSES = [...LIVE_STATUSES, "incomplete"];
+
+const NO_ROW_COUNTS_MS = 24 * 60 * 60 * 1000;
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 // The checkout tags the subscription with the purchase it made (purchases.ts), and every invoice carries the tag.
 const PURCHASE_TAG = "purchase_id";
 
@@ -46,6 +55,8 @@ export interface SubscriptionDeps {
   client: Stripe | null;
   sendReceipt: (opts: SendReceiptEmailOptions) => Promise<boolean>;
   now: () => Date;
+  /** Starts the account's Timeline setup once its plan's first payment is kept (ADR-362). */
+  setUp: (userId: string) => Promise<void>;
 }
 
 function depsWith(over: Partial<SubscriptionDeps>): SubscriptionDeps {
@@ -53,6 +64,8 @@ function depsWith(over: Partial<SubscriptionDeps>): SubscriptionDeps {
     client: over.client === undefined ? stripe() : over.client,
     sendReceipt: over.sendReceipt ?? sendReceiptEmail,
     now: over.now ?? (() => new Date()),
+    // Loaded when a payment needs it: setup reads this module's plans, and its writes bring the model's client.
+    setUp: over.setUp ?? (async (userId) => (await import("./timelineSetup.js")).setupAtPayment(userId)),
   };
 }
 
@@ -146,7 +159,11 @@ async function mirrorSubscription(event: SubscriptionEvent, deps: SubscriptionDe
     logger.warn({ event: event.id, type: event.type }, "a subscription event names no account or plan of ours");
     return "ignored";
   }
-  const now = deps.now();
+  await mirrorRow(state, userId, item, deps.now());
+  return "processed";
+}
+
+async function mirrorRow(state: SubscriptionState, userId: string, item: PlanId, now: Date): Promise<void> {
   await db
     .insert(subscriptionsTable)
     .values({
@@ -172,7 +189,6 @@ async function mirrorSubscription(event: SubscriptionEvent, deps: SubscriptionDe
       },
       setWhere: mayMoveTo(state.status),
     });
-  return "processed";
 }
 
 /** Since the basil API an invoice names its subscription under its parent, with the subscription's tags as they were. */
@@ -271,33 +287,153 @@ interface PaidBy {
  * The yearly plan's credit lands with the stamp or not at all. Only the delivery that grants gets the row back.
  */
 async function grantPlanPurchase(purchaseId: string, item: PlanId, paid: PaidBy, now: Date): Promise<PurchaseRow | null> {
+  return db.transaction((tx) => grantIn(tx, purchaseId, item, paid, now));
+}
+
+async function grantIn(tx: Tx, purchaseId: string, item: PlanId, paid: PaidBy, now: Date): Promise<PurchaseRow | null> {
+  const [purchase] = await tx.select().from(purchasesTable).where(eq(purchasesTable.id, purchaseId)).for("update");
+  if (!purchase || purchase.status !== "open") return null;
+  // The yearly plan's credit to give, read in History as "With Timeline".
+  if (item === "timeline_year") {
+    await grantBundle(
+      purchase.userId,
+      "solo",
+      { source: "plan", purchaseId: purchase.id, test: purchase.isTest || paid.test },
+      tx,
+    );
+  }
+  const [granted] = await tx
+    .update(purchasesTable)
+    .set({
+      status: "granted",
+      grantedAt: now,
+      // The ids a refund finds the payment by; a renewal's purchase was made with them.
+      stripeSubscription: purchase.stripeSubscription ?? paid.subscriptionId,
+      stripeInvoice: purchase.stripeInvoice ?? paid.invoiceId,
+      stripePaymentIntent: purchase.stripePaymentIntent ?? paid.intent,
+      updatedAt: now,
+    })
+    .where(eq(purchasesTable.id, purchase.id))
+    .returning();
+  return granted ?? null;
+}
+
+/**
+ * Whether the account keeps a plan other than this subscription (ADR-359): one a paid purchase of the account stands
+ * on, which has not ended. One whose row hasn't landed yet counts, since its first payment went through. That row
+ * lands within minutes, and a purchase can outlive its row, so a purchase with no row counts only for a day after its
+ * grant.
+ */
+async function keepsAnotherPlan(tx: Tx, userId: string, subscriptionId: string, now: Date): Promise<boolean> {
+  const grantedSince = new Date(now.getTime() - NO_ROW_COUNTS_MS);
+  const [other] = await tx
+    .select({ id: purchasesTable.id })
+    .from(purchasesTable)
+    .leftJoin(subscriptionsTable, eq(subscriptionsTable.id, purchasesTable.stripeSubscription))
+    .where(
+      and(
+        eq(purchasesTable.userId, userId),
+        eq(purchasesTable.kind, "plan"),
+        inArray(purchasesTable.status, ["granted", "refunded", "disputed"]),
+        isNotNull(purchasesTable.stripeSubscription),
+        ne(purchasesTable.stripeSubscription, subscriptionId),
+        or(
+          and(isNull(subscriptionsTable.id), gt(purchasesTable.grantedAt, grantedSince)),
+          and(
+            inArray(subscriptionsTable.status, KEPT_STATUSES),
+            or(
+              eq(subscriptionsTable.cancelAtPeriodEnd, false),
+              isNull(subscriptionsTable.currentPeriodEnd),
+              gt(subscriptionsTable.currentPeriodEnd, now),
+            ),
+          ),
+        ),
+      ),
+    )
+    .limit(1);
+  return other !== undefined;
+}
+
+type FirstPayment = { kind: "second" } | { kind: "kept"; granted: PurchaseRow | null };
+
+/**
+ * A plan's first payment: granted, unless the account already keeps another plan, which makes this one a second
+ * (ADR-359). The account's first payments are decided one at a time under its lock, so two that land together never
+ * both stay and never both go.
+ */
+async function grantFirstPayment(
+  userId: string,
+  purchaseId: string,
+  item: PlanId,
+  paid: PaidBy,
+  now: Date,
+): Promise<FirstPayment> {
   return db.transaction(async (tx) => {
-    const [purchase] = await tx.select().from(purchasesTable).where(eq(purchasesTable.id, purchaseId)).for("update");
-    if (!purchase || purchase.status !== "open") return null;
-    // The yearly plan's credit to give, read in History as "With Timeline".
-    if (item === "timeline_year") {
-      await grantBundle(
-        purchase.userId,
-        "solo",
-        { source: "plan", purchaseId: purchase.id, test: purchase.isTest || paid.test },
-        tx,
-      );
-    }
-    const [granted] = await tx
-      .update(purchasesTable)
-      .set({
-        status: "granted",
-        grantedAt: now,
-        // The ids a refund finds the payment by; a renewal's purchase was made with them.
-        stripeSubscription: purchase.stripeSubscription ?? paid.subscriptionId,
-        stripeInvoice: purchase.stripeInvoice ?? paid.invoiceId,
-        stripePaymentIntent: purchase.stripePaymentIntent ?? paid.intent,
-        updatedAt: now,
-      })
-      .where(eq(purchasesTable.id, purchase.id))
-      .returning();
-    return granted ?? null;
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`plan:${userId}`}, 0))`);
+    if (await keepsAnotherPlan(tx, userId, paid.subscriptionId, now)) return { kind: "second" };
+    return { kind: "kept", granted: await grantIn(tx, purchaseId, item, paid, now) };
   });
+}
+
+/**
+ * A second plan (ADR-359): cancelled at once and its first payment refunded in full, while the plan the account keeps
+ * stays as it is, and nothing of the second is granted. Its payment goes on its purchase first, so the refund's own
+ * event finds it and the page that waits reads it refunded. The cancel is mirrored at once, so the second never counts
+ * as kept; a replay finds its row ended and the refund keyed by its payment, so neither happens twice.
+ */
+async function replaceSecondPlan(
+  event: InvoiceEvent,
+  userId: string,
+  checkout: PurchaseRow,
+  item: PlanId,
+  paid: PaidBy,
+  deps: SubscriptionDeps,
+): Promise<SubscriptionOutcome> {
+  // Without Stripe nothing can be cancelled, so the event fails here and Stripe sends it again.
+  if (!deps.client) throw new Error("a second plan can't be cancelled without Stripe");
+  const client = deps.client;
+  const now = deps.now();
+  await db
+    .update(purchasesTable)
+    .set({
+      stripeSubscription: paid.subscriptionId,
+      stripeInvoice: paid.invoiceId,
+      stripePaymentIntent: paid.intent,
+      updatedAt: now,
+    })
+    .where(and(eq(purchasesTable.id, checkout.id), eq(purchasesTable.status, "open")));
+  const row = await subscriptionRow(paid.subscriptionId);
+  if (!row || !ENDED.includes(row.status)) {
+    const cancelled = subscriptionState(await client.subscriptions.cancel(paid.subscriptionId));
+    await mirrorRow(cancelled, userId, cancelled.item ?? item, now);
+  }
+  if (paid.intent) {
+    try {
+      await client.refunds.create({ payment_intent: paid.intent }, { idempotencyKey: `sd-second-plan-${paid.intent}` });
+    } catch (err) {
+      if (!(err instanceof Stripe.errors.StripeInvalidRequestError && err.code === "charge_already_refunded")) throw err;
+    }
+  }
+  // With no payment to name, the refund is the admin's to make from the event in Stripe.
+  logger.warn(
+    { event: event.id, type: event.type, refunded: paid.intent !== null },
+    "a second Timeline plan on one account was cancelled at once",
+  );
+  return "processed";
+}
+
+/** A paid invoice settles the payment Stripe was waiting on, so a plan held for it is live again, to the end it paid. */
+async function markPaid(subscriptionId: string, invoice: Stripe.Invoice, now: Date): Promise<void> {
+  const through = paidThrough(invoice);
+  await db
+    .update(subscriptionsTable)
+    .set({
+      status: sql`case when ${subscriptionsTable.status} in ('incomplete', 'past_due', 'unpaid') then 'active'
+        else ${subscriptionsTable.status} end`,
+      ...(through ? { currentPeriodEnd: laterEnd(through) } : {}),
+      updatedAt: now,
+    })
+    .where(and(eq(subscriptionsTable.id, subscriptionId), notInArray(subscriptionsTable.status, ENDED)));
 }
 
 async function accountEmail(userId: string): Promise<string | null> {
@@ -337,6 +473,19 @@ async function sendPlanReceipt(
   }
 }
 
+/**
+ * Timeline's setup, the moment the payment that turns access on is kept (ADR-362). A setup that fails to start costs
+ * the buyer nothing they paid for, and the screen's catch-up starts it, so it never fails the event; setup logs its
+ * own failure's code.
+ */
+async function startTimelineSetup(event: InvoiceEvent, userId: string, deps: SubscriptionDeps): Promise<void> {
+  try {
+    await deps.setUp(userId);
+  } catch {
+    logger.warn({ event: event.id, type: event.type }, "Timeline's setup did not start at a plan's first payment");
+  }
+}
+
 async function invoicePaid(event: InvoiceEvent, deps: SubscriptionDeps): Promise<SubscriptionOutcome> {
   const invoice = event.data.object;
   const sub = subscriptionOf(invoice);
@@ -356,32 +505,28 @@ async function invoicePaid(event: InvoiceEvent, deps: SubscriptionDeps): Promise
   // Read before anything is written, so a Stripe that can't answer leaves the event whole for its retry.
   const intent = grantable ? await paymentIntentOf(invoice, deps.client) : null;
   const now = deps.now();
+  const paid = { subscriptionId: sub.id, invoiceId: invoice.id, intent, test: !invoice.livemode };
 
-  if (row) {
-    const through = paidThrough(invoice);
-    await db
-      .update(subscriptionsTable)
-      .set({
-        // A paid invoice settles the payment Stripe was waiting on, so a plan held for it is live again.
-        status: sql`case when ${subscriptionsTable.status} in ('incomplete', 'past_due', 'unpaid') then 'active'
-          else ${subscriptionsTable.status} end`,
-        ...(through ? { currentPeriodEnd: laterEnd(through) } : {}),
-        updatedAt: now,
-      })
-      .where(and(eq(subscriptionsTable.id, sub.id), notInArray(subscriptionsTable.status, ENDED)));
+  // Decided before the row reads paid, so a second plan never counts as live on our side.
+  if (first && grantable) {
+    const decided = await grantFirstPayment(userId, grantable.checkout.id, grantable.item, paid, now);
+    if (decided.kind === "second") return replaceSecondPlan(event, userId, grantable.checkout, grantable.item, paid, deps);
+    if (row) await markPaid(sub.id, invoice, now);
+    // Only the delivery that grants gets the purchase back, so a replayed event sends nothing and queues nothing.
+    if (decided.granted) {
+      await sendPlanReceipt(event, decided.granted, grantable.item, deps);
+      await startTimelineSetup(event, userId, deps);
+    }
+    return "processed";
   }
+
+  if (row) await markPaid(sub.id, invoice, now);
   if (!grantable) {
     if (due) logger.warn({ event: event.id, type: event.type }, "a plan's paid invoice has no checkout of ours to grant");
     return "processed";
   }
-
-  const purchase = first
-    ? grantable.checkout
-    : await renewalPurchase(grantable.checkout, grantable.item, invoice, sub.id, intent, now);
-  if (!purchase) return "processed";
-  const paid = { subscriptionId: sub.id, invoiceId: invoice.id, intent, test: !invoice.livemode };
-  const granted = await grantPlanPurchase(purchase.id, grantable.item, paid, now);
-  if (granted && first) await sendPlanReceipt(event, granted, grantable.item, deps);
+  const purchase = await renewalPurchase(grantable.checkout, grantable.item, invoice, sub.id, intent, now);
+  if (purchase) await grantPlanPurchase(purchase.id, grantable.item, paid, now);
   return "processed";
 }
 
@@ -426,8 +571,8 @@ export async function applySubscriptionEvent(
 
 /**
  * The account's live plan, or null: active, trialing or past due, and a cancel at the period's end keeps it to that end
- * and no further, whenever Stripe's last event lands (reading 7). Two checkouts at once can make two; the one that runs
- * longest answers.
+ * and no further, whenever Stripe's last event lands (reading 7). Two checkouts at once can make two until the second's
+ * first payment cancels it (ADR-359); meanwhile the one that runs longest answers.
  */
 export async function activeSubscription(userId: string, now: Date = new Date()): Promise<SubscriptionRow | null> {
   const [row] = await db

@@ -7,3 +7,7 @@ src/lib/credits-view.test.ts
 src/lib/timeline-access.test.ts
 src/hooks/useClerkStalled.test.ts
 src/lib/checkout-view.test.ts
+src/lib/return-to.test.ts
+src/lib/build-story.test.ts
+src/lib/pair-story.test.ts
+src/lib/timeline-setup.test.ts

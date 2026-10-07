@@ -2,8 +2,8 @@
  * The report as it stands right now. The page opens as soon as the chart is
  * stored and the chapters arrive one at a time (ADR-25), so the report query
  * gives the row and the status query gives whatever has been written since,
- * every two seconds until the last section lands. Real progress, the door and
- * the provisional positions come from the same status (ADR-47); a horizon pass
+ * every two seconds until the last section lands. Real progress and the door
+ * come from the same status (ADR-47); a horizon pass
  * reads as `revising`, with its counts from the report itself (ADR-35).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -12,7 +12,6 @@ import {
   getGetReportQueryKey, getGetReportStatusQueryKey, useGetReport, useGetReportStatus,
 } from "@workspace/api-client-react";
 import { progressOf, registryFor, type Progress } from "@/lib/progress";
-import type { Positions } from "@/lib/orrery";
 import type { HorizonPass, Interpretation, Lens, PairInterpretation, Workbook } from "@/types/chart";
 
 const SETTLED = new Set(["complete", "failed"]);
@@ -49,6 +48,17 @@ export function useLiveReport(id: string) {
       client.invalidateQueries({ queryKey: getGetReportQueryKey(id) });
     }
   }, [status.data?.status, id, client]);
+
+  // Only the report carries the chart, and it is read once: one read before the
+  // chart was stored would leave the page without it until the report is
+  // complete, so the poll that first sees the chart reads the report again (ADR-319).
+  const chartStored = status.data?.chartReady === true;
+  const rowHasChart = report.data ? report.data.chartData != null : null;
+  useEffect(() => {
+    if (chartStored && rowHasChart === false) {
+      client.invalidateQueries({ queryKey: getGetReportQueryKey(id) });
+    }
+  }, [chartStored, rowHasChart, id, client]);
 
   const interpretation = useMemo<Interpretation | PairInterpretation | null>(() => {
     const stored = (report.data?.interpretation ?? null) as Interpretation | null;
@@ -111,7 +121,6 @@ export function useLiveReport(id: string) {
     writing,
     revising,
     chartReady,
-    provisional: (status.data?.provisional?.bodies ?? null) as Positions | null,
     progress,
     open,
     setOpen,

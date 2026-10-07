@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useUser } from "@clerk/react";
+import { useClerk, useUser } from "@clerk/react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BASE_URL } from "@/lib/api";
@@ -25,7 +25,7 @@ const TABS: Array<[Tab, string]> = [
 ];
 
 /**
- * The Lab beside Prompts (annex scope 5), gated like it by ADMIN_USER_ID.
+ * The Lab beside Prompts (annex scope 5), gated like it by the admin check.
  * Runs and Spawn make no model call and load no report text; the header
  * shows the month's lab spend against LAB_BUDGET_USD (ADR-77).
  */
@@ -33,6 +33,7 @@ export default function AdminLabPage() {
   usePageTitle("Report lab");
   const [, navigate] = useLocation();
   const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const clerkStalled = useClerkStalled();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [readOnly, setReadOnly] = useState(false);
@@ -71,9 +72,9 @@ export default function AdminLabPage() {
       <div className="min-h-screen bg-background bg-stars text-foreground flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-          <h1 className="font-display text-2xl mb-2">Access Denied</h1>
-          <p className="text-sm text-muted-foreground mb-6">Your account does not have admin access. Set <code className="font-numeric">ADMIN_USER_ID</code> to your Clerk user ID to enable this panel.</p>
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+          <h1 className="font-display text-2xl mb-2">This page is for the Stars Decoded team</h1>
+          <p className="text-sm text-muted-foreground mb-6">You're signed in with an account that isn't the admin's. Sign out and sign in with the admin account.</p>
+          <Button variant="outline" onClick={() => void signOut({ redirectUrl: `${basePath}/sign-in?return_to=/admin/report-lab` })}>Sign out</Button>
         </div>
       </div>
     );

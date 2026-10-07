@@ -46,7 +46,8 @@ import { HouseDeck } from "@/components/report/HouseDeck";
 import { BalanceRail } from "@/components/report/BalanceRail";
 import { DawnClosing } from "@/components/report/DawnClosing";
 import { MethodologyStrip } from "@/components/report/MethodologyStrip";
-import { OpeningOverlay } from "@/components/report/OpeningOverlay";
+import { OpeningOverlay, plainSlots } from "@/components/report/OpeningOverlay";
+import { useBuildStory } from "@/components/report/BuildStory";
 import { RevisionLedger, marksShown, rememberMarks } from "@/components/report/RevisionLedger";
 import { RevisionProvider, revisionSet } from "@/components/report/RevisedText";
 import { BirthTimeDialog } from "@/components/BirthTimeDialog";
@@ -136,6 +137,7 @@ export default function ReportPage() {
   const live = useLiveReport(id!);
   const { report, sections, workbook, writing, revising, open, setOpen, progress, horizonPass } = live;
   const interpretation = live.interpretation as Interpretation | null;
+  const story = useBuildStory(report, live.chartReady, progress);
 
   const refresh = useCallback(() => {
     client.invalidateQueries({ queryKey: getGetReportQueryKey(id!) });
@@ -216,12 +218,11 @@ export default function ReportPage() {
         <ReportSky accent={OPENING_ACCENT} opening />
         <OpeningOverlay
           progress={progress}
-          provisional={live.provisional}
-          chart={chartData}
           failureLine={live.failureReason?.line ?? null}
           onOpen={setOpen}
           onRetry={offer.tryAgain ? rewrite : undefined}
           retrying={regenerate.isPending}
+          slots={story ?? plainSlots(progress)}
         />
       </div>
     );
@@ -254,12 +255,11 @@ export default function ReportPage() {
       {showOverlay && (
         <OpeningOverlay
           progress={progress}
-          provisional={live.provisional}
-          chart={chartData}
           failureLine={live.failureReason?.line ?? null}
           onOpen={setOpen}
           onRetry={offer.tryAgain ? rewrite : undefined}
           retrying={regenerate.isPending}
+          slots={story ?? plainSlots(progress)}
         />
       )}
 
@@ -274,12 +274,13 @@ export default function ReportPage() {
         chartData={chartData}
         meta={interpretation.meta}
         onAddBirthTime={report.profileId ? openTime : undefined}
+        writtenOn={report.createdAt}
         accent={OPENING_ACCENT}
         gather={open}
       />
 
-      {/* Chrome sits on the opening plate without a ground, and takes one once the reading starts. */}
-      <nav
+      {/* The opening screen draws its own grid to the top edge, so the chrome waits for the door and then takes a ground once the reading starts. */}
+      {!showOverlay && <nav
         className={`fixed top-0 inset-x-0 z-50 border-b no-print transition-colors duration-500 ${
           onHero ? "border-transparent bg-transparent" : "border-border/40 bg-background/90 backdrop-blur-md"
         }`}
@@ -301,7 +302,7 @@ export default function ReportPage() {
             <AccountMenu />
           </div>
         </div>
-      </nav>
+      </nav>}
 
       <ChapterRail
         chapters={rail}

@@ -562,12 +562,14 @@ describe("Life (ADR-209)", () => {
     for (const cycle of model.ahead) expect(cycle.end >= today).toBe(true);
   });
 
-  it("looks a repeating cycle back to the one before, with its age, and lists every age it comes at", () => {
+  it("looks a repeating cycle back to the latest one before today, with its age, and lists every age it comes at", () => {
     const jupiter = [...model.ahead, ...model.behind].filter((c) => c.id === "jupiter-return").sort((a, b) => a.start.localeCompare(b.start));
     expect(jupiter.length).toBeGreaterThan(3);
     expect(jupiter[0].last).toBeNull();
     for (let k = 1; k < jupiter.length; k++) {
-      expect(jupiter[k].last).toEqual({ on: jupiter[k - 1].exact[0] ?? jupiter[k - 1].start, age: jupiter[k - 1].age });
+      const before = jupiter.slice(0, k).filter((c) => (c.exact[0] ?? c.start) < today).pop();
+      expect(jupiter[k].last).toEqual(before ? { on: before.exact[0] ?? before.start, age: before.age } : null);
+      if (jupiter[k].last) expect(jupiter[k].last!.on < today).toBe(true);
       expect(jupiter[k].ages).toEqual(jupiter.map((c) => c.age));
     }
   });

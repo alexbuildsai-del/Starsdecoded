@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type RequestHandler } from "express";
 import reportsRouter from "./reports";
 import profilesRouter from "./profiles";
 import invitesRouter from "./invites";
@@ -19,7 +19,7 @@ import paymentsRouter, { signedInForPortal, signedInToBuy } from "./payments";
 import adminPaymentsRouter from "./adminPayments";
 import {
   anonWriteLimit, askLimit, checkoutLimit, generationLimits, portalLimit, previewLimit, sendLimit, timelineNowLimit,
-  timelineReadingLimit,
+  timelineReadingLimit, timelineSetupLimit,
 } from "../lib/limits";
 import { spendGate } from "../lib/spendCap";
 import { requireTimelineAccess } from "../lib/timelineAccess";
@@ -59,15 +59,22 @@ router.post("/billing/portal", billing);
 // A new Timeline reading and an Ask message each call the model, so each meets its own count and the breaker, whose line
 // is Timeline's: neither spends a credit. Both stand after the access check: a reader without Timeline hears 403 before
 // anything is counted (ADR-262). An open whose reading is kept or being written skips both, since the sheet asks again
-// every few seconds while one is written and a kept reading opens on a paused day. Now and ahead's six months queue
-// readings (reading 7), so it has a count of its own; it meets no breaker, since the queue waits behind one itself and
-// the view still answers on a paused day.
+// every few seconds while one is written and a kept reading opens on a paused day. Now and ahead's six months keep a
+// count of their own and meet no breaker: the view writes nothing (setup's jobs write, ADR-362) and answers on a paused day.
 export const openingReading = [requireTimelineAccess, startsAReading, ...timelineReadingLimit, spendGate("timeline")];
 export const asking = [requireTimelineAccess, ...askLimit, spendGate("timeline")];
 export const nowAndAhead = [requireTimelineAccess, ...timelineNowLimit];
 router.post("/timeline/readings/:key", openingReading);
 router.post("/ask", asking);
 router.get("/timeline/now", nowAndAhead);
+// Setup's three routes share a count of their own, after the access check as Now and ahead's is: its screen reads it every
+// few seconds while the readings are written, and each read works the six months out again. Setup answers a signed-out
+// request 401 itself, ahead of its access check (timeline.ts, as the contract pins), so one goes on to it uncounted.
+const signedOutGoesOn: RequestHandler = (req, _res, next) => (req.userId ? next() : next("route"));
+export const settingUp = [signedOutGoesOn, requireTimelineAccess, ...timelineSetupLimit];
+router.get("/timeline/setup", settingUp);
+router.post("/timeline/setup", settingUp);
+router.post("/timeline/setup/replay-seen", settingUp);
 
 // The legacy pair report gave way to Compatibility (MB-58). Its routes read a pair past `pairReadable`, so after Stop
 // sharing they still named the other person and showed their placements. They answer 410, so an old client learns the

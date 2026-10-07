@@ -27,10 +27,10 @@ names it or you are tracing a bug in its area.
 Before changing a shared export, a pinned value or what a function may return, grep every caller; a caller
 outside your files is named in your report, never left on the old shape (lessons, promoted R14).
 
-Commit on the round branch with a message that says what changed and why,
-one commit per card unless the card says otherwise. Commit with a pathspec
-naming only your card's files (`git commit -- <paths>`); files another builder
-staged are not yours (lessons, promoted early R15).
+Commit on the round branch with a message that says what changed and why, one commit per card unless the card says
+otherwise. Commit with a pathspec naming only your card's files (`git commit -- <paths>`); files another builder staged
+are not yours (lessons, promoted early R15). Never pkill or killall a shared process (vite, node, vitest): stop only the
+PID you started (lessons, promoted early R18).
 
 Stop and report to the orchestrator instead of guessing when:
 - the card needs a file it does not list, a new dependency, a schema change,

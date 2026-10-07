@@ -21,7 +21,8 @@ test("the ids are unique and in the order the Owner walks them", () => {
   assert.equal(new Set(STEP_IDS).size, STEP_IDS.length);
   assert.deepEqual(STEP_IDS, [
     "sign-in", "buy", "own-report", "gift", "gift-claimed", "idris-report", "no-credit", "share", "share-back", "pair",
-    "pair-shared", "refund", "tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline",
+    "pair-shared", "refund", "tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline", "timeline-setup",
+    "timeline-ends",
   ]);
   for (const step of STEPS) assert.ok(step.label.trim().length > 0, `${step.id} has no label`);
 });
@@ -34,7 +35,7 @@ test("every local step says why staging skips it, and no other step has a reason
   }
   assert.deepEqual(
     STEPS.filter((step) => step.staging === "local").map((step) => step.id),
-    ["tomas-report", "tomas-pair", "tomas-sends", "tomas-claims"],
+    ["tomas-report", "tomas-pair", "tomas-sends", "tomas-claims", "timeline-setup"],
   );
 });
 
@@ -54,7 +55,7 @@ test("the staging walk runs every step that is not local, in the list's order", 
     STAGING_STEP_IDS,
     STEP_IDS.filter((id) => STEPS.find((step) => step.id === id)?.staging !== "local"),
   );
-  assert.equal(STAGING_STEP_IDS.length, 13);
+  assert.equal(STAGING_STEP_IDS.length, 14);
 });
 
 test("the staging walk's map has exactly the steps that are not local", () => {
@@ -83,4 +84,5 @@ test("with no seed yet, a deploy's walk runs steps 1, 2, 4 to 6 and 12, and the 
   assert.deepEqual(seedsFor("pair"), ["pair", "own-report", "idris-report"]);
   assert.deepEqual(seedsFor("pair-shared"), ["pair", "own-report", "idris-report"]);
   assert.deepEqual(seedsFor("timeline"), ["own-report"]);
+  assert.deepEqual(seedsFor("timeline-ends"), ["own-report"]);
 });

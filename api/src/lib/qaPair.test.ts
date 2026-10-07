@@ -1,9 +1,11 @@
 /**
  * The QA pair (ADR-314, 315; reading 10) with Clerk stubbed and a model client that fails if called. Every function
- * refuses off staging before it asks Clerk or the database anything. On a scratch Postgres named by WALK_DATABASE_URL:
- * ensure makes the two once, reset puts them back at the walk's start, and a Release's three reports are stored as the
- * seed and placed back after a reset, with no model call. Without one those skip, saying why. Every chart is the
- * engine's, computed from the sample people's fixtures; the report text is stand-in text.
+ * refuses off staging before it asks Clerk or the database anything. On the stubbed Clerk alone: a start bans both
+ * unless a walk here holds them and never throws; a walk's hold lifts both bans before it makes a sign-in token and
+ * bans both again at its close. On a scratch Postgres named by WALK_DATABASE_URL: ensure makes the two once, reset puts
+ * them back at the walk's start, and the reports a Release's walk wrote are stored as the seed, and no other, and placed
+ * back after a reset, with no model call. Without one those skip, saying why. Every chart is the engine's, computed
+ * from the sample people's fixtures; the report text is stand-in text.
  */
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
@@ -35,8 +37,10 @@ const { chartForProfile } = await import("./profiles.js");
 const { natalReportAccess } = await import("./access.js");
 const { isOutdated } = await import("../routes/reports.js");
 const { pool } = await import("@workspace/db");
+const { activeSubscription, applySubscriptionEvent } = await import("./subscriptions.js");
 
 type QaPair = import("./qaPair.js").QaPair;
+type QaClerk = import("./qaPair.js").QaClerk;
 type SeedStep = import("./qaPair.js").SeedStep;
 type Chart = import("./chartCalculation.js").NatalChartData;
 
@@ -54,20 +58,51 @@ const SEED_KEYS = ["mira.qa-seed", "idris.qa-seed", "mira-idris.qa-seed"];
 const run = randomUUID().slice(0, 8);
 const BYSTANDER = `user_bystander_${run}`;
 
-const clerkCalls: string[] = [];
+/** Clerk as the pair meets it, keeping each account's ban and refusing a call for an account when told to. */
+function stubClerk(accounts: Map<string, string>) {
+  const calls: string[] = [];
+  const banned = new Set<string>();
+  const refuse: { find?: boolean; ban?: string; unban?: string } = {};
+  let tokens = 0;
+  const clerk: QaClerk = {
+    async find(email) {
+      calls.push(`find ${email}`);
+      if (refuse.find) throw new Error("Clerk answered 503");
+      return accounts.get(email) ?? null;
+    },
+    async create({ email, firstName, lastName }) {
+      calls.push(`create ${email} ${firstName} ${lastName}`);
+      const id = `user_qa_${run}_${accounts.size + 1}`;
+      accounts.set(email, id);
+      // As liveClerk makes it.
+      banned.add(id);
+      return id;
+    },
+    async ban(userId) {
+      calls.push(`ban ${userId}`);
+      if (refuse.ban === userId) throw new Error("Clerk answered 503");
+      banned.add(userId);
+    },
+    async unban(userId) {
+      calls.push(`unban ${userId}`);
+      if (refuse.unban === userId) throw new Error("Clerk answered 503");
+      banned.delete(userId);
+    },
+    async signInToken(userId, seconds) {
+      calls.push(`token ${userId} ${seconds}`);
+      // Whether Clerk would sign a banned account in by token is unknown (Round start 3(c)), so the stub never does.
+      if (banned.has(userId)) throw new Error("a sign-in token for a banned account");
+      tokens += 1;
+      return `ticket-${userId}-${tokens}`;
+    },
+  };
+  return { calls, banned, refuse, clerk };
+}
+
 const clerkAccounts = new Map<string, string>();
-Q.setQaClerk({
-  async find(email) {
-    clerkCalls.push(`find ${email}`);
-    return clerkAccounts.get(email) ?? null;
-  },
-  async create({ email, firstName, lastName }) {
-    clerkCalls.push(`create ${email} ${firstName} ${lastName}`);
-    const id = `user_qa_${run}_${clerkAccounts.size + 1}`;
-    clerkAccounts.set(email, id);
-    return id;
-  },
-});
+const stub = stubClerk(clerkAccounts);
+const clerkCalls = stub.calls;
+Q.setQaClerk(stub.clerk);
 
 const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: the pair's rows are made, reset and seeded on a scratch Postgres";
 
@@ -110,8 +145,11 @@ test("every function refuses unless APP_ENV is staging, before it asks Clerk or 
       Object.assign(process.env, env);
       await assert.rejects(Q.ensureQaPair(), /staging alone/);
       await assert.rejects(Q.resetQaPair(pair), /staging alone/);
+      await assert.rejects(Q.openQaPair(pair), /staging alone/);
       for (const step of STEPS) await assert.rejects(Q.placeSeed(pair, step), /staging alone/);
       await assert.rejects(Q.storeQaSeed(pair), /staging alone/);
+      // Where the pair doesn't exist, a start asks nothing at all.
+      await Q.banQaPairUnlessWalking();
     }
   } finally {
     delete process.env.RAILWAY_ENVIRONMENT_NAME;
@@ -250,6 +288,12 @@ async function leaveAWalk(): Promise<string[]> {
   await q(`insert into report_workbooks (report_id, reader, workbook) values ($1, $2, '{"focus:leanInto:0": "2026-10-05"}')`, [miraOwn.reportId, idris]);
   await q("update credits set status = 'refunded' where id = any($1)", [[bought[3], bought[4]]]);
   await q("insert into subscriptions (id, user_id, customer_id, item, status, is_test) values ($1, $2, $3, 'timeline_year', 'active', true)", [`sub_${run}`, mira, customer.mira]);
+  // Granted within the day, so a reset that took the plan's row would leave this purchase reading as a plan still kept.
+  await q(
+    `insert into purchases (id, user_id, kind, item, cents, full_cents, stripe_session_id, stripe_subscription, tick_hash, ticked_at, return_to, status, is_test, granted_at)
+     values ($1, $2, 'plan', 'timeline_year', 6999, 6999, $3, $4, 'tick', now(), '/dashboard/account', 'granted', true, now())`,
+    [randomUUID(), mira, `cs_test_${run}_plan`, `sub_${run}`],
+  );
   await bundle(mira, "plan", 1);
   await bundle(idris, "grant", 3);
   await q("insert into timeline_readings (id, user_id, profile_id, event_key, basis, status) values ($1, $2, $3, 'saturn-asc', 'b', 'ready')", [randomUUID(), mira, miraOwn.profileId]);
@@ -291,7 +335,7 @@ const TOPPED_UP = (mira: string) => ({
   bundles: [{ user_id: mira, source: "test", is_test: true, n: 20 }],
 });
 
-test("reset deletes what a walk left and forgets both Stripe customers; Mira holds 20 test credits and Idris none", { skip: NO_DB }, async () => {
+test("reset deletes what a walk left, ends its plan and forgets both Stripe customers; Mira holds 20 test credits and Idris none, and the next walk's plan is kept", { skip: NO_DB }, async () => {
   await q("insert into users (id, email) values ($1, 'bystander@example.com')", [BYSTANDER]);
   const theirs = await ownReport(BYSTANDER, "tomas", "Madrid");
   await bundle(BYSTANDER, "purchase", 3);
@@ -301,16 +345,53 @@ test("reset deletes what a walk left and forgets both Stripe customers; Mira hol
   const reportIds = await leaveAWalk();
   await Q.resetQaPair(pair);
 
-  assert.deepEqual(await leftovers(reportIds), { profiles: 0, reports: 0, pairs: 0, invites: 0, shares: 0, workbooks: 0, plans: 0, readings: 0, asks: 0 });
+  assert.deepEqual(await leftovers(reportIds), { profiles: 0, reports: 0, pairs: 0, invites: 0, shares: 0, workbooks: 0, plans: 1, readings: 0, asks: 0 });
+  // The plan's row stays beside its purchase, ended, and the read every plan check uses finds no plan for either.
+  assert.deepEqual(
+    (await q("select id, status, cancel_at_period_end, current_period_end <= now() as ended from subscriptions where user_id = any($1)", [ids])).rows,
+    [{ id: `sub_${run}`, status: "canceled", cancel_at_period_end: true, ended: true }],
+  );
+  assert.deepEqual([await activeSubscription(ids[0]), await activeSubscription(ids[1])], [null, null], "no live plan after a reset");
   assert.deepEqual(await ledger(), TOPPED_UP(ids[0]));
   // A customer can't leave its test clock, so the next walk makes a fresh one on a fresh clock.
   assert.deepEqual((await q("select id, stripe_customer_id from users where id = any($1) order by email", [ids])).rows, [
     { id: ids[0], stripe_customer_id: null },
     { id: ids[1], stripe_customer_id: null },
   ]);
-  assert.equal((await q("select count(*)::int as n from purchases where user_id = $1", [ids[0]])).rows[0].n, 1, "a payment's record stays");
+  assert.equal((await q("select count(*)::int as n from purchases where user_id = $1", [ids[0]])).rows[0].n, 2, "every payment's record stays");
   assert.deepEqual((await accountRows()).testers, made.testers);
   assert.deepEqual(await bystanderRows(), bystander);
+
+  // The next walk's plan, on a fresh customer, within the day: its first payment keeps it. Judged a second plan, it would
+  // throw here, since there is no Stripe to cancel it with.
+  const next = randomUUID();
+  await q("update users set stripe_customer_id = $2 where id = $1", [ids[0], `cus_${run}_next`]);
+  await q(
+    `insert into purchases (id, user_id, kind, item, cents, full_cents, stripe_session_id, tick_hash, ticked_at, return_to, status, is_test)
+     values ($1, $2, 'plan', 'timeline_year', 6999, 6999, $3, 'tick', now(), '/dashboard/account', 'open', true)`,
+    [next, ids[0], `cs_test_${run}_next`],
+  );
+  const firstPayment = {
+    id: `evt_${run}_next`,
+    object: "event",
+    type: "invoice.paid",
+    livemode: false,
+    data: {
+      object: {
+        id: `in_${run}_next`,
+        object: "invoice",
+        customer: `cus_${run}_next`,
+        customer_email: null,
+        billing_reason: "subscription_create",
+        amount_paid: 6999,
+        livemode: false,
+        lines: { object: "list", data: [] },
+        parent: { subscription_details: { subscription: `sub_${run}_next`, metadata: { purchase_id: next } } },
+      },
+    },
+  } as unknown as Parameters<typeof applySubscriptionEvent>[0];
+  assert.equal(await applySubscriptionEvent(firstPayment, { client: null, sendReceipt: async () => true, setUp: async () => {} }), "processed");
+  assert.equal((await q("select status from purchases where id = $1", [next])).rows[0].status, "granted", "kept, not a second plan");
 
   // Topped up to 20, never by 20.
   await Q.resetQaPair(pair);
@@ -339,7 +420,16 @@ test("a Release's three reports become the seed with no cost of their own, and g
   const miraOwn = await ownReport(mira, "mira", "Lisbon");
   const idrisOwn = await ownReport(idris, "idris", "Cardiff");
   const written = await pairReport(mira, miraOwn, idrisOwn);
+  // As a Release's walk leaves them: its hold kept the report each stored step's own write answered.
+  const walked = async () => {
+    const hold = await Q.openQaPair(pair);
+    hold.wrote("own-report", miraOwn.reportId);
+    hold.wrote("idris-report", idrisOwn.reportId);
+    hold.wrote("pair", written.reportId);
+    await hold.close();
+  };
 
+  await walked();
   assert.equal(await Q.storeQaSeed(pair), 3);
   const seed = async () => (await q(
     "select run_key, fixture, label, source, section, status, subject_name, cost_usd, usage, words, output, chart from lab_runs where run_key = any($1) order by run_key",
@@ -356,6 +446,7 @@ test("a Release's three reports become the seed with no cost of their own, and g
   assert.deepEqual([kept[1].output, kept[1].chart], [json(written.interpretation), null]);
 
   // Each Release's reports replace the last ones' rather than adding to them.
+  await walked();
   assert.equal(await Q.storeQaSeed(pair), 3);
   assert.equal((await seed()).length, 3);
   assert.equal((await Q.ensureQaPair()).seeded, true);
@@ -412,5 +503,178 @@ test("a Release's three reports become the seed with no cost of their own, and g
   assert.equal((await q("select used_for_report_id from credits where id = $1", [giftCredit])).rows[0].used_for_report_id, idrisId);
   assert.equal((await q("select count(*)::int as n from credits where user_id = $1 and status = 'available'", [mira])).rows[0].n, 18);
   assert.deepEqual(clerkCalls, []);
+  assert.deepEqual(modelCalls, []);
+});
+
+test("the seed keeps only the reports the newest walk's own steps wrote: one no step returned is never stored, and a walk's reports are taken once", { skip: NO_DB }, async () => {
+  const [mira, idris] = ids;
+  await Q.resetQaPair(pair);
+  // A row's id shows whether a store replaced it or left it.
+  const seed = async () => (await q("select id, run_key, output from lab_runs where run_key = any($1) and section = 'whole' order by run_key", [SEED_KEYS])).rows;
+  const before = await seed();
+  assert.equal(before.length, 3);
+
+  const miraOwn = await ownReport(mira, "mira", "Lisbon");
+  const idrisOwn = await ownReport(idris, "idris", "Cardiff");
+  const pairOwn = await pairReport(mira, miraOwn, idrisOwn);
+  // Newer and finished, on the same charts, but no step's write answered either.
+  const notTheWalks = { meta: { reportType: "natal", model: "stand-in" }, overview: { headline: "Text no step of the walk wrote." } };
+  const newerNatal = randomUUID();
+  await q("insert into reports (id, profile_id, session_id, type, status, interpretation) values ($1, $2, $3, 'natal', 'complete', $4)", [
+    newerNatal, miraOwn.profileId, randomUUID(), JSON.stringify(notTheWalks),
+  ]);
+  const newerPair = await pairReport(mira, miraOwn, idrisOwn);
+  await q("update reports set interpretation = $2 where id = $1", [newerPair.reportId, JSON.stringify({ ...newerPair.interpretation, foundation: { stance: "Text no step of the walk wrote." } })]);
+
+  // A walk that wrote nothing keeps nothing, and the last seed's rows stay as they were.
+  await (await Q.openQaPair(pair)).close();
+  assert.equal(await Q.storeQaSeed(pair), 0);
+  assert.deepEqual(await seed(), before);
+
+  const hold = await Q.openQaPair(pair);
+  hold.wrote("own-report", miraOwn.reportId);
+  hold.wrote("idris-report", idrisOwn.reportId);
+  hold.wrote("pair", pairOwn.reportId);
+  await hold.close();
+  assert.equal(await Q.storeQaSeed(pair), 3);
+  const kept = await seed();
+  assert.deepEqual(kept.map((r) => r.output), json([idrisOwn.interpretation, pairOwn.interpretation, miraOwn.interpretation]));
+  assert.ok(kept.every((row, i) => row.id !== before[i].id), "all three stored anew");
+  assert.doesNotMatch(JSON.stringify(kept), /no step of the walk wrote/);
+
+  // Taken once: with no walk since, nothing more is kept.
+  assert.equal(await Q.storeQaSeed(pair), 0);
+  assert.deepEqual(await seed(), kept);
+
+  // An id that isn't that account's own report keeps nothing for its step, nor for the pair that goes over it.
+  const crossed = await Q.openQaPair(pair);
+  crossed.wrote("own-report", idrisOwn.reportId);
+  crossed.wrote("idris-report", idrisOwn.reportId);
+  crossed.wrote("pair", newerPair.reportId);
+  await crossed.close();
+  assert.equal(await Q.storeQaSeed(pair), 1);
+  const after = await seed();
+  assert.deepEqual(after.map((row) => [row.run_key, row.output]), kept.map((row) => [row.run_key, row.output]));
+  assert.deepEqual(after.filter((row, i) => row.id !== kept[i].id).map((row) => row.run_key), ["idris.qa-seed"]);
+
+  // A store refused by its check still takes the walk's ids, so the next store keeps none of them.
+  const refused = await Q.openQaPair(pair);
+  refused.wrote("own-report", miraOwn.reportId);
+  await refused.close();
+  await assert.rejects(Q.storeQaSeed({ mira: pair.idris, idris: pair.mira }), /not the QA pair/);
+  assert.equal(await Q.storeQaSeed(pair), 0);
+  assert.deepEqual(await seed(), after);
+  clerkCalls.length = 0;
+  assert.deepEqual(modelCalls, []);
+});
+
+/** The pair as ensureQaPair would answer it for these accounts. */
+const pairOf = (accounts: Map<string, string>): QaPair => ({
+  mira: { userId: accounts.get(MIRA_EMAIL) ?? "", email: MIRA_EMAIL, name: "Mira Costa" },
+  idris: { userId: accounts.get(IDRIS_EMAIL) ?? "", email: IDRIS_EMAIL, name: "Idris Costa" },
+});
+
+test("a start bans both accounts unless a walk here holds them, skips an address Clerk holds no account for, and never throws", async () => {
+  const accounts = new Map([[MIRA_EMAIL, "user_start_mira"], [IDRIS_EMAIL, "user_start_idris"]]);
+  const clerk = stubClerk(accounts);
+  const restore = Q.setQaClerk(clerk.clerk);
+  const both = ["user_start_idris", "user_start_mira"];
+  const finds = [`find ${MIRA_EMAIL}`, `find ${IDRIS_EMAIL}`];
+  try {
+    await Q.banQaPairUnlessWalking();
+    assert.deepEqual(clerk.calls.splice(0), [...finds, "ban user_start_mira", "ban user_start_idris"]);
+    assert.deepEqual([...clerk.banned].sort(), both);
+
+    // While a walk here holds them a start bans neither, and the walk's own close does.
+    const hold = await Q.openQaPair(pairOf(accounts));
+    clerk.calls.length = 0;
+    await Q.banQaPairUnlessWalking();
+    assert.deepEqual(clerk.calls.splice(0), []);
+    assert.equal(clerk.banned.size, 0);
+    await hold.close();
+    assert.deepEqual([...clerk.banned].sort(), both);
+
+    clerk.banned.clear();
+    clerk.calls.length = 0;
+    accounts.delete(IDRIS_EMAIL);
+    await Q.banQaPairUnlessWalking();
+    assert.deepEqual(clerk.calls.splice(0), [...finds, "ban user_start_mira"]);
+    accounts.delete(MIRA_EMAIL);
+    await Q.banQaPairUnlessWalking();
+    assert.deepEqual(clerk.calls.splice(0), finds);
+
+    // Clerk down, then refusing one: each start still resolves, and the other account is banned.
+    accounts.set(MIRA_EMAIL, "user_start_mira").set(IDRIS_EMAIL, "user_start_idris");
+    clerk.banned.clear();
+    clerk.refuse.find = true;
+    await Q.banQaPairUnlessWalking();
+    assert.equal(clerk.banned.size, 0);
+    clerk.refuse.find = false;
+    clerk.refuse.ban = "user_start_mira";
+    await Q.banQaPairUnlessWalking();
+    assert.deepEqual([...clerk.banned], ["user_start_idris"]);
+  } finally {
+    restore();
+  }
+  assert.deepEqual(modelCalls, []);
+});
+
+test("a walk's hold lifts both bans before it makes a sign-in token, makes one only while it holds them, and bans both again as it closes", async () => {
+  const accounts = new Map([[MIRA_EMAIL, "user_hold_mira"], [IDRIS_EMAIL, "user_hold_idris"]]);
+  const clerk = stubClerk(accounts);
+  const both = ["user_hold_idris", "user_hold_mira"];
+  for (const id of both) clerk.banned.add(id);
+  const restore = Q.setQaClerk(clerk.clerk);
+  const held = pairOf(accounts);
+  const finds = [`find ${MIRA_EMAIL}`, `find ${IDRIS_EMAIL}`];
+  try {
+    const hold = await Q.openQaPair(held);
+    assert.deepEqual(clerk.calls.splice(0), [...finds, "unban user_hold_mira", "unban user_hold_idris"]);
+    assert.equal(await hold.ticket("idris"), "ticket-user_hold_idris-1");
+    // A short life: the token is made as the reader signs in and used at once.
+    assert.deepEqual(clerk.calls.splice(0), ["token user_hold_idris 120"]);
+    await hold.close();
+    assert.deepEqual(clerk.calls.splice(0), ["ban user_hold_mira", "ban user_hold_idris"]);
+    assert.deepEqual([...clerk.banned].sort(), both);
+    await hold.close();
+    await assert.rejects(hold.ticket("mira"), /let the pair go/);
+    assert.deepEqual(clerk.calls.splice(0), [], "a second close bans nothing more, and a closed hold makes no token");
+
+    // Two walks here at once, as when one outlives its limit: each close bans both, never leaving them open for the
+    // other, while a start bans nothing until neither holds them.
+    const first = await Q.openQaPair(held);
+    const second = await Q.openQaPair(held);
+    await first.close();
+    assert.deepEqual([...clerk.banned].sort(), both);
+    clerk.calls.length = 0;
+    await Q.banQaPairUnlessWalking();
+    assert.deepEqual(clerk.calls.splice(0), []);
+    await second.close();
+    assert.deepEqual(clerk.calls.splice(0), ["ban user_hold_mira", "ban user_hold_idris"]);
+    await Q.banQaPairUnlessWalking();
+    assert.deepEqual(clerk.calls.splice(0), [...finds, "ban user_hold_mira", "ban user_hold_idris"]);
+
+    // An open that fails part way bans both again before the walk hears why.
+    clerk.refuse.unban = "user_hold_idris";
+    await assert.rejects(Q.openQaPair(held), /Clerk failed 1 of 2 calls: Clerk answered 503/);
+    assert.deepEqual(clerk.calls.splice(0), [...finds, "unban user_hold_mira", "unban user_hold_idris", "ban user_hold_mira", "ban user_hold_idris"]);
+    assert.deepEqual([...clerk.banned].sort(), both);
+    clerk.refuse.unban = undefined;
+
+    // A ban Clerk refuses as the walk closes still leaves the other banned, and the close says so.
+    const third = await Q.openQaPair(held);
+    clerk.refuse.ban = "user_hold_mira";
+    await assert.rejects(third.close(), /Clerk failed 1 of 2 calls/);
+    assert.deepEqual([...clerk.banned], ["user_hold_idris"]);
+    clerk.refuse.ban = undefined;
+
+    // Accounts that don't hold the locked addresses are never opened, whoever built the pair.
+    clerk.calls.length = 0;
+    await assert.rejects(Q.openQaPair({ mira: { ...held.mira, userId: "user_someone_else" }, idris: held.idris }), /not the QA pair/);
+    await assert.rejects(Q.openQaPair({ mira: held.idris, idris: held.mira }), /not the QA pair/);
+    assert.deepEqual(clerk.calls, [...finds, ...finds]);
+  } finally {
+    restore();
+  }
   assert.deepEqual(modelCalls, []);
 });

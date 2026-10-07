@@ -1,17 +1,21 @@
 /**
  * The staging walk's browser (ADR-279, 315): headless Chromium through playwright-core, found as the QA agent finds it,
- * with a context each for Mira and Idris, so each keeps a session of their own. Each signs in with Clerk's Testing
- * Tokens, calls the live API from their signed-in page through the web's own /api as the app's own calls go, opens a
- * screen and reads it once, and pays on /checkout in Stripe's fields with the test card.
+ * with a context each for Mira and Idris, so each keeps a session of their own. Each signs in with a one-time sign-in
+ * token the walk makes for their account, past Clerk's bot check with its Testing Token, calls the live API from their
+ * signed-in page through the web's own /api as the app's own calls go, opens a screen and reads it once, and pays on
+ * /checkout in Stripe's fields with the test card.
  *
  * A door in each context stops any request to a route that writes a report or a reading unless the walk asked for that
  * one call itself (reading 17), so no page the walk opens can spend on its own.
+ *
+ * After each step the walk takes one picture of a tab (ADR-360, reading 14): a phone's screen, JPEG at quality 60, with
+ * every place to type and every frame masked, so /qa can read a step it can't play.
  */
 import { readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Browser, Frame, Page } from "playwright-core";
-import type { CatalogueItemId } from "@workspace/commerce";
+import type { Browser, Frame, Page, Route } from "playwright-core";
+import { PLANS, type CatalogueItemId } from "@workspace/commerce";
 import type { QaWalkMode } from "@workspace/db";
 
 export interface ApiAnswer {
@@ -34,24 +38,38 @@ export interface PayDoor {
 
 /** One signed-in reader's tab, as a step uses it. */
 export interface WalkPage {
-  /** Signs in with a Testing Token, from a public page first, as Clerk's helper needs (Round start 4f). */
+  /**
+   * Signs in as the account at this address with a sign-in token, from a public page first, as Clerk's helper needs
+   * (Round start 4f).
+   */
   signIn(email: string): Promise<void>;
   /** A call to the live API from this page, with the page's own session. */
   api(method: string, path: string, body?: unknown): Promise<ApiAnswer>;
   /** Opens a screen, or reads the one open when the path is null, and waits until it shows what it should. */
   screen(path: string | null, shows: Shown): Promise<void>;
-  /** Pays for one item on /checkout with the test card and answers the purchase the page that waits for it names. */
+  /**
+   * Pays for one item on /checkout with the test card and answers the purchase the page that waits for it names. The
+   * tab ends on the step that asked; a plan's gets there by way of Timeline's setup, where its checkout lands.
+   */
   pay(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string>;
 }
 
 export interface WalkSession {
   mira: WalkPage;
   idris: WalkPage;
+  /** The walk's own picture of one reader's tab as it stands; a step never takes one. */
+  picture(who: "mira" | "idris"): Promise<Buffer>;
   close(): Promise<void>;
 }
 
+/** A one-time sign-in token for the account at this address, asked for as that reader signs in. */
+export type SignInTickets = (email: string) => Promise<string>;
+
+/** The one way a page signs in: the ticket a sign-in token carries, and no other strategy Clerk's helper knows. */
+export type TicketSignIn = (opts: { page: Page; signInParams: { strategy: "ticket"; ticket: string } }) => Promise<void>;
+
 export interface WalkBrowser {
-  open(guard: SpendGuard): Promise<WalkSession>;
+  open(guard: SpendGuard, tickets: SignInTickets): Promise<WalkSession>;
 }
 
 export type PaidRoute =
@@ -71,8 +89,9 @@ const PAID: ReadonlyArray<{ method: string | null; path: RegExp; route: PaidRout
   { method: "POST", path: /^\/api\/reports\/[^/]+\/regenerate$/, route: "POST /api/reports/:id/regenerate" },
   { method: "PATCH", path: /^\/api\/profiles\/[^/]+\/birth-time$/, route: "PATCH /api/profiles/:id/birth-time" },
   { method: "POST", path: /^\/api\/ask$/, route: "POST /api/ask" },
-  // A Timeline page reads the six months ahead, which queues paid readings, so the walk reads access alone.
-  { method: null, path: /^\/api\/timeline\/(?!access$)/, route: "/api/timeline/*" },
+  // Timeline's readings write paid text, so the walk stays out of Timeline's views, where readings open. Access goes
+  // through, as do the setup's read and start: the QA pair's setup never starts, so they write nothing (ADR-315).
+  { method: null, path: /^\/api\/timeline\/(?!(access|setup)$)/, route: "/api/timeline/*" },
 ];
 
 /** The paid route a request would reach, by the route's name with no id in it, or null for one that spends nothing. */
@@ -133,6 +152,22 @@ const PAID_MS = 90_000;
 // The page that waits gives up after a minute (R16-24), so a grant later than that never brings the reader back.
 const BACK_MS = 75_000;
 
+// A plan's checkout lands on Timeline in the app, where its setup screen shows (reading 8).
+const TIMELINE_APP = "/dashboard/timeline";
+const SETUP_PATH = "/api/timeline/setup";
+
+/** Reading 14: a phone's screen, small enough to keep one a step in the database and read at a glance. */
+const PICTURE = { width: 390, height: 844, quality: 60 };
+const PICTURE_MS = 15_000;
+// A layout that follows the width redraws on the resize's next frames, so the picture waits that long for it.
+const SETTLE_MS = 300;
+
+/**
+ * What every picture covers (reading 14): each place a reader types, and every frame. None of our pages draws a frame
+ * of its own, so the frames are Stripe's fields and Clerk's checks, and nothing they hold is pictured.
+ */
+const MASKED = ["input", "textarea", "[contenteditable]", "iframe"] as const;
+
 /** Stripe's test card, always approved (stripe-payments, Testers). A country and a postal code go in only if asked. */
 const TEST_CARD = { number: "4242 4242 4242 4242", cvc: "123", country: "PT", postal: "1000-001" };
 
@@ -157,8 +192,6 @@ function describe(shows: Shown): string {
 function messageOf(err: unknown): string {
   return err instanceof Error ? err.message.split("\n")[0] : String(err);
 }
-
-type ClerkHelpers = (typeof import("@clerk/testing/playwright"))["clerk"];
 
 /** The container's memory in MB from its cgroup (v2, then v1), as a crash leaves it: a page killed for memory says nothing. */
 function memoryNote(): string {
@@ -219,11 +252,13 @@ function noting(page: Page, inner: WalkPage, logFile: string): WalkPage {
   };
 }
 
-class ChromiumPage implements WalkPage {
+/** Exported so a test can sign a stand-in page in without Chromium. */
+export class ChromiumPage implements WalkPage {
   constructor(
     private readonly page: Page,
     private readonly origin: string,
-    private readonly clerk: ClerkHelpers,
+    private readonly signInWith: TicketSignIn,
+    private readonly tickets: SignInTickets,
   ) {}
 
   private url(path: string): string {
@@ -260,7 +295,15 @@ class ChromiumPage implements WalkPage {
 
   async signIn(email: string): Promise<void> {
     await this.goto("/");
-    await this.clerk.signIn({ page: this.page, emailAddress: email });
+    // Asked for only now, as the page is ready to use it, so a token's short life is never spent on the steps before.
+    const ticket = await this.tickets(email);
+    await this.signInWith({ page: this.page, signInParams: { strategy: "ticket", ticket } });
+    // Clerk's helper waits for the account only when it makes the token itself, so the walk waits here before any call.
+    try {
+      await this.page.waitForFunction(() => Boolean((globalThis as { Clerk?: { user?: unknown } }).Clerk?.user), undefined, { timeout: SHOWN_MS });
+    } catch {
+      throw new Error("Clerk never signed the page in with the walk's sign-in token");
+    }
   }
 
   async api(method: string, path: string, body?: unknown): Promise<ApiAnswer> {
@@ -362,52 +405,109 @@ class ChromiumPage implements WalkPage {
   }
 
   async pay(item: CatalogueItemId, returnTo: string, door?: PayDoor): Promise<string> {
-    if (door) {
-      await this.goto(door.path);
-      const scope = door.inDialog ? this.page.getByRole("dialog") : this.page;
-      await scope.getByRole("link", { name: door.link, exact: true }).first().click({ timeout: SHOWN_MS });
-      await this.page.waitForURL((url) => url.pathname === "/checkout", { timeout: NAV_MS });
-      const asked = new URL(this.page.url()).searchParams;
-      if (asked.get("item") !== item || asked.get("returnTo") !== returnTo) {
-        throw new Error("the link opened checkout for another item or another step to come back to");
+    const plan = PLANS.some((row) => row.id === item);
+    const release = plan ? await this.holdSetupStart() : null;
+    try {
+      if (door) {
+        await this.goto(door.path);
+        const scope = door.inDialog ? this.page.getByRole("dialog") : this.page;
+        await scope.getByRole("link", { name: door.link, exact: true }).first().click({ timeout: SHOWN_MS });
+        await this.page.waitForURL((url) => url.pathname === "/checkout", { timeout: NAV_MS });
+        const asked = new URL(this.page.url()).searchParams;
+        if (asked.get("item") !== item || asked.get("returnTo") !== returnTo) {
+          throw new Error("the link opened checkout for another item or another step to come back to");
+        }
+      } else {
+        await this.goto(`/checkout?${new URLSearchParams({ item, returnTo }).toString()}`);
       }
-    } else {
-      await this.goto(`/checkout?${new URLSearchParams({ item, returnTo }).toString()}`);
-    }
-    // The box first: POST /checkout refuses without it, and Stripe's fields need the session it makes (ADR-274).
-    try {
-      await this.page.getByRole("checkbox").first().check({ timeout: SHOWN_MS });
-    } catch {
-      const said = (await this.page.getByRole("status").allInnerTexts().catch(() => [] as string[])).join(" ").trim() || (await this.alertText());
-      throw new Error(said ? `checkout wouldn't take the tick: ${said}` : "checkout wouldn't take the tick");
-    }
-    const frame = await this.cardFrame();
-    await this.type(frame, NUMBER, TEST_CARD.number);
-    await this.type(frame, EXPIRY, expiry(new Date()));
-    await this.type(frame, CVC, TEST_CARD.cvc);
-    // The fields of a euro session aren't written down: a country and a postal code go in only where the frame asks
-    // for them (Round start 4c).
-    const country = frame.locator(COUNTRY).first();
-    if (await country.isVisible().catch(() => false)) await country.selectOption(TEST_CARD.country).catch(() => undefined);
-    if (await frame.locator(POSTAL).first().isVisible().catch(() => false)) await this.type(frame, POSTAL, TEST_CARD.postal);
+      // The box first: POST /checkout refuses without it, and Stripe's fields need the session it makes (ADR-274).
+      try {
+        await this.page.getByRole("checkbox").first().check({ timeout: SHOWN_MS });
+      } catch {
+        const said = (await this.page.getByRole("status").allInnerTexts().catch(() => [] as string[])).join(" ").trim() || (await this.alertText());
+        throw new Error(said ? `checkout wouldn't take the tick: ${said}` : "checkout wouldn't take the tick");
+      }
+      const frame = await this.cardFrame();
+      await this.type(frame, NUMBER, TEST_CARD.number);
+      await this.type(frame, EXPIRY, expiry(new Date()));
+      await this.type(frame, CVC, TEST_CARD.cvc);
+      // The fields of a euro session aren't written down: a country and a postal code go in only where the frame asks
+      // for them (Round start 4c).
+      const country = frame.locator(COUNTRY).first();
+      if (await country.isVisible().catch(() => false)) await country.selectOption(TEST_CARD.country).catch(() => undefined);
+      if (await frame.locator(POSTAL).first().isVisible().catch(() => false)) await this.type(frame, POSTAL, TEST_CARD.postal);
 
-    await this.page.getByRole("button", { name: /^Pay\b/ }).click({ timeout: FIELDS_MS });
-    try {
-      await this.page.waitForURL((url) => url.pathname === "/checkout/done", { timeout: PAID_MS });
-    } catch {
-      const said = await this.alertText();
-      throw new Error(said ? `the payment didn't go through: ${said}` : "Pay never reached the page that waits for the credit");
+      await this.page.getByRole("button", { name: /^Pay\b/ }).click({ timeout: FIELDS_MS });
+      try {
+        await this.page.waitForURL((url) => url.pathname === "/checkout/done", { timeout: PAID_MS });
+      } catch {
+        const said = await this.alertText();
+        throw new Error(said ? `the payment didn't go through: ${said}` : "Pay never reached the page that waits for the credit");
+      }
+      const purchase = new URL(this.page.url()).searchParams.get("purchase");
+      if (!purchase) throw new Error("the page that waits for the credit names no purchase");
+      // Only the webhook grants. Once it has, the page goes back to the step that asked (reading 2), or for a plan on to
+      // Timeline's setup screen (reading 8).
+      const landing = plan ? TIMELINE_APP : new URL(returnTo, this.origin).pathname;
+      try {
+        await this.page.waitForURL((url) => url.pathname === landing, { timeout: BACK_MS });
+      } catch {
+        throw new Error(
+          plan
+            ? "the payment wasn't confirmed in time, so the page never opened Timeline"
+            : "the payment wasn't confirmed in time, so the page never went back to the step that asked",
+        );
+      }
+      // The walk goes no further than Timeline's setup: every pay ends on the step that asked, and the held start goes
+      // with the page.
+      if (plan) await this.backTo(returnTo);
+      return purchase;
+    } finally {
+      await release?.();
     }
-    const purchase = new URL(this.page.url()).searchParams.get("purchase");
-    if (!purchase) throw new Error("the page that waits for the credit names no purchase");
-    // Only the webhook grants, and the page goes back to the step that asked once it has (reading 2).
-    const back = new URL(returnTo, this.origin).pathname;
+  }
+
+  /**
+   * Holds the page's start of Timeline's setup unanswered, so a page that lands on Timeline goes no further than its
+   * setup: the QA pair's setup never starts, so an answered start reads none and Timeline opens its views, whose reads
+   * the door refuses. The setup's read goes on to the door as any call does. Answers the release.
+   */
+  private async holdSetupStart(): Promise<() => Promise<void>> {
+    const setup = (url: URL) => url.origin === this.origin && url.pathname === SETUP_PATH;
+    // A route left unanswered keeps its request waiting until the page that made it is gone.
+    const hold = (route: Route) => (route.request().method() === "POST" ? undefined : route.fallback().catch(() => undefined));
+    await this.page.route(setup, hold);
+    return () => this.page.unroute(setup, hold).catch(() => undefined);
+  }
+
+  /** A page that loads afresh has Clerk sign the reader in again before the walk's next call can go out as them. */
+  private async backTo(returnTo: string): Promise<void> {
+    await this.goto(returnTo);
     try {
-      await this.page.waitForURL((url) => url.pathname === back, { timeout: BACK_MS });
+      await this.page.waitForFunction(() => Boolean((globalThis as { Clerk?: { user?: unknown } }).Clerk?.user), undefined, { timeout: SHOWN_MS });
     } catch {
-      throw new Error("the payment wasn't confirmed in time, so the page never went back to the step that asked");
+      throw new Error("Clerk never signed the page in again on the step that asked");
     }
-    return purchase;
+  }
+
+  /**
+   * This tab as a phone shows it, masked (reading 14). The tab goes back to its own size after, whatever happened, so
+   * the steps that follow read the layout they were written for.
+   */
+  async picture(): Promise<Buffer> {
+    const own = this.page.viewportSize() ?? VIEWPORT;
+    await this.page.setViewportSize({ width: PICTURE.width, height: PICTURE.height });
+    try {
+      await this.page.waitForTimeout(SETTLE_MS);
+      return await this.page.screenshot({
+        type: "jpeg",
+        quality: PICTURE.quality,
+        mask: MASKED.map((selector) => this.page.locator(selector)),
+        timeout: PICTURE_MS,
+      });
+    } finally {
+      await this.page.setViewportSize(own).catch(() => undefined);
+    }
   }
 }
 
@@ -423,12 +523,13 @@ function forgetTestingToken(): void {
   delete process.env.CLERK_FAPI;
 }
 
-/** The live browser: Chromium on the Railway image, signed in through Clerk's Testing Tokens. */
+/** The live browser: Chromium on the Railway image, each page signed in with the walk's sign-in tokens. */
 export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
   const origin = new URL(options.webOrigin).origin;
   return {
-    async open(guard) {
+    async open(guard, tickets) {
       const [{ chromium }, testing] = await Promise.all([import("playwright-core"), import("@clerk/testing/playwright")]);
+      const signInWith: TicketSignIn = (opts) => testing.clerk.signIn(opts);
       // clerkSetup asks Clerk for a testing token only when none is set, so one kept from an earlier walk could have
       // lapsed; .env files are never read on Railway, where the keys live.
       forgetTestingToken();
@@ -455,7 +556,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           ],
         });
         browser = opened;
-        const pageFor = async (): Promise<WalkPage> => {
+        const tabFor = async (): Promise<{ tab: ChromiumPage; page: WalkPage }> => {
           const context = await opened.newContext({ viewport: VIEWPORT, locale: "en-GB", timezoneId: "Europe/Brussels" });
           await context.route(
             (url) => url.origin === origin && url.pathname.startsWith("/api/"),
@@ -467,10 +568,11 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
           );
           const page = await context.newPage();
           page.setDefaultTimeout(SHOWN_MS);
-          return noting(page, new ChromiumPage(page, origin, testing.clerk), logFile);
+          const tab = new ChromiumPage(page, origin, signInWith, tickets);
+          return { tab, page: noting(page, tab, logFile) };
         };
-        const mira = await pageFor();
-        const idris = await pageFor();
+        const mira = await tabFor();
+        const idris = await tabFor();
         const close = async () => {
           try {
             await opened.close();
@@ -479,7 +581,7 @@ export function chromiumWalkBrowser(options: ChromiumWalkOptions): WalkBrowser {
             rmSync(logFile, { force: true });
           }
         };
-        return { mira, idris, close };
+        return { mira: mira.page, idris: idris.page, picture: (who) => (who === "mira" ? mira : idris).tab.picture(), close };
       } catch (err) {
         await browser?.close().catch(() => undefined);
         forgetTestingToken();

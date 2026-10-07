@@ -1,8 +1,12 @@
 /**
  * What you get (timeline-page §1 item 4; ADR-255, 264): the plan card's lines with "Coming soon" where its price will
- * go, since Timeline has no price until billing is built, and how to get it in three steps, the last naming the Account
- * page, where cancelling lives (ADR-263). Get my report is the one action, the waitlist before launch (ADR-167).
+ * go, since Timeline has no price until launch (ADR-343), and how to get it in three steps, the last naming the Account
+ * page, where cancelling lives (ADR-263). On launch day both plans' prices stand there, read live (ADR-355, 356). Get my
+ * report is the one action, the waitlist before launch (ADR-167).
  */
+import { formatEuro, PLANS } from "@workspace/commerce";
+import { LAUNCHED } from "@workspace/launch";
+import { usePrices } from "@/lib/prices";
 import { PERSONAL_REPORT } from "@/lib/product";
 import { ReportCta } from "@/site/cta";
 
@@ -25,6 +29,16 @@ const STEPS: readonly { lead: string; rest: string }[] = [
   { lead: "Start Timeline", rest: "there or from your dashboard. Cancel from your Account page, in two clicks." },
 ];
 
+/** The catalogue's prices until the server's land, a campaign's among them, so the prerender and a refusal still show a price. */
+function PlanPrices() {
+  const { items } = usePrices();
+  const line = PLANS.map((plan) => {
+    const cents = items?.find((item) => item.id === plan.id)?.cents ?? plan.cents;
+    return `${formatEuro(cents)} a ${plan.interval}`;
+  }).join(" or ");
+  return <p className="text-[13.5px] text-[color:var(--paper-dim)]">{line}</p>;
+}
+
 export default function WhatYouGet() {
   return (
     <section className="sd-pg-sec sd-sec-c sd-line" aria-labelledby="get-h">
@@ -39,7 +53,7 @@ export default function WhatYouGet() {
           <div className="grid min-w-0 gap-4 rounded-[18px] border border-[color:var(--indigo)] bg-[color:var(--surface)] p-5 min-[880px]:p-7">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
               <h3 className="text-[26px] leading-tight">Timeline</h3>
-              <p className="text-[13.5px] text-[color:var(--paper-dim)]">Coming soon</p>
+              {LAUNCHED ? <PlanPrices /> : <p className="text-[13.5px] text-[color:var(--paper-dim)]">Coming soon</p>}
             </div>
             <ul role="list" className="m-0 grid list-none p-0">
               {INCLUDED.map(({ line, more }) => (

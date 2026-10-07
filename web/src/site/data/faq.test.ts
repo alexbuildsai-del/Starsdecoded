@@ -1,12 +1,12 @@
 /**
  * The site's questions: eighteen in five topics, ten on the home page, each answered first, AI named once and never first,
- * "Is this scientific?" as locked, every price from the catalogue and the one credit line beside them, /compatibility's
+ * "Is this scientific?" as locked, no price in any answer and the one credit line where payment is asked, /compatibility's
  * three in /faq's FAQPage markup (landing-and-ai-search scope 12 and settled at lock 3; annex /faq; R-6.3; ADR-170, 180).
  * Timeline's six for /timeline alone, and the four sentences and the home line that came with its page (ADR-252, 253).
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BUNDLES, CREDIT_LINE, formatEuro } from "@workspace/commerce";
+import { CREDIT_LINE } from "@workspace/commerce";
 import { lensInfo } from "@/lib/lenses";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { headFor } from "../head";
@@ -99,10 +99,10 @@ describe("the questions", () => {
     }
   });
 
-  it("open a closed question on its answer, but for the locked one", () => {
+  it("open a closed question on its answer, but for the locked one and the Owner's credit line (ADR-353)", () => {
     const closed = every.filter((item) => /^(Can|Does|Do|Is) /.test(item.q) && item.q !== "Is this scientific?");
     expect(closed).toHaveLength(10);
-    for (const item of closed) expect(item.a, item.q).toMatch(/^(Yes|No|Once)\b/);
+    for (const item of closed) expect(item.a, item.q).toMatch(/^(Yes|No|You pay for credits)\b/);
   });
 
   it("name AI once, plainly, in How is the report written?, and never first", () => {
@@ -121,20 +121,13 @@ describe("the questions", () => {
     );
   });
 
-  it("read every price from the catalogue", () => {
-    const paying = answerTo("Do I pay once or every month?");
-    for (const bundle of BUNDLES) expect(paying).toContain(`${formatEuro(bundle.cents)} for ${bundle.credits}`);
-    expect(paying).toContain("VAT included");
-    const catalogue = new Set(BUNDLES.map((bundle) => formatEuro(bundle.cents)));
-    for (const item of items) {
-      for (const price of item.a.match(/€\d+(?:\.\d{2})?/g) ?? []) expect(catalogue.has(price), price).toBe(true);
-    }
+  it("name no price: a campaign changes them, so they show only where they are read live (ADR-354)", () => {
+    for (const item of every) expect(item.a, item.q).not.toMatch(/€|\bVAT\b|\d+\.\d{2}/);
   });
 
-  it("say what a credit buys where they say what credits cost", () => {
+  it("say what a credit buys where they say what is paid for", () => {
     const paying = answerTo("Do I pay once or every month?");
-    expect(sentences(paying)).toContain(CREDIT_LINE);
-    expect(paying.indexOf(CREDIT_LINE)).toBeLessThan(paying.indexOf("Credits cost"));
+    expect(sentences(paying).slice(0, 2)).toEqual(["You pay for credits.", CREDIT_LINE]);
   });
 
   it("ask /compatibility's three under Compatibility, the lens named as the picker names it", () => {
@@ -252,15 +245,15 @@ describe("the four sentences (ADR-253)", () => {
   const METHOD = "It won't forecast events, put dates on your life or diagnose anything.";
 
   it("open the two FAQ answers word for word, the rest kept", () => {
-    const paying = `Once for each report. Timeline, coming after launch, will be our one subscription. ${CREDIT_LINE} Credits cost`;
-    expect(answerTo("Do I pay once or every month?").slice(0, paying.length)).toBe(paying);
+    const paying = `You pay for credits. ${CREDIT_LINE} Timeline, coming after launch, will be our one subscription.`;
+    expect(answerTo("Do I pay once or every month?")).toBe(paying);
     expect(answerTo("Does it predict the future?")).toBe(
       "No. It never puts a date on anything in your life or talks about fate. The only dates we show are for the sky, like your Saturn return. It describes how you tend to work and gives you things to try.",
     );
   });
 
   it("say Prices on home, and Method on home and /method, word for word", () => {
-    expect(pages.pricing).toContain('<p className="sd-sub">You pay once for each report.</p>');
+    expect(pages.pricing).toContain('<p className="sd-sub">You pay for credits. {CREDIT_LINE}</p>');
     expect(pages.method).toContain(`${METHOD} It describes how you tend to work and gives you things to try.`);
     expect(pages.methodPage).toContain(`${METHOD} It describes how you tend to think, work and love, and gives you things to try.`);
   });
@@ -295,6 +288,7 @@ describe("the way in on home (ADR-252)", () => {
 describe("a production build", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.doUnmock("@workspace/launch");
     vi.resetModules();
   });
 
@@ -309,5 +303,16 @@ describe("a production build", () => {
     const linked = all.flatMap((item) => (item.link ? [item.link] : []));
     expect(linked).toContain("/sample");
     for (const link of linked) expect(site.isPublicPath(link), link).toBe(true);
+  });
+
+  it("says nothing of after launch, coming soon or a price to come once launched (ADR-355, 356)", async () => {
+    vi.doMock("@workspace/launch", () => ({ LAUNCHED: true }));
+    vi.resetModules();
+    const { FAQ_GROUPS: groups, TIMELINE_FAQ: timeline } = await import("./faq");
+    const site = await import("../site");
+    const all = [...groups.flatMap((group) => group.items), ...timeline];
+    for (const item of all) expect(item.a, item.q).not.toMatch(/after launch|coming soon|price comes later|opens after/i);
+    expect(all.find((item) => item.q === "Do I pay once or every month?")?.a).toContain("Timeline is our one subscription.");
+    expect(site.pageFor("/timeline").eyebrow).toBe("Timeline");
   });
 });

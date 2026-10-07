@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { PriceItem } from "@workspace/api-client-react";
+import { CREDIT_LINE } from "@workspace/commerce";
 import { BundleList } from "@/components/BundleList";
 import { usePrices } from "@/lib/prices";
 import { ReportCta } from "../cta";
@@ -38,9 +39,9 @@ function stampCampaigns(items: PriceItem[]): void {
  * The three bundles from the one catalogue, above the questions (ADR-118, R-6.3), drawn by the list the credits sheet
  * draws so the buyer meets the same rows again (ADR-172): Couple and Family & friends at a launch price against the struck
  * Singles total (ADR-168, 169); a live campaign shows after load, with its last day once, and on any refusal the prerendered
- * prices stay (MB-149 provisional, reading 6). The list's foot says what a credit buys, so the
- * lede doesn't say it twice (ADR-170). Nothing is bought here: the one button is Get my report, which opens the waitlist
- * before launch and the birth form after it (reading 13).
+ * prices stay (MB-149 provisional, reading 6). The lede and the list's foot both say what a credit buys, from the one
+ * credit line (ADR-170, 353). Nothing is bought here: the one button is Get my report, which opens the waitlist before
+ * launch and the birth form after it (reading 13).
  */
 export default function Pricing() {
   const { items } = usePrices();
@@ -56,7 +57,7 @@ export default function Pricing() {
           <h2 className="sd-h2" id="price-h">
             What a report costs
           </h2>
-          <p className="sd-sub">You pay once for each report.</p>
+          <p className="sd-sub">You pay for credits. {CREDIT_LINE}</p>
         </div>
         <div className="max-w-[620px]">
           <BundleList prices={items} />

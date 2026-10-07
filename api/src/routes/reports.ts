@@ -51,6 +51,7 @@ import { FINAL_LINE, failureCodeOf, failureReasonOf, isFinal } from "../lib/fail
 import { shouldDeleteProfile } from "../lib/deletion.js";
 import { logger } from "../lib/logger.js";
 import { forgetTimeline } from "../lib/timelineReadings.js";
+import { setupAfterReport } from "../lib/timelineSetup.js";
 import { validationFailure } from "../lib/validation.js";
 
 const router = Router();
@@ -1062,6 +1063,8 @@ router.post("/reports/:id/regenerate", async (req, res) => {
           .update(reportsTable)
           .set({ interpretation, status: "complete", failedTries: 0, updatedAt: new Date() })
           .where(eq(reportsTable.id, r.id));
+        // A subscriber who paid before their own report came starts Timeline's setup now (ADR-362); it never rejects.
+        await setupAfterReport(r.id);
       } catch (err) {
         await failReport(r.id, err);
       }
@@ -1143,6 +1146,8 @@ async function generateReport(
         updatedAt: new Date(),
       })
       .where(eq(reportsTable.id, id));
+    // A subscriber who paid before their own report came starts Timeline's setup now (ADR-362); it never rejects.
+    await setupAfterReport(id);
   } catch (err) {
     await failReport(id, err);
   }

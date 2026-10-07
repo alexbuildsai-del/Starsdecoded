@@ -128,7 +128,7 @@ test("catalogue: each example mix is a count and a report's name, and the bundle
 });
 
 test("catalogue: the one credit line names no price and the package root exports it with the bundles (ADR-170, R-6.3)", () => {
-  assert.equal(CREDIT_LINE, "1 credit = 1 report of either kind.");
+  assert.equal(CREDIT_LINE, "1 credit = 1 report of any kind.");
   assert.ok(!CREDIT_LINE.includes("€"));
   assert.equal(commerce.CREDIT_LINE, CREDIT_LINE);
   assert.equal(commerce.BUNDLES, BUNDLES);

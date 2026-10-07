@@ -361,11 +361,12 @@ test("Ask's minute: the last second inside it still refuses, the first after it 
   }
 });
 
-test("Ask's, the readings' and Now and ahead's lines: a minute's window the page leaves as written, never restated as a time", () => {
+test("Ask's, the readings', Now and ahead's and setup's lines: a minute's window the page leaves as written, never restated as a time", () => {
   assert.equal(LIMIT_LINES.ask, "You've sent Ask 6 messages in the last minute. Try again in a minute.");
   assert.equal(LIMIT_LINES.timelineReading, "You've opened 20 new readings in the last minute. Try again in a minute.");
   assert.equal(LIMIT_LINES.timelineNow, "You've loaded your Timeline 30 times in the last minute. Try again in a minute.");
-  for (const kind of ["ask", "timelineReading", "timelineNow"] as const) {
+  assert.equal(LIMIT_LINES.timelineSetup, "You've loaded your Timeline setup 30 times in the last minute. Try again in a minute.");
+  for (const kind of ["ask", "timelineReading", "timelineNow", "timelineSetup"] as const) {
     assert.equal(LIMITS[kind].windowMs, MINUTE_MS);
     assert.equal(LIMITS[kind].by, "account");
     assert.doesNotMatch(LIMIT_LINES[kind], / within (?:the hour|a day)\.$/, "the web turns only an hour's or a day's window into a time");
@@ -442,6 +443,72 @@ test("buying and the billing page as routes/index.ts stands them: signed out hea
     await refused(post(path, "user_buyer"), kind);
   }
   assert.equal(reached, LIMITS.checkout.limit + LIMITS.portal.limit, "no refusal reached the route");
+});
+
+test("Timeline's setup as routes/index.ts stands it: its three routes share 30 a minute per account in any browser, the 31st hears its line before the route runs, and signed out goes on uncounted to the route's own 401", async (t) => {
+  const { settingUp } = await import("../routes/index.js");
+  // The admin has Timeline with no table read, so the access check ahead of the count passes here without a database.
+  const admin = "user_setup_admin";
+  const before = process.env.ADMIN_USER_ID;
+  process.env.ADMIN_USER_ID = admin;
+  const app = express();
+  app.use((req, _res, next) => {
+    req.userId = req.header("x-user") || null;
+    req.sessionId = req.header("x-session") || "s-setup";
+    next();
+  });
+  let reached = 0;
+  const setup: RequestHandler = (req, res) => {
+    reached++;
+    if (!req.userId) return void res.status(401).json({ error: "sign_in_required" });
+    res.status(Number(req.header("x-answer") ?? 200)).json({});
+  };
+  // The chain on routes of its own ahead of the route's, as the index router stands ahead of Timeline's, so a request
+  // it lets go on reaches the route.
+  app.get("/api/timeline/setup", settingUp);
+  app.post("/api/timeline/setup", settingUp);
+  app.post("/api/timeline/setup/replay-seen", settingUp);
+  app.get("/api/timeline/setup", setup);
+  app.post("/api/timeline/setup", setup);
+  app.post("/api/timeline/setup/replay-seen", setup);
+  const routes = [["GET", "/api/timeline/setup"], ["POST", "/api/timeline/setup"], ["POST", "/api/timeline/setup/replay-seen"]] as const;
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    if (before === undefined) delete process.env.ADMIN_USER_ID;
+    else process.env.ADMIN_USER_ID = before;
+    server.closeAllConnections();
+    return new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const hit = async (at: number, h: { user?: string; session?: string; answer?: number } = {}): Promise<Answer> => {
+    const [method, path] = routes[at % routes.length];
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (h.user) headers["x-user"] = h.user;
+    if (h.session) headers["x-session"] = h.session;
+    if (h.answer) headers["x-answer"] = String(h.answer);
+    const res = await fetch(`${base}${path}`, { method, headers, body: method === "GET" ? undefined : "{}" });
+    return { status: res.status, retryAfter: res.headers.get("retry-after"), body: await res.json() };
+  };
+
+  const limit = LIMITS.timelineSetup.limit;
+  for (let i = 0; i < limit + 6; i++) assert.equal((await hit(i)).status, 401, `signed out ${i + 1}`);
+  for (let i = 0; i < 3; i++) assert.equal((await hit(i, { user: admin, answer: 409 })).status, 409, "no Personal report costs nothing");
+  let n = 0;
+  const half = Math.floor(limit / 2);
+  await passes(half, () => hit(n++, { user: admin, session: "s1" }), 200);
+  await passes(limit - half, () => hit(n++, { user: admin, session: "s2" }), 200);
+  const seen = reached;
+  for (let i = 0; i < routes.length; i++) {
+    const seconds = await refused(hit(i, { user: admin, session: "s3" }), "timelineSetup");
+    assert.ok(seconds <= 60, `a minute's wait at most, Retry-After ${seconds}`);
+  }
+  assert.equal(reached, seen, "no refusal reached the route");
+  assert.equal(seen, limit + 6 + 3 + limit, "every signed-out request went on to the route");
+
+  const other = "user_setup_other";
+  process.env.ADMIN_USER_ID = other;
+  assert.equal((await hit(0, { user: other, session: "s3" })).status, 200, "another account keeps its own count");
 });
 
 test("each kind has its own line: what happened with the number its limit counts, then when, and never the time left", () => {

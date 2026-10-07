@@ -1,6 +1,7 @@
 /**
- * A reading in a sheet (ADR-210; reading 10): the reading of an event or a life cycle, written for the reader the
- * first time it is opened and kept. While it is written the sheet says "Writing" with its dots (ADR-130) and asks
+ * A reading in a sheet (ADR-210; reading 10): the reading of an event or a life cycle. Before Timeline is set up it is
+ * written the first time it is opened, and kept; once set up, the setup writes it (ADR-362), and a reading still in
+ * its queue is waited for, not written. While it is written the sheet says "Writing" with its dots (ADR-130) and asks
  * again every few seconds; then the reading's own line, its paragraphs and the part of the reader's report it starts
  * from. It frames itself like the dashboard's sheets, from the bottom on a phone and from the right on a desktop.
  */
@@ -32,9 +33,14 @@ export interface ReadingTarget {
 // seconds, and for no longer than its writer is given.
 const POLL_MS = 4000;
 const POLLS = 20;
+// A set-up reader's reading waits its turn in the setup's queue behind every reading before it, so the sheet asks for
+// ten minutes; an open the setup's job holds is not counted against the limit (ADR-362).
+const SET_UP_POLLS = 150;
 
 export const READING_LINES = {
   writing: "Your reading is written the first time you open it, then kept.",
+  /** Once Timeline is set up, every reading is already in the queue, so the first open no longer writes it. */
+  writingSetUp: "We're still writing this reading. It shows here when it's ready.",
   failed: "We couldn't write this reading. Try again in a few minutes.",
   slow: "This reading is taking longer than usual. Try again in a minute.",
   missing: "We couldn't find this reading. Close this and open it again from Timeline.",
@@ -67,26 +73,30 @@ export interface ReadingSheetProps {
   status?: ReadingStatus;
   /** The reader's own Personal report, which the reading links back to; no link without it. */
   reportId?: string | null;
+  /** Timeline is set up, so the setup writes every reading and the sheet waits for it (ADR-362). */
+  setUp?: boolean;
 }
 
-export function ReadingSheet({ eventKey, open, onClose, headline, status, reportId }: ReadingSheetProps) {
+export function ReadingSheet({ eventKey, open, onClose, headline, status, reportId, setUp = false }: ReadingSheetProps) {
   const phone = useIsMobile();
   const client = useQueryClient();
   const { mutateAsync } = useOpenTimelineReading();
   const [shown, setShown] = useState<Shown>({ kind: "opening" });
   const [attempt, setAttempt] = useState(0);
   // Read when the sheet opens, not followed: the cards refetch once a reading is written, and that must not reopen it.
-  // Effects run in order, so this one has stored the latest status before the one below reads it.
+  // Effects run in order, so this one has stored the latest status and wait before the one below reads them.
   const hint = useRef(status);
+  const allowed = useRef(POLLS);
   useEffect(() => {
     hint.current = status;
+    allowed.current = setUp ? SET_UP_POLLS : POLLS;
   });
 
   useEffect(() => {
     if (!open || !eventKey) return undefined;
     let live = true;
     let timer: number | undefined;
-    let polls = 0;
+    let asked = 0;
     const known = hint.current === "ready";
     setShown(known ? { kind: "opening" } : { kind: "writing" });
     const ask = () => {
@@ -102,8 +112,8 @@ export function ReadingSheet({ eventKey, open, onClose, headline, status, report
             }
           } else if (answer.status === "writing") {
             setShown({ kind: "writing" });
-            polls += 1;
-            if (polls < POLLS) timer = window.setTimeout(ask, POLL_MS);
+            asked += 1;
+            if (asked < allowed.current) timer = window.setTimeout(ask, POLL_MS);
             else setShown({ kind: "failed", line: READING_LINES.slow });
           } else {
             setShown({ kind: "failed", line: answer.line ?? READING_LINES.failed });
@@ -148,7 +158,7 @@ export function ReadingSheet({ eventKey, open, onClose, headline, status, report
             <p className="font-label text-sm text-[#E8EBF2]">
               <StatusDots label="Writing" />
             </p>
-            <p className="text-[13.5px] leading-normal text-[#AEB6C6]">{READING_LINES.writing}</p>
+            <p className="text-[13.5px] leading-normal text-[#AEB6C6]">{setUp ? READING_LINES.writingSetUp : READING_LINES.writing}</p>
           </div>
         ) : shown.kind === "failed" ? (
           <div className="grid justify-items-start gap-3">

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, boolean, jsonb, date, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, boolean, jsonb, date, index, uniqueIndex, customType } from "drizzle-orm/pg-core";
 
 // Every kind and status below is plain text, so a new one needs no DDL.
 export const PURCHASE_KINDS = ["bundle", "plan"] as const;
@@ -174,3 +174,25 @@ export const qaWalksTable = pgTable("qa_walks", {
 
 export type QaWalkRow = typeof qaWalksTable.$inferSelect;
 export type InsertQaWalkRow = typeof qaWalksTable.$inferInsert;
+
+// drizzle-orm 0.45 has no bytea column of its own; pg reads and writes one as a Buffer.
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
+
+/**
+ * One picture per step of the staging walk's newest walk (ADR-360), each
+ * written over the last walk's, so /qa can read a step it can't play. The
+ * walk's people are made up and every input is masked before the picture is
+ * taken. Kept in the database, never in GitHub.
+ *
+ * Every name is the one migrate-add-jobs.ts uses, so whichever of that script
+ * and the schema push makes the table, the other finds no drift.
+ */
+export const qaShotsTable = pgTable("qa_shots", {
+  step: text("step").primaryKey(),
+  walkId: text("walk_id").notNull(),
+  jpeg: bytea("jpeg").notNull(),
+  takenAt: timestamp("taken_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type QaShotRow = typeof qaShotsTable.$inferSelect;
+export type InsertQaShotRow = typeof qaShotsTable.$inferInsert;

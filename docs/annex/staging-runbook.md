@@ -125,7 +125,7 @@ PROMPT_SOURCE_DATABASE_URL=<Supabase staging DATABASE_URL>
       typed here in the past overrides the file: the API starts, but the
       schema is never created and `/api/healthz/db` answers
       `"bootstrap":null`. Clear it (or paste
-      `./scripts/bootstrap-db.sh && pnpm --filter @workspace/api-server run start`)
+      `./scripts/bootstrap-db.sh && cd api && exec node --enable-source-maps ./dist/index.mjs`)
       and Deploy. Same check for **Custom Build Command**: empty.
 - [ ] **Settings → Source → Watch Paths** must be empty. With paths listed,
       a push that changes other folders shows as SKIPPED, "No changes to

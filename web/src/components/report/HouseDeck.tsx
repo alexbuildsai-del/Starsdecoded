@@ -16,7 +16,10 @@ import { houseSign } from "@/components/chart/wheel-geometry";
 import { AddBirthTimeCard, HouseCard, chartRuler } from "@/components/report/HouseCard";
 import { CHAPTERS } from "@/lib/chapters";
 import { houseOccupants } from "@/lib/house-occupants";
-import { HOUSE_NUMBERS, houseLine, houseName, keyStep, nearestCard, stepHouse, tickState } from "@/lib/house-deck";
+import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
+import {
+  HOUSE_NUMBERS, chartGoesBackwards, houseLine, houseName, keyStep, nearestCard, quietLine, signRuler, stepHouse, tickState,
+} from "@/lib/house-deck";
 import type { ChartData, HouseReading } from "@/types/chart";
 
 const CHAPTER = CHAPTERS[1];
@@ -138,13 +141,19 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
   useSwipe(deckRef, setHouse);
   useNudge(arrowRef);
 
-  const houses = useMemo(() => HOUSE_NUMBERS.map((h) => ({
-    house: h,
-    sign: houseSign(h, ascendant),
-    occupants: houseOccupants(chart, h),
-    ruler: h === 1 ? chartRuler(chart) : null,
-    reading: readings?.find((r) => r.house === h)?.reading,
-  })), [chart, ascendant, readings]);
+  const houses = useMemo(() => HOUSE_NUMBERS.map((h) => {
+    const sign = houseSign(h, ascendant);
+    const occupants = houseOccupants(chart, h);
+    return {
+      house: h,
+      sign,
+      occupants,
+      ruler: h === 1 ? chartRuler(chart) : null,
+      quiet: occupants.length === 0 ? quietLine(sign, signRuler(chart, sign)) : null,
+      reading: readings?.find((r) => r.house === h)?.reading,
+    };
+  }), [chart, ascendant, readings]);
+  const backwards = chartGoesBackwards(chart);
   const current = houses[house - 1];
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -167,6 +176,7 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
       >
         <div className="min-w-0 md:sticky print:static print:mx-auto print:mb-6 print:max-w-[360px]" style={{ top: WHEEL_TOP }}>
           <NatalWheel chartData={chart} orbs={orbs} selectedHouse={house} onSelectHouse={setHouse} />
+          {backwards && <RetrogradeLine className="mt-3" />}
         </div>
         <div className="grid min-w-0 max-w-[62ch] content-start gap-3 print:hidden">
           <p className="font-mono text-[10.5px] uppercase tracking-[.12em] text-[color:var(--accent)]">
@@ -240,6 +250,7 @@ export function HouseDeck({ chart, readings, counter, birthPlace, onAddBirthTime
       <div className="grid gap-[18px] md:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)] md:items-start md:gap-7">
         <div className="mx-auto w-full min-w-0 max-w-[420px] md:max-w-none">
           <NatalWheel chartData={chart} orbs={orbs} />
+          {chartGoesBackwards(chart) && <RetrogradeLine className="mt-3" />}
         </div>
         <AddBirthTimeCard birthPlace={birthPlace} onAddBirthTime={onAddBirthTime} />
       </div>
