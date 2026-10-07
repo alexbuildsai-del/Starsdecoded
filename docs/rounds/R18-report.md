@@ -31,7 +31,7 @@ clean, codegen twice with no diff, `db:bootstrap` on main's tree then this branc
 nine pair sections ok (partners 11880 to 12557 tokens); **"injection clean: 105 prompts"**. The stored r06 runs were placed from the
 `report-lab/*` branches for the run and removed after. **Tester:** no bug; 13 tests and the walk's none, catch-up and stale-refresh checks.
 **Sentinel:** CLEAR, nothing blocking. S1 (setup routes had no count) and S3 (the walk's plan read as a second plan) fixed in R18-29,
-re-read by the sentinel; S2 is MB-234, private.
+re-read by the sentinel; S2 is MB-234, private. **Staging after the merge:** Smoke green; two deploys each gave about 45 s of 502s (`/api/healthz` polled each second), so B-48 holds in code but not on staging: Railway keeps traffic on the old deploy unless a volume is attached or no health check applies, both dashboard-only (MB-228, B-72). QA-07: no sev-1, 2 sev-2, 7 sev-3.
 
 ## Deviations
 - R18-28 and R18-29 added: a plan's new landing left the staging walk and the checkout lines on the old return (R18-24 named them); S3 would have failed the staging walk's Timeline step.
