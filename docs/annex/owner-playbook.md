@@ -15,7 +15,7 @@ merged into the rule it repeats.
 - **He orders the rounds.** Pricing "whenever I say" (sweep 03/10); fixes wait for a round (ADR-204) unless he says ship it
   alone (the sign-in fix, 2026-10-06). Read the latest Decisions rows before his words about rounds (ADR-254, a misread).
 - **Less text, simple words, everywhere.** One annotated line (Review 02/10); the fewest examples, each whole; a "so
-  dramatic" line made plain (timeline-page). One idea a sentence; never make him ask twice.
+  dramatic" line made plain (timeline-page). One idea a sentence, never ask twice; crisp line and life first (2026-10-07).
 - **Fewer, slower steps, no cuts.** Houses then pairs went "a bit too fast… it's okay to spend the time on it"; he folded
   them into the writing wait, one pair at a time: "I like to simplify things". A jump between two scenes read "less
   seamless": ease one into the next (report-loading-story, 2026-10-05). One typed date field beats pickers (Review 02/10).
@@ -45,8 +45,8 @@ merged into the rule it repeats.
   finding is traced to what broke: rewording B-40's error "makes no sense… fix the root cause" (walk-line, 2026-10-06).
 - **Words that can't go stale.** No price in the FAQ, "they might change after a discount"; a price shows only where read
   live, never before it's real; no promise twice. Test a line against every way to buy: "you pay for credits" (walk-line).
-- **Astrology calls are ours.** "You are the specialist in astrology": propose which chapters explain what, and why
-  (review-05-10). Known ideas (retrograde) may be explained; the method may not.
+- **Astrology calls are ours; the bar is @the_innercosmos.** Name anything explained at her level; possibilities, never
+  forecasts; tradition at full strength. "True by doctrine" is not "said by us": check both (explain-like-a-friend).
 - **A card reads top-down** (idea, "for you", value, date; science behind an ⓘ); **a promise needs its proof** (timeline-page v3).
 
 ## Formats he likes
