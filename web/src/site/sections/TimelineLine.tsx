@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Link } from "wouter";
 import type { SkyBody } from "@workspace/engine";
+import { LAUNCHED } from "@workspace/launch";
 import { SIGN_ORDER, norm360 } from "@/components/chart/wheel-geometry";
 import { Dial } from "@/components/timeline/Dial";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
@@ -85,7 +86,7 @@ function SkyToday() {
 
 /**
  * The way in (timeline-page, ADR-252; reading 23): one line between Prices and the questions, so a reader on home finds
- * Timeline. A link and no form; it shows no price, since Timeline has none until billing (ADR-264).
+ * Timeline. A link and no form; it shows no price until launch (ADR-343), and on launch day its eyebrow drops "Coming soon" (ADR-355).
  */
 export default function TimelineLine() {
   return (
@@ -95,7 +96,7 @@ export default function TimelineLine() {
           <SkyToday />
           <div className="grid min-w-0 gap-1.5">
             <h2 className="sd-eyebrow" id="timeline-line-h">
-              Coming soon · Timeline
+              {LAUNCHED ? "Timeline" : "Coming soon · Timeline"}
             </h2>
             <p className="font-display text-[19px] leading-[1.4] text-pretty text-[color:var(--paper)] min-[760px]:text-[22px]">
               See when the planets reach your chart, from your Saturn return to this week.{" "}

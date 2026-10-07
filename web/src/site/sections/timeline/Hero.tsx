@@ -6,6 +6,7 @@
  */
 import { useState } from "react";
 import type { Tone } from "@workspace/engine";
+import { LAUNCHED } from "@workspace/launch";
 import { ToneWord } from "@/components/timeline/ContactCard";
 import { Dial } from "@/components/timeline/Dial";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
@@ -58,7 +59,7 @@ export default function Hero() {
             </a>
           </div>
           <p className="text-[13px] leading-normal text-[color:var(--sd-muted)]">
-            Timeline opens after launch. You'll need a {PERSONAL_REPORT}.
+            {LAUNCHED ? null : "Timeline opens after launch. "}You'll need a {PERSONAL_REPORT}.
           </p>
         </div>
 
