@@ -66,14 +66,14 @@ function CampaignLine({ c }: { c: Campaign }) {
   );
 }
 
-function CopyLink({ link }: { link: string }) {
+function CopyLink({ link, label = "Copy the campaign link" }: { link: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex items-center gap-2 mt-1.5">
       <code className="font-numeric text-xs text-muted-foreground break-all">{link}</code>
       <Button
         type="button" variant="ghost" size="sm"
-        aria-label="Copy the campaign link"
+        aria-label={label}
         onClick={() => { void navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }); }}
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -290,6 +290,8 @@ function TesterSection({ rows, onChange, onError }: { rows: Tester[]; onChange: 
   const [refusal, setRefusal] = useState<string | null>(null);
   const [removing, setRemoving] = useState<Tester | null>(null);
   const people = rows.filter((t) => t.qa === null);
+  // Its row holds the only copy of the address /qa signs in with, so it is shown here and never offered for removal.
+  const qaAccount = rows.find((t) => t.qa === "qa-agent") ?? null;
 
   async function add(e: FormEvent) {
     e.preventDefault();
@@ -338,6 +340,18 @@ function TesterSection({ rows, onChange, onError }: { rows: Tester[]; onChange: 
             <div className="min-w-0">
               <p className="text-sm">QA pair (staging only)</p>
               <p className="text-xs text-muted-foreground mt-0.5">qa-a and qa-b, made and reset by staging</p>
+            </div>
+            <Chip label="Auto" cls="border-green-400/40 text-green-400" />
+          </li>
+        )}
+        {APP_ENV === "staging" && (
+          <li className="px-4 py-3 grid grid-cols-[1fr_auto] gap-x-4 items-center">
+            <div className="min-w-0">
+              <p className="text-sm">QA account (staging only)</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {qaAccount ? "/qa signs in with this email. Staging makes it and tops up its test credits at each start." : "Staging makes it at its next start."}
+              </p>
+              {qaAccount && <CopyLink link={qaAccount.email} label="Copy the QA account's email" />}
             </div>
             <Chip label="Auto" cls="border-green-400/40 text-green-400" />
           </li>

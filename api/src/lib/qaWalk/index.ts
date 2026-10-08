@@ -18,7 +18,7 @@
  * its line in the verdict names the walk the picture was kept under, so /api/qa/latest lists it in `shots` (ADR-360).
  */
 import { randomUUID } from "node:crypto";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import {
   db,
@@ -235,7 +235,8 @@ export function stripeWalkDoors(client: Stripe, until: Until): WalkStripe {
 
 export const dbWalkLedger: WalkLedger = {
   async useCustomer(userId, customer) {
-    // Checkout bills whichever customer the account names, so this repoints only a QA account, and only on staging.
+    // Checkout bills whichever customer the account names, so this repoints only one of the pair, never /qa's own account
+    // (ADR-387), and only on staging.
     const appEnv = readAppEnv();
     if (appEnv !== "staging") throw new Error(`the walk's customer is set on staging alone, so it is refused on ${appEnv}`);
     const moved = await db
@@ -244,7 +245,7 @@ export const dbWalkLedger: WalkLedger = {
       .where(
         and(
           eq(usersTable.id, userId),
-          sql`exists (select 1 from ${testersTable} where ${testersTable.userId} = ${usersTable.id} and ${testersTable.qa} is not null)`,
+          sql`exists (select 1 from ${testersTable} where ${testersTable.userId} = ${usersTable.id} and ${inArray(testersTable.qa, ROLES)})`,
         ),
       )
       .returning({ id: usersTable.id });

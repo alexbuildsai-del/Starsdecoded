@@ -43,6 +43,8 @@ const SIX_MONTHS = RANGE_DAYS["six-months"];
 
 const NO_READINGS: ReadingStatuses = new Map();
 const QA_EMAILS: ReadonlySet<string> = new Set(Object.values(QA_PAIR).map((member) => member.email.toLowerCase()));
+// The pair's marks alone: /qa's own account is marked too, and its Timeline is set up as anyone's (ADR-387).
+const PAIR_MARKS: ReadonlySet<string> = new Set(Object.keys(QA_PAIR));
 
 /** What a setup writes for a reader, in the reader's days: each step's keys, soonest first. */
 export interface SetupPlan {
@@ -155,7 +157,7 @@ async function queueWrites(profileId: string, keys: readonly string[]): Promise<
 async function queueRefreshes(reader: ReaderChart, keys: readonly string[]): Promise<void> {
   try {
     const stale = await staleReadings(reader, keys);
-    if (stale.length === 0 || (await isQaAccount(reader.userId))) return;
+    if (stale.length === 0 || (await isQaPair(reader.userId))) return;
     const first = Date.now();
     for (const [i, key] of stale.entries()) {
       await enqueue("timeline.refresh", { profileId: reader.profileId, key }, { runAt: new Date(first + i), dedupeKey: refreshJobKey(reader.profileId, key) });
@@ -171,13 +173,13 @@ function armAhead(userId: string, to: string, zone: string): Promise<string | nu
 }
 
 /** The staging walk's two accounts, by their mark or by their address, as the Sales page tells them. */
-async function isQaAccount(userId: string): Promise<boolean> {
+async function isQaPair(userId: string): Promise<boolean> {
   const [tester] = await db
     .select({ qa: testersTable.qa, email: testersTable.email })
     .from(testersTable)
     .where(eq(testersTable.userId, userId))
     .limit(1);
-  if (tester && (tester.qa !== null || QA_EMAILS.has(tester.email.toLowerCase()))) return true;
+  if (tester && ((tester.qa !== null && PAIR_MARKS.has(tester.qa)) || QA_EMAILS.has(tester.email.toLowerCase()))) return true;
   const [user] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   return !!user?.email && QA_EMAILS.has(user.email.toLowerCase());
 }
@@ -187,7 +189,7 @@ async function isQaAccount(userId: string): Promise<boolean> {
  * that reaches the QA pair writes nothing and ends (ADR-315), its line naming its kind alone.
  */
 async function forQaPair(kind: JobKind, userId: string): Promise<boolean> {
-  if (!(await isQaAccount(userId))) return false;
+  if (!(await isQaPair(userId))) return false;
   logger.warn({ kind }, "a Timeline job for the QA pair wrote nothing");
   return true;
 }
@@ -278,7 +280,7 @@ async function stateOf(reader: ReaderChart, zone: string | null | undefined, ope
  */
 export async function startSetup(reader: ReaderChart, zone?: string | null): Promise<TimelineSetup> {
   const tz = validZone(zone) ?? reader.zone;
-  if (await isQaAccount(reader.userId)) return stateOf(reader, tz, false);
+  if (await isQaPair(reader.userId)) return stateOf(reader, tz, false);
   const today = dayIn(new Date(), tz);
   const row = await setupRow(reader.userId);
   if (row && stands(row, reader, today)) {

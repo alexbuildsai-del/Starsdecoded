@@ -50,8 +50,11 @@ export interface CampaignInput {
 export interface Tester {
   userId: string;
   email: string;
-  /** Set on the two QA accounts, which staging makes and resets itself. */
-  qa: "mira" | "idris" | null;
+  /**
+   * Set on the accounts staging makes itself: the walk's pair, which it resets, and /qa's own, whose row holds the
+   * address /qa signs in with (ADR-387).
+   */
+  qa: "mira" | "idris" | "qa-agent" | null;
   /** Credits the admin has granted and how many of them are spent. */
   granted?: number;
   used?: number;

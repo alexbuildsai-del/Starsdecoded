@@ -4,6 +4,7 @@ import { indexNowOnStart } from "./lib/indexNow";
 import { startWorker, stopWorker } from "./lib/jobs";
 import { logger } from "./lib/logger";
 import { repairStalePromptOverrides } from "./lib/promptLoader";
+import { ensureQaAccount } from "./lib/qaAccount";
 import { banQaPairAtStop, banQaPairUnlessWalking } from "./lib/qaPair";
 import { syncProductsOnStart } from "./lib/stripeSync";
 import { qaAfterDeploy } from "./routes/qa";
@@ -127,6 +128,12 @@ server.listen(port, () => {
   // the error's code alone: its message can name one of the pair's accounts.
   banQaPairUnlessWalking().catch((err: unknown) => {
     logger.warn({ code: codeOf(err) }, "banQaPairUnlessWalking failed");
+  });
+
+  // /qa's own account on the same footing (ADR-387): made once on staging and topped up at each start, so a Clerk that is
+  // slow or down leaves /qa waiting for the next start, never the API. Its code alone: the message can hold the address.
+  ensureQaAccount().catch((err: unknown) => {
+    logger.warn({ code: codeOf(err) }, "ensureQaAccount failed");
   });
 
   // Staging's walk of the buyer's flow, on the same footing (ADR-315): it waits for the web to serve this commit, then

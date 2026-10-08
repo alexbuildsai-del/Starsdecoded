@@ -4,7 +4,8 @@
  * revenue and History reads it "From Stars Decoded" (reading 4). Removing a tester leaves what they were given.
  *
  * The QA pair (ADR-314) sits in the same list, marked by `qa`. Staging makes, tops up and resets those two by code
- * (`qaPair.ts`), so nothing here adds, grants to or removes either of them.
+ * (`qaPair.ts`), so nothing here adds, grants to or removes either of them. /qa's own account (ADR-387) is marked too,
+ * and only its row holds its address, so nothing here removes it; a grant reaches it as it reaches any tester.
  */
 import { and, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db, bundlesTable, creditsTable, testersTable, usersTable, type QaAccount, type TesterRow } from "@workspace/db";
@@ -55,6 +56,7 @@ export const TESTER_LINES = {
   already: "That account is already a tester.",
   qaAdd: "That's a QA account. Staging adds and resets it by itself.",
   qaChange: "Staging looks after the QA accounts. They can't be changed here.",
+  qaKeep: "Staging keeps the QA account, so it can't be removed here.",
   notTester: "That account isn't a tester.",
   grantNotTester: "That account isn't a tester. Add it first.",
   badCount: `Grant ${GRANT_COUNTS.slice(0, -1).join(", ")} or ${GRANT_COUNTS[GRANT_COUNTS.length - 1]} credits.`,
@@ -62,10 +64,14 @@ export const TESTER_LINES = {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const QA_EMAILS: ReadonlySet<string> = new Set(Object.values(QA_PAIR).map((member) => member.email.toLowerCase()));
+const PAIR_MARKS: ReadonlySet<string> = new Set(Object.keys(QA_PAIR));
 
-/** Either QA account, by its mark or by its address, so one added by hand before staging marked it stays out too. */
+/**
+ * Either of the walk's pair, by its mark or by its address, so one added by hand before staging marked it stays out too.
+ * /qa's own account is not one of them (ADR-387).
+ */
 function isQaPair(row: Pick<TesterRow, "qa" | "email">): boolean {
-  return row.qa !== null || QA_EMAILS.has(row.email.toLowerCase());
+  return (row.qa !== null && PAIR_MARKS.has(row.qa)) || QA_EMAILS.has(row.email.toLowerCase());
 }
 
 /** Credits granted to each account and how many of them were used. A gift moves a credit but keeps its bundle. */
@@ -164,6 +170,9 @@ export async function removeTester(userId: string): Promise<void> {
   const row = await testerRow(userId);
   if (!row) throw new TesterRefused(404, "not_tester", TESTER_LINES.notTester);
   if (isQaPair(row)) throw new TesterRefused(409, "qa_pair", TESTER_LINES.qaChange);
+  // Its address lives in this row alone: without it the next start makes another account, and this one, never banned,
+  // stays open with nothing naming it.
+  if (row.qa !== null) throw new TesterRefused(409, "qa_account", TESTER_LINES.qaKeep);
   // The mark is checked again in the delete, so a row staging marks in between stays.
   const gone = await db
     .delete(testersTable)

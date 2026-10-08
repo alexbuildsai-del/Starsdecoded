@@ -1,8 +1,8 @@
 /**
  * Each limit driven through an in-process app and a stub route, with no database (MB-49). The stub holds a write for each
  * report it is asked to pass, as the birth-time change does, and can answer after its reader has left. The writing chain
- * from routes/index.ts stands once ahead of a stub route, behind the real session; the breaker in it and the birth-time
- * route itself are proved end to end in the walk.
+ * from routes/index.ts stands ahead of a stub route, behind the real session, the QA account's day with its rows stood in
+ * for; the breaker in it and the birth-time route itself are proved end to end in the walk.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -820,6 +820,147 @@ test("the writing chain: on staging 24 signed-out writes with no cookie and 24 f
   assert.equal(production.status, 401, "production asks for an account first, though the shared count is full");
   assert.equal(production.body.error, "sign_in_required");
   assert.equal((await write("203.0.113.28", "user_writer")).status, 202);
+});
+
+test("the writing chain and /qa's own account (ADR-387, reading 22): on staging its 7th start in a UTC day hears its own line until midnight UTC, starts at once never pass the day together, and every other account writes on", async (t) => {
+  const saved = process.env.APP_ENV;
+  t.after(() => {
+    if (saved === undefined) delete process.env.APP_ENV;
+    else process.env.APP_ENV = saved;
+  });
+  const { writing } = await import("../routes/index.js");
+  const { sessionMiddleware } = await import("../middlewares/session.js");
+  const { QA_ACCOUNT_DAILY_REPORTS, QA_ACCOUNT_LINE, setQaAccountRows } = await import("./qaAccount.js");
+  const QA = "user_qa_account_day";
+  const at = (iso: string) => Date.parse(iso);
+  // Each account's report rows by the instant they were made, as the routes store them: the route below adds one a start.
+  const stored: Array<{ userId: string; at: number }> = [];
+  const asked: string[] = [];
+  // Reads held open, so the test says when each answers.
+  let holding = false;
+  const held: Array<() => void> = [];
+  let arrived = () => {};
+  t.after(setQaAccountRows({
+    async isQaAccount(userId) {
+      asked.push(userId);
+      return userId === QA;
+    },
+    async startedSince(userId, since) {
+      // Counted as a query counts, from where the rows stood when it began: a start stored while it runs isn't in it.
+      const n = stored.filter((row) => row.userId === userId && row.at >= since.getTime()).length;
+      if (holding) {
+        await new Promise<void>((resolve) => {
+          held.push(resolve);
+          arrived();
+        });
+      }
+      return n;
+    },
+  }));
+  t.mock.timers.enable({ apis: ["Date"], now: at("2026-10-08T20:00:00Z") });
+
+  const app = express();
+  app.use(sessionMiddleware);
+  // Where Clerk stands in app.ts.
+  app.use((req, _res, next) => {
+    req.userId = req.header("x-user") || null;
+    next();
+  });
+  // A route stores its report, then answers; asked to, it answers a moment later, as one still at work does. One that
+  // refuses, as with no credit left, stores nothing.
+  let answerLater = false;
+  let routed = () => {};
+  const started: RequestHandler = (req, res) => {
+    const refusal = Number(req.header("x-answer") ?? 0);
+    if (refusal >= 400) return void res.status(refusal).json({ error: "no_credit" });
+    stored.push({ userId: req.userId as string, at: Date.now() });
+    routed();
+    if (answerLater) setTimeout(() => void res.status(201).json({ started: true }), 50);
+    else res.status(201).json({ started: true });
+  };
+  app.post("/api/reports", writing, started);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.on("listening", () => resolve()));
+  t.after(() => {
+    server.closeAllConnections();
+    return new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/reports`;
+  const write = async (user: string, address: string, answer?: number): Promise<Answer> => {
+    const headers: Record<string, string> = { "content-type": "application/json", "x-user": user, "x-vercel-forwarded-for": address, "x-edge-proxy-secret": EDGE };
+    if (answer) headers["x-answer"] = String(answer);
+    const res = await fetch(url, { method: "POST", headers, body: "{}" });
+    return { status: res.status, retryAfter: res.headers.get("retry-after"), body: await res.json() };
+  };
+  const dayIsFull = async (answer: Promise<Answer>, seconds: number, why: string) => {
+    const { status, retryAfter, body } = await answer;
+    assert.equal(status, 429, why);
+    assert.equal(retryAfter, String(seconds), why);
+    assert.deepEqual(body, { error: "rate_limited", message: QA_ACCOUNT_LINE, retryAfterSeconds: seconds }, why);
+  };
+
+  assert.ok(!Object.values(LIMIT_LINES).includes(QA_ACCOUNT_LINE), "a line of its own, not another limit's (R16-29)");
+  assert.ok(QA_ACCOUNT_LINE.includes(`${QA_ACCOUNT_DAILY_REPORTS} reports`) && QA_ACCOUNT_LINE.endsWith(" within a day."));
+
+  process.env.APP_ENV = "staging";
+  // Three the day before, the last a second before midnight UTC, and five today in hours of their own, as after a deploy.
+  for (const iso of ["2026-10-07T21:00:00Z", "2026-10-07T23:00:00Z", "2026-10-07T23:59:59Z"]) stored.push({ userId: QA, at: at(iso) });
+  for (const iso of ["2026-10-08T00:00:00Z", "2026-10-08T03:00:00Z", "2026-10-08T07:00:00Z", "2026-10-08T11:00:00Z", "2026-10-08T15:00:00Z"]) {
+    stored.push({ userId: QA, at: at(iso) });
+  }
+  // Another account that started as many today.
+  for (let i = 0; i < QA_ACCOUNT_DAILY_REPORTS; i++) stored.push({ userId: "user_writes_on", at: at("2026-10-08T12:00:00Z") });
+
+  for (const refusal of [402, 404, 503]) {
+    assert.equal((await write(QA, "203.0.113.90", refusal)).status, refusal, "a start its route refused cost nothing, so it takes nothing");
+  }
+  assert.equal((await write(QA, "203.0.113.90")).status, 201, "the 6th start of the UTC day");
+  await dayIsFull(write(QA, "203.0.113.90"), 4 * 3600, "the 7th, four hours before midnight UTC");
+  await dayIsFull(write(QA, "203.0.113.93"), 4 * 3600, "from another address too");
+  assert.equal((await write("user_writes_on", "203.0.113.91")).status, 201, "another account with six today writes on");
+  assert.equal((await write("user_fresh_writer", "203.0.113.92")).status, 201, "and one with none");
+
+  t.mock.timers.setTime(at("2026-10-08T23:59:59Z"));
+  await dayIsFull(write(QA, "203.0.113.90"), 1, "the day's last second");
+
+  // The next UTC day: four started before a deploy, then the fifth here.
+  for (const iso of ["2026-10-09T01:00:00Z", "2026-10-09T02:00:00Z", "2026-10-09T03:00:00Z", "2026-10-09T04:00:00Z"]) {
+    stored.push({ userId: QA, at: at(iso) });
+  }
+  t.mock.timers.setTime(at("2026-10-09T06:00:00Z"));
+  assert.equal((await write(QA, "203.0.113.90")).status, 201, "midnight UTC opened a new day");
+
+  // Three at once, each reading the rows before any lands. The first read answers and its start reaches the route,
+  // still at work; then the other two answer, from rows that hold none of it: one is the sixth, two hear the line.
+  holding = true;
+  answerLater = true;
+  const allIn = new Promise<void>((resolve) => (arrived = () => (held.length === 3 ? resolve() : undefined)));
+  const firstRouted = new Promise<void>((resolve) => (routed = resolve));
+  const racing = Promise.all([write(QA, "203.0.113.90"), write(QA, "203.0.113.90"), write(QA, "203.0.113.90")]);
+  await allIn;
+  holding = false;
+  held.shift()?.();
+  await firstRouted;
+  for (const answer of held.splice(0)) answer();
+  const answers = await racing;
+  answerLater = false;
+  assert.equal(answers.filter((a) => a.status === 201).length, 1, "one of three at once fits the day's sixth");
+  for (const answer of answers.filter((a) => a.status !== 201)) {
+    assert.deepEqual(answer.body, { error: "rate_limited", message: QA_ACCOUNT_LINE, retryAfterSeconds: 18 * 3600 });
+  }
+  const today = () => stored.filter((row) => row.userId === QA && row.at >= at("2026-10-09T00:00:00Z"));
+  assert.equal(today().length, QA_ACCOUNT_DAILY_REPORTS);
+  await dayIsFull(write(QA, "203.0.113.90"), 18 * 3600, "then the 7th");
+  // A report deleted after it was started leaves no row, and still counts.
+  stored.splice(stored.indexOf(today()[0]), 1);
+  await dayIsFull(write(QA, "203.0.113.90"), 18 * 3600, "a deleted report gives no start back");
+  assert.equal((await write("user_writes_on", "203.0.113.91")).status, 201, "the other account still writes");
+
+  // Off staging no account is the QA account's to cap, and nothing is asked.
+  const askedOnStaging = asked.length;
+  process.env.APP_ENV = "production";
+  assert.equal((await write(QA, "203.0.113.94")).status, 201);
+  assert.equal(asked.length, askedOnStaging);
 });
 
 test("a birth-time change's last allowed hold fits exactly and its first refused one takes nothing: 6 reports pass, 7 hear 429, and the count is whole after (MB-159)", async () => {
