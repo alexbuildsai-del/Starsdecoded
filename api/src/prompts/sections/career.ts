@@ -32,7 +32,11 @@ One paragraph on the kind of work this chart is pulled toward and the route that
 
 Then three or four career paths. Each is a kind of work or a role, followed by one concrete reason this chart does well in it. Phrase them as a tendency and never as a promise: what the work asks for is what this chart already does. They carry no claims, so keep each reason to something the prose above has already earned.
 
-Be honest about cost. Where the 10th ruler is in detriment or fall, say plainly that the route is not the easy one, as behaviour, not as doctrine. No planet, sign, or house names in the prose. 350 to 450 words.
+Be honest about cost. Where the 10th ruler is in detriment or fall, say plainly that the route is not the easy one, and say why in plain words: what the planet wants against what its sign asks. The dignity word itself stays out.
+
+Going backwards. When the RETROGRADE AT BIRTH lines hold Mars, Saturn or the planet in charge of the 10th, it shapes how they work. Let its line in the vocabulary show in the behaviour you describe.
+
+Each paragraph opens on the reader's life, then gives the reason. Name at most one placement a paragraph, inside a sentence, where it first matters: its plain meaning in the next sentence, then a moment the reader can check. Anything ahead is a possibility: could, might, you may notice, never will. The chapter ends on its actions and paths. 350 to 450 words.
 
 Sect. Read Saturn by sect. Day chart: Saturn is structure, endurance and earned authority. Night chart: Saturn is the harshest planet in this chart, and the career copy must say so in behaviour rather than default to \"discipline\". Read the Sun by sect for how visibly the person wants to be seen doing the work.`,
 };

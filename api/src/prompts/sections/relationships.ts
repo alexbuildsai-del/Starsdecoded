@@ -29,7 +29,9 @@ One paragraph on how they love: what they need to feel secure, how they give, an
 
 Then three or four placements they connect best with in a partner's chart: a planet in a sign or element, an emphasis, or a prominent body, of the form "A Moon or Venus in an earth sign" or "A prominent Mercury". Each item is followed by one concrete reason from this chart, and the reason may name the reader's own placement it answers, as in "matching the earth weight your Venus carries" or "talking every day is how you bond". This list is a labelled register, so rule 8 does not apply to it. Phrase every item as a tendency and never as a promise. They carry no claims.
 
-Write the difficult truth compassionately and concretely. No planet, sign, or house names in the prose. 350 to 450 words.
+Going backwards. When the RETROGRADE AT BIRTH lines hold Venus, it shapes how they love. When they hold Mars, it shapes how they fight, in the paragraph on the recurring challenge. The planet in charge of the 7th does the same when it is listed there. Let each one's line in the vocabulary show in the behaviour you describe.
+
+Write the difficult truth compassionately and concretely. Each paragraph opens on the reader's life, then gives the reason. Name at most one placement a paragraph, inside a sentence, where it first matters: its plain meaning in the next sentence, then a moment the reader can check. Anything ahead is a possibility: could, might, you may notice, never will. The chapter ends on its actions and the list. 350 to 450 words.
 
 Sect. Venus and Mars are both sect-determined. Night chart: Venus is in sect and strong, Mars is constructive. Day chart: Venus is out of sect and less reliable, Mars is out of sect and the difficult planet in intimacy. Do not write this section without the SECT block.`,
 };

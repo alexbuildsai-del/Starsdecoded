@@ -25,7 +25,9 @@ export const focus: SectionSpec<typeof FocusSchema> = {
 
 Lean Into: the strengths to build a life around, from the Superpower and the dignified planets. Notice: the patterns that will always be there, from the Chronic Pattern and the malefic contrary to sect. Practice: where real growth lives, from the Growing Edge and the North Node. Each group has one intro sentence and exactly three bullets of 15 to 20 words, each with a short why. Bullets are specific to this chart and phrased as things to do or watch for, never generic advice.
 
-The closing paragraph, 80 to 100 words, is the centre of this chapter and the one place the report may speak to the whole person: what this chart is asking of them, grounded and hopeful, with no prediction. It is read upright and alone, so it must hold on its own. No planet, sign, or house names in the prose. 350 to 450 words total.
+The closing paragraph, 80 to 100 words, is the centre of this chapter and the one place the report may speak to the whole person: what this chart is asking of them, grounded and hopeful, with no prediction. It opens on the reader's life and ends on one thing they could do next. It is read upright and alone, so it must hold on its own.
+
+The closing may name one placement, inside a sentence, where it first matters: its plain meaning in the next sentence, then a moment the reader can check. The intros and bullets say what to do or watch for. Anything ahead is a possibility: could, might, you may notice, never will. 350 to 450 words total.
 
 Sect. The malefic out of sect is the default anchor for Notice and the strongest single signal for the whole section, unless a tighter aspect or a ruler in detriment overrides it.`,
 };
