@@ -52,9 +52,36 @@ export function pairRowTitle(a: PairSide, b: PairSide, selfIds: ReadonlySet<stri
   return { title: pairTitle("You", first(other.name)), other };
 }
 
-/** Whose story "Share story" shows: the reader's with the other person, or the two by name. */
-export function storyTitle(a: PairSide, b: PairSide, other: PairSide | null): string {
-  return other ? `Your story with ${first(other.name)}` : `${first(a.name)} and ${first(b.name)}'s story`;
+export type PairChipState = "only-you" | "can-read" | "waiting" | "shared-by";
+
+/** The one chip a Compatibility row wears, said from `HomePair.share` alone (ADR-337, 341). */
+export function pairChipText(share: { state: PairChipState; name: string }): string {
+  const name = share.name.trim() ? first(share.name) : "";
+  if (!name) return "Only you can read it";
+  if (share.state === "can-read") return `${name} can read it`;
+  if (share.state === "waiting") return `Waiting for ${name}`;
+  if (share.state === "shared-by") return `Shared by ${name}`;
+  return "Only you can read it";
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+
+/** "Report from 12 Sep 2026", read in the reader's own zone; null when the report carries no usable date (review-05-10 §7). */
+export function reportFromText(createdAt: string | null | undefined): string | null {
+  const when = createdAt ? new Date(createdAt) : null;
+  if (!when || Number.isNaN(when.getTime())) return null;
+  return `Report from ${when.getDate()} ${MONTHS[when.getMonth()]} ${when.getFullYear()}`;
+}
+
+export const makePairText = (name: string): string => `Make You & ${first(name)} · 1 credit`;
+export const openReportText = (name: string): string => `Open ${first(name)}'s report`;
+
+/** What the quick look's footer says about the reader's own report and this person (sharing-and-circle §5). */
+export function readsYoursLine(name: string, state: "can-read" | "invited" | "no"): string {
+  const who = first(name);
+  if (state === "can-read") return `${who} can read your report`;
+  if (state === "invited") return `Waiting for ${who} to open your report`;
+  return `${who} can't read your report`;
 }
 
 /**

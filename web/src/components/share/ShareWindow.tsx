@@ -10,13 +10,14 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Check, MoreHorizontal, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  customFetch,
   getGetHomeQueryKey,
   getGetReportQueryKey,
   getListInvitesQueryKey,
   getListProfilesQueryKey,
   getListReportsQueryKey,
   getListSharesQueryKey,
+  useCancelInvite,
+  useCopyInviteLink,
   useCreateInvite,
   useSendCompatibility,
   useShareMyReport,
@@ -133,6 +134,8 @@ function ShareBody({ target, onClose, onBusy }: { target: ShareTarget; onClose: 
 
   const shareOwn = useShareMyReport();
   const invite = useCreateInvite();
+  const cancel = useCancelInvite();
+  const linkFor = useCopyInviteLink();
   const pairSend = useSendCompatibility();
 
   const own = target.kind === "own";
@@ -259,7 +262,7 @@ function ShareBody({ target, onClose, onBusy }: { target: ShareTarget; onClose: 
     setActing(reader.inviteId);
     setActionError(null);
     try {
-      await customFetch(`/api/invites/${encodeURIComponent(reader.inviteId)}`, { method: "DELETE" });
+      await cancel.mutateAsync({ id: reader.inviteId });
     } catch (error) {
       // A link already gone has ended all the same, so the list is read again and drops it.
       if ((error as { status?: number } | null)?.status !== 404) {
@@ -281,7 +284,7 @@ function ShareBody({ target, onClose, onBusy }: { target: ShareTarget; onClose: 
     setManual(null);
     try {
       const result = await copyLink(async () => {
-        const link = await customFetch<{ claimUrl: string }>(`/api/invites/${encodeURIComponent(inviteId)}/link`, { method: "POST" });
+        const link = await linkFor.mutateAsync({ id: inviteId });
         return link.claimUrl;
       });
       if (result.copied) say(`Link for ${readerName(reader)} copied`);

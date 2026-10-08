@@ -2,11 +2,11 @@
  * Compatibility (ADR-174): every pair the reader can see, newest first, one
  * row each named by its two people, "You & Mamca", with who the two are under
  * it (review-01-10, scope 3). A pair that opens is one tap to its report and
- * keeps its actions: Share story and Share with {name} in view, Stop sharing
- * and Delete report behind "⋯", no hearts. One still being written, closed by
- * a stop (MB-103 provisional) or failed keeps its row and says so. Drawn from
- * GET /home, with each pair's share state from GET /reports (reading 4); the
- * page mounts it bare, so it holds its own dialogs.
+ * wears one chip for who can read it, from GET /home's `share` alone (ADR-337,
+ * 341); Share and Delete report sit behind "⋯", no buttons on the row, no
+ * story (ADR-338). One still being written, closed by a stop (MB-103
+ * provisional) or failed keeps its row and says so. The page mounts it bare,
+ * so it holds its own dialogs.
  */
 import { useState, type ReactNode } from "react";
 import {
@@ -16,20 +16,15 @@ import {
   type ReportSummary,
 } from "@workspace/api-client-react";
 import { DeleteReportDialog } from "@/components/DeleteReportDialog";
-import { SendDialog, type SendTarget } from "@/components/SendDialog";
 import { StatusDots } from "@/components/StatusDots";
-import { ListRow, MENU_DANGER, MenuItem, ROW_ACTION, ROW_STATUS, useOpenerFocus } from "@/components/dashboard/RowMenu";
-import { StopSharingDialog, type StopTarget } from "@/components/dashboard/StopSharingDialog";
-import { StoryPreview } from "@/components/report/ShareCard";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ListRow, MENU_DANGER, MenuItem, ROW_STATUS, RowChip } from "@/components/dashboard/RowMenu";
+import { ShareWindow, type ShareTarget } from "@/components/share/ShareWindow";
 import { useHome } from "@/hooks/useHome";
 import { lensWords, ownIds } from "@/lib/home-view";
 import { initials } from "@/lib/orbit";
-import { PAIR_ROW_COPY, pairRowState, pairRowTitle, sharedWaiting, storyTitle } from "@/lib/pair-row";
+import { PAIR_ROW_COPY, pairChipText, pairRowState, pairRowTitle } from "@/lib/pair-row";
 import { COMPATIBILITY_REPORT } from "@/lib/product";
-import { SHARE_LABELS, first, pairStoryText, shareWith, type ShareCardText } from "@/lib/share-card";
-
-type Story = { title: string; text: ShareCardText };
+import { first } from "@/lib/share-card";
 
 /**
  * A pair the list holds before GET /home is read again, so the picker's
@@ -49,7 +44,7 @@ function fromList(report: ReportSummary): HomePair | null {
     strong: [],
     challenge: null,
     story: null,
-    share: { state: "only-you", name: "" },
+    share: report.sharedBy ? { state: "shared-by", name: report.sharedBy } : { state: "only-you", name: "" },
     readers: [],
   };
 }
@@ -58,41 +53,27 @@ interface PairRowProps {
   pair: HomePair;
   report: ReportSummary | undefined;
   own: ReadonlySet<string>;
-  onShare: (target: SendTarget) => void;
-  onStop: (target: StopTarget) => void;
-  onStory: (story: Story) => void;
+  onShare: (target: ShareTarget) => void;
 }
 
-function PairRow({ pair, report, own, onShare, onStop, onStory }: PairRowProps) {
+function PairRow({ pair, report, own, onShare }: PairRowProps) {
   const { title, other } = pairRowTitle(pair.a, pair.b, own);
   // The page polls the list while a report is under way; GET /home keeps the status it was read with.
   const status = report?.status ?? pair.status;
   const state = status === "failed" ? null : pairRowState({ status, readable: !pair.stoppedBy });
-  const send = report?.send ?? null;
-  const them = send ? send.firstName || first([pair.a, pair.b].find((p) => p.profileId === send.profileId)?.name ?? "") : "";
-  // Only its maker can stop or delete a pair; the other of its two only reads it (MB-103 provisional).
+  // Only its maker can share or delete a pair; the other of its two only reads it (MB-103 provisional).
   const maker = !!report && (report.access ?? "owner") === "owner";
-  const text = state === "open" ? pairStoryText(pair) : null;
+  // The list names the pair's other person when the reader is neither of the two; no send there means none is offered.
+  const them = report?.send?.firstName || (other ? first(other.name) : "");
+  const sharable = maker && state === "open" && !!them && (!report || report.send != null);
 
   const actions: ReactNode[] = [];
   if (state === "open") {
-    if (text) {
-      actions.push(
-        <button key="story" type="button" onClick={() => onStory({ title: storyTitle(pair.a, pair.b, other), text })} className={ROW_ACTION}>
-          {SHARE_LABELS.share}
-        </button>,
-      );
-    }
-    if (send && them && (send.state === "can_send" || send.state === "can_grant")) {
-      actions.push(
-        <button key="share" type="button" onClick={() => onShare({ kind: "pair", send, reportId: pair.reportId })} className={ROW_ACTION}>
-          {shareWith(them)}
-        </button>,
-      );
-    }
-    if (send && them && send.state === "sent") actions.push(<span key="sent" className={ROW_STATUS}>{sharedWaiting(them)}</span>);
-    if (send && them && send.state === "joined") actions.push(<span key="joined" className={ROW_STATUS}>{them} can read it too</span>);
-    if (report?.sharedBy) actions.push(<span key="by" className={ROW_STATUS}>Shared by {report.sharedBy}</span>);
+    actions.push(
+      <RowChip key="chip" tone={pair.share.state === "can-read" || pair.share.state === "shared-by" ? "reading" : pair.share.state === "waiting" ? "waiting" : "quiet"}>
+        {pairChipText(pair.share)}
+      </RowChip>,
+    );
   } else if (state === "pair_writing") {
     actions.push(
       <span key="writing" className="font-label text-xs text-[#9FA8DA]">
@@ -106,7 +87,6 @@ function PairRow({ pair, report, own, onShare, onStop, onStory }: PairRowProps) 
     actions.push(<span key="failed" className={ROW_STATUS}>{report?.failureReason?.line ?? "Could not be written."}</span>);
   }
 
-  const stopping = maker && state === "open" && send?.state === "joined" && !!them;
   return (
     <ListRow
       initials={other ? initials(other.name) : initials(`${first(pair.a.name)} ${first(pair.b.name)}`)}
@@ -120,9 +100,7 @@ function PairRow({ pair, report, own, onShare, onStop, onStory }: PairRowProps) 
       menu={
         maker ? (
           <>
-            {stopping && (
-              <MenuItem onSelect={() => onStop({ kind: "pair", id: pair.reportId, name: them })}>Stop sharing with {them}</MenuItem>
-            )}
+            {sharable && <MenuItem onSelect={() => onShare({ kind: "pair", reportId: pair.reportId, name: them })}>Share</MenuItem>}
             <DeleteReportDialog reportId={pair.reportId} personName={`${first(pair.a.name)} and ${first(pair.b.name)}`} className={MENU_DANGER} />
           </>
         ) : null
@@ -131,32 +109,11 @@ function PairRow({ pair, report, own, onShare, onStop, onStory }: PairRowProps) 
   );
 }
 
-/** "Share story" shows the story first and shares it from there, drawn ahead, so the share sheet opens on the tap itself. */
-function StoryDialog({ story, onClose }: { story: Story | null; onClose: () => void }) {
-  const focus = useOpenerFocus();
-  return (
-    <Dialog open={!!story} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="gap-4 border-[#3A4560] bg-[#171D29] sm:max-w-sm sm:rounded-[20px]" {...focus}>
-        {story && (
-          <>
-            <DialogHeader className="text-left">
-              <DialogTitle className="font-display text-[22px] font-normal leading-[1.2]">{story.title}</DialogTitle>
-              <DialogDescription>Nothing from either birth chart is on it, and nothing is uploaded.</DialogDescription>
-            </DialogHeader>
-            <StoryPreview text={story.text} />
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export function CompatibilityRows() {
   const home = useHome().data;
   const reports = useListReports({ query: { queryKey: getListReportsQueryKey() } }).data;
-  const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
-  const [stopTarget, setStopTarget] = useState<StopTarget | null>(null);
-  const [story, setStory] = useState<Story | null>(null);
+  // The target stays after a close so the window can finish leaving with its own words.
+  const [sharing, setSharing] = useState<{ target: ShareTarget; open: boolean } | null>(null);
 
   if (!home) return null;
   const listed = Array.isArray(reports) ? new Map(reports.map((r) => [r.id, r])) : null;
@@ -182,17 +139,13 @@ export function CompatibilityRows() {
                 pair={pair}
                 report={listed?.get(pair.reportId)}
                 own={own}
-                onShare={setSendTarget}
-                onStop={setStopTarget}
-                onStory={setStory}
+                onShare={(target) => setSharing({ target, open: true })}
               />
             ))}
           </ul>
         </div>
       )}
-      <SendDialog open={!!sendTarget} onClose={() => setSendTarget(null)} target={sendTarget} />
-      <StopSharingDialog target={stopTarget} onClose={() => setStopTarget(null)} />
-      <StoryDialog story={story} onClose={() => setStory(null)} />
+      {sharing && <ShareWindow open={sharing.open} onClose={() => setSharing({ ...sharing, open: false })} target={sharing.target} />}
     </>
   );
 }
