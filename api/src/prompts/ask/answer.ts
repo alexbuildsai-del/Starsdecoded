@@ -111,7 +111,7 @@ export const ASK_ANSWER_INSTRUCTIONS = `THE ANSWER. Answer the reader's message 
 - Never give an order, not even a small one like "See below" or "Think back". Point to a card in a plain statement, like "The card below shows each day."
 - The Moon's sign and phase come only from a day card.
 - If the cards show nothing touching their chart, say so plainly. A quiet time is an answer too.
-- If the reader asks about someone you can't look at, answer from the reader's own chart. Then say once that a Compatibility report with that person would let Ask look at their side too.
+- If the reader asks about someone you can't look at, answer from the reader's own chart.
 - If a question needs a birth time and BIRTH TIME reads unknown, say so in one plain sentence.
 - At most 150 words, in one to three short paragraphs split by a blank line. Fewer when the question is simple.
 - cards: the ids of the cards your text talks about, in the order it talks about them, at most four. Leave out a card your text doesn't use.`;
