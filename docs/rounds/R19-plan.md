@@ -398,7 +398,7 @@ then the cards that read both (group 3). Pricing and launch stay unplanned until
 to the rule as reading 1 pins it, before R19-09 writes it (ADR-376); R19-04 exports R19-43's `patterns.ts`, and R19-05's stellium fact
 reads it; R19-24, 25 and 26 build on R19-23's contract as pinned; R19-27 declares the `ReadingInput` fields R19-16 reads and puts
 R19-04's passes into the contract. Push once.
-**Group 2**, one message once group 1 is green, 19 cards: R19-09 to R19-19, R19-28 to R19-34 and R19-45. R19-11 calls R19-02's
+**Group 2**, one message once group 1 is green, 20 cards: R19-09 to R19-19, R19-28 to R19-34, R19-45 and R19-49 (added by the orchestrator). R19-11 calls R19-02's
 `pickScenes`, R19-04's `COMFORT`, R19-43's `chartPatterns` and R19-44's `observationsFor`; R19-12 reads R19-11's lines, R19-43's
 patterns and R19-44's table; R19-14 wires R19-03's passages, R19-11's scenes and R19-10's `explainChecks`; R19-15's classes match
 R19-10's RULES; R19-16 reads R19-04's `crosses` and passes and R19-27's inputs; R19-18 draws R19-04's table; R19-19 reads R19-10's
@@ -920,6 +920,19 @@ Done when:
   date in the reader's zone with its year; the blocks name their planet and dates, never one guessed.
 - On audrey-hepburn's Timeline computed at run time, a contact with three passes shows them and its stretch, its dates in the report
   (the Owner's Pluto card is read on staging); at 390 and 1440 px on real shots; typecheck and the critical tier green.
+
+### R19-49 — A banded Sun or Moon sits in the house of the sign it is given (USER-FACING) — added by the orchestrator
+Tier: opus — the engine: a placement the report states
+Objective: R19-43 found that `calculateNatalChart` gives the Sun and Moon the sign they held for most of a birth-time band but the
+house of the centre time, so when the body changes sign inside the band the two disagree (2001-09-02 00:05, 60-minute window,
+London: Moon stated Pisces, house 8, Aquarius's house). Under whole sign a body's house is its sign counted from the Ascendant's.
+Files: `packages/engine/src/chartCalculation.ts`.
+Refs: ADR-33, 34 (the band); R19-43's report (`$SCR/reports/R19-43.md`); reading 25.
+Done when:
+- A banded Sun or Moon's house is the house of its stated sign whenever the chart has a horizon; a blind chart is unchanged; an exact
+  time is unchanged. The R19-43 example, computed at run time, puts its Pisces Moon in the house Pisces holds.
+- Every fixture in `fixtures/charts/` computes the same as before except where sign and house disagreed; the report lists each change.
+- `typecheck:libs` and the engine's critical tier green; the dry lab's natal prompts all ok.
 
 ---
 
