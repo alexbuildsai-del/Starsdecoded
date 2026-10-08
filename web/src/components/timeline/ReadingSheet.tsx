@@ -5,7 +5,7 @@
  * again every few seconds; then the reading's own line, its paragraphs and the part of the reader's report it starts
  * from. It frames itself like the dashboard's sheets, from the bottom on a phone and from the right on a desktop.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,13 +13,18 @@ import {
   getGetTimelineNowQueryKey,
   useOpenTimelineReading,
   type ReadingStatus,
+  type TimelineEvent,
   type TimelineReading,
 } from "@workspace/api-client-react";
 import { StatusDots } from "@/components/StatusDots";
+import { PassStrip } from "@/components/timeline/PassStrip";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { buildsOnText, paragraphs } from "@/lib/now-ahead";
+import { CHANGES_HEADING, boldParts, passBlocks, sheetFacts, whyHeading } from "@/lib/passes-view";
 import { refusalLine } from "@/lib/refusals";
+import { useShownZone } from "@/lib/reader-zone";
 import { cn } from "@/lib/utils";
 
 /** What a tap on a card hands the sheet. */
@@ -27,6 +32,8 @@ export interface ReadingTarget {
   key: string;
   headline: string;
   status: ReadingStatus;
+  /** A sky event's card hands over its event, so Read more can show its facts and passes; a cycle has none. */
+  event?: TimelineEvent;
 }
 
 // Each POST counts against the reading limit (20 a minute), so a reading being written is asked about every four
@@ -75,9 +82,66 @@ export interface ReadingSheetProps {
   reportId?: string | null;
   /** Timeline is set up, so the setup writes every reading and the sheet waits for it (ADR-362). */
   setUp?: boolean;
+  /** The sky event the reading is of, for the facts under it; none for a cycle's reading. */
+  event?: TimelineEvent | null;
 }
 
-export function ReadingSheet({ eventKey, open, onClose, headline, status, reportId, setUp = false }: ReadingSheetProps) {
+/** A block under the strip: the rose R, its heading, and its words with the bold marks drawn. */
+function PassBlock({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="grid grid-cols-[22px_minmax(0,1fr)] items-start gap-x-3 gap-y-1.5">
+      <span
+        aria-hidden
+        className="mt-px inline-grid h-[22px] w-[22px] place-items-center rounded-[5px] border border-[#6B3A42] font-numeric text-xs font-semibold leading-none text-[#D98C8C]"
+      >
+        R
+      </span>
+      <div className="grid gap-1.5">
+        <h3 className="font-label text-xs font-medium uppercase leading-[1.3] tracking-[0.12em] text-[#D98C8C]">{title}</h3>
+        <p className="max-w-[60ch] text-[14.5px] leading-[1.6] text-[#AEB6C6]">
+          {boldParts(text).map((part, i) =>
+            part.bold ? (
+              <strong key={i} className="font-medium text-[#E8EBF2]">
+                {part.text}
+              </strong>
+            ) : (
+              <span key={i}>{part.text}</span>
+            ),
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** What Read more adds under a sky event's reading: its passes and the two blocks when it has more than one, then its facts. */
+function SkyFacts({ event, zone }: { event: TimelineEvent; zone: string }) {
+  const { order } = useEntryFormat();
+  const now = useMemo(() => new Date(), []);
+  const blocks = passBlocks(event, zone, { order, now });
+  const facts = sheetFacts(event, zone, order);
+  return (
+    <div className="grid gap-4 border-t border-[#242C3B] pt-4">
+      {blocks ? (
+        <>
+          <PassStrip event={event} now={now} zone={zone} />
+          <PassBlock title={whyHeading(event.passes.length)} text={blocks.why} />
+          <PassBlock title={CHANGES_HEADING} text={blocks.changes} />
+        </>
+      ) : null}
+      <div className="grid gap-1.5">
+        <p className={EYEBROW}>The facts</p>
+        {facts.map((line, i) => (
+          <p key={i} className="font-numeric text-[12.5px] leading-normal text-[#9AA3B5]">
+            {line}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ReadingSheet({ eventKey, open, onClose, headline, status, reportId, setUp = false, event }: ReadingSheetProps) {
   const phone = useIsMobile();
   const client = useQueryClient();
   const { mutateAsync } = useOpenTimelineReading();
@@ -132,6 +196,9 @@ export function ReadingSheet({ eventKey, open, onClose, headline, status, report
   }, [open, eventKey, attempt, mutateAsync, client]);
 
   const builds = shown.kind === "ready" ? buildsOnText(shown.reading.buildsOn) : null;
+  // The facts are this reading's own event; a stale one left from the last card is never shown beside another's reading.
+  const own = event && event.key === eventKey ? event : null;
+  const zone = useShownZone(open && own !== null);
 
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
@@ -192,6 +259,7 @@ export function ReadingSheet({ eventKey, open, onClose, headline, status, report
                 ) : null}
               </div>
             ) : null}
+            {own && zone ? <SkyFacts event={own} zone={zone} /> : null}
           </div>
         )}
       </SheetContent>
