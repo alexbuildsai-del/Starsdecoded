@@ -571,11 +571,15 @@ function itemAt(interpretation: unknown, key: string): Leaf | null {
   return node && typeof node === "object" && !Array.isArray(node) ? (node as Leaf) : null;
 }
 
+/** Chapter 07's lists say whose an item is by their key, not by a `for` field. */
+const FOR_BY_LIST: Record<string, "A" | "B" | "both"> = { forA: "A", forB: "B", forBoth: "both" };
+
 /** A pair's item reads as its report's checklist prints it, led by whose it is. */
-function wordsOf(leaf: Leaf, names: { a: string; b: string } | null): Pick<HomePractice, "action" | "why"> | null {
+function wordsOf(leaf: Leaf, names: { a: string; b: string } | null, key: string): Pick<HomePractice, "action" | "why"> | null {
   const text = typeof leaf.point === "string" ? leaf.point.trim() : typeof leaf.action === "string" ? leaf.action.trim() : "";
   if (!text) return null;
-  const who = !names ? "" : leaf.for === "A" ? firstWord(names.a) : leaf.for === "B" ? firstWord(names.b) : leaf.for === "both" ? "Both" : "";
+  const whose = leaf.for ?? key.split(".").map((segment) => (Object.hasOwn(FOR_BY_LIST, segment) ? FOR_BY_LIST[segment] : undefined)).find(Boolean);
+  const who = !names ? "" : whose === "A" ? firstWord(names.a) : whose === "B" ? firstWord(names.b) : whose === "both" ? "Both" : "";
   const why = typeof leaf.why === "string" && leaf.why.trim() ? leaf.why.trim() : null;
   return { action: who ? `${who}: ${text}` : text, why };
 }
@@ -610,7 +614,7 @@ function practisingOf(selves: readonly Seat[], pairs: readonly Listed[]): HomePr
   sources.forEach((source, order) => {
     const practice = (key: string, isPinned: boolean): HomePractice | null => {
       const leaf = itemAt(source.interpretation, key);
-      const words = leaf && wordsOf(leaf, source.names);
+      const words = leaf && wordsOf(leaf, source.names, key);
       if (!words) return null;
       return { reportId: source.reportId, kind: source.kind, key, ...words, pinned: isPinned, ticked: !!source.workbook[key] };
     };

@@ -147,11 +147,11 @@ export interface RegisterHit {
   sentence: string;
 }
 
-/** Claims only quote the prose, so reading them would count a word twice. */
+/** Claims only quote the prose, so reading them would count a word twice; `noticed` is the observations table's, not the writer's. */
 function proseLeaves(value: unknown, out: string[] = []): string[] {
   if (typeof value === "string") out.push(value);
   else if (Array.isArray(value)) for (const v of value) proseLeaves(v, out);
-  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) if (k !== "claims") proseLeaves(v, out);
+  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) if (k !== "claims" && k !== "noticed") proseLeaves(v, out);
   return out;
 }
 
@@ -297,8 +297,8 @@ function figureOf(sentence: string): string | null {
   return isSimile(sentence) ? "simile" : null;
 }
 
-/** Copied text is counted where it was written: a claim's quote, an amendment's quote and the sentence it follows, a reference. */
-const COPIED = new Set(["claims", "quote", "after", "evidence"]);
+/** Copied text is counted where it was written: a claim's quote, an amendment's quote and the sentence it follows, a reference, the observations table's idea. */
+const COPIED = new Set(["claims", "quote", "after", "evidence", "noticed"]);
 
 function readerLeaves(value: unknown, out: string[] = []): string[] {
   if (typeof value === "string") out.push(value);

@@ -7,6 +7,7 @@
  */
 import { BLIND_WORD_TARGETS, SECTION_IDS, WORD_TARGETS, hasClaims, sectionById, validateClaims, type ReportSectionId } from "../prompts/index.js";
 import { DIGNITY_WORDS } from "../prompts/checks.js";
+import { NOT_PROSE } from "../prompts/evidence.js";
 import type { NatalChartData } from "./chartCalculation.js";
 import { thinkingAllowance, tierFor, type ServiceTier } from "./models.js";
 import { costUsd } from "./usage.js";
@@ -124,7 +125,7 @@ export function proseOf(value: unknown): string {
   if (Array.isArray(value)) return value.map(proseOf).join(" ");
   if (value && typeof value === "object") {
     return Object.entries(value as Record<string, unknown>)
-      .filter(([k]) => k !== "claims")
+      .filter(([k]) => !NOT_PROSE.has(k))
       .map(([, v]) => proseOf(v))
       .join(" ");
   }

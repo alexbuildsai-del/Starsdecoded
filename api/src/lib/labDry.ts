@@ -25,7 +25,7 @@ import { passagesFor } from "./timelineReadings.js";
 import { ALL_SECTIONS, buildBrief, sectionById, sectionsFor, toStrictJsonSchema } from "../prompts/index.js";
 import { PAIR_FOUNDATION, pairChapterIds, pairChapterTitle, pairSpecsFor } from "../prompts/pair/index.js";
 import { DATA_CLOSE, DATA_LABELS, DATA_OPEN, dataBlock, outsideDataBlocks } from "../prompts/data.js";
-import { READING_KEY, ReadingSchema, readingPrompt, type ReadingEvent, type ReadingInput } from "../prompts/timeline/index.js";
+import { CHILD_UNDER, READING_KEY, ReadingSchema, readingPrompt, type ReadingEvent, type ReadingInput } from "../prompts/timeline/index.js";
 import {
   ASK_KEYS, askAnswerPrompt, askPlanPrompt,
   type AskAnswerCard, type AskAnswerInput, type AskCallKey, type AskContext, type AskEvent, type AskPerson, type AskReport, type AskTurn,
@@ -160,11 +160,10 @@ function middayOf(day: string, zone: string): Date {
 export const HELD_KINDS = ["retrograde", "eclipse", "nodes opposition", "cycle before 16", "light", "three passes"] as const;
 export type HeldKind = (typeof HELD_KINDS)[number];
 
-const CHILD_AGE = 16;
 
 /** Which of the six an event is; a Light eclipse or contact is two of them. */
 export function heldKinds(event: ReadingEvent): HeldKind[] {
-  if (!("kind" in event)) return [...(event.id === "node-opposition" ? ["nodes opposition" as const] : []), ...(event.age < CHILD_AGE ? ["cycle before 16" as const] : [])];
+  if (!("kind" in event)) return [...(event.id === "node-opposition" ? ["nodes opposition" as const] : []), ...(event.age < CHILD_UNDER ? ["cycle before 16" as const] : [])];
   return [
     ...(event.kind === "retrograde" ? ["retrograde" as const] : []),
     ...(event.kind === "eclipse" ? ["eclipse" as const] : []),

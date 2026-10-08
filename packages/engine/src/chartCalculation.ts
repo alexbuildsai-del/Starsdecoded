@@ -220,8 +220,9 @@ function calcAspects(positions: Record<string, number>, bands: Record<string, De
  * so cached charts on profiles are recomputed on next use (see profiles.ts,
  * R-3.2). 3: the horizon status and the birth-time band (ADR-33, ADR-34).
  * 4: Chiron from the JPL Horizons table, absent outside 1800 to 2150 (ADR-221).
+ * 5: a banded Sun or Moon sits in the house of the sign it is given (R19-49).
  */
-export const CHART_VERSION = 4;
+export const CHART_VERSION = 5;
 
 export type HorizonStatus = "known" | "approximate" | "unknown";
 

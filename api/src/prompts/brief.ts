@@ -19,7 +19,7 @@ import {
 } from "../lib/chartCalculation.js";
 import { deriveTraditional, sectPayload, type Dignity, type SectPayload, type TraditionalFactors } from "../lib/traditional.js";
 import {
-  ASPECT, BODY, BODY_LABELS, HOUSE, SIGN, STRUCTURE, BODIES,
+  ASPECT, BODY, BODY_LABELS, HOUSE, SIGN, SIGNS, STRUCTURE, BODIES,
   cap, ordinal, type AspectName, type Body, type SignName,
 } from "./vocabulary.js";
 import { dataBlock } from "./data.js";
@@ -86,6 +86,14 @@ type Wanted = { kind: "body" | "sign" | "house"; key: string | number };
 // A report holds 24 scene types, fewer than ten chapters asking three each, so the picks go in rounds: every chapter's
 // first key before any chapter's second, and a chapter asked late still gets the scene for what it leans on most.
 const SCENE_ROUNDS = 3;
+
+/**
+ * A rough birth time can give the Sun or Moon the sign it held for most of the band while its degree is the centre
+ * time's, in the sign next door; that degree would name a placement the chart doesn't state, so it is left out.
+ */
+function degreeIn(p: { sign: string; degree: number; absoluteDegree: number }): string {
+  return SIGNS[Math.floor((((p.absoluteDegree % 360) + 360) % 360) / 30)] === sig(p.sign) ? `${p.degree.toFixed(1)} ` : "";
+}
 
 function sig(name: string): SignName {
   return name.toLowerCase() as SignName;
@@ -230,7 +238,7 @@ export function buildBrief(chart: NatalChartData, name: string): ChartBrief {
     const d = dignity.get(b);
     const comfort = comfortIn(b, p.sign, d?.dignity);
     const bits = [
-      `${BODY_LABELS[b]} ${p.degree.toFixed(1)} ${p.sign}${p.house !== undefined ? `, ${ordinal(p.house)} house` : ""}`,
+      `${BODY_LABELS[b]} ${degreeIn(p)}${p.sign}${p.house !== undefined ? `, ${ordinal(p.house)} house` : ""}`,
       d?.inSect === true ? "in sect" : d?.inSect === false ? "contrary to sect" : null,
       p.retrograde && b !== "north_node" && b !== "south_node" ? "retrograde" : null,
     ].filter(Boolean);

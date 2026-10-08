@@ -71,7 +71,7 @@ test("a 1799 and a 2151 chart carry every body but Chiron, and stored they stay 
   }
 });
 
-test("the chart version is 4, and every computed chart carries it", () => {
-  assert.equal(CHART_VERSION, 4);
-  assert.equal(chartOf("audrey-hepburn").chartVersion, 4);
+test("the chart version is 5, and every computed chart carries it", () => {
+  assert.equal(CHART_VERSION, 5);
+  assert.equal(chartOf("audrey-hepburn").chartVersion, 5);
 });
