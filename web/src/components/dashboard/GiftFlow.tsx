@@ -1,8 +1,10 @@
 /**
- * Gift a report in four steps: who it is for, a note for the cover, how it
- * arrives (the cover, then Send), and the credit held with the date it comes
- * back (ADR-123, ADR-128). A gift is a credit, not a report (ADR-139), so no
- * step promises the giver a look at what the recipient writes with it.
+ * Gift a report in four steps: who it is for, a note for the cover, whether
+ * the giver shares their own report too, and how it arrives (the cover, then
+ * Send); then the credit held with the date it comes back (ADR-123, ADR-128).
+ * A gift is a credit, not a report (ADR-139), so no step promises the giver a
+ * look at what the recipient writes with it: each side is asked only about
+ * their own report (ADR-331), and nothing is shared without a Yes (R-3.6).
  */
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation } from "wouter";
@@ -28,7 +30,7 @@ import { StatusDots } from "@/components/StatusDots";
 import { GiftCover } from "@/components/dashboard/GiftCover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isPersonName, nameRuleLine } from "@/lib/person-name";
-import { PRODUCT } from "@/lib/product";
+import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { isNoCredit, refusalLine } from "@/lib/refusals";
 import { cn } from "@/lib/utils";
 
@@ -43,8 +45,11 @@ export interface GiftFlowProps {
   giverName?: string | null;
 }
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
+// The bar counts what the giver decides: who, the note, the share question and the cover. Step 5, the gift sent, is
+// where they end, so it is not counted (the artifact's "step 3 of 4" for the question).
 const STEPS = 4;
+const SENT: Step = 5;
 
 // CreateGiftBody.note's limit in the contract.
 const NOTE_MAX = 280;
@@ -116,6 +121,8 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
+  // Null until answered: the question picks nothing for the giver (ADR-331).
+  const [shareOwn, setShareOwn] = useState<boolean | null>(null);
   const [tried, setTried] = useState(false);
   const [nameLeft, setNameLeft] = useState(false);
   const [gift, setGift] = useState<GiftCreated | null>(null);
@@ -133,7 +140,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
         qc.invalidateQueries({ queryKey: getGetCreditsQueryKey() });
         qc.invalidateQueries({ queryKey: getGetCreditHistoryQueryKey() });
         setGift(created);
-        setStep(4);
+        setStep(SENT);
         onSent?.(created);
       },
       // The balance the flow read was out of date, so the pill catches up with the server's answer.
@@ -143,7 +150,8 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     },
   });
 
-  // The cover and the sent line replace the form, so focus follows the new heading rather than staying on a button that left.
+  // The question, the cover and the sent line replace the form, so focus follows the new heading rather than staying on a
+  // button that left, and never lands on an answer a stray Enter would give (R14-12's lesson).
   useEffect(() => {
     if (step >= 3) titleRef.current?.focus();
   }, [step]);
@@ -169,7 +177,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     onGetCredits();
   };
 
-  const eyebrow = step < 4 && creditLine(available) ? `Gift a report · ${creditLine(available)}` : "Gift a report";
+  const eyebrow = step < SENT && creditLine(available) ? `Gift a report · ${creditLine(available)}` : "Gift a report";
   const header = (title: string, progress: boolean) => (
     <SheetHeader className="space-y-1.5 pr-8 text-left">
       <SheetDescription className="font-label text-[10.5px] font-medium uppercase leading-[1.2] tracking-[0.24em] text-[#9FA8DA]">
@@ -227,11 +235,11 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     }
   }
 
-  if (step === 4 && gift) {
+  if (step === SENT && gift) {
     const back = dateText(gift.returnsAt);
     return (
       <>
-        {header(`Gift sent to ${gift.recipientName}`, true)}
+        {header(`Gift sent to ${gift.recipientName}`, false)}
         <p className="text-[15px] leading-[1.5]">
           {gift.creditHeld
             ? `One of your credits is held until ${back}. If ${gift.recipientName} hasn't claimed it by then, it comes back to you.`
@@ -275,7 +283,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     );
   }
 
-  if (step === 3) {
+  if (step === 4) {
     const sendError =
       !create.isError || status === 401
         ? null
@@ -304,7 +312,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
             disabled={create.isPending}
             onClick={() => {
               create.reset();
-              setStep(2);
+              setStep(3);
             }}
           >
             Back
@@ -323,7 +331,15 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
               size="lg"
               className={cn(PRIMARY, "flex-1")}
               onClick={() =>
-                create.mutate({ data: { recipientName: firstName, email: address, ...(words ? { note: words } : {}) } })
+                create.mutate({
+                  data: {
+                    recipientName: firstName,
+                    email: address,
+                    ...(words ? { note: words } : {}),
+                    // Sent either way, so Not now is a stated false rather than a missing field.
+                    shareOwn: shareOwn === true,
+                  },
+                })
               }
             >
               Send the gift
@@ -333,6 +349,45 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
         <p className="text-xs leading-[1.45] text-muted-foreground">
           {`One credit is held for ${HOLD_DAYS} days. If ${firstName} doesn't claim it, it comes back to you.`}
         </p>
+      </>
+    );
+  }
+
+  if (step === 3) {
+    const answer = (yes: boolean) => {
+      setShareOwn(yes);
+      setStep(4);
+    };
+    return (
+      <>
+        {header(`Share your report with ${firstName} too?`, true)}
+        <p className="text-sm leading-[1.5] text-muted-foreground [overflow-wrap:anywhere]">
+          {`${firstName} can then read your whole ${PERSONAL_REPORT}, and either of you can make a ${COMPATIBILITY_REPORT} once you can both read each other's. You can stop sharing any time.`}
+        </p>
+        <div className="grid gap-2.5">
+          <Button
+            type="button"
+            size="lg"
+            className={cn(PRIMARY, "min-h-11 w-full")}
+            onClick={() => answer(true)}
+            data-testid="button-gift-share-yes"
+          >
+            Yes, share my report
+          </Button>
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            className={cn(PRIMARY, "min-h-11 w-full")}
+            onClick={() => answer(false)}
+            data-testid="button-gift-share-no"
+          >
+            Not now
+          </Button>
+        </div>
+        <Button type="button" variant="ghost" className="self-start font-label" onClick={() => setStep(2)}>
+          Back
+        </Button>
       </>
     );
   }
@@ -375,7 +430,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
               Back
             </Button>
             <Button type="submit" size="lg" className={cn(PRIMARY, "flex-1")}>
-              See how it arrives
+              Next
             </Button>
           </div>
         </form>
