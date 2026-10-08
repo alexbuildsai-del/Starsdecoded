@@ -1,14 +1,17 @@
 /**
  * The dashboard as a home (Review 01/10, ADR-171, 174, 182): "Dashboard" with
  * a one-line summary, Your circle in three views, what the reader is
- * practising, their pairs and, last, their stories, designed at 390 px first.
- * One GET /home draws all of it, so no card fetches a report on open; the
- * rows' actions, the picker, the credits, gifts and history keep their own
- * routes (reading 4). The pieces only draw and call back; the page holds the
- * view, the selection and the sheets, so the circle, a quick look and a row
- * never disagree about a person. Timeline adds one section or the other
- * (reading 26): Your week after Your circle for a subscriber, and for a reader
- * without it whose own report is finished, their big cycles after the stories.
+ * practising and their pairs, designed at 390 px first, with no stories
+ * (ADR-338). Beside the circle, Your first steps until the first pair, then
+ * Make a report (ADR-330, 334). One GET /home draws all of it, so no card
+ * fetches a report on open; the rows' actions, the picker, the credits, gifts
+ * and history keep their own routes (reading 4). The pieces only draw and call
+ * back; the page holds the view, the selection, the sheets and the picker's
+ * pop-up, so the circle, a quick look and a row never disagree about a person,
+ * and `canPair` decides every way into a Compatibility report (ADR-332).
+ * Timeline adds one section or the other (reading 26): Your week after Your
+ * circle for a subscriber, and for a reader without it whose own report is
+ * finished, their big cycles after the pairs.
  */
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useLocation, useSearch } from "wouter";
@@ -27,6 +30,7 @@ import {
   useListProfiles,
   useListReports,
   type CreditHistoryItem,
+  type FirstSteps as FirstStepsData,
   type Home,
   type HomePair,
   type PriceItem,
@@ -41,14 +45,13 @@ import { AddSomeoneSheet } from "@/components/dashboard/AddSomeoneSheet";
 import { CompatibilityRows } from "@/components/dashboard/CompatibilityRows";
 import { CreditPill, CreditRow } from "@/components/dashboard/CreditPill";
 import { CreditsSheet } from "@/components/dashboard/CreditsSheet";
+import { ChoiceButton, FirstSteps } from "@/components/dashboard/FirstSteps";
 import { GiftFlow } from "@/components/dashboard/GiftFlow";
 import { Nudge } from "@/components/dashboard/Nudge";
 import { Orbit } from "@/components/dashboard/Orbit";
-import { PathSheet, usePathOffer } from "@/components/dashboard/PathSheet";
 import { PeopleRows } from "@/components/dashboard/PeopleRows";
 import { Practising } from "@/components/dashboard/Practising";
 import { QuickLook } from "@/components/dashboard/QuickLook";
-import { Stories } from "@/components/dashboard/Stories";
 import { TimelineTeaser } from "@/components/dashboard/TimelineTeaser";
 import { WaitingGiftCard } from "@/components/dashboard/WaitingGiftCard";
 import { YourPairs } from "@/components/dashboard/YourPairs";
@@ -57,8 +60,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useHome } from "@/hooks/useHome";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { checkoutHref } from "@/lib/checkout-view";
-import { openFrom, pathHave, returnPath, signInFirst, withoutOpen, type AskingStep } from "@/lib/credits-view";
-import { quickLookFor } from "@/lib/home-view";
+import { openFrom, returnPath, signInFirst, withoutOpen, type AskingStep } from "@/lib/credits-view";
+import {
+  MAKE_REPORT, canPair, hideSteps, ownIds, pairFrom, quickLookFor, stepsHidden, withoutPair,
+} from "@/lib/home-view";
 import { nudgeFor, type Nudge as NudgeData } from "@/lib/nudges";
 import { CENTRE_ID, circlePoints, partnersOf } from "@/lib/orbit";
 import { preselectPair, type PairSelection } from "@/lib/pair-selection";
@@ -142,31 +147,24 @@ function giftGiver(history: readonly CreditHistoryItem[] | undefined): string | 
 
 /**
  * GET /home follows the lists the rows' own routes refresh (reading 4): a
- * share, a mark, a delete, a birth time or a new pair invalidates those, and
- * the circle must move with them. Structural sharing keeps a list's reference
- * while nothing in it changed, so a poll that finds nothing new refetches
- * nothing, and the first load of each is not a change.
+ * share, a mark, a delete, a birth time, a new pair or a gift sent invalidates
+ * those, and the circle and Your first steps must move with them. Structural
+ * sharing keeps a list's reference while nothing in it changed, so a poll that
+ * finds nothing new refetches nothing, and the first load of each is not a
+ * change.
  */
-function useHomeFollows(reports: unknown, profiles: unknown): void {
+function useHomeFollows(reports: unknown, profiles: unknown, gifts: unknown): void {
   const client = useQueryClient();
-  const last = useRef<{ reports: unknown; profiles: unknown } | null>(null);
+  const last = useRef<{ reports: unknown; profiles: unknown; gifts: unknown } | null>(null);
   useEffect(() => {
     const was = last.current;
-    last.current = { reports, profiles };
-    if (!was || [was.reports, was.profiles, reports, profiles].some((list) => list === undefined)) return;
-    if (was.reports !== reports || was.profiles !== profiles) void client.invalidateQueries({ queryKey: getGetHomeQueryKey() });
-  }, [client, reports, profiles]);
-}
-
-/** A spend names its cost beside its verb (annex, Credits). */
-function Spend({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <Button size="sm" onClick={onClick} className="justify-self-start font-label">
-      {label}
-      <span aria-hidden className="text-white/60">·</span>
-      <span className="font-numeric">1 credit</span>
-    </Button>
-  );
+    last.current = { reports, profiles, gifts };
+    if (!was) return;
+    const moved = ([["reports", reports], ["profiles", profiles], ["gifts", gifts]] as const).some(
+      ([key, now]) => was[key] !== undefined && now !== undefined && was[key] !== now,
+    );
+    if (moved) void client.invalidateQueries({ queryKey: getGetHomeQueryKey() });
+  }, [client, reports, profiles, gifts]);
 }
 
 /**
@@ -225,22 +223,18 @@ function ViewSwitch({ view, onChange, ids }: { view: View; onChange: (view: View
 }
 
 interface StartPanelProps {
-  /** No credit to use (ADR-275): the bundles and Get credits, else the reader's own report. */
-  out: boolean;
-  /** The balance is known, so the panel never offers one action and then the other. */
-  settled: boolean;
-  /** A claimed gift's suggestion of the reader's own report (ADR-139). */
-  gift: NudgeData | null;
   /** `usePrices().items`, so a live campaign shows on its row (reading 6). */
   prices: readonly PriceItem[] | null;
   /** Each bundle row's checkout, which comes back to the birth form for the reader's own report, as Get credits does. */
   buy: (id: BundleId) => string;
-  onOwnReport: () => void;
   onGetCredits: () => void;
 }
 
-/** Until the reader's own Personal report exists, the circle starts here (the approved mock's first state). */
-function StartPanel({ out, settled, gift, prices, buy, onOwnReport, onGetCredits }: StartPanelProps) {
+/**
+ * With no report of their own and no credit to write it (ADR-275), the circle starts here (the approved mock's first
+ * state): the bundles and Get credits. With a credit, Your first steps asks for that report instead (ADR-330).
+ */
+function StartPanel({ prices, buy, onGetCredits }: StartPanelProps) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className={cn(PANEL, "grid gap-3.5 p-4")}>
@@ -253,20 +247,11 @@ function StartPanel({ out, settled, gift, prices, buy, onOwnReport, onGetCredits
           Ten chapters on how you think, work and love, most ending with things to try. Then add the people close to you.
         </p>
       </div>
-      {gift && <Nudge nudge={gift} />}
-      {settled &&
-        (out ? (
-          <>
-            <BundleList compact prices={prices} buy={buy} />
-            <Button onClick={onGetCredits} className="font-label">
-              Get credits
-            </Button>
-            <p className="text-xs leading-snug text-[#9AA3B5]">You pay for credits. {CREDIT_LINE}</p>
-          </>
-        ) : (
-          // MB-113 provisional: making a report says Write, as the birth form's own button does.
-          <Spend label="Write my report" onClick={onOwnReport} />
-        ))}
+      <BundleList compact prices={prices} buy={buy} />
+      <Button onClick={onGetCredits} className="font-label">
+        Get credits
+      </Button>
+      <p className="text-xs leading-snug text-[#9AA3B5]">You pay for credits. {CREDIT_LINE}</p>
     </section>
   );
 }
@@ -290,22 +275,71 @@ function SeveralPanel({ onPeople }: { onPeople: () => void }) {
   );
 }
 
-/**
- * The desktop panel while no quick look is open: where one will open, the
- * circle's one line for a reader alone in it, over Add someone, or at zero
- * over the credit row's own Get credits, so the panel never offers the same
- * thing twice.
- */
-function IdlePanel({ nudge, onAddSomeone, onGetCredits }: {
-  nudge: NudgeData | null;
+interface MakeReportProps {
+  /** The reader has a Personal report of their own, in any state: the first button turns to one for someone. */
+  own: boolean;
+  /** `canPair(home)`: Compatibility shows only then (ADR-332). */
+  pairable: boolean;
+  /** Hide hands the focus here once the card has gone. */
+  focusRef: (el: HTMLElement | null) => void;
+  onOwnReport: () => void;
   onAddSomeone: () => void;
-  onGetCredits: () => void;
-}) {
+  onPair: () => void;
+}
+
+/**
+ * Make a report (ADR-334), the artifact's screen A: two actions of one weight side by side, the main one by colour
+ * only (ADR-333), Compatibility the main one once it shows. Alone, the one button is the main one.
+ */
+function MakeReport({ own, pairable, focusRef, onOwnReport, onAddSomeone, onPair }: MakeReportProps) {
+  const headingId = useId();
   return (
-    <div className={cn(PANEL, "grid gap-3.5 p-[18px]")}>
-      <p className="text-[13px] leading-[1.45] text-[#9AA3B5]">{CIRCLE_HINT}</p>
-      {nudge && <Nudge nudge={nudge} />}
-      {nudge?.control === "add_someone" && <Spend label="Add someone" onClick={onAddSomeone} />}
+    // A section, not a control, takes the focus from Hide, so a stray Enter starts nothing (R14-12).
+    <section ref={focusRef} tabIndex={-1} aria-labelledby={headingId} className="grid gap-2.5 outline-none">
+      <h3 id={headingId} className={cn(EYEBROW, "text-[#9AA3B5]")}>
+        {MAKE_REPORT.label}
+      </h3>
+      <div className={cn("grid gap-2", pairable && "grid-cols-2")}>
+        {own ? (
+          <ChoiceButton title={MAKE_REPORT.someone.title} line={MAKE_REPORT.someone.line} main={!pairable} onClick={onAddSomeone} />
+        ) : (
+          <ChoiceButton title={MAKE_REPORT.yours.title} line={MAKE_REPORT.yours.line} main onClick={onOwnReport} />
+        )}
+        {pairable && <ChoiceButton title={MAKE_REPORT.pair.title} line={MAKE_REPORT.pair.line} main={own} onClick={onPair} />}
+      </div>
+    </section>
+  );
+}
+
+interface IdlePanelProps {
+  /** The circle has someone to tap; on a phone the line sits under the circle instead. */
+  hint: boolean;
+  /** A claimed gift's suggestion of the reader's own report (ADR-139), over the step or button that makes it. */
+  gift: NudgeData | null;
+  /** Your first steps, while the server sends them and the reader has not hidden them (reading 18). */
+  steps: FirstStepsData | null;
+  make: Omit<MakeReportProps, "onPair">;
+  onHideSteps: () => void;
+  onMakePair: (profileId: string) => void;
+  onPair: () => void;
+  onGetCredits: () => void;
+}
+
+/**
+ * The panel beside the circle while no quick look is open, under it on a phone: where one will open, then Your first
+ * steps until the first pair, else Make a report, over the credit row. One holds the panel at a time, so it never
+ * offers the same thing twice.
+ */
+function IdlePanel({ hint, gift, steps, make, onHideSteps, onMakePair, onPair, onGetCredits }: IdlePanelProps) {
+  return (
+    <div className={cn(PANEL, "grid gap-4 p-4 md:p-[18px]")}>
+      {hint && <p className="hidden text-[13px] leading-[1.45] text-[#9AA3B5] md:block">{CIRCLE_HINT}</p>}
+      {gift && <Nudge nudge={gift} />}
+      {steps ? (
+        <FirstSteps steps={steps} onAddSomeone={make.onAddSomeone} onMakePair={onMakePair} onHide={onHideSteps} />
+      ) : (
+        <MakeReport {...make} onPair={onPair} />
+      )}
       <CreditRow onGetCredits={onGetCredits} />
     </div>
   );
@@ -487,7 +521,7 @@ export default function DashboardPage() {
   const profilesQ = useListProfiles({ query: { queryKey: getListProfilesQueryKey() } });
   const giftsQ = useListGifts();
   const available = useGetCredits().data?.available;
-  useHomeFollows(reportsQ.data, profilesQ.data);
+  useHomeFollows(reportsQ.data, profilesQ.data, giftsQ.data);
 
   const home = homeQ.data ?? null;
   const reports = useMemo(() => (Array.isArray(reportsQ.data) ? reportsQ.data : []), [reportsQ.data]);
@@ -533,9 +567,14 @@ export default function DashboardPage() {
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
-  const [preselect, setPreselect] = useState<Partial<PairSelection> | null>(null);
-  const path = usePathOffer();
-  const have = useMemo(() => pathHave({ profiles, reports }), [profiles, reports]);
+  // The picker's pop-up and the two it opens with; empty opens it on whatever the tab last kept (reading 2).
+  const [picker, setPicker] = useState<{ preselect: Partial<PairSelection> } | null>(null);
+  const pairable = !!home && canPair(home);
+  const own = useMemo(() => (home ? ownIds(home) : new Set<string>()), [home]);
+  // Hide is kept in the browser (reading 18), and Make a report takes the card's place.
+  const [stepsOff, setStepsOff] = useState(() => stepsHidden());
+  const steps = stepsOff ? null : (home?.firstSteps ?? null);
+  const focusMake = useRef(false);
 
   // A balance still loading is not zero, so the add point waits as Add someone rather than flashing Get credits.
   const points = useMemo(
@@ -606,20 +645,32 @@ export default function DashboardPage() {
     if (was) document.querySelector<SVGElement>(`[data-orbit-id="${CSS.escape(was)}"]`)?.focus();
   }, [selection]);
 
-  const twoPeople = useCallback(() => {
-    toView("compatibility");
-    // A new object each press brings the picker back into view without choosing for the reader.
-    setPreselect({});
-  }, [toView]);
-
+  const openPicker = useCallback((preselect: Partial<PairSelection> = {}) => setPicker({ preselect }), []);
+  const twoPeople = useCallback(() => openPicker(), [openPicker]);
   const makePair = useCallback(
     (profileId: string) => {
       const theirs = home?.people.find((p) => p.profileId === profileId)?.reportId ?? "";
-      toView("compatibility");
-      setPreselect(preselectPair(you?.reportId ?? "", theirs));
+      openPicker(preselectPair(you?.reportId ?? "", theirs));
     },
-    [home, you, toView],
+    [home, you, openPicker],
   );
+  // `canPair` gates every way in, so a pop-up asked for before the page could tell, or after a report it needs has
+  // gone, stays shut (ADR-332).
+  const pickerOpen = !!picker && loaded && pairable;
+  useEffect(() => {
+    if (loaded && !pairable) setPicker(null);
+  }, [loaded, pairable]);
+
+  const hideFirstSteps = useCallback(() => {
+    hideSteps();
+    focusMake.current = true;
+    setStepsOff(true);
+  }, []);
+  const makeRef = useCallback((el: HTMLElement | null) => {
+    if (!el || !focusMake.current) return;
+    focusMake.current = false;
+    el.focus();
+  }, []);
 
   // A checkout comes back to the step that asked (reading 2): the sheet, the gift flow, Add someone, or the picker,
   // whose pair the tab still remembers. The query goes as the step opens, so a reload or Back never opens it again.
@@ -630,8 +681,17 @@ export default function DashboardPage() {
     if (reopen === "credits") setCreditsOpen(true);
     else if (reopen === "gift") setGiftOpen(true);
     else if (reopen === "add") setAddOpen(true);
-    else twoPeople();
-  }, [reopen, search, navigate, twoPeople]);
+    else openPicker();
+  }, [reopen, search, navigate, openPicker]);
+
+  // `?pair=<profileId>` (Ask's offer, ADR-336) opens the picker with the reader and that person picked, once the page
+  // knows who they are; the query goes as it opens, as `?open=` does.
+  const pairWith = pairFrom(search);
+  useEffect(() => {
+    if (!pairWith || !loaded) return;
+    navigate(withoutPair(search), { replace: true });
+    if (pairable) makePair(pairWith);
+  }, [pairWith, loaded, pairable, search, navigate, makePair]);
 
   let card: ReactNode = null;
   let cardLabel = "";
@@ -661,18 +721,21 @@ export default function DashboardPage() {
 
   const lead = !home ? null
     : several ? <SeveralPanel onPeople={() => toView("people")} />
-    : !you ? (
-      <StartPanel
-        out={out}
-        settled={settled}
-        gift={giftNudge}
-        prices={prices}
-        buy={(id) => buyHref(id, "chart")}
-        onOwnReport={ownReport}
-        onGetCredits={() => getCredits("chart")}
-      />
-    )
+    : !you && out ? <StartPanel prices={prices} buy={(id) => buyHref(id, "chart")} onGetCredits={() => getCredits("chart")} />
     : null;
+  // Without a report of their own the panel waits for the balance, so it never offers one start and then the other.
+  const idle = !!home && !several && (!!you || (settled && !out)) ? (
+    <IdlePanel
+      hint={!empty}
+      gift={giftNudge}
+      steps={steps}
+      make={{ own: !!you, pairable, focusRef: makeRef, onOwnReport: ownReport, onAddSomeone: openAdd }}
+      onHideSteps={hideFirstSteps}
+      onMakePair={makePair}
+      onPair={twoPeople}
+      onGetCredits={openCredits}
+    />
+  ) : null;
 
   return (
     <div className="min-h-screen bg-background bg-stars text-foreground">
@@ -746,16 +809,10 @@ export default function DashboardPage() {
                       />
                     </div>
                     {/* On a wide screen with nothing open, the panel beside the circle says it instead. */}
-                    {!empty && <p className={cn(HINT, !lead && "md:hidden")}>{CIRCLE_HINT}</p>}
+                    {!empty && <p className={cn(HINT, !lead && idle && "md:hidden")}>{CIRCLE_HINT}</p>}
                   </div>
                   <div className="min-w-0">
-                    {!phone && card ? (
-                      <CardFrame onClose={cardCloses ? undefined : closeCard}>{card}</CardFrame>
-                    ) : lead ? (
-                      lead
-                    ) : !phone ? (
-                      <IdlePanel nudge={circleNudge} onAddSomeone={openAdd} onGetCredits={openCredits} />
-                    ) : null}
+                    {!phone && card ? <CardFrame onClose={cardCloses ? undefined : closeCard}>{card}</CardFrame> : (lead ?? idle)}
                   </div>
                 </div>
               ) : view === "people" ? (
@@ -765,17 +822,14 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div role="tabpanel" id={ids.compatibility.panel} aria-labelledby={ids.compatibility.tab} className="grid gap-2.5">
+                  {pairable && (
+                    <Button onClick={twoPeople} className="mb-1 gap-1.5 justify-self-start font-label">
+                      <Plus aria-hidden="true" className="h-3.5 w-3.5" />
+                      {MAKE_REPORT.newPair}
+                    </Button>
+                  )}
                   <CompatibilityRows />
                   <p className={HINT}>{ROWS_HINT}</p>
-                  {/* A select sizes itself to its longest report name, which would push a phone sideways; it takes the column's width instead. */}
-                  <div className="mt-4 grid grid-cols-[minmax(0,1fr)] [&_select]:w-full [&_select]:min-w-0">
-                    <CompatibilityPicker
-                      reports={reports}
-                      preselect={preselect}
-                      openOnCreate={false}
-                      onGetCredits={() => getCredits("pair")}
-                    />
-                  </div>
                 </div>
               )}
             </section>
@@ -793,7 +847,6 @@ export default function DashboardPage() {
             )}
             <Practising items={home.practising} />
             <YourPairs pairs={home.pairs} />
-            <Stories pairs={home.pairs} />
             {teaser && zone && <TimelineTeaser teaser={teaser} zone={zone} />}
           </div>
         )}
@@ -824,18 +877,17 @@ export default function DashboardPage() {
         onClose={() => setAddOpen(false)}
         onSomeoneYouKnow={() => navigate("/chart")}
         onGift={() => setGiftOpen(true)}
-        onTwoPeople={twoPeople}
+        onTwoPeople={pairable ? twoPeople : undefined}
         onGetCredits={() => getCredits("add")}
       />
       <GiftFlow open={giftOpen} onClose={() => setGiftOpen(false)} onGetCredits={() => getCredits("gift")} />
-      {/* The path after a bundle waits for any sheet a step or a checkout opened, so two never stack; its offer is held
-          until it shows (ADR-125). */}
-      <PathSheet
-        offer={creditsOpen || addOpen || giftOpen ? null : path.offer}
-        have={have}
-        onClose={path.dismiss}
-        onOwnChart={ownReport}
-        onAddSomeone={openAdd}
+      <CompatibilityPicker
+        open={pickerOpen}
+        onClose={() => setPicker(null)}
+        reports={loaded ? reports : undefined}
+        preselect={picker?.preselect ?? null}
+        own={own}
+        onGetCredits={() => getCredits("pair")}
       />
     </div>
   );

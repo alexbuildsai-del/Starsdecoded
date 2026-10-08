@@ -9,12 +9,13 @@
  * may rewrite it. A sharer's quick look offers Share yours back (ADR-235); who
  * can read a report is the Share window's (ADR-329). Whether a Compatibility
  * report may be offered at all is `canPair`'s, for every screen (ADR-332).
- * Every word it prints is here or, for Sun, Moon and Rising, in
- * `triad-row.ts`, which every page shares, so node tests pin the copy.
+ * Your first steps and the picker's `?pair=` are read here too. Every word
+ * they print is here or, for Sun, Moon and Rising, in `triad-row.ts`, which
+ * every page shares, so node tests pin the copy.
  */
-import type { Home, HomePair, HomePerson, ReportSummary } from "@workspace/api-client-react";
+import type { FirstSteps, Home, HomePair, HomePerson, ReportSummary } from "@workspace/api-client-react";
 import { MEET_TAGS } from "@/lib/charts-meet";
-import { lensInfo } from "@/lib/lenses";
+import { lensInfo, pairTitle } from "@/lib/lenses";
 import { CENTRE_ID } from "@/lib/orbit";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
 
@@ -213,4 +214,196 @@ export const TRY_AGAIN = { label: "Try again", starting: "Starting", free: "It's
 /** A refusal the API gives no line of its own, said by whose report it is. */
 export function tryAgainErrorLine(name: string, self: boolean): string {
   return `We couldn't start ${self ? "your" : `${firstName(name)}'s`} report again. Try again in a minute.`;
+}
+
+/** Your first steps' fixed words, the artifact's card (sharing-and-circle §2, ADR-330). */
+export const FIRST_STEPS = {
+  title: "Your first steps",
+  hide: "Hide",
+  start: "Start",
+  add: "Add someone",
+  share: "Share",
+  either: "Then, either",
+  more: "Add someone else",
+  moreLine: "Back to step 2",
+  pairLine: `${COMPATIBILITY_REPORT} · 1 credit`,
+} as const;
+
+/**
+ * Make a report, where Your first steps stood once they are done or hidden (ADR-334): the reader's own Personal report
+ * until they have one, then one for someone, and Compatibility once `canPair` holds (ADR-332). The tab's button and
+ * the picker's title share its name.
+ */
+export const MAKE_REPORT = {
+  label: "Make a report",
+  yours: { title: `Your ${PERSONAL_REPORT}`, line: "Start with you" },
+  someone: { title: PERSONAL_REPORT, line: "For someone" },
+  pair: { title: "Compatibility", line: "Pick two people" },
+  newPair: `New ${COMPATIBILITY_REPORT}`,
+} as const;
+
+/** What stands at a step's right: its one button, the status of a report still being written (ADR-130), or what it waits for. */
+export type FirstStepAction =
+  | { kind: "start" | "add" | "share"; label: string }
+  | { kind: "writing"; label: string }
+  | { kind: "after"; label: string };
+
+export interface FirstStepRow {
+  step: 1 | 2 | 3 | 4;
+  done: boolean;
+  /** The step the reader is on, whose mark is lit. */
+  current: boolean;
+  title: string;
+  /** Null where the card prints no line: step 4 once it is open, and a report still being written. */
+  line: string | null;
+  action: FirstStepAction | null;
+}
+
+export interface FirstStepsView {
+  /** "1 of 4": steps 1 to 3, since the card goes once the pair is made. */
+  count: string;
+  /** Steps done, 0 to 3, for the bar. */
+  done: number;
+  rows: FirstStepRow[];
+  /** Step 4's two buttons, once step 3 is done: You & {name}, or Add someone else, back to step 2. */
+  either: {
+    pair: { label: string; line: string; ready: boolean; profileId: string };
+    more: { label: string; line: string };
+  } | null;
+}
+
+/** What the card reads of `GET /home` beside `firstSteps`, so each step says what is true now. */
+export interface FirstStepsReports {
+  /** The reader's own Personal report's status, or null with none yet. */
+  own: string | null;
+  /** The named person's seat on the circle; null where there is none, as on a gift not yet shared back. */
+  person: Pick<HomePerson, "status" | "readers"> | null;
+  /** `canPair(home)`, which gates You & {name} beside the server's `pairReady` (ADR-332). */
+  pairable: boolean;
+}
+
+/**
+ * The card's four steps from the step the server says the reader is on
+ * (reading 18), one button at a time. A report still being written shows its
+ * status where its button will be, since nothing is shared or paired before it
+ * is finished (ADR-130, 131). On the gift road steps 2 and 3 are done at once,
+ * and the card can't know whether the giver shared their own report too, so
+ * step 3 says what holds either way: the recipient is asked to share back
+ * (ADR-331).
+ */
+export function firstStepsView(steps: FirstSteps, reports: FirstStepsReports): FirstStepsView {
+  const at = steps.step;
+  const name = steps.person?.name.trim() || null;
+  const them = name ?? "them";
+  const they = name ?? "They";
+  const person = reports.person;
+  const personWriting = !!person && isWriting(person.status);
+  const personFinished = !!person && isFinished(person.status);
+  const after = (step: number): FirstStepAction => ({ kind: "after", label: `After step ${step}` });
+
+  const rows: FirstStepRow[] = [
+    {
+      step: 1,
+      done: at > 1,
+      current: at === 1,
+      title: `Your ${PERSONAL_REPORT}`,
+      line: at > 1 ? "Written." : reports.own !== null && isFailed(reports.own) ? NOT_WRITTEN : "Your circle starts with you.",
+      action:
+        at > 1 ? null
+        : reports.own === null ? { kind: "start", label: FIRST_STEPS.start }
+        : isWriting(reports.own) ? { kind: "writing", label: writingText("", true) }
+        : null,
+    },
+    {
+      step: 2,
+      done: at > 2,
+      current: at === 2,
+      title: at <= 2 ? "Add someone close to you" : steps.gift ? `A gift for ${them}` : name ? `${name}'s report` : "Their report",
+      line:
+        at <= 2 ? "Make their report, or gift them one."
+        : steps.gift ? "Sent with your note."
+        : personFinished ? "Written with their birth details."
+        : null,
+      action: at < 2 ? after(1) : at === 2 ? { kind: "add", label: FIRST_STEPS.add } : null,
+    },
+    {
+      step: 3,
+      done: at > 3,
+      current: at === 3,
+      title: steps.gift ? `Gift sent to ${them}` : `Share it with ${them}`,
+      line:
+        steps.gift ? "They write their own report and are asked to share it back."
+        : at < 4 ? "So they can read it too."
+        : person?.readers.some((reader) => reader.state === "can-read") ? `${they} can read it.`
+        : `Waiting for ${them} to open it.`,
+      action:
+        at < 3 ? after(2)
+        : at > 3 ? null
+        : personWriting ? { kind: "writing", label: writingText(them, false) }
+        : personFinished ? { kind: "share", label: FIRST_STEPS.share }
+        : null,
+    },
+    { step: 4, done: false, current: at === 4, title: FIRST_STEPS.either, line: at < 4 ? "After step 3" : null, action: null },
+  ];
+
+  let either: FirstStepsView["either"] = null;
+  if (at === 4 && steps.person) {
+    const ready = steps.pairReady && reports.pairable && !!steps.person.profileId;
+    const waits =
+      steps.gift && !steps.pairReady ? `Once ${they} shares back`
+      : personWriting ? writingText(them, false)
+      : reports.own !== null && isWriting(reports.own) ? writingText("", true)
+      : FIRST_STEPS.pairLine;
+    either = {
+      pair: { label: pairTitle("You", them), line: ready ? FIRST_STEPS.pairLine : waits, ready, profileId: steps.person.profileId },
+      more: { label: FIRST_STEPS.more, line: FIRST_STEPS.moreLine },
+    };
+  }
+
+  return { count: `${at - 1} of 4`, done: at - 1, rows, either };
+}
+
+// MB-43 provisional: a functional key with no consent gate, holding one mark and nothing about the reader; the privacy
+// page names it (reading 18: Hide is kept in the browser, as the path sheet's mark was).
+export const STEPS_HIDDEN_KEY = "sd.steps.hidden";
+
+/** The part of Storage Hide touches, so a test can hand in its own. */
+export type StepsStore = Pick<Storage, "getItem" | "setItem">;
+
+/** Null where the browser refuses storage, which some private modes do on first touch. */
+function localStore(): StepsStore | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function stepsHidden(store: StepsStore | null = localStore()): boolean {
+  try {
+    return store?.getItem(STEPS_HIDDEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function hideSteps(store: StepsStore | null = localStore()): void {
+  try {
+    store?.setItem(STEPS_HIDDEN_KEY, "1");
+  } catch {
+    // The worst case is the card showing again on the next visit.
+  }
+}
+
+/** The person `/dashboard?pair=<profileId>` names, whom the picker pairs with the reader (ADR-336; Ask's Write it). */
+export function pairFrom(search: string): string | null {
+  return new URLSearchParams(search).get("pair")?.trim() || null;
+}
+
+/** The dashboard's address once `?pair=` has opened the picker, so a reload or Back never opens it again. */
+export function withoutPair(search: string): string {
+  const rest = new URLSearchParams(search);
+  rest.delete("pair");
+  const query = rest.toString();
+  return query ? `/dashboard?${query}` : "/dashboard";
 }

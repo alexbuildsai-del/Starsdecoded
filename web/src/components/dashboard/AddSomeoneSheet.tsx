@@ -1,9 +1,11 @@
 /**
- * Add someone (ADR-122): "Who is it for?" with the credit named, and exactly
- * three choices. Each choice is a callback, because the birth form, the gift
- * flow and the picker live elsewhere and the sheets never import one another;
- * the page closes this sheet and opens the next thing. With no credit it asks
- * for one first, and its checkout comes back here (reading 2).
+ * Add someone (ADR-122): "Who is it for?" with the credit named, and three
+ * choices at most, Two people together only once the reader can read two
+ * finished Personal reports (ADR-332). Each choice is a callback, because the
+ * birth form, the gift flow and the picker live elsewhere and the sheets never
+ * import one another; the page closes this sheet and opens the next thing.
+ * With no credit it asks for one first, and its checkout comes back here
+ * (reading 2).
  */
 import type { ReactNode } from "react";
 import { Mail, Plus } from "lucide-react";
@@ -16,12 +18,12 @@ import { cn } from "@/lib/utils";
 export interface AddSomeoneSheetProps {
   open: boolean;
   onClose: () => void;
-  /** Someone you know: the birth form, then Send once their report is written. */
+  /** Someone you know: the birth form, then Share once their report is written. */
   onSomeoneYouKnow: () => void;
   /** Gift a report: the gift flow. */
   onGift: () => void;
-  /** Two people together: the picker. */
-  onTwoPeople: () => void;
+  /** Two people together: the picker. Left out while the page's `canPair` says no, and the choice with it. */
+  onTwoPeople?: () => void;
   /** Get credits, when the sheet is open with none: a checkout that comes back to this sheet. */
   onGetCredits: () => void;
 }
@@ -145,13 +147,15 @@ export function AddSomeoneSheet({ open, onClose, onSomeoneYouKnow, onGift, onTwo
               detail="We email them a credit with your note. What they write is theirs."
               onSelect={choose(onGift)}
             />
-            <Choice
-              tone="pair"
-              icon={<PairMark />}
-              title="Two people together"
-              detail="A Compatibility report on how two people get along."
-              onSelect={choose(onTwoPeople)}
-            />
+            {onTwoPeople && (
+              <Choice
+                tone="pair"
+                icon={<PairMark />}
+                title="Two people together"
+                detail="A Compatibility report on how two people get along."
+                onSelect={choose(onTwoPeople)}
+              />
+            )}
           </div>
         )}
       </SheetContent>
