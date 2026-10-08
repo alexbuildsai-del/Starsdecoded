@@ -16,10 +16,11 @@ import { houseSign } from "@/components/chart/wheel-geometry";
 import { AddBirthTimeCard, HouseCard, chartRuler } from "@/components/report/HouseCard";
 import { HousePrimer } from "@/components/report/HousePrimer";
 import { CHAPTERS } from "@/lib/chapters";
+import { chartPatterns } from "@workspace/engine";
 import { houseOccupants } from "@/lib/house-occupants";
 import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
 import {
-  HOUSE_NUMBERS, chartGoesBackwards, houseLine, houseName, keyStep, nearestCard, quietLine, signRuler, stepHouse, tickState,
+  HOUSE_NUMBERS, chartGoesBackwards, houseLine, houseName, keyStep, nearestCard, quietLine, signRuler, stelliumBodies, stepHouse, tickState,
 } from "@/lib/house-deck";
 import type { ChartData, HouseReading } from "@/types/chart";
 
@@ -142,18 +143,22 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
   useSwipe(deckRef, setHouse);
   useNudge(arrowRef);
 
+  const patterns = useMemo(() => chartPatterns(chart.planets, chart.angles), [chart]);
   const houses = useMemo(() => HOUSE_NUMBERS.map((h) => {
     const sign = houseSign(h, ascendant);
     const occupants = houseOccupants(chart, h);
+    const stored = readings?.find((r) => r.house === h);
     return {
       house: h,
       sign,
       occupants,
       ruler: h === 1 ? chartRuler(chart) : null,
       quiet: occupants.length === 0 ? quietLine(sign, signRuler(chart, sign)) : null,
-      reading: readings?.find((r) => r.house === h)?.reading,
+      reading: stored?.reading,
+      stellium: stelliumBodies(patterns, h),
+      blocks: stored && { noticed: stored.noticed, stellium: stored.stellium, retrograde: stored.retrograde },
     };
-  }), [chart, ascendant, readings]);
+  }), [chart, ascendant, readings, patterns]);
   const backwards = chartGoesBackwards(chart);
   const current = houses[house - 1];
 
@@ -213,6 +218,8 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
           <Ticks house={house} className="mt-2" />
         </div>
       </div>
+      {/* The one R line for the chapter, as the desktop has it under the wheel; the phone's wheel is the bar. */}
+      {backwards && <RetrogradeLine className="mt-3 md:hidden print:hidden" />}
       <p className="mt-3 flex items-center gap-2 font-label text-xs font-medium text-[color:var(--paper-dim)] md:hidden print:hidden">
         <span ref={arrowRef} aria-hidden className="inline-block h-0.5 w-[22px] shrink-0 rounded-sm bg-brass" />
         Swipe through the houses

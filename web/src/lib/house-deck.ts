@@ -5,7 +5,8 @@
  * Behaviour check the houses prompt ends every reading on. Pure, so the deck on
  * a report and the deck on /sample read the same houses the same way.
  */
-import { HOUSE_WORDS, ORDINALS } from "@/lib/evidence-glossary";
+import type { ChartPatterns } from "@workspace/engine";
+import { HOUSE_WORDS, ORDINALS, houseWord } from "@/lib/evidence-glossary";
 import { HOUSES } from "@/lib/houses";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { plainProse } from "@/lib/plain-prose";
@@ -64,13 +65,36 @@ export function houseLine(house: number, sign: string): string {
   return `${houseName(house)} · ${sign}`;
 }
 
-const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+const COUNT_WORDS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 
-/** "Opposite: 7th, Partnership. Me · the other person." (report-loading-story §3); the pair reads from this house's side. */
-export function oppositeLine(house: number): string {
-  const h = HOUSES[house - 1];
-  const across = HOUSES[h.opposite - 1];
-  return `Opposite: ${ORDINALS[across.n - 1]}, ${across.word}. ${capital(h.pair[0])} · ${h.pair[1]}.`;
+/** A stellium block's heading; the count is spelled in words, the badge beside it holds the numeral (ADR-398). */
+export function stelliumHeading(count: number): string {
+  return `A stellium: ${COUNT_WORDS[count] ?? count} in one house`;
+}
+
+/** "your 3rd house (mind)": where a stellium's balance sits, the house across the wheel, with its word (ADR-98). */
+export function balanceHouse(house: number): string {
+  const across = HOUSES[house - 1].opposite;
+  return `your ${ORDINALS[across - 1]} house (${houseWord(across)})`;
+}
+
+/** The bodies a stellium in this house holds, read by the engine's one rule (ADR-397); null for a house without one. */
+export function stelliumBodies(patterns: ChartPatterns, house: number): string[] | null {
+  const found = patterns.stelliums.find((s) => s.house === house);
+  return found ? found.bodies : null;
+}
+
+/** "Saturn is retrograde here": a card's block for a body that goes backwards in this house (ADR-402). */
+export function retrogradeHeading(planet: string): string {
+  return `${PLANET_LABELS[planet] ?? planet} is retrograde here`;
+}
+
+// The stored idea and reason carry no closing full stop (R19-12); the card adds it where it prints them.
+const stop = (text: string) => (/[.!?]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`);
+
+/** Often noticed, as the card prints it: the idea, then its reason after a "Why:" label (ADR-403). */
+export function noticedParts(noticed: { idea: string; why: string }): { idea: string; why: string } {
+  return { idea: stop(noticed.idea), why: stop(noticed.why) };
 }
 
 /** A planet that rides a sign's house: its label and the house the chart puts it in. */
