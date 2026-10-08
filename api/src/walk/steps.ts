@@ -28,6 +28,7 @@ interface Listed {
 }
 
 const TOMAS_IS_LOCAL = "Tomás has no account on staging, where the QA pair is Mira and Idris; his steps run in CI (ADR-314).";
+const HANNA_IS_LOCAL = "Hanna has no account on staging, where the QA pair is Mira and Idris; her steps run in CI (ADR-314).";
 const SETUP_IS_LOCAL =
   "Setup writes paid readings and a deploy spends nothing, so the QA pair's setup never starts on staging; it runs in CI (ADR-315).";
 
@@ -50,13 +51,15 @@ export const STEPS = [
     staging: "stored",
   },
   {
+    // Idris's road says Not now to both share questions, so Share and Share yours back keep steps of their own; Hanna's
+    // road says Yes to both (ADR-331, 342).
     id: "gift",
-    label: "Mira gifts Idris a report; the email with its link goes to Idris and a credit is held",
+    label: "Mira gifts Idris a report and says Not now to sharing hers; the email with its link goes to Idris and a credit is held",
     staging: "live",
   },
   {
     id: "gift-claimed",
-    label: "Idris opens the email's link, signs in and claims the gift; the credit moves to him",
+    label: "Idris opens the email's link, signs in and claims the gift, saying Not now to sharing his; the credit moves to him",
     staging: "live",
   },
   {
@@ -84,8 +87,26 @@ export const STEPS = [
     reads: ["idris-report"],
   },
   {
+    id: "hanna-gift",
+    label: "Mira gifts Hanna a report and says Yes to sharing hers; the email goes to Hanna and a credit is held",
+    staging: "local",
+    reason: HANNA_IS_LOCAL,
+  },
+  {
+    id: "hanna-claims",
+    label: "Hanna claims the gift and says Yes to sharing hers back; she reads Mira's report at once",
+    staging: "local",
+    reason: HANNA_IS_LOCAL,
+  },
+  {
+    id: "hanna-report",
+    label: "Hanna writes her Personal report with the gift; once it's finished Mira reads it, and Your first steps offers You & Hanna",
+    staging: "local",
+    reason: HANNA_IS_LOCAL,
+  },
+  {
     id: "pair",
-    label: "Mira writes the parent and child report for herself and Idris",
+    label: "Mira picks herself and Idris in the picker and makes the parent and child report; it opens on its loading screen",
     staging: "stored",
     reads: ["own-report", "idris-report"],
   },

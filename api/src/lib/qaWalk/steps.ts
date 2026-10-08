@@ -5,8 +5,9 @@
  * walked or says why it is local.
  *
  * A stored step has two halves. A Release's walk writes the report for real, one try; a deploy's walk has the seed
- * copied in instead (reading 11). Both then check the report the same way. Balances on staging depend on what is
- * stored, so every step names what changes and checks it against the ledger it reads, never a typed balance.
+ * copied in instead (reading 11). Both then check the report the same way. A Release's pair also lands on its loading
+ * screen as Make it does, and opens with Start reading once written (ADR-336, 393). Balances on staging depend on what
+ * is stored, so every step names what changes and checks it against the ledger it reads, never a typed balance.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -263,17 +264,31 @@ function tokenOf(link: string): string {
   return token;
 }
 
+/** A gift's two share questions, the giver's at the gift and its claimer's at the claim (ADR-331). */
+interface GiftAnswers {
+  giverShares: boolean;
+  shareBack: boolean;
+}
+
+/**
+ * Idris's road says Not now to both, as the buyer walk's does, so Share and Share yours back keep steps of their own
+ * here; the Yes on both sides is Hanna's, who has no account on staging.
+ */
+const NOT_NOW: GiftAnswers = { giverShares: false, shareBack: false };
+
 /**
  * The cover is read before the claim, as the reader opens the link first, so a link that shows the wrong thing fails
- * there.
+ * there. Only a giver's Yes puts "Share yours back when it's ready?" on a cover. A gift claims with its claimer's
+ * answer, Not now sent as a stated false, and a send or a share with none, as the claim page does.
  */
-async function claimLink(walk: Walk, who: Actor, link: string, kind: "gift" | "share" | "send") {
+async function claimLink(walk: Walk, who: Actor, link: string, kind: "gift" | "share" | "send", answers: GiftAnswers = NOT_NOW) {
   const token = encodeURIComponent(tokenOf(link));
   const cover = parsed(GetInviteResponse, expectStatus(await walk.call(who, "GET", `/api/invites/${token}`), 200, `the ${kind}'s cover`), `the ${kind}'s cover`);
-  same(`the ${kind}'s cover`, [cover.kind, cover.alreadyClaimed], [kind, false]);
+  same(`the ${kind}'s cover`, [cover.kind, cover.alreadyClaimed, cover.giverShares], [kind, false, kind === "gift" && answers.giverShares]);
+  const answer = kind === "gift" ? { shareBack: answers.shareBack } : undefined;
   const claimed = parsed(
     ClaimInviteResponse,
-    expectStatus(await walk.call(who, "POST", `/api/invites/${token}/claim`), 200, `the ${kind}'s claim`),
+    expectStatus(await walk.call(who, "POST", `/api/invites/${token}/claim`, answer), 200, `the ${kind}'s claim`),
     `the ${kind}'s claim`,
   );
   same(`the ${kind}'s claim`, claimed.kind, kind);
@@ -428,7 +443,7 @@ export const STAGING_STEPS: StagingSteps = {
     async run(walk) {
       const { mira, idris } = walk;
       const before = await credits(walk, mira);
-      const body = { recipientName: firstName(idris), email: idris.email, note: GIFT_NOTE };
+      const body = { recipientName: firstName(idris), email: idris.email, note: GIFT_NOTE, shareOwn: NOT_NOW.giverShares };
       const gift = parsed(CreateGiftResponse, expectStatus(await walk.call(mira, "POST", "/api/gifts", body), 201, "the gift"), "the gift");
       same("the gift", [gift.state, gift.creditHeld], ["waiting", true]);
       delivered(walk, gift.emailDelivered, "the gift's email");
@@ -447,7 +462,7 @@ export const STAGING_STEPS: StagingSteps = {
       await signIn(walk, idris);
       const [hers, his] = [await credits(walk, mira), await credits(walk, idris)];
       same("Idris's balance before the claim", his, { available: 0, used: 0, held: 0 });
-      const claimed = await claimLink(walk, idris, link, "gift");
+      const claimed = await claimLink(walk, idris, link, "gift", NOT_NOW);
       same("the gift's claim", claimed.redirectTo, "/dashboard");
       const hisNow = await credits(walk, idris);
       same("Idris's balance after the claim", hisNow.available, his.available + 1);
@@ -526,16 +541,20 @@ export const STAGING_STEPS: StagingSteps = {
 
   pair: {
     async write(walk) {
-      const { mira } = walk;
+      const { mira, idris } = walk;
       const hers = need(walk.kept.miraReport, "Mira's Personal report");
       const his = need(walk.kept.idrisReport, "Idris's Personal report");
       const before = await credits(walk, mira);
-      // Mira is the child and Idris the parent, as the seed's pair is (R17-09).
+      // What the picker's Make it posts. Mira is the child and Idris the parent, as the seed's pair is (R17-09).
       const body = { reportAId: hers.id, reportBId: his.id, lens: "parent_child", parent: "B" };
       const what = "the parent and child report";
       const made = parsed(CreateCompatibilityReportResponse, expectStatus(await walk.write(mira, "/api/compatibility", body), 201, what), what);
       tookOne(before, await credits(walk, mira), what);
+      // Make it lands on the pair's loading screen (ADR-336), which holds on Start reading once the pair is written
+      // (ADR-393), so her tab waits there and taps it.
+      await mira.page.screen(`/compatibility/${made.id}`, { loading: true });
       await written(walk, mira, made.id);
+      await mira.page.screen(null, { opened: [firstName(mira), firstName(idris), "Compatibility Report"] });
       return made.id;
     },
     async check(walk, reportId) {
