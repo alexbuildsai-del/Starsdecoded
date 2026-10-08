@@ -1,11 +1,12 @@
 /**
- * The bundles in one look wherever a price shows: the site's prices, the credits sheet and the dashboard's first state
+ * The bundles in one look wherever a price shows: the site's prices, the credits sheet and the dashboard's first visit
  * (ADR-168 to 170, 172). Every name, line, number and mix comes from the catalogue through `bundleRows` (R-6.3), and a
  * launch price stands against the struck Singles total, never a "was" price and never with an end date (R-6.7). A live
- * campaign the server prices for this visit takes its row's price instead (reading 6). The site's list buys nothing; on
- * the dashboard each row is the way to checkout for its bundle.
+ * campaign the server prices for this visit takes its row's price instead (reading 6). The site's list buys nothing; in
+ * the credits sheet each row is the way to checkout for its bundle, and on the first visit each bundle is a button
+ * (Review 05/10 §1) that prices it the same way.
  */
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, type ReactNode } from "react";
 import { Link } from "wouter";
 import type { PriceItem } from "@workspace/api-client-react";
 import { CREDIT_LINE, type BundleId } from "@workspace/commerce";
@@ -36,6 +37,41 @@ const CHIP: Record<BundleMix["kind"], string> = {
 const CREDIT_LABEL = CREDIT_LINE.replace(/\.$/, "");
 
 const STRUCK = "order-first whitespace-nowrap font-numeric text-[13px] leading-snug text-[#7E889A]";
+const FOOT = "font-numeric uppercase leading-relaxed tracking-[.1em] text-[#7E889A]";
+
+function FootWords() {
+  return (
+    <>
+      {CREDIT_LABEL} · <span className="whitespace-nowrap">VAT included</span>
+    </>
+  );
+}
+
+/** The price column every bundle shows; a span inside a button, which may hold no paragraph. */
+function Price({ row, compact, as: Tag = "p" }: { row: BundleRow; compact: boolean; as?: "p" | "span" }) {
+  return (
+    <Tag className="flex flex-col items-end gap-0.5 text-right">
+      <span className={cn("font-label font-medium leading-none text-[#F2F4F9]", compact ? "text-[22px]" : "text-[26px]")}>
+        {row.price}
+      </span>
+      {row.campaign ? (
+        <>
+          {/* Strikethrough is only drawn, so a screen reader is told which price the struck one was. */}
+          <s className={STRUCK}>
+            <span className="sr-only">instead of </span>
+            {row.campaign.full}
+          </s>
+          <span className="whitespace-nowrap text-xs leading-snug text-[#AEB6C6]">{row.campaign.until}</span>
+        </>
+      ) : (
+        <>
+          {row.singles && <s className={STRUCK}>{row.singles}</s>}
+          {row.save && <span className="whitespace-nowrap text-xs leading-snug text-[#3FA796]">{row.save}</span>}
+        </>
+      )}
+    </Tag>
+  );
+}
 
 function Mixes({ row, className }: { row: BundleRow; className?: string }) {
   return (
@@ -105,35 +141,20 @@ function Row({ row, compact, href }: { row: BundleRow; compact: boolean; href: s
         {row.lead && <p className="mt-0.5 text-[13px] leading-snug text-[#AEB6C6]">{row.lead}</p>}
         {!compact && mixes}
       </div>
-      <p className="flex flex-col items-end gap-0.5 text-right">
-        <span className={cn("font-label font-medium leading-none text-[#F2F4F9]", compact ? "text-[22px]" : "text-[26px]")}>
-          {row.price}
-        </span>
-        {row.campaign ? (
-          <>
-            {/* Strikethrough is only drawn, so a screen reader is told which price the struck one was. */}
-            <s className={STRUCK}>
-              <span className="sr-only">instead of </span>
-              {row.campaign.full}
-            </s>
-            <span className="whitespace-nowrap text-xs leading-snug text-[#AEB6C6]">{row.campaign.until}</span>
-          </>
-        ) : (
-          <>
-            {row.singles && <s className={STRUCK}>{row.singles}</s>}
-            {row.save && <span className="whitespace-nowrap text-xs leading-snug text-[#3FA796]">{row.save}</span>}
-          </>
-        )}
-      </p>
+      <Price row={row} compact={compact} />
       {compact && mixes}
     </li>
   );
 }
 
-export function BundleList({ compact = false, prices = null, buy }: BundleListProps) {
+/** Until the prices load, and on any refusal, the rows are the prerendered ones, so hydration finds what it drew. */
+function useRows(prices: readonly PriceItem[] | null): BundleRow[] {
   const { order } = useEntryFormat();
-  // Until the prices load, and on any refusal, the rows are the prerendered ones, so hydration finds what it drew.
-  const rows = useMemo(() => (prices ? bundleRows(prices, order) : ROWS), [prices, order]);
+  return useMemo(() => (prices ? bundleRows(prices, order) : ROWS), [prices, order]);
+}
+
+export function BundleList({ compact = false, prices = null, buy }: BundleListProps) {
+  const rows = useRows(prices);
   return (
     <div
       className={cn(
@@ -146,13 +167,68 @@ export function BundleList({ compact = false, prices = null, buy }: BundleListPr
           <Row key={row.id} row={row} compact={compact} href={buy ? buy(row.id) : null} />
         ))}
       </ul>
-      <p
-        className={cn(
-          "border-t border-[#242C3B] font-numeric uppercase leading-relaxed tracking-[.1em] text-[#7E889A]",
-          compact ? "px-4 py-3 text-[11px]" : "px-[22px] py-3.5 text-xs",
-        )}
-      >
-        {CREDIT_LABEL} · <span className="whitespace-nowrap">VAT included</span>
+      <p className={cn("border-t border-[#242C3B]", FOOT, compact ? "px-4 py-3 text-[11px]" : "px-[22px] py-3.5 text-xs")}>
+        <FootWords />
+      </p>
+    </div>
+  );
+}
+
+export type BundleButtonsProps = {
+  /** As the list's: a live campaign shows on its button; null keeps the catalogue's prices. */
+  prices?: readonly PriceItem[] | null;
+  /** The line under each name, the first visit's own words rather than the catalogue's. */
+  lines: Readonly<Record<BundleId, string>>;
+} & (
+  /** Each button's checkout. */
+  | { buy: (id: BundleId) => string; onPick?: never }
+  /** A tap is handed back and opens nothing, as in the admin's preview (reading 21). */
+  | { onPick: (id: BundleId) => void; buy?: never }
+);
+
+const BUTTON =
+  "grid min-h-[68px] w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-[12px] border border-[#242C3B] bg-[#11161F] px-3.5 py-3 text-left transition-colors duration-200 hover:border-[#5C6BC0] focus-visible:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[.99] motion-reduce:active:scale-100";
+
+/**
+ * The first visit's three buttons (Review 05/10 §1): each bundle its own box of one width and height, its name and line
+ * on the left and its price on the right, priced as the list prices it, over the list's foot. A tap opens that bundle's
+ * checkout, which comes back to the birth form for You.
+ */
+export function BundleButtons({ prices = null, lines, buy, onPick }: BundleButtonsProps) {
+  const rows = useRows(prices);
+  return (
+    <div className="grid gap-2.5">
+      <ul className="grid gap-2">
+        {rows.map((row) => {
+          const face: ReactNode = (
+            <>
+              <span className="grid min-w-0 gap-1">
+                <span className="font-display text-xl font-normal leading-[1.15] tracking-[-0.01em] text-[#E8EBF2]">
+                  {buy && <span className="sr-only">Buy </span>}
+                  {row.name}
+                </span>
+                <span className="text-[13px] leading-snug text-[#AEB6C6]">{lines[row.id]}</span>
+              </span>
+              <Price row={row} compact as="span" />
+            </>
+          );
+          return (
+            <li key={row.id}>
+              {buy ? (
+                <Link href={buy(row.id)} className={BUTTON}>
+                  {face}
+                </Link>
+              ) : (
+                <button type="button" onClick={() => onPick?.(row.id)} className={BUTTON}>
+                  {face}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <p className={cn(FOOT, "text-[11px]")}>
+        <FootWords />
       </p>
     </div>
   );

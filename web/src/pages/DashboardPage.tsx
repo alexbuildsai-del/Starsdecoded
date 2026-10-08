@@ -12,6 +12,10 @@
  * Timeline adds one section or the other (reading 26): Your week after Your
  * circle for a subscriber, and for a reader without it whose own report is
  * finished, their big cycles after the pairs.
+ * Before the reader has a report of their own, the panel is the first visit
+ * (Review 05/10 §1, reading 20), and Your first steps, Practising and Ask wait
+ * for that report to be finished. `?visitor=new` is the admin's look at a new
+ * visitor's dashboard, drawn from nothing in a tab of its own (reading 21).
  */
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useLocation, useSearch } from "wouter";
@@ -22,6 +26,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCreditHistoryQueryKey,
   getGetHomeQueryKey,
+  getGetTimelineAccessQueryKey,
   getListProfilesQueryKey,
   getListReportsQueryKey,
   useGetCreditHistory,
@@ -35,9 +40,9 @@ import {
   type HomePair,
   type PriceItem,
 } from "@workspace/api-client-react";
-import { CREDIT_LINE, type BundleId } from "@workspace/commerce";
+import type { BundleId } from "@workspace/commerce";
 import { AccountMenu } from "@/components/AccountMenu";
-import { BundleList } from "@/components/BundleList";
+import { BundleButtons } from "@/components/BundleList";
 import { CompatibilityPicker } from "@/components/CompatibilityPicker";
 import { StatusDots } from "@/components/StatusDots";
 import { Wordmark } from "@/components/Wordmark";
@@ -61,6 +66,10 @@ import { useHome } from "@/hooks/useHome";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { checkoutHref } from "@/lib/checkout-view";
 import { openFrom, returnPath, signInFirst, withoutOpen, type AskingStep } from "@/lib/credits-view";
+import {
+  EMPTY_HOME, FIRST_VISIT, FIRST_VISIT_LINES, VISITOR, firstVisitNote, isFirstVisit, ownFinished, useVisitorGate,
+  visitorAsked, visitorStep, withoutVisitor, type VisitorTap,
+} from "@/lib/first-visit";
 import {
   MAKE_REPORT, canPair, hideSteps, ownIds, pairFrom, quickLookFor, stepsHidden, withoutPair,
 } from "@/lib/home-view";
@@ -222,36 +231,45 @@ function ViewSwitch({ view, onChange, ids }: { view: View; onChange: (view: View
   );
 }
 
-interface StartPanelProps {
-  /** `usePrices().items`, so a live campaign shows on its row (reading 6). */
+interface FirstVisitPanelProps {
+  /** `usePrices().items`, so a live campaign shows on its button (reading 6); null keeps the catalogue's. */
   prices: readonly PriceItem[] | null;
-  /** Each bundle row's checkout, which comes back to the birth form for the reader's own report, as Get credits does. */
-  buy: (id: BundleId) => string;
-  onGetCredits: () => void;
+  /** Each bundle's checkout, which comes back to the birth form for You; in the admin's preview, a tap said instead. */
+  bundles: { buy: (id: BundleId) => string } | { onPick: (id: BundleId) => void };
+  /**
+   * With a credit to spend, the button that starts the reader's own report, under a claimed gift's suggestion of it
+   * (ADR-139); null at zero, where the bundles show.
+   */
+  start: { gift: NudgeData | null; onOwnReport: () => void } | null;
 }
 
 /**
- * With no report of their own and no credit to write it (ADR-275), the circle starts here (the approved mock's first
- * state): the bundles and Get credits. With a credit, Your first steps asks for that report instead (ADR-330).
+ * The first visit (Review 05/10 §1, reading 20): beside the circle with You, one heading, one line and the three
+ * bundles as buttons, each through checkout and back to the birth form for You (ADR-389), and nothing else: no
+ * Practising, no Ask and no second Get credits. With a credit already held, the bundles would only sell it again, so the
+ * one button starts the reader's own report, as Make a report's first button does (ADR-334).
  */
-function StartPanel({ prices, buy, onGetCredits }: StartPanelProps) {
+function FirstVisitPanel({ prices, bundles, start }: FirstVisitPanelProps) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className={cn(PANEL, "grid gap-3.5 p-4")}>
+    <section aria-labelledby={headingId} className="grid gap-4">
       <div className="grid gap-1.5">
-        <p className={cn(EYEBROW, "text-[#D4B06A]")}>Your circle starts with you</p>
         <h3 id={headingId} className="font-display text-2xl leading-[1.2]">
-          Get your {PERSONAL_REPORT} first
+          {FIRST_VISIT.heading}
         </h3>
-        <p className="text-[13px] leading-[1.5] text-[#9AA3B5]">
-          Ten chapters on how you think, work and love, most ending with things to try. Then add the people close to you.
-        </p>
+        <p className="text-sm leading-[1.5] text-[#9AA3B5]">{FIRST_VISIT.line}</p>
       </div>
-      <BundleList compact prices={prices} buy={buy} />
-      <Button onClick={onGetCredits} className="font-label">
-        Get credits
-      </Button>
-      <p className="text-xs leading-snug text-[#9AA3B5]">You pay for credits. {CREDIT_LINE}</p>
+      {start ? (
+        <div className="grid gap-3">
+          {start.gift && <Nudge nudge={start.gift} />}
+          <ChoiceButton title={MAKE_REPORT.yours.title} line={MAKE_REPORT.yours.line} main onClick={start.onOwnReport} />
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          <BundleButtons prices={prices} lines={FIRST_VISIT_LINES} {...bundles} />
+          <p className="text-[12.5px] leading-snug text-[#9AA3B5]">{firstVisitNote()}</p>
+        </div>
+      )}
     </section>
   );
 }
@@ -314,9 +332,10 @@ function MakeReport({ own, pairable, focusRef, onOwnReport, onAddSomeone, onPair
 interface IdlePanelProps {
   /** The circle has someone to tap; on a phone the line sits under the circle instead. */
   hint: boolean;
-  /** A claimed gift's suggestion of the reader's own report (ADR-139), over the step or button that makes it. */
-  gift: NudgeData | null;
-  /** Your first steps, while the server sends them and the reader has not hidden them (reading 18). */
+  /**
+   * Your first steps, while the server sends them, the reader's own report is finished and they have not hidden them
+   * (readings 18, 20).
+   */
   steps: FirstStepsData | null;
   make: Omit<MakeReportProps, "onPair">;
   onHideSteps: () => void;
@@ -326,15 +345,14 @@ interface IdlePanelProps {
 }
 
 /**
- * The panel beside the circle while no quick look is open, under it on a phone: where one will open, then Your first
- * steps until the first pair, else Make a report, over the credit row. One holds the panel at a time, so it never
- * offers the same thing twice.
+ * The panel beside the circle while no quick look is open, under it on a phone, once the reader has a report of their
+ * own: where one will open, then Your first steps until the first pair, else Make a report, over the credit row. One
+ * holds the panel at a time, so it never offers the same thing twice.
  */
-function IdlePanel({ hint, gift, steps, make, onHideSteps, onMakePair, onPair, onGetCredits }: IdlePanelProps) {
+function IdlePanel({ hint, steps, make, onHideSteps, onMakePair, onPair, onGetCredits }: IdlePanelProps) {
   return (
     <div className={cn(PANEL, "grid gap-4 p-4 md:p-[18px]")}>
       {hint && <p className="hidden text-[13px] leading-[1.45] text-[#9AA3B5] md:block">{CIRCLE_HINT}</p>}
-      {gift && <Nudge nudge={gift} />}
       {steps ? (
         <FirstSteps steps={steps} onAddSomeone={make.onAddSomeone} onMakePair={onMakePair} onHide={onHideSteps} />
       ) : (
@@ -499,8 +517,126 @@ function PhoneSheet({ open: shown, cardKey, label, closes, onClose, children }: 
   );
 }
 
+/** The page's bar: the wordmark, and whatever the view puts at its right. */
+function DashboardNav({ children }: { children: ReactNode }) {
+  return (
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-2 px-4 sm:gap-3 sm:px-6">
+        <Wordmark />
+        <div className="flex items-center gap-2">{children}</div>
+      </div>
+    </nav>
+  );
+}
+
+/** The preview's ribbon, under the bar and kept in sight while the page scrolls: what this is, the last tap, and Leave. */
+function PreviewRibbon({ said, onLeave }: { said: string | null; onLeave: () => void }) {
+  return (
+    <div className="sticky top-14 z-40 mt-14 border-b border-[#5A4C2C] bg-[#171D29]/95 backdrop-blur-md">
+      <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-2.5 sm:px-6">
+        <span className="shrink-0 font-label text-[10.5px] font-medium uppercase tracking-[0.18em] text-[#D4B06A]">Preview</span>
+        <p role="status" className="min-w-0 flex-1 text-[13px] leading-snug text-[#E8EBF2]">
+          {said ?? VISITOR.intro}
+        </p>
+        <button
+          type="button"
+          onClick={onLeave}
+          aria-label={VISITOR.leaveLabel}
+          className="inline-flex min-h-8 shrink-0 items-center rounded-md px-2 font-label text-[12.5px] font-medium text-[#9FA8DA] underline-offset-4 transition-colors hover:text-[#E8EBF2] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
+        >
+          {VISITOR.leave}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const VISITOR_PILL =
+  "inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-transparent px-2.5 font-label text-[11.5px] font-medium text-muted-foreground transition-colors hover:border-[#9FA8DA]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const NO_ONE: readonly [] = [];
+
+/**
+ * The admin's look at a new visitor's dashboard (ADR-389, reading 21): the first visit drawn from an empty home and no
+ * credits, as a visitor who isn't signed in meets it, under the Preview ribbon. It asks for nothing: no home, credits,
+ * gifts, prices or Timeline, and no Ask, so the bundles carry the catalogue's prices and the admin's name and menu
+ * stay out. A tap says which step it would open and stays. It is a drawing, not a second session, so nothing lets a
+ * browser name one (ADR-197).
+ */
+function NewVisitorView({ onLeave }: { onLeave: () => void }) {
+  const circleId = useId();
+  const [said, setSaid] = useState<string | null>(null);
+  const say = useCallback((tap: VisitorTap) => setSaid(visitorStep(tap)), []);
+  const points = useMemo(
+    () => circlePoints({ you: EMPTY_HOME.you, people: EMPTY_HOME.people, pairs: EMPTY_HOME.pairs, gifts: NO_ONE, credits: 0 }),
+    [],
+  );
+  return (
+    <div className="min-h-screen bg-background bg-stars text-foreground">
+      <DashboardNav>
+        <button type="button" onClick={() => say("credits")} className={VISITOR_PILL}>
+          <span className="font-numeric text-xs">0</span> credits
+        </button>
+        <Button size="sm" variant="ghost" className="font-label text-xs" onClick={() => say("sign-in")}>
+          Sign in
+        </Button>
+      </DashboardNav>
+      <PreviewRibbon said={said} onLeave={onLeave} />
+
+      <main className="mx-auto max-w-4xl px-4 pb-24 pt-[18px] sm:px-6 sm:pt-6">
+        <header className="grid gap-1">
+          <h1 className="font-display text-[30px] font-normal leading-[1.15] tracking-[-0.01em]">Dashboard</h1>
+        </header>
+        <section aria-labelledby={circleId} className="mt-6 grid gap-2.5 md:mt-8">
+          <h2 id={circleId} className={cn(EYEBROW, "text-[#8E9BE0]")}>
+            Your circle
+          </h2>
+          <div className="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
+            <div className="mx-auto w-full min-w-0 max-w-[360px] md:max-w-none">
+              <Orbit
+                centre={{ firstName: "", hasReport: false, writing: false }}
+                points={points}
+                selectedId={null}
+                partners={NO_ONE}
+                onSelect={(id) => {
+                  if (id === CENTRE_ID) say("centre");
+                }}
+              />
+            </div>
+            <div className="min-w-0">
+              <FirstVisitPanel prices={null} bundles={{ onPick: say }} start={null} />
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+/**
+ * `?visitor=new` waits, asking for nothing of the reader's, until it knows the admin is looking; anyone else drops the
+ * query and gets their own dashboard (reading 21).
+ */
+function VisitorGate({ search }: { search: string }) {
+  const [, navigate] = useLocation();
+  const gate = useVisitorGate();
+  useEffect(() => {
+    if (gate === "dashboard") navigate(withoutVisitor(search), { replace: true });
+  }, [gate, search, navigate]);
+  if (gate === "preview") return <NewVisitorView onLeave={() => navigate(withoutVisitor(search), { replace: true })} />;
+  return (
+    <div className="grid min-h-screen place-items-center bg-background bg-stars font-label text-sm text-muted-foreground">
+      <StatusDots label="Loading your dashboard" />
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   usePageTitle("Dashboard");
+  const search = useSearch();
+  return visitorAsked(search) ? <VisitorGate search={search} /> : <Dashboard />;
+}
+
+function Dashboard() {
   const [, navigate] = useLocation();
   const search = useSearch();
   const { isSignedIn } = useAuth();
@@ -546,12 +682,22 @@ export default function DashboardPage() {
   const birthZone = you ? profiles.find((p) => p.id === you.profileId)?.timezone : undefined;
   const zone = useShownZone(!!week, birthZone);
 
-  const { access } = useTimelineAccess();
+  const firstVisit = !!home && isFirstVisit(home);
+  const ownDone = !!home && ownFinished(home);
+
+  // Ask needs Timeline and a finished Personal report of the reader's own (Review 05/10 §1), as AskLauncher reads them.
   // Once drawn, Ask stays: a chat open when access goes keeps its refusal on screen until the reader closes it.
+  const { access, hasPersonalReport } = useTimelineAccess();
   const [asks, setAsks] = useState(false);
   useEffect(() => {
-    if (access) setAsks(true);
-  }, [access]);
+    if (access && hasPersonalReport) setAsks(true);
+  }, [access, hasPersonalReport]);
+  // Access is read once a visit, so when this page sees the reader's own report finish it reads access again, rather
+  // than leave Ask out until the next visit.
+  const client = useQueryClient();
+  useEffect(() => {
+    if (access && !hasPersonalReport && ownDone) void client.invalidateQueries({ queryKey: getGetTimelineAccessQueryKey() });
+  }, [access, hasPersonalReport, ownDone, client]);
 
   const history = useGetCreditHistory({
     query: { queryKey: getGetCreditHistoryQueryKey(), enabled: loaded && !you && !several },
@@ -571,9 +717,10 @@ export default function DashboardPage() {
   const [picker, setPicker] = useState<{ preselect: Partial<PairSelection> } | null>(null);
   const pairable = !!home && canPair(home);
   const own = useMemo(() => (home ? ownIds(home) : new Set<string>()), [home]);
-  // Hide is kept in the browser (reading 18), and Make a report takes the card's place.
+  // Hide is kept in the browser (reading 18), and Make a report takes the card's place. The steps start from the
+  // reader's own finished report (reading 20), so till then Make a report stands there too.
   const [stepsOff, setStepsOff] = useState(() => stepsHidden());
-  const steps = stepsOff ? null : (home?.firstSteps ?? null);
+  const steps = stepsOff || !ownDone ? null : (home?.firstSteps ?? null);
   const focusMake = useRef(false);
 
   // A balance still loading is not zero, so the add point waits as Add someone rather than flashing Get credits.
@@ -719,17 +866,22 @@ export default function DashboardPage() {
 
   const partners = !home || !active ? [] : partnersOf(active === CENTRE_ID ? (you?.profileId ?? "") : active, home.pairs);
 
+  // Without a report of their own the panel waits for the balance, so it never offers one start and then the other.
   const lead = !home ? null
     : several ? <SeveralPanel onPeople={() => toView("people")} />
-    : !you && out ? <StartPanel prices={prices} buy={(id) => buyHref(id, "chart")} onGetCredits={() => getCredits("chart")} />
+    : firstVisit ? (settled ? (
+      <FirstVisitPanel
+        prices={prices}
+        bundles={{ buy: (id) => buyHref(id, "chart") }}
+        start={out ? null : { gift: giftNudge, onOwnReport: ownReport }}
+      />
+    ) : null)
     : null;
-  // Without a report of their own the panel waits for the balance, so it never offers one start and then the other.
-  const idle = !!home && !several && (!!you || (settled && !out)) ? (
+  const idle = !!home && !!you ? (
     <IdlePanel
       hint={!empty}
-      gift={giftNudge}
       steps={steps}
-      make={{ own: !!you, pairable, focusRef: makeRef, onOwnReport: ownReport, onAddSomeone: openAdd }}
+      make={{ own: true, pairable, focusRef: makeRef, onOwnReport: ownReport, onAddSomeone: openAdd }}
       onHideSteps={hideFirstSteps}
       onMakePair={makePair}
       onPair={twoPeople}
@@ -739,31 +891,30 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background bg-stars text-foreground">
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-2 px-4 sm:gap-3 sm:px-6">
-          <Wordmark />
-          <div className="flex items-center gap-2">
-            <CreditPill onOpen={openCredits} />
-            {out ? (
-              // The pill opens the same sheet, so a phone, which also has Sign in to fit, keeps the one control.
-              <Button size="sm" variant="outline" onClick={openCredits} className="hidden font-label sm:inline-flex">
-                Get credits
-              </Button>
-            ) : (
-              <Button size="sm" variant="outline" onClick={openAdd} aria-label="Add someone" className="gap-1.5 font-label" data-testid="button-add-someone">
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Add someone</span>
-              </Button>
-            )}
-            <AccountMenu />
-          </div>
-        </div>
-      </nav>
+      <DashboardNav>
+        <CreditPill onOpen={openCredits} />
+        {out ? (
+          // The first visit's bundles are its one way to credits, so it draws no second Get credits (Review 05/10 §1).
+          // Elsewhere the pill opens the same sheet, so a phone, which also has Sign in to fit, keeps the one control.
+          firstVisit ? null : (
+            <Button size="sm" variant="outline" onClick={openCredits} className="hidden font-label sm:inline-flex">
+              Get credits
+            </Button>
+          )
+        ) : (
+          <Button size="sm" variant="outline" onClick={openAdd} aria-label="Add someone" className="gap-1.5 font-label" data-testid="button-add-someone">
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Add someone</span>
+          </Button>
+        )}
+        <AccountMenu />
+      </DashboardNav>
 
       <main className="mx-auto max-w-4xl px-4 pb-24 pt-[74px] sm:px-6 sm:pt-20">
         <header className="grid gap-1">
           <h1 className="font-display text-[30px] font-normal leading-[1.15] tracking-[-0.01em]">Dashboard</h1>
-          {home && <p className="text-[13px] leading-snug text-[#9AA3B5]">{summaryLine(home)}</p>}
+          {/* An empty dashboard's line would only repeat the first visit's heading. */}
+          {home && !empty && <p className="text-[13px] leading-snug text-[#9AA3B5]">{summaryLine(home)}</p>}
         </header>
 
         {failed ? (
@@ -845,7 +996,8 @@ export default function DashboardPage() {
                 <YourWeek week={week} zone={zone} />
               </Suspense>
             )}
-            <Practising items={home.practising} />
+            {/* What to practise comes from a finished report of the reader's own, so before one there's nothing, not a sample (reading 20). */}
+            {ownDone && <Practising items={home.practising} />}
             <YourPairs pairs={home.pairs} />
             {teaser && zone && <TimelineTeaser teaser={teaser} zone={zone} />}
           </div>

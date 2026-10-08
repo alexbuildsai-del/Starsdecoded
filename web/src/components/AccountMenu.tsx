@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CircleUser, LogOut, User as UserIcon, LayoutDashboard, Orbit, Receipt, Shield } from "lucide-react";
+import { CircleUser, Eye, LogOut, User as UserIcon, LayoutDashboard, Orbit, Receipt, Shield } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useTimelineAccess } from "@/lib/timeline-access";
 
@@ -19,6 +19,8 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
  * Header-aligned account control. Renders a "Sign in" button for anonymous
  * visitors and, for a signed-in reader, a dropdown with their reports, Timeline
  * only when they have it (ADR-262), their Account page (ADR-263) and sign-out.
+ * The admin's part adds the dashboard as a new visitor sees it, in its own tab
+ * so the admin's dashboard stays open in this one (ADR-389, reading 21).
  * Designed to slot into the right side of any page nav.
  */
 export function AccountMenu() {
@@ -81,6 +83,11 @@ export function AccountMenu() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/admin/sales")}>
                   <Receipt className="h-4 w-4 mr-2" /> Sales
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={`${basePath}/dashboard?visitor=new`} target="_blank" rel="noopener noreferrer">
+                    <Eye className="h-4 w-4 mr-2" /> See the dashboard as a new visitor
+                  </a>
                 </DropdownMenuItem>
               </>
             )}
