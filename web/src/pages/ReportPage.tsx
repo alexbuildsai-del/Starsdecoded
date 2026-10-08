@@ -1,6 +1,6 @@
 /**
  * The natal report: one page, two skies (ADR-48, ADR-59). The generation
- * screen is the page until the reader takes the door or it opens itself:
+ * screen is the page until the reader takes the door (ADR-393):
  * full-bleed, the scroll locked behind it, the same screen before the chart
  * exists. Taking the door unmounts it, shows the report at the top, and the
  * hero's own sky gathers its stars onto the ring once; the chapters keep
@@ -492,8 +492,7 @@ export default function ReportPage() {
         <Chapter {...ch(10)}>
           {body("focus", interpretation.focus && (
             <>
-              <DawnClosing s={interpretation.focus} />
-              <div className="relative mt-8"><ChapterFact fact={interpretation.focus.didYouKnow} /></div>
+              <DawnClosing s={interpretation.focus} fact={<div className="relative mt-8"><ChapterFact fact={interpretation.focus.didYouKnow} /></div>} />
             </>
           ))}
         </Chapter>
