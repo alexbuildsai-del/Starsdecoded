@@ -5,9 +5,10 @@
  * quarter turns found in the engine's monthly distances. Dates are the
  * reader's days, "YYYY-MM-DD", in their language's order (reading 4).
  */
-import type { CycleId } from "@workspace/engine";
+import { longitudeAt, type CycleId, type SkyBody } from "@workspace/engine";
 import type { DateOrder } from "@/lib/date-entry";
-import { dayMonth, fullDate, listOf, monthYear } from "@/lib/timeline-view";
+import { ORDINALS, houseWord } from "@/lib/evidence-glossary";
+import { dayIn, dayMonth, fullDate, listOf, monthYear } from "@/lib/timeline-view";
 
 /** One cycle as its card shows it, built from the engine's `LifeCycle` or the API's view of one. */
 export interface CycleView {
@@ -38,6 +39,10 @@ export interface CycleView {
   ages?: readonly number[];
   /** A line on why it matters, which the compact card shows in place of the plain word (the finder's). */
   why?: string | null;
+  /** The instant of its first exact pass, or of its window's start, which the science asks the engine about. */
+  at?: string;
+  /** The reader's day of each age in `ages`, which says what is behind them. */
+  ageDays?: readonly string[];
 }
 
 const NB = "\u00a0";
@@ -73,6 +78,17 @@ export function cycleChip(cycle: Pick<CycleView, "exact" | "start" | "end">, tod
   return `In ${n} ${n === 1 ? "year" : "years"}`;
 }
 
+/** The Your cycles card's countdown: "behind you", "now", "this year" or "in 4 years", counted to its first exact day. */
+export function cycleCountdown(cycle: Pick<CycleView, "exact" | "start" | "end">, today: string): string {
+  const when = cycleWhen(cycle, today);
+  if (when === "past") return "behind you";
+  if (when === "now") return "now";
+  const years = (dayMs(cycleDay(cycle)) - dayMs(today)) / YEAR_MS;
+  if (years < 1) return "this year";
+  const n = Math.round(years);
+  return `in ${n} ${n === 1 ? "year" : "years"}`;
+}
+
 /** The compact card's head: "At 29, 58 and 88", "About every 12 years, from 11", or "Once, at 44". */
 export function cycleAges(cycle: Pick<CycleView, "age" | "ages" | "repeats">): string {
   if (!cycle.repeats) return `Once, at ${cycle.age}`;
@@ -105,16 +121,38 @@ export function cycleFact(cycle: Pick<CycleView, "exact" | "start" | "end" | "ag
 }
 
 /**
- * A repeating cycle's look-back (reading 19): a month and year, since a season
- * would need the reader's hemisphere. A cycle behind them looks back to itself,
- * one still to come or under way to the time before; a cycle that comes once,
- * or one with nothing before it, has none.
+ * A repeating cycle's look-back (reading 19; Review 05/10 §4): a month and year, since a season would need the
+ * reader's hemisphere, and only a time that has happened. A cycle now or ahead looks back to the time before it; one
+ * behind the reader, one that comes once, or one with nothing before it that is already past, has none.
  */
 export function lookBack(cycle: CycleView, today: string, order: DateOrder): string | null {
-  if (!cycle.repeats) return null;
-  if (cycle.end < today) return `Think back to ${monthYear(cycleDay(cycle), order)}, when you were ${cycle.age}.`;
-  if (!cycle.last) return null;
-  return `Think back to ${monthYear(cycle.last.on, order)}, the last time it happened. You were ${cycle.last.age}.`;
+  if (!cycle.repeats || cycle.end < today || !cycle.last || cycle.last.on >= today) return null;
+  return `Think back to ${monthYear(cycle.last.on, order)}, when you were ${cycle.last.age}.`;
+}
+
+export interface AgeStep {
+  age: number;
+  /** "this" is the card's own age; the rest are behind the reader or still ahead. */
+  state: "past" | "this" | "ahead";
+}
+
+/** Every age the cycle comes at in a life, each marked: behind the reader, this card's own, or ahead. */
+export function cycleAgeSteps(cycle: Pick<CycleView, "age" | "ages" | "ageDays" | "end">, today: string): AgeStep[] {
+  const ages = cycle.ages?.length ? cycle.ages : [cycle.age];
+  const own = ages.indexOf(cycle.age);
+  return ages.map((age, i) => {
+    if (i === own) return { age, state: "this" };
+    const day = cycle.ageDays?.[i];
+    // Without the days (Ask's card) an age before this one is behind the reader only while this one is not.
+    const past = day !== undefined ? day < today : i < own && cycle.end >= today;
+    return { age, state: past ? "past" : "ahead" };
+  });
+}
+
+/** The line under the ages: "Next on 20 Nov 2030, at 35." for a cycle still to come, "It was on 2 Aug 2000, at 4." after. */
+export function cycleNextLine(cycle: Pick<CycleView, "exact" | "start" | "age">, today: string, order: DateOrder): string {
+  const day = cycleDay(cycle);
+  return `${day >= today ? "Next on" : "It was on"} ${fullDate(day, order)}, at ${cycle.age}.`;
 }
 
 export type CycleKind = "return" | "opposition" | "square";
@@ -202,15 +240,25 @@ export interface WaveLine {
 export function cycleMark(id: CycleId, first: Date | string, birth: Date | string): WaveMark {
   const at = new Date(first);
   const born = new Date(birth);
-  const birthday = (years: number) => {
-    const day = new Date(born.getTime());
-    day.setUTCFullYear(born.getUTCFullYear() + years);
-    return day.getTime();
-  };
   let whole = at.getUTCFullYear() - born.getUTCFullYear();
-  if (at.getTime() < birthday(whole)) whole--;
-  const from = birthday(whole);
-  return { age: whole + (at.getTime() - from) / (birthday(whole + 1) - from), kind: cycleKind(id) };
+  if (at.getTime() < birthdayAt(born, whole)) whole--;
+  const from = birthdayAt(born, whole);
+  return { age: whole + (at.getTime() - from) / (birthdayAt(born, whole + 1) - from), kind: cycleKind(id) };
+}
+
+/** The instant of a birthday: the birth's own hour, `years` on. */
+function birthdayAt(born: Date, years: number): number {
+  const day = new Date(born.getTime());
+  day.setUTCFullYear(born.getUTCFullYear() + years);
+  return day.getTime();
+}
+
+/** The instant a fractional age falls on, the inverse of `cycleMark`'s count. */
+export function ageInstant(birth: Date | string, age: number): Date {
+  const born = new Date(birth);
+  const whole = Math.floor(age);
+  const from = birthdayAt(born, whole);
+  return new Date(from + (age - whole) * (birthdayAt(born, whole + 1) - from));
 }
 
 /** Life runs from birth to 90 (ADR-209). */
@@ -378,4 +426,128 @@ export function waveTicks(today: number): number[] {
   const ticks: number[] = [];
   for (let age = 0; age <= WAVE_UNTIL; age += 10) if (Math.abs(age - today) >= TODAY_ROOM) ticks.push(age);
   return ticks;
+}
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+// The line on Life says "today" this close to it, and the card under it is the next cycle still to come.
+const TODAY_DAYS = 29;
+
+export interface LineStamp {
+  /** "Today · age 31 · Oct 2026", or "age 64 · Aug 2059" anywhere else. */
+  text: string;
+  /** The line is on today, near enough that the card is the next cycle ahead. */
+  atToday: boolean;
+}
+
+/** What rides on Life's line at a fractional age: the whole age (floored, as the cards count) and the reader's month. */
+export function lineStamp(age: number, birth: string, zone: string, today: string, order: DateOrder): LineStamp {
+  const day = dayIn(ageInstant(birth, age), zone);
+  const atToday = Math.abs(dayMs(day) - dayMs(today)) <= TODAY_DAYS * DAY_MS;
+  const month = SHORT_MONTHS[Number(day.slice(5, 7)) - 1];
+  const stamp = order === "ymd" ? `${day.slice(0, 4)}${NB}${month}` : `${month}${NB}${day.slice(0, 4)}`;
+  return { text: `${atToday ? "Today \u00b7 " : ""}age ${Math.floor(age)} \u00b7 ${stamp}`, atToday };
+}
+
+export interface LifeStop {
+  key: string;
+  body: string;
+  kind: WaveMarkKind;
+  /** Where its mark sits on its wave, which is where the line stops. */
+  age: number;
+}
+
+/** The cycle marks the line snaps to, in order of age: each cycle at the age `cycleMark` puts it on its wave. */
+export function lifeStops(
+  cycles: readonly { key: string; id: CycleId; exact: readonly string[]; start: string }[],
+  birth: string,
+): LifeStop[] {
+  return cycles
+    .map((cycle) => {
+      const mark = cycleMark(cycle.id, cycle.exact[0] ?? cycle.start, birth);
+      return { key: cycle.key, body: cycleBody(cycle.id), kind: mark.kind, age: mark.age };
+    })
+    .filter((stop) => stop.age <= WAVE_UNTIL)
+    .sort((a, b) => a.age - b.age);
+}
+
+/** The stop nearest an age; the earlier one when two are as near. */
+export function nearestStop<T extends { age: number }>(stops: readonly T[], age: number): T | null {
+  let best: T | null = null;
+  for (const stop of stops) if (best === null || Math.abs(stop.age - age) < Math.abs(best.age - age)) best = stop;
+  return best;
+}
+
+const LENGTHS: Readonly<Record<string, string>> = {
+  jupiter: "12 years", saturn: "29\u00bd years", north_node: "18\u00bd years", uranus: "84 years", neptune: "165 years", pluto: "248 years",
+};
+
+const WHAT: Readonly<Record<CycleKind, string>> = {
+  return: "comes back to where it was when you were born",
+  opposition: "gets halfway round, opposite where it was when you were born",
+  square: "gets a quarter of the way round from where it was when you were born",
+};
+
+/** What happens in the sky, in a sentence: "Jupiter comes back to where it was when you were born." */
+export function cycleWhat(id: CycleId): string {
+  const kind = cycleKind(id);
+  if (cycleBody(id) === "north_node") {
+    return kind === "return"
+      ? "The Moon's nodes come back to where they were when you were born."
+      : "The Moon's nodes reverse: the North Node reaches where the South Node was.";
+  }
+  return `${bodyName(cycleBody(id))} ${WHAT[kind]}.`;
+}
+
+/** The card's "what and how often": the sentence and the planet's whole trip. */
+export function cycleAbout(id: CycleId): string {
+  const length = LENGTHS[cycleBody(id)];
+  return length ? `${cycleWhat(id)} It takes ${length}.` : cycleWhat(id);
+}
+
+const SIGNS = [
+  "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+] as const;
+
+const turn = (deg: number) => ((deg % 360) + 360) % 360;
+
+/** "6.21\u00b0 Sagittarius": the degree cut, never rounded up into the next sign. */
+function placeOf(lon: number): string {
+  const at = turn(lon);
+  return `${(Math.floor((at % 30) * 100) / 100).toFixed(2)}\u00b0 ${SIGNS[Math.floor(at / 30) % 12]}`;
+}
+
+/** Whole-sign, as the chart counts: the Ascendant's sign is the 1st. */
+function houseOf(lon: number, ascendant: number): number {
+  return ((Math.floor(turn(lon) / 30) - Math.floor(turn(ascendant) / 30) + 12) % 12) + 1;
+}
+
+function houseIn(lon: number, ascendant: number | null, lead: string): string {
+  if (ascendant === null) return "";
+  const house = houseOf(lon, ascendant);
+  return `${lead}${ORDINALS[house - 1]} house`;
+}
+
+/**
+ * The ⓘ's three lines, from the engine: where the planet stood at birth and where it is on the cycle's first exact
+ * day (each with its house when the birth time gives one), and how long it stays close, with its passes. The engine's
+ * own positions, so a return reads the same degree twice.
+ */
+export function cycleScience(
+  cycle: Pick<CycleView, "id" | "exact" | "start" | "end" | "at">,
+  birth: string,
+  ascendant: number | null,
+  order: DateOrder,
+): string[] {
+  const body = cycleBody(cycle.id) as SkyBody;
+  const day = cycleDay(cycle);
+  const born = longitudeAt(body, new Date(birth));
+  const then = longitudeAt(body, new Date(cycle.at ?? `${day}T12:00:00Z`));
+  const planet = body === "north_node" ? "the North Node" : bodyName(body);
+  const bornHouse = ascendant === null ? "" : `${houseIn(born, ascendant, ", in your ")} (${houseWord(houseOf(born, ascendant))})`;
+  const passes = cycle.exact.length > 1 ? `, exact ${cycle.exact.length} times as it goes back and forth` : "";
+  return [
+    `When you were born, ${planet} was at ${placeOf(born)}${bornHouse}.`,
+    `On ${fullDate(day, order)} it is at ${placeOf(then)}${houseIn(then, ascendant, ", your ")}.`,
+    `It stays close from ${fullDate(cycle.start, order)} to ${fullDate(cycle.end, order)}${passes}.`,
+  ];
 }

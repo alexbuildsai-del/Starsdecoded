@@ -20,7 +20,9 @@ import { CHAPTERS } from "@/lib/chapters";
 import type { DateOrder } from "@/lib/date-entry";
 import { dayWords } from "@/lib/dial";
 import { ORDINALS, houseWithWord, houseWord } from "@/lib/evidence-glossary";
-import { bodyName, cycleBody, cycleDay, cycleMark, cycleWhen, type CycleView, type WaveLine } from "@/lib/life-view";
+import {
+  bodyName, cycleBody, cycleDay, cycleMark, cycleWhat, cycleWhen, lifeStops, type CycleView, type LifeStop, type WaveLine,
+} from "@/lib/life-view";
 import { PERSONAL_REPORT } from "@/lib/product";
 import { dayIn, dayMonth, factsLine, fullDate, lastsLine, listOf, nearDate, weekdayOf, type ContactView } from "@/lib/timeline-view";
 
@@ -307,8 +309,6 @@ export function rangeSpan(now: Pick<TimelineNow, "from" | "to">, order: DateOrde
 /** One of the four known ages Life opens on (ADR-209), with the reader's own dates. */
 export interface AgeCard {
   id: CycleId;
-  /** "29", "every 12", "19 · 37", "early 40s". */
-  label: string;
   name: string;
   word: string;
   /** What happens in the sky, in a sentence. */
@@ -320,19 +320,11 @@ export interface AgeCard {
   opens: { key: string; name: string; reading: ReadingStatus } | null;
 }
 
-const ABOUT: Readonly<Partial<Record<CycleId, string>>> = {
-  "saturn-return": "Saturn comes back to where it was when you were born.",
-  "jupiter-return": "Jupiter comes back to where it was when you were born.",
-  "node-return": "The Moon's nodes come back to where they were when you were born.",
-  "uranus-opposition": "Uranus gets halfway round, opposite where it was when you were born.",
-};
-
 const sameInstant = (a: string | null, b: string) => a !== null && Date.parse(a) === Date.parse(b);
 const anchorOf = (cycle: Pick<LifeCycleView, "exact" | "start">) => cycle.exact[0] ?? cycle.start;
 
 function ageCardOf(age: KnownAge, cycles: readonly LifeCycleView[], today: string, day: (at: string) => string, order: DateOrder): AgeCard {
   const words = CYCLE_WORDS[age.id];
-  const known = KNOWN_AGES.find((k) => k.id === age.id);
   const own = cycles.filter((cycle) => cycle.id === age.id);
   const next = own.find((cycle) => sameInstant(age.next, anchorOf(cycle))) ?? null;
   const last = own.find((cycle) => sameInstant(age.last, anchorOf(cycle))) ?? null;
@@ -348,10 +340,9 @@ function ageCardOf(age: KnownAge, cycles: readonly LifeCycleView[], today: strin
   const opens = next ?? last;
   return {
     id: age.id,
-    label: known?.label ?? String(age.age),
     name: words.name,
     word: words.word,
-    about: ABOUT[age.id] ?? "",
+    about: cycleWhat(age.id),
     yours: said.join(" "),
     progress: age.progress,
     opens: opens ? { key: opens.key, name: opens.name, reading: opens.reading } : null,
@@ -366,6 +357,10 @@ export interface LifeModel {
   /** The most recent first, where looking back starts. */
   behind: CycleView[];
   waves: WaveLine[];
+  /** The reader's birth instant, which dates the line wherever it is dragged. */
+  birth: string;
+  /** Where each cycle on the waves sits: the marks the line snaps to. */
+  stops: LifeStop[];
   /** The reader's age today, which marks today on the waves. */
   age: number;
   /** Each cycle's reading status by key, for what a tap opens. */
@@ -393,6 +388,9 @@ export function waveLinesOf(life: Pick<TimelineLife, "waves" | "cycles" | "birth
   }));
 }
 
+// Four rows draw (Review 05/10 §4); Neptune's and Pluto's squares are cycles without a row, found in the list.
+const GRAPH_ROWS: readonly string[] = ["jupiter", "saturn", "north_node", "uranus"];
+
 export function lifeModel(life: TimelineLife, today: string, zone: string, order: DateOrder): LifeModel {
   const day = dayReader(zone);
   const progress = progressByBody(life);
@@ -418,6 +416,8 @@ export function lifeModel(life: TimelineLife, today: string, zone: string, order
       progress: progress[cycleBody(cycle.id)] ?? null,
       last: before ? { on: day(anchorOf(before)), age: before.age } : null,
       ages: same.map((c) => c.age),
+      ageDays: same.map((c) => day(anchorOf(c))),
+      at: anchorOf(cycle),
     };
   });
 
@@ -429,7 +429,9 @@ export function lifeModel(life: TimelineLife, today: string, zone: string, order
     behind: views
       .filter((view) => cycleWhen(view, today) === "past")
       .sort((a, b) => cycleDay(b).localeCompare(cycleDay(a)) || a.key.localeCompare(b.key)),
-    waves: waveLinesOf(life),
+    waves: waveLinesOf(life).filter((line) => GRAPH_ROWS.includes(line.body)),
+    birth: life.birth,
+    stops: lifeStops(life.cycles.filter((cycle) => GRAPH_ROWS.includes(cycle.body)), life.birth),
     age: life.age,
     readings: new Map(life.cycles.map((cycle) => [cycle.key, cycle.reading])),
   };
