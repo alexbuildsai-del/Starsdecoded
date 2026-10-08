@@ -1,6 +1,6 @@
 /**
  * One house as chapter 02's deck shows it (ADR-179): the house and its sign,
- * who stands there, the house's full title (ADR-98), then the report's own
+ * the house's full title (ADR-98), then the report's own
  * reading, then its blocks (Often noticed, the stellium, each body going backwards, ADR-396 to 404), closed by its
  * Behaviour check. On a phone the card leads with the
  * first sentence and keeps the rest behind Read the rest; on a desktop and on
@@ -8,36 +8,15 @@
  * own. A blind chart has no house to show, so the deck gives it the blind card.
  */
 import { useId, useState } from "react";
-import { PLANET_GLYPHS } from "@/types/chart";
-import { PLANET_RENDERS } from "@/lib/planet-renders";
 import { hintFor } from "@/lib/birth-record-hints";
 import { HOUSE_NAMES, ORDINALS, houseWord } from "@/lib/evidence-glossary";
 import { TRADITIONAL_RULER } from "@/lib/house-rulers";
 import { splitReading } from "@/lib/house-deck";
 import { OftenNoticed, RetrogradeBlock, StelliumBlock, StelliumChip } from "@/components/report/HouseBlocks";
-import { AngleGlyph, type AngleKey } from "@/components/report/AngleGlyph";
 import type { Occupant } from "@/lib/house-occupants";
 import { PLANET_LABELS, type ChartData } from "@/types/chart";
 
 const EASE = "ease-[cubic-bezier(.16,1,.3,1)]";
-
-function OccupantMark({ o }: { o: Occupant }) {
-  const src = o.kind === "planet" ? PLANET_RENDERS[o.key] : undefined;
-  if (src) return <img src={src} alt={o.label} title={o.label} width={16} height={16} className="h-4 w-4" loading="lazy" />;
-  // The R03 marker (ADR-49): an angle is a point on the horizon, never a body.
-  if (o.kind === "angle") {
-    return (
-      <span role="img" aria-label={o.label} title={o.label} className="inline-flex">
-        <AngleGlyph angle={o.key as AngleKey} size={16} />
-      </span>
-    );
-  }
-  return (
-    <span role="img" aria-label={o.label} title={o.label} className="font-mono text-[11px] font-medium leading-none text-[color:var(--paper-dim)]">
-      {PLANET_GLYPHS[o.key] ?? "·"}
-    </span>
-  );
-}
 
 /** The planet that goes with the rising sign, and where the chart puts it. Null for a blind chart, which has no 1st house. */
 export interface ChartRuler {
@@ -64,7 +43,8 @@ export interface HouseCardProps {
   house: number;
   /** The whole-sign sign on this house. */
   sign: string;
-  occupants: Occupant[];
+  /** Kept for the deck's callers; the header draws no planet row (R19-48, the design drops it). */
+  occupants?: Occupant[];
   /** The chart ruler, on the 1st house's card only; the triad rows no longer print it. */
   ruler?: ChartRuler | null;
   /** A house with no one in it: the small line that says whose it is (`quietLine`). */
@@ -82,7 +62,7 @@ export interface HouseCardProps {
   className?: string;
 }
 
-export function HouseCard({ house, sign, occupants, ruler, quiet, reading, stellium, blocks, whole = false, lit = true, className = "" }: HouseCardProps) {
+export function HouseCard({ house, sign, ruler, quiet, reading, stellium, blocks, whole = false, lit = true, className = "" }: HouseCardProps) {
   const [open, setOpen] = useState(false);
   const restId = useId();
   const parts = reading ? splitReading(reading) : null;
@@ -103,11 +83,6 @@ export function HouseCard({ house, sign, occupants, ruler, quiet, reading, stell
           </p>
           {stellium && <StelliumChip />}
         </div>
-        {occupants.length > 0 && (
-          <span className="flex shrink-0 items-center gap-1">
-            {occupants.map((o) => <OccupantMark key={o.key} o={o} />)}
-          </span>
-        )}
       </div>
       <h3 className={`font-display font-normal leading-[1.15] text-[color:var(--paper)] print:text-black ${whole ? "text-[28px]" : "text-[22px]"}`}>
         {HOUSE_NAMES[i]}

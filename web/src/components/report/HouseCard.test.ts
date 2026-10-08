@@ -22,7 +22,7 @@ describe("the chart ruler on the 1st house card", () => {
   });
 });
 
-describe("the R line on Audrey Hepburn's house cards", () => {
+describe("the R line on house cards", () => {
   it("sits on the 3rd, 7th and 12th, where Venus, Neptune and Saturn stand, and on no other", () => {
     const withLine = HOUSE_NUMBERS.filter((h) => houseOccupants(drawn, h).some((o) => goesBackwards(o.key, o.retrograde)));
     expect(withLine).toEqual([3, 7, 12]);
