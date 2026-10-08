@@ -6,8 +6,9 @@
  */
 import { randomUUID } from "node:crypto";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
-import { db, inviteTokensTable, profileSharesTable, profilesTable, reportsTable } from "@workspace/db";
+import { db, inviteTokensTable, profileSharesTable, profilesTable, reportsTable, type InviteToken } from "@workspace/db";
 import { canReadProfile, isSelfFor, type ProfileHolders, type Viewer } from "./access.js";
+import { logger } from "./logger.js";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 /** A transaction, or the pool for a grant that is the only write. */
@@ -315,4 +316,115 @@ export async function shareBackOffered(readerUserId: string, profileId: string):
   const own = await ownChart(readerUserId);
   if (!own?.finished || canReadProfile(account(sharer), own.chart)) return false;
   return !(await sharedProfileIds(sharer)).has(own.chart.id);
+}
+
+/** A grant a gift's claim writes from one of its two answers; `inviteId` is the gift's, so Stop sharing ends it alike. */
+export type GiftGrant = { profileId: string; ownerUserId: string; readerUserId: string; inviteId: string };
+
+/**
+ * What a gift's claim writes from its two answers (ADR-331, reading 16), read before the claim takes the link so that
+ * its own transaction writes them. The giver's Yes is a grant of their own Personal report to the claimer. The
+ * claimer's Yes is a grant of theirs to the giver once it is finished: now, when it already is, else kept on the gift
+ * (`keepShareBack`) for `grantShareBacks`. Not now writes nothing, a grant to someone who reads the chart already is
+ * none, and a gift claimed at its giver's own address has no one to share with.
+ */
+export async function giftAnswers(
+  gift: Pick<InviteToken, "id" | "createdByUserId" | "giverShares">,
+  claimerUserId: string,
+  shareBack: boolean,
+): Promise<{ grants: GiftGrant[]; keepShareBack: boolean }> {
+  const giver = gift.createdByUserId;
+  if (!giver || !claimerUserId || giver === claimerUserId) return { grants: [], keepShareBack: false };
+  const grants: GiftGrant[] = [];
+  if (gift.giverShares) {
+    const theirs = await ownChart(giver);
+    if (theirs && !canReadProfile(account(claimerUserId), theirs.chart)) {
+      grants.push({ profileId: theirs.chart.id, ownerUserId: giver, readerUserId: claimerUserId, inviteId: gift.id });
+    }
+  }
+  if (!shareBack) return { grants, keepShareBack: false };
+  const own = await ownChart(claimerUserId);
+  if (!own?.finished) return { grants, keepShareBack: true };
+  if (!canReadProfile(account(giver), own.chart)) {
+    grants.push({ profileId: own.chart.id, ownerUserId: claimerUserId, readerUserId: giver, inviteId: gift.id });
+  }
+  return { grants, keepShareBack: false };
+}
+
+/**
+ * Whether a gift's claim would grant its giver's own Personal report (reading 16): their Yes, and a chart of their own
+ * to grant, so the claim page never says they shared what no claim would grant.
+ */
+export async function giverSharesOn(gift: Pick<InviteToken, "kind" | "createdByUserId" | "giverShares">): Promise<boolean> {
+  if (gift.kind !== "gift" || !gift.giverShares || !gift.createdByUserId) return false;
+  return !!(await ownChart(gift.createdByUserId));
+}
+
+/** Each kept share back of this account, as a grant of its own Personal report once that is finished. */
+async function writeShareBacks(userId: string): Promise<number> {
+  const own = await ownChart(userId);
+  if (!own?.finished) return 0;
+  const kept = await db
+    .select({ id: inviteTokensTable.id, giver: inviteTokensTable.createdByUserId })
+    .from(inviteTokensTable)
+    .where(
+      and(
+        eq(inviteTokensTable.kind, "gift"),
+        eq(inviteTokensTable.claimedByUserId, userId),
+        eq(inviteTokensTable.shareBack, true),
+      ),
+    );
+  let granted = 0;
+  for (const gift of kept) {
+    const wrote = await db.transaction(async (tx) => {
+      // Cleared in the grant's own transaction and only while still kept, so of two reports finishing together one
+      // writes it, and once written no later report writes it again after a Stop sharing (R-3.6).
+      const [taken] = await tx
+        .update(inviteTokensTable)
+        .set({ shareBack: false })
+        .where(and(eq(inviteTokensTable.id, gift.id), eq(inviteTokensTable.shareBack, true)))
+        .returning({ id: inviteTokensTable.id });
+      const giver = gift.giver;
+      if (!taken || !giver || giver === userId || canReadProfile(account(giver), own.chart)) return false;
+      await grantShare(tx, { profileId: own.chart.id, ownerUserId: userId, readerUserId: giver, inviteId: gift.id });
+      return true;
+    });
+    if (wrote) granted += 1;
+  }
+  return granted;
+}
+
+/**
+ * A claimer's Yes kept at a gift's claim becomes their grant once their own Personal report is finished (reading 16):
+ * called as a sent chart becomes its subject's. Never rejects, so the claim that called it stands, and a Yes not
+ * written here waits for the next report of theirs to finish.
+ */
+export async function grantShareBacks(userId: string): Promise<number> {
+  if (!userId) return 0;
+  try {
+    return await writeShareBacks(userId);
+  } catch (err) {
+    logger.warn({ err }, "a kept share back was not granted; the next finished report tries again");
+    return 0;
+  }
+}
+
+/** The same once a Personal report finishes, for whoever holds its chart; never rejects, so the report stays finished. */
+export async function grantShareBacksOn(profileId: string): Promise<number> {
+  if (!profileId) return 0;
+  try {
+    const [chart] = await db
+      .select({ userId: profilesTable.userId, claimedByUserId: profilesTable.claimedByUserId })
+      .from(profilesTable)
+      .where(eq(profilesTable.id, profileId))
+      .limit(1);
+    let granted = 0;
+    for (const holder of new Set([chart?.userId, chart?.claimedByUserId])) {
+      if (holder) granted += await writeShareBacks(holder);
+    }
+    return granted;
+  } catch (err) {
+    logger.warn({ err, profileId }, "a kept share back was not granted; the next finished report tries again");
+    return 0;
+  }
 }

@@ -3,6 +3,7 @@
  * profiles.test.ts runs its routes. The claim reads its link by the old token and checks the old address; Change
  * address then gives the row a new link and address before the claim takes it, so the old address must take nothing.
  * Then a pair sent to the other of its two on the chart they keep (ADR-285): its Send, its refusals and its claim.
+ * Then a gift's two answers at its claim (ADR-331, reading 16), and Cancel invite and Copy their link (ADR-390).
  */
 import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
@@ -19,7 +20,7 @@ delete process.env.RESEND_API_KEY;
 const { pool } = await import("@workspace/db");
 const { logger } = await import("../lib/logger.js");
 const { mintInviteToken } = await import("../lib/inviteToken.js");
-const { default: invitesRouter, PAIR_SEND_LINES, SOMEONE_ELSES_PAIR } = await import("./invites.js");
+const { default: invitesRouter, PAIR_SEND_LINES, SOMEONE_ELSES_PAIR, WAITING_LINK_LINES } = await import("./invites.js");
 
 type Row = Record<string, unknown>;
 type Statement = { text: string; params: unknown[] };
@@ -132,13 +133,15 @@ async function serveAs(t: TestContext, who: { user: string; session: string }) {
     return new Promise<void>((resolve) => server.close(() => resolve()));
   });
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  return async (path: string, body?: unknown) => {
+  return async (path: string, body?: unknown, method: "POST" | "DELETE" = "POST") => {
     const res = await fetch(`${base}${path}`, {
-      method: "POST",
+      method,
       headers: body === undefined ? {} : { "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+    // A 204 has no body to read.
+    const text = await res.text();
+    return { status: res.status, body: (text ? JSON.parse(text) : {}) as Record<string, unknown> };
   };
 }
 
@@ -340,4 +343,184 @@ test("anyone else at the address its maker typed takes nothing: 403, no write, a
   assert.deepEqual(writes(sent), []);
   assert.ok(!sent.some((s) => s.text === "begin"));
   assert.equal(invite.claimed_at, null);
+});
+
+test("MB-212", async (t) => {
+  fakePool(t, ({ text, params }) => {
+    if (text.startsWith("select ") && text.includes(' from "profiles" where "profiles"."id" = $1')) {
+      return params[0] === IDRIS_KEEPS.id ? [IDRIS_KEEPS] : [];
+    }
+    return undefined;
+  });
+  const post = await serveAs(t, MIRA);
+  const theirs = await post("/invites", { profileId: IDRIS_KEEPS.id, email: TYPED });
+  const missing = await post("/invites", { profileId: "p-nobody", email: TYPED });
+  assert.deepEqual([theirs.status, theirs.body], [404, { error: "not_found", message: "Profile not found" }]);
+  assert.deepEqual([theirs.status, theirs.body], [missing.status, missing.body]);
+});
+
+/**
+ * A gift Mira sent Idris and what its claim reads: the two charts each marked as its account's own, and which of them
+ * has a finished Personal report. `giverShares` is Mira's answer at the gift; Idris's goes in the claim's body.
+ */
+function giftDb(t: TestContext, over: { giverShares?: boolean; idrisFinished?: boolean; takenBackOnRead?: boolean } = {}) {
+  const link = mintInviteToken();
+  const gift: Row = {
+    id: "gift-1", token_hash: link.tokenHash, email: TYPED, kind: "gift", profile_id: null, relationship_id: null,
+    credit_id: "credit-1", recipient_name: "Idris", note: null, created_by_user_id: MIRA.user, created_by_session_id: MIRA.session,
+    expires_at: new Date(Date.now() + 20 * 86_400_000), claimed_at: null, claimed_by_user_id: null, reminded_at: null,
+    revoked_at: null, handed_back_at: null, email_delivered: true, created_at: new Date(Date.now() - 86_400_000),
+    giver_shares: over.giverShares ?? false, share_back: false, link_hash: null,
+  };
+  const own: Record<string, Chart> = { [MIRA.user]: MIRAS_OWN, [IDRIS.user]: IDRIS_KEEPS };
+  const finished = new Set([MIRAS_OWN.id, ...(over.idrisFinished === false ? [] : [IDRIS_KEEPS.id])]);
+  let made = 0;
+  const sent = fakePool(t, (s) => {
+    const { text, params } = s;
+    if (text.includes(' from "invite_tokens" where "invite_tokens"."token_hash" = $1')) {
+      if (params[0] !== gift.token_hash) return [];
+      const read = { ...gift };
+      // Mira takes it back the moment the claim has read it.
+      if (over.takenBackOnRead) gift.revoked_at = new Date();
+      return [read];
+    }
+    if (text.startsWith('select "email" from "users"')) return [{ email: TYPED }];
+    // An account's own chart, by the mark it or its claimer left on it (shares.ts `ownChart`).
+    if (text.includes(' from "profiles" where (("profiles"."user_id" = $1 and "profiles"."is_self" = $2) or ')) {
+      const chart = own[String(params[0])];
+      return chart ? [chart] : [];
+    }
+    if (text.startsWith('select "id" from "reports"')) return finished.has(String(params[0])) ? [{ id: `r-${params[0]}` }] : [];
+    if (text.startsWith('update "invite_tokens" set "claimed_at" = $1')) {
+      if (!takes(s, gift)) return [];
+      Object.assign(gift, { claimed_at: new Date(), claimed_by_user_id: params[1], share_back: params[2] });
+      return [{ id: gift.id }];
+    }
+    if (text.startsWith('insert into "profile_shares"')) return [{ id: `grant-${++made}` }];
+    return undefined;
+  });
+  return { token: link.token, gift, sent };
+}
+
+/** Each grant a route wrote, as [chart, owner, reader, invite]: its insert's parameters after the new row's id. */
+const grantsOf = (sent: Statement[]) =>
+  sent.filter((s) => s.text.startsWith('insert into "profile_shares"')).map((s) => s.params.slice(1, 5));
+
+/** Every statement of the transaction a route committed, from its begin to its commit. */
+function committed(sent: Statement[]): Statement[] {
+  const begin = sent.findIndex((s) => s.text === "begin");
+  const commit = sent.findIndex((s) => s.text === "commit");
+  assert.ok(begin >= 0 && commit > begin, "one committed transaction");
+  return sent.slice(begin, commit + 1);
+}
+
+test("a gift's two Yes answers are two grants of each side's own Personal report, written as the claim takes the link (ADR-331, reading 16)", async (t) => {
+  const { token, gift, sent } = giftDb(t, { giverShares: true });
+  const r = await (await serveAs(t, IDRIS))(claimPath(token), { shareBack: true });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual([r.body.kind, r.body.redirectTo], ["gift", "/dashboard"]);
+  const both = [
+    [MIRAS_OWN.id, MIRA.user, IDRIS.user, gift.id],
+    [IDRIS_KEEPS.id, IDRIS.user, MIRA.user, gift.id],
+  ];
+  assert.deepEqual(grantsOf(sent), both);
+  assert.deepEqual(grantsOf(committed(sent)), both, "in the claim's own transaction");
+  assert.deepEqual([gift.claimed_by_user_id, gift.share_back], [IDRIS.user, false], "Idris's Yes is written, so nothing is kept");
+});
+
+test("the claimer's Yes before their own report is finished is kept on the gift, and only the giver's is a grant yet (reading 16)", async (t) => {
+  const { token, gift, sent } = giftDb(t, { giverShares: true, idrisFinished: false });
+  const r = await (await serveAs(t, IDRIS))(claimPath(token), { shareBack: true });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(grantsOf(sent), [[MIRAS_OWN.id, MIRA.user, IDRIS.user, gift.id]]);
+  assert.deepEqual([gift.claimed_by_user_id, gift.share_back], [IDRIS.user, true]);
+});
+
+test("Not now on both sides, or a claim with no answer, takes the gift and writes no grant (ADR-331, R-3.6)", async (t) => {
+  for (const body of [{ shareBack: false }, undefined]) {
+    await t.test(body ? "Not now" : "no body", async (st) => {
+      const { token, gift, sent } = giftDb(st);
+      const r = await (await serveAs(st, IDRIS))(claimPath(token), body);
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.deepEqual(writes(sent), ['update "invite_tokens"'], "the claim alone");
+      assert.deepEqual([gift.claimed_by_user_id, gift.share_back], [IDRIS.user, false]);
+      assert.ok(!sent.some((s) => s.text.includes(' from "profiles" ')), "no one's chart is read");
+    });
+  }
+  const { token, sent } = giftDb(t);
+  const bad = await (await serveAs(t, IDRIS))(claimPath(token), { shareBack: "yes" });
+  assert.deepEqual([bad.status, bad.body.error], [400, "validation_error"]);
+  assert.deepEqual(writes(sent), []);
+});
+
+test("a Yes on a gift whose claim loses the link writes no grant: the link and the grants go together or not at all", async (t) => {
+  const { token, gift, sent } = giftDb(t, { giverShares: true, takenBackOnRead: true });
+  const r = await (await serveAs(t, IDRIS))(claimPath(token), { shareBack: true });
+  assert.deepEqual([r.status, r.body], [404, { error: "not_found", message: "Invite not found" }]);
+  assert.deepEqual(grantsOf(sent), []);
+  assert.ok(sent.some((s) => s.text === "rollback") && !sent.some((s) => s.text === "commit"));
+  assert.deepEqual([gift.claimed_at, gift.share_back], [null, false]);
+});
+
+/** A send Mira made of a chart she wrote, waiting at the address she typed, read as Cancel invite and Copy their link read it. */
+function linkDb(t: TestContext) {
+  const link = mintInviteToken();
+  const invite: Row = {
+    id: "inv-send", token_hash: link.tokenHash, email: TYPED, kind: "send", profile_id: "p-june", relationship_id: null,
+    credit_id: null, recipient_name: null, note: null, created_by_user_id: MIRA.user, created_by_session_id: MIRA.session,
+    expires_at: new Date(Date.now() + 6 * 86_400_000), claimed_at: null, claimed_by_user_id: null, reminded_at: null,
+    revoked_at: null, handed_back_at: null, email_delivered: true, created_at: new Date(Date.now() - 3_600_000),
+    giver_shares: false, share_back: false, link_hash: null,
+  };
+  const addresses: Record<string, string> = { [IDRIS.user]: TYPED, [INES.user]: "ines@example.com" };
+  const sent = fakePool(t, ({ text, params }) => {
+    if (text.startsWith("select ") && text.includes(' from "invite_tokens" where ("invite_tokens"."id" = $1 and "invite_tokens"."created_by_user_id" = $2')) {
+      return params[0] === invite.id && params[1] === invite.created_by_user_id ? [invite] : [];
+    }
+    if (text.includes(' from "invite_tokens" where "invite_tokens"."token_hash" = $1')) return params[0] === invite.token_hash ? [invite] : [];
+    if (text.includes(' from "invite_tokens" where "invite_tokens"."link_hash" = $1')) return params[0] === invite.link_hash ? [invite] : [];
+    if (text.startsWith('select "email" from "users"')) return [{ email: addresses[String(params[0])] }];
+    if (text.startsWith('update "invite_tokens" set "link_hash" = $1')) {
+      if (invite.claimed_at || invite.revoked_at) return [];
+      invite.link_hash = params[0];
+      return [{ id: invite.id }];
+    }
+    if (text.startsWith('update "invite_tokens" set ') && text.includes('"revoked_at" = $')) {
+      if (invite.claimed_at || invite.revoked_at) return [];
+      Object.assign(invite, { revoked_at: new Date(), expires_at: new Date() });
+      return [{ id: invite.id }];
+    }
+    return undefined;
+  });
+  return { token: link.token, invite, sent };
+}
+
+test("Copy their link opens the same invite as its email, and Cancel invite stops both: a cancelled link no longer claims (ADR-390)", async (t) => {
+  const { token, invite, sent } = linkDb(t);
+  const mira = await serveAs(t, MIRA);
+  const ines = await serveAs(t, INES);
+  const notWaiting = { error: "not_found", message: WAITING_LINK_LINES.notWaiting };
+  // To anyone but its sender there is no such link.
+  assert.deepEqual([(await ines("/invites/inv-send/link")).body, (await ines("/invites/inv-send", undefined, "DELETE")).body], [notWaiting, notWaiting]);
+  assert.deepEqual(writes(sent), []);
+
+  const copied = await mira("/invites/inv-send/link");
+  assert.equal(copied.status, 200, JSON.stringify(copied.body));
+  const copy = new URL(String(copied.body.claimUrl)).searchParams.get("token") ?? "";
+  assert.ok(copy && copy !== token && invite.link_hash && invite.link_hash !== invite.token_hash);
+  // Both links find the invite: another account is refused for its address, not told the link is gone.
+  for (const link of [token, copy]) {
+    assert.deepEqual([(await ines(claimPath(link))).body.error], ["wrong_recipient"]);
+  }
+
+  const cancelled = await mira("/invites/inv-send", undefined, "DELETE");
+  assert.equal(cancelled.status, 204, JSON.stringify(cancelled.body));
+  assert.ok(invite.revoked_at && (invite.expires_at as Date).getTime() <= Date.now());
+  const idris = await serveAs(t, IDRIS);
+  for (const link of [token, copy]) {
+    const r = await idris(claimPath(link));
+    assert.deepEqual([r.status, r.body.error], [404, "not_found"]);
+  }
+  assert.ok(!sent.some((s) => s.text.startsWith('update "invite_tokens" set "claimed_at"')), "nothing claimed");
+  assert.deepEqual([(await mira("/invites/inv-send", undefined, "DELETE")).body, (await mira("/invites/inv-send/link")).body], [notWaiting, notWaiting]);
 });

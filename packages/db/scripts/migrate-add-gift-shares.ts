@@ -4,9 +4,10 @@
  * own Personal report is finished; and invite_tokens.link_hash, the hash of the link Copy their link last gave, with
  * its unique index. Every gift and link from before reads Not now, with no copied link.
  *
- * Runs in step 1 of the bootstrap, before the schema push, as migrate-payments-columns.ts does: invite_tokens holds
- * rows on every host, and the push must find nothing to ask about on it. On a database without the table it does
- * nothing, and the push creates it with these columns. The names are the schema's own, so the push finds no drift.
+ * Runs in step 3 of the bootstrap, after the schema push, which usually adds all of them first. The push asks nothing
+ * here although invite_tokens holds rows on every host: each new column has a default, and the index is not a
+ * constraint. The push is only the safety net, so this still runs; the names are the schema's own, so neither finds
+ * drift after the other. On a database without the table it does nothing.
  *
  * Run with: tsx packages/db/scripts/migrate-add-gift-shares.ts
  *

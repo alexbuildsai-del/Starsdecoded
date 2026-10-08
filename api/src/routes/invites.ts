@@ -14,8 +14,11 @@ import {
   type RelationshipParticipant,
 } from "@workspace/db";
 import {
+  CancelInviteParams,
   ChangeInviteAddressBody,
   ChangeInviteAddressParams,
+  ClaimInviteBody,
+  CopyInviteLinkParams,
   CreateInviteBody,
   SendCompatibilityBody,
   SendCompatibilityParams,
@@ -36,7 +39,16 @@ import {
 import { firstNameOf, firstWord } from "../lib/names.js";
 import { sendPairEmail, sendReportEmail } from "../lib/mailer.js";
 import { moveHeldCredit } from "../lib/credits.js";
-import { grantShare, grantStands, shareBackOffered, sharedProfileIds, sharerOf } from "../lib/shares.js";
+import {
+  giftAnswers,
+  giverSharesOn,
+  grantShare,
+  grantShareBacks,
+  grantStands,
+  shareBackOffered,
+  sharedProfileIds,
+  sharerOf,
+} from "../lib/shares.js";
 import { validationFailure } from "../lib/validation.js";
 import { publicWebBase } from "../lib/waitlist.js";
 
@@ -91,15 +103,15 @@ function claimUrlFor(token: string): string {
   return `${publicWebBase()}/claim?token=${encodeURIComponent(token)}`;
 }
 
+/** The link its email carried, else the one Copy their link gave last (ADR-390): both open the same invite. */
 async function inviteByToken(raw: string): Promise<InviteToken | null> {
-  const tokenHash = verifyInviteToken(raw);
-  if (!tokenHash) return null;
-  const [inv] = await db
-    .select()
-    .from(inviteTokensTable)
-    .where(eq(inviteTokensTable.tokenHash, tokenHash))
-    .limit(1);
-  return inv ?? null;
+  const hash = verifyInviteToken(raw);
+  if (!hash) return null;
+  for (const column of [inviteTokensTable.tokenHash, inviteTokensTable.linkHash]) {
+    const [inv] = await db.select().from(inviteTokensTable).where(eq(column, hash)).limit(1);
+    if (inv) return inv;
+  }
+  return null;
 }
 
 /** The local copy first, then Clerk, for a user the local table has not caught yet. */
@@ -284,11 +296,8 @@ router.get("/invites", async (req, res) => {
       .from(profilesTable)
       .where(eq(profilesTable.id, profileId))
       .limit(1);
-    if (!profile) {
+    if (!profile || !ownsProfile(viewerOf(req), profile)) {
       return res.status(404).json({ error: "not_found", message: "Profile not found" });
-    }
-    if (!ownsProfile(viewerOf(req), profile)) {
-      return res.status(403).json({ error: "forbidden", message: "You do not own this profile" });
     }
 
     const rows = await db
@@ -357,11 +366,8 @@ router.post("/invites", async (req, res) => {
       .from(profilesTable)
       .where(eq(profilesTable.id, profileId))
       .limit(1);
-    if (!profile) {
+    if (!profile || !ownsProfile(viewerOf(req), profile)) {
       return res.status(404).json({ error: "not_found", message: "Profile not found" });
-    }
-    if (!ownsProfile(viewerOf(req), profile)) {
-      return res.status(403).json({ error: "forbidden", message: "You do not own this profile" });
     }
     // The writer's mark counts only on a chart no one has claimed (`isSelfFor`); a claimed one hears so below.
     if (profile.isSelf && !profile.claimedByUserId) {
@@ -598,6 +604,7 @@ async function sharePreview(token: string, inv: InviteToken, chart: Profile, exp
     kind: "share" as const,
     recipientName: null,
     note: null,
+    giverShares: false,
   };
 }
 
@@ -641,6 +648,7 @@ router.get("/invites/:token", async (req, res) => {
       kind: gift ? "gift" : "send",
       recipientName: gift ? inv.recipientName : null,
       note: gift ? inv.note : null,
+      giverShares: await giverSharesOn(inv),
     });
   } catch (err) {
     req.log.error({ err }, "Failed to load invite");
@@ -678,26 +686,32 @@ async function missedClaim(reader: Reader, inv: InviteToken): Promise<Refusal> {
 }
 
 /**
- * A gift is a credit, not a report: its claim moves the held credit into the
- * claimer's balance and links no one to anyone (ADR-139).
+ * A gift is a credit, not a report: its claim moves the held credit into the claimer's balance and hands no chart over
+ * (ADR-139). Each side's Yes is a grant of their own Personal report only (ADR-331, reading 16), written in the claim's
+ * transaction so the gift is never taken without the reading its giver's Yes promised; the claimer's waits on the gift
+ * while their own report is unfinished. A repeat claim answers again and writes nothing more.
  */
-async function claimGift(inv: InviteToken, userId: string) {
+async function claimGift(inv: InviteToken, userId: string, shareBack: boolean) {
   if (!inv.claimedAt) {
     const now = new Date();
-    const consumed = await db
-      .update(inviteTokensTable)
-      .set({ claimedAt: now, claimedByUserId: userId })
-      .where(
-        and(
-          eq(inviteTokensTable.id, inv.id),
-          ...asRead(inv),
-          isNull(inviteTokensTable.claimedAt),
-          isNull(inviteTokensTable.revokedAt),
-          gt(inviteTokensTable.expiresAt, now),
-        ),
-      )
-      .returning({ id: inviteTokensTable.id });
-    if (!consumed.length) throw await missedClaim(db, inv);
+    const answers = await giftAnswers(inv, userId, shareBack);
+    await db.transaction(async (tx) => {
+      const consumed = await tx
+        .update(inviteTokensTable)
+        .set({ claimedAt: now, claimedByUserId: userId, shareBack: answers.keepShareBack })
+        .where(
+          and(
+            eq(inviteTokensTable.id, inv.id),
+            ...asRead(inv),
+            isNull(inviteTokensTable.claimedAt),
+            isNull(inviteTokensTable.revokedAt),
+            gt(inviteTokensTable.expiresAt, now),
+          ),
+        )
+        .returning({ id: inviteTokensTable.id });
+      if (!consumed.length) throw await missedClaim(tx, inv);
+      for (const grant of answers.grants) await grantShare(tx, grant);
+    });
   }
   // Idempotent, so the claimer's retry finishes a move that failed after the token was taken.
   await moveHeldCredit(inv.id, userId);
@@ -893,6 +907,8 @@ async function claimSend(req: Request, inv: InviteToken, userId: string) {
     if (!consumed.length) throw await missedClaim(tx, inv);
   });
 
+  // A finished chart that is now theirs may be the report a Yes kept at a gift's claim waits for (reading 16).
+  if (!askSelf) await grantShareBacks(userId);
   return sendClaimBody(profileId, pairId, askSelf);
 }
 
@@ -950,6 +966,9 @@ router.post("/invites/:token/claim", async (req, res) => {
   if (!userId) {
     return res.status(401).json({ error: "unauthorized", message: "Sign in to claim this invite" });
   }
+  // No body is Not now (ADR-331): nothing is shared without a Yes.
+  const body = ClaimInviteBody.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json(validationFailure(body.error));
   try {
     const inv = await inviteByToken(req.params.token);
     if (!inv || inv.revokedAt) {
@@ -972,7 +991,7 @@ router.post("/invites/:token/claim", async (req, res) => {
       return res.status(409).json({ error: "already_claimed", message: "Invite already claimed" });
     }
 
-    if (inv.kind === "gift") return res.json(await claimGift(inv, userId));
+    if (inv.kind === "gift") return res.json(await claimGift(inv, userId, body.data.shareBack === true));
     if (inv.kind === "share") return res.json(await claimShare(inv, userId));
     return res.json(await claimSend(req, inv, userId));
   } catch (err) {
@@ -1069,14 +1088,15 @@ router.post("/invites/:id/change-address", async (req, res) => {
     }
 
     // Only a token's hash is stored, so the swap is the revocation: from this statement on the
-    // old link finds no invite and answers as a revoked one does, and the link the new address
-    // gets lives the full week its email promises. It is guarded on the old hash, so a claim or
-    // a second change racing this one leaves one winner.
+    // old link finds no invite and answers as a revoked one does, a copied one with it, since it
+    // would show whoever holds it the new address. The link the new address gets lives the full
+    // week its email promises. It is guarded on the old hash, so a claim or a second change
+    // racing this one leaves one winner.
     const { token, tokenHash } = mintInviteToken();
     const expiresAt = new Date(now.getTime() + LIFETIME_MS.send);
     const [changed] = await db
       .update(inviteTokensTable)
-      .set({ tokenHash, email, createdAt: now, expiresAt, emailDelivered: null })
+      .set({ tokenHash, email, createdAt: now, expiresAt, emailDelivered: null, linkHash: null })
       .where(
         and(
           eq(inviteTokensTable.id, inv.id),
@@ -1114,6 +1134,99 @@ router.post("/invites/:id/change-address", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to change an invite's address");
     return res.status(500).json({ error: "internal_error", message: CHANGE_ADDRESS_LINES.failed });
+  }
+});
+
+/** The Share window shows a refusal's own line (B-52), so each says what happened in the reader's words. */
+export const WAITING_LINK_LINES = {
+  notWaiting: "This invite isn't waiting any more.",
+  cancelFailed: "We couldn't cancel the invite. Try again in a few minutes.",
+  linkFailed: "We couldn't get their link. Try again in a few minutes.",
+} as const;
+
+/**
+ * A send or a share the viewer made, still waiting for its person: what Cancel invite and Copy their link act on
+ * (ADR-390). A gift is taken back at DELETE /gifts/{id}, which returns its credit. Claimed, cancelled or run out, a
+ * link is not waiting, and nor is a share whose chart is no longer its sharer's own, which opens no more. To anyone
+ * else, signed out included, none exists.
+ */
+async function waitingLinkOf(userId: string | null, id: string): Promise<InviteToken | null> {
+  if (!userId || !id) return null;
+  const [inv] = await db
+    .select()
+    .from(inviteTokensTable)
+    .where(
+      and(
+        eq(inviteTokensTable.id, id),
+        eq(inviteTokensTable.createdByUserId, userId),
+        inArray(inviteTokensTable.kind, ["send", "share"]),
+      ),
+    )
+    .limit(1);
+  if (!inv || inv.claimedAt || inv.revokedAt || expiryOf(inv).getTime() <= Date.now()) return null;
+  if (inv.kind === "share" && !(await openShare(inv))) return null;
+  return inv;
+}
+
+function notWaiting(res: Response) {
+  return res.status(404).json({ error: "not_found", message: WAITING_LINK_LINES.notWaiting });
+}
+
+// DELETE /invites/:id — Cancel invite: every link of a waiting invite stops opening at once (ADR-390).
+router.delete("/invites/:id", async (req, res) => {
+  const params = CancelInviteParams.safeParse(req.params);
+  try {
+    const inv = params.success ? await waitingLinkOf(req.userId, params.data.id) : null;
+    if (!inv) return notWaiting(res);
+    const now = new Date();
+    // Expired as well as revoked, as Stop sharing does, so a reader that checks only the expiry refuses it too. The
+    // email's link and a copied one open the same row, so both stop; a claim that took it first keeps it.
+    const cancelled = await db
+      .update(inviteTokensTable)
+      .set({ revokedAt: now, expiresAt: now })
+      .where(
+        and(
+          eq(inviteTokensTable.id, inv.id),
+          isNull(inviteTokensTable.claimedAt),
+          isNull(inviteTokensTable.revokedAt),
+        ),
+      )
+      .returning({ id: inviteTokensTable.id });
+    if (!cancelled.length) return notWaiting(res);
+    return res.status(204).end();
+  } catch (err) {
+    req.log.error({ err }, "Failed to cancel an invite");
+    return res.status(500).json({ error: "internal_error", message: WAITING_LINK_LINES.cancelFailed });
+  }
+});
+
+// POST /invites/:id/link — Copy their link: a link to the same waiting invite, to send by hand (ADR-390).
+router.post("/invites/:id/link", async (req, res) => {
+  const params = CopyInviteLinkParams.safeParse(req.params);
+  try {
+    const inv = params.success ? await waitingLinkOf(req.userId, params.data.id) : null;
+    if (!inv) return notWaiting(res);
+    const now = new Date();
+    // Only a link's hash is kept (MASTERFILE §3), so the link copied before can't be read back: a new one takes its
+    // place, and the one its email carried keeps working. The raw link lives in this response alone.
+    const { token, tokenHash } = mintInviteToken();
+    const [copied] = await db
+      .update(inviteTokensTable)
+      .set({ linkHash: tokenHash })
+      .where(
+        and(
+          eq(inviteTokensTable.id, inv.id),
+          isNull(inviteTokensTable.claimedAt),
+          isNull(inviteTokensTable.revokedAt),
+          gt(inviteTokensTable.expiresAt, now),
+        ),
+      )
+      .returning({ id: inviteTokensTable.id });
+    if (!copied) return notWaiting(res);
+    return res.json({ claimUrl: claimUrlFor(token) });
+  } catch (err) {
+    req.log.error({ err }, "Failed to make a link to copy");
+    return res.status(500).json({ error: "internal_error", message: WAITING_LINK_LINES.linkFailed });
   }
 });
 
