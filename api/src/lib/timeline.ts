@@ -152,6 +152,12 @@ function addDays(day: string, n: number): string {
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
 
+/** The Monday of a reader's day "YYYY-MM-DD", read off the calendar date itself, never off an instant a zone rolls over (R16-05). */
+function mondayOf(day: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return addDays(day, -((new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7));
+}
+
 /**
  * The instant a reader's day "YYYY-MM-DD" begins in their zone. The engine's wall-clock offset finds local midnight;
  * where a clock change skips midnight, the day begins at the first second its calendar shows, found by halving around
@@ -334,6 +340,9 @@ function eventView(event: SkyEvent, spans: Span[], point: number | null, statuse
         start: copy(event.window.start),
         end: copy(event.window.end),
         exact: event.window.exact.map(copy),
+        // Each exact pass with the way the planet moves at it, and its backwards stretches, so the card and Read more show them (ADR-392).
+        passes: event.passes.map((pass) => ({ at: copy(pass.at), direction: pass.direction })),
+        backwards: event.backwards.map((stretch) => ({ start: copy(stretch.start), end: copy(stretch.end) })),
         ...words,
       };
     case "retrograde":
@@ -347,6 +356,8 @@ function eventView(event: SkyEvent, spans: Span[], point: number | null, statuse
         start: copy(event.start),
         end: copy(event.end),
         exact: [],
+        passes: [],
+        backwards: [],
         ...words,
       };
     case "eclipse":
@@ -362,6 +373,8 @@ function eventView(event: SkyEvent, spans: Span[], point: number | null, statuse
         end: copy(event.eclipse.at),
         // An eclipse is one moment, its greatest, which is when it peaks.
         exact: [copy(event.eclipse.at)],
+        passes: [],
+        backwards: [],
         ...words,
       };
   }
@@ -532,15 +545,15 @@ function onFirst(a: Ranked, b: Ranked): number {
 }
 
 /**
- * Your week on the dashboard (ADR-211): seven days from the reader's today with their tones, the week's sentence from
- * the engine, and everything that touches the chart in them, today's first. The dashboard opens no reading, so none
- * is looked up.
+ * Your week on the dashboard (ADR-211): the reader's week, Monday to Sunday in their zone (reading 23), with each day's
+ * tones, the engine's sentence for those seven days, and everything that touches the chart in them, what is on the
+ * reader today first. The dashboard opens no reading, so none is looked up.
  */
 export function weekView(reader: ReaderChart, tz: string | null | undefined, now: Date = new Date()): Week {
   const zone = validZone(tz) ?? reader.zone;
-  const count = RANGE_DAYS.week;
-  const sky = skyOf(reader.chart, zone, dayIn(now, zone), count);
-  const today = new Set(inEffect(sky.events, new Date(sky.starts[0])));
+  const day = dayIn(now, zone);
+  const sky = skyOf(reader.chart, zone, mondayOf(day), RANGE_DAYS.week);
+  const today = new Set(inEffect(sky.events, new Date(sky.starts[sky.dates.indexOf(day)])));
   return {
     headline: weekSentence(sky.events, new Date(sky.starts[0])),
     natal: natalPointsOf(reader.chart),
@@ -640,6 +653,38 @@ export function eventByKey(reader: ReaderChart, key: string, now: Date = new Dat
   if (i < 0 || !readsAs(sky.events[i])) return null;
   const view = eventView(sky.events[i], sky.spans[i], sky.points[i], NO_READINGS, now);
   return opensNow(view, now) ? { kind: "sky", event: sky.events[i], view } : null;
+}
+
+export interface ReadingTimes {
+  spans: Span[];
+  age: number;
+  passed: boolean;
+}
+
+/**
+ * What a reading of an event or a life cycle is written from besides its facts (Review 05/10 §2 and §4, reading 27):
+ * the stretches it is within orb, as its card shows them, a cycle's whole window as Life's card says it; the reader's
+ * whole years at its first exact pass or its start, floored (R16-23); and whether it is a cycle behind the reader's
+ * today, in the birth place's days as `eventByKey` reads a cycle. A sky event is never behind: it is read only while
+ * the app can show it.
+ */
+export function readingTimes(reader: Pick<ReaderChart, "chart" | "zone" | "birth">, event: SkyEvent | LifeCycle, now: Date): ReadingTimes {
+  const ageOn = (at: Date): number => Math.max(0, ageAt(reader.birth, at));
+  if (!("kind" in event)) {
+    const { window } = event;
+    return {
+      spans: [{ start: copy(window.start), end: copy(window.end) }],
+      age: ageOn(window.exact[0] ?? window.start),
+      passed: dayIn(window.end, reader.zone) < dayIn(now, reader.zone),
+    };
+  }
+  const point = event.kind === "contact" ? aspectPoint(reader.chart, event) : null;
+  const first = event.kind === "contact" ? event.window.exact[0] ?? event.window.start : event.kind === "retrograde" ? event.start : event.eclipse.at;
+  return {
+    spans: spansOf(event, point).map((span) => ({ start: copy(span.start), end: copy(span.end) })),
+    age: ageOn(first),
+    passed: false,
+  };
 }
 
 /** The columns the reader is found by: one of their own chart's Personal reports, with that chart's profile. */

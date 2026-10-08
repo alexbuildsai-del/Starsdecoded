@@ -37,6 +37,12 @@ export interface ReadingInput {
   /** The name as typed. The brief holds it in its block, and the passages' copies of it are masked with it. */
   name: string;
   blind: boolean;
+  /** The stretches it is within orb, as its card shows them, so the reading's dates agree with the card (Review 05/10 §2). */
+  spans: readonly { start: Date; end: Date }[];
+  /** The reader's whole years at its first exact pass or its start, floored (R16-23), for a child's words before 16. */
+  age: number;
+  /** A life cycle behind the reader's today, which gets a short paragraph; a sky event never is. */
+  passed: boolean;
 }
 
 /** The family's one prompt: `:system` and `:user` rows derive from it, as a natal section's do. */

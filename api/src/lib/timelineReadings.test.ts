@@ -179,10 +179,35 @@ const miraReport = await reportFor(mira, "Mira Costa");
 test("the reply every test writes passes the checks on any event, drawn or blind, and the order does not", () => {
   assert.deepEqual([curie.blind, blind.blind], [false, true]);
   for (const [reader, key] of [[curie, SATURN_SQUARE], [blind, "contact.mars.square.sun.20261024"]] as const) {
-    const input = { event: eventOf(reader, key), brief: buildBrief(reader.chart, "Marie Curie"), excerpts: [], name: "Marie Curie", blind: reader.blind };
+    const event = eventOf(reader, key);
+    const input = { event, brief: buildBrief(reader.chart, "Marie Curie"), excerpts: [], name: "Marie Curie", blind: reader.blind, ...T.readingTimes(reader, event, FROM) };
     assert.deepEqual(checkReading(CLEAN, input).checks.filter((c) => c.cls === "block"), [], key);
     assert.deepEqual(checkReading(ORDER, input).checks.filter((c) => c.cls === "block").map((c) => c.rule), ["chk-46"], key);
   }
+});
+
+test("a reading's times: a contact's stretches are its card's, the age is floored at its first exact pass, and only a cycle behind the reader is passed (reading 27, R16-23)", () => {
+  const event = eventOf(mira, SATURN_ON_ASC);
+  const keyed = T.eventByKey(mira, SATURN_ON_ASC, FROM);
+  assert.ok(keyed?.kind === "sky");
+  const times = T.readingTimes(mira, event, FROM);
+  assert.deepEqual(times.spans, keyed.view.spans, "the stretches its card shows");
+  assert.equal(times.passed, false, "a sky event is never behind");
+  assert.ok(event.kind === "contact");
+  assert.equal(times.age, E.ageAt(mira.birth, event.window.exact[0] ?? event.window.start));
+  // A cycle late in a year of her life, where rounding would give the age she is not yet.
+  const years = (at: Date) => (at.getTime() - mira.birth.getTime()) / (365.2425 * 86_400_000);
+  const late = cycles(mira).find((c) => years(c.window.exact[0] ?? c.window.start) % 1 > 0.6 && years(c.window.exact[0] ?? c.window.start) % 1 < 0.95);
+  assert.ok(late, "a cycle late in one of her years");
+  const lateYears = years(late.window.exact[0] ?? late.window.start);
+  assert.deepEqual([T.readingTimes(mira, late, FROM).age, late.age], [Math.floor(lateYears), Math.floor(lateYears)]);
+  assert.notEqual(Math.round(lateYears), Math.floor(lateYears));
+  const behind = cycles(mira).filter((c) => c.window.end.getTime() < FROM.getTime() - 2 * 86_400_000).pop();
+  const ahead = cycles(mira).find((c) => c.window.start.getTime() > FROM.getTime());
+  assert.ok(behind && ahead);
+  assert.deepEqual([T.readingTimes(mira, behind, FROM).passed, T.readingTimes(mira, ahead, FROM).passed], [true, false]);
+  assert.equal(T.readingTimes(mira, behind, behind.window.start).passed, false, "under way is not behind");
+  assert.deepEqual(T.readingTimes(mira, behind, FROM).spans, [{ start: behind.window.start, end: behind.window.end }], "a cycle's whole window, as Life says it");
 });
 
 test("drawn, a reading builds on the house card of the point it touches, cut to 120 words", () => {
@@ -393,6 +418,41 @@ test("a reading whose basis moved still answers its kept text, in the statuses a
   assert.equal(asked.length, 0, "nobody waits on a call: only a refresh the reader's open queued writes it again");
   const rows = await rowsFor(reader.profileId);
   assert.deepEqual(rows.map((r) => [r.basis, r.status]), [[before.basis, "ready"]], "kept as it was");
+});
+
+test("a cycle that goes behind the reader is written again once, short, on its basis, and once in all when a new prompt version moves its basis too (Review 05/10 §4)", { skip: NO_DB }, async () => {
+  const reader = await seedReader("passed");
+  const today = new Date();
+  const [moves, both] = cycles(reader).filter((c) => c.window.end.getTime() < today.getTime() - 2 * 86_400_000).slice(-2);
+  const keys = [moves.key, both.key];
+  answer(CLEAN);
+  for (const cycle of [moves, both]) {
+    assert.equal((await R.openReading(reader, cycle.key, { now: new Date(cycle.window.start.getTime() - 86_400_000) })).status, "ready", cycle.key);
+  }
+  assert.equal(asked.length, 2);
+  const passedOf = async (key: string) => ((await rowsFor(reader.profileId)).find((r) => r.eventKey === key)?.reading as { passed?: boolean }).passed;
+  assert.deepEqual([await passedOf(moves.key), await passedOf(both.key)], [false, false], "each written while it was ahead");
+  assert.deepEqual(await R.staleReadings(reader, keys, new Date(moves.window.start.getTime() - 86_400_000)), [], "nothing is behind her then");
+  assert.deepEqual(await R.staleReadings(reader, keys), keys, "both behind her today");
+
+  const SHORT = { ...CLEAN, line: "You may look back on what that time changed." };
+  answer(SHORT);
+  assert.deepEqual(await R.refreshReading(reader, moves.key), { status: "rewritten" }, "on the basis it stands on");
+  assert.equal(asked.length, 1);
+  const moved: ReaderChart = { ...reader, basis: `${reader.basis}-t2` };
+  assert.deepEqual(await R.staleReadings(moved, [both.key]), [both.key]);
+  assert.deepEqual(await R.refreshReading(moved, both.key), { status: "rewritten" }, "a new basis and a cycle passed: one write");
+  assert.equal(asked.length, 2);
+  assert.deepEqual([await passedOf(moves.key), await passedOf(both.key)], [true, true]);
+  const rows = await rowsFor(reader.profileId);
+  assert.ok(rows.find((r) => r.eventKey === both.key)?.basis.startsWith(`${moved.basis}|`), "kept on the new basis");
+  assert.deepEqual(await R.staleReadings(reader, [moves.key]), [], "nothing left to write again");
+  assert.deepEqual(await R.staleReadings(moved, [both.key]), []);
+  assert.deepEqual(await R.refreshReading(moved, both.key), { status: "left" });
+  assert.equal(asked.length, 2, "written again once each");
+  answer(CLEAN);
+  assert.equal((await R.openReading(reader, SATURN_ON_ASC)).status, "ready");
+  assert.deepEqual(await R.staleReadings(reader, [SATURN_ON_ASC]), [], "a sky event's reading never goes behind");
 });
 
 test("a write still marked writing answers writing under five minutes, and is written again past five", { skip: NO_DB }, async () => {

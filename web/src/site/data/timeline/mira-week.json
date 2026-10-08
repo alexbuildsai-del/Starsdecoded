@@ -35,7 +35,7 @@
     {"key":"contact.mars.opposition.moon.20261122","body":"mars","aspect":"opposition","target":"moon","orb":1,"house":11,"tone":"intense","headline":"Short-fuse days","facts":{"sky":"Mars opposite your Moon","house":"11th house"},"start":"2026-11-20T07:47:00.000Z","end":"2027-05-13T16:37:00.000Z","exact":["2026-11-22","2027-02-25","2027-05-10"],"runs":[["2026-11-20","2026-11-25"],["2027-02-22","2027-02-27"],["2027-05-08","2027-05-13"]]},
     {"key":"contact.jupiter.opposition.moon.20270719","body":"jupiter","aspect":"opposition","target":"moon","orb":2,"house":11,"tone":"mixed","headline":"Big feelings","facts":{"sky":"Jupiter opposite your Moon","house":"11th house"},"start":"2026-11-28T01:08:00.000Z","end":"2027-07-29T09:47:00.000Z","exact":["2027-07-19"],"runs":[["2026-11-28","2026-12-28"],["2027-07-09","2027-07-29"]]}
   ],
-  "sentence": "Two things ease and nothing new starts this week",
+  "sentence": "7 transits this week. 5 last all week. Wanting to act, feeling held back ends on Tuesday.",
   "changes": [
     {"day":"2026-10-06","key":"contact.mars.opposition.saturn.20261004","change":"eases","headline":"Wanting to act, feeling held back","tone":"intense"},
     {"day":"2026-10-06","key":"contact.mars.conjunction.jupiter.20261004","change":"eases","headline":"A burst of energy","tone":"mixed"}
