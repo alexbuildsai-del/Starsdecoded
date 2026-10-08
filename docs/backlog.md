@@ -63,7 +63,6 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-74 · /qa has no account it can open by hand on staging, and its host check names `challenges.cloudflare.com` while Turnstile loads `brunhild.challenges.cloudflare.com`; give /qa its own account and check the real host · QA-07 #1
 - B-75 · The loading stories' chart labels print at 6.5 to 7.5 px and overlap · QA-07 #3
 - B-76 · Did you know on a report with no birth time shows the rising sign and houses facts, drawn on Mira's chart (`DidYouKnow.tsx` `mira ?? chart`) · QA-07 #4
-- B-77 · Did you know titles: "Why is east on the left?", and statements end in a full stop · QA-07 #5
 - B-78 · `/faq` "Do I pay once or every month?" no longer answers once or monthly in its first sentence · QA-07 #6
 - B-79 · Get my report from the free chart lands on "Welcome back" sign-in and loses the typed birth data · QA-07 #7
 - B-80 · A dead report link spins about 7 s and calls the API five times before "Report not found."; answer a 404 once · QA-07 #8
