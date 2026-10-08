@@ -28,6 +28,7 @@ import type {
   CheckoutOptions,
   CheckoutStarted,
   CheckoutState,
+  ClaimInviteBody,
   CompatibilityCreateResponse,
   CompatibilitySummary,
   ConfirmWaitlistBody,
@@ -61,6 +62,7 @@ import type {
   Horizon,
   HorizonPreviewBody,
   InviteClaimResponse,
+  InviteLink,
   InvitePreview,
   InviteRecord,
   InviteSummary,
@@ -404,7 +406,7 @@ export const getGetHomeUrl = (params?: GetHomeParams,) => {
 }
 
 /**
- * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs and stories, and what they are practising (ADR-174). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182). A reader with Timeline gets `week`, Your week in their own days; a reader without it whose own Personal report is finished gets `teaser`; anyone else neither (ADR-211, ADR-212, ADR-262).
+ * Everything the dashboard shows in one call, so no card loads a report to open: the reader's circle with each person's birth date and Sun, Moon and Rising, their quick looks, their pairs, who can read each report and its state, Your first steps, and what they are practising (ADR-174, ADR-341). The circle is the reader plus everyone whose Personal report they can read, the people GET /reports lists (ADR-182). A reader with Timeline whose own Personal report is finished gets `week`, Your week in their own days; a reader without Timeline whose own Personal report is finished gets `teaser`; anyone else neither (ADR-211, ADR-212, ADR-262, ADR-297 to 312).
  * @summary The dashboard's one read (ADR-174)
  */
 export const getHome = async (params?: GetHomeParams, options?: Parameters<typeof customFetch>[1]): Promise<Home> => {
@@ -3227,17 +3229,32 @@ export const getClaimInviteUrl = (token: string,) => {
 }
 
 /**
- * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A pair sent to the other person on the chart they keep hands nothing over: it makes their side a participant and answers `profileId: null` (ADR-285). A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
+ * Requires Clerk authentication. A send marks the token claimed, sets profile.claimed_by_user_id, and adds the user as a participant on the related relationship. A pair sent to the other person on the chart they keep hands nothing over: it makes their side a participant and answers `profileId: null` (ADR-285). A gift moves its held credit into the claimer's balance and answers `redirectTo: /dashboard`; it puts no one on an orbit (ADR-139). When its giver said Yes at the gift, the claim writes a grant of the giver's own Personal report to the claimer; the claimer's own Yes, `shareBack` in the body, becomes a grant of theirs to the giver once their report is finished (ADR-331). A share writes a grant to read the sharer's own Personal report, never a hand-over, and answers `shareBack` (ADR-235).
  * @summary Claim an invite as the signed-in user
  */
-export const claimInvite = async (token: string, options?: Parameters<typeof customFetch>[1]): Promise<InviteClaimResponse> => {
+export const claimInvite = async (token: string,
+    claimInviteBody?: ClaimInviteBody, options?: Parameters<typeof customFetch>[1]): Promise<InviteClaimResponse> => {
 
-  return customFetch<InviteClaimResponse>(getClaimInviteUrl(token),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<InviteClaimResponse>(getClaimInviteUrl(token),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(claimInviteBody)
   }
 );}
 
@@ -3262,9 +3279,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimInvite>>, ClaimInviteMutationVariables> = (props) => {
-          const {token} = props ?? {};
+          const {token,data} = props ?? {};
 
-          return  claimInvite(token,requestOptions)
+          return  claimInvite(token,data,requestOptions)
         }
 
 
@@ -3275,9 +3292,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ClaimInviteMutationResult = NonNullable<Awaited<ReturnType<typeof claimInvite>>>
-
+    export type ClaimInviteMutationBody = BodyType<ClaimInviteBody> | undefined
     export type ClaimInviteMutationError = ErrorType<ErrorResponse>
-    export type ClaimInviteMutationVariables = {token: string}
+    export type ClaimInviteMutationVariables = {token: string;data?: BodyType<ClaimInviteBody>}
 
     /**
  * @summary Claim an invite as the signed-in user
@@ -3383,6 +3400,156 @@ export const useChangeInviteAddress = <TError = ErrorType<ErrorResponse | RateLi
       return useMutation(getChangeInviteAddressMutationOptions(options));
     }
 
+export const getCancelInviteUrl = (id: string,) => {
+
+
+
+
+  return `/api/invites/${id}`
+}
+
+/**
+ * Cancel invite (ADR-390): a waiting link the viewer sent, for a report, a pair or their own Personal report, stops opening at once, and so does every link of that invite, the one its email carried included. A gift is taken back at DELETE /gifts/{id}, which returns its credit.
+ * @summary Cancel a waiting link the viewer sent
+ */
+export const cancelInvite = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getCancelInviteUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelInviteMutationKey = () => ['cancelInvite'] as const;
+
+export const getCancelInviteMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelInvite>>, TError,CancelInviteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelInvite>>, TError,CancelInviteMutationVariables, TContext> => {
+
+const mutationKey = getCancelInviteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelInvite>>, CancelInviteMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  cancelInvite(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelInviteMutationResult = NonNullable<Awaited<ReturnType<typeof cancelInvite>>>
+
+    export type CancelInviteMutationError = ErrorType<ErrorResponse>
+    export type CancelInviteMutationVariables = {id: string}
+
+    /**
+ * @summary Cancel a waiting link the viewer sent
+ */
+export const useCancelInvite = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelInvite>>, TError,CancelInviteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelInvite>>,
+        TError,
+        CancelInviteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelInviteMutationOptions(options));
+    }
+
+export const getCopyInviteLinkUrl = (id: string,) => {
+
+
+
+
+  return `/api/invites/${id}/link`
+}
+
+/**
+ * Copy their link (ADR-390): only a link's hash is kept, so an old link can never be read back; this answers a link to the same waiting invite to send by hand, and the one its email carried keeps working. Cancel invite ends both.
+ * @summary A link to copy for a waiting invite the viewer sent
+ */
+export const copyInviteLink = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<InviteLink> => {
+
+  return customFetch<InviteLink>(getCopyInviteLinkUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCopyInviteLinkMutationKey = () => ['copyInviteLink'] as const;
+
+export const getCopyInviteLinkMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof copyInviteLink>>, TError,CopyInviteLinkMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof copyInviteLink>>, TError,CopyInviteLinkMutationVariables, TContext> => {
+
+const mutationKey = getCopyInviteLinkMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof copyInviteLink>>, CopyInviteLinkMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  copyInviteLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CopyInviteLinkMutationResult = NonNullable<Awaited<ReturnType<typeof copyInviteLink>>>
+
+    export type CopyInviteLinkMutationError = ErrorType<ErrorResponse>
+    export type CopyInviteLinkMutationVariables = {id: string}
+
+    /**
+ * @summary A link to copy for a waiting invite the viewer sent
+ */
+export const useCopyInviteLink = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof copyInviteLink>>, TError,CopyInviteLinkMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof copyInviteLink>>,
+        TError,
+        CopyInviteLinkMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCopyInviteLinkMutationOptions(options));
+    }
+
 export const getListGiftsUrl = () => {
 
 
@@ -3470,7 +3637,7 @@ export const getCreateGiftUrl = () => {
 }
 
 /**
- * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275).
+ * Holds one of the giver's credits for 30 days and emails the cover with a claim link; the claim moves the credit into the recipient's balance (ADR-123, ADR-139). With no credit to hold it answers 402 and nothing is sent (ADR-275). The giver's answer to sharing their own Personal report is kept on the gift and becomes a grant when it is claimed (ADR-331).
  * @summary Gift a report
  */
 export const createGift = async (createGiftBody: CreateGiftBody, options?: Parameters<typeof customFetch>[1]): Promise<GiftCreated> => {

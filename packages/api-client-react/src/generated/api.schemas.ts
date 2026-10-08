@@ -565,17 +565,62 @@ export interface UsageTotals {
   ms: number;
 }
 
+/**
+ * A chapter's Did you know card, outside its prose, at most one a chapter: an idea the report is not read by, worded as tradition, what it could mean for this chart and the lesson (ADR-377, ADR-383).
+ */
+export interface DidYouKnow {
+  /** The title that finishes "Did you know". */
+  title: string;
+  /** Two to four sentences. */
+  body: string;
+}
+
 export interface ReportTriadPart {
   label: string;
   text: string;
 }
 
+export type HouseReadingRetrogradeItem = {
+  planet: string;
+  text: string;
+};
+
 /**
- * One generated house-card reading, 40 to 70 words, ending on a behaviour check.
+ * The stellium block when the house holds one, the writer's text and its one thing to do through the opposite house, after "To balance it"; null when it holds none (ADR-398).
+ * @nullable
+ */
+export type HouseReadingStellium = {
+  text: string;
+  balance: string;
+} | null;
+
+/**
+ * Often noticed, one idea from the observations table that this house matches and its reason, filled in code and never model text; null when none matches (ADR-403).
+ * @nullable
+ */
+export type HouseReadingNoticed = {
+  idea: string;
+  why: string;
+} | null;
+
+/**
+ * One generated house-card reading, 40 to 70 words, ending on a behaviour check. From v12 the card also carries a block for each body going backwards in the house, its stellium and one idea often noticed; a report before v12 has none of the three (ADR-396, ADR-398, ADR-403).
  */
 export interface HouseReading {
   house: number;
   reading: string;
+  /** One block for each body going backwards at birth in this house, a planet or Chiron, never a node, written for it in this house against it moving forward; empty when none is (ADR-396). */
+  retrograde?: HouseReadingRetrogradeItem[];
+  /**
+     * The stellium block when the house holds one, the writer's text and its one thing to do through the opposite house, after "To balance it"; null when it holds none (ADR-398).
+     * @nullable
+     */
+  stellium?: HouseReadingStellium;
+  /**
+     * Often noticed, one idea from the observations table that this house matches and its reason, filled in code and never model text; null when none matches (ADR-403).
+     * @nullable
+     */
+  noticed?: HouseReadingNoticed;
 }
 
 export interface ActionItem {
@@ -804,6 +849,8 @@ export type ReportInterpretationOverview = {
   distinctive: string;
   bridge: string;
   claims: Claim[];
+  /** Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383). */
+  didYouKnow?: DidYouKnow | null;
 };
 
 export type ReportInterpretationTriad = {
@@ -826,6 +873,8 @@ export type ReportInterpretationMind = {
   howYouAreUnderstood: string;
   practice: string;
   claims: Claim[];
+  /** Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383). */
+  didYouKnow?: DidYouKnow | null;
 };
 
 export type ReportInterpretationCareer = {
@@ -835,6 +884,8 @@ export type ReportInterpretationCareer = {
   actions: ActionItem[];
   careerPaths: ListedItem[];
   claims: Claim[];
+  /** Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383). */
+  didYouKnow?: DidYouKnow | null;
 };
 
 export type ReportInterpretationMoney = {
@@ -860,6 +911,8 @@ export type ReportInterpretationFamily = {
   theInheritedEdge: string;
   actions: ActionItem[];
   claims: Claim[];
+  /** Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383). */
+  didYouKnow?: DidYouKnow | null;
 };
 
 export type ReportInterpretationSuperpowers = {
@@ -867,6 +920,8 @@ export type ReportInterpretationSuperpowers = {
   chronicPattern: ReportSuperpowerItem;
   growingEdge: ReportSuperpowerItem;
   claims: Claim[];
+  /** Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383). */
+  didYouKnow?: DidYouKnow | null;
 };
 
 export type ReportInterpretationDiscoveriesParadoxesItem = {
@@ -879,6 +934,8 @@ export type ReportInterpretationDiscoveries = {
   opening: string;
   paradoxes: ReportInterpretationDiscoveriesParadoxesItem[];
   claims: Claim[];
+  /** Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383). */
+  didYouKnow?: DidYouKnow | null;
 };
 
 export type ReportInterpretationFocus = {
@@ -887,6 +944,8 @@ export type ReportInterpretationFocus = {
   practice: ReportFocusGroup;
   closing: string;
   claims: Claim[];
+  /** Its Did you know card; null when the chapter has none, absent on a report before v12 (ADR-377, ADR-383). */
+  didYouKnow?: DidYouKnow | null;
 };
 
 export type ReportInterpretationPersonalPlanets = {[key: string]: string};
@@ -1242,6 +1301,57 @@ export interface Spot {
 }
 
 /**
+ * Whether this person can read the reader's own Personal report, for the quick look's line: can-read through a grant that stands, invited while a link to them waits, no otherwise and on `you` (ADR-235, ADR-341).
+ */
+export type HomePersonReadsYours = typeof HomePersonReadsYours[keyof typeof HomePersonReadsYours];
+
+
+export const HomePersonReadsYours = {
+  'can-read': 'can-read',
+  invited: 'invited',
+  no: 'no',
+} as const;
+
+/**
+ * can-read once they hold the report or a grant to read it; invited while their link waits (ADR-329).
+ */
+export type HomeReaderState = typeof HomeReaderState[keyof typeof HomeReaderState];
+
+
+export const HomeReaderState = {
+  'can-read': 'can-read',
+  invited: 'invited',
+} as const;
+
+/**
+ * One person who can read a report on the reader's circle, or is invited to, as the Share window lists them under Who can read it (ADR-329, ADR-341): a claimed reader by first name, a waiting one by the address the reader typed, never by an address the reader did not type (ADR-135).
+ */
+export interface HomeReader {
+  /**
+     * Their first name once they can read it; null while their link waits (ADR-135).
+     * @nullable
+     */
+  name: string | null;
+  /**
+     * The address the reader typed, while the link waits; null once they can read it (ADR-135, R-3.6).
+     * @nullable
+     */
+  email: string | null;
+  /** can-read once they hold the report or a grant to read it; invited while their link waits (ADR-329). */
+  state: HomeReaderState;
+  /**
+     * The grant they read the reader's own Personal report through, which Remove access ends at DELETE /shares/{id}; null while their link waits and on any other report (ADR-235, ADR-390).
+     * @nullable
+     */
+  shareId: string | null;
+  /**
+     * Their waiting link, which Copy their link (POST /invites/{id}/link) and Cancel invite (DELETE /invites/{id}) take; null once they can read it (ADR-390).
+     * @nullable
+     */
+  inviteId: string | null;
+}
+
+/**
  * Sun, Moon and Rising with degrees, from the stored chart; null until the chart is stored (ADR-174).
  * @nullable
  */
@@ -1290,6 +1400,12 @@ export interface HomePerson {
      * @nullable
      */
   lines: HomePersonLines;
+  /** When this report was made, ISO 8601, for "Report from <date>" on the person's row (ADR-297 to 312). */
+  createdAt: string;
+  /** Whether this person can read the reader's own Personal report, for the quick look's line: can-read through a grant that stands, invited while a link to them waits, no otherwise and on `you` (ADR-235, ADR-341). */
+  readsYours: HomePersonReadsYours;
+  /** Who can read this report besides the reader, or is invited to, as the Share window lists them (ADR-329, ADR-341): on `you`, everyone the reader's own Personal report is shared with (ADR-235); on a report the reader made, its subject (ADR-181); empty on any other seat. */
+  readers: HomeReader[];
 }
 
 export type HomePairStatus = typeof HomePairStatus[keyof typeof HomePairStatus];
@@ -1302,6 +1418,16 @@ export const HomePairStatus = {
   revising: 'revising',
   complete: 'complete',
   failed: 'failed',
+} as const;
+
+export type HomePairShareState = typeof HomePairShareState[keyof typeof HomePairShareState];
+
+
+export const HomePairShareState = {
+  'only-you': 'only-you',
+  'can-read': 'can-read',
+  waiting: 'waiting',
+  'shared-by': 'shared-by',
 } as const;
 
 /**
@@ -1321,7 +1447,7 @@ export type HomePairB = {
 };
 
 /**
- * The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).
+ * The 9:16 story's text for the story card at the end of the Compatibility report, never on the dashboard, chapter 01's headline and strengths; null until chapter 01 is written (ADR-175, ADR-338).
  * @nullable
  */
 export type HomePairStory = {
@@ -1330,7 +1456,16 @@ export type HomePairStory = {
 } | null;
 
 /**
- * One Compatibility report on the reader's list, with what its pair block and story show (ADR-174, ADR-175).
+ * The row's one chip (ADR-337, ADR-341): only-you while no one else reads it, and on a closed pair (ADR-236); can-read once its other person reads it; waiting while their link waits; shared-by on a pair its other person made and shared with the reader.
+ */
+export type HomePairShare = {
+  state: HomePairShareState;
+  /** The pair's other person's first name, which every chip but only-you prints (ADR-337). */
+  name: string;
+};
+
+/**
+ * One Compatibility report on the reader's list, with what its row's chip, its pair block and its story card show (ADR-174, ADR-175, ADR-337).
  */
 export interface HomePair {
   reportId: string;
@@ -1358,10 +1493,14 @@ export interface HomePair {
      */
   challenge: string | null;
   /**
-     * The 9:16 story's text, chapter 01's headline and strengths; null until chapter 01 is written (ADR-174, ADR-175).
+     * The 9:16 story's text for the story card at the end of the Compatibility report, never on the dashboard, chapter 01's headline and strengths; null until chapter 01 is written (ADR-175, ADR-338).
      * @nullable
      */
   story: HomePairStory;
+  /** The row's one chip (ADR-337, ADR-341): only-you while no one else reads it, and on a closed pair (ADR-236); can-read once its other person reads it; waiting while their link waits; shared-by on a pair its other person made and shared with the reader. */
+  share: HomePairShare;
+  /** Who can read this Compatibility report besides the reader, or is invited to, as the Share window lists them: its other person once the reader sends it to them; empty before, and on a pair someone else made (ADR-329, ADR-341, MB-82). */
+  readers: HomeReader[];
 }
 
 export type HomePracticeKind = typeof HomePracticeKind[keyof typeof HomePracticeKind];
@@ -1453,12 +1592,20 @@ export const TimelineEventKind = {
 } as const;
 
 /**
- * One stretch an event is within orb, from coming into it to leaving it (ADR-207).
+ * One stretch of time, an event within orb from coming into it to leaving it (ADR-207), or a moving body going backwards from station to station (ADR-392).
  */
 export interface TimelineSpan {
   start: string;
   end: string;
 }
+
+export type TimelineEventPassesItemDirection = typeof TimelineEventPassesItemDirection[keyof typeof TimelineEventPassesItemDirection];
+
+
+export const TimelineEventPassesItemDirection = {
+  forward: 'forward',
+  backwards: 'backwards',
+} as const;
 
 /**
  * Where the reading of an event or a cycle stands, none until it is opened or queued (ADR-210, MB-191).
@@ -1472,6 +1619,11 @@ export const ReadingStatus = {
   ready: 'ready',
   failed: 'failed',
 } as const;
+
+export type TimelineEventPassesItem = {
+  at: string;
+  direction: TimelineEventPassesItemDirection;
+};
 
 /**
  * The facts line's parts from the engine, "Saturn on your Ascendant" and "1st house"; the web adds the dates (ADR-207).
@@ -1519,6 +1671,10 @@ export interface TimelineEvent {
   exact: string[];
   /** The stretches it is within orb between start and end, a gap between two where it is out of orb (ADR-207). */
   spans: TimelineSpan[];
+  /** A contact's exact passes in order, one for each of `exact`, each forward or backwards by the moving body's speed at that moment; empty off a contact (ADR-392). */
+  passes: TimelineEventPassesItem[];
+  /** The moving body's stretches going backwards, station to station with their true dates, that meet a contact's window; empty off a contact and when none does (ADR-392). */
+  backwards: TimelineSpan[];
   /**
      * A contact's distance from exact today in degrees, while it is within orb; null otherwise (ADR-207).
      * @nullable
@@ -1539,7 +1695,7 @@ export interface TimelineEvent {
 }
 
 /**
- * Your week on the dashboard, seven days from today in the reader's zone (ADR-211).
+ * Your week on the dashboard, Monday to Sunday of the week today falls in, in the reader's zone (ADR-211, ADR-297 to 312).
  */
 export interface Week {
   /**
@@ -1550,7 +1706,7 @@ export interface Week {
   natal: NatalPoint[];
   /** Null without a birth time (R-4.6). */
   angles: Angles | null;
-  /** The seven days with their tones (ADR-211). */
+  /** The seven days, Monday to Sunday, with their tones (ADR-211, ADR-297 to 312). */
   days: TimelineDay[];
   /** What touches the reader's chart this week (ADR-211). */
   on: TimelineEvent[];
@@ -1609,7 +1765,48 @@ export interface Teaser {
 }
 
 /**
- * The dashboard's one read, everything its circle, quick looks, rows, pairs, stories and practice show (ADR-174).
+ * The step the reader is on: 1 until their own Personal report is written, 2 until they add someone, 3 until that person's report is shared with them or their gift is sent, then 4 (ADR-330).
+ */
+export type FirstStepsStep = typeof FirstStepsStep[keyof typeof FirstStepsStep];
+
+
+export const FirstStepsStep = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+  NUMBER_4: 4,
+} as const;
+
+/**
+ * The person the reader added last, whom steps 2 to 4 name; null until step 2 is done (ADR-330).
+ * @nullable
+ */
+export type FirstStepsPerson = {
+  /** Their profile on the reader's circle, which You & {name} picks (ADR-336). A gift makes no profile (ADR-139), so on the gift road it is an empty string until they share their own report back, and `pairReady` stays false until then. */
+  profileId: string;
+  /** Their first name, as the steps print it (ADR-330). */
+  name: string;
+} | null;
+
+/**
+ * Your first steps (ADR-330, ADR-390): 1 Your Personal report, 2 Add someone, 3 Share it with them (a gift is done once it is sent), 4 either You & {name}, your Compatibility report, or Add someone else, back to step 2. The server says which step the reader is on; Hide is kept in the browser.
+ */
+export interface FirstSteps {
+  /** The step the reader is on: 1 until their own Personal report is written, 2 until they add someone, 3 until that person's report is shared with them or their gift is sent, then 4 (ADR-330). */
+  step: FirstStepsStep;
+  /**
+     * The person the reader added last, whom steps 2 to 4 name; null until step 2 is done (ADR-330).
+     * @nullable
+     */
+  person: FirstStepsPerson;
+  /** The person came by Gift a report, so step 3 is done once the gift is sent and You & {name} waits for them to share back (ADR-331). */
+  gift: boolean;
+  /** You & {name} can be made now, since the reader can read both finished Personal reports, their own and {name}'s; on the gift road, once {name} shares theirs back (ADR-331, ADR-332). */
+  pairReady: boolean;
+}
+
+/**
+ * The dashboard's one read, everything its circle, quick looks, rows, pairs, Share window, first steps and practice show, and each pair's story card (ADR-174, ADR-341).
  */
 export interface Home {
   /** The reader's own Personal report at the circle's centre, with chapter 08's lines; null with none marked as theirs, or several (ADR-174). */
@@ -1622,10 +1819,12 @@ export interface Home {
   pairs: HomePair[];
   /** What the reader is practising: up to three pins a report from their own Personal report and the pairs they are one of; none pinned, the Closing's first Practice item (ADR-174). */
   practising: HomePractice[];
-  /** Your week, for a reader with Timeline and a chart to read; absent or null for anyone else (ADR-211, ADR-262). */
+  /** Your week, for a reader with Timeline whose own Personal report is finished; absent or null for anyone else (ADR-211, ADR-262, ADR-297 to 312). */
   week?: Week | null;
   /** Your life's big cycles, last on the dashboard, for a reader without Timeline whose own Personal report is finished, never on an empty dashboard; absent or null for anyone else (ADR-212, ADR-255, ADR-262). */
   teaser?: Teaser | null;
+  /** Your first steps, from the reader's own Personal report to their first Compatibility report: the step they are on and whom it names (ADR-330, ADR-341, ADR-390); null once the reader has a Compatibility report. */
+  firstSteps: FirstSteps | null;
 }
 
 /**
@@ -2263,6 +2462,24 @@ export interface InvitePreview {
      * @nullable
      */
   note?: string | null;
+  /** On a gift, the giver said Yes to sharing their own Personal report, so the claim asks "Share yours back?"; false on a gift without that Yes, a send and a share (ADR-331). */
+  giverShares: boolean;
+}
+
+/**
+ * The claimer's answers at a claim; a claim with no body answers Not now (ADR-331).
+ */
+export interface ClaimInviteBody {
+  /** On a gift, the claimer's answer to sharing their own Personal report with the giver: true keeps their Yes and becomes a grant once their report is finished; false, Not now, writes nothing (ADR-331, R-3.6). Read on a gift's claim only. */
+  shareBack?: boolean;
+}
+
+/**
+ * What Copy their link answers, a link to a waiting invite to send by hand (ADR-390).
+ */
+export interface InviteLink {
+  /** A link to the same waiting invite; the one its email carried keeps working. */
+  claimUrl: string;
 }
 
 /**
@@ -2354,6 +2571,8 @@ export interface CreateGiftBody {
   email: string;
   /** @maxLength 280 */
   note?: string;
+  /** The giver's answer to "Share your report with {name} too?": true keeps their Yes on the gift, and its claim writes a grant of the giver's own Personal report to whoever claims it; false, Not now, shares nothing (ADR-331, R-3.6). */
+  shareOwn?: boolean;
 }
 
 /**
@@ -3000,6 +3219,12 @@ export interface TimelineSetupStep {
      * @nullable
      */
   count: number | null;
+  /**
+     * How many of the step's readings have landed, written or failed, so the loading bar moves only with real work; null for the chart and the planets, which write none (ADR-394).
+     * @minimum 0
+     * @nullable
+     */
+  landed?: number | null;
 }
 
 /**
@@ -3166,6 +3391,22 @@ export const AskMessageRole = {
 } as const;
 
 /**
+ * Ask's one pair offer, after an answer about someone the reader has no Compatibility report with, once a person in a thread: "See {name}'s side too", one reason and the reader's credits; null or absent on every other message (ADR-297 to 312).
+ * @nullable
+ */
+export type AskMessageOffer = {
+  /** The person's profile, which Write it opens the picker with, the reader and them picked. */
+  profileId: string;
+  /** Their first name, as the card prints it. */
+  name: string;
+  /**
+     * The reader's credits, as its line counts them ("You have 5 credits. This uses 1."); 0 shows Get a credit.
+     * @minimum 0
+     */
+  credits: number;
+} | null;
+
+/**
  * One message in the thread, the reader's or Ask's, Ask's with its cards and choices (ADR-213, MB-191).
  */
 export interface AskMessage {
@@ -3175,6 +3416,11 @@ export interface AskMessage {
   cards: AskCard[];
   choices: AskChoice[];
   createdAt: string;
+  /**
+     * Ask's one pair offer, after an answer about someone the reader has no Compatibility report with, once a person in a thread: "See {name}'s side too", one reason and the reader's credits; null or absent on every other message (ADR-297 to 312).
+     * @nullable
+     */
+  offer?: AskMessageOffer;
 }
 
 /**
