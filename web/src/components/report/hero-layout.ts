@@ -19,6 +19,19 @@ const MAX_SLIDES = 14;
 /** Clear space between a body's edge and its label. */
 const LABEL_GAP = 16;
 
+/**
+ * What a plate puts at east. "sign" is the chart wheel's frame (`theta`): the start of the rising sign, where its 1st
+ * house begins. "degree" is the Ascendant itself, as the loading story frames it. The hero's horizon is level (ADR-395),
+ * and on the sign's frame the line through the Ascendant and the Descendant leans by the Ascendant's degree in its sign,
+ * up to 30°.
+ */
+export type FrameOn = "sign" | "degree";
+
+/** A longitude's angle on a plate, counter-clockwise from +x, with east (180°) on the left as every chart is drawn. */
+export function heroTheta(absoluteDegree: number, frameDegree: number, frameOn: FrameOn = "sign"): number {
+  return frameOn === "degree" ? 180 + norm360(absoluteDegree - frameDegree) : theta(absoluteDegree, frameDegree);
+}
+
 export interface Rect { x: number; y: number; w: number; h: number }
 
 export interface HeroBody {
@@ -32,14 +45,22 @@ export interface HeroLayoutInput {
   cx: number;
   cy: number;
   ringRadius: number;
-  /** The degree drawn at east: the Ascendant when the horizon is drawn, 0° Aries when it is not. */
+  /** The frame: the Ascendant when the horizon is drawn, 0° Aries when it is not. */
   frameDegree: number;
+  /** "sign" unless given: `TriadPlate` keeps the wheel's frame, the hero passes "degree". */
+  frameOn?: FrameOn;
   /** In placement order: the Sun is placed first, so it wins the room it needs. */
   bodies: HeroBody[];
   labelWidth: number;
   labelHeight: number;
-  /** The name plate and the two horizon labels, which labels must also avoid. */
+  /** What every label must also avoid: the name plate, on a plate that holds the name. */
   obstacles: Rect[];
+  /**
+   * The horizon labels' blocks at rest, each under its end of the line. A block that touches a body's disc or an obstacle
+   * slides down, away from the line, until it is clear, so a Moon just past the Ascendant no longer covers "EAST · RISING"
+   * (ADR-27, B-62); the bodies' labels then avoid it where it landed.
+   */
+  horizonLabels?: Rect[];
   /**
    * `OUTSIDE_STEP` unless given: a plate too small for it passes the room it has, so its Sun stays on it even where
    * the two discs then overlap (MB-171).
@@ -67,6 +88,8 @@ export interface PlacedLabel {
 export interface HeroLayout {
   bodies: PlacedBody[];
   labels: PlacedLabel[];
+  /** How far down each of `horizonLabels` slid, in the same order: 0 where nothing touched it. */
+  horizonDrops: number[];
 }
 
 export function overlaps(a: Rect, b: Rect): boolean {
@@ -88,13 +111,13 @@ function labelRect(x: number, y: number, anchor: "start" | "end", w: number, h: 
 }
 
 export function layoutHero(input: HeroLayoutInput): HeroLayout {
-  const { cx, cy, ringRadius, frameDegree: asc, labelWidth, labelHeight, outsideStep = OUTSIDE_STEP } = input;
+  const { cx, cy, ringRadius, frameDegree: asc, frameOn = "sign", labelWidth, labelHeight, outsideStep = OUTSIDE_STEP } = input;
 
   // The Sun is the one body allowed to leave the ring, and only to clear the
   // Moon. Everything else sits on it.
   const moon = input.bodies.find((b) => b.key === "moon");
   const placed: PlacedBody[] = input.bodies.map((b) => {
-    const t = theta(b.absoluteDegree, asc);
+    const t = heroTheta(b.absoluteDegree, asc, frameOn);
     const tight = b.key === "sun" && moon !== undefined
       && separation(b.absoluteDegree, moon.absoluteDegree) < CONJUNCTION_DEGREES;
     const radius = tight ? ringRadius + outsideStep : ringRadius;
@@ -102,7 +125,18 @@ export function layoutHero(input: HeroLayoutInput): HeroLayout {
     return { key: b.key, x: p.x, y: p.y, size: b.size, outside: tight };
   });
 
-  const taken: Rect[] = [...input.obstacles, ...placed.map(discRect)];
+  const discs = placed.map(discRect);
+  const fixed = [...input.obstacles, ...discs];
+  const blocks = input.horizonLabels ?? [];
+  const horizonDrops = blocks.map((block) => {
+    let drop = 0;
+    for (let step = 1; step <= MAX_SLIDES && fixed.some((f) => overlaps({ ...block, y: block.y + drop }, f)); step++) {
+      drop = step * SLIDE_STEP;
+    }
+    return drop;
+  });
+
+  const taken: Rect[] = [...input.obstacles, ...blocks.map((b, i) => ({ ...b, y: b.y + horizonDrops[i] })), ...discs];
   const labels: PlacedLabel[] = [];
 
   for (const body of placed) {
@@ -122,7 +156,7 @@ export function layoutHero(input: HeroLayoutInput): HeroLayout {
     taken.push(rect);
   }
 
-  return { bodies: placed, labels };
+  return { bodies: placed, labels, horizonDrops };
 }
 
 export interface MoonArc {
@@ -140,13 +174,15 @@ export interface MoonArc {
  * its longitudes at the band's edges, on the same ring the bodies sit on. The
  * Moon never runs backwards, so the arc is always the forward way round.
  */
-export function moonArc(cx: number, cy: number, ringRadius: number, frameDegree: number, band: { fromDegree: number; toDegree: number }): MoonArc {
+export function moonArc(
+  cx: number, cy: number, ringRadius: number, frameDegree: number, band: { fromDegree: number; toDegree: number }, frameOn: FrameOn = "sign",
+): MoonArc {
   const span = norm360(band.toDegree - band.fromDegree);
   const steps = Math.max(1, Math.ceil(span));
   const points: Point[] = [];
   for (let i = 0; i <= steps; i++) {
     const deg = i === steps ? band.toDegree : band.fromDegree + (span * i) / steps;
-    points.push(pointAt(cx, cy, ringRadius, theta(deg, frameDegree)));
+    points.push(pointAt(cx, cy, ringRadius, heroTheta(deg, frameDegree, frameOn)));
   }
   const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
   return { from: points[0], to: points[points.length - 1], span, d };

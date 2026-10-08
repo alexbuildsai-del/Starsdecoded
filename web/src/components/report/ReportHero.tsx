@@ -4,11 +4,16 @@
  * marker because it is a point on the horizon and never a body (ADR-17), the
  * name at the centre of its own sky, and the birth data in the corners.
  *
- * East is on the left, as every chart is drawn. The dotted horizon is the
- * plate's only line: a label sits beside its body with nothing joining them
- * (ADR-27). The Sun's glow is painted on the sky layer rather than inside the
- * SVG, so no bar, edge or chapter can clip it. It fades out over the first 0.6
- * screens as the reading's sky fades in.
+ * East is on the left, as every chart is drawn. The horizon is the plate's
+ * only line, solid and level as the loading story draws it (ADR-395): the plate
+ * is framed on the Ascendant's own degree, not on the start of its sign as the
+ * wheel is, or the line through the Ascendant and the Descendant leans by that
+ * degree. The ring is dimmed behind it so its curve never reads as the horizon.
+ * A label sits beside its body with nothing joining them (ADR-27), and a
+ * horizon label a body would cover steps down below it (B-62). The Sun's glow
+ * is painted on the sky layer rather than inside the SVG, so no bar, edge or
+ * chapter can clip it. It fades out over the first 0.6 screens as the reading's
+ * sky fades in.
  *
  * A blind chart (ADR-33, ADR-37) has no horizon to draw: no line, no east or
  * west, no rising marker. The plate is framed on 0° Aries, the Moon is the arc
@@ -24,8 +29,10 @@ import { useEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { TriadRow } from "@/components/TriadRow";
 import { triadRowsOf, triadText } from "@/lib/triad-row";
-import { opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
-import { PHONE, ascendantValue, layoutHero, moonArc, phoneStack, writtenOnText, type Rect } from "@/components/report/hero-layout";
+import { opposite, pointAt } from "@/components/chart/wheel-geometry";
+import {
+  PHONE, ascendantValue, heroTheta, layoutHero, moonArc, phoneStack, writtenOnText, type Rect,
+} from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
 import { Mark } from "@/components/Mark";
@@ -37,6 +44,7 @@ import type { Ring } from "@/lib/gather";
 
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
+const PAPER = "var(--paper)";
 const MONTHS = [
   "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
   "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
@@ -269,13 +277,14 @@ export function ReportHero({
   const horizonReach = phone ? 20 : 58;
   const places = narrow ? 2 : 4;
 
-  // A drawn plate is framed on the Ascendant, east on the left; a blind one on 0° Aries.
+  // A drawn plate is framed on the Ascendant's own degree, east on the left; a blind one on 0° Aries.
   const frame = asc ? asc.absoluteDegree : 0;
-  const ascTheta = theta(frame, frame);
+  const angleOf = (degree: number) => heroTheta(degree, frame, "degree");
+  const ascTheta = angleOf(frame);
   const ascAt = pointAt(cx, cy, R, ascTheta);
   const east = pointAt(cx, cy, R + horizonReach, ascTheta);
-  const west = pointAt(cx, cy, R + horizonReach, theta(opposite(frame), frame));
-  const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band) : null;
+  const west = pointAt(cx, cy, R + horizonReach, angleOf(opposite(frame)));
+  const arc = moon?.band ? moonArc(cx, cy, R, frame, moon.band, "degree") : null;
 
   const { lines: nameRows, size: nameSize } = nameLines(name, narrow);
   // The name has already broken to its lines from its length; only the viewport's height can now cost the ring.
@@ -283,19 +292,24 @@ export function ReportHero({
   const stack = phone ? phoneStack({ viewportWidth: viewport.width, viewportHeight: viewport.height, nameLines: nameRows.length, nameSize, dated: written !== null }) : null;
   const ascText = ascendantValue(asc);
 
-  // What a label may not cover: the name plate at the centre and the two
-  // horizon labels. Measured in plate units, like everything else here.
-  const obstacles: Rect[] = [
-    ...(phone ? [] : [{ x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 }]),
-    ...(blind ? [] : [
+  // What a label may not cover: the name plate at the centre. Measured in plate units, like everything else here.
+  const obstacles: Rect[] = phone ? [] : [{ x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 }];
+  // The two horizon labels as drawn below, east then west, with room for the widest value, "Sagittarius 29.99° · 1st
+  // (self)": 31 characters of IBM Plex Mono at 0.6 em. The narrow tiers write them inward from the line's ends.
+  const horizonLabels: Rect[] = blind ? [] : narrow
+    ? [
+      { x: east.x, y: east.y + (phone ? 12 : 14), w: phone ? 280 : 300, h: phone ? 40 : 46 },
+      { x: west.x - (phone ? 160 : 180), y: west.y + (phone ? 12 : 14), w: phone ? 160 : 180, h: phone ? 22 : 26 },
+    ]
+    : [
       { x: east.x - 210, y: east.y + 10, w: 210, h: 42 },
       { x: west.x, y: west.y + 10, w: 210, h: 42 },
-    ]),
-  ];
+    ];
 
   const layout = layoutHero({
     cx, cy, ringRadius: R,
     frameDegree: frame,
+    frameOn: "degree",
     // The Sun is placed first, so it takes the room it needs.
     bodies: [
       sun && { key: "sun", absoluteDegree: sun.absoluteDegree, size: phone ? 100 : narrow ? 108 : 120 },
@@ -305,7 +319,9 @@ export function ReportHero({
     labelWidth: 276,
     labelHeight: 34,
     obstacles,
+    horizonLabels,
   });
+  const [eastDrop = 0, westDrop = 0] = layout.horizonDrops;
 
   const dob = new Date(`${birthDate}T00:00:00Z`);
   const dobText = `${dob.getUTCDate()} ${MONTHS[dob.getUTCMonth()]} ${dob.getUTCFullYear()}`;
@@ -341,22 +357,24 @@ export function ReportHero({
           aria-label={blind ? `${name}: Sun and Moon at their true positions; the rising sign needs a birth time` : `${name}: Sun, Moon and Rising at their true positions`}
         >
           <g ref={diagramRef}>
-            <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.42} />
+            {/* The ring and its ticks step back behind the horizon, so the ring's curve is never the line that reads. */}
+            <circle ref={ringRef} cx={cx} cy={cy} r={R} fill="none" stroke={SKY} strokeOpacity={0.25} />
             {Array.from({ length: 12 }, (_, i) => i * 30).map((d) => {
-              const t = theta(d, frame);
+              const t = angleOf(d);
               const p1 = pointAt(cx, cy, R, t);
               const p2 = pointAt(cx, cy, R - (d % 90 === 0 ? 13 : 7), t);
               return (
                 <line
                   key={d} x1={p1.x.toFixed(1)} y1={p1.y.toFixed(1)} x2={p2.x.toFixed(1)} y2={p2.y.toFixed(1)}
-                  stroke={SKY} strokeOpacity={d % 90 === 0 ? 0.5 : 0.26}
+                  stroke={SKY} strokeOpacity={d % 90 === 0 ? 0.3 : 0.16}
                 />
               );
             })}
             {!blind && (
+              // The loading story's horizon (BuildStory, step 4): solid paper, level through the Ascendant and the Descendant.
               <line
                 x1={east.x.toFixed(1)} y1={east.y.toFixed(1)} x2={west.x.toFixed(1)} y2={west.y.toFixed(1)}
-                stroke={SKY_DIM} strokeOpacity={0.55} strokeDasharray="2 5"
+                stroke={PAPER} strokeOpacity={0.55} strokeWidth={1.5} data-horizon
               />
             )}
             {arc && (
@@ -365,29 +383,29 @@ export function ReportHero({
             )}
             {blind ? null : narrow ? (
               <>
-                <Label x={east.x} y={east.y + (phone ? 26 : 30)} anchor={east.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>EAST · RISING</Label>
+                <Label x={east.x} y={east.y + eastDrop + (phone ? 26 : 30)} anchor={east.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>EAST · RISING</Label>
                 {ascText && (
                   <text
-                    x={east.x.toFixed(1)} y={(east.y + (phone ? 46 : 54)).toFixed(1)} textAnchor={east.x < cx ? "start" : "end"}
+                    x={east.x.toFixed(1)} y={(east.y + eastDrop + (phone ? 46 : 54)).toFixed(1)} textAnchor={east.x < cx ? "start" : "end"}
                     fontFamily="IBM Plex Mono, monospace" fontSize={phone ? 15 : 16} fill="rgba(232,235,242,.62)"
                   >
                     {ascText}
                   </text>
                 )}
-                <Label x={west.x} y={west.y + (phone ? 26 : 30)} anchor={west.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>WEST · SETTING</Label>
+                <Label x={west.x} y={west.y + westDrop + (phone ? 26 : 30)} anchor={west.x < cx ? "start" : "end"} size={phone ? 15 : 18} fill={SKY_DIM}>WEST · SETTING</Label>
               </>
             ) : (
               <>
-                <Label x={east.x - 6} y={east.y + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
+                <Label x={east.x - 6} y={east.y + eastDrop + 26} anchor="end" size={11} fill={SKY_DIM}>EAST · RISING</Label>
                 <text
-                  x={(east.x - 6).toFixed(1)} y={(east.y + 44).toFixed(1)} textAnchor="end"
+                  x={(east.x - 6).toFixed(1)} y={(east.y + eastDrop + 44).toFixed(1)} textAnchor="end"
                   fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
                 >
                   {ascText}
                 </text>
-                <Label x={west.x + 6} y={west.y + 26} anchor="start" size={11} fill={SKY_DIM}>WEST · SETTING</Label>
+                <Label x={west.x + 6} y={west.y + westDrop + 26} anchor="start" size={11} fill={SKY_DIM}>WEST · SETTING</Label>
                 <text
-                  x={(west.x + 6).toFixed(1)} y={(west.y + 44).toFixed(1)} textAnchor="start"
+                  x={(west.x + 6).toFixed(1)} y={(west.y + westDrop + 44).toFixed(1)} textAnchor="start"
                   fontFamily="IBM Plex Mono, monospace" fontSize={11.5} fill="rgba(232,235,242,.62)"
                 >
                   {dsc ? `${dsc.degree.toFixed(2)}° ${dsc.sign}` : ""}
