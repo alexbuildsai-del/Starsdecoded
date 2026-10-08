@@ -89,7 +89,8 @@ export async function resolveOrCreateProfile(
     // Promote to self-profile if caller explicitly requested it.
     // Wrap in a transaction to atomically clear others + set this row,
     // guarded by the DB partial unique index as a final safety net.
-    if (isForSelf && !p.isSelf) {
+    // The same rule as PATCH /profiles/:id (R-3.6).
+    if (isForSelf && !p.isSelf && !p.claimedByUserId) {
       await db.transaction(async (tx) => {
         if (userId) {
           await tx

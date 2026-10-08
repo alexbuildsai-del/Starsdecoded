@@ -1,10 +1,12 @@
 /**
  * The sign-in claim (reading 3, Review 05/10 §1) and the auth middleware's lines. A signed-out request passes through
  * with no database. On a scratch Postgres named by WALK_DATABASE_URL: a sign-in moves the session's own charts and the
- * pairs made from them to the account, and nothing another account or session holds; a pair made while the session
- * read as signed out is claimed at its next signed-in request; the line for an address Clerk couldn't give names no
- * account. Without one those skip, saying why. Clerk is a stand-in that nothing reaches: no secret key is set, so a
- * lookup fails before it leaves the process. Charts are the fixtures' birth data alone, with no chart stored.
+ * pairs made from them to the account, and nothing another account or session holds; an account that already has its
+ * own chart keeps it as You, the session's own arriving as a person under its own name, and a second sign-in moves
+ * nothing (MB-235); a pair made while the session read as signed out is claimed at its next signed-in request; the
+ * claim's line carries counts only, and the line for an address Clerk couldn't give names no account. Without one those
+ * skip, saying why. Clerk is a stand-in that nothing reaches: no secret key is set, so a lookup fails before it leaves
+ * the process. Charts are the fixtures' birth data alone, with no chart stored.
  */
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -24,6 +26,7 @@ delete process.env.CLERK_SECRET_KEY;
 
 const { authMiddleware } = await import("./auth.js");
 const { createLogger, httpSerializers } = await import("../lib/logger.js");
+const { isSelfFor } = await import("../lib/access.js");
 const { pool } = await import("@workspace/db");
 
 const NO_DB = SCRATCH ? false : "no WALK_DATABASE_URL: the claim moves rows on a scratch Postgres";
@@ -41,7 +44,12 @@ const ACCOUNT = `user_claim_${run}`;
 const OTHER = `user_other_${run}`;
 const FIRST_SIGHT = `user_first_${run}`;
 const LATER = `user_later_${run}`;
-const ACCOUNTS = [ACCOUNT, OTHER, FIRST_SIGHT, LATER];
+const TWO = `user_two_${run}`;
+const ME = `user_me_${run}`;
+const WRITER = `user_writer_${run}`;
+const ACCOUNTS = [ACCOUNT, OTHER, FIRST_SIGHT, LATER, TWO, ME, WRITER];
+
+const CLAIMED = "sign-in claimed the session's charts and pairs";
 
 if (SCRATCH) {
   after(async () => {
@@ -91,18 +99,49 @@ async function serve() {
   return { ask, lines, logged, close };
 }
 
-/** A chart as the birth form stores one before sign-in: the fixture's birth data, held by the session, or by an account. */
-async function chart(session: string, person: string, userId: string | null = null): Promise<string> {
+/**
+ * A chart as the birth form stores one before sign-in: the fixture's birth data, held by the session, or by an account,
+ * marked as its holder's own when `isSelf`.
+ */
+async function chart(session: string, person: string, userId: string | null = null, isSelf = false): Promise<string> {
   const f = sample(person);
   const id = randomUUID();
   await q(
-    `insert into profiles (id, session_id, user_id, name, birth_date, birth_time, birth_place, latitude, longitude, timezone_offset,
-       timezone, birth_time_window_minutes)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-    [id, session, userId, f.name, f.birthDate, f.birthTime, PLACES[person], f.latitude, f.longitude, f.timezoneOffset, f.timezone, f.birthTimeWindowMinutes ?? 0],
+    `insert into profiles (id, session_id, user_id, is_self, name, birth_date, birth_time, birth_place, latitude, longitude,
+       timezone_offset, timezone, birth_time_window_minutes)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+    [id, session, userId, isSelf, f.name, f.birthDate, f.birthTime, PLACES[person], f.latitude, f.longitude, f.timezoneOffset, f.timezone, f.birthTimeWindowMinutes ?? 0],
   );
   return id;
 }
+
+const COLUMNS = `id, user_id as "userId", session_id as "sessionId", claimed_by_user_id as "claimedByUserId", is_self as "isSelf",
+  claimed_as_self as "claimedAsSelf", name, updated_at as "updatedAt"`;
+type Row = {
+  id: string; userId: string | null; sessionId: string; claimedByUserId: string | null; isSelf: boolean; claimedAsSelf: boolean;
+  name: string; updatedAt: Date;
+};
+
+async function rowOf(id: string): Promise<Row> {
+  const { rows } = await q(`select ${COLUMNS} from profiles where id = $1`, [id]);
+  return rows[0] as Row;
+}
+
+/** Who holds a chart, and whether it carries its holder's mark. */
+async function standing(id: string): Promise<[string | null, boolean]> {
+  const row = await rowOf(id);
+  return [row.userId, row.isSelf];
+}
+
+/** The charts an account reads as its own, as its circle seats them (`isSelfFor`). */
+async function ownOf(userId: string): Promise<string[]> {
+  const { rows } = await q(`select ${COLUMNS} from profiles where user_id = $1 or claimed_by_user_id = $1`, [userId]);
+  return (rows as Row[]).filter((row) => isSelfFor({ userId, sessionId: "" }, row)).map((row) => row.id);
+}
+
+// pino's and pino-http's own fields; what is left on a claim's line is what the claim put there.
+const BASE_FIELDS = new Set(["level", "time", "pid", "hostname", "req", "msg"]);
+const fieldsOf = (line: Record<string, unknown>) => Object.fromEntries(Object.entries(line).filter(([key]) => !BASE_FIELDS.has(key)));
 
 /** A pair as POST /compatibility makes one: the relationship and its two charts. */
 async function pair(session: string, a: string, b: string, userId: string | null = null): Promise<string> {
@@ -131,7 +170,8 @@ test("a sign-in claims the session's own charts and the pair made from them, and
   const { ask, logged, lines, close } = await serve();
   t.after(close);
   const session = `s-claim_${run}`;
-  const mira = await chart(session, "mira");
+  // The session's own chart: an account with none of its own takes it as its own.
+  const mira = await chart(session, "mira", null, true);
   const idris = await chart(session, "idris");
   const made = await pair(session, mira, idris);
   // Rows an account already holds stay its own, even when this browser made them.
@@ -147,6 +187,7 @@ test("a sign-in claims the session's own charts and the pair made from them, and
 
   assert.equal(await holderOf("profiles", mira), ACCOUNT);
   assert.equal(await holderOf("profiles", idris), ACCOUNT);
+  assert.deepEqual(await ownOf(ACCOUNT), [mira], "the session's own arrives as the account's own");
   assert.equal(await holderOf("relationships", made), ACCOUNT, "the pair stays with the account");
   assert.equal(await holderOf("profiles", othersChart), OTHER);
   assert.equal(await holderOf("relationships", othersPair), OTHER);
@@ -154,11 +195,67 @@ test("a sign-in claims the session's own charts and the pair made from them, and
   assert.equal(await holderOf("profiles", strangerB), null);
   assert.equal(await holderOf("relationships", strangersPair), null);
 
-  const claimed = logged("sign-in claimed the session's charts and pairs");
+  const claimed = logged(CLAIMED);
   assert.equal(claimed.length, 1);
-  assert.equal(claimed[0].profiles, 2);
-  assert.equal(claimed[0].relationships, 1);
+  assert.deepEqual(fieldsOf(claimed[0]), { profiles: 2, relationships: 1, ownAsPerson: 0 }, "the line carries counts only");
   assert.ok(!lines.join("").includes(ACCOUNT), "no line names the account");
+});
+
+test("an account that already has its own chart keeps it as You, and the session's own arrives as a person under its own name", { skip: NO_DB }, async (t) => {
+  const { ask, logged, lines, close } = await serve();
+  t.after(close);
+  const session = `s-two_${run}`;
+  // The account's own chart, written in another browser.
+  const own = await chart(`s-before_${run}`, "noor", TWO, true);
+  // What this browser made signed out: its own chart, another person and the pair of them.
+  const mine = await chart(session, "mira", null, true);
+  const idris = await chart(session, "idris");
+  const made = await pair(session, mine, idris);
+  // Neither is this session's to move or unmark: a chart an account holds, though this browser made it, and another
+  // browser's own chart.
+  const othersChart = await chart(session, "tomas", OTHER);
+  const elsewhere = await chart(`s-away_${run}`, "june", null, true);
+
+  assert.equal(await ask(session, TWO), TWO);
+
+  assert.deepEqual(await ownOf(TWO), [own], "the account's own chart stays You, and the only one");
+  const arrived = await rowOf(mine);
+  assert.deepEqual([arrived.userId, arrived.isSelf, arrived.name], [TWO, false, sample("mira").name], "the session's own arrives as a person under its own name");
+  assert.deepEqual(await standing(idris), [TWO, false]);
+  assert.equal(await holderOf("relationships", made), TWO, "the pair moves with its charts");
+  assert.deepEqual(await standing(othersChart), [OTHER, false]);
+  assert.deepEqual(await standing(elsewhere), [null, true], "another browser's own chart stays as it was");
+
+  const claimed = logged(CLAIMED);
+  assert.equal(claimed.length, 1);
+  assert.deepEqual(fieldsOf(claimed[0]), { profiles: 2, relationships: 1, ownAsPerson: 1 }, "the line carries counts only");
+  for (const named of [TWO, sample("mira").name, sample("noor").name]) {
+    assert.ok(!lines.join("").includes(named), "no line names the account or a person");
+  }
+
+  // Signed out and in again: nothing is left to move, so no row is written and no line is logged.
+  const before = await Promise.all([own, mine, idris, othersChart, elsewhere].map(rowOf));
+  assert.equal(await ask(session), null);
+  assert.equal(await ask(session, TWO), TWO);
+  assert.deepEqual(await Promise.all([own, mine, idris, othersChart, elsewhere].map(rowOf)), before);
+  assert.equal(await holderOf("relationships", made), TWO);
+  assert.equal(logged(CLAIMED).length, 1);
+});
+
+test("a chart sent to the account that it said This is me to counts as its own at a sign-in", { skip: NO_DB }, async (t) => {
+  const { ask, close } = await serve();
+  t.after(close);
+  const session = `s-me_${run}`;
+  // Another account wrote it and sent it here; the account claimed it and said This is me.
+  const sent = await chart(`s-writer_${run}`, "noor", WRITER);
+  await q("update profiles set claimed_by_user_id = $2, claimed_as_self = true where id = $1", [sent, ME]);
+  const mine = await chart(session, "mira", null, true);
+
+  assert.equal(await ask(session, ME), ME);
+
+  assert.deepEqual(await ownOf(ME), [sent], "This is me stays the account's own, and the only one");
+  assert.deepEqual(await standing(mine), [ME, false], "the session's own arrives as a person");
+  assert.deepEqual(await standing(sent), [WRITER, false], "the chart sent here stays its writer's to hold");
 });
 
 test("a pair made while the session read as signed out is claimed at its next signed-in request", { skip: NO_DB }, async (t) => {
