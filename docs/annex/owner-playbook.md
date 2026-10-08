@@ -35,8 +35,8 @@ merged into the rule it repeats.
 - **Opus for orchestrating, planning and research**, the verifier on any claim that feeds a decision (ADR-137, R-0.7);
   this file after every ideation, `lessons.md` after every round (ADR-195).
 - **Fewer questions, each with a default.** At most three, highest stakes first, a recommendation and the silent default
-  (R-12.1); never a chore (R-12.5). Before proposing, read the day's locks and ideations on the same topic on every branch:
-  never re-ask what one settled, and keep one product (release-one-findings; report-loading-story, 2026-10-05).
+  (R-12.1); never a chore (R-12.5), "can you find the second one instead of me" (08/10). Read the day's locks and ideations
+  on the topic on every branch first: never re-ask what one settled, keep one product (release-one-findings, 2026-10-05).
 - **Decide what a rule answers, then show him** (Decided by Claude; the Mailbox keeps only his, R-12.3). What only he
   holds he supplies or defers: build behind marked seams, never hold the round (R-12.4; one dated checklist).
 - **Testing is ours, never his** (2026-10-04): a walk after each deploy. **No secret on GitHub, ever** (2026-09-25).
