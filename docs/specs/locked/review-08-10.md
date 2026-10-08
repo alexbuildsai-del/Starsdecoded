@@ -2,7 +2,7 @@
 
 Ideation 2026-10-08 with the Owner from the Notion page "Review 08/10": eight numbered notes on staging after R18, plus
 a P.S. about carousels and an observations brain. Artifact: https://claude.ai/artifact/CLc6MqvaUapEUgCCAgJ8Eg.
-Status: **locked** 2026-10-08, ADR-392 to 402. Touches `review-05-10` (the retrograde line, the loading screens' progress, the hero),
+Status: **locked** 2026-10-08, ADR-392 to 402; ADR-403 supersedes 401. Touches `review-05-10` (the retrograde line, the loading screens' progress, the hero),
 `report-loading-story` (the end of the story, the house pairs), `explain-like-a-friend` (rule 1, rulers), `timeline-page`.
 **Brain:** `packages/engine` (`doctrine.ts` passes, new chart patterns), `api/src/prompts/brief.ts`, `sections/houses.ts`,
 `sections/overview.ts`, `system.ts`, `vocabulary.ts`, `timeline/reading.ts`, `timeline/doctrine.ts`. Dry lab, then a spot run.
@@ -88,15 +88,17 @@ retrograde 6 May and direct 16 Oct 2026. House facts are from the Owner's screen
   1. The Owner drops screenshots, TikTok links, articles or book pages on one Notion page, "Observations inbox".
   2. A session skill (`/observe`) reads the inbox, splits each source into single claims, and rewrites each in our
      words: placement key, the idea, the scene, the reason, the source's account or author. Nothing stored verbatim.
-  3. The same idea from different accounts or authors is merged and counted. Two posts by one account count once.
+  3. **We find the second source, never the Owner** ("can you find the second one instead of me", 2026-10-08): another
+     creator, an article, a book, or our doctrine when the reason holds on its own (planet's meaning plus house's
+     meaning, checked by us). The `researcher` agent searches; same-idea sources are merged; one account counts once.
   4. An idea with **2 or more sources** (Q3, the Owner: "ok lets try") is checked against the doctrine and enters
      `api/src/prompts/observations.ts`, a typed table keyed by placement (planet in house, planet in sign, stellium in
-     house, house ruler in house, aspect). One source waits in `docs/annex/observations-inbox.md`.
+     house, house ruler in house, aspect). One source with no backing found waits in `docs/annex/observations-inbox.md`; hype never finds one.
   5. `buildBrief` adds the reader's matching ideas as OBSERVATIONS, each with its reason.
 - **In the report** (Q2, the Owner): one "Often noticed" block at most per house card, after the reading and before the
   stellium and retrograde blocks: the idea, then "Why:" in one sentence. Ideas may also shape the prose.
 - First seed: the 33 slides on Review 08/10. One idea already has two sources (8th house: people open up to you, you
-  sense their motives). Every other idea waits for a repeat.
+  sense their motives). The first `/observe` run looks for a second source for every other idea.
 
 ## Out of scope
 Pricing and launch (ADR-230, 242); Mercury, Venus and Mars retrograde cards (they exist); shadow periods (explain-like-
@@ -146,5 +148,6 @@ one "Often noticed" block per card (Q2); two independent sources before an idea 
 - A body outside a house is named only with its reason in the same sentence; required, not allowed.
 - Every claim in the prose names its placement and reason, one scene, and when it shows; no hype.
 - An observations brain: the Owner's sources, rewritten in our words, merged by idea, entering the brief at two
-  independent sources (a trial); shown as one "Often noticed" block per house card.
+  independent sources (a trial); we find the second source (another creator, an article, a book, or our doctrine when
+  the reason holds), never the Owner; shown as one "Often noticed" block per house card. Supersedes ADR-401.
 - The opposite line leaves house cards; the opposite house returns only as a stellium's "To balance it" (the Owner).
