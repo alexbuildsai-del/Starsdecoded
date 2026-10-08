@@ -29,6 +29,11 @@
  * regenerated it.
  */
 
+import { HOUSE_COVERS } from "@workspace/engine";
+
+// A house's crisp line is its covers line, read from the one list the site's house cards read.
+export { HOUSE_COVERS };
+
 export interface VocabEntry {
   /** At most 15 words, never a dignity or sect word; the system block prints it before `full`. */
   crisp: string;
@@ -226,25 +231,6 @@ export const SIGN: Record<SignName, VocabEntry> = {
 export const HOUSE_WORDS = [
   "Self", "Money", "Mind", "Home", "Play", "Work",
   "Partnership", "Depth", "Belief", "Career", "Friends", "Solitude",
-] as const;
-
-/**
- * A house's crisp line is its covers line from the one house set (ADR-321, 391), word for word. The set lives in
- * web/src/lib/houses.ts, which the api cannot import, so the writer's copy is kept here as HOUSE_WORDS is.
- */
-export const HOUSE_COVERS = [
-  "your body and how you come across",
-  "money and the things you own",
-  "talking, learning, brothers and sisters",
-  "home, family, your roots",
-  "fun, making things, love, children",
-  "daily work, habits, health",
-  "partners and the people you face one to one",
-  "what you share, what's passed down",
-  "long trips, big ideas, what you believe",
-  "your work and what you're known for",
-  "friends, groups, shared hopes",
-  "rest, time alone, what goes on out of sight",
 ] as const;
 
 export const HOUSE: Record<number, VocabEntry> = {

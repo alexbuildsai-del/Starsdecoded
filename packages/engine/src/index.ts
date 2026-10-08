@@ -16,3 +16,4 @@ export * from "./plainWords.js";
 export * from "./comfort.js";
 export * from "./shadow.js";
 export * from "./patterns.js";
+export * from "./houseCovers.js";

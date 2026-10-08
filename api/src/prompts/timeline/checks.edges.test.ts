@@ -25,7 +25,7 @@ const saturnSquare = events.find((e): e is ContactEvent => e.kind === "contact" 
 const facts = eventFacts(saturnSquare, curie, false);
 
 function input(extra: Partial<ReadingInput> = {}): ReadingInput {
-  return { event: saturnSquare, brief: buildBrief(curie, "Marie Curie"), excerpts: [], name: "Marie Curie", blind: false, ...extra };
+  return { event: saturnSquare, brief: buildBrief(curie, "Marie Curie"), excerpts: [], name: "Marie Curie", blind: false, spans: [], age: 0, passed: false, ...extra };
 }
 
 /** A reading that passes every check, with the engine's own dates in it (as the neighbouring test writes it). */
