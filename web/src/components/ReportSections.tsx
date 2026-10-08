@@ -163,7 +163,7 @@ function SuperpowerCard({ kicker, item, path, heading, claims, counter }: {
       <span className="rp-lab">{kicker}</span>
       <h3>{item.title}</h3>
       <p className="tn">{CitedText({ text: item.text, claims, counter })}</p>
-      <Checklist heading={heading} items={checklistItems("superpowers", path, item.actions)} />
+      <Checklist heading={heading} items={checklistItems("superpowers", path, item.actions)} pinnable />
     </div>
   );
 }

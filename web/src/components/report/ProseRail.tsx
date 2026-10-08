@@ -18,7 +18,7 @@ export function ProseRail({
 }) {
   return (
     <div>
-      {checklist && <Checklist heading={checklist.heading} items={checklist.items} />}
+      {checklist && <Checklist heading={checklist.heading} items={checklist.items} pinnable />}
       {listHeading && listItems?.length ? (
         <div className="mt-[18px] max-w-[64ch] border-t border-[var(--line-soft)] pt-3">
           <span className="rp-lab">{listHeading}</span>

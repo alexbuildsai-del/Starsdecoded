@@ -19,7 +19,9 @@ import {
   type Report,
 } from "@workspace/api-client-react";
 import { Checklist, localTicks, type ChecklistItem, type TickStore } from "@/components/report/Checklist";
+import { CHAPTERS } from "@/lib/chapters";
 import { ownIds } from "@/lib/home-view";
+import { PAIR_CHAPTER_TITLES } from "@/lib/lenses";
 import { COMPATIBILITY_REPORT } from "@/lib/product";
 import { first } from "@/lib/share-card";
 import { pinKey, pinPatch, togglePatch, type WorkbookPatch } from "@/lib/workbook";
@@ -49,13 +51,24 @@ export function bothOf(pair: HomePair): string {
   return `${first(pair.a.name)} and ${first(pair.b.name)}`;
 }
 
+/** The chapter a pinned item lives in, from the section its key starts with. */
+export function chapterOf(item: Pick<HomePractice, "kind" | "key">, lens: HomePair["lens"] | null): string | null {
+  const section = item.key.split(".")[0];
+  if (item.kind === "natal") return CHAPTERS.find((c) => c.section === section)?.title ?? null;
+  const titles = PAIR_CHAPTER_TITLES(lens ?? "partners");
+  if (section === "whatToPractise") return titles[titles.length - 1];
+  const n = /(\d+)$/.exec(section)?.[1];
+  return n ? titles[Number(n) - 1] ?? null : null;
+}
+
 // A pair offers nothing unpinned, so its item is listed only while it is pinned.
 function labelOf(item: HomePractice, pairs: readonly HomePair[], own: ReadonlySet<string>): string {
-  if (item.kind === "natal") return item.pinned ? "Pinned · your Closing" : "Closing · Practice";
   const pair = pairs.find((p) => p.reportId === item.reportId);
-  if (!pair) return `Pinned · ${COMPATIBILITY_REPORT}`;
+  const chapter = chapterOf(item, pair?.lens ?? null);
+  if (item.kind === "natal") return item.pinned ? `Pinned · ${chapter ?? "Your report"}` : "Closing · Practice";
+  if (!pair) return `Pinned · ${[chapter, COMPATIBILITY_REPORT].filter(Boolean).join(" · ")}`;
   const other = otherOf(pair, own);
-  return `Pinned · ${other ? `with ${first(other.name)}` : bothOf(pair)}`;
+  return `Pinned · ${[chapter, other ? `with ${first(other.name)}` : bothOf(pair)].filter(Boolean).join(" · ")}`;
 }
 
 // The list knows only its own items of a report's workbook, which is enough to build a press's patch and to hold

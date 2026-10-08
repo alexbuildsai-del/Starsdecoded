@@ -8,8 +8,7 @@
  * beside each item, which keeps it under What you're practising on the
  * dashboard, three a report (ADR-174).
  */
-import { useId, useReducer, useState, type CSSProperties } from "react";
-import { Pin } from "lucide-react";
+import { useEffect, useId, useReducer, useState, type CSSProperties } from "react";
 import { PIN_LIMIT, useTickStore, type TickStore } from "@/lib/workbook";
 
 export { localTicks, type TickStore } from "@/lib/workbook";
@@ -49,10 +48,32 @@ export interface ChecklistItem {
 // Outside a report there is no chapter accent, so a list given its own store takes the Closing's teal, the colour of things to try.
 const TEAL = "#3FA796";
 
-// Named for the list it keeps the item in, so it reads right on a report and on the dashboard's own list.
-const PIN_LABEL = "Pin to What you're practising";
+// The pin's words are Review 05/10 §7's. The brass is the chart's yellow, the Owner's call over "brass is never a control".
+const PIN_LABEL = "Pin to your dashboard";
+const UNPIN_LABEL = "Unpin from your dashboard";
+const PIN_HINT = "Pinned items show on your dashboard.";
+const BRASS = "#D4B06A";
 const COUNT_WORDS = ["no", "one", "two", "three", "four", "five", "six"];
 const LIMIT_LINE = `You can pin ${COUNT_WORDS[PIN_LIMIT] ?? PIN_LIMIT} per report. Unpin one first, here or on your dashboard.`;
+const PINNED_LINE = `Pinned. ${PIN_HINT} You can pin ${COUNT_WORDS[PIN_LIMIT] ?? PIN_LIMIT} per report.`;
+
+function PinMark({ pinned }: { pinned: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className="h-5 w-5"
+      fill={pinned ? BRASS : "none"}
+      stroke={pinned ? BRASS : "currentColor"}
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 3h6l-1 6 4 4H6l4-4z" />
+      <path d="M12 13v8" />
+    </svg>
+  );
+}
 
 // The colours are the tokens' own values (line, surface, paper-dim, muted, indigo-lt, void), since the list also draws outside
 // the report's token scope, on the site and the dashboard.
@@ -70,7 +91,14 @@ export function Checklist({
   const id = useId();
   // A localTicks() store changes nothing React watches, so the list redraws itself after each press.
   const [, redraw] = useReducer((n: number) => n + 1, 0);
-  const [refused, setRefused] = useState<string | null>(null);
+  // What the status line says after a press: the limit line for a refused pin, the pin words for one that held.
+  const [said, setSaid] = useState<"refused" | "pinned" | null>(null);
+  // The pin words are a hint for the moment, so they leave on their own; the limit line stays until the next press.
+  useEffect(() => {
+    if (said !== "pinned") return;
+    const timer = window.setTimeout(() => setSaid(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [said]);
   if (!items?.length) return null;
 
   const pins = pinnable && ticks?.pinned && ticks.togglePin ? { pinned: ticks.pinned, togglePin: ticks.togglePin } : null;
@@ -83,7 +111,9 @@ export function Checklist({
 
   function pin(key: string) {
     if (!pins) return;
-    setRefused(pins.togglePin(key) ? null : key);
+    const wasPinned = pins.pinned(key);
+    const held = pins.togglePin(key);
+    setSaid(!held ? "refused" : wasPinned ? null : "pinned");
     redraw();
   }
 
@@ -137,25 +167,32 @@ export function Checklist({
                 {item.why && <p className="mt-0.5 text-[13px] leading-[1.5] text-[#AEB6C6] print:text-[#444]">{whySentence(item.why)}</p>}
               </div>
               {pins && (
-                <button
-                  type="button"
-                  aria-pressed={pinned}
-                  aria-label={PIN_LABEL}
-                  aria-describedby={actionId}
-                  title={PIN_LABEL}
-                  onClick={() => pin(item.key)}
-                  className="-my-1.5 -mr-1.5 grid h-8 w-8 place-items-center rounded-[8px] text-[#6E7789] transition-colors hover:text-[#AEB6C6] focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#9FA8DA] aria-pressed:text-[color:var(--ck)] print:hidden"
-                >
-                  <Pin aria-hidden className="h-[15px] w-[15px]" strokeWidth={1.75} fill={pinned ? "currentColor" : "none"} />
-                </button>
+                <span className="group relative -my-1 -mr-1 print:hidden">
+                  <button
+                    type="button"
+                    aria-label={pinned ? UNPIN_LABEL : PIN_LABEL}
+                    aria-describedby={`${actionId} ${id}t${i}`}
+                    onClick={() => pin(item.key)}
+                    className="grid h-[26px] w-[26px] place-items-center rounded-[6px] text-[#6E7789] transition-colors hover:text-[#AEB6C6] focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#9FA8DA]"
+                  >
+                    <PinMark pinned={pinned} />
+                  </button>
+                  <span
+                    id={`${id}t${i}`}
+                    role="tooltip"
+                    className="pointer-events-none absolute right-0 top-[26px] z-10 w-[220px] rounded-lg border border-[#242C3B] bg-[#1A202C] px-2.5 py-2 text-[13px] leading-[1.45] text-[#E8EBF2] opacity-0 transition-opacity group-hover:opacity-100 group-has-[:focus-visible]:opacity-100"
+                  >
+                    {PIN_HINT}
+                  </span>
+                </span>
               )}
             </li>
           );
         })}
       </ul>
       {pins && (
-        <p role="status" className={refused ? "mt-2 text-[13px] leading-[1.5] text-[#AEB6C6] print:hidden" : undefined}>
-          {refused ? LIMIT_LINE : ""}
+        <p role="status" className={said ? "mt-2 text-[13px] leading-[1.5] text-[#AEB6C6] print:hidden" : undefined}>
+          {said === "refused" ? LIMIT_LINE : said === "pinned" ? PINNED_LINE : ""}
         </p>
       )}
     </div>
