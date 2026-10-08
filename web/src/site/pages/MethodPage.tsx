@@ -1,8 +1,9 @@
 /**
  * How we make your report, step by step (annex /method): the landing's steps at
  * length, each beside the sample's own data as the engine works it out (R-3.1).
- * AI is named once here, in the answer at the end, and once in the FAQ, never
- * first (ADR-117).
+ * Step 1 also holds Reading the sky's first chapter, played only on a tap
+ * (ADR-323). AI is named once here, in the answer at the end, and once in the
+ * FAQ, never first (ADR-117).
  */
 import type { ReactNode } from "react";
 import { Link } from "wouter";
@@ -12,6 +13,7 @@ import { CHAPTERS } from "@/lib/chapters";
 import { clockWords } from "@/lib/date-entry";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT, PRODUCT } from "@/lib/product";
 import { SiteLayout } from "../SiteLayout";
+import { FilmStill, type Film } from "../components/FilmStill";
 import { ReferenceCheck } from "../components/ReferenceCheck";
 import { SAMPLE, sampleChart } from "../data/sample";
 import { chartNotes, chartReadout, type NoteKind } from "../lib/readouts";
@@ -23,6 +25,21 @@ const COUNT_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven"
 const countWord = (n: number): string => COUNT_WORDS[n] ?? String(n);
 const capital = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const two = (n: number): string => String(n).padStart(2, "0");
+const runTime = (seconds: number): string => {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}:${two(whole % 60)}`;
+};
+
+/**
+ * Chapter 1 as its branch renders it (claude/reading-the-sky-video, render.sh), both cuts re-encoded under 12 MB; the
+ * title is the one its opening card shows, and the length is ffprobe's for both files.
+ */
+const READING_THE_SKY: Film = {
+  title: "How to read a birth chart",
+  seconds: 92.6,
+  wide: { video: "/film/reading-the-sky-ch1-16x9.mp4", still: "/film/reading-the-sky-ch1-16x9.webp", width: 1920, height: 1080 },
+  tall: { video: "/film/reading-the-sky-ch1-9x16.mp4", still: "/film/reading-the-sky-ch1-9x16.webp", width: 1080, height: 1920 },
+};
 
 // The home section's notes and chips are private to it, so the page draws the same ones with the same values.
 const HUE: Record<NoteKind, string> = {
@@ -72,16 +89,21 @@ function Steps() {
             n={1}
             title="We work out your chart"
             figure={
-              <Shown caption={[SAMPLE.name, formatUpdated(SAMPLE.birth.birthDate), clockWords(SAMPLE.birth.birthTime, clock), SAMPLE.place].join(" · ")}>
-                <div className="sd-readout">
-                  {chartReadout(chart, SAMPLE.birth).map((row) => (
-                    <span key={row.label}>
-                      <b>{row.label}</b>
-                      {` ${row.value}`}
-                    </span>
-                  ))}
-                </div>
-              </Shown>
+              <div className="grid min-w-0 content-start gap-4">
+                <Shown caption={`${READING_THE_SKY.title} · ${runTime(READING_THE_SKY.seconds)}`}>
+                  <FilmStill film={READING_THE_SKY} />
+                </Shown>
+                <Shown caption={[SAMPLE.name, formatUpdated(SAMPLE.birth.birthDate), clockWords(SAMPLE.birth.birthTime, clock), SAMPLE.place].join(" · ")}>
+                  <div className="sd-readout">
+                    {chartReadout(chart, SAMPLE.birth).map((row) => (
+                      <span key={row.label}>
+                        <b>{row.label}</b>
+                        {` ${row.value}`}
+                      </span>
+                    ))}
+                  </div>
+                </Shown>
+              </div>
             }
           >
             <p className={PROSE}>
