@@ -89,11 +89,11 @@ retrograde 6 May and direct 16 Oct 2026. House facts are from the Owner's screen
   2. A session skill (`/observe`) reads the inbox, splits each source into single claims, and rewrites each in our
      words: placement key, the idea, the scene, the reason, the source's account or author. Nothing stored verbatim.
   3. The same idea from different accounts or authors is merged and counted. Two posts by one account count once.
-  4. An idea with **2 or more sources** (Q3 default) is checked against the doctrine and enters
+  4. An idea with **2 or more sources** (Q3, the Owner: "ok lets try") is checked against the doctrine and enters
      `api/src/prompts/observations.ts`, a typed table keyed by placement (planet in house, planet in sign, stellium in
      house, house ruler in house, aspect). One source waits in `docs/annex/observations-inbox.md`.
   5. `buildBrief` adds the reader's matching ideas as OBSERVATIONS, each with its reason.
-- **In the report** (Q2 default): one "Often noticed" block at most per house card, after the reading and before the
+- **In the report** (Q2, the Owner): one "Often noticed" block at most per house card, after the reading and before the
   stellium and retrograde blocks: the idea, then "Why:" in one sentence. Ideas may also shape the prose.
 - First seed: the 33 slides on Review 08/10. One idea already has two sources (8th house: people open up to you, you
   sense their motives). Every other idea waits for a repeat.
@@ -112,7 +112,7 @@ a-friend); synastry observations; scraping any site (the Owner sends what we rea
 4. The hero's horizon is level (both ends within 0.5 px of the same y) and solid at 390, 768 and 1440 px.
 5. No house card prints the generic retrograde definition; each retrograde planet in a house has its own block,
    placed directly before "Does this sound like you?". The definition shows once, under the wheel, with B-73's wording.
-6. No house card prints "Opposite:" (Q1 default).
+6. No house card prints "Opposite:" (Q1, the Owner).
 7. The 9th house card of the chart in the Owner's screenshot (North Node, Saturn, Neptune in Pisces) shows the Stellium
    chip, the stellium block with "To balance it: your 3rd house", and Saturn's retrograde block; its Overview opens
    with the 9th house.
@@ -127,9 +127,8 @@ The artifact (version 1): note 1 the Timeline card, notes 2 and 3 the loading sc
 the 9th house card, note 7 the Overview and Did you know, P.S. the observations flow, table and block.
 
 ## Open questions (each with its default)
-1. Remove the opposite line from house cards? Recommended and default: yes; it returns as "To balance it" on stelliums.
-2. Observations as an "Often noticed" block or only in the prose? Recommended and default: the block, one per card.
-3. Sources needed before an idea enters? Recommended and default: two, from different accounts or authors.
+None open. Answered 2026-10-08, each as recommended: the opposite line leaves house cards (Q1); observations show as
+one "Often noticed" block per card (Q2); two independent sources before an idea enters, as a trial ("ok lets try", Q3).
 
 ## Decisions to record
 - A contact's exact passes are tagged forward or backwards and its backwards stretch reaches the reading and the card;
@@ -147,5 +146,5 @@ the 9th house card, note 7 the Overview and Did you know, P.S. the observations 
 - A body outside a house is named only with its reason in the same sentence; required, not allowed.
 - Every claim in the prose names its placement and reason, one scene, and when it shows; no hype.
 - An observations brain: the Owner's sources, rewritten in our words, merged by idea, entering the brief at two
-  independent sources; shown as one "Often noticed" block per house card.
-- Pending Q1: the opposite line leaves house cards.
+  independent sources (a trial); shown as one "Often noticed" block per house card.
+- The opposite line leaves house cards; the opposite house returns only as a stellium's "To balance it" (the Owner).
