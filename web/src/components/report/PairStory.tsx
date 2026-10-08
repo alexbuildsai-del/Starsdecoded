@@ -13,6 +13,7 @@ import type { LoadingSlots } from "@/components/loading/LoadingFrame";
 import type { PairPerson } from "@/components/report/PairHero";
 import { NOT_DRAWN, pairHeroLayout } from "@/components/report/pair-hero-layout";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { WINDOW_UNKNOWN } from "@/lib/birth-time";
 import type { StoryInput } from "@/lib/build-story";
 import {
   PAIR_STILL_S, pairFrameAt, pairView,
@@ -66,6 +67,8 @@ function storyOf(p: PairPerson): StoryInput {
       place: p.birthPlace,
       date: p.birthDate,
       time: p.birthTimeWindowMinutes === 0 ? p.birthTime : null,
+      // MB-235 provisional: a time with a window reads "rough" in the story; a time nobody gave still reads "no birth time".
+      rough: p.birthTimeWindowMinutes > 0 && p.birthTimeWindowMinutes < WINDOW_UNKNOWN,
     },
   };
 }

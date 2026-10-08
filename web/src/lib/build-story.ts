@@ -30,6 +30,8 @@ export interface StoryInput {
     date: string;
     /** "HH:MM" on the birthplace's clock; null when the reader gave none. */
     time: string | null;
+    /** A time was given with a window: `time` is null, and the pair story says the time is rough, not missing. */
+    rough?: boolean;
   };
 }
 

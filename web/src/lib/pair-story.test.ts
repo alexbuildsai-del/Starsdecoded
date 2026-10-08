@@ -18,7 +18,7 @@ import tomas from "../../../fixtures/sample-people/tomas.json";
 
 type Fixture = typeof mira;
 
-function storyOf(f: Fixture, place: string, time: string | null): PairInput["a"] {
+function storyOf(f: Fixture, place: string, time: string | null, rough?: number): PairInput["a"] {
   const chart = chartOf({
     birthDate: f.birthDate,
     birthTime: time ?? "12:00",
@@ -27,14 +27,16 @@ function storyOf(f: Fixture, place: string, time: string | null): PairInput["a"]
     timezone: f.timezone,
     timezoneOffset: f.timezoneOffset,
     // An unknown time is kept at noon with the whole day's window, as the app stores it.
-    birthTimeWindowMinutes: time === null ? 720 : 0,
+    birthTimeWindowMinutes: rough ?? (time === null ? 720 : 0),
   });
-  return { chart, birth: { lat: f.latitude, lon: f.longitude, place, date: f.birthDate, time } };
+  return { chart, birth: { lat: f.latitude, lon: f.longitude, place, date: f.birthDate, time, ...(rough ? { rough: true } : {}) } };
 }
 
 const MIRA = storyOf(mira, "Lisbon, Portugal", "07:40");
 const KNOWN: PairInput = { a: MIRA, b: storyOf(tomas, "Madrid, Spain", "22:15"), names: [mira.name, tomas.name] };
 const BLIND: PairInput = { a: MIRA, b: storyOf(tomas, "Madrid, Spain", null), names: [mira.name, tomas.name] };
+// A time given with a 120-minute window reaches the story as no time, marked rough (MB-235).
+const ROUGH: PairInput = { a: MIRA, b: storyOf(tomas, "Madrid, Spain", null, 120), names: [mira.name, tomas.name] };
 
 const progress = (over: Partial<Progress> = {}): Progress => ({
   real: 30, shown: 31, label: "Writing your report", next: 40, door: false, complete: false, failed: false, ...over,
@@ -227,6 +229,20 @@ describe("Tomás with no birth time", () => {
     expect(f.stage.horizon).not.toBeNull();
     expect(f.stage.texts.map((x) => x.text)).toContain("Rising Not drawn");
     expect(blind(26.5).caption.subtitle).toBe("Mira's chart turns to its rising sign. Tomás has no birth time, so no horizon.");
+  });
+});
+
+describe("Tomás with a rough birth time", () => {
+  const rough = (t: number) => pairFrameAt(t, ROUGH, WRITING);
+
+  it("says the time is rough, and that we skip the rising sign, then that we read signs", () => {
+    expect(rough(26.5).caption.subtitle).toBe("Mira's chart turns to its rising sign. Tomás's birth time is rough, so we skip the rising sign.");
+    expect(rough(40).caption.subtitle).toBe("One sign at a time, on both charts. Tomás's birth time is rough, so we read signs, not houses.");
+  });
+
+  it("leaves a time nobody gave as it was", () => {
+    expect(BLIND.b.birth.rough).toBeUndefined();
+    expect(pairFrameAt(26.5, BLIND, WRITING).caption.subtitle).toContain("Tomás has no birth time, so no horizon.");
   });
 });
 
