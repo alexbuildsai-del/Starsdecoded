@@ -295,6 +295,46 @@ export const SETUP_LINES = {
   open: "Open Timeline",
 } as const;
 
+const WRITING_WORDS: Readonly<Record<"week" | "month" | "months" | "cycles", string>> = {
+  week: "writing this week",
+  month: "writing this month",
+  months: "writing the next six months",
+  cycles: "writing your life cycles",
+};
+const READING_STEPS = ["week", "month", "months", "cycles"] as const;
+
+/**
+ * The loading bar (ADR-393, 394, reading 29), moved by the readings that have landed and nothing else: the four
+ * writing steps' readings landed over their readings counted, so each step weighs what it holds. The chart and the
+ * planets write none and weigh none. Rounded down, so 100 shows only with the last reading. A server that sends no
+ * `landed` has a done step count in full. The line names the first step still being written.
+ */
+export function setupProgress(setup: TimelineSetup): { pct: number; line: string } {
+  let landed = 0;
+  let total = 0;
+  let writing: (typeof READING_STEPS)[number] | null = null;
+  for (const id of READING_STEPS) {
+    const step = setup.steps.find((s) => s.id === id);
+    const count = step?.count ?? 0;
+    const here = setup.state === "ready" || step?.done ? count : Math.min(count, Math.max(0, step?.landed ?? 0));
+    landed += here;
+    total += count;
+    if (writing === null && here < count) writing = id;
+  }
+  const over = setup.state === "ready" || (total > 0 && landed >= total);
+  const pct = over ? 100 : total > 0 ? Math.min(99, Math.floor((100 * landed) / total)) : 0;
+  const words = over ? "ready" : writing ? WRITING_WORDS[writing] : "getting started";
+  return { pct, line: `${pct}% · ${words}` };
+}
+
+/** The bar never moves back: a read that shows less than the screen already showed leaves what it showed. */
+export function holdProgress(
+  held: { pct: number; line: string } | null,
+  next: { pct: number; line: string },
+): { pct: number; line: string } {
+  return held && held.pct > next.pct ? held : next;
+}
+
 /** "16 transits in the next six months, and 42 cycles across your life." */
 export function readyLine(transits: number, cycles: number | null): string {
   const months = `${transitWords(transits)} in the next six months`;

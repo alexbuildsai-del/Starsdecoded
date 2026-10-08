@@ -259,9 +259,10 @@ async function stateOf(reader: ReaderChart, zone: string | null | undefined, ope
   }
   const lists: Record<ReadingStep, string[]> = { week: plan.week, month: plan.month, months: plan.months, cycles: plan.cycles };
   const steps = SETUP_STEPS.map((id): SetupStep => {
-    if (id === "chart" || id === "planets") return { id, done: true, count: null };
+    if (id === "chart" || id === "planets") return { id, done: true, count: null, landed: null };
     const keys = lists[id];
-    return { id, done: state === "ready" || keys.every(landed), count: keys.length };
+    // The loading bar moves on this count alone (ADR-394), so a key no job holds counts as landed, as `done` reads it.
+    return { id, done: state === "ready" || keys.every(landed), count: keys.length, landed: keys.filter(landed).length };
   });
   const replay = row.replayFrom && row.replayTo && !row.replaySeenAt && today >= row.replayFrom
     ? { from: row.replayFrom, to: row.replayTo }

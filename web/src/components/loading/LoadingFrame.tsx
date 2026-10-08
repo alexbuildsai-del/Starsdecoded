@@ -12,6 +12,7 @@ export interface LoadingSlots {
 }
 
 export interface LoadingFrameProps extends LoadingSlots {
+  /** The progress bar with its line (ADR-394), in the slot above the door. */
   pct?: ReactNode;
   door?: ReactNode;
 }
@@ -30,7 +31,7 @@ export function LoadingFrame({ counter, title, subtitle, stage, detail, below, p
         {subtitle && <p className="lf-subtitle">{subtitle}</p>}
         <div className="lf-stage">{stage}</div>
         {detail && <div className="lf-detail">{detail}</div>}
-        {pct && <div className="lf-pct">{pct}</div>}
+        {pct && <div className="lf-pct top-[85%] h-[5.5%]">{pct}</div>}
         {door && <div className="lf-door">{door}</div>}
       </div>
       {below}

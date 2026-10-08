@@ -470,6 +470,7 @@ test("db, the three routes as pinned: 401, 403 and 409 as Now and ahead refuses;
   assert.deepEqual([writing.state, writing.from, writing.to, writing.replay], ["writing", plan.from, plan.to, null]);
   assert.deepEqual(writing.steps.map((step) => [step.id, step.count]), [["chart", null], ["planets", null], ...Object.entries(counts)]);
   assert.deepEqual(writing.steps.slice(0, 2).map((step) => step.done), [true, true], "the chart and the planets tick at once");
+  assert.deepEqual(writing.steps.map((step) => step.landed), [null, null, 0, 0, 0, 0], "nothing is written yet, so the bar stands at none");
   const queued = await jobsOf(reader);
   assert.deepEqual(queued.reading.map((job) => job.payload.key), S.writeOrder(plan));
   assert.equal(queued.ahead.length, 1);
@@ -505,6 +506,7 @@ test("db, the three routes as pinned: 401, 403 and 409 as Now and ahead refuses;
   const ready = Z.GetTimelineSetupResponse.parse((await call("GET", `/timeline/setup?tz=${ZONE}`, reader.userId)).body);
   assert.deepEqual([ready.state, ready.steps.every((step) => step.done), ready.replay], ["ready", true, null]);
   assert.deepEqual(ready.steps.slice(2).map((step) => step.count), Object.values(counts));
+  assert.deepEqual(ready.steps.map((step) => step.landed), [null, null, ...Object.values(counts)], "every reading landed: the bar reaches its end only here");
   assert.equal((await setupOf(reader))?.state, "ready");
 
   for (const key of [first, plan.cycles[0]]) {

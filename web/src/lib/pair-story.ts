@@ -548,7 +548,8 @@ function stepWords(step: number, pair: Pair, progress: Progress): { title: strin
       };
     }
     default:
-      if (progress.complete) return { title: "Your report is ready", subtitle: "Opening it now." };
+      // The screen never opens the report by itself (ADR-393), so its last caption says who does.
+      if (progress.complete) return { title: "Your report is ready", subtitle: "Tap Start reading to open it." };
       // A failed report is not writing, so the held frame stops saying it is; the overlay puts the failure under it.
       if (progress.failed) return { title: "Your two charts, side by side", subtitle: null };
       return {

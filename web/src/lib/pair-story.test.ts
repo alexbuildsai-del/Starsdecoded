@@ -149,7 +149,7 @@ describe("the step table", () => {
     expect(still.detail).toBeNull();
     expect(still.stage.plates.flatMap((p) => p.sectors).some((s) => s.lit)).toBe(false);
     expect(at(PAIR_STILL_S, KNOWN, DOOR).caption.subtitle).toBe("The first chapters are in.");
-    expect(at(PAIR_STILL_S, KNOWN, DONE).caption).toMatchObject({ title: "Your report is ready", subtitle: "Opening it now." });
+    expect(at(PAIR_STILL_S, KNOWN, DONE).caption).toMatchObject({ title: "Your report is ready", subtitle: "Tap Start reading to open it." });
     expect(at(PAIR_STILL_S, KNOWN, FAILED).caption).toMatchObject({ title: "Your two charts, side by side", subtitle: null });
   });
 });
