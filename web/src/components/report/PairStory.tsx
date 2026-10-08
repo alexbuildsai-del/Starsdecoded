@@ -2,7 +2,7 @@
  * The Compatibility report's loading story on the shared grid (compatibility-loading-story, ADR-347 to 351). Every
  * word and mark is `pairFrameAt`'s, worked out from the two stored charts and birthplaces, so this file only paints
  * it: the caption, the stage and the detail go into the grid's slots, and the opening screen keeps the percentage,
- * the label, the door, the failure line and the 1.2 s self-open whatever plays (ADR-47, 59). The page keeps the
+ * the label, the door, the failure line and the wait for the Start reading tap whatever plays (ADR-47, 59). The page keeps the
  * screen and its props and is handed the slots each frame, so only the screen redraws while the story moves.
  *
  * It plays once from the moment the screen opens and holds its last frame. Reduced motion paints that frame at

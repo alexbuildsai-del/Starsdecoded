@@ -54,7 +54,7 @@ class StoryClock {
   private listeners = new Set<() => void>();
   private raf = 0;
   private last = 0;
-  private kept: { t: number; input: StoryInput; failed: boolean; frame: StoryFrame } | null = null;
+  private kept: { t: number; input: StoryInput; failed: boolean; complete: boolean; frame: StoryFrame } | null = null;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -70,10 +70,10 @@ class StoryClock {
   /** Every slot asks for the same moment on each tick, so the frame is worked out once and shared. */
   frame(t: number, input: StoryInput, progress: Progress): StoryFrame {
     const kept = this.kept;
-    if (kept && kept.t === t && kept.input === input && kept.failed === progress.failed) return kept.frame;
+    if (kept && kept.t === t && kept.input === input && kept.failed === progress.failed && kept.complete === progress.complete) return kept.frame;
     // The door's line sits under Start reading in the overlay, so step 5's subtitle keeps saying what the screen shows.
     const frame = frameAt(t, input, { ...progress, door: false });
-    this.kept = { t, input, failed: progress.failed, frame };
+    this.kept = { t, input, failed: progress.failed, complete: progress.complete, frame };
     return frame;
   }
 
@@ -363,11 +363,11 @@ export function useBuildStory(report: StoryReport | undefined, chartReady: boole
     return { chart, birth: { lat: latitude, lon: longitude, place, date: birthDate, time } };
   }, [chart, birthDate, birthTime, windowMinutes, latitude, longitude, place]);
 
-  // The still list's words read only whether the report failed, so the percentage moving never works out five frames again.
-  const failed = progress.failed;
+  // The still list's words read only whether the report failed or finished, so the percentage moving never works out five frames again.
+  const { failed, complete } = progress;
   const steps = useMemo(
     () => (still && input ? storySteps(input, { ...progress, door: false }) : null),
-    [still, input, failed],
+    [still, input, failed, complete],
   );
 
   if (!input) return undefined;

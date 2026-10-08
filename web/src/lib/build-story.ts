@@ -82,6 +82,8 @@ const SIDEREAL_DEG_PER_MIN = 360.98564736629 / 1440;
 const RAD = Math.PI / 180;
 
 const DOOR_LINE = "Start reading now. We'll finish the last chapters while you read.";
+// The report no longer opens itself at 100%, so the subtitle points at the button instead of saying it is still writing.
+const READY_LINE = "Tap Start reading to open it.";
 
 export interface StoryPoint {
   x: number;
@@ -649,7 +651,7 @@ export function frameAt(t: number, input: StoryInput, progress: Progress): Story
   } else if (known) {
     // A failed report is not writing, so step 5 stops saying it is; the overlay shows the failure in the detail slot.
     title = "Your houses, two at a time";
-    subtitle = progress.door ? DOOR_LINE : progress.failed ? "Each house faces its opposite." : "Each house faces its opposite. Your report writes meanwhile.";
+    subtitle = progress.complete ? READY_LINE : progress.door ? DOOR_LINE : progress.failed ? "Each house faces its opposite." : "Each house faces its opposite. Your report writes meanwhile.";
     if (sincePairs > 0) {
       if (allPairs) {
         detail.push({ text: "Six pairs, and you know all twelve.", kind: "closing", tone: "paper", opacity: clamp01((sincePairs - PAIRS.length * PAIR_S) / 0.6) });
@@ -668,7 +670,7 @@ export function frameAt(t: number, input: StoryInput, progress: Progress): Story
     subtitle = "";
   } else {
     title = "Now writing your report";
-    subtitle = progress.door ? DOOR_LINE : "No birth time, so no houses. While it writes, a few things worth knowing.";
+    subtitle = progress.complete ? READY_LINE : progress.door ? DOOR_LINE : "No birth time, so no houses. While it writes, a few things worth knowing.";
     didYouKnow = op(S5 + 0.6);
   }
 

@@ -71,6 +71,13 @@ describe("the five steps", () => {
     expect(frameAt(S5 + 30, KNOWN, DOOR).subtitle).toBe("Start reading now. We'll finish the last chapters while you read.");
     expect(frameAt(S2 + 1, KNOWN, DOOR).subtitle).toBe(frameAt(S2 + 1, KNOWN, WRITING).subtitle);
   });
+
+  it("points step 5's subtitle at the Start reading button once the report is complete", () => {
+    const complete: Progress = { ...DOOR, real: 100, shown: 100, complete: true };
+    expect(frameAt(S5 + 30, KNOWN, complete).subtitle).toBe("Tap Start reading to open it.");
+    expect(frameAt(S5 + 30, BLIND, complete).subtitle).toBe("Tap Start reading to open it.");
+    expect(frameAt(S2 + 1, KNOWN, complete).subtitle).toBe(frameAt(S2 + 1, KNOWN, WRITING).subtitle);
+  });
 });
 
 describe("step 1: where you were born", () => {
