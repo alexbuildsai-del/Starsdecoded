@@ -167,7 +167,7 @@ test("a drawn run calls every section and keeps the rising part", async () => {
     { quote: "You investigate first and commit second.", evidence: [{ kind: "angle", angle: "ascendant", sign: "capricorn" }] },
     { quote: "You investigate first and commit second.", evidence: [{ kind: "sect", role: "sect_light", body: "sun" }] },
   ] };
-  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week." })) };
+  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week.", retrograde: [], stellium: null })) };
   const drawnClaims = () => [1, 2, 3].map(() => ({ quote: "You investigate first and commit second.", evidence: [{ kind: "placement", body: "sun", sign: "scorpio", house: 11 }] }));
   const saved = { ...REPLIES };
   for (const k of Object.keys(REPLIES)) {
@@ -523,7 +523,7 @@ test("a name the writer wrote back reaches the next prompt only in a data block:
 
 test("adding the hour reads the stored foundation and prose with the name in a block, and an amendment copied from them lands on the prose as stored (ADR-240)", async () => {
   const chart = drawn();
-  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week." })) };
+  const houses = { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week.", retrograde: [], stellium: null })) };
   for (const name of INJECTED) {
     const where = name.slice(0, 24);
     // What a writer can write back is the name as its block showed it.
@@ -578,6 +578,6 @@ test("BUG R15-04: YOUR LAST REPLY, the model's JSON, keeps a name that opens a p
   }
 });
 
-test("the natal prompts are v11, the version every report written from this round's prompts carries (ADR-257, R16-13)", () => {
-  assert.equal(PROMPT_VERSION, "v11");
+test("the natal prompts are v12, the version every report written from this round's prompts carries (ADR-369, ADR-383, R19-14)", () => {
+  assert.equal(PROMPT_VERSION, "v12");
 });

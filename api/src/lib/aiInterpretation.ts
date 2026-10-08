@@ -37,7 +37,11 @@ import {
   buildBrief, hasClaims, instructionsFor, proseOf, reconcileClaims, schemaFor, sectionById, sectionsFor, storeClaims, toStrictJsonSchema, validateClaims,
   type ChartBrief, type Claim, type EvidenceRef, type ReportSectionId, type SectionSpec, type StoredClaim,
 } from "../prompts/index.js";
-import { block, blocking, clean, fixed, needsRepair, plainChecks, registerChecks, repair, warned, type Check, type Validated } from "../prompts/checks.js";
+import { NOT_PROSE } from "../prompts/evidence.js";
+import { examplesFor, renderExamples } from "../prompts/examples.js";
+import { SCENES, type Scene } from "../prompts/scenes.js";
+import { BODY_LABELS, cap, ordinal, type Body } from "../prompts/vocabulary.js";
+import { block, blocking, clean, explainChecks, fixed, needsRepair, plainChecks, registerChecks, repair, warned, type Check, type Validated } from "../prompts/checks.js";
 import { blockValues, lettersNote, maskNames, restoreBlocks, unmaskQuote, type TypedNames } from "../prompts/data.js";
 import { followRepairs, semicolonsToFullStops } from "../prompts/pair/index.js";
 import { recordChecks } from "./failureLog.js";
@@ -67,8 +71,8 @@ function claimsShapeOf(schema: z.ZodType): z.ZodType | null {
 }
 
 const CLAIMS_ONLY = `CLAIMS ONLY. The prose below has already been written and accepted. Do not rewrite it and do not return it. Return only the claims: each quote is copied character for character from the PROSE AS WRITTEN, with 1 to 3 evidence references from the brief exactly as before. A quote that is not in the prose word for word is rejected.`;
-/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185). v9: the name reaches the prompt only as data (ADR-202). v10: floors where Luna ran short, a room only a real room, no model sentence to copy, each house opens with the page's word (R15-23). v11: the Owner's simple-words rule opens the style contract and the vocabulary is in everyday words (ADR-257); v6 to v10 reports still render. */
-export const PROMPT_VERSION = "v11";
+/** Bump when the section set, schemas, or vocabulary change shape. v8: one voice, two friends over coffee (ADR-185). v9: the name reaches the prompt only as data (ADR-202). v10: floors where Luna ran short, a room only a real room, no model sentence to copy, each house opens with the page's word (R15-23). v11: the Owner's simple-words rule opens the style contract and the vocabulary is in everyday words (ADR-257). v12: name it, say it plain, show it in a day (ADR-369), each chapter handed two model passages and its own scenes (ADR-383), the house cards' blocks and Often noticed (ADR-396 to 403); v6 to v11 reports still render. */
+export const PROMPT_VERSION = "v12";
 
 /** A section as stored: the model's fields with claims replaced by their validated, labelled form. */
 type Stored<T> = Omit<T, "claims"> & { claims: StoredClaim[] };
@@ -165,12 +169,53 @@ export interface ReportInterpretation {
  * Closes every user turn the natal and pair assemblers build, the foundations'
  * too, since every chapter picks up their words. A model weighs the end of a
  * prompt most, and on mix B rule 8 alone did not keep the semicolon out (MB-129).
+ * Its questions are reading 1's, asked only of what a reader reads, so a
+ * foundation's handoff keeps the words it reasons with.
  */
-export const SELF_CHECK = "Before you answer, check every field: no semicolons, no em dashes.";
+export const SELF_CHECK = "Before you answer, check every field: no semicolons, no em dashes. Then ask of each paragraph the reader reads: Does it open on their life? Does it name one thing from the chart at most, inside a sentence, with what it means in the next sentence and a moment from their own day? Is every word one a friend would use, never domicile, exalted or sect? Does it say could, might or may, never will?";
 
 /** The reader's name as the brief's block holds it, for a caller handed the brief and not the name typed. */
 function namesOf(brief: ChartBrief): TypedNames {
   return { name: blockValues(brief.text, "name")[0] ?? "" };
+}
+
+/** The ten chapters (ADR-46), each handed two model passages and its own scenes (ADR-383). The triad is not one, and no reader reads the foundation. */
+const CHAPTERS: ReadonlySet<string> = new Set<ReportSectionId>(["overview", "houses", "mind", "career", "money", "relationships", "family", "superpowers", "discoveries", "focus"]);
+
+/** The reader's calendar day of birth, as a passage's fixture gives its own: a birth just after midnight is a day ahead of its UTC instant. */
+function birthDayOf(chart: NatalChartData): string {
+  return new Date(Date.parse(chart.datetimeUtc) + chart.timezoneOffset * 3_600_000).toISOString().slice(0, 10);
+}
+
+/** The part of the chart each scene's pool belongs to, so the writer sets a scene beside the placement it shows. */
+const SCENE_PLACES: ReadonlyMap<string, { house: boolean; label: string }> = (() => {
+  const places = new Map<string, { house: boolean; label: string }>();
+  const add = (pools: Record<string | number, readonly Scene[]>, house: boolean, label: (key: string) => string) => {
+    for (const [key, pool] of Object.entries(pools)) for (const scene of pool) places.set(scene.id, { house, label: label(key) });
+  };
+  add(SCENES.body, false, (key) => BODY_LABELS[key as Body] ?? cap(key));
+  add(SCENES.sign, false, cap);
+  add(SCENES.house, true, (key) => `${ordinal(Number(key))} house`);
+  return places;
+})();
+
+/** A chapter's scenes from the brief, by its key or its id, as `examplesFor` takes either. */
+function scenesOf(brief: ChartBrief, spec: SectionSpec): readonly Scene[] {
+  return brief.scenes[spec.key] ?? brief.scenes[spec.key.replace(/^natal:/, "")] ?? [];
+}
+
+/** The scenes a chapter may adapt, each under its placement. Blind, a house scene is left out: the hour settled no house (ADR-34). */
+function renderScenes(scenes: readonly Scene[], blind: boolean): string {
+  const lines = scenes.flatMap((scene) => {
+    const place = SCENE_PLACES.get(scene.id);
+    if (blind && place?.house) return [];
+    return [`- ${place ? `${place.label}: ` : ""}${scene.text}`];
+  });
+  if (!lines.length) return "";
+  return [
+    "SCENES FOR THIS CHAPTER. Everyday moments picked for this chart. Each line starts with the part of the chart it shows. Where one fits a paragraph, tell it in your own words. Never copy one word for word.",
+    ...lines,
+  ].join("\n");
 }
 
 function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec, foundationJson?: string, names: TypedNames = namesOf(brief)): string {
@@ -178,6 +223,13 @@ function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec
   const parts = [instructionsFor(spec, instructions, blind).trim()];
   if (spec.key !== FOUNDATION.key && hasClaims(spec)) parts.push("", CLAIMS_CONTRACT);
   parts.push("", "CHART BRIEF", brief.text);
+  if (CHAPTERS.has(spec.key.replace(/^natal:/, ""))) {
+    // The reader's own scenes come last of the two, nearer the end the model weighs most; the passages show a shape only.
+    const examples = renderExamples(examplesFor(spec.key, birthDayOf(brief.chart)));
+    const scenes = renderScenes(scenesOf(brief, spec), blind);
+    if (examples) parts.push("", examples);
+    if (scenes) parts.push("", scenes);
+  }
   // The foundation is model text, and the writer may have named the reader in it (ADR-240).
   if (foundationJson) parts.push("", "FOUNDATION (internal editorial handoff, never quote it)", maskNames(foundationJson, names));
   const extra = spec.extraContext?.(brief);
@@ -501,8 +553,9 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     checks.push(...validated.checks);
     // Every call, natal or pair, foundation or section, so a list that keeps firing reaches the Failures tab (ADR-85, ADR-185).
     checks.push(...registerChecks(data));
-    // Counted on the reply as accepted, outside validate, so a claims-only repair never counts a sentence twice.
-    if (!call.internal) checks.push(...plainChecks(data));
+    // Counted on the reply as accepted, outside validate, so a claims-only repair never counts a sentence twice. A
+    // foundation's handoff reasons in the dignity and sect words chk-49 looks for, and no reader reads it, so both skip it.
+    if (!call.internal) checks.push(...plainChecks(data), ...explainChecks(data));
     const repairWanted = needsRepair(checks) && !checks.some((c) => c.rule === "chk-09" && c.cls === "block");
 
     // Fewer than three valid claims after reconciliation is the one problem
@@ -642,12 +695,12 @@ function withStoredClaims(data: unknown, chart: NatalChartData): unknown {
   return out.claims ? { ...out, claims: storeClaims(out.claims, chart) } : out;
 }
 
-/** Words across every string leaf of a value. */
+/** Prose words across every string leaf of a value, past the fields beside the prose: claims, a card, a house's Often noticed. */
 export function countWords(value: unknown): number {
   if (typeof value === "string") return value.trim() ? value.trim().split(/\s+/).length : 0;
   if (Array.isArray(value)) return value.reduce((n, v) => n + countWords(v), 0);
   if (value && typeof value === "object") {
-    return Object.entries(value).reduce((n, [k, v]) => (k === "claims" ? n : n + countWords(v)), 0);
+    return Object.entries(value).reduce((n, [k, v]) => (NOT_PROSE.has(k) ? n : n + countWords(v)), 0);
   }
   return 0;
 }
@@ -959,11 +1012,11 @@ function tolerant(quote: string): RegExp {
   return new RegExp(parts.join(""));
 }
 
-/** Every string leaf of a section except the claims, with its path, in stored order. */
+/** Every string leaf of a section's prose, with its path, in stored order: a card beside it is never amended or added to. */
 function leaves(section: Record<string, unknown>): Array<{ path: string[]; text: string }> {
   const out: Array<{ path: string[]; text: string }> = [];
   const walk = (v: unknown, path: string[]) => {
-    if (path[0] === "claims") return;
+    if (path.length && NOT_PROSE.has(path[path.length - 1])) return;
     if (typeof v === "string") out.push({ path, text: v });
     else if (Array.isArray(v)) v.forEach((x, i) => walk(x, [...path, String(i)]));
     else if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) walk(x, [...path, k]);
@@ -1144,7 +1197,7 @@ export async function amendSections(
   const results = await Promise.all(specs.map(async (spec, i) => {
     const id = ids[i];
     const current = stored[id] as unknown as Record<string, unknown>;
-    const { claims: _claims, ...text } = current;
+    const text = Object.fromEntries(Object.entries(current).filter(([k]) => !NOT_PROSE.has(k)));
     const user = [
       AMENDMENT_INSTRUCTIONS, "",
       `SECTION ${spec.label.toUpperCase()} AS WRITTEN`, maskNames(JSON.stringify(text, null, 2), names), "",

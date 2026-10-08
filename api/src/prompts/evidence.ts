@@ -69,11 +69,18 @@ export function softenQuote(s: string): string {
 
 const norm = softenQuote;
 
-/** Every string leaf of a section except the claims themselves, joined as the prose to quote from. */
+/**
+ * Fields that sit beside a section's prose and are not part of it: the claims only quote the prose, a Did you know
+ * card has no band, claim or evidence of its own (ADR-377), and a house's Often noticed is filled in code from the
+ * observations table (ADR-403). A claim never quotes them and a word band never counts them.
+ */
+export const NOT_PROSE: ReadonlySet<string> = new Set(["claims", "didYouKnow", "noticed"]);
+
+/** Every string leaf of a section but those beside the prose, joined as the prose to quote from. */
 export function proseOf(section: unknown): string {
   const out: string[] = [];
   const walk = (v: unknown, key?: string) => {
-    if (key === "claims") return;
+    if (key !== undefined && NOT_PROSE.has(key)) return;
     if (typeof v === "string") out.push(v);
     else if (Array.isArray(v)) v.forEach((x) => walk(x));
     else if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) walk(x, k);
