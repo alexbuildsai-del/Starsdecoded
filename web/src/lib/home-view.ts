@@ -6,18 +6,17 @@
  * a pair with the reader or chapter 08's two lines for the reader, then the
  * buttons. A report that could not be written opens nothing, so the line that
  * says why stands where all of that would be, with Try again where the reader
- * may rewrite it. The reader's own quick look shares their report and lists
- * who has it; a sharer's offers Share yours back (ADR-235). Every word it
- * prints is here or, for Sun, Moon and Rising, in `triad-row.ts`, which every
- * page shares, so node tests pin the copy.
+ * may rewrite it. A sharer's quick look offers Share yours back (ADR-235); who
+ * can read a report is the Share window's (ADR-329). Whether a Compatibility
+ * report may be offered at all is `canPair`'s, for every screen (ADR-332).
+ * Every word it prints is here or, for Sun, Moon and Rising, in
+ * `triad-row.ts`, which every page shares, so node tests pin the copy.
  */
-import type { Home, HomePair, HomePerson, ReportSummary, SendState, Share } from "@workspace/api-client-react";
+import type { Home, HomePair, HomePerson, ReportSummary } from "@workspace/api-client-react";
 import { MEET_TAGS } from "@/lib/charts-meet";
 import { lensInfo } from "@/lib/lenses";
 import { CENTRE_ID } from "@/lib/orbit";
-import { HANDED_BACK, SEND_AGAIN } from "@/lib/pair-row";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
-import { shareWith } from "@/lib/share-card";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 
@@ -79,6 +78,17 @@ export function ownIds(home: Pick<Home, "you" | "people">): Set<string> {
   if (home.you) own.add(home.you.profileId);
   for (const person of home.people) if (person.isSelf) own.add(person.profileId);
   return own;
+}
+
+/**
+ * Compatibility and Two people together show only once the reader can read two
+ * finished Personal reports, their own and one more, made or shared (ADR-332,
+ * reading 19), so no screen offers a pair the reader can't make yet.
+ */
+export function canPair(home: Pick<Home, "you" | "people">): boolean {
+  const own = ownIds(home);
+  const readable = [...(home.you ? [home.you] : []), ...home.people].filter((person) => isFinished(person.status));
+  return readable.some((person) => own.has(person.profileId)) && readable.some((person) => !own.has(person.profileId));
 }
 
 /**
@@ -149,50 +159,6 @@ export function quickLookDoors({ person, pair, self }: QuickLookTarget): QuickLo
   return { primary, report };
 }
 
-/** What "Share with {name}" gives: `SendDialog`'s target, structurally, so this module stays free of components. */
-export type ShareTarget =
-  | { kind: "person"; send: SendState; reportId: string }
-  | { kind: "pair"; send: SendState; reportId: string };
-
-// A report handed back with Not me goes out again as a new send, as its row's Send again does (ADR-236); only a
-// person's report is ever handed back.
-const PERSON_SENDS: ReadonlySet<string> = new Set(["can_send", "can_grant", "handed_back"]);
-const PAIR_SENDS: ReadonlySet<string> = new Set(["can_send", "can_grant"]);
-
-function sendable(send: SendState | null | undefined, states: ReadonlySet<string>): send is SendState {
-  return !!send && states.has(send.state);
-}
-
-/**
- * "Share with {name}" gives the person their own Personal report first, as
- * their row does, and once they have it, the reader's pair with them. The
- * server decides where a send is offered (`ReportSummary.send`); the reader's
- * own quick look shares nothing here, and whoever reads a report shared with
- * them cannot send it on (ADR-235).
- */
-export function shareTargetFor(look: QuickLookTarget, sends: { person?: SendState | null; pair?: SendState | null }): ShareTarget | null {
-  if (look.self) return null;
-  const person = look.person.access === "shared" ? null : sends.person;
-  if (sendable(person, PERSON_SENDS)) return { kind: "person", send: person, reportId: look.person.reportId };
-  if (look.pair && isFinished(look.pair.status) && sendable(sends.pair, PAIR_SENDS)) return { kind: "pair", send: sends.pair, reportId: look.pair.reportId };
-  return null;
-}
-
-/**
- * The share control as the person's row says it, so the two never disagree: a
- * send its claimer handed back with Not me reads "Handed back" beside Send
- * again, which opens the same dialog for a new send (ADR-236).
- */
-export function shareControl(target: ShareTarget, name: string): { status: string | null; label: string } {
-  if (target.kind === "person" && target.send.state === "handed_back") return { status: HANDED_BACK, label: SEND_AGAIN };
-  return { status: null, label: shareWith(firstName(name)) };
-}
-
-/** Share my report: the reader's own quick look, once that report is finished (ADR-235, MB-104). */
-export function offersShareMine(look: QuickLookTarget): boolean {
-  return look.self && isFinished(look.person.status);
-}
-
 /** Share yours back: a sharer's seat, while the reader has a finished Personal report of their own not yet shared with them (reading 4). */
 export function offersShareBack(look: QuickLookTarget): boolean {
   return !look.self && look.person.access === "shared" && look.person.shareBack === true;
@@ -206,46 +172,26 @@ export function offersTryAgain(person: Pick<HomePerson, "status" | "canRegenerat
   return isFailed(person.status) && person.canRegenerate === true;
 }
 
-/** The words of sharing the reader's own report, on their quick look, its sheet and a sharer's quick look (ADR-235). */
+/** Share yours back on a sharer's quick look, and the status that stands in its place while it goes (ADR-130, ADR-235). */
 export const SHARE_MINE = {
-  open: "Share my report",
-  title: `Share your ${PERSONAL_REPORT}`,
-  email: "Their email",
-  send: "Send link",
   sending: "Sharing",
-  notNow: "Not now",
-  done: "Done",
-  copy: "Copy link",
-  copied: "Copied",
-  sharedWith: "Shared with",
-  stop: "Stop sharing",
   back: "Share yours back",
 } as const;
 
 /**
  * What goes, named before it goes (ADR-139), in the locked spec's line: by
  * name where the reader knows who gets it, as on Share yours back, and as
- * "they" where the sheet has only an address.
+ * "they" where only an address is known.
  */
 export function shareLine(name?: string | null): string {
   const who = name?.trim() ? `${name.trim()} reads your report and sees you in their circle.` : "They read your report and see you in their circle.";
   return `${who} Your birth date, time and place go with it. You can stop sharing any time.`;
 }
 
-/** The sheet's answer once the link is out: emailed, or to pass on by hand when the email did not go, as Share with's dialog says it. */
-export function shareSentLine(email: string, delivered: boolean): string {
-  return delivered
-    ? `We emailed a link to ${email}. They sign in with that address to open it.`
-    : `The email didn't go through. Copy this link and send it yourself. They sign in with ${email} to open it.`;
-}
-
-/** The sheet's own check before anything is sent, in the gift flow's words for the same field. */
-export const SHARE_EMAIL_MISSING = "Enter their email, like name@example.com.";
-
 /**
- * A refused share in plain words, for the sheet and for Share yours back; a
- * limit or a pause has its own line (`refusalLine`). Only the sheet ever says
- * "already shared", since to Share yours back it is the state that was asked for.
+ * A refused share in plain words, for Share yours back; a limit or a pause has
+ * its own line (`refusalLine`). "Already shared" is the state Share yours back
+ * asks for, so its caller treats that refusal as done and never prints it.
  */
 export function shareErrorLine(code: unknown): string {
   if (code === "already_shared") return "Your report is already shared with that address.";
@@ -256,26 +202,6 @@ export function shareErrorLine(code: unknown): string {
 
 /** The toast that confirms Share yours back, since its one tap leaves nothing else on screen to say it happened. */
 export const sharedBackText = (name: string): string => `${firstName(name)} can read your ${PERSONAL_REPORT} now`;
-
-/** Said for a reader with no first name on a grant that carries no address either, as the gift's unnamed giver is. */
-export const UNNAMED_READER = "Someone";
-
-/**
- * Whom a share names, on the list and in Stop sharing: a waiting one the
- * address the link went to, a claimed one its reader's first name. A grant
- * made by Share yours back carries no address, since the sharer never gave
- * one (R-3.6), so an address stands in only where there is one.
- */
-export function shareName(share: Pick<Share, "readerName" | "email" | "state">): string {
-  const name = share.readerName?.trim();
-  const email = share.email.trim();
-  return (share.state === "waiting" ? email || name : name || email) || UNNAMED_READER;
-}
-
-/** Where a share stands, under its name on the list. */
-export function shareStateText(share: Pick<Share, "state">): string {
-  return share.state === "active" ? "Can read it" : "Waiting for them to sign in";
-}
 
 /**
  * Try again's verb, the status that stands in its place while the rewrite starts

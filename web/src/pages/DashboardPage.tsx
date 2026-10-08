@@ -61,7 +61,7 @@ import { openFrom, pathHave, returnPath, signInFirst, withoutOpen, type AskingSt
 import { quickLookFor } from "@/lib/home-view";
 import { nudgeFor, type Nudge as NudgeData } from "@/lib/nudges";
 import { CENTRE_ID, circlePoints, partnersOf } from "@/lib/orbit";
-import type { PairSelection } from "@/lib/pair-selection";
+import { preselectPair, type PairSelection } from "@/lib/pair-selection";
 import { usePageTitle } from "@/lib/page-title";
 import { usePrices } from "@/lib/prices";
 import { COMPATIBILITY_REPORT, PERSONAL_REPORT } from "@/lib/product";
@@ -612,6 +612,15 @@ export default function DashboardPage() {
     setPreselect({});
   }, [toView]);
 
+  const makePair = useCallback(
+    (profileId: string) => {
+      const theirs = home?.people.find((p) => p.profileId === profileId)?.reportId ?? "";
+      toView("compatibility");
+      setPreselect(preselectPair(you?.reportId ?? "", theirs));
+    },
+    [home, you, toView],
+  );
+
   // A checkout comes back to the step that asked (reading 2): the sheet, the gift flow, Add someone, or the picker,
   // whose pair the tab still remembers. The query goes as the step opens, so a reload or Back never opens it again.
   const reopen = openFrom(search);
@@ -631,7 +640,14 @@ export default function DashboardPage() {
     cardLabel = look.self ? "Your quick look" : `Quick look at ${first(look.person.name)}`;
     card = (
       <div className="grid gap-3.5">
-        <QuickLook key={look.self ? CENTRE_ID : look.person.profileId} person={look.person} pair={look.pair} self={look.self} onClose={closeCard} />
+        <QuickLook
+          key={look.self ? CENTRE_ID : look.person.profileId}
+          person={look.person}
+          pair={look.pair}
+          self={look.self}
+          onClose={closeCard}
+          onMakePair={makePair}
+        />
         {look.self && circleNudge && <Nudge nudge={circleNudge} />}
       </div>
     );
