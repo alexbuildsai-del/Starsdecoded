@@ -7,7 +7,7 @@ merged into the rule it repeats.
 
 ## Took as proposed
 - **The default carries an ask.** "go", with MB-93, 128 and 129 at their defaults (R12); "lock it" with Mixed's wording
-  (review-05-10) and with three defaults (report-loading-story, 2026-10-05). Write each ask so that silence is safe.
+  (review-05-10), three defaults (report-loading-story, 10-05), "1-ok 2-ok 3-ok lets try" (Review 08/10). Silence is safe.
 - **Housekeeping on a yes; keyless checks.** The /round skill swap, fifteen rows closed in one line (sweep 03/10): small,
   reversible operations need one line, not a question. A check runs with no key and no sign-in (ADR-192).
 
@@ -35,8 +35,8 @@ merged into the rule it repeats.
 - **Opus for orchestrating, planning and research**, the verifier on any claim that feeds a decision (ADR-137, R-0.7);
   this file after every ideation, `lessons.md` after every round (ADR-195).
 - **Fewer questions, each with a default.** At most three, highest stakes first, a recommendation and the silent default
-  (R-12.1); never a chore (R-12.5). Before proposing, read the day's locks and ideations on the same topic on every branch:
-  never re-ask what one settled, and keep one product (release-one-findings; report-loading-story, 2026-10-05).
+  (R-12.1); never a chore (R-12.5), "can you find the second one instead of me" (08/10). Read the day's locks and ideations
+  on the topic on every branch first: never re-ask what one settled, keep one product (release-one-findings, 2026-10-05).
 - **Decide what a rule answers, then show him** (Decided by Claude; the Mailbox keeps only his, R-12.3). What only he
   holds he supplies or defers: build behind marked seams, never hold the round (R-12.4; one dated checklist).
 - **Testing is ours, never his** (2026-10-04): a walk after each deploy. **No secret on GitHub, ever** (2026-09-25).
@@ -45,8 +45,8 @@ merged into the rule it repeats.
   finding is traced to what broke: rewording B-40's error "makes no sense… fix the root cause" (walk-line, 2026-10-06).
 - **Words that can't go stale.** No price in the FAQ, "they might change after a discount"; a price shows only where read
   live, never before it's real; no promise twice. Test a line against every way to buy: "you pay for credits" (walk-line).
-- **Astrology calls are ours; the bar is @the_innercosmos.** Name anything explained at her level; possibilities, never
-  forecasts; tradition at full strength. "True by doctrine" is not "said by us": check both (explain-like-a-friend).
+- **Astrology calls are ours; the bar is @the_innercosmos** (explain-like-a-friend): her level, possibilities, full tradition.
+  Name what's special (a stellium, a retrograde pass) with placement, reason, scene: "I still go to search on TikTok" (08/10).
 - **A card reads top-down** (idea, "for you", value, date; science behind an ⓘ); **a promise needs its proof** (timeline-page v3).
 
 ## Formats he likes
