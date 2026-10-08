@@ -6,6 +6,7 @@
  * gate (ADR-76). Pure of the model and the database.
  */
 import { BLIND_WORD_TARGETS, SECTION_IDS, WORD_TARGETS, hasClaims, sectionById, validateClaims, type ReportSectionId } from "../prompts/index.js";
+import { DIGNITY_WORDS } from "../prompts/checks.js";
 import type { NatalChartData } from "./chartCalculation.js";
 import { thinkingAllowance, tierFor, type ServiceTier } from "./models.js";
 import { costUsd } from "./usage.js";
@@ -25,6 +26,8 @@ export const COST_FLOOR_USD = 0.01;
  * Style-contract rule 1: the report must never explain its own method. These
  * are the phrasings that review rejected, plus the obvious neighbours. Matching
  * is a warning rather than a failure: the lab reports, the human decides.
+ * "in its own sign" and "in your chart, " are not here: the plain-words rule
+ * asks for the first and the second opens a sentence about the reader (ADR-385).
  */
 export const METHOD_TALK = [
   "in traditional practice",
@@ -37,14 +40,12 @@ export const METHOD_TALK = [
   "contrary to sect",
   "is in detriment",
   "is in domicile",
-  "in its own sign",
   "about as strong as a planet gets",
   "which means astrologically",
   "astrologers say",
   "this placement means",
   "the first honest thing",
   "what this means astrologically",
-  "in your chart, ",
   "this section",
   "as we will see",
   "depending on the tradition",
@@ -163,6 +164,87 @@ export function blindFlags(value: unknown): string[] {
   return [...new Set(flags)];
 }
 
+/** Every prose string of a section, one paragraph each (a blank line inside one splits it), the claims left out. */
+export function paragraphsOf(value: unknown): string[] {
+  if (typeof value === "string") return value.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  if (Array.isArray(value)) return value.flatMap(paragraphsOf);
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>).filter(([k]) => k !== "claims").flatMap(([, v]) => paragraphsOf(v));
+  }
+  return [];
+}
+
+/** A full stop, ! or ? followed by a space ends a sentence, so "19.07" and "9th." inside a number do not. */
+export function sentencesOf(paragraph: string): string[] {
+  return paragraph.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+}
+
+const WORD_RE = /[A-Za-z0-9\u2019']+/g;
+
+/** Vowel groups, less a silent final e, ed or es: close enough to rank two texts, wrong on some words ("created" counts one). */
+export function syllables(word: string): number {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (w.length <= 3) return 1;
+  const stem = w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "");
+  return Math.max(1, stem.match(/[aeiouy]+/g)?.length ?? 1);
+}
+
+/** Flesch-Kincaid grade of some paragraphs: 0.39 words a sentence + 11.8 syllables a word - 15.59. Null when there is no sentence. */
+export function gradeOf(paragraphs: readonly string[]): number | null {
+  const sentences = paragraphs.flatMap(sentencesOf);
+  const tokens = sentences.flatMap((x) => x.match(WORD_RE) ?? []);
+  if (!sentences.length || !tokens.length) return null;
+  const syl = tokens.reduce((n, t) => n + syllables(t), 0);
+  return Math.round((0.39 * (tokens.length / sentences.length) + 11.8 * (syl / tokens.length) - 15.59) * 10) / 10;
+}
+
+/** The words in the longest sentence of some paragraphs. */
+export function longestSentence(paragraphs: readonly string[]): number {
+  return Math.max(0, ...paragraphs.flatMap(sentencesOf).map((x) => (x.match(WORD_RE) ?? []).length));
+}
+
+const PLACEMENT_BODIES = "sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|north node|south node|ascendant|midheaven|rising";
+const PLACEMENT_SIGNS = "aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces";
+const PLACEMENT_HOUSES = "\\d{1,2}(?:st|nd|rd|th)|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth";
+/** A body named where it stands: "Mars in Aries", "Venus in your 3rd house", "Saturn sits in the tenth". */
+const PLACEMENT_RE = new RegExp(`\\b(${PLACEMENT_BODIES})\\b(?:\u2019s|'s)?,?\\s+(?:(?:is|sits|falls|stands|lands|moves|was)\\s+)?(?:in|at)\\s+(?:(?:your|the|its|his|her|their)\\s+)?(${PLACEMENT_SIGNS}|${PLACEMENT_HOUSES})\\b`, "gi");
+
+/** The most distinct placements one paragraph names (explain-like-a-friend acceptance 1 asks for one). */
+export function mostNamed(paragraphs: readonly string[]): number {
+  return Math.max(0, ...paragraphs.map((p) => new Set([...p.matchAll(PLACEMENT_RE)].map((m) => `${m[1]} ${m[2]}`.toLowerCase())).size));
+}
+
+/**
+ * Dignity and sect words in some prose (explain-like-a-friend §3, acceptance 2), whole words only. `fall` counts only as
+ * "in fall" or "its fall" and `angular` only before "house" or "planet", the way R19-10's chk-49 reads them.
+ */
+export function dignityHits(prose: string): string[] {
+  const text = prose.toLowerCase();
+  return DIGNITY_WORDS.filter((w) => {
+    const word = w.toLowerCase();
+    const re = word === "fall" ? /\b(?:in|its) fall\b/
+      : word === "angular" ? /\bangular (?:house|planet)/
+      : new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
+    return re.test(text);
+  });
+}
+
+const OPENER_WORDS = 3;
+const OPENER_MIN_WORDS = 20;
+
+/** A paragraph's first three words, lower case: what "opens the same way" means. Only a paragraph of a real length has one. */
+export function openerOf(paragraph: string): string | null {
+  const tokens = paragraph.toLowerCase().match(WORD_RE) ?? [];
+  return tokens.length >= OPENER_MIN_WORDS ? tokens.slice(0, OPENER_WORDS).join(" ") : null;
+}
+
+/** Openers used by more than two paragraphs of a report, each with its count; the rows are the report's sections. */
+export function repeatedOpeners(rows: readonly Pick<SectionMeasure, "openers">[]): Array<[opener: string, count: number]> {
+  const seen = new Map<string, number>();
+  for (const o of rows.flatMap((r) => r.openers)) seen.set(o, (seen.get(o) ?? 0) + 1);
+  return [...seen].filter(([, n]) => n > 2).sort((a, b) => b[1] - a[1]);
+}
+
 export interface SectionMeasure {
   section: string;
   words: number;
@@ -179,6 +261,16 @@ export interface SectionMeasure {
   houseNotes: string[];
   /** Horizon words in a blind report. Empty on a drawn one. */
   blindFlags: string[];
+  /** The most distinct placements one paragraph names. The next four are the plain-words rule's measures (explain-like-a-friend acceptance 1, 2, 5): warnings, which `faultsOf` never reads (ADR-81, 385). */
+  mostNamed: number;
+  /** Dignity and sect words in the prose. */
+  dignity: string[];
+  /** Words in the longest sentence; the rule's ceiling is 25. */
+  longestSentence: number;
+  /** Flesch-Kincaid grade of the section; null with no sentence. The rule's reading level is 6 to 8. */
+  grade: number | null;
+  /** The first three words of each paragraph of a real length, for `repeatedOpeners` over a whole report. */
+  openers: string[];
 }
 
 /** One section against the contract: the band in force, the regexes, the claims re-validated against the chart when there is one. */
@@ -199,6 +291,7 @@ export function measureSection(section: string, value: unknown, chart: NatalChar
   // A blind report is written to its blind bands (MB-60).
   const target = (blind ? BLIND_WORD_TARGETS[section] : WORD_TARGETS[section as ReportSectionId]) ?? null;
   const lower = prose.toLowerCase();
+  const paragraphs = paragraphsOf(value);
   return {
     section,
     words: w,
@@ -212,6 +305,11 @@ export function measureSection(section: string, value: unknown, chart: NatalChar
     whyNotes: whys.filter((x) => !hasVerb(x.why)).map((x) => `${x.path || "why"}: "${x.why}"`),
     houseNotes: houseNotes(value),
     blindFlags: blind && !missing ? blindFlags(value) : [],
+    mostNamed: mostNamed(paragraphs),
+    dignity: dignityHits(prose),
+    longestSentence: longestSentence(paragraphs),
+    grade: gradeOf(paragraphs),
+    openers: paragraphs.flatMap((p) => openerOf(p) ?? []),
   };
 }
 
@@ -222,7 +320,7 @@ export function measureReport(interpretation: Record<string, unknown>, chart?: N
   return ids.map((section) => measureSection(section, interpretation[section], chart, blind));
 }
 
-/** The contract failures a section is judged on; the warnings (why, house shape) stay off this list. */
+/** The contract failures a section is judged on; the warnings (why, house shape, the plain-words measures) stay off this list. */
 export function faultsOf(row: SectionMeasure): string[] {
   return [
     ...(row.missing ? ["not written"] : []),

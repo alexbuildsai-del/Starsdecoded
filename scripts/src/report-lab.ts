@@ -5,6 +5,7 @@
  *   pnpm report:lab --chart marie-curie
  *   pnpm report:lab --all --defaults-only --baseline
  *   pnpm report:lab --compare baseline latest
+ *   pnpm report:lab --compare --base r06          # the plain-words numbers of one stored label, no model call
  *   pnpm report:lab --render                  # read the newest run, no API call
  *   pnpm report:lab --render marie-curie.staging
  *   pnpm report:lab --render --all --label staging     (rewrite .md/.html from stored .json)
@@ -82,7 +83,7 @@ import { costUsd, type ReportUsage, type SectionUsage } from "../../api/src/lib/
 /** The rules are the engine's, shared with the lab routes, so the panel and this trail cannot disagree on a fault. */
 import {
   BANNED_CHARS, MATRIX_CHARTS, METHOD_TALK, REPORT_TOTAL, blindFlags, faultsOf,
-  measureReport, proseOf, reportBand, words, type SectionMeasure,
+  gradeOf, measureReport, paragraphsOf, proseOf, repeatedOpeners, reportBand, words, type SectionMeasure,
 } from "../../api/src/lib/labRules.js";
 export { blindFlags };
 
@@ -156,6 +157,51 @@ function renderTable(rows: SectionRow[]): string {
     ].join(" ") || "-",
   ]);
   return table(head, body);
+}
+
+/** The plain-words rule's ceilings (explain-like-a-friend acceptance 1, 5): a warning when a measure is past one, never a fault. */
+const MOST_NAMED_MAX = 1;
+const SENTENCE_MAX = 25;
+const GRADE_BAND: [number, number] = [6, 8];
+
+const gradeText = (g: number | null): string => (g === null ? "-" : g.toFixed(1));
+
+/** One run's plain-words numbers: its sections' rows, then the whole report's grade, longest sentence, dignity words and repeated openers. */
+export interface PlainWords {
+  grade: number | null;
+  longest: number;
+  mostNamed: number;
+  dignity: string[];
+  openers: Array<[string, number]>;
+}
+
+export function plainWordsOf(interpretation: Record<string, unknown>, rows: readonly SectionRow[]): PlainWords {
+  const written = rows.filter((r) => !r.missing);
+  return {
+    grade: gradeOf(written.flatMap((r) => paragraphsOf(interpretation[r.section]))),
+    longest: Math.max(0, ...written.map((r) => r.longestSentence)),
+    mostNamed: Math.max(0, ...written.map((r) => r.mostNamed)),
+    dignity: [...new Set(written.flatMap((r) => r.dignity))],
+    openers: repeatedOpeners(written),
+  };
+}
+
+/** A table of the four measures per section and the report's own line under it. All warnings (ADR-385). */
+export function plainWordsLines(interpretation: Record<string, unknown>, rows: readonly SectionRow[]): string[] {
+  const warn = (r: SectionRow): string => [
+    ...(r.mostNamed > MOST_NAMED_MAX ? [`${r.mostNamed} placements in a paragraph`] : []),
+    ...r.dignity.map((d) => `dignity word "${d}"`),
+    ...(r.longestSentence > SENTENCE_MAX ? [`a sentence of ${r.longestSentence} words`] : []),
+    ...(r.grade !== null && (r.grade < GRADE_BAND[0] || r.grade > GRADE_BAND[1]) ? [`grade ${gradeText(r.grade)}`] : []),
+  ].join("; ") || "-";
+  const body = rows.filter((r) => !r.missing).map((r) => [r.section, String(r.mostNamed), String(r.dignity.length), String(r.longestSentence), gradeText(r.grade), warn(r)]);
+  const all = plainWordsOf(interpretation, rows);
+  return [
+    table(["section", "placements", "dignity", "longest", "grade", "warnings"], body),
+    `report: grade ${gradeText(all.grade)} (aim ${GRADE_BAND[0]} to ${GRADE_BAND[1]}), longest sentence ${all.longest} words (ceiling ${SENTENCE_MAX}), `
+      + `most placements in a paragraph ${all.mostNamed} (aim ${MOST_NAMED_MAX}), dignity words: ${all.dignity.length ? all.dignity.join(", ") : "none"}`,
+    `openers used in more than two paragraphs: ${all.openers.length ? all.openers.map(([o, n]) => `"${o}" x${n}`).join(", ") : "none"}`,
+  ];
 }
 
 /** "growingEdge" reads as "Growing edge". */
@@ -383,6 +429,7 @@ function report(
   const band = reportBand(blind);
 
   console.log(renderTable(rows));
+  console.log(`\nplain words (warnings only):\n${plainWordsLines(interpretation, rows).join("\n")}`);
   const totalOk = total >= band[0] && total <= band[1];
   console.log(`\ntotal: ${total} words (target ${band[0]}-${band[1]}: ${totalOk ? "ok" : "OUT OF RANGE"})`
     + (blind ? `; with the pass's ${PASS_ADDS[0]}-${PASS_ADDS[1]} the ceiling is ${REPORT_TOTAL[1]}` : "")
@@ -460,6 +507,20 @@ function judge(row: SectionRow, usage: ReportUsage | undefined): Judged {
 
 const shortModel = (m: string): string => m.replace(/^gpt-/, "");
 
+/** --compare --base <label>: the plain-words numbers of every fixture's stored run of that label, with nothing to set them against (the before numbers). */
+function plainWordsEach(label: string): void {
+  let found = 0;
+  for (const name of listFixtures()) {
+    const path = join(REPORTS_DIR, `${name}.${label}.json`);
+    if (!existsSync(path)) continue;
+    found++;
+    const file = JSON.parse(readFileSync(path, "utf8"));
+    console.log(`\n=== ${name}: ${label}, plain words (warnings only) ===`);
+    console.log(plainWordsLines(file.interpretation, measure(file.interpretation, file.chart)).join("\n"));
+  }
+  if (!found) console.log(`No fixture has a "${label}" run in ${REPORTS_DIR}. ${RUNS_HINT}`);
+}
+
 /**
  * Per-section A/B between two stored runs. Words alone cannot say which model
  * wrote a better section, so this reports what the section is actually judged
@@ -469,7 +530,8 @@ const shortModel = (m: string): string => m.replace(/^gpt-/, "");
  * beside them as chk-43 counts it in a live write, a trend and never a
  * verdict (ADR-81, ADR-257).
  */
-function compare(labelA: string, labelB: string): void {
+function compare(labelA: string, labelB?: string): void {
+  if (labelB === undefined) return plainWordsEach(labelA);
   const names = listFixtures();
   let compared = 0;
   let costA = 0, costB = 0, priced = true;
@@ -531,6 +593,9 @@ function compare(labelA: string, labelB: string): void {
     }
     console.log(`\n=== ${name}: ${labelA} → ${labelB} ===`);
     console.log(table(["section", "model", "words", "$", "s", "2 ideas", "metaphor", "verdict"], body));
+    const [wa, wb] = [plainWordsOf(a, rowsA), plainWordsOf(b, rowsB)];
+    console.log(`plain words (warnings): grade ${gradeText(wa.grade)}→${gradeText(wb.grade)}, longest sentence ${wa.longest}→${wb.longest}, `
+      + `most placements in a paragraph ${wa.mostNamed}→${wb.mostNamed}, dignity words ${wa.dignity.length}→${wb.dignity.length}, repeated openers ${wa.openers.length}→${wb.openers.length}`);
   }
 
   if (compared === 0) {
@@ -1002,9 +1067,11 @@ export function familyLines(heading: string, what: string, column: string, rows:
   const counted = rows.filter((r) => r.error === undefined).map((r) => r.inputTokens);
   const span = counted.length ? `${Math.min(...counted)} to ${Math.max(...counted)} tokens` : "no prompt rendered";
   const broken = rows.filter((r) => !r.schemaOk);
+  const holds = rows.some((r) => r.holds !== undefined);
   return [
     `${heading}: ${rows.length} prompts ${what}; ${span}, usage recorded 0, no network`,
-    table(["fixture", column, "tokens", "schema"], rows.map((r) => [r.fixture, r.section, String(r.inputTokens), r.schemaOk ? "ok" : "BROKEN"])),
+    table(["fixture", column, ...(holds ? ["holds"] : []), "tokens", "schema"],
+      rows.map((r) => [r.fixture, r.section, ...(holds ? [(r.holds ?? []).join(", ") || "-"] : []), String(r.inputTokens), r.schemaOk ? "ok" : "BROKEN"])),
     ...(broken.length ? [`SCHEMA BROKEN: ${broken.map((r) => `${r.fixture}/${r.section}${r.error ? ` (${r.error})` : ""}`).join(", ")}`] : []),
   ];
 }
@@ -1040,6 +1107,11 @@ async function printFamilies(readers: readonly FamilyReader[], timeline: [headin
     answers.push(...await dryAsk(reader, person));
   }
   console.log(`\n${familyLines(...timeline, "reading", readings).join("\n")}`);
+  const { missingKinds } = await import("../../api/src/lib/labDry.js");
+  for (const fixture of [...new Set(readings.map((r) => r.fixture))]) {
+    const gaps = missingKinds(readings.filter((r) => r.fixture === fixture));
+    if (gaps.length) console.log(`${fixture}: its window has no ${gaps.join(", no ")}`);
+  }
   console.log(`\n${familyLines(...ask, "prompt", answers).join("\n")}`);
   if ([...readings, ...answers].some((r) => !r.schemaOk)) process.exitCode = 1;
 }
@@ -1054,7 +1126,7 @@ async function dryFamilies(base: string): Promise<void> {
   const readers: FamilyReader[] = [];
   for (const name of names) readers.push(await familyReader(name, loadFixture(name), runs.get(name) ?? null));
   await printFamilies(readers,
-    [`timeline dry render against ${base}`, `for ${names.length} charts, each one's first five events that read in the six months from ${DRY_FROM} and its three nearest life cycles`],
+    [`timeline dry render against ${base}`, `for ${names.length} charts, each one's first five events that read in the six months from ${DRY_FROM}, its three nearest life cycles, and whichever of a retrograde, an eclipse, the nodes' opposition, a cycle before 16, a Light reading and a contact with three passes those leave out`],
     [`ask dry render against ${base}`, `for ${names.length} readers, three fixed questions on ${DRY_FROM} with the plan and the answer each`]);
 }
 
@@ -1070,7 +1142,7 @@ async function renderFamilies(name: string, runKey: string, run: RunFile): Promi
     return;
   }
   await printFamilies([reader],
-    [`timeline render for ${runKey}`, `built on this run, the first five events that read in the six months from ${DRY_FROM} and the three nearest life cycles`],
+    [`timeline render for ${runKey}`, `built on this run, the first five events that read in the six months from ${DRY_FROM}, the three nearest life cycles, and whichever of the six kinds those leave out`],
     [`ask render for ${runKey}`, `quoting this run, three fixed questions on ${DRY_FROM} with the plan and the answer each`]);
 }
 
@@ -1180,7 +1252,10 @@ async function main() {
   const compareArgs = opt("compare");
   if (compareArgs !== undefined) {
     const i = process.argv.indexOf("--compare");
-    compare(process.argv[i + 1], process.argv[i + 2]);
+    const [first, second] = [process.argv[i + 1], process.argv[i + 2]];
+    // `--compare --base r06` reads one label; `--compare a b` sets two against each other.
+    if (first === undefined || first.startsWith("--")) compare(opt("base") ?? "r06");
+    else compare(first, second);
     return;
   }
 
