@@ -4,16 +4,17 @@
  * date or degree the event did not compute, a life event foretold, and a do
  * or a don't. Every message names the kind of fault and the field, never the
  * words that broke it, so a birth date a writer slipped in never reaches the
- * failure log (R-3.5).
+ * failure log (R-3.5). The plain-words checks every product shares (chk-49
+ * to 51) only warn (ADR-385), so a dignity word is logged, never blocked.
  *
  * The call path counts rule 13's words (chk-39) and the writer's rule
  * (chk-43) on every reply, as it does for a report, so they are not counted
  * here a second time.
  */
 import { DATA_CLOSE, DATA_LABELS, DATA_OPEN, restoreBlocks } from "../data.js";
-import { block, buffered, fixed, type Check, type Validated } from "../checks.js";
+import { block, buffered, explainChecks, fixed, type Check, type Validated } from "../checks.js";
 import { semicolonsToFullStops } from "../pair/shapes.js";
-import { BODY_WORDS, LINE_WORDS, eventFacts, type ReadingInput, type ReadingOutput } from "./reading.js";
+import { BODY_WORDS, LINE_WORDS, PAST_BODY_WORDS, eventFacts, type ReadingInput, type ReadingOutput } from "./reading.js";
 
 /** What a text may name: every instant the engine computed, and every degree the facts state. */
 export interface AllowedFacts {
@@ -26,6 +27,11 @@ const DAY_MS = 86_400_000;
 /** 20% around the counts the prompt states (R-4.3), as the pair's card line and link cards take it (annex rows 23, 32). */
 export const LINE_BUFFER = Math.round(LINE_WORDS * 1.2);
 export const BODY_BUFFER: readonly [number, number] = [Math.round(BODY_WORDS[0] * 0.8), Math.round(BODY_WORDS[1] * 1.2)];
+/**
+ * A cycle behind the reader is asked for a short paragraph, and Review 05/10 §4 adds no check for it: below its own
+ * buffer it blocks as any body too short to read does, and above it only the usual ceiling blocks.
+ */
+export const PAST_BODY_BUFFER: readonly [number, number] = [Math.round(PAST_BODY_WORDS[0] * 0.8), BODY_BUFFER[1]];
 
 const words = (s: string): number => (s.trim() ? s.trim().split(/\s+/).length : 0);
 
@@ -482,15 +488,16 @@ function stripMarkers(text: string): { text: string; stripped: number } {
   return stripped ? { text: out.trim(), stripped } : { text, stripped };
 }
 
-/** chk-47 (annex row 47): the line and the body against the counts the prompt states, buffered 20%. */
-export function lengthChecks(output: ReadingOutput): Check[] {
+/** chk-47 (annex row 47): the line and the body against the counts the prompt states, buffered 20%; `passed` asks the short one. */
+export function lengthChecks(output: ReadingOutput, passed = false): Check[] {
   const checks: Check[] = [];
   const line = words(output.line);
   if (line > LINE_BUFFER) checks.push(block("chk-47", `line: ${line} words, the line takes ${LINE_WORDS} at most`));
   else if (line > LINE_WORDS) checks.push(buffered("chk-47", `line: ${line} words, over the ${LINE_WORDS} the prompt asks and inside the buffer`));
   const body = words(output.body);
-  if (body < BODY_BUFFER[0] || body > BODY_BUFFER[1]) checks.push(block("chk-47", `body: ${body} words, the body takes ${BODY_WORDS[0]} to ${BODY_WORDS[1]}`));
-  else if (body < BODY_WORDS[0] || body > BODY_WORDS[1]) checks.push(buffered("chk-47", `body: ${body} words, outside ${BODY_WORDS[0]} to ${BODY_WORDS[1]} and inside the buffer`));
+  const [asked, buffer] = passed ? [PAST_BODY_WORDS, PAST_BODY_BUFFER] : [BODY_WORDS, BODY_BUFFER];
+  if (body < buffer[0] || body > buffer[1]) checks.push(block("chk-47", `body: ${body} words, the body takes ${asked[0]} to ${asked[1]}`));
+  else if (body < asked[0] || body > asked[1]) checks.push(buffered("chk-47", `body: ${body} words, outside ${asked[0]} to ${asked[1]} and inside the buffer`));
   return checks;
 }
 
@@ -498,7 +505,9 @@ export function lengthChecks(output: ReadingOutput): Check[] {
  * A reading as it should be kept, and every check that fired: a copied name
  * block read back as the name, a copied marker taken out (row 48), a
  * semicolon made a full stop as in a report (row 41), then the counts (row
- * 47) and the three blocks (rows 44 to 46) on what would be kept.
+ * 47), the three blocks (rows 44 to 46) and the plain-words warnings (rows 49
+ * to 51) on what would be kept. The facts are the ones the prompt printed, its
+ * stretches included, so every date the writer was given is one it may name.
  */
 export function checkReading(output: ReadingOutput, input: ReadingInput): Validated<ReadingOutput> {
   const checks: Check[] = [];
@@ -511,8 +520,9 @@ export function checkReading(output: ReadingOutput, input: ReadingInput): Valida
     fields[key] = stops.text;
   }
   const blind = input.blind || input.brief.horizon === "unknown";
-  const facts = eventFacts(input.event, input.brief.chart, blind);
-  checks.push(...lengthChecks(fields));
+  const facts = eventFacts(input.event, input.brief.chart, blind, input);
+  checks.push(...lengthChecks(fields, input.passed));
   for (const key of ["line", "body"] as const) checks.push(...blockingChecks(fields[key], facts, key, [input.name]));
+  checks.push(...explainChecks(fields));
   return { output: fields, checks };
 }
