@@ -335,7 +335,7 @@ try {
     ] as const) {
       assert.equal((await call(RECIPIENT, m, p, body)).status, 404, `${m} ${p}`);
     }
-    assert.equal((await call(RECIPIENT, "POST", "/invites", { profileId: "PS", email: "someone@example.com" })).status, 403);
+    assert.equal((await call(RECIPIENT, "POST", "/invites", { profileId: "PS", email: "someone@example.com" })).status, 404);
     assert.equal(mails.length, mailsBefore);
     assert.deepEqual(
       (await q("select r.status, p.birth_time, p.user_id from reports r join profiles p on p.id = r.profile_id where r.id = 'RS'")).rows[0],

@@ -1136,14 +1136,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/InviteRecord"
-        "403":
-          description: Not the owner of the profile
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: Profile not found
+          description: Profile not found, or not the caller's
           content:
             application/json:
               schema:
@@ -1173,7 +1167,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: Caller is not the owner of the profile/relationship
+          description: The caller cannot send this pair (not its maker, not one of its two, stopped, or both charts their own)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found, or not the caller's
           content:
             application/json:
               schema:

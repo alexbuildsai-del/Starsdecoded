@@ -212,7 +212,7 @@ class FakeSite {
       const token = decodeURIComponent(m[1]);
       const invite = this.invites.get(token);
       if (!invite) return { status: 404, body: { error: "not_found" } };
-      if (!m[2]) return ok({ token, email: PAIR.idris.email, profileName: null, expiresAt: at, alreadyClaimed: invite.claimed, kind: invite.kind });
+      if (!m[2]) return ok({ token, email: PAIR.idris.email, profileName: null, expiresAt: at, alreadyClaimed: invite.claimed, kind: invite.kind, giverShares: false });
       if (invite.claimed) return { status: 409, body: { error: "already_claimed" } };
       invite.claimed = true;
       if (invite.kind === "gift") {
