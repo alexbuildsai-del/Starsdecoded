@@ -197,7 +197,8 @@ function sceneKeys(chart: NatalChartData, t: TraditionalFactors, patterns: Chart
 function scenesFor(chart: NatalChartData, t: TraditionalFactors, patterns: ChartPatterns, drawn: boolean): Record<Chapter, Scene[]> {
   const wanted = sceneKeys(chart, t, patterns, drawn);
   const seed = `${chart.datetimeUtc}|${chart.latitude}|${chart.longitude}`;
-  const taken = new Set<SceneType>();
+  // Mind's Did you know card always sets its idea at a party, so no chapter is handed a second one.
+  const taken = new Set<SceneType>(["party"]);
   const scenes = Object.fromEntries(CHAPTERS.map((c) => [c, [] as Scene[]])) as Record<Chapter, Scene[]>;
   for (let round = 0; round < SCENE_ROUNDS; round++) {
     for (const c of CHAPTERS) {

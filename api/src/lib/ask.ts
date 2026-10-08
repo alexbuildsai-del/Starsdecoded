@@ -48,6 +48,7 @@ import {
   type AskAnswer, type AskAnswerCard, type AskAnswerInput, type AskContext, type AskCycle, type AskEvent, type AskPerson,
   type AskPlan, type AskPlanChoice, type AskPlanTool, type AskPrompt, type AskReport, type AskTurn,
 } from "../prompts/ask/index.js";
+import { NOT_PROSE } from "../prompts/evidence.js";
 
 /** Reader messages a UTC calendar month, a tapped choice included (reading 13). The cap moves, never the price. */
 export const ASK_MONTHLY_CAP = 50;
@@ -635,7 +636,7 @@ export function passageFrom(text: string, maxWords = PASSAGE_WORDS, maxChars = Q
 const PREFERRED = ["pattern", "opening"];
 
 function proseStrings(value: unknown, key?: string): string[] {
-  if (key === "claims") return [];
+  if (key !== undefined && NOT_PROSE.has(key)) return [];
   if (typeof value === "string") return value.trim() ? [value] : [];
   if (Array.isArray(value)) return value.flatMap((item) => proseStrings(item));
   if (value && typeof value === "object") return Object.entries(value).flatMap(([k, v]) => proseStrings(v, k));

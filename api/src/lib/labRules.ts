@@ -132,6 +132,12 @@ export function proseOf(value: unknown): string {
   return "";
 }
 
+/** Every word the reader sees, the Did you know card's too: the checks for wrong words read it, the word counts don't. */
+function seenOf(value: unknown): string {
+  const card = (value as { didYouKnow?: unknown } | null | undefined)?.didYouKnow;
+  return card && typeof value === "object" ? `${proseOf(value)} ${proseOf(card)}` : proseOf(value);
+}
+
 /** A section is structured when the model returned the object the prompt asked for; a raw string is a parse fallback. */
 export function isStructured(value: unknown): boolean {
   return typeof value === "object" && value !== null;
@@ -155,7 +161,7 @@ const HORIZON_KINDS = new Set(["angle", "ruler", "sect", "lot"]);
 
 export function blindFlags(value: unknown): string[] {
   const flags: string[] = [];
-  const text = proseOf(value);
+  const text = seenOf(value);
   for (const [name, re] of HORIZON_WORDS) if (re.test(text)) flags.push(`blind:${name} in text`);
   const stored = (value as { claims?: Array<{ evidence: Array<{ ref: { kind: string; house?: number | null } }> }> } | undefined)?.claims ?? [];
   for (const c of stored) for (const e of c.evidence) {
@@ -291,7 +297,8 @@ export function measureSection(section: string, value: unknown, chart: NatalChar
   const w = words(prose);
   // A blind report is written to its blind bands (MB-60).
   const target = (blind ? BLIND_WORD_TARGETS[section] : WORD_TARGETS[section as ReportSectionId]) ?? null;
-  const lower = prose.toLowerCase();
+  const seen = seenOf(value);
+  const lower = seen.toLowerCase();
   const paragraphs = paragraphsOf(value);
   return {
     section,
@@ -300,14 +307,14 @@ export function measureSection(section: string, value: unknown, chart: NatalChar
     inRange: target ? w >= target[0] && w <= target[1] : null,
     structured: isStructured(value),
     methodTalk: METHOD_TALK.filter((p) => lower.includes(p)),
-    bannedChars: BANNED_CHARS.filter(([, re]) => re.test(prose)).map(([n]) => n),
+    bannedChars: BANNED_CHARS.filter(([, re]) => re.test(seen)).map(([n]) => n),
     claims: { count: stored.length, problems },
     missing,
     whyNotes: whys.filter((x) => !hasVerb(x.why)).map((x) => `${x.path || "why"}: "${x.why}"`),
     houseNotes: houseNotes(value),
     blindFlags: blind && !missing ? blindFlags(value) : [],
     mostNamed: mostNamed(paragraphs),
-    dignity: dignityHits(prose),
+    dignity: dignityHits(seen),
     longestSentence: longestSentence(paragraphs),
     grade: gradeOf(paragraphs),
     openers: paragraphs.flatMap((p) => openerOf(p) ?? []),
