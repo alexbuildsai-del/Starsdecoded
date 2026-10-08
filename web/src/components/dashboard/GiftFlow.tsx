@@ -224,7 +224,7 @@ function GiftSteps({ onClose, onSent, onGetCredits, giverName }: Omit<GiftFlowPr
     );
   }
 
-  // Mirrors SendDialog's copy link: the giver's own fallback when the mailer didn't reach the recipient.
+  // The giver's own fallback when the mailer didn't reach the recipient.
   async function copyClaimLink(link: string) {
     try {
       await navigator.clipboard.writeText(link);

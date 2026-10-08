@@ -1,7 +1,7 @@
 /**
  * A pair's story (ADR-175): ADR-102's type-only words drawn at 1080 × 1920 in
  * the browser once the fonts have loaded. No request carries it, so nothing is
- * uploaded or hosted. Chapter 01 and the dashboard draw it from the same words
+ * uploaded or hosted. The report's end and the dashboard draw it from the same words
  * through `StoryPreview`; its look waits for its own session. The story is
  * shared; the report itself is given by the block's "Share with {B}", which only
  * the pair's sender gets (ADR-133, ADR-181).
@@ -204,7 +204,7 @@ function probeCopyImage(): boolean {
   return typeof ClipboardItem !== "undefined" && typeof navigator !== "undefined" && typeof navigator.clipboard?.write === "function";
 }
 
-/** Chapter 01 and the dashboard show a story through this one preview, so it looks and acts the same in both. */
+/** The report's end and the dashboard show a story through this one preview, so it looks and acts the same in both. */
 export function StoryPreview({ text }: { text: ShareCardText }) {
   // Callers may build the words afresh on every render; the story is redrawn only when they change.
   const words = JSON.stringify(text);
@@ -328,7 +328,7 @@ function PairSend({ send, onSend, onStopSharing }: { send: SendState; onSend: ()
 }
 
 /**
- * Chapter 01's block. On a phone the line comes before the story it asks the
+ * The block at the report's end. On a phone the line comes before the story it asks the
  * reader to share, and the report's own button after both; on a wide screen the
  * story stands beside the words.
  */
@@ -343,7 +343,7 @@ export function ShareCard(props: ShareCardProps) {
       data-share-card
     >
       <div className={cn("min-w-0 min-[760px]:col-start-2 min-[760px]:row-start-1", offer ? "min-[760px]:self-end" : "min-[760px]:row-span-2 min-[760px]:self-center")}>
-        <span className="rp-lab">At the end of chapter 01</span>
+        <span className="rp-lab">At the end of the report</span>
         <p className="mt-2 font-display text-[22px] leading-[1.25] text-[var(--paper)]">{shareLine(recipient)}</p>
         <p className="mt-2 text-[14px] leading-[1.6] text-[var(--paper-dim)]">The story shows a short summary and your three strengths. It shows nothing from either birth chart. Nothing is uploaded.</p>
       </div>
