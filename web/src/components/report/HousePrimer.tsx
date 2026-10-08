@@ -46,8 +46,8 @@ export function HousePrimer({ ascendantSign }: { ascendantSign: string }) {
         <Idea n={3} title="Every house has a planet in charge">
           Even an empty one. Where that planet sits is where that part of life plays out.
         </Idea>
-        <Idea n={4} title="Every planet has a home sign">
-          At home, it works with ease. In the opposite sign, it's least at ease, like a guest in a house they can't stand.
+        <Idea n={4} title="Every planet has a home">
+          Each planet has one or two home signs. At home, it works with ease. In the opposite sign, it's least at ease, like a guest in a house they can't stand.
         </Idea>
       </ol>
       <div>
