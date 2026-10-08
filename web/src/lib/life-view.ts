@@ -533,7 +533,7 @@ function houseIn(lon: number, ascendant: number | null, lead: string): string {
  * own positions, so a return reads the same degree twice.
  */
 export function cycleScience(
-  cycle: Pick<CycleView, "id" | "exact" | "start" | "end" | "at">,
+  cycle: Pick<CycleView, "id" | "exact" | "start" | "end" | "at" | "today">,
   birth: string,
   ascendant: number | null,
   order: DateOrder,
@@ -547,7 +547,7 @@ export function cycleScience(
   const passes = cycle.exact.length > 1 ? `, exact ${cycle.exact.length} times as it goes back and forth` : "";
   return [
     `When you were born, ${planet} was at ${placeOf(born)}${bornHouse}.`,
-    `On ${fullDate(day, order)} it is at ${placeOf(then)}${houseIn(then, ascendant, ", your ")}.`,
+    `On ${fullDate(day, order)} it ${day < cycle.today ? "was" : "is"} at ${placeOf(then)}${houseIn(then, ascendant, ", your ")}.`,
     `It stays close from ${fullDate(cycle.start, order)} to ${fullDate(cycle.end, order)}${passes}.`,
   ];
 }
