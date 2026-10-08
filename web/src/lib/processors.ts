@@ -1,4 +1,4 @@
-import { PATH_SEEN_KEY } from "@/lib/credits-view";
+import { STEPS_HIDDEN_KEY } from "@/lib/home-view";
 import { FORM_DRAFT_KEY } from "@/lib/form-draft";
 import { SELECTION_KEY } from "@/lib/pair-selection";
 import { PREVIEW_KEY } from "@/lib/prelaunch";
@@ -158,9 +158,9 @@ export const BROWSER_KEYS: readonly BrowserKey[] = [
     holds: "Only when we test the site: that this tab shows the site as visitors see it before we launch.",
   },
   {
-    name: PATH_SEEN_KEY,
+    name: STEPS_HIDDEN_KEY,
     store: "kept",
-    holds: "Whether you've seen the steps we suggest after you buy a bundle of credits.",
+    holds: "Whether you hid Your first steps on your dashboard.",
   },
   {
     name: "sd.explorer.hint",

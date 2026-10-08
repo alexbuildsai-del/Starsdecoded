@@ -27,8 +27,8 @@ import { COMPATIBILITY_REPORT } from "@/lib/product";
 import { first } from "@/lib/share-card";
 
 /**
- * A pair the list holds before GET /home is read again, so the picker's
- * Writing hands straight to the pair's own row (ADR-130, ADR-131).
+ * A pair the list holds before GET /home is read again, so a pair being
+ * written shows as its own row on the way back from its page (ADR-130, ADR-131).
  */
 function fromList(report: ReportSummary): HomePair | null {
   const [a, b] = report.participants ?? [];

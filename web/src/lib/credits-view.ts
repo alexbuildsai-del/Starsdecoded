@@ -182,7 +182,3 @@ export function historyLine(item: Pick<CreditHistoryItem, "kind" | "count" | "la
     test: item.kind === "bought" && item.test && !/\btest\b/i.test(text),
   };
 }
-
-// MB-43 provisional: the path sheet's key, which nothing writes since Your first steps replaced the sheet (ADR-330);
-// it stays only while the privacy page imports its name.
-export const PATH_SEEN_KEY = "sd.path.seen";
