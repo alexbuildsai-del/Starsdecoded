@@ -226,7 +226,8 @@ export const FIRST_STEPS = {
   either: "Then, either",
   more: "Add someone else",
   moreLine: "Back to step 2",
-  pairLine: `${COMPATIBILITY_REPORT} · 1 credit`,
+  // Joined so a narrow button breaks the line after the dot, never before it.
+  pairLine: `${COMPATIBILITY_REPORT}\u00a0· 1\u00a0credit`,
 } as const;
 
 /**
