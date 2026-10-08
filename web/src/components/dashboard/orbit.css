@@ -58,3 +58,17 @@
   .orbit, .orbit * { animation: none !important; transition: none !important; }
   .orbit .orbit-lift { transform: none !important; }
 }
+
+/* Each line is led by a ring in its own colour, the mark it names. */
+.orbit-legend {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px;
+  margin: 6px 0 0; padding: 0; list-style: none;
+  font: 400 12px/1.4 Inter, ui-sans-serif, system-ui, sans-serif; color: #9AA3B5;
+}
+.orbit-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.orbit-legend li::before {
+  content: ""; box-sizing: border-box; flex: none; width: 12px; height: 12px;
+  border: 2px solid currentColor; border-radius: 50%;
+}
+.orbit-legend-pair::before { color: #9575CD; }
+.orbit-legend-shared::before { color: #3FA796; }

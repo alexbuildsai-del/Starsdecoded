@@ -28,7 +28,7 @@ export interface OrbitPoint {
   /** Printed under the disc, in capitals: BEATRICE · WRITING, ALEX · SHARED, PIERRE · GIFT WAITING, ADD SOMEONE, PARTNER. */
   label: string;
   writing: boolean;
-  /** The violet ring: a compatibility report with the reader that the reader can open (reading 3). */
+  /** The violet ring: this person is in a compatibility report the reader can open, with the reader or between two others (ADR-339). */
   sharedPair: boolean;
   /** Someone who shared their own Personal report with the reader: their seat is marked shared, with no sign, degree or glyph (ADR-235, §9). */
   shared: boolean;
@@ -140,11 +140,12 @@ export function circlePoints({ you, people, pairs, gifts, credits }: CircleInput
   const own = new Set<string>(people.filter((p) => p.isSelf).map((p) => p.profileId));
   if (you) own.add(you.profileId);
 
-  const withReader = new Set<string>();
+  // GET /home lists only pairs the reader can open, so a pair between two other people rings both of them as well (ADR-339).
+  const inPair = new Set<string>();
   for (const r of pairs) {
     const pair = readablePair(r);
-    if (!pair || !pair.ids.some((id) => own.has(id))) continue;
-    for (const id of pair.ids) if (!own.has(id)) withReader.add(id);
+    if (!pair) continue;
+    for (const id of pair.ids) if (!own.has(id)) inPair.add(id);
   }
 
   const seated: OrbitPoint[] = [];
@@ -162,7 +163,7 @@ export function circlePoints({ you, people, pairs, gifts, credits }: CircleInput
       initials: initials(name),
       label: label(words(name)[0] ?? "", shared ? "shared" : "", writing ? "writing" : ""),
       writing,
-      sharedPair: withReader.has(p.profileId),
+      sharedPair: inPair.has(p.profileId),
       shared,
       profileId: p.profileId,
       reportId: p.reportId,
