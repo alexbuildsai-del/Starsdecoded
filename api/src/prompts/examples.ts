@@ -45,7 +45,7 @@ export const PASSAGES: readonly ModelPassage[] = [
     id: "love-beatrice",
     fixture: "beatrice",
     birthDate: "1988-08-08",
-    text: "You may feel most like yourself when one person gives you their full attention. The Sun is in your 7th house, the house of partners. The Sun is the core of you. Yours is in Leo, which wants to shine. So the right partner can bring out your best. On a date, you might notice the second they look at their phone. That small thing could stay with you all evening. Tell a partner what you'd like them to notice, so you don't have to wait to be seen.",
+    text: "One person giving you their full attention can light you up. The Sun is in your 7th house, the house of partners. The Sun is the core of you. Yours is in Leo, which wants to shine. So the right partner can bring out your best. On a date, you might notice the second they look at their phone. That small thing could stay with you all evening. Tell a partner what you'd like them to notice, so you don't have to wait to be seen.",
   },
   {
     id: "family-charlotte",
