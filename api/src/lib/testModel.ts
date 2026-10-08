@@ -64,6 +64,7 @@ export function installFakeModel(replies: FakeModel["replies"]): FakeModel {
 const PARA = "You investigate first and commit second. You keep going after the room has given up.";
 const ACTION = { action: "Write the plan before the call.", why: "so you stop agreeing before you have thought about it" };
 const ITEMS = [{ item: "Field research", reason: "you test before you trust" }, { item: "Laboratory work", reason: "you keep going when others stop" }, { item: "Teaching", reason: "you explain by showing" }];
+const GOES_BACKWARDS = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Chiron"];
 
 /**
  * Schema-valid natal replies for every section, drawn or blind, citing the
@@ -88,7 +89,14 @@ export function cannedNatalReplies(opts: { drawn: boolean; sunSign?: string; sun
     natal_foundation: foundation,
     natal_overview: { headline: PARA, concentration: PARA, temperament: PARA, distinctive: PARA, bridge: "Everything here points toward depth.", claims: claims() },
     natal_triad: triad,
-    natal_houses: { houses: Array.from({ length: 12 }, (_, i) => ({ house: i + 1, reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week." })) },
+    // Every card offers a block for each body that can go backwards and a stellium, so validate keeps the ones this
+    // chart calls for and a stored report carries the blocks a written one would, whatever the chart.
+    natal_houses: { houses: Array.from({ length: 12 }, (_, i) => ({
+      house: i + 1,
+      reading: "You set the tone before you speak. Behaviour check: notice who follows your pace this week.",
+      retrograde: GOES_BACKWARDS.map((planet) => ({ planet, text: "You may turn this over on your own before it shows. It can take longer to come out, and it tends to last." })),
+      stellium: { text: "A lot of your attention may go to this part of life. You might come back to it more often than the people around you.", balance: "Everyday talk and a short walk can bring you back when this gets too full." },
+    })) },
     natal_mind: { howYouThink: PARA, howYouDecide: PARA, howYouAreUnderstood: PARA, practice: PARA, claims: claims() },
     natal_career: { vocationalPull: PARA, howYouShowUp: PARA, growthThroughWork: PARA, actions: [ACTION, ACTION, ACTION], careerPaths: ITEMS, claims: claims() },
     natal_money: { relationshipToResources: PARA, whatWorks: PARA, sharedAndExposed: PARA, actions: [ACTION, ACTION, ACTION], claims: claims() },
