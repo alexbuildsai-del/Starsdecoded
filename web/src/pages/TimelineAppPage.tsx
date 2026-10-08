@@ -18,7 +18,9 @@ import { Life } from "@/components/timeline/Life";
 import { NowAhead } from "@/components/timeline/NowAhead";
 import { ReadingSheet, type ReadingTarget } from "@/components/timeline/ReadingSheet";
 import { TimelineSetup, useTimelineSetupGate } from "@/components/timeline/TimelineSetup";
+import { WeekBars } from "@/components/timeline/WeekBars";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { useHome } from "@/hooks/useHome";
 import { usePageTitle } from "@/lib/page-title";
 import { PERSONAL_REPORT } from "@/lib/product";
@@ -26,6 +28,7 @@ import { sentZone, useShownZone } from "@/lib/reader-zone";
 import { timelineDoor, useTimelineAccess } from "@/lib/timeline-access";
 import { dayIn } from "@/lib/timeline-view";
 import { cn } from "@/lib/utils";
+import { weekSpan } from "@/lib/week-view";
 
 type Screen = "now" | "life";
 const SCREENS: readonly { id: Screen; label: string }[] = [
@@ -36,6 +39,7 @@ const SCREENS: readonly { id: Screen; label: string }[] = [
 const LEDE = "The planets on your own chart, now and across your life.";
 const BUTTON =
   "inline-flex min-h-10 items-center justify-self-start rounded-[10px] border border-[#242C3B] bg-[#171D29] px-4 font-label text-sm font-medium text-[#E8EBF2] transition-colors hover:border-[#5C6BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const EYEBROW = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-[#D4B06A]";
 const H2 = "font-display text-[26px] font-normal leading-tight tracking-[-0.01em] text-[#E8EBF2]";
 
 /** Now and ahead · Life on a phone: a tab list, so the arrow keys move along it and the screen follows. */
@@ -122,6 +126,7 @@ export function TimelineAppPage() {
   const client = useQueryClient();
   const phone = useIsMobile();
   const uid = useId();
+  const { order } = useEntryFormat();
 
   const zone = sentZone();
   const [screen, setScreen] = useState<Screen>("now");
@@ -135,6 +140,7 @@ export function TimelineAppPage() {
   // Life's dates and today are the reader's: with no zone from the browser, those of the zone the server reads in.
   const shown = useShownZone(opened);
   const today = useMemo(() => (shown ? dayIn(new Date(), shown) : null), [shown]);
+  const week = home.data?.week ?? null;
 
   const gate = useTimelineSetupGate(opened && access.hasPersonalReport && !missing, zone);
   const setupShown = gate.view === "setup" || gate.view === "replay";
@@ -216,6 +222,19 @@ export function TimelineAppPage() {
           <h2 id={`${uid}-now-h`} className={cn(H2, "sr-only md:not-sr-only")}>
             Now and ahead
           </h2>
+          {week && shown ? (
+            <section aria-labelledby={`${uid}-week-h`} className="grid max-w-[640px] gap-2.5">
+              <div className="flex items-baseline justify-between gap-2.5">
+                <p id={`${uid}-week-h`} className={EYEBROW}>
+                  Your week
+                </p>
+                <p className="min-w-0 text-right text-xs leading-[1.4] text-[#9AA3B5]">{weekSpan(week, order)}</p>
+              </div>
+              <div className="rounded-[12px] border border-[#242C3B] bg-[rgba(17,22,31,.55)] p-[18px]">
+                <WeekBars week={week} zone={shown} onRead={onOpen} />
+              </div>
+            </section>
+          ) : null}
           <NowAhead zone={zone} onOpen={onOpen} onNoReport={onNoReport} onNoAccess={onNoAccess} reportId={reportId} />
         </section>
         <section {...panel("life", `${uid}-life-h`)} className={cn("grid gap-4", screen !== "life" && "hidden md:grid")}>
@@ -272,6 +291,7 @@ export function TimelineAppPage() {
         onClose={() => setSheetOpen(false)}
         headline={reading?.headline}
         status={reading?.status}
+        event={reading?.event}
         reportId={reportId}
         setUp={gate.setUp}
       />

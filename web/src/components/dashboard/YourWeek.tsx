@@ -1,27 +1,26 @@
 /**
- * Your week (ADR-211, 262; readings 4, 18, 26): a subscriber's section on the dashboard, after Your circle. The dial
- * plays the planets on the reader's chart over a week, a month or six months, and nothing else moves while it plays:
- * the words beside it stay on this week, its sentence, its seven days and what's on the reader today, drawn as
- * Timeline's own card. The week comes with GET /home; a month or six months from GET /timeline/now once picked, in the
- * cache Timeline's own page reads. The dashboard loads this lazily, since the dial brings the sky engine with it.
+ * Your week (ADR-211, 262; readings 4, 18, 23, 26): a subscriber's section on the dashboard, after Your circle. The
+ * dial plays the planets on the reader's chart over a week, a month or six months, and nothing else moves while it
+ * plays: the week's picture stays on Monday to Sunday, first on a phone and beside the dial on a desktop. The week
+ * comes with GET /home; a month or six months from GET /timeline/now once picked, in the cache Timeline's own page
+ * reads. The dashboard loads this lazily, since the dial brings the sky engine with it.
  */
 import { useId, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { keepPreviousData } from "@tanstack/react-query";
 import { getGetTimelineNowQueryKey, useGetTimelineNow, type TimelineRange, type Week } from "@workspace/api-client-react";
 import { StatusDots } from "@/components/StatusDots";
-import { ContactCard } from "@/components/timeline/ContactCard";
-import { DayCells } from "@/components/timeline/DayCells";
 import { Dial } from "@/components/timeline/Dial";
 import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
+import { WeekBars } from "@/components/timeline/WeekBars";
 import { useEntryFormat } from "@/hooks/useEntryFormat";
 import { DIAL_ORDER, anyRetrograde, framesFor, type DialFrame } from "@/lib/dial";
-import { QUIET_DAY, RANGES } from "@/lib/now-ahead";
+import { RANGES } from "@/lib/now-ahead";
+import { dayIn } from "@/lib/timeline-view";
 import { cn } from "@/lib/utils";
-import { dialWhen, loadLine, moreLine, nowSource, weekModel, weekSource } from "@/lib/week-view";
+import { dialWhen, loadLine, nowSource, weekSource, weekSpan } from "@/lib/week-view";
 
 const HEADING = "font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[.18em] text-[#D4B06A]";
-const LABEL = "font-label text-[10.5px] font-medium uppercase leading-snug tracking-[.16em] text-[#9AA3B5]";
 const TEXT_BUTTON =
   "inline-flex min-h-8 items-center rounded px-1 text-[12.5px] text-[#9FA8DA] transition-colors hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]";
 // The sky on a chart moves slowly, as Timeline's own page reads it.
@@ -74,8 +73,8 @@ export function YourWeek({ week, zone }: YourWeekProps) {
     query: { queryKey: getGetTimelineNowQueryKey(params), enabled: longer, placeholderData: keepPreviousData, staleTime: STALE_MS },
   });
 
-  const model = useMemo(() => weekModel(week, zone, order), [week, zone, order]);
-  const weekDial = useMemo(() => weekSource(week), [week]);
+  const span = useMemo(() => weekSpan(week, order), [week, order]);
+  const weekDial = useMemo(() => weekSource(week, dayIn(new Date(), zone)), [week, zone]);
   const nowDial = useMemo(() => (nowQ.data ? nowSource(nowQ.data) : null), [nowQ.data]);
   // Until a longer range is in, the dial keeps what it has, so it never stands empty.
   const shown = longer && nowDial ? nowDial : weekDial;
@@ -98,7 +97,6 @@ export function YourWeek({ week, zone }: YourWeekProps) {
 
   const loading = longer && nowQ.isFetching && (!nowQ.data || nowQ.isPlaceholderData);
   const failed = longer && nowQ.isError && !nowQ.isFetching;
-  const more = moreLine(model.more);
 
   return (
     <section aria-labelledby={id} className="grid min-w-0 gap-2.5">
@@ -106,10 +104,20 @@ export function YourWeek({ week, zone }: YourWeekProps) {
         <h2 id={id} className={HEADING}>
           Your week
         </h2>
-        <p className="min-w-0 text-right text-xs leading-[1.4] text-[#9AA3B5]">{model.span} · Timeline</p>
+        <p className="min-w-0 text-right text-xs leading-[1.4] text-[#9AA3B5]">{span} · Timeline</p>
       </div>
       <div className="grid gap-5 rounded-[12px] border border-[#242C3B] bg-[rgba(17,22,31,.55)] p-[18px] md:grid-cols-[300px_minmax(0,1fr)] md:items-start">
-        <div className="grid min-w-0 justify-items-center gap-2.5">
+        <div className="grid min-w-0 content-start gap-3 md:col-start-2 md:row-start-1">
+          <WeekBars week={week} zone={zone} />
+          <Link
+            href="/dashboard/timeline"
+            className="justify-self-start rounded text-[13.5px] text-[#9FA8DA] transition-colors hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
+          >
+            Open Timeline <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+
+        <div className="grid min-w-0 justify-items-center gap-2.5 md:col-start-1 md:row-start-1">
           <div ref={dialBox} className="w-full max-w-[300px]">
             <Dial
               points={shown.points}
@@ -146,28 +154,6 @@ export function YourWeek({ week, zone }: YourWeekProps) {
               </button>
             </div>
           ) : null}
-        </div>
-
-        <div className="grid min-w-0 content-start gap-3">
-          {model.headline ? (
-            <h3 className="font-display text-[23px] font-normal leading-[1.2] text-[#E8EBF2]">{model.headline}</h3>
-          ) : null}
-          <DayCells days={model.days} keyed />
-          <div className="grid gap-2">
-            <p className={LABEL}>Today</p>
-            {model.onYou ? (
-              <ContactCard contact={model.onYou} />
-            ) : (
-              <p className="text-[13.5px] leading-normal text-[#AEB6C6]">{QUIET_DAY}</p>
-            )}
-            {more ? <p className="text-[12.5px] leading-snug text-[#9AA3B5]">{more}</p> : null}
-          </div>
-          <Link
-            href="/dashboard/timeline"
-            className="justify-self-start rounded text-[13.5px] text-[#9FA8DA] transition-colors hover:text-[#E8EBF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#AEB8F0]"
-          >
-            Open Timeline <span aria-hidden="true">→</span>
-          </Link>
         </div>
       </div>
     </section>
