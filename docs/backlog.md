@@ -56,7 +56,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-67 · `prompts/brief.ts` words an element tie by key order ("air and fire" vs "fire and air" for the same chart); sort it, with a dry lab run · R18-25
 - B-68 · A new birth time gives some events a new key; queue their readings at the open instead of writing them on open (with a guard for keys that never land) · R18-25
 - B-69 · The QA walk's guard names `/api/timeline/*` when a failed setup read sends the page to Timeline's views; name the setup read · R18-28
-- B-70 · Hard-pair weighting: a hard-pair conjunction weighs -0.3 and can drop out of the twelve (Charles-William Venus-Saturn 0.9°); with R20's brain pass and a dry lab run · R18-13
+- B-70 · Hard-pair weighting: a hard-pair conjunction weighs -0.3 and can drop out of the twelve (Charles-William Venus-Saturn 0.9°); with a dry lab run · R18-13
 - B-71 · The done page's plan redirect sits inline in `CheckoutDonePage.tsx`; move it into `checkout-view.ts` so the critical tier pins it; `steps.ts`'s `timeline-setup` label also covers the stale refresh now · R18 tester
 - B-72 · Staging deploys still answer 502 on `/api/*` for about 45 s (two deploys measured 2026-10-07, after R18-03); finish once MB-228's dashboard answer is in (a volume, Teardown overlap 0, or no health check) · R18 staging confirmation
 - B-73 · The retrograde line says "for a few weeks" and "Earth is passing it": true for Mercury and Venus only (Saturn 137 days, Neptune 158, Jupiter 70 to 121); fix `RetrogradeLine`, House by House and the Did you know card · QA-07 #2
@@ -67,6 +67,8 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-79 · Get my report from the free chart lands on "Welcome back" sign-in and loses the typed birth data · QA-07 #7
 - B-80 · A dead report link spins about 7 s and calls the API five times before "Report not found."; answer a 404 once · QA-07 #8
 - B-81 · `/sample` chapter 9 still has "Home as destiny, love as friction" and two more fate lines; refresh /sample from the next passing Release or rewrite · QA-07 #9, QA-06 #14
+- B-82 · Model passages for Compatibility, Timeline and Ask, once the Personal report's have been read at a Release; with a dry lab run · ADR-383, R19 plan
+- B-83 · Two 9:16 reels from the loading story's scenes, rendered in HyperFrames and posted only after the Owner's yes, through /marketing · report-loading-story §6, ADR-324, ADR-388
 
 ## Waiting on Alex
 

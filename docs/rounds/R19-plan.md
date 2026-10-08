@@ -1,16 +1,20 @@
-# R19 plan — explain it like a friend: one plain-words rule in four products, the primer, Did you know
+# R19 plan — explain it like a friend, sharing and your circle, the rest of Review 05/10, and /qa's own account
 
-Planned 2026-10-08 on `main` at c52f9e5 (PR #131 merged: QA-07) for `explain-like-a-friend` (locked 2026-10-07, ADR-369 to 382),
-with Review 05/10 §7's houses prompt and §10 (ADR-297 to 312), which it extends and which R18's plan had left for R20; QA-07's
-sev-2 line B-73 with B-76 in the same files; MB-234 (private) in the first group; MB-235's two small calls (provisional) with
-MB-214 (private) on the claim card. **Size, honestly:** the spec changes the prompts of all four products (Personal report,
-Compatibility, Timeline, Ask), the vocabulary, the brief, the checks, the engine, the lab and three views. R19 is cut at 22
-cards and leaves out only what the spec itself puts out of scope (the film scene, the Explained post). **Cards:** 22 in three
-groups (8, 11, 3; ADR-283). **Tiers:** 16 Opus, 6 Sonnet, no Haiku. **Tags:** USER-FACING are R19-01, 05, 07 to 09, 11 to 18
-and 20 to 22; the rest INTERNAL. **The brain changes** in R19-01 to 04, 09 to 17 and 20, so the dry lab runs after each group and
-the versions move: v12, p7, t2, a2. **No schema change. The contract changes** (R19-20: one optional field). **No new
-dependency.** No builder needs a credential, nothing goes on GitHub, nothing spends in the session, and production sells nothing
-until launch (ADR-167).
+Planned 2026-10-08 on `main` at c52f9e5 (PR #131 merged: QA-07) and revised the same day under the Owner's rule "plan this round
+only" (`planner.md`, c480b71): R19 takes every locked spec not yet built (ADR-388). **Specs:** `explain-like-a-friend` (locked
+2026-10-07, ADR-369 to 382); `sharing-and-circle` whole (locked 2026-10-06, ADR-329 to 342); the rest of Review 05/10 (ADR-297
+to 312: §1's rest, §2 to §4, §7's houses prompt, pins and the person's date, §8, §10); the rest of report-loading-story (§3's
+covers lines to the writer, §4's words, §5's film on /method; §6's reels go through /marketing, B-83). **Fixes:** QA-07's sev-2s,
+B-74 (/qa's own staging account, ADR-387) and B-73 with B-63, 64 and 76; B-07, 32, 33, 50 to 52 and 57 and MB-212 (private) in
+the cards whose files they share; MB-234 (private) in the first group; MB-235's two small calls (provisional) with MB-214
+(private). **Size:** 42 cards in three groups (13, 18, 11; ADR-283); no card is cut to make it smaller. **Tiers:** 27 Opus, 15
+Sonnet, no Haiku. **Tags:** INTERNAL are R19-02 to 04, 06, 10, 19, 23, 28 and 41; the other 33 are USER-FACING. **The brain
+changes** in R19-01 to 04, 09 to 17, 20 and 27, so the dry lab runs after each group and the versions move: v12, p7, t2, a2.
+**Schema:** two columns on `invite_tokens` (R19-25, an idempotent script in the bootstrap) and a third value of the testers' `qa`
+mark (R19-28, a text column, no migration). **The contract changes** once, first (R19-23). **No new dependency** in any
+`package.json`; R19-42 runs the pinned HyperFrames CLI in a scratch worktree to render the film, never in CI or a build. No
+builder needs a credential, nothing goes on GitHub, nothing spends in the session, and production sells nothing until launch
+(ADR-167).
 
 ## Open Mailbox rows created more than 14 days ago (oldest first, ADR-186)
 **2026-09-09:** MB-12, no error reporting or alerting. It blocks no card; MB-232's spec reads it when that spec is written.
@@ -18,10 +22,16 @@ until launch (ADR-167).
 ## Round number, size and order
 R18 is the last round, and it has a report (closed 2026-10-07, its lessons in 28a5b89). Since then: QA-07 (no sev-1; sev-2 #1 is
 B-74, the QA harness, and #2 is B-73) and one lock, `explain-like-a-friend`. No Mailbox row is `blocking`; MB-234's default is
-"fixed in R19's first group" and MB-235's "each goes into R19 as a small card". R18's plan and CLAUDE.md named sharing and the
-circle for R19. This plan takes the locked brain spec first: its first step (the vocabulary, ADR-376) comes before any rule
-change, everything after builds on it, and Review 05/10's brain half (R20 in R18's plan) is the same pass. Sharing and the circle
-become R20 (For the Owner 1). Pricing and launch are not planned (ADR-230, 242).
+"fixed in R19's first group" and MB-235's "each goes into R19 as a small card". The Owner's rule of 2026-10-08 plans this round
+only and puts every locked spec not yet built into it, so R19 holds the whole open locked scope (ADR-388). The order inside: the
+words, the engine, the contract and its routes first (group 1: the vocabulary before any rule change, ADR-376; `openapi.yaml`
+before the screens, sharing-and-circle §11); then the rule, every product's prompts and the screens that read the new contract
+(group 2); then the cards that read both (group 3). Pricing and launch stay unplanned until the Owner starts them (ADR-230, 242).
+
+**Review 08/10**, the Owner's page of 2026-10-08 (18:05), came in while this plan was revised. It is not locked, so no card takes it;
+`/ideate` does. Four of its notes touch R19's cards: the R line on each house card and what going backwards changes in a house
+(R19-05, R19-12), going backwards inside a transit (R19-16), and a house's planet in charge (R19-12, R19-18). The orchestrator reads
+it beside this plan before approval; if the Owner locks it first, the plan is cut again with it.
 
 ## Round start (the orchestrator)
 1. Branch `round/R19` from `main` with this plan. `docs/backlog.md` already has B-77 closed (ADR-386).
@@ -33,80 +43,123 @@ become R20 (For the Owner 1). Pricing and launch are not planned (ADR-230, 242).
    R19-04's `shadowOf`; each planet's days going backwards in 2026 to 2027 (QA-07 #2's numbers) for R19-05's line.
    (b) OpenAI's strict structured outputs with the SDK in the lockfile: a nullable object field, as zod v4's `.nullable()` reaches it
    through `api/src/prompts/jsonSchema.ts` (R19-20).
-4. **The artifact** (https://claude.ai/artifact/URGEFLx2S8KHTe2WrPV3XD): builders can't open claude.ai, so extract into the
-   session scratchpad the primer's four ideas and its seven-planet table (home, least at ease, why), Audrey Hepburn's before and
-   after, the empty-house lines and the retrograde picture. Where a builder's draft differs, the artifact wins and the report says so.
+   (c) Clerk's development instance: a `+clerk_test` address signs in with the email code 424242 and sign-in loads no Turnstile;
+   the backend API makes a user with no password who is not banned (R19-28).
+4. **The artifacts** (builders can't open claude.ai): extract into the session scratchpad (i) from explain-like-a-friend's
+   (https://claude.ai/artifact/URGEFLx2S8KHTe2WrPV3XD) the primer's four ideas and its seven-planet table (home, least at ease, why),
+   Audrey Hepburn's before and after, the empty-house lines and the retrograde picture; (ii) from sharing-and-circle's, version 5
+   (https://claude.ai/artifact/3NgoY1o1CG4wk38WKwtc41), the reference dialog `share-file-dialog.tsx` and screens A to F with their
+   words; (iii) from Review 05/10's, version 8 (https://claude.ai/artifact/TraYGaLqhLE1kx2cQBPzyc), Parts 1 to 4, 7, 8 and 10.
+   Where a builder's draft differs, the artifact wins and the report says so.
 5. **The voice study** (`docs/annex/explain-voice-study.md`) goes to R19-01, 02, 03, 09, 13 and 20's builders for its patterns,
    scene types, crisp lines and verdicts. Her quoted lines never enter a prompt, a scene, a passage, a comment or a commit
    (ADR-381); After the builders 2 checks it.
 6. `pnpm install --frozen-lockfile`. No `package.json` gains anything this round.
-7. **MB-234 and MB-214 (private):** fetch both rows and give them to R19-06's and R19-07's builders in the brief. Nothing of them
-   enters the repo, a commit message, a comment or a report; the plan names the rows only.
+7. **MB-234, MB-214 and MB-212 (private):** fetch the rows and give them to R19-06's, R19-07's and R19-25's builders in the brief.
+   Nothing of them enters the repo, a commit message, a comment or a report; the plan names the rows only.
 
 ## What already stands (audit at c52f9e5)
 - **Met, and reused:** `vocabulary.ts`'s five tables and `renderVocabularyBlock`; `traditional.ts` (`DOMICILE`, `EXALTATION`,
   dignity, sect) and the brief's dignity, sect and empty-house lines; `SectionSpec.extraContext`; `callStructured`'s checks; the
-  pair's chk-20 strip (bracketed names only); Ask's names-in-sentences lift (`ask/index.ts:46`); `plain-prose.ts` (drops only a
-  line made wholly of placement words, which the new rules 3 and 8 still allow); the engine's `stations`, `longitudeAt` and
-  `RetrogradeEvent.houses`; R18's `facts.ts`, `DidYouKnow`, `RetrogradeLine`, `houses.ts` and House by House's quiet-house line;
-  R18-25's stale-reading rewrite (so t2 rewrites at the open); `prompt-families.ts`; the dry lab with Timeline, Ask and injection.
-- **Not met:** rule 1's new wording (`system.ts` still says never explain the method), rules 3, 8 and 11; crisp lines; scenes;
-  model passages; the primer; the comfort table; shadow dates; a contact's crossed houses; Did you know in the chapters and in
-  Timeline; chk-49 to 52; the shares of planets going backwards; Chiron in House by House (lost when planets share its house);
-  B-73, B-76, B-67; Review 05/10 §7's houses prompt (the stale HOUSES ALREADY COVERED) and §10.
+  pair's chk-20 strip (bracketed names only); Ask's names-in-sentences lift (`ask/index.ts:46`); `plain-prose.ts`; the engine's
+  `stations`, `longitudeAt` and `RetrogradeEvent.houses`; R18's `facts.ts`, `DidYouKnow`, `RetrogradeLine`, `houses.ts` and House
+  by House's quiet-house line; R18-25's stale-reading rewrite; `prompt-families.ts`; the dry lab with Timeline, Ask and injection;
+  the grants (`shares.ts`: `grantStands`, `sharesOf`, `shareBackOffered`), the gift and its claim, `StopSharingDialog`,
+  `CompatibilityPicker`'s `openOnCreate`, `PIN_LIMIT` and the workbook's pins, `checkoutHref`'s return, the walk's one step list
+  with both maps, Timeline's events with `spans` and `exact` in the contract, `lifeCycles` with its passes, and `ensureQaPair`.
+- **Not met:** rule 1's new wording, rules 3, 8 and 11; crisp lines; scenes; model passages; the primer; the comfort table; shadow
+  dates; a contact's crossed houses; Did you know in the chapters and in Timeline; chk-49 to 52; the shares of planets going
+  backwards; Chiron in House by House; B-73, B-76, B-67; all of sharing-and-circle; Review 05/10 §1's rest, §2, §3, §4, §7's houses
+  prompt, pins and the person's date, §8's pairs and credits, §10; report-loading-story §3's covers lines to the writer, §4's
+  "things" and §5's film; B-74.
 - **Found while planning:** (1) `METHOD_TALK` lists "in its own sign" and "in your chart, ", so a Release would refuse words the
   spec asks for: R19-19. (2) `countWords` and `proseOf` skip only `claims`, so a card would count in word bands and evidence:
   R19-14. (3) The section schemas are strict and the buyer walk's canned replies parse with them: R19-20 carries the new field in
   `testModel.ts`. (4) Rule 11 forbids "some astrologers", the card's own words: R19-09. (5) The shorts reach readers (the planet
-  cards through `personalPlanets`; `underPressure` prints a dignity's short), so R19-01 is USER-FACING; `generate-vocabulary.ts`
-  writes them with a model and a key, so R19-01 writes them by hand. (6) B-77 is Review 05/10 §9's own design (a title that
-  finishes "Did you know"): closed, ADR-386. (7) The pair's chk-21a and chk-24 classes sit both in `shapes.ts` and in `checks.ts`'s
-  RULES: they move together (R19-10, 15). (8) Review 05/10 §6's locked line is false for most planets (QA-07 #2): ADR-386 keeps its
-  rule and changes its words. (9) `PairStory` passes `time: null` for a rough time and for none alike: R19-08. (10) The spec's out
-  of scope names "shadow periods" while §9 and ADR-378 ask for shadow dates: dates for the card only, no reading built on them
-  (ADR-384). (11) The study's Sun-and-Moon row adds an older day-or-night swap, a sect idea, and parent significators are out of
-  scope: the Family card says Sun and Moon only (ADR-383). (12) Ask's fixed lines (`ask/lines.ts`) sit on MB-215: R19-17 leaves them.
+  cards; `underPressure` prints a dignity's short), so R19-01 is USER-FACING and writes them by hand (`generate-vocabulary.ts` needs
+  a key). (6) B-77 is Review 05/10 §9's own design: closed, ADR-386. (7) The pair's chk-21a and chk-24 classes sit both in
+  `shapes.ts` and in `checks.ts`'s RULES: they move together (R19-10, 15). (8) Review 05/10 §6's locked line is false for most
+  planets (QA-07 #2): ADR-386 keeps its rule and changes its words. (9) `PairStory` passes `time: null` for a rough time and for
+  none alike: R19-08. (10) The spec's out of scope names "shadow periods" while §9 and ADR-378 ask for shadow dates: dates for the
+  card only (ADR-384). (11) Parent significators and the day-or-night swap are out of scope: the Family card says Sun and Moon only
+  (ADR-383). (12) Ask's fixed lines (`ask/lines.ts`) sit on MB-215: R19-17 leaves them. (13) The testers' `qa` mark is read as "the
+  QA pair" in three places (`timelineSetup.ts`'s `isQaAccount`, the walk's Stripe customer in `qaWalk/index.ts`, `testers.ts`'s
+  grants): a third value keeps all three to Mira and Idris (ADR-387), and the Sales page never removes the new account (R19-28).
+  (14) A link's token is kept only as its hash, so Copy their link can't read an old link back, and no route cancels a waiting sent
+  link: R19-25 (ADR-390). (15) `SendDialog` has five users (PeopleRows, QuickLook, CompatibilityRows, CompatibilityReportPage,
+  ReportPage), `ShareMySheet` one (QuickLook), `PathSheet` and `Stories` one each (DashboardPage): each user moves in its own card,
+  and each file goes with its last (R19-29, 30, 38). (16) `weekSentence` and two headlines say "things" ("Thinking things through",
+  "Taking things slower"), and so do `week-view.ts`'s count line and Mira's committed week (`mira-week.json`, written by
+  `sampleRun.ts`): R19-27, 33. (17) Review 05/10 §1's bundle tap names `POST /checkout/test`, gone since R17 (ADR-276): ADR-389.
+  (18) The film's chapter 1 has its project and recorded voice on `claude/reading-the-sky-video` (c13d7b1) with a `render.sh` that
+  renders locally; HyperFrames 0.8.96 is on npm, and Chromium's headless shell and ffmpeg are here; no rendered file is committed
+  (R19-42). (19) `DayCells` also draws Ask's day card and the site's FiveThings, so it stays (R19-33). (20) No fixture holds the
+  Owner's chart, so Review 05/10's acceptance on his chart is read on staging (Staging confirmation). (21) `home.ts`'
+  `LISTED_PAIR_VERSIONS` takes the current pair version by name, so p7 alone would drop every stored p6 pair from the dashboard:
+  R19-24 names p6 before R19-15 moves the version.
 
 ## Where the specs meet, and how this plan reads them
 1. **Rule 1** (ADR-369) supersedes ADR-104's rule 1 and widens Review 05/10 §10's named exceptions: any placement, house, ruler,
-   aspect or idea may be named once with its plain meaning and a moment; all five aspect names, each explained the first time (the
-   default taken); dignity and sect stay out (both specs). §7's ruler clause and §10's "the chapters never name planets" are read
-   through it.
-2. **Going backwards:** §10's one definition goes to the writer and Ask, followed by our own picture (explain-like-a-friend §5);
-   the page's line follows ADR-386; every planet going backwards at birth is explained once in House by House (§10, acceptance 3).
-   §10's Timeline card line ("Mercury retrograde · about 3 weeks") changes the card's face and waits with §2 (no UI change here).
+   aspect or idea may be named once with its plain meaning and a moment; all five aspect names, each explained the first time;
+   dignity and sect stay out (both specs). §7's ruler clause and §10's "the chapters never name planets" are read through it.
+2. **Going backwards:** §10's one definition goes to the writer and Ask, followed by our own picture; the page's line follows
+   ADR-386; every planet going backwards at birth is explained once in House by House; §10's Timeline card line ("Mercury
+   retrograde · about 3 weeks") is built with §2's card face (R19-32).
 3. **Scenes** (§0 and §10): the vocabulary block goes whole into every system prompt, and the pool must never be given whole, so the
    scenes live in `scenes.ts` beside `vocabulary.ts` and are picked per chart and section (reading 2).
-4. **Ask** (Review 05/10 §8): its examples bullet is "show it in a day" for Ask and is built here (R19-17); its pairs and credits wait.
-5. **Timeline** (§8, ADR-378 and 206): reading by house and the possibility ending, as ADR-384 reads them.
+4. **Ask** (Review 05/10 §8): the examples and a named partner's pair report quoted first are prompt lines (R19-17); the offer with
+   the reader's credits is the thread and the page (R19-40).
+5. **Timeline** (§2 to §4, explain-like-a-friend §8): reading by house and the possibility ending (ADR-384) and Review 05/10's
+   prompt lines (Light and Heavy, stretches with their years, past cycles short, a child's words before 16, the nodes reversed) all
+   land under t2, so each stored reading is written again once (R19-16, 27).
 6. **Did you know** (§9, ADR-317, 377): R18's loading card stays as it is; the chapters' cards and Mercury's shadow card are new, in
    R18's look without bars or drawing.
+7. **The house set** (report-loading-story §3, ADR-321): the writer gets the covers lines as the houses' crisp lines (ADR-391).
+8. **The dashboard:** sharing-and-circle's idle card (Your first steps, Make a report) is for a reader with a finished own report;
+   Review 05/10 §1's empty dashboard (the circle, "Start with your own report", three bundle buttons) for one without. R19-29 builds
+   the first in group 2, R19-35 the second in group 3, on the same page.
+9. **One source:** `GET /home` carries both specs' new states (sharing-and-circle §11; Review 05/10 §1, §7): R19-23 writes them
+   into the contract, R19-24 fills them, the screens read them.
 
 ## Goals
-1. **Explain it like a friend, in the Personal report** (ADR-369 to 381): crisp lines and plain shorts, scenes and model passages
-   (the vocabulary before any rule change, ADR-376); rules 1, 3, 8 and 11, life first, possibilities, no dignity or sect word;
-   empty houses through their planet in charge; the primer before House by House; Did you know in seven chapters; warn checks.
-2. **The same rule in Compatibility, Timeline and Ask** (§6, §8): the pair's checks relaxed, Timeline read by the house a planet
-   moves through and ended on a possibility, Mercury's shadow card, Ask's everyday example.
-3. **Review 05/10 §7's houses prompt and §10**, which the spec extends: each planet going backwards at birth and Chiron named and
-   explained in House by House (acceptance 3).
-4. **QA-07's R line, true for every planet** (B-73, sev-2, ADR-386), with B-76 (Did you know on a chart with no birth time).
+1. **Explain it like a friend, in all four products** (ADR-369 to 382): crisp lines (a house's is its covers line, ADR-391) and
+   plain shorts, scenes and model passages (the vocabulary before any rule change, ADR-376); rules 1, 3, 8 and 11; empty houses
+   through their planet in charge; the primer and Chiron in House by House; Did you know in seven chapters and Mercury's shadow
+   card; warn checks; with Review 05/10 §7's houses prompt, §8's examples and pairs first, and §10.
+2. **Sharing and your circle, whole** (ADR-329 to 342): one Share window, Your first steps, a share question on each side of a gift,
+   the quick look's buttons, the picker into the loading screen, state chips, no dashboard stories, the violet ring, the
+   own-details line, `GET /home`'s states and both roads in the buyer walk; with B-07, 32, 33, 50 to 52 and MB-212 (private).
+3. **The rest of Review 05/10 and report-loading-story** (ADR-297 to 312, 316 to 324): the first visit (the empty dashboard's
+   bundles, Ask and Your week after an own report, the new-visitor view, the Account preview, B-57), the Timeline card with its year
+   and Heavy · Mixed · Light, Your week as one picture, Life's drag line and Your cycles card, pins on every tick-box item and the
+   person's date, Ask's offer with credits; no "things" in Timeline's words; Reading the sky on /method.
+4. **QA-07's sev-2s:** /qa's own staging account (B-74, ADR-387) and the R line true for every planet (B-73, ADR-386), with B-63,
+   64 and 76 in the same files.
 5. **MB-234 (private) in the first group**, as its default says; MB-235's two small calls at their defaults (provisional), with
    MB-214 (private) on the same card.
 
 ## Preconditions
-1. Builders read MASTERFILE §0, their card, the readings and pinned shapes it names, Round start 4's extract, and for prompt cards
+1. Builders read MASTERFILE §0, their card, the readings and pinned shapes it names, Round start 4's extracts, and for prompt cards
    §5 (R-5.1, R-5.2) and the study (Round start 5).
-2. **Single owners.** No file in two cards of a group. Across groups: the seven chapter files `overview.ts`, `mind.ts`,
-   `career.ts`, `family.ts`, `superpowers.ts`, `discoveries.ts`, `focus.ts` → R19-13 (2), R19-20 (3). Alone: `vocabulary.ts` →
-   R19-01; `system.ts` → R19-09; `checks.ts` and the annex → R19-10; `brief.ts` → R19-11; `aiInterpretation.ts` and `evidence.ts` →
-   R19-14; `openapi.yaml`, codegen and `testModel.ts` → R19-20; `web/src/types/chart.ts` → R19-21; `HouseDeck.tsx` → R19-18;
-   `build-story.ts` → R19-08. No card changes `api/test.critical` or `web/test.critical`.
+2. **Single owners.** No file in two cards of a group. Across groups, one card a group: the seven chapter files `overview.ts`,
+   `mind.ts`, `career.ts`, `family.ts`, `superpowers.ts`, `discoveries.ts`, `focus.ts` → R19-13 (2), R19-20 (3);
+   `prompts/timeline/reading.ts` → R19-27 (1, `ReadingInput` only), R19-16 (2); `DashboardPage.tsx` → R19-29 (2), R19-35 (3);
+   `NowAhead.tsx` and `ReadingSheet.tsx` → R19-32 (2), R19-22 (3); `TimelineAppPage.tsx` → R19-33 (2), R19-22 (3);
+   `ReportSections.tsx` → R19-34 (2), R19-21 (3); `now-ahead.ts` → R19-32 (2), R19-39 (3). Alone: `vocabulary.ts` → R19-01;
+   `system.ts` → R19-09; `checks.ts` and the annex → R19-10; `brief.ts` → R19-11; `aiInterpretation.ts` and `evidence.ts` → R19-14;
+   `openapi.yaml` and the generated packages → R19-23; `home.ts` → R19-24; `shares.ts`, `invites.ts`, `gifts.ts`, `routes/reports.ts`
+   and the bootstrap → R19-25; `home-view.ts` and `credits-view.ts` → R19-29; `testModel.ts` → R19-20; `web/src/types/chart.ts` →
+   R19-21; `HouseDeck.tsx` → R19-18; `build-story.ts` → R19-08; `qaWalk/index.ts` and `routes/index.ts` → R19-28; the step lists,
+   `buyer.walk.ts`, `sharing.walk.ts` and `qaWalk/browser.ts` → R19-41; `vercel.json` → R19-42. R19-06's files come in its brief; none
+   is in another group-1 card's list (the orchestrator checks before dispatch). No card changes `api/test.critical` or
+   `web/test.critical`.
 3. Inside a group a card may land before one it imports from (pinned shapes): the orchestrator accepts a red intermediate until the
    group ends, and every group ends with typecheck, the critical tier, the buyer walk and the dry lab green.
-4. **No card spends or reaches a network:** the model is stubbed in every test and walk; the shorts are written by hand
-   (`generate-vocabulary.ts` needs a key no session holds); placements are computed from fixtures, never typed from memory.
-5. **Seams:** `// MB-235 provisional` at R19-07's and R19-08's seams; MB-234's and MB-214's code carries no MB comment.
+4. **No card spends**, and none reaches a network but R19-42's one fetch of its pinned CLI from npm: the model is stubbed in every
+   test and walk, and so is Clerk (R19-28 as `setQaClerk` does it for the pair); the shorts are written by hand; placements are
+   computed from fixtures, never typed from memory.
+5. **Seams:** `// MB-235 provisional` at R19-07's and R19-08's seams, `// MB-215 provisional` at R19-27's headlines; MB-234's,
+   MB-214's and MB-212's code carries no MB comment.
 6. **The promoted rules** (`lessons.md`): grep every caller before changing a shared export, a pinned value or what a function may
    return, and name any outside your files; a log line carries ids, types and counts, never a Clerk id, an email or a name; commit
    with a pathspec naming only your card's files; never pkill or killall a shared process.
@@ -139,7 +192,8 @@ become R20 (For the Owner 1). Pricing and launch are not planned (ADR-230, 242).
    finishes "Did you know" (Review 05/10 §9); two to four sentences: what the tradition reads, what it could mean here, the lesson;
    worded as tradition ("is often read as", "old astrology tends to", "many people find", "some astrologers say"); our own pictures.
 8. **Reading by house in Timeline** (ADR-378, 384): a contact's reading names the houses its planet passes through beside the natal
-   point's; retrogrades keep theirs; no new event kind and no change to the card's face; shadow dates for Mercury's card only.
+   point's; retrogrades keep theirs; no new event kind; shadow dates for Mercury's card only. The card's face changes only as Review
+   05/10 §2 and §10 say (R19-32).
 9. **Timeline's ending** (ADR-206, 384): "a good time to…", a possibility, never an order or a do or don't (annex row 46 passes it).
 10. **The pair's checks** (ADR-385): chk-21a, chk-21b's body branch and chk-24 warn; chk-20 (bracketed names only) and chk-22 stay.
 11. **Versions:** v12, p7, t2, a2. `%:system` follows natal (`prompt-families.ts`), so v12 clears every product's system overrides
@@ -150,10 +204,44 @@ become R20 (For the Owner 1). Pricing and launch are not planned (ADR-230, 242).
     the same transaction; nothing else about the claim changes.
 14. **Her words** never enter a prompt, a scene, a passage, a comment or a commit (ADR-381): builders take the study's patterns,
     scene types and verdicts, never its quoted lines.
+15. **One source** (ADR-341, 390): the Share window, the quick look's line, the rows' chips, the circle's ring and Your first steps
+    read their states from `GET /home` only; after any share action the page reads it again, never patches a copy.
+16. **Grants around a gift** (ADR-331): the giver's Yes is kept on the gift and becomes a grant of the giver's own Personal report
+    when the gift is claimed; the recipient's Yes is kept at the claim and becomes a grant of their own Personal report when it is
+    finished; Not now keeps and writes nothing. Each grant is the `profile_shares` row a Share makes (R-3.6, ADR-235), so Stop
+    sharing ends it.
+17. **Copy their link** (ADR-390): no raw link is stored (only hashes, MASTERFILE §3); copying asks the server for a link to that
+    waiting invite, and the link in their email keeps working. Cancel invite ends every link of that invite.
+18. **Your first steps** (ADR-330, 390): the server says which step the reader is on (pinned `FirstSteps`); Hide is kept in the
+    browser, as the path sheet's mark was; the card goes on every device once the first Compatibility report exists; step 3's
+    button and words follow the artifact.
+19. **Two readable reports** (ADR-332): Compatibility and Two people together show when the reader can read two finished Personal
+    reports, their own and one more; `canPair(home)` says so for every screen.
+20. **The first visit** (Review 05/10 §1, ADR-389): with no finished own report the dashboard is the circle with You, "Start with
+    your own report", one line and the three bundles as buttons; on staging a button opens /checkout in the sandbox and comes back
+    to the birth form for You; no Practising, no Ask, no Your week, no first steps.
+21. **The admin's new-visitor view** (ADR-389): `/dashboard?visitor=new` in a new tab, for the admin only, draws the dashboard from
+    an empty home under a Preview ribbon with Leave; nothing of the admin's is fetched or shown; a tap says which step it would
+    open and stays; no way for a browser to name a session is added (ADR-197).
+22. **The QA account** (ADR-387): made on staging alone, after the listen, once however many starts run (an advisory lock); its
+    random part from `crypto.randomBytes`; a Clerk user made by the backend API, never banned; its address kept in its testers row
+    (`qa-agent`), shown only on the staging Sales page to the admin, never in a log line, a commit, a report or a test; topped up to 3
+    test credits at each start, never above; at most 6 reports started a UTC day, counted on the server from stored rows and refused
+    with its own line; Ask and Timeline keep every account's caps. The pair's guards (Timeline setup's QA check, the walk's Stripe
+    customer, the testers' grants) keep to Mira and Idris; the Sales page never removes it, since its row holds the address. /qa
+    reads `QA_ACCOUNT_EMAIL`, signs in on the sign-in page with the code 424242, checks no Cloudflare host, and says plainly when the
+    variable is missing.
+23. **Timeline's dates and words** (Review 05/10 §2 to §4, report-loading-story §4): every date on a Timeline card, its Read more
+    and the week carries its year; Heavy · Mixed · Light with the three-line legend wherever the tone colours show; "transit" and
+    "cycle" are the only names, never "moment", "things" or "events" in copy; the week runs Monday to Sunday in the reader's zone.
+24. **The film** (report-loading-story §5, ADR-323, 388): chapter 1 as its branch renders it, both cuts, self-hosted under
+    `web/public/film/`, each at most 12 MB (re-encoded with ffmpeg if larger), a still with a play button, playing only on a tap with
+    its burned-in captions, `preload="none"`; its captions pass `/ux-copy` or the card stops (the voice is recorded, so no line is
+    rewritten in the round).
 
 ## Pinned shapes
 - **Vocabulary** (R19-01): `VocabEntry { crisp: string; short: string; full: string }` for BODY, SIGN, HOUSE and STRUCTURE (ASPECT
-  unchanged); `renderVocabularyBlock()` prints `crisp` before `full`.
+  unchanged); `renderVocabularyBlock()` prints `crisp` before `full`; a house's `crisp` is its covers line from `houses.ts`.
 - **Scenes** (R19-02): `SceneType` (the study's 24, kebab-case: `party`, `group-project`, `group-chat`, `first-date`, …); `Scene {
   id: string; type: SceneType; text: string }` (`id` stable, "house-6-b"); `SCENES: { body: Record<string, readonly Scene[]>;
   sign: Record<string, readonly Scene[]>; house: Record<number, readonly Scene[]> }`; `pickScenes(wanted: readonly { kind: "body" |
@@ -174,37 +262,78 @@ become R20 (For the Owner 1). Pricing and launch are not planned (ADR-230, 242).
   its comfort words; `EMPTY HOUSES:` one line each ("8th: empty. Virgo starts it. Its planet, Mercury, is at home in Gemini, in
   your 5th, because …"); `RETROGRADE AT BIRTH:` one line each ("Venus: as for about 7 in 100 people"; the nodes: "always;
   normal"); `CHIRON: in your 4th`.
-- **Did you know** (R19-20): model schema `didYouKnow: z.object({ title: z.string(), body: z.string() }).nullable()`; contract
+- **Did you know** (R19-20, 23): model schema `didYouKnow: z.object({ title: z.string(), body: z.string() }).nullable()`; contract
   `DidYouKnow { title: string; body: string }`, optional and nullable on overview, mind, career, family, superpowers, discoveries
   and focus; `topicFor(section: string, brief: ChartBrief): { topic: string; lesson: string } | null`.
+- **Contract** (R19-23, written once; R19-24, 25 and 40 fill it):
+  - `Home.firstSteps: FirstSteps | null`, null once the reader has a Compatibility report; `FirstSteps { step: 1 | 2 | 3 | 4;
+    person: { profileId: string; name: string } | null; gift: boolean; pairReady: boolean }`.
+  - `HomeReader { name: string | null; email: string | null; state: "can-read" | "invited"; shareId: string | null; inviteId: string
+    | null }`: a claimed reader by first name, a waiting one by the address the reader typed (ADR-135).
+  - `HomePerson` gains `createdAt: string` (the report's, ISO), `readsYours: "can-read" | "invited" | "no"` (this person and the
+    reader's own Personal report) and `readers: HomeReader[]` (everyone on the reader's own report, its subject on one they made,
+    empty elsewhere).
+  - `HomePair` gains `share: { state: "only-you" | "can-read" | "waiting" | "shared-by"; name: string }` and `readers:
+    HomeReader[]`; `story` stays for the report page's card.
+  - POST /gifts' body gains `shareOwn: boolean` (default false); `InvitePreview` gains `giverShares: boolean`; POST
+    /invites/{token}/claim's body gains `shareBack: boolean` (default false); `DELETE /invites/{id}` cancels a waiting link the
+    reader made (204; 404 for anything else); `POST /invites/{id}/link` answers `{ claimUrl: string }` for a waiting link they made.
+  - `AskMessage.offer: { profileId: string; name: string; credits: number } | null`.
+  - `Week`'s days run Monday to Sunday (its description; the shape stays).
+- **GET /home** (R19-24): `itemAt` reads `mind.practice.*`; `timelineSlotOf` needs Timeline access and a finished own report;
+  `shares.ts`' exports (`sharesOf`, `sharedProfileIds`, `grantStands`, `ownChartOf`, `shareBackOffered`) keep their signatures, so
+  R19-24 and R19-25 meet only in the tables.
+- **Sharing web** (R19-26, 29, 30, 38, 21): `ShareWindow({ open: boolean; onClose: () => void; target: ShareTarget })` in
+  `web/src/components/share/ShareWindow.tsx`, `ShareTarget = { kind: "own" } | { kind: "person"; profileId: string; name: string }
+  | { kind: "pair"; reportId: string; name: string }`; `parseEmails(text: string): { valid: string[]; invalid: string[] }` and
+  `footerLine(readers: readonly HomeReader[]): string` in `web/src/lib/share-window.ts`; `canPair(home: Home): boolean` in
+  `home-view.ts`; `QuickLook` gains `onMakePair(profileId: string): void`; `/dashboard?pair=<profileId>` opens the picker with you
+  and that person picked; `FirstSteps({ steps: FirstSteps; onAddSomeone: () => void; onMakePair: (profileId: string) => void })`
+  in `web/src/components/dashboard/FirstSteps.tsx`.
+- **Timeline** (R19-27, 16, 32, 33): `ReadingInput` gains `spans: readonly { start: Date; end: Date }[]`, `age: number` (whole
+  years, floored, at the first exact pass or the window's start) and `passed: boolean` (a cycle behind today); `weekSentence(events,
+  weekStart)` keeps its signature and says "<n> transits this week. <m> last all week. <headline> ends on <weekday>." (the parts
+  that apply, never "things"); `weekView` keeps its signature, its days Monday to Sunday; `nearDate` always prints the year;
+  `TONE_WORDS` = `{ intense: "Heavy", mixed: "Mixed", easy: "Light" }`; `ToneLegend({ className?: string })` in
+  `web/src/components/timeline/ToneLegend.tsx`.
+- **QA account** (R19-28): `QA_ACCOUNTS = ["mira", "idris", "qa-agent"]`; the pair's own type stays `"mira" | "idris"` (`qaPair.ts`,
+  the walk); `ensureQaAccount(): Promise<void>` and `qaAccountCap: RequestHandler` in `api/src/lib/qaAccount.ts`;
+  `QA_ACCOUNT_DAILY_REPORTS = 6`, `QA_ACCOUNT_CREDITS = 3`.
 - **Web** (R19-08, 21, 22): `StoryInput.birth.rough?: boolean`; `FactCard({ title: string; body: string; className?: string })` in
   `web/src/components/FactCard.tsx`; `shadowFact(target: { key: string; houses?: readonly number[]; start?: string; end?: string
   }): { title: string; body: string } | null`; `ReadingTarget` gains `houses?`, `start?` and `end?`.
 
 ## Parallel groups
-**Group 1**, one message: R19-01 to R19-08 (no file in common). R19-02 and 03 write to the rule as reading 1 pins it, before R19-09
-writes it (ADR-376). Push once. **Group 2**, one message once group 1 is green: R19-09 to R19-19. R19-11 calls R19-02's
+**Group 1**, one message, 13 cards with no file in common: R19-01 to R19-08 and R19-23 to R19-27. R19-02 and 03 write to the rule
+as reading 1 pins it, before R19-09 writes it (ADR-376); R19-24, 25 and 26 build on R19-23's contract as pinned; R19-27 declares
+the `ReadingInput` fields R19-16 reads. Push once.
+**Group 2**, one message once group 1 is green, 18 cards: R19-09 to R19-19 and R19-28 to R19-34. R19-11 calls R19-02's
 `pickScenes` and R19-04's `COMFORT`; R19-12 reads R19-11's lines; R19-14 wires R19-03's passages, R19-11's scenes and R19-10's
-`explainChecks`; R19-15's classes match R19-10's RULES; R19-16 reads R19-04's `crosses`; R19-18 draws R19-04's table; R19-19 reads
-R19-10's `DIGNITY_WORDS`. Push once. **Group 3**, one message once group 2 is green: R19-20 to R19-22. R19-21 renders R19-20's
-field; R19-22 uses R19-21's `FactCard` and R19-04's `shadowOf`. Push once; then the orchestrator's steps and the gate. **If R19
-must shrink:** first R19-22 (Mercury's shadow card), then R19-17 (Ask), then R19-08 (the rough-time line), each to the next round.
-The vocabulary, the rule, the checks, the brief, House by House, the chapters, B-73 and MB-234 never move.
+`explainChecks`; R19-15's classes match R19-10's RULES; R19-16 reads R19-04's `crosses` and R19-27's inputs; R19-18 draws R19-04's
+table; R19-19 reads R19-10's `DIGNITY_WORDS`; R19-29 and 30 meet at `onMakePair`; R19-33 draws R19-32's `ToneLegend`; the screens
+read R19-23's contract and R19-26's window. Push once.
+**Group 3**, one message once group 2 is green, 11 cards: R19-20 to R19-22 and R19-35 to R19-42. R19-21 renders R19-20's field;
+R19-22 uses R19-21's `FactCard` and R19-04's `shadowOf`; R19-38 removes `SendDialog` once R19-21 drops its last import; R19-40's
+Write it opens R19-29's `/dashboard?pair=`; R19-41 walks R19-25's grants and R19-29's picker. Push once; then the orchestrator's
+steps and the gate.
+**No shrink path** (the Owner, 2026-10-08): no card is cut to make the round smaller. A card that can't finish takes the roster's one
+Opus retry; what still can't finish becomes a backlog line at the close, with no round number.
 
 ---
 
-## Group 1 — the words before the rule, the engine, the R line, MB-234 and MB-235
+## Group 1 — the words, the engine, the contract and its routes, the Share window, MB-234 and MB-235
 
 ### R19-01 — Vocabulary: a crisp line first, plain shorts, the empty house and going backwards (USER-FACING)
 Tier: opus — the brain: every product's system prompt and every planet card read these words
-Objective: each body, sign, house and structure entry opens with the one line you'd repeat to a friend; the card shorts are
-rewritten plainly; Saturn, Jupiter and Chiron said plainly; `empty_house` per ADR-373; `retrograde` per reading 5.
+Objective: each body, sign, house and structure entry opens with the one line you'd repeat to a friend (a house's is its covers
+line, ADR-391); plain card shorts; Saturn, Jupiter and Chiron said plainly; `empty_house` per ADR-373; `retrograde` per reading 5.
 Files: `api/src/prompts/vocabulary.ts`; `scripts/src/generate-vocabulary.ts` (its prompt on the new rule; `crisp` kept as written).
-Refs: explain-like-a-friend §0, §0b, §3, §5, §10, §11; ADR-370, 371, 373, 376, 379, 381; review-05-10 §10; the study's crisp lines
-and framings (patterns only); readings 1, 3 to 6; pinned `VocabEntry`; the caller rule.
+Refs: explain-like-a-friend §0, §0b, §3, §5, §10, §11; report-loading-story §3; ADR-321, 370, 371, 373, 376, 379, 381, 391;
+review-05-10 §10; the study's crisp lines and framings (patterns only); readings 1, 3 to 6; pinned `VocabEntry`; the caller rule.
 Done when:
 - `VocabEntry` as pinned for BODY, SIGN, HOUSE and STRUCTURE, `renderVocabularyBlock` printing each crisp line before its full;
-  every crisp line and short ours, at most 15 words, no dignity or sect word (a dignity's short reaches readers as `underPressure`).
+  every crisp line and short ours, at most 15 words, no dignity or sect word; the twelve houses' crisp lines compared in the report
+  with `houses.ts`'s covers lines, word for word.
 - Every reader of a short grepped and named (`brief.ts`, `synastryInterpretation.ts`); the report lists every short before and
   after (USER-FACING: the planet cards).
 - The dry lab (`pnpm report:lab --dry --base r06`, pairs included) renders every prompt, schemas ok; the report gives the shared
@@ -252,24 +381,25 @@ Done when:
   key unchanged (the dry lab's Timeline keys equal r06's); every literal `ContactEvent` outside the engine grepped and named.
 - Typecheck and the critical tier (the engine's included) green.
 
-### R19-05 — The R line made true, and Did you know without a birth time (USER-FACING) — B-73, B-76
+### R19-05 — The R line made true, Did you know without a birth time, and both easy to read (USER-FACING) — B-73, B-76, B-63, B-64
 Tier: sonnet — three web files; the truth the words must meet and the facts' rule are pinned here
 Objective: the R line and the retrograde fact say only what is true of every planet (ADR-386); a chart with no birth time is shown
-only the facts that fit it, drawn on the reader's own chart.
+only the facts that fit it, drawn on the reader's own chart; the R line shows in print; Did you know fits the grid at 390 px.
 Files: `web/src/components/timeline/RetrogradeLine.tsx`; `web/src/lib/facts.ts`; `web/src/components/loading/DidYouKnow.tsx`.
-Refs: QA-07 #2, #4, #5; B-73, B-76, B-77 (closed, ADR-386); review-05-10 §6, §9; reading 5; Round start 3(a); `/ux-copy`; R17-08's
-lesson.
+Refs: QA-07 #2, #4, #5; B-63, B-64, B-73, B-76, B-77 (closed, ADR-386); review-05-10 §6, §9; reading 5; Round start 3(a);
+`/ux-copy`; R17-08's lesson.
 Done when:
 - `RETROGRADE_LINE` and the retrograde fact meet reading 5; their users grepped and named (HouseDeck, HouseCard, TimelineSetup,
   NowAhead, YourWeek, the site's timeline Hero), none edited; the report lists both before and after.
 - Without angles, DidYouKnow shows only the facts whose drawing needs no horizon (retrograde, Saturn's return), drawn on the
   reader's chart; Mira's only where no chart is given; checked on marie-curie-unknown computed at run time.
-- Typecheck and the critical tier green; `/web-taste` at 390 px.
+- The R line takes the theme's colours, so print shows it (B-63); a compact card lets chart and card show together at 390 px
+  (B-64); `/web-taste` at 390 px; typecheck and the critical tier green.
 
 ### R19-06 — MB-234 (private) (INTERNAL)
 Tier: opus — security on the QA pair's staging accounts; the brief lives in Notion only
 Objective: MB-234 fixed as its row says, the hardening its row names included; the orchestrator passes the row in the brief.
-Files: as its row names, passed in the brief; none is in another R19 card's list (the orchestrator checks before dispatch).
+Files: as its row names, passed in the brief; none is in another group-1 card's list (the orchestrator checks before dispatch).
 Refs: MB-234 (private); ADR-314, 315, 357; the promoted log rule; R18-04.
 Done when: the fix as its row says, read by the sentinel; the report says "MB-234: fixed as its row says" and nothing more; no
 `MB-234` comment in the code; the critical tier green with a model client that fails if called.
@@ -300,9 +430,82 @@ Done when:
 - `StoryInput`'s other users (`BuildStory.tsx`, `build-story.test.ts`) grepped and named, unchanged.
 - `pair-story.test.ts` (critical) pins both lines on a fixture pair with one rough time; typecheck and the critical tier green.
 
+### R19-23 — The round's contract, first: sharing's states, the gift's questions, the person's date, Ask's offer (INTERNAL)
+Tier: opus — the contract every new route and screen reads, written once before them (sharing-and-circle §11)
+Objective: every R19 change to `openapi.yaml` lands here as pinned, Did you know's field included, so the API cards fill it and the
+screens read the generated types.
+Files: `packages/api-spec/openapi.yaml`; the generated `packages/api-client-react` and `packages/api-zod` (codegen only).
+Refs: sharing-and-circle §1 to §3, §7, §11; review-05-10 §3, §7, §8; explain-like-a-friend §9; ADR-331, 341, 383, 387 to 390;
+R-7.2; pinned Contract and Did you know; the caller rule (a new argument once moved `GET /home`'s generated hook under four callers).
+Done when:
+- Every pinned field, body and route in the spec, each description naming its ADR; response fields the API fills in this group
+  required, new request fields optional with their defaults; `/admin/*` untouched.
+- Codegen twice with no diff; every generated name a file imports grepped and the changed ones named for their cards (R19-21, 24
+  to 26, 29, 30, 38, 40); typecheck may stay red only until the group ends, green with R19-24, 25 and 26.
+
+### R19-24 — GET /home: who can read what, the first steps, the person's date, Your week after an own report (USER-FACING)
+Tier: opus — the dashboard's one read, and who may see whose report (R-3.6)
+Objective: `GET /home` fills R19-23's fields from the grants, links and reports that stand; Your week shows only with Timeline and
+a finished own Personal report; `itemAt` reads the mind chapter's practice items.
+Files: `api/src/lib/home.ts`; `api/src/routes/home.ts`.
+Refs: sharing-and-circle §2, §4, §7, §9, §11; review-05-10 §1, §7; ADR-174, 181, 182, 235, 236, 330, 332, 341; readings 15, 18,
+19; pinned Contract and GET /home; R15-18's lesson; the caller and log rules.
+Done when:
+- Each state as pinned: a reader by first name once they claim, by the address the reader typed while waiting, never by one they
+  never gave; `firstSteps` null once a Compatibility report exists; a closed pair reads `only-you`.
+- `timelineSlotOf` needs access and a finished own report; `itemAt` reads `mind.practice.*`; `shares.ts`' exports read as they are;
+  `LISTED_PAIR_VERSIONS` names p6 itself, so R19-15's p7 keeps every stored p6 pair on the dashboard (found 21).
+- Typecheck, the critical tier and the buyer walk green at the group's end; the report shows one `GET /home` before and after on
+  the walk's people.
+
+### R19-25 — Sharing around a gift, Cancel invite and Copy their link, and MB-212 (private) (USER-FACING)
+Tier: opus — schema, and grants that decide who reads whose report (R-3.6)
+Objective: the gift's "Share your report with {name} too?" and the claim's share-back answer each write a grant at its moment; a
+waiting link can be cancelled or copied again; MB-212 fixed as its row says.
+Files: `packages/db/src/schema/inviteTokens.ts`; new `packages/db/scripts/migrate-add-gift-shares.ts`; `scripts/bootstrap-db.sh`;
+`api/src/routes/gifts.ts`, `invites.ts` (+ `invites.test.ts`), `reports.ts`; `api/src/lib/shares.ts` (+ `shares.test.ts`).
+Refs: sharing-and-circle §1, §3; ADR-139, 181, 182, 235, 285, 331, 390; MB-212 (private); R-3.6, R-7.3; readings 16, 17; pinned
+Contract and GET /home; the caller and log rules (ids and counts only).
+Done when:
+- New columns on `invite_tokens` (both answers, and what Copy their link needs) by an idempotent script in the bootstrap, run twice
+  clean on an empty database and on main's; grants as reading 16; `DELETE /invites/{id}` and `POST /invites/{id}/link` as pinned.
+- `invites.test.ts` and `shares.test.ts` (critical) pin both Yes grants, that Not now writes none and that a cancelled link no
+  longer claims; MB-212 named by id only, read by the sentinel; the buyer walk passes.
+
+### R19-26 — The Share window (USER-FACING)
+Tier: sonnet — one new window from the reference dialog, its shape, states and words pinned here and in the artifact
+Objective: one window shares any report: a dialog at 1440 px, a bottom sheet at 390 px; email chips; Share; "Who can read it" with
+Owner, Can read it and Invited and a ⋯ menu; a footer count and Done.
+Files: new `web/src/components/share/ShareWindow.tsx`; new `web/src/lib/share-window.ts`;
+`web/src/components/dashboard/StopSharingDialog.tsx`.
+Refs: sharing-and-circle §1, acceptance 1 to 3; ADR-181, 182, 235, 238, 329, 333, 390; MB-82; B-32, B-52; Round start 4 (ii);
+readings 15, 17; pinned Sharing web and Contract; `/ux-copy`, `/web-taste`; R14-12's lesson.
+Done when:
+- Pasting "a@x.com, b@y.com" makes two chips; a bad address is marked in place, never sent; your own report takes any address,
+  someone's only its subject, a pair only its other person; no roles and no "Anyone with the link".
+- After Share the person is at the top as Invited; Cancel invite and Remove access (the Stop sharing dialog, which now names Ask's
+  hidden answers, B-32) take them off without a reload; a refusal shows the API's own line (B-52).
+- Escape closes and focus stays inside; at 390, 768 and 1440 px on real browser shots; typecheck and the critical tier green.
+
+### R19-27 — Timeline's data: the week, its sentence, the headlines, what each reading is given (USER-FACING) — provisional MB-215
+Tier: opus — the brain: the engine's words and what every Timeline reading is written from
+Objective: the week runs Monday to Sunday; its sentence counts transits and names what changes; no headline or line says "things";
+Light headlines agree with their tone; each reading is given its stretches, the reader's age and whether a cycle is behind.
+Files: `packages/engine/src/plainWords.ts`; `api/src/lib/timeline.ts`, `timelineReadings.ts` (+ `timelineReadings.test.ts`),
+`sampleRun.ts`; `api/src/prompts/timeline/reading.ts` (`ReadingInput` only); `web/src/site/data/timeline/mira-week.json`.
+Refs: review-05-10 §2 to §4, acceptance 5, 11; report-loading-story §4, acceptance 9; ADR-206, 207, 211, 322, 362; MB-215;
+reading 23; pinned Timeline; R16-23 and R16-24's lessons; the caller rule.
+Done when:
+- `weekSentence` and `weekView` as pinned; on audrey-hepburn's week of 5 to 11 Oct 2026, computed at run time, the sentence agrees
+  with the week's rows (the Owner's own week is read on staging); Mira's committed week written again by `sampleRun.ts`'s engine.
+- The Light headlines that name only a strain and the two "things" headlines rewritten by hand, `// MB-215 provisional` at the
+  table, each listed before and after; `ReadingInput` as pinned and filled; the basis gains behind or ahead, so a passed cycle is
+  written again once, inside t2's one rewrite.
+- The Timeline dry render shows the new inputs; typecheck and the critical tier green.
+
 ---
 
-## Group 2 — the rule, its checks, the brief, every product's prompts, the primer, the lab
+## Group 2 — the rule and every product's prompts, the primer, the lab, /qa's account, and the screens on the new contract
 
 ### R19-09 — The style contract: name it, say it plain, show it in a day (USER-FACING)
 Tier: opus — the brain: the shared system prompt of all four products
@@ -404,36 +607,38 @@ Refs: explain-like-a-friend §6; review-05-10 §10; ADR-81, 369, 385; readings 1
 Done when:
 - Pair instructions and `PAIR_DOCTRINE` per reading 1; `shapes.ts` warns where R19-10's RULES say; chk-20 and chk-22 unchanged;
   `pairBrief` marks each person's planets going backwards.
-- p7 pinned in `pairInterpretation.test.ts` (critical) and `pair-prompts.test.ts`; the stored "p6" rows in `ask.edges.test.ts` and
-  `home.test.ts` grepped and named (kept unless a reader compares versions).
+- p7 pinned in `pairInterpretation.test.ts` (critical); the stored "p6" rows in `ask.edges.test.ts` and `home.test.ts` grepped and
+  named (kept unless a reader compares versions); `LISTED_PAIR_VERSIONS` keeps p6 (R19-24).
 - The dry lab with curie-winfrey and a parent_child lens renders every pair section, schemas ok; the report shows the partners
   links prompt before and after; `pairBrief.test.ts` (critical) green.
 
 ### R19-16 — Timeline: read by the house a planet moves through, in possibilities, t2 (USER-FACING)
 Tier: opus — the brain: every Timeline reading, each written again once at t2
-Objective: a reading names the houses its moving planet passes through beside the natal point's house (ADR-384); possibilities,
-never forecasts; it ends on "a good time to…"; the doctrine's "Rules 3, 6 and 8 bend here" line follows the new contract; dignity
-words warn; `TIMELINE_PROMPT_VERSION` t2.
+Objective: a reading names the houses its moving planet passes through beside the natal point's (ADR-384); possibilities, ending on
+"a good time to…"; Review 05/10's lines: "On a Light time, say how it helps. On a Heavy time, say what it asks of you."; no "things";
+each stretch with its years; a past cycle in 40 to 70 words; before 16 the house in a child's words (5th: play and making things,
+never romance); a nodes' opposition said plainly not to be a return; dignity words warn; `TIMELINE_PROMPT_VERSION` t2.
 Files: `api/src/prompts/timeline/` (`doctrine.ts`, `reading.ts`, `checks.ts`, `index.ts`).
-Refs: explain-like-a-friend §6, §8; ADR-206, 208, 375, 378, 384; review-05-10 §5 (stale readings); readings 1, 8, 9, 11; pinned
-`ContactEvent.crosses`, `explainChecks`; R16-24's lesson.
+Refs: explain-like-a-friend §6, §8; review-05-10 §2, §4, acceptance 4, 11; ADR-206, 208, 375, 378, 384; readings 1, 8, 9, 11, 23;
+pinned `ContactEvent.crosses`, `ReadingInput`, `explainChecks`; R16-23 and R16-24's lessons.
 Done when:
-- `eventFacts` adds the crossed houses (none on a blind chart); annex row 46's pass unchanged; `checkReading` runs `explainChecks`;
-  `ReadingSchema` unchanged, so a t1 reading parses and shows while its rewrite waits (R18-25).
+- `eventFacts` adds the crossed houses (none on a blind chart) and each stretch with its years from `ReadingInput`; annex row 46's
+  pass unchanged; `checkReading` runs `explainChecks`; `ReadingSchema` unchanged, so a t1 reading shows while its rewrite waits.
 - t2; every reader of `TIMELINE_PROMPT_VERSION` grepped and named (`timelineReadings.ts`'s basis, `timelineSetup.test.ts`).
-- The Timeline dry render shows audrey-hepburn's contact prompts with their crossed houses, before and after in the report;
-  typecheck and the critical tier green.
+- The Timeline dry render shows audrey-hepburn's contact prompts with their houses and stretches, a past cycle, one before 16 and a
+  nodes' opposition, before and after in the report; typecheck and the critical tier green.
 
-### R19-17 — Ask under the same rule, with an everyday example (USER-FACING)
-Tier: opus — the brain: Ask's answers
+### R19-17 — Ask under the same rule, with an everyday example and the pair report first (USER-FACING)
+Tier: opus — the brain: Ask's plan and its answers
 Objective: `ASK_RULES` agree with the new contract (its own lift of rules 3 and 8 goes where the contract now says it); each idea
-Ask offers carries one everyday example framed as an option (review-05-10 §8); it may explain a planet going backwards; no orders;
-the 150-word cap stays; dignity words warn; `ASK_PROMPT_VERSION` a2. The fixed lines in `ask/lines.ts` stay as built (MB-215).
-Files: `api/src/prompts/ask/index.ts`, `api/src/prompts/ask/answer.ts`.
-Refs: explain-like-a-friend §6, §8; review-05-10 §8, §10; ADR-369, 375, 385; readings 1, 5, 11.
-Done when: `ASK_RULES` per reading 1 with the example line; `checkAskAnswer` runs `explainChecks`; a2, every reader of
-`ASK_PROMPT_VERSION` grepped and named; the Ask dry render covers every reader, injection clean, one prompt before and after in the
-report; `ask.edges.test.ts` (critical) green.
+Ask offers carries one everyday example framed as an option; asked about a named partner with a pair, the plan quotes that pair
+report's matching section first (review-05-10 §8); it may explain a planet going backwards; no orders; the 150-word cap stays;
+dignity words warn; `ASK_PROMPT_VERSION` a2. The fixed lines in `ask/lines.ts` stay as built (MB-215).
+Files: `api/src/prompts/ask/index.ts`, `answer.ts`, `plan.ts`.
+Refs: explain-like-a-friend §6, §8; review-05-10 §8, §10, acceptance 12; ADR-369, 375, 385; readings 1, 5, 11; the caller rule.
+Done when: `ASK_RULES` per reading 1 with the example line; the plan's pair-first line; `checkAskAnswer` runs `explainChecks`; a2,
+every reader of `ASK_PROMPT_VERSION` grepped and named; the Ask dry render covers every reader and a question about a partner with
+a pair, injection clean, one prompt before and after in the report; `ask.edges.test.ts` (critical) green.
 
 ### R19-18 — Four things to know, before House by House (USER-FACING)
 Tier: sonnet — one component, its words and table from the artifact
@@ -450,49 +655,153 @@ Done when:
 ### R19-19 — The lab: plain-words measures, and METHOD_TALK pruned (INTERNAL)
 Tier: sonnet — two lab files and the CLI's print, each measure pinned here
 Objective: the Release stops refusing the words the new rule asks for; the lab measures what the acceptance reads, as warnings;
-the Timeline dry render holds a retrograde and an eclipse (B-03's dry-lab part).
+the Timeline dry render holds a retrograde, an eclipse, a nodes' opposition, a cycle before 16 and a Light reading (B-03's dry-lab
+part; review-05-10 acceptance 11).
 Files: `api/src/lib/labRules.ts`; `api/src/lib/labDry.ts`; `scripts/src/report-lab.ts`.
-Refs: explain-like-a-friend §7, acceptance 1, 2, 5; ADR-385; B-03; pinned `DIGNITY_WORDS`; R14-01's lesson; the caller rule.
+Refs: explain-like-a-friend §7, acceptance 1, 2, 5; review-05-10 acceptance 11; ADR-385; B-03; pinned `DIGNITY_WORDS`; R14-01's
+lesson; the caller rule.
 Done when:
 - `METHOD_TALK` drops "in its own sign" and "in your chart, " only; `SectionMeasure` gains warnings, never faults: the most named
   placements in a paragraph, dignity words, the longest sentence, a Flesch–Kincaid grade (vowel-group syllables, written here),
   openers repeated in more than two paragraphs of a report; every reader of `faultsOf` and `measureSection` grepped and named.
-- `pnpm report:lab --compare --base r06` prints them for the stored runs (the before numbers, in the report); the dry render holds a
-  retrograde and an eclipse reading per fixture whose six months have one; typecheck and the critical tier green.
+- `pnpm report:lab --compare --base r06` prints them for the stored runs (the before numbers, in the report); the dry render holds
+  each of the five per fixture whose window has one, read by eye; typecheck and the critical tier green.
+
+### R19-28 — /qa's own staging account, with a daily cap (INTERNAL) — B-74
+Tier: opus — security: a third staging account whose address stays out of the public repo, and a spend guard on the write chain
+Objective: /qa signs in by hand on staging through the normal sign-in page as its own account, never banned (ADR-387, reading 22).
+Files: new `api/src/lib/qaAccount.ts`; `packages/db/src/schema/payments.ts` (`QA_ACCOUNTS`); `api/src/lib/testers.ts`,
+`timelineSetup.ts`, `qaWalk/index.ts`, `limits.test.ts`; `api/src/routes/index.ts` (`writing`); `api/src/index.ts`;
+`web/src/pages/AdminSalesPage.tsx`, `web/src/lib/adminPaymentsApi.ts`; `.claude/skills/qa/SKILL.md`, `.claude/agents/qa.md`.
+Refs: B-74; QA-07 #1; ADR-276, 314, 315, 387; MB-233 (the pair stays banned); reading 22; pinned QA account; Round start 3(c); the
+log and caller rules; R13-05, R13-10 and R16-29's lessons.
+Done when:
+- Reading 22 met: production and the walk never make it, two starts at once make one; `limits.test.ts` (critical) pins a 7th start
+  in a UTC day refused for that account alone, other accounts untouched; every reader of `QA_ACCOUNTS` and `QaAccount` named.
+- The Sales page's "QA account" row shows the address with Copy, on staging alone; no file, log line or report holds the address.
+- /qa's two files as reading 22, `qa.md` at most 50 lines; if the harness refuses those edits (R13-05), the report carries both
+  texts and the orchestrator applies them at the close. Read by the sentinel; typecheck, the critical tier and the buyer walk green.
+
+### R19-29 — Your first steps, Make a report, and the picker as a pop-up (USER-FACING)
+Tier: opus — the dashboard's main loop for every buyer: both roads to step 4, seven files and two deletions
+Objective: "Your first steps" in the idle panel (0 of 4, one button at a time, Hide) replaces the path sheet; Make a report's two
+buttons; Compatibility only with two readable reports; the picker as a pop-up into the loading screen; no Stories section.
+Files: `web/src/pages/DashboardPage.tsx`; `web/src/components/dashboard/AddSomeoneSheet.tsx`, new `FirstSteps.tsx`;
+`web/src/components/CompatibilityPicker.tsx`; `web/src/lib/home-view.ts`, `nudges.ts`, `credits-view.ts` (+ `credits-view.test.ts`);
+deletes `web/src/components/dashboard/PathSheet.tsx` and `Stories.tsx`.
+Refs: sharing-and-circle §2, §4, §6, §8, acceptance 4, 7, 9; ADR-125, 330, 332, 334, 336, 338, 390; B-07; readings 15, 18, 19; pinned
+Sharing web and Contract; Round start 4 (ii) screens A and E; `/ux-copy`, `/web-taste`; R14-12's lesson; the caller rule.
+Done when:
+- A new buyer's card at 0 of 4 from `firstSteps`; step 2 opens Add someone unchanged; each step ticks without a reload; both roads
+  reach step 4's either/or; Add someone else goes back to step 2; the card goes after the first pair.
+- `?pair=<profileId>` and "+ New Compatibility report" open the picker pop-up; Make it opens the loading screen; `canPair` gates every
+  Compatibility entry; the path's exports and test lines leave `credits-view` with its sheet; at 390, 768 and 1440 px on real
+  shots; typecheck, the critical tier and the buyer walk green.
+
+### R19-30 — The quick look's buttons, one chip a Compatibility row, Share from the rows (USER-FACING)
+Tier: sonnet — buttons and chips on views that keep all they show; each state and word pinned here and in the artifact
+Objective: the quick look keeps its header, date, triad, With you and pair block; its buttons become Make You & {name} · 1 credit
+(or Open Compatibility report) and Open {name}'s report, one width and height, then a line on what they can read with a text Share;
+each Compatibility row one state chip, ⋯ for Share and Delete report; a person's row "Report from <date>"; no Share story.
+Files: `web/src/components/dashboard/QuickLook.tsx`, `PeopleRows.tsx`, `CompatibilityRows.tsx`, `RowMenu.tsx`;
+`web/src/lib/pair-row.ts`; deletes `web/src/components/dashboard/ShareMySheet.tsx`.
+Refs: sharing-and-circle §1, §5, §7, §8, acceptance 2, 5, 8, 10; review-05-10 §7 (the person's date); ADR-174, 333, 335, 337, 338;
+B-07; readings 15, 19; pinned Sharing web and Contract; Round start 4 (ii) screens B and D; `/ux-copy`, `/web-taste`.
+Done when:
+- The quick look's header, date, triad and pair block render as before (a shot beside main's); Make You & {name} calls `onMakePair`;
+  every Share opens `ShareWindow` with its target; no "Share story" and no right-side drawer on the dashboard.
+- One chip per Compatibility row from `HomePair.share`; "Joined" in a neutral tone (B-07); at 390 and 1440 px on real shots;
+  typecheck and the critical tier green.
+
+### R19-31 — A share question on each side of a gift, and the claim's plain lines (USER-FACING) — B-50, B-51
+Tier: opus — the buyer walk's gift and claim, and what each answer lets someone read (R-3.6)
+Objective: after the note, `GiftFlow` asks "Share your report with {name} too?" (Yes or Not now, nothing picked); the claim page asks
+"Share your report with {giver} when it's ready?", or "Share yours back?" when the giver shared; a gift already claimed says so
+before sign-in (B-50); a wrong account names who is signed in and offers Sign out, with no Try again that repeats the 403 (B-51).
+Files: `web/src/components/dashboard/GiftFlow.tsx`; `web/src/pages/ClaimPage.tsx`.
+Refs: sharing-and-circle §3, acceptance 6; ADR-139, 235, 331; QA-06 #5, #6; B-50, B-51; reading 16; pinned Contract (`shareOwn`,
+`giverShares`, `shareBack`); Round start 4 (ii) the gift flow; `/ux-copy`; R14-12 and R15-18, 19's lessons.
+Done when:
+- Each answer sent as pinned; Not now sends false and the quick look keeps the offer; neither question pre-picks an answer.
+- Signed out on a claimed gift the page reads "Already claimed" with no sign-in; the wrong account is named by the address it signed
+  in with, never one it didn't give.
+- At 390 px on real shots; typecheck, the critical tier and the buyer walk green.
+
+### R19-32 — The Timeline card: its year, Read more's facts, Heavy · Mixed · Light (USER-FACING)
+Tier: sonnet — a card's face and sheet laid out from the artifact, every word and date rule pinned in reading 23
+Objective: a card shows tone word, headline, the reading's line, the date with its year and Read more, which opens the reading, then
+the facts (planet, aspect, house, each close stretch and exact date with its year); a retrograde card reads "Mercury retrograde ·
+about 3 weeks" from the engine's dates; the legend wherever the tone colours show.
+Files: `web/src/components/timeline/ContactCard.tsx`, `NowAhead.tsx`, `ReadingSheet.tsx`, new `ToneLegend.tsx`;
+`web/src/lib/now-ahead.ts`, `timeline-view.ts`.
+Refs: review-05-10 §2, §10, acceptance 4; ADR-207, 211, 386; MB-188 (`tone.ts` stays); reading 23; pinned Timeline; Round start 4
+(iii) Part 2; `/ux-copy`, `/web-taste`; R16-01's lesson; the caller rule.
+Done when:
+- `nearDate` prints the year everywhere; `TONE_WORDS` and `ToneLegend` as pinned; the planet line leaves the face; dates in the
+  reader's zone; every reader of `nearDate` and `TONE_WORDS` grepped and named (the week, Life, the site's pages).
+- On audrey-hepburn's chart computed at run time no card prints a date without its year (the Owner's Pluto line is read on
+  staging); at 390 and 1440 px on real shots; typecheck and the critical tier green.
+
+### R19-33 — Your week as one picture (USER-FACING)
+Tier: sonnet — one new drawing from the artifact's Part 3, its rows, order and words pinned here and in reading 23
+Objective: the dashboard's Your week and Timeline's Week view open on one picture: seven days, Monday to Sunday, today lit as a
+column; one row per transit in effect (tone dot, headline, "all week", "starts Thu" or "ends Tue", a bar in its tone colour, a flat
+end past the week, a tick where it starts or ends), changes first, then Heavy, Mixed, Light; the sentence above; a tapped row opens
+its line, facts and "Read more in Timeline"; on a desktop the dial beside it, on a phone under it.
+Files: `web/src/components/dashboard/YourWeek.tsx`, new `web/src/components/timeline/WeekBars.tsx`; `web/src/lib/week-view.ts`;
+`web/src/pages/TimelineAppPage.tsx`; `web/src/site/data/timeline/mira.ts`.
+Refs: review-05-10 §3, acceptance 5; report-loading-story §4; ADR-207, 322; reading 23; pinned Timeline (`weekView`, `weekSentence`,
+`ToneLegend`); Round start 4 (iii) Part 3; `/ux-copy`, `/web-taste`; R18-09's lesson.
+Done when:
+- On audrey-hepburn's week of 5 to 11 Oct 2026 computed at run time, the rows and their ends agree with R19-27's sentence; the day
+  cells and tone dots leave the week (`DayCells` stays for Ask's day card and FiveThings); retrogrades count as transits.
+- No sideways scroll at 390 px; `/web-taste` at 390, 768 and 1440 px on real browser shots; typecheck and the critical tier green.
+
+### R19-34 — Pins on every tick-box item, named by chapter (USER-FACING)
+Tier: sonnet — one control in six places, its look and words pinned by Review 05/10 §7
+Objective: Practice, What to do, How to use it, How to manage it, Practice this week, a pair's Next time and Try together all pin,
+three a report; an outline grey pin, a filled pin in the chart's yellow when pinned; hover and the first pin say "Pinned items show
+on your dashboard."; Practising names each pin's chapter, never "your Closing".
+Files: `web/src/components/report/Checklist.tsx`, `DawnClosing.tsx`, `PairSections.tsx`, `ProseRail.tsx`;
+`web/src/components/ReportSections.tsx`; `web/src/components/dashboard/Practising.tsx`.
+Refs: review-05-10 §7, acceptance 10 (ADR-297 to 312); `PIN_LIMIT`; R19-24's `itemAt`; pinned Contract; Round start 4 (iii) Part 7;
+`/ux-copy`, `/web-taste`.
+Done when:
+- Every listed item pins and unpins, a fourth refused with the existing line; each pin shows on the dashboard under its chapter's
+  name; the API's item keys already take every one (`isItemKey`), so no route changes.
+- At 390 and 1440 px on real browser shots; typecheck and the critical tier green.
 
 ---
 
-## Group 3 — Did you know in the chapters and in Timeline
+## Group 3 — Did you know in the chapters and in Timeline, the first visit, Life, Ask's offer, the walk and the film
 
-### R19-20 — Did you know in the chapters: the writer and the contract (USER-FACING)
-Tier: opus — the brain and the contract: a new field on seven chapters, read by every report after
+### R19-20 — Did you know in the chapters: the writer's field (USER-FACING)
+Tier: opus — the brain: a new field on seven chapters, read by every report after
 Objective: seven chapters may carry one Did you know card on the topic ADR-383 names, written by the writer as tradition, outside
-the prose.
+the prose; the contract already holds `DidYouKnow` (R19-23).
 Files: in `api/src/prompts/sections/`: `overview.ts`, `mind.ts`, `career.ts`, `family.ts`, `superpowers.ts`, `discoveries.ts`,
-`focus.ts`; new `api/src/prompts/didYouKnow.ts`; `api/src/lib/testModel.ts`; `packages/api-spec/openapi.yaml` and codegen.
+`focus.ts`; new `api/src/prompts/didYouKnow.ts`; `api/src/lib/testModel.ts`.
 Refs: explain-like-a-friend §9; review-05-10 §9; ADR-317, 377, 383; reading 7; pinned `didYouKnow`, `topicFor`; Round start 3(b);
 the caller rule.
 Done when:
 - The seven schemas gain `didYouKnow` as pinned; `extraContext` gives the topic from `topicFor` or asks for null; Overview's and
   Discoveries' conditions per ADR-383.
-- The contract gains `DidYouKnow` on those seven sections, optional and nullable; codegen twice with no diff; the canned replies
-  carry one card and the rest null; the buyer walk passes.
+- The canned replies carry one card and the rest null; the buyer walk passes.
 - The dry lab renders the seven prompts on audrey-hepburn and marie-curie-unknown (no rising-sign card there); the report shows
   Family & Roots' before and after; the critical tier green.
 
-### R19-21 — The Did you know card in the report, and v12 and p7 read (USER-FACING)
-Tier: sonnet — one small card and its place, the look reused from R18's
+### R19-21 — The Did you know card, v12 and p7 read, and the report page's Share (USER-FACING) — B-33
+Tier: sonnet — one small card and its place, the look reused from R18's; the page's Share moved to the pinned window
 Objective: a chapter's `didYouKnow` shows as a small card after its prose and before its actions; the web renders v12 and p7
-reports.
+reports; the report page's Share opens the Share window; `PairLink.of` takes the generated type (B-33).
 Files: new `web/src/components/FactCard.tsx`; `web/src/components/ReportSections.tsx`; `web/src/pages/ReportPage.tsx`;
 `web/src/types/chart.ts` (+ `chart.test.ts`).
-Refs: explain-like-a-friend §9; review-05-10 §9 (the look); ADR-317, 377, 383; pinned `FactCard`, `didYouKnow`; `/ux-copy`,
-`/web-taste`; R18-09's lesson; the caller rule.
+Refs: explain-like-a-friend §9; review-05-10 §9 (the look); sharing-and-circle §1; ADR-317, 329, 377, 383; B-33; pinned `FactCard`,
+`didYouKnow`, Sharing web; `/ux-copy`, `/web-taste`; R18-09's lesson; the caller rule.
 Done when:
-- "DID YOU KNOW" in small brass capitals, the title, the body; no bars, no drawing; nothing when the field is null or missing (every
-  stored report, /sample).
-- `RENDERABLE_PROMPT_VERSIONS` gains "v12" and the pair list "p7", pinned in `chart.test.ts` (critical); their readers grepped and
-  named.
+- "DID YOU KNOW" in small brass capitals, the title, the body; no bars, no drawing; nothing when the field is null or missing.
+- `RENDERABLE_PROMPT_VERSIONS` gains "v12" and the pair list "p7", pinned in `chart.test.ts` (critical); `ReportPage` imports nothing
+  from `SendDialog` (its send line moves into the page as it reads today, its button opening the window).
 - At 390, 768 and 1440 px on a real browser shot with a canned v12 interpretation; typecheck and the critical tier green.
 
 ### R19-22 — Mercury's shadow, a Did you know in Timeline (USER-FACING)
@@ -511,48 +820,162 @@ Done when:
 - Checked on audrey-hepburn's chart and the next Mercury retrograde, computed at run time, its dates in the report; `/web-taste` at
   390 px; typecheck and the critical tier green.
 
+### R19-35 — The first visit, the new-visitor view and the Account preview (USER-FACING) — B-57
+Tier: opus — the buyer's first screen, and two admin views that must show nothing of the admin's (ADR-197)
+Objective: with no finished own report the dashboard is the circle with You, "Start with your own report", one line and the three
+bundles as buttons (staging: /checkout in the sandbox, back to the birth form for You); Ask needs Timeline and a finished own report;
+`/dashboard?visitor=new` for the admin; the admin's Account page a marked preview; Account names where to delete your data (B-57).
+Files: `web/src/pages/DashboardPage.tsx`, `AccountPage.tsx`; `web/src/components/BundleList.tsx`, `AccountMenu.tsx`,
+`ask/AskLauncher.tsx`; new `web/src/lib/first-visit.ts`; `web/src/lib/checkout-view.ts` (+ test) only if the return needs it.
+Refs: review-05-10 §1, acceptance 1, 2; ADR-167, 197, 264, 389; QA-06 #15; B-57; readings 20, 21; Round start 4 (iii) Part 1;
+`/ux-copy`, `/web-taste`; R15-16, 17's lessons; the caller rule.
+Done when:
+- A new account sees the circle and three bundle buttons only; Single reaches the birth form for You with a test credit through the
+  sandbox; an admin without a finished own report sees no Ask and no Your week; the buyer walk passes.
+- `?visitor=new` fetches nothing of the admin's, under a Preview ribbon with Leave; each Account preview step ends on billing's off
+  line and changes nothing; at 390 and 1440 px on real shots; typecheck and the critical tier green.
+
+### R19-36 — The violet ring: anyone in a pair you can open (USER-FACING)
+Tier: sonnet — one ring and one legend line on the circle, the rule pinned by ADR-339
+Objective: the circle's violet ring marks anyone in a Compatibility report the reader can open; the legend names it.
+Files: `web/src/components/dashboard/Orbit.tsx`, `orbit.css`; `web/src/lib/orbit.ts`.
+Refs: sharing-and-circle §9; ADR-339, 341; readings 15, 19; pinned Contract (`HomePair`); Round start 4 (ii) screen A; `/ux-copy`,
+`/web-taste`.
+Done when: the ring comes from `GET /home`'s pairs alone (a pair closed to the reader draws none); the legend line in the artifact's
+words; at 390 and 1440 px on real browser shots; typecheck and the critical tier green.
+
+### R19-37 — "These are your own birth details" (USER-FACING)
+Tier: sonnet — one check and one line on the birth form, pinned by ADR-340
+Objective: when the birth details typed for someone match the reader's own chart, the form says "These are your own birth details"
+and offers their report.
+Files: `web/src/pages/BirthFormPage.tsx`.
+Refs: sharing-and-circle §10; ADR-340; Round start 4 (ii) screen F; `/ux-copy`; R15-18, 19's lessons.
+Done when: matched on date, time and place against the `isSelf` profile from `GET /profiles`, never by name; the offer opens the
+reader's own report; nothing blocks saving; at 390 px on a real shot; typecheck and the critical tier green.
+
+### R19-38 — The Compatibility report: the Share window, its story card at the end (USER-FACING)
+Tier: sonnet — one page's Share and card moved, the window and its target pinned
+Objective: the pair report's Share opens the Share window for its other person; the story card moves to the end of the report;
+the last user of `SendDialog` goes, and the file with it.
+Files: `web/src/pages/CompatibilityReportPage.tsx`; deletes `web/src/components/SendDialog.tsx`.
+Refs: sharing-and-circle §1, §8; ADR-329, 338; MB-82; B-07; pinned Sharing web; `/ux-copy`, `/web-taste`; the caller rule.
+Done when: no file imports `SendDialog` (R19-21 drops `ReportPage`'s, R19-30 the dashboard's); the story card renders after the last
+section; at 390 and 1440 px on real shots; typecheck and the critical tier green.
+
+### R19-39 — Life: drag through time, and the Your cycles card (USER-FACING)
+Tier: sonnet — a handle on the waves and one card re-ordered, each line and its order pinned in Review 05/10 §4
+Objective: the Today line is a handle, with a slider under the graph, from birth to 90 ("age N · Mon YYYY"), snapping to the nearest
+cycle mark; the card under it is the Your cycles card in the spec's order (word and countdown, name and ⓘ, what and how often, For
+you, the meaning, "Think back to…" last); ⓘ opens the science; `KNOWN_AGES` labels go.
+Files: `web/src/components/timeline/Life.tsx`, `Waves.tsx`, `CycleCard.tsx`, `AgeRing.tsx`; `web/src/lib/life-view.ts`,
+`now-ahead.ts` (`AgeCard` and `lifeModel` only).
+Refs: review-05-10 §4, acceptance 6, 8; reading 23; Round start 4 (iii) Part 4; `/ux-copy`, `/web-taste`; R16-01 and R16-23's
+lessons; the caller rule (`life-view`'s other users: `teaser-view.ts`, `ask-view.test.ts`).
+Done when:
+- Drag by pointer, slider and keyboard; ⓘ gives the planet's degree, sign and house at birth and on the exact date and the close
+  stretch with its passes, computed by the engine from the reader's chart.
+- On audrey-hepburn computed at run time no "Think back to" names a date after today; at 390 and 1440 px on real shots; typecheck
+  and the critical tier green.
+
+### R19-40 — Ask's pair offer, with the reader's credits (USER-FACING)
+Tier: opus — Ask's thread and a credit's spend: who is offered what, and only once
+Objective: asked about a person with no pair, after the answer one card, once per person per conversation: "See <Name>'s side too",
+one reason, "You have 5 credits. This uses 1." and Write it; at zero "You have no credits left. One credit writes it." and Get a
+credit; no price, no second ask; Write it opens the picker with both picked (`/dashboard?pair=`).
+Files: `api/src/lib/ask.ts`; `api/src/routes/ask.ts`; `web/src/components/ask/AskPanel.tsx`, `AskCards.tsx`;
+`web/src/lib/ask-view.ts`.
+Refs: review-05-10 §8, acceptance 12; ADR-297 to 312; pinned Contract (`AskMessage.offer`); `/ux-copy`; R16-29's lesson.
+Done when:
+- `offer` filled once per person per thread from the reader's credits, null for a person with a readable pair (R19-17 quotes it);
+  `ask.edges.test.ts` (critical) pins once-only and the zero-credit line.
+- At 390 px on a real shot; typecheck, the critical tier and the buyer walk green.
+
+### R19-41 — The buyer walk: both share questions, the picker into the report, both roads to step 4 (INTERNAL)
+Tier: opus — the one step list both walks run (ADR-273, 314, 315), its maps typed by its ids
+Objective: the step list gains the giver's share question at the gift, share back at the claim and the picker opening the pair's
+loading screen, so both roads to step 4 stay in the critical tier (ADR-342); the sharing walk cancels a waiting link and copies one.
+Files: `api/src/walk/steps.ts` (+ `steps.test.ts`), `buyer.walk.ts`, `sharing.walk.ts`; `api/src/lib/qaWalk/steps.ts`
+(+ `qaWalk.test.ts`), `qaWalk/browser.ts`.
+Refs: sharing-and-circle §3, §6, §12, acceptance 11; ADR-273, 314, 315, 331, 336, 342, 390; readings 16, 17; pinned Contract; R17-05
+and R17-19's lessons; the caller rule.
+Done when:
+- Each new step in both maps with its kind (a staging step that writes is `stored`, or `local` with its reason); `mapProblem` clean;
+  the buyer walk passes on a scratch Postgres, both Yes grants read back through `GET /home`.
+- `steps.test.ts` and `qaWalk.test.ts` (critical) green; typecheck and the critical tier green.
+
+### R19-42 — Reading the sky, the film, on /method (USER-FACING)
+Tier: opus — a render outside CI, self-hosted video, a page's CSP, and words already recorded
+Objective: /method shows the film's chapter 1 as its branch renders it, both cuts, as a still with a play button that plays only on
+a tap, with its burned-in captions, `preload="none"`.
+Files: `web/src/site/pages/MethodPage.tsx`; new `web/src/site/components/FilmStill.tsx`; new `web/public/film/`; `vercel.json`;
+`web/scripts/csp.mjs`.
+Refs: report-loading-story §5, acceptance 10; ADR-323, 388; reading 24; `claude/reading-the-sky-video` (c13d7b1, `render.sh`);
+`/ux-copy`, `/web-taste`; R14-01's lesson (the CLI pinned, never in a `package.json`).
+Done when:
+- Rendered with `render.sh` in a scratch worktree of that branch, nothing of it merged but the files; each cut at most 12 MB (an
+  ffmpeg re-encode if larger); the captions pass `/ux-copy`, or the card stops with its lines in the report.
+- The CSP holds (`csp:write` run, a `media-src` only if needed); Lighthouse and axe pass on the preview; at 390 and 1440 px on real
+  shots; typecheck, both builds and the critical tier green.
+
 ---
 
 ## After the builders: the orchestrator's steps, not cards
-1. **After group 3, once:** gitleaks over `main...round/R19` with CI's pinned version and config. No `csp:write`: no new host.
+1. **After group 3, once:** gitleaks over `main...round/R19` with CI's pinned version and config, and a grep of the same diff for any
+   `+clerk_test` address beyond the pair's two: none (R19-28).
 2. **The study check** (ADR-381): every quoted fragment in `explain-voice-study.md` against the files R19 adds or changes under
    `api/src/prompts/` and the web's new words: no run of five words or more appears. A hit goes back to its card as a fix.
-3. **The tester, once** (ADR-273: the own-report step's shape, the sign-in claim and the pair story change), its base the round's
-   first commit: the two-You claim, the canned replies with a card and with nulls, the rough-time lines, B-76 on a chart with no
-   birth time, `explainChecks` on a few hand-made strings; a bug it finds is a fix for that card's builder.
+3. **The tester, once** (ADR-273: the claim, the gift and its claim, the picker, the first visit and the write chain change), its
+   base the round's first commit: the two-You claim; the rough-time lines; B-76 on a chart with no birth time; `explainChecks` on
+   hand-made strings; the canned replies with a card and with nulls; `GET /home`'s new states; both Yes grants, Not now and a
+   cancelled link; the Share window's chips and refusals; Your first steps on both roads; the picker into the loading screen; the
+   empty dashboard and `?visitor=new`; the QA account's cap and its staging-only start. A bug it finds is a fix for that card.
 4. **The gate:** install, typecheck, both builds, the critical tier, the buyer walk on a scratch Postgres, `check:shipped`,
-   `check:copies`, `pnpm audit --prod`, codegen twice with no diff, smoke, the probe and the site checks on the preview. No
-   `db:bootstrap` run is due (no schema change).
+   `check:copies`, `pnpm audit --prod`, codegen twice with no diff, `db:bootstrap` twice clean on an empty database and on main's
+   (R19-25), `csp:write` with no diff after R19-42's, smoke, the probe and the site checks on the preview.
 5. **The dry lab** after each group (`pnpm report:lab --dry --base r06`, pairs included, with Timeline's and Ask's renders and the
    injection fixtures; free) and `--compare` against r06 after group 3 with R19-19's measures; the report gives each product's
    prompt size before and after.
-6. **The sentinel** on `main...round/R19`, its eye on: MB-234 and MB-214, read from their rows; R19-07's claim (only the session's
-   unclaimed rows, the account's own chart kept, counts only in the log); the checks' messages (a rule, a word or a scene id, never
-   reader text); the passages, scenes and topics carrying no instruction-like text; `testModel.ts` reached only by tests and the walk.
+6. **The sentinel** on `main...round/R19`, its eye on: MB-234, MB-214 and MB-212, read from their rows; R19-07's claim (only the
+   session's unclaimed rows, counts only in the log); R19-24's states and R19-25's grants (each of the answerer's own report only,
+   written at its moment, ended by Stop sharing) and two routes (the link's maker only, a 404 for anything else); R19-28's account
+   (staging alone, one account, its address in no file, log line or report, the cap on the server); R19-35's preview (nothing of
+   the admin's fetched); R19-42's CSP; the checks' messages (a rule, a word or a scene id, never reader text); the passages, scenes
+   and topics carrying no instruction-like text; `testModel.ts` reached only by tests and the walk.
+7. **Two greps** (report-loading-story acceptance 8, 9): one `houses.ts`, and no other copy of the house words in `web/`; no
+   "moment" or "things" naming a transit or a cycle in copy. A hit goes back to its card.
 
 ## Staging confirmation, after the merge
-1. The deploy's walk at 0 ¢: its verdict and pictures as after R18.
-2. The Owner's look: a new Personal report on staging (about 4 ¢) read for the primer, an empty house, a planet going backwards,
-   Chiron and a Did you know card; a Compatibility report; a Mercury retrograde's reading with its shadow card (his own readings are
-   written again once at t2, about €0.07); one Ask; the R line on /timeline; /sample's primer.
+1. The deploy's walk at 0 ¢: its verdict and pictures, the new steps among them.
+2. **The QA account:** the staging Sales page shows its row; the Owner copies the address once into the cloud environment's settings
+   as `QA_ACCOUNT_EMAIL` (asked on MB-227 at the close); `/qa` then signs in with it and plays the signed-in steps itself.
+3. **The Owner's look**, on his own account: a new Personal report (about 4 ¢) read for the primer, an empty house, a planet going
+   backwards, Chiron and a Did you know card; a Compatibility report made from the picker into its loading screen; the Share window
+   on his own report and on a person's; a gift with its share question; `?visitor=new`; his Timeline cards with their years (his
+   Pluto opposite Moon reads "to 2 Feb 2027"), his week as one picture, Life's drag and the Your cycles card (his readings written
+   again once at t2, about €0.07); a Mercury retrograde's shadow card; one Ask about a person with no pair; /method's film; the R
+   line on /timeline; /sample's primer.
 
 ## Production after the round
 Nothing sells. The next Release runs the full lab (the brain changed in four products and the engine) with its pair, the gate, the
-QA agent and the walk's seed; acceptance 1, 2, 3 and 5 are read there with R19-19's measures against r06 (grade 6 to 8, no
-sentence over 25 words, at most one named placement a paragraph). A passing Release refreshes /sample (B-27, B-81). On production
-the app stays behind the waitlist (ADR-167); t2 rewrites the admin's own Timeline readings there at his next open.
+QA agent and the walk's seed; acceptance 1, 2, 3 and 5 are read there with R19-19's measures against r06 (grade 6 to 8, no sentence
+over 25 words, at most one named placement a paragraph). A passing Release refreshes /sample (B-27, B-81). On production the app
+stays behind the waitlist (ADR-167), production never makes the QA account, and t2 rewrites the admin's own Timeline readings at his
+next open.
 
 ## Owner prerequisites (none blocks the build)
-- **MB-227, one more host** (For the Owner 3): only if /qa is to sign up by hand.
+- **`QA_ACCOUNT_EMAIL`, once, after the merge's deploy:** the address on the staging Sales page's QA account row, copied into the
+  cloud environment's settings. The close asks it on MB-227, whose host ask it replaces (noted there 2026-10-08); no new row.
 - **MB-228** before the first live sale, with MB-114 and MB-115 as before.
 
 ## What it costs
 | What | When | About |
 |---|---|---|
 | The dry lab, `--render` and `--compare` | in the round | 0 ¢ |
+| The film, rendered from its branch | in the round | 0 ¢ |
 | A staging deploy's walk | every deploy | 0 ¢ |
 | Timeline readings written again at t2 | at each subscriber's next open (staging: the admin and testers; production: the admin) | €0.07 a subscriber |
-| The Owner's look: one Personal report on staging | when he looks | about 4 ¢ |
+| /qa's own account writing reports on staging | when /qa writes one, at most 6 a UTC day | about 4 ¢ a report |
+| The Owner's look: a Personal and a Compatibility report on staging | when he looks | about 8 ¢ |
 | A spot run on audrey-hepburn and two more (optional, the Lab page) | on demand | 2 to 10 ¢ |
 | The next Release: the full lab with its pair, and the walk's seed | when the Owner says promote | about 20 ¢ + 10.5 ¢ |
 
@@ -561,100 +984,99 @@ R19-14's report gives the size from the dry lab, and the next Release's lab give
 cap (ADR-199), the lab against `LAB_BUDGET_USD` (ADR-77).
 
 ## Risks
-1. **Schema:** none (interpretations and readings are jsonb). **The contract** gains one optional field on seven sections (R19-20);
-   codegen twice.
-2. **No new dependency** (R14-01's lesson): the grade estimate is written by hand; the lockfile doesn't move.
-3. **The brain:** prompts in all four products, the vocabulary, the brief, the checks and the engine (R19-01 to 04, 09 to 17, 20);
-   v12, p7, t2 and a2 clear staging's prompt overrides in all four (R-7.3; `%:system` follows natal). The dry lab runs after each
-   group; the next Release runs the full lab.
+1. **Schema:** two columns on `invite_tokens` by an idempotent script in the bootstrap (R19-25), run twice clean; the testers' `qa`
+   gains a value in TypeScript alone (a text column with no check, R19-28). **The contract** changes once, first (R19-23).
+2. **No new dependency** (R14-01's lesson): the grade estimate is written by hand and the lockfile doesn't move; R19-42 runs the
+   pinned HyperFrames CLI in a scratch worktree, never in a `package.json`, CI or a build.
+3. **The brain:** prompts in all four products, the vocabulary, the brief, the checks and the engine (R19-01 to 04, 09 to 17, 20,
+   27); v12, p7, t2 and a2 clear staging's prompt overrides in all four (R-7.3; `%:system` follows natal). The dry lab runs after
+   each group; the next Release runs the full lab.
 4. **Report content (USER-FACING):** every new Personal report (names in the prose with their plain meaning, the primer, Chiron,
    planets going backwards, empty houses, Did you know), the planet cards' shorts, every new Compatibility report, every Timeline
    reading (written again once at t2) and Ask's answers. Each card's done-when names its fixture run (the dry lab, `--compare`, or
-   audrey-hepburn's chart computed at run time); acceptance 1 and 5 are read at the Release, since the round writes no prose.
-5. **User-visible without locked words:** the R line's new words (R19-05, ADR-386), the Did you know topics (ADR-383) and the shadow
-   card (R19-22), the rough-time lines (MB-235's own words), a claimed chart arriving as a person (R19-07). Each through
-   `/ux-copy`; the close lists them before and after for the Owner.
+   a fixture's chart computed at run time); acceptance 1 and 5 are read at the Release, since the round writes no prose.
+5. **User-visible without locked words:** the R line's new words (ADR-386), the Did you know topics (ADR-383) and the shadow card,
+   the rough-time lines (MB-235's own), a claimed chart arriving as a person (R19-07), the first visit through the sandbox's checkout
+   and the new-visitor view (ADR-389), the QA account's cap line (only /qa meets it). Each through `/ux-copy`; the close lists them
+   before and after for the Owner.
 6. **Quality:** a writer told it may name placements may name too many (acceptance 1); passages or scenes may be copied (chk-50
    warns); the rule may read stiff on a chart with no birth time. The Release's measures and the QA agent read all three; every warn
    lands on the Failures tab.
-7. **Spend:** none in the session; t2's rewrites (€0.07 a subscriber) and a little more per report from longer prompts.
-8. **Security:** MB-234 and MB-214 (private); R19-07's claim scope; her text in a public repo (ADR-381, After the builders 2). The
-   sentinel's list is After the builders 6.
-9. **Size:** 22 cards in three groups (8, 11, 3), 16 on Opus; the shrink path is in Parallel groups; three pushes plus fixes.
+7. **Spend:** none in the session; t2's rewrites (€0.07 a subscriber), a little more per report from longer prompts, and /qa's
+   reports on staging, at most 6 a day.
+8. **Security:** MB-234, MB-214 and MB-212 (private); R19-07's claim; who reads whose report after R19-24 and R19-25 (R-3.6); R19-28's
+   account and its address; R19-35's preview; her text in a public repo (ADR-381). The sentinel's list is After the builders 6.
+9. **Size:** 42 cards in three groups (13, 18, 11), 27 on Opus; no shrink path (the Owner, 2026-10-08); three pushes plus fixes.
 10. **Escalations:** none in R17 or R18, so no card or kind of card was escalated to Opus in two rounds running.
-11. **Deferred from locked specs** (Scope deferred): sharing-and-circle whole; Review 05/10 §1's rest, §2 to §4, §7's pins and the
-    person's date, §8's pairs and credits, §10's Timeline card line; explain-like-a-friend's film scene and Explained post (its own
-    out of scope).
+11. **Not locked, so not planned:** Review 08/10 (Round number, size and order); pricing and launch (ADR-230, 242).
 
 ## Lessons this plan guards
 - **Promoted, the caller rule** (`builder.md`): R19-01 (the shorts' readers), R19-04 (`ContactEvent` literals), R19-05
-  (`RETROGRADE_LINE`'s six users), R19-08 (`StoryInput` in `BuildStory`), R19-09 (`STYLE_CONTRACT`, `SIMPLE_WORDS`, `DOCTRINE`),
-  R19-11 (`ChartBrief`'s readers), R19-14 (`PROMPT_VERSION`, `countWords`, `proseOf`), R19-15 (p6's pins and stored "p6" rows),
-  R19-16 and 17 (their versions' readers), R19-19 (`faultsOf`, `measureSection`), R19-20 (the generated types), R19-21
-  (`RENDERABLE_*`), R19-22 (`ReadingTarget`'s builders).
-- **Promoted, the log rule** (`builder.md`): R19-06, R19-07 (counts only), R19-10 (a check's message names a rule, a word or a scene
-  id, never reader text).
-- **Promoted, the pathspec and pkill rules:** every builder; group 2's eleven share one tree.
-- **Applied:** builders commit as they go; the tester's range from the round's base; one push per group and per fix.
-- R13 · R13-05 (a running round can't edit its own skill) → no card edits `.claude/`; B-60 stays in the backlog.
-- R14 · R14-01 (a dependency's packages unnamed) → no dependency; R19-19's grade is written by hand.
+  (`RETROGRADE_LINE`'s six users), R19-08 (`StoryInput`), R19-09 (`STYLE_CONTRACT`, `SIMPLE_WORDS`, `DOCTRINE`), R19-11
+  (`ChartBrief`), R19-14 (`PROMPT_VERSION`, `countWords`, `proseOf`), R19-15 (p6's pins and stored rows), R19-16 and 17 (their
+  versions' readers), R19-19 (`faultsOf`, `measureSection`), R19-21 (`RENDERABLE_*`), R19-22 (`ReadingTarget`), R19-23 (the generated
+  names), R19-24 (`LISTED_PAIR_VERSIONS`), R19-28 (`QA_ACCOUNTS`, `writing`), R19-29 (the path's exports), R19-32 (`nearDate`,
+  `TONE_WORDS`), R19-39 (`life-view`'s users), R19-41 (the step ids in both maps).
+- **Promoted, the log rule** (`builder.md`): R19-06, R19-07 and R19-25 (ids and counts only), R19-10 (a check's message names a
+  rule, a word or a scene id, never reader text), R19-28 (the address in no log line).
+- **Promoted, the pathspec and pkill rules:** every builder; group 2's eighteen share one tree.
+- **Applied:** builders commit as they go; the tester's range from the round's base; one push per group and per fix; the planner
+  commits once.
+- R13 · R13-05 (a card editing the running /round skill refused) → no card edits `.claude/skills/round/` (B-60 stays a line);
+  R19-28's two /qa files fall to the orchestrator at the close if refused.
+- R13 · R13-10 (a counting route wrote a row per value with no ceiling) → R19-28's cap counts stored rows and writes none.
+- R14 · R14-01 (a dependency's packages unnamed) → no dependency; R19-19's grade by hand; R19-42's CLI pinned outside every package.
+- R14 · R14-12 (a stray Enter closed a dialog) → R19-26's Enter adds a chip and never closes; R19-31's questions pre-pick nothing.
 - R15 · R15-04 (a pattern matched on raw JSON) → R19-10's checks read parsed strings only.
-- R15 · R15-18, 19 (an address shown that was never given) → R19-07 moves only the session's unclaimed rows; the moved chart keeps
-  its own name.
-- R16 · R16-01, 03 (a spec promising what the engine can't meet) → Round start 3(a) checks the shadow against JPL before R19-22
-  prints it.
-- R16 · R16-01 (a range on a raw instant) → R19-22 prints the shadow's dates in the reader's zone from the instants it compares.
+- R15 · R15-16, 17 (a public page on a route the prelaunch gate closed) → R19-35's `?visitor=new` fetches nothing; R19-42's film is
+  self-hosted on a prerendered page.
+- R15 · R15-18, 19 (an address shown that was never given) → R19-07 moves only the session's unclaimed rows; R19-24 names a waiting
+  reader by the address the reader typed; R19-31 names the signed-in account by its own.
+- R16 · R16-01, 03 (a spec promising what the engine can't meet) → Round start 3(a) checks the shadow against JPL before R19-22.
+- R16 · R16-01 (a range on a raw instant) → R19-22 and R19-32 print dates in the reader's zone from the instants they compare.
+- R16 · R16-05 (a weekday read off a rolled-over date) → R19-27 finds Monday from the reader's zone date.
 - R16 · R16-21 (a check that looked only at a start) → R19-10's checks look anywhere in a sentence.
-- R16 · R16-24 (a kept row spinning for good) → R19-16 keeps `ReadingSchema`, so a t1 reading parses and shows while it waits.
-- R17 · R17-05, 19 (a shape guessed by another card of the group) → every seam between cards is in Pinned shapes.
+- R16 · R16-23 (an age rounded, not floored) → R19-27's `ReadingInput.age` and R19-39's ages are floored.
+- R16 · R16-24 (a kept row spinning for good) → R19-16 keeps `ReadingSchema`, so a t1 reading shows while it waits.
+- R16 · R16-29 (a spending surface with another product's refusal line) → R19-28's cap and R19-40's offer carry their own lines.
+- R17 · R17-05, 19 (a shape guessed by another card of the group) → every seam between cards is in Pinned shapes; R19-23 goes first.
 - R17 · R17-08, 18 (a shipped line stating what our checks refuse) → R19-10 runs the new checks over R19-02's scenes and R19-03's
-  passages; the primer and the cards carry no dignity word and no forecast.
-- R18 · R18-09 (artifact CSS collapsing a grid) → R19-18 and R19-21 take the artifact's words, not its CSS, each checked on a real
-  browser shot.
+  passages; R19-05's line says only what is true of every planet.
+- R18 · R18-09 (artifact CSS collapsing a grid) → R19-18, 21, 26, 29, 33 and 39 take the artifact's words and shapes, not its CSS,
+  each checked on a real browser shot.
 
-**Lessons read through R18.** R18's close wrote `lessons.md` (28a5b89, 2026-10-07); `main` at c52f9e5 leaves it as it was, and no
-line was added after R18's. This plan was written after R18 closed.
+**Lessons read through R18.** R18's close wrote `lessons.md` (28a5b89, 2026-10-07); `main` at c52f9e5 and this branch leave it as it
+was. This plan was written after R18 closed.
 
 ## Questions raised (Notion, 2026-10-08, sorted by R-12.3)
-- **Decided by me** (Decisions, `Decided by: Claude`): ADR-383, Did you know in seven chapters (the topic for each, written by the
-  writer outside the prose), Mercury's shadow card in fixed words, model passages in the Personal report only this round; ADR-384,
-  Timeline reads by the houses a contact's planet crosses, with no new event kind, and ends on "a good time to…" (ADR-206 holds);
-  ADR-385, chk-49 to 52 warn, the pair's chk-21a, 21b and 24 warn while chk-20 and 22 stay, METHOD_TALK drops two phrases and keeps
-  its sect and dignity phrases as faults; ADR-386, the R line true for every planet, B-77 closed as designed.
-- **Needs you (Mailbox):** no new row. MB-235 noted (items 1 and 2 are R19-07 and 08, provisional; item 3 as built); MB-232's
-  default moved (no spec yet, so not R19; planned with the first round after it locks); MB-234 and MB-214 noted (private).
-- **Backlog lines R19 does:** B-73, B-76, B-67 and B-03's dry-lab part. **Closed:** B-77 (ADR-386). **Kept open:** B-03's rest (a
-  house check on a chart with no birth time, Ask's length, the Lab page's spot for readings); B-50 to 52, 57, 32, 33 and MB-212 for
-  R20; B-74, 75, 78, 79 and 80 for R20; B-81 and B-27 with the next passing Release; B-70 (one pair compute change at a time);
-  MB-202, 207 and 213 at launch.
+- **Decided by me** (Decisions, `Decided by: Claude`): ADR-383, Did you know in seven chapters, Mercury's shadow card in fixed
+  words, model passages in the Personal report's chapters; ADR-384, Timeline reads by the houses a contact's planet crosses, with no
+  new event kind, ending on "a good time to…"; ADR-385, chk-49 to 52 warn, the pair's chk-21a, 21b and 24 warn while chk-20 and 22
+  stay, METHOD_TALK drops two phrases; ADR-386, the R line true for every planet, B-77 closed as designed; ADR-387, /qa's own
+  staging account (B-74); ADR-388, R19 takes every locked spec not yet built, the film rendered in the round, the reels through
+  /marketing; ADR-389, Review 05/10 §1 through today's checkout, the new-visitor view in its own tab; ADR-390, Hide kept in the
+  browser, Copy their link with no raw link stored; ADR-391, the house set's covers lines as the houses' crisp lines.
+- **Needs you (Mailbox):** no new row. MB-235 noted (items 1 and 2 are R19-07 and 08, provisional; item 3 as built); MB-215 noted
+  (R19-27's headlines, provisional); MB-232's default reworded (no spec yet: `/ideate` and `/lock` first); MB-227's host ask
+  withdrawn (B-74 replaces it); MB-234, MB-214 and MB-212 noted (private).
+- **Backlog, done by R19:** B-03's dry-lab part, B-07, B-32, B-33, B-50, B-51, B-52, B-57, B-63, B-64, B-67, B-73, B-74, B-76.
+  **Closed:** B-77 (ADR-386). **Added, with no round:** B-82 (model passages for Compatibility, Timeline and Ask), B-83 (the two
+  reels). **Kept open, with no round:** B-03's rest, B-04, B-16 to 18, B-58, B-70, B-75, B-78 to 81 and the rest of the list;
+  MB-202, 207 and 213 before Timeline opens to subscribers.
 
-## For the Owner (three asks, highest stakes first)
+## For the Owner (one ask)
 Approving this plan starts R19 at once (MASTERFILE §11.2). It sells nothing and spends nothing in the round.
-1. **R19 is explain-like-a-friend; sharing waits one round.** R18's plan named sharing and the circle for R19. Recommendation: R19 as
-   planned (22 cards: the vocabulary first, then the new rule in all four products, House by House's primer and Chiron, Did you
-   know, the true R line, MB-234), and R20 sharing and the circle with QA-07's smaller fixes. If you'd rather have sharing first,
-   this plan waits whole: its parts don't swap, because the vocabulary comes before any rule change (ADR-376).
-2. **MB-235's three small calls** are built at their defaults and marked provisional. Recommendation: say "ok" on the row, and the
+1. **MB-235's two small calls** are built at their defaults and marked provisional (R19-07: a signed-out chart joins your account as
+   a person when you already have your own; R19-08: the pair story's rough-time line). Recommendation: say "ok" on the row, and the
    close removes the marks. If silent: they ship as recommended and stay marked.
-3. **One more host for /qa (MB-227):** `brunhild.challenges.cloudflare.com`, which the sign-up check loads from. Recommendation: add
-   it beside the four in the environment's network settings. If silent: /qa reads those steps from the walk.
-
-## Scope deferred
-- **R20:** `sharing-and-circle` (ADR-329 to 342) whole; Review 05/10 §1's rest (the empty dashboard's bundle buttons through
-  `/checkout` in the sandbox, Ask and Your week after an own report, the admin's new-visitor view, the Account preview with Cancel),
-  §7's pins and "Report from <date>"; B-50, 51, 52, 57, 32, 33; MB-212; QA-07's B-74, 75, 78, 79, 80; MB-232's spec if locked.
-- **The next brain pass:** Review 05/10 §2 (the card's face, a year on every date, Heavy · Mixed · Light), §3 (Your week as bars,
-  `weekSentence`), §4 (Life's drag line, the Your cycles card), §8's pairs and credits, §10's Timeline card line; model passages
-  for Compatibility, Timeline and Ask (ADR-383); B-03's rest; B-70; B-04, 16, 17, 18.
-- **Later:** the four ideas as a scene in /method's "Reading the sky" film and an Explained post (explain-like-a-friend §0c, out of
-  scope); report-loading-story §5 and §6; B-58.
 
 ## Close (the orchestrator)
-The backlog lines above leave `docs/backlog.md` as done; a Decisions row `Decided by: Claude` for each choice the round took on a
-rule; a Mailbox row lists the round's new words before and after (`docs/annex/R19-words.md`) for the Owner's look; *Waiting on
-Alex* kept current, MB-235's seams out if he says ok. MASTERFILE: R-5.3 (scenes and model passages join the static grounding), §4's
-engine list (`comfort.ts`, `shadow.ts`, a contact's `crosses`), R-4.3's annex rows 49 to 52. INDEX's code map: `scenes.ts`,
-`examples.ts`, `didYouKnow.ts`, `comfort.ts`, `shadow.ts`, `HousePrimer`, `FactCard`, `shadow-fact.ts`; INDEX's specs:
-explain-like-a-friend built but its film scene and post; review-05-10 §7's houses prompt and §10 built but the Timeline card line.
-CLAUDE.md's focus: R19 shipped, R20 next. `lessons.md` takes each failure's cause. `/qa` on staging after the merge's deploy walk,
-then the URL, the QA report, the walk's verdict and Staging confirmation's lines go to the Owner.
+The backlog lines above leave `docs/backlog.md` as done (B-74 among them); a Decisions row `Decided by: Claude` for each choice the
+round took on a rule; a Mailbox row lists the round's new words before and after (`docs/annex/R19-words.md`) for the Owner's look;
+MB-227 asks the one paste; *Waiting on Alex* kept current, MB-235's seams out if he says ok. MASTERFILE: R-5.3 (scenes and model
+passages join the static grounding), §4's engine list (`comfort.ts`, `shadow.ts`, a contact's `crosses`), R-4.3's annex rows 49 to
+52, §3's invite columns. INDEX's code map: `scenes.ts`, `examples.ts`, `didYouKnow.ts`, `comfort.ts`, `shadow.ts`, `qaAccount.ts`,
+`HousePrimer`, `FactCard`, `ShareWindow`, `FirstSteps`, `WeekBars`, `ToneLegend`, `FilmStill`, `shadow-fact.ts`; INDEX's specs:
+explain-like-a-friend, sharing-and-circle, review-05-10 and report-loading-story built (the reels as B-83). CLAUDE.md's focus: R19
+shipped. `lessons.md` takes each failure's cause. `/qa` on staging after the merge's deploy walk, then the URL, the QA report, the
+walk's verdict and Staging confirmation's lines go to the Owner.
