@@ -1,6 +1,7 @@
 # French edition
 
-Ideation 2026-10-08 with the Owner. Status: **draft**, two questions open (round two, 2026-10-08: Luna, no lab comparison, one prompt set).
+Ideation 2026-10-08 with the Owner. Status: **final draft**, nothing open; ready to lock (2026-10-08: Luna, no lab comparison, one prompt set, vous, the Owner's
+own native reader).
 Artifact: https://claude.ai/artifact/2Woxy6WH6CZFRsoFB9vz81
 
 The Owner's ask: everything in French, sounding like French people talking over coffee, never
@@ -11,7 +12,7 @@ writer, and which model writes it.
 
 The writer writes French from the start, under a French style contract. No translator stage. The
 planner (Sol, the foundation) keeps thinking in English, which no reader sees. Site, app and
-email words get one French file, written once and read by a native speaker.
+email words get one French file, written once and read by the Owner's native French reader.
 
 ## Why not a translator (option A) or a polisher (option C)
 
@@ -32,13 +33,14 @@ email words get one French file, written once and read by a native speaker.
 - The writer is Luna (`MODELS.sections`), as for English. No Luna-versus-Sol comparison, no lab
   run in French, nothing new on the admin Lab page (the Owner, 2026-10-08).
 - One set of prompts. The English prompts stay the only source; a French report appends one
-  French block (about 40 lines, written in French) to the section calls: write in French, tu,
+  French block (about 40 lines, written in French) to the section calls: write in French, vous,
   spoken French written properly; the model sentences in French and "never translate the English
   examples"; the French words to avoid; the glossary. Two full versions were weighed and dropped:
   every change twice, drift, the admin prompt page doubled. The foundation stays English JSON.
   The block lives in the section registry and is overridable in `/admin/prompts` like any key.
-- Register: "tu" throughout (pending Q1). Spoken French written properly: "le boulot" yes,
-  "t'es" no; no anglicism the reader has to translate back.
+- Register: "vous" throughout, never mixed with "tu" (the Owner, 2026-10-08). A warm "vous":
+  everyday spoken words, short sentences, the coffee voice kept; "vous faites des listes pour
+  tout", never "vous êtes prédisposé à". No anglicism the reader has to translate back.
 - Checks get French lists beside the English: too fancy (paradigme, dichotomie, prédisposé,
   appréhender, problématique), too trendy (vibes, toxique, red flag, mood, énergie as a mood,
   le délire), figures (ancre, boussole, carburant, étincelle, moteur, feuille de route), and
@@ -53,7 +55,7 @@ email words get one French file, written once and read by a native speaker.
 
 ### Everything else
 - UI strings move out of components into one English and one French catalogue. French written
-  once by Sol against the `/ux-copy` voice chart and the glossary, then read by a native reader.
+  once by Sol against the `/ux-copy` voice chart and the glossary, then read by the Owner's native French reader.
 - Public pages prerendered again under `/fr/`, each with its alternate-language link, so French
   search and AI search find them (R-7.6).
 - Language, first that applies: the reader's own pick (cookie), their account setting, a `/fr/`
@@ -68,12 +70,12 @@ email words get one French file, written once and read by a native speaker.
 ## Out of scope
 - Other languages (the structure allows them; nothing else is planned).
 - Translating reports already written. A report keeps its language.
-- Québécois, Belgian or Swiss variants (France French only, pending Q1).
+- Québécois, Belgian or Swiss variants (France French only).
 - Any change to the English prose.
 - When it ships, and French pricing (the Owner orders rounds, ADR-230, 242).
 
 ## Acceptance criteria
-- A French report reads as written in French: a native reader marks no sentence as translated
+- A French report reads as written in French: the Owner's native reader marks no sentence as translated
   on two or three real staging reports.
 - Every claim in a French report snaps to a verbatim French quote, as in English.
 - The horizon pass amends a French report by quote match.
@@ -101,10 +103,9 @@ Supported 0 of 20, so no outside claim is in this spec. Re-run the verifier once
 allowed. The decision to write in French rests on our own code, not on research.
 
 ## Open questions
-1. **Tu or vous.** France French with "tu"? Recommend tu. Default: tu.
-2. **A native reader.** With no lab test, a person is the one check. Pay a native French reader
-   once (site words and two or three real reports) before French goes live? Recommend yes.
-   Default: build behind `// MB-NN provisional` and ask again before French goes live.
+None. The native reader is the Owner's own contact: before French goes live they read the French
+UI catalogue and two or three real French reports from staging; their notes go into the French
+block or the catalogue.
 
 ## Decisions to record
 - D1 (Claude): the French report is written in French by the writer, never translated after it;
@@ -116,4 +117,6 @@ allowed. The decision to write in French rests on our own code, not on research.
   judge; nothing added to the admin Lab page.
 - D6 (Alex, 2026-10-08): one set of prompts plus one French block, never two full versions.
 - D7 (Claude): language from the reader's pick, account, `/fr/` URL, then the browser; never the IP.
-- Pending the Owner: Q1 register, Q2 native reader.
+- D8 (Alex, 2026-10-08): French readers are addressed as "vous", warm and plain, never "tu".
+- D9 (Alex, 2026-10-08): the Owner's own native French speaker reads the French UI and two or
+  three real reports before French goes live; no paid reviewer.
