@@ -115,6 +115,6 @@ topic; no per-package READMEs beyond one line; no CHANGELOG.
 
 1. R18 (the sev-2 fixes, the loading stories, the job queue, Timeline written at setup, deploys without a gap) on staging;
    production is R11 to R14. Next: /qa on staging, the Owner's look, then the first Release when the Owner says promote.
-   R19 next: B-50 to 52, 57, 32, 33, MB-212 and 214, MB-232's KPI spec, MB-234.
+   R19 in planning: explain-like-a-friend, sharing-and-circle, /qa's own account (B-74). One round planned at a time (Owner).
 2. Before the first live sale: MB-228, 114 and 115. Before Timeline sells on production: B-03.
 3. Pricing and launch are never planned until the Owner asks (ADR-230, 242).
