@@ -125,7 +125,7 @@ async function shares(who: Viewer) {
   assert.equal(r.status, 200);
   return zod.ListSharesResponse.parse(r.body).map((s) => [s.id, s.email, s.readerName, s.state]);
 }
-const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [] };
+const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [], firstSteps: { step: 1, person: null, gift: false, pairReady: false } };
 const day = (d: number) => `2026-10-0${d}T09:00:00.000Z`;
 const emailOf = (who: Viewer) => `${who.user!.replace(/^user_/, "")}@example.com`;
 const tokenOf = (m: Mail) => decodeURIComponent(/claim\?token=([^\s"&]+)/.exec(m.text)![1]);

@@ -429,7 +429,7 @@ try {
       reportId: "RM", kind: "natal", key: "focus.practice.bullets.0", action: first.point, why: first.why, pinned: false, ticked: false,
     }]);
 
-    const empty = { you: null, several: false, people: [], pairs: [], practising: [] };
+    const empty = { you: null, several: false, people: [], pairs: [], practising: [], firstSteps: { step: 1, person: null, gift: false, pairReady: false } };
     assert.deepEqual(await readHome(STRANGER), empty);
     assert.deepEqual(await readHome(ANON), empty);
     assert.deepEqual(await readHome(SUBJECT), empty);
@@ -579,7 +579,7 @@ try {
   });
 
   await step("home: after Hand it back the subject's circle is empty and the giver's seats the chart again; Send again is a new send, claimed as the subject's own (reading 6, ADR-236)", async () => {
-    assert.deepEqual(await readHome(SUBJECT), { you: null, several: false, people: [], pairs: [], practising: [] });
+    assert.deepEqual(await readHome(SUBJECT), { you: null, several: false, people: [], pairs: [], practising: [], firstSteps: { step: 1, person: null, gift: false, pairReady: false } });
     assert.equal((await readHome(GIVER)).people.find((p) => p.profileId === "PA")?.access, "owner");
 
     const again = await call(GIVER, "POST", "/invites", { profileId: "PA", email: "subject@example.com" });

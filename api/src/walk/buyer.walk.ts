@@ -189,7 +189,7 @@ async function call(who: Viewer, method: string, path: string, body?: unknown) {
   return { status: res.status, body: text && json ? JSON.parse(text) : text || null };
 }
 
-const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [] };
+const EMPTY_HOME = { you: null, several: false, people: [], pairs: [], practising: [], firstSteps: { step: 1, person: null, gift: false, pairReady: false } };
 const NO_CREDITS = { available: 0, used: 0, held: 0 };
 // No plan, and a finished Personal report of one's own (reading 1): Mira before Timeline and after it, Idris always.
 const TIMELINE_CLOSED = { access: false, source: null, hasPersonalReport: true, ask: null };

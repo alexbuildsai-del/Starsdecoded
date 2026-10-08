@@ -36,7 +36,7 @@ export const FACTS: readonly Fact[] = [
     id: "stellium",
     title: "What's a stellium?",
     sentences: [
-      "When three or more planets sit in the same sign, astrologers call it a stellium.",
+      "When three or more planets and points, like the North Node, sit in one sign, astrologers call it a stellium.",
       "That part of life gets a lot of your attention.",
       "To balance it, people look to the opposite house.",
     ],

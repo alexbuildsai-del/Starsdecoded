@@ -20,7 +20,7 @@ import type { Lens, PairInput } from "./pairBrief.js";
 import type { TokenShape } from "./labRules.js";
 import { zoneAt } from "./places.js";
 import { resolveSection } from "./promptLoader.js";
-import { RANGE_DAYS, dayIn, dayStart, lifeView, nowView, validZone, type ReaderChart, type ReadingStatuses } from "./timeline.js";
+import { RANGE_DAYS, dayIn, dayStart, lifeView, nowView, readingTimes, validZone, type ReaderChart, type ReadingStatuses } from "./timeline.js";
 import { passagesFor } from "./timelineReadings.js";
 import { ALL_SECTIONS, buildBrief, sectionById, sectionsFor, toStrictJsonSchema } from "../prompts/index.js";
 import { PAIR_FOUNDATION, pairChapterIds, pairChapterTitle, pairSpecsFor } from "../prompts/pair/index.js";
@@ -199,7 +199,8 @@ export async function dryTimeline(reader: DryReader, from = DRY_FROM): Promise<D
   for (const event of events) {
     try {
       const { excerpts } = passagesFor(event, reader.chart, reader.report);
-      const prompt = await readingOf({ event, brief, excerpts, name: reader.name, blind });
+      const times = readingTimes(viewer(reader.chart, reader.zone), event, dayStart(from, reader.zone));
+      const prompt = await readingOf({ event, brief, excerpts, name: reader.name, blind, ...times });
       out.push({ fixture: reader.fixture, section: event.key, inputTokens: tokens(prompt), baselineInputTokens: null, schemaOk: strictOk(toStrictJsonSchema(ReadingSchema)) });
     } catch (err) {
       out.push(failedRow(reader.fixture, event.key, err));
@@ -526,7 +527,7 @@ async function timelineInjection(fixtures: InjectionFixture[], charts: ReadonlyM
     const blind = !hasHorizon(chart);
     const briefs = new Map([f.name, plain].map((name) => [name, buildBrief(chart, name)]));
     const input = (event: ReadingEvent, name: string): ReadingInput =>
-      ({ event, brief: briefs.get(name)!, excerpts: [{ source: "Your report", text: namedPassage(name) }], name, blind });
+      ({ event, brief: briefs.get(name)!, excerpts: [{ source: "Your report", text: namedPassage(name) }], name, blind, ...readingTimes(viewer(chart, readerZone(f)), event, dayStart(DRY_FROM, readerZone(f))) });
     for (const event of events) {
       rows.push(await probe({ fixture: f.fixture, set: "timeline", section: event.key }, [f.name], () => render(input(event, f.name)), () => render(input(event, plain))));
     }

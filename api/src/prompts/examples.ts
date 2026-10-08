@@ -102,8 +102,19 @@ export function examplesFor(section: string, birthDate: string): readonly ModelP
   const id = section.replace(/^natal:/, "");
   const chapter = (CHAPTERS as readonly string[]).indexOf(id);
   const start = (2 * (chapter >= 0 ? chapter : seedOf(id))) % order.length;
-  return [order[start], order[(start + 1) % order.length]];
+  // A passage on the chapter's own topic is the one most likely to be copied into it (MB-92).
+  const own = OWN_TOPIC[id];
+  const picks: ModelPassage[] = [];
+  for (let i = 0; picks.length < 2 && i < order.length; i++) {
+    const p = order[(start + i) % order.length];
+    if (!own || !p.id.startsWith(`${own}-`)) picks.push(p);
+  }
+  return picks;
 }
+
+const OWN_TOPIC: Partial<Record<string, string>> = {
+  houses: "empty-house", mind: "mind", career: "work", money: "money", relationships: "love", family: "family",
+};
 
 /** The block a chapter's user prompt carries: the passages as a pattern, their words and placements someone else's. */
 export function renderExamples(passages: readonly ModelPassage[]): string {

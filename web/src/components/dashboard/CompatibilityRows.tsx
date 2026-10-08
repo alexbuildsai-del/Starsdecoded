@@ -49,6 +49,8 @@ function fromList(report: ReportSummary): HomePair | null {
     strong: [],
     challenge: null,
     story: null,
+    share: { state: "only-you", name: "" },
+    readers: [],
   };
 }
 
