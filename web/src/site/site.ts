@@ -89,7 +89,7 @@ export const PAGES: readonly PageEntry[] = [
     eyebrow: "How it works",
     h1: "How we make your report",
     lede: `${PRODUCT} works out your birth chart from where the planets really were. It notes what stands out. It writes your report from those notes. Then it checks every claim against your chart before you see it.`,
-    updated: "2026-10-07",
+    updated: "2026-10-08",
     kind: "page",
     schema: ["Article"],
     sitemap: true,
