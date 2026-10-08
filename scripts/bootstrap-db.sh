@@ -27,6 +27,12 @@ echo "==> 1/7 SQL migrations"
 # transaction that adds their column, so no later run marks a new one.
 pnpm --filter @workspace/db run migrate
 
+echo "==> 1b/7 A gift's two answers and Copy their link"
+# invite_tokens.giver_shares, share_back and link_hash with its unique index (ADR-331, 390). Before the push for the
+# payments columns' reason: the table holds rows on every host, and the push must find nothing to ask about on it.
+# Idempotent.
+pnpm --filter @workspace/db exec tsx scripts/migrate-add-gift-shares.ts
+
 echo "==> 2/7 Schema push"
 # A safety net for any drift the migrations do not cover. A no-op once they
 # have run. drizzle-kit prints a statement that fails and still exits 0
