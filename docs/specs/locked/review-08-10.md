@@ -2,7 +2,7 @@
 
 Ideation 2026-10-08 with the Owner from the Notion page "Review 08/10": eight numbered notes on staging after R18, plus
 a P.S. about carousels and an observations brain. Artifact: https://claude.ai/artifact/CLc6MqvaUapEUgCCAgJ8Eg.
-Status: **draft**. Touches `review-05-10` (the retrograde line, the loading screens' progress, the hero),
+Status: **locked** 2026-10-08, ADR-392 to 402. Touches `review-05-10` (the retrograde line, the loading screens' progress, the hero),
 `report-loading-story` (the end of the story, the house pairs), `explain-like-a-friend` (rule 1, rulers), `timeline-page`.
 **Brain:** `packages/engine` (`doctrine.ts` passes, new chart patterns), `api/src/prompts/brief.ts`, `sections/houses.ts`,
 `sections/overview.ts`, `system.ts`, `vocabulary.ts`, `timeline/reading.ts`, `timeline/doctrine.ts`. Dry lab, then a spot run.
