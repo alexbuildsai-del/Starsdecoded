@@ -3,8 +3,9 @@
  * derived in code from two finished natal reports and their cached charts
  * (ADR-39). No chart is recomputed. Both foundations' theses, the cross
  * aspects with orbs, the whole-sign overlays in both directions, each side's
- * connectBestWith and theChallenge, every stored claim the pair may cite, the
- * lens with its register, and under the parent lens the child's age band.
+ * connectBestWith and theChallenge and its planets going backwards at birth,
+ * every stored claim the pair may cite, the lens with its register, and under
+ * the parent lens the child's age band.
  *
  * The head (`text`) is common to every call and sits first, so the parallel
  * calls share one cached prefix. Each chapter then gets its own tail
@@ -91,6 +92,8 @@ export interface PairSide {
   theChallenge: string;
   /** Every stored claim, by section, as the pair may cite it. */
   claims: Record<string, StoredClaim[]>;
+  /** The planets going backwards at this person's birth, in the vocabulary's order (reading 5). */
+  backwards: Body[];
 }
 
 /** One drawn link, numbered as the brief lists it, keyed as a claim's reference resolves to it. */
@@ -137,6 +140,12 @@ export interface PairInput {
   b: { name: string; birthDate?: string; chart: NatalChartData; interpretation: ReportInterpretation };
 }
 
+/**
+ * The planets a link can read going backwards: the Sun and Moon never do, the nodes always do and are never read,
+ * and Chiron sits in no link (reading 5).
+ */
+const BACKWARDS_BODIES: readonly Body[] = ["mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
+
 function side(input: PairInput["a"]): PairSide {
   const i = input.interpretation;
   const claims: Record<string, StoredClaim[]> = {};
@@ -157,6 +166,7 @@ function side(input: PairInput["a"]): PairSide {
     connectBestWith: i.relationships?.connectBestWith ?? [],
     theChallenge: i.relationships?.theChallenge ?? "",
     claims,
+    backwards: BACKWARDS_BODIES.filter((b) => input.chart.planets[b]?.retrograde === true),
   };
 }
 
@@ -255,6 +265,7 @@ export function buildPairBrief(input: PairInput): PairBrief {
     `  the challenge in intimacy: ${quoted.quote(s.theChallenge)}`,
     `  connects best with: ${s.connectBestWith.map((c) => `${quoted.quote(c.item)} (${quoted.quote(c.reason)})`).join(", ") || "not stated"}`,
     ...placements(s),
+    `  going backwards at birth: ${s.backwards.map(label).join(", ") || "none"}`,
   ];
   const sides = [...sideLines("A", a), ``, ...sideLines("B", b)];
 
@@ -329,4 +340,59 @@ export function chapterBrief(brief: PairBrief, tail: ChapterTail): string {
   if (tail.scene) lines.push(``, `SCENE for this chapter (write this one and no other): ${tail.scene}`);
   if (brief.band) lines.push(``, `BAND: the child is in the ${BAND_LABELS[brief.band]} band${brief.childAge !== null ? `, ${writtenAge(brief.childAge)} years old today` : ""}. Write for this age now. Later stages only as later.`);
   return lines.join("\n");
+}
+
+/** A planet going backwards at one person's birth, and the numbers of the links that read it, strongest first. */
+export interface BackwardsRead {
+  side: Side;
+  body: Body;
+  links: number[];
+}
+
+/** The bodies a link reads, each with its side: an aspect's two, an overlay's whole group. */
+function bodiesRead(brief: PairBrief, link: LinkRef): Array<{ side: Side; body: Body }> {
+  if (link.kind === "aspect") {
+    const c = brief.cross[link.n - 1];
+    return c ? [{ side: "A", body: c.planetA }, { side: "B", body: c.planetB }] : [];
+  }
+  const o = brief.notable[link.n - 1 - brief.cross.length];
+  return o ? o.planets.map((body) => ({ side: o.of, body })) : [];
+}
+
+/** The planets going backwards at birth that these links read, each once, in the order of its strongest link. */
+export function backwardsRead(brief: PairBrief, keys: readonly string[]): BackwardsRead[] {
+  const found = new Map<string, BackwardsRead>();
+  for (const link of brief.links) {
+    if (!keys.includes(link.key)) continue;
+    for (const { side, body } of bodiesRead(brief, link)) {
+      if (!(side === "A" ? brief.a : brief.b).backwards.includes(body)) continue;
+      const seen = found.get(`${side}:${body}`);
+      if (seen) seen.links.push(link.n);
+      else found.set(`${side}:${body}`, { side, body, links: [link.n] });
+    }
+  }
+  return [...found.values()];
+}
+
+/**
+ * Which planet going backwards each lens chapter says, the chapters' links given in report order (review-05-10 §10,
+ * reading 5): one sentence where a chapter reads one, each planet once in the report and one a chapter at most, so
+ * the chapters, written in parallel, neither crowd one scene nor repeat each other (style rule 9). A chapter takes,
+ * of the planets no earlier chapter took, the one the fewest later chapters could take, then its strongest link's.
+ */
+export function backwardsByChapter(brief: PairBrief, owned: readonly (readonly string[])[]): Array<BackwardsRead | null> {
+  const reads = owned.map((keys) => backwardsRead(brief, keys));
+  const idOf = (r: BackwardsRead) => `${r.side}:${r.body}`;
+  const taken = new Set<string>();
+  return reads.map((mine, i) => {
+    const later = (r: BackwardsRead) => reads.slice(i + 1).filter((rs) => rs.some((x) => idOf(x) === idOf(r))).length;
+    const pick = mine.filter((r) => !taken.has(idOf(r))).sort((x, y) => later(x) - later(y) || x.links[0] - y.links[0])[0] ?? null;
+    if (pick) taken.add(idOf(pick));
+    return pick;
+  });
+}
+
+/** The line a lens chapter's prompt carries for the planet going backwards it says, by letter (ADR-202). */
+export function backwardsLine(r: BackwardsRead): string {
+  return `GOING BACKWARDS: ${r.side}'s ${label(r.body)} was going backwards when ${r.side} was born, and this chapter reads it (${r.links.map((n) => `L${n}`).join(", ")}). Say so once, in one sentence where it fits: what it means for that planet, in plain words, and how it plays out between the two of them. No other chapter says it.`;
 }
