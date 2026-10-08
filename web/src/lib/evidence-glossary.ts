@@ -84,19 +84,19 @@ const ASPECT_MEANINGS: Record<string, string> = {
 };
 
 const SECT_MEANINGS: Record<string, string> = {
-  sect_light: "The light that leads the chart, set by whether the Sun was above the horizon.",
-  benefic_of_sect: "The helpful planet best placed to actually help in a chart of this sect.",
-  benefic_out_of_sect: "The helpful planet out of step with your chart, so its help arrives late.",
-  malefic_of_sect: "The hard planet, at least in step with your chart.",
-  malefic_out_of_sect: "The hard planet, out of step with your chart. It costs more.",
+  sect_light: "The light that leads your chart: the Sun if you were born in the day, the Moon if you were born at night.",
+  benefic_of_sect: "The helpful planet that suits your chart best, so its help comes easily.",
+  benefic_out_of_sect: "The helpful planet that suits your chart less, so its help comes late.",
+  malefic_of_sect: "The hard planet that suits your chart, so it is easier to live with.",
+  malefic_out_of_sect: "The hard planet that does not suit your chart. It costs more.",
 };
 
 const DIGNITY_MEANINGS: Record<string, string> = {
-  domicile: "at home and at full strength",
-  exaltation: "honoured, running above itself",
-  detriment: "out of place, working hard for uneven results",
-  fall: "weakened, slow to deliver",
-  peregrine: "unsupported, neither strong nor weak",
+  domicile: "at home, working with ease",
+  exaltation: "honoured, like a guest of honour",
+  detriment: "least at ease, working hard for uneven results",
+  fall: "doubted, having to prove itself",
+  peregrine: "with no special standing, leaning on what is around it",
 };
 
 const ANGLE_MEANINGS: Record<string, string> = {

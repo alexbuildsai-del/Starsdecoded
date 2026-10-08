@@ -10,7 +10,7 @@
  * The Sun renders only while --p is above zero, so scrolling away removes it.
  * Reduced motion renders the final frame and listens to nothing.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { SUN_HERO } from "@/lib/planet-renders";
 import { Checklist } from "@/components/report/Checklist";
 import { CitedText, newCitationCounter, type CitationCounter } from "@/components/report/Citation";
@@ -44,7 +44,7 @@ function GroupCard({ title, group, path }: { title: string; group: FocusGroup; p
   );
 }
 
-export function DawnClosing({ s, counter }: { s: FocusSection; counter?: CitationCounter }) {
+export function DawnClosing({ s, counter, fact }: { s: FocusSection; counter?: CitationCounter; fact?: ReactNode }) {
   const reduced = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const k = counter ?? newCitationCounter();
@@ -99,6 +99,8 @@ export function DawnClosing({ s, counter }: { s: FocusSection; counter?: Citatio
         <p className="rp-pull max-w-[44ch]">
           {CitedText({ text: s.closing, claims: s.claims, counter: k })}
         </p>
+        {/* The chapter's fact card sits here, after the closing and before the tick-box cards, so it reads before the actions. */}
+        {fact}
         {/* One column at every width, as on a phone: three columns left a pinned Practice item about fifteen letters a line on a desktop, and the third card ran over the Sun. */}
         <div className="mt-10 grid gap-[22px]">
           {GROUPS.map((g) => (
