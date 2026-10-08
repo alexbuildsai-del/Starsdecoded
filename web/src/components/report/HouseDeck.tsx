@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObjec
 import { NatalWheel } from "@/components/chart/NatalWheel";
 import { houseSign } from "@/components/chart/wheel-geometry";
 import { AddBirthTimeCard, HouseCard, chartRuler } from "@/components/report/HouseCard";
+import { HousePrimer } from "@/components/report/HousePrimer";
 import { CHAPTERS } from "@/lib/chapters";
 import { houseOccupants } from "@/lib/house-occupants";
 import { RetrogradeLine } from "@/components/timeline/RetrogradeLine";
@@ -167,6 +168,7 @@ function Deck({ chart, ascendant, readings, counter, orbs }: DeckProps) {
 
   return (
     <div>
+      <HousePrimer ascendantSign={houses[0].sign} />
       {/* First in the HTML, so paper prints the wheel above the houses. tabIndex -1 lets a click anywhere in it hand
           the arrow keys to the deck. */}
       <div
