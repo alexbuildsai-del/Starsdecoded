@@ -23,15 +23,19 @@
  * Three tiers (ADR-59): wide keeps the plate with the name at its centre;
  * narrow, up to 900 px, stacks the plate, the legend and the cue; the phone,
  * under 640 px, puts the ring on top at 82vw and the name under it, then the
- * legend, then the cue clear of the corner text (`phoneStack`).
+ * legend, then the cue clear of the corner text (`phoneStack`). On a plate
+ * that holds the name, a name wide enough to reach the rising marker would
+ * cover it, so it stands just above the line instead, its date just below
+ * (`nameStand`).
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PLANET_RENDERS, SUN_HERO } from "@/lib/planet-renders";
 import { TriadRow } from "@/components/TriadRow";
 import { triadRowsOf, triadText } from "@/lib/triad-row";
 import { opposite, pointAt } from "@/components/chart/wheel-geometry";
 import {
-  PHONE, ascendantValue, heroTheta, layoutHero, moonArc, phoneStack, writtenOnText, type Rect,
+  MARKER_RADIUS, MARKER_STROKE, PHONE, ascendantValue, heroTheta, layoutHero, moonArc, nameStand, phoneStack, writtenOnText,
+  type NameStand, type Rect, type ScreenBox,
 } from "@/components/report/hero-layout";
 import { AngleGlyphShape } from "@/components/report/AngleGlyph";
 import { timeOfBirthLabel } from "@/lib/birth-time";
@@ -45,6 +49,9 @@ import type { Ring } from "@/lib/gather";
 const SKY = "var(--sky)";
 const SKY_DIM = "var(--sky-dim)";
 const PAPER = "var(--paper)";
+/** How far the plate's diagram moves per px scrolled, in plate units, and the centred name, in px: two depths. */
+const DIAGRAM_RATE = 0.12 * 1.6;
+const NAME_RATE = 0.05 * 1.6;
 const MONTHS = [
   "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
   "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
@@ -145,8 +152,15 @@ function ScrollCue({ flow, reduced, cueRef }: { flow?: boolean; reduced: boolean
 }
 
 /** Under the name, in the legend's small grey: it fades with the plate, as the name does. */
-function WrittenOn({ text }: { text: string }) {
-  return <p className="m-0 font-numeric text-[11px] tracking-[0.04em] text-[rgba(232,235,242,.62)]">{text}</p>;
+function WrittenOn({ text, textRef, style }: { text: string; textRef?: React.Ref<HTMLParagraphElement>; style?: React.CSSProperties }) {
+  return <p ref={textRef} className="m-0 font-numeric text-[11px] tracking-[0.04em] text-[rgba(232,235,242,.62)]" style={style}>{text}</p>;
+}
+
+function sameStand(a: NameStand | null, b: NameStand | null): boolean {
+  if (a === null || b === null) return a === b;
+  const near = (x: number, y: number) => Math.abs(x - y) < 0.5;
+  return near(a.clearance, b.clearance) && a.obstacles.length === b.obstacles.length
+    && a.obstacles.every((r, i) => near(r.x, b.obstacles[i].x) && near(r.y, b.obstacles[i].y) && near(r.w, b.obstacles[i].w) && near(r.h, b.obstacles[i].h));
 }
 
 export interface ReportHeroProps {
@@ -185,7 +199,15 @@ export function ReportHero({
   const sunRef = useRef<SVGImageElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<SVGCircleElement>(null);
+  const eyebrowRef = useRef<HTMLSpanElement>(null);
+  const h1Ref = useRef<HTMLHeadingElement>(null);
+  const writtenRef = useRef<HTMLParagraphElement>(null);
   const [ring, setRing] = useState<Ring | null>(null);
+  const [stand, setStand] = useState<NameStand | null>(null);
+  // The name's own offset before the scroll's: a standing name puts its bottom, not its middle, on the line, and
+  // scrolls at the plate's rate, so the line and the marker never slide up under it.
+  const shift = stand && !phone ? `-100% - ${stand.clearance.toFixed(1)}px` : "-50%";
+  const nameRate = stand && !phone ? DIAGRAM_RATE * stand.scale : NAME_RATE;
 
   // The ring's place on screen, measured at rest and again on every resize,
   // so the ring of stars follows an address-bar collapse or a rotation.
@@ -222,10 +244,11 @@ export function ReportHero({
       if (cueRef.current) cueRef.current.style.opacity = Math.max(0, 1 - q * 2.2).toFixed(3);
       if (!reduced) {
         // The whole diagram is one group so ring, horizon and markers can never
-        // drift apart on scroll; only the name moves at a different depth. On
-        // the phone the name sits in the flow under the ring and stays put.
-        diagramRef.current?.setAttribute("transform", `translate(0,${(-top * 0.12 * 1.6).toFixed(1)})`);
-        if (nameRef.current && !phone) nameRef.current.style.transform = `translateY(calc(-50% - ${(top * 0.05 * 1.6).toFixed(1)}px))`;
+        // drift apart on scroll; only a centred name moves at a different depth,
+        // a standing one keeps to its line. On the phone the name sits in the
+        // flow under the ring and stays put.
+        diagramRef.current?.setAttribute("transform", `translate(0,${(-top * DIAGRAM_RATE).toFixed(1)})`);
+        if (nameRef.current && !phone) nameRef.current.style.transform = `translateY(calc(${shift} - ${(top * nameRate).toFixed(1)}px))`;
       }
       // The glow is painted outside the SVG, so it is told where the Sun ended
       // up rather than being drawn with it.
@@ -257,7 +280,7 @@ export function ReportHero({
       window.removeEventListener("resize", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [reduced, tier, name]);
+  }, [reduced, tier, name, shift, nameRate]);
 
   const asc = chartData.angles?.ascendant ?? null;
   const dsc = chartData.angles?.descendant ?? null;
@@ -292,8 +315,48 @@ export function ReportHero({
   const stack = phone ? phoneStack({ viewportWidth: viewport.width, viewportHeight: viewport.height, nameLines: nameRows.length, nameSize, dated: written !== null }) : null;
   const ascText = ascendantValue(asc);
 
-  // What a label may not cover: the name plate at the centre. Measured in plate units, like everything else here.
-  const obstacles: Rect[] = phone ? [] : [{ x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 }];
+  // Whether the name stands on the line, measured before the first paint and again when its font arrives or the plate
+  // resizes. Only the name's width decides, and standing does not change it.
+  useLayoutEffect(() => {
+    if (phone || blind) {
+      setStand(null);
+      return undefined;
+    }
+    function measure() {
+      const ringEl = ringRef.current;
+      const h1 = h1Ref.current;
+      const eyebrow = eyebrowRef.current;
+      if (!ringEl || !h1 || !eyebrow) return;
+      const ringBox = ringEl.getBoundingClientRect();
+      if (ringBox.width < 2) return;
+      let writtenBox: ScreenBox | null = null;
+      if (writtenRef.current) {
+        // The text's own box: the line it sits on is as wide as the plate while the name is centred.
+        const range = document.createRange();
+        range.selectNodeContents(writtenRef.current);
+        writtenBox = range.getBoundingClientRect();
+      }
+      const next = nameStand({
+        cx, cy, ringRadius: R, ring: ringBox, name: h1.getBoundingClientRect(), eyebrowTop: eyebrow.getBoundingClientRect().top, written: writtenBox,
+      });
+      setStand((prev) => (sameStand(prev, next) ? prev : next));
+    }
+    measure();
+    const watch = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    if (watch && h1Ref.current) watch.observe(h1Ref.current);
+    if (watch && ringRef.current?.ownerSVGElement) watch.observe(ringRef.current.ownerSVGElement);
+    window.addEventListener("resize", measure);
+    return () => {
+      watch?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [phone, blind, cx, cy, R, name, written]);
+  const standing = phone || blind ? null : stand;
+
+  // What a label may not cover: the name plate at the centre, or the standing name and its date. In plate units, like
+  // everything else here.
+  const obstacles: Rect[] = phone ? [] : standing ? standing.obstacles
+    : [{ x: cx - Math.min(W * 0.31, 230), y: cy - 66, w: Math.min(W * 0.62, 460), h: 132 }];
   // The two horizon labels as drawn below, east then west, with room for the widest value, "Sagittarius 29.99° · 1st
   // (self)": 31 characters of IBM Plex Mono at 0.6 em. The narrow tiers write them inward from the line's ends.
   const horizonLabels: Rect[] = blind ? [] : narrow
@@ -439,7 +502,7 @@ export function ReportHero({
 
             {!blind && (
               // The R03 marker: ring, centre point, a tick outward along the horizon (ADR-49).
-              <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={13} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={1.5} />
+              <AngleGlyphShape x={ascAt.x} y={ascAt.y} r={MARKER_RADIUS} direction={ascTheta} stroke={SKY} fill="#0B0E14" strokeWidth={MARKER_STROKE} />
             )}
             {blind && !narrow && (
               <Label x={cx} y={cy + R + 46} anchor="middle" size={11} fill={SKY_DIM}>{ADD_TIME.toUpperCase()}</Label>
@@ -457,8 +520,8 @@ export function ReportHero({
           </button>
         )}
         {!phone && (
-        <div ref={nameRef} className="rp-hname">
-          <span className="k">{PERSONAL_REPORT}</span>
+        <div ref={nameRef} className="rp-hname" style={standing ? { transform: `translateY(calc(${shift}))` } : undefined}>
+          <span ref={eyebrowRef} className="k">{PERSONAL_REPORT}</span>
           <div className="relative inline-block justify-self-center">
             {/* A halo fitted to the text box, so the ring reads through around it. */}
             <div
@@ -470,13 +533,22 @@ export function ReportHero({
                   + " rgba(18,24,38,.64) 54%, rgba(18,24,38,0) 100%)",
               }}
             />
-            <h1 className="relative" style={{ fontSize: `${nameSize}px` }}>
+            <h1 ref={h1Ref} className="relative" style={{ fontSize: `${nameSize}px` }}>
               {nameRows.map((line, i) => (
                 <span key={i} className="block">{line}</span>
               ))}
             </h1>
           </div>
-          {written && <WrittenOn text={written} />}
+          {written && (
+            <WrittenOn
+              text={written}
+              textRef={writtenRef}
+              style={standing ? {
+                position: "absolute", left: "50%", top: `calc(100% + ${(2 * standing.clearance).toFixed(1)}px)`,
+                transform: "translateX(-50%)", whiteSpace: "nowrap",
+              } : undefined}
+            />
+          )}
         </div>
         )}
         </div>

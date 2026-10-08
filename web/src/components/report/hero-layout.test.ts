@@ -13,8 +13,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { calculateNatalChart, type NatalChartData } from "@workspace/engine";
 import {
-  CONJUNCTION_DEGREES, OUTSIDE_STEP, PHONE, SLIDE_STEP, ascendantValue, heroTheta, layoutHero, moonArc, overlaps, phoneStack, separation,
-  shortDate, writtenOnText, type HeroLayout, type Rect,
+  CONJUNCTION_DEGREES, MARKER_REACH, NAME_AIR, OUTSIDE_STEP, PHONE, SLIDE_STEP, ascendantValue, heroTheta, layoutHero, moonArc, nameStand,
+  overlaps, phoneStack, separation, shortDate, writtenOnText, type HeroLayout, type Rect,
 } from "./hero-layout";
 import { angleGlyphRadius } from "./AngleGlyph";
 import { norm360, opposite, pointAt, theta } from "@/components/chart/wheel-geometry";
@@ -338,6 +338,35 @@ describe("the horizon labels (B-62)", () => {
     expect(overlaps(block, plate)).toBe(true);
     expect(overlaps({ ...block, y: block.y + drop }, plate)).toBe(false);
     expect(overlaps({ ...block, y: block.y + drop - SLIDE_STEP }, plate)).toBe(true);
+  });
+});
+
+describe("the name on the horizon", () => {
+  // The wide plate on a 1366 by 768 laptop: 660 units drawn 642 px tall, the ring 200 units, a 64 px name and its date.
+  const scale = 642 / 660;
+  const ring = { left: 683 - 200 * scale, top: 412 - 200 * scale, width: 400 * scale, height: 400 * scale };
+  const markerRight = ring.left + MARKER_REACH * scale;
+  const at = (left: number) => nameStand({
+    cx: 500, cy: 330, ringRadius: 200, ring,
+    name: { left, top: 300, width: 2 * (683 - left), height: 69 },
+    eyebrowTop: 276,
+    written: { left: 609, top: 400, width: 148, height: 15 },
+  });
+
+  it("keeps a name centred while it clears the rising marker by NAME_AIR", () => {
+    expect(at(markerRight + NAME_AIR)).toBeNull();
+    expect(nameStand({ cx: 500, cy: 330, ringRadius: 200, ring: { ...ring, width: 0 }, name: ring, eyebrowTop: 0, written: null })).toBeNull();
+  });
+
+  it("stands a name that would reach the marker on the line, the name ending above the marker and its date below", () => {
+    const stand = at(markerRight + NAME_AIR - 0.5)!;
+    expect(stand.clearance).toBeCloseTo(MARKER_REACH * scale + NAME_AIR, 9);
+    expect(stand.scale).toBeCloseTo(scale, 9);
+    const [name, written] = stand.obstacles;
+    expect(name.y + name.h).toBeCloseTo(330 - MARKER_REACH, 9);
+    expect(name.h).toBeCloseTo((69 + 300 - 276 + 2 * NAME_AIR) / scale, 9);
+    expect(written.y).toBeCloseTo(330 + MARKER_REACH, 9);
+    expect(written.x + written.w / 2).toBeCloseTo(500, 9);
   });
 });
 

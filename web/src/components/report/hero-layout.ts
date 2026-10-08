@@ -47,7 +47,7 @@ export interface HeroLayoutInput {
   ringRadius: number;
   /** The frame: the Ascendant when the horizon is drawn, 0° Aries when it is not. */
   frameDegree: number;
-  /** "sign" unless given: `TriadPlate` keeps the wheel's frame, the hero passes "degree". */
+  /** "sign", the wheel's frame, unless given: the hero and `TriadPlate` pass "degree". */
   frameOn?: FrameOn;
   /** In placement order: the Sun is placed first, so it wins the room it needs. */
   bodies: HeroBody[];
@@ -157,6 +157,73 @@ export function layoutHero(input: HeroLayoutInput): HeroLayout {
   }
 
   return { bodies: placed, labels, horizonDrops };
+}
+
+/** The hero's rising marker, in plate units: its ring's radius and stroke. */
+export const MARKER_RADIUS = 13;
+export const MARKER_STROKE = 1.5;
+/** How far the marker reaches right of its centre, towards the name; its tick points the other way, outward. */
+export const MARKER_REACH = MARKER_RADIUS + MARKER_STROKE / 2;
+/** Clear air between the name and the rising marker, in px. */
+export const NAME_AIR = 8;
+
+/** A box on screen, in px, as `getBoundingClientRect` gives it. */
+export interface ScreenBox { left: number; top: number; width: number; height: number }
+
+export interface NameStandInput {
+  /** The plate's centre and its ring's radius, in plate units. */
+  cx: number;
+  cy: number;
+  ringRadius: number;
+  /** The ring on screen; its width over its diameter in units is the plate's scale. */
+  ring: ScreenBox;
+  /** The name on screen, as wide as its widest line. */
+  name: ScreenBox;
+  /** The top of the eyebrow above the name, on screen. */
+  eyebrowTop: number;
+  /** The text of "Written on" on screen, when the report has a date. */
+  written: ScreenBox | null;
+}
+
+export interface NameStand {
+  /** Px from the line up to the name's bottom, and from the line down to the top of "Written on". */
+  clearance: number;
+  /** Screen px per plate unit, so the standing name can scroll with the plate and stay on its line. */
+  scale: number;
+  /** What the labels must avoid instead of the centred name plate, in plate units: the standing name, then its date. */
+  obstacles: Rect[];
+}
+
+/**
+ * Where a plate that holds the name puts it. The name is centred on the horizon, which runs behind its halo; a name
+ * wide enough to reach the rising marker would cover it, so it stands just above the line instead, and "Written on"
+ * sits just below. Null when the name stays centred. Only the name's width decides, so standing never undoes itself.
+ */
+export function nameStand(input: NameStandInput): NameStand | null {
+  const scale = input.ring.width / (2 * input.ringRadius);
+  if (!(scale > 0)) return null;
+  const reach = MARKER_REACH * scale;
+  if (input.name.left >= input.ring.left + reach + NAME_AIR) return null;
+  const clearance = reach + NAME_AIR;
+  const ringCentre = input.ring.left + input.ring.width / 2;
+  const block = input.name.top + input.name.height - input.eyebrowTop;
+  // A label may come no nearer the name or its date than the name comes to the marker.
+  const air = NAME_AIR / scale;
+  const obstacles: Rect[] = [{
+    x: input.cx + (input.name.left - ringCentre) / scale - air,
+    y: input.cy - (clearance + block) / scale - air,
+    w: input.name.width / scale + 2 * air,
+    h: block / scale + 2 * air,
+  }];
+  if (input.written) {
+    obstacles.push({
+      x: input.cx - input.written.width / 2 / scale - air,
+      y: input.cy + clearance / scale - air,
+      w: input.written.width / scale + 2 * air,
+      h: input.written.height / scale + 2 * air,
+    });
+  }
+  return { clearance, scale, obstacles };
 }
 
 export interface MoonArc {
