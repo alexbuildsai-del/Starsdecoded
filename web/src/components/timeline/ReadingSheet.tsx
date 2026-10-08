@@ -16,6 +16,7 @@ import {
   type TimelineEvent,
   type TimelineReading,
 } from "@workspace/api-client-react";
+import { FactCard } from "@/components/FactCard";
 import { StatusDots } from "@/components/StatusDots";
 import { PassStrip } from "@/components/timeline/PassStrip";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -25,6 +26,7 @@ import { buildsOnText, paragraphs } from "@/lib/now-ahead";
 import { CHANGES_HEADING, boldParts, passBlocks, sheetFacts, whyHeading } from "@/lib/passes-view";
 import { refusalLine } from "@/lib/refusals";
 import { useShownZone } from "@/lib/reader-zone";
+import { shadowFact } from "@/lib/shadow-fact";
 import { cn } from "@/lib/utils";
 
 /** What a tap on a card hands the sheet. */
@@ -114,12 +116,13 @@ function PassBlock({ title, text }: { title: string; text: string }) {
   );
 }
 
-/** What Read more adds under a sky event's reading: its passes and the two blocks when it has more than one, then its facts. */
+/** What Read more adds under a sky event's reading: its passes and the two blocks when it has more than one, its facts, and Mercury's shadow card. */
 function SkyFacts({ event, zone }: { event: TimelineEvent; zone: string }) {
   const { order } = useEntryFormat();
   const now = useMemo(() => new Date(), []);
   const blocks = passBlocks(event, zone, { order, now });
   const facts = sheetFacts(event, zone, order);
+  const shadow = useMemo(() => shadowFact(event, { zone, order, now }), [event, zone, order, now]);
   return (
     <div className="grid gap-4 border-t border-[#242C3B] pt-4">
       {blocks ? (
@@ -137,6 +140,7 @@ function SkyFacts({ event, zone }: { event: TimelineEvent; zone: string }) {
           </p>
         ))}
       </div>
+      {shadow ? <FactCard title={shadow.title} body={shadow.body} /> : null}
     </div>
   );
 }
