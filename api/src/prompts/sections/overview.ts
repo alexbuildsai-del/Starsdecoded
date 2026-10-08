@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
 import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
+import { DidYouKnowSchema, didYouKnowContext } from "../didYouKnow.js";
 
 export const OverviewSchema = z.object({
   headline: z.string().describe("one sentence: what this chart is built around"),
@@ -9,6 +10,7 @@ export const OverviewSchema = z.object({
   distinctive: z.string().describe("one paragraph: what is unusual about this specific combination"),
   bridge: z.string().describe("one sentence that points forward: 'Everything here points toward ...'"),
   claims: ClaimsSchema,
+  didYouKnow: DidYouKnowSchema,
 });
 
 export const overview: SectionSpec<typeof OverviewSchema> = {
@@ -20,6 +22,7 @@ export const overview: SectionSpec<typeof OverviewSchema> = {
   maxTokens: 3_000,
   schema: OverviewSchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  extraContext: (brief) => didYouKnowContext("overview", brief),
   blindRules: [
     "There is no house, chart ruler or sect. A stellium is named by its sign: the headline names that sign and says in plain words what it brings out in this person, and every mention of the stellium's house above reads as its sign. Ground the rest in the Sun, the Moon and the planets at home in their signs.",
   ],

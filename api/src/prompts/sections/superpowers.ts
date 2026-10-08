@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
 import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
+import { DidYouKnowSchema, didYouKnowContext } from "../didYouKnow.js";
 
 const Item = z.object({
   title: z.string().describe("2-4 words"),
@@ -13,6 +14,7 @@ export const SuperpowersSchema = z.object({
   chronicPattern: Item.describe("what is structurally rooted and can only be managed: the malefic contrary to sect, detriment or fall"),
   growingEdge: Item.describe("what is uncomfortable and possible: the North Node, the sect light's growth"),
   claims: ClaimsSchema,
+  didYouKnow: DidYouKnowSchema,
 });
 
 export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
@@ -24,6 +26,7 @@ export const superpowers: SectionSpec<typeof SuperpowersSchema> = {
   maxTokens: 3_600,
   schema: SuperpowersSchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  extraContext: (brief) => didYouKnowContext("superpowers", brief),
   // MB-142 provisional: Luna wrote 446 to 502 words here on all five r14-staging charts. Items of 100 to 120 words with
   // two or three actions add up to under 600, so the floor comes with item text and actions that reach it.
   instructions: `Write Strengths, Habits & Where You Can Grow. Three distinct items that never overlap.

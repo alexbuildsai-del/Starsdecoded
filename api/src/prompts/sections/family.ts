@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
 import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
+import { DidYouKnowSchema, didYouKnowContext } from "../didYouKnow.js";
 
 export const FamilySchema = z.object({
   whatYouCarry: z.string().describe("one paragraph: inherited patterns and the atmosphere of origin"),
@@ -8,6 +9,7 @@ export const FamilySchema = z.object({
   theInheritedEdge: z.string().describe("one paragraph: the family pattern that is theirs to change"),
   actions: z.array(z.object({ action: z.string(), why: z.string() })).min(2).max(3),
   claims: ClaimsSchema,
+  didYouKnow: DidYouKnowSchema,
 });
 
 export const family: SectionSpec<typeof FamilySchema> = {
@@ -19,6 +21,7 @@ export const family: SectionSpec<typeof FamilySchema> = {
   maxTokens: 2_500,
   schema: FamilySchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  extraContext: (brief) => didYouKnowContext("family", brief),
   instructions: `Write Family & Roots. Primary evidence: the ruler of the 4th and where it sits, the Moon by sect and dignity, Saturn by sect, and anything in the 4th.
 
 One paragraph on what they carry from where they came from: the atmosphere, the inherited habits, the roles they were handed. One paragraph on what actually roots them now and what they need in a home, as behaviour. One paragraph on the inherited pattern that is theirs to change rather than repeat. Then two or three actions with a short why.

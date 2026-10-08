@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
 import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
+import { DidYouKnowSchema, didYouKnowContext } from "../didYouKnow.js";
 
 const Bullet = z.object({ point: z.string().describe("15-20 words, specific to this chart"), why: z.string().describe("one short clause") });
 
@@ -10,6 +11,7 @@ export const FocusSchema = z.object({
   practice: z.object({ intro: z.string(), bullets: z.array(Bullet).min(3).max(3) }),
   closing: z.string().describe("80-100 words: personal, grounded, forward-looking, tying the report together"),
   claims: ClaimsSchema,
+  didYouKnow: DidYouKnowSchema,
 });
 
 export const focus: SectionSpec<typeof FocusSchema> = {
@@ -21,6 +23,7 @@ export const focus: SectionSpec<typeof FocusSchema> = {
   maxTokens: 3_000,
   schema: FocusSchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  extraContext: (brief) => didYouKnowContext("focus", brief),
   instructions: `Write What to Focus On, the closing section. Three groups of bullets and a closing paragraph.
 
 Lean Into: the strengths to build a life around, from the Superpower and the dignified planets. Notice: the patterns that will always be there, from the Chronic Pattern and the malefic contrary to sect. Practice: where real growth lives, from the Growing Edge and the North Node. Each group has one intro sentence and exactly three bullets of 15 to 20 words, each with a short why. Bullets are specific to this chart and phrased as things to do or watch for, never generic advice.

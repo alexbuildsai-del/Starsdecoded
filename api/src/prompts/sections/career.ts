@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
 import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
+import { DidYouKnowSchema, didYouKnowContext } from "../didYouKnow.js";
 
 export const CareerSchema = z.object({
   vocationalPull: z.string().describe("one paragraph: what kind of work this chart is drawn to and why it works"),
@@ -15,6 +16,7 @@ export const CareerSchema = z.object({
     reason: z.string().describe("one concrete reason this chart does well there"),
   })).min(3).max(4),
   claims: ClaimsSchema,
+  didYouKnow: DidYouKnowSchema,
 });
 
 export const career: SectionSpec<typeof CareerSchema> = {
@@ -26,6 +28,7 @@ export const career: SectionSpec<typeof CareerSchema> = {
   maxTokens: 3_200,
   schema: CareerSchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  extraContext: (brief) => didYouKnowContext("career", brief),
   instructions: `Write Career & Calling. The primary evidence is the ruler of the 10th: where it sits, its dignity, its sect condition. Then the Sun and Saturn by sect, then the Lot of Spirit's house, then the North Node.
 
 One paragraph on the kind of work this chart is pulled toward and the route that actually works for them, not the route they may assume. One paragraph on how they show up: what they are like to work with and what people notice first. One paragraph on the growth edge at work. Then exactly three actions, each with a short why.

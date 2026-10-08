@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type { SectionSpec } from "../types.js";
 import { ClaimsSchema, validateSectionClaims } from "../evidence.js";
+import { DidYouKnowSchema, didYouKnowContext } from "../didYouKnow.js";
 
 export const MindSchema = z.object({
   howYouThink: z.string().describe("one paragraph: perception, reasoning, what kind of thinking comes easily"),
@@ -8,6 +9,7 @@ export const MindSchema = z.object({
   howYouAreUnderstood: z.string().describe("one paragraph: how they explain themselves and where it goes wrong"),
   practice: z.string().describe("one concrete practice, one or two sentences"),
   claims: ClaimsSchema,
+  didYouKnow: DidYouKnowSchema,
 });
 
 export const mind: SectionSpec<typeof MindSchema> = {
@@ -19,6 +21,7 @@ export const mind: SectionSpec<typeof MindSchema> = {
   maxTokens: 2_500,
   schema: MindSchema,
   validate: (out, brief) => validateSectionClaims(out, brief.chart),
+  extraContext: (brief) => didYouKnowContext("mind", brief),
   // MB-142 provisional: Luna wrote 209 to 247 words here on all five r14-staging charts, under the 250 floor.
   instructions: `Write Mind & Communication. Read Mercury by sign, house, dignity, and its aspects, then the rulers of the 3rd and 9th and where they sit.
 
