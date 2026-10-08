@@ -5,12 +5,13 @@
  * nothing, a payment before the report starts it when the report finishes, the three routes as the contract pins them,
  * a paused day's writes wait for the next, a card opened once setup is ready writes nothing, one setup per account, the
  * next six months' job, readings a new birth time or prompt version left stale written again from the reader's open
- * alone, and forgetting. Without one those skip, saying why.
+ * alone, forgetting, and a job that reaches the QA pair writing nothing, however it was queued. Without one those
+ * skip, saying why.
  *
  * The queue is one table every test file on the database shares, and a drain takes any due job of its kinds, so this
  * file keeps its jobs, and its testers, whose QA marks other files read, in a schema of its own, dropped after.
  */
-import { after, before, test } from "node:test";
+import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -777,4 +778,44 @@ test("db, forgetting the reader's Timeline takes their setup and the jobs still 
   assert.ok(other.reading.length > 0 && other.ahead.length === 1 && (await setupOf(kept)) !== null);
   const stray = await D.db.select().from(D.jobsTable).where(and(eq(D.jobsTable.kind, "timeline.reading"), eq(D.jobsTable.status, "queued")));
   assert.ok(stray.every((job) => job.payload.profileId !== gone.profileId));
+});
+
+test("db, a job that reaches the QA pair, however it got into the queue, writes nothing and ends: a reading, a stale one's refresh and the next six months alike, with no model call and a line naming its kind alone", { skip: NO_DB }, async () => {
+  const ids = await seedAccount("qa-late", { subscribed: true });
+  // Set up and written while the account was anyone's, then marked as the pair's: the start's own check never saw it.
+  const reader = await setUp(ids);
+  await D.db.insert(D.testersTable).values({ userId: ids.userId, email: `r1818-${run}-qa-late@example.com`, qa: "mira", addedBy: "test" });
+  const setup = await setupOf(ids);
+  assert.ok(setup);
+  const [gone, stale] = S.writeOrder(S.planOf(reader, ZONE, setup.fromDay, setup.toDay));
+
+  // What would each write for anyone else: a reading whose row went, a kept one on the last prompt version, and the
+  // next six months, come due.
+  await D.db.delete(D.timelineReadingsTable).where(and(eq(D.timelineReadingsTable.profileId, ids.profileId), eq(D.timelineReadingsTable.eventKey, gone)));
+  const [kept] = (await rowsOf(ids)).filter((row) => row.eventKey === stale);
+  await D.db.update(D.timelineReadingsTable)
+    .set({ basis: kept.basis.replace(`:${TIMELINE_PROMPT_VERSION}|`, ":t0|"), reading: { ...(kept.reading as object), of: "written-on-t0" } })
+    .where(eq(D.timelineReadingsTable.id, kept.id));
+  const end = addDays(today(), 3);
+  await D.db.update(D.timelineSetupsTable).set({ fromDay: addDays(end, -181), toDay: end }).where(eq(D.timelineSetupsTable.userId, ids.userId));
+  await clearJobs();
+  await J.enqueue("timeline.reading", { profileId: ids.profileId, key: gone });
+  await J.enqueue("timeline.refresh", { profileId: ids.profileId, key: stale });
+  await J.enqueue("timeline.ahead", { userId: ids.userId });
+
+  const readings = async () => (await rowsOf(ids)).map((row) => [row.eventKey, row.basis, row.status, keptLine(row)]).sort();
+  const [readingsBefore, setupBefore, callsBefore] = [await readings(), await setupOf(ids), readingCalls()];
+  const warned = mock.method(logger, "warn", () => undefined);
+  try {
+    assert.equal(await J.drainJobs(), 3);
+    const said = warned.mock.calls.map((call) => call.arguments as unknown[]).filter((args) => args[1] === "a Timeline job for the QA pair wrote nothing");
+    assert.deepEqual(said.map(([fields]) => fields), [{ kind: "timeline.reading" }, { kind: "timeline.refresh" }, { kind: "timeline.ahead" }]);
+  } finally {
+    warned.mock.restore();
+  }
+  assert.equal(readingCalls() - callsBefore, 0, "no model call");
+  assert.deepEqual(await readings(), readingsBefore, "no reading written or written again");
+  assert.deepEqual(await setupOf(ids), setupBefore, "the setup not moved on");
+  const jobs = await D.db.select().from(D.jobsTable);
+  assert.deepEqual(jobs.map((job) => [job.kind, job.status]).sort(), [["timeline.ahead", "done"], ["timeline.reading", "done"], ["timeline.refresh", "done"]], "each ended, and none queued after it");
 });

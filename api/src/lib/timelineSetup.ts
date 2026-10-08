@@ -16,7 +16,7 @@ import {
   db, profilesTable, reportsTable, testersTable, timelineSetupsTable, usersTable, type TimelineSetupRow,
 } from "@workspace/db";
 import type { GetTimelineSetupResponse } from "@workspace/api-zod";
-import { enqueue, nextUtcMidnight, type JobHandler } from "./jobs.js";
+import { enqueue, nextUtcMidnight, type JobHandler, type JobKind } from "./jobs.js";
 import { logger } from "./logger.js";
 import { QA_PAIR } from "./qaPair.js";
 import { activeSubscription } from "./subscriptions.js";
@@ -180,6 +180,16 @@ async function isQaAccount(userId: string): Promise<boolean> {
   if (tester && (tester.qa !== null || QA_EMAILS.has(tester.email.toLowerCase()))) return true;
   const [user] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   return !!user?.email && QA_EMAILS.has(user.email.toLowerCase());
+}
+
+/**
+ * A job's own look at whom it writes for, since the checks that queue jobs are not the only way into the queue: one
+ * that reaches the QA pair writes nothing and ends (ADR-315), its line naming its kind alone.
+ */
+async function forQaPair(kind: JobKind, userId: string): Promise<boolean> {
+  if (!(await isQaAccount(userId))) return false;
+  logger.warn({ kind }, "a Timeline job for the QA pair wrote nothing");
+  return true;
 }
 
 /** The account's setup, with the chart it was made for: the profile of the report it read, null once that report is gone. */
@@ -376,15 +386,15 @@ async function readerOfProfile(profileId: string): Promise<ReaderChart | null> {
 /**
  * `timeline.reading { profileId, key }`: one reading of a setup, idempotent by its key, since a reading kept on the
  * reader's basis is left as it is. Its reader is found again from the profile, so a report deleted meanwhile writes
- * nothing. A paused day waits for the next; a reading another write holds is looked at again once that write could
- * have died.
+ * nothing, nor does one for the QA pair. A paused day waits for the next; a reading another write holds is looked at
+ * again once that write could have died.
  */
 export const readingJob: JobHandler = async (payload) => {
   const profileId = idIn(payload.profileId);
   const key = idIn(payload.key);
   if (!profileId || !key) return;
   const reader = await readerOfProfile(profileId);
-  if (!reader) return;
+  if (!reader || (await forQaPair("timeline.reading", reader.userId))) return;
   const outcome = await writeQueuedReading(reader, key);
   if (outcome.status === "paused") return { retryAt: nextUtcMidnight() };
   return outcome.status === "held" ? { retryAt: outcome.until } : undefined;
@@ -394,11 +404,11 @@ export const readingJob: JobHandler = async (payload) => {
  * `timeline.ahead { userId }` (reading 9): a week before the readings written end, with Timeline still open to the
  * reader, it queues the next six months' readings, to `stretchEnd` should it run late, moves the setup on to them and
  * sets them to be drawn once, then waits for the week before those end. Without access it writes nothing and stops; a
- * new payment, or a visit once access is back, queues it again.
+ * new payment, or a visit once access is back, queues it again. For the QA pair it queues nothing and stops.
  */
 export const aheadJob: JobHandler = async (payload) => {
   const userId = idIn(payload.userId);
-  if (!userId) return;
+  if (!userId || (await forQaPair("timeline.ahead", userId))) return;
   const row = await setupRow(userId);
   if (!row) return;
   const reader = await readerChart({ userId, sessionId: "" });
@@ -423,13 +433,13 @@ export const aheadJob: JobHandler = async (payload) => {
  * `timeline.refresh { profileId, key }` (reading 10): a kept reading the reader's open found gone stale, written again
  * in place when what it is written from moved, moved onto the new basis when it did not. Idempotent by its key, since
  * a reading on the reader's basis is left as it is; its reader is found again from the profile, so a report deleted
- * meanwhile writes nothing. A paused day waits for the next.
+ * meanwhile writes nothing, nor does one for the QA pair. A paused day waits for the next.
  */
 export const refreshJob: JobHandler = async (payload) => {
   const profileId = idIn(payload.profileId);
   const key = idIn(payload.key);
   if (!profileId || !key) return;
   const reader = await readerOfProfile(profileId);
-  if (!reader) return;
+  if (!reader || (await forQaPair("timeline.refresh", reader.userId))) return;
   return (await refreshReading(reader, key)).status === "paused" ? { retryAt: nextUtcMidnight() } : undefined;
 };

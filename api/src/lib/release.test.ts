@@ -112,6 +112,7 @@ function walkDeps(verdict: WalkVerdict = PASSED, calls: string[] = [], record = 
     record,
     now: () => new Date(),
     limitMs: 60_000,
+    stopping: () => false,
   };
 }
 

@@ -39,7 +39,7 @@ import {
   type ChartFixture, type ReleaseLabOutcome, type ReleaseLabStore,
 } from "./releaseLab.js";
 import { liveMira, pushSample, type MiraSource } from "./sampleRun.js";
-import { ensureQaPair, resetQaPair, storeQaSeed, type QaPair, type SeedStep } from "./qaPair.js";
+import { ensureQaPair, qaPairStopping, resetQaPair, storeQaSeed, type QaPair, type SeedStep } from "./qaPair.js";
 import { lastSync } from "./stripeSync.js";
 import { findChromium } from "./qaAgent/browser.js";
 import { runQaAgent, type QaVerdict } from "./qaAgent/index.js";
@@ -192,6 +192,8 @@ export interface WalkDeps {
   record: QaWalkRecord;
   now: () => Date;
   limitMs: number;
+  /** True once this process has begun to stop: from then on no walk starts (qaPair.ts, banQaPairAtStop). */
+  stopping: () => boolean;
 }
 
 const NO_TEXT_YET = {} as ReportInterpretation;
@@ -233,6 +235,7 @@ export function liveWalkDeps(): WalkDeps {
     record: dbQaWalkRecord,
     now: () => new Date(),
     limitMs: WALK_LIMIT_MS,
+    stopping: qaPairStopping,
   };
 }
 
@@ -297,10 +300,13 @@ export interface WalkRun {
 /**
  * One walk from the pair's reset state, its row written as it starts and its verdict as it ends. A Release's walk then
  * keeps each report it finished as the seed and leaves a failure row for each write that failed; a deploy's walk stores
- * and writes nothing (ADR-315). Answers null when `oncePerCommit` finds the commit walked already.
+ * and writes nothing (ADR-315). Answers null, having started nothing, when `oncePerCommit` finds the commit walked
+ * already or this process has begun to stop.
  */
 export function walkOnce(mode: QaWalkMode, sha: string, deps: WalkDeps, options: { oncePerCommit?: boolean } = {}): Promise<WalkRun | null> {
   return inTurn(async () => {
+    // Asked as the turn comes: a walk can wait out another's whole run, and the stop can come meanwhile.
+    if (deps.stopping()) return null;
     const id = await deps.record.begin({ sha, mode, startedAt: deps.now() }, options.oncePerCommit ?? false);
     if (!id) return null;
     let pair: QaPair;
@@ -499,7 +505,7 @@ async function releaseWalk(deps: ReleaseDeps, walk: WalkDeps, sha: string): Prom
     return { status: "failed", detail: `nothing was written: ${unrendered.length} prompt(s) failed the free render, ${unrendered.slice(0, 3).join("; ")}` };
   }
   const run = await walkOnce("release", sha, walk);
-  if (!run) return { status: "failed", detail: "the walk did not start" };
+  if (!run) return { status: "failed", detail: walk.stopping() ? "the walk did not start: the API is stopping" : "the walk did not start" };
   const { verdict, seed } = run;
   const kept = !seed ? "" : "kept" in seed ? `; the seed kept ${seed.kept} report(s)` : `; the seed was not kept: ${seed.error}`;
   if (verdict.status === "pass") return { status: "passed", detail: `${verdict.steps.filter((s) => s.status === "pass").length} steps passed${kept}` };
