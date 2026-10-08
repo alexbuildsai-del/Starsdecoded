@@ -1,6 +1,8 @@
 import { hasHorizon, type NatalChartData } from "./chartCalculation.js";
 import { toneOf, type Tone } from "./tone.js";
-import { eclipses, exactHits, inOrb, longitudeAt, speedAt, stations, type Eclipse, type InOrb } from "./transits.js";
+import {
+  eclipses, exactHits, inOrb, longitudeAt, speedAt, stations, type Eclipse, type InOrb, type SkyBody, type Station,
+} from "./transits.js";
 
 /**
  * The doctrine (ADR-208): which sky events touch a chart. Everything Timeline
@@ -14,6 +16,14 @@ export type ContactBody = "mars" | "jupiter" | "saturn" | "uranus" | "neptune" |
 export type RetrogradeBody = "mercury" | "venus" | "mars";
 
 const DAY = 86_400_000;
+
+/**
+ * Days searched either side of a contact's window for the stations of a
+ * backwards stretch that meets it, so its dates are true: longer than any
+ * contact planet's stretch, the engine's longest from 1800 to 2150 being
+ * Pluto's 166 days.
+ */
+const BACKWARDS_MARGIN_DAYS = 180;
 
 export const DOCTRINE = {
   bodies: ["mars", "jupiter", "saturn", "uranus", "neptune", "pluto"],
@@ -67,6 +77,16 @@ export interface ContactEvent {
   window: InOrb;
   house: number | null;
   tone: Tone;
+  /**
+   * The whole-sign houses the planet stands in while within orb, in the order
+   * it reaches them, so a reading can name where it moves beside the natal
+   * point's house (ADR-378, 384); empty without a horizon.
+   */
+  crosses: number[];
+  /** One for each of `window.exact`, in order, by the planet's own motion at that moment (ADR-392). */
+  passes: readonly { at: Date; direction: "forward" | "backwards" }[];
+  /** The planet's backwards stretches, station to station, that meet the window, each with its true dates (ADR-392). */
+  backwards: readonly { start: Date; end: Date }[];
 }
 
 /** From the station retrograde to the station direct, with the whole-sign houses it moves back through, in that order. */
@@ -158,9 +178,12 @@ function overlaps(start: Date, end: Date, from: Date, to: Date): boolean {
   return start.getTime() <= to.getTime() && end.getTime() >= from.getTime();
 }
 
+/** All `onDuring` reads: a window is checked before its event is built, so only the kept ones get houses and passes. */
+type Within = Pick<ContactEvent, "body" | "orb" | "window">;
+
 /** Where a window's planet perfects. `skyEvents` fills it from the chart; an event built elsewhere finds it again. */
 const pointCache = new WeakMap<InOrb, number>();
-function pointOf(event: ContactEvent): number {
+function pointOf(event: Within): number {
   const cached = pointCache.get(event.window);
   if (cached !== undefined) return cached;
   const { start, exact } = event.window;
@@ -177,7 +200,7 @@ function pointOf(event: ContactEvent): number {
  * window can hold several passes with gaps between them, where a retrograde
  * took the planet out of orb and back, and a span inside a gap meets none.
  */
-function onDuring(event: ContactEvent, from: number, to: number): boolean {
+function onDuring(event: Within, from: number, to: number): boolean {
   const { body, orb, window } = event;
   const start = window.start.getTime();
   const end = window.end.getTime();
@@ -196,30 +219,88 @@ function onDuring(event: ContactEvent, from: number, to: number): boolean {
 const BODY_ORDER = DOCTRINE.bodies as readonly string[];
 const TARGET_ORDER = DOCTRINE.targets as readonly string[];
 
-function contactsIn(points: NatalPoint[], from: Date, to: Date): ContactEvent[] {
+/**
+ * The whole-sign houses a contact's planet stands in while within orb, in the
+ * order it reaches them. An orb is far narrower than a sign, so it holds one
+ * sign's edge at most, and the planet is in the sign past it only once it
+ * crosses it. An edge beyond the orb is crossed between passes, while the
+ * contact is off, so it adds no house.
+ */
+function crossesOf(body: ContactBody, point: number, orb: number, window: InOrb, houseOfSign: Natal["houseOfSign"]): number[] {
+  if (!houseOfSign) return [];
+  const edge = norm(Math.round(point / 30) * 30);
+  // An edge exactly at the orb's end is touched for an instant, never crossed within it.
+  if (Math.abs(arc(edge, point)) >= orb) return [houseOfSign(signOf(point))];
+  // A window opens at the orb's end, on the side the planet comes in from.
+  const side = arc(longitudeAt(body, window.start), point) < 0 ? -1 : 1;
+  const first = signOf(point + side * orb);
+  if (exactHits(body, edge, window.start, window.end).length === 0) return [houseOfSign(first)];
+  const past = first === signOf(edge) ? (first + 11) % 12 : signOf(edge);
+  return [houseOfSign(first), houseOfSign(past)];
+}
+
+function passesOf(body: ContactBody, window: InOrb): ContactEvent["passes"] {
+  return window.exact.map((at): ContactEvent["passes"][number] => ({
+    at: new Date(at),
+    direction: speedAt(body, at) < 0 ? "backwards" : "forward",
+  }));
+}
+
+/** A body's backwards stretches, station to station, that meet `from` to `to`, its stations searched `marginDays` either side. */
+function backwardsStretches(body: SkyBody, from: Date, to: Date, marginDays: number): [Station, Station][] {
+  const margin = marginDays * DAY;
+  const turns = stations(body, new Date(from.getTime() - margin), new Date(to.getTime() + margin));
+  const found: [Station, Station][] = [];
+  turns.forEach((station, i) => {
+    const direct = turns[i + 1];
+    if (station.turns === "retrograde" && direct?.turns === "direct" && overlaps(station.at, direct.at, from, to)) {
+      found.push([station, direct]);
+    }
+  });
+  return found;
+}
+
+function contactsIn(natal: Natal, from: Date, to: Date): ContactEvent[] {
   const found: ContactEvent[] = [];
   for (const body of DOCTRINE.bodies) {
     const orb = DOCTRINE.orbs[body];
-    for (const point of points) {
+    const kept: { point: NatalPoint; aspect: Aspect; at: number; window: InOrb }[] = [];
+    for (const point of natal.points) {
       for (const aspect of DOCTRINE.aspects[body]) {
         for (const at of aspectPoints(point.lon, aspect)) {
           for (const window of inOrb(body, at, orb, from, to)) {
             pointCache.set(window, at);
-            const event: ContactEvent = {
-              key: `contact.${body}.${aspect}.${point.target}.${ymd(window.exact[0] ?? window.start)}`,
-              kind: "contact",
-              body,
-              aspect,
-              target: point.target,
-              orb,
-              window,
-              house: point.house,
-              tone: toneOf({ kind: "contact", body, aspect }),
-            };
-            if (onDuring(event, from.getTime(), to.getTime())) found.push(event);
+            if (onDuring({ body, orb, window }, from.getTime(), to.getTime())) kept.push({ point, aspect, at, window });
           }
         }
       }
+    }
+    if (kept.length === 0) continue;
+    let first = Infinity;
+    let last = -Infinity;
+    for (const { window } of kept) {
+      first = Math.min(first, window.start.getTime());
+      last = Math.max(last, window.end.getTime());
+    }
+    // One search serves every contact of the body: a station is found on the same grid from any range that holds it.
+    const stretches = backwardsStretches(body, new Date(first), new Date(last), BACKWARDS_MARGIN_DAYS);
+    for (const { point, aspect, at, window } of kept) {
+      found.push({
+        key: `contact.${body}.${aspect}.${point.target}.${ymd(window.exact[0] ?? window.start)}`,
+        kind: "contact",
+        body,
+        aspect,
+        target: point.target,
+        orb,
+        window,
+        house: point.house,
+        tone: toneOf({ kind: "contact", body, aspect }),
+        crosses: crossesOf(body, at, orb, window, natal.houseOfSign),
+        passes: passesOf(body, window),
+        backwards: stretches
+          .filter(([retrograde, direct]) => overlaps(retrograde.at, direct.at, window.start, window.end))
+          .map(([retrograde, direct]) => ({ start: new Date(retrograde.at), end: new Date(direct.at) })),
+      });
     }
   }
   return found.sort(
@@ -242,13 +323,8 @@ function housesBack(startLon: number, endLon: number, houseOfSign: Natal["houseO
 
 function retrogradesIn(houseOfSign: Natal["houseOfSign"], from: Date, to: Date): RetrogradeEvent[] {
   const found: RetrogradeEvent[] = [];
-  const margin = DOCTRINE.retrogradeMargin * DAY;
   for (const body of DOCTRINE.retrogrades) {
-    const turns = stations(body, new Date(from.getTime() - margin), new Date(to.getTime() + margin));
-    turns.forEach((station, i) => {
-      const direct = turns[i + 1];
-      if (station.turns !== "retrograde" || direct?.turns !== "direct") return;
-      if (!overlaps(station.at, direct.at, from, to)) return;
+    for (const [station, direct] of backwardsStretches(body, from, to, DOCTRINE.retrogradeMargin)) {
       found.push({
         key: `retrograde.${body}.-.-.${ymd(station.at)}`,
         kind: "retrograde",
@@ -258,7 +334,7 @@ function retrogradesIn(houseOfSign: Natal["houseOfSign"], from: Date, to: Date):
         houses: housesBack(station.lon, direct.lon, houseOfSign),
         tone: toneOf({ kind: "retrograde" }),
       });
-    });
+    }
   }
   return found.sort((a, b) => a.start.getTime() - b.start.getTime());
 }
@@ -293,11 +369,12 @@ function eclipsesIn(natal: Natal, from: Date, to: Date): EclipseEvent[] {
  * retrograde between its stations; an eclipse at its greatest. Contacts come
  * first, the day contacts the page draws (ADR-251), then retrogrades, then
  * eclipses, each in time order. A contact's window is whole even where it runs
- * past the range, so its key is the same from any range that meets it.
+ * past the range, so its key is the same from any range that meets it, and so
+ * are the houses it crosses, its passes and its backwards stretches.
  */
 export function skyEvents(chart: NatalChartData, from: Date, to: Date): SkyEvent[] {
   const natal = natalOf(chart);
-  return [...contactsIn(natal.points, from, to), ...retrogradesIn(natal.houseOfSign, from, to), ...eclipsesIn(natal, from, to)];
+  return [...contactsIn(natal, from, to), ...retrogradesIn(natal.houseOfSign, from, to), ...eclipsesIn(natal, from, to)];
 }
 
 /**
