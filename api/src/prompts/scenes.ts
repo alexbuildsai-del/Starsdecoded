@@ -234,7 +234,7 @@ const HOUSE_SCENES: Record<HouseNumber, readonly Scene[]> = {
     { id: "house-5-e", type: "posting-online", text: "You might bake a lopsided cake and post a photo of it anyway. The comments could please you more than the cake." },
   ],
   6: [
-    { id: "house-6-a", type: "monday-morning", text: "Your alarm goes off at 6:55 on a Monday. You might have the day's list written before the kettle boils." },
+    { id: "house-6-a", type: "monday-morning", text: "Your alarm goes off at 6:55 on a Monday. The day's list might be written before the kettle boils." },
     { id: "house-6-b", type: "group-project", text: "A team task at work gets split four ways. You might end up checking the 40 rows of figures nobody else wanted." },
     { id: "house-6-c", type: "bad-day", text: "Even with a cold, you might answer work emails from the sofa with a box of tissues beside you." },
     { id: "house-6-d", type: "plans-changed", text: "Your usual 8:10 train is cancelled. Your whole morning might feel slightly off after that." },
