@@ -57,7 +57,7 @@ import { RelationshipsSchema } from "../prompts/sections/relationships.js";
 import { FamilySchema } from "../prompts/sections/family.js";
 import { SuperpowersSchema } from "../prompts/sections/superpowers.js";
 import { DiscoveriesSchema } from "../prompts/sections/discoveries.js";
-import { HousesSchema } from "../prompts/sections/houses.js";
+import type { StoredHouses } from "../prompts/sections/houses.js";
 import { FocusSchema } from "../prompts/sections/focus.js";
 
 // Which model each call uses lives in ./models.ts, never here.
@@ -82,8 +82,11 @@ export type FoundationData = Partial<Pick<z.infer<typeof FoundationSchema>, "sec
 export type OverviewSection = Stored<z.infer<typeof OverviewSchema>>;
 /** The rising part is absent when the horizon is unknown (ADR-34). */
 export type TriadSection = Stored<Omit<z.infer<typeof TriadSchema>, "rising">> & { rising?: z.infer<typeof TriadSchema>["rising"] };
-/** The house readings carry no claims: the card they sit on is the evidence. */
-export type HousesSection = z.infer<typeof HousesSchema>;
+/**
+ * The house readings carry no claims: the card they sit on is the evidence. Stored as the section's validate leaves
+ * them, each card with its blocks and its Often noticed from the observations table (ADR-396 to 403).
+ */
+export type HousesSection = StoredHouses;
 export type MindSection = Stored<z.infer<typeof MindSchema>>;
 export type CareerSection = Stored<z.infer<typeof CareerSchema>>;
 export type MoneySection = Stored<z.infer<typeof MoneySchema>>;
@@ -172,7 +175,7 @@ export interface ReportInterpretation {
  * Its questions are reading 1's, asked only of what a reader reads, so a
  * foundation's handoff keeps the words it reasons with.
  */
-export const SELF_CHECK = "Before you answer, check every field: no semicolons, no em dashes. Then ask of each paragraph the reader reads: Does it open on their life? Does it name one thing from the chart at most, inside a sentence, with what it means in the next sentence and a moment from their own day? Is every word one a friend would use, never domicile, exalted or sect? Does it say could, might or may, never will?";
+export const SELF_CHECK = "Before you answer, check every field: no semicolons, no em dashes. Then ask of each paragraph the reader reads: Does it open on their life? Does it name one thing from the chart at most, inside a sentence, with what it means in the next sentence and a moment from their own day? Is every sentence 25 words or fewer, in words a friend would use, never domicile, exalted or sect? Does it say could, might or may, never will?";
 
 /** The reader's name as the brief's block holds it, for a caller handed the brief and not the name typed. */
 function namesOf(brief: ChartBrief): TypedNames {
@@ -199,11 +202,6 @@ const SCENE_PLACES: ReadonlyMap<string, { house: boolean; label: string }> = (()
   return places;
 })();
 
-/** A chapter's scenes from the brief, by its key or its id, as `examplesFor` takes either. */
-function scenesOf(brief: ChartBrief, spec: SectionSpec): readonly Scene[] {
-  return brief.scenes[spec.key] ?? brief.scenes[spec.key.replace(/^natal:/, "")] ?? [];
-}
-
 /** The scenes a chapter may adapt, each under its placement. Blind, a house scene is left out: the hour settled no house (ADR-34). */
 function renderScenes(scenes: readonly Scene[], blind: boolean): string {
   const lines = scenes.flatMap((scene) => {
@@ -223,10 +221,11 @@ function assembleUser(instructions: string, brief: ChartBrief, spec: SectionSpec
   const parts = [instructionsFor(spec, instructions, blind).trim()];
   if (spec.key !== FOUNDATION.key && hasClaims(spec)) parts.push("", CLAIMS_CONTRACT);
   parts.push("", "CHART BRIEF", brief.text);
-  if (CHAPTERS.has(spec.key.replace(/^natal:/, ""))) {
+  const id = spec.key.replace(/^natal:/, "");
+  if (CHAPTERS.has(id)) {
     // The reader's own scenes come last of the two, nearer the end the model weighs most; the passages show a shape only.
-    const examples = renderExamples(examplesFor(spec.key, birthDayOf(brief.chart)));
-    const scenes = renderScenes(scenesOf(brief, spec), blind);
+    const examples = renderExamples(examplesFor(id, birthDayOf(brief.chart)));
+    const scenes = renderScenes(brief.scenes[id] ?? [], blind);
     if (examples) parts.push("", examples);
     if (scenes) parts.push("", scenes);
   }
@@ -452,6 +451,12 @@ function unmaskedClaims(reply: unknown, prose: string, names: TypedNames): unkno
 }
 
 /**
+ * The calls whose chk-49 to 51 run here: the natal and pair sections. Timeline and Ask run them in their own validate,
+ * so a finding there logs once, and no reader reads the QA agent's findings or a lab note.
+ */
+const EXPLAINED_HERE = /^(?:natal|pair):/;
+
+/**
  * One schema-enforced call with the retry policy every report shares: a
  * blind try, then two informed by every rejection so far and the last
  * reply, then a loud failure carrying both (ADR-84). A `block` rejects; a
@@ -555,7 +560,8 @@ export async function callStructured<T>(call: StructuredCall<T>): Promise<Sectio
     checks.push(...registerChecks(data));
     // Counted on the reply as accepted, outside validate, so a claims-only repair never counts a sentence twice. A
     // foundation's handoff reasons in the dignity and sect words chk-49 looks for, and no reader reads it, so both skip it.
-    if (!call.internal) checks.push(...plainChecks(data), ...explainChecks(data));
+    if (!call.internal) checks.push(...plainChecks(data));
+    if (!call.internal && EXPLAINED_HERE.test(call.usageKey)) checks.push(...explainChecks(data));
     const repairWanted = needsRepair(checks) && !checks.some((c) => c.rule === "chk-09" && c.cls === "block");
 
     // Fewer than three valid claims after reconciliation is the one problem
@@ -922,7 +928,7 @@ const RisingSchema = z.object({
 });
 export type RisingPart = Stored<z.infer<typeof RisingSchema>>;
 
-const RISING_INSTRUCTIONS = `The Sun and Moon parts of the Core Triad already exist and are not to be rewritten. Write only the rising part: 80 to 100 words on how they come across in the first minute. Read the rising sign first, then what the chart ruler's condition adds to it. Exactly one behavioural example the reader can check against themselves. The label field names the placement. The text field never does. Do not repeat the Sun and Moon parts given below.`;
+const RISING_INSTRUCTIONS = `The Sun and Moon parts of the Core Triad already exist and are not to be rewritten. Write only the rising part: 80 to 100 words on how they come across in the first minute. Read the rising sign first, then what the chart ruler's condition adds to it. When the RETROGRADE AT BIRTH lines hold the chart ruler, let its line in the vocabulary shape the rising part. The label field names the placement. The text opens on the reader's life, then says plainly what the rising sign means, and carries exactly one behavioural example the reader can check against themselves. It may name one more placement it rests on, such as the chart ruler, inside a sentence with its reason. Anything ahead is a possibility: could, might, you may notice, never will. Do not repeat the Sun and Moon parts given below.`;
 
 export interface HorizonBlocks {
   rising: RisingPart;
@@ -992,7 +998,7 @@ const AmendmentSchema = z.object({
 });
 type Amendment = z.infer<typeof AmendmentSchema>;
 
-const AMENDMENT_INSTRUCTIONS = `A birth time has been added to a report that was written without one. The section below was written with no rising sign, no houses, no sect and no lots. Those facts are now in the brief. Return ONLY what the horizon changes: at most three amendments, each a sentence or clause copied exactly from the section text with the sentence it should now read and the horizon evidence that changes it, and at most one addition, a paragraph of 40 to 90 words the horizon makes possible, placed after a sentence you copy exactly, or at the end. Everything else in the section stays word for word and must not be returned. Return no amendment at all when nothing the horizon settles would change a sentence. Every quote must be verbatim. A quote that does not match is discarded. Amended and added sentences obey the style contract: second person, behaviour the reader can check, no house, sign or planet names in prose.`;
+const AMENDMENT_INSTRUCTIONS = `A birth time has been added to a report that was written without one. The section below was written with no rising sign, no houses, no sect and no lots. Those facts are now in the brief. Return ONLY what the horizon changes: at most three amendments, each a sentence or clause copied exactly from the section text with the sentence it should now read and the horizon evidence that changes it, and at most one addition, a paragraph of 40 to 90 words the horizon makes possible, placed after a sentence you copy exactly, or at the end. Everything else in the section stays word for word and must not be returned. Return no amendment at all when nothing the horizon settles would change a sentence. Every quote must be verbatim. A quote that does not match is discarded. Amended and added sentences obey the style contract: second person, behaviour the reader can check, and rule 1 for any name. The rising sign, a house, a ruler or a lot may be named once inside a sentence, with what it means for the reader in plain words, at most one a paragraph. Anything ahead is a possibility: could, might, you may notice, never will.`;
 
 /** Typographic variants the model swaps freely and a reader never notices, as CitedText softens them. */
 function soften(s: string): string {

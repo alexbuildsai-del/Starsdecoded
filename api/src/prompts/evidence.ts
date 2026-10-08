@@ -12,9 +12,9 @@
 import { z } from "zod/v4";
 import { hasHorizon, type NatalChartData } from "../lib/chartCalculation.js";
 import {
-  TRADITIONAL_PLANETS, houseRulers, lots, sect, sectPayload, type Dignity,
+  TRADITIONAL_PLANETS, houseRulers, lots, sect, sectOf, sectPayload, type Dignity,
 } from "../lib/traditional.js";
-import { ASPECTS, BODIES, BODY_LABELS, SIGNS, cap, ordinal, type Body } from "./vocabulary.js";
+import { ASPECTS, BODIES, BODY_LABELS, SIGNS, STRUCTURE, cap, ordinal, type Body } from "./vocabulary.js";
 import { fixed, repair, type Check, type Validated } from "./checks.js";
 
 const BodyEnum = z.enum(BODIES);
@@ -281,21 +281,33 @@ export function reconcileClaims(section: unknown, claims: Claim[], chart: NatalC
   return { claims: kept, checks };
 }
 
+/**
+ * A sect role in the words of the vocabulary's sect lines ("Born by day: the Sun leads, Jupiter helps, Saturn steadies,
+ * Mars costs more"), since a reader's evidence never says sect, benefic or malefic (rule 11). Of the two helpers, the
+ * one in step with the chart helps more.
+ */
 const ROLE_LABEL: Record<z.infer<typeof SectRoleEnum>, string> = {
-  sect_light: "the sect light",
-  benefic_of_sect: "the benefic of sect",
-  benefic_out_of_sect: "the benefic out of sect",
-  malefic_of_sect: "the malefic of sect",
-  malefic_out_of_sect: "the malefic out of sect",
+  sect_light: "leads",
+  benefic_of_sect: "helps most",
+  benefic_out_of_sect: "helps less",
+  malefic_of_sect: "steadies",
+  malefic_out_of_sect: "costs more",
 };
 
 const ANGLE_LABEL: Record<z.infer<typeof AngleEnum>, string> = {
   ascendant: "Ascendant", midheaven: "Midheaven",
 };
 
-const DIGNITY_LABEL: Record<Dignity, string> = {
-  domicile: "in domicile", exaltation: "exalted", detriment: "in detriment", fall: "in fall", peregrine: "peregrine",
-};
+/**
+ * A ruler's comfort in its sign as its crisp line names it (reading 3), the words the brief and the primer use, never
+ * the key the claim carries; no special standing has no word, so its line says none.
+ */
+const DIGNITY_LABEL: Record<Dignity, string> = Object.fromEntries(
+  (["domicile", "exaltation", "detriment", "fall", "peregrine"] as const).map((d) => {
+    const words = STRUCTURE[d].crisp.split(":")[0];
+    return [d, d === "peregrine" ? "" : `, ${words.charAt(0).toLowerCase()}${words.slice(1)}`];
+  }),
+) as Record<Dignity, string>;
 
 /** The reader-facing line for a validated reference. Deterministic, never model text. */
 export function labelEvidence(e: EvidenceRef, chart: NatalChartData): string {
@@ -310,11 +322,14 @@ export function labelEvidence(e: EvidenceRef, chart: NatalChartData): string {
     case "aspect":
       return `${BODY_LABELS[e.body1 as Body]} ${e.type} ${BODY_LABELS[e.body2 as Body]}, ${e.orb.toFixed(1)}° orb`;
     case "ruler":
-      return `${BODY_LABELS[e.ruler as Body]} rules the ${ordinal(e.house)} and sits in ${cap(e.rulerSign)}, ${ordinal(e.rulerHouse)} house, ${DIGNITY_LABEL[e.dignity]}`;
+      return `${BODY_LABELS[e.ruler as Body]} rules the ${ordinal(e.house)} and sits in ${cap(e.rulerSign)}, ${ordinal(e.rulerHouse)} house${DIGNITY_LABEL[e.dignity]}`;
     case "lot":
       return `Lot of ${cap(e.lot)} in ${cap(e.sign)}, ${ordinal(e.house)} house`;
-    case "sect":
-      return `${BODY_LABELS[e.body as Body]} is ${ROLE_LABEL[e.role]}`;
+    case "sect": {
+      const body = `${e.body === "sun" || e.body === "moon" ? "the " : ""}${BODY_LABELS[e.body as Body]} ${ROLE_LABEL[e.role]}`;
+      const born = sectOf(chart)?.sect;
+      return born ? `Born by ${born}, ${body}` : cap(body);
+    }
     case "angle": {
       const a = chart.angles?.[e.angle];
       return a ? `${ANGLE_LABEL[e.angle]} · ${a.degree.toFixed(1)}° ${cap(e.sign)}` : `${ANGLE_LABEL[e.angle]} in ${cap(e.sign)}`;

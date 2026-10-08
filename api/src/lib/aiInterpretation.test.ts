@@ -160,7 +160,7 @@ test("a report fails only after the claims-only repair fails too, and the repair
   }
 });
 
-test("a drawn run calls every section and keeps the rising part", async () => {
+test("a drawn run calls every section, keeps the rising part, and stores each house card with its blocks and Often noticed", async () => {
   calls.length = 0;
   const drawnTriad = { ...(REPLIES.natal_triad as object), rising: { label: "Capricorn rising", text: PARA }, claims: [
     { quote: "You investigate first and commit second.", evidence: [{ kind: "placement", body: "sun", sign: "scorpio", house: 11 }] },
@@ -182,6 +182,9 @@ test("a drawn run calls every section and keeps the rising part", async () => {
     assert.equal(out.meta.horizon, "known");
     assert.equal(out.meta.sect, "day");
     assert.ok(out.houses && out.houses.houses.length === 12);
+    // Often noticed is filled in code after the reply, so only the stored report shows the pipeline kept it (ADR-403).
+    assert.ok(out.houses.houses.every((h) => Array.isArray(h.retrograde) && "stellium" in h && "noticed" in h));
+    assert.ok(out.houses.houses.some((h) => h.noticed !== null && h.noticed.idea.length > 0));
     assert.equal(out.triad.rising?.label, "Capricorn rising");
     assert.ok(out.angleMeanings);
     assert.ok(calls.includes("natal_houses"));
