@@ -69,6 +69,7 @@ Roughly in order. Lines for the brain carry a dry lab run.
 - B-81 · `/sample` chapter 9 still has "Home as destiny, love as friction" and two more fate lines; refresh /sample from the next passing Release or rewrite · QA-07 #9, QA-06 #14
 - B-82 · Model passages for Compatibility, Timeline and Ask, once the Personal report's have been read at a Release; with a dry lab run · ADR-383, R19 plan
 - B-83 · Two 9:16 reels from the loading story's scenes, rendered in HyperFrames and posted only after the Owner's yes, through /marketing · report-loading-story §6, ADR-324, ADR-388
+- B-84 · `hemisphereEmphasis` (`chartCalculation.ts`, in the contract) counts east as houses 1 to 6, the same as below the horizon, and nothing reads it; remove it or take it from `chartPatterns` · R19 plan, ADR-404
 
 ## Waiting on Alex
 
