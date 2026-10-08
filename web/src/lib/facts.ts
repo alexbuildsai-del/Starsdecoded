@@ -5,13 +5,18 @@
  */
 
 export interface Fact {
-  id: "retrograde" | "east-left" | "house-sign" | "saturn-return";
+  id: "retrograde" | "stellium" | "east-left" | "house-sign" | "saturn-return";
   title: string;
   sentences: readonly string[];
   /** Where the Owner asked, so the log keeps its own history. */
   askedIn: string;
   /** Which small copy of a drawing the product already makes the card shows beside the words. */
-  drawing: "dial-retrograde" | "hero-east" | "wheel-house" | "age-ring";
+  drawing: "dial-retrograde" | "sign-stellium" | "hero-east" | "wheel-house" | "age-ring";
+  /**
+   * True when the drawing is read off the horizon (the east, the houses), so a chart with no birth time cannot show it.
+   * The retrograde loop, a Saturn return and a stellium by sign need none.
+   */
+  needsHorizon: boolean;
 }
 
 export const FACTS: readonly Fact[] = [
@@ -20,11 +25,24 @@ export const FACTS: readonly Fact[] = [
     title: "Planets can look like they go backwards?",
     sentences: [
       "They don't really.",
-      "From Earth, a planet can seem to slide back for a few weeks while Earth passes it, like a slower car seems to roll back when you overtake it.",
+      "Earth and the planet pass each other on their way round the Sun, and that makes the planet seem to slide back for weeks or months.",
       "This is called retrograde, and your chart marks it R.",
     ],
     askedIn: "Review 05/10, note 11",
     drawing: "dial-retrograde",
+    needsHorizon: false,
+  },
+  {
+    id: "stellium",
+    title: "What's a stellium?",
+    sentences: [
+      "When three or more planets sit in the same sign, astrologers call it a stellium.",
+      "That part of life gets a lot of your attention.",
+      "To balance it, people look to the opposite house.",
+    ],
+    askedIn: "Review 08/10, note 7",
+    drawing: "sign-stellium",
+    needsHorizon: false,
   },
   {
     id: "east-left",
@@ -36,6 +54,7 @@ export const FACTS: readonly Fact[] = [
     ],
     askedIn: "Review 05/10, round 3",
     drawing: "hero-east",
+    needsHorizon: true,
   },
   {
     id: "house-sign",
@@ -46,6 +65,7 @@ export const FACTS: readonly Fact[] = [
     ],
     askedIn: "Review 05/10, note 18",
     drawing: "wheel-house",
+    needsHorizon: true,
   },
   {
     id: "saturn-return",
@@ -56,5 +76,6 @@ export const FACTS: readonly Fact[] = [
     ],
     askedIn: "Review 05/10, note 7",
     drawing: "age-ring",
+    needsHorizon: false,
   },
 ];

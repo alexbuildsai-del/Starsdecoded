@@ -5,10 +5,12 @@
  * There is no way to close it: it goes when the screen does. Reduced motion shows one fact still and fills nothing; the
  * bars still jump.
  *
- * The drawings are the reader's own chart where it can be, else Mira's, worked out in the browser (R-3.1).
+ * The drawings are the reader's own chart, worked out in the browser (R-3.1); Mira's only where no chart is given. A chart
+ * with no birth time shows the facts whose drawing needs no horizon, and the stellium fact shows only on a chart that has a
+ * stellium, drawn on it. Under 640 px the card shrinks (B-64) so a loading screen's chart and card can show together.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent, type PointerEvent } from "react";
-import { longitudeAt, speedAt, type SkyBody } from "@workspace/engine";
+import { chartPatterns, longitudeAt, speedAt, type SkyBody } from "@workspace/engine";
 import { NatalWheel } from "@/components/chart/NatalWheel";
 import { TriadPlate } from "@/components/report/TriadPlate";
 import { AgeRing } from "@/components/timeline/AgeRing";
@@ -16,9 +18,10 @@ import { Dial } from "@/components/timeline/Dial";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { DIAL, dialAt, framesFor, trackRadii, type DialFrame, type DialNatal } from "@/lib/dial";
 import { FACTS, type Fact } from "@/lib/facts";
+import { renderFor } from "@/lib/planet-renders";
 import { MIRA } from "@/site/data/timeline/mira";
 import { samplePerson } from "@/site/data/people";
-import type { ChartData } from "@/types/chart";
+import { PLANET_GLYPHS, type ChartData } from "@/types/chart";
 
 const DWELL_MS = 8000;
 const FADE_MS = 450;
@@ -92,10 +95,66 @@ function saturnAge(): number | null {
   return MIRA.finder.cycles.find((c) => c.id === "saturn-return")?.age ?? null;
 }
 
-function Drawing({ drawing, chart }: { drawing: Fact["drawing"]; chart: ChartData }) {
-  const mira = samplePerson("mira")?.chart;
-  // The east and the houses are read off the horizon, so a chart without a birth time borrows Mira's.
-  const timed = chart.angles ? chart : (mira ?? chart);
+interface Stellium {
+  sign: string;
+  bodies: string[];
+}
+
+// The fullest stellium by sign, which needs no horizon: chartPatterns is given the angles only when the chart has them.
+function stelliumOf(chart: ChartData): Stellium | null {
+  const { stelliums } = chartPatterns(
+    chart.planets,
+    chart.angles ? { ascendant: chart.angles.ascendant, midheaven: chart.angles.midheaven } : undefined,
+  );
+  return stelliums.reduce<Stellium | null>((best, s) => (!best || s.bodies.length > best.bodies.length ? s : best), null);
+}
+
+const RULER = { from: 10, to: 86, y: 70, mark: 20, gap: 21 };
+
+/** One sign as a ruler, 0 to 30 degrees, with each body of the stellium on it at its own degree. */
+function StelliumPicture({ chart, stellium }: { chart: ChartData; stellium: Stellium }) {
+  const lastX: number[] = [];
+  const marks = stellium.bodies
+    .map((body) => ({ body, x: RULER.from + ((chart.planets[body]?.degree ?? 0) / 30) * (RULER.to - RULER.from) }))
+    .sort((a, b) => a.x - b.x)
+    .map((m) => {
+      let lane = lastX.findIndex((x) => m.x - x >= RULER.gap);
+      if (lane < 0) lane = lastX.length;
+      lastX[lane] = m.x;
+      return { ...m, y: RULER.y - 14 - lane * RULER.gap };
+    });
+  return (
+    <svg viewBox="0 0 96 96" className="block size-24" role="presentation">
+      <line x1={RULER.from} x2={RULER.to} y1={RULER.y} y2={RULER.y} stroke="var(--sky-dim)" strokeWidth={3} strokeLinecap="round" />
+      {[RULER.from, RULER.to].map((x) => (
+        <line key={x} x1={x} x2={x} y1={RULER.y - 5} y2={RULER.y + 5} stroke="var(--sky)" strokeWidth={1.5} />
+      ))}
+      {marks.map(({ body, x, y }) => {
+        const src = renderFor(body, RULER.mark);
+        return (
+          <g key={body}>
+            <line x1={x} x2={x} y1={y + RULER.mark / 2} y2={RULER.y} stroke="var(--sky-dim)" strokeWidth={1} />
+            {src ? (
+              <image href={src} x={x - RULER.mark / 2} y={y - RULER.mark / 2} width={RULER.mark} height={RULER.mark} />
+            ) : (
+              <g>
+                <circle cx={x} cy={y} r={RULER.mark / 2} fill="#11161F" stroke="var(--sky)" strokeOpacity={0.7} />
+                <text x={x} y={y + 3.4} textAnchor="middle" fontSize={9.5} fill="var(--sky)">
+                  {PLANET_GLYPHS[body] ?? ""}
+                </text>
+              </g>
+            )}
+          </g>
+        );
+      })}
+      <text x={48} y={90} textAnchor="middle" fontSize={10} fill="#AEB6C6" className="font-label uppercase" letterSpacing={1.2}>
+        {stellium.sign}
+      </text>
+    </svg>
+  );
+}
+
+function Drawing({ drawing, chart, stellium }: { drawing: Fact["drawing"]; chart: ChartData; stellium: Stellium | null }) {
   const natal = useMemo(() => natalOf(chart), [chart]);
   const loop = useMemo(() => (drawing === "dial-retrograde" ? loopFrames(natal, new Date()) : null), [drawing, natal]);
 
@@ -125,9 +184,10 @@ function Drawing({ drawing, chart }: { drawing: Fact["drawing"]; chart: ChartDat
       </div>
     );
   }
-  if (drawing === "hero-east") return <TriadPlate chart={timed} name="Chart" className="block h-24 w-24" />;
+  if (drawing === "sign-stellium") return stellium ? <StelliumPicture chart={chart} stellium={stellium} /> : null;
+  if (drawing === "hero-east") return <TriadPlate chart={chart} name="Chart" className="block h-24 w-24" />;
   if (drawing === "wheel-house") {
-    return <NatalWheel chartData={timed} selectedHouse={emptiestHouse(timed)} stops={false} />;
+    return <NatalWheel chartData={chart} selectedHouse={emptiestHouse(chart)} stops={false} />;
   }
   const age = saturnAge();
   return age === null ? null : <AgeRing age={age} progress={1} label="return" size={VISUAL_PX} />;
@@ -140,7 +200,6 @@ export interface DidYouKnowProps {
 
 export function DidYouKnow({ facts = FACTS, chart = null }: DidYouKnowProps) {
   const reduced = useReducedMotion();
-  const count = facts.length;
   const [at, setAt] = useState(0);
   const [fading, setFading] = useState(false);
   const [held, setHeld] = useState(false);
@@ -149,8 +208,15 @@ export function DidYouKnow({ facts = FACTS, chart = null }: DidYouKnowProps) {
   const leaving = useRef(false);
   const swap = useRef<number | undefined>(undefined);
 
-  const shown = facts[Math.min(at, count - 1)];
   const drawn = useMemo(() => chart ?? samplePerson("mira")?.chart ?? null, [chart]);
+  const stellium = useMemo(() => (drawn ? stelliumOf(drawn) : null), [drawn]);
+  // A fact whose drawing the chart cannot give is left out, not drawn on another person's chart (B-76).
+  const list = useMemo(
+    () => facts.filter((f) => (!f.needsHorizon || drawn?.angles) && (f.id !== "stellium" || stellium)),
+    [facts, drawn, stellium],
+  );
+  const count = list.length;
+  const shown = list[Math.min(at, count - 1)];
 
   const go = useCallback((to: number, now: boolean) => {
     const next = ((to % count) + count) % count;
@@ -220,7 +286,7 @@ export function DidYouKnow({ facts = FACTS, chart = null }: DidYouKnowProps) {
   return (
     <section
       aria-label="Did you know"
-      className="flex w-full flex-col gap-2 rounded-xl border border-[#242C3B] bg-[#11161F] px-3.5 pb-1.5 pt-3.5 text-left"
+      className="flex w-full flex-col gap-2 rounded-xl border border-[#242C3B] bg-[#11161F] px-3.5 pb-1.5 pt-3.5 text-left max-sm:gap-1 max-sm:px-3 max-sm:pt-3"
       onPointerEnter={hold}
       onPointerLeave={letGo}
       onFocus={focused}
@@ -228,29 +294,31 @@ export function DidYouKnow({ facts = FACTS, chart = null }: DidYouKnowProps) {
     >
       <span className="font-label text-[11px] font-medium uppercase leading-[1.4] tracking-[.14em] text-[#D4B06A]">Did you know</span>
       <div
-        className={`grid min-h-24 grid-cols-[minmax(0,1fr)_96px] items-center gap-3.5 transition-opacity duration-[450ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none ${fading ? "opacity-0" : "opacity-100"}`}
+        className={`grid min-h-24 grid-cols-[minmax(0,1fr)_96px] items-center gap-3.5 max-sm:min-h-16 max-sm:grid-cols-[minmax(0,1fr)_64px] max-sm:gap-2.5 transition-opacity duration-[450ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none ${fading ? "opacity-0" : "opacity-100"}`}
       >
         {/* Every fact's words sit in one cell, unseen but for the one shown, so the card keeps the height of the longest. */}
         <div className="grid min-w-0">
-          {facts.map((fact) => (
+          {list.map((fact) => (
             <div key={fact.id} aria-hidden="true" className="invisible col-start-1 row-start-1 flex min-w-0 flex-col gap-1.5">
-              <p className="font-display text-[19px] font-normal leading-tight">{fact.title}</p>
-              <p className="text-[14.5px] leading-relaxed">{fact.sentences.join(" ")}</p>
+              <p className="font-display text-[19px] font-normal leading-tight max-sm:text-[17px]">{fact.title}</p>
+              <p className="text-[14.5px] leading-relaxed max-sm:text-[13.5px] max-sm:leading-snug">{fact.sentences.join(" ")}</p>
             </div>
           ))}
           <div className="col-start-1 row-start-1 flex min-w-0 flex-col gap-1.5" aria-live="polite">
-            <p className="font-display text-[19px] font-normal leading-tight text-[#E8EBF2]">{shown.title}</p>
-            <p className="text-[14.5px] leading-relaxed text-[#AEB6C6]">{shown.sentences.join(" ")}</p>
+            <p className="font-display text-[19px] font-normal leading-tight text-[#E8EBF2] max-sm:text-[17px]">{shown.title}</p>
+            <p className="text-[14.5px] leading-relaxed text-[#AEB6C6] max-sm:text-[13.5px] max-sm:leading-snug">{shown.sentences.join(" ")}</p>
           </div>
         </div>
         {/* A picture of the idea, not a control: inert keeps the dial's slider out of the tab order. */}
-        <div aria-hidden="true" inert style={{ ...TOKENS, width: VISUAL_PX }} className="grid h-24 place-items-center">
-          <Drawing drawing={shown.drawing} chart={drawn} />
+        <div aria-hidden="true" inert style={TOKENS} className="relative h-24 w-24 max-sm:h-16 max-sm:w-16">
+          <div className="absolute left-0 top-0 grid size-24 origin-top-left place-items-center max-sm:scale-[.667]">
+            <Drawing drawing={shown.drawing} chart={drawn} stellium={stellium} />
+          </div>
         </div>
       </div>
       {count > 1 && (
         <div role="group" aria-label="Facts" className="flex gap-1.5">
-          {facts.map((fact, i) => (
+          {list.map((fact, i) => (
             <button
               key={fact.id}
               type="button"
