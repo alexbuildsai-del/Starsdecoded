@@ -2,7 +2,7 @@
 
 Ideation 2026-10-09 with the Owner, who asked for the Personal report to be "much more visual and interactive, with
 motion", with "explainer videos as you scroll", and to "go wild". Artifact: https://claude.ai/artifact/NQM6GSnEpZ6w7cKSsgMSis.
-Status: **draft**, version 5, two questions open. Shown on Audrey Hepburn's chart (the /sample fixture, 4 May 1929, 03:00,
+Status: **draft**, version 6, two questions open. Shown on Audrey Hepburn's chart (the /sample fixture, 4 May 1929, 03:00,
 Ixelles), computed by `@workspace/engine`. Report lines are quoted from the stored sample run.
 Touches `review-09-10` (§2 the primer and §2b the chart system, a draft on `claude/cool-knuth-3qanic`), `natal-report-ui`,
 `report-loading-story` (the frame-by-time drawing), `explain-like-a-friend` (no Did you know card in chapters), `timeline`
@@ -99,7 +99,7 @@ Each is its own ideation (artifact #later), and question 2 picks the next one.
 13. Real chart data only: fixtures hold birth data, charts are computed at run time. The buyer walk is unchanged.
 
 ## Screens
-The artifact, version 5, each screen on a computer and a phone side by side: #watch (chapter 01's explainer, three start
+The artifact, version 6, each screen on a computer and a phone side by side: #watch (chapter 01's explainer, three start
 modes), #chapters (all ten, beside today's screen), #touch (the three tools), #follow (side column, strip, small wheel),
 #later (the three later ideas), #made (ways A, B and C), #rules, #questions, #sources.
 
