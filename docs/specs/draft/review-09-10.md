@@ -2,7 +2,7 @@
 
 Ideation 2026-10-09 with the Owner from the Notion page "Review 09/10": staging after R19, tested on Thibault's Personal
 report (18/05/1993, 8:20, Brussels) and the Alex and Luna Compatibility report (parent and child, Luna under 1).
-Artifact: https://claude.ai/artifact/B3FYNhYVK3otrSRUsmHgdr. Status: **draft**, version 5 after the Owner's fourth look (2026-10-09).
+Artifact: https://claude.ai/artifact/B3FYNhYVK3otrSRUsmHgdr. Status: **draft**, version 6 after the Owner's fifth look (2026-10-09).
 Touches `explain-like-a-friend` (rule 1, Did you know cards, the primer), `review-08-10` (§5 retrograde blocks, §8 rulers,
 §9 observations), `review-01-10` and `compatibility-report-p2` (pair chapters and scenes), ADR-176 (the written age),
 ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (design system).
@@ -57,20 +57,23 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   played only on screen, the last frame under reduced motion, words only: (1) the horizon stays flat and the sky turns under
   it until the rising sign reaches the east, then the houses count round; (2) each house lights in turn with its word and
   what it covers (`HOUSE_COVERS`), no drawings; (3) a house's sign lights and a line runs to its ruler (three of the
-  reader's houses in turn); (4) "A planet is at home in some signs", starting from the planet: Venus wants calm and
-  closeness; Taurus and Libra want that too (at home); Aries and Scorpio want a win or intensity (least at ease); then the
-  reader's Venus lands at its degree. The table folds behind "Where each planet is at home"; "The cool fact" goes.
+  reader's houses in turn); (4) "At home, or least at ease", in the words the writers, the brief and the claims already
+  use (`vocabulary.ts:303-306`, `brief.ts` `comfortIn`, `evidence.ts:34`): Venus is how you love; in Taurus and Libra it is at
+  home; in Aries and Scorpio least at ease; then the reader's Venus lands, with the why ("Venus wants ease and peace; Aries
+  goes first and wants to win"). **The primer shows no idea the prose and claims don't use.** The table folds behind "Where each planet is at home"; "The cool fact" goes.
 - **The Jupiter-in-4th fact** ("Could home bring help?") is read in the 4th house card.
 
 ### 2b. The chart system (the Owner, v4: "settle it once and for all")
 - **The backbone is the landing page's wheel (`HorizonWheel.tsx`), kept exactly as it is** (the Owner: "don't rebuild
   it"): the horizon flat with the rising degree at 9 o'clock and the chart turning under it (already decided); two curved
   lines on the rim following the circle, the sign outside and "4 · HOME" inside, never straight or spilling out; 5° ticks;
-  renders at their true degree, crowding stepping inward; aspects inside the inner circle in its colours, solid applying,
-  dashed separating. Every other chart takes its format through `wheel-geometry.ts`; on a report chart Chiron and the
+  renders at their true degree, crowding stepping inward; the aspect lines exactly as the site draws them (the engine's
+  list and orbs, fainter when wide, dashed separating), on the full chart only; a teaching chart shows only the line its
+  card is about. **Palette** (the Owner, v6): inside the product the frame is the muted grey-blue (`--muted-foreground`)
+  and brass marks only what the words are about (a lit house, sign, planet or line); the landing keeps its brass. Every other chart takes its format through `wheel-geometry.ts`; on a report chart Chiron and the
   nodes are always drawn.
-- **One Ascendant marker.** The MC is never the same icon: it is the landing's "MC" label at the top of its line
-  (`AngleGlyph`'s midheaven variant goes). Small charts (pair plates, the hero) draw no axes. Links between two people keep
+- **One Ascendant marker**, on the flat horizon. **No MC line** (the Owner, v6: nothing explains it): a chart draws the MC
+  only beside the sentence that explains it, as a label, never the Ascendant's marker (`AngleGlyph`'s midheaven variant goes). Small charts (pair plates, the hero) draw no axes. Links between two people keep
   the ledger's glyph (teal, brass, the rose zigzag).
 - Seven states: Full, Focus (one house lit, the rest dimmed), Teach (few parts, moving), Pair (two plates apart, named,
   never joined, ADR-97), Small (Sun and Moon), No birth time (signs only), Loading (builds in the same geometry).
@@ -118,10 +121,12 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   the hosts failed to resolve; unverified). **The link is shown on the two charts themselves** (the Owner, v5: no third
   circle): each named chart ("You · Beatrice", "Athena") lights its own planet with its owner's ring (yours blue, theirs
   lilac), dims the rest, and shows the other person's planet as a faint dashed guest at its true degree; the angle is drawn
-  across the inner circle, where the chart draws aspects, in the link's glyph, with its degrees at the centre. This puts
+  across the inner circle, where the chart draws aspects, in the link's glyph, with its degrees at the centre, and the
+  angle's whole shape faint behind it (a triangle for a trine, a square, a hexagon for a sextile), named under the charts. This puts
   one planet of the other chart on a plate: supersedes ADR-97 in that part, at the Owner's ask. Each card: tag, a title in words, both
   planets with owner and "(Nth, word)", what the angle means, one everyday example by the child's age, Try together with
-  its tick box. Phone: stage on top, cards under it; computer: stage left, cards right. Closing stays. Same price, one credit.
+  its tick box. Phone: stage on top (its charts at most a quarter of the screen's height), cards under it; a card longer than its space
+  scrolls before the next locks; checked at 360×640, 375×667, 390×844, 430×932. Computer: stage left, cards right. Closing stays. Same price, one credit.
 
 ### 5. Observations, docs and the roadmap
 - Live: 22 ideas; waiting: 8 (listed on the Notion "Observations inbox" page, 2026-10-09); out: 18. Second sources need the
@@ -150,19 +155,18 @@ houses; the explainer video itself; the private-repo decision (the efficiency se
 7. No chapter of the Personal report renders a Did you know card; the Family chapter says Sun as father, Moon as mother.
 8. The pair hero holds "Alex test Luna model" and "Luna", and a 30-letter name, at 390 px and 1280 px with no overlap and no
    line between the charts; Scroll sits at the screen's bottom.
-9. No chart draws a body as a dot or a Unicode symbol (render fallback excepted), axes on a small chart, the MC with the
-   Ascendant's marker, rim text off its arc, or a hex colour outside the tokens (grep and the probe).
-10. The walk snaps one card a screen at 390 px and 1280 px; each link is drawn on both charts, every lit planet with its
-    owner's ring and the other's as a guest; no third circle.
+9. No chart draws a body as a dot or a Unicode symbol (render fallback excepted), axes on a small chart, an MC line, brass on
+   an unlit part, rim text off its arc, or a hex colour outside the tokens (grep and the probe).
+10. The walk snaps one card a screen at the four phone sizes and 1280 px; each link is drawn on both charts with its shape,
+    every lit planet with its owner's ring and the other's as a guest; no third circle.
 
 ## Screens
-The artifact, version 4: Part 1 the voice (three ideas, words we avoid, one voice for every writer); Part 2 the chart system
-(backbone, seven states, do's and don'ts, parts); Part 3 the primer loops and the house card; Part 4 Did you know; Part 5 the
-hero, how two planets meet, the walk on a phone and a computer, the topics with owners; Part 6 observations and docs.
+The artifact, version 6: the voice, the chart system (backbone, palette, states, do's and don'ts, parts), the primer and
+the house card, Did you know, the hero, how two planets meet, the walk at four phone sizes and on a computer, the docs.
 
 ## Open questions (each with its default)
 Answered 2026-10-09: the walk (B) with no scenes and no third circle; Chiron, the nodes and R back on the cards; the hero
-stacked plus two skies, no line; the landing wheel as backbone; no house drawings in the primer; docs and the private repo
+stacked plus two skies, no line; the landing wheel as backbone; no MC line; grey-blue, brass for what's lit; no house drawings; docs and the private repo
 go to the efficiency session; phone and computer in every mock.
 1. Allow digits and "/" in names? Recommended and default: **yes**.
 2. Group the links by their faster planet, computed in code? Recommended and default: **yes**.
@@ -188,6 +192,9 @@ go to the efficiency session; phone and computer in every mock.
 - The pair hero: names stacked, each person's own chart beside them, no line (the Owner).
 - The walk: one card a screen with snap; the link drawn on both charts with the other's planet as a guest (supersedes
   ADR-97 in part); owners named and ringed; How two planets meet before it and on the site (the Owner).
-- The landing wheel is the chart backbone, unchanged; one Ascendant marker, the MC its label; no house drawings (the Owner).
+- The landing wheel is the chart backbone, unchanged; one Ascendant marker; no MC line; no house drawings (the Owner).
+- Inside the product the chart is grey-blue, brass only for what is lit; the landing keeps its brass (the Owner; the
+  landing's exception Decided by Claude). Aspect lines only on the full chart, drawn as the site draws them.
+- The primer and every chart caption use only ideas the prose and claims use (the Owner).
 - Every ideation mock shows phone and computer side by side (the Owner; CLAUDE.md and `/ideate`).
 - Pending: names with digits (yes); groups by the faster planet (yes); house drawings out of the loading story (yes).
