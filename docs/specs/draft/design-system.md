@@ -5,7 +5,8 @@ first ideation page: https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA49 · Supers
 
 **The Owner's direction (2026-10-09):** lift today's look, don't redraw it. Today's best card is the standard (a quiet
 grey label, a big title, the body, a mono data line, two buttons); only Share moves, to the far end of the row. The
-birth date, time and place fields stay as they are. Chips keep their icon slot (tone dot, R badge, planet render).
+birth fields keep how they work; their look may change (proposal in the BirthFields card). Chips keep their icon slot.
+Big buttons move off Space Grotesk to Inter; Space Grotesk stays small (labels, chips, compact buttons).
 Code first: keep Tailwind, shadcn and Radix, adapt what exists. Every removed or merged example is shown by number.
 
 ## Why
@@ -35,7 +36,7 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
      `sidebar-*`, `chart-1..5`, `elevate-*`, the four palette copies and the `@replit` comments go.
    - Type: 15 named styles taken from today's best uses. Display (Newsreader 400): hero 40, section 34, page-title 30,
      sheet-title 24, card-title 20, lede 18. Text (Inter): prose 15, ui 14, small 13.5, caption 12. Label (Space
-     Grotesk): kicker 11 at .24em, label 11 at .16em, button 14.5, button-compact 13. Numbers (Plex Mono, tabular):
+     Grotesk, only small): kicker 11 at .24em, label 11 at .16em, button-compact 13. Button (Inter 500): 15. Numbers (Plex Mono, tabular):
      data 12, data-sm 11, stat 28. Floor 11 px. Fonts unchanged.
    - Corners: inner 6 · control 8 · card 14 · sheet 20 · pill. Spacing: the 4 px scale only.
    - Motion: one curve `cubic-bezier(.16,1,.3,1)`, three durations 150 · 300 · 600 ms; loading stories keep their
@@ -47,8 +48,9 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
      slot: ToneDot, RetrogradeBadge or PlanetBody), ToneDot, RetrogradeBadge, StatusDots, Skeleton and Progress,
      TickBox, Input, Mark, PlanetBody.
    - Molecules: Card (surface, glass, tint, tone; today's favourite card is the standard, Share at the row's far end),
-     Well and Strip, SegmentedControl, ChoiceTile, BirthFields (kept as is, place search included), InlineError and
-     Alert, Menu and Popover, EmptyState.
+     Well and Strip, SegmentedControl, ChoiceTile, BirthFields (same behaviour and our own place search; one label style,
+     visible edges, four pills instead of the part-of-day select, Search as ButtonCompact; open question 7), InlineError and
+     Alert, Menu and Popover, EmptyState. Atoms also hold Logo (Mark, Wordmark, app icon; one Wordmark part replaces three copies).
    - Organisms: Sheet (one bottom sheet), Dialog, TopBar, ReportBlocks, HouseCard, Checklist, ChartDrawings
      (SignRing, TriadRing on `chart/wheel-geometry.ts`), Footer; ShareWindow, AskPanel, GiftFlow, QuickLook rebuilt
      on Sheet and Dialog.
@@ -80,7 +82,6 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
 - A new look: colours, fonts and layout stay as approved; the visible changes are the floors in Scope 7,
   near-copy colours snapping to their token, outliers taking the standard part, and Share moving to the row's end,
   each shown in the Design System and again at 390 px in the round report.
-- The birth date, time and place fields (kept as is, by the Owner).
 - Figma. It can be fed later from `tokens.json`.
 - Installing a third-party HIG review skill (see Decisions).
 - Light mode.
@@ -131,6 +132,9 @@ two indigos, the Apple table and the rounds: https://claude.ai/artifact/CubRdNjH
 5. **App buttons take the site's 46 px button?** It moves the dashboard, sheets and report bar the most.
    Recommendation: yes. Default: yes.
 6. **Anything tagged Removed or Becomes to keep?** Say its number. Default: none.
+7. **The birth fields proposal?** Recommendation: take it. Default: take it; any field kept by its number (F1 to F4).
+8. **Big buttons in Inter?** Compared with Space Grotesk and Newsreader in the Button card. Recommendation: Inter 500
+   15px. Default: Inter.
 
 ## Decisions to record
 
