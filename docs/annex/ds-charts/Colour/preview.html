@@ -124,7 +124,7 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
   const n360=d=>((d%360)+360)%360;
   const ns="http://www.w3.org/2000/svg";let uid=0;
   const el=(t,a,p)=>{const e=document.createElementNS(ns,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;};
-  const txt=(p,x,y,s,a)=>{const e=el("text",Object.assign({x,y,"text-anchor":"middle","font-family":"Space Grotesk"},a),p);e.textContent=s;return e;};
+  const txt=(p,x,y,s,a)=>{const e=el("text",Object.assign({x,y,"text-anchor":"middle","font-family":"Space Grotesk, system-ui, sans-serif"},a),p);e.textContent=s;return e;};
   // Engine output, whole sign. [longitude, house, going backwards]
   const TH={asc:96.61,mc:333.38,p:{sun:[57.32,11],mercury:[59.95,11],venus:[14.12,10],mars:[130.14,2],jupiter:[185.04,4,1],saturn:[329.9,8],uranus:[291.99,7,1],neptune:[290.98,7,1],pluto:[234.05,5,1],moon:[19.41,10],chiron:[138.05,2],north_node:[253.15,6,1],south_node:[73.15,12,1]}};
   const A={asc:311.14,mc:248.6,p:{sun:[136.44,7],moon:[94.91,6],mercury:[142.47,7],venus:[91.5,6],mars:[9.32,3],jupiter:[62.75,5],saturn:[266.3,11,1],uranus:[267.35,11,1],neptune:[277.85,12,1],pluto:[219.87,10],chiron:[94.26,6],north_node:[345.47,2,1],south_node:[165.47,8,1]}};
@@ -152,10 +152,10 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
     const hl={},houseText={},signs={};
     for(let i=0;i<12;i++){const a0=th(i*30),a1=a0+30,h=((i-first+12)%12)+1;
       signs[i]=el("path",{d:wedge(cx,cy,R.so,R.si,a0,a1),fill:RIM,"fill-opacity":h%2?.05:.085,stroke:RIM,"stroke-opacity":.3},L.signs);
-      if(o.labels!==false){el("path",{id:id+"s"+i,d:arcLabel(cx,cy,R.bs,a0+1.5,a1-1.5),fill:"none"},L.signText);const t=el("text",{"font-family":"Space Grotesk","font-size":S*.0225,"letter-spacing":S*.0023,fill:RT,"dominant-baseline":"middle"},L.signText);const tp=el("textPath",{href:"#"+id+"s"+i,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=SIGNS[i].toUpperCase();}}
+      if(o.labels!==false){el("path",{id:id+"s"+i,d:arcLabel(cx,cy,R.bs,a0+1.5,a1-1.5),fill:"none"},L.signText);const t=el("text",{"font-family":"Space Grotesk, system-ui, sans-serif","font-size":S*.0225,"letter-spacing":S*.0023,fill:RT,"dominant-baseline":"middle"},L.signText);const tp=el("textPath",{href:"#"+id+"s"+i,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=SIGNS[i].toUpperCase();}}
     if(o.houses!==false&&c.asc!=null)for(let h=1;h<=12;h++){const a0=th((first+h-1)*30),a1=a0+30;
       hl[h]=el("path",{d:wedge(cx,cy,R.tk,R.as,a0,a1),fill:"#fff","fill-opacity":h%2?.012:.026},L.houses);
-      if(o.labels!==false){el("path",{id:id+"h"+h,d:arcLabel(cx,cy,R.bh,a0+1.5,a1-1.5),fill:"none"},L.houseText);const t=el("text",{"font-family":"Space Grotesk","font-size":S*.019,"letter-spacing":S*.002,fill:FG,"fill-opacity":.55,"dominant-baseline":"middle"},L.houseText);const tp=el("textPath",{href:"#"+id+"h"+h,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=h+" · "+HW[h].toUpperCase();houseText[h]=t;}}
+      if(o.labels!==false){el("path",{id:id+"h"+h,d:arcLabel(cx,cy,R.bh,a0+1.5,a1-1.5),fill:"none"},L.houseText);const t=el("text",{"font-family":"Space Grotesk, system-ui, sans-serif","font-size":S*.019,"letter-spacing":S*.002,fill:FG,"fill-opacity":.55,"dominant-baseline":"middle"},L.houseText);const tp=el("textPath",{href:"#"+id+"h"+h,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=h+" · "+HW[h].toUpperCase();houseText[h]=t;}}
     el("circle",{cx,cy,r:R.si,fill:"none",stroke:RIM,"stroke-opacity":.28},L.circles);
     el("circle",{cx,cy,r:R.as,fill:"none",stroke:RIM,"stroke-opacity":.2},L.circles);
     if(o.ticks!==false)for(let d=0;d<360;d+=5){const a=th(d);const[x0,y0]=pa(cx,cy,R.tk,a),[x1,y1]=pa(cx,cy,R.tk-(d%30===0?S*.02:S*.008),a);el("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:RIM,"stroke-opacity":d%30===0?.42:.16},L.ticks);}
@@ -172,7 +172,7 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
       const tt=el("title",{},g);tt.textContent=NAME[k]+" · "+dm(c.p[k][0])+" "+SIGNS[Math.floor(c.p[k][0]/30)]+(c.p[k][1]?" · "+ord(c.p[k][1])+" ("+HW[c.p[k][1]]+")":"")+(c.p[k][2]?" · going backwards":"");
       const sz=R.node;el("circle",{cx:x,cy:y,r:R.node*(k==="sun"?.48:.62),fill:BG,"fill-opacity":.92},g);
       if(R_[k])el("image",{href:R_[k],x:x-sz/2,y:y-sz/2,width:sz,height:sz},g);else{el("circle",{cx:x,cy:y,r:sz*.42,fill:"#0b0f16",stroke:MUT,"stroke-width":.8},g);txt(g,x,y+sz*.17,PT[k],{"font-size":sz*.5,fill:MUTXT,"font-family":"serif"});}
-      if(c.p[k][2]&&o.r!==false)txt(g,x+R.node*.46,y-R.node*.32,"R",{"font-family":"IBM Plex Mono","font-size":S*.019,fill:DES,"text-anchor":"start"});});
+      if(c.p[k][2]&&o.r!==false)txt(g,x+R.node*.46,y-R.node*.32,"R",{"font-family":"IBM Plex Mono, ui-monospace, monospace","font-size":S*.019,fill:DES,"text-anchor":"start"});});
     function dim(keep,op){for(const k in bodies)bodies[k].setAttribute("opacity",keep.includes(k)?1:op);}
     function ring(k,col){const[x,y]=pos[k];return el("circle",{cx:x,cy:y,r:R.node*.72,fill:"none",stroke:col,"stroke-width":Math.max(1.5,S*.005)},root);}
     return {root,turn,asp,lines,pos,bodies,lane,hl,houseText,signs,L,th,R,cx,cy,S,dim,ring,first};
@@ -195,7 +195,7 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
     if(kind!=="touch")linkLine(g,p0[0],p0[1],p1[0],p1[1],kind);
     const br=bodyR||r*.2;const mark=(k,x,y,col,dash)=>{if(k&&R[k])el("image",{href:R[k],x:x-br,y:y-br,width:2*br,height:2*br},g);else el("circle",{cx:x,cy:y,r:5,fill:col},g);const o=el("circle",{cx:x,cy:y,r:br+3.5,fill:"none",stroke:col,"stroke-width":1.6},g);if(dash)o.setAttribute("stroke-dasharray","3 3");};
     mark(a,p0[0],p0[1],YOU);mark(b,p1[0]+(kind==="touch"?br*1.6:0),p1[1],THEM,true);
-    if(label)txt(g,cx,cy+r*.15,label,{"font-size":r*.2,fill:MUTXT,"font-family":"IBM Plex Mono"});return g;}
+    if(label)txt(g,cx,cy+r*.15,label,{"font-size":r*.2,fill:MUTXT,"font-family":"IBM Plex Mono, ui-monospace, monospace"});return g;}
   const SPEED=["sun","moon","venus","mars","mercury","jupiter","saturn"];
   const GROUP={moon:"Feelings and comfort",mercury:"Talking",venus:"Affection",sun:"Who you are",mars:"Drive and friction",jupiter:"Growing",saturn:"Limits and staying power",outer:"The times you were born into"};
   const LINKS=[
@@ -243,7 +243,7 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
     else el("circle",{cx:a0x,cy:a0y,r:Math.max(3,S*.012),fill:BRASS},g);
     let d=n360(tG-tO);const sweep=d>180?1:0;const ar=w.R.as*.45;const[q0x,q0y]=pa(w.cx,w.cy,ar,tO),[q1x,q1y]=pa(w.cx,w.cy,ar,tG);
     if(kind!=="touch")el("path",{d:`M${q0x} ${q0y} A${ar} ${ar} 0 0 ${sweep} ${q1x} ${q1y}`,fill:"none",stroke:MUTXT,"stroke-width":1},g);
-    txt(g,w.cx,w.cy+S*.012,deg,{"font-family":"IBM Plex Mono","font-size":Math.max(8,S*.034),fill:MUTXT});
+    txt(g,w.cx,w.cy+S*.012,deg,{"font-family":"IBM Plex Mono, ui-monospace, monospace","font-size":Math.max(8,S*.034),fill:MUTXT});
   }
   // The engine's own aspect list for Thibault (calculateNatalChart(...).aspects): pair, type, orb, closing in.
   TH.aspects=[["sun","mercury","conjunction",2.6,1],["sun","saturn","square",2.6,1],["sun","uranus","trine",5.3,1],["sun","pluto","opposition",3.3,1],["moon","venus","conjunction",5.3,0],["moon","uranus","square",2.6,1],["moon","neptune","square",1.6,1],["mercury","jupiter","trine",5.1,1],["mercury","saturn","square",0.1,1],["mercury","pluto","opposition",5.9,1],["venus","mars","trine",4,1],["saturn","pluto","square",5.8,0],["uranus","neptune","conjunction",1,0],["uranus","pluto","sextile",2.1,0],["neptune","pluto","sextile",3.1,0]];
@@ -304,7 +304,7 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
         const on=t>=a&&k<1;T.hl[h].setAttribute("fill",on?BRASS:"#fff");T.hl[h].setAttribute("fill-opacity",on?.22*(1-k):(h%2?.012:.026));}};}
   // A numbered pointer: a small brass-free dot and number set outside the chart, a hairline to the part.
   function callout(svg,n,x0,y0,x1,y1,side){el("line",{x1:x0,y1:y0,x2:x1,y2:y1,stroke:MUTXT,"stroke-opacity":.6,"stroke-width":.8},svg);el("circle",{cx:x0,cy:y0,r:2,fill:MUTXT},svg);
-    const g=el("g",{},svg);el("circle",{cx:x1,cy:y1,r:9,fill:"#1a2130",stroke:MUTXT,"stroke-opacity":.5},g);txt(g,x1,y1+3.6,String(n),{"font-size":10.5,fill:FG,"font-family":"IBM Plex Mono"});}
+    const g=el("g",{},svg);el("circle",{cx:x1,cy:y1,r:9,fill:"#1a2130",stroke:MUTXT,"stroke-opacity":.5},g);txt(g,x1,y1+3.6,String(n),{"font-size":10.5,fill:FG,"font-family":"IBM Plex Mono, ui-monospace, monospace"});}
   // The teaching loops. Each one: a stage element, a caption element, the chart in both sizes.
   const TEACH={
   count(stage,cap){const f=both(stage.querySelector(".fig"),"The sky turns and the houses count",(svg,S)=>{const c=S/2,w=sky(svg,TH,c,c,S*.96,{only:[]});

@@ -27,6 +27,13 @@ We never draw a new chart. Every screen picks a state; a state switches layers, 
 - **No birth time**: changes any state. No houses, horizon, marker; Aries at 9 o'clock; the Moon's stretch (engine band); its lines left out.
 - **Live sky**: Full for the sky now over the visitor's time-zone city (London if unknown). The landing motion stays.
 
+## Interactive (Full, where the chart can be touched)
+| Input | Desktop | Phone | The chart |
+|---|---|---|---|
+| Point at a planet | Hover or keyboard focus | Tap | Brass ring (0.72 of its width) and a chip `Sun · 27°19′ Taurus · 11th (friends)` in mono on #171D29 with a #242C3B edge, above the planet on the top half, below on the bottom half. Nothing dims. |
+| Move between houses | Tab, then arrow keys | — | Brass outline on the focused house, 1.5 px, no fill (replaces the indigo focus ring). Enter or Space picks. |
+| Pick a house | Click, Enter, Space | Tap, or swipe the deck | Focus: house brass 22%, its word white, others 30%, planets outside it 14%, its card opens. |
+
 ## Not covered yet (decide in an ideation)
 - Timeline dial (`components/timeline/Dial.tsx`): how this chart sits inside and how the outer tracks and contact lines go on it.
 - Share image (`ShareCard.tsx`): words only today, on purpose. Whether it carries Sun, Moon and rising.
