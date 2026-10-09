@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "report:lab": "tsx ./src/report-lab.ts",
     "check:shipped": "tsx ./check-shipped.ts",
+    "check:callers": "tsx ./check-callers.ts",
     "check:copies": "tsx ./check-single-copies.ts",
     "test": "node ./test-critical.mjs",
     "test:deep": "node --import tsx --test 'src/**/*.test.ts'",

@@ -4,6 +4,11 @@ name: Site checks
 # axe over every public page, and the web half of the security probe. Keyless: it reads only the public preview, holds
 # no secret, and keeps every report as a workflow artifact, never on a public link. A preview's /api is staging's API
 # (vercel.json), so the probe's API half runs in smoke after the merge instead.
+#
+# A deployment_status run cannot be filtered by path, so the first job reads what the deployed commit changed and the
+# heavy jobs wait for its answer: a commit that touches only docs/, .claude/ or *.md deploys the same site and is not
+# measured again. If the changes cannot be read, the checks run. The web probe rides in the axe job and the address
+# check in the first job, since each takes seconds and a job bills a whole minute.
 on:
   deployment_status:
 
@@ -20,6 +25,8 @@ jobs:
     timeout-minutes: 5
     outputs:
       url: ${{ steps.url.outputs.url }}
+      code: ${{ steps.scope.outputs.code }}
+      group: ${{ steps.scope.outputs.group }}
     steps:
       - id: url
         env:
@@ -32,25 +39,43 @@ jobs:
           fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
-  probe:
-    name: Security probe (web)
-    needs: preview
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.deployment.sha }}
           sparse-checkout: .github/scripts
           persist-credentials: false
-      - run: .github/scripts/security-probe.sh "$WEB_URL" web
+
+      # The deployment is named by its sha, so its branch is whichever one has that commit at its tip. A feature
+      # branch is read against main, so a docs-only push after a code push still measures the code. main (and a
+      # commit no branch points at any more) is read against its own parent and never shares a group, so no run of
+      # a main commit is cancelled by a later one.
+      - id: scope
         env:
-          WEB_URL: ${{ needs.preview.outputs.url }}
-          DEADLINE_SECONDS: 60
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.deployment.sha }}
+        run: |
+          echo "code=true" >> "$GITHUB_OUTPUT"
+          echo "group=sha-$SHA" >> "$GITHUB_OUTPUT"
+          heads=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/branches-where-head" --jq '.[].name' 2>/dev/null || true)
+          if printf '%s\n' "$heads" | grep -qxE 'main|production' || [ -z "$heads" ]; then
+            code=$(.github/scripts/changed-code.sh commit "$SHA")
+          else
+            echo "group=branch-$(printf '%s\n' "$heads" | head -n 1)" >> "$GITHUB_OUTPUT"
+            code=$(.github/scripts/changed-code.sh compare main "$SHA")
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = false ]; then
+            echo "Only docs/, .claude/ or *.md changed, so Lighthouse, axe and the web probe are skipped for this commit." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   lighthouse:
     name: Lighthouse
     needs: preview
+    if: needs.preview.outputs.code != 'false'
+    # A newer push to the same branch makes this run's page obsolete.
+    concurrency:
+      group: site-checks-lighthouse-${{ needs.preview.outputs.group }}
+      cancel-in-progress: ${{ startsWith(needs.preview.outputs.group, 'branch-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -76,6 +101,10 @@ jobs:
   axe:
     name: axe
     needs: preview
+    if: needs.preview.outputs.code != 'false'
+    concurrency:
+      group: site-checks-axe-${{ needs.preview.outputs.group }}
+      cancel-in-progress: ${{ startsWith(needs.preview.outputs.group, 'branch-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -83,14 +112,26 @@ jobs:
         with:
           ref: ${{ github.event.deployment.sha }}
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      # The web half of the security probe. It was a job of its own that billed a minute for seconds of work; it runs
+      # first and the steps below still run after a miss, so one red check never hides the other.
+      - name: Security probe (web)
+        run: .github/scripts/security-probe.sh "$WEB_URL" web
+        env:
+          WEB_URL: ${{ needs.preview.outputs.url }}
+          DEADLINE_SECONDS: 60
+      - if: ${{ !cancelled() }}
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: ${{ !cancelled() }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
       # Only the checks' own packages: the pages come built from the preview.
-      - run: pnpm install --frozen-lockfile --filter @workspace/e2e
-      - run: pnpm --filter @workspace/e2e exec playwright install --with-deps --only-shell chromium
-      - run: pnpm --filter @workspace/e2e test
+      - if: ${{ !cancelled() }}
+        run: pnpm install --frozen-lockfile --filter @workspace/e2e
+      - if: ${{ !cancelled() }}
+        run: pnpm --filter @workspace/e2e exec playwright install --with-deps --only-shell chromium
+      - if: ${{ !cancelled() }}
+        run: pnpm --filter @workspace/e2e test
         env:
           BASE_URL: ${{ needs.preview.outputs.url }}
       - if: ${{ !cancelled() }}

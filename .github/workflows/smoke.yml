@@ -15,8 +15,42 @@ on:
         options: [staging, production]
         default: staging
 
+permissions:
+  contents: read
+
 jobs:
+  # A main push that changes only docs/, .claude/ or *.md leaves staging serving the same site, so its smoke is skipped.
+  # production pushes and manual runs are always checked, and so is any push whose changes cannot be read.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          code=true
+          if [ "$EVENT" = push ] && [ "$REF" = refs/heads/main ]; then
+            code=$(.github/scripts/changed-code.sh compare "$BEFORE" "$AFTER")
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = false ]; then
+            echo "Only docs/, .claude/ or *.md changed, so this push is not smoke-tested." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   smoke:
+    needs: changes
+    if: needs.changes.outputs.code != 'false'
     uses: ./.github/workflows/smoke-run.yml
     with:
       web_url: ${{ (github.ref_name == 'production' || inputs.target == 'production') && 'https://mystarsdecoded.com/' || 'https://starsdecoded-staging.vercel.app/' }}
