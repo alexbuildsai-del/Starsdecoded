@@ -1,6 +1,6 @@
 ---
 name: observe
-description: Read the Owner's sources on Stars Decoded's Notion page "Observations inbox" (screenshots, TikTok links, articles, book pages), split each into single astrology claims, keeping the source's good wording lightly adapted, find each a second independent source, and enter the ideas that have two into api/src/prompts/observations.ts while the rest wait in docs/annex/observations-inbox.md. Use when the Owner types /observe or says he dropped something on the inbox. Never asks the Owner for a source.
+description: Read the Owner's sources on Stars Decoded's Notion page "Observations inbox" (screenshots, TikTok links, articles, book pages), split each into single astrology claims, keeping the source's good wording lightly adapted, find each a second independent source, and enter the ideas that have two into api/src/prompts/observations.ts while the rest wait in docs/annex/observations-inbox.md. Use when the Owner types /observe or says they dropped something on the inbox. Never asks the Owner for a source.
 ---
 
 The observations brain (ADR-403, review-08-10 §9). Text after the command narrows the run: one source, one placement.
@@ -28,8 +28,8 @@ Read first: `api/src/prompts/observations.ts` (its types, its header and the row
    `vocabulary.ts` carry the reason on their own, with no outside lore: written `doctrine("<planet>; <house or sign>")`.
 6. **Place.** Two independent sources, checked against the doctrine: a row in `OBSERVATIONS` with a stable kebab-case
    id, at its place in the table's order (a card shows its first match), each source `{ who, where }`. One source: a row
-   in the annex's waiting table with its key, source and leads. Kept out: a row with its reason. Then a dated line in
-   the annex's Read log with the counts.
+   in the annex's waiting table with its key, source and leads. Left out: a row with its reason. Then a dated line in
+   the annex's Read log with the counts, and the annex's "In reports" list redone from the table, one line per row.
 7. **Check and ship.** The table is the brain and USER-FACING (R-5.5): the api typecheck and critical tier, `pnpm
    report:lab --dry --base r06`, and `observationsFor` printed for a fixture each new key matches, computed at run
    time. Commit both files on a branch with what entered and why; the pull request takes the usual gate (CLAUDE.md).
