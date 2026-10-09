@@ -2,7 +2,7 @@
 
 Ideation 2026-10-09 with the Owner from the Notion page "Review 09/10": staging after R19, tested on Thibault's Personal
 report (18/05/1993, 8:20, Brussels) and the Alex and Luna Compatibility report (parent and child, Luna under 1).
-Artifact: https://claude.ai/artifact/B3FYNhYVK3otrSRUsmHgdr. Status: **draft**.
+Artifact: https://claude.ai/artifact/B3FYNhYVK3otrSRUsmHgdr. Status: **draft**, version 3 after the Owner's second look (2026-10-09).
 Touches `explain-like-a-friend` (rule 1, Did you know cards, the primer), `review-08-10` (§5 retrograde blocks, §8 rulers,
 §9 observations), `review-01-10` and `compatibility-report-p2` (pair chapters and scenes), ADR-176 (the written age).
 **Brain:** `api/src/prompts/system.ts`, `vocabulary.ts`, `brief.ts`, `sections/houses.ts`, `didYouKnow.ts`, `examples.ts`,
@@ -15,9 +15,15 @@ Touches `explain-like-a-friend` (rule 1, Did you know cards, the primer), `revie
   only with what it means in the same or the next sentence, then why it matters to this reader, then one everyday example.
   Exception: the same fact already explained earlier in the same chapter. "Venus is least at ease in Scorpio" always comes
   with "Venus wants calm and closeness; Scorpio wants depth". No fluff, and no cutting: the report may grow.
-- **The ruler template goes.** `houses.ts:216` hands the writer "<Planet> rules <Sign>, the sign on this house, and it sits
-  in your <Nth>", which it copies (Thibault's 7th and 12th). The rule asks instead for: the house's topic, why the planet
-  has a say (the sign on it), what the planet does, the house it sits in, and what that looks like. Same for `system.ts`'s model.
+- **Rulers, three ideas** (the Owner, v3): the sign of a house (the rising sign starts the 1st, the signs follow), the
+  planet that rules that sign (so it rules the house, wherever it sits), and the planets that happen to sit in the house.
+  **The first ruler of a report** keeps the Owner's structure and adds the meaning: "Saturn rules Capricorn, the sign of this
+  house, so Saturn rules your 7th (partnership) too. And your Saturn sits in your 8th (depth)… Saturn is about rules and
+  patience. So with a partner, you may want clear terms on money before you relax." **Every later ruler** is said
+  naturally and varied (three model variants in the artifact), never the same frame twice. "<Planet> has a say in it" at
+  most once in a whole report. `houses.ts:216`'s copied template is replaced by these models; `system.ts` rule 1 likewise.
+- **A house always carries its word in brackets**: "(11th, friends)", never "(11th)", in every product and every section;
+  the words are `HOUSE_WORDS` (the wheel's).
 - **No rarity.** `houses.ts:225` ("say how common it is"), `didYouKnow.ts:163`, the brief's `RETROGRADE AT BIRTH` numbers
   (`BACKWARDS_IN_100`, `brief.ts:77`) and the vocabulary's "so it is common" (`vocabulary.ts:314`) go. No "N in 100", "common",
   "rare", "many people" about a placement anywhere.
@@ -32,12 +38,16 @@ Touches `explain-like-a-friend` (rule 1, Did you know cards, the primer), `revie
   the Saturn card (note 8), the bedtime scene with "At three" (note 16).
 
 ### 2. House by House (notes 1, 2, 4, list 2 note 6)
-- **Regression, restored:** the planets in a house show again under the card's title (`HouseCard.tsx`, removed unasked by
-  `8094e71`, R19-48): each body's render, name, R when going backwards, degree; `title` and `alt` give the name and one word on
-  what it does. The wheel's hover chip shows the full name ("Jupiter 5.0°", not "JUP 5.0°", `NatalWheel.tsx:486`) and a `<title>`.
-- **Chiron, the South Node and R** (note 4, question 2, default: shown): they show in the planet row like any body.
-- **The primer**: the four cards stay as the intro. "The cool fact, in one table" goes; the table folds behind a closed
-  "Where each planet feels at home" (`HousePrimer.tsx:54`).
+- **Regression, restored as it was:** the planet row under the card's title (`HouseCard.tsx`, removed unasked by `8094e71`,
+  R19-48): the planet renders (never symbols), Chiron and both nodes with their point marks, R, degree; `title` and `alt` give
+  the name and what it does. The wheel's hover shows the full name ("Jupiter 5.0°", not "JUP 5.0°", `NatalWheel.tsx:486`).
+- **Never again** (the Owner: "I don't want to see the same regression happen twice"): a `test.critical` check that every
+  house card renders every body in its house, Chiron, North and South Node included; and a builder rule in
+  `.claude/agents/builder.md` and `lessons.md`: a card never removes something its plan doesn't name.
+- **The primer**: the four cards come before the deck, each with a small drawing from the reader's chart in the loading
+  story's style (the rising sign starting the count; the twelve parts; the ruler's line from its house to where it sits;
+  a planet at home and least at ease). "The cool fact, in one table" goes; the table folds behind "Where each planet feels
+  at home" (`HousePrimer.tsx:54`).
 - **The Jupiter-in-4th fact** ("Could home bring help?") is read in the 4th house card (list 2 note 6).
 
 ### 3. Did you know leaves the chapters (list 2 notes 3 to 7)
@@ -52,7 +62,10 @@ Touches `explain-like-a-friend` (rule 1, Did you know cards, the primer), `revie
   (no prompt asks today, `brief.ts:332`), the way the Jupiter going-backwards block did. Often noticed stays on house cards.
 
 ### 4. Compatibility (list 2 notes 10 to 17)
-- **Bugs** (since R16, not regressions): "AND" centred between two equal columns (`PairHero.tsx:156`); the Scroll cue at the
+- **The hero** (question 1, default B, "two skies"): each person as their own chart, the same size, the name in its
+  centre (wrapped and scaled to fit), "and" between, their strongest link drawn between the two charts. A, stacked names
+  with "and" on its own line, is the plain fallback. Either way no name length can unbalance it.
+- **Bugs** (since R16, not regressions): the Scroll cue at the
   bottom of the first screen on wide screens (`:168`); the wheel's Ascendant, Midheaven and their opposites drawn as short
   ticks at the band on both reports (`NatalWheel.tsx:378-406`); "source A/B" labels caught in any form by
   `stripBriefLabels` (`shapes.ts:181`) and a blocking check for a stray name letter in pair prose.
@@ -64,11 +77,15 @@ Touches `explain-like-a-friend` (rule 1, Did you know cards, the primer), `revie
   to Saturn, `pairBrief.ts:256`) and the link labels carry houses.
 - **Where your charts meet:** houses in brackets ("Your Saturn (11th, friends) and Athena's Neptune (10th, career)"); the orb
   moves under an ⓘ (`charts-meet.ts:101`).
-- **The layout** (note 14, question 1, default B): **B, the walk.** No scenes. The two charts on top; the contacts one at a
-  time, grouped by topic (today's five lens chapters become the topics); each contact lights its two planets and their houses;
-  each card: the two planets with houses, the angle in plain words, what it means for them, one everyday example, one thing to
-  try with its tick box to pin. The Overview and Closing stay. Same price, one credit. (A keeps the chapters and fixes the
-  words; C adds one short scene per topic.)
+- **The walk** (the Owner chose B, no scenes; v3 makes it a scroll): the Overview, then one long scroll where the two
+  charts stay on screen (side by side on desktop, sticky on top on a phone) and each link, as it reaches the middle,
+  lights its two planets and draws the line between the charts: teal straight for comes naturally, brass for two planets
+  together, the rose zigzag for a challenge (the ledger's glyphs, `TwoChartsLedger.tsx:44`). Links are grouped in topics
+  by what their planets are about (comfort and feelings: Moon, Venus, Neptune, Pluto; growing: Jupiter, Sun, Mars; talking
+  and change: Mercury, Uranus; limits: Saturn), because the two planets sit in different houses for each person; each topic
+  holds every link the charts make, easy and hard mixed, and opens with its count. Each card: the tag, the ledger glyph,
+  a title in words, both planets with "(Nth, word)", the angle explained, what it means for them, one everyday example by
+  the child's age, and "Try together" with its tick box to pin. The orb under an ⓘ. Closing stays. Same price, one credit.
 
 ### 5. Observations status (the Owner's P.S.)
 - Live: 22 ideas (one with two creators, 21 with one creator plus our doctrine). Waiting: 8. Out: 18.
@@ -76,9 +93,17 @@ Touches `explain-like-a-friend` (rule 1, Did you know cards, the primer), `revie
   (21 hosts; search results are leads only, ADR-403). Leads to read first: skyscript.co.uk (Venus–Jupiter), cafeastrology.com
   (Mars–Saturn), sallykirkman.com (Jupiter–Pluto), theastrologypodcast.com (3rd–9th), thetarotlady.com (Venus 2nd).
 - Needs the Owner: the session environment's network access must allow these hosts; then `/observe` re-runs.
+- The waiting list is on the Notion page "Observations inbox" (section "Waiting for a second source", added 2026-10-09);
+  `/observe` keeps it in step with the annex. About 70 new screenshots arrived on the page on 2026-10-09 for the next run.
+
+### 5b. Where docs live (the Owner asked, v3; question 2, default Notion)
+- Notion stays: free, and the problem was a list he couldn't see, now on a Notion page. A private repo would need GitHub
+  Pro at $4 a month (on Free, branch protection and rulesets cover public repos only) and CI minutes beyond Pro's 3,000 at
+  $0.006 a minute (verified 2026-10-09 against GitHub's docs source), plus a token for the lab import and the Release
+  preflight, which read GitHub without one (`labImport.ts:18`, `github.ts:105`).
 
 ### 6. Roadmap (note 1)
-- A Notion **Roadmap** database under STARS DECODED for future ideas, separate from the Mailbox (question 3, default). First
+- A Notion **Roadmap** database under STARS DECODED for future ideas, separate from the Mailbox (Decided by Claude, with question 2). First
   item: "Learn to read your houses", a short explainer video, house by house, also used as a post.
 
 ## Out of scope
@@ -104,9 +129,9 @@ The artifact, version 1: Part 1 the rule and five befores and afters; Part 2 the
 each card goes; Part 4 the six bugs, the hero, options A, B and C, and B's walk drawn on the beatrice-athena pair from the engine.
 
 ## Open questions (each with its default)
-1. Compatibility layout: A, B or C? Recommended and default: **B**, the walk.
-2. Chiron, the South Node and R in the house card's planet row? Recommended and default: **yes**.
-3. The roadmap: a Notion database or Mailbox rows? Recommended and default: **a Roadmap database**.
+Answered 2026-10-09: the walk (B) with no scenes; Chiron, the South Node and R come back on the cards.
+1. The hero: A stacked or B two skies? Recommended and default: **B**.
+2. Docs and lists: Notion or a private repo? Recommended and default: **Notion** (the roadmap a Notion database).
 
 ## Decisions to record
 - Every planet, sign or house named in any report comes with its meaning, why it matters and an everyday example; a repeat
@@ -123,4 +148,12 @@ each card goes; Part 4 the six bugs, the hero, options A, B and C, and B's walk 
 - Parent-and-child examples and scenes come by the child's age, under 1 included (Decided by Claude).
 - Pair contacts name both planets' meanings and houses; houses in brackets on Where your charts meet; the orb under an ⓘ.
 - The good and bad examples of 9 Oct go into the writer's model passages (the Owner).
-- Pending question 1, 2, 3 at their defaults.
+- The first ruler of a report is explained in full (sign, ruler, where it sits, what it means); later ones vary; "has a
+  say" at most once a report; houses always "(Nth, word)" (the Owner).
+- The house card's planet row (renders, Chiron, both nodes) is guarded by a critical test; a builder never removes what its
+  plan doesn't name (the Owner).
+- The primer's four cards each carry a drawing from the reader's chart (the Owner, Decided by Claude for the drawings).
+- The Compatibility report becomes the walk: no scenes, links grouped by their planets' topic, the two charts lit per
+  link with the ledger's glyphs, a long scroll (the Owner chose B; the scroll Decided by Claude).
+- Docs and lists stay in Notion; what the Owner needs to see goes on a Notion page (Decided by Claude, pending question 2).
+- Pending: the hero (default B).

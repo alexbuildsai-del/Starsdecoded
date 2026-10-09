@@ -21,10 +21,13 @@ merged into the rule it repeats.
   seamless": ease one into the next (report-loading-story, 2026-10-05). One typed date field beats pickers (Review 02/10).
 - **Name it, never "things".** "I hate when we do things": say transits, cycles, items (review-05-10); use the name the
   field already uses, "if it's mainstream to call it transits… let's call it that" (report-loading-story).
-- **Spans, not counts**: one bar per transit, not "a clusterfuck of numbers" (review-05-10). **Prose is fixed in the
-  prompt, never with a new test** ("I don't want to invent new tests", review-05-10).
+- **Spans, not counts**: one bar per transit (review-05-10); no "44 in 100 people", no age in any text (09/10). **Prose is
+  fixed in the prompt, never with a new test** (review-05-10); one frame never twice ("has a say" at most once a report).
 - **Never touch what he didn't ask about**: today's screen beside the proposal, only the asked part changed ("only change
   the buttons", 2026-10-06). **Buttons by weight** (ADR-333). **No spoilers**: a loading screen shows facts, never meanings.
+- **Right the first time** (Review 09/10): "why do I need to remind you… you already know by now what I like". Before a mock,
+  re-read this file and his last review; planets as our renders, never symbols; a house always "(Nth, word)"; nothing set in
+  stone undone; a regression never twice (a test guards it). Explain a hard concept in his structure, then plainly.
 - **Reuse what we already draw; never redesign what is approved.** "I really love the outline of the earth and how you
   take these visuals that we already have and… repurpose them… let's reuse it everywhere" (report-loading-story). The
   hero: "please don't make this different"; Life's card is the Your cycles card (review-05-10). Keep what looks great.
@@ -51,7 +54,7 @@ merged into the rule it repeats.
 
 ## Formats he likes
 - **An HTML artifact before any question or lock**, phone first, 390 px (§11.1, ADR-171): live players and clickable
-  flows he can scrub (the Life line, Your first steps, the loading story's A/B/C), one grid on phone and desktop, what changed shown.
+  flows he can scrub, real engine charts, what changed shown; bold, scrolling ideas over safe ones ("make it cool", 09/10).
 - **The workbook card**, also as a post; **before and after tables** for wording; dashboards with exact values to paste
   (stripe-payments); **a small label over a title that finishes it** ("DID YOU KNOW", review-05-10).
 
