@@ -2,7 +2,7 @@
 name: tester
 description: Keeps the buyer walk, the test of the critical buyer flow, and writes the regression test for a bug that came back. Edits test files only; a bug comes back as a failing test. Runs in /round once, after the last group, only when the round changed a step of the flow or the orchestrator names a returning bug. Spawned by the orchestrator.
 model: sonnet
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 

@@ -30,14 +30,18 @@ First, before any page is opened (ADR-272, 315, 360, 387):
    session, so /qa can't sign in. Copy the address from the QA account row on
    the staging Sales page into this session's environment." Then read every
    signed-in step from the walk.
-4. **Plan the session.** Every host that answers: play its steps by hand, as
+4. **Known findings.** List every finding of the last `docs/qa/` report and
+   every `docs/backlog.md` line citing a QA report that is still open, one
+   line each with its number. The agent re-checks each in one line (still open
+   or fixed) and never files it again as new (ADR-422).
+5. **Plan the session.** Every host that answers: play its steps by hand, as
    before. Each one that does not: do not play or file those steps; read them
    from the walk's verdict and pictures, and list the host in the report as
    "not reachable from this session", never as a product finding.
 
 Hand the agent the target, the verdict, the picture list, the unreachable
-hosts and whether `QA_ACCOUNT_EMAIL` is set, never the address itself.
-Spawn the `qa` agent with that, on Sonnet at high effort: Agent tool,
+hosts, the known findings and whether `QA_ACCOUNT_EMAIL` is set, never the
+address itself. Spawn the `qa` agent with that, on Sonnet at medium effort: Agent tool,
 `subagent_type` `qa`, `model` `sonnet`; its file pins both. If that type is not
 registered in this session, spawn `general-purpose` on Sonnet with the full
 text of `.claude/agents/qa.md` as its brief. When it returns, relay the sev-1

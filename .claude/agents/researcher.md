@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Answers one research question for Stars Decoded from outside evidence, primary sources first, and returns a claims table. Used by /ideate when a topic needs outside evidence, and for prompt research. Spawn one for a lookup, two to four in parallel for a comparison (one option each), never more. Read-only.
-model: opus
+model: sonnet
 effort: high
 tools: Read, Grep, Glob, WebSearch, WebFetch
 ---
