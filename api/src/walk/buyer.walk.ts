@@ -683,6 +683,13 @@ const WALK: Record<StepId, Step> = {
     miraProfileId = read.profileId;
     assert.deepEqual([read.chartData.planets.sun.sign, read.chartData.planets.sun.degree], [sun.sign, sun.degree]);
     assert.deepEqual([read.interpretation.meta.promptVersion, read.interpretation.meta.horizon], [PROMPT_VERSION, "known"]);
+    // One chapter's card is stored and read back whole and the other six carry none (R19-20): the pipeline keeps a Did
+    // you know card beside the prose and sets nothing where the writer gave null.
+    const cards = Object.fromEntries(
+      ["overview", "mind", "career", "family", "superpowers", "discoveries", "focus"].map((id) => [id, (read.interpretation as unknown as Record<string, { didYouKnow?: { title: string; body: string } | null }>)[id].didYouKnow ?? null]),
+    );
+    assert.deepEqual(Object.keys(cards).filter((id) => cards[id] !== null), ["family"]);
+    assert.ok(cards.family!.title.endsWith("?") && cards.family!.body.length > 0, JSON.stringify(cards.family));
     // The evidence under a claim is drawn from the chart in code, never from the model's words.
     assert.equal(read.interpretation.triad.claims[0].evidence[0].label, `Sun ${sun.degree.toFixed(1)}° ${sun.sign}, ${ordinal(sun.house!)} house`);
     assert.deepEqual(unanswered, []);
