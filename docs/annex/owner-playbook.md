@@ -1,7 +1,6 @@
 # Owner playbook
 
-How the Owner decides. `/ideate` reads it first to propose what he would pick and skip what a rule answers, and edits it
-at its close (ADR-195). Rules, not a diary: at most 60 lines, dated, nothing guessed, repeats merged.
+How the Owner decides; `/ideate` reads it first and edits it at its close (ADR-195). Rules, not a diary: 60 lines at most.
 
 ## Took as proposed
 - **The default carries an ask.** "go", with MB-93, 128 and 129 at their defaults (R12); "lock it" with Mixed's wording
@@ -28,7 +27,8 @@ at its close (ADR-195). Rules, not a diary: at most 60 lines, dated, nothing gue
   stone undone; a regression never twice (a test guards it); phone and computer side by side; charts by the chart system.
   Explain a hard concept in his structure, then plainly. **"Never is never really never"**: a default with its reason, not a ban.
 - **Reuse what we already draw; never redesign what is approved.** "…repurpose them… let's reuse it everywhere"
-  (report-loading-story); the hero "please don't make this different" (review-05-10); a liked part goes in the design system.
+  (report-loading-story); the hero "please don't make this different" (review-05-10); a liked part goes in the design system
+  and `liked-visuals.md`; the landing wheel is copied, never redrawn; no line drawings, words instead ("childish", 09/10).
 - **Ship it as normal, no flag** (ADR-262 to 264); **a visual that says what we sell beats the safest layout** ("nice" but
   "not wow", share-cover); the real fix, never a fallback; **out of scope is not "never"** (stripe-payments).
 
@@ -52,8 +52,8 @@ at its close (ADR-195). Rules, not a diary: at most 60 lines, dated, nothing gue
 ## Formats he likes
 - **An HTML artifact before any question or lock**, phone first, 390 px (§11.1, ADR-171): live players and clickable
   flows he can scrub, real engine charts, what changed shown; bold, scrolling ideas over safe ones ("make it cool", 09/10).
-- **The workbook card**, also as a post; **before and after tables** for wording; dashboards with exact values to paste
-  (stripe-payments); **a small label over a title that finishes it** ("DID YOU KNOW", review-05-10).
+- **The workbook card**, also as a post; **before and after tables**; dashboards with exact values (stripe-payments); **a
+  small label over a title that finishes it** (review-05-10); an idea shown on the charts it explains, no extra circle (09/10).
 
 ## His own lines, verbatim
 - "Continue without this for now." (R14) · "go" (R12) · "two friends talking over coffee" (ADR-185) · "lock it" (10-05)
