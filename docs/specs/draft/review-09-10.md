@@ -77,9 +77,15 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   the ledger's glyph (teal, brass, the rose zigzag).
 - Seven states: Full, Focus (one house lit, the rest dimmed), Teach (few parts, moving), Pair (two plates apart, named,
   never joined, ADR-97), Small (Sun and Moon), No birth time (signs only), Loading (builds in the same geometry).
-- Moves onto it: the natal loading story (dots and fixed radii today, `BuildStory.tsx`), the pair loading story
-  (`PairStory.tsx`), the ledger's and Did you know's glyph fallbacks, the pair wheels' axes (`NatalWheel.tsx:378-406`), the
-  hardcoded hex in PairStory, TwoPlates, Dial and the ledger (tokens instead). The dashboard's orbit stays not-a-chart.
+- **Every chart, everywhere — note for the planner** (the Owner, v10: "really everywhere"; he never names screens one by
+  one): the round plans one audit of every instance and brings each on par with this system: the look, renders, icons,
+  aspects, palette and lighting, and how a reader interacts with it and is taught through it (hover or tap names, ⓘ,
+  captions in the prose's words). Found 2026-10-09: report `NatalWheel`, `ReportHero`, `TriadPlate`, `HouseDeck`,
+  `HousePrimer`, `DawnClosing`, `TwoChartsLedger`, the pair page; loading `BuildStory` (dots), `PairStory` (hex),
+  `DidYouKnow` (glyphs), `HouseObject` (goes); Timeline `Dial`, `AgeRing`; dashboard `CardSections`, `Orbit`, `TriadRow`;
+  Ask `AskMark`; site `HouseRing`, `Placements`, `ReadTheWheel`, `SampleHead`, `TwoPlates`, `SkyScreen`, `Hero`, `Dawn`,
+  `Claims`, `SkyPage`, `LearnBirthTimePage`; the share card and the PDF. `HorizonWheel` is the model and stays. The
+  planner re-greps (`wheelRadii|NatalWheel|renderFor|<svg`) rather than trusting this list; a new chart only through it.
 - Reused parts, documented: the planet pill, the Ascendant marker, the link glyph and card, How two planets meet. **At most
   three colours a screen** (chapter colour, the content's one, greys); a new tag, label or icon enters this page first.
 - **No house drawings** (the Owner, v5: "it looks really childish… keep it as text"): `HouseObject.tsx` leaves the primer,
@@ -133,14 +139,10 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   longer still scrolls like prose (360×640, 375×667, 390×844, 430×932, and cards twice as long). Computer: stage left, cards right. Closing stays. Same price, one credit.
 
 ### 5. Observations, docs and the roadmap
-- Live: 22 ideas; waiting: 8 (listed on the Notion "Observations inbox" page, 2026-10-09); out: 18. Second sources need the
-  session network to reach the astrology hosts (skyscript.co.uk, cafeastrology.com, sallykirkman.com first). About 70 new
-  screenshots wait for the next `/observe`.
-- **A private repo and docs in it**: the Owner leans that way; handed on 2026-10-09 to the "Rounds R16-R19 efficiency
-  analysis" session with the verified prices (Pro $4 a month for branch protection on a private repo, 3,000 included
-  minutes, $0.006 a minute beyond), the two token-less GitHub reads that would break (`labImport.ts:18`, `github.ts:105`),
-  and his condition: CI minutes measured and the waste cut first. Measured there (3 to 9 Oct): 2,387 minutes a week, about $43
-  to $52 a month private; after alexbuildsai-del/Starsdecoded#135 (approved), about $0 to $1 plus Pro. Not decided here.
+- Live: 22 ideas; waiting: 8; out: 18 (Notion "Observations inbox"); about 70 new screenshots wait for the next `/observe`.
+- **A private repo and docs in it**: handed to the "Rounds R16-R19 efficiency analysis" session (Pro $4 a month; reads that
+  break: `labImport.ts:18`, `github.ts:105`). Measured: about $43 to $52 a month private today, $0 to $1 plus Pro after
+  alexbuildsai-del/Starsdecoded#135. Not decided here.
 - **Roadmap**: a list of future ideas, separate from the Mailbox, wherever the docs question lands. First item: "Learn to
   read your houses", a short explainer video, house by house, also a post.
 
@@ -160,7 +162,7 @@ houses; the explainer video itself; the private-repo decision (the efficiency se
 8. The pair hero holds "Alex test Luna model" and "Luna", and a 30-letter name, at 390 px and 1280 px with no overlap and no
    line between the charts; Scroll sits at the screen's bottom.
 9. No chart draws a body as a dot or a Unicode symbol (render fallback excepted), axes on a small chart, an MC line, brass on
-   an unlit part, rim text off its arc, or a hex colour outside the tokens (grep and the probe).
+   an unlit part, rim text off its arc, or a hex colour outside the tokens, on every instance in §2b's list (grep, probe).
 10. At the four phone sizes and 1280 px the rail or chapter bar and the title stay, cards keep their own height, the
     progress line counts right, a double-length card is readable whole; each link is drawn on both charts with its shape,
     every lit planet with its owner's ring and the other's as a guest; no third circle.
@@ -170,9 +172,7 @@ The artifact, version 9: voice, chart system, primer and house card, Did you kno
 inside the report page at four phone sizes and on a computer, docs.
 
 ## Open questions (each with its default)
-Answered 2026-10-09: the walk (B) with no scenes and no third circle; Chiron, the nodes and R back on the cards; the hero
-stacked plus two skies, no line; the landing wheel as backbone; no MC line; grey-blue, brass for what's lit; no house drawings; docs and the private repo
-go to the efficiency session; phone and computer in every mock.
+Everything else was answered in the Owner's nine looks (2026-10-09) and is written into the sections above.
 1. Allow digits and "/" in names? Recommended and default: **yes**.
 2. Group the links by their faster planet, computed in code? Recommended and default: **yes**.
 3. Take the house drawings out of the loading story too (ADR-321)? Recommended and default: **yes**, words only.
