@@ -38,6 +38,14 @@ from the spec. An ideation without an artifact is not finished. Use the
 `artifact-design` skill; the `design` skill when the Owner wants to tweak
 screens by hand.
 
+Parts are settled here, never in the round (the Owner, 2026-10-09). Any UI
+change names the design system parts it uses (the Design System artifact and
+`design-system` spec): reused as is, a version inside the tokens, or a new
+part with its mock and its page (use for, not for, states, do and don't). For
+each screen or part it changes, the artifact shows today beside after, every
+state, and the spec says exactly what changes and what must not be lost, so
+the planner and the orchestrator never invent or redraw a part.
+
 Ask at most three questions, each with a recommendation and a default.
 
 Output exactly one file, `docs/specs/draft/<slug>.md`, at most 200 lines, with:
