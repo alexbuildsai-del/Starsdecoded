@@ -65,7 +65,7 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
      standard), TopBar, ReportBlocks, HouseCard (its planet row, removed by R19-48, comes back), Checklist,
      ChartDrawings, Footer. Charts: the 12 parts of the Review 09/10 chart system (one chart in states, its
      own page per part), with my state review; chart data colours `line-easy` #3BB3DB and `line-tense` #E24D4D;
-     brass means lit. Open: the Timeline dial, the share image, print, and the Full chart's interactive states. Flows on Sheet and Dialog, every step kept: Add someone, Payments, Gift, Share, New
+     brass means lit; the Full chart's interactive states drawn. Open: the Timeline dial, the share image, print. Flows on Sheet and Dialog, every step kept: Add someone, Payments, Gift, Share, New
      Compatibility (every choice), Ask (its own panel), Add birth time, Confirms, Waitlist, Quick look.
    - Templates: SitePage, ReportPage, TimelinePage, AppPage, LoadingStory, AdminPage.
    - Removed: EvidenceLine, SaveReportCta, AspectChip, `ui/tooltip` (no importers).
