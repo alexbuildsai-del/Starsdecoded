@@ -80,7 +80,8 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
 - Moves onto it: the natal loading story (dots and fixed radii today, `BuildStory.tsx`), the pair loading story
   (`PairStory.tsx`), the ledger's and Did you know's glyph fallbacks, the pair wheels' axes (`NatalWheel.tsx:378-406`), the
   hardcoded hex in PairStory, TwoPlates, Dial and the ledger (tokens instead). The dashboard's orbit stays not-a-chart.
-- Reused parts, documented: the planet pill, the Ascendant marker and MC label, the link glyph, How two planets meet.
+- Reused parts, documented: the planet pill, the Ascendant marker, the link glyph and card, How two planets meet. **At most
+  three colours a screen** (chapter colour, the content's one, greys); a new tag, label or icon enters this page first.
 - **No house drawings** (the Owner, v5: "it looks really childish… keep it as text"): `HouseObject.tsx` leaves the primer,
   and the loading story too if question 3 says so (ADR-321).
 - Written in `docs/annex/chart-system.md` (rules, states, do's and don'ts) and the bible's design page, rebuilt from the live
@@ -122,13 +123,13 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   Mars, Jupiter, Saturn: "Feelings and comfort", "Talking", "Affection", "Who you are", "Drive and friction", "Growing",
   "Limits and staying power"), outer-to-outer contacts last ("The times you were born into"); empty groups never show; the
   group name heads its first card (sources by planet pair; snippets only, unverified). **The link is shown on the two charts themselves** (the Owner, v5: no third
-  circle): each named chart ("You · Beatrice", "Athena") lights its own planet with its owner's ring (yours blue, theirs
-  lilac), dims the rest, and shows the other person's planet as a faint dashed guest at its true degree; the angle is drawn
+  circle): each named chart ("You · Beatrice", "Athena") lights its own planet with a solid ring (no owner colours, v9),
+  dims the rest, and shows the other person's planet as a faint dashed guest at its true degree; the angle is drawn
   across the inner circle, where the chart draws aspects, in the link's glyph, with its degrees at the centre, and the
   angle's whole shape faint behind it (a triangle for a trine, a square, a hexagon for a sextile), named under the charts. This puts
-  one planet of the other chart on a plate: supersedes ADR-97 in that part, at the Owner's ask. Each card: tag, a title in words, both
-  planets with owner and "(Nth, word)", what the angle means, one everyday example by the child's age, Try together with
-  its tick box. Phone: stage sticky under the chapter bar, cards under it; a card longer than the room under it shrinks the charts, and
+  one planet of the other chart on a plate: supersedes ADR-97 in that part, at the Owner's ask. **Each card is the live `LinkCard`** (v9): its tags only
+  (Comes naturally teal, Challenge rose; no "Together"), title, astrology in its small grey mono line with owners and
+  "(Nth, word)" and the live angle words (conjunct, sextile…), body by the child's age, then `Checklist`'s Try together. Phone: stage sticky under the chapter bar, cards under it; a card longer than the room under it shrinks the charts, and
   longer still scrolls like prose (360×640, 375×667, 390×844, 430×932, and cards twice as long). Computer: stage left, cards right. Closing stays. Same price, one credit.
 
 ### 5. Observations, docs and the roadmap
@@ -165,7 +166,7 @@ houses; the explainer video itself; the private-repo decision (the efficiency se
     every lit planet with its owner's ring and the other's as a guest; no third circle.
 
 ## Screens
-The artifact, version 8: voice, chart system, primer and house card, Did you know, hero, how two planets meet, the walk
+The artifact, version 9: voice, chart system, primer and house card, Did you know, hero, how two planets meet, the walk
 inside the report page at four phone sizes and on a computer, docs.
 
 ## Open questions (each with its default)
@@ -185,7 +186,7 @@ go to the efficiency session; phone and computer in every mock.
   bible shows it (the Owner asked; the mechanism Decided by Claude).
 - The first ruler of a report is explained in full; later ones vary; "has a say" at most once; houses always "(Nth, word)"; no "This week".
 - The house card's planet row is restored and guarded by a critical test; a builder never removes what its plan doesn't name.
-- The primer's four cards are short loops on the reader's chart; its table folds away; "The cool fact" goes.
+- The primer's four cards are short loops on the reader's chart, using only ideas the prose and claims use; no "cool fact".
 - One chart system (the landing wheel as backbone, seven states, reused parts), written in the annex and the bible; the
   loading stories and the ledger move onto it (the Owner; the details Decided by Claude).
 - No Did you know card in the Personal report's chapters; ideas and observations go in the prose at their placement.
@@ -195,6 +196,5 @@ go to the efficiency session; phone and computer in every mock.
   progress line; each link drawn on both charts with the other's planet as a guest (supersedes ADR-97 in part) (the Owner).
 - The landing wheel is the backbone, unchanged; one Ascendant marker; no MC line; no house drawings; inside the product
   grey-blue, brass only for what is lit (the Owner; the landing keeping brass Decided by Claude).
-- The primer and every chart caption use only ideas the prose and claims use (the Owner).
 - Every ideation mock shows phone and computer side by side (the Owner; CLAUDE.md and `/ideate`).
 - Pending: names with digits (yes); groups by the faster planet (yes); house drawings out of the loading story (yes).

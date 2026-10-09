@@ -26,11 +26,11 @@ How the Owner decides; `/ideate` reads it first and edits it at its close (ADR-1
   re-read this file and his last review; planets as our renders, never symbols; a house always "(Nth, word)"; nothing set in
   stone undone; a regression never twice (a test guards it); phone and computer side by side; charts by the chart system.
   Explain a hard concept in his structure, then plainly. **"Never is never really never"**: a default with its reason, not a ban.
-- **Reuse what we already draw; never redesign what is approved.** "…repurpose them… let's reuse it everywhere"
-  (report-loading-story); the hero "please don't make this different" (review-05-10); a liked part goes in the design system
-  and `liked-visuals.md`; the landing wheel is copied, never redrawn; no line drawings, words instead ("childish", 09/10).
-- **Ship it as normal, no flag** (ADR-262 to 264); **a visual that says what we sell beats the safest layout** ("nice" but
-  "not wow", share-cover); the real fix, never a fallback; **out of scope is not "never"** (stripe-payments).
+- **Reuse what we already draw; never redesign what is approved** ("let's reuse it everywhere", report-loading-story; "don't
+  make this different", 05-10): liked parts go in the design system and `liked-visuals.md`; a live part's words, colours and
+  order before a new one; three colours a screen; the landing wheel copied, never redrawn; no line drawings (09/10).
+- **Ship it as normal, no flag** (ADR-262 to 264); **a visual that says what we sell beats the safest layout** ("not wow",
+  share-cover); the real fix, never a fallback; **out of scope is not "never"** (stripe-payments).
 
 ## Asked for
 - **Opus for orchestrating, planning and research**, the verifier on any claim that feeds a decision (ADR-137, R-0.7);
