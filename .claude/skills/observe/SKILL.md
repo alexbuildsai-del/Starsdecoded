@@ -13,8 +13,9 @@ Read first: `api/src/prompts/observations.ts` (its types, its header and the row
    captions of a creator the Owner named as a reference (@the_innercosmos, 2026-10-09), fetched to the scratchpad.
 2. **Split.** One placement, one claim, keyed as `ObservationKey` types it (bodies as the chart names them, signs as
    the engine spells them). A sign claim that names no body takes the body its subject belongs to (feelings the Moon,
-   noticing Mercury), or none. Keep out, with its reason: no key, synastry, an outer planet's sign (a generation), a
-   guess about the reader's past, a forecast or a date, a promised outcome, fate, and hype (R-5.2).
+   noticing Mercury), or none. Keep out, with its reason: no key, synastry, a
+   guess about the reader's past, a forecast or a date, a promised outcome, fate, and hype (R-5.2). An outer planet's
+   sign enters, worded as shared with people born in the same years (the Owner, 2026-10-09).
 3. **Adapt, don't reinvent** (the Owner, 2026-10-09). Keep what the source says well: its concrete detail, its
    context and its plain turns of phrase. Change only enough that it is not a word-for-word copy of the whole line,
    and drop its hype, its "soul" and "energy" talk and anything R-5.2 bars. A line rewritten until the source's
@@ -23,8 +24,8 @@ Read first: `api/src/prompts/observations.ts` (its types, its header and the row
    stop, no sentence over 25 words, no em dash or semicolon, and no word the `/ux-copy` voice chart would cut.
    Wording never rules an idea out (the Owner, 2026-10-09): a guess about the past, a forecast or a promise is
    reworded to the present-day habit under it ("grew up feeling alone" becomes "home may not feel like where you fit")
-   and goes on to find its second source. Left out stays for what no rewording fixes: looks, synastry, an outer
-   planet's sign, a transit, or no single placement.
+   and goes on to find its second source. Left out stays for what no rewording fixes: looks, synastry, Chiron's
+   sign (read by house only), a transit, or no single placement.
 4. **Merge.** The same idea from another account joins its row; one account counts once, however many posts.
 5. **Find the second source; never ask the Owner** (ADR-403). Spawn the `researcher` for another creator, an article
    or a book: a search result is a lead, not a source, and content farms never count. The `verifier` re-fetches each
