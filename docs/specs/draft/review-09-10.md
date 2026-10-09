@@ -2,7 +2,7 @@
 
 Ideation 2026-10-09 with the Owner from the Notion page "Review 09/10": staging after R19, tested on Thibault's Personal
 report (18/05/1993, 8:20, Brussels) and the Alex and Luna Compatibility report (parent and child, Luna under 1).
-Artifact: https://claude.ai/artifact/B3FYNhYVK3otrSRUsmHgdr. Status: **draft**, version 6 after the Owner's fifth look (2026-10-09).
+Artifact: https://claude.ai/artifact/B3FYNhYVK3otrSRUsmHgdr. Status: **draft, final**: every question answered (2026-10-09), artifact version 11.
 Touches `explain-like-a-friend` (rule 1, Did you know cards, the primer), `review-08-10` (§5 retrograde blocks, §8 rulers,
 §9 observations), `review-01-10` and `compatibility-report-p2` (pair chapters and scenes), ADR-176 (the written age),
 ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (design system).
@@ -89,7 +89,7 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
 - Reused parts, documented: the planet pill, the Ascendant marker, the link glyph and card, How two planets meet. **At most
   three colours a screen** (chapter colour, the content's one, greys); a new tag, label or icon enters this page first.
 - **No house drawings** (the Owner, v5: "it looks really childish… keep it as text"): `HouseObject.tsx` leaves the primer,
-  and the loading story too if question 3 says so (ADR-321).
+  and the loading story too (the Owner; supersedes ADR-321's drawings).
 - Written in `docs/annex/chart-system.md` (rules, states, do's and don'ts) and the bible's design page, rebuilt from the live
   tokens (it still shows the Astra-era styles); the "Stars Decoded Atlas" canvas is the base. `/ideate` and `/web-taste`
   draw charts by it.
@@ -106,9 +106,7 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   wrapping, and beside them (under them on a phone) each person's own chart, named, the same size, apart. **No line**: there
   is no single strongest link (the brief sorts a dozen by orb) and ADR-97 bars a joining line.
 - **The hero's names** stay modest: at most 42 px on a computer and 30 px on a phone, smaller for long names.
-- **Names with numbers** (question 1): `PERSON_NAME_PATTERN` (`web/src/lib/person-name.ts:7`, the three name fields in
-  `openapi.yaml`) adds digits and "/", so a test report can be named "Alexandra 9/10". Safe: names reach the writer only in
-  the data block (R13-12). Default yes.
+- **Names stay as they are** (the Owner, 2026-10-09: digits were only for his test reports; ADR-202 unchanged).
 - **Bugs** (since R16): the Scroll cue at the first screen's bottom (`PairHero.tsx:168`); the axes as markers on every chart
   (§2b); "source A/B" caught in any form by `stripBriefLabels` (`shapes.ts:181`) and a blocking check for a stray letter.
 - **Age-true scenes:** examples and scenes by the child's age band (under 1, 1 to 2, 3 to 5, then the existing bands);
@@ -125,9 +123,10 @@ ADR-97 (two charts never joined), ADR-202 (the name rule), MASTERFILE §9 (desig
   once a scroll ends, a small script moves exactly one card in the scroll's direction, a nudge returns, never inside a card
   longer than the room, never past the first or last (the page scrolls on); a computer gives each card a screen beside the
   charts. The phone picks the chart size once per screen, never per card. **Progress on the stage**: the group ("02 · Talking"), "Link 3 of 8 · 5 left", one notch per link. **Groups come from
-  the charts, not the prompt** (question 2): each link joins the group of its faster planet (Moon, Mercury, Venus, Sun,
-  Mars, Jupiter, Saturn: "Feelings and comfort", "Talking", "Affection", "Who you are", "Drive and friction", "Growing",
-  "Limits and staying power"), outer-to-outer contacts last ("The times you were born into"); empty groups never show; the
+  the charts, not the prompt**, in the pair doctrine's order (`pair/index.ts`: "luminaries and Venus and Mars before
+  the rest", "tight before wide"; the Owner: the doctrine decides): a link files under its first planet in the order Sun,
+  Moon, Venus, Mars, Mercury, Jupiter, Saturn ("Who you are", "Feelings and comfort", "Affection", "Drive and friction",
+  "Talking", "Growing", "Limits and staying power"), outer-to-outer contacts last ("The times you were born into"); empty groups never show; the
   group name heads its first card (sources by planet pair; snippets only, unverified). **The link is shown on the two charts themselves** (the Owner, v5: no third
   circle): each named chart ("You · Beatrice", "Athena") lights its own planet with a solid ring (no owner colours, v9),
   dims the rest, and shows the other person's planet as a faint dashed guest at its true degree; the angle is drawn
@@ -173,9 +172,8 @@ inside the report page at four phone sizes and on a computer, docs.
 
 ## Open questions (each with its default)
 Everything else was answered in the Owner's nine looks (2026-10-09) and is written into the sections above.
-1. Allow digits and "/" in names? Recommended and default: **yes**.
-2. Group the links by their faster planet, computed in code? Recommended and default: **yes**.
-3. Take the house drawings out of the loading story too (ADR-321)? Recommended and default: **yes**, words only.
+None. 2026-10-09: names stay as today; the walk's groups follow the pair doctrine (Decided by Claude, the Owner's ask);
+the house drawings leave the loading story.
 
 ## Decisions to record
 - Every planet, sign or house named in any report comes with its meaning, why it matters and an everyday example (the Owner).
@@ -197,4 +195,5 @@ Everything else was answered in the Owner's nine looks (2026-10-09) and is writt
 - This ideation's wheel is the model for every chart, the landing's included: one Ascendant marker, no MC line, no house
   drawings, grey-blue with brass only for what is lit (the Owner).
 - Every ideation mock shows phone and computer side by side (the Owner; CLAUDE.md and `/ideate`).
-- Pending: names with digits (yes); groups by the faster planet (yes); house drawings out of the loading story (yes).
+- Names unchanged (the Owner). House drawings leave the loading story, superseding ADR-321's drawings (the Owner).
+- The walk's groups follow the pair doctrine's order, tight before wide (Decided by Claude; the Owner: "the doctrine").

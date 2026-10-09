@@ -33,20 +33,21 @@ How the Owner decides; `/ideate` reads it first and edits it at its close (ADR-1
   share-cover); the real fix, never a fallback; **out of scope is not "never"** (stripe-payments).
 
 ## Asked for
-- **Opus for orchestrating, planning and research**, the verifier on any claim that feeds a decision (ADR-137, R-0.7);
-  this file after every ideation, `lessons.md` after every round (ADR-195).
+- **Opus for orchestrating, planning and research**, the verifier on claims that feed a decision (ADR-137, R-0.7); this file
+  after every ideation, `lessons.md` after every round (ADR-195).
 - **Fewer questions, each with a default.** At most three, highest stakes first, a recommendation and the silent default
-  (R-12.1); never a chore (R-12.5), "can you find the second one instead of me" (08/10). Read the day's locks and ideations
-  on the topic on every branch first: never re-ask what one settled, keep one product (release-one-findings, 2026-10-05).
+  (R-12.1); never a chore (R-12.5) ("find the second one instead of me", 08/10); a need only his testing has is no product
+  change ("just because of me… no", 09/10). Read the day's locks first; never re-ask what one settled (2026-10-05).
 - **Decide what a rule answers, then show him** (Decided by Claude; the Mailbox keeps only his, R-12.3). What only he
   holds he supplies or defers: build behind marked seams, never hold the round (R-12.4; one dated checklist).
-- **Testing is ours, never his** (2026-10-04); **no secret on GitHub, ever** (2026-09-25). **Think as the buyer, then decide**: options side by side with each side's view; he took gifting's B (2026-10-06).
+- **Testing is ours, never his** (10-04); **no secret on GitHub** (09-25); **think as the buyer, then decide** (gifting B, 10-06).
 - **Evidence before a claim; the cause, not the message.** "Are you sure? Can you give me an example" (review-05-10). A
   finding is traced to what broke: rewording B-40's error "makes no sense… fix the root cause" (walk-line, 2026-10-06).
 - **Words that can't go stale.** No price in the FAQ, "they might change after a discount"; a price shows only where read
   live, never before it's real; no promise twice. Test a line against every way to buy: "you pay for credits" (walk-line).
-- **Astrology calls are ours; the bar is @the_innercosmos** (explain-like-a-friend): her level, possibilities, full tradition.
-  Name what's special (a stellium, a retrograde pass) with placement, reason, scene: "I still go to search on TikTok" (08/10).
+- **Astrology calls are ours; the bar is @the_innercosmos** (explain-like-a-friend): her level, possibilities, full tradition;
+  the doctrine decides a method, never a question to him ("the doctrine should dictate", 09/10). Name what's special (a
+  stellium, a retrograde pass) with placement, reason, scene: "I still go to search on TikTok" (08/10).
 - **A card reads top-down** (idea, "for you", value, date; science behind an ⓘ); **a promise needs its proof** (timeline-page v3).
 
 ## Formats he likes

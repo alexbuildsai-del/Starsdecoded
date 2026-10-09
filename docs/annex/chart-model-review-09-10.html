@@ -239,12 +239,13 @@ button:focus-visible,summary:focus-visible,.body:focus-visible,input:focus-visib
 
 <div class="wrap">
   <header class="stack" style="gap:14px">
-    <span class="eyebrow">Ideation · 9 Oct 2026 · version 10, after your ninth look</span>
+    <span class="eyebrow">Ideation · 9 Oct 2026 · version 11, your answers in</span>
     <h1>Review 09/10</h1>
     <p class="lede">Your notes on Thibault's report and Alex and Luna's. Every chart here is the model wheel this session agreed, drawn from our engine's numbers, and every screen is shown on a phone and a computer.</p>
     <div class="panel changed">
       <h4>What changed since version 6 (versions 7 to 10)</h4>
       <ul>
+        <li><b>Version 11, your answers:</b> names stay as today; the walk's groups follow our pair doctrine's order (Sun and Moon, then Venus and Mars, then the rest, closest first); the house drawings leave the loading story.</li>
         <li><b>Version 10: this page's wheel is the model.</b> Not the landing page. Every chart, the landing page included, is brought to it: grey-blue, brass only for what's lit, no MC line. The landing page keeps its motion. This page is saved in the repo as the reference builders work from.</li>
         <li><b>Version 9, the walk's card is the live link card.</b> Same tags as the cards under the ledger today, "Comes naturally" in teal and "Challenge" in rose, with their dot; no new "Together" tag. The astrology goes in the same small grey line under the title ("Your Venus (6th, work) square Athena's Neptune (10th, career) · 3.8°"). "Try together" is the report's existing tick list. The angle words are the live ones: conjunct, sextile, square, trine, opposite.</li>
         <li><b>Version 9, three colours a screen:</b> the chapter's own colour for labels and progress, teal or rose for the link, and greys. The two purples are gone: whose planet is told by the chart's name and the ring, solid for its own planet, dashed for the guest.</li>
@@ -445,7 +446,7 @@ button:focus-visible,summary:focus-visible,.body:focus-visible,input:focus-visib
       <div class="dt"><span class="dlabel">Computer · inside the report, rail on the left</span><div class="scaler" data-w="1280" data-h="760"><div class="screen" id="walkDt" style="width:1280px;height:760px"></div></div></div>
       <div class="ph"><span class="dlabel">Phone · inside the report, chapter bar on top</span><div class="seg" role="group" aria-label="Phone size"><button data-ph="360x640" aria-pressed="false">Small Android</button><button data-ph="375x667" aria-pressed="false">iPhone SE</button><button data-ph="390x844" aria-pressed="true">iPhone 15</button><button data-ph="430x932" aria-pressed="false">Pro Max</button></div><div class="scaler phs" id="phScaler"><div class="screen" id="phScreen"><div id="walkPh" style="width:100%;height:100%"></div></div></div><span class="small" id="phFit"></span></div>
     </div>
-    <p class="small" style="max-width:70ch"><b style="color:var(--paper)">The groups</b> above aren't a fixed list any more. Each link goes to the group of its faster planet, worked out in code from the two planet names, so this pair gets seven groups and another pair gets others. A group with one link just shows its name on that card. Question 2.</p>
+    <p class="small" style="max-width:70ch"><b style="color:var(--paper)">The groups</b> follow our pair doctrine, not a list in a prompt: "luminaries and Venus and Mars before the rest", then "tight before wide". So the Sun's and Moon's links come first, then Venus's and Mars's, then Mercury, Jupiter and Saturn; each link sits under the first of its two planets in that order, the closest link first. Two slow outer planets together come last. A pair only gets the groups it has.</p>
     <p class="small">Mock data: Beatrice (born 8 Aug 1988, London) and her daughter Athena (born 22 Jan 2025, London), our parent-and-baby test pair, computed by the engine.</p>
   </section>
 
@@ -464,9 +465,7 @@ button:focus-visible,summary:focus-visible,.body:focus-visible,input:focus-visib
     <span class="eyebrow">Your answers so far · and what's left</span>
     <div class="qs">
       <div class="q"><b>Taken from your notes:</b><p class="small">The walk with no scenes and no third circle; Chiron, the nodes and R back on the cards; the hero stacked plus two skies, no line, smaller names; the landing wheel kept as the backbone; no house drawings in the primer; phone and computer in every mock. Since version 5: no MC line, a grey-blue chart with brass for what's lit, the aspect lines as the site draws them, the shape inside each walk chart, and the phone walk checked at four sizes. Questions 1 to 3 stay open; if you say nothing, each takes its default.</p></div>
-      <div class="q"><b>1. Allow numbers in names?</b><p class="small">Letters, spaces and . ' - today. I recommend adding digits and "/", so you can name test reports "Alexandra 9/10". Default: yes.</p></div>
-      <div class="q"><b>2. Group the links by their faster planet?</b><p class="small">Each link joins the group of its quicker-moving planet (Moon, Mercury, Venus, Sun, Mars, Jupiter, Saturn), so the groups come from the two charts, not from a fixed list. A pair gets only the groups it has. Contacts between two slow outer planets go last, as "The times you were born into". Sources list synastry planet pair by planet pair, which fits, but I could only read search snippets, not the pages. Default: yes.</p></div>
-      <div class="q"><b>3. The house drawings are also in the loading story (since R18, ADR-321). Take them out there too?</b><p class="small">I recommend yes, words only ("4 · HOME"), the way the landing wheel does it. Default: yes.</p></div>
+      <div class="q"><b>Your answers, 9 Oct</b><p class="small">1. Names stay as they are today, no numbers. 2. The grouping is an astrology call, so the doctrine decides it (above). 3. Yes: the house drawings leave the loading story too, words only.</p></div>
     </div>
   </section>
 </div>
@@ -705,8 +704,9 @@ venus:'data:image/webp;base64,UklGRkwLAABXRUJQVlA4WAoAAAAQAAAAvwAAvwAAQUxQSIcFAA
       d.insertAdjacentHTML("beforeend","<b>"+n+"</b><span>"+t+"</span>"+(a?"<span class='mono' style='font-size:11px'>Your "+NAME[a]+" · Athena's "+NAME[b]+"</span>":""));host.appendChild(d);});
   })();
 
-  // The walk. Each link goes to the group of its faster planet, computed from the two planet names; empty groups never show.
-  const SPEED=["moon","mercury","venus","sun","mars","jupiter","saturn"];
+  // The walk. The pair doctrine's order (pair/index.ts: "luminaries and Venus and Mars before the rest", "tight before
+  // wide"): a link files under its first planet in that order; outer with outer last; empty groups never show.
+  const SPEED=["sun","moon","venus","mars","mercury","jupiter","saturn"];
   const GROUP={moon:"Feelings and comfort",mercury:"Talking",venus:"Affection",sun:"Who you are",mars:"Drive and friction",jupiter:"Growing",saturn:"Limits and staying power",outer:"The times you were born into"};
   const LINKS=[
     {a:"pluto",b:"moon",type:"together",kind:"touch",orb:0.3,title:"Your deep feelings and Athena's need for comfort",
