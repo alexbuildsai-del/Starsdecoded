@@ -32,7 +32,7 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
      line #242C3B, line-soft #1A202C, line-strong for things over the page, control-edge #5A6684 (new, 3.3:1), paper
      #E8EBF2, paper-dim #AEB6C6, muted #7E889A, label-dim #767F92 (the barely-there label, 4.5:1; open question 4),
      indigo #5C6BC0 (fills only), on-indigo #FFFFFF (4.9:1), indigo-lt #9FA8DA (indigo text and links), violet
-     #9575CD, brass #D4B06A, brass-dim #8A7343, rose #C46B78, back #D98C8C (a planet going backwards), error #E79AB2,
+     #9575CD, brass #D4B06A, brass-dim #8A7343, rose #D9668A (heavy and challenge, one rose), back #E24D4D (a planet going backwards, the chart's red, 4.7:1), error #E79AB2,
      teal #3FA796. Chapter and element hues stay as their own data group (`chapter-accent.ts` reads them).
    - shadcn names (`primary`, `muted-foreground`, `card`, `border`, `ring`, `destructive`) map onto these roles;
      `sidebar-*`, `chart-1..5`, `elevate-*`, the four palette copies and the `@replit` comments go.
@@ -63,8 +63,9 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
      a bottom sheet on touch), PlacementLabel (Mercury · 0°19′ · Gemini · 5th house; a row; no birth time), EmptyState. Atoms also hold Logo (Mark, Wordmark, app icon; one Wordmark part replaces three copies).
    - Organisms: Sheet (one bottom sheet, plus the dashboard's peek version), Dialog (today's Share frame is the
      standard), TopBar, ReportBlocks, HouseCard (its planet row, removed by R19-48, comes back), Checklist,
-     ChartDrawings, Footer. The chart parts are sorted and redrawn by the Review 09/10 ideation and kept as
-     today until it locks. Flows on Sheet and Dialog, every step kept: Add someone, Payments, Gift, Share, New
+     ChartDrawings, Footer. Charts: the 12 parts of the Review 09/10 chart system (one chart in states, its
+     own page per part), with my state review; chart data colours `line-easy` #3BB3DB and `line-tense` #E24D4D;
+     brass means lit. Open: the Timeline dial, the share image, print, and the Full chart's interactive states. Flows on Sheet and Dialog, every step kept: Add someone, Payments, Gift, Share, New
      Compatibility (every choice), Ask (its own panel), Add birth time, Confirms, Waitlist, Quick look.
    - Templates: SitePage, ReportPage, TimelinePage, AppPage, LoadingStory, AdminPage.
    - Removed: EvidenceLine, SaveReportCta, AspectChip, `ui/tooltip` (no importers).
@@ -160,7 +161,7 @@ All Decided by Claude unless the Owner changes them; the rule each follows is in
 3. 15 named type styles with an 11 px floor; corners 6, 8, 14, 20, pill; one curve and three durations; three
    depths (HIG Typography, Dark Mode).
 4. New palette entries: control-edge #5A6684, on-indigo white, indigo-lt for indigo text, error #E79AB2, back
-   #D98C8C, label-dim #767F92 (WCAG 1.4.3, 1.4.11; HIG Dark Mode).
+   #E24D4D, label-dim #767F92 (WCAG 1.4.3, 1.4.11; HIG Dark Mode); rose and back follow the chart system (Review 09/10).
 5. Every part has its page: use for, not for, versions, states, access, do and don't (GOV.UK and Material
    practice; the Owner's ask, 2026-10-09).
 6. A new part only through the five steps; a version inside the tokens is Claude's, a new look is the Owner's
