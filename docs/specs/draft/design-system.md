@@ -1,7 +1,12 @@
 # Design system (draft)
 
-Status: draft, 2026-10-09 · Artifact: https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA49 · Supersedes nothing;
-extends MASTERFILE §9 and `/web-taste`.
+Status: draft, 2026-10-09 · Design System (Today beside After, every part): https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i ·
+first ideation page: https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA49 · Supersedes nothing; extends MASTERFILE §9 and `/web-taste`.
+
+**The Owner's direction (2026-10-09):** lift today's look, don't redraw it. Today's best card is the standard (a quiet
+grey label, a big title, the body, a mono data line, two buttons); only Share moves, to the far end of the row. The
+birth date, time and place fields stay as they are. Chips keep their icon slot (tone dot, R badge, planet render).
+Code first: keep Tailwind, shadcn and Radix, adapt what exists. Every removed or merged example is shown by number.
 
 ## Why
 
@@ -16,34 +21,42 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
 
 ## Scope
 
-1. **Tokens** in `packages/design` (`@workspace/design`): `tokens.json` in DTCG 2025.10 format, three tiers
-   (palette, roles, component tokens only where a part needs one). Generated `tokens.css` (Tailwind v4 `@theme`,
-   classes like `bg-surface`, `text-paper-dim`, `border-line`) and `tokens.ts` (SVG drawings, `api/src/lib/mailer.ts`,
-   `scripts/render-brand.mjs`, the marketing kit). Generated files are never hand-edited.
-   - Palette: void #06080C, ground #0D1117, surface #11161F, raised #171D29, line #242C3B, line-soft #1A202C,
-     line-strong #5A6684 (new, 3.3:1, control edges), paper #E8EBF2, paper-dim #AEB6C6, muted #7E889A, indigo
-     #5C6BC0 (fills only, white text 4.9:1), indigo-lt #9FA8DA (indigo text and links), violet #9575CD, brass
-     #D4B06A, brass-dim #8A7343, rose #C46B78, rose-lt #E79AB2 (error text), teal #3FA796. Chapter and element hues
-     stay as their own data group (`chapter-accent.ts` reads them from tokens).
+1. **Tokens** in `packages/design` (`@workspace/design`): the source is a Tailwind v4 `@theme` file, `tokens.css`
+   (classes like `bg-surface`, `text-paper-dim`, `border-line`, `rounded-card`, `text-card-title`), the best practice
+   for our stack. A `tokens.ts` mirror, checked equal to it by `check:ds`, feeds the SVG drawings,
+   `api/src/lib/mailer.ts`, `scripts/render-brand.mjs` and the marketing kit. No DTCG file.
+   - Palette (37 tokens, the artifact's `tokens.json`): void #06080C, ground #0D1117, surface #11161F, raised #171D29,
+     line #242C3B, line-soft #1A202C, line-strong for things over the page, control-edge #5A6684 (new, 3.3:1), paper
+     #E8EBF2, paper-dim #AEB6C6, muted #7E889A, label-dim #767F92 (the barely-there label, 4.5:1; open question 4),
+     indigo #5C6BC0 (fills only), on-indigo #FFFFFF (4.9:1), indigo-lt #9FA8DA (indigo text and links), violet
+     #9575CD, brass #D4B06A, brass-dim #8A7343, rose #C46B78, back #D98C8C (a planet going backwards), error #E79AB2,
+     teal #3FA796. Chapter and element hues stay as their own data group (`chapter-accent.ts` reads them).
    - shadcn names (`primary`, `muted-foreground`, `card`, `border`, `ring`, `destructive`) map onto these roles;
      `sidebar-*`, `chart-1..5`, `elevate-*`, the four palette copies and the `@replit` comments go.
-   - Type: eight sizes 11 · 12 · 13 · 15 · 17 · 20 · 28 · 34 (display grows to 56 on wide screens). Floor 11 px.
-     Fonts unchanged (Newsreader, Inter, Space Grotesk, IBM Plex Mono), one name each.
-   - Corners 6 (controls) · 12 (cards) · 20 (sheet tops) · full (chips). Spacing: the 4 px scale only.
+   - Type: 15 named styles taken from today's best uses. Display (Newsreader 400): hero 40, section 34, page-title 30,
+     sheet-title 24, card-title 20, lede 18. Text (Inter): prose 15, ui 14, small 13.5, caption 12. Label (Space
+     Grotesk): kicker 11 at .24em, label 11 at .16em, button 14.5, button-compact 13. Numbers (Plex Mono, tabular):
+     data 12, data-sm 11, stat 28. Floor 11 px. Fonts unchanged.
+   - Corners: inner 6 · control 8 · card 14 · sheet 20 · pill. Spacing: the 4 px scale only.
    - Motion: one curve `cubic-bezier(.16,1,.3,1)`, three durations 150 · 300 · 600 ms; loading stories keep their
      own timelines. Depth: page, card, raised (sheets, menus, windows).
 2. **The library** in `web/src/ds/` by level: `atoms/`, `molecules/`, `organisms/`, `templates/`. Feature folders
    (`components/report`, `dashboard`, `timeline`, `site/`) compose parts only.
-   - Atoms: Button (rework of `ui/button`: primary, secondary, text, danger; regular 44 px, compact 32 px seen with
-     a 44 px tap area; busy state is StatusDots), Eyebrow, Heading, Text, Numeral, Chip, StatusDots, ToneDot, TickBox,
-     Input, Textarea, Label, Select (new), Mark, Wordmark.
-   - Molecules: Card (surface, glass, tint), Field, Alert and InlineError, SegmentedControl, ListRow, Menu, Popover,
-     EmptyState, EvidenceCard, FactCard, TriadRow, ProgressBar.
-   - Organisms: Sheet (one bottom sheet), Dialog and ConfirmDialog, AppHeader, drawing layers SignRing, PlanetBody,
-     TriadRing on `chart/wheel-geometry.ts`; ShareWindow, AskPanel, GiftFlow, QuickLook rebuilt on Sheet and Dialog.
-   - Templates: SiteLayout, AppPage, ReportChapter, LoadingFrame, AdminPage, LegalLayout.
+   - Atoms: Button (`ui/button` reworked onto the site's 46 px button: primary, secondary, danger, full; compact 36 px
+     seen with a 44 px tap area; busy state is StatusDots), TextButton, Eyebrow, Heading, Numbers, Chip (with its icon
+     slot: ToneDot, RetrogradeBadge or PlanetBody), ToneDot, RetrogradeBadge, StatusDots, Skeleton and Progress,
+     TickBox, Input, Mark, PlanetBody.
+   - Molecules: Card (surface, glass, tint, tone; today's favourite card is the standard, Share at the row's far end),
+     Well and Strip, SegmentedControl, ChoiceTile, BirthFields (kept as is, place search included), InlineError and
+     Alert, Menu and Popover, EmptyState.
+   - Organisms: Sheet (one bottom sheet), Dialog, TopBar, ReportBlocks, HouseCard, Checklist, ChartDrawings
+     (SignRing, TriadRing on `chart/wheel-geometry.ts`), Footer; ShareWindow, AskPanel, GiftFlow, QuickLook rebuilt
+     on Sheet and Dialog.
+   - Templates: SitePage, ReportPage, TimelinePage, AppPage, LoadingStory, AdminPage.
    - Removed: EvidenceLine, SaveReportCta, AspectChip, `ui/tooltip` (no importers).
-   - The full keep, rework, merge, new and remove list is in the artifact's Library section.
+   - Every today example has a number and a fate (The standard, Becomes, Kept as is, Small change, Removed, New)
+     in the Design System: B buttons, C cards, K labels, T titles, P chips, W loading, X errors, O overlays, F fields,
+     N top bars, R removed. "Keep C5" keeps one.
 3. **A page per part**, beside its file (`Button.doc.md`): level, what it replaces, use it for, not for,
    versions, states, access (tap size, contrast, keyboard), do and don't, and a live example.
 4. **Where it is seen**: `/admin/design` on staging, the real parts live (admin-gated, not prerendered); and a
@@ -64,31 +77,36 @@ We have a style but no set of parts. The audit of 165 `.tsx` files (2026-10-09) 
 ## Out of scope
 
 - Any change to what the report says (no brain file touched; the dry lab does not run).
-- A new look: colours, fonts and layout stay as approved; the only visible changes are the floors in Scope 7
-  and near-copy colours snapping to their token, each shown before and after at 390 px.
+- A new look: colours, fonts and layout stay as approved; the visible changes are the floors in Scope 7,
+  near-copy colours snapping to their token, outliers taking the standard part, and Share moving to the row's end,
+  each shown in the Design System and again at 390 px in the round report.
+- The birth date, time and place fields (kept as is, by the Owner).
 - Figma. It can be fed later from `tokens.json`.
 - Installing a third-party HIG review skill (see Decisions).
 - Light mode.
 
 ## Acceptance criteria
 
-1. `tokens.json` is the only place a colour, size, corner, shadow or duration is written; `index.css`,
+1. `tokens.css` (with its checked `tokens.ts` mirror) is the only place a colour, size, corner, shadow or duration is written; `index.css`,
    `site.css`, `mailer.ts`, `render-brand.mjs` and the marketing kit read the generated files.
 2. `bg-primary` and `text-[#5C6BC0]` render the same indigo; no off-palette colour remains in the shadcn tokens.
 3. No text below 11 px on any page; every button and tappable row is at least 44 px tall or has a 44 px tap area.
 4. Every role pair passes `check:ds` contrast; field and control edges are at least 3:1.
-5. Every part in `web/src/ds` has its page; `/admin/design` and the Design System artifact show all of them.
+5. Every part in `web/src/ds` has its page; `/admin/design` and the Design System artifact show all of them,
+   Today beside After.
 6. `check:ds` runs in CI; its count never rises; at R21's close it is zero outside the allow-listed drawings,
    which use `tokens.ts` values.
-7. Each screen's before and after at 390 px sits in the round report; nothing else on a screen moved.
+7. Each screen's before and after at 390 px sits in the round report, signed-in pages included (dashboard,
+   account, Timeline app, checkout: not shot in the ideation); nothing else on a screen moved.
 8. The buyer walk, `check:shipped`, typecheck and both builds pass at every round's close.
 
 ## Screens
 
-The artifact holds: the audit in numbers, every colour in use, the two indigos, the text sizes in use, one card
-before and after, how the pieces connect, the palette with contrast, the type scale, corners and motion, the
-library with each part's fate, the Button page in full, Card, Field and the small parts, the five rules, the
-Apple table, and the two rounds. https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA49
+The Design System (https://claude.ai/artifact/1t3VBK8eqDmqC2pTZbWd8i) holds 40 part cards, each with Today
+(real class names compiled with today's tokens, or a staging screenshot at 390 px) beside After: Foundations
+(Colours, TypeScale), 15 atoms, 8 molecules, 8 organisms, 6 templates, and Removed; plus the brand book, the
+tokens, and the screens, planets and logos as assets. The first ideation page holds the audit in numbers, the
+two indigos, the Apple table and the rounds: https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA49
 
 ## Rounds
 
@@ -108,18 +126,23 @@ Apple table, and the two rounds. https://claude.ai/artifact/CubRdNjHxtkGRQeowTnA
    indigo-lt, button text turns white. Recommendation: yes. Default: yes, with before and after in the report.
 3. **Where does the Owner browse it?** Recommendation: the Design System artifact plus `/admin/design`; no Figma
    for now. Default: both, no Figma.
+4. **The barely-there label:** #6E7789 (today, 4.0:1 on a card) or #767F92 (4.5:1, looks almost the same)?
+   Recommendation: #767F92. Default: #767F92.
+5. **App buttons take the site's 46 px button?** It moves the dashboard, sheets and report bar the most.
+   Recommendation: yes. Default: yes.
+6. **Anything tagged Removed or Becomes to keep?** Say its number. Default: none.
 
 ## Decisions to record
 
 All Decided by Claude unless the Owner changes them; the rule each follows is in brackets.
 1. The design system lives in `packages/design` (tokens) and `web/src/ds` (parts by atomic level); it is the only
    source for any value or part (one kind of thing, one look, ADR-172).
-2. Tokens in DTCG 2025.10 format, three tiers; the documented hexes are the palette; shadcn names map onto roles;
-   leftovers deleted (MASTERFILE §9, consistency over novelty).
-3. Eight text sizes with an 11 px floor; corners 6, 12, 20, full; one curve and three durations; three depths
-   (HIG Typography, Dark Mode).
-4. New palette entries: line-strong #5A6684 for control edges, white text on indigo fills, indigo-lt for indigo
-   text, rose-lt for error text (WCAG 1.4.3, 1.4.11; HIG Dark Mode).
+2. Tokens as a Tailwind v4 `@theme` file with a checked `tokens.ts` mirror, not DTCG; the documented hexes are the
+   palette; shadcn names map onto roles; leftovers deleted (the Owner: code first, Tailwind best practice).
+3. 15 named type styles with an 11 px floor; corners 6, 8, 14, 20, pill; one curve and three durations; three
+   depths (HIG Typography, Dark Mode).
+4. New palette entries: control-edge #5A6684, on-indigo white, indigo-lt for indigo text, error #E79AB2, back
+   #D98C8C, label-dim #767F92 (WCAG 1.4.3, 1.4.11; HIG Dark Mode).
 5. Every part has its page: use for, not for, versions, states, access, do and don't (GOV.UK and Material
    practice; the Owner's ask, 2026-10-09).
 6. A new part only through the five steps; a version inside the tokens is Claude's, a new look is the Owner's
@@ -128,8 +151,8 @@ All Decided by Claude unless the Owner changes them; the rule each follows is in
 8. Seen at `/admin/design` and a Design System artifact republished each round close (R-8.1 pattern).
 9. No third-party HIG skill: `dickwu/apple-design-skill` targets native apps and has no licence file;
    `gotired/apple-design-skills` has no licence; the verified rules go into our pages and `/web-taste` instead.
-10. The migration keeps the approved look; only the floors and colour snaps change, shown before and after
-    (playbook: never redesign what is approved).
+10. The migration lifts today's look; today's favourite card is the standard, Share moves to the row's far end,
+    the birth fields stay, chips keep their icon slot (the Owner, 2026-10-09).
 11. Two rounds, R20 and R21; no brain change, no lab.
 
 ## Sources (verified 2026-10-09, supported only)
@@ -142,7 +165,6 @@ All Decided by Claude unless the Owner changes them; the rule each follows is in
 - HIG Sheets (a scoped task; one at a time), Alerts (sparingly), Motion (optional): /sheets, /alerts, /motion
 - WCAG 2.2 SC 1.4.3, 1.4.11, 2.5.8 (24 px AA), 2.5.5 (44 px AAA): w3.org/TR/WCAG22
 - Atomic design, five levels, "not rigid dogma", names may change: atomicdesign.bradfrost.com/chapter-2
-- DTCG format 2025.10 stable, released 2025-10-28: github.com/design-tokens/community-group
 - Material Web theming, reference, system and component tokens: github.com/material-components/material-web
 - GOV.UK Design System pages ("When to use", "When not to use", "How it works"): design-system.service.gov.uk
 - Skills: github.com/dickwu/apple-design-skill (1.1k stars, 383-line SKILL.md, no LICENSE),
